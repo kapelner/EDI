@@ -30,51 +30,51 @@ waiting on v1.1.0's Phase 0 decisions. See
 [`release_v1_0_5.md`](R/package_metadata/future_release_plans/release_v1_0_5.md)
 for the full index.
 
-- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md)** —
+- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/bug_fix_plans/v1_0_5/KKQuantileRegrOneLik_rand_ci.md)** —
   the continuous and proportion one-likelihood quantile-regression
   classes' randomization CI silently collapsed to a zero-width interval
   instead of erroring; temporarily disabled pending a real fix.
-- **[Faster zero-one-inflated Beta resampling](R/package_metadata/bug_fix_plans/reusable_bootstrap.md)** —
+- **[Faster zero-one-inflated Beta resampling](R/package_metadata/finished_features/v1_0_5/reusable_bootstrap.md)** —
   the jackknife/bootstrap for this class stops rebuilding its model from
   scratch per fold, with bit-identical results.
-- **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/randomization_ci_affine_shift_reuse.md)** —
+- **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_affine_shift_reuse.md)** —
   ~20–30× on `compute_confidence_interval_rand()` for mean-difference,
   OLS, and Lin-adjusted analyses: an exact shift identity lets one null
   distribution serve the entire CI search instead of ~20–35 of them.
-- **[Much faster OLS randomization distributions](R/package_metadata/new_feature_plans/ols_randomization_distr_cpp_wiring.md)** —
+- **[Much faster OLS randomization distributions](R/package_metadata/new_feature_plans/v1_0_5/ols_randomization_distr_cpp_wiring.md)** —
   ~20–50×: OLS randomization tests move from an R-level per-replicate
   loop onto an existing C++ batch kernel; multiplicative with the item
   above. Eight dead kernel exports get wired in or deleted in the same
   pass.
-- **[No more silent garbage standard errors](R/package_metadata/bug_fix_plans/guard_unguarded_information_inverse.md)** —
+- **[No more silent garbage standard errors](R/package_metadata/bug_fix_plans/v1_0_5/guard_unguarded_information_inverse.md)** —
   five `with_var` kernels (NegBin, ZINB, zero-augmented Poisson ×2, Beta)
   currently return a finite but meaningless SE on a near-singular design;
   they gain the invertibility guard their siblings already have and
   return `NA` instead. Bit-for-bit on all healthy fits.
-- **[Randomization CI construction audit](R/package_metadata/new_feature_plans/randomization_ci_construction_audit.md)** —
+- **[Randomization CI construction audit](R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_construction_audit.md)** —
   fixed: six Cox-family classes' randomization CI shifted responses on
   the log-time scale but seeded, bracketed, and reported on the
   log-hazard-ratio scale, producing a CI whose lower bound equaled the
   point estimate; those classes now refuse the capability with an
   explanation. A second, unrelated question about the null construction
   was investigated and closed with no code change.
-- **[KK21 ordinal weight callback can crash R](R/package_metadata/bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md)** —
+- **[KK21 ordinal weight callback can crash R](R/package_metadata/bug_fix_plans/v1_0_5/kk21_ordinal_weight_callback_unprotected_temporaries.md)** —
   with `ordinal_use_speedup = FALSE`, the one C++ kernel that calls back
   into R hands it two unprotected temporaries, so a garbage collection at
   the wrong moment yields NaN weights, an R error, or a segfault. Three-line
   protection fix, bit-for-bit otherwise; the default speedup path is
   unaffected.
-- **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md)** —
+- **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/bug_fix_plans/v1_0_5/clayton_loggamma_frailty_optimizer_stability.md)** —
   fixed a ~200× bimodal slowdown (found via a comprehensive-test-harness
   timing investigation) traced to an unbounded C++ optimizer parameter
   plus a stale-gradient mismatch that could leave the optimizer thrashing
   toward its iteration cap.
-- **[Stereotype-logit multimodal likelihood](R/package_metadata/bug_fix_plans/multimodal_log_liks.md)** —
+- **[Stereotype-logit multimodal likelihood](R/package_metadata/bug_fix_plans/v1_0_5/multimodal_log_liks.md)** —
   the ordinal stereotype-logit class's own unconstrained fit can silently
   land on a non-global optimum in a small share of small-sample fits;
   needs a multi-start fit plus golden/reference-parity re-derivation,
   since it changes reported estimates.
-- **[Stale worker-cache in reused-worker resampling](R/package_metadata/bug_fix_plans/stale_worker_cache_resampling.md)** —
+- **[Stale worker-cache in reused-worker resampling](R/package_metadata/bug_fix_plans/v1_0_5/stale_worker_cache_resampling.md)** —
   fixed: several classes' randomization/bootstrap tests silently reused
   the first resampling draw's fit for every subsequent draw, collapsing
   the whole resampling distribution to a constant (one class rejected a
@@ -83,26 +83,26 @@ for the full index.
   gap one field over (a stale `cached_mod` reset, same shape, no class
   currently reaches it — a landmine, not a live defect) is tracked in the
   same plan's `TODO-9`.
-- **[MC coverage-truth wrong covariate set](R/package_metadata/bug_fix_plans/mc_coverage_truth_covariate_mismatch.md)** —
+- **[MC coverage-truth wrong covariate set](R/package_metadata/bug_fix_plans/v1_0_5/mc_coverage_truth_covariate_mismatch.md)** —
   fixed: the test harness's Monte-Carlo "true" coverage target for ~25
   non-collapsible classes (Cox, logit/probit, GLMM/GEE) was computed
   against a synthetic single covariate while the graded results used the
   real dataset's full covariate matrix — a harness bug, not an inference
   bug. Two Cox classes' truth remains unresolved pending further work.
-- **[Cox Bartlett-approx likelihood-ratio correction](R/package_metadata/new_feature_plans/enable_cox_bartlett_approx.md)** —
+- **[Cox Bartlett-approx likelihood-ratio correction](R/package_metadata/new_feature_plans/v1_0_5/enable_cox_bartlett_approx.md)** —
   resolved: a full validation run showed no calibration benefit over
   plain Wald for the Cox proportional-hazards class; decision is to leave
   this path disabled.
-- **[`InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization NA bugs](R/package_metadata/bug_fix_plans/prop_gcomp_sample_usable_gating.md)** —
+- **[`InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization NA bugs](R/package_metadata/bug_fix_plans/v1_0_5/prop_gcomp_sample_usable_gating.md)** —
   fixed: two unrelated classes' randomization-based inference returned
   `NA` on every resampling draw in production (a worker-state gating gap
   and an arithmetic NA-propagation gap, respectively — see also
-  [the IVWC pooling fix](R/package_metadata/bug_fix_plans/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md)).
-- **[`InferenceContinLin` parametric-bootstrap Type-I error](R/package_metadata/bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md)** —
+  [the IVWC pooling fix](R/package_metadata/bug_fix_plans/v1_0_5/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md)).
+- **[`InferenceContinLin` parametric-bootstrap Type-I error](R/package_metadata/bug_fix_plans/v1_0_5/contin_lin_param_bootstrap_bad_type1_error.md)** —
   this class's parametric-bootstrap/likelihood-ratio methods over-reject a
   true null in a design-dependent way (nominal on some designs, 8× nominal
   on others); root cause not yet pinned down.
-- **[Ordinal cumulative-link parametric-bootstrap inference](R/package_metadata/bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md)** —
+- **[Ordinal cumulative-link parametric-bootstrap inference](R/package_metadata/bug_fix_plans/v1_0_5/ordinal_cumulative_link_null_refit_multistart.md)** —
   found investigating the cumulative-log-log (cloglog) ordinal class's
   60% false-positive rate on its parametric-bootstrap p-value: a
   single-start null refit (fixed — the same mechanism as a sibling fix to
@@ -112,7 +112,7 @@ for the full index.
   isolated to this one class after auditing five superficially similar
   ordinal classes.
 
-- **[Cox risk-set cache staleness guard](R/package_metadata/bug_fix_plans/cox_risk_set_cache_staleness.md)** —
+- **[Cox risk-set cache staleness guard](R/package_metadata/bug_fix_plans/v1_0_5/cox_risk_set_cache_staleness.md)** —
   `InferenceCoxPH` and `InferenceStratifiedCoxPH` cache their prebuilt
   risk sets but invalidate only when the treatment vector changes, while
   the cache also embeds the response and event indicator. No wrong result
@@ -120,7 +120,7 @@ for the full index.
   closes the guard in both classes and sweeps for the same pattern
   elsewhere.
 
-- **[Identity-link risk-difference subsampling inflation](R/package_metadata/bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md)** —
+- **[Identity-link risk-difference subsampling inflation](R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_binomial_identity_subsampling_inflation.md)** —
   `InferenceIncidBinomialIdentityRiskDiff` rejects about 2.6 times too often
   on its subsampling and m-out-of-n bootstrap p-values, regardless of the
   covariate formula. The leading hypothesis is that fits on small
@@ -128,142 +128,182 @@ for the full index.
   biasing the reference distribution. An investigation comes first; any fix
   waits on confirming the cause.
 
-- **[Random-effect variance collapse in mixed-model fits](R/package_metadata/bug_fix_plans/glmm_variance_component_sigma_collapse.md)** —
+- **[Random-effect variance collapse in mixed-model fits](R/package_metadata/bug_fix_plans/v1_0_5/glmm_variance_component_sigma_collapse.md)** —
   Several random-intercept fitters (the KK ordinal CLMM classes, the
   logistic GLMM, the KK count GLMM under Newton) can slide the
   random-effect scale to its lower boundary, report convergence, and return a
   worse fit and a biased treatment effect; in one pinned case the KK ordinal
   CLMM class returned the fixed-effects estimate. Found from test-author
   notes; extent still to be measured.
-- **[Ridit `reference = "treatment"` degeneracy](R/package_metadata/bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md)** —
+- **[Ridit `reference = "treatment"` degeneracy](R/package_metadata/bug_fix_plans/v1_0_5/ridit_treatment_reference_degenerate_estimate.md)** —
   With the treated group as the reference, the ridit estimate is identically
   zero regardless of the data. The plan decides whether to redefine,
   refuse, or document the option.
-- **[Randomization-CI upper-bound refinement](R/package_metadata/bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md)** —
+- **[Randomization-CI upper-bound refinement](R/package_metadata/bug_fix_plans/v1_0_5/rand_ci_high_precision_refinement_upper_bound.md)** —
   The optional high-precision refinement step treats an upper bound like a
   lower bound and can settle at the wrong end of its bracket. Reach on real
   calls is to be established.
-- **[Interval-censored log-rank/Gehan cache guard](R/package_metadata/bug_fix_plans/interval_censored_compute_shared_cache_guard.md)** —
+- **[Interval-censored log-rank/Gehan cache guard](R/package_metadata/bug_fix_plans/v1_0_5/interval_censored_compute_shared_cache_guard.md)** —
   Under general censoring, asking for the estimate alone and then a full fit
   leaves the standard error unset and crashes the asymptotic interval.
-- **[Small defects from test-author notes](R/package_metadata/bug_fix_plans/test_comment_audit_small_defects.md)** —
+- **[Small defects from test-author notes](R/package_metadata/bug_fix_plans/v1_0_5/test_comment_audit_small_defects.md)** —
   A batch of smaller defects and open questions that tests pinned but did not
   fix: a crash on `delta = NA`, exact-test resampling, a fresh-process crash
   in the zero-one-inflated Beta kernel, a trailing incomplete block in one
   optimal-blocks design path, and silent `NA` results without recorded
   reasons.
 
-- **[`InferenceAllSimpleAverageDiff` bootstrap/jackknife standard-error quality](R/package_metadata/bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md)** —
+- **[`InferenceAllSimpleAverageDiff` bootstrap/jackknife standard-error quality](R/package_metadata/bug_fix_plans/v1_0_5/investigate_average_diff_bayesian_jackknife_se_quality.md)** —
   The studentized Bayesian-bootstrap and jackknife-Wald intervals are the
   worst-covering methods for this class across all five response types.
   An open investigation; the leading, unconfirmed hypothesis is an
   effective-sample-size asymmetry in the standard error.
 
-- **[KK21stepwise randomization p-values are conservative](R/package_metadata/bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md)** —
+- **[KK21stepwise randomization p-values are conservative](R/package_metadata/bug_fix_plans/v1_0_5/investigate_kk21stepwise_incidence_randomization_pval_conservative.md)** —
   Under a true null and the KK21stepwise design, randomization p-values for
   incidence responses are too large on average (no rejections in 60 simulated
   nulls), which costs power but not validity. The cause is shared design-replay
   or randomization machinery; an investigation comes first.
 
-- **[Wilcoxon resampling p-values collapse to exactly 1](R/package_metadata/bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md)** —
+- **[Wilcoxon resampling p-values collapse to exactly 1](R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md)** —
   the simple Wilcoxon class's Hodges-Lehmann estimate frequently lands on
   exactly 0 on tied data, which saturates the resampling-family p-value
   formula's upper clamp (and, by the same mechanism, its resampling CI
   coverage). A Wald-family variant of this bug was already fixed; the
   resampling-family methods were simply never touched by that fix.
-- **[Unclamped bootstrap noise on binary/ordinal responses](R/package_metadata/bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md)** —
+- **[Unclamped bootstrap noise on binary/ordinal responses](R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md)** —
   the `smoothed` randomization-bootstrap p-value's noise-injection step has a
   rounding/clamping special case for count responses but none for
   binary/ordinal ones, so continuous noise lands on 0/1 or integer-coded
   data — one shared bug hitting dozens of (class, response type) cells with
   wildly different severity.
-- **[`InferenceIncidKKModifiedPoisson` standard-error quality](R/package_metadata/bug_fix_plans/investigate_incid_kk_modified_poisson_se_quality.md)** —
+- **[`InferenceIncidKKModifiedPoisson` standard-error quality](R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_modified_poisson_se_quality.md)** —
   open investigation into this class's chronic under-rejection across every
   test-statistic family at once. The original over-estimated-SE magnitude
   didn't hold up under a faithful replay, though the under-rejection itself
   did reproduce; still unresolved.
-- **[Quantile-regression bootstrap tie-sensitivity](R/package_metadata/bug_fix_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md)** —
+- **[Quantile-regression bootstrap tie-sensitivity](R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_bootstrap_family_inflation.md)** —
   open investigation into why this class's bootstrap-family p-values
   (but not its permutation p-value) are badly miscalibrated; the leading,
   unreproduced idea is that with-replacement resampling creates exact row
   ties that destabilize the quantile-regression fit — possibly a
   documented limitation rather than a fixable bug.
-- **[KK-GEE bootstrap-family inflation](R/package_metadata/bug_fix_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md)** —
+- **[KK-GEE bootstrap-family inflation](R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md)** —
   open investigation, largely inconclusive: the leading hypothesis (a
   cluster-bootstrap mishandling of singleton/matched-pair groups) was
   refuted by both code reading and direct reproduction, and the original
   historical finding itself could not be reproduced with a fresh fixture.
-- **[RMST inconsistent truncation horizon between arms](R/package_metadata/bug_fix_plans/rmst_mismatched_truncation_horizon.md)** —
+- **[RMST inconsistent truncation horizon between arms](R/package_metadata/bug_fix_plans/v1_0_5/rmst_mismatched_truncation_horizon.md)** —
   the restricted-mean-survival-difference class computes each arm's
   truncation point independently instead of sharing one across arms,
   producing severe CI undercoverage; the fix intentionally changes the
   point estimate for mismatched-follow-up data, unlike most other items
   here.
-- **[KK-matched Cox proportional-hazards CI undercoverage](R/package_metadata/bug_fix_plans/survival_kk_cox_coverage_variance.md)** —
+- **[KK-matched Cox proportional-hazards CI undercoverage](R/package_metadata/bug_fix_plans/v1_0_5/survival_kk_cox_coverage_variance.md)** —
   isolated to the KK-matching/reservoir-split mechanism (plain Cox and
   stratified-Cox are unaffected); one sub-class's inverse-variance pooling
   of matched-pair and reservoir estimates likely ignores their correlation,
   the other's root cause is still unidentified.
-- **[Reused bootstrap worker never resets its cached design matrix](R/package_metadata/bug_fix_plans/bootstrap_worker_stale_design_matrix.md)** —
+- **[Reused bootstrap worker never resets its cached design matrix](R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_stale_design_matrix.md)** —
   the single highest-leverage finding of this whole audit: a resampling
   loader correctly refreshes the current draw's weights but not its design
   matrix, so every draw after the first silently fits the current weights
   against the *first* draw's data. Confirmed across 12+ classes so far;
   investigation and scoping are done, the actual fix is not yet written.
-- **[`InferenceContinOLS` weighted-bootstrap standard error](R/package_metadata/bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md)** —
+- **[`InferenceContinOLS` weighted-bootstrap standard error](R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_ols_weighted_bootstrap_se.md)** —
   likely explained by the stale design-matrix bug above rather than this
   investigation's own unguarded-`solve()` hypothesis; kept open pending
   confirmation.
-- **[`InferenceSurvivalKKWeibullMarginal` jackknife outliers](R/package_metadata/bug_fix_plans/kk_weibull_marginal_jackknife_outliers.md)** —
+- **[`InferenceSurvivalKKWeibullMarginal` jackknife outliers](R/package_metadata/bug_fix_plans/v1_0_5/kk_weibull_marginal_jackknife_outliers.md)** —
   what looked like a biased estimate is actually a small number of
   catastrophic single-fold jackknife outliers (individual values as extreme
   as −38 and +17.5 for an estimand whose usual scale is ~0.2–0.3), not a
   mean shift.
-- **[Incidence logistic/probit over-coverage — likely benign](R/package_metadata/bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md)** —
+- **[Incidence logistic/probit over-coverage — likely benign](R/package_metadata/bug_fix_plans/v1_5_0/investigate_incid_logregr_probitregr_coverage.md)** —
   both classes show broad, mild over-coverage; the leading explanation is
   ordinary Wald/likelihood-ratio CI conservativeness for binary-outcome
   models, not a defect, matching an earlier "not a bug" finding for the
   risk-difference family.
-- **[Count-family GLM coverage cluster](R/package_metadata/bug_fix_plans/investigate_count_glm_family_coverage.md)** —
+- **[Count-family GLM coverage cluster](R/package_metadata/bug_fix_plans/v1_0_5/investigate_count_glm_family_coverage.md)** —
   open investigation: three count classes show broad undercoverage across
   both asymptotic and resampling methods at once; none share the stale
   design-matrix mechanism above, and no confirmed cause yet.
-- **[`InferenceContinQuantileRegr`'s 33 coverage findings](R/package_metadata/bug_fix_plans/investigate_contin_quantile_regr_coverage.md)** —
+- **[`InferenceContinQuantileRegr`'s 33 coverage findings](R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_coverage.md)** —
   the single largest uninvestigated coverage cluster from this audit wave;
   the obvious harness-truth-mismatch explanation was ruled out, root cause
   still open.
-- **[Count-family classes with unexplained miscalibration](R/package_metadata/bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md)** —
+- **[Count-family classes with unexplained miscalibration](R/package_metadata/bug_fix_plans/v1_0_5/investigate_count_family_unexplained_miscalibration_cluster.md)** —
   four count classes with real, audit-flagged miscalibration, each ruled
   out from every specific mechanism checked so far but never root-caused on
   its own terms.
-- **[Beta/OLS/KKGLMM coverage findings ruled out from the stale design-matrix bug](R/package_metadata/bug_fix_plans/investigate_beta_ols_kkglmm_low_coverage_orphans.md)** —
+- **[Beta/OLS/KKGLMM coverage findings ruled out from the stale design-matrix bug](R/package_metadata/bug_fix_plans/v1_0_5/investigate_beta_ols_kkglmm_low_coverage_orphans.md)** —
   six more classes with real, unexplained coverage flags, confirmed not to
   share the stale design-matrix mechanism above; not yet root-caused.
 - **Dead code in a shared numerical helper** — a variance-guard helper is
   entirely commented out and never populates the field it's meant to;
   needs a decision to delete it or wire it in, not more investigation.
-- **[`InferenceSurvivalKMDiff` Bayesian-bootstrap `NA` on heavily censored data](R/package_metadata/bug_fix_plans/test_comment_audit_small_defects.md)** —
+- **[`InferenceSurvivalKMDiff` Bayesian-bootstrap `NA` on heavily censored data](R/package_metadata/bug_fix_plans/v1_0_5/test_comment_audit_small_defects.md)** —
   about 30% of random seeds produce `NA` on heavily censored data because
   one non-finite bootstrap replicate poisons the whole p-value, unlike the
   non-parametric bootstrap on the same data.
-- **[Randomization inference under left-/interval-censoring](R/package_metadata/bug_fix_plans/rand_inference_general_censoring_silent_results.md)** —
+- **[Randomization inference under left-/interval-censoring](R/package_metadata/bug_fix_plans/v1_0_5/rand_inference_general_censoring_silent_results.md)** —
   a nonzero-δ randomization null shifts only exact event times, not censoring
   intervals. Instead of erroring, some paths return silent wrong numbers: Cox and log-rank
   p-values when asserts are off (the default in simulations), and a finite
   Weibull randomization CI built from failed p-values. These will error clearly
   until the shift itself is supported.
-- **[Custom-statistic randomization CI](R/package_metadata/bug_fix_plans/custom_rand_ci_statistic_scale.md)** —
+- **[Custom-statistic randomization CI](R/package_metadata/bug_fix_plans/v1_0_5/custom_rand_ci_statistic_scale.md)** —
   with a user statistic that is not on the treatment effect's scale (e.g. a
   t statistic), `InferenceRandCustom`'s randomization CI searches around the
   statistic's own value and returns an interval of rejected values. The
   p-values are correct. The search will start from a δ-scale seed and refuse
   to return an interval with no accepted value.
-- **[Inference component dependency cleanup](R/package_metadata/new_feature_plans/inference_component_dependency_cleanup.md)**
+- **[Inference component dependency cleanup](R/package_metadata/new_feature_plans/v1_0_5/inference_component_dependency_cleanup.md)**
   *(maintenance)* — each inference component's declared dependencies copy
   the old inheritance ladder (e.g. Wald "requires" Jackknife but never calls
   it), while real cross-component calls go undeclared and form cycles.
   Shared resampling helpers move into their own component and dependencies
   match actual use. Every class keeps exactly the same methods.
+
+---
+
+## v1.0.6 — Bug Fixes Found During v1.0.5
+
+A fixes-only release (added 2026-11-10): bugs that work on v1.0.5 found,
+moved forward from v1.1.0 so they ship without waiting for it. No new
+options or capabilities, and no default changes except where a fix
+corrects wrong output. See
+[`release_v1_0_6.md`](R/package_metadata/future_release_plans/release_v1_0_6.md)
+for the full index.
+
+- **Reproducibility** — the Bayesian-bootstrap BCa interval no longer
+  depends on what was computed earlier on the same object.
+- **Wrong or missing results** — the RMST randomization bootstrap holds the
+  restriction time fixed across draws; the block jackknife on stratified
+  designs uses permuted blocks, not whole strata; the modified Poisson
+  estimate no longer returns NA at large n; stereotype logit stops rejecting
+  usable fits and stops dropping covariates silently.
+- **Convergence** — the log-binomial fit near the probability bound and the
+  conditional-logit GLMM kernel no longer stop short of the optimum, and no
+  longer report convergence when they have not reached it.
+- **Likelihood-ratio CIs** — fewer fall back to Wald when a single null refit
+  fails; the identity-link binomial class gets the boundary handling the
+  log-binomial class received in v1.0.5.
+- **Performance** — GLMM/CLMM fits use a supplied warm start again instead
+  of rerunning the full multistart (a v1.0.5 regression).
+- **Bootstrap p-values with `na.rm = TRUE`** — a guard against p-values
+  computed from a small fraction of usable replicates.
+- **Machine tuning** — `tune_EDI_for_this_machine()` times proportion
+  classes on realistic data.
+- A triage of small-sample calibration findings: each moves here only if a
+  bug is behind it.
+- **Repository layout** *(maintenance)* — project-wide plans and audits move to a
+  root `metadata/`, and R-only notes to `R/metadata/`; the R test harness is
+  renamed. See
+  [`repository_layout_cleanup.md`](R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md).
+- **Native C++ tests** *(maintenance)* — a Catch2 test suite in `cpp_tests/` for the
+  R-free shared C++ core, with sanitizer and fuzz builds in CI. See
+  [`native_cpp_test_suite.md`](R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md).
 
 ---
 
@@ -285,7 +325,7 @@ needs.
   yes/nos (nominal, rank-choice, semi-continuous, multivariate,
   compositional, longitudinal), and the GPU/quantum backend story. No
   code; everything below that depends on a decision cites it.
-- **[Diagnostics chain](R/package_metadata/new_feature_plans/public_diagnostics_api_spec.md)** —
+- **[Diagnostics chain](R/package_metadata/new_feature_plans/v1_1_0/public_diagnostics_api_spec.md)** —
   a public API for convergence and optimizer diagnostics on every fit,
   built on an internal `SolverDiagnostics` component (which the Firth work
   below requires). Strictly ordered; a prerequisite for the corrections
@@ -304,12 +344,12 @@ needs.
 
 ### New estimators and estimands
 
-- **[Count exposure offset](R/package_metadata/new_feature_plans/count_exposure_offset.md)** —
+- **[Count exposure offset](R/package_metadata/new_feature_plans/v1_1_0/count_exposure_offset.md)** —
   `exposure =` on every count class and kernel, unlocking the standard
   rate-ratio trial analysis.
-- **[Heteroskedasticity-robust standard errors](R/package_metadata/new_feature_plans/heteroskedasticity_robust_standard_errors.md)** —
+- **[Heteroskedasticity-robust standard errors](R/package_metadata/new_feature_plans/v1_1_0/heteroskedasticity_robust_standard_errors.md)** —
   `se_type = HC0..HC3` on the OLS and risk-difference classes.
-- **[Covariate coefficient table](R/package_metadata/new_feature_plans/covariate_coefficient_table.md)** —
+- **[Covariate coefficient table](R/package_metadata/new_feature_plans/v1_1_0/covariate_coefficient_table.md)** —
   `get_coefficient_table()`: a `glm`-style model-based table for the
   adjustment covariates, not just the treatment, on every likelihood class
   that supports it. `get_summary()` prints it instead of the raw fit. It is
@@ -318,38 +358,38 @@ needs.
 
 ### Ordinal, incidence, count, and quantile-regression fixes
 
-- **[Ordinal model-coefficient randomization CIs](R/package_metadata/new_feature_plans/ordinal_model_coefficient_randomization_confidence_intervals.md)** —
+- **[Ordinal model-coefficient randomization CIs](R/package_metadata/new_feature_plans/v1_1_0/ordinal_model_coefficient_randomization_confidence_intervals.md)** —
   randomization-based confidence intervals (not just p-values) for the
   ordinal regression classes.
-- **[Incidence randomization CIs](R/package_metadata/new_feature_plans/incidence_randomization_cis.md)** —
+- **[Incidence randomization CIs](R/package_metadata/new_feature_plans/v1_1_0/incidence_randomization_cis.md)** —
   exact (Zhang) randomization intervals on each estimand scale, removing
   the temporary incidence CI disable.
-- **[Negative-binomial dispersion reparameterization](R/package_metadata/bug_fix_plans/negbin_dispersion_convergence.md)** —
+- **[Negative-binomial dispersion reparameterization](R/package_metadata/bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md)** —
   more reliable convergence near the Poisson boundary for NegBin,
   zero-inflated NegBin, and hurdle-NegBin fits.
 
 ### Repository hygiene *(maintenance)*
 
-- **[`lintr` policy](R/package_metadata/new_feature_plans/implement_a_lintr.md)** —
+- **[`lintr` policy](R/package_metadata/new_feature_plans/v1_1_0/implement_a_lintr.md)** —
   codify EDI's actual house style (`=` assignment, tab indentation —
   the inverse of lintr's defaults) in a `.lintr` that produces zero style
   findings on the current tree with every correctness linter on, triage
   the correctness findings, decide the fate of the small `<-`/space
   minority, then gate it in the pre-push hook and a CI step. No runtime
   effect.
-- **[Documentation spell-check](R/package_metadata/new_feature_plans/spellcheck.md)** —
+- **[Documentation spell-check](R/package_metadata/new_feature_plans/v1_1_0/spellcheck.md)** —
   `spelling::spell_check_package()` with an `inst/WORDLIST` for the
   statistical vocabulary and a `tests/spelling.R` check so new typos fail
   `R CMD check` in CI. No runtime effect.
 
 ### InferenceSuite
 
-- **[Wilkinson r-out-of-k combined evidence, Stage 1](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —
+- **[Wilkinson r-out-of-k combined evidence, Stage 1](R/package_metadata/new_feature_plans/v1_1_0/wilkinson_combined_pval.md)** —
   a `vote_fraction` field reporting how many applicable procedures agree,
   complementing the existing Cauchy combination test, which answers only
   "does at least one detect a signal." (The decision-gated formal
   order-statistic test, Stage 2, moved to v1.4.0.)
-- **[Design/inference dependence-structure guard](R/package_metadata/new_feature_plans/design_inference_dependence_guard.md)** —
+- **[Design/inference dependence-structure guard](R/package_metadata/new_feature_plans/v1_1_0/design_inference_dependence_guard.md)** —
   discovery currently only checks whether a design gives a class structure
   it *requires*, never whether the design imposes dependence (blocking,
   matched pairs, clustering) a class's Wald-path variance ignores. Tiered,
@@ -379,7 +419,7 @@ Moved up from v2.0.0 on 2026-09-05. The family had been slated 2.0.0
 because its sample-splitting sibling needs `Design`-level splitting; the
 pieces below never did.
 
-- **[Comparative model selection + the selection-inclusive randomization test, Phase A](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
+- **[Comparative model selection + the selection-inclusive randomization test, Phase A](R/package_metadata/new_feature_plans/v1_1_0/model_selection_framework.md)** —
   `ModelSelection(des_obj)` compares fit across the model × formula grid
   (`~w`, `~w + .`, `~w * .`) with likelihood-tier-gated criteria that
   never rank by the treatment effect, and hands off to honest inference rather than a
@@ -400,7 +440,7 @@ pieces below never did.
   selection-tainted winner is a typed refusal. Only the remaining
   response types (count, proportion, survival, ordinal) are left to
   Phase B, below.
-- **[Per-model assumption diagnostics](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
+- **[Per-model assumption diagnostics](R/package_metadata/new_feature_plans/v1_3_0/model_diagnostics_framework.md)** —
   `ModelDiagnostics(des_obj)` runs each model's own registry-declared
   assumption battery: proportional-hazards checks for Cox,
   overdispersion for Poisson, proportionality for cumulative logit,
@@ -415,7 +455,7 @@ pieces below never did.
 
 ### Performance and correctness (CPU)
 
-- **[Multistart for the nonconcave likelihoods, documented-failure tranche](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
+- **[Multistart for the nonconcave likelihoods, documented-failure tranche](R/package_metadata/new_feature_plans/v1_1_0/multistart_nonconcave_likelihoods.md)** —
   the kernels with a documented failure mode (ZINB/ZIP/hurdle-NegBin in
   `(β, log θ)`, Beta) gain family-specific deterministic starts plus a
   reproducible random layer, keep the best, and report which start won.
@@ -424,7 +464,7 @@ pieces below never did.
   is built once here; applying it to the remaining kernels with no
   documented failure — GLMM/LMM/frailty, ZOIB, stereotype logit, copula
   survival, cauchit, bisquare — moved to v1.2.0.)
-- **[Faster custom randomization statistics](R/package_metadata/new_feature_plans/custom_rand_stat_batched_cpp_loop.md)** —
+- **[Faster custom randomization statistics](R/package_metadata/new_feature_plans/v1_2_0/custom_rand_stat_batched_cpp_loop.md)** —
   when you supply your randomization statistic as compiled C++, the loop
   over permutations runs in C++ too. Today it runs in R, so every
   permutation, and every step of the confidence-interval search, pays an
@@ -433,7 +473,7 @@ pieces below never did.
   with Eigen types, the same convention as pre-compiled pointers, and then
   take the faster path. Existing Rcpp-typed source strings keep working
   unchanged. Results are bit-for-bit unchanged.
-- **[Algorithm choice audit](R/package_metadata/new_feature_plans/algorithm_choice_audit.md)**
+- **[Algorithm choice audit](R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md)**
   *(maintenance)* — a per-kernel survey of whether the *chosen
   algorithm*, not just its implementation, is the best known one for its
   problem, with citations and a keep/prototype/adopt verdict per row. A
@@ -441,13 +481,13 @@ pieces below never did.
   ships in this release; the A/B testing harness its Prototype verdicts
   need, and the two candidates gated on it (Robbins–Monro CI search,
   EM-then-Newton hybrid start for ZINB/ZIP), moved to v1.2.0.
-- **[Brent's method for score / gradient / Bartlett-LR confidence intervals](R/package_metadata/new_feature_plans/brent_ci_inversion.md)** —
+- **[Brent's method for score / gradient / Bartlett-LR confidence intervals](R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md)** —
   these CIs invert a deterministic p-value function by pure bisection
   while the likelihood-ratio CI beside them already uses Newton; Brent's
   method on the same bracket needs ~4× fewer constrained refits per bound
   and returns the same bound within tolerance. No approximation, no
   A/B gate — the existing CI tests are the check.
-- **[Benchmark noise floor and regression gate](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
+- **[Benchmark noise floor and regression gate](R/package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md)**
   *(maintenance)* — the measurement infrastructure needed to substantiate
   this release's own randomization-CI speedup claims. (Everything else in
   the performance measurement program — the compiler optimization-report
@@ -455,7 +495,7 @@ pieces below never did.
   visibility, and the SIMD/fixed-size-Eigen/LTO/memory-layout lanes that
   consume them — moved to v1.2.0, an exploratory program with no v1.1.0
   consumer.)
-- **[Consolidate duplicated parallelization primitives](R/package_metadata/new_feature_plans/consolidate_parallelization_code.md)**
+- **[Consolidate duplicated parallelization primitives](R/package_metadata/new_feature_plans/v1_1_0/consolidate_parallelization_code.md)**
   *(maintenance)* — no output/behavior change. `Inference$par_lapply` is
   already a shared parallel-map helper reused by ~10 bootstrap/
   randomization classes; `SimulationFramework$run()` and
@@ -469,7 +509,7 @@ pieces below never did.
   stop-on-death loop written out more than once, and worker
   single-threading setup defined once for persistent clusters and
   hand-rederived once for forked child processes.
-- **[InferenceSuite worker pool](R/package_metadata/new_feature_plans/inference_suite_worker_pool.md)** —
+- **[InferenceSuite worker pool](R/package_metadata/new_feature_plans/v1_2_0/inference_suite_worker_pool.md)** —
   `run_all_inference(num_cores > 1)` forks a fresh child for every task,
   which about doubles its CPU (measured 2026-10-15: about 1.1 s of
   overhead per task, against a median task of 0.5 s). It moves to a pool of
@@ -477,7 +517,7 @@ pieces below never did.
   kill. Each task gets its own seed, so results no longer depend on the
   number of cores (a documented change to bootstrap and randomization
   draws at `num_cores > 1`).
-- **[Harden the capability/slow-path registries](R/package_metadata/new_feature_plans/harden_registry.md)**
+- **[Harden the capability/slow-path registries](R/package_metadata/new_feature_plans/v1_1_0/harden_registry.md)**
   *(maintenance)* — no output/behavior change. Eliminates a hardcoded
   "migration debt" capability-exclusion list in
   `inference_class_registry.R`, verified redundant by a 39-class audit
@@ -489,6 +529,10 @@ pieces below never did.
   slow-path exclusion lists, and a still-open recheck of ~82
   already-registry-backed slow-path entries for staleness.
 
+- **Native C++ tests** *(maintenance)* — the C++ this release adds to the shared core
+  lands with native tests in `cpp_tests/`. See
+  [`native_cpp_tests_v1_1_0.md`](R/package_metadata/new_feature_plans/v1_1_0/native_cpp_tests_v1_1_0.md).
+
 ---
 
 ## v1.2.0 — Performance, Kernels, and Engines
@@ -499,16 +543,16 @@ measurement work with no v1.1.0 consumer.
 
 ### New native kernels
 
-- **[Quantile-regression C++ kernel](R/package_metadata/new_feature_plans/quantile_regression_cpp_kernel_spec.md)** —
+- **[Quantile-regression C++ kernel](R/package_metadata/new_feature_plans/v1_2_0/quantile_regression_cpp_kernel_spec.md)** —
   a native LP-based kernel replacing the delegated fit: faster quantile
   regression with weighted variants and standard errors, verified by a
   parity suite.
-- **[Count quantile regression](R/package_metadata/new_feature_plans/count_quantile_regression.md)** —
+- **[Count quantile regression](R/package_metadata/new_feature_plans/v1_2_0/count_quantile_regression.md)** —
   quantile treatment effects for count responses
   (`InferenceCountQuantileRegr` and its KK variants) via Machado & Santos
   Silva (2005) jittering; moved here from v1.1.0 to ship beside the
   native kernel above rather than ahead of it.
-- **[Ordinal GEE C++ kernel](R/package_metadata/new_feature_plans/ordinal_gee_cpp_kernel_spec.md)** —
+- **[Ordinal GEE C++ kernel](R/package_metadata/new_feature_plans/v1_2_0/ordinal_gee_cpp_kernel_spec.md)** —
   a native estimating-equations kernel for the ordinal GEE classes.
 - **[Ordinal Bayesian-bootstrap completions](R/package_metadata/future_release_plans/release_v1_2_0.md)** —
   native weighted refits for the ordinal KK GEE, stereotype-logit, and
@@ -518,61 +562,61 @@ measurement work with no v1.1.0 consumer.
 
 ### Algorithmic speedups
 
-- **[OLS randomization kernel rewrite](R/package_metadata/new_feature_plans/ols_distr_kernel_fwl.md)** —
+- **[OLS randomization kernel rewrite](R/package_metadata/new_feature_plans/v1_2_0/ols_distr_kernel_fwl.md)** —
   a further ~5–10× inside the batch kernel wired in v1.1.0, via the
   Frisch–Waugh–Lovell decomposition (factor the fixed covariates once;
   each replicate reduces to two masked sums and one small solve).
-- **[Faster sequential matching designs](R/package_metadata/new_feature_plans/kk14_incremental_covariance.md)** —
+- **[Faster sequential matching designs](R/package_metadata/new_feature_plans/v1_2_0/kk14_incremental_covariance.md)** —
   ~5–10× on a KK14 matching-on-the-fly run: the covariance of past
   subjects is updated incrementally per arrival instead of recomputed
   from scratch, with the KK21 designs sharing the benefit.
-- **[Robust-regression performance](R/package_metadata/new_feature_plans/robust_regression_perf_optimization_spec.md)** —
+- **[Robust-regression performance](R/package_metadata/new_feature_plans/v1_2_0/robust_regression_perf_optimization_spec.md)** —
   profile-first optimization of the robust regression paths.
-- **[Cold starts](R/package_metadata/new_feature_plans/cold_starts.md)**
+- **[Cold starts](R/package_metadata/new_feature_plans/v1_2_0/cold_starts.md)**
   *(maintenance)* — audit and tighten how every fit family initializes its
   optimizer.
 
 ### Engines and machine dispatch
 
-- **[Greedy engine merge](R/package_metadata/new_feature_plans/design_fixed_greedy_pair_switch_merge.md)** —
+- **[Greedy engine merge](R/package_metadata/new_feature_plans/v1_2_0/design_fixed_greedy_pair_switch_merge.md)** —
   unify the greedy design-search engines behind one implementation
   (deprecation shims, not deletions); its `pair_mode` finding decides how
   v1.3.0 handles matched pairs under unequal allocation.
-- **[Architecture-specific CPU and memory engines](R/package_metadata/new_feature_plans/arm_hardware.md)** —
+- **[Architecture-specific CPU and memory engines](R/package_metadata/new_feature_plans/v1_2_0/arm_hardware.md)** —
   AArch64/Apple/Graviton detection and dispatch
-  ([ARM](R/package_metadata/new_feature_plans/arm_hardware.md)),
+  ([ARM](R/package_metadata/new_feature_plans/v1_2_0/arm_hardware.md)),
   Intel AMX capability checks and GEMM thresholds
-  ([Intel](R/package_metadata/new_feature_plans/intel_hardware.md)), and
+  ([Intel](R/package_metadata/new_feature_plans/v1_2_0/intel_hardware.md)), and
   NUMA/huge-pages tuning
-  ([memory](R/package_metadata/new_feature_plans/memory_side_improvements.md));
+  ([memory](R/package_metadata/new_feature_plans/v1_2_0/memory_side_improvements.md));
   benchmark evidence required before any default changes.
 
 ### Moved in from v1.1.0's lightening pass (2026-09-06)
 
-- **[Performance measurement program, remainder](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
+- **[Performance measurement program, remainder](R/package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md)**
   *(maintenance)* — everything past the noise floor and regression gate
   that stayed in v1.1.0: compiler optimization-report sweep,
   strided-access and linear-algebra audits, BLAS backend visibility,
   end-to-end/R-layer profiling, parallelism/BLAS tuning, roofline.
-- **[More SIMD optimization](R/package_metadata/new_feature_plans/more_simd_optimization.md)**
+- **[More SIMD optimization](R/package_metadata/new_feature_plans/v1_2_0/more_simd_optimization.md)**
   *(maintenance)* — implements what the measurement program's diagnostics
   find (`__restrict` sweep, a verified fast-math subset, aligned copies,
   branch-free comparisons, `-fopenmp-simd`).
-- **[Fixed-size Eigen specializations for small p](R/package_metadata/new_feature_plans/fixed_size_eigen_small_p.md)**
+- **[Fixed-size Eigen specializations for small p](R/package_metadata/new_feature_plans/v1_2_0/fixed_size_eigen_small_p.md)**
   *(maintenance)* — compile-time-`p` dispatch for the per-iteration
   algebra; gated on a microbenchmark showing a ≥10 % whole-fit win.
-- **[LTO re-evaluation](R/package_metadata/new_feature_plans/lto_reevaluation.md)**
+- **[LTO re-evaluation](R/package_metadata/new_feature_plans/v1_2_0/lto_reevaluation.md)**
   *(maintenance)* — re-measure the measured-negative `-fno-lto` default
   under the current toolchain and write down the rule for flipping it.
-- **[Memory-layout audit](R/package_metadata/new_feature_plans/memory_layout_row_major_irls.md)**
+- **[Memory-layout audit](R/package_metadata/new_feature_plans/v1_2_0/memory_layout_row_major_irls.md)**
   *(maintenance)* — measure the sample size at which matrix layout starts
   to matter (predicted well beyond the designed-experiment regime) and
   record the kernel-author policy.
-- **[Full test-coverage triage](R/package_metadata/new_feature_plans/full_test_coverage.md)**
+- **[Full test-coverage triage](R/package_metadata/new_feature_plans/v1_2_0/full_test_coverage.md)**
   *(maintenance)* — line coverage from 64.8 % into the high 90s, then a
   CI coverage floor; a rolling, non-gating track with no dependency on
   anything else.
-- **[Inference-object serialization](R/package_metadata/new_feature_plans/save_load_api.md)** —
+- **[Inference-object serialization](R/package_metadata/new_feature_plans/v1_2_0/save_load_api.md)** —
   make a fitted `Inference` object a supported `saveRDS()`/`readRDS()`
   unit, so expensive resampling state (a bootstrap distribution built
   from thousands of refits of a slow model such as zero-one-inflated
@@ -581,40 +625,44 @@ measurement work with no v1.1.0 consumer.
   its components; the `owns_state` audit is cheapest after every v1.1.0
   item that adds `Inference`-side state (including the `ModelSelection`
   provenance object) has landed.
-- **[Multistart for the nonconcave likelihoods, remainder](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
+- **[Multistart for the nonconcave likelihoods, remainder](R/package_metadata/new_feature_plans/v1_1_0/multistart_nonconcave_likelihoods.md)** —
   the same shared infrastructure v1.1.0 builds for the documented-failure
   kernels, applied to the kernels with no documented failure: GLMM / LMM
   / frailty marginal likelihoods, ZOIB, stereotype logit, Clayton-copula
   and dependent-censoring survival, ordinal cauchit, and Tukey-bisquare
   robust regression.
-- **[Algorithm-choice A/B testing harness](R/package_metadata/new_feature_plans/algorithm_ab_testing_framework.md)** —
+- **[Algorithm-choice A/B testing harness](R/package_metadata/new_feature_plans/v1_2_0/algorithm_ab_testing_framework.md)** —
   paired benchmarks, a correctness equivalence check, and a
   fixed-in-advance rule requiring a genuine win on at least one
   documented data regime plus zero accuracy regression anywhere, before
   a default changes. Two candidates gated on it:
-  **[Robbins–Monro CI search](R/package_metadata/new_feature_plans/garthwaite_buckland_ci_search.md)**
+  **[Robbins–Monro CI search](R/package_metadata/new_feature_plans/v1_2_0/garthwaite_buckland_ci_search.md)**
   (a stochastic-approximation alternative to bisection for
   randomization/bootstrap CI bounds — not offered for v1.1.0's
   affine-shift tier-1 classes, where each p-value is already O(r)
   arithmetic and cannot be beaten by a stochastic driver) and an
-  **[EM-then-Newton hybrid start for zero-inflated mixtures](R/package_metadata/new_feature_plans/em_algorithm_zero_inflated_mixtures.md)**
+  **[EM-then-Newton hybrid start for zero-inflated mixtures](R/package_metadata/new_feature_plans/v1_2_0/em_algorithm_zero_inflated_mixtures.md)**
   (ZINB/ZIP), aimed at the failure mode where the joint optimizer runs
   away on non-overdispersed data.
+
+- **Native C++ tests** *(maintenance)* — the C++ this release adds to the shared core
+  lands with native tests in `cpp_tests/`. See
+  [`native_cpp_tests_v1_2_0.md`](R/package_metadata/new_feature_plans/v1_2_0/native_cpp_tests_v1_2_0.md).
 
 ---
 
 ## v1.3.0 — Design Extensions from Practice
 
-- **[Unequal allocation](R/package_metadata/new_feature_plans/unequal_allocation_matching_greedy_minimization.md)** —
+- **[Unequal allocation](R/package_metadata/new_feature_plans/v1_3_0/unequal_allocation_matching_greedy_minimization.md)** —
   `prob_T ≠ 0.5` on matched and greedy designs, `target_ratio` on
   sequential coins, a `neyman_prob_T()` helper, and per-stratum
   allocation; the route depends on v1.2.0's greedy-merge `pair_mode`
   finding (allocation-ratio-preserving coin rules follow in 2.0.0).
-- **[Cluster-level covariate-balancing designs](R/package_metadata/new_feature_plans/cluster_level_covariate_balancing_designs.md)** —
+- **[Cluster-level covariate-balancing designs](R/package_metadata/new_feature_plans/v1_3_0/cluster_level_covariate_balancing_designs.md)** —
   `cluster_col =` on every fixed balancing design (constrained cluster
   randomization, pair-matched clusters, matched quadruplets) plus
   `DesignFixedClusterSaturation`.
-- **[Sequential many-by-many design family](R/package_metadata/new_feature_plans/design_seq_many_by_many.md)** —
+- **[Sequential many-by-many design family](R/package_metadata/new_feature_plans/v1_1_0/design_seq_many_by_many.md)** —
   `DesignSeqManyByMany` with Bernoulli / CRD / Blocking / Rerandomization
   (Zhou et al. 2018) / Atkinson members: batches of subjects arriving over
   time, a new timing family between fully-fixed and one-by-one.
@@ -632,34 +680,34 @@ measurement work with no v1.1.0 consumer.
   the hard `dead → uncensored` rename across R, C++, and Python (the only
   planned 1.x-era break), done in the same pass as competing-risks
   `event_type` storage; existing survival analyses reproduce bit-for-bit.
-- **[Competing risks](R/package_metadata/new_feature_plans/competing_risks_response.md)** —
+- **[Competing risks](R/package_metadata/new_feature_plans/v1_4_0/competing_risks_response.md)** —
   cause-specific Cox and log-rank, CIF/Gray/RMTL, and Fine–Gray (via
   `cmprsk`, if the dependency is accepted). Decision-gated.
-- **[Cure-fraction (mixture-cure) survival inference](R/package_metadata/new_feature_plans/cure_fraction_survival_inference.md)** —
+- **[Cure-fraction (mixture-cure) survival inference](R/package_metadata/new_feature_plans/v1_4_0/cure_fraction_survival_inference.md)** —
   a standalone inference class on the existing survival type.
   Decision-gated.
-- **[Weibull-frailty k-strata](R/package_metadata/new_feature_plans/full_glmm_for_weibull_frailty.md)** —
+- **[Weibull-frailty k-strata](R/package_metadata/new_feature_plans/v1_4_0/full_glmm_for_weibull_frailty.md)** —
   the full GLMM generalization of the Weibull frailty model beyond two
   strata.
-- **[Interval-censored second wave](R/package_metadata/new_feature_plans/interval_censored_survival_response_type_report.md)** —
+- **[Interval-censored second wave](R/package_metadata/new_feature_plans/v1_4_0/interval_censored_survival_response_type_report.md)** —
   semiparametric additions for interval-censored responses.
   Decision-gated.
-- **[Survival quantile regression](R/package_metadata/new_feature_plans/survival_quantile_regression.md)** —
+- **[Survival quantile regression](R/package_metadata/new_feature_plans/v1_4_0/survival_quantile_regression.md)** —
   quantile treatment effects under general interval censoring via a
   self-consistent EM estimator, plus KK variants.
 
 ### Other response and data extensions
 
-- **[Censoring track](R/package_metadata/new_feature_plans/censored_continuous_response.md)** —
+- **[Censoring track](R/package_metadata/new_feature_plans/v1_4_0/censored_continuous_response.md)** —
   censored continuous responses, then
-  [censored count responses](R/package_metadata/new_feature_plans/censored_count_response.md),
+  [censored count responses](R/package_metadata/new_feature_plans/v1_4_0/censored_count_response.md),
   then semi-continuous responses if decided yes.
-- **[Encouragement designs / CACE](R/package_metadata/new_feature_plans/encouragement_design_cace.md)** —
+- **[Encouragement designs / CACE](R/package_metadata/new_feature_plans/v1_4_0/encouragement_design_cace.md)** —
   record treatment received alongside treatment assigned, and infer the
   complier-average causal effect.
-- **[Treatment–covariate moderation](R/package_metadata/new_feature_plans/treatment_covariate_moderation.md)** —
+- **[Treatment–covariate moderation](R/package_metadata/new_feature_plans/v1_4_0/treatment_covariate_moderation.md)** —
   moderation analysis on the existing classes.
-- **[Missing outcomes](R/package_metadata/new_feature_plans/missing_outcome_handling.md)** —
+- **[Missing outcomes](R/package_metadata/new_feature_plans/v1_4_0/missing_outcome_handling.md)** —
   principled handling of missing responses (attrition / loss to follow-up):
   Lee bounds, multiple imputation of outcomes, and inverse-probability
   weighting. Today every inference class requires all outcomes to be
@@ -677,18 +725,18 @@ estimands and response-type work.
   the L1/L2 penalized path, median bias correction, modified profile
   likelihood, and bootstrap-calibrated LR (if approved) — everything
   beyond v1.1.0's shared-cumulant-plus-Firth core.
-- **[KK one-stage Beta-regression estimator](R/package_metadata/new_feature_plans/kk_beta_regression_one_lik_derivation.md)** —
+- **[KK one-stage Beta-regression estimator](R/package_metadata/new_feature_plans/v1_4_0/kk_beta_regression_one_lik_derivation.md)** —
   a joint-likelihood matched-pairs + reservoir estimator for proportion
   responses, prototyped against a glmmTMB-reuse path before the native
   Gauss–Hermite backend ships.
-- **[Small estimand additions](R/package_metadata/new_feature_plans/small_estimand_additions.md)** —
+- **[Small estimand additions](R/package_metadata/new_feature_plans/v1_4_0/small_estimand_additions.md)** —
   Hedges' g, win odds / Brunner–Munzel, Mantel–Haenszel OR/RD,
   non-inferiority/equivalence conveniences, unconditional QTE, and a
   log-link QMLE path for non-negative continuous responses.
-- **[NegBin mixture marginal estimands](R/package_metadata/new_feature_plans/marginal_estimand_report.md)** —
+- **[NegBin mixture marginal estimands](R/package_metadata/new_feature_plans/v1_4_0/marginal_estimand_report.md)** —
   extend `set_estimand("marginal_*")` to the zero-inflated and hurdle
   negative-binomial classes.
-- **[Wilkinson r-out-of-k combined evidence, Stage 2](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —
+- **[Wilkinson r-out-of-k combined evidence, Stage 2](R/package_metadata/new_feature_plans/v1_1_0/wilkinson_combined_pval.md)** —
   the formal, dependence-robust-calibrated r-th-order-statistic test,
   gated on deciding whether its bootstrap/permutation null-calibration
   cost is worth it; Stage 1's `vote_fraction` field already shipped in
@@ -696,15 +744,15 @@ estimands and response-type work.
 
 ### InferenceSuite summaries
 
-- **[Model-averaged estimate/CI](R/package_metadata/new_feature_plans/model_averaged_estimand_report.md)** —
+- **[Model-averaged estimate/CI](R/package_metadata/new_feature_plans/v1_4_0/model_averaged_estimand_report.md)** —
   a reportable model-averaged point estimate and CI across applicable
   models (Buckland/Burnham/Augustin variance), complementing the
   existence-style combined tests with an actual number.
-- **[Multiplicity-adjusted results table](R/package_metadata/new_feature_plans/multiplicity_adjusted_results_table.md)** —
+- **[Multiplicity-adjusted results table](R/package_metadata/new_feature_plans/v1_4_0/multiplicity_adjusted_results_table.md)** —
   Holm (always valid) and Benjamini–Hochberg (gated on a dependence
   calibration check) applied to `results_table`'s rows: which specific
   rows survive correction.
-- **[Selective (post-selection) inference, pilot](R/package_metadata/new_feature_plans/selective_inference_post_selection.md)** —
+- **[Selective (post-selection) inference, pilot](R/package_metadata/new_feature_plans/v1_4_0/selective_inference_post_selection.md)** —
   p-values and CIs that remain valid after picking the best of k models,
   piloted on one class (OLS) to price the approach before deciding on a
   broader rollout versus 2.0.0's sample-splitting sibling. Its
@@ -716,29 +764,33 @@ estimands and response-type work.
 
 All produce identical results to today's code unless noted.
 
-- **[Wilcoxon randomization tests ~3–4× faster](R/package_metadata/new_feature_plans/wilcox_hl_kernel_hoisting.md)** —
+- **[Wilcoxon randomization tests ~3–4× faster](R/package_metadata/new_feature_plans/v1_4_0/wilcox_hl_kernel_hoisting.md)** —
   the Hodges–Lehmann kernel stops re-sorting fixed data every replicate
   and stops its median search ~4× earlier; bit-identical.
-- **[Ridit randomization tests ~8–10× faster](R/package_metadata/new_feature_plans/ridit_kernel_level_slots.md)** —
+- **[Ridit randomization tests ~8–10× faster](R/package_metadata/new_feature_plans/v1_4_0/ridit_kernel_level_slots.md)** —
   the default control-referenced ridit stops rebuilding its level map per
   replicate; bit-identical.
-- **[KK signed-rank tests ~4–5× faster](R/package_metadata/new_feature_plans/kk_signed_rank_hoisting.md)** —
+- **[KK signed-rank tests ~4–5× faster](R/package_metadata/new_feature_plans/v1_4_0/kk_signed_rank_hoisting.md)** —
   the matched-pair ranks are computed once instead of per replicate (only
   the signs change under permutation); bit-identical.
-- **[Rerandomization scoring ~5–15× faster](R/package_metadata/new_feature_plans/rerandomization_objective_vals_gemm.md)** —
+- **[Rerandomization scoring ~5–15× faster](R/package_metadata/new_feature_plans/v1_4_0/rerandomization_objective_vals_gemm.md)** —
   candidate allocations are scored by one matrix product instead of
   scalar loops; equal to floating point, with a documented tie-breaking
   caveat.
-- **[Small kernel hoists batch](R/package_metadata/new_feature_plans/small_kernel_hoists_batch.md)**
+- **[Small kernel hoists batch](R/package_metadata/new_feature_plans/v1_4_0/small_kernel_hoists_batch.md)**
   *(maintenance)* — four minor speedups/dedups: greedy-search Gram
   matrix, cached ordinal level lookups, Cox bootstrap ordering, one
   shared Gauss–Hermite rule.
 
 ### Scoping
 
-- **[Sequential-inference scoping](R/package_metadata/new_feature_plans/sequential_inference.md)** —
+- **[Sequential-inference scoping](R/package_metadata/new_feature_plans/v2_0_0/sequential_inference.md)** —
   the analysis plan for anytime-valid/sequential inference, implemented
   in 2.0.0.
+
+- **Native C++ tests** *(maintenance)* — the C++ this release adds to the shared core
+  lands with native tests in `cpp_tests/`. See
+  [`native_cpp_tests_v1_4_0.md`](R/package_metadata/new_feature_plans/v1_4_0/native_cpp_tests_v1_4_0.md).
 
 ---
 
@@ -749,16 +801,16 @@ All produce identical results to today's code unless noted.
 - **[Decision batch](R/package_metadata/future_release_plans/release_v2_0_0.md)** —
   every gated 2.0.0 track: the K-arm KK research question, each
   response-shape decision, GPU/quantum backends.
-- **[Longitudinal response type](R/package_metadata/new_feature_plans/longitudinal_repeated_measures_response_type_report.md)** —
+- **[Longitudinal response type](R/package_metadata/new_feature_plans/v2_0_0/longitudinal_repeated_measures_response_type_report.md)** —
   first, because it is the substrate for cluster GLMM/GEE and
   multi-period designs; then **multivariate**, **compositional**, and
   **rank/choice** response types in that order (nominal only if its
   recorded "no" recommendation is overturned).
-- **[Multiple outcome metrics per experiment](R/package_metadata/new_feature_plans/multivariate_response_type_report.md)** —
+- **[Multiple outcome metrics per experiment](R/package_metadata/new_feature_plans/v2_0_0/multivariate_response_type_report.md)** —
   one `Design` holding several named responses (`response_name_to_types`),
   per-metric inference, and a composite class with Holm / max-p IUT / Cauchy
   decision rules, metric roles, and simulation support.
-- **[Joint multivariate inference (Levels 1–2)](R/package_metadata/new_feature_plans/multivariate_response_modeling.md)** —
+- **[Joint multivariate inference (Levels 1–2)](R/package_metadata/new_feature_plans/v2_0_0/multivariate_response_modeling.md)** —
   marginal models with a joint sandwich covariance (global Wald, O'Brien,
   correlation-aware max-T adjusted p-values and simultaneous CIs) and
   randomization-based joint inference (Westfall-Young step-down on a shared
@@ -766,28 +818,28 @@ All produce identical results to today's code unless noted.
 
 ### Major tracks
 
-- **[Multi-arm designs](R/package_metadata/new_feature_plans/multi_arm_designs.md)** —
+- **[Multi-arm designs](R/package_metadata/new_feature_plans/v1_1_0/multi_arm_designs.md)** —
   K-arm designs and inference on the existing factory.
-- **[Sequential inference and response-adaptive randomization](R/package_metadata/new_feature_plans/response_adaptive_randomization.md)** —
+- **[Sequential inference and response-adaptive randomization](R/package_metadata/new_feature_plans/v2_0_0/response_adaptive_randomization.md)** —
   implement the v1.4.0 scoping output, then two-arm RAR on top of it.
-- **[Cluster-robust GLMM/GEE inference](R/package_metadata/new_feature_plans/cluster_robust_inference_glmm_gee.md)** —
+- **[Cluster-robust GLMM/GEE inference](R/package_metadata/new_feature_plans/v2_0_0/cluster_robust_inference_glmm_gee.md)** —
   after the longitudinal extraction. Decision-gated.
-- **[Mediation analysis](R/package_metadata/new_feature_plans/mediation_analysis.md)** —
+- **[Mediation analysis](R/package_metadata/new_feature_plans/v2_0_0/mediation_analysis.md)** —
   after v1.4.0's treatment-received plumbing. Decision-gated.
-- **[Theoretical-design backlog](R/package_metadata/new_feature_plans/sequential_design_classical_completions.md)** —
+- **[Theoretical-design backlog](R/package_metadata/new_feature_plans/v2_0_0/sequential_design_classical_completions.md)** —
   classical sequential-coin completions (with the
   allocation-ratio-preserving rules),
-  [rerandomization criterion variants](R/package_metadata/new_feature_plans/rerandomization_criterion_variants.md),
-  [optimal-design objective extensions](R/package_metadata/new_feature_plans/optimal_design_objective_extensions.md),
+  [rerandomization criterion variants](R/package_metadata/new_feature_plans/v2_0_0/rerandomization_criterion_variants.md),
+  [optimal-design objective extensions](R/package_metadata/new_feature_plans/v2_0_0/optimal_design_objective_extensions.md),
   and the
-  [modern covariate-balancing designs](R/package_metadata/new_feature_plans/modern_covariate_balancing_designs.md)
+  [modern covariate-balancing designs](R/package_metadata/new_feature_plans/v2_0_0/modern_covariate_balancing_designs.md)
   (Gram-Schmidt walk, online balancing, ARM/PSR, online MIO)
   with its two simulation studies.
-- **[Causal forest and Bayesian tree inference](R/package_metadata/new_feature_plans/causal_forest_inference.md)** —
+- **[Causal forest and Bayesian tree inference](R/package_metadata/new_feature_plans/v2_0_0/causal_forest_inference.md)** —
   a heterogeneous-treatment-effect estimand and capability contract, a
   randomized-design forest path, then design-aware resampling modes and
   BART/BCF posterior adapters.
-- **[Censored ordinal responses](R/package_metadata/new_feature_plans/censored_ordinal_response_models.md)** —
+- **[Censored ordinal responses](R/package_metadata/new_feature_plans/v2_0_0/censored_ordinal_response_models.md)** —
   ordinal outcomes known only up to a range of levels ("at least
   moderate", "mild or moderate"): right-, left-, and interval-censored
   rows, first for the cumulative-link models (proportional odds, probit,
@@ -809,7 +861,7 @@ what didn't move: the part that's a genuinely separate, harder problem
 (sample splitting, below) plus this feature's own now-much-smaller
 remainder.
 
-- **[Comparative model selection, Phase B](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
+- **[Comparative model selection, Phase B](R/package_metadata/new_feature_plans/v1_1_0/model_selection_framework.md)** —
   narrowed 2026-09-06 to just the response types Phase A's pilot doesn't
   reach (count, proportion, survival, ordinal) and the spline/flexible
   grid entries; no design-family work remains here (that moved to
@@ -819,7 +871,7 @@ remainder.
   has been corrected; whether the response-type remainder still belongs
   in v2.0.0 or fits this file's v1.4.0 response-and-data-extensions theme
   better is an open question, not yet resolved.
-- **[Sample-splitting / data-carving model selection](R/package_metadata/new_feature_plans/sample_splitting_model_selection.md)** —
+- **[Sample-splitting / data-carving model selection](R/package_metadata/new_feature_plans/v2_0_0/sample_splitting_model_selection.md)** —
   pick the winning model on a selection half, test it on a confirmation
   half at full alpha; needs real `Design`-level splitting (thorny for
   matching-on-the-fly designs), which is why it is 2.0.0 scope. Data
@@ -832,14 +884,14 @@ contract are unchanged; these three items pick up everything the pilot
 deliberately deferred, plus the matching retrofit onto `InferenceSuite`'s
 own report.
 
-- **[`ModelDiagnostics` full-roster rollout + visualization](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
+- **[`ModelDiagnostics` full-roster rollout + visualization](R/package_metadata/new_feature_plans/v1_3_0/model_diagnostics_framework.md)** —
   extends the pilot's nine families to all 66 `likelihood_tier != "none"`
   classes (verified against `public_api_inventory.csv`; 36 more classes
   are genuinely simple — rank/exact/G-computation-wrapper/IVWC-only — and
   correctly get no battery), plus the visualization layer the pilot's own
   reporting TODO never detailed: one `ggplot2` diagnostic plot per check
   type, HTML embedding, optional `plotly`/`DT` interactivity.
-- **[`DesignDiagnostics`](R/package_metadata/new_feature_plans/design_diagnostics_framework.md)** —
+- **[`DesignDiagnostics`](R/package_metadata/new_feature_plans/v2_0_0/design_diagnostics_framework.md)** —
   new. The design-side sibling `ModelDiagnostics` itself flagged as out of
   scope: baseline "Table 1" (no significance testing — the CONSORT-backed
   "Table 1 fallacy" rule), SMD/Love plots, eCDF balance overlays, the
@@ -847,7 +899,7 @@ own report.
   replay contract, propensity overlap for observational designs, and
   match/cluster structure diagnostics. Meant to become one combined
   pre-analysis report with `ModelDiagnostics`.
-- **[`InferenceSuite` interactive reporting](R/package_metadata/new_feature_plans/inference_suite_interactive_reporting.md)** —
+- **[`InferenceSuite` interactive reporting](R/package_metadata/new_feature_plans/v2_0_0/inference_suite_interactive_reporting.md)** —
   `DT::datatable()` for the existing (often 40+ row) HTML results table,
   sortable/filterable; `plotly::ggplotly()` wrapping the existing CI
   forest plot for hover-to-inspect. Both `Suggests`-gated; the static
@@ -855,13 +907,13 @@ own report.
 
 ### Backends and bindings
 
-- **[Compute backends](R/package_metadata/new_feature_plans/gpu_optimizations.md)** —
+- **[Compute backends](R/package_metadata/new_feature_plans/v2_0_0/gpu_optimizations.md)** —
   the GPU dispatch architecture first, the
-  [quantum QUBO-export hook](R/package_metadata/new_feature_plans/quantum_upgrade.md)
+  [quantum QUBO-export hook](R/package_metadata/new_feature_plans/v1_1_0/quantum_upgrade.md)
   second (see the README's "Why `EDI` targets the CPU" section for why
   both are optional accelerators for specific workloads, not the fitting
   path), then an optional
-  [NPU graph/runtime adapter](R/package_metadata/new_feature_plans/npu_ai_engine_optimizations.md).
+  [NPU graph/runtime adapter](R/package_metadata/new_feature_plans/v2_0_0/npu_ai_engine_optimizations.md).
 - *The shared C++ inference backend and additional language bindings moved
   to v4.0.0 on 2026-09-19; see below.*
 
@@ -871,10 +923,14 @@ own report.
   the deprecated greedy classes are removed, and every accumulated
   1.x → 2.0.0 contract break ships with a documented deprecation path and
   a migration guide.
-- **[Eigen-only C++ source strings for custom randomization statistics](R/package_metadata/new_feature_plans/custom_rand_stat_batched_cpp_loop.md)** —
+- **[Eigen-only C++ source strings for custom randomization statistics](R/package_metadata/new_feature_plans/v1_2_0/custom_rand_stat_batched_cpp_loop.md)** —
   the legacy Rcpp-typed signature for C++ source strings is dropped, so
   every C++ statistic runs the permutation loop in C++. The last 1.x
   release warns on the old form and shows the equivalent Eigen signature.
+
+- **Native C++ tests** *(maintenance)* — the C++ this release adds to the shared core
+  lands with native tests in `cpp_tests/`. See
+  [`native_cpp_tests_v2_0_0.md`](R/package_metadata/new_feature_plans/v2_0_0/native_cpp_tests_v2_0_0.md).
 
 ---
 
@@ -889,13 +945,13 @@ same day and the day after, and a continuously-running crowdsourced
 simulation benchmark added 2026-09-11; see
 [`release_v3_0_0.md`](R/package_metadata/future_release_plans/release_v3_0_0.md).
 
-- **[Finite mixture regression](R/package_metadata/new_feature_plans/finite_mixture_regression.md)** —
+- **[Finite mixture regression](R/package_metadata/new_feature_plans/v3_0_0/finite_mixture_regression.md)** —
   fit any existing regression family as a K-component latent-class
   mixture via a generic EM driver that reuses each family's existing
   weighted kernel; user-specified K with BIC/ICL, bootstrap-only
   inference, per-component and mixture-weighted marginal treatment
   effects. Tentative.
-- **[Bayesian parametric primary analysis](R/package_metadata/new_feature_plans/bayesian_stan_primary_analysis_report.md)** —
+- **[Bayesian parametric primary analysis](R/package_metadata/new_feature_plans/v3_0_0/bayesian_stan_primary_analysis_report.md)** —
   an optional, `cmdstanr`-backed Bayesian inference family: posterior
   effect estimate and credible interval, posterior probability of
   benefit and Bayes factors, hierarchical/borrowing models, and a tie-in
@@ -906,10 +962,10 @@ simulation benchmark added 2026-09-11; see
   to `R/EDI` itself.
 - **Visualization batch** — nine items from a dedicated brainstorm: three
   new plans
-  ([Kaplan-Meier curves](R/package_metadata/new_feature_plans/survival_curve_visualization.md),
-  [`SimulationFramework` power/OC curves](R/package_metadata/new_feature_plans/simulation_framework_visualization.md),
+  ([Kaplan-Meier curves](R/package_metadata/new_feature_plans/v3_0_0/survival_curve_visualization.md),
+  [`SimulationFramework` power/OC curves](R/package_metadata/new_feature_plans/v3_0_0/simulation_framework_visualization.md),
   a shared
-  [`theme_edi()` foundation](R/package_metadata/new_feature_plans/edi_visualization_theme.md))
+  [`theme_edi()` foundation](R/package_metadata/new_feature_plans/v3_0_0/edi_visualization_theme.md))
   plus new visualization sections grafted onto six existing plans
   (Bayesian posterior plots, mixture-model plots, a group-sequential
   boundary chart, a response-adaptive-randomization trajectory plot, HTE/
@@ -917,7 +973,7 @@ simulation benchmark added 2026-09-11; see
   reuse `InferenceSuite`'s ggplot2/HTML/`plotly` reporting convention.
   Four of the six host plans otherwise remain v2.0.0 — only their new
   visualization section targets v3.0.0.
-- **[Per-class result plots](R/package_metadata/new_feature_plans/inference_plots.md)** —
+- **[Per-class result plots](R/package_metadata/new_feature_plans/v3_0_0/inference_plots.md)** —
   every one of the package's 102 concrete `Inference*` classes gets a
   section listing the result/effect plots (predicted-effect curves,
   component decompositions, stratified displays — never a diagnostic,
@@ -926,7 +982,7 @@ simulation benchmark added 2026-09-11; see
   by 19 model families. Six classes have a real structural dependency on
   the Kaplan-Meier-curve item above, not mere non-overlap — see that
   plan's own header.
-- **[Optimal design × inference finder](R/package_metadata/new_feature_plans/optimal_design_finder.md)** —
+- **[Optimal design × inference finder](R/package_metadata/new_feature_plans/v3_0_0/optimal_design_finder.md)** —
   a continuously-running, genuinely open crowdsourced simulation
   benchmark comparing every applicable design/inference/response-type
   combination EDI ships, publishing results as public Parquet/CSV in a
@@ -951,15 +1007,19 @@ out of v2.0.0 by user decision ("not a priority whatsoever"). No committed
 scope or decision batch yet; nothing in v2.0.0 or v3.0.0 depends on it. See
 [`release_v4_0_0.md`](R/package_metadata/future_release_plans/release_v4_0_0.md).
 
-- **[Shared C++ inference and design backend](R/package_metadata/new_feature_plans/migrate_EDI_into_shared_cpp_backend.md)** —
+- **[Shared C++ inference and design backend](R/package_metadata/new_feature_plans/v4_0_0/migrate_EDI_into_shared_cpp_backend.md)** —
   a stable, versioned C ABI (`libedi_core`) that makes model fitting,
   score/likelihood-ratio tests and intervals, bootstrap and randomization
   inference, and (Phase D) the design classes themselves native, with R and
   Python becoming thin adapters and a dual-backend compatibility window.
   The substrate for bindings beyond R and Python.
-- **[Additional language bindings](R/package_metadata/new_feature_plans/more_language_bindings.md)** —
+- **[Additional language bindings](R/package_metadata/new_feature_plans/v4_0_0/more_language_bindings.md)** —
   MATLAB, JVM, Stata, .NET, Julia and others over that ABI, only after the
   shared backend's ABI, release, and ownership decisions are complete.
-- **[Parametric joint multivariate models (Level 3)](R/package_metadata/new_feature_plans/multivariate_response_modeling.md)** —
+- **[Parametric joint multivariate models (Level 3)](R/package_metadata/new_feature_plans/v2_0_0/multivariate_response_modeling.md)** —
   SUR/MANOVA, copula, and multivariate-GLMM joint models with new C++
   likelihood cores; gated on a go/no-go after v2.0.0's Levels 1–2 ship.
+
+- **Native C++ tests** *(maintenance)* — the C++ this release adds to the shared core
+  lands with native tests in `cpp_tests/`. See
+  [`native_cpp_tests_v4_0_0.md`](R/package_metadata/new_feature_plans/v4_0_0/native_cpp_tests_v4_0_0.md).

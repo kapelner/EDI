@@ -96,7 +96,7 @@ fi
 # run_r_tests above, plus R/package_tests/** itself and the one doc file the
 # workflow also watches.
 run_comprehensive_suite=0
-if [ "$run_r_tests" = "1" ] || grep -qE '^R/package_tests/|^R/package_metadata/finished_features/comprehensive_test_suite\.md$' "$changed_files_file"; then
+if [ "$run_r_tests" = "1" ] || grep -qE '^R/package_tests/|^R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite\.md$' "$changed_files_file"; then
 	run_comprehensive_suite=1
 fi
 
@@ -360,7 +360,7 @@ if [ "$run_r_tests" = "1" ]; then
 	echo
 
 	# Statistical-calibration check for the inference classes this push
-	# touched (R/package_metadata/new_feature_plans/calibration_gates.md):
+	# touched (R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md):
 	# per-replicate CI/test agreement, CI-endpoint inversion and a
 	# large-effect sign check on synthetic data. Deterministic (fixed seeds);
 	# size and coverage are left to the scheduled calibration-fast-tier

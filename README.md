@@ -602,7 +602,7 @@ cannot help:
   any practical win at `n` in the hundreds more likely comes from a
   quantum-*inspired* classical solver; the second needs fault-tolerant
   hardware that does not exist. See
-  [`quantum_upgrade.md`](R/package_metadata/new_feature_plans/quantum_upgrade.md)
+  [`quantum_upgrade.md`](R/package_metadata/new_feature_plans/v1_1_0/quantum_upgrade.md)
   for the mapping, qubit-count estimates, and the planned optional
   QUBO-export hook.
 
@@ -618,7 +618,7 @@ statistics — mean differences, fixed-design OLS, rank sums — at B well beyon
 GPU implementation could beat a multi-core CPU. Inside the n < 1,000,
 B < 2,000 regime, launch and transfer overhead still dominates, so this is a
 future direction, not a limitation of the current design. See
-[`gpu_optimizations.md`](R/package_metadata/new_feature_plans/gpu_optimizations.md)
+[`gpu_optimizations.md`](R/package_metadata/new_feature_plans/v2_0_0/gpu_optimizations.md)
 for the ranked candidates and the backend/dispatch design an optional GPU
 path would need.
 
@@ -703,7 +703,7 @@ integration tests, C++ core hygiene for designs with a compiled kernel (e.g.
 `DesignFixedOptimal`'s allocation search), the R/Python core split, and
 registration in the comprehensive test harness. Start from
 [`vignette("extending-edi")`](R/EDI/vignettes/extending-edi.Rmd) and
-[`R/package_metadata/finished_features/fix_design_hierarchy.md`](R/package_metadata/finished_features/fix_design_hierarchy.md)
+[`R/package_metadata/finished_features/v1_0_0/fix_design_hierarchy.md`](R/package_metadata/finished_features/v1_0_0/fix_design_hierarchy.md)
 for the architecture; there is no single step-by-step PR contract for the
 design side yet (unlike `new_model_creation.md`), so treat that document's
 structure as the template, adapted to `EDI_DESIGN_CLASS_REGISTRY` /

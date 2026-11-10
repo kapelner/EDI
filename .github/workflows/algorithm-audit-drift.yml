@@ -1,6 +1,6 @@
 # Monthly algorithm-audit drift check. Read-only: no R, no compile, no commits.
 # Opens/updates ONE issue labelled `algorithm-audit-drift`; closes it when clean.
-# Procedure and guardrails: R/package_metadata/new_feature_plans/algorithm_audit_runbook.md
+# Procedure and guardrails: R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md
 #
 # Note: GitHub disables scheduled workflows after 60 days of repo inactivity.
 

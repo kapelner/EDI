@@ -1,7 +1,7 @@
 library(testthat)
 
 # v1.0.5 TODO-200: the calibration gate (R/package_tests/calibration/analyze_calibration_study.R)
-# tests a cell against a rate-derived level (new_feature_plans/calibration_rate_derived_gate.md)
+# tests a cell against a rate-derived level (new_feature_plans/v1_0_5/calibration_rate_derived_gate.md)
 # that replaces TODO-192's step schedule: finite-sample procedures 0.05 / 0.95 at every n;
 # asymptotic procedures with a known order a size min(0.10, 0.05 + c_a n_eff^-a) (cap reached at
 # n_eff = 50), coverage 1 minus that; unknown order the cap below the campaign's largest n and the

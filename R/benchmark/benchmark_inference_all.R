@@ -40,7 +40,7 @@ if (!benchmark_is_worker) {
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required to benchmark the current EDI source tree.")
 }
-pkgload::load_all("EDI", quiet = TRUE)
+pkgload::load_all("EDI", compile = FALSE, quiet = TRUE)
 library(EDI)
 
 # Load remaining packages

@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TODO-23 (release_v1_0_5.md; linked plan bug_fix_plans/rmst_mismatched_truncation_horizon.md):
+# TODO-23 (release_v1_0_5.md; linked plan bug_fix_plans/v1_0_5/rmst_mismatched_truncation_horizon.md):
 # G4-C calibration runbook R4 (decisions G6 #22, #36).
 #
 # Mode `coverage` (Part A, plan TODO-5): multi-method RMST coverage calibration.

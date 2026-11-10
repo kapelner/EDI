@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.5 TODO-31 root-cause pin (bug_fix_plans/clmm_sigma_collapse_false_convergence.md E1/E4,
+# v1.0.5 TODO-31 root-cause pin (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md E1/E4,
 # G6 #45 (i), 2026-10-22). On the migration-golden design, InferenceOrdinalKKCLMMCloglog's fit
 # sits at the lower variance boundary (sigma -> 0). That is the correct cloglog MLE, not a
 # collapse: the fit equals ordinal::clm(link = "cloglog") and the likelihood rises as sigma^2

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.5 TODO-31 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md TODO-3/TODO-4, E4-E6;
+# v1.0.5 TODO-31 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md TODO-3/TODO-4, E4-E6;
 # G6 #45 (iii)(a), 2026-10-22). The native CLMM kernel's `converged` is LBFGSpp's lenient flag
 # (the relative-f stop counts as converged), and at the old clmm_eps_g = 1e-6 every class fit
 # stopped with gradient norm ~1e-2 (360/360 in the sweep) and the treatment up to 6.4e-3 from the

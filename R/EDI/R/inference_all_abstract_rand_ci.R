@@ -250,7 +250,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					"sharp null is imposed on the log-time axis, and the Cox model estimates no shape ",
 					"parameter that could convert between them. The randomization p-value and the ",
 					"randomization-bootstrap CI remain available. See ",
-					"R/package_metadata/new_feature_plans/randomization_ci_construction_audit.md, section A.",
+					"R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_construction_audit.md, section A.",
 					call. = FALSE
 				)
 			}
@@ -296,7 +296,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			# actual mechanism available; `compute_rand_two_sided_pval()`'s
 			# own Zhang dispatch is untouched.
 			# See R/package_metadata/new_feature_plans/
-			# incidence_randomization_cis.md for the investigation and the
+			# v1_1_0/incidence_randomization_cis.md for the investigation and the
 			# real per-estimand-scale fix, slated for v1.1.0.
 			if (resp_type == "incidence") {
 				stop(
@@ -306,7 +306,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					"the raw 2x2 contingency table and was being reported verbatim for ",
 					"every incidence class regardless of its own estimand's scale, giving ",
 					"wrong-scale bounds for anything other than a log-odds-ratio estimand. ",
-					"See R/package_metadata/new_feature_plans/incidence_randomization_cis.md.",
+					"See R/package_metadata/new_feature_plans/v1_1_0/incidence_randomization_cis.md.",
 					call. = FALSE
 				)
 			}

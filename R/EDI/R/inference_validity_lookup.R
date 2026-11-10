@@ -151,7 +151,7 @@ edi_procedure_validity_for_object = function(inf, procedure = NULL) {
 #'   \code{"InferenceContinLin"}.
 #' @param procedure \code{NULL} (default) for every procedure the class supports
 #'   by default, otherwise one or more procedure labels as used in the
-#'   \code{method} column of \code{\link{run_all_inference}()} results, such as
+#'   \code{method} column of \code{\link[=InferenceSuite]{run_all_inference}()} results, such as
 #'   \code{"wald"}, \code{"rand"} or \code{"bootstrap"}.
 #'
 #' @details Without a design object there is no data, so \code{n_eff} is
@@ -181,7 +181,7 @@ edi_procedure_validity_for_object = function(inf, procedure = NULL) {
 #'     \item{\code{measured_note}}{A sentence saying why \code{measured} is
 #'       \code{NULL}, or \code{NULL} when it is not.}
 #'   }
-#' @seealso \code{\link{run_all_inference}} for the same information as columns
+#' @seealso \code{\link[=InferenceSuite]{run_all_inference}} for the same information as columns
 #'   of a fitted comparison.
 #' @examples
 #' v = get_inference_procedure_validity("DesignFixedBernoulli", "InferenceContinLin")

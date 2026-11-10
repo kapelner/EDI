@@ -2,7 +2,7 @@
 
 All notable changes to `edi_kernels` are documented here. The version
 number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
-`R/package_metadata/finished_features/python_bindings_package_spec.md`'s
+`R/package_metadata/finished_features/v1_0_0/python_bindings_package_spec.md`'s
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
@@ -487,7 +487,7 @@ KK-combined Clayton-copula/dep-censoring kernels are all still
 ### Internal (no behavior change, build performance only)
 
 - `R/EDI/src`'s unity-build collision audit and fix pass are complete (see
-  `R/package_metadata/new_feature_plans/unity_build_collision_audit.md`
+  `R/package_metadata/finished_features/v1_0_0/unity_build_collision_audit.md`
   and `release_v1_0_0.md`'s TODO-6) — a handful of duplicated file-scope
   helpers (`bounded_rand`, `DigammaFunctor`, `all_finite_mat`/`_vec`, etc.)
   across ~22 files were hoisted into shared headers or renamed apart, and
@@ -718,4 +718,4 @@ Initial release.
   `fast_weibull_regression`) rather than setting them to `None` the way
   `fast_poisson_glmm` does — inconsistent across kernels, documented
   per-file in the affected parity tests.
-- The published sdist cannot be built from source at all (`EDI_SRC_DIR`'s `../R/EDI/src` resolves outside the tarball) — affects any install without a matching prebuilt wheel (e.g. Python 3.14, musllinux, non-x86/arm64); see `R/package_metadata/finished_features/python_bindings_package_spec.md` TODO-12.
+- The published sdist cannot be built from source at all (`EDI_SRC_DIR`'s `../R/EDI/src` resolves outside the tarball) — affects any install without a matching prebuilt wheel (e.g. Python 3.14, musllinux, non-x86/arm64); see `R/package_metadata/finished_features/v1_0_0/python_bindings_package_spec.md` TODO-12.

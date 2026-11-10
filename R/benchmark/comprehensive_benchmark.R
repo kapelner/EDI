@@ -5,7 +5,7 @@ if (!requireNamespace("pkgload", quietly = TRUE)) {
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(survival))
 
-pkgload::load_all("EDI")
+pkgload::load_all("EDI", compile = FALSE)
 # Set global number of cores for parallelization
 set_num_cores(5)
 

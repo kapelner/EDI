@@ -3,7 +3,7 @@
 ## Status
 
 Commissioned by TODO-10 in
-`package_metadata/finished_features/interval_censored_survival_response.md`
+`package_metadata/finished_features/v1_0_0/interval_censored_survival_response.md`
 ("Commission a follow-up feasibility report scoping how dependent censoring
 (`InferenceSurvivalDepCensTransformRegr`) and interval censoring compose,
 before writing any implementation TODOs for it"). This is a scoping

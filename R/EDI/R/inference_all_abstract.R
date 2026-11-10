@@ -449,7 +449,7 @@ Inference = R6::R6Class("Inference",
 		#'   \code{\link{get_inference_procedure_validity}()}.
 		#' @param procedure \code{NULL} (default) for every supported procedure, or
 		#'   procedure labels as used in the \code{method} column of
-		#'   \code{\link{run_all_inference}()} results (e.g. \code{"wald"}).
+		#'   \code{\link[=InferenceSuite]{run_all_inference}()} results (e.g. \code{"wald"}).
 		#' @return A list with \code{expectation} (a data frame, one row per
 		#'   procedure, see \code{\link{get_inference_procedure_validity}()}),
 		#'   \code{measured} (\code{NULL}: no measured calibration values are

@@ -3,7 +3,7 @@
 ## Status
 
 Commissioned by TODO-12 in
-`package_metadata/finished_features/interval_censored_survival_response.md`
+`package_metadata/finished_features/v1_0_0/interval_censored_survival_response.md`
 ("Commission a follow-up feasibility report for
 `InferenceSurvivalKKRankRegrIVWC`/`InferenceAbstractKKSurvivalRankRegrIVWC`
 under interval censoring, surveying rank-based interval-censored AFT

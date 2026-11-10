@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TODO-18 (release_v1_0_5.md; linked plan bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md
+# TODO-18 (release_v1_0_5.md; linked plan bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md
 # -> TODO-6): smoothed randomization-bootstrap (BRT) true-null calibration roster,
 # G4-C calibration runbook R3 (decisions G6 #35: the 9 named cells; G6 #20: rule).
 #

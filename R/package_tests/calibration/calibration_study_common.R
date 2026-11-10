@@ -7,8 +7,9 @@
 #     "0"/"1", P = 0.5). The linear predictor CAL_STUDY_COEF * (x1 + x2 + x3 + x4 + x5)
 #     has variance 1, i.e. it explains about half the variance of the continuous
 #     outcome. Formulas stay `~ 1` (w only) and `~ .` (w + all covariates).
-#   * 21 designs (CAL_STUDY_DESIGNS), every exported one except the cluster and
-#     factorial designs, plus Bernoulli at prob_T = 0.2.
+#   * the designs of cal_study_designs(): every exported concrete one except the cluster and
+#     factorial designs (CAL_STUDY_EXCLUDED_DESIGNS), plus every one that supports unequal
+#     allocation also at prob_T = 0.2.
 #   * potential outcomes. y(0) and y(1) are drawn from the same random numbers
 #     BEFORE treatment is assigned; the design then reveals y(w). Sequential
 #     designs that use earlier responses (KK21) get each response right after its
@@ -36,20 +37,110 @@ CAL_STUDY_TIER1_PVAL_ONLY <- "rand"
 # Design label -> constructor extras. A label "<Design>@prob_T=<p>" runs <Design>
 # at prob_T = p (cal_plan_entry()).
 CAL_STUDY_STRATA <- c("x4", "x5")
-CAL_STUDY_DESIGNS <- c(
-	"DesignFixedBernoulli", "DesignFixedBernoulli@prob_T=0.2", "DesignFixediBCRD", "DesignFixedBlocking",
-	"DesignFixedRerandomization", "DesignFixedMatchingGreedyPairSwitching", "DesignFixedOptimal",
-	"DesignFixedBinaryMatch", "DesignFixedGreedy", "DesignFixedGreedyDOptimal", "DesignFixedOptimalBlocks",
+
+# The study's designs are DISCOVERED from the installed EDI (v1.0.5 TODO-203 Amendments B and C), not listed:
+# cal_study_designs() = every exported, concrete `Design*` R6 generator minus CAL_STUDY_EXCLUDED_DESIGNS, plus a
+# `<Design>@prob_T=CAL_STUDY_UNEQUAL_PROB_T` label for every kept design whose registry capability
+# `supports_unequal_allocation` is TRUE (the others run at prob_T = 0.5 only). A new design therefore enters the
+# study by being exported; one that cannot run on the study's data fails the roster job loudly (the smoke check)
+# until it gets cal_study_design_extras() or an exclusion here.
+CAL_STUDY_UNEQUAL_PROB_T <- 0.2
+CAL_STUDY_EXCLUDED_DESIGNS <- c(
+	DesignFixedCluster = "needs cluster ids, which the study's data do not have",
+	DesignFixedBlockedCluster = "needs cluster ids, which the study's data do not have",
+	DesignFixedFactorial = "more than one treatment factor; the study has a single binary treatment"
+)
+
+# Display / run order of the KNOWN designs (sorting only, never membership): Fixed before Seq, then this order; a
+# discovered design not listed here follows the known ones of its family, alphabetically.
+CAL_STUDY_DESIGN_ORDER <- c(
+	"DesignFixedBernoulli", "DesignFixediBCRD", "DesignFixedBlocking", "DesignFixedRerandomization",
+	"DesignFixedMatchingGreedyPairSwitching", "DesignFixedOptimal", "DesignFixedBinaryMatch", "DesignFixedGreedy",
+	"DesignFixedGreedyDOptimal", "DesignFixedOptimalBlocks",
 	"DesignSeqOneByOneBernoulli", "DesignSeqOneByOneiBCRD", "DesignSeqOneByOneEfron", "DesignSeqOneByOneAtkinson",
 	"DesignSeqOneByOnePocockSimon", "DesignSeqOneByOneRandomBlockSize", "DesignSeqOneByOneSPBR",
 	"DesignSeqOneByOneUrn", "DesignSeqOneByOneKK14", "DesignSeqOneByOneKK21", "DesignSeqOneByOneKK21stepwise"
 )
 
-cal_study_design_extras <- function(design_name) {
+# Rank of design labels for sorting: the base design's position under (family Fixed < Seq < other, known before new,
+# CAL_STUDY_DESIGN_ORDER, then alphabetical); the @prob_T variants of a design share its rank (the label breaks ties).
+cal_study_design_rank <- function(labels) {
+	base <- sub("@.*$", "", labels)
+	ub <- unique(base)
+	family <- ifelse(startsWith(ub, "DesignFixed"), 0L, ifelse(startsWith(ub, "DesignSeqOneByOne"), 1L, 2L))
+	known <- match(ub, CAL_STUDY_DESIGN_ORDER)
+	ub <- ub[order(family, is.na(known), known, ub)]
+	match(base, ub)
+}
+
+# Whether the design class `design_name` supports unequal allocation: the package's own
+# design_supports_unequal_allocation(), which takes a class NAME (or an instance) and errors on anything else.
+# Shim for pre-fix builds (the installed EDI v1.0.4 and any build from an older sha), whose function answers TRUE for
+# any string: if it says TRUE for a design known to refuse (Efron), read the registry directly. Remove the fallback
+# once the fixed function is released.
+cal_study_supports_unequal <- function(design_name) {
+	ns <- asNamespace("EDI")
+	f <- get("design_supports_unequal_allocation", envir = ns)
+	if (isTRUE(f("DesignSeqOneByOneEfron"))) {
+		reg <- get("EDI_DESIGN_CLASS_REGISTRY", envir = ns)
+		return(exists(design_name, envir = reg, inherits = FALSE) &&
+			isTRUE(get(design_name, envir = reg, inherits = FALSE)$supports_unequal_allocation))
+	}
+	isTRUE(f(design_name))
+}
+
+# The design names kept for the study. `exports` / `resolve` / `is_abstract` / `supports_unequal` are injectable for tests.
+cal_study_design_names <- function(exports = getNamespaceExports("EDI"),
+		resolve = function(n) get0(n, envir = asNamespace("EDI"), inherits = FALSE),
+		is_abstract = function(n) {
+			f <- get0("is_design_class_abstract", envir = asNamespace("EDI"), inherits = FALSE)
+			is.function(f) && isTRUE(f(n))
+		}) {
+	nm <- sort(unique(grep("^Design", exports, value = TRUE)))
+	ok <- vapply(nm, function(n) inherits(resolve(n), "R6ClassGenerator") && !is_abstract(n), logical(1L))
+	setdiff(nm[ok], names(CAL_STUDY_EXCLUDED_DESIGNS))
+}
+
+# The study's design labels, in run order (cal_study_design_rank()). Amendment C: the @prob_T label of every capable design.
+cal_study_designs <- function(exports = getNamespaceExports("EDI"), resolve = function(n) get0(n, envir = asNamespace("EDI"), inherits = FALSE),
+		supports_unequal = cal_study_supports_unequal, prob_T = CAL_STUDY_UNEQUAL_PROB_T, ...) {
+	nm <- cal_study_design_names(exports, resolve, ...)
+	cap <- nm[vapply(nm, supports_unequal, logical(1L))]
+	labels <- c(nm, if (length(cap)) paste0(cap, "@prob_T=", prob_T))
+	labels[order(cal_study_design_rank(labels), labels)]
+}
+
+# One-replicate smoke check that every label can be built and assigned on the study's data (continuous response, n = 50).
+# Stops naming each design that cannot, so a new design never enters the study (or silently drops out of it) unnoticed.
+cal_study_smoke_check_designs <- function(labels, response_type = "continuous", n_nominal = 50L) {
+	bad <- character()
+	for (lab in labels) {
+		err <- tryCatch({ suppressWarnings(suppressMessages(cal_study_throwaway_design(response_type, lab, n_nominal))); NULL },
+			error = function(e) conditionMessage(e))
+		if (!is.null(err)) bad <- c(bad, sprintf("%s (%s)", lab, substr(gsub("\\s+", " ", err), 1L, 200L)))
+	}
+	if (length(bad)) stop("Calibration CI bug: cannot build and assign on the study's data: ", paste(bad, collapse = "; "),
+		". Add cal_study_design_extras() for the design or an entry in CAL_STUDY_EXCLUDED_DESIGNS (with a reason).", call. = FALSE)
+	invisible(TRUE)
+}
+
+# Smallest block that holds a whole number of treated subjects at allocation p (5 at p = 0.2).
+cal_study_block_unit <- function(prob_T) {
+	for (k in seq_len(1000L)) if (abs(k * prob_T - round(k * prob_T)) < 1e-9) return(k)
+	stop("no block size up to 1000 gives a whole number of treated subjects at prob_T = ", prob_T)
+}
+
+# Constructor extras of a design: strata and block settings. At prob_T != 0.5 the block designs need block sizes
+# that are whole multiples of the allocation (their defaults 4 / 4,6,8 are for 1:1), so they get multiples of the
+# smallest such block; every other design is built with its defaults. A discovered design with no case here is
+# built with defaults (cal_study_smoke_check_designs() fails the roster job if that does not work).
+cal_study_design_extras <- function(design_name, prob_T = 0.5) {
+	unit <- if (isTRUE(prob_T == 0.5)) NULL else cal_study_block_unit(prob_T)
 	switch(design_name,
 		DesignFixedBlocking = list(strata_cols = CAL_STUDY_STRATA, equal_block_sizes = FALSE),
-		DesignSeqOneByOnePocockSimon = , DesignSeqOneByOneRandomBlockSize = , DesignSeqOneByOneSPBR =
-			list(strata_cols = CAL_STUDY_STRATA),
+		DesignSeqOneByOnePocockSimon = list(strata_cols = CAL_STUDY_STRATA),
+		DesignSeqOneByOneRandomBlockSize = c(list(strata_cols = CAL_STUDY_STRATA), if (!is.null(unit)) list(block_sizes = unit * c(1, 2, 3))),
+		DesignSeqOneByOneSPBR = c(list(strata_cols = CAL_STUDY_STRATA), if (!is.null(unit)) list(block_size = unit)),
 		list()
 	)
 }
@@ -141,7 +232,7 @@ cal_study_run_design <- function(design_label, response_type, X, po) {
 	entry <- cal_plan_entry(design_label)
 	n <- nrow(X)
 	gen <- get(entry$design, envir = asNamespace("EDI"))
-	args <- c(list(n = n, response_type = response_type), cal_study_design_extras(entry$design))
+	args <- c(list(n = n, response_type = response_type), cal_study_design_extras(entry$design, entry$prob_T))
 	if (!isTRUE(entry$prob_T == 0.5)) args$prob_T <- entry$prob_T
 	des <- do.call(gen$new, args)
 	fields <- names(po$y0)
@@ -223,12 +314,17 @@ cal_study_run_rep <- function(response_type, design_label, n_nominal, effect_lab
 	tab
 }
 
-# Classes applicable to a design for one response type, from the installed
-# package's registry, on a throwaway replicate of that design.
-cal_study_classes <- function(response_type, design_label, n_nominal) {
+# A throwaway replicate of a design (seed 1, null potential outcomes) at n_nominal: what the class set and
+# the task list are read from.
+cal_study_throwaway_design <- function(response_type, design_label, n_nominal) {
 	n <- cal_study_effective_n(design_label, n_nominal)
 	set.seed(1L)
 	X <- cal_study_gen_X(n)
-	des <- cal_study_run_design(design_label, response_type, X, cal_study_potential_outcomes(response_type, X, 0))
-	sort(EDI:::applicable_inference_class_names_for_design(des))
+	cal_study_run_design(design_label, response_type, X, cal_study_potential_outcomes(response_type, X, 0))
+}
+
+# Classes applicable to a design for one response type, from the installed
+# package's registry, on a throwaway replicate of that design.
+cal_study_classes <- function(response_type, design_label, n_nominal) {
+	sort(EDI:::applicable_inference_class_names_for_design(cal_study_throwaway_design(response_type, design_label, n_nominal)))
 }

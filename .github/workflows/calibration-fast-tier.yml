@@ -1,7 +1,7 @@
 name: calibration-fast-tier
 
 # Scheduled statistical-calibration monitor (design:
-# R/package_metadata/new_feature_plans/calibration_gates.md). Measures Type-I
+# R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md). Measures Type-I
 # error (size) and CI coverage of every fast analytic procedure (wald, score,
 # lik_ratio, gradient; ~1 and ~.) of every inference class on synthetic
 # sharp-null data, and goes red when any cell is significantly anti-

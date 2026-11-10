@@ -21,9 +21,9 @@ test_that("restrict_families: NULL keeps everything; a class list filters rows, 
 
 test_that("effort nominal time strings per tier, 'unknown' otherwise", {
 	t <- Z("edi_tuning_effort_nominal_time")
-	expect_identical(t("quick"), "roughly 2-5 minutes")
-	expect_identical(t("standard"), "roughly 15-30 minutes")
-	expect_identical(t("thorough"), "roughly 1-2 hours")
+	expect_identical(t("quick"), "roughly 1 hour")
+	expect_identical(t("standard"), "roughly 3-4 hours")
+	expect_identical(t("thorough"), "many hours (not measured; plan for overnight or longer)")
 	expect_identical(t("bogus"), "unknown")
 	presets <- names(Z("edi_tuning_effort_presets")())
 	expect_true(all(vapply(presets, function(p) t(p) != "unknown", NA)))      # every shipped effort tier has a time string

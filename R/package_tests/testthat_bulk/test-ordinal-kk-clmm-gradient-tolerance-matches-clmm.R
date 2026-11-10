@@ -7,7 +7,7 @@ library(EDI)
 # median error 0.05-0.07 at 1e-3 vs 2e-4 at 1e-6).  The class now uses private$clmm_eps_g = 1e-6, so
 # its estimate must sit within 2e-3 of ordinal::clmm(nAGQ = 20) on this fixture
 # (before: 6e-3, 3.8e-2, 3.2e-2 on seeds 302, 303, 305; after: <= 5.2e-4).
-# 2026-10-22 (v1.0.5 TODO-31, G6 #45 (iii)(a); bug_fix_plans/clmm_sigma_collapse_false_convergence.md
+# 2026-10-22 (v1.0.5 TODO-31, G6 #45 (iii)(a); bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md
 # TODO-3): clmm_eps_g is now 1e-12 so the fit reaches a stationary point (the 1e-6 fit still stopped on
 # LBFGSpp's relative-f test with gradient norm ~1e-2), plus gradient acceptance clmm_gradient_accept = 1e-4.
 

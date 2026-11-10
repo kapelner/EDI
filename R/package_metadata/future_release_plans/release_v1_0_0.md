@@ -210,7 +210,7 @@ the frozen substrate makes it additive.
     byproduct: the BRT reusable-worker impute path broke on a plain
     data.frame `Xraw` (data.table `..` syntax), fixed via
     `as.data.table(private$Xraw)`. Moved to
-    `../finished_features/design_fixed_optimal.md` (2026-08-17).
+    `../finished_features/v1_0_0/design_fixed_optimal.md` (2026-08-17).
 11. **[x] `optimizer_diagnostics_report.md → TODO-4` decision** — redefining
     `converged` changes the meaning of a user-visible field, which after
     1.0.0 would be a quiet breaking change. Either do that one item pre-1.0
@@ -447,7 +447,7 @@ the frozen substrate makes it additive.
     in TODO-5) or permanently out of scope by construction (fork-vs-mirai
     A/B, and the optimizer axis's `converged_fn` requirement, both recorded
     as such rather than left as unfinished work). Moved to
-    `../finished_features/local_machine_optimization.md`.
+    `../finished_features/v1_0_0/local_machine_optimization.md`.
 
 16. **[x] `parallel_fork_cluster_test_safety.md`** (added 2026-08-21, user
     decision). `InferenceSuite$run_all_inference(num_cores > 1)` — item 13's

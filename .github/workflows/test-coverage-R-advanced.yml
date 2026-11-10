@@ -1,7 +1,7 @@
 name: test-coverage-R-advanced
 
 # Advanced EDI R coverage/gate harness built from
-# R/package_metadata/finished_features/comprehensive_test_suite.md. This is
+# R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite.md. This is
 # intentionally separate from test-coverage-R.yaml: it runs the comprehensive
 # package_tests/ orchestration, unified analyzer, and quality gates rather than
 # covr/testthat line coverage.
@@ -19,7 +19,7 @@ on:
       - 'R/EDI/NAMESPACE'
       - 'R/EDI/tests/**'
       - 'R/package_tests/**'
-      - 'R/package_metadata/finished_features/comprehensive_test_suite.md'
+      - 'R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite.md'
       - '.github/workflows/test-coverage-R-advanced.yml'
   pull_request:
     branches: [main, master]

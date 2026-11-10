@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TODO-67 (release_v1_0_5.md; linked plan bug_fix_plans/kk21_weibull_irls_wrong_fixed_point.md
+# TODO-67 (release_v1_0_5.md; linked plan bug_fix_plans/v1_0_5/kk21_weibull_irls_wrong_fixed_point.md
 # -> TODO-5): KK21 survival-weight matching quality, replacement protocol,
 # G4-C calibration runbook R6 (decision G6 #24).
 #

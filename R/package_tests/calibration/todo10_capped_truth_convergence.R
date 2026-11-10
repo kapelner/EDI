@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TODO-10 (release_v1_0_5.md; linked plan bug_fix_plans/mc_coverage_truth_covariate_mismatch.md
+# TODO-10 (release_v1_0_5.md; linked plan bug_fix_plans/v1_0_5/mc_coverage_truth_covariate_mismatch.md
 # -> TODO-6): capped-covariate MC coverage-truth convergence check for the two
 # KK-matched Cox classes, G4-C calibration runbook R7 (decision G6 #19).
 #

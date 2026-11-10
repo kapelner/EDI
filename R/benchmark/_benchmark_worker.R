@@ -14,10 +14,10 @@ results_csv = "comprehensive_high_precision_results.csv"
 
 for (cls in all_classes) {
     cat(sprintf("Running %s...\n", cls))
-    cmd = sprintf("Rscript -e 'pkgload::load_all(\"EDI\"); N=800; P=30; R=50; B=50; J=10; PB=40; res_file=\"%s\"; cls=\"%s\"; # actual measurement code here... '", results_csv, cls)
+    cmd = sprintf("Rscript -e 'pkgload::load_all(\"EDI\", compile = FALSE); N=800; P=30; R=50; B=50; J=10; PB=40; res_file=\"%s\"; cls=\"%s\"; # actual measurement code here... '", results_csv, cls)
     # Actually, I'll just write the full command into a temporary script for each class
     script_content = sprintf("
-        pkgload::load_all(\"EDI\", quiet = TRUE)
+        pkgload::load_all(\"EDI\", compile = FALSE, quiet = TRUE)
         library(data.table)
         set.seed(42)
         N=800; P=30; R=50; B=50; J=10; PB=40

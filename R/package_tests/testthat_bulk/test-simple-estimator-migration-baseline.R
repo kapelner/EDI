@@ -39,11 +39,13 @@ simple_estimator_expected_classes = c(
 # 2026-11-03 (v1.0.5 TODO-183): +1 private owner on every class for the
 # requires_even_allocation() capability flag on the Inference root. Re-confirmed via
 # EDI:::simple_estimator_behavior_manifest(): 327/330/338/311/324.
+# 2026-11-10: +1 public method on every class for get_procedure_validity() on the
+# Inference root (procedure validity lookup, commit 168c2e92): 66/66/66/60/60.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 65L,
+		public_count = 66L,
 		private_owner_count = 327L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
@@ -56,7 +58,7 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 65L,
+		public_count = 66L,
 		private_owner_count = 330L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
@@ -69,7 +71,7 @@ simple_estimator_expected_current = list(
 	InferenceAllKKMeanDiffIVWC = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 65L,
+		public_count = 66L,
 		private_owner_count = 338L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
@@ -83,7 +85,7 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleWilcox = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 59L,
+		public_count = 60L,
 		private_owner_count = 311L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
@@ -95,7 +97,7 @@ simple_estimator_expected_current = list(
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 59L,
+		public_count = 60L,
 		private_owner_count = 324L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(

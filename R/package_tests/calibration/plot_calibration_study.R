@@ -22,8 +22,14 @@
 #                                                                  expected slope as reference lines
 #   convergence-grid-<rt>.png / convergence-grid-nonnull-<rt>.png  class x design grid of verdicts per procedure
 #
+# With --class-figures (v1.0.5 TODO-203, new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md) it also writes
+# one convergence figure per inference class, class-<Class>.png (+ -dark): panels procedure (rows) x metric (size error,
+# coverage error, bias), x = n_eff, y = |error| on log-log axes, effects (null, power20/50/80) as colours, one line per
+# design x formula cell, the registry's expected slope as a reference line and the panel's verdict in its title. The
+# README's per-class pages embed them; they are not part of the figures fragment.
+#
 # Usage: Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir DIR \
-#          --out-dir DIR [--fragment FILE] [--fig-prefix figures/]
+#          --out-dir DIR [--fragment FILE] [--fig-prefix figures/] [--class-figures]
 
 suppressPackageStartupMessages(library(ggplot2))
 args <- commandArgs(TRUE)
@@ -53,6 +59,18 @@ STATUS <- c(pass = "#0ca30c", accepted = "#fab219", fail = "#d03b3b", `too few r
 # Away from the null a cell can also have no true estimand value (matched-only
 # classes; failed large-sample fits): a light neutral, distinct from "too few".
 STATUS_NONNULL <- c(pass = "#0ca30c", fail = "#d03b3b", `too few results` = "#898781", `no true value` = "#dcdbd5")
+# Overview grids: a class not run on a design (the design is not applicable to it,
+# e.g. a KK class off the KK / matching designs) gets an explicit level drawn in the
+# page's surface colour, so the blank square has a legend entry.
+NA_DESIGN <- "design not applicable"
+complete_overview <- function(ov, levels) {
+	full <- expand.grid(cls = unique(ov$cls), design_label = unique(ov$design_label), stringsAsFactors = FALSE)
+	ov <- merge(full, ov, all.x = TRUE)
+	ov$status <- as.character(ov$status)
+	ov$status[is.na(ov$status)] <- NA_DESIGN
+	ov$status <- factor(ov$status, levels = c(levels, NA_DESIGN))
+	ov
+}
 
 theme_cal <- function(th) {
 	theme_minimal(base_size = 10) + theme(
@@ -223,13 +241,13 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 	# Overview: worst status per class x design over methods, formulas and n.
 	rank <- c(pass = 1L, `too few results` = 0L, accepted = 2L, fail = 3L)
 	ov <- aggregate(status ~ cls + design_label, x, function(v) v[[which.max(rank[v])]])
-	ov$status <- factor(ov$status, levels = names(STATUS))
+	ov <- complete_overview(ov, names(STATUS))
 	save_both(function(th) ggplot(ov, aes(design_label, cls, fill = status)) +
 		# show.legend = TRUE: every status gets a swatch even when no cell has it (ggplot
 		# otherwise draws an absent level's key empty); grey key borders keep the light
 		# swatches visible on the page.
 		geom_tile(colour = th$surface, linewidth = 0.8, show.legend = TRUE) +
-		scale_fill_manual(values = STATUS, drop = FALSE, name = "worst cell",
+		scale_fill_manual(values = c(STATUS, setNames(th$surface, NA_DESIGN)), drop = FALSE, name = "worst cell",
 			guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
 		labs(title = regime_title(sprintf("%s: size and coverage, every class on every design", tools::toTitleCase(rt)), TRUE),
 			subtitle = wrap_sub("Worst status over the fast procedures, both formulas and all n"), x = NULL, y = NULL) +
@@ -331,10 +349,10 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 		if (nrow(x)) {
 			rank <- c(`no true value` = 0L, `too few results` = 1L, pass = 2L, fail = 3L)
 			ov <- aggregate(status ~ cls + design_label, x, function(v) v[[which.max(rank[v])]])
-			ov$status <- factor(ov$status, levels = names(STATUS_NONNULL))
+			ov <- complete_overview(ov, names(STATUS_NONNULL))
 			save_both(function(th) ggplot(ov, aes(design_label, cls, fill = status)) +
 				geom_tile(colour = th$surface, linewidth = 0.8, show.legend = TRUE) +
-				scale_fill_manual(values = STATUS_NONNULL, drop = FALSE, name = "worst cell",
+				scale_fill_manual(values = c(STATUS_NONNULL, setNames(th$surface, NA_DESIGN)), drop = FALSE, name = "worst cell",
 					guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
 				labs(title = regime_title(sprintf("%s: coverage of the true estimand, every class on every design", tools::toTitleCase(rt)), FALSE),
 					subtitle = wrap_sub("Worst status over the fast procedures, both formulas, all n and the three effects"), x = NULL, y = NULL) +
@@ -406,3 +424,69 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 	conv_figures(rt, FALSE)
 }
 writeLines(md, fragment)
+
+# ---- One figure per class (v1.0.5 TODO-203) ------------------------------------------------
+if ("--class-figures" %in% args && conv_ok) {
+	md_keep <- md
+	EFFECT_LEVELS <- c("null", "power20", "power50", "power80")
+	VERDICT_RANK <- c(slower = 4L, faster = 3L, consistent = 2L, undetermined = 1L, not_applicable = 0L)  # names() give the verdict
+	METRICS <- c("size", "coverage", "bias")
+	METRIC_TXT <- c(size = "size error", coverage = "coverage error", bias = "bias")
+	cvp$err_ok <- is.finite(cvp$err) & cvp$err != 0 & is.finite(cvp$n_eff)
+	classes <- unique(cv[c("response_type", "cls")])
+	for (ci in seq_len(nrow(classes))) {
+		rt <- classes$response_type[ci]; cl <- classes$cls[ci]
+		cvx <- cv[cv$response_type == rt & cv$cls == cl, ]
+		px <- cvp[cvp$response_type == rt & cvp$cls == cl & cvp$err_ok, ]
+		if (!nrow(px)) next
+		px$proc <- ifelse(px$inf_procedure == "(estimator)", "estimator", px$inf_procedure)
+		cvx$proc <- ifelse(cvx$inf_procedure == "(estimator)", "estimator", cvx$inf_procedure)
+		procs <- unique(px$proc)
+		procs <- c(intersect(c(PROC_ORDER, setdiff(procs, c(PROC_ORDER, "estimator"))), procs), intersect("estimator", procs))
+		# Panel titles "<procedure>, <metric>: <worst verdict>", three panels to a row.
+		lev <- character(); blank <- 0L
+		title_of <- function(pr, m) {
+			v <- cvx$verdict[cvx$proc == pr & cvx$metric == m]
+			if (!length(v)) return(NA_character_)
+			sprintf("%s, %s: %s", pr, METRIC_TXT[[m]], sub("_", " ", names(which.max(VERDICT_RANK[v]))))
+		}
+		for (pr in procs) for (m in METRICS) {
+			t <- title_of(pr, m)
+			if (!is.na(t)) lev <- c(lev, t)
+		}
+		px$panel <- NA_character_
+		for (pr in procs) for (m in METRICS) {
+			i <- px$proc == pr & px$metric == m
+			if (any(i)) px$panel[i] <- title_of(pr, m)
+		}
+		px <- px[!is.na(px$panel), ]
+		px$panel <- factor(px$panel, levels = lev)
+		px$effect <- factor(px$effect_label, levels = EFFECT_LEVELS)
+		px$ae <- abs(px$err)
+		px$line <- paste(px$cell_id)
+		# Reference line per panel: slope -a (the registry's expected order of the panel's cells) through the median |error| at the smallest n_eff.
+		refs <- do.call(rbind, lapply(split(px, px$panel, drop = TRUE), function(d) {
+			cx <- cvx[cvx$cell_id %in% d$cell_id, ]
+			a <- cx$expected_order[is.finite(cx$expected_order) & cx$expected_order > 0][1L]
+			if (is.na(a)) return(NULL)
+			data.frame(panel = d$panel[1L], a = a, icpt = log10(stats::median(d$ae[d$n_eff == min(d$n_eff)])) + a * log10(min(d$n_eff)))
+		}))
+		if (!is.null(refs)) refs$panel <- factor(as.character(refs$panel), levels = lev)
+		nrow_f <- ceiling(length(lev) / 3)
+		save_both(function(th) {
+			g <- ggplot(px, aes(n_eff, ae, group = line, colour = effect)) +
+				geom_line(linewidth = 0.35, alpha = 0.5) + geom_point(size = 0.9, alpha = 0.7) +
+				facet_wrap(~ panel, ncol = 3, scales = "free_y") +
+				scale_x_log10(breaks = c(50, 100, 200, 500, 1000)) + scale_y_log10() +
+				scale_colour_manual(values = setNames(th$series, EFFECT_LEVELS), drop = FALSE, name = "effect") +
+				labs(title = sprintf("%s: how the error shrinks with n", cl),
+					subtitle = wrap_sub("One line per design and formula; absolute error on log-log axes. Dashed: the registry's expected slope, anchored at the median error at the smallest n_eff. Verdicts compare the fitted order with the expected one (consistent, slower, faster); undetermined = error below 2 Monte Carlo SE at fewer than two sizes.", 110),
+					x = "effective n (log scale)", y = "|error| (log scale)") +
+				theme(strip.text = element_text(size = 8, hjust = 0), panel.spacing = grid::unit(0.6, "lines"))
+			if (!is.null(refs)) g <- g + geom_abline(data = refs, aes(slope = -a, intercept = icpt), colour = th$ink2, linewidth = 0.4,
+				linetype = "dashed", inherit.aes = FALSE)
+			g
+		}, paste0("class-", cl), 11, 1.6 + 2.1 * nrow_f, sprintf("%s convergence of the error with n", cl))
+	}
+	md <- md_keep
+}

@@ -28,4 +28,4 @@ If unsure whether a command compiles, treat it as if it does and ask.
 - One test file while iterating:
   `Rscript -e 'testthat::test_file("R/EDI/tests/testthat/test-<name>.R")'`.
 - House style: `=` assignment and tab indentation (see
-  `R/package_metadata/new_feature_plans/implement_a_lintr.md`).
+  `R/package_metadata/new_feature_plans/v1_1_0/implement_a_lintr.md`).

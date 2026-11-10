@@ -70,6 +70,24 @@ run). It compiles one small standalone file against the installed EDI, not
 `R/EDI` itself, so agents may run it without asking. Nothing else in this
 section is relaxed.
 
+**Whitelisted (owner, 2026-11-10):** the native C++ test suite in `cpp_tests/`
+(plan `new_feature_plans/v1_0_6/native_cpp_test_suite.md`). Agents may
+configure and build it without asking, under all of these limits:
+- Build only the test target(s) being worked on (`cmake --build <dir> --target
+  <test>`), never `all`. Each target lists only the `EDI_CORE_ONLY` sources it
+  needs, so building it compiles just that subset of `R/EDI/src`. Do not widen
+  a target's source list to "the whole core" to make it link; add only the
+  file that is actually missing.
+- Use a build directory outside the checkout (`$TMPDIR/cpp_tests_build`).
+  Never write `.o` files into `R/EDI/src`,
+  never touch `EDI.so`, never run `configure`, and never build the R package
+  or the Python wheel this way.
+- Cap parallelism (`-j2` or less) so the user's machine stays usable.
+- Sanitizer builds follow the same rules. Fuzz runs are time-boxed (60 s per
+  harness unless the user asks for longer).
+This does not cover building the whole core, or any `R/EDI/src` file that no
+`cpp_tests/` target needs; ask first for those.
+
 ## Agents compile with `EDI_UNITY=0`; the user's default build is unity
 
 The user's own installs use the default unity build (`EDI_UNITY=1`, merged

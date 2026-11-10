@@ -244,7 +244,7 @@ edi_tuning_tune_cold_start = function(n_grid = c(50L, 200L, 1000L), reps = 5L,
 #' pre-existing pattern), and separately a brand-new guard
 #' (\code{inference_all_abstract_rand_ci.R}'s temporary incidence-response
 #' block, also added 2026-08-27, see
-#' \code{R/package_metadata/new_feature_plans/incidence_randomization_cis.md})
+#' \code{R/package_metadata/new_feature_plans/v1_1_0/incidence_randomization_cis.md})
 #' used wording ("temporarily disabled") this pattern didn't originally
 #' cover, breaking a live tuning run a second time the same day. Extend this
 #' one pattern, not the two call sites separately, when a new "legitimately

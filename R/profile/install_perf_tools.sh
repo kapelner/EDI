@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install the performance-tooling roster from
-# package_metadata/new_feature_plans/performance_profiling_and_upgrades.md §8.0
+# package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md §8.0
 # (Ubuntu 24.04/26.04; verified package names against Ubuntu 26.04 apt on 2026-08-22).
 #
 # Usage:  bash profile/install_perf_tools.sh            # apt + pip + R + git-clone tools

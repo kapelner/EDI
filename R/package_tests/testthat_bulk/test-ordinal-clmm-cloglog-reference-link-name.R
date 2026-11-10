@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.5 TODO-31 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md TODO-1, E2; owner
+# v1.0.5 TODO-31 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md TODO-1, E2; owner
 # decision G6 #45 (i)/(ii)(a), 2026-10-22). ordinal::clmm fits the log-log model when asked for
 # link = "cloglog" and the cloglog model when asked for "loglog" (ordinal 2026.7.26; clm is
 # correct). EDI's ordinal_clmm_link_name() probes this once per session and returns the clmm name

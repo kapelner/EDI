@@ -43,7 +43,7 @@ threads feeding this release.)
 - [ ] TODO-1 (added 2026-09-24, confirmed by direct reproduction —
   high confidence): `InferenceAllSimpleWilcox`'s resampling-family
   p-values AND CIs collapse/narrow to a degenerate state on tied,
-  small-integer data — `../bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md
+  small-integer data — `../bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md
   → TODO-1..7`. The Hodges-Lehmann point estimate lands exactly on 0 on
   heavily-tied data; `compute_rand_two_sided_pval`'s boundary-collapse
   formula then saturates to `p=1`, and the same with-replacement
@@ -67,7 +67,7 @@ threads feeding this release.)
   instead of its own documented pooled-variance formula, despite
   `overrides$public` declaring an override that doesn't actually exist
   (`inference_all_simple_mean_diff_pooled_var.R:203-225`) —
-  `../bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md → TODO-8`.
+  `../bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md → TODO-8`.
   Asymptotic inference for this class correctly uses pooled variance;
   resampling-based inference silently doesn't, for the same nominally
   "pooled-variance" class. Confirmed via
@@ -87,7 +87,7 @@ threads feeding this release.)
   halving the effective resampling variance of matched-pair statistics
   and causing broad CI undercoverage (0.76-0.91 vs. 0.95 target) across
   `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`, and
-  `InferenceContinKKQuantileRegrOneLik` — `../bug_fix_plans/investigate_contin_kk_onelik_glmm_coverage.md`.
+  `InferenceContinKKQuantileRegrOneLik` — `../bug_fix_plans/v1_5_0/investigate_contin_kk_onelik_glmm_coverage.md`.
   The resampling unit implied by the weight generator
   (`design_obj$get_block_ids()`) is the *subject* for most tested
   designs, not the KK class's own post-hoc greedy-matched pair, so
@@ -110,7 +110,7 @@ threads feeding this release.)
   **`InferenceOrdinalContRatioRegr`'s likelihood-ratio `fit_null` is still
   single-start** — the exact vulnerability already found and fixed for
   `InferenceOrdinalStereotypeLogitRegr` this session, never patched here
-  — `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md →
+  — `../bug_fix_plans/v1_0_5/ordinal_cumulative_link_null_refit_multistart.md →
   TODO-12`. `get_likelihood_test_spec()`'s `fit_null` closure
   (`inference_ordinal_stereotype_logit.R:748-762`) calls
   `fast_continuation_ratio_regression_cpp()` exactly once per delta from a
@@ -124,7 +124,7 @@ threads feeding this release.)
 
 - [x] TODO-5 (added 2026-09-24, fixed and audited 2026-10-09):
   **jackknife-Wald inference is centered at the bias-corrected jackknife
-  estimate** — `../bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md
+  estimate** — `../bug_fix_plans/v1_5_0/investigate_incid_logregr_probitregr_coverage.md
   → TODO-3/6`. The old shared code combined a raw-estimate center with a
   delete-one jackknife SE, which could admit bias almost as wide as the
   interval. Both the p-value and interval now use
@@ -145,7 +145,7 @@ threads feeding this release.)
   sibling of the last one — `compute_lik_ratio_bartlett_confidence_interval`/
   `compute_lik_ratio_bartlett_approx_confidence_interval` — does NOT, and
   shows the exact anti-conservative undercoverage (0.834-0.915) the union
-  exists to prevent — `../bug_fix_plans/investigate_count_glm_family_coverage.md
+  exists to prevent — `../bug_fix_plans/v1_0_5/investigate_count_glm_family_coverage.md
   → TODO-5`. The Bartlett variants now use the same
   `design_conservative_ci()` call as the plain `lik_ratio` CI, with a
   focused four-entry-point regression. **Separately decided and documented,
@@ -161,7 +161,7 @@ threads feeding this release.)
 - [ ] TODO-7 (added 2026-09-24, HIGH confidence, confirmed by direct
   code reading at 3 sites): `InferenceSurvivalRestrictedMeanDiff` computes
   restricted mean survival time (RMST) to a **different truncation
-  horizon τ per arm** — `../bug_fix_plans/rmst_mismatched_truncation_horizon.md
+  horizon τ per arm** — `../bug_fix_plans/v1_0_5/rmst_mismatched_truncation_horizon.md
   → TODO-1..7`. `weighted_survival_stat_for_group()`
   (`inference_survival_rmst.R:239`) and the two C++ functions
   (`fast_survival_stats.cpp:158`/`:290` for the point estimate, `:400`
@@ -183,7 +183,7 @@ threads feeding this release.)
   undercoverage (0.47-0.94, varying by method family) across 6+ unrelated
   CI-construction families, isolated to the KK-matching/reservoir-split
   mechanism specifically (plain, non-KK-matched Cox siblings are fine) —
-  `../bug_fix_plans/survival_kk_cox_coverage_variance.md`. For
+  `../bug_fix_plans/v1_0_5/survival_kk_cox_coverage_variance.md`. For
   `KKStratCoxPHOneLik`: medium-high confidence, an independence-violation
   hypothesis in `w_star` inverse-variance pooling
   (`inference_survival_KK_strat_cox.R:176-265`). For `KKLWACoxPHOneLik`:
@@ -210,7 +210,7 @@ threads feeding this release.)
   coverage-truth machinery uses the wrong covariate adjustment set for
   every class in `COVERAGE_MC_SPEC` (~25 classes) whose per-row test uses
   `design_formula = ~.` over a real multi-column dataset — the harness's
-  default — `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md`.
+  default — `../bug_fix_plans/v1_0_5/mc_coverage_truth_covariate_mismatch.md`.
   The MC truth fits against one synthetic covariate; the real per-row
   test uses the real dataset's full covariate matrix, so for
   non-collapsible link-scale classes (Cox, logit/probit, GLMM/GEE) the
@@ -236,7 +236,7 @@ threads feeding this release.)
   corroborated twice): `InferenceSurvivalKKWeibullMarginal`'s
   `compute_jackknife_estimate()` has catastrophic single-fold outliers
   (raw errors of −38.0/+17.5, ~27× the mean-bias magnitude) —
-  `../bug_fix_plans/kk_weibull_marginal_jackknife_outliers.md`. Most
+  `../bug_fix_plans/v1_0_5/kk_weibull_marginal_jackknife_outliers.md`. Most
   plausibly a leave-one-out fold landing on a degenerate/non-identifiable
   configuration for marginal Weibull models. Cross-validated 2026-09-24
   against a fresh full-package audit run, which ALSO surfaced 8 new
@@ -270,7 +270,7 @@ threads feeding this release.)
   confidence, concrete and easily fixable): `InferenceOrdinalCloglogRegr`'s
   MAIN (observed) fit has the same unpatched single-start optimizer
   vulnerability already found and fixed at two OTHER call sites in this
-  same class — `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md
+  same class — `../bug_fix_plans/v1_0_5/ordinal_cumulative_link_null_refit_multistart.md
   → TODO-10`. `generate_mod()` (`R/EDI/R/inference_ordinal_cloglog.R:229-286`)
   makes exactly one call to `fast_ordinal_cloglog_regression_with_var_cpp()`
   with a single warm-start, wrapped only in QR column-dropping retries —
@@ -293,7 +293,7 @@ This release also carries one **additive feature** (1.x scope: simple
 addition on the existing architecture). It sits outside the calibration
 theme above and is listed separately so the two can ship independently:
 
-- [ ] TODO-F1 (`../new_feature_plans/demo_generator.md` → TODO-1..26; TODO-22 is done):
+- [ ] TODO-F1 (`../new_feature_plans/v1_5_0/demo_generator.md` → TODO-1..26; TODO-22 is done):
   `edi_inference_demo(class)` — recommends and emits runnable demo code that loads a
   catalog dataset, builds the matching design, passes it into the Inference
   class, and runs every applicable method. Uses the existing

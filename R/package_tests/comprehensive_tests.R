@@ -89,7 +89,7 @@ getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
 # system for structural facts, EDI_COMPREHENSIVE_SLOW_PATHS for
 # performance facts -- is real class-by-class analytical work, deferred to
 # its own scoping pass; see
-# package_metadata/new_feature_plans/harden_registry.md, "Finding 2" and
+# package_metadata/new_feature_plans/v1_1_0/harden_registry.md, "Finding 2" and
 # "Also still open". Until that happens, they live here, in ONE place,
 # instead of scattered as inline is_any_inference_class()/is()-chain
 # checks throughout this file -- consumed below by the same

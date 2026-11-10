@@ -2,7 +2,7 @@
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required.")
 }
-pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", quiet = TRUE)
+pkgload::load_all("EDI", compile = FALSE, quiet = TRUE)
 library(data.table)
 
 set.seed(42)
@@ -29,7 +29,8 @@ generate_data = function(n, p, rt) {
     res
 }
 
-results_csv = "/home/kapelner/workspace/EDI/heavy_paths_results.csv"
+results_csv = file.path(Sys.getenv("TMPDIR", "/tmp"), "heavy_paths_results.csv")
+cat("Writing results to", results_csv, "\n")
 
 for (spec in heavy_specs) {
     cat(sprintf("\n>>> %s... ", spec$name)); flush.console()

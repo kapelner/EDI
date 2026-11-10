@@ -1,5 +1,5 @@
 # Shared core of the two calibration gates (design: R/package_metadata/
-# new_feature_plans/calibration_gates.md):
+# new_feature_plans/v1_0_5/calibration_gates.md):
 #   * the scheduled CI fast tier (run_calibration_fast_tier.R +
 #     analyze_calibration_fast_tier.R, .github/workflows/calibration-fast-tier.yml)
 #     -- size and coverage, exact one-sided binomial, Bonferroni 0.01/K;
@@ -229,6 +229,14 @@ cal_clean_msg <- function(x) {
 	substr(gsub("[\r\n\t,]+", " ", x), 1L, 300L)
 }
 
+# The (class, formula, method) tasks cal_run_tasks() runs for `classes` on one design, without fitting anything:
+# one per row it returns. The study's roster (build_calibration_study_roster.R) counts these.
+cal_task_list <- function(des, classes, methods = CAL_METHODS) {
+	if (!length(classes)) return(list())
+	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, methods, des_obj = des)
+	Filter(function(task) !is.na(task$method), tasks)
+}
+
 # Runs every (class, formula, method) task for `classes` on one design. Returns
 # one row per task. `endpoints = TRUE` adds the p-values of the same test at the
 # two CI endpoints (pre-push only; the CI tier does not need them).
@@ -236,10 +244,9 @@ cal_clean_msg <- function(x) {
 # `pval_only` get a p-value but no CI (the published study runs the randomization
 # p-value in its monthly tier and the randomization CI in a slower one).
 cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE, methods = CAL_METHODS, pval_only = character()) {
-	if (!length(classes)) return(NULL)
-	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, methods, des_obj = des)
+	tasks <- cal_task_list(des, classes, methods)
+	if (!length(tasks)) return(NULL)
 	rows <- lapply(tasks, function(task) {
-		if (is.na(task$method)) return(NULL)
 		t0 <- proc.time()[["elapsed"]]
 		row <- list(inference_class = task$cls_name, method = task$method,
 			formula = if (is.null(task$model_formula)) "" else deparse1(task$model_formula),

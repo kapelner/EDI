@@ -221,7 +221,7 @@ set(EDI_KERNEL_SOURCES
 )
 
 # R/EDI/src's unity-build collision audit and fix pass are complete
-# (R/package_metadata/finished_features/unity_build_collision_audit.md) --
+# (R/package_metadata/finished_features/v1_0_0/unity_build_collision_audit.md) --
 # the file-scope helper collisions that would break merging these sources
 # into fewer translation units are fixed, verified via a full mega-TU
 # -fsyntax-only compile, and the R-side build (R/EDI/configure, EDI_UNITY=1)

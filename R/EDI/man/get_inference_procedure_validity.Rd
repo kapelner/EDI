@@ -17,7 +17,7 @@ realised data then fill in \code{n_eff}.}
 
 \item{procedure}{\code{NULL} (default) for every procedure the class supports
 by default, otherwise one or more procedure labels as used in the
-\code{method} column of \code{\link{run_all_inference}()} results, such as
+\code{method} column of \code{\link[=InferenceSuite]{run_all_inference}()} results, such as
 \code{"wald"}, \code{"rand"} or \code{"bootstrap"}.}
 }
 \value{
@@ -71,6 +71,6 @@ get_inference_procedure_validity(
 )$expectation$n_eff_rule
 }
 \seealso{
-\code{\link{run_all_inference}} for the same information as columns
+\code{\link[=InferenceSuite]{run_all_inference}} for the same information as columns
   of a fitted comparison.
 }

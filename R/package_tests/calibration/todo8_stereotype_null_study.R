@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TODO-8 (release_v1_0_5.md; linked plan bug_fix_plans/multimodal_log_liks.md -> TODO-4):
+# TODO-8 (release_v1_0_5.md; linked plan bug_fix_plans/v1_0_5/multimodal_log_liks.md -> TODO-4):
 # stereotype-logit 400-seed null rerun, G4-C calibration runbook R2 (decisions G6 #32, #20).
 #
 # A FRESH, provenance-pinned run on the installed (G1) build. It is NOT a replay

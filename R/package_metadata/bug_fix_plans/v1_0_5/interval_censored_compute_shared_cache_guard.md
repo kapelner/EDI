@@ -1,0 +1,50 @@
+# Interval-Censored Log-Rank/Gehan: `compute_shared_icen()` Blanket Cache Guard Leaves `s_beta_hat_T` Unset
+
+> **Depends on:** none. (Global ordering: see `../../new_feature_plans/_master.md`.) Slated for
+> `../../future_release_plans/release_v1_0_5.md → TODO-34`. Added 2026-09-24
+> from the test-comment audit, which originally recorded "Confirmed source
+> bug, NOT fixed here" in
+> `test-survival-logrank-gehan-interval-censored-compute-shared-icen-vs-ictest-reference.R`,
+> and pinned the then-current buggy behavior. Fixed 2026-10-07 as recorded
+> below. Same family as the stale-cache plans
+> (`stale_worker_cache_resampling.md`, `cox_risk_set_cache_staleness.md`):
+> a memoization guard keyed on too little.
+
+## The finding
+
+`compute_shared_icen()`'s third cache guard,
+`if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))`,
+fires whenever `beta_hat_T` is already cached, regardless of the
+`estimate_only` flag. The right-censoring `compute_shared()` methods also
+have this guard, but their kernels populate the SE even for estimate-only
+calls. So once `compute_estimate(estimate_only = TRUE)` has
+cached `beta_hat_T` under general (interval) censoring, a later full call
+never computes `s_beta_hat_T`, and `compute_asymp_confidence_interval()`
+crashes with "missing value where TRUE/FALSE needed" on
+`!is.finite(private$cached_values$s_beta_hat_T)`.
+
+Affects `InferenceSurvivalLogRank` and `InferenceSurvivalGehanWilcox` under
+general censoring.
+
+## Items
+
+- [x] **TODO-1: Fix the guard** to short-circuit only when the cached value
+  satisfies the requested `estimate_only` in `compute_shared_icen()`.
+- [x] **TODO-2: Sweep** every `*_icen` / general-censoring `compute_shared`
+  variant for the same blanket guard.
+- [x] **TODO-3: Flip the pinned test** to assert that a full call after an
+  `estimate_only` call yields a finite SE and a working asymptotic CI.
+- [x] **TODO-4: Regression test** in the structural gate suite (an
+  `estimate_only`-then-full call ordering check across the general-censoring
+  classes), since this bug is order-dependent and easy to miss.
+
+Implemented in both score classes under interval censoring. The bulk reference
+test checks interval-censored results against `interval::ictest()`, and
+`R/EDI/tests/testthat/test-survival-score-cache-order.R` checks ordering across
+both classes. Focused tests passed with `pkgload::load_all(compile = FALSE)`
+using the existing checkout DLL.
+
+**Static re-audit (2026-10-12):** the only two `compute_shared_icen()`
+implementations are the LogRank and Gehan-Wilcox methods above. Both retain the
+request-sensitive cache guards, and both ordering regressions are registered in
+`R/package_tests/ci/test_runtimes.csv`. No runtime test was rerun in this audit.

@@ -474,7 +474,7 @@ classes should use this method instead of \code{private$des_obj}.
     \describe{
       \item{\code{procedure}}{\code{NULL} (default) for every supported procedure, or
 procedure labels as used in the \code{method} column of
-\code{\link{run_all_inference}()} results (e.g. \code{"wald"}).}
+\code{\link[=InferenceSuite]{run_all_inference}()} results (e.g. \code{"wald"}).}
     }
     \if{html}{\out{</div>}}
   }

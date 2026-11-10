@@ -10,7 +10,7 @@ Two findings dominate this review.
 
 The same effect holds across fields, and it is larger still. Commercial web A/B testing is **70–90% binary conversions**; large UK and US education RCTs are effectively **100% continuous** test scores; alcohol trials are led by a **bounded proportion** at 66.1%; political-science survey experiments are dominated by ordinal rating scales. There is no field-independent answer, and no registry anywhere classifies primary outcomes by statistical type.
 
-**Second, the six response types EDI implements today cover the overwhelming majority of scalar primary outcomes, and the one clearly missing scalar type is very rare.** `nominal` — the type most often proposed as EDI's gap — appears in the only quantitative estimate located anywhere at **0 of 7,132 outcomes (2000) and 11 of 8,299 outcomes, or 0.1% (2006)**. That independently corroborates the "defer indefinitely" recommendation already recorded in `../new_feature_plans/nominal_response_type_report.md`.
+**Second, the six response types EDI implements today cover the overwhelming majority of scalar primary outcomes, and the one clearly missing scalar type is very rare.** `nominal` — the type most often proposed as EDI's gap — appears in the only quantitative estimate located anywhere at **0 of 7,132 outcomes (2000) and 11 of 8,299 outcomes, or 0.1% (2006)**. That independently corroborates the "defer indefinitely" recommendation already recorded in `../new_feature_plans/v1_4_0/nominal_response_type_report.md`.
 
 The more consequential gaps are not new scalar types but **structural features layered on top of existing types**: roughly **79%** of top-journal RCTs collect outcomes repeatedly, **12–29%** declare multiple primary outcomes, and **70–78%** of survival trials in susceptible populations face competing risks. These correspond to EDI's planned `longitudinal`, `multivariate`, and competing-risks work rather than to any new scale of measurement.
 
@@ -58,7 +58,7 @@ The six implemented types are enforced in one place, `assertChoice(response_type
 | `survival` | Time-to-event, right- and interval-censored | Overall survival, PFS, time to relapse |
 | `ordinal` | Ordered categories | mRS, WHO COVID scale, Likert item |
 
-**Interval-censored survival already ships** — the `y` XOR (`y_L`, `y_R`) schema is live at `R/EDI/R/design_abstract.R:222-281` and its plan sits in `../finished_features/interval_censored_survival_response.md`. Only the second wave (Turnbull/NPMLE Cox analogue, current-status estimator) remains planned.
+**Interval-censored survival already ships** — the `y` XOR (`y_L`, `y_R`) schema is live at `R/EDI/R/design_abstract.R:222-281` and its plan sits in `../finished_features/v1_0_0/interval_censored_survival_response.md`. Only the second wave (Turnbull/NPMLE Cox analogue, current-status estimator) remains planned.
 
 Planned future types, from the release plans:
 

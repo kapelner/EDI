@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Gate for the scheduled CI calibration fast tier (design:
-# R/package_metadata/new_feature_plans/calibration_gates.md). Merges the
+# R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md). Merges the
 # rows.csv of every shard under --in-dir and tests each cell
 # (response type x design x class x formula x method x n):
 #

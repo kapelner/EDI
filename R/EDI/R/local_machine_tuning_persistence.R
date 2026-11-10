@@ -601,7 +601,10 @@ edi_tuning_import_saved_policies = function(quiet = FALSE) {
 	# faster core count available. Surface it once per session at load time,
 	# same as the hardware-changed notice above.
 	preferred_num_cores = obj$policy_diffs$parallel$preferred_num_cores
-	if (!is.null(preferred_num_cores)) {
+	# Not during R CMD INSTALL (which sets R_INSTALL_PKG for its lazy-load and
+	# test-load steps): an install log is not a session the user will act in,
+	# and the notice there reads like an install problem.
+	if (!is.null(preferred_num_cores) && !nzchar(Sys.getenv("R_INSTALL_PKG"))) {
 		say("EDI: this machine's saved tuning found parallel execution fastest at ", preferred_num_cores,
 		    " cores. This is not applied automatically -- call set_num_cores(", preferred_num_cores,
 		    ") to opt in.")

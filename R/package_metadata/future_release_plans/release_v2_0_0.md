@@ -473,3 +473,9 @@ release (the numerical-equivalence rule, `cross_platform_reproducibility.md` D2)
 contract deliberately changes —
 but every such change must ship with a deprecation shim in the last 1.x
 release and a migration note.
+
+- [ ] TODO-10 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
+  - Plan: `../new_feature_plans/v2_0_0/native_cpp_tests_v2_0_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
+    change.
+  - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

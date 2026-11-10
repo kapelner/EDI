@@ -71,11 +71,16 @@ check_pages = function(cdir, id = "2026-11-10-abcd1234") {
 		x = readLines(file.path(cdir, pg))
 		expect_identical(x[[1L]], back, info = pg)
 		expect_identical(x[[length(x)]], back, info = pg)
+		# No runs of blank lines (absent optional paragraphs must not leave gaps).
+		blank = !nzchar(trimws(x))
+		expect_false(any(blank[-1L] & blank[-length(x)]), info = pg)
 		# Every link in a sub-page that is not http(s) or an anchor resolves too.
 		l = unique(md_links(x))
 		l = l[!grepl("^(https?:|#)", l)]
 		expect_true(all(file.exists(file.path(cdir, sub("#.*$", "", l)))), info = pg)
 	}
+	mb = !nzchar(trimws(master))
+	expect_false(any(mb[-1L] & mb[-length(master)]), info = "README.md")
 	list(master = master, pages = pages)
 }
 

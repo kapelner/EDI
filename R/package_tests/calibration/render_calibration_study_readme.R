@@ -1,4 +1,7 @@
 #!/usr/bin/env Rscript
+# Per class (v1.0.5 TODO-203, new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md): classes.md (every class
+# of the campaign's plan with its status and worst verdict) and one class-<Class>.md per class (figure, convergence
+# verdicts, the class's cells), from summary/class_status.csv; both have the same back-links.
 # Writes the READMEs of the public calibration-results branch (release_v1_2_0.md
 # TODO-36): campaigns/<id>/README.md (that campaign's short master page) with its
 # sub-pages next to it (v1.0.5 TODO-201: failing cells per response type, screen flags,
@@ -44,11 +47,20 @@ about <- c(
 	"* **Data:** synthetic, n = 50, 200 and 1000 subjects, five covariates (three continuous, two binary factors) that",
 	"  explain about half the outcome variance, drawn from each response type's own model. Formulas `~ 1` (treatment",
 	"  only) and `~ .` (treatment + all covariates).",
+	"* **Order (v1.0.5 TODO-203):** a campaign runs class by class: the null effect first, then the power effects; within an",
+	"  effect by response type, then inference class; within a class by design, then n = 50, 200, 1000, then the class's",
+	"  confirmation replicates when any of its tests is flagged. A class is finished before the next starts (several fast",
+	"  classes of one cell share a shard and its data and design, so a few neighbouring classes run together), so verdicts",
+	"  become final class by class. All procedures of a class share one fit on the same data and are never split.",
 	"* **Null:** no treatment effect, 1,000 replicates per cell. Size and coverage are tested against a level that",
-	"  depends on the procedure's regime and on n (below), with exact one-sided binomial tests, in two stages. Screen: Benjamini-Hochberg q < 0.05 over every test in the",
-	"  campaign flags a cell (catching size of about 0.07 at 1,000 replicates). Confirm: each flagged cell is re-run",
-	"  on 5,000 fresh replicates (1,000 for the slow classes) and fails only if those alone reject, at 0.01 over the",
-	"  flagged tests; one with fewer than 500 confirmation results counts as failing. Null bias (mean",
+	"  depends on the procedure's regime and on n (below), with exact one-sided binomial tests, in two stages. Screen: Benjamini-Hochberg q < 0.05 over every test the",
+	"  whole campaign plan contains (the number m is known in advance; a test that has not run counts as p = 1, and a test",
+	"  enters with its p-value once its cell's screening replicates are all in) flags a test (catching size of about 0.07 at 1,000",
+	"  replicates). BH is monotone in the p-values, so a flag is never withdrawn by later results: only \"not flagged\" is",
+	"  provisional while the campaign runs. Confirm: each flagged test is re-run",
+	"  on 5,000 fresh replicates (1,000 for the slow classes) and fails only if those alone reject, at 0.01 over m, the total number of tests in the plan",
+	"  (fixed in advance, so a confirmed failure is final when it is made; with 5,000 replicates this still detects a size of about 0.065);",
+	"  one with fewer than 500 confirmation results counts as failing. Null bias (mean",
 	"  estimate minus the null value) is reported and flagged, not gated: an honest estimator has O(1/n) null bias on",
 	"  ratio scales and under unequal allocation.",
 	"* **Levels (v1.0.5 TODO-200):** each procedure is either asymptotic (Wald, jackknife, score, likelihood ratio,",
@@ -201,6 +213,74 @@ for (rt in rts) {
 	add_page(f, sprintf("Figures: %s", rt), c(if (length(body)) body else "No figures for this response type yet.", ""))
 }
 
+# Classes (TODO-203): the index page and one page per class.
+rdcsv <- function(f) {
+	p <- file.path(cdir, "summary", f)
+	if (file.exists(p) && file.size(p) > 2L) suppressWarnings(utils::read.csv(p, stringsAsFactors = FALSE, colClasses = c(formula = "character"))) else NULL
+}
+cstat <- rdcsv("class_status.csv")
+cfmt <- function(x, d = 3) ifelse(is.na(x), "", trimws(formatC(x, digits = d, format = "fg")))
+cshort <- function(x) sub("^Inference", "", x)
+cdesign <- function(x, p) paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", x), ifelse(!is.na(p) & p != 0.5, paste0("@", p), ""))
+if (is.null(cstat)) {
+	add_page("classes.md", "Classes", c("No class data yet: the first waves have not finished.", ""))
+	class_counts <- NULL
+} else {
+	cstat <- cstat[order(cal_rt_rank(cstat$response_type), cstat$inf_class), ]
+	class_counts <- table(factor(cstat$status, levels = c("complete", "in progress", "not started")))
+	cs_all <- rdcsv("calibration_summary.csv"); nb_all <- rdcsv("null_bias_summary.csv"); pw_all <- rdcsv("power_summary.csv")
+	cv_all <- rdcsv("convergence_summary.csv")
+	idx_rows <- sprintf("| %s | [%s](class-%s.md) | %s | %s | %s | %s |", cstat$response_type, cshort(cstat$inf_class), cshort(cstat$inf_class),
+		cstat$null_status, cstat$nonnull_status, cstat$verdict,
+		ifelse(cstat$flagged > 0, sprintf("%d flagged: %d failing, %d pending, %d cleared", cstat$flagged, cstat$confirmed_fail + cstat$could_not_confirm,
+			cstat$pending, cstat$cleared), ""))
+	add_page("classes.md", "Classes", c(
+		sprintf("%d classes: %d complete, %d in progress, %d not started. The campaign runs class by class (null effect first, then the power effects), so a class's verdict is final once it is complete and its flagged tests have their confirmation replicates.",
+			nrow(cstat), class_counts[["complete"]], class_counts[["in progress"]], class_counts[["not started"]]), "",
+		"Verdict: **fail** (a confirmed failure), **pending confirmation** (flagged tests waiting for fresh replicates), **pass** (complete, nothing flagged), **pass so far** (still running, nothing flagged so far; a class that has not run a test is not yet cleared).", "",
+		"| response | class | null effect | power effects | verdict | flags |", "|---|---|---|---|---|---|", idx_rows, ""))
+	for (i in seq_len(nrow(cstat))) {
+		rt <- cstat$response_type[[i]]; cl <- cstat$inf_class[[i]]; sh <- cshort(cl)
+		fig <- if (file.exists(file.path(cdir, "figures", sprintf("class-%s.png", sh))))
+			c(sprintf("<picture><source media=\"(prefers-color-scheme: dark)\" srcset=\"figures/class-%s-dark.png\"><img alt=\"%s convergence of the error with n\" src=\"figures/class-%s.png\"></picture>", sh, sh, sh), "")
+		else c("No convergence figure yet.", "")
+		body <- c(sprintf("Part of the [Classes index](classes.md). Response type: %s. Status: null effect %s, power effects %s. Verdict: **%s**%s.", rt,
+			cstat$null_status[[i]], cstat$nonnull_status[[i]], cstat$verdict[[i]],
+			if (cstat$flagged[[i]] > 0) sprintf(" (%d flagged test(s): %d failing, %d pending, %d cleared)", cstat$flagged[[i]], cstat$confirmed_fail[[i]] + cstat$could_not_confirm[[i]],
+				cstat$pending[[i]], cstat$cleared[[i]]) else ""), "", fig)
+		cvx <- if (is.null(cv_all)) NULL else cv_all[cv_all$response_type == rt & cv_all$inf_class == cl, ]
+		if (!is.null(cvx) && nrow(cvx)) {
+			cvx$proc <- ifelse(cvx$inf_procedure == "(estimator)", "estimator (bias)", cvx$inf_procedure)
+			rk <- c(slower = 4L, faster = 3L, consistent = 2L, undetermined = 1L, not_applicable = 0L)
+			w <- aggregate(verdict ~ proc + metric, cvx, function(v) names(which.max(rk[v])))
+			body <- c(body, "Convergence verdicts (worst over designs, formulas and effects; provisional until the class is complete):", "",
+				"| procedure | metric | verdict |", "|---|---|---|", sprintf("| %s | %s | %s |", w$proc, w$metric, sub("_", " ", w$verdict)), "")
+		}
+		x <- if (is.null(cs_all)) NULL else cs_all[cs_all$response_type == rt & cs_all$inf_class == cl, ]
+		if (!is.null(x) && nrow(x)) {
+			x <- x[order(cdesign(x$design, x$prob_T), x$formula, x$inf_procedure, x$n), ]
+			bx <- if (is.null(nb_all)) NULL else nb_all[nb_all$response_type == rt & nb_all$inf_class == cl, ]
+			bk <- if (is.null(bx)) character() else paste(bx$design, bx$prob_T, bx$formula, bx$n)
+			bias <- if (length(bk)) bx$null_bias_std[match(paste(x$design, x$prob_T, x$formula, x$n), bk)] else rep(NA_real_, nrow(x))
+			failed <- x$fail_size | x$fail_coverage
+			body <- c(body, sprintf("Null effect: %d cells (%d failing). Size, coverage and bias / SD against the level each is held to.", nrow(x), sum(failed)), "",
+				"| design | n | formula | procedure | size | coverage | bias / SD | size level | coverage level | verdict |", "|---|---|---|---|---|---|---|---|---|---|",
+				sprintf("| %s | %d | `%s` | %s | %s | %s | %s | %s | %s | %s |", cdesign(x$design, x$prob_T), as.integer(x$n_nominal), x$formula, x$inf_procedure,
+					cfmt(x$size), cfmt(x$coverage), cfmt(bias, 2), cfmt(x$size_null), cfmt(x$coverage_null), ifelse(failed, "**FAIL**", "ok")), "")
+		}
+		px <- if (is.null(pw_all)) NULL else pw_all[pw_all$response_type == rt & pw_all$inf_class == cl, ]
+		if (!is.null(px) && nrow(px)) {
+			px <- px[order(cdesign(px$design, px$prob_T), px$formula, px$inf_procedure, px$effect_label, px$n), ]
+			body <- c(body, sprintf("Power effects: %d cells (%d failing coverage).", nrow(px), sum(px$fail_coverage %in% TRUE)), "",
+				"| design | n | effect | formula | procedure | power | coverage of the true estimand | coverage level | verdict |", "|---|---|---|---|---|---|---|---|---|",
+				sprintf("| %s | %d | %s | `%s` | %s | %s | %s | %s | %s |", cdesign(px$design, px$prob_T), as.integer(px$n_nominal), px$effect_label, px$formula,
+					px$inf_procedure, cfmt(px$power), cfmt(px$coverage), cfmt(px$coverage_null), ifelse(px$fail_coverage %in% TRUE, "**FAIL**", "ok")), "")
+		}
+		if (length(body) <= 4L) body <- c(body, "No results for this class yet.", "")
+		add_page(sprintf("class-%s.md", sh), sprintf("Class %s", sh), body)
+	}
+}
+
 # Data and about.
 data_body <- c(
 	"* Tables: [`summary/calibration_summary.csv`](summary/calibration_summary.csv) (size, coverage, with n_eff, expected order, level and rule per cell),",
@@ -239,6 +319,7 @@ toc <- c("| Page | Contents |", "|---|---|",
 	"| [Null bias](null-bias.md) | bias at beta_T = 0, `bias_sd_large_n` flag (reported, not gated) |",
 	"| [Coverage and bias away from the null](nonnull.md) | gated coverage of the true estimand, bias at beta_T != 0 |",
 	"| [Design comparison and power](designs.md) | paired power tests between designs |",
+	"| [Classes](classes.md) | every class: status, verdict and its own page (figure, cells) |",
 	"| [Convergence slopes](convergence.md) | error versus n_eff against the registry's expected order |",
 	sprintf("| [Figures: %s](%s) | null and non-null figures |", rts, fig_files[rts]),
 	"| [Data](data.md) | tables, raw rows, column descriptions |",
@@ -250,17 +331,26 @@ crd <- c(sprintf("# EDI calibration study: campaign %s", campaign), "",
 	"", if (nzchar(progress) && !any(pre_text == progress)) c(progress, "") else NULL,
 	sprintf("Simulated at EDI commit %s (started %s)%s.", commit_link(env$SHA %||% ""), env$STARTED %||% "?",
 		if (nzchar(ana_sha)) sprintf("; analysed at %s", commit_link(ana_sha)) else ""), "",
-	"## Summary", "", pre_text[!startsWith(pre_text, "Levels (TODO-200)")], red, "",
+	"## Summary", "", pre_text[!startsWith(pre_text, "Levels (TODO-200)")],
+	if (!is.null(class_counts)) sprintf("Classes: %d complete, %d in progress, %d not started ([Classes](classes.md)).", class_counts[["complete"]], class_counts[["in progress"]], class_counts[["not started"]]),
+	"", red, "",
 	"## Contents", "", toc, "",
 	"## Data", "", "Tables as CSV, raw replicate rows as workflow artifacts: see [Data](data.md).", "",
 	"## About this study", "",
 	"Every month EDI re-runs a simulation study of its own inference procedures and publishes the results here, failures included. How the data are generated, the level each cell is held to and the two-stage gate are on the [About page](about.md).", "")
+# Collapse runs of blank lines (optional paragraphs that are absent leave empty
+# strings behind) so the rendered Markdown has no stray gaps.
+squeeze_blank <- function(x) {
+	x <- unlist(strsplit(paste(x, collapse = "\n"), "\n", fixed = TRUE))
+	blank <- !nzchar(trimws(x))
+	x[!(blank & c(FALSE, head(blank, -1L)))]
+}
 # Every page starts and ends with the link back to the master.
 for (f in names(pages)) {
 	pg <- pages[[f]]
-	writeLines(c(back, "", sprintf("# %s", pg$title), "", pg$body, "", back), file.path(cdir, f))
+	writeLines(squeeze_blank(c(back, "", sprintf("# %s", pg$title), "", pg$body, "", back)), file.path(cdir, f))
 }
-writeLines(crd, file.path(cdir, "README.md"))
+writeLines(squeeze_blank(crd), file.path(cdir, "README.md"))
 
 # Top-level README: index of campaigns, newest first.
 ids <- sort(list.dirs(file.path(results_dir, "campaigns"), full.names = FALSE, recursive = FALSE), decreasing = TRUE)

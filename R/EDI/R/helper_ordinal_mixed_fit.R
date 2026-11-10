@@ -2,7 +2,7 @@
 # ordinal version.
 EDI_ORDINAL_CLMM_LINK_NAME_CACHE = new.env(parent = emptyenv())
 
-# v1.0.5 TODO-31 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md,
+# v1.0.5 TODO-31 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md,
 # TODO-1, owner decision G6 #45 (ii)(a), 2026-10-22). ordinal::clmm (verified
 # in ordinal 2026.7.26) fits the log-log model when asked for
 # link = "cloglog" and the cloglog model when asked for link = "loglog";

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
-  pkgload::load_all("EDI", quiet = TRUE)
+  pkgload::load_all("EDI", compile = FALSE, quiet = TRUE)
 })
 
 args = commandArgs(trailingOnly = TRUE)

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.5 TODO-31 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md TODO-2, E3; G6 #45
+# v1.0.5 TODO-31 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md TODO-2, E3; G6 #45
 # (ii)(a), 2026-10-22). The Bayesian-bootstrap weighted refit (weighted_ordinal_random_intercept_fit
 # via compute_weighted_clmm_estimate) and the use_rcpp = FALSE path call ordinal::clmm, whose
 # cloglog/loglog names are swapped upstream. Before the fix the cloglog BB refit fitted log-log

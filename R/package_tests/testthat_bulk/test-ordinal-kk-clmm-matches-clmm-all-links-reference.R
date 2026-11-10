@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.5 TODO-31 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md, tests-to-add item 4;
+# v1.0.5 TODO-31 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md, tests-to-add item 4;
 # G6 #45, 2026-10-22). Reference test for all four KK CLMM links against an independently
 # implemented fit: ordinal::clmm(nAGQ = 20) asked for the link name that really fits EDI's model
 # (ordinal_clmm_link_name(): clmm's cloglog/loglog names are swapped upstream). EDI uses a fixed

@@ -144,10 +144,10 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		max_abs_reasonable_coef = 1e4,
 		# LBFGS gradient tolerance for fast_ordinal_clmm_cpp (observed fit and randomization refits).
 		# 1e-3 reported converged = TRUE with a treatment error vs ordinal::clmm of median 0.05-0.07
-		# log-odds (max 0.5); 1e-6 gives ~2e-4 (bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md,
+		# log-odds (max 0.5); 1e-6 gives ~2e-4 (bug_fix_plans/v1_0_5/optimize_likelihood_newton_false_nonconvergence.md,
 		# Survey 2, "CLMM tolerance").  Overridable by subclasses.
 		# 2026-10-22 (v1.0.5 TODO-31, G6 #45 (iii)(a); bug_fix_plans/
-		# clmm_sigma_collapse_false_convergence.md TODO-3, E6): 1e-6 -> 1e-12. The kernel's
+		# v1_0_5/clmm_sigma_collapse_false_convergence.md TODO-3, E6): 1e-6 -> 1e-12. The kernel's
 		# L-BFGS stops on LBFGSpp's relative-f test (delta = eps_g) and reports converged = TRUE
 		# through `niter < maxit`, so at 1e-6 every fit stopped with gradient norm median 1e-2
 		# and treatment up to 6.4e-3 (median 2e-4) from the stationary point. At 1e-12 the
@@ -207,7 +207,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			if (is.null(fit)) return(NA_real_)
 			as.numeric(fit$b[1L])
 		},
-		# v1.0.5 TODO-31 TODO-4 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md):
+		# v1.0.5 TODO-31 TODO-4 (bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md):
 		# the kernel's `converged` is LBFGSpp's lenient flag (relative-f stop counts as
 		# converged), so accept a native fit only if it is also stationary: converged and
 		# gradient_norm <= clmm_gradient_accept. Otherwise retry once with Newton from the

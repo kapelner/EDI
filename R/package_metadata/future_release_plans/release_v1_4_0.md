@@ -39,7 +39,7 @@ the rerandomization objective kernel (tolerance-equal; ranking caveat).
 matrix, ordinal `y_slot`, Cox bootstrap ordering, shared GH rule).
 
 ### Survival-model extensions (one plumbing sweep)
-- `../finished_features/interval_censored_survival_response.md → TODO-29`
+- `../finished_features/v1_0_0/interval_censored_survival_response.md → TODO-29`
   — the **`dead → uncensored` rename** (R, C++, Python binding; hard break,
   user decision 2026-08-19). Do it in the same sweep as:
 - `competing_risks_response.md` — `event_type` cause code on `survival`;
@@ -329,5 +329,11 @@ item beyond the shared-machinery core that gates nothing else there.
 As the other 1.x releases, with one exception recorded here: the `dead →
 uncensored` rename is a deliberate break with a migration note; every
 other default reproduces 1.3.0 under the numerical-equivalence rule
-(`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+(`../new_feature_plans/v1_1_0/cross_platform_reproducibility.md → Release-to-release
 equivalence`).
+
+- [ ] TODO-19 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
+  - Plan: `../new_feature_plans/v1_4_0/native_cpp_tests_v1_4_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
+    change.
+  - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

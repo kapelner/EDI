@@ -29,7 +29,7 @@ python3 -m pip install --upgrade pip
 pip install -e "./python[test]"
 
 # Full unattended-installable roster from
-# R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md
+# R/package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md
 # section 8.0: perf, valgrind (callgrind/cachegrind/dhat/massif/helgrind),
 # gdb, heaptrack, hyperfine, FlameGraph, kcachegrind, + 19 profiling-related
 # R packages, + several pip profilers. Deliberately excludes the vendor/

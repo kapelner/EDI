@@ -2,7 +2,7 @@
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required.")
 }
-pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", quiet = TRUE)
+pkgload::load_all("EDI", compile = FALSE, quiet = TRUE)
 library(data.table)
 
 set.seed(42)
@@ -47,7 +47,8 @@ generate_data = function(n, p, rt) {
     res
 }
 
-results_csv = "/home/kapelner/workspace/EDI/heavy_paths_only.csv"
+results_csv = file.path(Sys.getenv("TMPDIR", "/tmp"), "heavy_paths_only.csv")
+cat("Writing results to", results_csv, "\n")
 if (file.exists(results_csv)) file.remove(results_csv)
 
 for (cls_name in heavy_classes) {

@@ -1,4 +1,4 @@
-devtools::load_all('EDI')
+devtools::load_all('EDI', compile = FALSE)
 library(glmmTMB)
 library(microbenchmark)
 library(data.table)

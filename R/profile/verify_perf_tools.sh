@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Verify the performance-tooling roster from
-# package_metadata/new_feature_plans/performance_profiling_and_upgrades.md §8.0
+# package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md §8.0
 # is installed. Companion to install_perf_tools.sh. Exit 0 always; prints OK/MISSING per item.
 SRC_DIR="${SRC_DIR:-$HOME/perf-tools}"
 ok=0; miss=0; skip=0

@@ -173,6 +173,7 @@ reference:
   - InferenceSuite
   - print.EDIInferenceSuiteResults
   - summary.EDIInferenceSuiteResults
+  - get_inference_procedure_validity
   - EDI_COMPREHENSIVE_SLOW_PATHS
 
 - title: "Inference: Custom Extensions"

@@ -52,10 +52,10 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	testthat::expect_true(all(grepl("noisy-marginal owner decision", todo55_rules$reason, fixed = TRUE)))
 	testthat::expect_true(all(is.na(todo55_rules$function_run) | !nzchar(todo55_rules$function_run)))
 
-	todo55_plan_path <- file.path(root, "R", "package_metadata", "bug_fix_plans", "prop_mean_diff_closed_form_truth_stale.md")
+	todo55_plan_path <- file.path(root, "R", "package_metadata", "bug_fix_plans", "v1_0_5", "prop_mean_diff_closed_form_truth_stale.md")
 	dir.create(dirname(todo55_plan_path), recursive = TRUE)
 	testthat::expect_true(file.copy(
-		find_repo_file(file.path("R", "package_metadata", "bug_fix_plans", "prop_mean_diff_closed_form_truth_stale.md")),
+		find_repo_file(file.path("R", "package_metadata", "bug_fix_plans", "v1_0_5", "prop_mean_diff_closed_form_truth_stale.md")),
 		todo55_plan_path
 	))
 

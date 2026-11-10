@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # One shard of the scheduled CI calibration fast tier (design:
-# R/package_metadata/new_feature_plans/calibration_gates.md). Runs null
+# R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md). Runs null
 # replicates (sharp null, see calibration_fast_tier_common.R) for one response
 # type at one n, and writes one row per (replicate, class, formula, method) to
 # <out-dir>/rows.csv. analyze_calibration_fast_tier.R merges the shards and

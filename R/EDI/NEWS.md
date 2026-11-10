@@ -25,6 +25,11 @@ methods.
 * Seed-pinned draws change once: a portable shuffle replaces
   `std::shuffle`, and greedy, D-optimal, pair-switching and rerandomization
   designs no longer depend on the thread count.
+* `DesignSeqOneByOnePocockSimon` no longer rebuilds the model matrix on
+  every arrival. When covariates have missing values, that rebuild ran the
+  random-forest imputation, which drew from R's random number stream, so
+  seeded assignment sequences with missing covariates change once. Sequences
+  without missing covariates are unchanged.
 * `DesignFixedBlocking`, `DesignFixedOptimalBlocks`, `DesignFixedCluster` and
   `DesignFixedBlockedCluster` draw null assignments in one vectorized pass
   (about 15x faster, no `randomizr` needed, independent of
@@ -131,6 +136,10 @@ methods.
 * `tune_EDI_for_this_machine()`'s summary now gives the right number of timing
   wins discarded by the correctness gate. It counted warm-start operations
   instead (5 printed for 19 discards).
+* `tune_EDI_for_this_machine()`'s start-up time estimate now matches measured
+  runs: about 1 hour for `effort = "quick"` and 3-4 hours for `"standard"` on a
+  6-core laptop (it said 2-5 and 15-30 minutes). `"thorough"` is not timed and
+  takes many hours.
 
 * `tune_EDI_for_this_machine()` no longer aborts partway through (it stopped
   at cell 57 of 1065 under `effort = "standard"`). Its synthetic count data had
@@ -288,7 +297,7 @@ methods.
   conservative. Under review for 1.1.0.
 * `InferenceIncidExtendedRobins`'s Wald test is anti-conservative on small
   blocks and matched pairs; use `InferenceIncidCMH` there.
-* Some asymptotic tests reject up to 8-13% at nominal 5% at n = 50, or with
+* Some asymptotic tests reject up to 8-14% at nominal 5% at n = 50, or with
   about 10 treated subjects; they are close to nominal by n = 200. Each
   affected class's help page has a "Small samples" note naming the tests
   and a better-calibrated alternative. Under review for 1.1.0.

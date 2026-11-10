@@ -24,24 +24,24 @@ them):
   needs on top (registry lookup tables, factory arguments, Source literals,
   Collate, capability tables). Anything that changes the external contract is
   edited in the vignette, not here.
-- `package_metadata/finished_features/fix_inference_hierarchy.md` — the class
+- `package_metadata/finished_features/v1_0_0/fix_inference_hierarchy.md` — the class
   architecture, metadata, components, capabilities, and Source Invariants.
   **Done (2026-08-23): 0 open items, moved to `finished_features/`.** Every
   concrete inference class is factory-built; the legacy algorithmic ladder
   is retained only as internal component sources with zero concrete
   descendants; raw component splicing and component redeclaration of
   root-owned state are banned by guardrail tests and factory validation.
-- `package_metadata/finished_features/fix_documentation.md` — the
+- `package_metadata/finished_features/v1_0_0/fix_documentation.md` — the
   documentation standard every new roxygen block must meet. **R-side TODOs
   done (2026-08-23): 0 open, moved to `finished_features/`.** Still apply
   its Documentation Standard/General Instructions to any new class; the
   Python-docstring TODOs (#758-#816) are now unblocked (each depended only
   on its R sibling's expanded documentation existing) and remain the only
   open item in `_master.md` Phase 3.
-- `package_metadata/new_feature_plans/python_bindings_package_spec.md` —
+- `package_metadata/finished_features/v1_0_0/python_bindings_package_spec.md` —
   Python bindings design, kernel scope, and baseline-benchmark methodology.
-- `package_metadata/new_feature_plans/cold_starts.md` — smart-start heuristics.
-- `benchmark/run_all_warm_starts.sh` — warm-start benchmark runner.
+- `package_metadata/new_feature_plans/v1_2_0/cold_starts.md` — smart-start heuristics.
+- `benchmark/benchmark_warm_starts.R` (and its `benchmark_{randomization,sampling}_warm_starts.R` siblings) — warm-start benchmarks.
 
 ---
 
@@ -548,7 +548,7 @@ them directly. Therefore:
 
 ### 5.5 Kernel performance engineering rules (from `performance_profiling_and_upgrades.md`)
 
-`package_metadata/new_feature_plans/performance_profiling_and_upgrades.md` is
+`package_metadata/new_feature_plans/v1_1_0/performance_profiling_and_upgrades.md` is
 the package's evidence record of every kernel optimization tried, retained,
 and reverted (Phases 1–8). It is not repeated here; its retained findings are
 the rules a new kernel must satisfy *before* §5.2's profiling pass, so the
@@ -701,9 +701,12 @@ number.
 - **Warm start**: resampling paths (bootstrap, Bayesian bootstrap,
   randomization, jackknife) must reuse the full-data MLE (or the appropriate
   anchor) as the starting point for each replicate fit. Benchmark with the
-  `benchmark/benchmark_*_warm_starts.R` family (assembled by
-  `assemble_warm_starts.R`, run via `run_all_warm_starts.sh`) and confirm
-  the warm path is both faster and estimate-identical to cold refitting.
+  `benchmark/benchmark_*_warm_starts.R` family (`benchmark_warm_starts.R`,
+  `benchmark_randomization_warm_starts.R`, `benchmark_sampling_warm_starts.R`)
+  and confirm the warm path is both faster and estimate-identical to cold
+  refitting. (The old `run_all_warm_starts.sh` pipeline that assembled a
+  `warm_starts.html` report was removed 2026-11-11; the report itself had
+  been deleted on 2026-08-17.)
 
 ---
 

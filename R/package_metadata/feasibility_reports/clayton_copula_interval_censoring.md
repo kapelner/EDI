@@ -3,7 +3,7 @@
 ## Status
 
 Commissioned by TODO-11 in
-`package_metadata/finished_features/interval_censored_survival_response.md`
+`package_metadata/finished_features/v1_0_0/interval_censored_survival_response.md`
 ("Commission a follow-up feasibility report for
 `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`/`OneLik` under interval censoring,
 scoping how the copula's matched-pair joint-survival structure interacts

@@ -13,7 +13,7 @@ Usage:
 
 Exit code is always 0 on a completed run; the report's first line is
 `FLAGGED` or `CLEAN` so the workflow can branch on it. See
-R/package_metadata/new_feature_plans/algorithm_audit_runbook.md.
+R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md.
 """
 import argparse
 import datetime
@@ -28,7 +28,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 META = ROOT / "R" / "package_metadata"
-AUDIT = META / "new_feature_plans" / "algorithm_choice_audit.md"
+AUDIT = META / "new_feature_plans" / "v1_0_5" / "algorithm_choice_audit.md"
 RELEASES = META / "future_release_plans"
 ROW_MAP = META / "audits" / "algorithm_audit_row_map.json"
 PINS = META / "audits" / "comparator_versions.json"
@@ -213,7 +213,7 @@ def render(v, k, p):
          f"# Algorithm-audit drift report ({datetime.date.today().isoformat()})", "",
          "Read-only output of `.github/scripts/algorithm_audit_drift.py`. A flag means "
          "*re-look*, not *wrong*. Procedure: "
-         "`R/package_metadata/new_feature_plans/algorithm_audit_runbook.md`.", ""]
+         "`R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md`.", ""]
     L.append("## 1. Comparator versions")
     if broken:
         L.append(f"- **CHECK UNRELIABLE:** {len(v['errors'])} of the packages could not be "

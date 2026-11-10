@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Coverage-floor gate (TODO-9, R/package_metadata/new_feature_plans/
-# full_test_coverage.md): fails if aggregate coverage drops below the
+# v1_2_0/full_test_coverage.md): fails if aggregate coverage drops below the
 # best-ever figure recorded in coverage_baseline.json. On a new high, prints
 # instructions to bump the baseline by hand -- mirrors
 # check_coverage_registry.R's existing measure-then-human-commits pattern.

@@ -65,3 +65,9 @@ mixin splicing, no class-name dispatch; kernel conventions per
 repo `CLAUDE.md`). The existing public R and `edi_kernels` Python APIs must
 keep working through the migration; the R-RNG path stays selectable for one
 release cycle because native design generation changes the random stream.
+
+- [ ] TODO-4 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
+  - Plan: `../new_feature_plans/v4_0_0/native_cpp_tests_v4_0_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
+    change.
+  - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

@@ -212,10 +212,30 @@ infer_design_supports_unequal_allocation = function(name) {
 	!(name %in% EDI_DESIGN_EVEN_ALLOCATION_ONLY_CLASS_NAMES)
 }
 
-# Instance-level read used by Design$initialize(). Walks class(obj) to the
-# nearest registered class, so a user-defined subclass (never scanned by
-# populate_design_class_registry()) inherits its EDI ancestor's capability.
+# Capability read used by Design$initialize() (an instance) and by callers that only
+# have a class name (the calibration study's design discovery, v1.0.5 TODO-203).
+# * A design object: walks class(obj) to the nearest registered class, so a
+#   user-defined subclass (never scanned by populate_design_class_registry())
+#   inherits its EDI ancestor's capability; a Design with no registered ancestor
+#   is unrestricted (TRUE).
+# * A single class name: looked up in the registry directly.
+# Anything else (another object, an unknown name, NA, a vector) is an error: the
+# old fall-through returned TRUE for e.g. the string "DesignSeqOneByOneEfron"
+# (its class() is "character"), silently claiming every design was capable.
 design_supports_unequal_allocation = function(obj) {
+	if (is.character(obj)) {
+		if (length(obj) != 1L || is.na(obj) || !nzchar(obj)) {
+			stop("design_supports_unequal_allocation(): give one design class name or a design object.", call. = FALSE)
+		}
+		if (!exists(obj, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)) {
+			stop(sprintf("design_supports_unequal_allocation(): '%s' is not a registered design class.", obj), call. = FALSE)
+		}
+		return(isTRUE(get(obj, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)$supports_unequal_allocation))
+	}
+	if (!inherits(obj, "Design")) {
+		stop(sprintf("design_supports_unequal_allocation(): expected a design object or a design class name, got an object of class '%s'.",
+			paste(class(obj), collapse = "/")), call. = FALSE)
+	}
 	for (cls in class(obj)) {
 		if (exists(cls, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)) {
 			return(isTRUE(get(cls, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)$supports_unequal_allocation))

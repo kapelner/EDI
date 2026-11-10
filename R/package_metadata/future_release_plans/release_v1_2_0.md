@@ -12,7 +12,7 @@ improvements on the current codebase plus simple additions on the
 existing architecture and the six scalar response types; every default
 reproduces the prior release. Since 2026-10-15 (owner decision D2)
 "reproduces" means numerical equivalence per
-`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+`../new_feature_plans/v1_1_0/cross_platform_reproducibility.md → Release-to-release
 equivalence`, not bit-for-bit.
 
 **Theme.** Everything that makes existing classes faster or replaces an
@@ -48,8 +48,8 @@ KK14 matching design, replacing O(t·p²) recomputation.
   (aliases + warnings for the two old names); the hard deletion is
   `release_v2_0_0.md → TODO-7`. This is the engine that 1.3.0's unequal-
   allocation and objective-extension plans extend.
-- `parallel_fork_cluster_test_safety.md` — fully closed (6/6); move to
-  `../finished_features/` as part of this release's housekeeping.
+- `parallel_fork_cluster_test_safety.md` — fully closed (6/6); moved 2026-11-11 to
+  `../finished_features/v1_0_0/` (closed 2026-08-26, before the v1.0.0 tag).
 - `arm_hardware.md` — AArch64/Apple Silicon first-class targeting,
   compiler-target detection, Accelerate/BLAS dispatch, and portable fallback
   behavior.
@@ -122,8 +122,9 @@ Ticked in owning plans; this list is the index.
   relationship to `DesignFixedMatchingGreedyPairSwitching` decides how
   1.3.0's unequal-allocation plan handles matched pairs); deprecation
   shims, not deletions.
-- [ ] TODO-6: Move `parallel_fork_cluster_test_safety.md` to
-  `../finished_features/`.
+- [x] TODO-6: Move `parallel_fork_cluster_test_safety.md` to
+  `../finished_features/`. Done 2026-11-11 (owner): now
+  `../finished_features/v1_0_0/parallel_fork_cluster_test_safety.md`.
 - [ ] TODO-7: **Release mechanics** per `release.md`.
 - [ ] TODO-8: **Architecture-specific CPU and memory engines**
   `arm_hardware.md → TODO-1..` (AArch64/Apple/Graviton/Grace detection and
@@ -197,7 +198,7 @@ Ticked in owning plans; this list is the index.
   GLMM error found under `release_v1_0_5.md → TODO-31`, with a
   `glmer(nAGQ=25)` before/after gate defined in that entry) need no exception when their measured differences fall inside
   the numerical-equivalence tiers
-  (`../new_feature_plans/cross_platform_reproducibility.md →
+  (`../new_feature_plans/v1_1_0/cross_platform_reproducibility.md →
   Release-to-release equivalence`, since 2026-10-15); otherwise each ships
   either opt-in (configure flag / fit argument) or as an explicitly
   documented default change; `→ TODO-156`
@@ -428,7 +429,7 @@ Ticked in owning plans; this list is the index.
 - [ ] TODO-26 (moved 2026-10-20 from `release_v1_1_0.md → TODO-42`, user decision; added 2026-10-07, user decision; kept here although the
   2026-09-23 split rule would place it in `release_v1_0_5.md`): **Sign the
   permutation set once at generation; never re-hash or re-copy it per
-  call** — `../bug_fix_plans/permutation_signature_once.md → TODO-1..7`.
+  call** — `../bug_fix_plans/v1_1_0/permutation_signature_once.md → TODO-1..7`.
 
   Root cause of the "R6 mean difference is 0.57x of `coin`" benchmark row.
   `build_randomization_distribution_cache_key()` calls
@@ -605,7 +606,7 @@ Ticked in owning plans; this list is the index.
 
 - [ ] TODO-36 (added 2026-11-09, user decisions throughout): **Published monthly calibration study: size,
   coverage, null bias and power, every inference class on every applicable design.** Replaces the nightly +
-  Saturday `.github/workflows/calibration-fast-tier.yml` monitor (design: `../new_feature_plans/calibration_gates.md
+  Saturday `.github/workflows/calibration-fast-tier.yml` monitor (design: `../new_feature_plans/v1_0_5/calibration_gates.md
   → CI fast tier`); results are published for anyone to inspect, as evidence that EDI's inference performs to spec.
   - **Data:** synthetic, p = 5 (x1-x3 N(0, 1), x4-x5 two-level factors; the linear predictor explains about half
     the outcome variance), each response type's own model; formulas `~ 1` (w only) and `~ .` (w + all covariates).
@@ -667,8 +668,8 @@ Ticked in owning plans; this list is the index.
     size/coverage gate is enforced only when a campaign completes; interim summaries are marked provisional.
   - **Convergence slopes (v1.0.5 TODO-199, 2026-11-10):** `convergence_calibration_study.R` fits each asymptotic cell's size / coverage /
     bias error against n_eff (noise-aware power law + log-log regression) and compares the order with the registry's; a non-failing publish step,
-    figures and a README section report it, never gated (plan `../new_feature_plans/calibration_convergence_slopes.md`).
-  - **Rate-derived gate and `analyze` job (v1.0.5 TODO-200 / TODO-201, 2026-11-10):** the step schedule is replaced by min(0.10, 0.05 + c n_eff^-a) from the registry's order; analysis is its own job between `shards` and `publish` (analysis scripts from the run's commit, both commits recorded; only `Gate verdict` is a statistical red, all other failures are annotated "Calibration CI bug"); each campaign README is a master plus generated sub-pages (plan `../new_feature_plans/calibration_rate_derived_gate.md`).
+    figures and a README section report it, never gated (plan `../new_feature_plans/v1_0_5/calibration_convergence_slopes.md`).
+  - **Rate-derived gate and `analyze` job (v1.0.5 TODO-200 / TODO-201, 2026-11-10):** the step schedule is replaced by min(0.10, 0.05 + c n_eff^-a) from the registry's order; analysis is its own job between `shards` and `publish` (analysis scripts from the run's commit, both commits recorded; only `Gate verdict` is a statistical red, all other failures are annotated "Calibration CI bug"); each campaign README is a master plus generated sub-pages (plan `../new_feature_plans/v1_0_5/calibration_rate_derived_gate.md`).
   - **Found while planning:** `path_audits.html` (v1.0.3, 2026-10-08) has no columns for 5 of the 10 bootstrap CI
     flavors now in `bootstrap_ci_types` (symmetric-percentile-t, prepivoted, double-bootstrap, calibrated,
     smoothed); add them when the audit is regenerated.
@@ -747,7 +748,7 @@ Ticked in owning plans; this list is the index.
 **Documented default changes carried here from v1.1.0 (2026-10-22, when TODO-24, -25 and -29 moved):** TODO-24's exact-null default switch (its plan's TODO-7) and TODO-25's small-n exact default (its plan's TODO-6) are decision-gated and off until the user accepts them; TODO-29's precomputed hypergeometric log-densities in the Zhang exact kernel (its plan's TODO-3) are tolerance-equal to 1e-12. TODO-34's `mc_method` default flip, if it clears its gate, is a documented default change under the equivalence tiers.
 
 Additive; defaults preserved under the numerical-equivalence rule
-(`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+(`../new_feature_plans/v1_1_0/cross_platform_reproducibility.md → Release-to-release
 equivalence`: integers exact, closed-form floats 1e-10 relative, iterative
 fits 10× solver tolerance, Monte Carlo results only through near-ties;
 kernel parity tests plus the last release's golden fixtures are the gate); every
@@ -763,3 +764,9 @@ quadrature must be checked against each fit's solver tolerance); `→ TODO-156`
 streams) is opt-in or a documented default change. TODO-21's Robbins–Monro
 item is opt-in by construction (`ci_search_algorithm` argument,
 default `"bisection"`) until its own A/B report clears a wider default. TODO-22's draw-kernel item (`algorithm_choice_audit.md → TODO-21`) changes seed-pinned draws once, as a documented default change; every TODO-23 item ships opt-in or as a documented default change only after its harness report is read.
+
+- [ ] TODO-37 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
+  - Plan: `../new_feature_plans/v1_2_0/native_cpp_tests_v1_2_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
+    change.
+  - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

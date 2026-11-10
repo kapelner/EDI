@@ -20,7 +20,7 @@ branch that is already covered.
 Companion documents (read them; this contract references but does not repeat
 them):
 
-- `R/package_metadata/new_feature_plans/full_test_coverage.md` -- the
+- `R/package_metadata/new_feature_plans/v1_2_0/full_test_coverage.md` -- the
   coverage plan this contract distills: the TODO-1 gap categories (§"Phase
   1"), the broaden-vs-new-test rule (TODO-7), the defensive-branch rule
   (TODO-8), the measurement-noise catalogue (TODO-10, 2026-10-13), and the

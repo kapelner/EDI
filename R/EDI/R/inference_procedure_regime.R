@@ -73,7 +73,8 @@ inference_procedure_regime = function(procedure) {
 #     triple > class_design > class > design > procedure
 # Within a layer an entry restricted to a procedure beats one that is not, and
 # an entry keyed by a design *label* ("DesignFixedBernoulli@prob_T=0.2", the
-# calibration study's label) beats one keyed by the bare design class. Fields
+# calibration study's label; or "@prob_T" = any label with an allocation suffix) beats one keyed by the bare
+# design class. Fields
 # resolve independently: an entry that sets only `n_eff` leaves the orders to
 # the layers below it.
 #
@@ -224,7 +225,9 @@ EDI_CONVERGENCE_OVERRIDES = local({
 		# small-sample excess of the HC2 / delta-method Wald at prob_T = 0.2, n = 50 is in
 		# inference_continuous_lin.R:29, inference_incid_wald.R:18, inference_ordinal_gcomp.R:20,
 		# inference_survival_weibull.R:489 (single n, so it fixes the n_eff rule, not an order).
-		e("design", design = "DesignFixedBernoulli@prob_T=0.2", procedure = asy, n_eff = "n_min_arm"),
+		# Keyed "@prob_T": any design label with an unequal-allocation suffix ("<Design>@prob_T=<p>"), so every
+		# design that supports unequal allocation (design_supports_unequal_allocation()) is covered, not just Bernoulli.
+		e("design", design = "@prob_T", procedure = asy, n_eff = "n_min_arm"),
 		# Cluster designs: the number of clusters (not applicable to the calibration study).
 		e("design", design = c("DesignFixedCluster", "DesignFixedBlockedCluster"), procedure = asy, n_eff = "n_clusters"),
 
@@ -386,7 +389,8 @@ inference_convergence_expectation = function(design, class, procedure,
 	score = list(size = numeric(n), bias = numeric(n), n_eff = numeric(n), regularity = numeric(n))
 	for (i in seq_len(NROW(overrides))) {
 		e = overrides[i, , drop = FALSE]
-		hit = (is.na(e$design) | D == e$design | D_base == e$design) &
+		hit = (is.na(e$design) | D == e$design | D_base == e$design |
+				(identical(e$design, "@prob_T") & grepl("@prob_T=", D, fixed = TRUE))) &
 			(is.na(e$class) | C == e$class) & (is.na(e$procedure) | P == e$procedure)
 		if (!any(hit)) next
 		idx = which(hit)

@@ -108,7 +108,11 @@ edi_tuning_count_discarded = function(discarded) {
 #' @keywords internal
 #' @noRd
 edi_tuning_effort_nominal_time = function(effort) {
-	switch(effort, quick = "roughly 2-5 minutes", standard = "roughly 15-30 minutes", thorough = "roughly 1-2 hours", "unknown")
+	# Measured 2026-11-10 on a 6-core/12-thread laptop (i7-9750H, idle host): quick
+	# 454 cells in 53 min, standard 1,065 cells in 219-247 min. thorough adds n = 500
+	# and n = 5000 and 9 reps per cell; it was not timed, and n = 5000 cells dominate.
+	switch(effort, quick = "roughly 1 hour", standard = "roughly 3-4 hours",
+		thorough = "many hours (not measured; plan for overnight or longer)", "unknown")
 }
 
 #' Best-effort 1-minute load average, or \code{NA} where unavailable

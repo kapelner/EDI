@@ -422,7 +422,7 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 	expect_false("logbin_feasible_warm_start_args@InferenceIncidLogBinomial" %in% logbin_methods)
 	baseline$private_methods[[logbin_row]] <- paste(sort(unique(c(logbin_methods,
 		"logbin_feasible_warm_start_args@InferenceIncidLogBinomial"))), collapse = "|")
-	# v1.0.5 TODO-31 (2026-10-22; bug_fix_plans/clmm_sigma_collapse_false_convergence.md
+	# v1.0.5 TODO-31 (2026-10-22; bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md
 	# TODO-4, G6 #45 (iii)(a)) added the private stationarity-acceptance helper
 	# clmm_accept_fit on InferenceAbstractKKOrdinalCLMM, inherited by its four
 	# concrete link leaves. Reviewed additive delta on the abstract host.

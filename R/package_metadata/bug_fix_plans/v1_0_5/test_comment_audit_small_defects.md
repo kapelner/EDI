@@ -1,0 +1,237 @@
+# Test-Comment Audit: Smaller Defects, Robustness Gaps and Open Questions
+
+> **Depends on:** none. (Global ordering: see `../../new_feature_plans/_master.md`.) Slated for
+> `../../future_release_plans/release_v1_0_5.md → TODO-35..46` (plan item n is release TODO-(34+n), one release TODO each). Added 2026-09-24
+> from an audit of comments in `R/package_tests/testthat_bulk/` and
+> `R/EDI/tests/testthat/`. Each item below was recorded by a test author who
+> saw it while writing coverage and deliberately did not fix it ("noted, not
+> fixed" / "confirmed source bug, NOT fixed" / "quirk"). **None were
+> independently reproduced by this audit beyond what the (passing) pinned
+> tests already assert.** Items are ordered by suspected user impact. Larger
+> items got their own plans (`glmm_variance_component_sigma_collapse.md`,
+> `ridit_treatment_reference_degenerate_estimate.md`,
+> `rand_ci_high_precision_refinement_upper_bound.md`,
+> `interval_censored_compute_shared_cache_guard.md`).
+
+## Items
+
+- [x] **TODO-1: `delta = NA` crashes with a generic R error.**
+  `InferenceIncidGCompRiskRatio`'s asymptotic/Wald p-value:
+  `assertNumeric(delta, len = 1)` lets `NA` through (checkmate's
+  `any.missing = TRUE` default), then `if (delta <= 0)` errors with "missing
+  value where TRUE/FALSE needed" instead of the intended "delta must be
+  strictly positive". Test: `test-incid-gcomp-risk-ratio-asymp-and-wald-pval-nonpositive-delta-guard-reference.R`.
+  Fixed with `any.missing = FALSE` in ordinary and KK incidence g-computation
+  p-values. The same sweep also fixed Newcombe risk-difference p-values, which
+  previously returned 1 for a missing null value. Regression tests cover all
+  three paths.
+  **Static re-audit (2026-10-12):** the ordinary and KK g-computation
+  engines and `InferenceIncidNewcombeRiskDiff` each retain
+  `any.missing = FALSE`; their three missing-null regression cases are present
+  and registered in the runtime inventory. No runtime test was rerun in this
+  audit.
+- [x] **TODO-2: Exact-test classes cannot use the shared weighted estimate.**
+  `ExactTestSource$compute_estimate_with_bootstrap_weights()` calls
+  `private$expand_subject_or_block_weights_to_row_weights()`, which only the
+  BayesianBootstrap component provides, so it errored on the exact Fisher
+  class instead of resampling. Exact-only classes now report that bootstrap-
+  weighted estimation is unsupported, without invoking unavailable helpers.
+  Test: `test-exact-test-source-type-resolution-arg-normalization-and-weighted-estimate-reference.R`.
+  The corresponding exact-class exceptions were removed from
+  `EDI_WIRING_KNOWN_GAPS` in `test-inference-class-wiring-completeness.R`.
+- [x] **TODO-3: `inference_class_accepts_model_formula()` is always FALSE.**
+  It inspects `formals(<R6 generator>$new)`, which is just `...`, so it
+  returns FALSE for every class even when `initialize()` takes
+  `model_formula`. Find its callers and what they do with the wrong answer.
+  `run_all_inference_build_tasks()` consequently ignored every supplied
+  formula and built only the default task. Fixed by inspecting the effective
+  R6 initializer, including inherited methods and lazy component stubs.
+  Regression coverage in `test-inference-suite-class-predicates-...-reference.R`;
+  source behavior was checked without rebuilding the package. The ordinary
+  release build/check will verify the installed artifact; it is a release-wide
+  gate rather than unfinished work in this item.
+- [x] **TODO-4 (kernel fixed 2026-09-24; successor source sweep completed 2026-10-09; installed-native validation rechecked 2026-10-14): `.fit_zero_one_inflated_beta()` / `fast_zero_one_inflated_beta_cpp()`
+  instability.** In a fresh Rscript the kernel returned `neg_loglik = NaN` and
+  `coefficients = NULL` on ordinary well-conditioned data (8 of 8 seeds) and
+  crashed downstream on a zero-length names assignment; the same call did not
+  reproduce inside a testthat session, pointing at undefined
+  behavior/memory safety in the C++ kernel. At this initial-report stage, only
+  the R-level guard was fixed; the native kernel was not yet guarded. The R
+  function has no callers in `R/EDI/R/`, but the same
+  kernel backs `InferencePropZeroOneInflatedBetaRegr`, so first check whether
+  that class can hit it. Run under ASan/valgrind (the CI sanitizer jobs).
+  Test: `test-zoib-start-value-construction-reference.R`.
+  **Reproduced 2026-09-24 (valgrind, installed package).** Root cause: the
+  kernel does `params = *warm_start_params;` (`fast_zero_one_inflated_beta.cpp`
+  around line 428) with no check that the vector has `total = p + 1 + 2 *
+  p_zero_one` entries. The uncalled R helper `.fit_zero_one_inflated_beta()`
+  passes a length-6 start (from `.build_zoib_start()`) to a kernel expecting 11
+  parameters, so `optimize_fixed_likelihood<ZeroOneInflatedBeta>` and
+  `FixedParameterFunctor::operator()` read and write one element past an
+  88-byte block (heap overflow); a later allocation then aborts with
+  `free(): invalid next size` / `double free or corruption`. Reproduced 3 of 3
+  when kernel calls are followed by class calls in one fresh process, and not
+  in either alone. `InferencePropZeroOneInflatedBetaRegr` calls the kernel
+  with a correctly sized start and did not crash in 12 or 6 runs, so the class
+  is not affected today; but any external caller, including the Python
+  bindings, that passes a wrong-length `warm_start_params` corrupts the heap.
+  Fix: validate the length (and the other optional vectors) in the kernel with
+  a clear error; add the same guard to sibling kernels' warm-start handling
+  (sweep `warm_start_params` in `src/*.cpp`); and delete or repair the dead
+  R helper.
+  **Kernel fixed 2026-09-24.** `fast_zero_one_inflated_beta_internal` now
+  validates the warm-start length (`p + 1 + 2 * p_zero_one`), the
+  `warm_start_fisher_info` shape, and that `X`, `X_zero_one` and `y` have equal
+  row counts, throwing `std::invalid_argument` (same style as
+  `fast_negbin_regression.cpp`). Verified: only `fast_zero_one_inflated_beta.cpp`
+  was recompiled and `src/EDI.so` relinked (backup of the previous `.o` and
+  `.so` kept outside the repo); the new `tests/testthat/test-zoib-kernel-input-length-validation.R`
+  passes (9 expectations) on the fixed build and aborts R on the previous
+  build; the original crash script, which aborted 3 of 3 times, now completes
+  3 of 3. At that point, a valgrind rerun of the fixed build, the R helper
+  cleanup, and the sibling sweep below remained. The helper cleanup and the
+  sibling native-source sweep were subsequently completed in
+  `mixed_kernel_warm_start_shape_guards.md`; that successor's rebuilt-native,
+  memory-safety, and installed-CSV gates remain open.
+  **Sweep of sibling kernels (static, 2026-09-24).** 26 sites copy a
+  caller-supplied `warm_start_params` into the parameter vector
+  (`= *warm_start_params;`). A crude check (any size comparison or
+  length-related stop within a few lines) found none for 10 of them:
+  `fast_gaussian_lmm.cpp:424`, `fast_hurdle_negbin.cpp:631` and `:769`,
+  `fast_hurdle_poisson_glmm.cpp:490`, `fast_logistic_glmm.cpp:486`,
+  `fast_ordinal_glmm.cpp:293`, `fast_poisson_glmm.cpp:376`,
+  `fast_weibull_frailty.cpp:333`, `fast_zero_augmented_poisson.cpp:285`, and
+  `fast_zero_one_inflated_beta.cpp:428`. The heuristic could miss checks done
+  elsewhere in the function or in the R wrapper, so the ten sites then needed
+  manual reading; the completed classification and source changes are recorded
+  in `mixed_kernel_warm_start_shape_guards.md`. Only the ZOIB kernel is
+  confirmed as an overflow (valgrind).
+  **Installed-package recheck 2026-10-14:** the direct C++ input-validation
+  regression passed all 9 assertions against the user's reinstalled EDI
+  package (reported version 1.0.3), both normally and under Valgrind Memcheck
+  with `--error-exitcode=99`; the run exited 0. The CRAN fast-math test also
+  passed 2 assertions. Codex did not compile/build/install. The separate
+  successor plan's broader sibling-kernel validation gates remain open.
+  **Repeat against current installed package 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validation-guards-reference.R", reporter="summary")`
+  passed all 9 assertions (0 failures, warnings, or skips) against EDI 1.0.3
+  at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, R
+  `R Under development (unstable) (2026-10-13 r90668)`. The loaded `EDI.so`
+  path is `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  MD5 `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`;
+  checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is an
+  installed-package repeat only, not a build from that checkout or a
+  sanitizer run; it does not close the successor plan's rebuilt-native,
+  ASAN/Valgrind, or installed-CSV gates.
+- [x] **TODO-5: `DesignFixedOptimalBlocks` (blockTools/greedy path) trailing
+  incomplete block.** When `n` is not a multiple of `B`, leftover subjects
+  reach the nearest-neighbour fallback, but its unrestricted choices can put
+  several in one block. Reproduced with `n = 8`, `B = 3`: block sizes were
+  `4, 2, 2` instead of `3, 3, 2`. The fallback now chooses the nearest block
+  still below `ceiling(n / B)`, preserving floor/ceiling sizes. Focused
+  source-loaded tests cover the allocation, balanced assignment draws, and
+  randomization inference without rebuilding the package. Test:
+  `test-fixed-optimal-blocks-feasibility-draws-and-uneven-sizes-reference.R`.
+- [x] **TODO-6: Sparse positive weights in the incidence risk-difference
+  weighted refit.** With only two positive-weight rows, the hardened retry
+  uses `required_cols = 1L` (intercept only), drops the treatment column too,
+  and `which(attempt$keep == 2L)` is `integer(0)`, so the cached estimate is a
+  zero-length numeric rather than `NA_real_`. Zero-length results can fail
+  downstream `is.finite()` guards in unexpected ways. Fixed by retaining
+  intercept and treatment in QR retries and caching a scalar `NA_real_` with
+  reason `risk_diff_weighted_fit_unavailable` when a finite treatment estimate
+  is unavailable. Sparse and ordinary weighted regressions pass focused
+  source-loaded tests without rebuilding the package. Test:
+  `test-incidence-risk-diff-fast-shortcut-and-sparse-weights-reference.R`.
+- [x] **TODO-7: `randomization_loop` callback result is unchecked.**
+  `result[0]` on a length-0 vector previously warned and continued with an
+  undefined entry. `randomization_loop_cpp()` now rejects an empty callback
+  result with a clear error before indexing. The focused callback-contract
+  regression expects that error. **Installed-package recheck 2026-10-14:**
+  all 32 assertions pass against the user's reinstalled EDI package (version
+  1.0.3). Codex did not compile/build/install. Test:
+  `test-randomization-loop-kernel-callback-contract-...-reference.R`.
+- [x] **TODO-8: The stale Bayesian-bootstrap worker is no longer present.**
+  `test-cox-component-composition.R` works around a "pre-existing bug in the
+  shared reusable-worker infrastructure" that leaves a stale
+  Bayesian-bootstrap worker context after a randomization or non-parametric
+  bootstrap call on the same object (also on `InferenceSurvivalKMDiff`),
+  by using a fresh object per capability. The stale-worker work
+  (`stale_worker_cache_resampling.md`, Option A) may have resolved it; check
+  by removing the workaround, and either delete the comment or plan the fix.
+  **Investigated 2026-09-24: the stale Bayesian-bootstrap worker was NOT
+  reproduced; the workaround appears unnecessary.** On the installed package,
+  240 same-object runs (`InferenceSurvivalCoxPHRegr` and
+  `InferenceSurvivalKMDiff` x 15 seeds x 8 call orderings, including
+  randomization then Bayesian bootstrap, non-parametric bootstrap then
+  Bayesian-bootstrap distribution then p-value, and the reverse orders) had 0
+  failures; every step returned finite results. The stale-worker fix
+  (`stale_worker_cache_resampling.md`, Option A) is the likely reason. The
+  one `NA` seen earlier on `InferenceSurvivalKMDiff` was a *different*,
+  stochastic issue (release TODO-54 / plan TODO-13), independent of object
+  reuse. Closed 2026-10-08: the Cox test already used one object across the
+  three resampling families, and a new KMDiff regression now does the same and
+  compares Bayesian results bit-for-bit with a fresh object. Eighteen focused
+  assertions pass without compilation.
+- [x] **TODO-9: The reported `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
+  RNG sensitivity was a mismatched-estimator fallback.** The exact fixture and
+  a 100-seed sweep produced finite, RNG-invariant direct estimates. The old
+  constant-weight path fell through to a different marginal-Weibull surrogate
+  when the direct Clayton/Weibull fit was nonfinite, so its success did not
+  establish RNG or start-value sensitivity. Constant weights now return the
+  direct result, including `NA`, while genuinely varying weights retain the
+  surrogate. Forty-nine focused assertions cover direct/shortcut equality,
+  deterministic direct failure, scale invariance and ambient RNG states.
+- [x] **TODO-10: Silent NA with no nonestimable reason (harden = FALSE or
+  short paths).** Jackknife summaries with zero or one replicate now record
+  SE-stage `jackknife_too_few_replicate_estimates`. Subsampling b-list and
+  m-out-of-n m-list selection failures now record their existing estimate-stage
+  `subsampling_b_selection_failed` and `m_out_of_n_m_selection_failed` reasons
+  under either harden setting; confidence intervals retain their percentage
+  labels. Focused source-loaded tests cover both harden settings and the
+  successful selector paths without rebuilding the package. Tests:
+  `test-jackknife-summary-nonfinite-and-extreme-guards-reference.R`,
+  `test-prw-subsampling-pval-and-ci-b-list-selection-failure-guard-reference.R`,
+  `test-m-out-of-n-bootstrap-pval-and-ci-m-list-selection-failure-guard-reference.R`.
+- [x] **TODO-11: Weighted-refit SEs are populated when requested.** Plain
+  modified Poisson now caches a weighted HC0 SE, the KK modified-Poisson path
+  caches a weighted cluster-sandwich SE, and all four Weibull surrogate callers
+  cache model or cluster-robust `survreg` SEs. `estimate_only = TRUE` skips the
+  variance calculation. Six focused suites pass 105 assertions, and
+  studentized Bayesian-bootstrap smoke checks return finite p-values.
+- [x] **TODO-12: Minor / cosmetic batch audited.** The unreachable
+  stratification stop was already absent; stale commentary was removed and a
+  direct regression pins the shared categorical-strata guard. Nested `$`
+  prefixes are an intentional conservative contract. The R Weibull fallback's
+  `estimate_only` limitation and cross-family `with_var` field differences are
+  explicitly accepted and pinned; `fisher_information` is the common field.
+
+- [x] **TODO-13: `InferenceSurvivalKMDiff` Bayesian-bootstrap p-value is
+  `NA` for about 30% of RNG states on heavily censored data (found 2026-09-24
+  while investigating TODO-8).** With right-censored data (n = 100, event
+  rate 0.5, censoring rate 0.3) a **fresh** object returned a non-finite
+  `compute_bayesian_bootstrap_two_sided_pval()` in 12 of 40 RNG seeds, each
+  with the recorded reason `bayesian_bootstrap_nonfinite_estimates`; a fresh
+  object was also `NA` in 1 of 25 data seeds in a wider sweep. So it is not
+  caused by object reuse, and the reason is recorded (my earlier note that none
+  was recorded was wrong). Some resampled KM difference is evidently
+  undefined (for example a statistic that needs the curve to reach a level in
+  both arms). Decide whether one non-finite replicate should make the whole
+  p-value `NA` (the non-parametric bootstrap on the same data does not) or
+  whether non-finite replicates should be dropped subject to a minimum count,
+  as other bootstrap p-values do; document what the statistic is. Fixed
+  2026-10-08: KMDiff now defaults to dropping undefined weighted-median draws,
+  requires the generic minimum usable count, records
+  `bayesian_bootstrap_too_few_finite_estimates` when that count is not met, and
+  preserves explicit `na.rm = FALSE` fail-on-any-nonfinite behavior. Forty-one
+  focused assertions pass without compilation.
+
+## Explicitly out of scope
+
+- Comments that merely note an *already fixed* bug (dozens; e.g. the
+  `attempt$X_fit` typo, fixed 2026-09-24).
+- Guards marked "unreachable in practice" and tested by mocking; those are
+  intentional defensive code.
+- The `KNOWN_BROKEN` / known-gap allowlists whose entries already have plans
+  (`KKQuantileRegrOneLik_rand_ci.md`, the incidence randomization-CI stopgap).

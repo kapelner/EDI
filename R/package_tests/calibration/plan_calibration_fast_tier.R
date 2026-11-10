@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Splits one calibration fast-tier run into GitHub Actions matrix shards
-# (design: R/package_metadata/new_feature_plans/calibration_gates.md). No EDI
+# (design: R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md). No EDI
 # needed. Each (group, n) gets enough shards that every shard's estimated
 # runtime -- calibration_fast_tier_timings.csv's single-core seconds per
 # replicate x replicates / cores -- stays under --target-minutes. A group is a

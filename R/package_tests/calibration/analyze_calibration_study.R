@@ -14,7 +14,7 @@
 #   number of flagged tests). --final marks the campaign complete, so pending
 #   confirmations become verdicts. A row of --accepted re-tests its cell against
 #   the accepted level instead of the schedule's, in both stages.
-#   Level (v1.0.5 TODO-200, new_feature_plans/calibration_rate_derived_gate.md; cal_gate_levels() in
+#   Level (v1.0.5 TODO-200, new_feature_plans/v1_0_5/calibration_rate_derived_gate.md; cal_gate_levels() in
 #   calibration_study_stats.R): finite-sample procedures (exact, rand) 0.05 / 0.95 at every n; asymptotic
 #   procedures with a known order a > 0 (registry, inference_convergence_expectation()) size
 #   min(0.10, 0.05 + c_a n_eff^-a), coverage 1 - that, reaching the 0.10 cap at n_eff = 50; unknown order:
@@ -39,13 +39,22 @@
 #
 # Usage: Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir DIR \
 #          --out-dir DIR [--accepted FILE] [--title TEXT] [--note TEXT] [--summary-md FILE] [--final]
-#          [--confirm-min-n 500] [--convergence FILE]
+#          [--confirm-min-n 500] [--convergence FILE] [--plan FILE] [--confirm-reps 5000] [--slow-confirm-reps 1000]
 # --convergence: convergence_summary.csv of the same stats (default <out-dir>/convergence_summary.csv; run
 # convergence_calibration_study.R first); absent = no rate check.
 # --stats-dir holds tests.csv.gz and est.csv.gz.
+# --plan: plan.csv of the campaign (plan_calibration_study.R --plan-out; default <stats-dir>/../plan.csv). With a
+# plan (v1.0.5 TODO-203, new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md), campaigns run class by class
+# and the gate works on the whole plan: Benjamini-Hochberg over all m_total tests of the plan, where a test enters with its
+# p-value once its unit's screening replicates are all done and counts as p = 1 until then, so a flag is never withdrawn
+# (cal_bh_q()); a flagged test fails when its fresh confirmation replicates alone reject at 0.01 / m_total, decided once the
+# planned confirmation replicates (--confirm-reps, --slow-confirm-reps for the slow classes) are in; the "campaign's largest
+# n" is the plan's. Also writes class_status.csv. Without a plan (older campaigns, small tests) every test that has results is in
+# the family and flags are counted as before.
 
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))
+source(file.path(script_dir, "calibration_study_plan_common.R"))
 # The procedure -> regime registry, read from the checkout: this job runs without EDI installed.
 source(file.path(script_dir, "..", "..", "EDI", "R", "inference_procedure_regime.R"))
 # conv_expectations(): the registry's expected order and nominal n_eff per row, the same computation
@@ -67,6 +76,9 @@ convergence_path <- arg_value("--convergence", file.path(out_dir, "convergence_s
 # A flagged cell is cleared only on at least this many confirmation results: fewer
 # (a confirmation abandoned or cut short) cannot clear it, so it counts as failing.
 confirm_min_n <- as.integer(arg_value("--confirm-min-n", "500"))
+confirm_reps <- as.integer(arg_value("--confirm-reps", "5000"))
+slow_confirm_reps <- as.integer(arg_value("--slow-confirm-reps", "1000"))
+plan_path <- arg_value("--plan", file.path(dirname(normalizePath(stats_dir, mustWork = FALSE)), "plan.csv"))
 FAMILY_ALPHA <- 0.01
 SCREEN_Q <- 0.05
 MIN_FINITE <- 30L
@@ -85,6 +97,35 @@ if (is.null(tests) || !nrow(tests)) {
 	quit(save = "no", status = 0L)
 }
 tests <- cal_stats_prepare(tests)
+# The campaign plan (see the header): m_total, per-unit completeness, the plan's largest n.
+plan <- NULL
+if (file.exists(plan_path)) {
+	plan <- utils::read.csv(plan_path, stringsAsFactors = FALSE)
+	# family comes from the roster (the package's matched-design predicate), via plan.csv.
+	if (!"family" %in% names(plan)) stop("plan.csv lacks the `family` column (written by plan_calibration_study.R --plan-out)")
+	cal_plan_set_matched(plan$design[plan$family == "matched"])
+	plan$key <- cal_plan_key(plan$response_type, plan$design, plan$n, plan$effect, plan$inf_class)
+	plan$block <- cal_plan_block(plan$effect, plan$response_type, plan$inf_class)
+	plan$rep_from <- 1L
+	plan <- cal_unit_progress(plan, tests)
+}
+have_plan <- !is.null(plan) && nrow(plan) > 0L
+m_total <- if (have_plan) cal_plan_m_total(plan) else NA_integer_
+# Test p-values enter the gate once their unit is complete (or the campaign is final); no plan: always.
+unit_key_of <- function(d) cal_plan_key(d$response_type, cal_plan_design_label(d$design, d$prob_T), d$n_nominal, d$effect_label, d$inf_class)
+unit_complete <- function(d) {
+	if (!have_plan || final) return(rep(TRUE, nrow(d)))
+	m <- match(unit_key_of(d), plan$key)
+	!is.na(m) & plan$done[m]
+}
+# Rate check only on a cell whose every planned n is complete: its verdict (convergence study) then cannot change, so the
+# level its largest-n test is held to cannot change either (a flag is never withdrawn).
+cell_complete <- function(d) {
+	if (!have_plan || final) return(rep(TRUE, nrow(d)))
+	all_done <- tapply(plan$done, paste(plan$response_type, plan$design, plan$effect, plan$inf_class), all)
+	v <- all_done[paste(d$response_type, cal_plan_design_label(d$design, d$prob_T), d$effect_label, d$inf_class)]
+	!is.na(v) & v
+}
 est <- cal_stats_read(file.path(stats_dir, "est.csv.gz"))
 # No estimand table (cannot happen when tests exist, but never a crash): empty, so the bias sections say "none yet".
 if (is.null(est)) est <- tests[0, intersect(CAL_STATS_CELL, names(tests))]
@@ -123,7 +164,9 @@ set_context <- function(d, ctx, metrics) {
 	if ("coverage" %in% metrics) { d$coverage_null <- ctx$coverage_level; d$rule_coverage <- ctx$rule }
 	d
 }
-max_n_null <- max_of(s$n_nominal)
+max_n_null <- if (have_plan) cal_plan_largest_n(plan, TRUE) else max_of(s$n_nominal)
+s$unit_done <- unit_complete(s)
+s$cell_done <- cell_complete(s)
 s <- set_context(s, gate_context(s, max_n_null), c("size", "coverage"))
 s$accepted <- rep("", nrow(s))
 if (file.exists(accepted_path)) {
@@ -159,7 +202,7 @@ apply_rate_check <- function(d, metric, value, rule_col, level_col, nominal, bad
 	}
 	v <- rate_verdict(d, metric)
 	hit <- v %in% "slower" & !(d[[rule_col]] %in% c("accepted", "finite")) & !is.na(value) & bad(value, nominal) &
-		d$n_nominal == stats::ave(d$n_nominal, ckey(d), FUN = max)
+		d$n_nominal == stats::ave(d$n_nominal, ckey(d), FUN = max) & d$cell_done
 	d[[level_col]][hit] <- nominal
 	d[[rule_col]][hit] <- "rate_check"
 	d[[paste0("rate_verdict_", metric)]] <- v
@@ -177,7 +220,9 @@ pw$power <- ifelse(pw$n_p > 0, pw$rej / pw$n_p, NA_real_)
 pw$power_se <- sqrt(pw$power * (1 - pw$power) / pmax(pw$n_p, 1))
 pw$coverage <- ifelse(pw$n_ci > 0, pw$cov / pw$n_ci, NA_real_)
 pw$truth_available <- pw$n_ci > 0 | !(pw$reps > 0)
-max_n_power <- max_of(pw$n_nominal)
+max_n_power <- if (have_plan) cal_plan_largest_n(plan, FALSE) else max_of(pw$n_nominal)
+pw$unit_done <- unit_complete(pw)
+pw$cell_done <- cell_complete(pw)
 pw <- set_context(pw, gate_context(pw, max_n_power), "coverage")
 pw <- apply_rate_check(pw, "coverage", pw$coverage, "rule_coverage", "coverage_null", CAL_GATE_NOMINAL[["coverage"]], function(v, nom) v < nom)
 pw$p_coverage <- ifelse(pw$n_ci >= MIN_FINITE, stats::pbinom(pw$cov, pw$n_ci, pw$coverage_null), NA_real_)
@@ -197,15 +242,19 @@ gate_rows <- function(d, metric, level, rule, p) {
 	if (!nrow(d)) return(NULL)
 	data.frame(d[key_cols], metric = metric, level = level, rule = rule, p = p, stringsAsFactors = FALSE)
 }
-gate <- rbind(gate_rows(s, "size", s$size_null, s$rule_size, s$p_size), gate_rows(s, "coverage", s$coverage_null, s$rule_coverage, s$p_coverage),
-	gate_rows(pw, "coverage", pw$coverage_null, pw$rule_coverage, pw$p_coverage))
+# A test whose unit's screening replicates are not all in yet has p = NA here (p = 1 in the family: cal_bh_q()).
+gate <- rbind(gate_rows(s, "size", s$size_null, s$rule_size, ifelse(s$unit_done, s$p_size, NA_real_)),
+	gate_rows(s, "coverage", s$coverage_null, s$rule_coverage, ifelse(s$unit_done, s$p_coverage, NA_real_)),
+	gate_rows(pw, "coverage", pw$coverage_null, pw$rule_coverage, ifelse(pw$unit_done, pw$p_coverage, NA_real_)))
 # Never a zero-column table: with no testable cell (every cell below MIN_FINITE results, or no cells at all)
 # the gate is empty, not an error.
 if (is.null(gate)) gate <- data.frame(stats::setNames(rep(list(character()), length(key_cols)), key_cols),
 	metric = character(), level = numeric(), rule = character(), p = numeric(), stringsAsFactors = FALSE)
 gate <- gate[!is.na(gate$p), , drop = FALSE]
 K <- nrow(gate)
-gate$q <- if (K) stats::p.adjust(gate$p, method = "BH") else numeric()
+gate$q <- if (K) cal_bh_q(gate$p, m_total) else numeric()
+# The family's size: the plan's tests (never fewer than the tests that have p-values), else the tests that have results.
+m_family <- if (have_plan) max(m_total, K) else NA_integer_
 flagged_tests <- gate[gate$q < SCREEN_Q, , drop = FALSE]
 utils::write.csv(flagged_tests, file.path(out_dir, "confirm_cells.csv"), row.names = FALSE)
 m <- nrow(flagged_tests)
@@ -221,13 +270,21 @@ if (m) {
 	flagged_tests$p_confirm <- ifelse(flagged_tests$confirm_n < MIN_FINITE, NA_real_, ifelse(is_size,
 		stats::pbinom(flagged_tests$confirm_hits - 1, flagged_tests$confirm_n, flagged_tests$level, lower.tail = FALSE),
 		stats::pbinom(flagged_tests$confirm_hits, flagged_tests$confirm_n, flagged_tests$level)))
-	confirmed <- !is.na(flagged_tests$p_confirm) & flagged_tests$p_confirm < FAMILY_ALPHA / m
-	flagged_tests$status <- if (!final) "flagged, confirmation pending" else
-		ifelse(confirmed, "fail (confirmed)", ifelse(flagged_tests$confirm_n < confirm_min_n,
-			"fail (confirmation could not run)", "cleared by confirmation"))
+	# Confirmation level: 0.01 / (the plan's tests) with a plan, fixed in advance, so a confirmed failure is final when it is
+	# made; without a plan 0.01 / (the flagged tests).
+	confirm_alpha <- if (have_plan) FAMILY_ALPHA / m_family else FAMILY_ALPHA / m
+	flagged_tests$confirm_alpha <- confirm_alpha
+	confirmed <- !is.na(flagged_tests$p_confirm) & flagged_tests$p_confirm < confirm_alpha
+	# A flagged test is decided once its planned confirmation replicates are all in (a rejection on part of them would
+	# be an optional stop), or when the campaign is final.
+	decided <- if (have_plan) final | flagged_tests$confirm_reps >= cal_plan_confirm_reps(cal_plan_design_label(flagged_tests$design, flagged_tests$prob_T),
+		flagged_tests$inf_class, confirm_reps, slow_confirm_reps) else rep(final, m)
+	flagged_tests$status <- ifelse(!decided, "flagged, confirmation pending", ifelse(confirmed, "fail (confirmed)",
+		ifelse(flagged_tests$confirm_n < confirm_min_n, "fail (confirmation could not run)", "cleared by confirmation")))
 } else flagged_tests$status <- character()
 utils::write.csv(flagged_tests, file.path(out_dir, "confirmation_summary.csv"), row.names = FALSE)
-failing_tests <- flagged_tests[if (final) grepl("^fail", flagged_tests$status) else rep(TRUE, m), , drop = FALSE]
+# Failing: confirmed failures, and until the campaign is final the flags still awaiting confirmation (provisional).
+failing_tests <- flagged_tests[grepl("^fail", flagged_tests$status) | (!final & grepl("pending", flagged_tests$status)), , drop = FALSE]
 fkey <- function(d, metric) do.call(paste, c(d[key_cols], list(metric), sep = "\r"))
 fails_k <- if (nrow(failing_tests)) fkey(failing_tests, failing_tests$metric) else character()
 s$fail_size <- fkey(s, rep("size", nrow(s))) %in% fails_k
@@ -307,6 +364,24 @@ pw <- pw[order(!pw$fail_coverage, cal_rt_rank(pw$response_type), pw$inf_class, p
 	"rate_verdict_coverage", "coverage_null", "p_coverage", "q_coverage", "fail_coverage", "note")]
 utils::write.csv(pw, file.path(out_dir, "power_summary.csv"), row.names = FALSE)
 
+# Class status (v1.0.5 TODO-203): how far each class has got and the worst gate verdict so far, for the Classes page of the README.
+# verdict: fail (a confirmed failure, or a flag whose confirmation could not run), pending confirmation (flags awaiting their
+# fresh replicates), pass (class complete, nothing flagged), pass so far (still running, nothing flagged), not started.
+if (have_plan) {
+	cp <- cal_class_progress(plan)
+	ck <- paste(cp$response_type, cp$inf_class, sep = "|")
+	ftk <- paste(flagged_tests$response_type, flagged_tests$inf_class, sep = "|")
+	cnt <- function(pat) as.integer(table(factor(ftk[grepl(pat, flagged_tests$status)], levels = ck)))
+	cp$flagged <- as.integer(table(factor(ftk, levels = ck)))
+	cp$pending <- cnt("pending")
+	cp$confirmed_fail <- cnt("fail \\(confirmed\\)")
+	cp$could_not_confirm <- cnt("could not run")
+	cp$cleared <- cnt("cleared")
+	cp$verdict <- ifelse(cp$status == "not started", "not started", ifelse(cp$confirmed_fail + cp$could_not_confirm > 0, "fail",
+		ifelse(cp$pending > 0, "pending confirmation", ifelse(cp$status == "complete", "pass", "pass so far"))))
+	utils::write.csv(cp, file.path(out_dir, "class_status.csv"), row.names = FALSE)
+}
+
 # Markdown.
 fails <- s[s$fail_size | s$fail_coverage, ]
 flagged <- b[b$flag_null_bias, ]
@@ -317,7 +392,18 @@ order_cell <- function(o, basis) ifelse(is.na(o), "unknown", paste0(ifelse(is.in
 neff_cell <- function(n, flag) paste0(fmt(n), ifelse(flag == "nominal", "", " (proxy)"))
 short_design <- function(x, p) paste0(sub("^Design(Fixed|SeqOneByOne)", "", x), ifelse(p != 0.5, paste0("@", p), ""))
 md <- c(paste("##", title), "", if (nzchar(note)) c(note, "") else NULL,
-	if (K > 0) c(sprintf(paste("%d null cells and %d power cells; %d tests (null size and coverage, coverage of the",
+	if (K > 0 && have_plan) c(sprintf(paste("%d null cells and %d power cells have results; %d of the plan's %d tests (null size and coverage,",
+		"coverage of the true estimand at the power effects) have a p-value from a completed cell. Two-stage gate:",
+		"Benjamini-Hochberg q < %g over all %d tests of the plan on the screening replicates (a test enters with its p-value when its",
+		"cell's screening replicates are all in and counts as p = 1 until then, so a flag is never withdrawn; only \"not flagged\" is",
+		"provisional) flags **%d** test(s); each flagged test is re-run on fresh replicates and fails only if those alone reject at",
+		"0.01 / %d, fixed in advance, so a confirmed failure is final when it is made."), nrow(s), nrow(pw), K, m_total, SCREEN_Q, m_family,
+		m, m_family), "",
+		sprintf("Confirmation%s: %d confirmed failing, %d pending, %d could not be confirmed (counted as failing), %d cleared. Failing null cells%s: **%d**.",
+			if (final) "" else " so far", sum(flagged_tests$status == "fail (confirmed)"), sum(grepl("pending", flagged_tests$status)),
+			sum(flagged_tests$status == "fail (confirmation could not run)"), sum(flagged_tests$status == "cleared by confirmation"),
+			if (final) "" else " so far (provisional)", nrow(fails)))
+	else if (K > 0) c(sprintf(paste("%d null cells and %d power cells; %d tests (null size and coverage, coverage of the",
 		"true estimand at the power effects). Two-stage gate: Benjamini-Hochberg q < %g on the screening replicates",
 		"flags **%d** test(s); each flagged cell is re-run on fresh replicates and fails only if those alone reject",
 		"(at 0.01 / %d)."), nrow(s), nrow(pw), K, SCREEN_Q, m, max(m, 1L)), "",

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # TODO-31 / TODO-50 (release_v1_0_5.md; linked plans
-# bug_fix_plans/glmm_variance_component_sigma_collapse.md -> TODO-1 and
-# bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md):
+# bug_fix_plans/v1_0_5/glmm_variance_component_sigma_collapse.md -> TODO-1 and
+# bug_fix_plans/v1_0_5/investigate_count_family_unexplained_miscalibration_cluster.md):
 # four-kernel 20-node vs 320-node Gauss-Hermite quadrature bound grid, G4-C
 # calibration runbook R8 (owner decision 2026-10-21, "do (1) and revisit after todo153").
 #

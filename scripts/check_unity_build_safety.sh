@@ -4,7 +4,7 @@
 # -- a standing regression gate against a *future* kernel file introducing a
 # new collision (duplicated anonymous-namespace helper, repeated-default
 # *_internal declaration, etc.), the exact bug family
-# package_metadata/finished_features/unity_build_collision_audit.md found
+# package_metadata/finished_features/v1_0_0/unity_build_collision_audit.md found
 # and fixed for every file present as of 2026-08-16.
 #
 # Runs configure fresh in an ISOLATED TEMPORARY COPY of R/EDI, not the real

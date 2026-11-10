@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Convergence slopes of the published calibration study (v1.0.5 TODO-199,
-# new_feature_plans/calibration_convergence_slopes.md; consumer of the registry of
+# new_feature_plans/v1_0_5/calibration_convergence_slopes.md; consumer of the registry of
 # TODO-193). For every cell of the study, across the sample sizes the campaign ran,
 # how fast does the error shrink, and does that match the registry's expected order?
 #
@@ -43,8 +43,13 @@
 # Bias is a property of the estimator, not of an inference procedure: bias rows have
 # inf_procedure "(estimator)" and are resolved against the registry as procedure "wald".
 #
+# Provisional (v1.0.5 TODO-203): with a plan (plan.csv of the campaign, --plan; default <stats-dir>/../plan.csv, from
+# plan_calibration_study.R) a row is provisional until its class is complete for the row's effect group (every screening
+# unit of the class under the null for null rows, at the power effects for the others, has all its replicates), because
+# campaigns run class by class. Without a plan, or with --final, as before: provisional unless --final.
+#
 # Usage: Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir DIR \
-#          --out-dir DIR [--final]
+#          --out-dir DIR [--final] [--plan FILE]
 # Writes convergence_summary.csv (one row per cell x metric x effect), convergence_points.csv
 # (one row per cell x n), convergence_summary.md. Base R only; no EDI needed (the publish job
 # has none): the registry is sourced from the checkout.
@@ -224,6 +229,7 @@ conv_main <- function(args) {
 	}
 	script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 	source(file.path(script_dir, "calibration_study_stats.R"))
+	source(file.path(script_dir, "calibration_study_plan_common.R"))
 	# The registry, read from the checkout: this job runs without EDI installed.
 	source(file.path(script_dir, "..", "..", "EDI", "R", "inference_procedure_regime.R"))
 	stats_dir <- arg_value("--stats-dir")
@@ -235,6 +241,15 @@ conv_main <- function(args) {
 	if (is.null(tests) || !nrow(tests)) {
 		writeLines(c("## Convergence slopes", "", "No results yet.", ""), file.path(out_dir, "convergence_summary.md"))
 		return(invisible(NULL))
+	}
+	# Class completeness from the plan (see the header), computed before the stage filter.
+	plan_path <- arg_value("--plan", file.path(dirname(normalizePath(stats_dir, mustWork = FALSE)), "plan.csv"))
+	class_prog <- NULL
+	if (file.exists(plan_path)) {
+		plan <- utils::read.csv(plan_path, stringsAsFactors = FALSE)
+		plan$key <- cal_plan_key(plan$response_type, plan$design, plan$n, plan$effect, plan$inf_class)
+		plan$rep_from <- 1L
+		class_prog <- cal_class_progress(cal_unit_progress(plan, tests))
 	}
 	tests <- tests[tests$stage == "screen", ]
 	est <- if (is.null(est)) NULL else est[est$stage == "screen", ]
@@ -309,11 +324,16 @@ conv_main <- function(args) {
 	flat <- lapply(rows, function(r) { r[vapply(r, is.null, logical(1L))] <- NA; as.data.frame(r, stringsAsFactors = FALSE) })
 	summ <- do.call(rbind, flat)
 	summ$provisional <- !final
+	if (!final && !is.null(class_prog)) {
+		cs <- class_prog[match(paste(summ$response_type, summ$inf_class), paste(class_prog$response_type, class_prog$inf_class)), ]
+		phase_status <- ifelse(summ$effect_label == "null", cs$null_status, cs$nonnull_status)
+		summ$provisional <- !(phase_status %in% "complete")
+	}
 	pt$cell_id <- rep(seq_along(groups), lengths(groups))
 	utils::write.csv(summ, file.path(out_dir, "convergence_summary.csv"), row.names = FALSE)
 	utils::write.csv(pt[c("cell_id", "response_type", "design", "prob_T", "inf_class", "formula", "inf_procedure", "effect_label",
 		"metric", "n_nominal", "n_eff", "err", "se0")], file.path(out_dir, "convergence_points.csv"), row.names = FALSE)
-	writeLines(conv_markdown(summ, final), file.path(out_dir, "convergence_summary.md"))
+	writeLines(conv_markdown(summ, !any(summ$provisional)), file.path(out_dir, "convergence_summary.md"))
 	invisible(summ)
 }
 

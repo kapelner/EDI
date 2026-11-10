@@ -1,4 +1,6 @@
-repo <- "/home/kapelner/workspace/EDI"
+repo <- tryCatch(system2("git", c("rev-parse", "--show-toplevel"), stdout = TRUE),
+	error = function(e) character(0), warning = function(w) character(0))
+if (length(repo) != 1L || !nzchar(repo)) stop("Run this script from inside the EDI git checkout.")
 pkgload::load_all(file.path(repo, "R/EDI"), compile = FALSE, quiet = TRUE)
 source(file.path(repo, "R/package_tests/comprehensive_rand_ci_eligibility.R"))
 

@@ -136,3 +136,26 @@ test_that("custom designs warn once when the user's draws ignore prob_T, and sta
 	for (i in seq_len(n)) s2$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	expect_no_warning(s2$draw_ws_according_to_design(50L))
 })
+
+test_that("design_supports_unequal_allocation() accepts a class name and refuses anything else", {
+	f <- EDI:::design_supports_unequal_allocation
+	# By name: the registry's own answer (the old fall-through said TRUE for every string).
+	expect_false(f("DesignSeqOneByOneEfron"))
+	expect_false(f("DesignSeqOneByOneKK21"))
+	expect_false(f("DesignFixedMatchingGreedyPairSwitching"))
+	expect_true(f("DesignFixedBernoulli"))
+	expect_true(f("DesignSeqOneByOneSPBR"))
+	# Name and instance agree for every registered class.
+	reg <- EDI:::design_class_registry_as_list()
+	for (nm in names(reg)) expect_identical(f(nm), isTRUE(reg[[nm]]$supports_unequal_allocation), info = nm)
+	expect_identical(f(DesignSeqOneByOneEfron$new(response_type = "continuous", n = 10L)), f("DesignSeqOneByOneEfron"))
+	expect_identical(f(DesignFixedBernoulli$new(response_type = "continuous", n = 10L)), f("DesignFixedBernoulli"))
+	# Anything else is an error, never a silent TRUE.
+	expect_error(f("NotADesign"), "not a registered design class")
+	expect_error(f(c("DesignFixedBernoulli", "DesignSeqOneByOneEfron")), "one design class name")
+	expect_error(f(NA_character_), "one design class name")
+	expect_error(f(""), "one design class name")
+	expect_error(f(42), "expected a design object")
+	expect_error(f(list()), "expected a design object")
+	expect_error(f(NULL), "expected a design object")
+})

@@ -25,7 +25,7 @@ unmodified with every \code{\link[EDI:Inference]{Inference}} class; only
 \code{get_w_factorial()} (an additional factor-level accessor, see below) are
 specific to this class. Support for more than two combinations (true multi-factor,
 multi-arm designs) is tracked separately — see
-\code{package_metadata/new_feature_plans/multi_arm_designs.md}.
+\code{package_metadata/new_feature_plans/v1_1_0/multi_arm_designs.md}.
 
 
 \strong{Allocation generation.} \code{draw_ws_raw(r)} builds a base allocation vector

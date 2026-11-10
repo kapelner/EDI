@@ -101,7 +101,7 @@ cal_stats_write <- function(x, path) {
 }
 
 # Rate-derived level of the gate (v1.0.5 TODO-200, new_feature_plans/
-# calibration_rate_derived_gate.md; replaces TODO-192's step schedule). The level a
+# v1_0_5/calibration_rate_derived_gate.md; replaces TODO-192's step schedule). The level a
 # cell is tested against comes from the procedure's regime (inference_procedure_regime.R)
 # and the registry's expected order a of its size error (inference_convergence_expectation()):
 #   finite-sample procedures (exact, rand): size 0.05, coverage 0.95 at every n_eff.

@@ -105,8 +105,10 @@ rd_ss_keys_text = function(k) ifelse(is.na(k) | !nzchar(k), "-", paste0("[", gsu
 #' @keywords internal
 #' @noRd
 rd_ss_design_text = function(d) {
+	generic = d == "@prob_T"  # the registry key for any design with unequal allocation
 	d = sub("@prob_T=", " (prob_T = ", d, fixed = TRUE)
-	paste0("\\code{", ifelse(grepl("(prob_T", d, fixed = TRUE), paste0(d, ")"), d), "}")
+	ifelse(generic, "any design with unequal allocation (\\code{prob_T} not 0.5)",
+		paste0("\\code{", ifelse(grepl("(prob_T", d, fixed = TRUE), paste0(d, ")"), d), "}"))
 }
 
 #' Roxygen lines for the "Small-sample behaviour" section of one inference

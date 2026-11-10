@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Pre-push calibration check (design: R/package_metadata/new_feature_plans/
-# calibration_gates.md). Run by scripts/pre-push when R/EDI source changes.
+# v1_0_5/calibration_gates.md). Run by scripts/pre-push when R/EDI source changes.
 #
 # Size and coverage are NOT checked here -- that needs hundreds of replicates
 # and lives in the scheduled CI fast tier. This script asserts only what one

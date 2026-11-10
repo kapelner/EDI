@@ -36,6 +36,7 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > | Release | Theme | File |
 > |---|---|---|
 > | **1.0.5** | **Bug fixes and hardening, no new capability** — split out of v1.1.0 on 2026-09-23 (user decision) so audit-found correctness bugs and pre-existing-feature fixes ship without waiting on v1.1.0's Phase 0 decisions: the pre-1.1.0-audit-wave randomization-CI/kernel fixes (affine reuse, dead-kernel wiring, information-inverse guards, the Cox-scale CI audit, the Weibull-frailty optimizer stability fix, the reusable-bootstrap-worker fix), and every `comprehensive_tests`-CSV-audit-found bug from 2026-09-17 on (`KKQuantileRegrOneLik` rand CI, stereotype-logit multimodality, stale worker-cache resampling, MC coverage-truth covariate mismatch, the Cox Bartlett-approx investigation, `InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` all-NA bugs, `InferenceContinLin` and ordinal-cumulative-link parametric-bootstrap Type-I inflation) | `release_v1_0_5.md` |
+> | **1.0.6** | **Bug fixes found during v1.0.5 work, no new capability** — added 2026-11-10 (owner decision): the v1.0.5-born bugs that had been parked here (call-history dependence, wrong or NA output, false convergence, the GLMM/CLMM warm-start regression) moved to v1.0.6, with a triage of the accepted calibration rows. Entry rule, gates and the per-TODO placement are in that file. | `release_v1_0_6.md` |
 > | **1.1.0** (this file) | **Inference quality + CPU performance core** — the shared-cumulant likelihood corrections, Firth, the diagnostics chain, honest inference after model selection (Phase A), the randomization-CI speed/correctness core (Brent's method for CI inversion; the affine-shift reuse/kernel-wiring/inverse-guard fixes moved to v1.0.5), Phase 0 decisions for every gated track | `release_v1_1_0.md` |
 > | 1.2.0 | **Performance & engines** — kernel/perf lanes (the full profiling program, SIMD, fixed-size Eigen, LTO, memory layout), the algorithm-choice A/B harness and its two Prototype items, ordinal Bayesian-bootstrap backends, count quantile regression, serialization, test-coverage triage, cold starts, greedy-engine merge (soft-deprecation) | `release_v1_2_0.md` |
 > | 1.3.0 | **Design extensions from practice** — cluster-level balancing designs + saturation, unequal allocation + Neyman helper, many-by-many sequential family *(the theoretical-design backlog — classical completions, rerandomization criteria/samplers/diagnostics, optimal-objective extensions, GSW / balancing walk / ARM-PSR — moved to 2.0.0, user decision)* | `release_v1_3_0.md` |
@@ -86,7 +87,7 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > `ordinal_model_coefficient_randomization_confidence_intervals.md` and
 > `randomization_ci_search_precision.md` (its three Bayesian-bootstrap
 > siblings moved to 1.2.0, see above).
-> **Added 2026-08-27:** `../bug_fix_plans/reusable_bootstrap.md` (**TODO-17e** below) —
+> **Added 2026-08-27:** `../finished_features/v1_0_5/reusable_bootstrap.md` (**TODO-17e** below) —
 > a small fix to already-shipped `tune_EDI_for_this_machine()` functionality
 > (`local_machine_optimization.md`, closed in the v1.0.0 line), not new
 > scope of its own.
@@ -206,7 +207,7 @@ moments as `type = "exact_null"` / `"asymptotic_null"`) and
 algorithm for exact Wilcoxon-family p-values and CIs with ties; depends on
 `TODO-40`'s hook). Both additive and opt-in; each has one decision-gated
 default switch (standing constraints below). Alongside them,
-`../bug_fix_plans/permutation_signature_once.md` (`TODO-42`) stops
+`../bug_fix_plans/v1_1_0/permutation_signature_once.md` (`TODO-42`) stops
 re-hashing and re-copying the cached permutation set on every call; kept
 in this release by user decision although the 2026-09-23 split rule would
 place it in v1.0.5.
@@ -258,7 +259,7 @@ following the temporary hard-disable and independent of the generic CI-search
 precision plan.
 
 The negative-binomial convergence correction:
-`../bug_fix_plans/negbin_dispersion_convergence.md` — the selected eventual Option 1
+`../bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md` — the selected eventual Option 1
 reparameterization of the dispersion coordinate, with the completed boundary
 acceptance mitigation retained as a compatibility bridge.
 
@@ -291,7 +292,7 @@ on triggers, flip rule written down), and `memory_layout_row_major_irls.md`
 (cache threshold for column-major `X` under row-wise IRLS; policy for
 kernel authors).
 
-`../bug_fix_plans/guard_unguarded_information_inverse.md` (added 2026-08-30; `→ TODO-1..5`;
+`../bug_fix_plans/v1_0_5/guard_unguarded_information_inverse.md` (added 2026-08-30; `→ TODO-1..5`;
 see `TODO-17q` below) — hardening: five `with_var` kernels get the same
 `isInvertible()` guard their siblings already have; bit-for-bit on
 invertible fits.
@@ -327,7 +328,7 @@ the full pipeline, embarrassingly parallel over `set_num_cores()`'s
 pool.) Phase B is now response-type coverage only (narrowed 2026-09-06);
 the design-family extension moved into Phase A the same day.
 
-`../bug_fix_plans/reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
+`../finished_features/v1_0_5/reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
 below) is a small, additive follow-on fix to that shipped feature, not a new
 track.
 
@@ -440,48 +441,7 @@ once TODO-1 is recorded; everything from TODO-5 on assumes v1.0.0 has shipped
 (shallow hierarchy, frozen kernels). Per the standing constraint, TODOs are
 ticked in their **owning plans**; this list is the release index.
 
-- [ ] TODO-74 (added 2026-10-23, user decision; moved here first because
-  v1.0.5 is closed; split out of `release_v1_0_5.md → TODO-128`):
-  **The Bayesian jackknife depends on call history.** *(reproducibility
-  fix; small numeric change)*
-  - Problem: `approximate_bayesian_jackknife_distribution_beta_hat_T()`
-    (`R/EDI/R/inference_all_abstract_bayesian_bootstrap.R`, the BCa
-    acceleration for the Bayesian bootstrap) refits on
-    `self$duplicate(make_fork_cluster = FALSE)`, so the leave-one-out refits
-    inherit whatever warm-start state earlier calls left on the object.
-    v1.0.5 TODO-128 fixed this for the ordinary jackknife (reused-worker
-    cache keyed by operation; log-binomial workers seeded from the full-data
-    fit), but that fix does not reach this path. A user's Bayesian BCa
-    interval or p-value can therefore change with what ran before it.
-  - Evidence (2026-10-23, installed EDI built 2026-10-22 19:33 UTC, before
-    patch 14): simulated n = 100, three covariates, 100 folds; fresh object
-    vs. the same object after a Bayesian bootstrap CI, a BCa bootstrap CI, a
-    jackknife estimate and an LR CI, with `bayes_jack_distr_cache` cleared
-    before recomputing. `InferenceCountHurdleNegBin` identical for `~1` and
-    `~.`; `InferenceIncidLogBinomial` `~1` max |diff| 1.7e-13, `~.`
-    **3.4e-7**. On `pte_example` the six-class harness mix with the cache
-    reused was 2,166 / 2,166 identical to cold, so those data do not
-    trigger it.
-  - Work:
-    1. Recheck with patch 14 built (it was compiling at 2026-10-23 12:20
-       IDT). If converged log-binomial fits make the folds start-independent,
-       the difference may vanish without an R change; record the result.
-    2. If it remains: make the refits independent of prior state, mirroring
-       TODO-128, e.g. seed `inf_work` from the full-data fit (`cached_mod`)
-       or clear its inherited warm-start state before the loop. Check other
-       classes whose Bayesian-bootstrap dispatch policy is warm.
-    3. Test: the Bayesian jackknife (and the Bayesian BCa CI built from it)
-       on a fresh object equals the one computed after the calls above, for
-       log-binomial `~1` and `~.` (≤ 1e-8, ideally identical). Extend
-       `test-log-binomial-jackknife-history-independence.R` or add a sibling.
-    4. Add `bayes_jack_distr_cache` to `REUSED_RESAMPLING_CACHES` in
-       `R/package_tests/comprehensive_tests.R` and repeat the harness
-       identity check (cold vs. reuse, `fork=FALSE`).
-  - Default change: only where results currently depend on history (the
-    fresh-object result should stay bit-identical); note in NEWS if any
-    fresh-object output moves.
-  - Pointers: `release_v1_0_5.md → TODO-128` (2026-10-23 note);
-    `../audits/further_optimizations.md` (draw reuse).
+- [ ] ~~TODO-74~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-1`** (owner approval of the v1.0.6 triage): Bayesian jackknife depends on call history.
 
 - [ ] TODO-1: **Phase 0 decision batch** (ask the user, no code — one
   sitting, in this order because decisions cascade; this is `_master.md`
@@ -787,7 +747,7 @@ ticked in their **owning plans**; this list is the release index.
   type; sequenced after TODO-15f and the inference audit's count-offset
   item; may be deferred to 1.2 without loss.
 - [ ] ~~TODO-15c~~ **→ moved 2026-08-27 to `release_v1_4_0.md → TODO-2` (same sweep as the competing-risks `event_type` column; the user's 2026-08-19 "full hard rename" decision is unchanged, only its release slot)** — **`dead` → `uncensored` rename** (added 2026-08-19, user
-  decision): `../finished_features/interval_censored_survival_response.md →
+  decision): `../finished_features/v1_0_0/interval_censored_survival_response.md →
   TODO-29` — rename the survival event/censoring indicator `dead` to
   `uncensored` (R, C++, docs, Python binding), now that left-/
   interval-censoring means `dead` no longer accurately describes the field.
@@ -836,7 +796,7 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-17e~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-1`**
   (2026-09-23 bug-fix/feature split, user decision): **Reusable-bootstrap-
   worker support for `InferencePropZeroOneInflatedBetaRegr`** —
-  `../bug_fix_plans/reusable_bootstrap.md → TODO-1..6`. A fix to already-shipped
+  `../finished_features/v1_0_5/reusable_bootstrap.md → TODO-1..6`. A fix to already-shipped
   functionality, not new v1.1.0 capability — moved with the rest of this
   release's audit-found/correctness items to the new patch release so it
   isn't gated on v1.1.0's Phase 0 decisions.
@@ -873,7 +833,7 @@ ticked in their **owning plans**; this list is the release index.
   intervals and remove the temporary incidence CI disable only after tests
   demonstrate that bounds no longer reuse a log-odds-ratio scale incorrectly.
 - [ ] TODO-17l: **Negative-binomial dispersion reparameterization**
-  `../bug_fix_plans/negbin_dispersion_convergence.md → TODO-1..4` — replace the unbounded
+  `../bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md → TODO-1..4` — replace the unbounded
   `log_theta` coordinate with an attainable Poisson-boundary parameterization
   (`phi = 1/theta` or `log(phi)`) across ZINB, plain NegBin, and hurdle-NegBin;
   rederive score/Hessian and downstream covariance/warm-start consumers;
@@ -928,7 +888,7 @@ ticked in their **owning plans**; this list is the release index.
   Multiplicative with the moved TODO-17o.
 - [ ] ~~TODO-17q~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-4`**
   (same split): **Guard the unguarded information-matrix inverses** —
-  `../bug_fix_plans/guard_unguarded_information_inverse.md → TODO-1..5`. Correctness, not
+  `../bug_fix_plans/v1_0_5/guard_unguarded_information_inverse.md → TODO-1..5`. Correctness, not
   performance: five kernels invert a free-parameter information block with
   a bare `.inverse()` and no invertibility check, unlike their siblings —
   a near-singular fit today yields a finite, wildly wrong SE with no
@@ -1216,14 +1176,14 @@ ticked in their **owning plans**; this list is the release index.
   class with more supported methods outvote a comparable single-method
   class within one, independent of dependence structure entirely (see the
   "Known gap found 2026-09-09" addendum in
-  `../finished_features/inference_suite_plan.md`, which documented the
+  `../finished_features/v1_0_0/inference_suite_plan.md`, which documented the
   original per-class design intent this drifted from). Fix: one
   highest-priority row per `(class, estimand)` feeds `combined_evidence`;
   `results_table` display is unaffected.
 - [ ] ~~TODO-22~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-6`**
   (2026-09-23 bug-fix/feature split, user decision):
   **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer
-  stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md →
+  stability** — `../bug_fix_plans/v1_0_5/clayton_loggamma_frailty_optimizer_stability.md →
   TODO-1..4`. A ~200× bimodal slowdown found via a comprehensive-test-
   harness timing investigation, traced to an unbounded C++ optimizer
   parameter plus a stale-gradient mismatch. A performance/correctness fix
@@ -1231,7 +1191,7 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-39~~ **→ moved 2026-10-07 to `release_v1_0_5.md → TODO-57`**
   (user decision, the same day it was added): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
-  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..9`. It fixes
+  `../bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md → TODO-1..9`. It fixes
   already-shipped resampling dispatch that misfires (a serial blocklist with
   no recorded reason, per-job shipping of every draw, and a gate that never
   picks serial), plus R-side Cox, Weibull and OLS refits. That is a
@@ -1383,7 +1343,7 @@ ticked in their **owning plans**; this list is the release index.
     likelihood instead of the 19-point grid. The score-test stepwise half
     is `release_v1_2_0.md → TODO-23`.
   - **Gate:** the existing tests plus an equivalence test per item, using
-    the tiers of `../new_feature_plans/cross_platform_reproducibility.md →
+    the tiers of `../new_feature_plans/v1_1_0/cross_platform_reproducibility.md →
     Release-to-release equivalence`: exact at n ≤ 12 against brute force for
     the JT DP; the iterative-solver tier for the derivative, start and NPMLE
     changes. Items that move results beyond their tier (the tail fix, the φ
@@ -1503,7 +1463,7 @@ ticked in their **owning plans**; this list is the release index.
     `compute_fast_randomization_distr()` (`inference_continuous_lin.R`), but it
     delegates to the R reused-worker loop, so Lin's randomization p-value and
     CI still pay the R/R6 per-replicate overhead.
-  - Scope (from `../new_feature_plans/ols_randomization_distr_cpp_wiring.md`
+  - Scope (from `../new_feature_plans/v1_0_5/ols_randomization_distr_cpp_wiring.md`
     → TODO-6): a `compute_lin_distr_parallel_cpp` that builds
     `[1, w_b, Xc, w_b·Xc]` per replicate. Only the interaction block
     `diag(w_b)·Xc` changes with `w_b`, so the `XᵀX` blocks can update in
@@ -1647,7 +1607,7 @@ ticked in their **owning plans**; this list is the release index.
   - Background: v1.0.5 TODO-2 shipped the affine-shift reuse for
     randomization CIs (measured 1.05-2.14x, target restated, G6 #2). The
     owning plan's decision-gated optional item
-    `../new_feature_plans/randomization_ci_affine_shift_reuse.md → TODO-8`
+    `../new_feature_plans/v1_0_5/randomization_ci_affine_shift_reuse.md → TODO-8`
     (direct order-statistic inversion: `p(δ)` is a step function whose jumps
     are the sorted shifted statistics, so the CI endpoint can be read off the
     order statistics instead of bisected) was deferred here. It buys
@@ -1672,7 +1632,7 @@ ticked in their **owning plans**; this list is the release index.
     fails all three acceptance checks. Some rows are slower on 3 cores, Cox
     reaches only 1.72x with the blocklist overridden, and EDI is slower than
     `bayesboot` on difference in means, median regression and Weibull AFT.
-  - Scope (`../bug_fix_plans/bayesian_bootstrap_performance.md`):
+  - Scope (`../bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md`):
     - TODO-2: ship each worker only its slice of draws.
     - TODO-3: a cost-model gate that can say no.
     - TODO-5: audit the bootstrap serial blocklist.
@@ -1789,7 +1749,7 @@ ticked in their **owning plans**; this list is the release index.
     and `InferenceSurvivalKKLWACoxPHOneLik` on `~.` (24 covariates, ~74
     pairs) did not converge across constructions, which is consistent with
     severe small-pairs attenuation bias
-    (`../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md`,
+    (`../bug_fix_plans/v1_0_5/mc_coverage_truth_covariate_mismatch.md`,
     "Recommendation"). v1.0.5 caps the harness covariates for these classes
     (test rows and MC truth alike; G4 runbook R7) instead.
   - Scope: once this release's Firth track lands for Cox / stratified Cox
@@ -1819,19 +1779,7 @@ ticked in their **owning plans**; this list is the release index.
     the investigation were in `/tmp/claude-1000/todo126/` (scratch; may be
     gone).
 
-- [ ] TODO-71 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #14`):
-  **Fractional-validity guard for bootstrap p-values with `na.rm`.**
-  - Background: v1.0.5 keeps the bootstrap p-value `na.rm = FALSE` default
-    and adds a classed warning (G6 #14). With `na.rm = TRUE`, a p-value can
-    be formed from a small surviving fraction of replicates without any
-    guard.
-  - Scope: add a minimum valid-replicate fraction for `na.rm = TRUE`. Below
-    it the p-value is nonestimable with a classed reason, mirroring the 5%
-    invalid-interval cap used for CIs. Decide the threshold and whether it
-    is user-settable. Test boundary fractions. This is a default change only
-    for `na.rm = TRUE` calls below the threshold, so document it.
-  - Pointer: `release_v1_0_5.md → G6 #14` (maintainer-brief item; no v1.0.5
-    TODO entry carries it).
+- [ ] ~~TODO-71~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-12`** (owner approval of the v1.0.6 triage): Fractional-validity guard for bootstrap p-values with `na.rm`.
 
 - [x] TODO-72 (added 2026-10-22, deferred from `release_v1_0_5.md → TODO-129`
   / G6 #50, coordinator default; owner may override):
@@ -1861,7 +1809,7 @@ ticked in their **owning plans**; this list is the release index.
   - Pointer: `release_v1_0_5.md → TODO-129` (seed sweep note), G6 #50.
 
 - [ ] TODO-73 (added 2026-10-23, deferred from `release_v1_0_5.md → TODO-97`
-  closing audit; plan `../new_feature_plans/inference_component_dependency_cleanup.md
+  closing audit; plan `../new_feature_plans/v1_0_5/inference_component_dependency_cleanup.md
   → TODO-5`): **Retire the legacy ladder parents behind the component
   sources where possible.** *(maintenance; no output or behavior change)*
   - Background: v1.0.5 TODO-97 (plan TODO-3/4/6/7, done 2026-10-22) added the
@@ -1915,7 +1863,7 @@ ticked in their **owning plans**; this list is the release index.
   search throws at the clamp kink. Not a user-visible bug in v1.0.5 (the R
   retry ladder in `generate_mod()` rescues all of them), but the retries cost
   time in resampling loops.
-  - Candidate fix: `R/package_metadata/bug_fix_plans/cpp_patches_v105/deferred_v110/02b-depcens-clamp-boundary-refit.patch`
+  - Candidate fix: `R/package_metadata/bug_fix_plans/v1_0_5/cpp_patches_v105/deferred_v110/02b-depcens-clamp-boundary-refit.patch`
     (refit with atanh(rho) pinned at the clamp when LBFGS ends there
     unconverged; `git apply --check` clean on 2026-10-23). Known caveat: it
     refits at the clamp on the side LBFGS reached, which is not always the
@@ -1927,26 +1875,7 @@ ticked in their **owning plans**; this list is the release index.
     than the R-retry result on every resample, interior fits bit-identical.
   - Pointer: `release_v1_0_5.md → G1` (post-build verification, owner
     decision 2026-10-23).
-- [ ] TODO-160 (added 2026-10-26, owner decision at G4-C R2 of v1.0.5: defer
-  from 1.0.5): **Stereotype logit: scale-driven usability gate and silent
-  covariate dropping.** Found by the v1.0.5 R2 null study
-  (`todo8_stereotype_null_study.R`, 400 seeds per cell). Neither fix changes
-  the n = 100, K = 5 Type-I excess (12.9%; 11.5% with 41 starts, ungated),
-  which is documented as a small-sample limitation in the class roxygen.
-  - (a) `stereotype_fit_is_usable()` (`inference_ordinal_stereotype_logit.R`,
-    ~L290) rejects a fit when the unscaled `rcond(information_free)` <=
-    sqrt(eps). That measures covariate scale, not ill-conditioning (scaled
-    rcond of rejected vs kept fits 0.021 vs 0.025); 30-38% of fits come out
-    non-estimable, and at n = 50 the gate flatters the result (rejected seeds
-    13.3%, kept 4.6%, ungated 5.8%). Fix: scale the information matrix (e.g.
-    to a correlation-scale D^-1/2 I D^-1/2) before the rcond test.
-  - (b) The QR column-dropping fallback silently drops covariate x1 in 33/248
-    (n = 100) and 27/280 (n = 50) results, leaving a treatment-only model
-    whose LR is non-regular at the null. Fix: warn, or refuse the fit,
-    instead of dropping silently.
-  - Acceptance: rerun R2 (both cells); report the non-estimable rate and the
-    Type-I error with and without the gate; no silent column drops.
-  - Pointer: `release_v1_0_5.md → G4-C R2`.
+- [ ] ~~TODO-160~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-3`** (owner approval of the v1.0.6 triage): Stereotype logit usability gate and silent covariate dropping.
 - [ ] TODO-161 (added 2026-10-27, owner decision at v1.0.5 TODO-163): **Design-aware
   RMST variance.** `InferenceSurvivalRestrictedMeanDiff` keeps the independent-arms
   Greenwood-type SE (`get_restricted_mean_se_diff()`) in 1.0.x, documented as
@@ -1973,32 +1902,7 @@ ticked in their **owning plans**; this list is the release index.
     design above in the R4B harness; Bernoulli/iBCRD results unchanged; remove the
     "conservative" paragraph from the class roxygen for the designs covered.
   - Pointer: `release_v1_0_5.md → TODO-163`.
-- [ ] TODO-162 (added 2026-10-27, owner decision at v1.0.5 TODO-162: defer, fix
-  (b)): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
-  `resolve_jackknife_unit()` / `build_jackknife_deletion_draws()`
-  (`inference_all_abstract_non_param_boot.R`) use unit "block", and
-  `get_block_ids()` (`design_blocking_abstract.R`) returns STRATUM ids, so the
-  jackknife has G = 2-4 groups. The delete-a-group variance then has G - 1 df but
-  the CI and p-value use z. 1.0.5 canonical CSVs at beta 0: jackknife-Wald coverage
-  SPBR 0.838, FixedBlocking 0.860, other designs 0.953; 36/43 classes undercover
-  on SPBR by > 0.05. The bias correction `(G-1)*(jack_bar - theta)` also shifts the
-  centre when strata are very unequal (fuel 110/36/2: +0.08).
-  - Fix (b), owner-chosen: on `DesignSeqOneByOneSPBR`, make the jackknife unit the
-    permuted block (`block_size` = 4 subjects; ~37 units at n = 148), which is the
-    design's actual randomization unit. Partial trailing blocks: decide (own unit
-    or merge into the previous block). FixedBlocking has no permuted blocks: use
-    delete-one within strata or the t(G - 1) / minimum-group rule from rejected
-    fix (a); decide when implementing.
-  - Risk: `get_block_ids()` has other callers (design registry, blocking/optimal-
-    blocks designs, CMH and extended-Robins incidence classes, exchangeable
-    resampling units, nonparametric and Bayesian bootstrap, jackknife). Do not
-    change its meaning; add a separate accessor (e.g. `get_permuted_block_ids()`,
-    recorded at assignment time) and use it only in the jackknife unit resolver.
-    Run `trail callers` on both before editing.
-  - Acceptance: jackknife-Wald coverage at beta 0 on SPBR within 0.93-0.97 across
-    the suite; non-blocking designs bit-identical; regenerate SPBR / FixedBlocking
-    jackknife rows and retire the 1.0.5 baseline acceptances that cite TODO-162.
-  - Pointer: `release_v1_0_5.md → TODO-162` (repro, scratch `todo162/`).
+- [ ] ~~TODO-162~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-4`** (owner approval of the v1.0.6 triage): Block jackknife on SPBR / FixedBlocking leaves out whole strata.
 
 - [ ] TODO-163 (added 2026-10-31, owner decision at v1.0.5 G4-C R7 / survival SD 0.25
   regeneration): **`InferenceSurvivalKKStratCoxPHOneLik` on `~.`: small-sample
@@ -2031,146 +1935,151 @@ ticked in their **owning plans**; this list is the release index.
   - **Docs.** `man/DesignFixedRerandomization.Rd` regenerated with `R/fast_roxygenize.R` on 2026-11-03 (exit 0, no warnings).
   - **Not done when ticked.** `NEWS.md` entry, full test suite.
 
-- [ ] TODO-165 (added 2026-11-08, owner; follow-up of v1.0.5 TODO-190): **`InferenceIncidLogBinomial`: tighten the full-data fit when a subject sits at fitted probability exp(X b) = 1.**
-  - Found by: the v1.0.5 TODO-190 agent (2026-11-08). In 4 of 1600 calibration fits (all n = 50, `~.`), the C++ fit (`src/fast_log_binomial_regression.cpp`, TODO-128 active-set / KKT gate) stops with the nuisance score off zero: rep 31 at prob_T 0.5 has x2 score 0.037, and Nelder-Mead reaches the same log-likelihood at x2 = 0.46476 vs the kernel's 0.46442. The KKT check in `edi_log_binomial_kkt_terms()` then rejects the null fit near the estimate, the gradient p-value there is `NA`, gradient CI inversion cannot start, and v1.0.5 substitutes the LR interval (with the `edi_lik_ci_lik_ratio_fallback` warning).
-  - Related: the same KKT gate also passed a non-optimal warm-started null fit where the binding set changes (v1.0.5 TODO-181 leftover, worked around by a cold refit in `fit_null`).
-  - Fix: tighter boundary convergence in the kernel (for example a KKT-residual stopping rule in the free directions), verified per-file (no full build). Then drop or keep the v1.0.5 LR substitution in `compute_gradient_confidence_interval_impl()`.
-  - Done when: on the TODO-190 study grid (200 reps x n 50 / 200 x prob_T 0.5 / 0.2 x `~1` / `~.`), no LR substitution fires and the full fit's nuisance score is 0 to 1e-6 at boundary MLEs.
+- [ ] ~~TODO-165~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-5`** (owner approval of the v1.0.6 triage): `InferenceIncidLogBinomial` full-data fit at exp(Xb) = 1.
 
 - [ ] TODO-166 (added 2026-11-09, owner; follow-up of v1.0.5 TODO-189): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: parametric-bootstrap-calibrated score p-value.**
   - Why: the asymptotic score test runs high at moderate n on correctly specified matched-pair data (n = 200: 0.063 vs Wald 0.049 / LR 0.045; n = 400: 0.060; n = 800: 0.069 vs Wald 0.065). The null fit's log-theta drops when the data show an effect, so the null information is small exactly when the score is large (v1.0.5 TODO-189 entry; scripts in `/tmp/claude-1000/t189/`). v1.0.5 documents it and recommends Wald / LR.
   - Fix: refer the score statistic to its parametric-bootstrap distribution under the null fit, reusing the class's `simulate_under_lik_null` (already used by its LR bootstrap).
   - Done when: score size within the binomial band of 0.05 at n = 200 on the TODO-189 DGP; runtime cost documented.
 
-- [ ] TODO-167 (added 2026-11-09, owner; found by the v1.0.5 TODO-62 benchmark regression check): **GLMM / CLMM kernels run the full log-sigma multistart even when given `warm_start_params`.**
-  - Why: v1.0.5 TODO-31 (e706c6f6) made `fast_logistic_glmm_cpp` (`src/fast_logistic_glmm.cpp` ~L521-565) and `fast_ordinal_clmm_cpp` (`src/fast_ordinal_clmm.cpp` ~L107-144) screen 5 log-sigma starts, and `fast_poisson_glmm_cpp` (`src/fast_poisson_glmm.cpp` ~L414-472) 5 sigma starts x 2 beta starts, keeping the best objective. The screening also runs when the caller passes a warm start, so warm starts save nothing: on the benchmark pairs fixture, warm-started at the optimum, logistic 46 ms vs 47 ms cold, CLMM 88 ms vs 79 ms cold (2026-11-09 probe, installed EDI). Bootstrap, randomization and CI-search refits that warm-start therefore pay about 5x per refit.
-  - Fix: when `warm_start_params` is supplied (and finite, length-checked), start from it alone, optionally plus one cold start, and keep the better objective; keep the full screen for cold fits. Verify per file (no full build).
-  - Done when: warm-started refits at the optimum cost about one single-start fit; cold-fit results unchanged bit for bit; resampling results unchanged or with the change explained (a warm start can land in a different mode than the screen, so check on the TODO-31 sigma-collapse datasets).
+- [ ] ~~TODO-167~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-6`** (owner approval of the v1.0.6 triage): GLMM / CLMM multistart ignores `warm_start_params`.
 
 - [ ] TODO-168 (added 2026-11-09, owner; opened with the accepted calibration rows it covers): **`InferenceOrdinalStereotypeLogitRegr`: score test oversized at small n with unequal allocation.**
   - Why: the v1.0.5 fast-tier re-run after TODO-175/176/178 and the `~1` non-estimable rule (2026-11-09, 1000 reps, installed EDI) gives `~.` score at n = 50, prob_T = 0.2 (about 10 treated) size 0.107 and coverage 0.905, with 982/1000 finite. Wald in the same cell is nominal (0.048); at n = 200 the score size is 0.062. The prob_T = 0.5 cell is also high (0.105). The likelihood is multimodal and the loadings are weakly identified near beta_T = 0, so the null information is unreliable at small n. Accepted rows (size 0.13, coverage 0.89) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` cite this TODO. v1.0.5 docs recommend Wald or LR at small n.
   - Investigate first: confirm it is a finite-sample property, not a null-refit bug (score size by n = 50/100/200/400; compare expected vs observed information at the null fit).
   - Fix: refer the score statistic to its parametric-bootstrap distribution under the null fit, reusing the class's `simulate_under_lik_null` (same approach as TODO-166).
   - Done when: score size within the binomial band of 0.05 at n = 50 for both prob_T values, and the TODO-168 accepted rows are pruned.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
-- [ ] TODO-169 (added 2026-11-09, owner; found computing the v1.2.0 TODO-36 calibration-study truths): **`InferenceIncidModifiedPoisson` with `~1` returns NA at large n.**
-  - Why: on the study's incidence generator (5 covariates, beta_T at the n = 200 power50 effect, `DesignFixedBernoulli`, prob_T 0.5, seed 4242) `compute_estimate()` gives 0.249 / 0.257 / 0.256 at n = 200 / 2000 / 5000, then NA at n = 10000 and 20000 with non-estimable reason `model_fit_unavailable`: no error, no warning. `~.` on the same data is fine at n = 20000 (0.206). In `calibrate_study_truths.R` (8 fits of n = 20000 per cell) `~1` failed in 9 of 12 cells, so those power cells have no true value and their non-null coverage goes untested.
-  - Investigate first: which fit step reports `model_fit_unavailable` above ~10^4 rows for the treatment-only model (an iteration cap, a convergence tolerance that does not scale with n, or a sandwich-variance step); whether `InferenceIncidKKModifiedPoisson` shares it.
-  - Done when: `~1` returns a finite estimate at n = 10000 / 20000 / 50000 on that generator, agreeing with `glm(..., family = poisson)` plus sandwich SEs to 1e-6; a regression test at n = 20000; the truths re-run with the ModifiedPoisson `~1` cells usable.
+- [ ] ~~TODO-169~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-7`** (owner approval of the v1.0.6 triage): `InferenceIncidModifiedPoisson` `~1` NA at large n.
 
-- [ ] TODO-170 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalStereotypeLogitRegr`: Stereotype LR / gradient / Wald accepted rows predate TODO-175/176/178: re-verify, especially n = 1000.**
-  - Why: 16 accepted rows cite v1.0.5 TODO-175/176/178, which are now applied: n = 50 gradient / LR (size up to 0.135) and n = 1000 all four methods (size 0.165-0.21, yield 33-36%, 2026-10-31 run). The 2026-11-09 local re-run at n = 50 / 200 gives yield >= 99% and n = 50 sizes about 0.085, so these rows are stale; n = 1000 was not re-run. Documented in the class's roxygen ("Small samples") for now.
-  - Investigate first: re-run the fast tier at n = 50 / 200 / 1000 on the installed build; if n = 1000 is still above nominal it is not a small-sample effect (look at the null refit's mode choice and the loading-boundary information).
-  - Fix (candidates): depends on the re-run: prune rows that pass; for any large-n excess, fix the refit or information; score is TODO-168.
-  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-170`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+- [ ] ~~TODO-170~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-8`** (owner approval of the v1.0.6 triage): Stereotype accepted rows predate the v1.0.5 fixes: re-verify.
 
 - [ ] TODO-171 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinKKGLMM`: KK GLMM continuous: Wald oversized at n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.085, coverage 0.915); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run 40833827319. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: compare the Wald SE with sd(estimate) at n = 50; check whether the random-effect variance is underestimated (REML vs ML) or collapses to 0.
   - Fix (candidates): small-sample correction (REML variance, Kenward-Roger or Satterthwaite-type df, or t reference).
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-171`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-172 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinKKRobustRegrOneLik`: KK robust regression OneLik: Wald oversized at n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: SE vs sd(estimate) at n = 50; whether the sandwich / scale estimate is biased low at small n.
   - Fix (candidates): small-sample sandwich correction (HC2/HC3-type) or t reference.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-172`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-173 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinLin`: Lin (2013) estimator: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.2 (size 0.105, coverage 0.895); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run 42184383402. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: which HC variant is used; HC0/HC1 is known to be anti-conservative with about 10 treated and interacted covariates.
   - Fix (candidates): HC2 / HC3 default or a t reference with residual df.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-173`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-174 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceCountHurdlePoisson`: Hurdle Poisson: model-based likelihood tests anti-conservative when covariates are omitted.**
   - Why: 12 accepted rows: score / gradient / LR, ~1, n = 1000, prob_T 0.2 and 0.5 (size 0.085, coverage 0.915). Model misspecification, not small-sample: ~1 omits the DGP covariates, so the truncated-Poisson count part is overdispersed (0.064 at prob_T 0.5); the sandwich Wald and HurdleNegBin are calibrated; 2026-11-07 run 42366610368. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: confirm with a correctly specified ~. run at n = 1000 (should be nominal) and quantify overdispersion.
   - Fix (candidates): robust (sandwich-information) score / LR variants, or document only and keep the sandwich Wald as the default.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-174`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: share of fits at the [0,1] boundary in the treated arm; Wald SE at a boundary fit; relation to v1.0.5 TODO-181 (KKT score) and the feasible-start null refit.
   - Fix (candidates): boundary-aware SE or a Newcombe / Miettinen-Nurminen-type interval for small arms.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-175`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-176 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidGCompRiskDiff`: G-computation risk difference: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.10) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: delta-method SE vs sd(estimate); separation in the 10-subject arm.
   - Fix (candidates): small-sample variance (bias-reduced logistic fit or bootstrap SE).
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-176`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-177 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidKKCondLogitOneLik`: KK conditional logit OneLik: gradient test oversized at n = 50.**
   - Why: accepted rows gradient ~. n = 50 prob_T 0.5 (size 0.09, coverage 0.925); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: compare with score / Wald / LR in the same cell; few discordant pairs at n = 50.
   - Fix (candidates): exact conditional test for small discordant counts, or document.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-177`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-178 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidLogBinomial`: Log-binomial: score / gradient / LR miscalibrated at prob_T = 0.2, n = 50.**
-  - Why: accepted rows score ~. size 0.255, gradient ~. coverage 0.88, lik_ratio ~. coverage 0.895, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run (before the v1.0.5 TODO-181 KKT boundary score). The score row is very large. Documented in the class's roxygen ("Small samples") for now.
-  - Investigate first: re-run on the build with the KKT score (v1.0.5 TODO-181); share of fits at exp(Xb) = 1; overlap with v1.0.5 TODO-179 (Wald) and v1.1 TODO-165 (boundary full fit). Since 2026-11-09 the Wald test is NA at boundary MLEs (v1.0.5 TODO-179; leftovers in TODO-189), and LR CIs there no longer fall back to Wald for lack of a feasible null start.
-  - Fix (candidates): likely covered by TODO-165 / TODO-181; otherwise a boundary-aware reference distribution.
+  - Why: accepted rows score ~. size 0.255, gradient ~. coverage 0.88, lik_ratio ~. coverage 0.895, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run (before the v1.0.5 TODO-181 KKT boundary score). Re-run 2026-11-10 (installed build with the KKT score, 1000 reps, n = 50): score ~. size 0.106 / coverage 0.906 at prob_T 0.2 and 0.087 / 0.918 at prob_T 0.5 (still above nominal; size row tightened 0.255 -> 0.13); gradient and LR are now nominal (0.053-0.060), and their 3 coverage rows were pruned; `~1` score 0.071 at prob_T 0.2 (passes). What is left is the score test at n = 50. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: re-run on the build with the KKT score (v1.0.5 TODO-181); share of fits at exp(Xb) = 1; overlap with v1.0.5 TODO-179 (Wald) and v1.0.6 TODO-5 (boundary full fit; was v1.1 TODO-165). Since 2026-11-09 the Wald test is NA at boundary MLEs (v1.0.5 TODO-179; leftovers in TODO-189), and LR CIs there no longer fall back to Wald for lack of a feasible null start.
+  - Fix (candidates): likely covered by v1.0.6 TODO-5 / v1.0.5 TODO-181; otherwise a boundary-aware reference distribution.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-178`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-179 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidRiskDiff`: Risk difference: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.095) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: unpooled Wald SE with about 10 treated (known anti-conservative); zero-event arms.
   - Fix (candidates): Agresti-Caffo adjustment or Newcombe / Miettinen-Nurminen interval for small arms.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-179`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-180 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidWald`: Incidence Wald: oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. and ~1, n = 50 prob_T 0.2 (size 0.09, coverage 0.91); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: same mechanism as TODO-179 (unpooled SE in a small arm).
   - Fix (candidates): adjusted Wald (Agresti-Caffo) or document.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-180`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-181 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalCauchitRegr`: Ordinal cauchit: likelihood tests oversized at n = 50.**
   - Why: accepted rows gradient / LR / score ~. n = 50 prob_T 0.5 (size 0.09-0.095) and score ~. / ~1 n = 50 prob_T 0.2 (size 0.125 / 0.10); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: heavy-tailed link: information accuracy at small n; separation / extreme cutpoints.
   - Fix (candidates): bootstrap-calibrated p-values or document; compare with OrdinalPropOddsRegr.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-181`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-182 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalGCompMeanDiff`: Ordinal G-computation mean difference: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.2 (size 0.085, coverage 0.915); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: delta-method SE vs sd(estimate) in the 10-subject arm.
   - Fix (candidates): small-sample variance correction or bootstrap SE.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-182`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-183 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalDepCensTransformRegr`: Dependent-censoring transform regression: score / LR oversized at n = 50.**
   - Why: accepted rows lik_ratio ~. and score ~. / ~1 n = 50 prob_T 0.5 (size 0.085-0.09), score ~. coverage 0.915 at prob_T 0.2; small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: few events at n = 50; information accuracy of the copula / transform parameters.
   - Fix (candidates): bootstrap-calibrated p-values or document.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-183`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-184 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Weibull frailty (log-gamma) OneLik: Wald oversized at n = 50.**
   - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. The score excess at moderate n is TODO-166. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: frailty variance collapsing to the boundary at n = 50; SE vs sd(estimate).
   - Fix (candidates): boundary-aware SE or bootstrap SE; may share TODO-166's bootstrap.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-184`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-185 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`: Weibull frailty (normal) OneLik: score oversized at n = 50.**
   - Why: accepted rows score ~. and ~1 n = 50 prob_T 0.5 (size 0.085-0.09); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: check whether TODO-166's mechanism (null fit lowers the frailty variance, shrinking the null information) applies.
   - Fix (candidates): bootstrap-calibrated score p-value (as TODO-166).
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-185`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-186 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalKKWeibullMarginal`: KK Weibull marginal: Wald oversized at n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.085, coverage 0.915); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: SE vs sd(estimate); robust variance with few pairs.
   - Fix (candidates): small-sample sandwich correction or document.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-186`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-187 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalLogRank`: Log-rank Wald (HR) CI: oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.2 (size 0.095, coverage 0.905); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: which variance the HR Wald uses (O-E / V vs Cox); log-rank test p-value itself vs the Wald CI.
   - Fix (candidates): use the log-rank score variance for the CI, or document.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-187`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-188 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalWeibullRegr`: Weibull regression: score oversized at n = 50.**
   - Why: accepted rows score ~1 n = 50 prob_T 0.5 (size 0.095) and score ~. / ~1 n = 50 prob_T 0.2 (size 0.095 / 0.11); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: expected vs observed information at the null fit with few events.
   - Fix (candidates): observed-information score or bootstrap calibration.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-188`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-189 (added 2026-11-09, owner; follow-up of v1.0.5 TODO-179): **Boundary MLEs of the constrained binomial classes: what is left after Wald became NA for `InferenceIncidLogBinomial`.**
   - Done in v1.0.5 TODO-179 (2026-11-09, the "make Wald NA at the boundary (with LR suggested)" idea): `InferenceIncidLogBinomial` returns NA for the Wald p-value and CI when the full-data MLE has a linear predictor within 1e-8 + 1e-6 of 0, with warning class `edi_wald_mle_boundary_unavailable` and `procedure_failure_reason[["wald"]]`; `fit_null` got a strictly feasible last-resort start, so the LR interval at those fits no longer falls back to Wald (526 -> 75 of 1000 at n = 50). Study cell (Bernoulli, `~.`, p = 5, 1000 null reps): Wald NA in 68% (n = 50) / 66% (n = 200) of reps; Wald size over the rest 0.041 / 0.047, coverage 0.959 / 0.953.
@@ -2178,19 +2087,29 @@ ticked in their **owning plans**; this list is the release index.
   - (b) 75 of 1000 LR CIs at n = 50 (7 at n = 200) still fall back to Wald: one null refit at a single delta fails (non-converged) while neighbouring deltas succeed. Overlaps TODO-165 (kernel boundary convergence). Either fix the kernel or let the root search step past one failed refit; and decide whether a Wald fallback under the LR label should itself be NA at a boundary MLE.
   - (c) `InferenceIncidBinomialIdentityRiskDiff` (identity link, bounds at mu = 0 and 1, same TODO-128 warning and `edi_binomial_bound_kkt_core()`) was NOT changed: its Wald path is the generic `StandardModelCache` one, and the identity-link boundary needs its own decision (two-sided bounds; `~1` boundary is a 0% or 100% arm, where the SE is already 0). Measure its boundary share and Wald size in the study cell first. `InferenceIncidRiskDiff` (unpooled Wald, v1.1 TODO-179) does not have this boundary.
   - Done when: (a)-(c) are each fixed or ruled honest by the owner, and the LogBinomial / BinomialIdentity accepted calibration rows say which.
+  - **Split 2026-11-10 (owner approval of the v1.0.6 triage):** parts (b) and (c) moved to `release_v1_0_6.md → TODO-9`; part (a) is triaged in `release_v1_0_6.md → TODO-13`. This TODO keeps (a) only.
 
-- [ ] TODO-190 (added 2026-11-09, owner; found by bulk CI run 42638595069): **`fast_clogit_plus_glmm_cpp()` stops short of a zero random-intercept variance and still reports `converged = TRUE`.**
-  - Found by: `R/package_tests/testthat_bulk/test-prop-kk-glmm-weighted-refit-reference.R`, failing since the v1.0.5 pair-grouping fix (`b1e96231`, TODO-173), which made the kernel fit one random intercept per matched pair instead of one per row. On that test's `InferencePropKKGLMM` fixture (n = 80, KK14, proportion response, `~ x1 + x2`) with block bootstrap weights, the weighted optimum is at sigma = 0: a weighted `glm()` gives beta_T 0.07979 (negative log-likelihood 93.2709), and `glmmTMB` (Laplace) and `lme4::glmer(nAGQ = 20)` agree, both flagging a singular fit. EDI's L-BFGS (`optimize_fixed_likelihood()`, `optimization_alg = "lbfgs"`, `max_abs_log_sigma = 8`) stops after 11 iterations at log sigma = -3.81 with negative log-likelihood 93.2794 and gradient norm 0.22, yet reports `converged = TRUE`, giving 0.08168 (2.4% off). The unweighted fit on the same data agrees with `glmer` to 0.2% (0.11855 vs 0.11878).
-  - Interim: the test's tolerance was loosened from 1e-3 to 0.03 (2026-11-09), with a comment pointing here.
-  - Investigate first: why `converged` is TRUE at gradient norm 0.22 (a function-change stop that fires on the flat log-sigma direction?); whether other kernels that share `optimize_fixed_likelihood()` with a log-variance parameter (continuous/count KK GLMM, the GLMM Weibull frailty classes) stop short the same way near sigma = 0.
-  - Fix (candidates): gate `converged` on the gradient norm; when log sigma runs toward `-max_abs_log_sigma`, refit with sigma fixed at 0 (the plain GLM) and keep the better likelihood; or profile sigma out at the boundary.
-  - Done when: on that fixture the weighted estimate matches the weighted `glm()` / `glmer(nAGQ = 20)` value to 1e-4 relative, `converged` is FALSE whenever the gradient norm is above tolerance, and the test's tolerance is back at 1e-3.
+- [ ] ~~TODO-190~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-10`** (owner approval of the v1.0.6 triage): `fast_clogit_plus_glmm_cpp()` false `converged = TRUE`.
 
-- [ ] TODO-191 (added 2026-11-10, owner; moved from v1.0.5 TODO-1 / `bug_fix_plans/reusable_bootstrap.md` TODO-3): **ZOIB jackknife speed target: "low hundreds of ms" for 50 folds.**
-  - State at the move: `InferencePropZeroOneInflatedBetaRegr`'s jackknife reuses one bootstrap worker (v1.0.5 TODO-1). On the diagnosed fixture (proportion, n = 50, `edi_tuning_default_seed(cls, 50L)`), the last timing was 5.84 s reusable vs 7.85 s legacy (an earlier run: 11.05 vs 6.62 s). It is now faster than legacy but well above the target.
-  - Where the time goes: in 8 of the 50 folds the direct estimate-only fit returns a non-finite treatment coefficient, and the fallback then runs 3 ordinary full fits (two non-finite p = 4 fits, one finite p = 3 fit). Details: the "Exact-seed fallback observer, 2026-10-21" note in `reusable_bootstrap.md` TODO-3.
-  - Candidates: a column-selection cache keyed on the fold (the follow-up that plan names); or go straight to the reduced column set when the direct fit is non-finite, skipping the two p = 4 refits. Keep the fallback results and the TODO-4 golden parity (`test-zoib-jackknife-reusable-worker-migration-golden.R`) unchanged.
-  - Done when: the 50-fold jackknife on that fixture runs in low hundreds of ms on a quiet host, the golden test still passes, and `tune_EDI_for_this_machine()` still completes the ZOIB jackknife axis.
+- [ ] TODO-191 (added 2026-11-10, owner; rewritten the same day; started from v1.0.5 TODO-1 / `finished_features/v1_0_5/reusable_bootstrap.md` TODO-3): **Cache the column-dropping fallback of `fit_with_hardened_qr_column_dropping()` across resampling draws; first acceptance case: the ZOIB jackknife's "low hundreds of ms" for 50 folds.**
+  - The cost. `fit_with_hardened_qr_column_dropping()` (`inference_all_abstract.R` ~L1344, called from 37 files: OLS, robust regression, NegBin, Poisson family, logit/probit/log-binomial/identity/risk-diff/modified Poisson, every ordinal regression, beta, fractional logit, ZOIB, the survival regressions and KK GEE/GLMM/CLMM/cond-logit/survival classes) picks a full-rank column set by pivoted QR, fits, and if `fit_ok` fails drops the least important column (reverse pivot order) and refits, until a fit passes. Every failed attempt is a full model fit, repeated from scratch on every draw that needs it. The existing rank certificate only skips the QR; it does not skip failed fits.
+  - Example. ZOIB jackknife on the diagnosed fixture (proportion, n = 50, `edi_tuning_default_seed(cls, 50L)`): 5.84 s reusable vs 7.85 s legacy (earlier 11.05 vs 6.62 s). In 8 of 50 folds the direct fit gives a non-finite treatment coefficient and the fallback runs 3 full fits (two non-finite p = 4, one finite p = 3); see `reusable_bootstrap.md` TODO-3, "Exact-seed fallback observer, 2026-10-21".
+  - Not in scope. The rank-only routes do one QR per draw and no refits: `reduce_design_matrix_preserving_treatment*()` (already has `reduced_design_keep_cache`), the class-specific reducers on `qr_reduce_preserve_cols_cpp` (KK quantile, KK cond Poisson, quantile regression, Cox PH) and `drop_linearly_dependent_cols()`. Side check while here: `try_cached_reduced_design_keep()` accepts the previous keep set whenever it is full rank, without checking that a fresh QR would keep more columns; harmless while the generic worker resets the cache per draw (`inference_all_abstract_non_param_boot.R` ~L1751), wrong if that cache is ever kept across draws.
+  - Step 1, measure first. Count, per class and per resampling operation (non-parametric / Bayesian bootstrap, jackknife, randomization refits), how often the drop loop goes past its first attempt and how many failed fits it costs, on the tuning fixtures and on a few real datasets from the catalog. If it is rare outside degenerate fixtures, report the counts to the owner before building steps 2-3 and the API.
+  - Step 2, exact version. Store per worker and call site (one entry per design matrix) the number of columns the last draw's loop dropped. On a draw that needs the loop, the search order is fixed, so results may change only if attempts are skipped that would have passed: skip only the QR/closure setup, or skip attempts that are proven to fail, and keep every result bit-identical. Results must not depend on draw order (serial vs parallel, v1.0.5 TODO-95 rule). The cache dies with the worker.
+  - Step 3, approximate version (owner request 2026-11-10): on a draw that needs the loop, start at the cached column set and accept it if `fit_ok` passes, so a draw can end with fewer columns than a fresh search would keep. It changes results on those draws and makes them depend on draw order, so it is opt-in only and never a default.
+  - User API (owner request 2026-11-10): one setting with three modes, for every class and resampling operation on this path:
+    - `"scratch"`: the column search runs from scratch on every draw (today's behavior).
+    - `"exact"`: step 2; results identical to `"scratch"`.
+    - `"approximate"`: step 3.
+    - Shape it like the existing dispatch policies (`set_warm_start_dispatch_policy()` and siblings in `globals.R`): `set_column_selection_cache_policy()` / `get_column_selection_cache_policy()` with a global default, `inference_class_overrides`, and `reset = TRUE`. Draft names; settle them before the code lands.
+    - Default: `"scratch"` until step 2 passes the parity gate; then `"exact"`. `"approximate"` is never the default, and the tuner (`tune_EDI_for_this_machine()`) must not select it (it changes results).
+    - Record the mode in effect in each resampling result's provenance, so a result can say which mode produced it.
+    - Document it (what each mode does, that `"approximate"` can change estimates and depends on draw order) in the roxygen of the resampling methods users call (bootstrap, Bayesian bootstrap, jackknife, randomization), not only on the setter. NEWS entry.
+    - Tests: `"scratch"` and `"exact"` give bit-identical results on the golden fixtures; `"approximate"` gives the same results as `"scratch"` when no draw needs the loop; per-class override and reset behave like the other policies; serial and parallel give identical results under `"scratch"` and `"exact"`.
+  - Done when: step 1's counts are recorded; the three-mode API ships with its docs and tests; if step 2 is built, all golden/parity tests pass unchanged (including `test-zoib-jackknife-reusable-worker-migration-golden.R`), the ZOIB 50-fold jackknife on that fixture runs in low hundreds of ms on a quiet host (or the shortfall is recorded with a reason), and `tune_EDI_for_this_machine()` still completes the ZOIB jackknife axis.
+
+- [ ] ~~TODO-192~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-11`** (owner approval of the v1.0.6 triage): Realistic proportion data for `tune_EDI_for_this_machine()`.
 
 ## Standing constraints
 
@@ -2203,7 +2122,7 @@ TODOs in owning plans). Additionally, everything in this release must be
 **additive**: default behavior with no new switches set must reproduce
 1.0.0 results — since 2026-10-15 (owner decision D2) under the
 numerical-equivalence rule in
-`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+`../new_feature_plans/v1_1_0/cross_platform_reproducibility.md → Release-to-release
 equivalence`, no longer bit-for-bit — except where a plan explicitly documents a
 default change (currently TODO-11's class deletion, pending its
 deprecation decision; the exact-null, small-n exact and Zhang-kernel default changes formerly listed here (TODO-40, -41, -45) moved to `release_v1_2_0.md → TODO-24, -25, -29` and are restated there; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands, and its plan's TODO-6 tie-tolerant optimizer comparisons, if measurement adopts them, which change seed-pinned draws of the optimizer designs once; and TODO-50's algorithm-audit items that move results beyond the equivalence tiers because the old algorithm was inaccurate (clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands; its derivative, start and NPMLE changes need no exception when they land inside the iterative-solver tier). TODO-4b is narrowed to measurement infrastructure
@@ -2239,6 +2158,7 @@ classical solver with a warning, never silently.
     coverage with an R4-style study before enabling. The censored case stays
     refused.
   - Pointer: `release_v1_0_5.md → G4-C batch failures, R4A`.
+  - **Split 2026-11-10 (owner approval of the v1.0.6 triage):** the per-draw tau half moved to `release_v1_0_6.md → TODO-2`. This TODO keeps the uncensored-only CI half only.
 
 - [ ] TODO-158 (added 2026-10-25, owner decision): **Split
   `ObservationalDesign` into `FixedObservationalDesign` and
@@ -2300,3 +2220,10 @@ classical solver with a warning, never silently.
     excess at a larger n (the R1 re-scope gated only `~1`).
   - Documented in v1.0.5: NEWS "Known limitations" and the
     `InferenceOrdinalCloglogRegr` Details.
+  - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
+
+- [ ] TODO-193 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
+  - Plan: `../new_feature_plans/v1_1_0/native_cpp_tests_v1_1_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
+    change.
+  - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

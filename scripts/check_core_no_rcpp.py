@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify EDI/src's migrated numeric cores are genuinely Rcpp/R-free.
 
-See package_metadata/new_feature_plans/sexp_removal_rcppeigen_conversion_spec.md
+See package_metadata/finished_features/v1_0_0/sexp_removal_rcppeigen_conversion_spec.md
 (TODO-3, Testing step 5, Acceptance Criteria) for why this exists: the core
 functions built during that migration are supposed to be pure Eigen/C++, so
 they can be shared with the Python (pybind11) build without duplicating any

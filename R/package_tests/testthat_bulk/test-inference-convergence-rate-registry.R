@@ -196,7 +196,7 @@ applicable_triples = local({
 	rows = list()
 	# The calibration planner's own pairing: classes applicable to a constructed
 	# design, per response type (cal_study_classes()).
-	for (d in env$CAL_STUDY_DESIGNS) for (rt in env$CAL_RESPONSE_TYPES) {
+	for (d in env$cal_study_designs()) for (rt in env$CAL_RESPONSE_TYPES) {
 		cls = tryCatch(suppressWarnings(suppressMessages(env$cal_study_classes(rt, d, 50L))), error = function(e) character(0))
 		for (cl in cls) rows[[length(rows) + 1L]] = data.frame(design = d, class = cl, procedure = procs(cl), stringsAsFactors = FALSE)
 	}

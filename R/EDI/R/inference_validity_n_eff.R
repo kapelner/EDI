@@ -88,14 +88,14 @@ edi_inference_validity_n_eff = function(des_obj, rule, counts = edi_inference_va
 }
 
 #' Registry design key of a design object: the class name, plus the
-#' calibration study's `@prob_T=<p>` suffix for a Bernoulli design with unequal
-#' allocation (so the unequal-allocation registry entry applies).
+#' calibration study's `@prob_T=<p>` suffix for a design with unequal
+#' allocation (so the unequal-allocation registry entry applies to every design that supports it).
 #' @keywords internal
 #' @noRd
 edi_inference_validity_design_label = function(des_obj) {
 	base = class(des_obj)[[1L]]
 	p = tryCatch(des_obj$get_prob_T(), error = function(e) NULL)
-	if (identical(base, "DesignFixedBernoulli") && is.numeric(p) && length(p) == 1L && !is.na(p) && abs(p - 0.5) > 1e-12) {
+	if (is.numeric(p) && length(p) == 1L && !is.na(p) && abs(p - 0.5) > 1e-12) {
 		return(paste0(base, "@prob_T=", format(p, trim = TRUE)))
 	}
 	base

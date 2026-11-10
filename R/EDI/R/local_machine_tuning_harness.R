@@ -334,12 +334,12 @@ edi_tuning_accept_candidate = function(baseline_times, candidate_times,
 
 #' Effort-tier presets for \code{tune_EDI_for_this_machine(effort = ...)}
 #'
-#' \code{"quick"} trades coverage for a fast (~2-5 min) run: a coarse n-grid,
+#' \code{"quick"} trades coverage for a faster (~1 hr) run: a coarse n-grid,
 #' the fewest replicates, and (via \code{families = "top_effect_size"}, left
 #' to the per-axis tuners in TODO-4 to interpret) only the axes/families with
 #' the largest shipped effect sizes. \code{"standard"} is the default
-#' (~15-30 min): full family coverage, a moderate n-grid, enough replicates
-#' for a stable median. \code{"thorough"} (~1-2 hr): the full family x
+#' (~3-4 hr): full family coverage, a moderate n-grid, enough replicates
+#' for a stable median. \code{"thorough"} (many hours, untimed): the full family x
 #' operation x n-grid factorial with more replicates for a tighter noise
 #' bound. Concrete family/axis selection under \code{"quick"} is a TODO-4
 #' concern (it needs each axis's own effect-size data); this preset only

@@ -10,7 +10,7 @@ library(EDI)
 #
 # The interior dataset runs now. The three boundary datasets (MLE with a
 # subject on exp(X b) = 1) only pass once G1 applies and builds C++ patch 14
-# (R/package_metadata/bug_fix_plans/cpp_patches_v105/14-log-binomial-active-
+# (R/package_metadata/bug_fix_plans/v1_0_5/cpp_patches_v105/14-log-binomial-active-
 # set-step.patch: active-set step + KKT convergence gate): the unpatched
 # Fisher-scoring loop stalls at the bound and reports convergence short of the
 # MLE (log-lik gaps 1.8e-4, 0.45 and 0.50 on these three sets). The boundary

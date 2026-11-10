@@ -86,7 +86,7 @@ spliced into one step and marked **[spliced]**.
 > longer lists it as a phase-ordered item since it now ships with the
 > release-scoped batch, not the exploratory tail.
 > **Closed (2026-08-23):** all twelve of that plan's TODOs done; moved to
-> `../finished_features/local_machine_optimization.md`. See
+> `../finished_features/v1_0_0/local_machine_optimization.md`. See
 > `release_v1_0_0.md`'s item 15 for the full closure writeup.
 >
 > **Amended 2026-08-23 (user decision):** `performance_profiling_and_upgrades.md`
@@ -119,7 +119,7 @@ spliced into one step and marked **[spliced]**.
 > `../finished_features/`. Also done 2026-08-17: `design_fixed_optimal.md` —
 > every TODO closed (the new `DesignFixedOptimal` class, its registry/roxygen
 > wiring, and the follow-on `DesignFixedOptimalBlocks` commercial-solver
-> threading); moved to `../finished_features/design_fixed_optimal.md`
+> threading); moved to `../finished_features/v1_0_0/design_fixed_optimal.md`
 > (2026-08-17). The two remaining mentions of it in this file (the
 > release-line note above and Phase 6's
 > `design_fixed_greedy_pair_switch_merge.md` dependency) are unaffected —
@@ -153,7 +153,9 @@ spliced into one step and marked **[spliced]**.
 >   independent claims.**
 > - **v1.2.0 — Performance & engines** (`release_v1_2_0.md`): Phase 4
 >   kernel/perf lanes, `cold_starts.md`, Phase 6 item 5's *merge +
->   soft-deprecation* half; closes `parallel_fork_cluster_test_safety.md`.
+>   soft-deprecation* half. (`parallel_fork_cluster_test_safety.md`, once listed here,
+>   was already closed on 2026-08-26; moved 2026-11-11 to
+>   `../finished_features/v1_0_0/`.)
 >   (`performance_profiling_and_upgrades.md` and `more_simd_optimization.md`
 >   stay in v1.1.0 — see the Phase 4 "Second lane" / "Third lane" notes
 >   below.)
@@ -189,6 +191,22 @@ spliced into one step and marked **[spliced]**.
 >   optimization (item #30, into
 >   `modern_covariate_balancing_designs.md` as
 >   `DesignSeqOneByOneOnlineMIO`).
+> **v1.0.6 maintenance items and native C++ tests (2026-11-10/11, owner).**
+> Plans are now filed in per-release subfolders (`vX_Y_Z/`).
+> v1.0.6 (`../future_release_plans/release_v1_0_6.md`) carries two owner exceptions to
+> its fixes-only entry rule:
+> - TODO-14, `v1_0_6/repository_layout_cleanup.md`: root `metadata/` plus `R/metadata/`;
+>   rename `R/package_tests/`; header-comment paths.
+> - TODO-15, `v1_0_6/native_cpp_test_suite.md`: a Catch2 suite in `cpp_tests/` for the
+>   `EDI_CORE_ONLY` core; agent builds whitelisted in `CLAUDE.md` per target only.
+>
+> Each later release that adds core C++ has a follow-on plan, and its tests land with the code:
+> - v1.1.0 TODO-193 `v1_1_0/native_cpp_tests_v1_1_0.md` (includes the design-draw thread-determinism phase);
+> - v1.2.0 TODO-37 `v1_2_0/native_cpp_tests_v1_2_0.md`;
+> - v1.4.0 TODO-19 `v1_4_0/native_cpp_tests_v1_4_0.md`;
+> - v2.0.0 TODO-10 `v2_0_0/native_cpp_tests_v2_0_0.md`;
+> - v4.0.0 TODO-4 `v4_0_0/native_cpp_tests_v4_0_0.md` (the suite moves to `core/tests/`).
+>
 > The phase text below is unchanged; each release file lists its own TODO
 > order.
 >
@@ -302,12 +320,12 @@ input instead of erroring):
 
 Plan closed, all TODOs (including TODO-14's exhaustive bit-identical
 regression sweep and TODO-15's stale `dead =` cleanup) checked off; moved
-to `../finished_features/interval_censored_survival_response.md`.
+to `../finished_features/v1_0_0/interval_censored_survival_response.md`.
 
 ### 1D. Inference-hierarchy migration completion (after 1A) — **DONE (2026-08-23)**
 
 Plan closed (0 open items); moved to
-`../finished_features/fix_inference_hierarchy.md`. The 2026-08-23 closure
+`../finished_features/v1_0_0/fix_inference_hierarchy.md`. The 2026-08-23 closure
 verified the migration complete (zero concrete classes with algorithmic-
 compatibility ancestors; the retained legacy ladder enumerated as internal
 component sources) and turned the last two Static Cleanup ratchets into real
@@ -356,7 +374,7 @@ Remaining, by section (open-item counts, 2026-08-17 snapshot):
 ### 1E. Design-hierarchy completion — **DONE (2026-08-17)**
 
 Plan closed (0 open TODOs); moved to
-`../finished_features/fix_design_hierarchy.md`. This unblocks item 5
+`../finished_features/v1_0_0/fix_design_hierarchy.md`. This unblocks item 5
 (`save_load_api.md`, gated on `owns_state`) and Phase 5D step 1
 (`multi_arm_designs.md → TODO-1`, gated on this phase's capability
 metadata) — neither has started yet, but both can now begin.
@@ -389,7 +407,7 @@ metadata) — neither has started yet, but both can now begin.
 Plan closed (0 open TODOs, including TODO-5/8/10's survival-family
 conversions, TODO-15's ownership decision, and TODO-14's final grep
 sweep); moved to
-`../finished_features/sexp_removal_rcppeigen_conversion_spec.md`.
+`../finished_features/v1_0_0/sexp_removal_rcppeigen_conversion_spec.md`.
 
 ### 1G. InferenceSuite run_all_inference() (implementation parallel with 1D; fixture-lock after 1D)
 
@@ -558,7 +576,7 @@ on the OLS null distribution, multiplicative with TODO-17o) and
 TODO-9`; FWL rewrite inside that kernel, 5–10×, depends on the wiring).
 Hardening item from the same audit (moved 2026-09-23 to
 `release_v1_0_5.md → TODO-4`, was `release_v1_1_0.md → TODO-17q`):
-`../bug_fix_plans/guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
+`../bug_fix_plans/v1_0_5/guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
 `.inverse()` sites on the free information block get the `isInvertible()`
 guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
 Second hardening item, 2026-09-03 (v1.1.0, `→ TODO-17s`, **narrowed
@@ -571,7 +589,7 @@ reproducible-random multistart through one new leaf header
 already has; bit-for-bit whenever the primary start was already best, on
 every replicate fit, and on every concave kernel. **v1.1.0 keeps only the
 documented-failure tranche** (ZINB/ZIP/hurdle-NegBin, beta regression —
-the boundary-runaway failure `../bug_fix_plans/negbin_dispersion_convergence.md` and
+the boundary-runaway failure `../bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md` and
 `em_algorithm_zero_inflated_mixtures.md` exist to patch); the remainder
 (GLMM/LMM/frailty, ZOIB, stereotype, copula survival, cauchit, bisquare)
 moved to `release_v1_2_0.md → TODO-20`.
@@ -596,7 +614,7 @@ the live R-level search driver, not the caller-less
 `em_algorithm_zero_inflated_mixtures.md → TODO-1..5` (an EM-then-Newton
 hybrid start for ZINB/ZIP, feeding `multistart_nonconcave_likelihoods.md`
 as one more deterministic start; targets the failure mode
-`../bug_fix_plans/negbin_dispersion_convergence.md` patches). Both gated on the harness.
+`../bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md` patches). Both gated on the harness.
 One audit row is an outright Adopt with no harness gate (v1.1.0, `→
 TODO-17w`): `brent_ci_inversion.md` → TODO-1..3 — the score / gradient /
 Bartlett-LR CI inverter (`pval_invert_ci_cpp`) polishes by pure bisection
@@ -693,7 +711,7 @@ index: `release_v1_1_0.md → TODO-20`.
 
 **Bayesian bootstrap performance (added 2026-10-07, user decision; grew
 out of the `bayesboot` comparison for the Bayesian CRAN Task View
-proposal):** `../bug_fix_plans/bayesian_bootstrap_performance.md` →
+proposal):** `../bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md` →
 TODO-1..9. Moved to v1.0.5 the same day (user decision): it fixes a
 misfiring performance path that already shipped.
 
@@ -717,7 +735,7 @@ index:
 **Permutation set signed once at generation (added 2026-10-07, user
 decision; root cause of the "R6 mean difference is 0.57x of `coin`" row in
 the 2026-10-07 benchmark extension):**
-`../bug_fix_plans/permutation_signature_once.md` → TODO-1..7. Kept in
+`../bug_fix_plans/v1_1_0/permutation_signature_once.md` → TODO-1..7. Kept in
 v1.1.0 by user decision although the 2026-09-23 split rule would place it
 in v1.0.5.
 
@@ -734,7 +752,7 @@ with a debug recheck. Bit-preserving. Release index:
 
 **Dead randomization fast paths (added 2026-10-07, filed on the model's
 initiative while scoping the item above):**
-`../bug_fix_plans/dead_randomization_fast_paths.md` → TODO-1..5.
+`../bug_fix_plans/v1_0_5/dead_randomization_fast_paths.md` → TODO-1..5.
 `InferenceCountPoisson`'s fast path calls `compute_poisson_distr_parallel_cpp`,
 which exists nowhere in the package (dangling since the initial commit);
 `InferenceAllSimpleWilcox` and `InferenceAllKKWilcoxIVWC` hand a double
@@ -765,7 +783,7 @@ vs EDI 17 s) is the one fair addition. Release index:
 
 **KK21 ordinal weight callback: unprotected `wrap()` temporaries (added
 2026-10-08, user decision):**
-`../bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md`
+`../bug_fix_plans/v1_0_5/kk21_ordinal_weight_callback_unprotected_temporaries.md`
 → TODO-1..4. Found while measuring the `*_use_speedup` approximation's cost
 (negligible; recorded in the KK21 class's roxygen Details). With
 `ordinal_use_speedup = FALSE`, `multivariate_ordinal_tstat`
@@ -787,11 +805,11 @@ decision):** the full per-kernel catalog
 appendix) surfaced three bugs, each verified by the coordinator. Its other 26 findings were then
 verified the same day (`algorithm_choice_audit.md → TODO-B4`; 21 confirmed, 3 partial, 2 refuted;
 evidence in `algorithm_choice_audit_catalog.md §13`).
-- (1) `../bug_fix_plans/kk21_weibull_irls_wrong_fixed_point.md`: KK21's two
+- (1) `../bug_fix_plans/v1_0_5/kk21_weibull_irls_wrong_fixed_point.md`: KK21's two
   hand-rolled Weibull fits solve `Σx(z−1)(eᶻ−δ) = 0` instead of the score
   equation. A pure-R port reaches β₀ = −9.5, σ = 10 (clamp) where `survreg`
   gives 1.006, 0.69. Release index: `release_v1_0_5.md → TODO-67`.
-- (2) `../bug_fix_plans/rand_ci_inverts_two_sided_pval_at_half_alpha.md`:
+- (2) `../bug_fix_plans/v1_0_5/rand_ci_inverts_two_sided_pval_at_half_alpha.md`:
   randomization and BRT CIs invert a two-sided p-value at α/2, so they are
   97.5% intervals. Confirmed from existing comprehensive_tests output.
   Release index: `→ TODO-68`.
@@ -799,7 +817,7 @@ evidence in `algorithm_choice_audit_catalog.md §13`).
   other Cox path used Breslow. **Resolved in v1.0.5 TODO-69:** both now
   explicitly select Breslow. Release index: `→ TODO-69`.
 - (4) The 24 confirmed or partial verification findings, in one owning plan:
-  `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-1..25`
+  `../bug_fix_plans/v1_0_5/algorithm_sweep_verified_findings.md → TODO-1..25`
   (F18 cloglog was already `release_v1_0_5.md → TODO-16`). Highlights:
   - RandomBlockSize redraws are wrong, and `sample(block_sizes, 1)` corrupts real
     assignments with a single block size.
@@ -853,7 +871,7 @@ already stated there:**
   new estimator family is off-theme for that release).
 - **5H. `dead` → `uncensored` rename** (added 2026-08-19) →
   `release_v1_1_0.md → TODO-15c`. Source TODO:
-  `../finished_features/interval_censored_survival_response.md → TODO-29`.
+  `../finished_features/v1_0_0/interval_censored_survival_response.md → TODO-29`.
 - **5I. Survival quantile regression** (added 2026-08-26) →
   `release_v1_1_0.md → TODO-15d`. `survival_quantile_regression.md`:
   `InferenceSurvivalQuantileRegr` (custom self-consistent EM for general
@@ -1222,7 +1240,7 @@ already stated there:**
   - golden digests on every CI platform leg.
 
   Every TODO requires tests. Depends on `release_v1_0_5.md → TODO-91, -93,
-  -95` (TODO-95 = `../bug_fix_plans/design_draws_depend_on_thread_count.md`:
+  -95` (TODO-95 = `../bug_fix_plans/v1_0_5/design_draws_depend_on_thread_count.md`:
   greedy, D/A-optimal, pair-switching and rerandomization draws depend on
   the thread count, and the vignette claims they don't).
 - **5AO. Batched C++ loop for the custom randomization statistic** (added
@@ -1286,7 +1304,7 @@ Release index: `release_v1_1_0.md → TODO-23` (lintr), `→ TODO-24`
 **`KKQuantileRegrOneLik` randomization CI** (added 2026-09-17, found via a
 raw `comprehensive_tests_results_nc_1_*.csv` audit, not a user report; no
 dependency on any phase above — schedule anywhere in v1.1.0):
-`../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
+`../bug_fix_plans/v1_0_5/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
 `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
 compose `QuantileRandomizationCI` (Zhang test-inversion bisection) without
 their `KKQuantileRegrOneLik` component ever supplying the
@@ -1321,7 +1339,7 @@ ships. Release index: `release_v1_0_5.md → TODO-8` (was `release_v1_1_0.md →
 found the same way as `TODO-7`/`TODO-8` (old numbering `TODO-25`/`TODO-30`); three new checks —
 `biased_estimate`, `bad_type1_error`, `low_power` — added to
 `audit_comprehensive_results.R` itself this wave; **fixed and merged**):
-`../bug_fix_plans/stale_worker_cache_resampling.md → TODO-1..8`. A correctness bug: any
+`../bug_fix_plans/v1_0_5/stale_worker_cache_resampling.md → TODO-1..8`. A correctness bug: any
 class whose point-estimate cache guard used a key outside the reused
 randomization/bootstrap worker's narrow, hardcoded reset list had every
 permutation/bootstrap draw after the first silently reuse the first
@@ -1359,7 +1377,7 @@ Release index: `release_v1_0_5.md → TODO-11` (was `release_v1_1_0.md → TODO-
 **Latent `cached_mod` reset gap** (added 2026-09-22, found during the
 stale-worker-cache fix's (release `TODO-9`, old numbering `TODO-31`) own
 final review, not a new audit finding; no concrete class
-reaches it yet): `../bug_fix_plans/stale_worker_cache_resampling.md → TODO-9`
+reaches it yet): `../bug_fix_plans/v1_0_5/stale_worker_cache_resampling.md → TODO-9`
 (that plan file's own internal TODO numbering, unrelated to the release
 index). One level up from the `cached_values` gap release `TODO-9` fixed, the same
 randomization loader still resets a hand-maintained private-field
@@ -1371,7 +1389,7 @@ stale). Release index: `release_v1_0_5.md → TODO-12` (was `release_v1_1_0.md �
 **`InferencePropGCompMeanDiff` randomization distribution all-NA** (added
 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in release `TODO-9`'s (old
 numbering `TODO-31`) regression
-test; **fixed 2026-09-23**): `../bug_fix_plans/prop_gcomp_sample_usable_gating.md →
+test; **fixed 2026-09-23**): `../bug_fix_plans/v1_0_5/prop_gcomp_sample_usable_gating.md →
 TODO-1..6`. An error-shaped bug (not silently-wrong like release `TODO-9`), and a
 different mechanism — worker-state gating, not stale caching: the class's
 reused-worker randomization path fell through to a bootstrap-shaped
@@ -1394,7 +1412,7 @@ still open. Release index: `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.
 
 **`InferenceContinLin` parametric-bootstrap Type-I error, design-dependent —
 resolved** (added 2026-09-23; resolved 2026-10-09):
-`../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`.
+`../bug_fix_plans/v1_0_5/contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`.
 The original historical rows were not reproduced on the current source.
 Observed, null, and simulated Lin fits now use the same reduced matrix and
 treatment index, and the parametric-bootstrap loader clears
@@ -1408,7 +1426,7 @@ defect. Release index: `release_v1_0_5.md → TODO-15` (was
 **Ordinal cumulative-link parametric-bootstrap inference** (added
 2026-09-23, from the same raw `comprehensive_tests` CSV audit wave as
 release `TODO-9`/`TODO-15` (old numbering `TODO-31`/`TODO-37`); no dependency on any phase above — schedule anywhere
-in v1.1.0): `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md →
+in v1.1.0): `../bug_fix_plans/v1_0_5/ordinal_cumulative_link_null_refit_multistart.md →
 TODO-1..7`. Two distinct bugs found investigating
 `InferenceOrdinalCloglogRegr`'s 60% Type-I error on
 `compute_param_bootstrap_pval()`. Fixed: a single-start delta-constrained
@@ -1433,7 +1451,7 @@ index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
 
 **Cox risk-set cache staleness** (found 2026-08-30, slotted into v1.0.5
 2026-09-24 from "unassigned"; fixed 2026-10-07):
-`../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`. The
+`../bug_fix_plans/v1_0_5/cox_risk_set_cache_staleness.md → TODO-1..5`. The
 `InferenceCoxPH`/`InferenceStratifiedCoxPH` caches now key on full
 `w`/`y`/`dead`/`X` inputs. The same-pattern sweep fixed four stale-
 model-matrix caches, and mutation, bootstrap, cache-reuse, and class-wiring
@@ -1443,7 +1461,7 @@ regressions cover the guards. Release index: `release_v1_0_5.md → TODO-30`
 **Incidence identity-link risk-difference subsampling inflation — closed as a
 non-reproducible historical finding** (added 2026-09-24; closed 2026-10-08;
 no dependency on any phase above):
-`../bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md
+`../bug_fix_plans/v1_0_5/investigate_incid_binomial_identity_subsampling_inflation.md
 → TODO-1..6`. Historical audit output reported ~2.6× nominal Type-I error on
 subsampling and m-out-of-n bootstrap p-values, formula-independent. The
 proposed boundary-rejection mechanism is algebraically impossible in the
@@ -1453,7 +1471,7 @@ index: `release_v1_0_5.md → TODO-27`.
 
 **`InferenceAllSimpleAverageDiff` studentized-bootstrap / jackknife-Wald SE
 quality — resolved** (added 2026-09-24; resolved 2026-10-08; no dependency on
-any phase above): `../bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md
+any phase above): `../bug_fix_plans/v1_0_5/investigate_average_diff_bayesian_jackknife_se_quality.md
 → TODO-1..4`. Bayesian-bootstrap studentization had applied Kish effective
 sample size to normalized Dirichlet frequency weights, inflating replicate
 SEs. It now uses frequency-weight Welch contributions and matching
@@ -1463,7 +1481,7 @@ TODO-29`.
 
 **KK21stepwise randomization p-values conservative at the null — resolved**
 (added 2026-09-24; fixed/audited 2026-10-09; no dependency on any phase above):
-`../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md
+`../bug_fix_plans/v1_0_5/investigate_kk21stepwise_incidence_randomization_pval_conservative.md
 → TODO-1..4`. KK21 now replays its full outcome-adaptive sequential rule rather
 than fixing the realized pair structure; the remaining incidence conservatism is
 intentional inclusive-tail behavior for a discrete exact test. Release index:
@@ -1471,16 +1489,16 @@ intentional inclusive-tail behavior for a discrete exact test. Release index:
 
 **Test-comment audit findings** (added 2026-09-24; no dependency on any
 phase above): five plans from defects that test authors recorded but did not
-fix. `../bug_fix_plans/glmm_variance_component_sigma_collapse.md →
+fix. `../bug_fix_plans/v1_0_5/glmm_variance_component_sigma_collapse.md →
 TODO-1..6` (`release_v1_0_5.md → TODO-31`; the targeted, observed-wrong-answer
 subset of the multistart problem in Phase 1E/`multistart_nonconcave_likelihoods.md`);
-`../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
+`../bug_fix_plans/v1_0_5/ridit_treatment_reference_degenerate_estimate.md →
 TODO-1..5` (`→ TODO-32`; decide before `ridit_kernel_level_slots.md`);
-`../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
+`../bug_fix_plans/v1_0_5/rand_ci_high_precision_refinement_upper_bound.md →
 TODO-1..4` (`→ TODO-33`; touches the randomization-CI search-precision area);
-`../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
+`../bug_fix_plans/v1_0_5/interval_censored_compute_shared_cache_guard.md →
 TODO-1..4` (`→ TODO-34`); and the batch
-`../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1..12`
+`../bug_fix_plans/v1_0_5/test_comment_audit_small_defects.md → TODO-1..12`
 (`→ TODO-35..46`, one release TODO per plan item). **Two items in this
 batch updated 2026-09-24 since first added:** `→ TODO-38` (the ZOIB kernel
 crash) escalated from "suspected undefined behavior" to **confirmed real**
@@ -1495,7 +1513,7 @@ safe to remove, not yet done.
 **`InferenceSurvivalKMDiff` Bayesian-bootstrap `NA` on heavily censored
 data** (added 2026-09-24, found investigating `TODO-42` above; reproduced
 on a fresh object; not part of the original test-comment-audit five, so
-listed separately): `../bug_fix_plans/test_comment_audit_small_defects.md
+listed separately): `../bug_fix_plans/v1_0_5/test_comment_audit_small_defects.md
 → TODO-13`. ~30% of RNG seeds (12/40) give `NA` (reason
 `bayesian_bootstrap_nonfinite_estimates`) on heavily censored data — one
 non-finite bootstrap replicate poisons the whole p-value, unlike the
@@ -1509,7 +1527,7 @@ cross-check after a numbering collision (two concurrent sessions both used
 that file) exposed how far index and release file had drifted apart.
 
 **Reusable-bootstrap-worker support for `InferencePropZeroOneInflatedBetaRegr`**
-(added 2026-08-27): `../bug_fix_plans/reusable_bootstrap.md → TODO-1..6`. The
+(added 2026-08-27): `../finished_features/v1_0_5/reusable_bootstrap.md → TODO-1..6`. The
 one class (of 51) missing the `get_bootstrap_worker_spec()` fast path;
 its jackknife rebuilds a fresh `Design`/`Inference` object per fold instead
 of reusing one warmed-up worker. R-layer only, must reproduce bit-identical
@@ -1517,7 +1535,7 @@ jackknife results. Release index: `release_v1_0_5.md → TODO-1`.
 
 **Randomization CI construction audit — resolved** (added 2026-09-04;
 fully reconciled 2026-10-09):
-`../new_feature_plans/randomization_ci_construction_audit.md → TODO-1..5,
+`../new_feature_plans/v1_0_5/randomization_ci_construction_audit.md → TODO-1..5,
 including TODO-2b`. Two findings: **§A**, Cox-family classes ran the generic
 randomization-CI driver on the wrong scale (log-time vs. log-hazard-ratio);
 fixed by excluding the six log-HR classes from the `randomization_ci`
@@ -1528,7 +1546,7 @@ TODO-5` (closed).
 
 **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability**
 (added 2026-09-11, timing investigation, not a user report):
-`../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md →
+`../bug_fix_plans/v1_0_5/clayton_loggamma_frailty_optimizer_stability.md →
 TODO-1..4`. A ~200× bimodal slowdown in the Bartlett-approx Monte-Carlo
 null replicates, traced to the Clayton-copula/loggamma-frailty optimizer
 having no bound on its dependence parameter (unlike the sibling
@@ -1538,7 +1556,7 @@ needs golden-parity check. Release index: `release_v1_0_5.md → TODO-6`.
 **`InferenceAllSimpleWilcox` resampling-family p-values collapse to
 exactly 1** (added 2026-09-23, `pval_miscalibration` audit's extreme-
 violation triage — ACAT-combined p as low as 2.5e-300):
-`../bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md → TODO-1..9`.
+`../bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md → TODO-1..9`.
 A resurfacing of an already-partially-fixed bug: the Wald-family variant
 of this mechanism was fixed 2026-09-06, but the resampling-family methods
 (`rand`, `bootstrap*`, `m_out_of_n_bootstrap`, `subsampling`) still carry
@@ -1562,7 +1580,7 @@ unaffected. Release index: `release_v1_0_5.md → TODO-18`.
 **`InferenceIncidKKModifiedPoisson` chronic under-rejection — SE-quality
 investigation** (added 2026-09-23, same triage wave as TODO-17/18; tracked
 as an open investigation, not a fix plan): `../bug_fix_plans/
-investigate_incid_kk_modified_poisson_se_quality.md`. Original ~4×
+v1_0_5/investigate_incid_kk_modified_poisson_se_quality.md`. Original ~4×
 SE-overestimation hypothesis refuted by a faithful harness replay (found
 1.23-1.33×, and the dramatic zero-rejection symptom did reproduce with the
 real DGP — magnitude of the SE gap remains genuinely ambiguous at the rep
@@ -1582,7 +1600,7 @@ limitation rather than a fix. Release index: `release_v1_0_5.md → TODO-20`.
 
 **`InferenceIncidKKGEE` bootstrap-family Type-I inflation investigation**
 (added 2026-09-23, same triage wave): `../bug_fix_plans/
-investigate_incid_kk_gee_bootstrap_family_inflation.md`. Reservoir-
+v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md`. Reservoir-
 singleton cluster-bootstrap-mishandling hypothesis refuted by code trace
 AND direct reproduction (the resampler is textbook-correct; a fresh
 true-null fixture reproduced nominal/conservative rates, not the historical
@@ -1608,7 +1626,7 @@ index: `release_v1_0_5.md → TODO-22` (done).
 **`InferenceSurvivalRestrictedMeanDiff` computes RMST to a different
 truncation horizon per treatment arm** (added 2026-09-24, `low_coverage`
 audit, root-caused same day, high confidence): `../bug_fix_plans/
-rmst_mismatched_truncation_horizon.md → TODO-1..7`. τ is derived
+v1_0_5/rmst_mismatched_truncation_horizon.md → TODO-1..7`. τ is derived
 independently per arm as that arm's own max observed/censored time, when
 RMST requires a shared τ for the difference to be a coherent estimand —
 near-universal severe undercoverage (0.53-0.65 vs. 0.95) across nearly
@@ -1620,7 +1638,7 @@ Release index: `release_v1_0_5.md → TODO-23`.
 
 **KK-matched Cox proportional-hazards undercoverage — closed as a
 coverage-truth artifact** (added 2026-09-24; closed 2026-10-08):
-`../bug_fix_plans/survival_kk_cox_coverage_variance.md → TODO-1..8`.
+`../bug_fix_plans/v1_0_5/survival_kk_cox_coverage_variance.md → TODO-1..8`.
 The earlier plan conflated OneLik and IVWC siblings. Source and native-formula
 audits found OneLik uses a joint stratified or joint cluster-robust Cox fit,
 and the kernel agrees with independent scores and `survival::coxph`.
@@ -1630,7 +1648,7 @@ null coverage was 0.93–1.00. Release index: `release_v1_0_5.md → TODO-24`
 
 **`InferenceContinOLS` weighted-bootstrap SE investigation — superseded**
 (added 2026-09-24; resolved 2026-10-09): `../bug_fix_plans/
-investigate_contin_ols_weighted_bootstrap_se.md`. Severe `~.`-specific
+v1_0_5/investigate_contin_ols_weighted_bootstrap_se.md`. Severe `~.`-specific
 miscalibration across reweighting resampling families. Its own unguarded-
 `solve()` hypothesis and the separate TODO-28 cache hypothesis were both
 refuted; the faithful replay resolved this row as an estimand mismatch.
@@ -1639,7 +1657,7 @@ Release index: `release_v1_0_5.md → TODO-25`.
 **`InferenceSurvivalKKWeibullMarginal` jackknife estimate has catastrophic
 single-fold outliers** (added 2026-09-24, found independently twice the
 same day, high confidence real): `../bug_fix_plans/
-kk_weibull_marginal_jackknife_outliers.md → TODO-1..8`. Apparent "bias"
+v1_0_5/kk_weibull_marginal_jackknife_outliers.md → TODO-1..8`. Apparent "bias"
 (mean -0.080) is actually RMSE (2.154), ~27× the bias magnitude — a small
 number of catastrophic single-fold outliers (raw values -38.0, +17.5 found
 directly), not a mean shift. **Resolved at source level 2026-10-08:** the
@@ -1654,7 +1672,7 @@ comprehensive-results regeneration remain release gates. Release index:
 
 **Reused bootstrap worker `cached_design_matrix` reset audit — closed as a
 stale source finding** (added 2026-09-24; closed 2026-10-07):
-`../bug_fix_plans/bootstrap_worker_stale_design_matrix.md → TODO-1..10`.
+`../bug_fix_plans/v1_0_5/bootstrap_worker_stale_design_matrix.md → TODO-1..10`.
 `load_bootstrap_sample_into_design_backed_worker()` already cleared
 `cached_design_matrix`, `cached_hardened_X_cov`, and related caches before
 this investigation was written; a two-draw OLS regression matches both a
@@ -1675,7 +1693,7 @@ One opposite-direction outlier noted, possibly connected to `TODO-29`.
 Release index: `release_v1_0_5.md → TODO-47`.
 
 **Count-family GLM `low_coverage` cluster** (added 2026-09-24, resolved
-2026-10-09): `../bug_fix_plans/investigate_count_glm_family_coverage.md`.
+2026-10-09): `../bug_fix_plans/v1_0_5/investigate_count_glm_family_coverage.md`.
 `InferenceCountPoisson`'s Bartlett likelihood-ratio entry points had missed
 the class's documented design-conservative jackknife union; they now use the
 same p-value maximum and CI union as their sibling likelihood methods.
@@ -1688,7 +1706,7 @@ for all three, and TODO-28's design-matrix cache cannot apply. Release index:
 
 **`InferenceContinQuantileRegr`'s 33 `low_coverage` findings** (added
 2026-09-24, resolved/refuted 2026-10-09):
-`../bug_fix_plans/investigate_contin_quantile_regr_coverage.md`. The raw
+`../bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_coverage.md`. The raw
 `beta_T` fallback is the correct median-effect truth for this additive DGP;
 the pattern also occurs under Bernoulli assignment. Reusable-worker cache
 invalidation and weighted QR's disabled factorization reuse rule out stale
@@ -1698,7 +1716,7 @@ defect. Release index: `release_v1_0_5.md → TODO-49` (checked).
 
 **Count-family miscalibration investigation, later reconciled** (added
 2026-09-24, promoted from asides inside `TODO-4`'s and `TODO-9`'s prose):
-`../bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md`.
+`../bug_fix_plans/v1_0_5/investigate_count_family_unexplained_miscalibration_cluster.md`.
 The original `InferenceCountPoisson`, `InferenceCountQuasiPoisson`,
 `InferenceCountKKGLMM`, and `InferenceCountKKHurdlePoissonOneLik` findings
 no longer imply one unexplained shared defect: the Poisson and KKGLMM fixes
@@ -1711,7 +1729,7 @@ reconciliation. Release index: `release_v1_0_5.md → TODO-50` (renumbered
 
 **Disabled minimum-eigenvalue helper cleanup** (added 2026-09-24, same
 promotion reason as the item above):
-`../bug_fix_plans/remove_disabled_min_eigenvalue_helpers.md`. The commented
+`../bug_fix_plans/v1_0_5/remove_disabled_min_eigenvalue_helpers.md`. The commented
 `set_min_eigenvalue_if_suspect()` helper, its unused SFINAE trait, and all
 no-op callers were removed while the public `min_eigenvalue_information`
 schema field retains its `NaN` default. The source decision is complete;

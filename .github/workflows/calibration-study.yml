@@ -22,7 +22,12 @@ name: calibration-study
 # (annotation "Calibration gate"). Any other red X is a bug in the check, annotated
 # "Calibration CI bug". Interim waves only publish.
 #
-# Job graph: plan -> build -> shards -> analyze -> publish (v1.0.5 TODO-200).
+# Job graph: plan -> build -> roster -> shards -> analyze -> publish (v1.0.5 TODO-200, TODO-203 Amendment A). `plan` decides
+# which campaign runs and pins its commit (no EDI); `build` installs EDI at that commit; `roster` plans the wave from the
+# campaign's class roster, which the campaign's first wave enumerates from the EDI just built (so the class list is the
+# one the shards simulate, and a class added since the last campaign cannot be missed; later waves reuse the campaign's
+# roster.csv). Waves are planned class by class (plan_calibration_study.R): a shard runs one class or a few
+# neighbouring cheap classes of one cell.
 on:
   schedule:
     - cron: '17 3 1 * *'   # 1st of every month, 03:17 UTC: start a campaign
@@ -71,8 +76,6 @@ jobs:
       campaign: ${{ steps.campaign.outputs.campaign }}
       sha: ${{ steps.campaign.outputs.sha }}
       new: ${{ steps.campaign.outputs.new }}
-      matrix: ${{ steps.plan.outputs.matrix }}
-      wave: ${{ steps.plan.outputs.wave }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -112,21 +115,6 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "new=$new" >> "$GITHUB_OUTPUT"
           cp "results/campaigns/$c/campaign.env" campaign.env
-      # The planner (and every later step) comes from the campaign's own commit.
-      - name: Plan the next wave
-        id: plan
-        run: |
-          git checkout -q "${{ steps.campaign.outputs.sha }}"
-          set -a; . ./campaign.env; set +a
-          matrix="$(Rscript R/package_tests/calibration/plan_calibration_study.R \
-            --campaign-dir "results/campaigns/${{ steps.campaign.outputs.campaign }}" \
-            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
-            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
-            --wave-size "$WAVE_SIZE" --meta-out meta.txt)"
-          cat meta.txt
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          grep '^wave=' meta.txt >> "$GITHUB_OUTPUT"
-          { echo "### Calibration study ${{ steps.campaign.outputs.campaign }}"; echo '```'; cat meta.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: study-campaign
@@ -135,14 +123,13 @@ jobs:
       - name: Flag a bug in the check
         if: failure()
         run: |
-          echo "::error title=Calibration CI bug::Planning the wave failed: a bug in the check (or an unknown campaign id), not a calibration result."
+          echo "::error title=Calibration CI bug::Starting or continuing the campaign failed: a bug in the check (or an unknown campaign id), not a calibration result."
 
   # Compile EDI once per commit and share it with every shard and every wave of the
   # campaign (cache keyed by the pinned commit; same EDI_PORTABLE rationale as
   # test-bulk-non-cran.yml's build job).
   build:
     needs: plan
-    if: needs.plan.outputs.wave != '0'
     runs-on: ubuntu-latest
     env:
       EDI_PORTABLE: 1
@@ -177,8 +164,97 @@ jobs:
         run: |
           echo "::error title=Calibration CI bug::Building EDI at the campaign's commit failed: a bug in the check or the commit, not a calibration result."
 
-  shards:
+  # The wave's plan (v1.0.5 TODO-203 Amendment A). The class roster is the campaign's own: the first wave
+  # enumerates it from the EDI built above (build_calibration_study_roster.R: per response type and design the
+  # runner's cal_study_classes() and each class's formula x procedure tasks, without fitting) and `analyze` publishes
+  # it as <campaign>/roster.csv; later waves read that file, so the class list is frozen for the campaign. Seconds per
+  # replicate for packing come from the previous published campaign where the class existed, else a 2 s default.
+  roster:
     needs: [plan, build]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      wave: ${{ steps.plan.outputs.wave }}
+    env:
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      OMP_NUM_THREADS: 1
+      C: ${{ needs.plan.outputs.campaign }}
+    steps:
+      # The planner and the roster script: the campaign's pinned commit (they must match the shards).
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+      - uses: actions/cache/restore@v5
+        with:
+          path: .edi-install-scratch
+          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
+          fail-on-cache-miss: true
+      - name: Use the pre-built library
+        run: |
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v8
+        with:
+          name: study-campaign
+          path: .
+      - name: Load the results branch
+        run: |
+          git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
+            || mkdir -p results
+      - name: The campaign's class roster
+        run: |
+          set -a; . ./campaign.env; set +a
+          d="results/campaigns/$C"
+          if [ -f "$d/roster.csv" ]; then
+            echo "Reusing the campaign's roster ($d/roster.csv)"
+            cp "$d/roster.csv" roster.csv
+          else
+            # Costs: the latest other campaign on the branch that has statistics.
+            prev=""
+            # Campaign ids start with their date, so the glob (sorted) is oldest first: walk it backwards.
+            cands=(results/campaigns/*/)
+            for (( i=${#cands[@]}-1; i>=0; i-- )); do
+              p="${cands[i]%/}"
+              [ "$(basename "$p")" = "$C" ] && continue
+              if [ -f "$p/stats/tests.csv.gz" ]; then prev="$p/stats"; break; fi
+            done
+            Rscript R/package_tests/calibration/build_calibration_study_roster.R --out roster.csv \
+              --response-types "$RESPONSE_TYPES" --designs "$DESIGNS" --prev-stats-dir "$prev"
+          fi
+      - name: Plan the next wave
+        id: plan
+        run: |
+          set -a; . ./campaign.env; set +a
+          matrix="$(Rscript R/package_tests/calibration/plan_calibration_study.R \
+            --campaign-dir "results/campaigns/$C" --roster roster.csv \
+            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
+            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
+            --wave-size "$WAVE_SIZE" --meta-out meta.txt)"
+          cat meta.txt
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          grep '^wave=' meta.txt >> "$GITHUB_OUTPUT"
+          { echo "### Calibration study $C"; echo '```'; cat meta.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: study-roster
+          path: roster.csv
+          retention-days: 7
+          if-no-files-found: error
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::Building the class roster or planning the wave failed: a bug in the check, not a calibration result."
+
+  shards:
+    needs: [plan, roster]
+    if: needs.roster.outputs.wave != '0'
     runs-on: ubuntu-latest
     # ~25 min of replicates (the deadline) + setup + the replicates in flight. Most
     # shards end near 30 min; a slow-class shard whose single replicate outlasts the
@@ -188,7 +264,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 16
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.roster.outputs.matrix) }}
     env:
       EDI_PORTABLE: 1
       NOT_CRAN: true
@@ -258,8 +334,8 @@ jobs:
   # (analyze_calibration_study.R), a cell whose power-law fit fails is `undetermined`
   # (convergence_calibration_study.R). The step that can fail is therefore always the last one.
   analyze:
-    needs: [plan, shards]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.wave != '0'
+    needs: [plan, roster, shards]
+    if: always() && needs.plan.result == 'success' && needs.roster.result == 'success' && needs.roster.outputs.wave != '0'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -290,12 +366,18 @@ jobs:
         with:
           name: study-campaign
           path: .
+      - uses: actions/download-artifact@v8
+        with:
+          name: study-roster
+          path: .
       - name: Load the results branch and record both commits
         run: |
           git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
             || mkdir -p results
           mkdir -p "results/campaigns/$C"
           cp campaign.env "results/campaigns/$C/campaign.env"
+          # The campaign's class roster (written in its first wave, reused by every later one): published with the campaign.
+          cp roster.csv "results/campaigns/$C/roster.csv"
           # SHA= is the commit the campaign simulates at; ANALYSIS_SHA= the commit whose scripts analyse it
           # (rewritten by every wave).
           sed -i '/^ANALYSIS_SHA=/d' "results/campaigns/$C/campaign.env"
@@ -313,7 +395,7 @@ jobs:
           # Every planned shard, finished or not: the planner abandons a unit after
           # repeated shards that never wrote shard.csv (died or timed out).
           [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id" > "$d/planned.csv"
-          echo '${{ needs.plan.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
+          echo '${{ needs.roster.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
             '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r] | @csv' >> "$d/planned.csv"
           echo "${{ github.run_id }}" >> "$d/runs.txt"
           echo "wave_no=$wave_no" >> "$GITHUB_ENV"
@@ -349,10 +431,15 @@ jobs:
         run: |
           set -a; . ./campaign.env; set +a
           d="results/campaigns/$C"
+          # The campaign's plan (every screening unit, its replicates and tests; v1.0.5 TODO-203): the pinned planner, since it
+          # must match the shards; the analysis below reads it (m_total, completed cells, class status).
+          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --plan-only --plan-out "$d/plan.csv" --roster "$d/roster.csv" \
+            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
+            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS"
           Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" > /dev/null
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" \
             --out-dir "$d/summary" > /dev/null
-          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" \
+          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" --roster "$d/roster.csv" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
             --wave-size "$WAVE_SIZE" --meta-out after.txt > /dev/null
@@ -398,7 +485,7 @@ jobs:
             --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY" \
             $([ "$COMPLETE" = true ] && echo --final)
           Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir "$d/summary" \
-            --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/
+            --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/ --class-figures
           Rscript R/package_tests/calibration/render_calibration_study_readme.R --results-dir results --campaign "$C" \
             --repo "${{ github.repository }}" --progress "$PROGRESS"
       # Everything `publish` pushes: this campaign's directory and the branch's top-level README.
@@ -442,9 +529,9 @@ jobs:
   # handoff (a bug in the check): the wave is then not merged into the campaign, and the
   # shard artifacts (kept 3 days) are still on this run for a manual re-run of the failed jobs.
   publish:
-    needs: [plan, analyze]
+    needs: [plan, roster, analyze]
     if: >-
-      !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.wave != '0' &&
+      !cancelled() && needs.plan.result == 'success' && needs.roster.result == 'success' && needs.roster.outputs.wave != '0' &&
       contains(fromJSON('["success","failure"]'), needs.analyze.result) && needs.analyze.outputs.ready == 'true'
     runs-on: ubuntu-latest
     permissions:

@@ -53,7 +53,7 @@ actually preparing a submission-candidate tarball, not on every push.
    hosts are outside any sandboxed network allowlist).
 1a. **Algorithm-audit gate.** No open `algorithm-audit-drift` issue and no
    row past its max age (the monthly drift check's output; see
-   `../new_feature_plans/algorithm_audit_runbook.md`). Run
+   `../new_feature_plans/v1_0_5/algorithm_audit_runbook.md`). Run
    `python3 .github/scripts/algorithm_audit_drift.py --release-gate` (needs
    `gh auth login`; exit 0 = pass, 1 = fail, 2 = could not be determined, which
    is not a pass). Do this before step 7. It also covers a failed drift

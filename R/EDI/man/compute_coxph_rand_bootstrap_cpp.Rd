@@ -33,7 +33,7 @@ samples only when censoring times share the accelerated clock. Note that \eqn{\d
 is a log time-ratio while the returned \eqn{\hat\beta_T} is a log hazard ratio; the
 two coincide only under a parametric link the Cox model does not supply (see
 \code{InferenceSurvivalStratCoxPHRegr}'s refusal of the randomization CI and
-\code{package_metadata/new_feature_plans/randomization_ci_construction_audit.md}).}
+\code{package_metadata/new_feature_plans/v1_0_5/randomization_ci_construction_audit.md}).}
 
 \item{num_cores}{Number of OpenMP threads to use for parallelizing across draws
 (ignored, and draws run sequentially, when the package is built without OpenMP

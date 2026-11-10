@@ -3,6 +3,7 @@
 "public_workflow_coverage","smoke","generate_covariate_dataset","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_bootstrap_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_cold_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","get_inference_procedure_validity","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_parallel_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_warm_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","InferenceAllKKMeanDiffIVWC","exempted","InferenceAllKKMeanDiffIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA

@@ -2,7 +2,7 @@
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required.")
 }
-pkgload::load_all("EDI", quiet = TRUE)
+pkgload::load_all("EDI", compile = FALSE, quiet = TRUE)
 library(EDI)
 library(data.table)
 
