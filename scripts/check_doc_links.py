@@ -147,6 +147,46 @@ def check_internal(md_file: Path, target: str) -> str | None:
     return None
 
 
+# Links into this repo's own main branch (README_PYPI.md must use absolute
+# URLs, since PyPI renders it outside the repo). Checking them over HTTP asks
+# GitHub's CURRENT main, which lags the push being verified: a doc linking a
+# file that this very push adds or moves 404s until the push lands (seen
+# 2026-11-11 for finished_features/v1_0_0/python_bindings_package_spec.md).
+# So verify them against HEAD's tree -- exactly what the push will publish.
+SELF_REPO_MAIN_RE = re.compile(
+    r"^https?://github\.com/kapelner/EDI/(?:blob|tree)/main(?:/([^?#]*))?/?(?:[?#].*)?$"
+)
+_HEAD_PATHS: set[str] | None = None
+
+
+def head_paths() -> set[str]:
+    """Every file and directory path in HEAD's tree (cached)."""
+    global _HEAD_PATHS
+    if _HEAD_PATHS is None:
+        files = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-tree", "-r", "--name-only", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.splitlines()
+        paths = set(files)
+        for f in files:
+            parts = f.split("/")
+            for i in range(1, len(parts)):
+                paths.add("/".join(parts[:i]))
+        _HEAD_PATHS = paths
+    return _HEAD_PATHS
+
+
+def check_self_repo_main(url: str) -> str | None:
+    """None if the self-repo main link's path exists in HEAD, else an error."""
+    m = SELF_REPO_MAIN_RE.match(url)
+    if not m:
+        raise ValueError("not a self-repo main link")
+    path = strip_line_suffix(urllib.parse.unquote(m.group(1) or "")).rstrip("/")
+    if not path or path in head_paths():
+        return None
+    return f"not in HEAD's tree (what this push publishes to main): {path}"
+
+
 # A plain-python User-Agent gets a blanket 403 from academic publishers
 # (ScienceDirect, ACS, ResearchGate, ...) regardless of whether the page
 # exists -- impersonate a browser so a 403 carries more signal.
@@ -329,6 +369,11 @@ def collect(report_external: bool):
             target = m.group(1).strip()
             if not target or target.startswith("mailto:"):
                 continue
+            if SELF_REPO_MAIN_RE.match(target):
+                err = check_self_repo_main(target)
+                if err:
+                    internal_broken.append((md_file, target, err))
+                continue
             if target.startswith("http://") or target.startswith("https://"):
                 external_targets.setdefault(target, []).append((md_file, target))
                 continue
@@ -338,6 +383,11 @@ def collect(report_external: bool):
 
     for r_file in roxygen_files():
         for url in roxygen_external_urls(r_file):
+            if SELF_REPO_MAIN_RE.match(url):
+                err = check_self_repo_main(url)
+                if err:
+                    internal_broken.append((r_file, url, err))
+                continue
             external_targets.setdefault(url, []).append((r_file, url))
 
     external_broken: list[tuple[Path, str, str]] = []

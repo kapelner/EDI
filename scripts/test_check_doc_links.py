@@ -64,5 +64,35 @@ class ExternalLinkTests(unittest.TestCase):
         self.assertEqual(warning, "")
 
 
+
+class SelfRepoMainLinkTests(unittest.TestCase):
+    """Links into this repo's main are checked against HEAD, not GitHub,
+    so a file added or moved by the push being verified does not 404."""
+
+    base = "https://github.com/kapelner/EDI"
+
+    def setUp(self):
+        patcher = patch.object(checker, "_HEAD_PATHS", {"python", "python/README.md", "R", "R/EDI"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_matches_only_this_repos_main(self):
+        self.assertTrue(checker.SELF_REPO_MAIN_RE.match(self.base + "/blob/main/python/README.md"))
+        self.assertTrue(checker.SELF_REPO_MAIN_RE.match(self.base + "/tree/main/python"))
+        self.assertIsNone(checker.SELF_REPO_MAIN_RE.match(self.base + "/blob/v1.0.0/python/README.md"))
+        self.assertIsNone(checker.SELF_REPO_MAIN_RE.match(self.base + "/issues/3"))
+        self.assertIsNone(checker.SELF_REPO_MAIN_RE.match("https://github.com/other/EDI/blob/main/x"))
+
+    def test_existing_file_and_directory_pass(self):
+        self.assertIsNone(checker.check_self_repo_main(self.base + "/blob/main/python/README.md#install"))
+        self.assertIsNone(checker.check_self_repo_main(self.base + "/blob/main/python/README.md#L10-L20"))
+        self.assertIsNone(checker.check_self_repo_main(self.base + "/tree/main/R/EDI/"))
+        self.assertIsNone(checker.check_self_repo_main(self.base + "/tree/main"))
+
+    def test_missing_path_is_reported(self):
+        err = checker.check_self_repo_main(self.base + "/blob/main/python/MISSING.md")
+        self.assertIn("python/MISSING.md", err)
+
+
 if __name__ == "__main__":
     unittest.main()
