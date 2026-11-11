@@ -1696,7 +1696,8 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 	is_debug_distribution = grepl("_debug$", function_run)
 	result_2 = if ((grepl("confidence_interval", function_run, fixed = TRUE) || is_debug_distribution) && length(result_vec) >= 2) round_result_field(result_vec[2]) else NA_character_
 	beta_T_in_confidence_interval = NA
-	coverage_truth = beta_T
+	# No truth away from the null (see get_coverage_truth()).
+	coverage_truth = if (isTRUE(as.numeric(beta_T) == 0)) 0 else NA_real_
 	base_inference_class = sub(" [\\(\\[].*$", "", inference_class)
 	has_closed_form_coverage_truth =
 		exists("COVERAGE_CLOSED_FORM", inherits = TRUE) &&
@@ -3612,6 +3613,10 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 # is negligible and the fitted coefficient is the "least false"/KL-projection parameter that a
 # correctly-behaving CI should cover at the nominal rate, even under model misspecification.
 .coverage_truth_cache = new.env(parent = emptyenv())
+# FALSE since 2026-11-11 (see get_coverage_truth()): the runner grades coverage
+# and MSE at the null only, where no simulation is needed. Kept as a switch so
+# the MC machinery and its tests stay usable; the runner never sets it TRUE.
+COVERAGE_MC_TRUTH_ENABLED = FALSE
 # Keys whose MC truth failed every attempt in this run. A failure is not
 # cached as a value (callers keep getting NA), but without remembering it
 # get_coverage_truth() reran all max_mc_attempts simulations on every call.
@@ -4087,6 +4092,21 @@ get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
 	if (coverage_truth_unavailable(inference_class)) return(NA_real_)
+	# Owner decision 2026-11-11: coverage and MSE are graded at beta_T = 0 only.
+	# Away from the null each class estimates its own quantity (a pair-conditional
+	# vs covariate-conditional log odds ratio, a marginal vs conditional hazard
+	# ratio, ...), and the Monte Carlo truths below kept being the bug rather than
+	# the estimator (QuantileRegr 2026-09-22, KKStratCoxPH TODO-32, the
+	# KKCondLogitGLMMOneLik real-covariate truth that is non-estimable on
+	# DesignFixedBinaryMatch, 2026-11-11). So there is no truth at beta_T != 0.
+	# At beta_T = 0 the data generator applies the same noise to both arms, so the
+	# sharp null holds and every estimand sits at its null value: the closed form
+	# where one exists (1 for the risk-ratio classes, 0 for differences and log
+	# ratios), else 0 -- the rule the calibration study uses
+	# (calibration_fast_tier_common.R, cal_null_value()). The COVERAGE_MC_SPEC
+	# simulation below is no longer reached from the runner.
+	mc_truth_enabled = isTRUE(get0("COVERAGE_MC_TRUTH_ENABLED", ifnotfound = FALSE))
+	if (!mc_truth_enabled && !isTRUE(as.numeric(beta_T_val) == 0)) return(NA_real_)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
 	# InferenceAllSimpleMeanDiffPooledVar computes the identical mean-
 	# difference estimand (yT_bar - yC_bar) as InferenceAllSimpleAverageDiff
@@ -4102,6 +4122,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 	if (!is.null(closed_form_fn)) {
 		return(tryCatch(closed_form_fn(dataset_name, beta_T_val), error = function(e) beta_T_val))
 	}
+	if (!mc_truth_enabled) return(0)
 	spec = get_coverage_mc_spec(base_class, response_type_hint)
 	if (!is.null(spec)) {
 		# TODO-32 (mc_coverage_truth_covariate_mismatch.md): the MC fit below
@@ -4301,6 +4322,10 @@ precompute_screen_estimate_theta_cache = function(){
 get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val, response_type_hint){
 	base_class = estimate_logging_theta_base_class(inference_class)
 	if (coverage_truth_unavailable(inference_class)) return(NA_real_)
+	# Null-only truth (2026-11-11): get_coverage_truth() is instant now.
+	if (!isTRUE(get0("COVERAGE_MC_TRUTH_ENABLED", ifnotfound = FALSE))) {
+		return(get_coverage_truth(inference_class, dataset_name, beta_T_val, response_type_hint))
+	}
 	screen_key = screen_estimate_theta_key(base_class, dataset_name, beta_T_val, response_type_hint)
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))

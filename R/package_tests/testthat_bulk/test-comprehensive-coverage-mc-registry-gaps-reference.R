@@ -27,6 +27,8 @@ registry_fixture <- function() {
 	))
 	e$.coverage_truth_cache <- new.env(parent = emptyenv())
 	e$.coverage_truth_failed <- new.env(parent = emptyenv())
+	# These tests cover the Monte Carlo truth path, off in the runner since 2026-11-11.
+	e$COVERAGE_MC_TRUTH_ENABLED <- TRUE
 	e$.screen_estimate_theta_cache <- new.env(parent = emptyenv())
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC stub not installed")
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"

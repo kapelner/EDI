@@ -128,8 +128,8 @@ jobs:
         run: |
           echo "::error title=Calibration CI bug::Starting or continuing the campaign failed: a bug in the check (or an unknown campaign id), not a calibration result."
 
-  # Compile EDI once per commit and share it with every shard and every wave of the
-  # campaign (cache keyed by the pinned commit; same EDI_PORTABLE rationale as
+  # Compile EDI once per commit and runner OS and share it with every shard and every wave of the
+  # campaign (cache keyed by the pinned commit and ImageOS; same EDI_PORTABLE rationale as
   # test-bulk-non-cran.yml's build job).
   build:
     needs: plan
@@ -140,11 +140,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
+      # EDI's compiled library, keyed by the campaign's commit and the runner OS (ImageOS, e.g. ubuntu24 / ubuntu26;
+      # owner ruling 2026-11-11): one build per OS, so a binary built on a newer OS never runs on an older one during
+      # GitHub's image rollout. Not ImageVersion: it changes with routine image updates and would recompile mid-campaign.
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=calibration-study-edi-${ImageOS:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
       - id: cache
         uses: actions/cache@v5
         with:
           path: .edi-install-scratch
-          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
+          key: ${{ steps.edikey.outputs.key }}
       # The shards' R runtime (owner ruling 2026-11-11): R itself (/opt/R/<version>, as a tar, since /opt is root-owned)
       # and the R package library, cached once per runner image and pinned commit, so a shard restores it in seconds
       # instead of running setup-r (~40 s) and setup-r-dependencies (~44 s). Keyed by the runner image (ImageOS,
@@ -232,11 +238,25 @@ jobs:
         with:
           working-directory: R/EDI
           dependencies: '"all"'
-      - uses: actions/cache/restore@v5
+      # EDI's compiled library, keyed by the campaign's commit and the runner OS (ImageOS, e.g. ubuntu24 / ubuntu26;
+      # owner ruling 2026-11-11): one build per OS, so a binary built on a newer OS never runs on an older one during
+      # GitHub's image rollout. Not ImageVersion: it changes with routine image updates and would recompile mid-campaign.
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=calibration-study-edi-${ImageOS:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      # Restore and save: on a miss (this runner's OS differs from the build job's during a rollout) the job compiles EDI
+      # itself below and saves it under this OS's key, so later jobs on this OS hit.
+      - id: edic
+        uses: actions/cache@v5
         with:
           path: .edi-install-scratch
-          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
-          fail-on-cache-miss: true
+          key: ${{ steps.edikey.outputs.key }}
+      - name: Compile EDI for this runner OS (no cached build for it)
+        if: steps.edic.outputs.cache-hit != 'true'
+        run: |
+          echo "::warning title=Calibration setup::no cached EDI build for ${ImageOS:-this OS}; compiling it here (once per OS)."
+          mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
+          MAKEFLAGS="-j$(nproc --all)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
       - name: Use the pre-built library
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
@@ -316,12 +336,19 @@ jobs:
         with:
           ref: ${{ needs.plan.outputs.sha }}
       # The build job's cache entry (same key); it saved when that job ended, which
-      # was before any shard started.
-      - uses: actions/cache/restore@v5
+      # was before any shard started. EDI's compiled library, keyed by the campaign's commit and the runner OS (ImageOS, e.g. ubuntu24 / ubuntu26;
+      # owner ruling 2026-11-11): one build per OS, so a binary built on a newer OS never runs on an older one during
+      # GitHub's image rollout. Not ImageVersion: it changes with routine image updates and would recompile mid-campaign.
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=calibration-study-edi-${ImageOS:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      # Restore and save: on a miss (this runner's OS differs from the build job's during a rollout) the job compiles EDI
+      # itself below and saves it under this OS's key, so later jobs on this OS hit.
+      - id: edic
+        uses: actions/cache@v5
         with:
           path: .edi-install-scratch
-          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
-          fail-on-cache-miss: true
+          key: ${{ steps.edikey.outputs.key }}
       # The R runtime the build job cached (see there). Used only if it restores, R starts, EDI loads and no shared
       # object in R or the library is missing a system library (ldd); otherwise the normal setup below runs, with a
       # warning, so a bad cache costs time, never results.
@@ -348,7 +375,10 @@ jobs:
             echo "::warning title=Calibration setup::cached R runtime is missing system libraries; using the normal setup: $(echo "$missing" | head -5 | tr '\n' ' ')"
             exit 1
           fi
-          R_LIBS_USER="$lib" R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch" "$bin/Rscript" -e 'suppressPackageStartupMessages(library(EDI)); cat("EDI", format(packageVersion("EDI")), "loads\n")'
+          # EDI is absent on an EDI cache miss (it is compiled after this step); then check that R starts.
+          chk='suppressPackageStartupMessages(library(EDI)); cat("EDI", format(packageVersion("EDI")), "loads\n")'
+          [ -d "$GITHUB_WORKSPACE/.edi-install-scratch/EDI" ] || chk='cat("R", format(getRversion()), "starts\n")'
+          R_LIBS_USER="$lib" R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch" "$bin/Rscript" -e "$chk"
           echo "$bin" >> "$GITHUB_PATH"
           { echo "R_LIBS_USER=$lib"; echo "TZ=UTC"; echo "_R_CHECK_SYSTEM_CLOCK_=FALSE"; } >> "$GITHUB_ENV"
           echo "ok=true" >> "$GITHUB_OUTPUT"
@@ -364,6 +394,12 @@ jobs:
         with:
           working-directory: R/EDI
           dependencies: '"all"'
+      - name: Compile EDI for this runner OS (no cached build for it)
+        if: steps.edic.outputs.cache-hit != 'true'
+        run: |
+          echo "::warning title=Calibration setup::no cached EDI build for ${ImageOS:-this OS}; compiling it here (once per OS)."
+          mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
+          MAKEFLAGS="-j$(nproc --all)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
       - name: Use the pre-built library
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"

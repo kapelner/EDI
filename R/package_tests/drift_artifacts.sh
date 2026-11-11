@@ -90,6 +90,10 @@ case "${1:-}" in
 		# CI's clean checkout (see read_comprehensive_results() in
 		# audit_comprehensive_suite_baseline.R).
 		export EDI_DRIFT_TRACKED_INPUTS_ONLY=1
+		# Skip the saved-tuning import (and its "fastest at N cores" startup
+		# notice in every generator). scripts/pre-push exports this too, but
+		# gitpush_with_hooks_safe.sh runs this regenerate before git push.
+		export EDI_SKIP_LOCAL_TUNING=1
 		for g in "${generators[@]}"; do
 			echo ">>> Rscript package_tests/$g"
 			# shellcheck disable=SC2086  # intentional word-splitting: "<script> <arg>"

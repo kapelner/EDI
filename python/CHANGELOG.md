@@ -35,15 +35,45 @@ or permutation function is exposed in Python.
   sampling variability, so it was too small. It now matches the R class
   `InferenceOrdinalRidit`. Standard errors (and any interval built from them)
   get larger; the estimate is unchanged.
-- `fast_gee`: the exchangeable correlation estimate matches geepack's
-  Pearson dispersion correction, is clamped to +/-0.95, and no longer
-  changes when all weights are rescaled together. Estimates move.
+- `gee_pairs_singletons`: the exchangeable correlation estimate now uses
+  geepack's Pearson dispersion correction and degrees-of-freedom
+  denominators, and no longer changes when all weights are rescaled
+  together. Estimates move.
+- `fast_poisson_glmm`: the default `n_gh` (Gauss-Hermite nodes) is now 60
+  (was 20), so default results move. The cold start adds a fixed-effects
+  Poisson fit as a further start, and an error is raised if no start gives a
+  finite fit.
+- `get_survival_stat_diff(..., "restricted_mean")`: both arms are now
+  integrated to a shared horizon, the smaller of the two arms' largest
+  times. Before, each arm was integrated to its own last time, so the
+  estimate changes whenever the arms' follow-up differs.
+- `fast_log_binomial_regression` and `fast_identity_binomial_regression`
+  (and their `_with_var` variants): the IRLS solver handles the
+  mean-support boundary properly. Rows at the boundary are held fixed in the
+  step, a step that line-search halving shrank to nothing no longer counts
+  as convergence, and near the boundary `converged=True` requires the KKT
+  conditions to hold. The identity link damps cycling after 20 iterations.
+  Two new result fields: `kkt_converged` and `n_active_bounds`. Interior fits
+  are unchanged; boundary fits move or now report `converged=False` where
+  they used to report `True`.
+- `fast_zinb_with_var`: a new `covariance_type` result field says how the
+  covariance was formed (`"pseudo_inverse_identified_coordinates"` for a
+  singular information block, `"observed_conditional_on_*_boundary"` at a
+  boundary fit).
+- `optimization_alg="newton_raphson"` (any kernel): a fit whose line search
+  stalls at an optimum, with a gradient small relative to the Hessian scale,
+  is now reported as `converged=True`. It used to be `False`.
 - Warm starts are validated: a `warm_start_beta`, `warm_start_params` or
-  `warm_start_fisher_info` of the wrong length (or non-finite) now raises an
-  error instead of being silently ignored. This covers the beta, Cox, GEE,
-  zero-inflated negative binomial, zero-augmented Poisson and ordinal
-  kernels. `fast_coxph_regression` also now passes `warm_start_fisher_info`
-  through to the optimizer.
+  `warm_start_fisher_info` of the wrong length or shape (or non-finite) now
+  raises an error instead of being silently ignored. This covers nearly
+  every kernel that takes one: linear, logistic, probit, Poisson, negative
+  binomial, log- and identity-binomial, beta, zero/one-inflated beta,
+  zero-inflated negative binomial, zero-augmented Poisson, the hurdle models,
+  the ordinal models (including stereotype), Cox, general Weibull, Weibull
+  frailty, the Gaussian LMM, the Poisson, logistic, ordinal and hurdle
+  Poisson GLMMs, `fast_clogit_plus_glmm`, `fast_cpoisson_combined`, GEE and
+  the dependent-censoring transform. `fast_coxph_regression` also now passes
+  `warm_start_fisher_info` through to the optimizer.
 - `fixed_idx` / `fixed_values` are validated up front (length mismatch and
   out-of-range indices raise) in the kernels that accept them. Indices are
   1-based, as the corrected docstrings now say.
@@ -57,17 +87,43 @@ or permutation function is exposed in Python.
   kernels.
 - `fast_logistic_glmm`: the Hessian entry for `log_sigma` applied `sigma`
   twice.
-- `fast_zinb_with_var`, `fast_zero_augmented_poisson_with_var` and
-  `fast_beta_regression`: a singular or non-finite free information block now
-  returns a `NaN` covariance and `information_invertible = False` instead of
-  inverting blindly. `fast_zinb` runs this check on every fit, not only at
-  boundary estimates.
+- `fast_zero_augmented_poisson_with_var`: a singular or non-finite free
+  information block now returns a `NaN` covariance and
+  `information_invertible = False` instead of inverting blindly.
+  `fast_zinb_with_var` sets `information_invertible = False` too, but returns
+  a pseudo-inverse: only the coordinates the data cannot identify are `NaN`
+  (see `covariance_type` above).
+- `fast_coxph_regression` and `fast_stratified_coxph_regression`: the risk-set
+  sums are accumulated from the end. The old running difference cancelled to
+  rounding noise when one subject dominated, which gave wrong
+  log-likelihoods. Newton-Raphson (the Python default) now refuses a step
+  that does not lower the negative log-likelihood. A fit could previously
+  diverge and still report `converged=True`.
+- `fast_probit_regression`: a fit with a row whose linear predictor is past
+  the +/-8 clamp on the wrong side of its outcome now reports
+  `converged=False`. Such saturated fits used to report convergence with a
+  zero gradient.
+- Ordinal kernels (`fast_ordinal_regression`, the probit, cauchit and cloglog
+  variants, `fast_adjacent_category_logit`,
+  `fast_continuation_ratio_regression`): when a non-binary covariate is badly
+  scaled, a fit that fails a Newton-decrement check is reported as
+  `converged=False` rather than converged. Estimates are never changed, and
+  fits with well-scaled covariates are identical.
+- `fast_dep_cens_transform_optim`: the gradient for `atanh(rho)` is zeroed at
+  its +/-3 clamp. L-BFGS used to keep pushing on that flat coordinate, fail
+  and return `NaN` (about 19% of bootstrap-like resamples).
+- `fast_robust_regression`: non-finite values in `X` or `y` now raise
+  `ValueError` instead of silently returning zero coefficients.
+- `fast_weibull_regression_general`: the smart cold start used a mistyped
+  Euler constant (0.5722 instead of 0.5772). Only the starting values change.
 
 ### Documentation
 
 - Docstrings and the `.pyi` stubs describe the ridit orientation, the
   Clayton `log_theta` cap, `information_invertible`, and the 1-based
-  `fixed_idx` convention.
+  `fixed_idx` convention. The `.pyi` stub now shows `fast_poisson_glmm`'s
+  `n_gh = 60` default, and the `fast_zinb_with_var` docstring describes its
+  pseudo-inverse covariance.
 
 ### Packaging and build
 

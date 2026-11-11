@@ -32,6 +32,8 @@ truth_fixture <- function() {
 	)))
 	e$.coverage_truth_cache <- new.env(parent = emptyenv())
 	e$.coverage_truth_failed <- new.env(parent = emptyenv())
+	# These tests cover the Monte Carlo truth path, off in the runner since 2026-11-11.
+	e$COVERAGE_MC_TRUTH_ENABLED <- TRUE
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"
 	e$InferenceAllSimpleWilcox <- "wilcox-generator"
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC truth was not stubbed by this test")

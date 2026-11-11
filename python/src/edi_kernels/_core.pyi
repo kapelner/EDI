@@ -966,7 +966,7 @@ def fast_pchisq_upper(statistic: typing.Annotated[numpy.typing.NDArray[numpy.flo
     """
     Vectorized (elementwise) overload of fast_pchisq_upper.
     """
-def fast_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_id: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], j_T: typing.SupportsInt | typing.SupportsIndex, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, n_gh: typing.SupportsInt | typing.SupportsIndex = 20, maxit: typing.SupportsInt | typing.SupportsIndex = 300, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-06, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, row_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None) -> dict:
+def fast_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_id: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], j_T: typing.SupportsInt | typing.SupportsIndex, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, n_gh: typing.SupportsInt | typing.SupportsIndex = 60, maxit: typing.SupportsInt | typing.SupportsIndex = 300, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-06, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, row_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None) -> dict:
     """
     Fit a Poisson GLMM with a random intercept via Gauss-Hermite quadrature + L-BFGS. No R-side roxygen documents this raw kernel directly (fast_poisson_glmm.cpp has none); shared adaptive-quadrature parameter meanings (group_id/j_T/n_gh/etc.) are grounded in R/EDI/man/ documentation for the sibling fast_ordinal_glmm_cpp, which uses the same GLMM engine.
     
@@ -988,7 +988,7 @@ def fast_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
         if a warm start is provided.
     estimate_only : bool, default False
         If True, skip variance-component calculations.
-    n_gh : int, default 20
+    n_gh : int, default 60
         Number of Gauss-Hermite quadrature nodes used to integrate out the random
         intercept.
     maxit : int, default 300
@@ -1446,7 +1446,7 @@ def fast_zinb(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"
     """
 def fast_zinb_with_var(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], Xz: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, maxit: typing.SupportsInt | typing.SupportsIndex = 1000, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', smart_cold_start: bool = True, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast zero-inflated negative binomial regression with full vcov (params order: [beta_cond, beta_zi, log_theta]). Always computes the variance -- fast_zinb is the dedicated point-estimate-only backend. The information_invertible result is False and vcov is NaN when the free information block is singular or non-finite. Same argument meanings as fast_zinb (see its docstring); Xc/Xz correspond to R/EDI/man/'s fast_zinb_cpp X/Xzi.
+    Fast zero-inflated negative binomial regression with full vcov (params order: [beta_cond, beta_zi, log_theta]). Always computes the variance -- fast_zinb is the dedicated point-estimate-only backend. The information_invertible result is False when the free information block is singular or non-finite; vcov is then a pseudo-inverse with NaN in the coordinates the data cannot identify, and covariance_type says how vcov was formed. Same argument meanings as fast_zinb (see its docstring); Xc/Xz correspond to R/EDI/man/'s fast_zinb_cpp X/Xzi.
     
     Parameters
     ----------

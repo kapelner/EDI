@@ -68,18 +68,10 @@
 #                        degrades under heavy contamination). Combined into
 #                        ONE p-value per cell via ACAT (ref: pval_miscalibration
 #                        below), FDR-controlled (Benjamini-Hochberg, q=0.05)
-#                        across every cell, its own family. Truth is
-#                        `coverage_truth` when present -- the harness's own
-#                        truth-scale value, e.g. 1 for a risk ratio's null,
-#                        not raw beta_T -- falling back to beta_T otherwise.
-#                        Pooled across beta_T/design like every other check
-#                        here, so a bias present at either beta_T=0 or
-#                        beta_T!=0 shows up; a class whose truth scale
-#                        differs from beta_T but has no coverage_truth
-#                        override will false-positive here -- if that's the
-#                        cause, the fix is adding the override, not
-#                        accepting an unrelated estimator bug into the
-#                        baseline.
+#                        across every cell, its own family. Graded at
+#                        beta_T=0 only (owner decision 2026-11-11), against
+#                        the null value: 1 for a risk ratio, else 0 (see
+#                        null_truth()). Rows at beta_T!=0 have no truth.
 #   pval_miscalibration  >= 30 ok *_two_sided_pval rows at beta_T=0 (a true
 #                        null on any scale), tested four ways on the SAME
 #                        per-cell p-value vector: (a) rejection rate at
@@ -324,6 +316,16 @@ bh_reject = function(p, q) {
 # response_type file before FDR is applied (see below the loop) --
 # Benjamini-Hochberg needs the full set of tests in its family to compute
 # the right threshold, not just one file's.
+# Coverage and bias are graded at beta_T = 0 only (owner decision 2026-11-11, see
+# comprehensive_tests.R get_coverage_truth()): there every estimand sits at its
+# null value, 1 for the risk-ratio classes and 0 otherwise. NA away from the null,
+# so those rows drop out of both checks (power has no truth to need).
+RISK_RATIO_SCALE_CLASSES = c("InferenceIncidGCompRiskRatio", "InferenceIncidKKGCompRiskRatio")
+null_truth = function(class, beta_T) {
+	b = suppressWarnings(as.numeric(beta_T))
+	fifelse(is.finite(b) & b == 0, fifelse(class %in% RISK_RATIO_SCALE_CLASSES, 1, 0), NA_real_)
+}
+
 audit_one = function(path, rt) {
 	need = c("inference_class", "function_run", "status", "result", "result_1", "result_2",
 		"beta_T", "coverage_truth", "beta_T_in_confidence_interval", "error_message")
@@ -401,7 +403,7 @@ audit_one = function(path, rt) {
 	ci_attempts[, `:=`(
 		lo = suppressWarnings(as.numeric(result_1)),
 		hi = suppressWarnings(as.numeric(result_2)),
-		truth = suppressWarnings(as.numeric(coverage_truth))
+		truth = null_truth(class, beta_T)
 	)]
 	ci = ci_attempts[status == "ok"]
 	fin = ci[is.finite(lo) & is.finite(hi)]
@@ -424,9 +426,11 @@ audit_one = function(path, rt) {
 	ci_cov = ci_attempts[is.finite(truth)]
 	coverage_attempts = if (nrow(ci_cov)) {
 		ci_cov[, {
-			invalid = status != "ok" | !is.finite(lo) | !is.finite(hi) | lo > hi |
-				is.na(beta_T_in_confidence_interval)
-			covered = !invalid & as.logical(beta_T_in_confidence_interval)
+			# Recomputed against the null value, not the stored
+			# beta_T_in_confidence_interval: rows from before 2026-11-11 stored it
+			# against a Monte Carlo truth (e.g. 0.0188 at beta_T = 0).
+			invalid = status != "ok" | !is.finite(lo) | !is.finite(hi) | lo > hi
+			covered = !invalid & lo <= truth & truth <= hi
 			n_attempted = .N
 			n_covered = sum(covered)
 			n_invalid = sum(invalid)
@@ -451,7 +455,7 @@ audit_one = function(path, rt) {
 
 	# --- bias candidates ---
 	est = dt[status == "ok" & function_run %in% c("compute_estimate", "compute_jackknife_estimate")]
-	est[, `:=`(est_val = suppressWarnings(as.numeric(result)), truth = fifelse(is.na(coverage_truth), beta_T, coverage_truth))]
+	est[, `:=`(est_val = suppressWarnings(as.numeric(result)), truth = null_truth(class, beta_T))]
 	est = est[is.finite(est_val) & is.finite(truth)]
 	bias_tbl = data.table()
 	if (nrow(est)) {
