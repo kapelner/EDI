@@ -65,13 +65,17 @@
 #   Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR \
 #     [--canonical-dir R/package_tests] [--canonical-nc N] [--expect-keys FILE] \
 #     [--receipt FILE] [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] \
-#     [--out-dir DIR] [--allow-no-receipt] [--apply]
+#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--apply]
 # --expect-keys: one id per line, or a CSV with an `id` column.
 # --canonical-nc: send new keys of an nc_<k> slice to the nc_<N> unfiltered file
 #   (the id does not contain num_cores; the audits and pruner read nc_1 only).
 # --target-file: skip the search and reconcile every slice row against this one
 #   results CSV (e.g. to compare with a single reference file).
 # --report-dir: where the report goes (default: the slice dir); never the checkout.
+# --accept-dll-change SHA256: downgrade "DLL changed during the run" to a warning
+#   (works with --apply) when the run started on exactly this DLL. Use only when the
+#   owner confirms the mid-run reinstall rebuilt the same source; the after-DLL must
+#   still equal the installed one.
 # --installed-dll: the native library to compare the sidecar's DLL hash with
 #   (default: <find.package("EDI")>/libs/EDI.so; the package is not loaded).
 # Exit: 0 clean (dry run without blocking issue, or applied), 1 blocking issue,
@@ -88,7 +92,7 @@ source(file.path(here, "comprehensive_beta_filter.R"), local = TRUE)
 usage_text = paste(
 	"usage: Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR",
 	"  [--canonical-dir DIR] [--canonical-nc N] [--expect-keys FILE] [--receipt FILE]",
-	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--apply]",
+	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--apply]",
 	sep = "\n"
 )
 usage_exit = function(msg) {
@@ -104,9 +108,10 @@ parse_exit = function(msg) {
 args = commandArgs(trailingOnly = TRUE)
 opts = list(slice_dir = NA_character_, canonical_dir = here, canonical_nc = NA_character_,
 	expect_keys = NA_character_, receipt = NA_character_, report_dir = NA_character_,
-	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_)
+	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_,
+	accept_dll_change = NA_character_)
 flags = c(apply = FALSE, allow_no_receipt = FALSE)
-value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir")
+value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change")
 seen = character()
 i = 1L
 while (i <= length(args)) {
@@ -130,6 +135,7 @@ if (is.na(opts$slice_dir)) usage_exit("--slice-dir is required")
 if (!dir.exists(opts$slice_dir)) usage_exit(paste0("--slice-dir is not a directory: ", opts$slice_dir))
 if (!dir.exists(opts$canonical_dir)) usage_exit(paste0("--canonical-dir is not a directory: ", opts$canonical_dir))
 if (flags[["apply"]] && flags[["allow_no_receipt"]]) usage_exit("--allow-no-receipt is for dry runs only; it is refused with --apply")
+if (!is.na(opts$accept_dll_change) && !grepl("^[0-9a-fA-F]{64}$", opts$accept_dll_change)) usage_exit("--accept-dll-change takes the 64-hex sha256 of the DLL the run started on")
 if (!is.na(opts$canonical_nc) && !grepl("^[0-9]+$", opts$canonical_nc)) usage_exit("--canonical-nc must be a positive integer")
 if (!is.na(opts$expect_keys) && !file.exists(opts$expect_keys)) usage_exit(paste0("--expect-keys file not found: ", opts$expect_keys))
 if (!is.na(opts$receipt) && !file.exists(opts$receipt)) usage_exit(paste0("--receipt file not found: ", opts$receipt))
@@ -301,7 +307,14 @@ for (sf in slice_files) {
 			if (!is.list(p) || !identical(as.integer(p$schema_version), 2L)) { block("sidecar ", basename(sc), " is not a schema-v2 provenance sidecar"); next }
 			dll_after = p$after$edi_dll_sha256; dll_before = p$before$edi_dll_sha256
 			sidecar_lines = c(sidecar_lines, sprintf("  %s: dll=%s (%s) head=%s completed=%s", basename(sc), dll_after, p$after$edi_dll_path, p$after$checkout_head, p$completed_at_utc))
-			if (!identical(dll_before, dll_after)) block("sidecar ", basename(sc), ": DLL changed during the run (before ", dll_before, ", after ", dll_after, ")")
+			if (!identical(dll_before, dll_after)) {
+				msg = paste0("sidecar ", basename(sc), ": DLL changed during the run (before ", dll_before, ", after ", dll_after, ")")
+				# --accept-dll-change <before sha>: the owner confirmed the reinstall rebuilt the same
+				# source; accepted only for that exact starting DLL.
+				if (!is.na(opts$accept_dll_change) && identical(tolower(dll_before), tolower(opts$accept_dll_change))) {
+					warn(msg, " [accepted by --accept-dll-change: owner confirmed same source]")
+				} else block(msg)
+			}
 			if (is.na(installed_dll_sha)) {
 				block("cannot hash the installed EDI native library (", installed_dll, ") to compare with sidecar ", basename(sc))
 			} else if (!identical(tolower(dll_after), tolower(installed_dll_sha))) {

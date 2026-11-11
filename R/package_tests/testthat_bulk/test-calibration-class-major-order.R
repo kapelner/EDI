@@ -202,7 +202,11 @@ test_that("the workflow's job graph is plan -> build -> roster -> shards -> anal
 	expect_true(any(grepl("matrix: ${{ steps.plan.outputs.matrix }}", block("roster"), fixed = TRUE)))
 	expect_true(any(grepl("fromJSON(needs.roster.outputs.matrix)", block("shards"), fixed = TRUE)))
 	expect_true(any(grepl("build_calibration_study_roster.R", block("roster"), fixed = TRUE)))
-	expect_true(any(grepl("fail-on-cache-miss", block("roster"), fixed = TRUE)))
+	# The EDI build cache is keyed per runner OS; on a miss (an image rollout) roster compiles EDI itself rather than
+	# failing (owner ruling 2026-11-11, d05eee79; it used to be fail-on-cache-miss).
+	expect_false(any(grepl("fail-on-cache-miss", block("roster"), fixed = TRUE)))
+	expect_true(any(grepl("calibration-study-edi-${ImageOS:-unknown}-", block("roster"), fixed = TRUE)))
+	expect_true(any(grepl("if: steps.edic.outputs.cache-hit != 'true'", block("roster"), fixed = TRUE)))
 	# A failing roster job is a check bug, never a statistical failure; a roster failure stops analyze and publish.
 	expect_true(any(grepl("Calibration CI bug", block("roster"), fixed = TRUE)))
 	expect_true(any(grepl("needs.roster.result == 'success'", block("analyze"), fixed = TRUE)))

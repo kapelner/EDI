@@ -158,7 +158,7 @@ jobs:
       # shard on another image misses and falls back to the normal setup.
       - name: Runtime cache key
         id: rtkey
-        run: echo "key=calibration-study-runtime-v1-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=calibration-study-runtime-v2-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
       - id: rt
         uses: actions/cache@v5
         with:
@@ -187,6 +187,18 @@ jobs:
           sudo chown "$(id -u):$(id -g)" .r-runtime/r.tar
           cp -a "$R_LIBS_USER/." .r-runtime/Library/
           echo "$ver" > .r-runtime/R_VERSION
+          # The apt packages owning the system libraries R and the packages link against (BLAS/LAPACK, gsl, glpk, ...):
+          # setup-r and setup-r-dependencies installed them here, a fresh shard runner lacks some, so the shard installs
+          # the missing ones from this list. libR.so resolves from R's own lib directory.
+          find "/opt/R/$ver" "$R_LIBS_USER" -name '*.so*' -type f -print0 \
+            | LD_LIBRARY_PATH="/opt/R/$ver/lib/R/lib" xargs -0 ldd 2>/dev/null \
+            | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | sort -u \
+            | while read -r so; do
+                real="$(readlink -f "$so")"
+                case "$real" in "/opt/R/"*|"$R_LIBS_USER"*) continue;; esac
+                dpkg -S "$real" 2>/dev/null || dpkg -S "${real#/usr}" 2>/dev/null || dpkg -S "/usr$real" 2>/dev/null || true
+              done | cut -d: -f1 | sort -u > .r-runtime/APT_PACKAGES
+          echo "system packages the runtime needs: $(wc -l < .r-runtime/APT_PACKAGES)"; tr '\n' ' ' < .r-runtime/APT_PACKAGES; echo
           du -sh .r-runtime/r.tar .r-runtime/Library
       - name: Install the campaign's commit into an isolated library
         if: steps.cache.outputs.cache-hit != 'true'
@@ -349,12 +361,13 @@ jobs:
         with:
           path: .edi-install-scratch
           key: ${{ steps.edikey.outputs.key }}
-      # The R runtime the build job cached (see there). Used only if it restores, R starts, EDI loads and no shared
+      # The R runtime the build job cached (see there), plus apt-installing the system packages it recorded that this
+      # runner lacks (v1 skipped that, so every shard failed ldd and fell back). Used only if it restores, R starts, EDI loads and no shared
       # object in R or the library is missing a system library (ldd); otherwise the normal setup below runs, with a
       # warning, so a bad cache costs time, never results.
       - name: Runtime cache key
         id: rtkey
-        run: echo "key=calibration-study-runtime-v1-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=calibration-study-runtime-v2-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
       - id: rt
         uses: actions/cache/restore@v5
         with:
@@ -369,8 +382,19 @@ jobs:
           sudo tar -C / -xf .r-runtime/r.tar
           bin="/opt/R/$ver/bin"
           lib="$GITHUB_WORKSPACE/.r-runtime/Library"
+          # Install the system packages the build job recorded that this runner lacks (see "Pack the R runtime").
+          need=""
+          while read -r p; do
+            [ -n "$p" ] || continue
+            dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" || need="$need $p"
+          done < .r-runtime/APT_PACKAGES
+          if [ -n "$need" ]; then
+            echo "installing system packages:$need"
+            sudo apt-get install -y -qq --no-install-recommends $need \
+              || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $need; }
+          fi
           missing="$(find "/opt/R/$ver" "$lib" "$GITHUB_WORKSPACE/.edi-install-scratch" -name '*.so*' -type f -print0 \
-            | xargs -0 ldd 2>/dev/null | grep 'not found' | sort -u || true)"
+            | LD_LIBRARY_PATH="/opt/R/$ver/lib/R/lib" xargs -0 ldd 2>/dev/null | grep 'not found' | sort -u || true)"
           if [ -n "$missing" ]; then
             echo "::warning title=Calibration setup::cached R runtime is missing system libraries; using the normal setup: $(echo "$missing" | head -5 | tr '\n' ' ')"
             exit 1
