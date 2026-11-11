@@ -436,13 +436,31 @@ jobs:
             --effect "${{ matrix.effect }}" --reps "${{ matrix.reps }}" --cores "$(nproc --all)" \
             --deadline-minutes 25 --secs-per-rep "${{ matrix.secs_per_rep }}" \
             --only "${{ matrix.only }}" --exclude "${{ matrix.exclude }}" --out-dir "out/${{ matrix.id }}"
-      - uses: actions/upload-artifact@v7
+      # Upload, and once more after a pause if that fails: on 2026-11-11 a GitHub artifact-service outage (20:19-20:43
+      # UTC) failed 16 finished shards' uploads (CreateArtifact 404 / HTML responses), discarding ~20 min of work each.
+      # Only the retry's failure fails the job; the wave re-plans an unrecorded shard's reps either way.
+      - id: upload
+        uses: actions/upload-artifact@v7
         if: always()
+        continue-on-error: true
         with:
           name: study-shard-${{ matrix.id }}
           path: out/${{ matrix.id }}
           if-no-files-found: warn
           retention-days: 3
+      - name: Wait before retrying the upload
+        if: always() && steps.upload.outcome == 'failure'
+        run: |
+          echo "::warning title=Calibration upload::artifact upload failed (GitHub artifact service); retrying in 5 minutes."
+          sleep 300
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.upload.outcome == 'failure'
+        with:
+          name: study-shard-${{ matrix.id }}
+          path: out/${{ matrix.id }}
+          if-no-files-found: warn
+          retention-days: 3
+          overwrite: true
       # A replicate's fit error is a row status, never a failed shard; a failing shard step is a script error
       # (or the 75-minute timeout, which cancels the job before any step can annotate it).
       - name: Flag a bug in the check
