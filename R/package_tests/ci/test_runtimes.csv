@@ -120,6 +120,7 @@ R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R,correct
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-excluded-from-duration-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-mc-inference-type-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-null-only-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,correctness,120,bootstrap
@@ -1653,6 +1654,7 @@ R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R,coverag
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-excluded-from-duration-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-mc-inference-type-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-null-only-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,coverage,240,bootstrap
