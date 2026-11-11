@@ -26,6 +26,7 @@ registry_fixture <- function() {
 		y_original = list(incidence = c(0, 1, 0, 1), survival = 1:4, ordinal = 1:4)
 	))
 	e$.coverage_truth_cache <- new.env(parent = emptyenv())
+	e$.coverage_truth_failed <- new.env(parent = emptyenv())
 	e$.screen_estimate_theta_cache <- new.env(parent = emptyenv())
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC stub not installed")
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"
@@ -459,4 +460,9 @@ test_that("exhausted MC truth retries return NA without caching and restore the 
 	expect_length(seen_states, 5L)
 	expect_identical(get(".Random.seed", envir = .GlobalEnv), caller_rng_state)
 	expect_false(exists(key, envir = e$.coverage_truth_cache, inherits = FALSE))
+	# The exhausted key is remembered for the run: a second call returns NA
+	# without rerunning the (seeded, so identical) simulations.
+	expect_true(exists(key, envir = e$.coverage_truth_failed, inherits = FALSE))
+	expect_true(is.na(e$get_coverage_truth(label, "toy", 0.5, "proportion")))
+	expect_length(seen_states, 5L)
 })

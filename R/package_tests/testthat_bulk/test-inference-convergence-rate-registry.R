@@ -70,12 +70,16 @@ test_that("every class and design named in the override layers is a concrete EDI
 	cls = unique(stats::na.omit(o$class))
 	expect_true(length(cls) > 0L)
 	expect_equal(setdiff(cls, concrete), character(0))
-	des = unique(sub("@.*$", "", stats::na.omit(o$design)))
+	# "@prob_T" alone is the design-agnostic unequal-allocation wildcard (matches
+	# any "<Design>@prob_T=<p>" label; inference_procedure_regime.R, fe267250),
+	# so it names no design to look up.
+	lab_all = unique(stats::na.omit(o$design))
+	des = unique(sub("@.*$", "", setdiff(lab_all, "@prob_T")))
 	ns = asNamespace("EDI")
 	is_design = vapply(des, function(nm) exists(nm, envir = ns, inherits = FALSE) && inherits(get(nm, envir = ns), "R6ClassGenerator"), logical(1L))
 	expect_equal(des[!is_design], character(0))
-	# Every design label carrying a suffix is "<Design>@prob_T=<p>" as the calibration study writes it.
-	lab = unique(stats::na.omit(o$design))
+	# Every other design label carrying a suffix is "<Design>@prob_T=<p>" as the calibration study writes it.
+	lab = setdiff(lab_all, "@prob_T")
 	lab = lab[grepl("@", lab, fixed = TRUE)]
 	expect_true(all(grepl("^Design[A-Za-z0-9]+@prob_T=[0-9.]+$", lab)))
 })

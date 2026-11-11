@@ -69,6 +69,7 @@ test_that("the MC truth uses the same capped formula and a K-specific cache key;
 		"get_coverage_mc_spec", "get_coverage_truth", "COVERAGE_MC_SPEC"))
 	e$COVERAGE_CLOSED_FORM <- list()
 	e$.coverage_truth_cache <- new.env(parent = emptyenv())
+	e$.coverage_truth_failed <- new.env(parent = emptyenv())
 	X <- data.frame(matrix(stats::rnorm(80L), 10L, 8L))
 	e$datasets_and_response_models <- list(toy = list(X = X))
 	calls <- list()

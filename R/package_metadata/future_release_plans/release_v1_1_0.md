@@ -1953,7 +1953,13 @@ ticked in their **owning plans**; this list is the release index.
 
 - [ ] ~~TODO-169~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-7`** (owner approval of the v1.0.6 triage): `InferenceIncidModifiedPoisson` `~1` NA at large n.
 
-- [ ] ~~TODO-170~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-8`** (owner approval of the v1.0.6 triage): Stereotype accepted rows predate the v1.0.5 fixes: re-verify.
+- [ ] TODO-170 (added 2026-11-09, owner; opened for accepted calibration rows; moved to `release_v1_0_6.md → TODO-8` 2026-11-10, moved back 2026-11-11, owner, after the re-run found no bug): **`InferenceOrdinalStereotypeLogitRegr`: gradient and LR tests oversized at n = 50.**
+  - Why: 6 accepted rows (gradient and LR, n = 50, both prob_T). The 2026-11-09 local re-run (1000 reps) gives size 0.084-0.090 with yield >= 99%; n = 200 and n = 1000 are nominal (2026-11-11 re-run at n = 1000: all four `~.` tests size 0.051-0.060, coverage 0.940-0.949, yield 100%; the 8 n = 1000 rows were pruned). So this is a small-sample excess, not a large-n defect. Documented in the class's roxygen ("Small samples").
+  - Also covers wald ~. n = 50 prob_T 0.5: 2026-11-09 local run size 0.077, coverage 0.923, p = 1.5e-4; it fails the local K = 32 cutoff but not the nightly's, so it has no accepted row; if the fast tier flags it, add one citing this TODO.
+  - Investigate first: whether the excess comes from the null refit landing in a non-global mode (the multimodal likelihood) or from the information at the loading boundary; compare with the score test (TODO-168), which is worse (about 0.105).
+  - Fix (candidates): a parametric-bootstrap-calibrated LR / gradient test reusing `simulate_under_lik_null` (same approach as TODO-168 and TODO-166), or a Bartlett correction for LR.
+  - Done when: gradient and LR size within the binomial band of 0.05 at n = 50 for both prob_T values and the accepted rows (reason starting `v1.1 TODO-170`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or the owner rules the excess inherent and the rows stay with a reason saying why.
+  - **Triage 2026-11-11:** `release_v1_0_6.md → TODO-13` first checks whether the null refit misses the global mode (multistart on the rejecting reps); a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-171 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinKKGLMM`: KK GLMM continuous: Wald oversized at n = 50.**
   - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.085, coverage 0.915); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run 40833827319. Documented in the class's roxygen ("Small samples") for now.

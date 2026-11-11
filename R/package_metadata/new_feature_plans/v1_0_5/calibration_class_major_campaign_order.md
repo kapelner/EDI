@@ -286,3 +286,51 @@ there; `cal_plan_family()` stops with "matched designs unknown" rather than gues
 matched designs are exactly the four above and exactly the designs whose class set has KK classes, the plan's
 `family` agrees with the roster, no design names remain in the planner, and a missing / non-logical `matched`
 column is refused. The other three `test-calibration-*` files still pass (12 / 8 (1 skipped) / 4 tests).
+
+## Amendment E (measured costs, folded leftovers)
+
+Observed on campaign 2026-11-11-9d2edc5c, wave 1: shards finished in 2-8 min (about 1.5 min of that is runner setup) while the
+n = 1000 shards hit the 25-minute deadline, and their leftovers became tiny resume shards in wave 2 (48-240 replicates, 1-3 min).
+Two causes: the packing used the roster's (previous campaign / 2 s default) class costs, and the only correction from this
+campaign's shards (`cfac`, a shard-level median ratio) was clamped to [0.2, 20] and used only the ledger's whole-shard time.
+
+Done 2026-11-11 (uncommitted), in `plan_calibration_study.R` only (`plan.csv`, the matrix JSON, `run_calibration_study.R`
+arguments and the ledger / planned.csv formats are untouched; `plan.csv` from `--plan-only` is byte-identical to the
+campaign's on the results branch):
+
+* **Measured costs.** Per-class timing already exists: `stats/tests.csv.gz` has `fit_secs` and `reps` per (cell, class, formula,
+  procedure) row, the same definition the roster's `secs_n50` uses. A class's cost is the sum over its rows of `fit_secs / reps`,
+  pooled over effects and stages, by (response type, design label, n, class); nothing is apportioned from shard times. `reps`
+  counts replicates actually completed, so a shard that hit its deadline contributes what it did (a lower bound: replicates
+  still running at the deadline are not in it; the next wave refines it). A class needs `--min-measured-reps` (default 20).
+  Runner setup is not included (the shard's elapsed time starts after it). Fallback chain, reported with `--verbose`:
+  `measured_design` (same class, response type, design, n) -> `measured_n` (same class, response type, n on other designs;
+  median, same matched / iid family preferred) -> `measured_class` (same class and response type at the nearest other n, same
+  design if measured there, scaled by `calibration_study_costs.csv`) -> `roster` (secs_n50 scaled to n as before, times the
+  median of measured / roster over this campaign's measured units of the same response type and n, else the response type, else
+  1, clamped [0.02, 20]; replaces `cfac`).
+* **Pack overhead.** What a pack shares (data, design, assignment) is not in the class costs: per ledger shard,
+  `secs_per_rep` minus the sum of its classes' measured costs, median per (response type, design, n), else (design, n), else
+  (response type, n), else n, else 0; charged once per pack and included in the shard's `secs_per_rep`. (On wave 1, 0.3-1.5 s per
+  replicate; the old whole-shard ratio varied 1.0-3.2.)
+* **Fold.** One shard carries one (response type, design, n, effect) and one replicate set, and a class may not repeat a replicate
+  it has done (the statistics add up), so only classes whose missing set contains the shard's replicates can share it. Leftovers
+  of different cells or different designs / n therefore cannot be combined. In a cell, a bin predicted under
+  `--min-shard-minutes` (default `--target-minutes` / 3; 0 = off) takes in further classes of the cell, in priority order, whose
+  missing set contains the bin's replicates (fresh classes, or classes with larger leftovers), while the pack budget
+  (`--pack-minutes` x cores) allows, until it reaches the minimum. The guests' other replicates are planned as usual. A unit that
+  has lost a shard stays alone (neither host nor guest); `--pack-minutes 0` disables folding. A folded shard has its host's
+  priority, so order stays class-major (null before power, response type, class) apart from a guest's first replicates moving
+  forward with its host. Chunking of long units is now into equal-size chunks (same count as before), so no tiny tail chunk.
+* Tests: new `test-calibration-measured-costs-and-folded-leftovers.R` (6 tests, 42 expectations, 0 failed): measured overrides
+  roster and overhead; fallback chain and `--min-measured-reps`; deadline-hit shard uses replicates done; fold; dead units alone;
+  priority order and unchanged plan.csv. `test-calibration-class-major-order.R` 3,222 / 0 failed; gate-regime-levels 72,
+  convergence-slopes 68 (1 skipped), readme-pages 120 (1 skipped), 0 failures.
+* Dry run on the real campaign folder (ledger = wave 1 only; wave 2 not yet merged), wave size 64: old planner 9 of 64 shards
+  predicted under 8.3 min (8 under 5), new 5 (3 under 5); whole remaining plan 10,164 -> 10,416 shards, shards under 8.3 min
+  1,106 -> 223, under 5 min 560 -> 17. Predicted-minute quartiles of the whole plan: old 15.2 / 22.5 / 24.9, new 16.5 / 21.7 / 23.6.
+  The old planner's estimates for the resumed n = 1000 cells were 20-100x too low (0.2-0.4 s per replicate against 5-31 measured; the shard-level correction floor of 0.2 was the cause).
+  Costs for response types not yet run still come from the roster (uncorrected, no measurements).
+* The workflow now takes `plan_calibration_study.R` from the run's current commit (owner, 2026-11-11), so this planner takes
+  over the running campaign on its next wave; it reads only the campaign's existing roster.csv, ledger.csv, planned.csv and
+  stats/tests.csv.gz.

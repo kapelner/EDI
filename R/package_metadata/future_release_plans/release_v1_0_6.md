@@ -58,7 +58,7 @@ decide. Numbers are `release_v1_1_0.md` TODO numbers.
 | 165 | Log-binomial full-data fit stops with the nuisance score off zero at exp(Xb) = 1 (4/1600 fits) | Unconverged fit treated as converged; gradient p-value NA. Bounded. |
 | 167 | GLMM / CLMM kernels rerun the full multistart even when warm-started | Performance regression introduced by v1.0.5 TODO-31. Needs a rebuild and G2. |
 | 169 | `InferenceIncidModifiedPoisson` `~1` returns NA (`model_fit_unavailable`) at n >= 10000, no warning | NA where a value is defined. |
-| 170 | Stereotype accepted calibration rows predate the TODO-175/176/178 fixes; n = 1000 not re-run | Bounded re-run; closes or reopens stale accepted rows. |
+| 170 | Stereotype accepted calibration rows predate the TODO-175/176/178 fixes; n = 1000 not re-run | Bounded re-run; closes or reopens stale accepted rows. **Done 2026-11-11 (as v1.0.6 TODO-8): no bug; moved back to v1.1.0 TODO-170.** |
 | 189 (b), (c) | (b) 75/1000 LR CIs at n = 50 fall back to Wald because one null refit fails; (c) `InferenceIncidBinomialIdentityRiskDiff` lacks the TODO-179 Wald-at-boundary treatment | Wrong output on known paths; (c) copies an existing fix. Part (a), LR oversized at boundary MLEs, goes to triage. |
 | 190 | `fast_clogit_plus_glmm_cpp()` stops at gradient norm 0.22 and reports `converged = TRUE` | False convergence. Needs a rebuild. |
 | 192 | The tuner's proportion data is noiseless, so `tune_EDI_for_this_machine()` policies for proportion classes rest on degenerate fits | Users' tuning profiles are wrong for those classes; internal fixture only, no API. |
@@ -72,6 +72,7 @@ decide. Numbers are `release_v1_1_0.md` TODO numbers.
 | 178 | Log-binomial score size 0.255 at prob_T 0.2, n = 50 | Re-run on the build with the v1.0.5 KKT score (TODO-181), together with TODO-165. If it is the exp(Xb) = 1 fits, it goes to 1.0.6 with 165. |
 | 189 (a) | LR oversized at boundary MLEs (0.085 / 0.078 vs 0.048 interior) | Boundary-aware reference distribution is a method change (1.1.0) unless a bug is found. |
 | 168, 171, 172, 173, 175, 176, 177, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188 | Accepted calibration rows: one test oversized at n = 50 or prob_T = 0.2, nominal at n = 200 | One check per class: SE vs sd(estimate), share of boundary or non-converged fits, variance collapsing to 0. A fitting or SE bug goes to 1.0.6; honest small-sample behaviour stays with v1.1.0's corrections work (TODO-5, Bartlett/Firth/Brent). |
+| 170 | Stereotype gradient / LR size about 0.085 at n = 50 (nominal at n = 200 and 1000; moved back 2026-11-11) | Refit the null model from many starts on the n = 50 rejecting reps. If a fair share of rejections vanish, the null refit misses the global mode: a bug, fix goes to 1.0.6. Otherwise it stays in 1.1.0. |
 | 174 | Hurdle Poisson likelihood tests anti-conservative at `~1` (misspecification, n = 1000) | Confirm `~.` is nominal. If so, this is documentation (stays 1.1.0, or a NEWS / roxygen note only). |
 
 ### Stays in v1.1.0
@@ -235,16 +236,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Investigate first: which fit step reports `model_fit_unavailable` above ~10^4 rows for the treatment-only model (an iteration cap, a convergence tolerance that does not scale with n, or a sandwich-variance step); whether `InferenceIncidKKModifiedPoisson` shares it.
   - Done when: `~1` returns a finite estimate at n = 10000 / 20000 / 50000 on that generator, agreeing with `glm(..., family = poisson)` plus sandwich SEs to 1e-6; a regression test at n = 20000; the truths re-run with the ModifiedPoisson `~1` cells usable.
 
-- [ ] TODO-8 (moved 2026-11-10 from `release_v1_1_0.md → TODO-170`, owner approval of the v1.0.6 triage; originally added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalStereotypeLogitRegr`: Stereotype LR / gradient / Wald accepted rows predate TODO-175/176/178: re-verify, especially n = 1000.**
-  - Why: 16 accepted rows cite v1.0.5 TODO-175/176/178, which are now applied: n = 50 gradient / LR (size up to 0.135) and n = 1000 all four methods (size 0.165-0.21, yield 33-36%, 2026-10-31 run). The 2026-11-09 local re-run at n = 50 / 200 gives yield >= 99% and n = 50 sizes about 0.085, so these rows are stale; n = 1000 was not re-run. Documented in the class's roxygen ("Small samples") for now.
-  - Re-run 2026-11-11 (installed build, 1000 reps, n = 1000, both prob_T): all four `~.` tests nominal (size 0.051-0.060,
-    coverage 0.940-0.949, yield 100%); `~1` all non-estimable, as designed. The 8 n = 1000 rows were pruned, so the
-    large-n excess is gone. The 6 remaining rows are n = 50 gradient / LR (2026-11-09 local run: size 0.084-0.090,
-    yield >= 99%), tightened from 0.105-0.135 to 0.105-0.11. What is left is a small-sample excess at n = 50,
-    which by the entry rule belongs in v1.1.0 next to TODO-168, unless a bug is found behind it.
-  - Investigate first: re-run the fast tier at n = 50 / 200 / 1000 on the installed build (n = 1000 started 2026-11-10). Also covers wald ~. n = 50 prob_T 0.5: 2026-11-09 local run size 0.077, coverage 0.923, p = 1.5e-4; it fails the local K = 32 cutoff but not the nightly's, so it has no accepted row; if the nightly flags it, add one citing this TODO; if n = 1000 is still above nominal it is not a small-sample effect (look at the null refit's mode choice and the loading-boundary information).
-  - Fix (candidates): depends on the re-run: prune rows that pass; for any large-n excess, fix the refit or information; score is v1.1 TODO-168.
-  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.0.6 TODO-8`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+- [ ] ~~TODO-8~~ **→ moved back 2026-11-11 to `release_v1_1_0.md → TODO-170`** (owner): the 2026-11-11 re-run found no bug; n = 1000 is nominal and the 8 n = 1000 rows were pruned. What is left is a small-sample excess at n = 50, which the entry rule keeps in v1.1.0.
 
 - [ ] TODO-9 (moved 2026-11-10 from `release_v1_1_0.md → TODO-189`, owner approval of the v1.0.6 triage; originally added 2026-11-09, owner; follow-up of v1.0.5 TODO-179): **Boundary MLEs of the constrained binomial classes: what is left after Wald became NA for `InferenceIncidLogBinomial`.**
   - Done in v1.0.5 TODO-179 (2026-11-09, the "make Wald NA at the boundary (with LR suggested)" idea): `InferenceIncidLogBinomial` returns NA for the Wald p-value and CI when the full-data MLE has a linear predictor within 1e-8 + 1e-6 of 0, with warning class `edi_wald_mle_boundary_unavailable` and `procedure_failure_reason[["wald"]]`; `fit_null` got a strictly feasible last-resort start, so the LR interval at those fits no longer falls back to Wald (526 -> 75 of 1000 at n = 50). Study cell (Bernoulli, `~.`, p = 5, 1000 null reps): Wald NA in 68% (n = 50) / 66% (n = 200) of reps; Wald size over the rest 0.041 / 0.047, coverage 0.959 / 0.953.
@@ -287,6 +279,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   behaviour stays in v1.1.0 (corrections work, TODO-5 there) with a dated note.
   - `release_v1_1_0.md` TODO-159 (cloglog param bootstrap conservative), TODO-178 (log-binomial score at prob_T 0.2;
     run with TODO-5 here), TODO-189 (a) (LR oversized at boundary MLEs), TODO-174 (hurdle Poisson `~1`).
+  - `release_v1_1_0.md` TODO-170 (added 2026-11-11, owner; Stereotype gradient / LR at n = 50, size about 0.085): take
+    the reps that reject in the 2026-11-09 local n = 50 run (`run_calibration_fast_tier.R`, both prob_T), refit the null
+    model from many starts (e.g. 20 random plus the current cold starts) and recompute the LR and gradient statistics.
+    Stop condition: if a fair share of the rejections (say >= 20%) go away, the null refit misses the global mode and
+    the fix (a better multistart in `fit_null`) comes here as a new TODO; if not, record that the excess is a
+    small-sample property and TODO-170 stays in v1.1.0. The same check covers the score test (TODO-168).
   - Calibration rows oversized at n = 50 or prob_T = 0.2: TODO-168, 171, 172, 173, 175, 176, 177, 179, 180, 181, 182, 183,
     184, 185, 186, 187, 188. Per class: SE vs sd(estimate), share of boundary or non-converged fits, a variance
     collapsing to 0.
@@ -352,3 +350,30 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Done when: the cells pass the fast-tier gate at nominal and the `v1.0.6 TODO-16` rows are pruned; or the owner
     rules the excess inherent, and the rows stay with a reason saying why. A "Small samples" roxygen note is added to
     both classes if any rows remain at release.
+
+- [ ] TODO-17 (added 2026-11-11, owner; **exception to the entry rule above**: calibration-study infrastructure with no
+  package change, like TODO-14/15): **Stop clearly passing null cells early in calibration campaigns.**
+  - Why: v1.0.5 TODO-203 made campaigns class-major and Amendment E sized shards from measured costs, but the remaining
+    time is the fits themselves. Campaign `2026-11-11-9d2edc5c` predicted about 14,700 core-hours of screening, so
+    about 11 days of screening plus 1-2 days of confirmation on 16 free runners. Most null cells sit far inside their bound
+    long before 1000 replicates.
+  - Idea: two looks per null unit (one class with all its procedures, one design, one n), for example at 500 and 1000
+    replicates. At the first look, a unit stops if every test in it (size for each procedure and formula, plus
+    coverage from the same replicates) is clearly inside its bound; borderline units run to 1000 as today. Rough saving:
+    30-50% of null work, several days per campaign.
+  - Design questions to settle before any code (owner decision):
+    - Stopping only for "clearly passing" is non-binding futility stopping: it cannot add false flags, but it lowers the
+      power to flag a mildly miscalibrated cell (for example a true size of 0.06). Choose the first-look margin from the
+      power that must be kept, and check it by simulation of the planner with known true sizes.
+    - Multiple testing: the campaign runs Benjamini-Hochberg over every test in the plan with unrun tests as p = 1, so
+      interim flags are never withdrawn. Define the p-value of a stopped unit (its first-look p-value is valid under
+      non-binding futility) and show that this keeps `m_total` and the monotonicity argument intact.
+    - Precision and the convergence analysis: stopped units have wider intervals; the |error| vs n_eff slopes and
+      the per-class pages must weight by replicates actually run, and the README must say which units stopped.
+    - Estimates after a sequential stop are slightly biased; say whether the published size/coverage use them as they are.
+    - Confirmation replicates (5,000 at 0.01 / m_total) are unchanged.
+  - Where: `R/package_tests/calibration/plan_calibration_study.R` and `calibration_study_plan_common.R` (units, looks),
+    `analyze_calibration_study.R` / `convergence_calibration_study.R` (p-values, weighting), `calibration_gates.md`.
+  - Done when: the rule is written into `calibration_gates.md` with its power check, the planner stops units at the first
+    look, a synthetic-campaign test shows no change in false-flag rate and the agreed power, and one campaign completes
+    with it.

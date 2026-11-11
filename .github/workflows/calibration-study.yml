@@ -67,7 +67,10 @@ permissions:
 
 env:
   RESULTS_BRANCH: calibration-results
-  WAVE_SIZE: 64
+  # 256 = GitHub's matrix limit (owner ruling 2026-11-11, was 64): each wave costs ~20 min of fixed overhead (plan,
+  # build cache, roster, analyze, publish, last-round stragglers), so fewer, bigger waves save ~1.5-2 days a campaign.
+  # Cost: results publish every ~6 h instead of ~1.8 h, and a cancelled wave loses up to ~6 h of shards.
+  WAVE_SIZE: 256
 
 jobs:
   plan:
@@ -142,15 +145,43 @@ jobs:
         with:
           path: .edi-install-scratch
           key: calibration-study-edi-${{ needs.plan.outputs.sha }}
+      # The shards' R runtime (owner ruling 2026-11-11): R itself (/opt/R/<version>, as a tar, since /opt is root-owned)
+      # and the R package library, cached once per runner image and pinned commit, so a shard restores it in seconds
+      # instead of running setup-r (~40 s) and setup-r-dependencies (~44 s). Keyed by the runner image (ImageOS,
+      # ImageVersion) so the system libraries R and the packages link against are the ones the cache was built on; a
+      # shard on another image misses and falls back to the normal setup.
+      - name: Runtime cache key
+        id: rtkey
+        run: echo "key=calibration-study-runtime-v1-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      - id: rt
+        uses: actions/cache@v5
+        with:
+          path: .r-runtime
+          key: ${{ steps.rtkey.outputs.key }}
       - uses: r-lib/actions/setup-r@v2
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true' || steps.rt.outputs.cache-hit != 'true'
         with:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true' || steps.rt.outputs.cache-hit != 'true'
         with:
           working-directory: R/EDI
           dependencies: '"all"'
+      - name: Pack the R runtime for the shards
+        if: steps.rt.outputs.cache-hit != 'true'
+        run: |
+          ver="$(Rscript -e 'cat(as.character(getRversion()))')"
+          home="$(Rscript -e 'cat(R.home())')"
+          case "$home" in
+            "/opt/R/$ver/"*) ;;
+            *) echo "::warning title=Calibration setup::R is at $home, not /opt/R/$ver: not caching the runtime; shards use the normal setup."; exit 0;;
+          esac
+          mkdir -p .r-runtime/Library
+          sudo tar -C / -cf .r-runtime/r.tar "opt/R/$ver"
+          sudo chown "$(id -u):$(id -g)" .r-runtime/r.tar
+          cp -a "$R_LIBS_USER/." .r-runtime/Library/
+          echo "$ver" > .r-runtime/R_VERSION
+          du -sh .r-runtime/r.tar .r-runtime/Library
       - name: Install the campaign's commit into an isolated library
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -181,10 +212,19 @@ jobs:
       OMP_NUM_THREADS: 1
       C: ${{ needs.plan.outputs.campaign }}
     steps:
-      # The planner and the roster script: the campaign's pinned commit (they must match the shards).
+      # The roster script: the campaign's pinned commit (it enumerates the classes of the EDI the shards simulate).
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
+      # The planner: this run's own commit (owner ruling 2026-11-11, TODO-203 Amendment E), so cost and packing fixes
+      # reach a running campaign. Safe because the planner only decides which replicates each shard runs: the shard
+      # interface (matrix fields, run_calibration_study.R arguments) and the ledger format must stay unchanged, or a
+      # campaign pinned before such a change breaks. The planner reads only files next to it (calibration_study_stats.R,
+      # calibration_study_plan_common.R), all from this checkout.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: current
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
@@ -232,7 +272,7 @@ jobs:
         id: plan
         run: |
           set -a; . ./campaign.env; set +a
-          matrix="$(Rscript R/package_tests/calibration/plan_calibration_study.R \
+          matrix="$(Rscript current/R/package_tests/calibration/plan_calibration_study.R \
             --campaign-dir "results/campaigns/$C" --roster roster.csv \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
@@ -275,13 +315,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          working-directory: R/EDI
-          dependencies: '"all"'
       # The build job's cache entry (same key); it saved when that job ended, which
       # was before any shard started.
       - uses: actions/cache/restore@v5
@@ -289,6 +322,48 @@ jobs:
           path: .edi-install-scratch
           key: calibration-study-edi-${{ needs.plan.outputs.sha }}
           fail-on-cache-miss: true
+      # The R runtime the build job cached (see there). Used only if it restores, R starts, EDI loads and no shared
+      # object in R or the library is missing a system library (ldd); otherwise the normal setup below runs, with a
+      # warning, so a bad cache costs time, never results.
+      - name: Runtime cache key
+        id: rtkey
+        run: echo "key=calibration-study-runtime-v1-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      - id: rt
+        uses: actions/cache/restore@v5
+        with:
+          path: .r-runtime
+          key: ${{ steps.rtkey.outputs.key }}
+      - name: Use the cached R runtime
+        id: fastr
+        if: steps.rt.outputs.cache-hit == 'true'
+        continue-on-error: true
+        run: |
+          ver="$(cat .r-runtime/R_VERSION)"
+          sudo tar -C / -xf .r-runtime/r.tar
+          bin="/opt/R/$ver/bin"
+          lib="$GITHUB_WORKSPACE/.r-runtime/Library"
+          missing="$(find "/opt/R/$ver" "$lib" "$GITHUB_WORKSPACE/.edi-install-scratch" -name '*.so*' -type f -print0 \
+            | xargs -0 ldd 2>/dev/null | grep 'not found' | sort -u || true)"
+          if [ -n "$missing" ]; then
+            echo "::warning title=Calibration setup::cached R runtime is missing system libraries; using the normal setup: $(echo "$missing" | head -5 | tr '\n' ' ')"
+            exit 1
+          fi
+          R_LIBS_USER="$lib" R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch" "$bin/Rscript" -e 'suppressPackageStartupMessages(library(EDI)); cat("EDI", format(packageVersion("EDI")), "loads\n")'
+          echo "$bin" >> "$GITHUB_PATH"
+          { echo "R_LIBS_USER=$lib"; echo "TZ=UTC"; echo "_R_CHECK_SYSTEM_CLOCK_=FALSE"; } >> "$GITHUB_ENV"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+      - name: Fall back to the normal setup
+        if: steps.fastr.outputs.ok != 'true'
+        run: echo "::warning title=Calibration setup::no usable cached R runtime (cache hit '${{ steps.rt.outputs.cache-hit }}'); running setup-r and setup-r-dependencies."
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.fastr.outputs.ok != 'true'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.fastr.outputs.ok != 'true'
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
       - name: Use the pre-built library
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
@@ -321,9 +396,10 @@ jobs:
   # and hands the finished results tree to `publish` as the `study-results` artifact.
   #
   # Scripts come from two commits, both recorded (campaign.env ANALYSIS_SHA, README, job
-  # summary): the campaign's pinned commit supplies the planner and the merge (they must match
-  # the shards that ran), the workflow run's own commit (github.sha, `main` at dispatch)
-  # supplies the analysis, so a campaign is gated by the current rules at completion.
+  # summary): the campaign's pinned commit supplies the merge (it must match the shards that
+  # ran), the workflow run's own commit (github.sha, `main` at dispatch) supplies the planner
+  # (TODO-203 Amendment E: the shard interface is fixed, so it can change mid-campaign) and the
+  # analysis, so a campaign is gated by the current rules at completion.
   #
   # Failure contract (owner, 2026-11-10). The ONLY red X that means "the calibration failed" is
   # this job's last step, `Gate verdict`, and only for a completed campaign with confirmed
@@ -352,7 +428,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-      # Planner and merge: the campaign's pinned commit.
+      # Merge: the campaign's pinned commit.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
@@ -431,15 +507,15 @@ jobs:
         run: |
           set -a; . ./campaign.env; set +a
           d="results/campaigns/$C"
-          # The campaign's plan (every screening unit, its replicates and tests; v1.0.5 TODO-203): the pinned planner, since it
-          # must match the shards; the analysis below reads it (m_total, completed cells, class status).
-          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --plan-only --plan-out "$d/plan.csv" --roster "$d/roster.csv" \
+          # The campaign's plan (every screening unit, its replicates and tests; v1.0.5 TODO-203): this run's planner, the same
+          # one the roster job planned the wave with (Amendment E); the analysis below reads it (m_total, completed cells, class status).
+          Rscript R/package_tests/calibration/plan_calibration_study.R --plan-only --plan-out "$d/plan.csv" --roster "$d/roster.csv" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS"
           Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" > /dev/null
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" \
             --out-dir "$d/summary" > /dev/null
-          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" --roster "$d/roster.csv" \
+          Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" --roster "$d/roster.csv" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
             --wave-size "$WAVE_SIZE" --meta-out after.txt > /dev/null

@@ -31,6 +31,7 @@ truth_fixture <- function() {
 		survival = seq_len(6L)
 	)))
 	e$.coverage_truth_cache <- new.env(parent = emptyenv())
+	e$.coverage_truth_failed <- new.env(parent = emptyenv())
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"
 	e$InferenceAllSimpleWilcox <- "wilcox-generator"
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC truth was not stubbed by this test")

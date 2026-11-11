@@ -3612,6 +3612,15 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 # is negligible and the fitted coefficient is the "least false"/KL-projection parameter that a
 # correctly-behaving CI should cover at the nominal rate, even under model misspecification.
 .coverage_truth_cache = new.env(parent = emptyenv())
+# Keys whose MC truth failed every attempt in this run. A failure is not
+# cached as a value (callers keep getting NA), but without remembering it
+# get_coverage_truth() reran all max_mc_attempts simulations on every call.
+# The attempts are seeded from the key, so a repeat fails the same way and
+# skipping it changes no result. Found 2026-11-11: the real-covariate truth of
+# InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.] is
+# non-estimable on DesignFixedBinaryMatch (no reservoir, separated discordant
+# pairs), which cost ~5.5 min per call.
+.coverage_truth_failed = new.env(parent = emptyenv())
 
 incid_p_base_and_treated = function(dataset_name, beta_T_val){
 	y_i = datasets_and_response_models[[dataset_name]]$y_original$incidence
@@ -4119,6 +4128,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
 			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
 		}
+		if (exists(key, envir = .coverage_truth_failed, inherits = FALSE)) return(NA_real_)
 		# Only cache a genuinely-finite, plausible MC-fitted truth. A failed or
 		# degenerate MC attempt (e.g. an empty result set, or an implausible
 		# one-shot fit) must NOT be cached -- otherwise a bad value gets
@@ -4186,6 +4196,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 			truth = NA_real_
 		}
 		if (!length(truth) || !is.finite(truth)) {
+			assign(key, TRUE, envir = .coverage_truth_failed)
 			return(NA_real_)
 		}
 		assign(key, truth, envir = .coverage_truth_cache)

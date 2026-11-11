@@ -19,9 +19,11 @@
 #   roster.csv    the campaign's class roster (--roster; frozen at the first wave)
 #   plan.csv      --plan-out: every screening unit in run order (analysis reads it: m_total, completed cells)
 # Missing replicates = all - union(reps_done) per unit (class). They are cut into shards of about --target-minutes on
-# --cores cores, using the class's seconds per replicate (roster, scaled to n by calibration_study_costs.csv, corrected by
-# the shards that have run). Shards run time-boxed (run_calibration_study.R), so a low estimate costs nothing but an extra
-# wave.
+# --cores cores, using the class's seconds per replicate: measured on this campaign's own finished shards where there are
+# any (stats/tests.csv.gz), else the roster's, scaled to n by calibration_study_costs.csv (v1.0.5 TODO-203 Amendment E; the
+# fallback chain is documented at "Costs" below). Shards that would come out well under --target-minutes (the leftovers of
+# a shard that hit its deadline) are topped up with further classes of the same cell ("Fold" below). Shards run time-boxed
+# (run_calibration_study.R), so a low estimate costs nothing but an extra wave.
 #
 # A unit is abandoned after --max-dead planned shards that left no shard.csv (the job died or hit its timeout), so a
 # replicate that hangs cannot loop forever; a unit that has lost a shard runs alone from then on.
@@ -33,7 +35,7 @@
 # Usage: Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir DIR \
 #          [--ns 50,200,1000] [--effects null,power20,power50,power80] [--designs all] \
 #          [--response-types all] [--null-reps 1000] [--power-reps 500] [--cores 4] \
-#          [--target-minutes 25] [--pack-minutes 25] [--wave-size 64] [--max-dead 3] [--meta-out FILE] [--power-ns 50,200] \
+#          [--target-minutes 25] [--pack-minutes 25] [--min-shard-minutes 8.33] [--min-measured-reps 20] [--verbose] [--wave-size 64] [--max-dead 3] [--meta-out FILE] [--power-ns 50,200] \
 #          [--slow-null-reps 500] [--slow-reduced-n 1000] [--slow-power-ns 50] \
 #          [--confirm-reps 5000] [--slow-confirm-reps 1000] --roster FILE [--plan-out FILE] [--plan-only]
 #
@@ -72,6 +74,10 @@ power_reps <- as.integer(arg_value("--power-reps", "500"))
 cores <- as.integer(arg_value("--cores", "4"))
 target_secs <- 60 * as.numeric(arg_value("--target-minutes", "25"))
 pack_secs <- 60 * as.numeric(arg_value("--pack-minutes", arg_value("--target-minutes", "25")))
+# Amendment E: a shard predicted under --min-shard-minutes (default a third of --target-minutes; 0 = never fold) takes in
+# further classes of its cell; a class needs --min-measured-reps completed replicates for its measured cost to count.
+fold_secs <- 60 * as.numeric(arg_value("--min-shard-minutes", as.character(as.numeric(arg_value("--target-minutes", "25")) / 3)))
+min_measured_reps <- as.integer(arg_value("--min-measured-reps", "20"))
 wave_size <- as.integer(arg_value("--wave-size", "64"))
 max_dead <- as.integer(arg_value("--max-dead", "3"))
 meta_out <- arg_value("--meta-out", "")
@@ -160,8 +166,24 @@ if (!is.null(planned)) {
 }
 dead_of <- function(k) dead_n[[k]] %||% 0L
 
-# Seconds per replicate (single core) of a unit: the class's n = 50 cost from the roster, scaled to its n
-# by the measured cost table; the slow classes have their own rows there.
+# ---- Costs (v1.0.5 TODO-203 Amendment E) ----------------------------------------------------------------------------------
+# Seconds per replicate (single core) of a unit. Preference, most specific first (the source of every unit is reported on stderr):
+#   measured_design   this campaign's own finished shards, same (response type, design, n, class)
+#   measured_n        same (response type, n, class) on other designs (median; the same matched / iid family if there is one)
+#   measured_class    same (response type, class) at the nearest other n (same design if measured there, else other designs),
+#                     scaled to the unit's n by the measured cost table (calibration_study_costs.csv)
+#   roster            the roster's secs_n50 (previous campaign, else the 2 s default), scaled to n by that table, times a
+#                     correction: the median of (measured / roster estimate) over this campaign's measured units of the
+#                     same (response type, n), else of the response type, else 1
+# The measured cost of a class is read from stats/tests.csv.gz (calibration_study_stats.R): fit_secs / reps summed over the class's
+# (formula, procedure) rows, pooled over effects and stages, the same definition as the roster's secs_n50 -- per-class timing
+# exists, so no shard time is apportioned. `reps` there counts replicates actually completed, never planned ones, so a shard
+# that hit its deadline contributes what it did; the figure is a lower bound for such a class (replicates still running at the
+# deadline are not in it) and the next wave's shards refine it. A class needs --min-measured-reps replicates to count.
+# Runner setup is not in these numbers (the shard's elapsed time starts after it). What a measured class cost does not include
+# is the work a pack shares (data, design, assignment): the ledger's per-shard secs_per_rep minus the sum of the shard's
+# measured class costs is that overhead, taken as the median per (response type, design, n), else per (design, n), else per
+# (response type, n), else per n, else 0, and charged once per pack.
 costs <- utils::read.csv(file.path(script_dir, "calibration_study_costs.csv"), stringsAsFactors = FALSE)
 cost_rest <- function(rt, fam, n) {
 	cf <- costs[costs$response_type == rt & costs$family == fam & costs$group == "rest", ]
@@ -170,34 +192,130 @@ cost_rest <- function(rt, fam, n) {
 	k <- which.min(abs(cf$n - n))
 	cf$secs_per_rep[[k]] * n / cf$n[[k]]
 }
-unit_cost <- function(u) {
+# The measured cost table's value at n for a unit (the slow classes have their own rows).
+cost_curve <- function(u, n) {
 	if (cal_plan_is_slow(u$design, u$inf_class)) {
 		cf <- costs[costs$response_type == u$response_type & costs$family == "matched" & costs$group == u$inf_class, ]
 		if (nrow(cf)) {
-			v <- cf$secs_per_rep[cf$n == u$n]
-			return(if (length(v)) v[[1L]] else cf$secs_per_rep[[which.min(abs(cf$n - u$n))]] * u$n / cf$n[[which.min(abs(cf$n - u$n))]])
+			v <- cf$secs_per_rep[cf$n == n]
+			return(if (length(v)) v[[1L]] else cf$secs_per_rep[[which.min(abs(cf$n - n))]] * n / cf$n[[which.min(abs(cf$n - n))]])
 		}
 	}
-	max(0.05, u$secs_n50) * cost_rest(u$response_type, u$family, u$n) / cost_rest(u$response_type, u$family, 50L)
+	cost_rest(u$response_type, u$family, n)
 }
-units$cost <- vapply(seq_len(nrow(units)), function(i) unit_cost(units[i, ]), numeric(1L))
-# Correction from the shards that have run: median of measured / estimated seconds per replicate by (response type, n),
-# so the estimates follow the real machine. Time-boxed shards make a low estimate cost only an extra wave.
-cost_factor <- function() {
-	if (is.null(ledger)) return(function(rt, n) 1)
-	l <- ledger[is.finite(ledger$secs_per_rep) & ledger$n_done > 0 & !is.na(ledger$only) & nzchar(ledger$only), , drop = FALSE]
-	ratios <- list()
-	for (i in seq_len(nrow(l))) {
-		ks <- cal_plan_key(l$response_type[[i]], l$design[[i]], l$n[[i]], l$effect[[i]], split_classes(l$only[[i]])[[1L]])
-		est <- sum(units$cost[match(ks, units$key)], na.rm = TRUE)
-		if (est > 0) ratios[[paste(l$response_type[[i]], l$n[[i]])]] <- c(ratios[[paste(l$response_type[[i]], l$n[[i]])]], l$secs_per_rep[[i]] / est)
+# The roster's estimate (unchanged from before Amendment E).
+unit_cost <- function(u) {
+	if (cal_plan_is_slow(u$design, u$inf_class) && any(costs$response_type == u$response_type & costs$family == "matched" & costs$group == u$inf_class))
+		return(cost_curve(u, u$n))
+	max(0.05, u$secs_n50) * cost_curve(u, u$n) / cost_curve(u, 50L)
+}
+
+read_measured <- function(dir) {
+	p <- file.path(dir, "stats", "tests.csv.gz")
+	if (!nzchar(dir) || !file.exists(p) || file.size(p) < 30L) return(NULL)
+	t <- tryCatch(cal_stats_prepare(cal_stats_read(p)), error = function(e) NULL)
+	if (is.null(t) || !nrow(t) || !all(c("fit_secs", "reps", "inf_class", "inf_procedure") %in% names(t))) return(NULL)
+	t$design_label <- cal_plan_design_label(t$design, t$prob_T)
+	rk <- paste(t$response_type, t$design_label, t$n_nominal, t$inf_class, t$formula, t$inf_procedure, sep = "\r")
+	f <- factor(rk, levels = unique(rk))
+	fs <- as.numeric(tapply(t$fit_secs, f, sum, na.rm = TRUE)); rp <- as.numeric(tapply(t$reps, f, sum))
+	first <- !duplicated(rk)
+	r <- t[first, c("response_type", "design_label", "n_nominal", "inf_class")]
+	r$spr <- ifelse(rp > 0, fs / rp, NA_real_); r$reps <- rp
+	ck <- paste(r$response_type, r$design_label, r$n_nominal, r$inf_class, sep = "|")
+	g <- factor(ck, levels = unique(ck))
+	out <- r[!duplicated(ck), c("response_type", "design_label", "n_nominal", "inf_class")]
+	names(out) <- c("response_type", "design", "n", "inf_class")
+	out$cost <- as.numeric(tapply(r$spr, g, sum, na.rm = TRUE))
+	out$reps <- as.numeric(tapply(r$reps, g, max))
+	out <- out[out$reps >= min_measured_reps & is.finite(out$cost) & out$cost > 0, , drop = FALSE]
+	if (!nrow(out)) return(NULL)
+	out$n <- as.integer(out$n)
+	out$family <- cal_plan_family(out$design)
+	out$key <- cal_plan_key(out$response_type, out$design, out$n, "", out$inf_class)
+	rownames(out) <- NULL
+	out
+}
+meas <- read_measured(campaign_dir)
+meas_cost <- if (is.null(meas)) numeric() else stats::setNames(meas$cost, meas$key)
+mkey <- function(rt, d, n, cls) cal_plan_key(rt, d, n, "", cls)
+
+# Resolve the cost of the rows of df (response_type, design, n, inf_class, family, secs_n50). Returns list(cost, source).
+resolve_cost_raw <- function(df, roster_fac = function(rt, n) 1) {
+	nr <- nrow(df)
+	cost <- rep(NA_real_, nr); src <- rep("roster", nr)
+	cache <- new.env(parent = emptyenv())
+	for (i in seq_len(nr)) {
+		u <- df[i, ]
+		ck <- paste(u$response_type, u$design, u$n, u$inf_class, sep = "|")
+		if (!is.null(hit <- cache[[ck]])) { cost[[i]] <- hit[[1L]]; src[[i]] <- hit[[2L]]; next }
+		v <- NA_real_; s <- "roster"
+		if (!is.null(meas)) {
+			v1 <- meas_cost[mkey(u$response_type, u$design, u$n, u$inf_class)]
+			same <- meas[meas$response_type == u$response_type & meas$inf_class == u$inf_class, , drop = FALSE]
+			if (!is.na(v1)) { v <- v1[[1L]]; s <- "measured_design" }
+			else if (nrow(sm <- same[same$n == u$n, , drop = FALSE])) {
+				fam <- sm[sm$family == u$family, , drop = FALSE]
+				v <- stats::median(if (nrow(fam)) fam$cost else sm$cost); s <- "measured_n"
+			} else if (nrow(same)) {
+				nn <- same$n[[which.min(abs(log(same$n / u$n)))]]
+				sm <- same[same$n == nn, , drop = FALSE]
+				sd <- sm[sm$design == u$design, , drop = FALSE]
+				base <- if (nrow(sd)) sd$cost[[1L]] else stats::median(sm$cost)
+				v <- base * cost_curve(u, u$n) / cost_curve(u, nn); s <- "measured_class"
+			}
+		}
+		if (is.na(v)) v <- unit_cost(u) * roster_fac(u$response_type, u$n)
+		assign(ck, list(v, s), envir = cache)
+		cost[[i]] <- v; src[[i]] <- s
 	}
+	list(cost = cost, source = src)
+}
+# The roster correction from this campaign's measured units: median of measured / roster estimate by (response type, n), else by
+# response type, else 1; clamped to [0.02, 20].
+roster_fac_fn <- function(df) {
+	if (is.null(meas)) return(function(rt, n) 1)
+	r <- unique(df[c("response_type", "design", "n", "inf_class", "family", "secs_n50")])
+	m <- meas_cost[mkey(r$response_type, r$design, r$n, r$inf_class)]
+	r <- r[!is.na(m), , drop = FALSE]
+	if (!nrow(r)) return(function(rt, n) 1)
+	ratio <- m[!is.na(m)] / vapply(seq_len(nrow(r)), function(i) unit_cost(r[i, ]), numeric(1L))
 	function(rt, n) {
-		v <- ratios[[paste(rt, n)]]
-		if (is.null(v)) 1 else min(20, max(0.2, stats::median(v)))
+		v <- ratio[r$response_type == rt & r$n == n]
+		if (!length(v)) v <- ratio[r$response_type == rt]
+		if (!length(v)) 1 else min(20, max(0.02, stats::median(v)))
 	}
 }
-cfac <- cost_factor()
+resolve_cost <- function(df) {
+	if (!"family" %in% names(df)) df$family <- cal_plan_family(df$design)
+	resolve_cost_raw(df, roster_fac_fn(df))
+}
+rc <- resolve_cost(units)
+units$cost <- rc$cost
+units$cost_source <- rc$source
+if ("--verbose" %in% args) message("calibration planner: unit costs from ", paste(sprintf("%s %d", names(table(units$cost_source)), as.integer(table(units$cost_source))), collapse = ", "))
+
+# Per-pack overhead (see above) from the ledger.
+overhead_fn <- function() {
+	none <- function(rt, d, n) 0
+	if (is.null(ledger) || is.null(meas)) return(none)
+	l <- ledger[is.finite(ledger$secs_per_rep) & ledger$n_done > 0 & !is.na(ledger$only) & nzchar(ledger$only), , drop = FALSE]
+	rows <- list()
+	for (i in seq_len(nrow(l))) {
+		cl <- split_classes(l$only[[i]])[[1L]]
+		m <- meas_cost[mkey(l$response_type[[i]], l$design[[i]], l$n[[i]], cl)]
+		if (!length(m) || anyNA(m)) next
+		rows[[length(rows) + 1L]] <- data.frame(rt = l$response_type[[i]], d = l$design[[i]], n = as.integer(l$n[[i]]),
+			ov = max(0, l$secs_per_rep[[i]] - sum(m)), stringsAsFactors = FALSE)
+	}
+	if (!length(rows)) return(none)
+	o <- do.call(rbind, rows)
+	function(rt, d, n) {
+		for (sel in list(o$rt == rt & o$d == d & o$n == n, o$d == d & o$n == n, o$rt == rt & o$n == n, o$n == n))
+			if (any(sel)) return(stats::median(o$ov[sel]))
+		0
+	}
+}
 
 ranges <- function(x) {
 	x <- sort(x)
@@ -210,43 +328,83 @@ ranges <- function(x) {
 slug <- function(d) gsub("[^A-Za-z0-9]+", "", sub("^Design", "", sub("@prob_T=", "p", d)))
 cls_short <- function(x) sub("^Inference", "", x)
 
-# Shards of a set of units that share (response type, design, n, effect) and a missing-replicate set:
-# classes in priority order are packed next-fit into bins whose whole work (replicates x summed cost)
-# fits --pack-minutes on --cores cores (one class per bin when --pack-minutes is 0; a unit that has
-# already lost a shard to a death or timeout always runs alone, so one hanging class cannot take its
-# neighbours down). Each bin's replicates are cut into chunks of about --target-minutes. A class that
-# does not fit one chunk is cut by replicates exactly as before. The classes of a bin share every
-# replicate's data and design, so a shard's cost is the sum of its classes' costs.
+# Shards of one cell (response type, design, n, effect). A unit is one class with its own set of missing replicates; a
+# shard carries ONE replicate set, so only classes whose missing sets contain that set can share it (a class never repeats a
+# replicate it has done: the statistics add up).
+#  1. Classes with the same missing set, in priority order, are packed next-fit into bins whose whole work (replicates x
+#     (summed class costs + the cell's overhead)) fits --pack-minutes on --cores cores (one class per bin when --pack-minutes
+#     is 0). A unit that has already lost a shard to a death or timeout always runs alone, and is never folded.
+#  2. Fold (Amendment E): a bin whose predicted time is under --min-shard-minutes (typically the leftovers of a shard that hit
+#     its deadline) takes in further classes of the cell whose missing set contains the bin's replicates -- fresh classes, or
+#     classes with larger leftovers -- in priority order, while the pack budget allows, until it reaches the minimum. The guests'
+#     other replicates are planned as usual. Without such a class the bin stays small.
+#  3. A bin's replicates are cut into the fewest chunks of about --target-minutes, of equal size (no tiny tail chunk).
+# The classes of a pack share every replicate's data and design, so a shard's cost is the sum of its classes' costs plus the
+# overhead.
 shards <- list()
-make_shards <- function(u, missing, confirm) {
-	rt <- u$response_type[[1L]]; nn <- u$n[[1L]]
-	cur <- NULL; cur_cost <- 0
-	flush <- function() {
-		if (is.null(cur)) return(invisible())
-		cost <- cur_cost
+overhead_of <- overhead_fn()
+plan_cell <- function(u, m, confirm) {
+	rt <- u$response_type[[1L]]; dd <- u$design[[1L]]; nn <- u$n[[1L]]; ef <- u$effect[[1L]]
+	ov <- overhead_of(rt, dd, nn)
+	bin_cost <- function(b) ov + sum(u$cost[b])
+	emit <- function(b, reps) {
+		cost <- bin_cost(b)
 		per <- max(cores, floor(target_secs * cores / cost))
-		chunks <- split(missing, ceiling(seq_along(missing) / per))
-		tag <- if (length(cur) == 1L) cls_short(u$inf_class[cur]) else sprintf("%s-p%d", cls_short(u$inf_class[cur[[1L]]]), length(cur))
+		k <- ceiling(length(reps) / per)
+		size <- ceiling(length(reps) / k)
+		tag <- if (length(b) == 1L) cls_short(u$inf_class[b]) else sprintf("%s-p%d", cls_short(u$inf_class[b[[1L]]]), length(b))
 		if (confirm) tag <- paste0("confirm-", tag)
-		for (ch in chunks) {
+		for (ch in split(reps, ceiling(seq_along(reps) / size))) {
 			shards[[length(shards) + 1L]] <<- list(
-				id = sprintf("%s-%s-n%d-%s-%s-r%d", rt, slug(u$design[[1L]]), nn, u$effect[[1L]], tag, ch[[1L]]),
-				response_type = rt, design = u$design[[1L]], n = nn, effect = u$effect[[1L]], reps = ranges(ch),
-				secs_per_rep = round(cost, 1), group = paste0(if (confirm) "confirm:" else "", paste(u$inf_class[cur], collapse = ";")),
-				only = paste(u$inf_class[cur], collapse = ","), exclude = "", priority = u$priority[[cur[[1L]]]])
+				id = sprintf("%s-%s-n%d-%s-%s-r%d", rt, slug(dd), nn, ef, tag, ch[[1L]]),
+				response_type = rt, design = dd, n = nn, effect = ef, reps = ranges(ch),
+				secs_per_rep = round(cost, 1), group = paste0(if (confirm) "confirm:" else "", paste(u$inf_class[b], collapse = ";")),
+				only = paste(u$inf_class[b], collapse = ","), exclude = "", priority = u$priority[[b[[1L]]]])
 		}
-		cur <<- NULL; cur_cost <<- 0
 	}
-	for (i in seq_len(nrow(u))) {
-		c_i <- u$cost[[i]] * cfac(rt, nn)
-		alone <- u$dead[[i]] > 0L
-		fits <- !alone && !is.null(cur) && pack_secs > 0 && (cur_cost + c_i) * length(missing) <= pack_secs * cores
-		if (!fits) flush()
-		cur <- c(cur, i)
-		cur_cost <- cur_cost + c_i
-		if (alone) flush()
+	pack <- function(ix) {   # ix: units with one missing set, in priority order
+		bins <- list(); cur <- NULL
+		for (i in ix) {
+			fits <- !is.null(cur) && pack_secs > 0 && (bin_cost(c(cur, i))) * length(m[[i]]) <= pack_secs * cores
+			if (!fits && !is.null(cur)) { bins[[length(bins) + 1L]] <- cur; cur <- NULL }
+			cur <- c(cur, i)
+		}
+		if (!is.null(cur)) bins[[length(bins) + 1L]] <- cur
+		bins
 	}
-	flush()
+	active <- which(lengths(m) > 0L)
+	for (i in active[u$dead[active] > 0L]) emit(i, m[[i]])   # a unit that lost a shard runs alone
+	pool <- active[u$dead[active] == 0L]
+	repeat {
+		if (!length(pool) || pack_secs <= 0 || fold_secs <= 0) break
+		sets <- vapply(pool, function(i) ranges(m[[i]]), character(1L))
+		bins <- unlist(lapply(split(pool, factor(sets, levels = unique(sets))), pack), recursive = FALSE)
+		bins <- bins[order(vapply(bins, function(b) u$priority[[b[[1L]]]], numeric(1L)))]
+		folded <- FALSE
+		for (b in bins) {
+			reps <- m[[b[[1L]]]]
+			if (length(reps) * bin_cost(b) / cores >= fold_secs) next
+			cur <- b
+			for (g in setdiff(pool, b)[order(u$priority[setdiff(pool, b)])]) {
+				if (!all(reps %in% m[[g]])) next
+				if (bin_cost(c(cur, g)) * length(reps) > pack_secs * cores) next
+				cur <- c(cur, g)
+				if (length(reps) * bin_cost(cur) / cores >= fold_secs) break
+			}
+			if (length(cur) == length(b)) next
+			emit(cur, reps)
+			for (i in cur) m[[i]] <- setdiff(m[[i]], reps)
+			pool <- pool[lengths(m[pool]) > 0L]
+			folded <- TRUE
+			break
+		}
+		if (!folded) break
+	}
+	if (length(pool)) {
+		sets <- vapply(pool, function(i) ranges(m[[i]]), character(1L))
+		for (ix in split(pool, factor(sets, levels = unique(sets)))) for (b in pack(ix)) emit(b, m[[b[[1L]]]])
+	}
+	invisible()
 }
 plan_unit_set <- function(us, confirm) {
 	# us: units with key (for the ledger), reps, rep_from, priority; returns counts.
@@ -268,10 +426,11 @@ plan_unit_set <- function(us, confirm) {
 		us$missing_str[[i]] <- ranges(m)
 	}
 	cell <- paste(us$response_type, us$design, us$n, us$effect)
-	for (cg in unique(cell)) for (ms in unique(us$missing_str[cell == cg & nzchar(us$missing_str)])) {
-		ix <- which(cell == cg & us$missing_str == ms)
+	for (cg in unique(cell)) {
+		ix <- which(cell == cg & nzchar(us$missing_str))
+		if (!length(ix)) next
 		ix <- ix[order(us$priority[ix])]
-		make_shards(us[ix, , drop = FALSE], miss[[ix[[1L]]]], confirm)
+		plan_cell(us[ix, , drop = FALSE], miss[ix], confirm)
 	}
 	list(counts = cnt, miss = miss, unit_dead = us$dead, missing_str = us$missing_str)
 }
@@ -306,9 +465,8 @@ if (nzchar(campaign_dir) && file.exists(confirm_path) && file.size(confirm_path)
 			confirm_units$key <- cal_plan_key(confirm_units$response_type, confirm_units$design, confirm_units$n, confirm_units$effect, confirm_units$inf_class)
 			# Cost of a class on a design is that of the same class's screening unit (the confirmation reuses it).
 			ci <- match(confirm_units$key, units$key)
-			confirm_units$cost <- ifelse(is.na(ci), vapply(seq_len(nrow(confirm_units)), function(i) {
-				x <- confirm_units[i, ]; x$secs_n50 <- 1; unit_cost(x)
-			}, numeric(1L)), units$cost[ci])
+			confirm_units$secs_n50 <- 1
+			confirm_units$cost <- ifelse(is.na(ci), resolve_cost(confirm_units)$cost, units$cost[ci])
 			o <- order(match(confirm_units$effect, CAL_PLAN_EFFECTS), cal_rt_rank(confirm_units$response_type), confirm_units$inf_class,
 				units$design_rank[match(confirm_units$design, units$design)], confirm_units$design, confirm_units$n)
 			confirm_units <- confirm_units[o, ]

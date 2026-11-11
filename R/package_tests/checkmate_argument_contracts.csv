@@ -1981,10 +1981,10 @@
 "set_warm_start_dispatch_policy","function","","","reset","FALSE","assertFlag","","","","","","","","","","EDI/R/globals.R",1529,"public_contract",FALSE
 "set_warm_start_dispatch_policy","function","","","policy","","assertList","","","","","","","","","","EDI/R/globals.R",1529,"public_contract",FALSE
 "SimulationFramework","r6_public_method","SimulationFramework","initialize","save_to_disk_every_n_rep","25L","assertCount","","","","","","","TRUE","","","EDI/R/simulations_framework.R",633,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","reps","","assertCount","","","","","","","TRUE","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","dry_run","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","force","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","quiet","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","n_grid","","assertIntegerish","","1","","","1","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","num_cores_grid","","assertIntegerish","","2","","","1","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
-"tune_EDI_for_this_machine","function","","","axes","","assertSubset","","","","","","","","","","EDI/R/local_machine_tuning.R",333,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","reps","","assertCount","","","","","","","TRUE","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","dry_run","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","force","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","quiet","FALSE","assertFlag","","","","","","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","n_grid","","assertIntegerish","","1","","","1","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","num_cores_grid","","assertIntegerish","","2","","","1","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
+"tune_EDI_for_this_machine","function","","","axes","","assertSubset","","","","","","","","","","EDI/R/local_machine_tuning.R",337,"public_contract",FALSE
