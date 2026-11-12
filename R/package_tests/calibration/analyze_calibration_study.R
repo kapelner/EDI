@@ -35,7 +35,8 @@
 # Outputs in --out-dir: calibration_summary.csv, null_bias_summary.csv,
 # power_summary.csv (power and coverage of the true estimand), nonnull_bias_summary.csv,
 # pvalue_curves.csv, confirm_cells.csv (the flagged tests, read by the planner),
-# confirmation_summary.csv, calibration_summary.md, gate_failures.txt.
+# confirmation_summary.csv, calibration_summary.md, gate_failures.txt, triage.csv (failing cells grouped by class x
+# procedure x metric, calibration_study_triage.R).
 #
 # Usage: Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir DIR \
 #          --out-dir DIR [--accepted FILE] [--title TEXT] [--note TEXT] [--summary-md FILE] [--final]
@@ -60,6 +61,7 @@ source(file.path(script_dir, "..", "..", "EDI", "R", "inference_procedure_regime
 # conv_expectations(): the registry's expected order and nominal n_eff per row, the same computation
 # the convergence study uses (functions only: its main runs only as a script).
 source(file.path(script_dir, "convergence_calibration_study.R"))
+source(file.path(script_dir, "calibration_study_triage.R"))
 args <- commandArgs(TRUE)
 arg_value <- function(flag, default = NULL) {
 	i <- match(flag, args)
@@ -494,6 +496,10 @@ if (nrow(pw)) {
 # Failing cells, not tests: a cell failing both size and coverage counts once
 # (the workflow's gate and the results index both read this as a cell count).
 writeLines(as.character(nrow(fails) + sum(pw$fail_coverage, na.rm = TRUE)), file.path(out_dir, "gate_failures.txt"))
+# Failure triage: the failing cells grouped by class x procedure x metric (calibration_study_triage.R), read by
+# triage_calibration_study.R to draft release-plan TODOs. Provisional (campaign_final FALSE) until --final.
+utils::write.csv(cal_triage_groups(out_dir, max_n = if (have_plan) max(plan$n) else NA, final = final),
+	file.path(out_dir, "triage.csv"), row.names = FALSE)
 writeLines(md, file.path(out_dir, "calibration_summary.md"))
 if (!is.null(summary_md)) cat(md, sep = "\n", file = summary_md, append = TRUE)
 cat(md, sep = "\n")

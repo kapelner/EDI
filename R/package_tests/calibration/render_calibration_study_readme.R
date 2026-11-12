@@ -290,6 +290,8 @@ if (is.null(cstat)) {
 data_body <- c(
 	"* Tables: [`summary/calibration_summary.csv`](summary/calibration_summary.csv) (size, coverage, with n_eff, expected order, level and rule per cell),",
 	"  [`summary/confirmation_summary.csv`](summary/confirmation_summary.csv) (every cell the screen flagged, with its confirmation verdict),",
+	if (file.exists(file.path(cdir, "summary", "triage.csv")))
+		"  [`summary/triage.csv`](summary/triage.csv) (failing cells grouped by class x procedure x metric, with pattern, worst cell and a command to reproduce it),",
 	"  [`summary/null_bias_summary.csv`](summary/null_bias_summary.csv) (with the `bias_sd_large_n` flag),",
 	"  [`summary/power_summary.csv`](summary/power_summary.csv) (power, and coverage of the true estimand),",
 	"  [`summary/nonnull_bias_summary.csv`](summary/nonnull_bias_summary.csv) (bias at beta_T != 0, with `bias_sd_large_n`),",

@@ -142,7 +142,20 @@ jobs:
       NUMEXPR_NUM_THREADS: 1
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_1
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-shard-plan
+          path: shard-plan
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_1.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_1.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: coverage-shard-plan
           path: shard-plan
@@ -219,7 +232,20 @@ jobs:
           # 38808821546 on 2026-10-15) instead of as the COVERAGE_BASELINE_PAT
           # it was given. Nothing else in this job pushes or pulls over git.
           persist-credentials: false
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_2
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-shard-*
+          path: coverage-artifacts
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_2.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_2.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-shard-*
           path: coverage-artifacts

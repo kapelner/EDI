@@ -272,7 +272,20 @@ jobs:
       - name: Use the pre-built library
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_1
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: study-campaign
+          path: .
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_1.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_1.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: study-campaign
           path: .
@@ -516,11 +529,37 @@ jobs:
           use-public-rspm: true
       - name: Install ggplot2 and data.table (the only packages the analysis scripts need)
         run: Rscript -e 'install.packages(c("ggplot2", "data.table"))'
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_2
+        continue-on-error: true
+        uses: actions/download-artifact@v8
         with:
           name: study-campaign
           path: .
-      - uses: actions/download-artifact@v8
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_2.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_2.outcome == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          name: study-campaign
+          path: .
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_3
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: study-roster
+          path: .
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_3.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_3.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: study-roster
           path: .
@@ -537,7 +576,20 @@ jobs:
           sed -i '/^ANALYSIS_SHA=/d' "results/campaigns/$C/campaign.env"
           echo "ANALYSIS_SHA=$GITHUB_SHA" >> "results/campaigns/$C/campaign.env"
           echo "Simulated at ${SIM_SHA}, analysed at ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_4
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: study-shard-*
+          path: wave
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_4.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_4.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           pattern: study-shard-*
           path: wave
@@ -695,7 +747,20 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       C: ${{ needs.plan.outputs.campaign }}
     steps:
-      - uses: actions/download-artifact@v8
+      # Artifact downloads get one retry after 60 s: actions/download-artifact's own 5 retries all land inside a
+      # brief GitHub blob-storage outage (run 43301689164, coverage shard 33, 2026-11-12). The first try is
+      # continue-on-error; the retry runs only if it failed, and fails the job as before if storage is still down.
+      - id: artifact_download_5
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: study-results
+          path: handoff
+      - name: Wait before retrying the artifact download
+        if: steps.artifact_download_5.outcome == 'failure'
+        run: sleep 60
+      - if: steps.artifact_download_5.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: study-results
           path: handoff
