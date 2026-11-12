@@ -243,6 +243,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - (a) LR is still oversized at boundary MLEs: size 0.085 (n = 50) / 0.078 (n = 200) in boundary reps vs 0.048 / 0.044 interior; LR coverage 0.924 / 0.934. Candidates: parametric-bootstrap-calibrated LR (`compute_lik_ratio_bootstrap_*`, already supported) as the recommended boundary procedure, or a chi-bar-squared reference.
   - (b) 75 of 1000 LR CIs at n = 50 (7 at n = 200) still fall back to Wald: one null refit at a single delta fails (non-converged) while neighbouring deltas succeed. Overlaps TODO-165 (kernel boundary convergence). Either fix the kernel or let the root search step past one failed refit; and decide whether a Wald fallback under the LR label should itself be NA at a boundary MLE.
   - (c) `InferenceIncidBinomialIdentityRiskDiff` (identity link, bounds at mu = 0 and 1, same TODO-128 warning and `edi_binomial_bound_kkt_core()`) was NOT changed: its Wald path is the generic `StandardModelCache` one, and the identity-link boundary needs its own decision (two-sided bounds; `~1` boundary is a 0% or 100% arm, where the SE is already 0). Measure its boundary share and Wald size in the study cell first. `InferenceIncidRiskDiff` (unpooled Wald, v1.1 TODO-179) does not have this boundary.
+  - Accepted rows (2026-11-12): the 2 `InferenceIncidLogBinomial` score `~.` n = 50 prob_T 0.5 rows (size 0.09, coverage 0.915; boundary MLEs) that cited a bare `TODO-179` now cite this TODO.
   - Done when: (a)-(c) are each fixed or ruled honest by the owner, and the LogBinomial / BinomialIdentity accepted calibration rows say which.
   - **Scope in v1.0.6:** parts (b) and (c) only. Part (a) is triaged in TODO-13; its fix, if any, stays in `release_v1_1_0.md → TODO-189`.
 
@@ -280,7 +281,8 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - `release_v1_1_0.md` TODO-159 (cloglog param bootstrap conservative), TODO-178 (log-binomial score at prob_T 0.2;
     run with TODO-5 here), TODO-189 (a) (LR oversized at boundary MLEs), TODO-174 (hurdle Poisson `~1`).
   - `release_v1_1_0.md` TODO-170 (added 2026-11-11, owner; Stereotype gradient / LR at n = 50, size about 0.085): take
-    the reps that reject in the 2026-11-09 local n = 50 run (`run_calibration_fast_tier.R`, both prob_T), refit the null
+    the reps that reject in the 2026-11-09 local n = 50 run (`run_calibration_fast_tier.R`, both prob_T; saved at
+    `~/edi_regen/stereotype_fast_tier_20261111/n50_n200_run20261109/n50/rows.csv`), refit the null
     model from many starts (e.g. 20 random plus the current cold starts) and recompute the LR and gradient statistics.
     Stop condition: if a fair share of the rejections (say >= 20%) go away, the null refit misses the global mode and
     the fix (a better multistart in `fit_null`) comes here as a new TODO; if not, record that the excess is a
@@ -377,3 +379,21 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Done when: the rule is written into `calibration_gates.md` with its power check, the planner stops units at the first
     look, a synthetic-campaign test shows no change in false-flag rate and the agreed power, and one campaign completes
     with it.
+- [ ] TODO-18 (added 2026-11-12, owner; **exception to the entry rule above**: the owner placed it in v1.0.6 although a
+  studentized or reduced-model bootstrap is a small-sample correction that the rule sends to v1.1.0; found by v1.0.5
+  TODO-18's true-null study, runbook R3): **Percentile and smoothed randomization-bootstrap p-values are
+  anti-conservative when the model has many covariates per observation.**
+  - Evidence (R3, `~/edi_regen/batch_20261023T144230Z/r3_todo18_smoothed_brt/`, diamonds n = 148, Bernoulli, B = 101,
+    500 cases): `InferenceContinOLS` `~.` (24 columns) percentile 14.2%, smoothed 13.4%; `InferenceCountPoisson` `~.`
+    7.6% / 7.6% (rerun 2026-10-25). Same data with `~1`: nominal; OLS Wald 4.15%. Mechanism: a resample holds about 94
+    distinct rows of 148, so each refit overfits and the null SD is about 0.71 of the true SD (replica), predicting
+    about 16.5% rejection. Smoothing is not involved (paired discordance <= 2.4%). A milder small-n version: the
+    TODO-18 permanent test's fixture (`InferenceAllSimpleAverageDiff`, count, n = 60, B = 51) rejects about 11% for
+    both variants.
+  - Candidate fixes, to compare on the two R3 cells and the small-n fixture: (a) default or fall back to
+    `type = "studentized"` when the class exposes an SE and p / n is large; (b) refit the null draws with a reduced model;
+    (c) warn above a p / n threshold and point to studentized / model-based tests. (a) and (b) move default output, so
+    they need an owner decision and a NEWS entry.
+  - Done when: the chosen fix brings both R3 cells to the R3 rule (Holm, >= 500 finite) or the warning is in place
+    with its threshold justified by the same study; the "many covariates" paragraph of the
+    `compute_rand_bootstrap_two_sided_pval()` docs (`inference_all_abstract_rand_bootstrap.R`) is updated to match.

@@ -4081,6 +4081,23 @@ coverage_truth_seed = function(key){
 	as.integer(h)
 }
 
+# Per-case RNG seed (owner request 2026-11-12, v1.0.5 G4). Every case (dataset,
+# beta_T, rep, response type, formula, design, prob_T) is seeded from its own key
+# just before run_tests_for_response() draws its censoring, assignment and noise.
+# Before this the runner seeded once (set.seed(1) at the top) and each case took
+# whatever the global stream held, so a run that skipped cases drew different data:
+# every single-rep (REP_FILTER) job got the first-rep stream, making "rep 9" and
+# "rep 12" byte-identical, and design/class filters and watchdog restarts shifted
+# the stream too. Keyed seeding makes a filtered slice reproduce the full loop's
+# draws for the same case. beta_T is in the key, so the beta = 0 and beta = 0.5
+# cases of a rep get independent data, as they did before.
+comprehensive_case_seed = function(dataset_name, beta_T, rep, response_type, model_formula, design_type, prob_T){
+	coverage_truth_seed(paste(
+		"comprehensive_case", dataset_name, format(as.numeric(beta_T)), as.integer(rep), response_type,
+		paste(deparse(model_formula), collapse = " "), design_type, format(as.numeric(prob_T)),
+		sep = "||"))
+}
+
 get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
 	spec = COVERAGE_MC_SPEC[[base_class]]
 	if (is.null(spec) && !is.na(response_type_hint)) {
@@ -4803,6 +4820,7 @@ for (dataset_name in names(datasets_and_response_models)){
 						for (prob_T_loop in design_type_prob_T_values(design_type)) {
 						prob_T_curr <<- prob_T_loop
 						pending_design_header <<- paste0("        === design: ", design_type, if (prob_T_curr != 0.5) paste0(" (prob_T = ", prob_T_curr, ")") else "", " ===")
+						set.seed(comprehensive_case_seed(dataset_name, beta_T, rep_curr, response_type, model_formula, design_type, prob_T_curr))
 						tryCatch(
 							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
 							error = function(e){

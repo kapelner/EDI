@@ -444,9 +444,26 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   KDE rates); here, noise is instead added directly to each already-resampled response at
 		#'   a fixed \eqn{n^{-1/2}} rate. The bandwidth is not exposed as a parameter, has no
 		#'   zero-noise escape hatch (the only way to disable smoothing is to pick a different
-		#'   \code{type}), and its coverage behavior has not been validated by simulation in this
-		#'   package. Treat it as a discreteness patch that is qualitatively motivated by the
-		#'   literature above, not a certified implementation of it.
+		#'   \code{type}). Treat it as a discreteness patch that is qualitatively motivated by the
+		#'   literature above, not a certified implementation of it. A true-null simulation (nine
+		#'   continuous and count classes, \code{n = 148}, \code{B = 101}, at least 500 data sets
+		#'   each, smoothed and percentile p-values computed on the same draws) found the two
+		#'   rejecting at the same rate in every class, so smoothing does not change the test's size.
+		#'
+		#'   \strong{Limitation: many covariates per observation.} The \code{"percentile"} and
+		#'   \code{"smoothed"} types use the unstudentized estimator, so their null distribution is
+		#'   only as wide as the refits on resampled rows make it. A resample of \code{n} rows holds
+		#'   only about \eqn{0.63 n} distinct ones, so when the model has many covariates relative
+		#'   to \code{n} each refit overfits and the null distribution comes out too narrow, which
+		#'   makes the test anti-conservative. In the simulation above, \code{InferenceContinOLS}
+		#'   with \code{model_formula = ~ .} (24 columns at \code{n = 148}) rejected 13-14\% at
+		#'   nominal 5\% (the null spread was about 0.71 of the true sampling spread), and
+		#'   \code{InferenceCountPoisson} with \code{~ .} rejected 7.6\%; with \code{~ 1} or few
+		#'   covariates both were nominal, and OLS's Wald test on the same data rejected 4.2\%. Small
+		#'   samples show a milder version of the same effect. With many covariates, prefer
+		#'   \code{type = "studentized"} where the class supports it, a smaller
+		#'   \code{model_formula}, or the class's model-based or randomization (\code{compute_rand_*})
+		#'   tests.
 		#'
 		#'   \strong{Performance.} Every class with a C++ \code{compute_fast_rand_bootstrap_distr}
 		#'   kernel that operates on real-valued responses (Wilcox HL, simple mean difference, OLS,

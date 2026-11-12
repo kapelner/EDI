@@ -65,7 +65,7 @@
 #   Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR \
 #     [--canonical-dir R/package_tests] [--canonical-nc N] [--expect-keys FILE] \
 #     [--receipt FILE] [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] \
-#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--apply]
+#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--legacy-no-provenance REASON] [--apply]
 # --expect-keys: one id per line, or a CSV with an `id` column.
 # --canonical-nc: send new keys of an nc_<k> slice to the nc_<N> unfiltered file
 #   (the id does not contain num_cores; the audits and pruner read nc_1 only).
@@ -76,6 +76,9 @@
 #   (works with --apply) when the run started on exactly this DLL. Use only when the
 #   owner confirms the mid-run reinstall rebuilt the same source; the after-DLL must
 #   still equal the installed one.
+# --legacy-no-provenance REASON: for a slice written before receipts and provenance
+#   sidecars existed, accept their absence (works with --apply; the DLL cannot be
+#   verified). Every other check still blocks. The reason is printed in the report.
 # --installed-dll: the native library to compare the sidecar's DLL hash with
 #   (default: <find.package("EDI")>/libs/EDI.so; the package is not loaded).
 # Exit: 0 clean (dry run without blocking issue, or applied), 1 blocking issue,
@@ -92,7 +95,7 @@ source(file.path(here, "comprehensive_beta_filter.R"), local = TRUE)
 usage_text = paste(
 	"usage: Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR",
 	"  [--canonical-dir DIR] [--canonical-nc N] [--expect-keys FILE] [--receipt FILE]",
-	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--apply]",
+	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--legacy-no-provenance REASON] [--apply]",
 	sep = "\n"
 )
 usage_exit = function(msg) {
@@ -109,9 +112,9 @@ args = commandArgs(trailingOnly = TRUE)
 opts = list(slice_dir = NA_character_, canonical_dir = here, canonical_nc = NA_character_,
 	expect_keys = NA_character_, receipt = NA_character_, report_dir = NA_character_,
 	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_,
-	accept_dll_change = NA_character_)
+	accept_dll_change = NA_character_, legacy_no_provenance = NA_character_)
 flags = c(apply = FALSE, allow_no_receipt = FALSE)
-value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change")
+value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance")
 seen = character()
 i = 1L
 while (i <= length(args)) {
@@ -134,6 +137,7 @@ while (i <= length(args)) {
 if (is.na(opts$slice_dir)) usage_exit("--slice-dir is required")
 if (!dir.exists(opts$slice_dir)) usage_exit(paste0("--slice-dir is not a directory: ", opts$slice_dir))
 if (!dir.exists(opts$canonical_dir)) usage_exit(paste0("--canonical-dir is not a directory: ", opts$canonical_dir))
+if (!is.na(opts$legacy_no_provenance) && nchar(trimws(opts$legacy_no_provenance)) < 10) usage_exit("--legacy-no-provenance needs a reason (at least 10 characters) saying why this slice is trusted")
 if (flags[["apply"]] && flags[["allow_no_receipt"]]) usage_exit("--allow-no-receipt is for dry runs only; it is refused with --apply")
 if (!is.na(opts$accept_dll_change) && !grepl("^[0-9a-fA-F]{64}$", opts$accept_dll_change)) usage_exit("--accept-dll-change takes the 64-hex sha256 of the DLL the run started on")
 if (!is.na(opts$canonical_nc) && !grepl("^[0-9]+$", opts$canonical_nc)) usage_exit("--canonical-nc must be a positive integer")
@@ -165,7 +169,11 @@ blockers = character()
 warnings_out = character()
 block = function(...) blockers <<- c(blockers, paste0(...))
 warn = function(...) warnings_out <<- c(warnings_out, paste0(...))
-waived = function(...) if (flags[["allow_no_receipt"]]) warn(..., " [waived for this dry run by --allow-no-receipt]") else block(...)
+waived = function(...) {
+	if (!is.na(opts$legacy_no_provenance)) warn(..., " [accepted by --legacy-no-provenance: ", opts$legacy_no_provenance, "]")
+	else if (flags[["allow_no_receipt"]]) warn(..., " [waived for this dry run by --allow-no-receipt]")
+	else block(...)
+}
 
 # ---- the runner's own key helpers (evaluated, never sourced) -----------------
 runner_path = file.path(here, "comprehensive_tests.R")

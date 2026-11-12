@@ -4140,6 +4140,28 @@ range, since the plan files' internal numbering did not change.
     pass, N4 passes on its 2,000-rep rerun, N5 fails marginally, C2 fails at 13.4-14.2% (a high p/n limitation).
     Open: the owner decision on C2/N5; C1/N1/N2 results are not recorded anywhere; the permanent-test fixture is not
     pinned; provenance regeneration (G4).
+  - **DECIDED 2026-11-12 (owner, option A): C2 and N5 are accepted as a documented limitation.** TODO-18's question
+    (does smoothing break calibration?) is answered no: in every cell smoothed and percentile reject at the same rate.
+    C2/N5 fail equally for both variants, from the unstudentized bootstrap at high p / n (diamonds `~.`, 24 columns at
+    n = 148). The fix moves to `release_v1_0_6.md` TODO-18. Done 2026-11-12 (agent, uncommitted):
+    - **C1/N1/N2 recorded** (R3 run `~/edi_regen/batch_20261023T144230Z/r3_todo18_smoothed_brt/`, 2026-10-23
+      14:43-16:21 UTC, installed EDI 1.0.3, EDI.so sha256 `f5772727…8111`, HEAD a3b253f9 clean, 500/500 finite per
+      variant; percentile / smoothed, #20 per-cell CP 95%): C1 (`InferenceContinKKRobustRegrOneLik` `~1`,
+      FixedBinaryMatch) 5.6% [3.8, 8.0] / 6.2% [4.3, 8.7] PASS, discordance 0.6%; N1 (`InferenceAllSimpleAverageDiff`,
+      count) 4.8% [3.1, 7.1] / 4.8% PASS, 0.8%; N2 (`InferenceCountHurdleNegBin` `~1`) 6.2% [4.3, 8.7] / 6.2% PASS, 0%.
+      C2 in the same run: 14.2% / 13.4%, discordance 2.4%. (N3-N7 in that run are all non-finite, the corrupt-rdb
+      reinstall; their results are the 2026-10-25 rerun and the N4 2,000-rep rerun above.)
+    - **Documented:** a "Limitation: many covariates per observation" paragraph in the
+      `compute_rand_bootstrap_two_sided_pval()` roxygen (`inference_all_abstract_rand_bootstrap.R`), with the R3 figures;
+      the sentence that smoothing's coverage "has not been validated by simulation" is replaced by the R3 result. Rd not
+      regenerated (G8).
+    - **Permanent test pinned:** `R/package_tests/testthat_bulk/test-brt-smoothed-matches-percentile-under-null.R`.
+      Fixed-seed true null, `InferenceAllSimpleAverageDiff`, count and continuous, DesignSeqOneByOneBernoulli, n = 60,
+      B = 51, 100 cases each; smoothed and percentile on the same materialized draws; asserts finite p-values, at most 5
+      discordant decisions, rejection counts within 4, and smoothed rejections <= 20. It deliberately does not assert
+      5% size: at n = 60 both variants reject about 11% on the count fixture (the same limitation). Installed build
+      (EDI.so `1194fa45…`): 10 expectations pass, 38 s on a loaded host; `ci/test_runtimes.csv` row added (50 s).
+    - Left: G4 provenance regeneration of the `_smoothed` rows.
 - [ ] TODO-19 (added 2026-09-23, resolved in source 2026-10-09):
   **`InferenceIncidKKModifiedPoisson` exposed invalid working-likelihood
   inference.** The validated estimator uses a cluster-robust sandwich, so
@@ -14116,7 +14138,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     class roxygen @details (estimator = paper Eqs. 12-13, conservative only for large blocks, pairs numbers,
     prefer InferenceIncidCMH) + @references (arXiv:2607.05768, Robins 1988). Rd regenerated 2026-10-28 (uncommitted). Remaining: NEWS Known
     limitations [(audit 2026-11-04): the accepted-deviation rows already exist, `calibration_fast_tier_accepted.csv` rows 6-13 and
-    82-85 cite TODO-168; only the NEWS Known limitation is left].
+    82-85 cite TODO-168; only the NEWS Known limitation is left]. NEWS Known limitations entry present (in by 67347569, 2026-11-08); the 12 accepted rows were relabelled 2026-11-12 to "v1.0.5 TODO-168 (owner ruling 2026-10-28: published estimator, inherent at small blocks)".
   - CMH kernel (`compute_cmh_block_se_cpp`) also checked: it implements Eq. 8, 4/n^2 sum n1b n0b / (nB - 1), and
     matches Prop. 1. Eq. 9 as printed in the paper omits the factor 4 (Eq. 8 and Prop. 1 both require it): typo
     in the paper, not the code.
@@ -14743,6 +14765,15 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
       (the "substitute = wald" branch is checked directly). Roxygen + NEWS written; Rd not regenerated.
     - Not changed: `InferenceIncidBinomialIdentityRiskDiff` (needs its own decision) and LR oversize at boundary MLEs:
       v1.1 TODO-189.
+  - **Done 2026-11-12 (owner request, agent; uncommitted):** in `calibration_fast_tier_accepted.csv` the 8 LogBinomial
+    wald `~.` rows (prob_T 0.5 and 0.2, n = 50 and 200, size and coverage) are deleted, without the nightly confirmation
+    the note above asked for (owner: "don't bother confirming"); no nightly has run since 2026-11-09 (`749977ab`, before
+    the fix). If a nightly flags those cells, the fix is not working as measured. The 6 frailty score rows are reworded:
+    `~1` -> "honest, harness misspecification (BinaryMatch pairs on covariates that ~1 omits; Clayton-copula SE 12% too
+    small); nominal when correctly specified"; `~.` n = 50 -> small-sample, the n = 200 `~.` cell is 0.070. The frailty
+    wald `~.`/`~1` n = 50 rows (v1.1 TODO-184 reason) and the LogBinomial score rows are unchanged. Rd check: regenerating
+    every Rd in a scratch copy (no compile, no `compileAttributes()`) changes nothing in `InferenceIncidLogBinomial.Rd` or
+    `tune_EDI_for_this_machine.Rd`. Left: G4.
 - [ ] TODO-180 (added 2026-10-31, owner; found by the TODO-177 agent): **`InferenceCountHurdleNegBin` and
   `InferenceSurvivalDepCensTransformRegr`: the null refit's warm start lands in a different optimum, so p-values depend
   on what the object computed before.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified; NEWS + G4 pending; DepCens full-fit multimodality found, not fixed (below). Same pattern as TODO-175 (Stereotype),
@@ -14915,6 +14946,24 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Recorded here as this TODO's follow-up; commit it with the rest. The ordinal Wilcox recheck result is not recorded.
   - **Known risk.** Coverage truths are computed at 0.5. For estimands that cannot be averaged across subgroups (e.g. a marginal Cox hazard ratio), the target can depend on the allocation ratio, so low coverage on 0.2 rows may be a truth artefact.
   - **Not done.** Full comprehensive and fast-tier runs at 0.2; re-measured timings.
+  - **DECIDED 2026-11-12 (owner):** verify the comprehensive 0.2 cells from the survival G4 regeneration's own rows (batch-1
+    rerun `~/edi_regen/regen_survival_b1r_20261111/`, then batches 2-3), not from a separate run. The batch-1 rows cover
+    Bernoulli, FixediBCRD, FixedBlocking and SPBR at 0.2 for CoxPHRegr, StratCoxPHRegr, LogRank, GehanWilcox and AllSimple*.
+    The aborted 2026-11-11 batch-1 run (`regen_survival_b1_20261111/`) showed exactly 2x rows on those designs, no duplicate
+    ids. At beta_T = 0 the coverage truth no longer depends on allocation (d05eee79), so the "Known risk" above is moot there.
+  - **Batch-1 rerun result (2026-11-12).** 110/110 jobs exit 0 on so 1194fa45, 292,290 rows, all `ok`, 0 duplicate ids;
+    the four capable designs have exactly as many 0.2 rows as 0.5 rows. Null size on diamonds + pte_example (73 independent reps):
+    every p-value family rejects 1.8-6.5% at 0.2, in line with its 0.5 rate (asymp 3.4 vs 3.6%, Wald 3.6 vs 3.7%, rand 3.6 vs
+    4.3%, rand-bootstrap 6.5 vs 6.2%). Abalone looked inflated at 0.2 (Cox `~1` asymp 64% on Bernoulli) only because of a
+    harness bug: `comprehensive_tests.R` seeded once (`set.seed(1)`), so every single-rep (`REP_FILTER`) job drew the
+    first-rep stream and abalone reps 9-15 / 21-29 were byte-identical copies (the unmerged 2026-10-30 regen has the same
+    flaw). **Fixed 2026-11-12 (owner request, uncommitted):** `comprehensive_case_seed()` seeds every case from its key
+    (dataset, beta_T, rep, response, formula, design, prob_T) just before `run_tests_for_response()`; pinned by
+    `test-comprehensive-per-case-rng-seed-reference.R`; smoke: rep 9 twice identical, rep 10 differs in 4/4 estimates.
+    The 46 abalone jobs are being rerun in `~/edi_regen/regen_survival_b1a_20261112/`; their 0.2 cells are checked there.
+    Merge dry run of batch 1 (no `--apply`): 101 clean, 9 LogRank jobs blocked by 246 multi-file keys
+    (`..._filtered_class-InferenceSurvivalLogRank_family-rand.csv`); 3,586 canonical keys no longer emitted (LogRank/Gehan
+    rand CIs, Cox rand-bootstrap p-values, LogRank rand p-values). Only the 57 clean diamonds/pte jobs are mergeable as is.
 - [x] TODO-185 (added 2026-11-03, owner; found by the TODO-184 pre-push 0.2 cell): **`InferenceCountZeroInflatedNegBin` / `InferenceCountZeroInflatedPoisson` score CIs are not inverted from their tests at `prob_T = 0.2`.** Current state: DONE 2026-11-06, confirmed against the installed build (owner rebuild 2026-11-06 16:16). The full pre-push calibration check (`EDI_PREPUSH_CALIBRATION=all`, 166 classes, 2864 task rows) reports `prepush_calibration: OK`, and `prepush_calibration_known_failures.csv` has no ZIP/ZINB rows. The original finding follows. The endpoint check, which re-runs the class's own score test at each CI endpoint, gets p far below 0.05 at the upper endpoint:
   - ZINB score `~1`, null rep 2: p at ci_b = 0.4061 is 0.0016.
   - ZIP score `~.`, null rep 3: p at ci_b = 0.3038 is 0.00012.
@@ -15118,7 +15167,7 @@ box: G6 #17 (registry-baseline fixture), see "Closing audit 2026-10-23". **DECID
 
 **Current (v1.0.5 TODO audit 2026-11-04; supersedes the counts above, which stay as history).** Recounted from the boxes.
 Of TODO-1..131: DONE 100, open 31. Newly DONE since 2026-10-23: 4, 116, 123 (checked 2026-10-31) and 56, 66, 107, 108,
-111, 121, 106 (checked 2026-11-04), 62 (2026-11-09), 1, 57-60 (2026-11-10). Open 31 = GATED 30 + NEEDS-DECISION 1 (18: C2/N5 R3 failures). Lists: DONE 1-7 11 15 17 20-22 24 25 27-30 32-37 39-49 51-54 56 61 64-66 69-75 78-98 100-108 110 111 113-118 121-124 126, 57-60, 62; open 8-10 12-14 16 18 19 23 26 31 38 50 55 63 67 68 76 77 99 109 112
+111, 121, 106 (checked 2026-11-04), 62 (2026-11-09), 1, 57-60 (2026-11-10). Open 31 = GATED 31 + NEEDS-DECISION 0 (18 decided 2026-11-12, now GATED on G4). Lists: DONE 1-7 11 15 17 20-22 24 25 27-30 32-37 39-49 51-54 56 61 64-66 69-75 78-98 100-108 110 111 113-118 121-124 126, 57-60, 62; open 8-10 12-14 16 18 19 23 26 31 38 50 55 63 67 68 76 77 99 109 112
 119 120 125 127-131. The later TODO-161..191 (TODO-132..160 are unused here): DONE 16 (161-164 checked 2026-11-04, 182,
 183, 186 = the renumbered second TODO-184, 187; 166-168, 170, 171, 185 checked 2026-11-06; 189, 190), open 15 (165, 169, 172-181, 184, 188, 191). All 162 entries: DONE 116, open 46 (recounted 2026-11-10); the
 open ones are in "Per-TODO status".
@@ -15176,7 +15225,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 13 | gated | G4 | Proportion `rand` p-value family (28,800 keys); prune 988 stale GComp rand-CI rows (`prune_stale_result_rows.R --apply`, separately approved) |
 | 14 | gated | G4 merge | R5 PASS 2026-10-25, provenance accepted 2026-10-26 (4,080 approved skips, two accepted SHAs). Left: canonical merge into `nc_1_survival.csv` |
 | 16 | gated | G4 | R1 PASS on `~1` 2026-10-25 (DLL c6d59498, G1-rechecked; `~.` strata non-gating by owner 10-25); narrowed ordinal pboot slice merged 2026-10-30. Left: `--write-baseline` (separate approval), ContRatioRegr rows (linked plan TODO-6), other datasets / beta 0.5 rows |
-| 18 | needs-decision | G6 (C2/N5), G4 | Patch 15 applied; C1 recheck passed 2026-10-25. R3 ran: N3/N6/N7 pass, N4 passes on its 2,000-rep rerun, N5 fails marginally, C2 fails at 13.4-14.2% (high p/n). Left: owner decision on C2/N5; record the C1/N1/N2 results; pin the permanent-test fixture; provenance regen (G4) |
+| 18 | gated | G4 | DECIDED 2026-11-12 (owner, option A): C2/N5 accepted as a documented high-p/n limitation of the unstudentized BRT, not smoothing; fix in release_v1_0_6.md TODO-18. C1/N1/N2 recorded (all PASS); limitation documented in the rand-bootstrap roxygen (Rd at G8); permanent test `test-brt-smoothed-matches-percentile-under-null.R` pinned. Left: provenance regen of the `_smoothed` rows (G4) |
 | 19 | gated | G4 | `InferenceIncidKKModifiedPoisson` rows (~21 h, 26,880 labels); the 2026-10-23 slice merge was blocked by a DLL mismatch, rerun outstanding |
 | 23 | gated | G4 merge | R4A PASS 14/14; G1 native validation passed; re-audit + baseline done. Left: merge the 2026-10-31 SD 0.25 survival regen (supersedes the R4B merge; owner approval) and prune stale rows |
 | 26 | gated | G4 merge | Rows regenerated 2026-10-30 in the survival grid (DLL 7607b692, receipts). Left: owner approval of the canonical merge |
@@ -15209,7 +15258,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 176 | open | agent, G4 | Code committed a464f68e; NEWS written 2026-11-06. Left: G4 |
 | 177 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial; new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
 | 178 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): cold primary fit, no warm-start write from the rand hook, estimate_only = full estimator; NEWS written 2026-11-07. Owner ruling 2026-11-08: `~1` (treatment-only, K >= 3) is always non-estimable, reason `stereotype_treatment_only_fit_not_identified` (applied in `generate_mod()`; 5 tests moved to `~x` or the new rule; 302 Stereotype checks pass with NOT_CRAN; roxygen + NEWS updated). Left: Rd regen, owner rebuild, Stereotype calibration re-run (`~1` cells now all NA; check the analysis and accepted rows), G4 rows |
-| 179 | APPLIED (LogBinomial) | owner, G4 | LogBinomial half APPLIED 2026-11-09 (owner decision, R only, uncommitted): Wald p-value/CI NA at a boundary MLE (eta >= -(1e-8 + 1e-6)), warning `edi_wald_mle_boundary_unavailable`, reason in procedure_failure_reason[["wald"]]; plus a feasible last-resort null start so LR CIs stop falling back to Wald. Study cell n = 50: Wald NA 68%, size over finite 0.041 (was 0.139); n = 200: 66%, 0.047 (was 0.118). New test + 2 tests updated; NEWS + roxygen done, Rd pending. Left: owner review, Rd regen, G4 rows, prune the LogBinomial wald accepted rows after a nightly; leftovers v1.1 TODO-189. Earlier: Investigated 2026-11-07 (1000-rep null study, n = 200): both cells real but not bugs. LogBinomial wald `~.` 0.090: boundary MLE (mu = 1) in 33% of reps, inverse information too small there; matches glm(log link); documented + warned. Frailty Loggamma OneLik score `~1` 0.086: harness `~1` omits the matched-on covariates; nominal when correctly specified. Frailty left: owner accepts; reword its accepted-row reasons; Clayton score information |
+| 179 | gated | G4 | LogBinomial Wald NA at a boundary MLE applied 2026-11-09 (owner decision; committed e4dca08e), Rd current (checked 2026-11-12). Frailty half accepted as honest. 2026-11-12 (owner): the 8 LogBinomial wald `~.` accepted rows deleted without waiting for a nightly; the 6 frailty score rows reworded to the 2026-11-07 finding. Left: G4 rows |
 | 180 | open | agent, G4 | Code committed a464f68e, test exists; NEWS written 2026-11-06. Left: G4. The DepCens full-fit multistart is TODO-188 |
 | 181 | open | agent, G4 | Code committed a464f68e, 3 tests exist; NEWS bullet written 2026-11-07. LogBinomial boundary score APPLIED 2026-11-07 (KKT/profile score + cold refit of non-KKT null fits in `inference_incidence_log_binomial.R`; test `test-log-binomial-null-mle-boundary-kkt-score-reference.R`, 34 pass): all 8 `~.` calibration reps now give finite score/LR/gradient CIs at roots, no Wald fallback. NEWS written. KKT ported to RiskDiff 2026-11-08 (owner; reverses the 181(c) NA ruling): shared `edi_binomial_bound_kkt_core()` with two-sided constraint signs, cold refit of non-KKT null fits; 181(c) test rewritten as `test-binomial-identity-null-mle-boundary-kkt-score-reference.R`; rep 23 score CI upper 0.2199 (not a root) -> 0.2170 (root); 25 `~.` reps x score/gradient/LR: 0 of 75 CIs with NA, fallback or non-root endpoints. NEWS updated. Left: G4 |
 | 184 | gated | full runs | Harness/calibration plumbing in source. Left: full comprehensive + calibration runs at `prob_T = 0.2`; the KMDiff MOVER CI follow-up (uncommitted, see entry) |

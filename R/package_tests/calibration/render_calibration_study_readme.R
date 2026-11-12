@@ -135,15 +135,20 @@ tbl_rt <- sub("^\\| ([^ |]+) \\|.*$", "\\1", tbl_rows)
 rts <- CAL_STUDY_RT_DISPLAY_ORDER
 rts <- c(rts, setdiff(unique(tbl_rt), rts))
 
-# Failing cells, one page per response type.
+# Failing cells, one page per response type. A response type with no results yet says "pending", never "0 failing"
+# (owner, 2026-11-12): zero failures is a result, and it has none.
+cs_path <- file.path(cdir, "summary", "calibration_summary.csv")
+rts_with_results <- if (file.exists(cs_path) && file.size(cs_path) > 2L)
+	unique(utils::read.csv(cs_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))$response_type) else character()
 fail_files <- character()
-fail_n <- integer()
+fail_label <- character()
 for (rt in rts) {
 	f <- sprintf("failing-%s.md", rt)
 	rows_rt <- tbl_rows[tbl_rt == rt]
 	fail_files[[rt]] <- f
-	fail_n[[rt]] <- length(rows_rt)
-	add_page(f, sprintf("Failing cells: %s", rt), c(
+	started <- rt %in% rts_with_results || length(rows_rt) > 0L
+	fail_label[[rt]] <- if (started) sprintf("%d failing cell(s)", length(rows_rt)) else "pending (not run yet)"
+	add_page(f, sprintf("Failing cells: %s", rt), if (!started) c(sprintf("Pending: no %s cell has run yet.", rt), "") else c(
 		sprintf("%d failing %s cell(s) (%s).", length(rows_rt), rt, if (complete) "confirmed" else "provisional: confirmation pending or running"), "",
 		if (length(rows_rt)) c(tbl_head, rows_rt) else "None.", ""))
 }
@@ -314,7 +319,7 @@ add_page("about.md", "About this study", c(about, ""))
 ana_sha <- env$ANALYSIS_SHA %||% ""
 commit_link <- function(sha) sprintf("[`%s`](https://github.com/%s/commit/%s)", substr(sha, 1L, 8L), repo, sha)
 toc <- c("| Page | Contents |", "|---|---|",
-	sprintf("| [Failing cells: %s](%s) | %d failing cell(s) |", rts, fail_files[rts], fail_n[rts]),
+	sprintf("| [Failing cells: %s](%s) | %s |", rts, fail_files[rts], fail_label[rts]),
 	"| [Screen flags and confirmation](flags.md) | every test the screen flagged, with its confirmation verdict |",
 	"| [Null bias](null-bias.md) | bias at beta_T = 0, `bias_sd_large_n` flag (reported, not gated) |",
 	"| [Coverage and bias away from the null](nonnull.md) | gated coverage of the true estimand, bias at beta_T != 0 |",

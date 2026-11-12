@@ -6,9 +6,10 @@
 #
 # The fragment has two sections, each by response type (owner, 2026-11-09):
 # "Null treatment effect" (beta_T = 0)
-#   overview-<rt>.png          class x design grid: worst size / coverage status
-#   size-<rt>.png              size per class x method x formula, Bernoulli, by n
-#   coverage-<rt>.png          coverage, same layout
+#   overview-<rt>.png          class x design grid per n (stacked): worst status, each square split into size
+#                              (upper-left triangle) and coverage (lower-right) (owner, 2026-11-12)
+#   size-coverage-<rt>.png     size (top) and 1 - coverage (bottom) per class x method x formula, Bernoulli,
+#                              by n, one x axis (owner, 2026-11-12: one figure, stacked)
 #   null-bias-<rt>.png         null bias / SD, Bernoulli, by n
 #   pvalue-curves-<rt>.png     P(p <= u) - u for null p-values (n = 200, Bernoulli, ~ .)
 # "Non-null treatment effect" (beta_T != 0)
@@ -20,7 +21,8 @@
 # v1.0.5 TODO-199; absent or empty -> skipped):
 #   convergence-<rt>.png / convergence-nonnull-<rt>.png          |error| vs n_eff, log-log, asymptotic cells,
 #                                                                  expected slope as reference lines
-#   convergence-grid-<rt>.png / convergence-grid-nonnull-<rt>.png  class x design grid of verdicts per procedure
+#   convergence-grid[-nonnull]-<rt>-<procedure>.png              class x design grid of verdicts, one figure per procedure
+#                                                                  (and -bias), owner 2026-11-12
 #
 # With --class-figures (v1.0.5 TODO-203, new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md) it also writes
 # one convergence figure per inference class, class-<Class>.png (+ -dark): panels procedure (rows) x metric (size error,
@@ -219,15 +221,26 @@ conv_figures <- function(rt, null) {
 		rank <- c(slower = 4L, faster = 3L, consistent = 2L, undetermined = 1L, not_applicable = 0L)
 		ov <- aggregate(verdict ~ cls + design_label + panel, asy, function(v) v[[which.max(rank[v])]])
 		ov$verdict <- factor(ov$verdict, levels = names(CONV_VERDICT))
-		save_both(function(th) ggplot(ov, aes(design_label, cls, fill = verdict)) +
-			geom_tile(colour = th$surface, linewidth = 0.5, show.legend = TRUE) + facet_wrap(~ panel) +
-			scale_fill_manual(values = CONV_VERDICT, drop = FALSE, name = "verdict",
-				guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
-			labs(title = regime_title(sprintf("%s: convergence verdicts, every class on every design", tools::toTitleCase(rt)), null),
-				subtitle = wrap_sub("Worst verdict over formulas, effects and the size / coverage metrics (slower > faster > consistent > undetermined > not applicable), by procedure; bias is a property of the estimator", 110),
-				x = NULL, y = NULL) +
-			scale_x_discrete(guide = guide_axis(angle = 45)),
-			paste0("convergence-grid", sfx, "-", rt), 11, 3.9 + 0.2 * length(unique(ov$cls)) * ceiling(length(unique(ov$panel)) / 3), sprintf("%s convergence verdicts", rt))
+		# One figure per procedure (owner, 2026-11-12: a facet per procedure left the design labels unreadable), every
+		# figure on the full class x design grid so they line up; bias (the estimator's) last.
+		panels <- unique(ov$panel)
+		panels <- c(intersect(PROC_ORDER, panels), setdiff(sort(setdiff(panels, "bias (estimator)")), PROC_ORDER), intersect("bias (estimator)", panels))
+		cls_lv <- sort(unique(ov$cls)); des_lv <- sort(unique(ov$design_label))
+		for (pn in panels) {
+			op <- ov[ov$panel == pn, , drop = FALSE]
+			op$cls <- factor(op$cls, levels = cls_lv); op$design_label <- factor(op$design_label, levels = des_lv)
+			save_both(function(th) ggplot(op, aes(design_label, cls, fill = verdict)) +
+				geom_tile(colour = th$surface, linewidth = 0.5, show.legend = TRUE) +
+				scale_fill_manual(values = CONV_VERDICT, drop = FALSE, name = "verdict",
+					guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
+				scale_x_discrete(drop = FALSE, guide = guide_axis(angle = 45)) + scale_y_discrete(drop = FALSE) +
+				labs(title = regime_title(sprintf("%s: convergence verdicts, %s", tools::toTitleCase(rt), pn), null),
+					subtitle = wrap_sub(if (pn == "bias (estimator)") "Worst verdict over formulas and effects; bias is a property of the estimator, shared by its procedures" else
+						"Worst verdict over formulas, effects and the size / coverage metrics (slower > faster > consistent > undetermined > not applicable)", 100),
+					x = NULL, y = NULL),
+				paste0("convergence-grid", sfx, "-", rt, "-", gsub("[^a-z0-9]+", "-", sub(" \\(estimator\\)", "", pn))), 9,
+				3.4 + 0.22 * length(cls_lv), sprintf("%s convergence verdicts: %s", rt, pn))
+		}
 	}
 	invisible(NULL)
 }
@@ -238,55 +251,77 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 	x <- s[s$response_type == rt, ]
 	md <- c(md, sprintf("#### %s", tools::toTitleCase(rt)), "")
 
-	# Overview: worst status per class x design over methods, formulas and n.
+	# Overview: worst status per class x design x n over methods and formulas, one grid per n stacked
+	# (n = 50, 200, 1000 top to bottom), each square split into two triangles (owner, 2026-11-12):
+	# upper-left = size, lower-right = coverage. A metric no procedure of the
+	# cell has (e.g. coverage when only randomization tests ran) is left blank, like an inapplicable design.
 	rank <- c(pass = 1L, `too few results` = 0L, accepted = 2L, fail = 3L)
-	ov <- aggregate(status ~ cls + design_label, x, function(v) v[[which.max(rank[v])]])
-	ov <- complete_overview(ov, names(STATUS))
-	save_both(function(th) ggplot(ov, aes(design_label, cls, fill = status)) +
-		# show.legend = TRUE: every status gets a swatch even when no cell has it (ggplot
-		# otherwise draws an absent level's key empty); grey key borders keep the light
-		# swatches visible on the page.
-		geom_tile(colour = th$surface, linewidth = 0.8, show.legend = TRUE) +
+	is_acc <- !is.na(x$accepted) & nzchar(x$accepted)
+	metric_status <- function(fail, p, has) ifelse(!has, NA_character_, ifelse(fail %in% TRUE, "fail",
+		ifelse(is.na(p), "too few results", ifelse(is_acc, "accepted", "pass"))))
+	x$status_size <- metric_status(x$fail_size, x$p_size, is.finite(x$size) | !is.na(x$p_size))
+	x$status_coverage <- metric_status(x$fail_coverage, x$p_coverage, is.finite(x$coverage) | !is.na(x$p_coverage))
+	worst <- function(v) { v <- v[!is.na(v)]; if (length(v)) v[[which.max(rank[v])]] else NA_character_ }
+	ov <- do.call(rbind, lapply(split(x, list(x$cls, x$design_label, x$n_nominal), drop = TRUE), function(d)
+		data.frame(cls = d$cls[1L], design_label = d$design_label[1L], n_nominal = d$n_nominal[1L], size = worst(d$status_size),
+			coverage = worst(d$status_coverage), stringsAsFactors = FALSE)))
+	cls_levels <- sort(unique(x$cls))
+	des_levels <- sort(unique(x$design_label))
+	ov$xi <- match(ov$design_label, des_levels)
+	ov$yi <- match(ov$cls, cls_levels)
+	h <- 0.45
+	tri <- do.call(rbind, lapply(seq_len(nrow(ov)), function(i) {
+		o <- ov[i, ]
+		rbind(data.frame(id = paste(i, "size"), status = o$size, n_nominal = o$n_nominal, x = o$xi + c(-h, -h, h), y = o$yi + c(-h, h, h)),
+			data.frame(id = paste(i, "coverage"), status = o$coverage, n_nominal = o$n_nominal, x = o$xi + c(-h, h, h), y = o$yi + c(-h, -h, h)))
+	}))
+	tri$status[is.na(tri$status)] <- NA_DESIGN
+	tri$nf <- n_fac(tri$n_nominal)
+	tri$status <- factor(tri$status, levels = c(names(STATUS), NA_DESIGN))
+	# Every status gets a legend swatch even when no cell has it (one invisible zero-size polygon per level).
+	keys <- data.frame(id = paste("key", levels(tri$status)), status = factor(levels(tri$status), levels = levels(tri$status)),
+		x = 1, y = 1, nf = n_fac(min(tri$n_nominal)))
+	save_both(function(th) ggplot(tri, aes(x, y, group = id, fill = status)) +
+		geom_polygon(colour = th$surface, linewidth = 0.6) +
+		geom_polygon(data = keys, colour = NA, show.legend = TRUE) +
 		scale_fill_manual(values = c(STATUS, setNames(th$surface, NA_DESIGN)), drop = FALSE, name = "worst cell",
 			guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
+		scale_x_continuous(breaks = seq_along(des_levels), labels = des_levels, expand = c(0, 0.1),
+			guide = guide_axis(angle = 45)) +
+		scale_y_continuous(breaks = seq_along(cls_levels), labels = cls_levels, expand = c(0, 0.1)) +
+		coord_fixed() + facet_grid(nf ~ .) +
 		labs(title = regime_title(sprintf("%s: size and coverage, every class on every design", tools::toTitleCase(rt)), TRUE),
-			subtitle = wrap_sub("Worst status over the fast procedures, both formulas and all n"), x = NULL, y = NULL) +
-		scale_x_discrete(guide = guide_axis(angle = 45)),
-		paste0("overview-", rt), 9, 2.9 + 0.22 * length(unique(ov$cls)), sprintf("%s overview", rt))
+			subtitle = wrap_sub("One grid per n. Each square: upper-left triangle = size, lower-right = coverage, each held to its level at that n. Worst status over the fast procedures and both formulas; blank = design not applicable, not run at that n, or no such procedure"),
+			x = NULL, y = NULL),
+		paste0("overview-", rt), 9, 2.9 + 0.22 * length(cls_levels) * length(unique(tri$n_nominal)) + 0.3 * length(unique(tri$n_nominal)),
+		sprintf("%s overview: size and coverage by n", rt))
 
+	# Size and coverage in one figure, stacked (owner, 2026-11-12): size on top, 1 - coverage below, on one x
+	# axis. At beta_T = 0 a CI that inverts its test misses exactly when the test rejects, so the two panels
+	# should agree; where they do not, the CI is not the test's inversion (another SE or reference distribution).
 	xb <- x[x$design_label == baseline_design & is.finite(x$size), ]
-	if (nrow(xb)) {
-		xb$row <- paste(xb$cls, xb$inf_procedure, xb$formula)
-		xb$nf <- n_fac(xb$n_nominal)
-		xb$k <- round(xb$size * xb$n_p)
-		xb$lo <- cp_lo(xb$k, xb$n_p)
-		xb$hi <- cp_hi(xb$k, xb$n_p)
-		save_both(function(th) ggplot(xb, aes(size, row, colour = nf, shape = nf)) +
+	xc <- x[x$design_label == baseline_design & is.finite(x$coverage), ]
+	if (nrow(xb) || nrow(xc)) {
+		panel_levels <- c("size", "miscoverage (1 - coverage)")
+		part <- function(d, rate, k_n, panel) {
+			if (!nrow(d)) return(NULL)
+			k <- round(rate * k_n)
+			data.frame(row = paste(d$cls, d$inf_procedure, d$formula), nf = n_fac(d$n_nominal), rate = rate,
+				lo = cp_lo(k, k_n), hi = cp_hi(k, k_n), reps = k_n, panel = factor(panel, levels = panel_levels))
+		}
+		sc <- rbind(part(xb, xb$size, xb$n_p, panel_levels[1L]), part(xc, 1 - xc$coverage, xc$n_ci, panel_levels[2L]))
+		n_rows <- length(unique(paste(sc$panel, sc$row)))
+		save_both(function(th) ggplot(sc, aes(rate, row, colour = nf, shape = nf)) +
 			geom_vline(xintercept = 0.05, colour = th$ink2, linewidth = 0.4, linetype = "dashed") +
 			geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, linewidth = 0.4,
 				position = position_dodge(width = 0.6)) +
 			geom_point(size = 2.2, position = position_dodge(width = 0.6)) +
+			facet_grid(panel ~ ., scales = "free_y", space = "free_y") +
 			scale_colour_manual(values = th$series, name = NULL) + scale_shape_manual(values = c(16, 17, 15, 18), name = NULL) +
-			labs(title = regime_title(sprintf("%s: Type I error (size), Bernoulli design", tools::toTitleCase(rt)), TRUE),
-				subtitle = wrap_sub(sprintf("Nominal 5%% (dashed); bars are exact 95%% Monte Carlo intervals (%s replicates per cell)", rep_range(xb$n_p))), x = "size", y = NULL),
-			paste0("size-", rt), 8, 2 + 0.16 * length(unique(xb$row)), sprintf("%s size", rt))
-	}
-	xc <- x[x$design_label == baseline_design & is.finite(x$coverage), ]
-	if (nrow(xc)) {
-		xc$row <- paste(xc$cls, xc$inf_procedure, xc$formula)
-		xc$nf <- n_fac(xc$n_nominal)
-		xc$k <- round(xc$coverage * xc$n_ci)
-		xc$lo <- cp_lo(xc$k, xc$n_ci)
-		xc$hi <- cp_hi(xc$k, xc$n_ci)
-		save_both(function(th) ggplot(xc, aes(coverage, row, colour = nf, shape = nf)) +
-			geom_vline(xintercept = 0.95, colour = th$ink2, linewidth = 0.4, linetype = "dashed") +
-			geom_errorbar(aes(xmin = lo, xmax = hi), orientation = "y", width = 0, linewidth = 0.4,
-				position = position_dodge(width = 0.6)) +
-			geom_point(size = 2.2, position = position_dodge(width = 0.6)) +
-			scale_colour_manual(values = th$series, name = NULL) + scale_shape_manual(values = c(16, 17, 15, 18), name = NULL) +
-			labs(title = regime_title(sprintf("%s: 95%% CI coverage, Bernoulli design", tools::toTitleCase(rt)), TRUE),
-				subtitle = wrap_sub(sprintf("Nominal 95%% (dashed); bars are exact 95%% Monte Carlo intervals (%s replicates per cell)", rep_range(xc$n_ci))), x = "coverage", y = NULL),
-			paste0("coverage-", rt), 8, 2 + 0.16 * length(unique(xc$row)), sprintf("%s coverage", rt))
+			labs(title = regime_title(sprintf("%s: size and 95%% CI coverage, Bernoulli design", tools::toTitleCase(rt)), TRUE),
+				subtitle = wrap_sub(sprintf("Top: Type I error (size). Bottom: 1 - coverage of the 95%% CI, so both read against nominal 5%% (dashed); a CI that inverts its test misses exactly when the test rejects, so the panels should agree. Bars are exact 95%% Monte Carlo intervals (%s replicates per cell)", rep_range(sc$reps)), 78),
+				x = "size (top) / 1 - coverage (bottom)", y = NULL),
+			paste0("size-coverage-", rt), 8, 2.6 + 0.16 * n_rows, sprintf("%s size and coverage", rt))
 	}
 	if (!is.null(b)) {
 		bb <- b[b$response_type == rt & b$design_label == baseline_design & is.finite(b$null_bias_std), ]

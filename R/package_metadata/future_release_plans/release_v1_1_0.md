@@ -1993,6 +1993,7 @@ ticked in their **owning plans**; this list is the release index.
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: share of fits at the [0,1] boundary in the treated arm; Wald SE at a boundary fit; relation to v1.0.5 TODO-181 (KKT score) and the feasible-start null refit.
   - Fix (candidates): boundary-aware SE or a Newcombe / Miettinen-Nurminen-type interval for small arms.
+  - Nightly-tier run 43207882653 (2026-11-12, `e4caff35`): the `~.` n = 50 prob_T 0.2 gradient, LR and score cells are now nominal (size 0.048-0.054, coverage 0.945-0.948, yield >= 99%), so their 3 coverage rows were pruned. Still accepted: Wald `~.` and `~1` at n = 50, prob_T 0.2.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-175`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
@@ -2056,6 +2057,7 @@ ticked in their **owning plans**; this list is the release index.
   - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. The score excess at moderate n is TODO-166. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: frailty variance collapsing to the boundary at n = 50; SE vs sd(estimate).
   - Fix (candidates): boundary-aware SE or bootstrap SE; may share TODO-166's bootstrap.
+  - Rows repointed 2026-11-12: the 6 score rows (`~.` n = 50; `~1` n = 50 / 200) that cited a bare `TODO-179` now cite this TODO. An earlier session's 2026-11-07 investigation called `~.` n = 50 small-sample and `~1` honest harness misspecification (BinaryMatch pairs on covariates `~1` omits); the `~1` part needs an owner ruling.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-184`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 

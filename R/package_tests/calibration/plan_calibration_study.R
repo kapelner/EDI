@@ -132,7 +132,10 @@ split_classes <- function(x) {
 	x[is.na(x)] <- ""
 	lapply(strsplit(x, "[;,]"), function(v) v[nzchar(v)])
 }
-ckey <- function(unit_key, confirm) ifelse(confirm, paste0(unit_key, "|confirm"), unit_key)
+# Vectorised over unit_key (a pack shard's classes) with one `confirm` per shard. Not ifelse(confirm, ...): that returns
+# length(confirm) = 1 values, so only a pack's first class was credited with its replicates and every later class of the
+# pack re-ran the same seeds in later waves, its statistics counted once per re-run (campaign 2026-11-11-9d2edc5c).
+ckey <- function(unit_key, confirm) paste0(unit_key, if (isTRUE(confirm)) "|confirm" else "")
 
 # Ledger: one row per finished shard (shard.csv, plus id). A shard's `only` is its class list (";"-joined);
 # its replicates count for every class in it. Replicates above CONFIRM_REP0 are confirmation replicates.

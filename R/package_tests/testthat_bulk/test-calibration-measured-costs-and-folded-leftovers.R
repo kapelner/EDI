@@ -44,7 +44,7 @@ amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL) {
 			tests[[length(tests) + 1L]] = t
 		}
 		nd = d$reps_stat
-		led[[i]] = data.frame(response_type = "continuous", design = d$design, n = d$n, effect = "null", only = d$cls, exclude = "", reps_done = d$reps_done,
+		led[[i]] = data.frame(response_type = "continuous", design = d$design, n = d$n, effect = "null", only = if (is.null(d$only)) d$cls else d$only, exclude = "", reps_done = d$reps_done,
 			n_done = nd, n_failed = 0L, n_skipped = 0L, cores = 4L, elapsed_sec = 10, secs_per_rep = if (is.null(ledger_spr)) d$fit else ledger_spr,
 			id = paste0("s", i), stringsAsFactors = FALSE)
 	}
@@ -108,6 +108,19 @@ test_that("cost fallback: other designs, then another n scaled by the cost table
 	# Too few measured replicates: ignored (the roster again).
 	w2 = amend_e_plan(cp, "--pack-minutes", 0, "--min-measured-reps", 101, null_reps = 150)
 	expect_equal(find_shard(w2, bern, 50L, "InferenceContinLin")$secs_per_rep, 0.1)
+})
+
+test_that("a pack shard's replicates count for every class in it, not only its first", {
+	# campaign 2026-11-11-9d2edc5c: ckey() used ifelse() with one `confirm` per shard, so only a pack's first class was credited
+	# and the others re-ran the same seeds in later waves, their statistics counted once per re-run.
+	bern = "DesignFixedBernoulli"
+	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", only = "InferenceContinLin;InferenceContinOLS", design = bern, n = 50L,
+		reps_done = "1:100", reps_stat = 100L, fit = 1)))
+	w = amend_e_plan(cp)
+	expect_equal(nrow(find_shard(w, bern, 50L, "InferenceContinLin")), 0L)
+	expect_equal(nrow(find_shard(w, bern, 50L, "InferenceContinOLS")), 0L)
+	# The other cells of both classes are still planned.
+	expect_gt(nrow(find_shard(w, bern, 200L, "InferenceContinOLS")), 0L)
 })
 
 test_that("a shard that hit its deadline counts for the replicates it did, not the replicates planned", {
