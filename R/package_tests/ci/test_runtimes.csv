@@ -122,11 +122,11 @@ R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-refer
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-excluded-from-duration-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-mc-inference-type-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-null-only-reference.R,correctness,120,bootstrap
-R/package_tests/testthat_bulk/test-comprehensive-per-case-rng-seed-reference.R,correctness,30,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-kk-matched-cox-covariate-cap-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-per-case-rng-seed-reference.R,correctness,30,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-rand-ci-eligibility-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R,correctness,120,bootstrap
@@ -1623,6 +1623,7 @@ R/package_tests/testthat_bulk/test-bootstrap-uniform-weight-scale-regressions.R,
 R/package_tests/testthat_bulk/test-brt-ci-closed-form-inversion-and-bound-search-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-brt-matched-pair-replay-uses-resampled-pairs.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-brt-sequential-mc-pval-cache-shortcircuit-and-stopping-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-brt-smoothed-matches-percentile-under-null.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-brt-smoothed-wilcox-ci-perf.R,coverage,2.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-exact-value-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-rank-deficient-ginv-fallback-reference.R,coverage,240,bootstrap
@@ -1661,6 +1662,7 @@ R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contra
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-kk-matched-cox-covariate-cap-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-per-case-rng-seed-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-rand-ci-eligibility-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R,coverage,240,bootstrap

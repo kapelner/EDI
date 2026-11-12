@@ -353,14 +353,23 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 			r <- rbind(r, transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 0, dev = 0),
 				transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 1, dev = 0))
 			r <- r[order(r$cls, r$inf_procedure, r$u), ]
+			# Simultaneous 95% band for a perfectly calibrated test (Dvoretzky-Kiefer-Wolfowitz, Massart's constant):
+			# P(sup_u |F_n(u) - u| > e) <= 2 exp(-2 n e^2), so e = sqrt(log(2 / 0.05) / (2 n)) ~ 1.36 / sqrt(n), with the
+			# class's smallest n_p (its widest band). A whole curve inside the band is consistent with uniform p-values;
+			# one point outside rejects uniformity at 5% for that curve. Flat in u, so it is loose near u = 0.05.
+			np_cls <- tapply(r$n_p[r$n_p > 0], r$cls[r$n_p > 0], min)
+			ug <- seq(0, 1, length.out = 401)
+			band <- do.call(rbind, lapply(names(np_cls), function(k)
+				data.frame(cls = k, u = ug, half = sqrt(log(2 / 0.05) / (2 * np_cls[[k]])))))
 			save_both(function(th) ggplot(r, aes(u, dev, colour = inf_procedure)) +
+				geom_ribbon(data = band, aes(x = u, ymin = -half, ymax = half), inherit.aes = FALSE, fill = th$muted, alpha = 0.25) +
 				geom_hline(yintercept = 0, colour = th$ink2, linewidth = 0.4) +
 				geom_vline(xintercept = 0.05, colour = th$muted, linewidth = 0.3, linetype = "dashed") +
 				geom_line(linewidth = 0.6) + geom_point(size = 1) + facet_wrap(~ cls) +
 				scale_x_sqrt(breaks = c(0.01, 0.05, 0.2, 0.5, 1)) +
 				scale_colour_manual(values = c(th$series, "#e87ba4", "#6250d6"), name = NULL, drop = TRUE) +
 				labs(title = regime_title(sprintf("%s: null p-value calibration (Bernoulli, ~ ., n = 200)", tools::toTitleCase(rt)), TRUE),
-					subtitle = wrap_sub("P(p <= u) - u: 0 is perfect calibration; above 0 rejects too often at level u (dashed: u = 0.05)"),
+					subtitle = wrap_sub("P(p <= u) - u: 0 is perfect calibration; above 0 rejects too often at level u (dashed: u = 0.05). Shaded: simultaneous 95% band for uniform p-values (DKW, +-1.36 / sqrt(reps)); a curve leaving it anywhere is miscalibrated beyond Monte Carlo noise"),
 					x = "u (square-root scale)", y = "P(p <= u) - u"),
 				paste0("pvalue-curves-", rt), 9, 2 + 2 * ceiling(length(unique(r$cls)) / 4), sprintf("%s p-value curves", rt))
 		}
