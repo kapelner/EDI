@@ -397,3 +397,13 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Done when: the chosen fix brings both R3 cells to the R3 rule (Holm, >= 500 finite) or the warning is in place
     with its threshold justified by the same study; the "many covariates" paragraph of the
     `compute_rand_bootstrap_two_sided_pval()` docs (`inference_all_abstract_rand_bootstrap.R`) is updated to match.
+
+- [ ] TODO-19 (moved 2026-11-12 from `release_v1_0_5.md → TODO-196`, owner decision; originally added 2026-11-10, owner;
+  **exception to the entry rule above**: it ships new data to users rather than fixing a bug; the owner moved it here so
+  v1.0.5 does not wait for a complete calibration campaign): **Ship the measured size / coverage / bias per design x
+  class x procedure x n from the latest complete campaign inside the package (with campaign id and EDI commit), and
+  surface it next to the expected rate.** GATED on the first complete calibration campaign (`2026-11-09-8c32d060` or
+  its successor under v1.0.5 TODO-203's class-major order). Plan:
+  `new_feature_plans/v1_0_5/inference_validity_user_visibility.md`, section 3. The consumer hook already exists:
+  `edi_procedure_validity_measured()` in `R/EDI/R/inference_validity_lookup.R` returns `NULL` until this lands
+  (v1.0.5 TODO-197).

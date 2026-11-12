@@ -9,7 +9,7 @@
 # regime, rate, rule or reference: every value is read from the registry.
 
 #' Note attached to the `measured` element until measured calibration values
-#' ship (v1.0.5 TODO-196).
+#' ship (v1.0.6 TODO-19, was v1.0.5 TODO-196).
 #' @keywords internal
 #' @noRd
 EDI_PROCEDURE_VALIDITY_MEASURED_NOTE = paste(
@@ -19,7 +19,7 @@ EDI_PROCEDURE_VALIDITY_MEASURED_NOTE = paste(
 	"reported."
 )
 
-#' Hook for TODO-196's measured values. Returns `NULL` (nothing shipped) or,
+#' Hook for v1.0.6 TODO-19's measured values. Returns `NULL` (nothing shipped) or,
 #' once the measured table exists, a data.frame of the measured size / coverage /
 #' bias rows (with campaign id and EDI commit) for the requested triples.
 #' `design` here is the registry design key (class name, optional `@prob_T=`

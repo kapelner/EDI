@@ -301,6 +301,9 @@ for the full index.
   root `metadata/`, and R-only notes to `R/metadata/`; the R test harness is
   renamed. See
   [`repository_layout_cleanup.md`](R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md).
+- **Measured calibration values in the package** — size, coverage and bias from
+  a complete calibration campaign, shown next to the expected rate (moved from
+  v1.0.5 on 2026-11-12, so v1.0.5 does not wait for a campaign to finish).
 - **Native C++ tests** *(maintenance)* — a Catch2 test suite in `cpp_tests/` for the
   R-free shared C++ core, with sanitizer and fuzz builds in CI. See
   [`native_cpp_test_suite.md`](R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md).
