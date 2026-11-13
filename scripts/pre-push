@@ -104,7 +104,14 @@ fi
 # run_r_tests above, plus R/package_tests/** itself and the one doc file the
 # workflow also watches.
 run_comprehensive_suite=0
-if [ "$run_r_tests" = "1" ] || grep -qE '^R/package_tests/|^R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite\.md$' "$changed_files_file"; then
+# Except R/package_tests/calibration/ and R/package_tests/ci/: no drift generator
+# (drift_artifacts.sh) and no smoke-tier case reads them, so a push touching only
+# those skips this ~15-min step. CI's path filter stays broad.
+# Counted, not `| grep -q`: under pipefail an early-exiting grep -q can SIGPIPE
+# the first grep and read as "no match" (see the roxygen check above).
+suite_inputs_changed="$(grep -E '^R/package_tests/|^R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite\.md$' "$changed_files_file" \
+	| grep -cvE '^R/package_tests/(calibration|ci)/' || true)"
+if [ "$run_r_tests" = "1" ] || [ "${suite_inputs_changed:-0}" -gt 0 ]; then
 	run_comprehensive_suite=1
 fi
 

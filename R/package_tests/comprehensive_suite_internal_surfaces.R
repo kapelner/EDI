@@ -107,19 +107,31 @@ source_text_index = function(source_dir) {
 
 source_files_for = function(symbol, source_index) {
 	if (!length(source_index)) return(character())
-	hits = vapply(source_index, function(txt) grepl(paste0("\\b", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", symbol), "\\b"), txt, perl = TRUE), logical(1))
-	names(source_index)[hits]
+	# Exact fixed-byte pre-filter (symbols are ASCII), then the word-boundary regex
+	# on the few files that contain the symbol at all: 15 s -> 1.2 s, same files.
+	# useBytes = TRUE matters: without it each fixed search does UTF-8 work and
+	# the pre-filter is ~10x SLOWER than the plain regex.
+	txt = unlist(source_index, use.names = FALSE)
+	cand = which(grepl(symbol, txt, fixed = TRUE, useBytes = TRUE))
+	pattern = paste0("\\b", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", symbol), "\\b")
+	names(source_index)[cand[grepl(pattern, txt[cand], perl = TRUE)]]
 }
 
-inventory_targets_for_source_files = function(files, inventory) {
-	if (!nrow(inventory) || !"source_files" %in% names(inventory) || !length(files)) return(character())
-	file_basenames = basename(files)
-	has_file = vapply(clean_chr(inventory$source_files), function(src) {
-		parts = split_semicolon(src)
-		any(basename(parts) %in% file_basenames)
-	}, logical(1))
+# Inventory targets whose source_files include any of `files`. Built once as a
+# closure over a basename -> inventory-row index: re-splitting all ~9.6k rows'
+# source_files inside the ~700-symbol loop took ~5 min of each drift
+# regeneration (2026-11-13 profile); the lookup is the same rows, same order.
+inventory_targets_lookup = function(inventory) {
+	if (!nrow(inventory) || !"source_files" %in% names(inventory)) return(function(files) character())
+	parts = lapply(clean_chr(inventory$source_files), split_semicolon)
+	rows_by_basename = split(rep(seq_len(nrow(inventory)), lengths(parts)), basename(unlist(parts, use.names = FALSE)))
 	target = ifelse(nzchar(clean_chr(inventory$method_name)), paste(inventory$export_name, inventory$method_name, sep = "::"), inventory$export_name)
-	target[has_file & nzchar(target)]
+	function(files) {
+		if (!length(files)) return(character())
+		idx = sort(unique(unlist(rows_by_basename[intersect(basename(files), names(rows_by_basename))], use.names = FALSE)))
+		hits = target[idx]
+		hits[nzchar(hits)]
+	}
 }
 
 expand_internal_audit = function(audit) {
@@ -178,6 +190,7 @@ build_internal_surfaces = function() {
 	}
 
 	source_index = source_text_index(repo_path("EDI", "R"))
+	inventory_targets_for_source_files = inventory_targets_lookup(inventory)
 	symbols = sort(unique(expanded$normalized_symbol))
 	rows = lapply(symbols, function(symbol) {
 		rows_for_symbol = expanded[expanded$normalized_symbol == symbol, , drop = FALSE]
@@ -192,7 +205,7 @@ build_internal_surfaces = function() {
 		arg_complexity = min(formal_count_for(symbol), 8L)
 		historical_failure = historical_failure_for(files)
 		priority = fan_in * 3L + occurrences + source_refs * 2L + numerical_risk * 3L + arg_complexity + historical_failure * 2L
-		public_entrypoints = inventory_targets_for_source_files(source_files, inventory)
+		public_entrypoints = inventory_targets_for_source_files(source_files)
 		data.frame(
 			internal_symbol = collapse_unique(rows_for_symbol$internal_symbol),
 			normalized_symbol = symbol,

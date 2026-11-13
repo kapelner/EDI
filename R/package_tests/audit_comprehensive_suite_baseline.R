@@ -52,25 +52,40 @@ literal_present = function(text, value) {
 	grepl(paste0("\\b", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", value), "\\b"), text, perl = TRUE)
 }
 
+# The distinct matches of [A-Za-z.][A-Za-z0-9._]* in `text`, in first-seen order.
+# Each maximal run of [A-Za-z0-9._] holds exactly one such match: the run with
+# its leading [0-9_] stripped. Splitting on the gaps is ~12x faster than
+# regmatches(gregexpr()) (0.8 s vs 9.6 s over ~1.5k test files) and identical.
 identifier_tokens = function(text) {
-	unique(unlist(regmatches(text, gregexpr("[A-Za-z.][A-Za-z0-9._]*", text, perl = TRUE)), use.names = FALSE))
+	runs = unlist(strsplit(text, "[^A-Za-z0-9._]+", perl = TRUE), use.names = FALSE)
+	runs = sub("^[0-9_]+", "", runs, perl = TRUE)
+	unique(runs[nzchar(runs)])
 }
 
+# token -> names of the files containing it, built in one pass. (Testing every
+# token against every file's token list was ~24k tokens x ~1.5k files and took
+# ~6.5 min of each drift regeneration; this is ~10 s, same index.)
 token_file_index = function(files_text) {
 	tokens_by_file = lapply(files_text, identifier_tokens)
-	all_tokens = unique(unlist(tokens_by_file, use.names = FALSE))
-	setNames(lapply(all_tokens, function(tok) {
-		names(tokens_by_file)[vapply(tokens_by_file, function(tokens) tok %in% tokens, logical(1))]
-	}), all_tokens)
+	tokens = unlist(tokens_by_file, use.names = FALSE)
+	split(rep(names(tokens_by_file), lengths(tokens_by_file)), factor(tokens, levels = unique(tokens)))
+}
+
+# token_index is the token_file_index() list; lookups go through a hashed
+# environment built once (token_lookup_env()), keyed "k:<token>" so tokens like
+# "..." are ordinary names. `value %in% names(token_index)` rescanned ~24k names
+# on each of ~30k lookups (~8 s of this script, 2026-11-13 profile).
+token_lookup_env = function(token_index) {
+	list2env(setNames(token_index, paste0("k:", names(token_index))), envir = new.env(hash = TRUE, size = length(token_index)))
 }
 
 token_present = function(token_index, value) {
-	nzchar(value) && value %in% names(token_index)
+	!is.na(value) && nzchar(value) && exists(paste0("k:", value), envir = token_index, inherits = FALSE)
 }
 
 token_files = function(token_index, value) {
 	if (!token_present(token_index, value)) return(character())
-	token_index[[value]]
+	get(paste0("k:", value), envir = token_index, inherits = FALSE)
 }
 
 base_inference_class = function(x) {
@@ -168,7 +183,7 @@ derive_comprehensive_targets = function(results, comprehensive_text) {
 }
 
 public_testthat_coverage = function(inventory, testthat_text_by_file) {
-	token_index = token_file_index(testthat_text_by_file)
+	token_index = token_lookup_env(token_file_index(testthat_text_by_file))
 	vapply(seq_len(nrow(inventory)), function(i) {
 		row = inventory[i, , drop = FALSE]
 		if (identical(row$api_kind, "function")) {

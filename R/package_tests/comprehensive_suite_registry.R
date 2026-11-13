@@ -188,10 +188,16 @@ build_public_registry = function(inventory, argument_coverage, audit, exemptions
 	base$inference_family = vapply(seq_len(nrow(base)), function(i) inference_family_for(base$api_kind[i], base$target[i], base$class_name[i], base$method_name[i], base$export_name[i]), character(1))
 	base$dataset_fixture_family = ifelse(base$response_family == "unspecified", "generic_public_api", paste(base$response_family, base$design_family, sep = "_"))
 	base$method_family = vapply(seq_len(nrow(base)), function(i) method_family_for(base$target[i], base$class_name[i], base$method_name[i], base$export_name[i]), character(1))
-	base$source_runner = vapply(seq_len(nrow(base)), function(i) source_runner_for(base[i, , drop = FALSE], base$has_exemption[i]), character(1))
-	base$runtime_tier = vapply(seq_len(nrow(base)), function(i) runtime_tier_for(base[i, , drop = FALSE]), character(1))
-	base$expected_invariants = vapply(seq_len(nrow(base)), function(i) expected_invariants_for(base[i, , drop = FALSE]), character(1))
-	base$required_coverage = vapply(seq_len(nrow(base)), function(i) required_coverage_for(base[i, , drop = FALSE]), character(1))
+	# The *_for(row) helpers read only row$<column> (never the four columns set
+	# here), so each row is built once as a plain list of length-1 column slices,
+	# what base[i, ]$col returns. Copying base[i, , drop = FALSE] for every row in
+	# each of these four passes was ~14 s of this script (2026-11-13 profile).
+	cols = as.list(base)
+	rows = lapply(seq_len(nrow(base)), function(i) lapply(cols, `[`, i))
+	base$source_runner = vapply(seq_len(nrow(base)), function(i) source_runner_for(rows[[i]], base$has_exemption[i]), character(1))
+	base$runtime_tier = vapply(rows, runtime_tier_for, character(1))
+	base$expected_invariants = vapply(rows, expected_invariants_for, character(1))
+	base$required_coverage = vapply(rows, required_coverage_for, character(1))
 	base
 }
 

@@ -48,7 +48,9 @@ load_edi_namespace = function() {
 	if (!requireNamespace("pkgload", quietly = TRUE)) {
 		stop("Package 'pkgload' is required (or set EDI_CAPABILITY_MATRIX_USE_INSTALLED=1).", call. = FALSE)
 	}
-	pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
+	# Already loaded from source by an earlier generator in run_drift_generators.R's
+	# single process: reuse it instead of a second ~5.5 s load_all.
+	if (!(isNamespaceLoaded("EDI") && pkgload::is_dev_package("EDI"))) pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
 	asNamespace("EDI")
 }
 

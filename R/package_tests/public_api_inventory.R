@@ -10,7 +10,9 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 
 load_edi_namespace = function() {
 	if (requireNamespace("pkgload", quietly = TRUE)) {
-		pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
+		# Already loaded from source by an earlier generator in run_drift_generators.R's
+		# single process: reuse it instead of a second ~5.5 s load_all.
+		if (!(isNamespaceLoaded("EDI") && pkgload::is_dev_package("EDI"))) pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
 	} else {
 		stop("Package 'pkgload' is required for public API inventory generation.", call. = FALSE)
 	}
@@ -92,7 +94,9 @@ object_kind = function(obj) {
 
 literal_present = function(text, literal) {
 	if (!nzchar(literal)) return(FALSE)
-	grepl(literal, text, fixed = TRUE)
+	# useBytes: the literals are ASCII R names, so a byte search is exact, and it
+	# skips per-call UTF-8 handling of the multi-MB text (~13 s of this script).
+	grepl(literal, text, fixed = TRUE, useBytes = TRUE)
 }
 
 cached_literal_present = function(text, literal, cache) {
@@ -108,7 +112,7 @@ cached_literal_present = function(text, literal, cache) {
 find_source_files = function(symbol, file_lines) {
 	if (length(file_lines) == 0L) return("")
 	hits = vapply(file_lines, function(lines) {
-		any(grepl(symbol, lines, fixed = TRUE))
+		any(grepl(symbol, lines, fixed = TRUE, useBytes = TRUE))
 	}, logical(1))
 	collapse_chr(sub(paste0("^", repo_root, "/?"), "", names(file_lines)[hits]))
 }
