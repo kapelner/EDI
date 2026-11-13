@@ -315,33 +315,35 @@ build_entry = function(target_contracts) {
 }
 
 flatten_registry = function(registry) {
+	# One data.frame per (entry, arg) domain, columns recycled across its rows,
+	# instead of one per value row: ~6k one-row data.frame() calls were ~9 s of
+	# this script (2026-11-13 profile). Same rows, same order, same columns.
 	rows = list()
 	for (entry in registry) {
 		for (arg in names(entry$domains)) {
 			dom = entry$domains[[arg]]
-			for (i in seq_len(nrow(dom))) {
-				rows[[length(rows) + 1L]] = data.frame(
-					target = entry$target,
-					api_name = entry$api_name,
-					api_kind = entry$api_kind,
-					class_name = entry$class_name,
-					method_name = entry$method_name,
-					arg = arg,
-					label = dom$label[i],
-					value_expr = dom$value_expr[i],
-					tier = dom$tier[i],
-					source = dom$source[i],
-					rationale = dom$rationale[i],
-					contract_assertion = dom$contract_assertion[i],
-					constraints = paste(entry$constraints, collapse = ";"),
-					invariants = paste(entry$invariants, collapse = ";"),
-					optional_dependencies = paste(entry$optional_dependencies, collapse = ";"),
-					slow_path_labels = paste(entry$slow_path_labels, collapse = ";"),
-					unsupported_contexts = paste(entry$unsupported_contexts, collapse = ";"),
-					source_contract_count = entry$source_contract_count,
-					stringsAsFactors = FALSE
-				)
-			}
+			if (!nrow(dom)) next
+			rows[[length(rows) + 1L]] = data.frame(
+				target = entry$target,
+				api_name = entry$api_name,
+				api_kind = entry$api_kind,
+				class_name = entry$class_name,
+				method_name = entry$method_name,
+				arg = arg,
+				label = dom$label,
+				value_expr = dom$value_expr,
+				tier = dom$tier,
+				source = dom$source,
+				rationale = dom$rationale,
+				contract_assertion = dom$contract_assertion,
+				constraints = paste(entry$constraints, collapse = ";"),
+				invariants = paste(entry$invariants, collapse = ";"),
+				optional_dependencies = paste(entry$optional_dependencies, collapse = ";"),
+				slow_path_labels = paste(entry$slow_path_labels, collapse = ";"),
+				unsupported_contexts = paste(entry$unsupported_contexts, collapse = ";"),
+				source_contract_count = entry$source_contract_count,
+				stringsAsFactors = FALSE
+			)
 		}
 	}
 	if (!length(rows)) return(data.frame())
