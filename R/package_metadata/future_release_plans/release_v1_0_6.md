@@ -355,7 +355,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
 
 - [ ] TODO-17 (added 2026-11-11, owner; **exception to the entry rule above**: calibration-study infrastructure with no
   package change, like TODO-14/15): **Stop clearly passing null cells early in calibration campaigns.**
-  - Why: v1.0.5 TODO-203 made campaigns class-major and Amendment E sized shards from measured costs, but the remaining
+  - Why: TODO-21 (was v1.0.5 TODO-203) made campaigns class-major and Amendment E sized shards from measured costs, but the remaining
     time is the fits themselves. Campaign `2026-11-11-9d2edc5c` predicted about 14,700 core-hours of screening, so
     about 11 days of screening plus 1-2 days of confirmation on 16 free runners. Most null cells sit far inside their bound
     long before 1000 replicates.
@@ -403,7 +403,69 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   v1.0.5 does not wait for a complete calibration campaign): **Ship the measured size / coverage / bias per design x
   class x procedure x n from the latest complete campaign inside the package (with campaign id and EDI commit), and
   surface it next to the expected rate.** GATED on the first complete calibration campaign (`2026-11-09-8c32d060` or
-  its successor under v1.0.5 TODO-203's class-major order). Plan:
+  its successor under TODO-21's class-major order). Plan:
   `new_feature_plans/v1_0_5/inference_validity_user_visibility.md`, section 3. The consumer hook already exists:
   `edi_procedure_validity_measured()` in `R/EDI/R/inference_validity_lookup.R` returns `NULL` until this lands
   (v1.0.5 TODO-197).
+
+- [ ] TODO-20 (moved 2026-11-12 from `release_v1_0_5.md → TODO-202`, owner decision, so v1.0.5 does not wait on the
+  calibration campaign; originally added 2026-11-10, from the calibration study; enters under the entry rule as a
+  bounded investigation of possible wrong output, confirmed or closed by the campaign's confirmation stage):
+  **`InferenceContinKKGLMM`'s randomization test is oversized on the KK and matching designs.** A randomization test
+  should hold its level at every n (finite-sample regime, gate level 0.05), but in campaign `2026-11-09-8c32d060`
+  (simulated at `8c32d060`, screen stage, n = 50, null, 1,000 replicates per cell) `rand` rejects at 0.072 on
+  `DesignSeqOneByOneKK21` (`~ .`; `~ 1` 0.060), 0.069 on `DesignSeqOneByOneKK14` (`~ .`), 0.058 / 0.059 on
+  `DesignFixedBinaryMatch` and 0.060 / 0.067 on `DesignSeqOneByOneKK21stepwise`: pooled 0.062 over its 8 cells (about
+  3.5 SE above 0.05 once the shared replicates of the two formulas are allowed for). The count, proportion and ordinal
+  `KKGLMM` siblings pool to 0.047 / 0.052 / 0.053 on the same designs, so it is specific to the continuous class. Weaker
+  signal to check at the same time: every other continuous class's `rand` on the KK / matching designs pools to 0.054
+  (110 cells; the classes share replicates, so the SE of 0.0007 understates the noise), against 0.051 on the other
+  designs. Investigate: (1) whether the randomization reference distribution re-runs the sequential KK matching (and the
+  fixed matching) for each draw, rather than permuting within the observed pairs/reservoir; (2) whether the KKGLMM
+  continuous statistic used by `compute_bootstrap_worker_estimate` / the randomization worker matches the observed
+  statistic (the KK Wilcox class had exactly this mismatch, fixed 2026-10-12); (3) the p-value convention ((1 + #) / (1
+  + r)) and r. Confirm first: the cell is provisional until the campaign's confirmation stage, and n = 200 / 1000 will
+  show whether it is a finite-n effect (it should not be for an exact test). Reproduce with `run_calibration_study.R
+  --response-type continuous --design DesignSeqOneByOneKK21 --n 50 --effect null --only InferenceContinKKGLMM`. Any
+  calibration-row acceptance for these cells cites this TODO.
+
+- [ ] TODO-21 (moved 2026-11-12 from `release_v1_0_5.md → TODO-203`, owner decision; originally added 2026-11-10, owner;
+  builds on v1.0.5 TODO-199/200/201; **exception to the entry rule above**: calibration-study infrastructure with no
+  package behavior change, like TODO-17): **Run calibration campaigns in class-major order and publish one convergence
+  page per class.** Order: null before non-null; within an effect, response type, then inference class, then design,
+  then n = 50 / 200 / 1000, then the class's confirmation replicates, so verdicts become final class by class instead of
+  only at campaign end (today the planner sorts by n first, so campaign 2026-11-09-8c32d060 showed only n = 50 after 13
+  waves). The unit of work is one class with all its procedures (they share a fit). Multiple-testing control over the
+  whole campaign: Benjamini-Hochberg over every test in the plan with unrun tests as p = 1 (interim flags are then never
+  withdrawn), confirmation at 0.01 / total tests. The convergence analysis is final per class once it has all n. One
+  page per class with one figure (procedure rows x metric columns, |error| vs n_eff log-log, expected slope, verdict,
+  effects as colours); summary figures stay separate. Measure the cost of re-running each design per class first; cache
+  assignments if it exceeds about 10%. After it is pushed the owner cancels the running campaign and starts a new one.
+  Plan: `new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md`. Current state: IMPLEMENTED 2026-11-10 (not
+  committed): class-major planner with a committed class roster, campaign-wide BH with `m_total` and a fixed
+  confirmation level, per-class status, convergence `provisional` per class, per-class pages and figures, Classes index;
+  Step 0: repeated design cost 7.5% unpacked / 2.7% packed, no assignment cache. Shards pack neighbouring cheap classes
+  (deviation, see the plan's Done). Owner: review, push, cancel campaign `2026-11-09-8c32d060`, dispatch a new one.
+  Amendment A (owner, 2026-11-10): the class roster is generated per campaign by a new `roster` job from the EDI built
+  at the pinned sha (first wave) and stored in the campaign folder, replacing the hand-built committed
+  `calibration_study_roster.csv`; see the plan's Amendment A. **Amendment A IMPLEMENTED 2026-11-10 (uncommitted):** the
+  class roster is no longer committed; a new workflow job `roster` (plan -> build -> roster -> shards -> analyze ->
+  publish) enumerates it from the EDI built at the pinned sha in a campaign's first wave and publishes it as
+  `<campaign>/roster.csv`; later waves reuse it; costs from the previous published campaign, else 2 s default; see the
+  plan's "Amendment A: Done". Amendment B (owner, 2026-11-10): the design list is discovered from the installed EDI's
+  exported designs minus a documented exclusion list (cluster, blocked cluster, factorial), replacing the hand-kept
+  CAL_STUDY_DESIGNS / CAL_PLAN_DESIGNS; see the plan's Amendment B. Amendment C (owner, 2026-11-10): every design
+  capable of unequal allocation also runs at prob_T = 0.2 (discovered from the registry, not hand-listed). **Amendment B
+  and C IMPLEMENTED 2026-11-10 (uncommitted):** designs are discovered from the installed EDI (`cal_study_designs()`,
+  exclusion list with reasons, smoke check that fails the roster job naming a design that cannot be built), the roster
+  carries `design_rank`, no hand-kept design list in the planner/runner; 33 labels (11 added `@prob_T=0.2`), +687 roster
+  rows, about +3,560 core-hours (+35%); RandomBlockSize / SPBR get 5-multiple blocks at 0.2; package R files touched (no
+  compile): `inference_procedure_regime.R` (generic `@prob_T` registry key), `inference_validity_n_eff.R`,
+  `inference_small_sample_doc.R` (Rd to regenerate); see the plan's Amendment B/C: Done. Amendment D DONE 2026-11-11:
+  the matched-design list comes from the package (`is_a_kk_matching_capable()`, recorded in the roster), not a hand
+  list. Amendment E DONE 2026-11-11 (uncommitted): the wave planner takes each class cost from the campaign own finished
+  shards (stats/tests.csv.gz per class, ledger for the per-pack overhead) with a fallback chain to the roster, and tops
+  up shards predicted under a third of the target with further classes of the same cell; see the plan Amendment E.
+  **Status at the move (2026-11-12):** the implementation, including Amendments A-E, is committed (`fe267250` and later;
+  working tree clean at `57df40d4`), so the "(uncommitted)" / "(not committed)" notes above are history. Left: owner
+  review, push, cancel campaign `2026-11-09-8c32d060`, dispatch a new one.

@@ -1,6 +1,7 @@
 # Calibration campaigns in class-major order, with per-class convergence pages
 
-> **Release:** v1.0.5 TODO-203 (`future_release_plans/release_v1_0_5.md`).
+> **Release:** v1.0.6 TODO-21 (`future_release_plans/release_v1_0_6.md`; moved 2026-11-12 from v1.0.5 TODO-203, the
+> number the code comments cite).
 > **Builds on:** TODO-199 (`calibration_convergence_slopes.md`), TODO-200
 > (`calibration_rate_derived_gate.md`), TODO-201 (split README).
 > **Consumer:** the published calibration study (`R/package_tests/calibration/`,
