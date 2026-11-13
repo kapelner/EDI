@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/audit_comprehensive_suite_baseline.R")
@@ -30,12 +42,12 @@ paths = list(
 
 read_required_csv = function(path, label) {
 	if (!file.exists(path)) stop("Missing ", label, ": ", path, call. = FALSE)
-	read.csv(path, stringsAsFactors = FALSE, na.strings = character())
+	read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character())
 }
 
 read_optional_csv = function(path) {
 	if (!file.exists(path) || isTRUE(file.info(path)$size == 0)) return(data.frame())
-	tryCatch(read.csv(path, stringsAsFactors = FALSE, na.strings = character()), error = function(e) data.frame())
+	tryCatch(read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character()), error = function(e) data.frame())
 }
 
 read_text = function(path) {

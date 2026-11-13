@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/public_argument_contract_registry.R")
@@ -380,7 +392,7 @@ main = function() {
 	if (!file.exists(contracts_path)) {
 		stop("Missing package_tests/checkmate_argument_contracts.csv. Run Phase 1 first.", call. = FALSE)
 	}
-	contracts = read.csv(contracts_path, stringsAsFactors = FALSE, na.strings = character())
+	contracts = read_csv_fast(contracts_path, stringsAsFactors = FALSE, na.strings = character())
 	contracts = contracts[nzchar(contracts$arg), , drop = FALSE]
 	contracts$key = target_key(contracts$api_name, contracts$method_name)
 	groups = split(contracts, contracts$key)

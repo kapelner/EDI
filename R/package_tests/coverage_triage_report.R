@@ -3,6 +3,18 @@
 # TODO-1 report processing only: never builds or runs the package.
 # Run from the repository root. Categories require code/dispatch evidence;
 # an uncovered file is not evidence that its code is dead.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 coverage_triage_report = function(input, output_dir,
 	registry_path = "R/package_tests/coverage_gap_registry.csv", threshold = 80,
 	generator_path = "R/package_tests/coverage_gap_registry.R") {
@@ -35,7 +47,7 @@ coverage_triage_report = function(input, output_dir,
 	per_file$measured_commit = report$commit
 	per_file$measured_at = report$measured_at
 	prior = if (file.exists(registry_path)) {
-		read.csv(registry_path, stringsAsFactors = FALSE, na.strings = character())
+		read_csv_fast(registry_path, stringsAsFactors = FALSE, na.strings = character())
 	} else generator$empty_registry()
 	registry = generator$merge_triage(per_file, prior, threshold,
 		measured_commit = report$commit, measured_at = report$measured_at)

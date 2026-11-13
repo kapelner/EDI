@@ -20,6 +20,18 @@
 #   Rscript R/package_tests/calibration/todo23_expected_roster.R --out-dir DIR [--operations ops.csv] [--nrep N]
 # Writes DIR/todo23_expected_roster.csv and DIR/todo23_expected_roster_summary.txt.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 TODO23_OPERATIONS <- c(
 	"compute_wald_confidence_interval",
 	"compute_asymp_confidence_interval",
@@ -195,7 +207,7 @@ if (sys.nframe() == 0L) {
 		repo <- if (nzchar(opt$repo)) normalizePath(opt$repo) else calib_find_repo_root(here)
 		out_dir <- calib_prepare_output_dir(opt$out_dir, repo)
 		ops <- if (nzchar(opt$operations)) {
-			o <- utils::read.csv(opt$operations, stringsAsFactors = FALSE)
+			o <- read_csv_fast(opt$operations, stringsAsFactors = FALSE)
 			unique(o$function_run[(!"response_type" %in% names(o) | o$response_type == "survival") &
 				(!"inference_class" %in% names(o) | o$inference_class == "InferenceSurvivalRestrictedMeanDiff")])
 		} else TODO23_OPERATIONS

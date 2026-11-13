@@ -40,6 +40,18 @@
 # Writes <out-dir>/<prefix>_summary.csv and <prefix>_summary.md (refuses to
 # overwrite, refuses any directory inside the checkout).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 TYPE1_SUMMARY_COLUMNS <- c(
 	"method", "stratum", "n_att", "n_fin", "n_not_finite", "n_nonestimable", "n_error", "n_timeout",
 	"n_ok_nonfinite", "k", "rate", "cp_lower", "cp_upper", "conf_level", "alpha", "verdict",
@@ -186,7 +198,7 @@ type1_rows_from_comprehensive <- function(df, map = NULL, beta = 0) {
 }
 
 type1_read_input <- function(path, map = NULL, beta = 0) {
-	df <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("NA", ""))
+	df <- read_csv_fast(path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("NA", ""))
 	if (all(c("method", "stratum", "pval") %in% names(df))) return(df)
 	if ("function_run" %in% names(df)) return(type1_rows_from_comprehensive(df, map = map, beta = beta))
 	stop("unrecognized row CSV schema: ", path, call. = FALSE)
@@ -253,7 +265,7 @@ type1_main <- function(args) {
 		if (calib_path_is_within(out_dir, p)) stop("refusing to write a summary inside the checkout: ", out_dir, call. = FALSE)
 	}
 	if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
-	map <- if (nzchar(opt$map)) utils::read.csv(opt$map, stringsAsFactors = FALSE) else NULL
+	map <- if (nzchar(opt$map)) read_csv_fast(opt$map, stringsAsFactors = FALSE) else NULL
 	paths <- calib_parse_chr_set(opt$rows)
 	rows <- do.call(rbind, lapply(paths, function(p) {
 		r <- type1_read_input(p, map = map, beta = as.numeric(opt$beta))

@@ -21,6 +21,18 @@
 #
 # The pre-push calibration check keeps the fast tier's p = 2 data and seeds.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir_study <- if (exists("script_dir")) script_dir else dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir_study, "calibration_fast_tier_common.R"))
 
@@ -169,7 +181,7 @@ cal_study_base_eta <- function(X) {
 CAL_STUDY_EFFECT_NCP <- c(null = 0, power20 = 1.12, power50 = 1.96, power80 = 2.80)
 
 cal_study_effects_table <- function() {
-	utils::read.csv(file.path(script_dir_study, "calibration_study_effects.csv"), stringsAsFactors = FALSE)
+	read_csv_fast(file.path(script_dir_study, "calibration_study_effects.csv"), stringsAsFactors = FALSE)
 }
 
 # True values of each class's own estimand at the power effects
@@ -177,7 +189,7 @@ cal_study_effects_table <- function() {
 cal_study_truths_table <- function() {
 	f <- file.path(script_dir_study, "calibration_study_truths.csv")
 	if (!file.exists(f)) return(NULL)
-	utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	read_csv_fast(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 }
 
 # estimand_true for rows of one replicate: the null value under the null (every

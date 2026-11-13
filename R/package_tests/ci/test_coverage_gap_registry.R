@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 # Pure report-processing regression checks: no EDI load/install/build.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 source("R/package_tests/coverage_gap_registry.R")
 source("R/package_tests/coverage_triage_report.R")
 work = tempfile("registry-tests-")
@@ -131,7 +143,7 @@ write.csv(triage_prior, triage_registry, row.names = FALSE, na = "")
 triage_output = file.path(work, "triage-output")
 triage = coverage_triage_report(triage_report, triage_output,
 	registry_path = triage_registry)
-triage_queue = read.csv(file.path(triage_output, "coverage-triage-needed.csv"),
+triage_queue = read_csv_fast(file.path(triage_output, "coverage-triage-needed.csv"),
 	stringsAsFactors = FALSE)
 stopifnot(nrow(triage$unreviewed) == 1L,
 	identical(triage$unreviewed$file, "R/EDI/src/triage-pending.cpp"),
@@ -150,7 +162,7 @@ for (threshold in c("0", "101", "NA", "not-a-number")) {
 historical = file.path(work, "historical.csv")
 file.copy("R/package_tests/coverage_gap_registry.csv", historical)
 x = main(c(file.path(work, "empty.csv"), historical))
-stopifnot(nrow(x) == nrow(read.csv("R/package_tests/coverage_gap_registry.csv")))
+stopifnot(nrow(x) == nrow(read_csv_fast("R/package_tests/coverage_gap_registry.csv")))
 # A partial report must not erase unmeasured history or its provenance, while
 # tracked fully covered files remain addressed and manual exclusions survive.
 history = merge_triage(summarize_coverage(rows), prior = data.frame(file = unique(rows$file)),

@@ -20,6 +20,18 @@
 
 # Kept in sync with calibration_study_common.R (sourcing that needs EDI). There is no design list here: the designs
 # (and their sort rank) are the campaign roster's, discovered from the installed EDI by the roster job.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 CAL_PLAN_RESPONSE_TYPES <- c("continuous", "incidence", "proportion", "count", "ordinal", "survival")
 CAL_PLAN_EFFECTS <- c("null", "power20", "power50", "power80")
 CAL_PLAN_CONFIRM_REP0 <- 10000L   # = CAL_STUDY_CONFIRM_REP0
@@ -55,7 +67,7 @@ CAL_PLAN_ROSTER_COLS <- c("response_type", "design", "design_rank", "matched", "
 cal_plan_read_roster <- function(path) {
 	if (is.null(path) || !nzchar(path)) stop("--roster FILE is required: the campaign's roster.csv (build_calibration_study_roster.R)")
 	if (!file.exists(path)) stop("class roster not found: ", path, " (build_calibration_study_roster.R writes it in the first wave)")
-	r <- utils::read.csv(path, stringsAsFactors = FALSE)
+	r <- read_csv_fast(path, stringsAsFactors = FALSE)
 	if (!all(CAL_PLAN_ROSTER_COLS %in% names(r)) || !nrow(r)) stop("class roster ", path, " is empty or lacks columns ", paste(setdiff(CAL_PLAN_ROSTER_COLS, names(r)), collapse = ", "))
 	r$matched <- as.logical(r$matched)
 	if (anyNA(r$matched)) stop("class roster ", path, ": column `matched` must be TRUE / FALSE")

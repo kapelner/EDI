@@ -20,6 +20,18 @@
 #
 # Each row names its worst cell (largest excess over the level) and a command that re-runs that cell locally.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 CAL_TRIAGE_REPRO_REPS <- "1:200"
 
 # Short design names as in the README tables ("KK21", "Bernoulli@0.2").
@@ -37,7 +49,7 @@ cal_triage_repro <- function(response_type, design, prob_T, n, effect, inf_class
 cal_triage_items <- function(summary_dir) {
 	rd <- function(f) {
 		p <- file.path(summary_dir, f)
-		if (file.exists(p) && file.size(p) > 0) utils::read.csv(p, stringsAsFactors = FALSE) else NULL
+		if (file.exists(p) && file.size(p) > 0) read_csv_fast(p, stringsAsFactors = FALSE) else NULL
 	}
 	s <- rd("calibration_summary.csv"); pw <- rd("power_summary.csv")
 	b <- rd("null_bias_summary.csv"); nb <- rd("nonnull_bias_summary.csv")
@@ -90,7 +102,7 @@ CAL_TRIAGE_BIAS_FLAG <- if (exists("CAL_GATE_BIAS_SD_FLAG")) CAL_GATE_BIAS_SD_FL
 cal_triage_tested_n <- function(summary_dir) {
 	rd <- function(f) {
 		p <- file.path(summary_dir, f)
-		if (file.exists(p) && file.size(p) > 0) utils::read.csv(p, stringsAsFactors = FALSE) else NULL
+		if (file.exists(p) && file.size(p) > 0) read_csv_fast(p, stringsAsFactors = FALSE) else NULL
 	}
 	s <- rd("calibration_summary.csv"); pw <- rd("power_summary.csv")
 	b <- rd("null_bias_summary.csv"); nb <- rd("nonnull_bias_summary.csv")

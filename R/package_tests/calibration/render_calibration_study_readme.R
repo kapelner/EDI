@@ -13,6 +13,18 @@
 # Usage: Rscript R/package_tests/calibration/render_calibration_study_readme.R \
 #          --results-dir DIR --campaign ID --repo OWNER/NAME [--progress TEXT]
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))   # CAL_STUDY_RT_DISPLAY_ORDER
 args <- commandArgs(TRUE)
@@ -139,7 +151,7 @@ rts <- c(rts, setdiff(unique(tbl_rt), rts))
 # (owner, 2026-11-12): zero failures is a result, and it has none.
 cs_path <- file.path(cdir, "summary", "calibration_summary.csv")
 rts_with_results <- if (file.exists(cs_path) && file.size(cs_path) > 2L)
-	unique(utils::read.csv(cs_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))$response_type) else character()
+	unique(read_csv_fast(cs_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))$response_type) else character()
 fail_files <- character()
 fail_label <- character()
 for (rt in rts) {
@@ -156,7 +168,7 @@ for (rt in rts) {
 # Screen flags and confirmation verdicts.
 conf <- file.path(cdir, "summary", "confirmation_summary.csv")
 flag_body <- if (file.exists(conf) && file.size(conf) > 0) {
-	cs <- utils::read.csv(conf, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	cs <- read_csv_fast(conf, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	if (nrow(cs)) {
 		st <- table(cs$status)
 		shown <- utils::head(cs[order(cs$q), ], 300L)
@@ -181,7 +193,7 @@ nn <- c(blk("Coverage at beta_T"), blk("Bias at beta_T"))
 add_page("nonnull.md", "Coverage and bias away from the null", c(if (length(nn)) nn else "No power cells in this campaign yet.", ""))
 dc <- file.path(cdir, "summary", "design_comparison.csv")
 dc_body <- if (file.exists(dc) && file.size(dc) > 2L) {
-	d <- utils::read.csv(dc, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	d <- read_csv_fast(dc, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	if (nrow(d)) {
 		top <- utils::head(d[order(d$q_bh), ], 25L)
 		c(sprintf("%d paired / unpaired power comparison(s) against the Bernoulli baseline; %d with q < 0.05. Table: [`summary/design_comparison.csv`](summary/design_comparison.csv).",
@@ -221,7 +233,7 @@ for (rt in rts) {
 # Classes (TODO-203): the index page and one page per class.
 rdcsv <- function(f) {
 	p <- file.path(cdir, "summary", f)
-	if (file.exists(p) && file.size(p) > 2L) suppressWarnings(utils::read.csv(p, stringsAsFactors = FALSE, colClasses = c(formula = "character"))) else NULL
+	if (file.exists(p) && file.size(p) > 2L) suppressWarnings(read_csv_fast(p, stringsAsFactors = FALSE, colClasses = c(formula = "character"))) else NULL
 }
 cstat <- rdcsv("class_status.csv")
 cfmt <- function(x, d = 3) ifelse(is.na(x), "", trimws(formatC(x, digits = d, format = "fg")))
@@ -301,7 +313,7 @@ data_body <- c(
 	"  [`summary/convergence_summary.csv`](summary/convergence_summary.csv) and [`summary/convergence_points.csv`](summary/convergence_points.csv),",
 	"  [`summary/pvalue_curves.csv`](summary/pvalue_curves.csv) (null p-value CDF minus u, the p-value curve figures).",
 	if (length(runs))
-		sprintf("* Raw per-replicate rows: the `study-rows` artifact of each workflow run (%s), one `rows.csv.xz` per wave (read it in R with `read.csv(xzfile(\"rows.csv.xz\"))`; kept 60 days, so the last two campaigns; a GitHub login is needed to download).", paste(sprintf("[%s](https://github.com/%s/actions/runs/%s)", runs, repo, runs), collapse = ", "))
+		sprintf("* Raw per-replicate rows: the `study-rows` artifact of each workflow run (%s), one `rows.csv.xz` per wave (read it in R with `read_csv_fast(xzfile(\"rows.csv.xz\"))`; kept 60 days, so the last two campaigns; a GitHub login is needed to download).", paste(sprintf("[%s](https://github.com/%s/actions/runs/%s)", runs, repo, runs), collapse = ", "))
 	else "* Raw per-replicate rows: none yet. Each workflow run of the campaign will add a `study-rows` artifact (one `rows.csv.xz` per wave, kept 60 days), linked here.",
 	"  One row per replicate x class x formula x procedure:",
 	"  `inf_class` (EDI inference class), `inf_procedure` (`wald`, `score`, `lik_ratio`, `gradient`, `exact`, `rand`),",

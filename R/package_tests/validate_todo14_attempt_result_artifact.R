@@ -3,6 +3,18 @@
 # consumes a separately prepared exact attempt roster plus the runner's event,
 # result, and provenance-receipt files.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 .todo14_attempt_value_issues <- function(rows, expected_manifest) {
 	issues <- character()
 	required <- c(
@@ -394,8 +406,8 @@ validate_todo14_attempt_result_artifact <- function(
 		}
 	}
 
-	results <- utils::read.csv(results_file, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
-	events <- utils::read.csv(actual_attempt_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
+	results <- read_csv_fast(results_file, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
+	events <- read_csv_fast(actual_attempt_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
 	value_issues <- .todo14_attempt_value_issues(results, expected_manifest)
 	if (length(value_issues)) stop(paste(value_issues, collapse = "; "), call. = FALSE)
 	result_key_ids <- comprehensive_result_manifest_keys(results, manifest_columns)

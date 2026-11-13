@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 rds_path = "package_tests/public_argument_contract_registry.rds"
 csv_path = "package_tests/public_argument_contract_registry.csv"
 if (!file.exists(rds_path) || !file.exists(csv_path)) {
@@ -7,7 +19,7 @@ if (!file.exists(rds_path) || !file.exists(csv_path)) {
 }
 
 registry = readRDS(rds_path)
-flat = read.csv(csv_path, stringsAsFactors = FALSE)
+flat = read_csv_fast(csv_path, stringsAsFactors = FALSE)
 
 if (!length(registry)) stop("Registry is empty.", call. = FALSE)
 if (!nrow(flat)) stop("Flattened registry is empty.", call. = FALSE)

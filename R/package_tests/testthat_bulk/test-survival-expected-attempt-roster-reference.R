@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 library(EDI)
 
@@ -502,7 +514,7 @@ test_that("TODO-10 runner event keys separate started attempts from candidates a
 		response_value = "survival", design_value = "KK21stepwise", inference_value = NA_character_
 	)
 
-	events = utils::read.csv(file.path(scratch, "attempt-events.csv"), stringsAsFactors = FALSE, na.strings = "")
+	events = read_csv_fast(file.path(scratch, "attempt-events.csv"), stringsAsFactors = FALSE, na.strings = "")
 	full_key = c("function_run", "rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	expected_started = data.frame(
 		function_run = function_run, rep = 2L, beta_T = 0.5, dataset = "toy-b",

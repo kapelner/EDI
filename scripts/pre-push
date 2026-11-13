@@ -535,8 +535,11 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 		fi
 	fi
 
+	# Tracked results only, as in CI: never the local, gitignored
+	# comprehensive_tests_results*.csv (see tracked_results_only() in both scripts).
 	if [ "$comprehensive_suite_ok" = "1" ] && (
 		cd R &&
+		export EDI_DRIFT_TRACKED_INPUTS_ONLY=1 &&
 		Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
 		Rscript package_tests/analyze_comprehensive_suite.R &&
 		Rscript package_tests/check_comprehensive_suite_quality_gates.R ci

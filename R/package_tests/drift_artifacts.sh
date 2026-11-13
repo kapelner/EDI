@@ -106,7 +106,7 @@ untracked_outputs=(
 #   - the installed EDI's DESCRIPTION (its Built: stamp changes on reinstall) and
 #     the R version, since EDI is loaded from source but R and its library are not.
 # It lives in the git dir, so it is never committed. CI (CI=true) never uses it
-# and always regenerates; EDI_DRIFT_NO_CACHE=1 forces a run locally. A missed
+# and always regenerates; EDI_DRIFT_NO_CACHE=1 forces a run locally (and records). A missed
 # change can at worst skip a local regenerate: CI's own regenerate still gates.
 fingerprint_file() {
 	echo "$(cd "$(git -C "$r_dir" rev-parse --git-dir)" && pwd)/edi-drift-fingerprint"
@@ -144,14 +144,17 @@ case "${1:-}" in
 		# gitpush_with_hooks_safe.sh runs this regenerate before git push.
 		export EDI_SKIP_LOCAL_TUNING=1
 
+		# CI never reads or records a fingerprint. EDI_DRIFT_NO_CACHE=1 forces a run
+		# but still records one afterwards, since a forced run's outputs are as
+		# valid as any other's.
 		use_cache=1
-		if [ "${CI:-}" = "true" ] || [ "${EDI_DRIFT_NO_CACHE:-0}" = "1" ]; then use_cache=0; fi
+		if [ "${CI:-}" = "true" ]; then use_cache=0; fi
 		if [ "$use_cache" = 1 ]; then
 			fp_list="$(mktemp)"
 			trap 'rm -f "$fp_list"' EXIT
 			installed_edi="$(Rscript -e 'f = system.file("DESCRIPTION", package = "EDI"); cat(if (nzchar(f)) tools::md5sum(f) else "none")' 2>/dev/null || echo unknown)"
 			fp_file="$(fingerprint_file)"
-			if [ -f "$fp_file" ] && [ "$(cat "$fp_file")" = "$(drift_fingerprint all)" ]; then
+			if [ "${EDI_DRIFT_NO_CACHE:-0}" != "1" ] && [ -f "$fp_file" ] && [ "$(cat "$fp_file")" = "$(drift_fingerprint all)" ]; then
 				echo "drift_artifacts: nothing the generators read or write has changed since the last regenerate; skipping (EDI_DRIFT_NO_CACHE=1 forces a run)."
 				exit 0
 			fi

@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/public_api_inventory.R")
@@ -195,7 +207,7 @@ main = function() {
 	# is imported if present; otherwise every multi-argument API is treated as a gap.
 	combination_coverage_path = file.path(repo_root, "package_tests", "public_argument_combination_coverage.csv")
 	if (file.exists(combination_coverage_path)) {
-		comb_cov = read.csv(combination_coverage_path, stringsAsFactors = FALSE)
+		comb_cov = read_csv_fast(combination_coverage_path, stringsAsFactors = FALSE)
 		covered_keys = unique(paste(comb_cov$export_name %||% comb_cov$class_name, comb_cov$method_name %||% "", sep = "::"))
 	} else {
 		covered_keys = character()

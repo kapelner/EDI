@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/comprehensive_suite_internal_surfaces.R")
@@ -27,7 +39,7 @@ surface_columns = c(
 
 read_required_csv = function(path, label) {
 	if (!file.exists(path)) stop("Missing ", label, ": ", path, call. = FALSE)
-	read.csv(path, stringsAsFactors = FALSE, na.strings = character())
+	read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character())
 }
 
 clean_chr = function(x) {
@@ -178,7 +190,7 @@ rationale_for = function(category, fan_in, source_refs, numerical_risk, historic
 build_internal_surfaces = function() {
 	audit = read_required_csv(paths$audit, "comprehensive_suite_baseline_audit")
 	registry = read_required_csv(paths$registry, "comprehensive_suite_registry")
-	inventory = if (file.exists(paths$inventory)) read.csv(paths$inventory, stringsAsFactors = FALSE, na.strings = character()) else data.frame()
+	inventory = if (file.exists(paths$inventory)) read_csv_fast(paths$inventory, stringsAsFactors = FALSE, na.strings = character()) else data.frame()
 
 	expanded = expand_internal_audit(audit)
 	if (!nrow(expanded)) return(data.frame(matrix(character(), nrow = 0L, ncol = length(surface_columns), dimnames = list(NULL, surface_columns))))

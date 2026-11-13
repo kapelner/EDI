@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 
 # Pure-R reference test for the G4-C Type-I summarizer (release_v1_0_5.md,
@@ -143,7 +155,7 @@ test_that("summary files are written once and never overwritten", {
 	s <- summarize_type1_rows(make_cell("m", "s", 30L, 2L))
 	files <- write_type1_summary(s, out)
 	expect_true(all(file.exists(files)))
-	back <- utils::read.csv(files[["csv"]], stringsAsFactors = FALSE)
+	back <- read_csv_fast(files[["csv"]], stringsAsFactors = FALSE)
 	expect_identical(names(back), TYPE1_SUMMARY_COLUMNS)
 	expect_identical(back$verdict, "PASS")
 	expect_error(write_type1_summary(s, out), "refusing to overwrite")

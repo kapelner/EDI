@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/smoke_test_run_comprehensive_suite.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -14,7 +26,7 @@ expect_true = function(x, msg) {
 
 results_path = repo_path("package_tests", "comprehensive_suite_results.csv")
 failures_path = repo_path("package_tests", "comprehensive_suite_failures.csv")
-before_rows = if (file.exists(results_path)) nrow(read.csv(results_path, stringsAsFactors = FALSE)) else 0L
+before_rows = if (file.exists(results_path)) nrow(read_csv_fast(results_path, stringsAsFactors = FALSE)) else 0L
 
 status = system2(
 	"Rscript",
@@ -24,7 +36,7 @@ expect_true(identical(status, 0L), "Unified comprehensive suite smoke runner fai
 expect_true(file.exists(results_path), "Unified comprehensive suite results file was not written.")
 expect_true(file.exists(failures_path), "Unified comprehensive suite failures file was not written.")
 
-results = read.csv(results_path, stringsAsFactors = FALSE)
+results = read_csv_fast(results_path, stringsAsFactors = FALSE)
 selected = results[results$tier == "smoke" & results$target_filter == "InferenceAllSimpleAverageDiff", , drop = FALSE]
 required_cols = c(
 	"case_id", "tier", "target_filter", "step", "runner", "status",
@@ -42,7 +54,7 @@ expect_true(any(selected$step == "public_workflow_coverage" & selected$rows_writ
 expect_true(any(selected$step == "internal_safety_nets" & selected$rows_written > 0L), "Internal safety-net step did not report rows.")
 expect_true(nrow(results) >= before_rows, "Unified results unexpectedly lost prior rows.")
 
-failures = read.csv(failures_path, stringsAsFactors = FALSE)
+failures = read_csv_fast(failures_path, stringsAsFactors = FALSE)
 selected_failures = failures[failures$tier == "smoke" & failures$target_filter == "InferenceAllSimpleAverageDiff", , drop = FALSE]
 expect_true(!nrow(selected_failures), "Unified smoke run wrote failure rows.")
 

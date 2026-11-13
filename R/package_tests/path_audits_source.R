@@ -45,6 +45,18 @@
 # unsupported_methods, not_implemented_methods. Values should match the
 # comprehensive_tests.R function_run labels used below.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 slow_m_out_of_n_methods = c(
   "compute_m_out_of_n_bootstrap_two_sided_pval",
   "compute_m_out_of_n_bootstrap_confidence_interval"
@@ -867,7 +879,7 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   }
   read_default_rates = function() {
     if (!file.exists(defaults_file)) return(NULL)
-    tryCatch(utils::read.csv(defaults_file, stringsAsFactors = FALSE), error = function(e) NULL)
+    tryCatch(read_csv_fast(defaults_file, stringsAsFactors = FALSE), error = function(e) NULL)
   }
   load_default_stats = function() {
     stats_env_from_rates(read_default_rates())

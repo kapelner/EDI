@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 
 # v1.0.5 TODO-203 (new_feature_plans/v1_0_5/calibration_class_major_campaign_order.md): the published calibration
@@ -238,7 +250,7 @@ test_that("the planner puts a finished block's confirmation right after it and p
 	one = run_script("plan_calibration_study.R", args("--pack-minutes", 0))
 	expect_false(any(grepl(";", regmatches(one[[1L]], gregexpr('"group":"[^"]*"', one[[1L]]))[[1L]], fixed = TRUE)))
 	# Finish ContinLin's null block (every design and n) and flag one of its tests.
-	plan = utils::read.csv(text = run_plan_csv <- {
+	plan = read_csv_fast(text = run_plan_csv <- {
 		f = tempfile(fileext = ".csv")
 		run_script("plan_calibration_study.R", args("--plan-only", "--plan-out", shQuote(f)))
 		paste(readLines(f), collapse = "\n")
@@ -305,7 +317,7 @@ synth = function(final = FALSE, id = "2026-11-10-abcd1234") {
 test_that("a campaign's gate uses m_total, enters only completed cells, and its confirmation level is fixed in advance", {
 	s = synth()
 	m_total = sum(s$plan$n_tests)
-	conf = utils::read.csv(file.path(s$cdir, "summary", "confirmation_summary.csv"), stringsAsFactors = FALSE)
+	conf = read_csv_fast(file.path(s$cdir, "summary", "confirmation_summary.csv"), stringsAsFactors = FALSE)
 	expect_gt(nrow(conf), 0L)
 	expect_true(all(abs(conf$confirm_alpha - 0.01 / m_total) < 1e-15))
 	# Only the classes with a completed cell have tests in the family: ContinLin (all) and OLS (n = 50, 200 null); never Logit.
@@ -315,7 +327,7 @@ test_that("a campaign's gate uses m_total, enters only completed cells, and its 
 	expect_true(all(conf$q * 1 >= conf$p * m_total / nrow(conf) - 1e-12))
 	# Adding flags (a second campaign with more results) leaves the level unchanged.
 	s2 = synth(id = "2026-11-10-ffff0000")
-	conf2 = utils::read.csv(file.path(s2$cdir, "summary", "confirmation_summary.csv"), stringsAsFactors = FALSE)
+	conf2 = read_csv_fast(file.path(s2$cdir, "summary", "confirmation_summary.csv"), stringsAsFactors = FALSE)
 	expect_true(all(abs(conf2$confirm_alpha - 0.01 / m_total) < 1e-15))
 	# Flagged tests are not decided without their confirmation replicates (not final, none run).
 	expect_true(all(grepl("pending", conf$status)))
@@ -326,7 +338,7 @@ test_that("a campaign's gate uses m_total, enters only completed cells, and its 
 
 test_that("class status and the convergence provisional flag are per class", {
 	s = synth()
-	cs = utils::read.csv(file.path(s$cdir, "summary", "class_status.csv"), stringsAsFactors = FALSE)
+	cs = read_csv_fast(file.path(s$cdir, "summary", "class_status.csv"), stringsAsFactors = FALSE)
 	row = function(cl) cs[cs$inf_class == cl, ]
 	expect_identical(row("InferenceContinLin")$status, "complete")
 	expect_identical(row("InferenceContinLin")$verdict, "pass")
@@ -334,7 +346,7 @@ test_that("class status and the convergence provisional flag are per class", {
 	expect_identical(row("InferenceContinOLS")$nonnull_status, "not started")
 	expect_identical(row("InferenceContinOLS")$verdict, "pending confirmation")
 	expect_identical(row("InferenceIncidLogit")$status, "not started")
-	cv = utils::read.csv(file.path(s$cdir, "summary", "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	cv = read_csv_fast(file.path(s$cdir, "summary", "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	expect_false(any(cv$provisional[cv$inf_class == "InferenceContinLin"]))
 	expect_true(all(cv$provisional[cv$inf_class == "InferenceContinOLS"]))
 })

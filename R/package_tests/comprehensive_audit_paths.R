@@ -1,6 +1,18 @@
 # Resolve the raw result inputs and audit state files. By default the audit
 # reads and writes beside itself; the shared results-directory override keeps
 # isolated harness output, baseline, and stamp together in one existing folder.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 resolve_comprehensive_audit_paths <- function(
   here,
   response_types,
@@ -78,7 +90,7 @@ validate_comprehensive_audit_baseline_inputs <- function(files) {
   )
   has_one_result_row <- vapply(files, function(path) {
     first_row <- tryCatch(
-      utils::read.csv(path, nrows = 1L, check.names = FALSE, stringsAsFactors = FALSE),
+      read_csv_fast(path, nrows = 1L, check.names = FALSE, stringsAsFactors = FALSE),
       error = function(e) NULL
     )
     !is.null(first_row) && nrow(first_row) == 1L && all(required_columns %in% names(first_row))

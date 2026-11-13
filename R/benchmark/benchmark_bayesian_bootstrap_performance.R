@@ -14,6 +14,18 @@
 # The default n/reps/cores are 500/3/3. Each configuration can be expensive;
 # pass a CSV path to retain the combined measurements.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 args = commandArgs(trailingOnly = TRUE)
 n = if (length(args) >= 1L) as.integer(args[[1L]]) else 500L
 reps = if (length(args) >= 2L) as.integer(args[[2L]]) else 3L
@@ -81,7 +93,7 @@ for (B in B_values) {
       unlink(csv_paths)
       stop("Benchmark child did not write its requested result CSV")
     }
-    run = utils::read.csv(csv_path, stringsAsFactors = FALSE)
+    run = read_csv_fast(csv_path, stringsAsFactors = FALSE)
     run$blocklist_override = override
     results[[length(results) + 1L]] = run
   }

@@ -3,6 +3,18 @@
 # call is deliberately retained as an attempted row, but current public R
 # methods reject it (unless a custom randomization statistic is supplied).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 comprehensive_incidence_rand_pvalue_source_guard <- function(runner_path) {
 	if (!is.character(runner_path) || length(runner_path) != 1L || is.na(runner_path) ||
 			!file.exists(runner_path) || dir.exists(runner_path)) {
@@ -278,7 +290,7 @@ validate_comprehensive_incidence_rand_pvalue_result_artifact <- function(
 		expected_run_provenance = expected_run_provenance,
 		require_terminal_result_fields = TRUE
 	)
-	result_rows <- utils::read.csv(results_file, stringsAsFactors = FALSE, check.names = FALSE)
+	result_rows <- read_csv_fast(results_file, stringsAsFactors = FALSE, check.names = FALSE)
 	validate_comprehensive_incidence_rand_pvalue_expected_outcomes(expected_manifest, result_rows)
 	provenance <- validated$provenance
 	if (isTRUE(provenance$results_file_before$exists)) {
@@ -308,7 +320,7 @@ validate_comprehensive_incidence_rand_pvalue_result_artifact <- function(
 	if (!exists("reconcile_todo23_attempts", mode = "function", inherits = TRUE)) {
 		stop("source R/package_tests/validate_todo23_attempt_reconciliation.R before validating attempt events", call. = FALSE)
 	}
-	events <- utils::read.csv(actual_attempt_path, stringsAsFactors = FALSE,
+	events <- read_csv_fast(actual_attempt_path, stringsAsFactors = FALSE,
 		check.names = FALSE, na.strings = c("", "NA"))
 	required_event_fields <- c("event_seq", "event_type", key_columns, "function_run", "status")
 	missing_event_fields <- setdiff(required_event_fields, names(events))

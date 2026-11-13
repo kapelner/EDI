@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/analyze_comprehensive_suite.R")
@@ -32,14 +44,14 @@ paths = list(
 
 read_required_csv = function(path, label) {
 	if (!file.exists(path)) stop("Missing ", label, ": ", path, call. = FALSE)
-	read.csv(path, stringsAsFactors = FALSE, na.strings = character())
+	read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character())
 }
 
 read_optional_csv = function(path) {
 	if (!file.exists(path) || isTRUE(file.info(path)$size == 0)) return(data.frame())
 	first_line = readLines(path, n = 1L, warn = FALSE)
 	if (!length(first_line) || identical(first_line, "\"\"")) return(data.frame())
-	tryCatch(read.csv(path, stringsAsFactors = FALSE, na.strings = character()), error = function(e) data.frame())
+	tryCatch(read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character()), error = function(e) data.frame())
 }
 
 bind_rows_fill = function(rows) {
@@ -108,8 +120,22 @@ merge_count = function(base, counts, col) {
 	out
 }
 
+# With EDI_DRIFT_TRACKED_INPUTS_ONLY=1 (scripts/pre-push, drift_artifacts.sh),
+# keep only results files git tracks. comprehensive_tests_results*.csv are local
+# comprehensive_tests.R output (gitignored, ~3 GB in a working checkout) that CI
+# and contributors never have; reading them made the hook's smoke step take
+# minutes and wrote machine-specific counts into tracked CSVs (2026-11-13).
+tracked_results_only = function(files) {
+	if (!identical(Sys.getenv("EDI_DRIFT_TRACKED_INPUTS_ONLY"), "1") || !length(files)) return(files)
+	tracked = tryCatch(
+		suppressWarnings(system2("git", c("-C", shQuote(repo_root), "ls-files", "--", "package_tests"), stdout = TRUE, stderr = FALSE)),
+		error = function(e) character()
+	)
+	files[basename(files) %in% basename(tracked)]
+}
+
 latest_comprehensive_result_files = function() {
-	files = list.files(file.path(repo_root, "package_tests"), pattern = "^comprehensive_tests_results.*[.]csv$", full.names = TRUE)
+	files = tracked_results_only(list.files(file.path(repo_root, "package_tests"), pattern = "^comprehensive_tests_results.*[.]csv$", full.names = TRUE))
 	files = files[file.exists(files) & file.info(files)$size > 0]
 	files[order(file.info(files)$mtime, decreasing = TRUE)]
 }
@@ -117,7 +143,7 @@ latest_comprehensive_result_files = function() {
 read_comprehensive_harness_results = function(files = latest_comprehensive_result_files()) {
 	if (!length(files)) return(data.frame())
 	rows = lapply(files, function(path) {
-		df = tryCatch(read.csv(path, stringsAsFactors = FALSE), error = function(e) data.frame())
+		df = tryCatch(read_csv_fast(path, stringsAsFactors = FALSE), error = function(e) data.frame())
 		if (!nrow(df)) return(NULL)
 		df$source_file = basename(path)
 		df

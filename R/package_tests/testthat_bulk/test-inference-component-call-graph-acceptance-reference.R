@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 library(EDI)
 
@@ -21,7 +33,7 @@ component_graph <- call_graph_helpers$inference_component_call_graph(
 	file.path(repo_root, "R", "EDI", "R"), ns = asNamespace("EDI"))
 
 test_that("the AST component graph preserves the TODO-1 class/method-owner golden", {
-	baseline <- utils::read.csv(
+	baseline <- read_csv_fast(
 		file.path(repo_root, "R", "package_tests", "testthat_bulk", "fixtures",
 			"inference_component_registry_baseline.csv"),
 		stringsAsFactors = FALSE, check.names = FALSE)

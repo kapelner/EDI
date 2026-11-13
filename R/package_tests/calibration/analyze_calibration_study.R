@@ -53,6 +53,18 @@
 # n" is the plan's. Also writes class_status.csv. Without a plan (older campaigns, small tests) every test that has results is in
 # the family and flags are counted as before.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))
 source(file.path(script_dir, "calibration_study_plan_common.R"))
@@ -102,7 +114,7 @@ tests <- cal_stats_prepare(tests)
 # The campaign plan (see the header): m_total, per-unit completeness, the plan's largest n.
 plan <- NULL
 if (file.exists(plan_path)) {
-	plan <- utils::read.csv(plan_path, stringsAsFactors = FALSE)
+	plan <- read_csv_fast(plan_path, stringsAsFactors = FALSE)
 	# family comes from the roster (the package's matched-design predicate), via plan.csv.
 	if (!"family" %in% names(plan)) stop("plan.csv lacks the `family` column (written by plan_calibration_study.R --plan-out)")
 	cal_plan_set_matched(plan$design[plan$family == "matched"])
@@ -172,7 +184,7 @@ s$cell_done <- cell_complete(s)
 s <- set_context(s, gate_context(s, max_n_null), c("size", "coverage"))
 s$accepted <- rep("", nrow(s))
 if (file.exists(accepted_path)) {
-	acc <- utils::read.csv(accepted_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	acc <- read_csv_fast(accepted_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	acc$formula[is.na(acc$formula)] <- ""
 	for (i in seq_len(nrow(acc))) {
 		a <- acc[i, ]
@@ -187,7 +199,7 @@ if (file.exists(accepted_path)) {
 # Rate check (TODO-200): a cell whose convergence verdict is `slower` is held to the nominal level at its
 # largest n (the cell's own), through the same screen and confirmation as every other test. Only the
 # anticonservative side (size above 0.05, coverage below 0.95) and not an accepted cell.
-conv <- if (file.exists(convergence_path)) utils::read.csv(convergence_path, stringsAsFactors = FALSE,
+conv <- if (file.exists(convergence_path)) read_csv_fast(convergence_path, stringsAsFactors = FALSE,
 	colClasses = c(formula = "character")) else NULL
 if (is.null(conv)) message("analyze_calibration_study.R: no convergence_summary.csv at ", convergence_path, ": rate check off")
 rate_cell_cols <- c("response_type", "design", "prob_T", "inf_class", "formula", "inf_procedure", "effect_label")

@@ -40,6 +40,18 @@
 # survival cancer.rda holds veteran/ovarian/colon/..., so "file name ==
 # object name" is often wrong).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 suppressMessages({
   library(data.table)
 })
@@ -107,7 +119,7 @@ resolve_exclude_cols <- function(dataset, treat_raw_cell, outcome_strs, data_col
 missingness_sidecar_path <- function(csv_path) sub("\\.csv$", "_missingness.csv", csv_path)
 
 read_catalog_csv <- function(path) {
-  read.csv(path, stringsAsFactors = FALSE, na.strings = "", colClasses = c(version = "character"))
+  read_csv_fast(path, stringsAsFactors = FALSE, na.strings = "", colClasses = c(version = "character"))
 }
 
 # Which catalog rows to compute: all of them, or with stale_only only rows that

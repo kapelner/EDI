@@ -3,6 +3,18 @@
 # the canonical filename (including filters) is preserved within that directory.
 # EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK=1 skips only the startup dry-run scan and
 # is accepted only when results are redirected outside the checkout.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 resolve_comprehensive_results_file <- function(
   default_path,
   output_dir = Sys.getenv("EDI_COMPREHENSIVE_RESULTS_DIR", unset = "")
@@ -71,7 +83,7 @@ new_comprehensive_attempt_manifest_writer <- function(
     if (!isTRUE(resume)) {
       stop("refusing to overwrite an existing attempt manifest: ", path, call. = FALSE)
     }
-    existing <- utils::read.csv(path, stringsAsFactors = FALSE, na.strings = "")
+    existing <- read_csv_fast(path, stringsAsFactors = FALSE, na.strings = "")
     # Manifests written before the prob_T column (v1.0.5 unequal allocation)
     # stay resumable; rows appended to them keep the old layout.
     if (identical(names(existing), setdiff(names(header), "prob_T"))) {
@@ -177,12 +189,18 @@ run_comprehensive_startup_prune_check <- function(
   skip = Sys.getenv("EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK", unset = ""),
   output_dir = Sys.getenv("EDI_COMPREHENSIVE_RESULTS_DIR", unset = ""),
   system2_fn = system2,
-  message_fn = message
+  message_fn = message,
+  tracked_only = Sys.getenv("EDI_DRIFT_TRACKED_INPUTS_ONLY", unset = "")
 ) {
   if (should_skip_comprehensive_prune_check(skip, output_dir, checkout_root)) {
     message_fn("[prune-check] skipped by EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK=1; results are isolated outside the checkout")
     return(invisible(NULL))
   }
+  # Tracked-inputs-only runs (scripts/pre-push's smoke step, drift_artifacts.sh)
+  # ignore the local comprehensive_tests_results_nc_* files this reminder scans:
+  # the dry-run pruner read all of them (~3 GB) and took ~2.5 min of every hook
+  # run for a one-line note (2026-11-13). Manual runs still get the reminder.
+  if (identical(tracked_only, "1")) return(invisible(NULL))
 
   tryCatch({
     output <- system2_fn("Rscript", c(shQuote(pruner_path)), stdout = TRUE, stderr = TRUE)

@@ -52,6 +52,18 @@
 # 2026-11-09, release_v1_2_0.md TODO-36): --slow-null-reps at n >= --slow-reduced-n (default 500 at n = 1000) and the
 # power effects only at --slow-power-ns (default 50).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))        # cal_rt_rank()
 source(file.path(script_dir, "calibration_study_plan_common.R"))  # the unit plan, BH helper
@@ -141,7 +153,7 @@ ckey <- function(unit_key, confirm) paste0(unit_key, if (isTRUE(confirm)) "|conf
 # its replicates count for every class in it. Replicates above CONFIRM_REP0 are confirmation replicates.
 ledger_path <- file.path(campaign_dir, "ledger.csv")
 ledger <- if (nzchar(campaign_dir) && file.exists(ledger_path))
-	utils::read.csv(ledger_path, stringsAsFactors = FALSE,
+	read_csv_fast(ledger_path, stringsAsFactors = FALSE,
 		colClasses = c(reps_done = "character", only = "character", exclude = "character")) else NULL
 if (!is.null(ledger) && !nrow(ledger)) ledger <- NULL
 done_by_unit <- list()
@@ -158,7 +170,7 @@ if (!is.null(ledger)) {
 }
 planned_path <- file.path(campaign_dir, "planned.csv")
 planned <- if (nzchar(campaign_dir) && file.exists(planned_path))
-	utils::read.csv(planned_path, stringsAsFactors = FALSE, colClasses = c(group = "character")) else NULL
+	read_csv_fast(planned_path, stringsAsFactors = FALSE, colClasses = c(group = "character")) else NULL
 dead_n <- list()
 if (!is.null(planned)) {
 	dead <- planned[!(planned$id %in% if (is.null(ledger)) character() else ledger$id), , drop = FALSE]
@@ -187,7 +199,7 @@ dead_of <- function(k) dead_n[[k]] %||% 0L
 # is the work a pack shares (data, design, assignment): the ledger's per-shard secs_per_rep minus the sum of the shard's
 # measured class costs is that overhead, taken as the median per (response type, design, n), else per (design, n), else per
 # (response type, n), else per n, else 0, and charged once per pack.
-costs <- utils::read.csv(file.path(script_dir, "calibration_study_costs.csv"), stringsAsFactors = FALSE)
+costs <- read_csv_fast(file.path(script_dir, "calibration_study_costs.csv"), stringsAsFactors = FALSE)
 cost_rest <- function(rt, fam, n) {
 	cf <- costs[costs$response_type == rt & costs$family == fam & costs$group == "rest", ]
 	v <- cf$secs_per_rep[cf$n == n]
@@ -452,7 +464,7 @@ units_abandoned <- res$counts$abandoned
 confirm_units <- NULL
 confirm_path <- file.path(campaign_dir, "summary", "confirm_cells.csv")
 if (nzchar(campaign_dir) && file.exists(confirm_path) && file.size(confirm_path) > 1L) {
-	cc <- utils::read.csv(confirm_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	cc <- read_csv_fast(confirm_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	if (nrow(cc)) {
 		cc$design_label <- cal_plan_design_label(cc$design, cc$prob_T)
 		cc$block <- cal_plan_block(cc$effect_label, cc$response_type, cc$inf_class)

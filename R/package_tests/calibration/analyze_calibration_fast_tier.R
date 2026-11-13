@@ -51,6 +51,18 @@
 # CI passes that and enforces the gate in a later step, so the analysis step
 # itself never looks like it stopped partway.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 args <- commandArgs(TRUE)
 arg_value <- function(flag, default = NULL) {
@@ -72,7 +84,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 files <- list.files(in_dir, pattern = "^rows\\.csv(\\.gz)?$", recursive = TRUE, full.names = TRUE)
 if (!length(files)) stop("no rows.csv under ", in_dir)
 read_rows <- function(f) {
-	x <- utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	x <- read_csv_fast(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	if (!("effect_label" %in% names(x))) x$effect_label <- "null"
 	if (!("effect" %in% names(x))) x$effect <- 0
 	if (!("n_nominal" %in% names(x))) x$n_nominal <- x$n
@@ -112,7 +124,7 @@ s$size_null <- 0.05
 s$coverage_null <- 0.95
 s$accepted <- ""
 if (file.exists(accepted_path)) {
-	acc <- utils::read.csv(accepted_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	acc <- read_csv_fast(accepted_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	acc$formula[is.na(acc$formula)] <- ""
 	# An accepted deviation without a prob_T column applies to the equal-allocation cell.
 	if (!("prob_T" %in% names(acc))) acc$prob_T <- 0.5

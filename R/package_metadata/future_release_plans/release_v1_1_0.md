@@ -2235,3 +2235,16 @@ classical solver with a warning, never silently.
   - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).
+
+- [ ] TODO-194 (added 2026-11-13, owner): **Run `comprehensive_tests.R` in the cloud after each calibration campaign.**
+  - Plan: `../new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md`.
+  - Why: the calibration study simulates its data; `comprehensive_tests.R` is the only harness on real covariates,
+    and it runs only on the owner's machine, with gitignored results.
+  - The calibration campaign's last wave dispatches a `comprehensive-study.yml` campaign at the same commit, on
+    free hosted runners, published under `comprehensive/<campaign>/` on the `calibration-results` branch.
+  - Never a required check; not part of the pre-push hook.
+  - Raw rows and logs are published xz-compressed on the results branch (about 20x and 29x, measured 2026-11-13).
+  - Path-audit gate (owner 2026-11-13): a complete cloud campaign or a complete local regeneration at the release
+    commit, whichever finishes first.
+  - Start with the plan's Phase 0 (measure cost and compressed sizes); it settles the reps.
+  - Done when: the plan's Phase 6 (first full campaign compared with the local baseline) is ticked.

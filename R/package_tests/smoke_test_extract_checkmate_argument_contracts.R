@@ -1,11 +1,23 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 path = "package_tests/checkmate_argument_contracts.csv"
 if (!file.exists(path)) {
 	stop("Missing ", path, ". Run package_tests/extract_checkmate_argument_contracts.R first.", call. = FALSE)
 }
 
-contracts = read.csv(path, stringsAsFactors = FALSE)
+contracts = read_csv_fast(path, stringsAsFactors = FALSE)
 required_cols = c(
 	"api_name", "api_kind", "class_name", "method_name", "arg", "default_expr",
 	"assertion", "choices", "lower", "upper", "len", "min_len", "max_len",

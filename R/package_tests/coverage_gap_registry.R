@@ -5,6 +5,18 @@
 # deliberately separate from this script: covr::package_coverage() compiles an
 # instrumented package and must only be run when that cost has been authorized.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)
@@ -39,7 +51,7 @@ read_coverage_rows = function(path) {
 		}
 		rows = covr::tally_coverage(coverage, by = "line")
 	} else {
-		rows = read.csv(path, stringsAsFactors = FALSE, na.strings = c("NA"))
+		rows = read_csv_fast(path, stringsAsFactors = FALSE, na.strings = c("NA"))
 		if (!"filename" %in% names(rows) && "file" %in% names(rows)) rows$filename = rows$file
 		if (!"value" %in% names(rows)) {
 			value_col = intersect(c("hits", "count"), names(rows))
@@ -177,7 +189,7 @@ main = function(args = commandArgs(TRUE)) {
 	output = arg(2L, default_output)
 	threshold = as.numeric(arg(3L, "80"))
 	if (!is.finite(threshold) || threshold <= 0 || threshold > 100) stop("threshold must be in (0, 100].", call. = FALSE)
-	prior = if (file.exists(output)) read.csv(output, stringsAsFactors = FALSE, na.strings = character()) else empty_registry()
+	prior = if (file.exists(output)) read_csv_fast(output, stringsAsFactors = FALSE, na.strings = character()) else empty_registry()
 	rows = read_coverage_rows(input)
 	provenance = attr(rows, "provenance")
 	registry = merge_triage(summarize_coverage(rows), prior, threshold,

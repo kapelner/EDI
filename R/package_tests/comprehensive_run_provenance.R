@@ -1,16 +1,48 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
+# The external SHA-256 utilities, looked up once per process. Sys.which() spawns a
+# shell, and a miss (certutil off Windows) scans all of PATH; on WSL that includes
+# the slow /mnt/c Windows directories. Done for every payload file, twice, it was
+# ~100 s of each comprehensive_tests.R start (2026-11-13 profile).
+comprehensive_sha256_commands <- local({
+	cached = NULL
+	function() {
+		if (is.null(cached)) cached <<- Sys.which(c(sha256sum = "sha256sum", shasum = "shasum", openssl = "openssl", certutil = "certutil"))
+		cached
+	}
+})
+
 comprehensive_sha256_file <- function(path){
 	if (length(path) != 1L || is.na(path) || !file.exists(path) || dir.exists(path)) {
 		stop("cannot hash a missing comprehensive-run provenance file", call. = FALSE)
 	}
+	# R >= 4.5 hashes in-process (the same digest sha256sum prints), with no
+	# subprocess per file.
+	tools_ns = asNamespace("tools")
+	if (exists("sha256sum", envir = tools_ns, inherits = FALSE)) {
+		h = tryCatch(suppressWarnings(unname(get("sha256sum", envir = tools_ns)(path))), error = function(e) NA_character_)
+		if (length(h) == 1L && !is.na(h) && grepl("^[[:xdigit:]]{64}$", h)) return(tolower(h))
+	}
+	tool = comprehensive_sha256_commands()
 	commands = list(
-		list(command = Sys.which("sha256sum"), args = character()),
-		list(command = Sys.which("shasum"), args = c("-a", "256")),
-		list(command = Sys.which("openssl"), args = c("dgst", "-sha256")),
-		list(command = Sys.which("certutil"), args = c("-hashfile", shQuote(path), "SHA256"))
+		list(command = tool[["sha256sum"]], args = character()),
+		list(command = tool[["shasum"]], args = c("-a", "256")),
+		list(command = tool[["openssl"]], args = c("dgst", "-sha256")),
+		list(command = tool[["certutil"]], args = c("-hashfile", shQuote(path), "SHA256"))
 	)
 	for (entry in commands) {
 		if (!nzchar(entry$command)) next
-		args = c(entry$args, if (!identical(entry$command, Sys.which("certutil"))) shQuote(path))
+		args = c(entry$args, if (!identical(entry$command, tool[["certutil"]])) shQuote(path))
 		output = tryCatch(
 			suppressWarnings(system2(entry$command, args = args, stdout = TRUE, stderr = FALSE)),
 			error = function(e) character()
@@ -359,7 +391,7 @@ validate_comprehensive_result_artifact <- function(
 		}
 	}
 
-	actual = tryCatch(utils::read.csv(actual_path, stringsAsFactors = FALSE, check.names = FALSE), error = function(e) {
+	actual = tryCatch(read_csv_fast(actual_path, stringsAsFactors = FALSE, check.names = FALSE), error = function(e) {
 		stop("could not read comprehensive results CSV: ", conditionMessage(e), call. = FALSE)
 	})
 	missing_actual_columns = setdiff(manifest_columns, names(actual))

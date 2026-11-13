@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 
 # v1.0.5 TODO-199: convergence_calibration_study.R compares how fast the calibration
@@ -114,7 +126,7 @@ test_that("the script reaches the planned verdicts on synthetic stats with known
 		synthetic_est("InferenceAllSimpleAverageDiff", "~.", ns, 2 / ns))          # bias Inf in the registry: not applicable
 	r = run_conv(write_stats(tests, est))
 	expect_true(is.null(r$status) || r$status == 0L, info = paste(r$res, collapse = "\n"))
-	s = utils::read.csv(file.path(r$out, "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	s = read_csv_fast(file.path(r$out, "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	pick = function(proc, metric, cls = "InferenceContinLin", formula = "~.", prob_T = 0.5) {
 		x = s[s$inf_procedure == proc & s$metric == metric & s$inf_class == cls & s$formula == formula & s$prob_T == prob_T, ]
 		expect_equal(nrow(x), 1L)
@@ -152,7 +164,7 @@ test_that("the script reaches the planned verdicts on synthetic stats with known
 	expect_equal(bias$a_hat, 1, tolerance = 0.05)
 	expect_identical(pick("(estimator)", "bias", formula = "~1")$verdict, "undetermined")
 	expect_identical(pick("(estimator)", "bias", cls = "InferenceAllSimpleAverageDiff")$verdict, "not_applicable")
-	pts = utils::read.csv(file.path(r$out, "convergence_points.csv"), stringsAsFactors = FALSE)
+	pts = read_csv_fast(file.path(r$out, "convergence_points.csv"), stringsAsFactors = FALSE)
 	expect_equal(sum(pts$cell_id == a$cell_id), 3L)
 	md = readLines(file.path(r$out, "convergence_summary.md"))
 	expect_true(any(grepl("slower", md)))
@@ -160,14 +172,14 @@ test_that("the script reaches the planned verdicts on synthetic stats with known
 	expect_true(any(grepl("0.007", md, fixed = TRUE)))   # the Monte Carlo noise floor is stated
 	# --final drops the provisional flag
 	r2 = run_conv(write_stats(tests, est), "--final")
-	s2 = utils::read.csv(file.path(r2$out, "convergence_summary.csv"), stringsAsFactors = FALSE)
+	s2 = read_csv_fast(file.path(r2$out, "convergence_summary.csv"), stringsAsFactors = FALSE)
 	expect_false(any(s2$provisional))
 })
 
 test_that("a single sample size leaves every asymptotic cell undetermined, and the script says so", {
 	tests = rbind(synthetic_cell("wald", 50, rej = 100000), synthetic_cell("rand", 50))
 	r = run_conv(write_stats(tests, synthetic_est("InferenceContinLin", "~.", 50, 0.04)))
-	s = utils::read.csv(file.path(r$out, "convergence_summary.csv"), stringsAsFactors = FALSE)
+	s = read_csv_fast(file.path(r$out, "convergence_summary.csv"), stringsAsFactors = FALSE)
 	expect_true(all(s$verdict %in% c("undetermined", "not_applicable")))
 	expect_true(all(s$n_points == 1L))
 	expect_true(any(grepl("No cell has run at two sample sizes", readLines(file.path(r$out, "convergence_summary.md")))))
@@ -187,6 +199,6 @@ test_that("the script runs on a published campaign when one is available", {
 	res = suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
 		c(shQuote(file.path(cal_dir, "convergence_calibration_study.R")), "--stats-dir", shQuote(d), "--out-dir", shQuote(out)), stdout = TRUE, stderr = TRUE))
 	expect_true(is.null(attr(res, "status")) || attr(res, "status") == 0L)
-	s = utils::read.csv(file.path(out, "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	s = read_csv_fast(file.path(out, "convergence_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	expect_gt(nrow(s), 0L)
 })

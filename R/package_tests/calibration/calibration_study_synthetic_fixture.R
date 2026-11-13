@@ -9,6 +9,18 @@
 #     InferenceIncidLogit  not started
 #   Returns list(cdir, plan, roster_path).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 cal_synth_roster <- function() {
 	data.frame(
 		response_type = c(rep("continuous", 4L), rep("incidence", 2L)),
@@ -30,7 +42,7 @@ cal_synth_campaign <- function(root, id = "2026-11-10-abcd1234", cal_dir, null_r
 		"--roster", shQuote(roster_path), "--null-reps", null_reps, "--power-reps", power_reps, "--plan-out", shQuote(file.path(cdir, "plan.csv"))),
 		stdout = TRUE, stderr = TRUE))
 	if (!is.null(attr(res, "status"))) stop("planner failed: ", paste(res, collapse = "\n"))
-	plan <- utils::read.csv(file.path(cdir, "plan.csv"), stringsAsFactors = FALSE)
+	plan <- read_csv_fast(file.path(cdir, "plan.csv"), stringsAsFactors = FALSE)
 	u <- stats_env$cal_stats_u_cols()
 	procs <- list(InferenceContinLin = c("wald", "rand"), InferenceContinOLS = c("wald", "score", "rand"), InferenceIncidLogit = c("wald", "exact"))
 	set.seed(seed)

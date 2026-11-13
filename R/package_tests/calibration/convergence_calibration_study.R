@@ -54,6 +54,18 @@
 # (one row per cell x n), convergence_summary.md. Base R only; no EDI needed (the publish job
 # has none): the registry is sourced from the checkout.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 CONV_A_MAX <- 5
 CONV_A_STEP <- 0.1
 CONV_MIN_FINITE <- 30L
@@ -246,7 +258,7 @@ conv_main <- function(args) {
 	plan_path <- arg_value("--plan", file.path(dirname(normalizePath(stats_dir, mustWork = FALSE)), "plan.csv"))
 	class_prog <- NULL
 	if (file.exists(plan_path)) {
-		plan <- utils::read.csv(plan_path, stringsAsFactors = FALSE)
+		plan <- read_csv_fast(plan_path, stringsAsFactors = FALSE)
 		plan$key <- cal_plan_key(plan$response_type, plan$design, plan$n, plan$effect, plan$inf_class)
 		plan$rep_from <- 1L
 		class_prog <- cal_class_progress(cal_unit_progress(plan, tests))

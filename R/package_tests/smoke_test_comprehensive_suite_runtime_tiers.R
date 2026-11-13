@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/smoke_test_comprehensive_suite_runtime_tiers.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -17,7 +29,7 @@ expect_true = function(x, msg) {
 out = tempfile(fileext = ".csv")
 tiers = write_comprehensive_suite_runtime_tiers(out)
 expect_true(file.exists(out), "Runtime tier CSV was not written.")
-persisted = read.csv(out, stringsAsFactors = FALSE)
+persisted = read_csv_fast(out, stringsAsFactors = FALSE)
 expect_true(identical(persisted$tier, c("smoke", "ci", "nightly", "release")), "Runtime tiers are missing or incorrectly ordered.")
 expect_true(all(runtime_tier_columns %in% names(persisted)), "Runtime tier registry schema is incomplete.")
 expect_true(all(persisted$argument_combination_tier %in% c("smoke", "ci")), "Runtime tiers must reuse smoke/ci argument-combination tiers.")

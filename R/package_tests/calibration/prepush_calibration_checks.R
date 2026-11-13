@@ -44,6 +44,18 @@
 # --write-known-failures writes every current failure as a known-failures CSV
 # (used once to seed the list; review every row before committing it).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 suppressPackageStartupMessages(library(EDI))
 
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
@@ -272,7 +284,7 @@ if (!is.null(write_known)) {
 # without a prob_T column predate it and mean 0.5. rep() keeps that working for a
 # header-only file (no known failures), where a bare "0.5" can't fill 0 rows.
 key <- function(df) paste(df$response_type, cal_prob_T_label(df$prob_T), df$inference_class, df$method, df$formula, df$check, sep = " | ")
-known <- if (file.exists(KNOWN_FAILURES_PATH)) utils::read.csv(KNOWN_FAILURES_PATH, stringsAsFactors = FALSE, colClasses = "character") else NULL
+known <- if (file.exists(KNOWN_FAILURES_PATH)) read_csv_fast(KNOWN_FAILURES_PATH, stringsAsFactors = FALSE, colClasses = "character") else NULL
 if (!is.null(known) && !("prob_T" %in% names(known))) known$prob_T <- rep("0.5", nrow(known))
 known_keys <- if (is.null(known)) character() else key(known)
 fail_keys <- if (is.null(fails)) character() else key(fails)

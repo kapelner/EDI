@@ -33,6 +33,18 @@
 # Usage: Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir DIR \
 #          --out-dir DIR [--fragment FILE] [--fig-prefix figures/] [--class-figures]
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 suppressPackageStartupMessages(library(ggplot2))
 args <- commandArgs(TRUE)
 arg_value <- function(flag, default = NULL) {
@@ -114,7 +126,7 @@ save_both <- function(build, name, width, height, alt) {
 
 rd <- function(f) {
 	p <- file.path(summary_dir, f)
-	if (file.exists(p)) utils::read.csv(p, stringsAsFactors = FALSE, colClasses = c(formula = "character")) else NULL
+	if (file.exists(p)) read_csv_fast(p, stringsAsFactors = FALSE, colClasses = c(formula = "character")) else NULL
 }
 s <- rd("calibration_summary.csv")
 b <- rd("null_bias_summary.csv")
@@ -444,7 +456,7 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 		}
 	}
 	if (!is.null(pw)) {
-		base <- utils::read.csv(file.path(dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L]))),
+		base <- read_csv_fast(file.path(dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L]))),
 			"calibration_study_effects.csv"), stringsAsFactors = FALSE)
 		bc <- sub("^Inference", "", base$baseline_class[base$response_type == rt])
 		pp <- pw[pw$response_type == rt & pw$cls %in% bc & pw$formula == "~." & pw$inf_procedure == "wald" & pw$effect_label == "power50", ]

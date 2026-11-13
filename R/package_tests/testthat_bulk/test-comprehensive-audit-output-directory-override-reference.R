@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 
 source(test_path("..", "comprehensive_audit_paths.R"), local = TRUE)
@@ -202,10 +214,10 @@ test_that("the baseline CLI writes a complete synthetic artifact set only to its
 	expect_true(file.exists(baseline))
 	expect_true(file.exists(stamp))
 	expect_identical(
-		names(utils::read.csv(baseline, check.names = FALSE)),
+		names(read_csv_fast(baseline, check.names = FALSE)),
 		c("key", "check", "response_type", "class", "formula", "function_run", "detail")
 	)
-	expect_equal(nrow(utils::read.csv(baseline, check.names = FALSE)), 0L)
+	expect_equal(nrow(read_csv_fast(baseline, check.names = FALSE)), 0L)
 	expect_identical(
 		readLines(stamp),
 		paste(sprintf("%s:%d:%d", basename(paths), as.integer(file.size(paths)), as.integer(file.mtime(paths))), collapse = "|")
@@ -313,13 +325,13 @@ test_that("coverage audit counts returned invalid intervals as noncoverage", {
 	if (is.null(status)) status <- 0L
 	expect_identical(status, 0L, info = paste(output, collapse = "\n"))
 
-	baseline <- utils::read.csv(file.path(output_dir, "comprehensive_results_audit_baseline.csv"),
+	baseline <- read_csv_fast(file.path(output_dir, "comprehensive_results_audit_baseline.csv"),
 		check.names = FALSE, stringsAsFactors = FALSE)
 	coverage_finding <- baseline[baseline$check == "low_coverage", , drop = FALSE]
 	expect_equal(nrow(coverage_finding), 1L)
 	expect_match(coverage_finding$detail, "coverage 0.484 over 62 rows, UNDER")
 
-	attempts <- utils::read.csv(
+	attempts <- read_csv_fast(
 		file.path(output_dir, "comprehensive_coverage_attempt_summary.csv"),
 		check.names = FALSE, stringsAsFactors = FALSE
 	)

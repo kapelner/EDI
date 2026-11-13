@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 
 # v1.0.5 TODO-200: the calibration gate (R/package_tests/calibration/analyze_calibration_study.R)
@@ -101,7 +113,7 @@ synthetic_gate = function(spec, accepted = NULL, convergence = NULL, final = FAL
 			"--accepted", shQuote(acc), if (final) "--final"), stdout = TRUE, stderr = TRUE))
 	list(res = res, out = out, status = attr(res, "status"))
 }
-summary_of = function(g) utils::read.csv(file.path(g$out, "calibration_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+summary_of = function(g) read_csv_fast(file.path(g$out, "calibration_summary.csv"), stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 failing = function(g) {
 	s = summary_of(g)
 	stats::setNames(s$fail_size | s$fail_coverage, paste(s$inf_procedure, s$n))
@@ -204,12 +216,12 @@ test_that("the rate check fails a cell converging slower than expected with a si
 test_that("bias_sd_large_n flags |bias| / SD > 0.1 at the campaign's largest n only", {
 	spec = data.frame(inf_procedure = "wald", n = c(50, 1000), rej = 150L, reps = 3000L, bias = 0.3)
 	g = synthetic_gate(spec)
-	b = utils::read.csv(file.path(g$out, "null_bias_summary.csv"), stringsAsFactors = FALSE)
+	b = read_csv_fast(file.path(g$out, "null_bias_summary.csv"), stringsAsFactors = FALSE)
 	expect_true("bias_sd_large_n" %in% names(b))
 	expect_identical(b$bias_sd_large_n[b$n_nominal == 1000], TRUE)
 	expect_identical(b$bias_sd_large_n[b$n_nominal == 50], FALSE)
 	spec$bias = 0.05
-	b2 = utils::read.csv(file.path(synthetic_gate(spec)$out, "null_bias_summary.csv"), stringsAsFactors = FALSE)
+	b2 = read_csv_fast(file.path(synthetic_gate(spec)$out, "null_bias_summary.csv"), stringsAsFactors = FALSE)
 	expect_false(any(b2$bias_sd_large_n))
 	# Not part of the gate.
 	expect_identical(readLines(file.path(g$out, "gate_failures.txt")), "0")
@@ -226,7 +238,7 @@ test_that("statistical edge cases never crash the analysis: no testable cell, a 
 	dir = NULL
 	g2 = synthetic_gate(spec)
 	tf = file.path(dirname(g2$out), "tests.csv.gz")
-	t = utils::read.csv(tf, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	t = read_csv_fast(tf, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	t[t$inf_procedure == "wald", c("n_p", "n_ci", "rej", "rej10", "cov")] = 0
 	cal_env$cal_stats_write(t, tf)
 	res = suppressWarnings(system2(file.path(R.home("bin"), "Rscript"), c(shQuote(file.path(cal_dir, "analyze_calibration_study.R")),

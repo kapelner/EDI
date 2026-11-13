@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1] %||% "package_tests/extract_checkmate_argument_contracts.R")
@@ -263,7 +275,7 @@ main = function() {
 	if (!file.exists(inventory_path)) {
 		stop("Missing package_tests/public_api_inventory.csv. Run Phase 0 first.", call. = FALSE)
 	}
-	inventory = read.csv(inventory_path, stringsAsFactors = FALSE)
+	inventory = read_csv_fast(inventory_path, stringsAsFactors = FALSE)
 	inventory = inventory[inventory$api_kind %in% c("function", "r6_public_method"), , drop = FALSE]
 	message("Scanning ", nrow(inventory), " public function/method inventory rows.")
 	

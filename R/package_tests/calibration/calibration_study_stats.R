@@ -17,6 +17,18 @@
 # stage: "screen" (replicates 1..9999) or "confirm" (the two-stage gate's fresh
 # replicates, CAL_STUDY_CONFIRM_REP0 + 1 on): kept apart so a confirmation is
 # judged on its new replicates alone.
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 CAL_STATS_CELL <- c("response_type", "design", "prob_T", "inf_class", "formula", "n", "n_nominal", "effect_label", "stage")
 CAL_STATS_U <- c(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 cal_stats_u_cols <- function() sprintf("cdf_%s", format(CAL_STATS_U, scientific = FALSE, drop0trailing = TRUE))
@@ -92,7 +104,7 @@ cal_stats_merge <- function(tabs, kind) {
 
 cal_stats_read <- function(path) {
 	if (!file.exists(path)) return(NULL)
-	utils::read.csv(path, stringsAsFactors = FALSE, colClasses = c(formula = "character"), check.names = FALSE)
+	read_csv_fast(path, stringsAsFactors = FALSE, colClasses = c(formula = "character"), check.names = FALSE)
 }
 cal_stats_write <- function(x, path) {
 	con <- gzfile(path, "w")

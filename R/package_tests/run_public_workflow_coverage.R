@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/run_public_workflow_coverage.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -507,13 +519,13 @@ run_function_classification = function(function_names) {
 }
 
 build_public_workflow_coverage = function(tier = "smoke") {
-	inventory = read.csv(repo_path("package_tests", "public_api_inventory.csv"), stringsAsFactors = FALSE)
+	inventory = read_csv_fast(repo_path("package_tests", "public_api_inventory.csv"), stringsAsFactors = FALSE)
 	classes = sort(unique(inventory$export_name[inventory$api_kind == "r6_class"]))
 	design_classes = classes[grepl("^Design", classes)]
 	inference_classes = setdiff(classes[grepl("^Inference", classes)], "InferenceSuite")
 	function_names = sort(unique(inventory$export_name[inventory$api_kind == "function"]))
 	fixtures = build_comprehensive_suite_fixtures(tier)
-	argument_coverage = read.csv(repo_path("package_tests", "public_argument_combination_coverage.csv"), stringsAsFactors = FALSE)
+	argument_coverage = read_csv_fast(repo_path("package_tests", "public_argument_combination_coverage.csv"), stringsAsFactors = FALSE)
 	rows = c(
 		run_design_workflows(design_classes),
 		run_inference_workflows(inference_classes, fixtures),

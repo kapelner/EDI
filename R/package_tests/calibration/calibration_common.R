@@ -13,6 +13,18 @@
 #   * it appends one row per (outer replicate, method) to a row CSV as soon as
 #     the row is known, then writes summaries computed only from those rows.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 calib_script_path <- function() {
 	file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 	if (!length(file_arg)) return(NA_character_)
@@ -291,7 +303,7 @@ calib_row_writer <- function(path, columns) {
 }
 
 calib_read_rows <- function(path) {
-	utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("NA", ""))
+	read_csv_fast(path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("NA", ""))
 }
 
 # ---------------------------------------------------------------------------

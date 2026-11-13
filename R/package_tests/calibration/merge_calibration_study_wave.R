@@ -10,6 +10,18 @@
 # <wave-dir> holds one directory per shard, named by shard id (an optional
 # "study-shard-" prefix, as actions/download-artifact writes it, is stripped).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))
 args <- commandArgs(TRUE)
@@ -22,7 +34,7 @@ wave_dir <- arg_value("--wave-dir")
 dir.create(file.path(campaign_dir, "stats"), recursive = TRUE, showWarnings = FALSE)
 
 ledger_path <- file.path(campaign_dir, "ledger.csv")
-ledger <- if (file.exists(ledger_path)) utils::read.csv(ledger_path, stringsAsFactors = FALSE,
+ledger <- if (file.exists(ledger_path)) read_csv_fast(ledger_path, stringsAsFactors = FALSE,
 	colClasses = c(reps_done = "character")) else NULL
 seen <- if (is.null(ledger)) character() else ledger$id
 
@@ -34,7 +46,7 @@ for (d in dirs) {
 	id <- sub("^study-shard-", "", basename(d))
 	f <- file.path(d, "shard.csv")
 	if (!file.exists(f) || id %in% seen) next
-	x <- utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c(reps_done = "character"))
+	x <- read_csv_fast(f, stringsAsFactors = FALSE, colClasses = c(reps_done = "character"))
 	x$id <- id
 	new_ledger[[length(new_ledger) + 1L]] <- x
 	new_tests[[length(new_tests) + 1L]] <- cal_stats_read(file.path(d, "tests.csv.gz"))

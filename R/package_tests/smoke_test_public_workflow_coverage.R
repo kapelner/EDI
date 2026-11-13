@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/smoke_test_public_workflow_coverage.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -18,8 +30,8 @@ status = system2("Rscript", c(script, "smoke", out))
 expect_true(identical(status, 0L), "Public workflow coverage runner failed.")
 expect_true(file.exists(out), "Public workflow coverage CSV was not written.")
 
-coverage = read.csv(out, stringsAsFactors = FALSE)
-inventory = read.csv(repo_path("package_tests", "public_api_inventory.csv"), stringsAsFactors = FALSE)
+coverage = read_csv_fast(out, stringsAsFactors = FALSE)
+inventory = read_csv_fast(repo_path("package_tests", "public_api_inventory.csv"), stringsAsFactors = FALSE)
 r6_classes = sort(unique(inventory$export_name[inventory$api_kind == "r6_class"]))
 
 required_cols = c(

@@ -3,6 +3,18 @@
 # expected-attempt manifest, isolated candidate output, and captured package
 # provenance. It never writes to either input.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 .todo14_key_columns <- c(
 	"rep", "beta_T", "dataset", "response_type", "design",
 	"inference_class", "function_run"
@@ -42,7 +54,7 @@
 		stop(label, " must be a data.frame or one nonempty CSV path.", call. = FALSE)
 	}
 	if (!file.exists(x)) stop(label, " does not exist: ", x, call. = FALSE)
-	utils::read.csv(x, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
+	read_csv_fast(x, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
 }
 
 .todo14_nonempty <- function(x) {

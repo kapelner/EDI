@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/smoke_test_run_public_argument_combinations.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -48,7 +60,7 @@ expect_true(!any(results$status == "error"), "Runner produced unexpected errors 
 expect_true(file.exists(results_file), "Results CSV was not written.")
 expect_true(file.exists(failures_file), "Failures CSV was not written.")
 
-persisted_before_resume = read.csv(results_file, stringsAsFactors = FALSE)
+persisted_before_resume = read_csv_fast(results_file, stringsAsFactors = FALSE)
 results_again = run_public_argument_combinations(
 	tier = "smoke",
 	timeout_sec = 10,
@@ -56,7 +68,7 @@ results_again = run_public_argument_combinations(
 	results_file = results_file,
 	failures_file = failures_file
 )
-persisted_after_resume = read.csv(results_file, stringsAsFactors = FALSE)
+persisted_after_resume = read_csv_fast(results_file, stringsAsFactors = FALSE)
 expect_true(identical(persisted_before_resume, persisted_after_resume), "Runner resume behavior is not deterministic by case_id.")
 expect_true(identical(persisted_after_resume$case_id, results_again$case_id), "Runner resume returned different case IDs.")
 

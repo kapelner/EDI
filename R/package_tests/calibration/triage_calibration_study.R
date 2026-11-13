@@ -22,6 +22,18 @@
 # --allow-provisional: draft from a campaign that is still running (its failures are provisional).
 # --dry-run: print the drafts and the skips, change nothing.
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 args <- commandArgs(TRUE)
 arg_value <- function(flag, default = NULL) {
 	i <- match(flag, args)
@@ -48,7 +60,7 @@ repo_url <- local({
 triage_file <- arg_value("--triage")
 campaign <- arg_value("--campaign")
 if (!is.null(triage_file)) {
-	tr <- utils::read.csv(triage_file, stringsAsFactors = FALSE)
+	tr <- read_csv_fast(triage_file, stringsAsFactors = FALSE)
 	if (is.null(campaign)) campaign <- "local"
 } else {
 	if (is.null(git("fetch", "--quiet", "origin", results_branch))) stop("could not fetch ", results_branch, " from origin")
@@ -63,7 +75,7 @@ if (!is.null(triage_file)) {
 	txt <- show(sprintf("campaigns/%s/summary/triage.csv", campaign))
 	if (is.null(txt)) stop("campaign ", campaign, " has no summary/triage.csv on ", results_branch,
 		" (analyzed before triage existed: rerun analyze_calibration_study.R on its stats)")
-	tr <- utils::read.csv(text = txt, stringsAsFactors = FALSE)
+	tr <- read_csv_fast(text = txt, stringsAsFactors = FALSE)
 }
 if (!nrow(tr)) { cat("Campaign", campaign, "has no failing groups: nothing to draft.\n"); quit(save = "no", status = 0L) }
 if (!all(as.logical(tr$campaign_final)) && !allow_provisional)
@@ -115,7 +127,7 @@ covering_todo <- function(g) {
 	hit <- which(marker | (cls & proc & met))
 	if (length(hit)) sprintf("%s (%s)", open_ids[hit[1L]], open_file[hit[1L]]) else NA_character_
 }
-acc <- if (file.exists(accepted_path)) utils::read.csv(accepted_path, stringsAsFactors = FALSE) else NULL
+acc <- if (file.exists(accepted_path)) read_csv_fast(accepted_path, stringsAsFactors = FALSE) else NULL
 covering_accept <- function(g) {
 	if (is.null(acc) || !nrow(acc)) return(FALSE)
 	any(acc$response_type == g$response_type & acc$inf_class == g$inf_class &

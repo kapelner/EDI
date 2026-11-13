@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 library(testthat)
 library(EDI)
 
@@ -103,7 +115,7 @@ test_that("the opt-in attempt event ledger preserves operation and setup outcome
 		status = "error", skip_reason = "error", error_message = "response setup failed"
 	)
 
-	events = utils::read.csv(manifest_file, stringsAsFactors = FALSE, na.strings = "")
+	events = read_csv_fast(manifest_file, stringsAsFactors = FALSE, na.strings = "")
 	expect_identical(events$event_seq, seq_len(11L))
 	expect_identical(events$event_type, c(
 		"started", "terminal", "started", "terminal", "started", "terminal",
@@ -140,7 +152,7 @@ test_that("the opt-in attempt event ledger preserves operation and setup outcome
 	resumed = new_comprehensive_attempt_manifest_writer(manifest_file, resume = TRUE)
 	resumed("started", key)
 	resumed("terminal", key, status = "ok")
-	events = utils::read.csv(manifest_file, stringsAsFactors = FALSE, na.strings = "")
+	events = read_csv_fast(manifest_file, stringsAsFactors = FALSE, na.strings = "")
 	expect_identical(events$event_seq, seq_len(13L))
 	expect_identical(events$event_type[12:13], c("started", "terminal"))
 

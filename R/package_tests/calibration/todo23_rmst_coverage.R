@@ -40,6 +40,18 @@
 #   Rscript R/package_tests/calibration/todo23_rmst_coverage.R reconcile --run-dir $RUN --out-dir $D2 \
 #     [--events $RUN/attempt_events.csv] [--results <csv>] [--nrep 40]
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 local({
 	f <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
 	here <- dirname(normalizePath(sub("^--file=", "", f[[1L]])))
@@ -276,8 +288,8 @@ reconcile_mode <- function(args) {
 	skip_id <- do.call(paste, c(skips[c(TODO23_KEY_COLUMNS, "function_run")], sep = "\r"))
 	manifest_id <- do.call(paste, c(manifest[c(TODO23_KEY_COLUMNS, "function_run")], sep = "\r"))
 	manifest <- manifest[!manifest_id %in% skip_id, , drop = FALSE]
-	results <- utils::read.csv(results_path, stringsAsFactors = FALSE, check.names = FALSE)
-	events <- utils::read.csv(events_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = "")
+	results <- read_csv_fast(results_path, stringsAsFactors = FALSE, check.names = FALSE)
+	events <- read_csv_fast(events_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = "")
 	in_scope <- function(df) startsWith(as.character(df$inference_class), "InferenceSurvivalRestrictedMeanDiff") &
 		as.character(df$function_run) %in% TODO23_OPERATIONS
 	res_scope <- in_scope(results)

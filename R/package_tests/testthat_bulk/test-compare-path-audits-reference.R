@@ -1,3 +1,15 @@
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 find_compare_path_audits_repo_file <- function(path) {
 	at <- normalizePath(getwd())
 	repeat {
@@ -252,7 +264,7 @@ testthat::test_that("CLI exits 0 on allowlisted-only worsening, 1 otherwise, 2 o
 	r_ok <- run(base_args, "--allowlist", shQuote(allow), "--out-dir", shQuote(file.path(root, "out")))
 	testthat::expect_identical(r_ok$status, 0L)
 	testthat::expect_true(any(grepl("RESULT: PASS", r_ok$out, fixed = TRUE)))
-	written <- utils::read.csv(file.path(root, "out", "path_audits_compare_cells.csv"), stringsAsFactors = FALSE)
+	written <- read_csv_fast(file.path(root, "out", "path_audits_compare_cells.csv"), stringsAsFactors = FALSE)
 	testthat::expect_identical(written$allowlisted, "x")
 	r_bad <- run(base_args, "--allowlist", shQuote(none))
 	testthat::expect_identical(r_bad$status, 1L)
@@ -292,6 +304,9 @@ load_path_audit_counting <- function() {
 	exprs <- parse(src, keep.source = FALSE)
 	want <- c("PATH_AUDIT_COUNTING_RULE", "PATH_AUDIT_REFUSAL_MESSAGE_RE", "classify_nonestimability_rows", "load_nonestimability_stats")
 	env <- new.env(parent = globalenv())
+	# load_nonestimability_stats() reads its snapshot with read_csv_fast(), which the
+	# file's top-level loader (not evaluated here) would otherwise define.
+	sys.source(find_compare_path_audits_repo_file(file.path("R", "package_tests", "read_csv_fast.R")), envir = env)
 	for (e in exprs) {
 		if (is.call(e) && (identical(e[[1L]], as.name("=")) || identical(e[[1L]], as.name("<-"))) &&
 			is.name(e[[2L]]) && as.character(e[[2L]]) %in% want) eval(e, env)
@@ -349,14 +364,14 @@ testthat::test_that("load_nonestimability_stats counts unflagged NA results as n
 	got_f <- get("InferenceContinFoo||~x||compute_bootstrap_confidence_interval", envir = st)
 	testthat::expect_identical(c(got_f$n, got_f$nonestimable), c(12L, 6L))
 	# an old-rule snapshot is replaced even though its row count was larger
-	d <- utils::read.csv(defaults, stringsAsFactors = FALSE)
+	d <- read_csv_fast(defaults, stringsAsFactors = FALSE)
 	testthat::expect_true(all(d$counting_rule == pc$PATH_AUDIT_COUNTING_RULE))
 	testthat::expect_identical(d$n[d$function_run == ci], 12L)
 	# same rule: the high-water mark holds again (a larger same-rule snapshot is kept)
 	d$n[d$function_run == ci] <- 5000L
 	utils::write.csv(d, defaults, row.names = FALSE)
 	pc$load_nonestimability_stats(dir)
-	testthat::expect_identical(utils::read.csv(defaults, stringsAsFactors = FALSE)$n[d$function_run == ci], 5000L)
+	testthat::expect_identical(read_csv_fast(defaults, stringsAsFactors = FALSE)$n[d$function_run == ci], 5000L)
 	# classifier directly: refusal rows are flagged, never failed
 	dt <- data.table::as.data.table(rows)
 	pc$classify_nonestimability_rows(dt)

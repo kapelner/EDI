@@ -1,5 +1,17 @@
 #!/usr/bin/env Rscript
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 script_path = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 if (!length(script_path) || is.na(script_path)) script_path = "package_tests/smoke_test_comprehensive_suite_internal_surfaces.R"
 repo_root = normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
@@ -18,9 +30,9 @@ status = system2("Rscript", c(script, out))
 expect_true(identical(status, 0L), "Internal surface registry runner failed.")
 expect_true(file.exists(out), "Internal surface registry CSV was not written.")
 
-surfaces = read.csv(out, stringsAsFactors = FALSE)
-audit = read.csv(repo_path("package_tests", "comprehensive_suite_baseline_audit.csv"), stringsAsFactors = FALSE)
-registry = read.csv(repo_path("package_tests", "comprehensive_suite_registry.csv"), stringsAsFactors = FALSE)
+surfaces = read_csv_fast(out, stringsAsFactors = FALSE)
+audit = read_csv_fast(repo_path("package_tests", "comprehensive_suite_baseline_audit.csv"), stringsAsFactors = FALSE)
+registry = read_csv_fast(repo_path("package_tests", "comprehensive_suite_registry.csv"), stringsAsFactors = FALSE)
 
 required_cols = c(
 	"internal_symbol", "normalized_symbol", "surface_category", "coverage_scope",

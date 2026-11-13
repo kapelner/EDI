@@ -70,6 +70,18 @@
 # Exit status: 0 = no unallowlisted worsening, 1 = at least one, 2 = usage or
 # input error. Base R only, no EDI install needed (it only reads files).
 
+# read.csv() calls in this file go through read_csv_fast(): fread-backed, same
+# result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
+if (!exists("read_csv_fast", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("read_csv_fast", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 pa_html_unescape = function(x) {
 	x = gsub("<[^>]*>", "", x)
 	x = gsub("&delta;", "\u03b4", x, fixed = TRUE)
@@ -224,7 +236,7 @@ parse_path_audits_html = function(html) {
 }
 
 read_path_audits_defaults = function(text) {
-	d = utils::read.csv(text = paste(text, collapse = "\n"), stringsAsFactors = FALSE)
+	d = read_csv_fast(text = paste(text, collapse = "\n"), stringsAsFactors = FALSE)
 	need = c("base_class", "function_run", "n", "nonestimable", "rate")
 	miss = setdiff(need, names(d))
 	if (length(miss)) stop("defaults CSV lacks columns: ", paste(miss, collapse = ", "))
@@ -244,7 +256,7 @@ pa_html_counting_rule = function(html) {
 }
 
 pa_defaults_counting_rule = function(text) {
-	d = utils::read.csv(text = paste(text, collapse = "\n"), stringsAsFactors = FALSE, colClasses = "character")
+	d = read_csv_fast(text = paste(text, collapse = "\n"), stringsAsFactors = FALSE, colClasses = "character")
 	if (!"counting_rule" %in% names(d) || !nrow(d)) return(PA_RULE_UNSTAMPED)
 	r = unique(d$counting_rule[nzchar(d$counting_rule)])
 	if (!length(r)) PA_RULE_UNSTAMPED else r[1L]
@@ -344,7 +356,7 @@ read_path_audit_allowlist = function(path) {
 			column_regex = character(), kinds = character(), tracked_in = character(), reason = character(),
 			counting_rule_change = character(), stringsAsFactors = FALSE))
 	}
-	a = utils::read.csv(path, stringsAsFactors = FALSE, colClasses = "character", na.strings = character())
+	a = read_csv_fast(path, stringsAsFactors = FALSE, colClasses = "character", na.strings = character())
 	need = c("id", "source", "class_regex", "row_regex", "column_regex", "kinds", "tracked_in", "reason")
 	miss = setdiff(need, names(a))
 	if (length(miss)) stop("allowlist lacks columns: ", paste(miss, collapse = ", "))
