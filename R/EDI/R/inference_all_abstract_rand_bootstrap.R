@@ -30,6 +30,16 @@ assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 #' The test statistic computed on each such draw forms a null distribution against which
 #' the observed statistic (actual data, actual \code{w}) is compared.
 #'
+#' @section Design restriction:
+#' Like the nonparametric bootstrap, the randomization bootstrap resamples subject rows
+#' with replacement, so it is not supported for \code{DesignSeqOneByOne} designs and
+#' their subclasses (including the KK matching-on-the-fly designs), except the concrete
+#' \code{DesignSeqOneByOneBernoulli} class. Its validity on adaptive sequential designs
+#' is unproven. Calling a restricted method reports that the method is not supported,
+#' and \code{supports()} returns \code{FALSE} for \code{randomization_bootstrap} and
+#' \code{randomization_bootstrap_ci}. KK estimators still offer it on the fixed
+#' matched-pairs design \code{DesignFixedBinaryMatch}.
+#'
 #' @details
 #' \strong{Motivating heuristic: the sharp null makes the science table fully known.}
 #' Under Fisher's sharp null \eqn{H_0: y_i(0) = y_i(1) = y_i} for all \eqn{i}, the observed

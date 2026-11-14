@@ -2327,8 +2327,14 @@ get_effective_components = function(name) {
 # The concrete sequential Bernoulli design is an exception: its assignments do
 # not depend on previous subjects. Subclasses remain restricted because they may
 # override that allocation rule.
+# The randomization bootstrap (BRT) resamples subjects as the nonparametric
+# bootstrap does, so it is excluded wherever that is (owner ruling 2026-11-12:
+# "BRT cannot run on designs where bootstrap is illegal"). Before this,
+# supports() reported randomization_bootstrap TRUE on KK21stepwise/SPBR while
+# nonparametric_bootstrap was FALSE, contradicting the contract in
+# contracts_mixins.R (randomization_bootstrap requires nonparametric_bootstrap).
 EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES = list(
-	DesignSeqOneByOne = "nonparametric_bootstrap"
+	DesignSeqOneByOne = c("nonparametric_bootstrap", "randomization_bootstrap", "randomization_bootstrap_ci")
 )
 
 get_design_excluded_inference_capabilities = function(des_obj) {

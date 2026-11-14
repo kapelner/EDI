@@ -1,4 +1,4 @@
-# EDI 1.0.5
+# EDI 1.0.4
 
 Correctness release. Wrong results found by the algorithm audit and the
 comprehensive-test sweeps are fixed, and seeded draws are now identical on
@@ -6,6 +6,19 @@ Linux, macOS and Windows at every thread count (checked in CI). No new
 methods.
 
 ## Breaking changes
+
+* The randomization bootstrap (`compute_rand_bootstrap_two_sided_pval()`,
+  `compute_rand_bootstrap_confidence_interval()`,
+  `approximate_rand_bootstrap_distribution_beta_hat_T()` and the
+  `get_supported_rand_bootstrap_*_types()` helpers) is no longer available on
+  `DesignSeqOneByOne` designs other than `DesignSeqOneByOneBernoulli`, matching
+  the nonparametric bootstrap. It resamples subjects the same way, and its
+  validity on adaptive sequential designs, including the KK designs, is
+  unproven. Those methods now stop with "not supported", and `supports()`
+  reports `randomization_bootstrap` and `randomization_bootstrap_ci` as
+  `FALSE` there. Before, `supports()` reported them available, contradicting
+  the capability contract. KK estimators keep the randomization bootstrap on
+  `DesignFixedBinaryMatch`.
 
 * `InferenceIncidKKCondLogitGLMMOneLik` and `InferenceIncidKKCondLogitGLMMIVWC`
   fit a new model: conditional logit on the discordant pairs, plus (OneLik

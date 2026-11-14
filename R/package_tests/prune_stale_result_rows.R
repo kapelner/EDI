@@ -53,6 +53,19 @@
 
 suppressPackageStartupMessages(library(data.table))
 
+# fread_unescaped() (R/package_tests/read_csv_fast.R): fread() with data.table
+# 1.18.4's doubled-quote bug undone, so reading results and writing them back
+# never doubles the quotes in a field again (2026-11-14). Loaded from the checkout.
+if (!exists("fread_unescaped", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("fread_unescaped", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 apply_changes = "--apply" %in% commandArgs(trailingOnly = TRUE)
 check_rules = "--check-rules" %in% commandArgs(trailingOnly = TRUE)
 
@@ -88,7 +101,7 @@ if (!length(files) && !check_rules) {
 }
 
 rules_path = file.path(here, "stale_ok_row_rules.csv")
-rules = if (file.exists(rules_path)) fread(rules_path) else data.table(response_type = character(), class = character(), function_run = character(), before_timestamp = character(), tracked_in = character(), reason = character())
+rules = if (file.exists(rules_path)) fread_unescaped(rules_path) else data.table(response_type = character(), class = character(), function_run = character(), before_timestamp = character(), tracked_in = character(), reason = character())
 bare_class = function(x) sub("^Inference", "", trimws(sub("^([^ (\\[]+).*$", "\\1", x)))
 
 # Validates one tracked_in reference. Returns list(ok, detail).
@@ -140,7 +153,7 @@ if (check_rules) {
 		cat("\nrow counts currently matched by each rule (informational; see header comment):\n")
 		for (f in files) {
 			rt = sub("^comprehensive_tests_results_nc_1_(.*)\\.csv$", "\\1", basename(f))
-			probe = fread(f, select = c("status", "inference_class", "function_run", "timestamp"), showProgress = FALSE)
+			probe = fread_unescaped(f, select = c("status", "inference_class", "function_run", "timestamp"), showProgress = FALSE)
 			cls = bare_class(probe$inference_class)
 			for (k in which(rules$response_type == rt)) {
 				n = sum(probe$status == "ok" & cls == rules$class[k] & rule_matches_function_run(probe$function_run, rules$function_run[k]) & substr(probe$timestamp, 1L, 10L) < rules$before_timestamp[k])
@@ -160,7 +173,7 @@ cat(sprintf("prune_stale_result_rows: last source-touching commit is %s; %d expl
 total_stale = 0L; total_rule = 0L
 for (f in files) {
 	rt = sub("^comprehensive_tests_results_nc_1_(.*)\\.csv$", "\\1", basename(f))
-	probe = fread(f, select = c("status", "github_commit_id", "inference_class", "function_run", "timestamp"), showProgress = FALSE)
+	probe = fread_unescaped(f, select = c("status", "github_commit_id", "inference_class", "function_run", "timestamp"), showProgress = FALSE)
 	shas = unique(probe$github_commit_id[probe$status == "error"])
 	current = vapply(shas, commit_is_current, logical(1))
 	is_stale = probe$status == "error" & !(probe$github_commit_id %in% shas[current])
@@ -179,7 +192,7 @@ for (f in files) {
 	cat(sprintf("  %-52s rows=%9d error=%9d stale-error=%9d rule-expired-ok=%6d\n", basename(f), nrow(probe), sum(probe$status == "error"), sum(is_stale), sum(is_rule)))
 	for (nm in names(rule_counts)) cat(sprintf("      rule: %-90s %6d row(s)\n", nm, rule_counts[[nm]]))
 	if (apply_changes && any(drop)) {
-		full = fread(f, showProgress = FALSE)
+		full = fread_unescaped(f, showProgress = FALSE)
 		tmp = paste0(f, ".prune_tmp")
 		fwrite(full[!drop], tmp, quote = TRUE, showProgress = FALSE)
 		if (!file.rename(tmp, f)) stop("could not replace ", f)

@@ -115,6 +115,40 @@ testthat::test_that("cell comparison classifies every worse / improved transitio
 	testthat::expect_identical(rev$kind[rev$column == "e"], "guarantee_gained")
 })
 
+# v1.1.0 TODO-194 plan, Phase 3b: a rate change beyond --rate-tol fails only when it
+# is also significant (one-sided Fisher exact test, Benjamini-Hochberg across cells).
+testthat::test_that("rate changes fail only when beyond rate_tol and significant after FDR control", {
+	pa <- load_compare_path_audits()
+	mk <- function(column, rate, n) data.frame(
+		table = "T", section = "S", class = "ContinFoo", row_label = "~w", column = column, state = "observed",
+		rate = rate, nonestimable = NA_integer_, n = as.integer(n), stringsAsFactors = FALSE)
+	base <- rbind(
+		mk("noise_few", 0.90, 30),     # 27/30 -> 24/30: a 10-point drop that chance explains easily
+		mk("small_many", 0.99, 20000), # 19800 -> 19500 of 20000: significant but only 1.5 points
+		mk("real_many", 0.99, 2000),   # 1980 -> 1900 of 2000: 4 points and significant
+		mk("to_zero", 0.40, 30),       # to exactly 0% always fails
+		mk("gain_few", 0.80, 30))      # 24/30 -> 27/30: not a significant gain
+	new <- rbind(mk("noise_few", 0.80, 30), mk("small_many", 0.975, 20000), mk("real_many", 0.95, 2000),
+		mk("to_zero", 0, 30), mk("gain_few", 0.90, 30))
+	cmp <- pa$compare_path_audit_cells(base, new, rate_tol = 0.02, min_n = 30, fdr_q = 0.05)
+	change <- setNames(cmp$change, cmp$column)
+	testthat::expect_identical(unname(change[c("noise_few", "small_many", "real_many", "to_zero", "gain_few")]),
+		c("unchanged", "unchanged", "worse", "worse", "unchanged"))
+	testthat::expect_identical(cmp$kind[cmp$column == "real_many"], "estimability_drop")
+	testthat::expect_true(cmp$p_value[cmp$column == "noise_few"] > 0.05)
+	testthat::expect_true(cmp$q_value[cmp$column == "small_many"] < 0.05)  # significant, but under rate_tol
+	testthat::expect_true(all(is.finite(cmp$q_value)))
+	# the defaults CSV gets the same rule, on the nonestimable rate
+	db <- pa$read_path_audits_defaults(c('"base_class","function_run","n","nonestimable","rate"',
+		'"InferenceA","compute_few",30,3,0.1', '"InferenceA","compute_many",2000,20,0.01'))
+	dn <- pa$read_path_audits_defaults(c('"base_class","function_run","n","nonestimable","rate"',
+		'"InferenceA","compute_few",30,6,0.2', '"InferenceA","compute_many",2000,100,0.05'))
+	dc <- pa$compare_path_audit_defaults(db, dn, rate_tol = 0.02, min_n = 30, fdr_q = 0.05)
+	testthat::expect_identical(setNames(dc$change, dc$column)[c("compute_few", "compute_many")],
+		c(compute_few = "unchanged", compute_many = "worse"))
+	testthat::expect_true(all(c("p_value", "q_value") %in% names(dc)))
+})
+
 testthat::test_that("defaults CSV comparison flags rate increases, removed rows and new design refusals", {
 	pa <- load_compare_path_audits()
 	base <- pa$read_path_audits_defaults(c(

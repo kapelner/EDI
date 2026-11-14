@@ -235,18 +235,25 @@ golden_operations = c("jackknife", "non_param_boot", "bayesian_boot", "param_boo
 golden_ns = c(NA, 0L, 1L, 199L, 200L, 201L, 499L, 500L, 501L, 999L, 1000L, 1001L, 5000L)
 
 test_that("refactored warm-start dispatcher matches the frozen pre-refactor decision function for every (class, operation, n)", {
+	# The frozen function is the built-in policy, so compare against EDI's
+	# defaults: with_tuning_sandbox() (helper-local-machine-tuning.R) sets aside
+	# any tuning this machine has saved, which EDI imports on load and which
+	# changes these decisions. Without it the test passed only when an earlier
+	# file had already reset the policies (2026-11-14).
 	mismatches = character(0)
-	for (cl in golden_classes) {
-		for (op in golden_operations) {
-			for (n in golden_ns) {
-				expected = frozen_pre_refactor_dispatch(cl, op, n)
-				actual = EDI:::edi_warm_start_dispatch_policy(cl, op, n)
-				if (!identical(expected, actual)) {
-					mismatches = c(mismatches, sprintf("%s/%s/n=%s: expected %s, got %s", cl, op, n, expected, actual))
+	with_tuning_sandbox({
+		for (cl in golden_classes) {
+			for (op in golden_operations) {
+				for (n in golden_ns) {
+					expected = frozen_pre_refactor_dispatch(cl, op, n)
+					actual = EDI:::edi_warm_start_dispatch_policy(cl, op, n)
+					if (!identical(expected, actual)) {
+						mismatches = c(mismatches, sprintf("%s/%s/n=%s: expected %s, got %s", cl, op, n, expected, actual))
+					}
 				}
 			}
 		}
-	}
+	})
 	expect_equal(mismatches, character(0))
 })
 

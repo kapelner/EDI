@@ -15,9 +15,9 @@
 #     draw 1; sweeps every concrete class across the Bernoulli, KK-matching and
 #     blocked design families (stale_worker_cache_resampling.md, ~25 s).
 # ~2 minutes total, so a break fails the push early instead of after the full
-# ~10 minute suite. They also run again inside the full suite (they live in
-# R/EDI/tests/testthat/), which is intentional: this pass exists purely for
-# fast feedback.
+# ~3-5 minute suite. Once this pass succeeds, pre-push sets
+# EDI_PREPUSH_STRUCTURAL_PASSED=1 and the full suite skips these files rather
+# than running them a second time (2026-11-14); CI's suite runs them as usual.
 #
 # Must run with cwd = R/EDI/tests (test files resolve R/EDI/R relative to it),
 # against the already-installed EDI, like scripts/run_prepush_r_tests.R.
@@ -27,13 +27,10 @@ suppressPackageStartupMessages({
 	library(EDI)
 })
 
-files <- c(
-	"testthat/test-inference-class-wiring-completeness.R",
-	"testthat/test-registry-component-drift.R",
-	"testthat/test-adversarial-and-fault-injection.R",
-	"testthat/test-reference-parity.R",
-	"testthat/test-reused-worker-resampling-nondegenerate.R"
-)
+# The list is shared with scripts/run_prepush_r_tests.R (structural_check_files.R).
+script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])))
+source(file.path(script_dir, "structural_check_files.R"))
+files <- structural_check_files
 
 failed <- FALSE
 for (f in files) {

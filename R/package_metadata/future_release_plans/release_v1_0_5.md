@@ -14997,6 +14997,26 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Merge dry run of batch 1 (no `--apply`): 101 clean, 9 LogRank jobs blocked by 246 multi-file keys
     (`..._filtered_class-InferenceSurvivalLogRank_family-rand.csv`); 3,586 canonical keys no longer emitted (LogRank/Gehan
     rand CIs, Cox rand-bootstrap p-values, LogRank rand p-values). Only the 57 clean diamonds/pte jobs are mergeable as is.
+  - **Abalone rerun (2026-11-14)** `~/edi_regen/regen_survival_b1a_20261112/`: 46/46 exit 0 on so 237f1075 (owner reinstall
+    since batch 1); estimates now differ across every rep; abalone 0.2 cells no worse than 0.5. Merge dry run: 44 clean.
+  - **Owner decisions 2026-11-14 (applied, canonical CSVs are gitignored; every edit has a `.bak` next to the file):**
+    - Accept build 1194fa45 for the 57 clean batch-1 jobs. The merge tool has no flag for a sidecar DLL that differs from the
+      installed one (`--accept-dll-change` covers only a DLL changing mid-run); a narrow flag is pending (another session was
+      editing `merge_comprehensive_slice_results.R` for its `fread_unescaped` quote fix).
+    - Pruned from the survival file: 894 LogRank/GehanWilcox `compute_rand_confidence_interval` placeholders (`unsupported`,
+      no result) and 866 `compute_rand_confidence_interval(custom)` rows (an `InferenceRandCustom` mean-diff CI under those
+      labels, no longer run because the harness gates it on the class's rand-CI support). `stale_ok_row_rules.csv` gained
+      matching rules. The prune tool was NOT used: `--apply` would also have run the 63 existing rules (~718k rows).
+    - Deleted (moved to `.bak`) `..._filtered_class-InferenceSurvivalLogRank_family-rand.csv` (2,709 Sep-8 rows: 903 placeholders,
+      246 keys duplicated in the main file, 1,560 old-model rand p-values); unblocks the 9 LogRank merge jobs.
+    - **BRT ruling: "BRT cannot run on designs where bootstrap is illegal"; the bootstrap is unproven on KK designs.**
+      `inference_class_registry.R` now excludes `randomization_bootstrap(_ci)` on `DesignSeqOneByOne` except Bernoulli (this
+      reverses the 2026-09-11 `1b2f1c74` choice to keep BRT there). Roxygen section + NEWS Breaking-changes bullet; tests moved
+      from KK14 to Bernoulli / `DesignFixedBinaryMatch` or flipped to expect the refusal (test-rand-bootstrap.R,
+      test-brt-smoothed-count-support.R, test-simple-wilcox-migration-golden.R, test-survival-kk-lwa-cox-onelik-migration-golden.R,
+      test-sequential-nonparam-bootstrap-disabled.R, test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R).
+      Lost: the 2026-10-12 KK Wilcoxon BRT W-scale golden on KK14 (not re-recorded on FixedBinaryMatch). All BRT rows on
+      KK21stepwise/SPBR pruned from the 5 canonical files (41,693 rows). Rd regenerates at G8; installed EDI needs a rebuild.
 - [x] TODO-185 (added 2026-11-03, owner; found by the TODO-184 pre-push 0.2 cell): **`InferenceCountZeroInflatedNegBin` / `InferenceCountZeroInflatedPoisson` score CIs are not inverted from their tests at `prob_T = 0.2`.** Current state: DONE 2026-11-06, confirmed against the installed build (owner rebuild 2026-11-06 16:16). The full pre-push calibration check (`EDI_PREPUSH_CALIBRATION=all`, 166 classes, 2864 task rows) reports `prepush_calibration: OK`, and `prepush_calibration_known_failures.csv` has no ZIP/ZINB rows. The original finding follows. The endpoint check, which re-runs the class's own score test at each CI endpoint, gets p far below 0.05 at the upper endpoint:
   - ZINB score `~1`, null rep 2: p at ci_b = 0.4061 is 0.0016.
   - ZIP score `~.`, null rep 3: p at ci_b = 0.3038 is 0.00012.

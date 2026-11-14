@@ -101,6 +101,26 @@ test_that("InferenceSurvivalKKLWACoxPHOneLik migration produces identical output
 	}
 })
 
+# Same data-generating process as survival_kk_lwa_cox_onelik_golden_design(), on the
+# fixed matched-pairs design: since 2026-11-14 (owner ruling: the bootstrap is
+# unproven on KK designs) the randomization bootstrap refuses the sequential KK14
+# design, so the segfault regression below needs a design where it still runs.
+survival_kk_lwa_cox_onelik_binary_match_design = function(n = 24L, seed = 20260817L) {
+	inference_migration_with_seed(seed, {
+		X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+		des = DesignFixedBinaryMatch$new(response_type = "survival", n = n, m = rep(seq_len(n / 2L), each = 2L), verbose = FALSE)
+		des$add_all_subjects_to_experiment(X)
+		w = as.vector(replicate(n / 2L, sample(0:1)))
+		des$assign_w_to_all_subjects(w)
+		y_lat = exp(0.8 - 0.3 * w + 0.15 * X$x1) * stats::rexp(n)
+		cens = stats::rexp(n, rate = 0.15)
+		event = y_lat <= cens
+		des$add_all_subject_responses(ifelse(event, pmax(y_lat, 0.05), NA_real_),
+			ifelse(event, NA_real_, pmax(cens, 0.05)), ifelse(event, NA_real_, Inf))
+		des
+	})
+}
+
 test_that("InferenceSurvivalKKLWACoxPHOneLik: compute_rand_two_sided_pval() then approximate_rand_bootstrap_distribution_beta_hat_T() on the SAME object no longer segfaults", {
 	# Regression test for the native segfault documented in
 	# fix_inference_hierarchy.md's Follow-Ups ("InferenceSurvivalKKLWACoxPHOneLik
@@ -120,7 +140,9 @@ test_that("InferenceSurvivalKKLWACoxPHOneLik: compute_rand_two_sided_pval() then
 	# Fixed by re-deriving `dead` the same way Design$get_effective_dead()
 	# does (`as.numeric(!is.na(private$y))`) instead of reading the defunct
 	# field.
-	des = survival_kk_lwa_cox_onelik_golden_design()
+	expect_error(InferenceSurvivalKKLWACoxPHOneLik$new(survival_kk_lwa_cox_onelik_golden_design())$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L),
+		"not supported for DesignSeqOneByOne designs")
+	des = survival_kk_lwa_cox_onelik_binary_match_design()
 	inf = InferenceSurvivalKKLWACoxPHOneLik$new(des)
 	inf$set_seed(20260817L)
 	p1 = inference_migration_with_seed(20260817L, inf$compute_rand_two_sided_pval(delta = 0, r = 9L))

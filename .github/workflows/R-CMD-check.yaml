@@ -19,9 +19,23 @@ on:
       # change to either must still trigger the cross-platform run.
       - 'R/EDI/tests/**'
       - '.github/scripts/compare_repro_digests.R'
+  # No `paths:` filter on pull_request (owner ruling 2026-11-14): eleven jobs
+  # here are required checks, and a PR that a path filter never starts would
+  # wait on them forever. The `weekly change gate` job skips every check job
+  # instead when the PR touches none of the paths above; skipped required checks
+  # count as passing, so a docs-only PR goes green in seconds.
   pull_request:
     branches: [main, master]
-    paths: *r-cmd-check-paths
+  # Weekly run (owner ruling 2026-11-14): the full matrix plus the jobs that no
+  # longer run on push (openmp and native legs, repro comparison, no-Suggests,
+  # ASAN/UBSAN, valgrind). Saturday 04:00 UTC, away from the calibration start
+  # (1st, 03:17) and the weekly benchmark. Manual dispatch runs the same set.
+  # RELEASE GATE: no release ships until a full run (schedule or dispatch) is
+  # green at the exact release commit; see
+  # R/package_metadata/future_release_plans/release.md.
+  schedule:
+    - cron: '0 4 * * 6'
+  workflow_dispatch:
 
 name: R-CMD-check
 
@@ -78,7 +92,83 @@ name: R-CMD-check
 #     miss.
 
 jobs:
+  # Decides whether the check jobs run (owner rulings 2026-11-14), using the
+  # same paths as the push filter above:
+  #   schedule      only if package code changed since the previous weekly run
+  #   pull_request  only if the PR changes package code (no paths filter on PRs)
+  #   push, dispatch  always (push is already path-filtered). Fails open: any error in this job
+  # (no earlier run, a force-pushed base, an API failure) means run=true, so a
+  # problem here can never skip the push checks. Job-level permissions only
+  # affect this job.
+  weekly-gate:
+    name: package change gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          event="${{ github.event_name }}"
+          if [ "$event" != "schedule" ] && [ "$event" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "Event $event: running."; exit 0
+          fi
+          paths=(':(glob)R/EDI/**/*.R' ':(glob)R/EDI/**/*.Rd' ':(glob)R/EDI/**/*.cpp' ':(glob)R/EDI/**/*.h'
+                 ':(glob)R/EDI/**/*.hpp' 'R/EDI/DESCRIPTION' 'R/EDI/NAMESPACE' 'R/EDI/configure' 'R/EDI/configure.win'
+                 'R/EDI/src/Makevars' 'R/EDI/src/Makevars.win' '.github/workflows/R-CMD-check.yaml'
+                 ':(glob)R/EDI/tests/**' '.github/scripts/compare_repro_digests.R')
+          if [ "$event" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
+            how="in this pull request (vs base ${base:0:12})"
+            if [ "$rc" -ne 0 ]; then
+              echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::Change detection failed; running."; exit 0
+            fi
+            if [ -n "$changed" ]; then
+              echo "run=true" >> "$GITHUB_OUTPUT"; echo "Package code changed $how:"; echo "$changed" | head -20
+            else
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "No package code changed $how: skipping the R CMD checks." | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
+          # Base: the commit the previous completed scheduled run checked (success or failure; a skipped week
+          # also concludes success, which is right: nothing changed then either).
+          base="$(gh run list -R "$GITHUB_REPOSITORY" --workflow R-CMD-check.yaml --event schedule --status completed \
+                    --limit 20 --json databaseId,headSha,conclusion \
+                    --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.conclusion == \"success\" or .conclusion == \"failure\")][0].headSha" 2>/dev/null)"
+          if [ -n "$base" ] && git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
+            how="since the previous weekly run at ${base:0:12}"
+          else
+            changed="$(git log --since='8 days ago' --name-only --format= -- "${paths[@]}")"; rc=$?
+            how="in the last 8 days (no usable previous weekly run)"
+          fi
+          if [ "$rc" -ne 0 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::Change detection failed; running."; exit 0
+          fi
+          if [ -n "$changed" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Package code changed $how:"; echo "$changed" | head -20
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No package code changed $how: skipping the weekly run." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
   R-CMD-check:
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true'
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }}${{ matrix.config.variant && format(', {0}', matrix.config.variant) || '' }})
@@ -98,6 +188,10 @@ jobs:
     # 240 gives a slow-but-alive leg room to finish while still catching a
     # genuine hang well before GitHub's own 6h hard kill.
     timeout-minutes: 240
+    # The devdeps leg is outside the release gate (owner ruling 2026-11-14): a red
+    # there can be upstream's bug, so it never turns the run red. Its failure still
+    # shows on the leg itself.
+    continue-on-error: ${{ matrix.config.variant == 'devdeps' }}
 
     strategy:
       fail-fast: false
@@ -120,6 +214,17 @@ jobs:
           # the cross-leg comparison shows how far its floating-point
           # results drift from the standard build.
           - {os: ubuntu-latest,  r: 'release', variant: 'native'}
+          # Development dependencies (owner rulings 2026-11-14): R-devel plus the
+          # development versions of Rcpp, RcppEigen, RcppNumerical, data.table,
+          # survival, and Eigen master, so upstream breakage shows up here
+          # before CRAN's checks report it. Weekly and dispatch only; not a
+          # required check, since a red here can be upstream's bug.
+          - {os: ubuntu-latest,  r: 'devel', variant: 'devdeps', http-user-agent: 'release'}
+        # Owner ruling 2026-11-14: push and PR run only the six CRAN-platform
+        # legs above; the openmp, native and devdeps legs run in the weekly run
+        # (schedule) and on manual dispatch. Each excluded object must match
+        # its `config` entry exactly.
+        exclude: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '[]' || '[{"config":{"os":"macos-latest","r":"release","variant":"openmp"}},{"config":{"os":"ubuntu-latest","r":"release","variant":"native"}},{"config":{"os":"ubuntu-latest","r":"devel","variant":"devdeps","http-user-agent":"release"}}]') }}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -309,6 +414,46 @@ jobs:
       # only EDI itself is built with it. EDI_EXPECT_OPENMP makes
       # test-cross-platform-reproducibility-digests.R fail if the built
       # package still cannot run more than one thread.
+      # Into a separate library ahead of R_LIBS_USER, never into R_LIBS_USER
+      # itself: setup-r-dependencies caches R_LIBS_USER under a key this leg
+      # shares with the plain ubuntu-latest (devel) leg, which must keep CRAN
+      # versions. Each package is built from its GitHub default branch with no
+      # dependency upgrades (those stay CRAN). Eigen: RcppEigen bundles a release
+      # of Eigen; its headers are then replaced with upstream Eigen master, which
+      # EDI compiles against (RcppEigen's own small library keeps the bundled
+      # version, which EDI does not use).
+      - name: Install development versions of Rcpp, RcppEigen, RcppNumerical, data.table, survival and Eigen
+        if: matrix.config.variant == 'devdeps'
+        env:
+          DEVLIB: ${{ runner.temp }}/devdeps-lib
+        run: |
+          mkdir -p "$DEVLIB"
+          Rscript -e 'if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")'
+          Rscript -e '
+            lib = Sys.getenv("DEVLIB")
+            repos = c("RcppCore/Rcpp", "RcppCore/RcppEigen", "yixuan/RcppNumerical", "Rdatatable/data.table", "therneau/survival")
+            .libPaths(c(lib, .libPaths()))
+            for (r in repos) remotes::install_github(r, lib = lib, upgrade = "never", dependencies = FALSE, quiet = TRUE)
+          '
+          git clone --depth 1 https://gitlab.com/libeigen/eigen.git "$RUNNER_TEMP/eigen-master"
+          inc="$DEVLIB/RcppEigen/include"
+          rm -rf "$inc/Eigen" "$inc/unsupported/Eigen"
+          cp -r "$RUNNER_TEMP/eigen-master/Eigen" "$inc/Eigen"
+          mkdir -p "$inc/unsupported"; cp -r "$RUNNER_TEMP/eigen-master/unsupported/Eigen" "$inc/unsupported/Eigen"
+          {
+            echo "### Development dependencies"
+            echo
+            Rscript -e '
+              .libPaths(c(Sys.getenv("DEVLIB"), .libPaths()))
+              cran = tryCatch(available.packages(repos = "https://cloud.r-project.org")[, "Version"], error = function(e) character())
+              for (p in c("Rcpp", "RcppEigen", "RcppNumerical", "data.table", "survival"))
+                cat(sprintf("- %s %s (CRAN %s)\n", p, format(packageVersion(p, lib.loc = Sys.getenv("DEVLIB"))), if (p %in% names(cran)) cran[[p]] else "?"))
+            '
+            m="$inc/Eigen/src/Core/util/Macros.h"
+            echo "- Eigen master $(git -C "$RUNNER_TEMP/eigen-master" rev-parse --short HEAD): $(grep -E '#define EIGEN_(WORLD|MAJOR|MINOR)_VERSION' "$m" | awk '{print $3}' | paste -sd. -)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "R_LIBS=${DEVLIB}" >> "$GITHUB_ENV"
+
       - name: Enable OpenMP on macOS with Homebrew libomp
         if: matrix.config.variant == 'openmp'
         run: |
@@ -345,7 +490,10 @@ jobs:
       # Every leg writes its seed-pinned digests and float results here
       # (test-cross-platform-reproducibility-digests.R); the upload step after
       # the check and the repro-compare job below compare them across legs.
+      # Not on the devdeps leg: its digests reflect upstream development code, and
+      # leaving it out keeps the repro comparison (a release-gate job) independent of it.
       - name: Configure cross-platform digest output
+        if: matrix.config.variant != 'devdeps'
         shell: bash
         run: |
           echo "EDI_REPRO_DIGEST_DIR=${RUNNER_TEMP}/repro-digests" >> "$GITHUB_ENV"
@@ -452,8 +600,8 @@ jobs:
   # reports when a leg failed; missing legs are then listed as failures.
   repro-compare:
     name: cross-platform reproducibility comparison
-    needs: R-CMD-check
-    if: ${{ !cancelled() }}
+    needs: [weekly-gate, R-CMD-check]
+    if: ${{ !cancelled() && needs.weekly-gate.outputs.run == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -485,6 +633,10 @@ jobs:
   R-CMD-check-no-suggests:
     runs-on: ubuntu-latest
     name: ubuntu-latest (release, no Suggests)
+    # Weekly, manual dispatch and pull requests; not on push to main (owner rulings 2026-11-14).
+    # Running on PRs keeps it a real required check for contributors.
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')
 
     # See R-CMD-check's identical timeout-minutes comment above -- this job
     # hit the same 4+ hour stuck-in-check-r-package incident on 2026-08-10,
@@ -598,6 +750,8 @@ jobs:
   R-CMD-check-incoming:
     runs-on: ubuntu-latest
     name: ubuntu-latest (release, CRAN incoming checks)
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true'
 
     timeout-minutes: 150
 
@@ -673,6 +827,10 @@ jobs:
   R-CMD-check-sanitizers:
     runs-on: ubuntu-latest
     name: R-devel (ASAN/UBSAN)
+    # Weekly, manual dispatch and pull requests; not on push to main (owner rulings 2026-11-14).
+    # Running on PRs keeps it a real required check for contributors.
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')
     timeout-minutes: 180
     container:
       image: rocker/r-devel-san
@@ -768,6 +926,10 @@ jobs:
   R-CMD-check-valgrind:
     runs-on: ubuntu-latest
     name: R-devel (valgrind)
+    # Weekly, manual dispatch and pull requests; not on push to main (owner rulings 2026-11-14).
+    # Running on PRs keeps it a real required check for contributors.
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')
     timeout-minutes: 350
     container:
       image: rocker/r-devel

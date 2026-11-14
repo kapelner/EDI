@@ -2236,7 +2236,10 @@ classical solver with a warning, never silently.
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).
 
-- [ ] TODO-194 (added 2026-11-13, owner): **Run `comprehensive_tests.R` in the cloud after each calibration campaign.**
+- [x] TODO-194 (added 2026-11-13, owner; built and closed 2026-11-14 by owner request): **Run `comprehensive_tests.R` in the cloud after each calibration campaign.**
+  - Built 2026-11-14: `.github/workflows/comprehensive-study.yml` + `R/package_tests/cloud/`, dispatched by calibration's last
+    wave; see the plan's Status block for what differs from the design. Not yet run on GitHub: the first campaign is the
+    real check (runtime, runner speed vs local, audit results vs the local baseline).
   - Plan: `../new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md`.
   - Why: the calibration study simulates its data; `comprehensive_tests.R` is the only harness on real covariates,
     and it runs only on the owner's machine, with gitignored results.
@@ -2246,5 +2249,19 @@ classical solver with a warning, never silently.
   - Raw rows and logs are published xz-compressed on the results branch (about 20x and 29x, measured 2026-11-13).
   - Path-audit gate (owner 2026-11-13): a complete cloud campaign or a complete local regeneration at the release
     commit, whichever finishes first.
-  - Start with the plan's Phase 0 (measure cost and compressed sizes); it settles the reps.
+  - 50 reps (owner 2026-11-13), so coverage can still be assessed from the comprehensive results.
+  - The final wave regenerates the path audits and runs `compare_path_audits.R` against the campaign's commit;
+    that script's fixed 2-point tolerance becomes an FDR-controlled exact test (plan Design 5, Phase 3b).
+  - Start with the plan's Phase 0 (measure cost and compressed sizes).
   - Done when: the plan's Phase 6 (first full campaign compared with the local baseline) is ticked.
+
+- [ ] TODO-195 (added 2026-11-13, owner): **Weekly benchmark regression check on GitHub-hosted runners.**
+  - Plan: `../new_feature_plans/v1_1_0/weekly_benchmark_regression_check.md`.
+  - Weekly, compares the last successfully benchmarked commit with `main`, timing both on the same runner in
+    alternating order, and fails only on a slowdown seen in both comparisons and not in the allowlist.
+  - Owner rules: no published results (pass/fail, log and step summary only); fail only on a commit-to-commit
+    regression; skip when no functional R or C++ line changed.
+  - Does not replace the release gate G2 benchmark regeneration.
+  - Implemented 2026-11-14 as a nightly job (`.github/workflows/nightly.yml`, `bench-build`/`bench`), baseline = newest
+    release tag; see the plan's header for the differences from its weekly design.
+  - Done when: the plan's Phase 4 (a known speedup or slowdown is detected in the right direction) is ticked.

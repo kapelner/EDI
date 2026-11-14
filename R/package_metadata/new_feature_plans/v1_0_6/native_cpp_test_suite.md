@@ -108,6 +108,16 @@ the exact values can be worked out by hand:
   They feed random shapes, NaN/Inf and extreme values, and the kernel must either return a classed failure or a
   finite result, never crash or read out of bounds. Run locally and as a short CI job (time-boxed, for example
   60 s per harness); keep a corpus of past crashes as regression cases.
+- **Nightly CI already waits for this target** (`.github/workflows/nightly.yml`, jobs `fuzz-discover` and `fuzz`;
+  owner ruling 2026-11-14). It fuzzes each harness for 25 minutes on nights when `R/EDI/src/**` or `cpp_tests/**`
+  changed, keeps the growing corpus in the Actions cache between nights, and uploads crashing inputs. Until
+  `cpp_tests/fuzz/` exists it finds no harness and succeeds. Build TODO-5 to the layout it expects, or change the
+  job with it:
+  - `cpp_tests/CMakeLists.txt` has `option(EDI_FUZZ ...)`; with `-DEDI_FUZZ=ON` (clang) it adds the fuzz targets,
+    compiled and linked with `-fsanitize=fuzzer,address,undefined`.
+  - One harness per file, `cpp_tests/fuzz/<name>.cpp`, built as CMake target `fuzz_<name>`.
+  - Seed inputs and past crashes in `cpp_tests/fuzz/corpus/<name>/` (committed); the job replays them first, as
+    regression cases.
 
 ### CI
 

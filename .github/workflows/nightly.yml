@@ -1,0 +1,714 @@
+name: nightly
+
+# Nightly test suites that no push workflow runs (owner rulings 2026-11-14):
+#   tier                   the comprehensive suite's nightly and release tiers
+#   argument-combinations  the public argument-combination nightly over every
+#                          registry target (run_public_argument_combination_nightly.R ALL)
+#   bench-build, bench     benchmark regression check: the last release vs this commit,
+#                          timed alternately on one runner (release_v1_1_0.md TODO-195)
+#   doc-links              scripts/check_doc_links.py, internal and external links; runs
+#                          every night regardless of changes
+#   fuzz-discover, fuzz    libFuzzer harnesses of the native C++ suite (cpp_tests/fuzz/),
+#                          time-boxed, corpus kept between runs; succeeds while cpp_tests/
+#                          does not exist yet (v1.0.6 TODO-15)
+#   resume-calibration     last job: restarts a paused calibration campaign (see below)
+#   repro, repro-compare   cross-platform and core-count reproducibility
+#                          (cross_platform_reproducibility.md TODO-4, release_v1_1_0.md
+#                          TODO-48): the seed-pinned reproducibility tests on five
+#                          platform/build legs, then a cross-leg comparison
+#
+# The comprehensive suite's nightly and release tiers
+# (R/package_tests/comprehensive_suite_runtime_tiers.R; owner ruling
+# 2026-11-14). test-coverage-R-advanced.yml runs only the smoke tier on push;
+# the nightly tier is marked `scheduled_nightly` there, and the release tier
+# runs here too so it is exercised before a release instead of only at one.
+#
+# Every job except doc-links runs only if its kind of change happened since the
+# previous nightly run (the `change-gate` job below): `run` for package code and
+# test harness changes, `bench` for functional R/C++ lines, `fuzz` for C++ or
+# cpp_tests/. doc-links runs every night. Manual dispatch runs everything.
+# Never a required check.
+#
+# The argument-combination job fails when its analysis or quality gates set
+# ci_should_fail (the script exits 1). The comprehensive-suite jobs fail when
+# run_comprehensive_suite.R exits non-zero (a step with non-ok status
+# or failure rows: the tiers' `report_slow_cases_and_unexpected_errors` policy)
+# or when the quality gates fail. Results are uploaded as a 14-day artifact
+# for debugging, nothing is committed.
+
+on:
+  schedule:
+    - cron: '30 2 * * *'   # 02:30 UTC daily
+  workflow_dispatch:
+    inputs:
+      argument_targets:
+        description: 'Argument-combination targets: ALL, a regex, or blank for the bounded smoke set'
+        default: 'ALL'
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Fails open: any error in change detection (no earlier run, a force-pushed
+  # base, an API failure) means run=true.
+  change-gate:
+    name: codebase change gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+      bench: ${{ steps.decide.outputs.bench }}
+      fuzz: ${{ steps.decide.outputs.fuzz }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name == 'schedule'
+        with:
+          fetch-depth: 0
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "bench=true" >> "$GITHUB_OUTPUT"; echo "fuzz=true" >> "$GITHUB_OUTPUT"
+            echo "Event ${{ github.event_name }}: running."; exit 0
+          fi
+          paths=(':(glob)R/EDI/**/*.R' ':(glob)R/EDI/**/*.Rd' ':(glob)R/EDI/**/*.cpp' ':(glob)R/EDI/**/*.h'
+                 ':(glob)R/EDI/**/*.hpp' 'R/EDI/DESCRIPTION' 'R/EDI/NAMESPACE' ':(glob)R/EDI/tests/**'
+                 ':(glob)R/package_tests/**' 'R/package_metadata/finished_features/v1_0_0/comprehensive_test_suite.md'
+                 '.github/workflows/nightly.yml' '.github/scripts/compare_repro_digests.R')
+          # Base: the commit the previous completed scheduled run checked (success or failure; a skipped
+          # night also concludes success, which is right: nothing changed then either). Fallback: the last
+          # commit older than 26 hours.
+          base="$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly.yml --event schedule \
+                    --status completed --limit 20 --json databaseId,headSha,conclusion \
+                    --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.conclusion == \"success\" or .conclusion == \"failure\")][0].headSha" 2>/dev/null)"
+          how="since the previous nightly run at ${base:0:12}"
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            base="$(git rev-list -1 --before='26 hours ago' HEAD)"
+            how="in the last 26 hours (no usable previous nightly run)"
+          fi
+          if [ -z "$base" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "bench=true" >> "$GITHUB_OUTPUT"; echo "fuzz=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::No base commit found; running everything."; exit 0
+          fi
+          changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "bench=true" >> "$GITHUB_OUTPUT"; echo "fuzz=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Change detection failed; running everything."; exit 0
+          fi
+          if [ -n "$changed" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Codebase changed $how:"; echo "$changed" | head -20
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No codebase change $how: skipping the nightly suites." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          # Benchmarks only for a FUNCTIONAL R or C++ change (owner ruling 2026-11-13): any change to the
+          # build files, or a changed line in R/EDI/R or R/EDI/src that is not blank and not a comment
+          # (#, roxygen #', //, /* ... */ lines). Written to a file, never `| grep -q` (SIGPIPE under pipefail).
+          build_changed="$(git diff --name-only "$base" HEAD -- R/EDI/DESCRIPTION R/EDI/NAMESPACE R/EDI/configure \
+                             R/EDI/configure.win R/EDI/src/Makevars R/EDI/src/Makevars.win)"
+          git diff -U0 "$base" HEAD -- ':(glob)R/EDI/R/**/*.R' ':(glob)R/EDI/src/**/*.cpp' ':(glob)R/EDI/src/**/*.c' \
+            ':(glob)R/EDI/src/**/*.h' ':(glob)R/EDI/src/**/*.hpp' > "$RUNNER_TEMP/code.diff"
+          grep -E '^[+-]' "$RUNNER_TEMP/code.diff" | grep -vE '^(\+\+\+|---) ' | sed -E 's/^[+-][[:space:]]*//' \
+            | grep -vE '^$|^#|^//|^/\*|^\*' > "$RUNNER_TEMP/functional.txt"
+          if [ -n "$build_changed" ] || [ -s "$RUNNER_TEMP/functional.txt" ]; then
+            echo "bench=true" >> "$GITHUB_OUTPUT"
+            echo "Functional R/C++ change $how ($(wc -l < "$RUNNER_TEMP/functional.txt") changed code lines): benchmarks run."
+          else
+            echo "bench=false" >> "$GITHUB_OUTPUT"
+            echo "No functional R/C++ change $how: skipping the benchmarks." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          # Fuzzing only when C++ code or the native test suite changed (owner ruling 2026-11-14).
+          fuzz_changed="$(git diff --name-only "$base" HEAD -- ':(glob)R/EDI/src/**' ':(glob)cpp_tests/**')"
+          if [ -n "$fuzz_changed" ]; then
+            echo "fuzz=true" >> "$GITHUB_OUTPUT"; echo "C++ or cpp_tests/ changed $how: fuzzing runs."
+          else
+            echo "fuzz=false" >> "$GITHUB_OUTPUT"
+            echo "No C++ or cpp_tests/ change $how: skipping fuzzing." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+  tier:
+    needs: change-gate
+    if: needs.change-gate.outputs.run == 'true'
+    name: comprehensive suite (${{ matrix.tier }})
+    runs-on: ubuntu-latest
+    # Per-step timeouts are the tiers' default_timeout_sec (nightly 1800 s,
+    # release 3600 s) over four steps; under GitHub's 6 h job cap.
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        tier: [nightly, release]
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same apt cache as test-coverage-R-advanced.yml (see the comment there).
+      - name: Cache apt package archives
+        uses: actions/cache@v5
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-archives-${{ runner.os }}-r-advanced-${{ hashFiles('R/EDI/DESCRIPTION') }}
+          restore-keys: |
+            apt-archives-${{ runner.os }}-r-advanced-
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: any::rcmdcheck
+
+      # Into a job-local library, never the shared R_LIBS_USER dependency
+      # cache (see test-coverage-R-advanced.yml's "Install EDI" comment for the
+      # stale-EDI failures that caused).
+      - name: Install EDI
+        run: |
+          mkdir -p "${{ runner.temp }}/edi-install-scratch"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
+          echo "R_LIBS=${{ runner.temp }}/edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+
+      - name: Run comprehensive suite ${{ matrix.tier }} tier
+        working-directory: R
+        run: Rscript package_tests/run_comprehensive_suite.R ${{ matrix.tier }} "" "" --force
+
+      - name: Analyze comprehensive suite coverage
+        if: always()
+        working-directory: R
+        run: Rscript package_tests/analyze_comprehensive_suite.R
+
+      - name: Run comprehensive suite quality gates
+        working-directory: R
+        run: Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
+
+      - name: Upload comprehensive suite artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: comprehensive-suite-${{ matrix.tier }}
+          retention-days: 14
+          path: |
+            R/package_tests/comprehensive_suite_results.csv
+            R/package_tests/comprehensive_suite_failures.csv
+            R/package_tests/comprehensive_suite_coverage.csv
+            R/package_tests/comprehensive_suite_report.html
+            R/package_tests/comprehensive_suite_quality_gates.csv
+            R/package_tests/comprehensive_suite_quality_gate_summary.csv
+            R/package_tests/comprehensive_suite_workflow_coverage.csv
+
+  argument-combinations:
+    needs: change-gate
+    if: needs.change-gate.outputs.run == 'true'
+    name: public argument combinations (nightly)
+    runs-on: ubuntu-latest
+    # Each case has the script's 60 s timeout; the full registry has never run
+    # in CI, so the first dispatch measures it. Under GitHub's 6 h job cap.
+    timeout-minutes: 330
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache apt package archives
+        uses: actions/cache@v5
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-archives-${{ runner.os }}-r-advanced-${{ hashFiles('R/EDI/DESCRIPTION') }}
+          restore-keys: |
+            apt-archives-${{ runner.os }}-r-advanced-
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+
+      - name: Install EDI
+        run: |
+          mkdir -p "${{ runner.temp }}/edi-install-scratch"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
+          echo "R_LIBS=${{ runner.temp }}/edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+
+      # Scheduled runs use ALL (every registry target); a dispatch can narrow it.
+      - name: Run public argument-combination nightly
+        working-directory: R
+        env:
+          TARGETS: ${{ github.event_name == 'workflow_dispatch' && inputs.argument_targets || 'ALL' }}
+        run: Rscript package_tests/run_public_argument_combination_nightly.R "$TARGETS"
+
+      - name: Upload argument-combination artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-argument-combinations-nightly
+          retention-days: 14
+          path: |
+            R/package_tests/public_argument_combination_cases.csv
+            R/package_tests/public_argument_combination_results.csv
+            R/package_tests/public_argument_combination_coverage.csv
+            R/package_tests/public_argument_combination_failures.csv
+            R/package_tests/public_argument_combination_cases_integrated.csv
+            R/package_tests/public_argument_combination_results_integrated.csv
+            R/package_tests/public_argument_combination_coverage_integrated.csv
+
+  # Only the reproducibility and thread-count test files, against an installed
+  # EDI: no R CMD check. Each leg runs them at 1, 2 and (where the runner has 4
+  # vCPUs and NOT_CRAN=true) 4 threads; the digest test fails on any
+  # thread-count dependence within the leg and writes its rows for
+  # repro-compare. macOS arm64 runners have 3 vCPUs, so those legs test 1 and 2
+  # only. The platform setup (BLAS choices, libomp) mirrors R-CMD-check.yaml's
+  # matrix legs of the same names, so the digests are comparable with its weekly
+  # repro comparison.
+  repro:
+    needs: change-gate
+    if: needs.change-gate.outputs.run == 'true'
+    name: reproducibility (${{ matrix.leg }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {leg: ubuntu-latest-release,        os: ubuntu-latest,  portable: '1', exhaustive: 'true'}
+          - {leg: ubuntu-latest-release-native, os: ubuntu-latest,  portable: '0'}
+          - {leg: macos-latest-release,         os: macos-latest,   portable: '1'}
+          - {leg: macos-latest-release-openmp,  os: macos-latest,   portable: '1', openmp: true}
+          - {leg: windows-latest-release,       os: windows-latest, portable: '1'}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      EDI_PORTABLE: ${{ matrix.portable }}
+      NOT_CRAN: 'true'
+      EDI_REPRO_LEG: ${{ matrix.leg }}
+      # Full worker-count invariance sweep (every concrete exported non-IVWC, non-KK
+      # class x every procedure, fork and mirai) on the Ubuntu portable leg only
+      # (owner ruling 2026-11-14); about 20+ extra minutes. Other legs run the
+      # default one-class-per-response-type set.
+      EDI_EXHAUSTIVE_WORKER_TESTS: ${{ matrix.exhaustive || 'false' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Switch to OpenBLAS on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-serial
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/liblapack.so.3
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Switch macOS R to Accelerate/vecLib BLAS
+        if: runner.os == 'macOS'
+        run: ln -sf libRblas.vecLib.dylib /Library/Frameworks/R.framework/Resources/lib/libRblas.dylib
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::testthat
+
+      - name: Enable OpenMP on macOS with Homebrew libomp
+        if: matrix.openmp
+        run: |
+          brew install libomp
+          LIBOMP="$(brew --prefix libomp)"
+          mkdir -p ~/.R
+          cat >> ~/.R/Makevars <<EOF
+          CPPFLAGS += -Xclang -fopenmp -I${LIBOMP}/include
+          LDFLAGS += -L${LIBOMP}/lib -lomp
+          EOF
+          echo "EDI_EXPECT_OPENMP=true" >> "$GITHUB_ENV"
+
+      - name: Switch Windows R to OpenBLAS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: scripts/switch-windows-r-to-openblas.ps1
+
+      - name: Install EDI
+        shell: bash
+        run: |
+          lib="${RUNNER_TEMP}/edi-install-scratch"
+          mkdir -p "$lib" "${RUNNER_TEMP}/repro-digests"
+          R CMD INSTALL --library="$lib" R/EDI
+          # Only this library: R_LIBS_USER (setup-r's dependency library) still follows it, and a
+          # ':' separator would be wrong on Windows.
+          echo "R_LIBS=${lib}" >> "$GITHUB_ENV"
+          echo "EDI_REPRO_DIGEST_DIR=${RUNNER_TEMP}/repro-digests" >> "$GITHUB_ENV"
+
+      - name: Run the reproducibility and thread-count tests
+        shell: Rscript {0}
+        run: |
+          library(testthat)
+          res = test_dir(
+            "R/EDI/tests/testthat",
+            filter = "cross-platform-reproducibility-digests|seed-reproducibility|rand-seed-reproducibility|omp-kernel-thread-count-scoped|bai-thread-local-workspaces|worker-count-invariance",
+            package = "EDI", load_package = "installed",
+            reporter = "summary", stop_on_failure = TRUE
+          )
+
+      - name: Upload digests
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-repro-digests-${{ matrix.leg }}
+          path: ${{ runner.temp }}/repro-digests
+          retention-days: 14
+          if-no-files-found: warn
+
+  repro-compare:
+    name: reproducibility comparison across legs
+    needs: [change-gate, repro]
+    if: ${{ !cancelled() && needs.change-gate.outputs.run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPRO_EXPECTED_LEGS: 5
+      REPRO_FLOAT_TOL: 1e-8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: nightly-repro-digests-*
+          path: repro-digests
+          merge-multiple: true
+      - name: Compare digests and floats across legs
+        run: Rscript .github/scripts/compare_repro_digests.R repro-digests
+
+  # Benchmark regression check (owner rulings 2026-11-13/14). Baseline: the
+  # newest release tag (v*) reachable from this commit. Runs only when a
+  # functional R/C++ line changed since the previous nightly run (gate output
+  # `bench`). Nothing is published: the verdict is the job status, its log and
+  # step summary.
+  bench-build:
+    needs: change-gate
+    if: needs.change-gate.outputs.bench == 'true'
+    name: benchmark build (release and current)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
+      base_tag: ${{ steps.base.outputs.tag }}
+    env:
+      EDI_PORTABLE: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: base
+        run: |
+          tag="$(git describe --tags --match 'v[0-9]*' --abbrev=0 HEAD)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"; echo "sha=$(git rev-parse "$tag^{commit}")" >> "$GITHUB_OUTPUT"
+          echo "Baseline: $tag ($(git rev-parse --short "$tag^{commit}")); current: $(git rev-parse --short HEAD)"
+      - id: cache
+        uses: actions/cache@v5
+        with:
+          path: bench-libs
+          key: bench-libs-${{ runner.os }}-${{ steps.base.outputs.sha }}-${{ github.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+      - name: Install the release and the current commit into separate libraries
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p bench-libs/base bench-libs/head
+          git worktree add "$RUNNER_TEMP/base-src" "${{ steps.base.outputs.sha }}"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library=bench-libs/base "$RUNNER_TEMP/base-src/R/EDI"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library=bench-libs/head R/EDI
+
+  bench:
+    needs: [change-gate, bench-build]
+    if: needs.change-gate.outputs.bench == 'true'
+    name: benchmark (${{ matrix.section }})
+    runs-on: ubuntu-latest
+    # Four runs of one section (A B B A); a section must take under ~75 min per run.
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        section: [models, wald, utility, procedures, designs]
+    env:
+      EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v5
+        with:
+          path: bench-libs
+          key: bench-libs-${{ runner.os }}-${{ needs.bench-build.outputs.base }}-${{ github.sha }}
+          fail-on-cache-miss: true
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+          extra-packages: |
+            any::microbenchmark
+            any::betareg
+            any::clinfun
+            any::DescTools
+            any::ordinal
+            any::pscl
+            any::quantreg
+            any::sandwich
+            any::VGAM
+            any::commonmark
+      # The current commit's benchmark script times both libraries, so the
+      # measuring code is identical; a row the release cannot run (a newer API)
+      # is NA on the release side and is not compared.
+      - name: Time the section four times, alternating release (A) and current (B)
+        working-directory: R
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/runs"; mkdir -p "$out"
+          # Phase 0 of the plan (measure): each run's wall time goes to the step summary, so the
+          # section's cost on a hosted runner is visible every night.
+          { echo "### Benchmark run times: ${{ matrix.section }}"; echo; echo "| run | library | minutes |"; echo "|---|---|---|"; } >> "$GITHUB_STEP_SUMMARY"
+          for run in A1 B1 B2 A2; do
+            case "$run" in A*) lib="$GITHUB_WORKSPACE/bench-libs/base";; *) lib="$GITHUB_WORKSPACE/bench-libs/head";; esac
+            echo "::group::$run (${lib##*/})"
+            t0=$(date +%s)
+            R_LIBS="$lib" Rscript benchmark/benchmark_model_fits.R --sections=${{ matrix.section }}
+            cp package_metadata/benchmark_model_fits.md "$out/$run.md"
+            echo "| $run | ${lib##*/} | $(( ($(date +%s) - t0 + 30) / 60 )) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "::endgroup::"
+          done
+      - name: Verdict
+        working-directory: R
+        run: |
+          set -uo pipefail
+          out="$RUNNER_TEMP/runs"
+          allow=()
+          if [ -f benchmark/benchmark_regression_allowlist.csv ]; then
+            while IFS=, read -r pattern reason; do
+              [ -n "$pattern" ] && [ "$pattern" != "pattern" ] && allow+=(--allow "$pattern")
+            done < benchmark/benchmark_regression_allowlist.csv
+          fi
+          cmp() {
+            Rscript benchmark/compare_benchmark_runs.R --old "$out/$1.md" --new "$out/$2.md" --sections ${{ matrix.section }} \
+              --part R --normalize-host "${allow[@]}" --tsv "$out/$3.tsv" > "$out/$3.txt"
+            rc=$?
+            if [ "$rc" -gt 1 ]; then
+              cat "$out/$3.txt"
+              echo "::error title=Benchmark CI bug::compare_benchmark_runs.R failed on $1 vs $2 (exit $rc)"; exit 2
+            fi
+          }
+          cmp A1 A2 noise_a; cmp B1 B2 noise_b; cmp A1 B1 cmp_1; cmp A2 B2 cmp_2
+          Rscript benchmark/benchmark_abba_verdict.R "$out/noise_a.tsv" "$out/noise_b.tsv" "$out/cmp_1.tsv" "$out/cmp_2.tsv" \
+            "${{ matrix.section }} (${{ needs.bench-build.outputs.base_tag }} vs ${GITHUB_SHA:0:12})"
+      # Phase 4 of the plan, every night: a 3x slowdown injected into one stable row of
+      # tonight's reports must be flagged by the same comparison and verdict, or the
+      # check is reported as a CI bug. Runs even when the verdict found regressions.
+      - name: Canary (the check must catch an injected slowdown)
+        if: ${{ !cancelled() }}
+        working-directory: R
+        run: |
+          out="$RUNNER_TEMP/runs"
+          for f in A1 A2 B1 B2; do [ -f "$out/$f.md" ] || { echo "no $f.md (timing step failed): canary skipped"; exit 0; }; done
+          Rscript benchmark/benchmark_canary_check.R "$out/A1.md" "$out/A2.md" "$out/B1.md" "$out/B2.md" ${{ matrix.section }}
+
+  # Every night, no change gate (owner ruling 2026-11-14): links die on the
+  # other end without any change here, and the check takes minutes.
+  doc-links:
+    name: documentation links
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check internal and external documentation links
+        run: python3 scripts/check_doc_links.py
+
+  # Fuzzing (owner ruling 2026-11-14), written ahead of the v1.0.6 cpp_tests/
+  # suite (native_cpp_test_suite.md, Target C). Convention this job expects:
+  #   cpp_tests/CMakeLists.txt           option EDI_FUZZ=ON adds the fuzz targets,
+  #                                      built with -fsanitize=fuzzer,address,undefined
+  #   cpp_tests/fuzz/<name>.cpp          one libFuzzer harness per file, CMake target fuzz_<name>
+  #   cpp_tests/fuzz/corpus/<name>/      committed seed inputs and past crashes (regression cases)
+  # While cpp_tests/ (or cpp_tests/fuzz/) is missing, fuzz-discover reports no
+  # harnesses and the run succeeds.
+  fuzz-discover:
+    needs: change-gate
+    if: needs.change-gate.outputs.fuzz == 'true'
+    name: fuzz harness discovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      harnesses: ${{ steps.find.outputs.harnesses }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: cpp_tests
+      - id: find
+        run: |
+          if [ ! -f cpp_tests/CMakeLists.txt ] || [ ! -d cpp_tests/fuzz ]; then
+            echo 'harnesses=[]' >> "$GITHUB_OUTPUT"
+            echo "cpp_tests/ fuzz suite does not exist yet: nothing to fuzz." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          list="$(find cpp_tests/fuzz -maxdepth 1 -name '*.cpp' -printf '%f\n' | sed 's/\.cpp$//' | sort \
+                   | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')"
+          echo "harnesses=$list" >> "$GITHUB_OUTPUT"
+          echo "Fuzz harnesses: $list" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  fuzz:
+    needs: [change-gate, fuzz-discover]
+    if: needs.change-gate.outputs.fuzz == 'true' && needs.fuzz-discover.outputs.harnesses != '[]'
+    name: fuzz (${{ matrix.harness }})
+    runs-on: ubuntu-latest
+    # 25 minutes of fuzzing per harness, the shard length that keeps push CI's
+    # wait under one shard (owner ruling 2026-11-09).
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        harness: ${{ fromJSON(needs.fuzz-discover.outputs.harnesses) }}
+    env:
+      FUZZ_SECONDS: 1500
+    steps:
+      - uses: actions/checkout@v7
+      # The corpus grows across nights: restore the newest saved one, save a new
+      # one at the end (cache keys are immutable, hence the run id).
+      - name: Restore the corpus
+        uses: actions/cache/restore@v5
+        with:
+          path: fuzz-corpus
+          key: fuzz-corpus-${{ matrix.harness }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.harness }}-
+      - name: Build the harness
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build
+          cmake -S cpp_tests -B "$RUNNER_TEMP/fuzz-build" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DEDI_FUZZ=ON
+          cmake --build "$RUNNER_TEMP/fuzz-build" --target "fuzz_${{ matrix.harness }}"
+      - name: Fuzz for ${{ env.FUZZ_SECONDS }} s
+        run: |
+          mkdir -p fuzz-corpus "$RUNNER_TEMP/crashes"
+          seeds=()
+          [ -d "cpp_tests/fuzz/corpus/${{ matrix.harness }}" ] && seeds+=("cpp_tests/fuzz/corpus/${{ matrix.harness }}")
+          bin="$(find "$RUNNER_TEMP/fuzz-build" -type f -name "fuzz_${{ matrix.harness }}" -perm -u+x | head -1)"
+          [ -n "$bin" ] || { echo "::error title=Fuzz CI bug::fuzz_${{ matrix.harness }} binary not found after the build"; exit 2; }
+          # Committed seeds and past crashes first, as regression cases, then the time-boxed run.
+          "$bin" -max_total_time="$FUZZ_SECONDS" -timeout=30 -rss_limit_mb=4096 -print_final_stats=1 \
+            -artifact_prefix="$RUNNER_TEMP/crashes/" fuzz-corpus "${seeds[@]}"
+      - name: Save the corpus
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: fuzz-corpus
+          key: fuzz-corpus-${{ matrix.harness }}-${{ github.run_id }}
+      # A crashing input, so the finding can be reproduced locally and added to
+      # cpp_tests/fuzz/corpus/<name>/ as a regression case once fixed.
+      - name: Upload crash inputs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashes-${{ matrix.harness }}
+          path: ${{ runner.temp }}/crashes
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # Calibration (and the comprehensive study after it) pauses for the nightly suites
+  # (owner ruling 2026-11-14): its shards
+  # step aside while this workflow runs, and its publish job does not start a new wave.
+  # This job runs last, whatever the other jobs did, and dispatches the next wave of
+  # the newest campaign if it is unfinished (status.txt "running" on the
+  # calibration-results branch) unless a calibration-study run is already queued or in
+  # progress; with no unfinished calibration campaign it does the same for the
+  # comprehensive study. It also
+  # restarts a campaign whose wave chain broke for any other reason.
+  resume-calibration:
+    needs: [change-gate, tier, argument-combinations, repro, repro-compare, bench-build, bench, doc-links, fuzz-discover, fuzz]
+    if: ${{ always() }}
+    name: resume calibration campaign
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Dispatch the next wave of an unfinished campaign
+        run: |
+          active="$(gh run list -R "$GITHUB_REPOSITORY" --workflow calibration-study.yml --limit 20 --json status \
+                      --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ "${active:-0}" -gt 0 ] 2>/dev/null; then echo "A calibration-study run is already active: nothing to resume."; exit 0; fi
+          if ! git clone -q --depth 1 --branch calibration-results "https://github.com/${GITHUB_REPOSITORY}.git" results 2>/dev/null; then
+            echo "No calibration-results branch: nothing to resume."; exit 0
+          fi
+          # Only the NEWEST campaign of each study is ever resumed: older ones still marked "running"
+          # were abandoned when a newer one started.
+          newest_running() { n="$(ls -d "$1"/*/ 2>/dev/null | sort | tail -1)"; [ -n "$n" ] && [ "$(cat "$n/status.txt" 2>/dev/null)" = running ] && basename "$n"; }
+          c="$(newest_running results/campaigns)"
+          if [ -n "$c" ]; then
+            gh workflow run calibration-study.yml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}" -f campaign="$c"
+            echo "Resumed calibration campaign $c." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          # No unfinished calibration campaign: resume an unfinished comprehensive study instead
+          # (comprehensive-study.yml pauses the same way and shares calibration's concurrency group).
+          comp="$(gh run list -R "$GITHUB_REPOSITORY" --workflow comprehensive-study.yml --limit 20 --json status \
+                    --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ "${comp:-0}" -gt 0 ] 2>/dev/null; then echo "A comprehensive-study run is already active: nothing to resume."; exit 0; fi
+          c="$(newest_running results/comprehensive/campaigns)"
+          if [ -z "$c" ]; then echo "No unfinished calibration or comprehensive campaign: nothing to resume."; exit 0; fi
+          gh workflow run comprehensive-study.yml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}" -f campaign="$c"
+          echo "Resumed comprehensive campaign $c." | tee -a "$GITHUB_STEP_SUMMARY"

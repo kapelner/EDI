@@ -299,7 +299,8 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		NA_real_
 	)
 	# Ordinary nonparametric bootstrap was intentionally disabled for adaptive
-	# sequential designs; randomization/bootstrap-randomization remain supported.
+	# sequential designs, and since 2026-11-14 so is the randomization bootstrap;
+	# the randomization test remains supported.
 	obj = InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design())
 	expect_false(obj$supports("nonparametric_bootstrap"))
 	expect_error(obj$approximate_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE),
@@ -308,29 +309,17 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
 	expect_error(obj$compute_bootstrap_two_sided_pval(delta = 0, B = 9L, show_progress = FALSE),
 		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
-	expect_kk_wilcox_golden(
-		"randomization bootstrap distribution",
-		"approximate_rand_bootstrap_distribution_beta_hat_T",
-		list(B = 9L, show_progress = FALSE),
-		# Re-recorded 2026-10-12. Same statistic as the randomization
-		# distribution above (standardized W sum, z-score scale): the
-		# reused-worker BRT path used to shortcut to the HL estimate while the
-		# observed value was the W statistic, so the BRT p-value compared
-		# incompatible scales (0.02 vs the randomization test's 0.31 on this
-		# fixture). KKWilcoxIVWCSource$compute_bootstrap_worker_estimate now
-		# routes workers through the W statistic; these values are identical
-		# to the debug = TRUE (pure R) path.
-		c(
-			-0.89442719099991597, 0.032333445083919443, -2,
-			0.59628479399994394, -2.3851391759997753, -1.1666666666666667,
-			0, -1.6019141338792096, 2.352003757581719
-		)
-	)
-	expect_kk_wilcox_golden(
-		"randomization bootstrap p-value",
-		"compute_rand_bootstrap_two_sided_pval",
-		list(delta = 0, B = 9L, show_progress = FALSE),
-		NA_real_
+	# The randomization bootstrap distribution golden (re-recorded 2026-10-12 for
+	# the W-statistic worker fix) lived here. Since 2026-11-14 (owner ruling: the
+	# bootstrap is unproven on KK designs) the randomization bootstrap refuses the
+	# sequential KK14 design, like the nonparametric bootstrap.
+	expect_false(obj$supports("randomization_bootstrap"))
+	expect_error(obj$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE),
+		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
+	# The p-value golden was NA_real_; same refusal now.
+	expect_error(
+		InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design())$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 9L, show_progress = FALSE),
+		"not supported for DesignSeqOneByOne designs"
 	)
 	expect_kk_wilcox_golden(
 		"jackknife estimate",

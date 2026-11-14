@@ -27,12 +27,43 @@
 # unescapes them itself is not unescaped twice.
 read_csv_fast_unescape_quotes = identical(data.table::fread(text = "a\n\"x\"\"y\"\n", showProgress = FALSE)$a, "x\"\"y")
 
+# data.table::fread() with fread's own column types, plus the one fix it needs:
+# data.table 1.18.4 leaves a quoted field's doubled quotes ("") doubled, so
+# could not find function "foo" (written as "could not find function ""foo""")
+# reads back with "" around foo, and a read-then-fwrite cycle doubles them
+# again on every pass. Only when the probe above shows that bug, turn "" back
+# into " in the text columns, rewriting only the cells that contain one
+# (~5% on top of fread for a 900 MB results file, 2026-11-14). For scripts
+# that read results with fread and write them back (merge, prune, resume);
+# read_csv_fast() stays the read.csv-identical reader.
+fread_unescaped = function(...) {
+	dt = data.table::fread(...)
+	if (!read_csv_fast_unescape_quotes) return(dt)
+	for (j in seq_along(dt)) {
+		x = dt[[j]]
+		if (!is.character(x)) next
+		i = which(grepl("\"\"", x, fixed = TRUE))
+		if (!length(i)) next
+		x[i] = gsub("\"\"", "\"", x[i], fixed = TRUE)
+		if (data.table::is.data.table(dt)) data.table::set(dt, j = j, value = x) else dt[[j]] = x
+	}
+	dt
+}
+
 read_csv_fast = function(file, header = TRUE, stringsAsFactors = FALSE, na.strings = "NA",
                          colClasses = NA, check.names = TRUE, nrows = -1L, text, ...) {
 	if (length(list(...))) {
 		if (missing(text)) return(utils::read.csv(file, header = header, stringsAsFactors = stringsAsFactors, na.strings = na.strings, colClasses = colClasses, check.names = check.names, nrows = nrows, ...))
 		return(utils::read.csv(text = text, header = header, stringsAsFactors = stringsAsFactors, na.strings = na.strings, colClasses = colClasses, check.names = check.names, nrows = nrows, ...))
 	}
+	# What fread cannot read here goes to read.csv itself: a connection (gzfile(), url(), ...), and a compressed file
+	# (.gz, .bz2, .xz) when R.utils is not installed, since fread decompresses only through R.utils. The calibration
+	# study's analyze job has data.table but not R.utils, and its stats are tests.csv.gz / est.csv.gz (run
+	# 43386405728 failed on exactly this).
+	if (missing(text) && (!is.character(file) || (grepl("\\.(gz|bz2|xz)$", file[[1L]], ignore.case = TRUE) &&
+		!requireNamespace("R.utils", quietly = TRUE))))
+		return(utils::read.csv(file, header = header, stringsAsFactors = stringsAsFactors, na.strings = na.strings,
+			colClasses = if (is.list(colClasses)) read_csv_fast_colclasses(colClasses) else colClasses, check.names = check.names, nrows = nrows))
 	src = if (!missing(text)) list(text = paste(text, collapse = "\n")) else {
 		if (is.character(file) && length(file) == 1L && file.exists(file) && isTRUE(file.info(file)$size == 0)) {
 			stop("no lines available in input", call. = FALSE)  # read.csv's error on an empty file
@@ -72,4 +103,10 @@ character_columns_for = function(colClasses, column_names) {
 		return(column_names[which(colClasses == "character")])
 	}
 	names(colClasses)[colClasses == "character"]
+}
+
+# fread-style list(character = c("a", "b")) as read.csv's named vector c(a = "character", b = "character").
+read_csv_fast_colclasses = function(colClasses) {
+	cols = as.character(colClasses$character)
+	stats::setNames(rep("character", length(cols)), cols)
 }

@@ -81,14 +81,23 @@ echo "pre-push: files changed since remote:"
 sed 's/^/  /' "$changed_files_file"
 echo
 
-# Mirrors R-CMD-check.yaml's path filter: R/EDI/**/*.{R,Rd,cpp,h,hpp},
-# DESCRIPTION, NAMESPACE, configure(.win), src/Makevars(.win).
+# R-CMD-check.yaml's path filter (R/EDI/**/*.{R,Rd,cpp,h,hpp}, DESCRIPTION,
+# NAMESPACE, configure(.win), src/Makevars(.win)) minus .Rd: no R test and no
+# R/package_tests script reads man/, so an Rd-only push skips the R and
+# comprehensive suites and gets the CRAN static checks below instead, which do
+# read the Rd files (examples, usage). CI still checks every Rd (2026-11-14).
 run_r_tests=0
-if grep -qE '^R/EDI/(.*\.(R|Rd|cpp|h|hpp)|DESCRIPTION|NAMESPACE|configure|configure\.win|src/Makevars|src/Makevars\.win)$' "$changed_files_file"; then
+if grep -qE '^R/EDI/(.*\.(R|cpp|h|hpp)|DESCRIPTION|NAMESPACE|configure|configure\.win|src/Makevars|src/Makevars\.win)$' "$changed_files_file"; then
 	run_r_tests=1
 fi
+r_docs_changed=0
+if grep -qE '^R/EDI/.*\.Rd$' "$changed_files_file"; then
+	r_docs_changed=1
+fi
 
-# python/** plus R/EDI/src/**/*.{cpp,h,hpp} -- R/EDI/src is the single source of
+# The python package's code, tests and build config (not its docs, CHANGELOG
+# or benchmarks, which no test reads; 2026-11-14) plus R/EDI/src/**/*.{cpp,h,hpp}
+# -- R/EDI/src is the single source of
 # truth the Python C++ extension compiles directly (see python/CMakeLists.txt),
 # so a kernel change affects both sides. This is the set of changes that can
 # break the python suite; test-coverage-python.yml itself now runs on EVERY
@@ -96,7 +105,7 @@ fi
 # one Codecov upload, but locally there is no reason to rebuild the extension
 # for a change that cannot have touched it.
 run_python_tests=0
-if grep -qE '^python/|^R/EDI/src/.*\.(cpp|h|hpp)$' "$changed_files_file"; then
+if grep -qE '^python/(src|tests|cpp)/|^python/(CMakeLists\.txt|pyproject\.toml)$|^R/EDI/src/.*\.(cpp|h|hpp)$' "$changed_files_file"; then
 	run_python_tests=1
 fi
 
@@ -266,7 +275,7 @@ echo
 #   - check_rd_usage_for_cran.R: every Rd \usage argument documented.
 # Any non-zero exit OR any R warning in their output fails the push.
 run_cran_static_checks=0
-if [ "$run_r_tests" = "1" ] || grep -qE '^scripts/check_.*_for_cran\.R$|^scripts/pre-push$' "$changed_files_file"; then
+if [ "$run_r_tests" = "1" ] || [ "$r_docs_changed" = "1" ] || grep -qE '^scripts/check_.*_for_cran\.R$|^scripts/pre-push$' "$changed_files_file"; then
 	run_cran_static_checks=1
 fi
 
@@ -302,7 +311,9 @@ fi
 
 echo
 
-if [ "$run_r_tests" = "1" ]; then
+# Only C++ sources or configure feed this check (it copies R/EDI/src/*.cpp,
+# *.h and configure), so an .R/.Rd-only push skips it (2026-11-14).
+if grep -qE '^R/EDI/(src/.*\.(cpp|h|hpp)|configure(\.win)?)$' "$changed_files_file"; then
 	# Standing regression gate for package_metadata/new_feature_plans/
 	# unity_build_collision_audit.md's fix: verifies every unity-build
 	# wrapper (R/EDI/src/unity_NN.cpp, EDI_UNITY=1 -- the default) still
@@ -335,8 +346,13 @@ echo
 # correctness) -- those only mean anything against the real tarball
 # round-trip, so they're left to CI's R-CMD-check.yaml (--as-cran), which
 # already covers them authoritatively.
+# Install only when the push changes what goes into the installed package:
+# R/EDI/R, src, inst, data, DESCRIPTION, NAMESPACE, configure. Test files
+# (R/EDI/tests, R/package_tests) are read from the checkout, not the install,
+# and man/ is skipped by --no-help, so a push touching only those runs its
+# checks against the EDI already installed (2026-11-14).
 need_install=0
-if [ "$run_r_tests" = "1" ] || [ "$run_comprehensive_suite" = "1" ]; then
+if grep -qE '^R/EDI/(R/|src/|inst/|data/|DESCRIPTION$|NAMESPACE$|configure(\.win)?$)' "$changed_files_file"; then
 	need_install=1
 fi
 
@@ -353,8 +369,9 @@ fi
 
 echo
 
+run_r_block() {
 if [ "$run_r_tests" = "1" ]; then
-	# Fast structural gate BEFORE the ~10 min suite below: (1) every
+	# Fast structural gate BEFORE the ~3-5 min suite below: (1) every
 	# constructible inference class has the methods its component composition
 	# and capability set promise, and every private$x() call resolves; (2) the
 	# registry's hand-maintained component lists still match the real
@@ -364,14 +381,17 @@ if [ "$run_r_tests" = "1" ]; then
 	# header of test-inference-class-wiring-completeness.R). Also (3) pathological
 	# data + injected SE faults must give a clean NA/error, never a wrong-looking
 	# number, and (4) estimates/SEs must match survival/quantreg/pscl/glm/... on
-	# fixed data. ~1.5 minutes. The same files run again inside the full suite --
-	# this pass only buys fast feedback.
+	# fixed data. ~1.5 minutes. The full suite then skips these files
+	# (EDI_PREPUSH_STRUCTURAL_PASSED below) rather than running them again.
 	echo "pre-push: R-relevant files changed -- structural wiring/drift/adversarial/parity audit ..."
 	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_structural_checks.R" ); then
 		echo "pre-push: structural wiring/drift/adversarial/parity audit FAILED (details above)." >&2
 		echo "pre-push: an unlisted gap means a method/hook is missing on an assembled class; a drift means inference_class_registry.R disagrees with a define_inference_class() call." >&2
 		abort_push
 	fi
+	# The full suite below skips these five files now that they passed
+	# (scripts/structural_check_files.R lists them), instead of running them twice.
+	export EDI_PREPUSH_STRUCTURAL_PASSED=1
 	echo
 
 	# Statistical-calibration check for the inference classes this push
@@ -423,7 +443,8 @@ if [ "$run_r_tests" = "1" ]; then
 	# a parallel-worker test stalled for hours, eventually dropping git's
 	# already-open connection to the remote: "Connection to github.com
 	# closed by remote host.") would otherwise block this hook, and the
-	# push, indefinitely. A normal full run takes ~10-11 minutes; 20 gives
+	# push, indefinitely. A normal full run takes ~3-5 minutes in parallel lanes
+	# (~8 in one process, EDI_PREPUSH_TEST_WORKERS=1); 20 gives
 	# comfortable headroom without turning a real hang into another
 	# multi-hour wait. --kill-after=30s escalates to SIGKILL if the process
 	# (or an orphaned parallel worker under it) ignores the initial SIGTERM.
@@ -447,12 +468,27 @@ if [ "$run_r_tests" = "1" ]; then
 	# too, so this is purely a local convenience knob, not the only place
 	# that coverage exists (see that helper's header comment).
 	r_test_timeout_secs=1200
-	if ( cd R/EDI/tests && NOT_CRAN=true EDI_PREPUSH_NO_PARALLEL="${EDI_PREPUSH_NO_PARALLEL:-true}" timeout --foreground --kill-after=30s "${r_test_timeout_secs}s" Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
-		:
+	run_r_suite() {
+		( cd R/EDI/tests && NOT_CRAN=true EDI_PREPUSH_NO_PARALLEL="${EDI_PREPUSH_NO_PARALLEL:-true}" timeout --foreground --kill-after=30s "${r_test_timeout_secs}s" Rscript "$repo_root/scripts/run_prepush_r_tests.R" )
+	}
+	# Parallel mode: the suite gets its own log, since run_prepush_r_tests.R
+	# reopens /dev/stderr for its tally and that would truncate this block's
+	# shared log (see run_parallel_blocks). Its non-tty progress lines (one
+	# every ~5 s) are dropped when the log is printed; the hook's heartbeat
+	# covers progress. EDI_PREPUSH_SERIAL=1 keeps the live display.
+	show_r_suite_log() {
+		[ -n "${r_suite_log:-}" ] || return 0
+		tr '\r' '\n' < "$r_suite_log" | grep -v '^EDI R test suite -- running' | grep -v '^[[:space:]]*$' || true
+	}
+	r_suite_log=""
+	if [ "${EDI_PREPUSH_SERIAL:-0}" != "1" ]; then r_suite_log="$block_log_dir/r_suite.log"; fi
+	if if [ -n "$r_suite_log" ]; then run_r_suite > "$r_suite_log" 2>&1; else run_r_suite; fi; then
+		show_r_suite_log
 	else
 		r_test_exit=$?
+		show_r_suite_log
 		if [ "$r_test_exit" = "124" ] || [ "$r_test_exit" = "137" ]; then
-			echo "pre-push: R tests TIMED OUT after ${r_test_timeout_secs}s -- this is a hang, not a slow-but-real run (normal full runs take ~10-11 min)." >&2
+			echo "pre-push: R tests TIMED OUT after ${r_test_timeout_secs}s -- this is a hang, not a slow-but-real run (normal full runs take ~3-5 min, ~8 in one process)." >&2
 			echo "pre-push: see R/EDI/tests/.prepush_test_stdout.log for whatever the suite printed before it was killed." >&2
 		else
 			echo "pre-push: R tests FAILED -- see R/EDI/tests/.prepush_errors for failure/warning/skip detail." >&2
@@ -462,9 +498,9 @@ if [ "$run_r_tests" = "1" ]; then
 else
 	echo "pre-push: no R-relevant files changed, skipping R checks."
 fi
+}
 
-echo
-
+run_comprehensive_block() {
 if [ "$run_comprehensive_suite" = "1" ]; then
 	echo "pre-push: R/package_tests-relevant files changed -- running comprehensive suite (smoke tier) + drift check ..."
 
@@ -540,6 +576,9 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	if [ "$comprehensive_suite_ok" = "1" ] && (
 		cd R &&
 		export EDI_DRIFT_TRACKED_INPUTS_ONLY=1 &&
+		# drift_artifacts.sh just regenerated the internal-surfaces CSV and the
+		# generated CSVs match HEAD; the smoke tier reuses it, no second run.
+		export EDI_SUITE_INTERNAL_SURFACES_FRESH=1 &&
 		Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
 		Rscript package_tests/analyze_comprehensive_suite.R &&
 		Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
@@ -553,9 +592,9 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 else
 	echo "pre-push: no R/package_tests-relevant files changed, skipping comprehensive suite."
 fi
+}
 
-echo
-
+run_python_block() {
 if [ "$run_python_tests" = "1" ]; then
 	echo "pre-push: python/C++-relevant files changed -- running edi_kernels test suite ..."
 	# This system's python3 is PEP 668 externally-managed, so a bare `pip install`
@@ -576,7 +615,23 @@ if [ "$run_python_tests" = "1" ]; then
 	# run so a freshly recreated venv gets it too. Gitignored along with the
 	# rest of python/.venv/.
 	printf '[global]\ncache-dir = %s\n' "$py_venv/pip-cache" > "$py_venv/pip.conf"
-	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q --cov=edi_kernels --cov-report=xml ); then
+	# Rebuild/reinstall the extension only when what it is built from changed:
+	# the C++ kernels (R/EDI/src), the bindings (python/cpp), or the build
+	# config (python/CMakeLists.txt, python/pyproject.toml). A push touching only
+	# python/src or python/tests runs pytest against the existing editable
+	# install, which already picks up pure-Python edits (2026-11-14). A venv
+	# without edi_kernels installed (first run, or recreated) installs anyway.
+	py_needs_install=0
+	if grep -qE '^R/EDI/src/.*\.(cpp|h|hpp)$|^python/cpp/|^python/(CMakeLists\.txt|pyproject\.toml)$' "$changed_files_file" \
+		|| ! "$py_venv/bin/python" -c "import edi_kernels, pytest, pytest_cov, scipy" >/dev/null 2>&1; then
+		py_needs_install=1
+	fi
+	if [ "$py_needs_install" = "1" ]; then
+		echo "pre-push: C++/bindings/build config changed -- reinstalling edi_kernels ..."
+	else
+		echo "pre-push: no C++/bindings/build-config changes -- testing the existing edi_kernels install."
+	fi
+	if ! ( cd python && { [ "$py_needs_install" = "0" ] || "$py_venv/bin/pip" install -q -e ".[test]"; } && "$py_venv/bin/python" -m pytest tests -q --cov=edi_kernels --cov-report=xml ); then
 		echo "pre-push: python tests FAILED." >&2
 		abort_push
 	fi
@@ -594,6 +649,91 @@ if [ "$run_python_tests" = "1" ]; then
 	fi
 else
 	echo "pre-push: no python/C++-relevant files changed, skipping python checks."
+fi
+}
+
+# The R tests (structural gate, calibration, full suite), the comprehensive
+# suite and the python checks share no files: the R suite writes only gitignored
+# files under R/EDI/tests, the comprehensive suite only R/package_tests (and its
+# drift auto-commit), the python block only python/ -- so they run at the same
+# time (2026-11-14), each into its own log, printed whole as each finishes. The
+# first block to fail stops the others and aborts the push, as before.
+# EDI_PREPUSH_SERIAL=1 runs them one after another instead, streaming output.
+block_log_dir="$(mktemp -d)"
+block_names=(r_tests comprehensive_suite python)
+block_fns=(run_r_block run_comprehensive_block run_python_block)
+
+# Background jobs of a non-interactive shell ignore SIGINT, and killing a block's
+# subshell leaves its Rscript/pytest children running, so stop whole trees.
+kill_tree() {
+	local child
+	for child in $(pgrep -P "$1" 2>/dev/null || true); do kill_tree "$child"; done
+	kill "$1" 2>/dev/null || true
+}
+declare -A block_pid_of=()
+stop_blocks() {
+	local pid
+	for pid in "${!block_pid_of[@]}"; do kill_tree "$pid"; done
+	if [ -n "${block_ticker_pid:-}" ]; then kill_tree "$block_ticker_pid"; fi
+}
+
+run_parallel_blocks() {
+	local i name pid finished status
+	declare -A block_start=()
+	for i in "${!block_names[@]}"; do
+		name="${block_names[$i]}"
+		( "${block_fns[$i]}" ) > "$block_log_dir/$name.log" 2>&1 &
+		pid=$!
+		block_pid_of[$pid]="$name"
+		block_start[$name]=$SECONDS
+	done
+	trap 'stop_blocks; exit 130' INT TERM
+	echo "pre-push: running R tests, comprehensive suite and python checks in parallel (logs: $block_log_dir) ..."
+	# Heartbeat, since each block's output only appears once it finishes.
+	(
+		while sleep 60; do
+			running=()
+			for n in "${block_names[@]}"; do [ -e "$block_log_dir/$n.done" ] || running+=("$n"); done
+			[ "${#running[@]}" -gt 0 ] && echo "pre-push: still running after $(( SECONDS / 60 ))m: ${running[*]}"
+		done
+	) &
+	block_ticker_pid=$!
+
+	while [ "${#block_pid_of[@]}" -gt 0 ]; do
+		finished=""
+		status=0
+		wait -n -p finished "${!block_pid_of[@]}" || status=$?
+		[ -n "$finished" ] || continue
+		name="${block_pid_of[$finished]}"
+		unset "block_pid_of[$finished]"
+		touch "$block_log_dir/$name.done"
+		echo
+		echo "===== pre-push: $name $( [ "$status" = 0 ] && echo passed || echo "FAILED (exit $status)" ) after $(( SECONDS - block_start[$name] ))s ====="
+		cat "$block_log_dir/$name.log"
+		if [ "$status" != 0 ]; then
+			if [ "${#block_pid_of[@]}" -gt 0 ]; then
+				echo "pre-push: stopping the blocks still running: ${block_pid_of[*]}" >&2
+			fi
+			stop_blocks
+			wait 2>/dev/null || true
+			abort_push
+		fi
+	done
+	kill_tree "$block_ticker_pid"
+	wait "$block_ticker_pid" 2>/dev/null || true
+	trap - INT TERM
+	rm -rf "$block_log_dir"
+}
+
+if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
+	run_r_block
+	echo
+	run_comprehensive_block
+	echo
+	run_python_block
+	rm -rf "$block_log_dir"
+else
+	run_parallel_blocks
 fi
 
 echo "pre-push: all local checks passed."

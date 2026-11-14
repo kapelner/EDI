@@ -22,7 +22,7 @@
   "design_level_exclusions": [
     {
       "design_ancestor": "DesignSeqOneByOne",
-      "excluded_capability": "nonparametric_bootstrap",
+      "excluded_capability": "nonparametric_bootstrap|randomization_bootstrap|randomization_bootstrap_ci",
       "note": "Applies to every design class inheriting from design_ancestor (including external subclasses); the listed capability's public methods stop with 'This method is not supported'."
     }
   ],

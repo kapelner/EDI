@@ -48,6 +48,8 @@ test_that("concrete sequential Bernoulli retains iid row bootstrap", {
 	expect_true(unname(inf$supports("nonparametric_bootstrap")))
 	expect_true("nonparametric_bootstrap" %in% inf$capabilities())
 	expect_length(inf$approximate_bootstrap_distribution_beta_hat_T(B = 5L, show_progress = FALSE), 5L)
+	expect_true(unname(inf$supports("randomization_bootstrap")))
+	expect_true(is.finite(inf$compute_rand_bootstrap_two_sided_pval(B = 51L, show_progress = FALSE)))
 	expect_true("bootstrap" %in% EDI:::run_all_inference_class_applicable_methods(
 		"InferenceContinOLS", "bootstrap", des
 	))
@@ -62,11 +64,16 @@ test_that("sequential restrictions survive aliases, lazy loading, and clones", {
 		"approximate_bootstrap_distribution_beta_hat_T")) {
 		expect_error(inf[[method]](), "This method is not supported")
 	}
-	# Other methods can still load shared resampling code. That must not restore
-	# any unsupported public bootstrap entry point.
-	expect_true(length(inf$get_supported_rand_bootstrap_pval_types()) > 0L)
+	# Since 2026-11-14 (owner ruling: the bootstrap is unproven on KK and other
+	# adaptive sequential designs) the randomization bootstrap is excluded too.
+	expect_error(inf$get_supported_rand_bootstrap_pval_types(), "This method is not supported")
+	expect_error(inf$compute_rand_bootstrap_two_sided_pval(B = 5L, show_progress = FALSE), "This method is not supported")
 	for (copy in list(inf, inf$clone(deep = TRUE), inf$duplicate(make_fork_cluster = FALSE))) {
 		expect_false(unname(copy$supports("nonparametric_bootstrap")))
+		expect_false(unname(copy$supports("randomization_bootstrap")))
+		expect_false(unname(copy$supports("randomization_bootstrap_ci")))
+		expect_error(copy$approximate_rand_bootstrap_distribution_beta_hat_T(), "This method is not supported")
+		expect_error(copy$compute_rand_bootstrap_confidence_interval(), "This method is not supported")
 		expect_error(copy$compute_bootstrap_confidence_interval_generic(), "This method is not supported")
 		expect_error(copy$approximate_bootstrap_distribution_beta_hat_T(), "This method is not supported")
 		expect_true(bindingIsLocked("compute_bootstrap_confidence_interval", copy))

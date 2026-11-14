@@ -377,7 +377,8 @@ rows <- vapply(ids, function(id) {
 	d <- file.path(results_dir, "campaigns", id)
 	e <- read_env(file.path(d, "campaign.env"))
 	g <- rd(file.path(d, "summary", "gate_failures.txt"))
-	st <- if (identical(rd(file.path(d, "status.txt")), "complete")) "complete" else "in progress"
+	st_raw <- rd(file.path(d, "status.txt"))
+	st <- if (identical(st_raw, "complete")) "complete" else if (identical(st_raw, "abandoned")) "abandoned" else "in progress"
 	sprintf("| [%s](campaigns/%s/README.md) | %s | [`%s`](https://github.com/%s/commit/%s) | %s |", id, id, st,
 		substr(e$SHA %||% "", 1L, 8L), repo, e$SHA %||% "", if (length(g)) g[[1L]] else "")
 }, character(1L))

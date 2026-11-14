@@ -469,3 +469,20 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   **Status at the move (2026-11-12):** the implementation, including Amendments A-E, is committed (`fe267250` and later;
   working tree clean at `57df40d4`), so the "(uncommitted)" / "(not committed)" notes above are history. Left: owner
   review, push, cancel campaign `2026-11-09-8c32d060`, dispatch a new one.
+
+- [ ] TODO-22 (added 2026-11-14, owner; found by the new worker-count invariance tests of `release_v1_1_0.md` TODO-48 (2)):
+  **`InferencePropGCompMeanDiff` bootstrap results depend on the worker count.**
+  - Symptom: same seed, `compute_bootstrap_confidence_interval` (proportion, n = 40, B = 39, seed 99) gives serial
+    [-0.0104, 0.1352], fork 2 workers [0.0093, 0.1184], fork 4 [0.0031, 0.1459], mirai 2 [0.0006, 0.1494], mirai 4
+    [-0.0003, 0.1256]. Each worker count reproduces itself, so it is not chance. `compute_bootstrap_two_sided_pval` is
+    affected on fork too (0.0769 serial vs 0.0513 at 2 and 4); not yet run on mirai. The Bayesian bootstrap is invariant.
+  - Unverified guess: the class's bootstrap worker draws random numbers inside the workers (per-worker or per-chunk
+    streams) instead of using only the resample indices drawn up front. Compare with the 2026-09-22 stale worker-cache
+    resampling fix, which touched this class's resampling path.
+  - Test: `R/EDI/tests/testthat/helper-worker-count-invariance.R` lists it in `worker_invariance_known_failures`, and the
+    test asserts the results still differ, so it fails once the bug is fixed; remove the entry then.
+  - Also: the full sweep (`EDI_EXHAUSTIVE_WORKER_TESTS=true`, nightly on the Ubuntu reproducibility leg since
+    2026-11-14) stopped at this class in its first local run, so other classes may fail too; triage what the first
+    nightly sweep reports here.
+  - Done when: results are `identical()` at 1, 2 and 4 workers on both backends, the known-failure entry is removed, and
+    the nightly sweep passes.

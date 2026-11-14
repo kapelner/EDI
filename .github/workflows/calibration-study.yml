@@ -350,6 +350,9 @@ jobs:
       fail-fast: false
       max-parallel: 16
       matrix: ${{ fromJSON(needs.roster.outputs.matrix) }}
+    permissions:
+      contents: read
+      actions: read   # the nightly.yml check in the first step
     env:
       EDI_PORTABLE: 1
       NOT_CRAN: true
@@ -357,7 +360,25 @@ jobs:
       MKL_NUM_THREADS: 1
       OPENBLAS_NUM_THREADS: 1
     steps:
+      # Step aside for the nightly suites (owner ruling 2026-11-14): while a
+      # nightly.yml run is queued or in progress, this shard does no work and
+      # uploads nothing, so its runner slot frees within seconds. A shard with no
+      # results has no ledger row, so the next wave re-plans it. Fails open: if
+      # the API call fails, the shard runs.
+      - id: yield
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n="$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly.yml --limit 20 --json status \
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Calibration yield::a nightly.yml run is active; shard ${{ matrix.id }} steps aside and will be re-planned."
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v7
+        if: steps.yield.outputs.go == 'true'
         with:
           ref: ${{ needs.plan.outputs.sha }}
       # The build job's cache entry (same key); it saved when that job ended, which
@@ -365,11 +386,13 @@ jobs:
       # owner ruling 2026-11-11): one build per OS, so a binary built on a newer OS never runs on an older one during
       # GitHub's image rollout. Not ImageVersion: it changes with routine image updates and would recompile mid-campaign.
       - name: EDI cache key
+        if: steps.yield.outputs.go == 'true'
         id: edikey
         run: echo "key=calibration-study-edi-${ImageOS:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
       # Restore and save: on a miss (this runner's OS differs from the build job's during a rollout) the job compiles EDI
       # itself below and saves it under this OS's key, so later jobs on this OS hit.
       - id: edic
+        if: steps.yield.outputs.go == 'true'
         uses: actions/cache@v5
         with:
           path: .edi-install-scratch
@@ -379,16 +402,18 @@ jobs:
       # object in R or the library is missing a system library (ldd); otherwise the normal setup below runs, with a
       # warning, so a bad cache costs time, never results.
       - name: Runtime cache key
+        if: steps.yield.outputs.go == 'true'
         id: rtkey
         run: echo "key=calibration-study-runtime-v2-${ImageOS:-unknown}-${ImageVersion:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
       - id: rt
+        if: steps.yield.outputs.go == 'true'
         uses: actions/cache/restore@v5
         with:
           path: .r-runtime
           key: ${{ steps.rtkey.outputs.key }}
       - name: Use the cached R runtime
         id: fastr
-        if: steps.rt.outputs.cache-hit == 'true'
+        if: steps.yield.outputs.go == 'true' && (steps.rt.outputs.cache-hit == 'true')
         continue-on-error: true
         run: |
           ver="$(cat .r-runtime/R_VERSION)"
@@ -420,29 +445,31 @@ jobs:
           { echo "R_LIBS_USER=$lib"; echo "TZ=UTC"; echo "_R_CHECK_SYSTEM_CLOCK_=FALSE"; } >> "$GITHUB_ENV"
           echo "ok=true" >> "$GITHUB_OUTPUT"
       - name: Fall back to the normal setup
-        if: steps.fastr.outputs.ok != 'true'
+        if: steps.yield.outputs.go == 'true' && (steps.fastr.outputs.ok != 'true')
         run: echo "::warning title=Calibration setup::no usable cached R runtime (cache hit '${{ steps.rt.outputs.cache-hit }}'); running setup-r and setup-r-dependencies."
       - uses: r-lib/actions/setup-r@v2
-        if: steps.fastr.outputs.ok != 'true'
+        if: steps.yield.outputs.go == 'true' && (steps.fastr.outputs.ok != 'true')
         with:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
-        if: steps.fastr.outputs.ok != 'true'
+        if: steps.yield.outputs.go == 'true' && (steps.fastr.outputs.ok != 'true')
         with:
           working-directory: R/EDI
           dependencies: '"all"'
       - name: Compile EDI for this runner OS (no cached build for it)
-        if: steps.edic.outputs.cache-hit != 'true'
+        if: steps.yield.outputs.go == 'true' && (steps.edic.outputs.cache-hit != 'true')
         run: |
           echo "::warning title=Calibration setup::no cached EDI build for ${ImageOS:-this OS}; compiling it here (once per OS)."
           mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
           MAKEFLAGS="-j$(nproc --all)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
       - name: Use the pre-built library
+        if: steps.yield.outputs.go == 'true'
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
       # `nproc --all`, not `nproc`: GNU nproc honours OMP_NUM_THREADS=1 (see
       # calibration-fast-tier.yml). The deadline starts when R does, after setup.
       - name: Run shard ${{ matrix.id }}
+        if: steps.yield.outputs.go == 'true'
         run: |
           Rscript R/package_tests/calibration/run_calibration_study.R \
             --response-type "${{ matrix.response_type }}" --design "${{ matrix.design }}" --n "${{ matrix.n }}" \
@@ -454,7 +481,7 @@ jobs:
       # Only the retry's failure fails the job; the wave re-plans an unrecorded shard's reps either way.
       - id: upload
         uses: actions/upload-artifact@v7
-        if: always()
+        if: steps.yield.outputs.go == 'true' && (always())
         continue-on-error: true
         with:
           name: study-shard-${{ matrix.id }}
@@ -462,12 +489,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 3
       - name: Wait before retrying the upload
-        if: always() && steps.upload.outcome == 'failure'
+        if: steps.yield.outputs.go == 'true' && (always() && steps.upload.outcome == 'failure')
         run: |
           echo "::warning title=Calibration upload::artifact upload failed (GitHub artifact service); retrying in 5 minutes."
           sleep 300
       - uses: actions/upload-artifact@v7
-        if: always() && steps.upload.outcome == 'failure'
+        if: steps.yield.outputs.go == 'true' && (always() && steps.upload.outcome == 'failure')
         with:
           name: study-shard-${{ matrix.id }}
           path: out/${{ matrix.id }}
@@ -787,9 +814,30 @@ jobs:
           git add -A
           git commit -q -m "EDI calibration study: campaign $C, wave $wave_no"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$RESULTS_BRANCH"
+      # Wave-boundary pause (owner ruling 2026-11-14): while a nightly.yml run is queued or
+      # in progress, do not start the next wave (its shards would only step aside, see the
+      # shards job's first step). nightly.yml's last job, resume-calibration, dispatches the
+      # campaign again when the nightly run ends. Fails open: if the API call fails, dispatch.
+      # Campaign complete: start the cloud comprehensive_tests.R campaign at the same commit
+      # (comprehensive-study.yml, release_v1_1_0.md TODO-194; owner ruling 2026-11-14). It shares
+      # this workflow's concurrency group, so it runs after this run ends. Runs whatever the gate
+      # verdict was: the two studies answer different questions.
+      - name: Start the comprehensive study
+        if: needs.analyze.outputs.complete == 'true'
+        run: |
+          gh workflow run comprehensive-study.yml -R "${{ github.repository }}" --ref "${{ github.event.repository.default_branch }}" \
+            -f sha="${{ needs.plan.outputs.sha }}"
+          echo "Started the comprehensive study at ${{ needs.plan.outputs.sha }}." | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Dispatch the next wave
         if: needs.analyze.outputs.complete != 'true'
-        run: gh workflow run calibration-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
+        run: |
+          n="$(gh run list -R "${{ github.repository }}" --workflow nightly.yml --limit 20 --json status \
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+            echo "::notice title=Calibration paused::a nightly.yml run is active; campaign $C pauses after this wave and nightly.yml resumes it when it ends."
+            exit 0
+          fi
+          gh workflow run calibration-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
       - name: Flag a bug in the check
         if: failure()
         run: |

@@ -827,11 +827,25 @@ if (!is.na(DESIGN_TYPE_FILTER) && !(DESIGN_TYPE_FILTER %in% ALL_DESIGN_TYPES)) {
 	)
 }
 INFERENCE_CLASS_FILTER = if (length(args) >= 5 && args[5] != "NA") as.character(args[5]) else NA_character_
+INFERENCE_CLASS_EXCLUDE = Sys.getenv("COMPREHENSIVE_INFERENCE_CLASS_EXCLUDE", unset = "")  # see should_run_inference_label()
 DATASET_FILTER = if (length(args) >= 6 && args[6] != "NA") as.character(args[6]) else NA_character_
 source(file.path(script_dir, "comprehensive_beta_filter.R"), local = TRUE)
 source(file.path(script_dir, "comprehensive_run_provenance.R"), local = TRUE)
 BETA_T_FILTER = if (length(args) >= 7) parse_comprehensive_beta_filter(args[7]) else NA_real_
-REP_FILTER = if (length(args) >= 8 && args[8] != "NA") as.integer(args[8]) else NA_integer_
+# Argument 8: one rep ("12"), a range ("11:20") or a comma list ("3,7,9"); 2026-11-14,
+# so a cloud shard call can cover several reps of one case (release_v1_1_0.md TODO-194).
+parse_rep_filter = function(value){
+	value = trimws(as.character(value))
+	if (!nzchar(value) || identical(value, "NA")) return(NA_integer_)
+	parts = strsplit(value, ",", fixed = TRUE)[[1L]]
+	reps = unlist(lapply(parts, function(x) {
+		ab = suppressWarnings(as.integer(strsplit(x, ":", fixed = TRUE)[[1L]]))
+		if (anyNA(ab) || !length(ab) || length(ab) > 2L) stop("Unsupported rep filter: ", value)
+		if (length(ab) == 2L) seq.int(ab[1L], ab[2L]) else ab
+	}))
+	sort(unique(reps))
+}
+REP_FILTER = if (length(args) >= 8) parse_rep_filter(args[8]) else NA_integer_
 canonicalize_test_family_filter = function(value){
 	value = as.character(value)
 	switch(
@@ -1015,12 +1029,18 @@ if (!is.na(DESIGN_TYPE_FILTER)) extra_filter_parts = c(extra_filter_parts, paste
 if (!is.na(INFERENCE_CLASS_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("class-", sanitize_results_filter(INFERENCE_CLASS_FILTER)))
 if (!is.na(DATASET_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("dataset-", sanitize_results_filter(DATASET_FILTER)))
 if (!is.na(BETA_T_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("beta-", sanitize_results_filter(BETA_T_FILTER)))
-if (!is.na(REP_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("rep-", sanitize_results_filter(REP_FILTER)))
+if (!anyNA(REP_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("rep-", sanitize_results_filter(paste(REP_FILTER, collapse = "_"))))
 if (!is.na(TEST_FAMILY_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("family-", sanitize_results_filter(TEST_FAMILY_FILTER)))
 filtered_results_suffix = if (length(extra_filter_parts)) {
 	paste0("_filtered_", paste(extra_filter_parts, collapse = "_"))
 } else {
 	""
+}
+if (nzchar(INFERENCE_CLASS_EXCLUDE)) filtered_results_suffix = paste0(filtered_results_suffix, "_excl-", digest::digest(INFERENCE_CLASS_EXCLUDE, algo = "crc32"))
+# A class filter listing many classes (cloud shards) would exceed the 255-byte
+# file-name limit: past 150 characters the suffix keeps its head and adds a hash.
+if (nchar(filtered_results_suffix) > 150L) {
+	filtered_results_suffix = paste0(substr(filtered_results_suffix, 1L, 100L), "_h", digest::digest(filtered_results_suffix, algo = "crc32"))
 }
 
 source(file.path(script_dir, "comprehensive_results_path.R"), local = TRUE)
@@ -1044,7 +1064,7 @@ attempt_manifest_writer = if (nzchar(attempt_manifest_env)) {
 run_provenance_started_at = Sys.time()
 run_provenance_before = capture_comprehensive_run_provenance(repo_root, script_path)
 run_results_file_before = comprehensive_result_file_identity(results_file, include_sha256 = FALSE)
-existing_results_dt = if (file.exists(results_file)) data.table::fread(results_file) else data.table::data.table()
+existing_results_dt = if (file.exists(results_file)) fread_unescaped(results_file) else data.table::data.table()
 run_row_id = if ("run_row_id" %in% colnames(existing_results_dt) && nrow(existing_results_dt) > 0L) {
 	as.integer(max(existing_results_dt$run_row_id, na.rm = TRUE))
 } else {
@@ -1600,8 +1620,13 @@ log_progress = function(msg){
 	flush.console()
 }
 
+# COMPREHENSIVE_INFERENCE_CLASS_EXCLUDE (regex, 2026-11-14): skip every class whose
+# label matches. The cloud comprehensive study (release_v1_1_0.md TODO-194) uses it
+# for a catch-all call per case that runs only classes its cost table does not
+# know yet, so a class added since the table was built is never missed.
 should_run_inference_label = function(inference_label){
-	is.na(INFERENCE_CLASS_FILTER) || grepl(INFERENCE_CLASS_FILTER, inference_label)
+	(is.na(INFERENCE_CLASS_FILTER) || grepl(INFERENCE_CLASS_FILTER, inference_label)) &&
+		(!nzchar(INFERENCE_CLASS_EXCLUDE) || !grepl(INFERENCE_CLASS_EXCLUDE, inference_label))
 }
 
 is_test_family_filter_active = function(){
@@ -1897,7 +1922,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	B_debug = as.integer(r)
 	r_debug = as.integer(r)
 	is_any_inference_class = function(classes){
-		any(vapply(classes, function(cls) is(seq_des_inf, cls), logical(1)))
+		any(vapply(classes, function(cls) inherits(seq_des_inf, cls), logical(1)))
 	}
 	inference_class_label = sub(" \\(model_formula=.*$", "", inference_base_label)
 	is_exact_inference_class = function(classes){
@@ -1911,7 +1936,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	is_any_inference_class_for_formula = function(entries){
 		any(vapply(entries, function(entry){
 			parts = strsplit(entry, "\\|\\|", fixed = FALSE)[[1]]
-			if (!is(seq_des_inf, parts[[1]])) return(FALSE)
+			if (!inherits(seq_des_inf, parts[[1]])) return(FALSE)
 			if (length(parts) < 2L) return(TRUE)
 			!is.na(inference_model_formula_str) && identical(inference_model_formula_str, parts[[2]])
 		}, logical(1)))
@@ -2061,7 +2086,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		skip_bootstrap_slow,
 		EDI:::get_effective_capabilities(seq_des_inf)
 	)
-	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
+	# Deliberately NOT gated on inherits(seq_des_inf, "InferenceParamBootstrap") --
 	# that only catches the 7 classes literally `inherit = InferenceParamBootstrap`.
 	# EDI composes the same capability onto ~32 more classes (InferenceContinOLS,
 	# InferenceContinLin, InferenceIncidLogRegr, InferenceCountNegBin,
@@ -2174,8 +2199,8 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_custom_rand_pval = response_type == "incidence"
 	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
 		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
-		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
-	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
+		(response_type != "continuous" && inherits(seq_des_inf, "InferenceAllSimpleAverageDiff"))
+	supports_jackknife = inherits(seq_des_inf, "InferenceJackknife") ||
 		(
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
 			"compute_jackknife_wald_confidence_interval" %in% names(seq_des_inf)
@@ -2218,7 +2243,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	}
 
 	is_rejected_zero_zero_confidence_interval = function(label, result){
-		if (is(seq_des_inf, "InferenceAllSimpleWilcox")) return(FALSE)
+		if (inherits(seq_des_inf, "InferenceAllSimpleWilcox")) return(FALSE)
 		if (!grepl("confidence_interval", label, fixed = TRUE)) return(FALSE)
 		if (!(is.atomic(result) && is.numeric(result))) return(FALSE)
 		length(result) >= 2L && isTRUE(all(result[1:2] == 0))
@@ -2465,7 +2490,7 @@ safe_call = function(label, expr){
 					return(invisible(NULL))
 				}
 				if (is_truth_anomalous_result(label, result) &&
-					is(seq_des_inf, "InferenceSurvivalDepCensTransformRegr")) {
+					inherits(seq_des_inf, "InferenceSurvivalDepCensTransformRegr")) {
 					msg = paste0(
 						"Explicitly non-estimable in ", label,
 						"; stage=se; reason=dep_cens_transform_truth_anomalous_result_unstable"
@@ -2568,24 +2593,24 @@ safe_call = function(label, expr){
 						 					 						 grepl("missing value where TRUE/FALSE needed", msg, fixed = TRUE) ||
 						 					 						 ((grepl("NA/NaN/Inf", msg, fixed = TRUE) || grepl("non-finite standard error", msg, fixed = TRUE) || grepl("could not compute a finite standard error", msg, fixed = TRUE)) &&
 						 					 
-						 													 (is(seq_des_inf, "InferenceContinKKRobustRegrOneLik") ||
-						 													  is(seq_des_inf, "InferenceAbstractKKQuantileRegrOneLik") ||
-						 													  													  is(seq_des_inf, "InferencePropFractionalLogit") ||
-						 													  													  is(seq_des_inf, "InferenceIncidRiskDiff") ||
-						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
-						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
-						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
-						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
-						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
-						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
-						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
-						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
-						 													  is(seq_des_inf, "InferenceIncidModifiedPoisson") ||
-						 													  is(seq_des_inf, "InferencePropGCompMeanDiff") ||
-						 													  is(seq_des_inf, "InferencePropGCompMeanDiff") ||
-						 													  is(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
-						 													  is(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
-						 													  is(seq_des_inf, "InferenceContinMultGLS")))
+						 													 (inherits(seq_des_inf, "InferenceContinKKRobustRegrOneLik") ||
+						 													  inherits(seq_des_inf, "InferenceAbstractKKQuantileRegrOneLik") ||
+						 													  													  inherits(seq_des_inf, "InferencePropFractionalLogit") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidRiskDiff") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
+						 													  													  inherits(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
+						 													  inherits(seq_des_inf, "InferenceIncidModifiedPoisson") ||
+						 													  inherits(seq_des_inf, "InferencePropGCompMeanDiff") ||
+						 													  inherits(seq_des_inf, "InferencePropGCompMeanDiff") ||
+						 													  inherits(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
+						 													  inherits(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
+						 													  inherits(seq_des_inf, "InferenceContinMultGLS")))
 						 													  										if (isTRUE(is_non_fatal)){
 				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
 				is_structural_limitation = grepl("must implement", msg, fixed = TRUE) ||
@@ -2893,7 +2918,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 
 	if (!ensure_estimate_setup_for_filtered_family()) return(invisible(NULL))
 
-	if (is(seq_des_inf, "InferenceOrdinalJonckheereTerpstraTest")){
+	if (inherits(seq_des_inf, "InferenceOrdinalJonckheereTerpstraTest")){
 		safe_call_family("exact", "compute_exact_two_sided_pval_for_treatment_effect", seq_des_inf$compute_exact_two_sided_pval_for_treatment_effect())
 		safe_call_family("estimate", "compute_estimate", seq_des_inf$compute_estimate())
 		return(invisible(NULL))
@@ -2901,19 +2926,19 @@ call_direct_asymp = function(method_name, testing_type, ...){
 
 	des_obj_for_exact = seq_des_inf$.__enclos_env__$private$des_obj
 	if (response_type == "incidence" &&
-	    is(seq_des_inf, "InferenceIncidExactFisher") &&
+	    inherits(seq_des_inf, "InferenceIncidExactFisher") &&
 	    !design_supports_exact_fisher_incidence(des_obj_for_exact)) {
 		message("          Skipping InferenceIncidExactFisher: design is not Fisher-exact compatible.")
 		return(invisible(NULL))
 	}
 	if (response_type == "incidence" &&
-	    is(seq_des_inf, "InferenceIncidExactBinomial") &&
+	    inherits(seq_des_inf, "InferenceIncidExactBinomial") &&
 	    !design_has_realized_matched_pair(des_obj_for_exact)) {
 		message("          Skipping InferenceIncidExactBinomial: design has no realized matched pairs.")
 		return(invisible(NULL))
 	}
 
-	is_zhang_inference = is(seq_des_inf, "InferenceIncidExactZhang")
+	is_zhang_inference = inherits(seq_des_inf, "InferenceIncidExactZhang")
 	zhang_valid_design = response_type == "incidence" &&
 		design_supports_zhang_incidence(des_obj_for_exact)
 	has_exact_inference = if (is_zhang_inference) zhang_valid_design else supports_exact_inference(seq_des_inf)
@@ -2926,8 +2951,8 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		}
 	}
 	skip_asymp = supports_exact_inference(seq_des_inf) &&
-		!is(seq_des_inf, "InferenceAsymp") &&
-		!is(seq_des_inf, "InferenceAsympLik")
+		!inherits(seq_des_inf, "InferenceAsymp") &&
+		!inherits(seq_des_inf, "InferenceAsympLik")
 
 	safe_call_family("estimate", "compute_estimate", seq_des_inf$compute_estimate())
 	if (should_run_test_family("asymp") && !skip_asymp){
@@ -3400,7 +3425,25 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	}
 }
 
+# Per-class RNG seed within a case (2026-11-14, for class-filtered cloud shards,
+# release_v1_1_0.md TODO-194). The case's data are drawn from current_case_seed
+# before any class runs; each class then reseeds from the case seed and its own
+# identity (class, label, model formula), so running only some classes of a case
+# (an INFERENCE_CLASS_FILTER shard) gives every class the same resampling stream
+# as the full loop. Before this a class's stream depended on which classes ran
+# before it in the same case. Rows from before and after this change come from
+# different streams: do not mix them expecting reproducibility.
+current_case_seed = NA_integer_
+comprehensive_class_seed = function(seq_des_inf, inference_label){
+	mf = tryCatch(seq_des_inf$.__enclos_env__$private$model_formula, error = function(e) NULL)
+	key = paste("comprehensive_class", current_case_seed, class(seq_des_inf)[1L],
+		if (is.null(inference_label)) "" else inference_label,
+		if (is.null(mf)) "" else paste(deparse(mf), collapse = " "), sep = "||")
+	coverage_truth_seed(key)
+}
+
 run_inference_checks = function(seq_des_inf, response_type, design_type, dataset_name, dataset_n_rows, dataset_n_cols, exhaustive_sweep = FALSE, inference_label = NULL){
+	if (!is.na(current_case_seed)) set.seed(comprehensive_class_seed(seq_des_inf, inference_label))
 	tryCatch(
 		run_inference_checks_impl(
 			seq_des_inf, response_type, design_type, dataset_name,
@@ -4796,7 +4839,7 @@ for (dataset_name in names(datasets_and_response_models)){
 		}
 		pending_beta_header <<- paste0("  === beta_T = [", beta_T, "] ===")
 		for (rep_curr in 1:Nrep) {
-			if (!is.na(REP_FILTER) && !identical(as.integer(rep_curr), REP_FILTER)) {
+			if (!anyNA(REP_FILTER) && !(as.integer(rep_curr) %in% REP_FILTER)) {
 				next
 			}
 			pending_rep_header <<- paste0("    === rep ", rep_curr, " of ", Nrep, " ===")
@@ -4820,7 +4863,8 @@ for (dataset_name in names(datasets_and_response_models)){
 						for (prob_T_loop in design_type_prob_T_values(design_type)) {
 						prob_T_curr <<- prob_T_loop
 						pending_design_header <<- paste0("        === design: ", design_type, if (prob_T_curr != 0.5) paste0(" (prob_T = ", prob_T_curr, ")") else "", " ===")
-						set.seed(comprehensive_case_seed(dataset_name, beta_T, rep_curr, response_type, model_formula, design_type, prob_T_curr))
+						current_case_seed <<- comprehensive_case_seed(dataset_name, beta_T, rep_curr, response_type, model_formula, design_type, prob_T_curr)
+						set.seed(current_case_seed)
 						tryCatch(
 							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
 							error = function(e){
