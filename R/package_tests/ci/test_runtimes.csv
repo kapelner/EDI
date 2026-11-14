@@ -133,6 +133,7 @@ R/package_tests/testthat_bulk/test-comprehensive-rand-ci-eligibility-reference.R
 R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-results-output-directory-override-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-comprehensive-study-planner-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-timeout-resume-cache-classification-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1234,6 +1235,7 @@ R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-aa-fork-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-worker-count-invariance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-adj-cat-exp-batch.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-adversarial-and-fault-injection.R,coverage,30,bootstrap
@@ -1404,6 +1406,7 @@ R/EDI/tests/testthat/test-logistic-plogis-safe.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-logrank-fused-martingale.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logrank-gehan-wilcox-general-censoring.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-miettinen-nurminen-ci-dispatch.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-mirai-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-mixture-submodel-formulas.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mle-km-summary-table.R,coverage,1.7,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-model-matrix-cache-covariate-invalidation.R,coverage,30,bootstrap
@@ -1671,6 +1674,7 @@ R/package_tests/testthat_bulk/test-comprehensive-rand-ci-eligibility-reference.R
 R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-results-output-directory-override-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-study-planner-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-timeout-resume-cache-classification-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
