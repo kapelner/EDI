@@ -2236,6 +2236,32 @@ range, since the plan files' internal numbering did not change.
   TODO-12; do not use its `MOVED` rows for release acceptance. Native-build
   verification remains a separate gate and requires explicit user
   permission; no build/install was performed for this review.
+  **Isolated-revert sweep, 2026-11-14 (run on request; awaiting owner review):**
+  pre = HEAD `9ff13ff64a02317f3843382d24edd058d8402de5` with only the
+  TODO-12 cache-reset change reverted at its four behaviour-changing sites
+  (randomization worker load/sync ×2, randomization-bootstrap, KK pass-through
+  bootstrap; `non_param_boot`/`param_boot` unchanged because their old field
+  sets equal the helper's); post = the same HEAD. Same installed `EDI.so`
+  (SHA-256 `b578850d4d70d817…`, md5 `a35340429230a9514e02f2b367be49fc`),
+  identical fixture and runner, `record --source`, `OMP_NUM_THREADS=1`.
+  Result: pre1 vs pre2 (noise floor) 242 entries, 236 bit-identical, 6 noise,
+  0 fixed, 0 `MOVED`; pre1 vs post1 242 entries, 238 bit-identical, 4 noise
+  (max |diff| 8.3e-17), 0 fixed, 0 `MOVED`. All four pre/post changes are in
+  the noise-floor set (KK mean-diff IVWC and Bai adjusted-t forced kernels).
+  Fixture changes needed for strict enumeration on current code (in
+  `test-reused-worker-resampling-nondegenerate.R`, uncommitted): skip classes
+  whose `inference_class_design_compatibility_reason()` rejects the fixture
+  design (Exact Fisher/binomial on Bernoulli), and give count fixtures 25%
+  structural zeros (the zero-inflated classes reject zero-free data since
+  5153c02c). The roster is 121 classes = 242 keys, both at 9ff13ff6 and at
+  4f7a6e4c under the same fixture rules, so the runner's 240-key constant is
+  stale (set to 242 in the scratch trees only). The runner's `compare` mode
+  also fails on its own (`RESAMPLING_NONDEGENERATE_R` not found, because it
+  does not load the fixture); the comparisons were run with the fixture
+  loaded first. Artifacts: `~/edi_regen/todo12_sweep_20261113T001141Z/out/`
+  (`pre1.rds` `8f830bee…`, `pre2.rds` `b174f3d2…`, `post1.rds` `1c5a2490…`,
+  `pre_isolated_revert.diff`, `fixture_sweep_fixes.diff`, both comparison
+  outputs, both roster listings).
   **Live `/tmp` snapshot inventory, 2026-10-21:** the historical paths
   `/tmp/edi-todo12-paired-53rKFp/before-1.rds`,
   `/tmp/edi-todo12-paired-53rKFp/before-2.rds`, and
