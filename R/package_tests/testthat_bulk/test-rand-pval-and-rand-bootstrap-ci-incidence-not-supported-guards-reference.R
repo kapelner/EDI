@@ -63,13 +63,24 @@ test_that("compute_rand_bootstrap_confidence_interval(): ANY incidence-response 
 	)
 
 	set.seed(4)
-	des2 <- DesignSeqOneByOneUrn$new(n = n, response_type = "incidence", verbose = FALSE)
-	for (i in seq_len(n)) des2$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	# A non-Bernoulli design reaches the same incidence guard. (This used the
+	# sequential Urn design until 2026-11-14, when the randomization bootstrap was
+	# excluded on adaptive sequential designs; Urn now refuses before the guard.)
+	des2 <- DesignFixediBCRD$new(n = n, response_type = "incidence", verbose = FALSE)
+	des2$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des2$assign_w_to_all_subjects()
 	des2$add_all_subject_responses(rbinom(n, 1, 0.5))
 	inf2 <- InferenceIncidRiskDiff$new(des2, verbose = FALSE)
 	expect_error(
 		inf2$compute_rand_bootstrap_confidence_interval(B = 50, show_progress = FALSE),
 		"Bootstrap randomization confidence intervals are not supported for incidence\\."
+	)
+	des3 <- DesignSeqOneByOneUrn$new(n = n, response_type = "incidence", verbose = FALSE)
+	for (i in seq_len(n)) des3$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des3$add_all_subject_responses(rbinom(n, 1, 0.5))
+	expect_error(
+		InferenceIncidRiskDiff$new(des3, verbose = FALSE)$compute_rand_bootstrap_confidence_interval(B = 50, show_progress = FALSE),
+		"not supported for DesignSeqOneByOne designs"
 	)
 })
 

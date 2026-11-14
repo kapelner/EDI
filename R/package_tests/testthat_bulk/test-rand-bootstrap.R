@@ -52,7 +52,7 @@ test_that("all concrete inference classes compose the BRT layer's capabilities",
 })
 
 test_that("BRT null distribution has B finite draws and is centered near zero under the null", {
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 0)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 0)
 	inf = new_brt_inference(des)
 	t0s = inf$approximate_rand_bootstrap_distribution_beta_hat_T(B = 61, show_progress = FALSE)
 	expect_length(t0s, 61)
@@ -65,7 +65,7 @@ test_that("BRT null distribution has B finite draws and is centered near zero un
 
 test_that("BRT p-value is valid and behaves correctly under null and alternative", {
 	for (design_gen in list(
-		function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt),
+		function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt),
 		function() DesignFixedBernoulli$new(response_type = "continuous", n = n_brt)
 	)) {
 		des_null = build_brt_design(design_gen, 0)
@@ -82,7 +82,7 @@ test_that("BRT p-value is valid and behaves correctly under null and alternative
 })
 
 test_that("BRT p-value is deterministic given the inference seed", {
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 1)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 1)
 	p1 = new_brt_inference(des, seed = 7L)$compute_rand_bootstrap_two_sided_pval(B = 41, show_progress = FALSE)
 	p2 = new_brt_inference(des, seed = 7L)$compute_rand_bootstrap_two_sided_pval(B = 41, show_progress = FALSE)
 	expect_identical(p1, p2)
@@ -123,7 +123,7 @@ test_that("BRT debug mode returns per-iteration diagnostics", {
 })
 
 test_that("BRT confidence interval covers the truth and inverts the test correctly", {
-	des_alt = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 3)
+	des_alt = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 3)
 	inf_alt = new_brt_inference(des_alt)
 	# B must satisfy 2/B < alpha or the p-value floor prevents bracketing the bounds
 	ci_alt = suppressMessages(inf_alt$compute_rand_bootstrap_confidence_interval(B = 101, pval_epsilon = 0.02, show_progress = FALSE))
@@ -142,7 +142,7 @@ test_that("BRT confidence interval covers the truth and inverts the test correct
 })
 
 test_that("BRT C++ batch kernel matches the per-iteration reference path exactly", {
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 1)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 1)
 	inf = new_brt_inference(des)
 	priv = inf$.__enclos_env__$private
 	set.seed(4)
@@ -165,7 +165,7 @@ test_that("BRT C++ batch kernel matches the per-iteration reference path exactly
 
 test_that("closed-form BRT CI: affine decomposition matches the reference iteration path", {
 	for (cls in list(InferenceAllSimpleAverageDiff, InferenceContinOLS)) {
-		des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 1.5)
+		des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 1.5)
 		inf = cls$new(des)
 		inf$num_cores = 1L
 		priv = inf$.__enclos_env__$private
@@ -200,7 +200,7 @@ test_that("closed-form BRT CI matches the bisection inversion", {
 })
 
 test_that("closed-form BRT CI works end-to-end for OLS with covariates", {
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 2)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(response_type = "continuous", n = n_brt), 2)
 	inf = InferenceContinOLS$new(des)
 	inf$.__enclos_env__$private$seed = 42L
 	inf$num_cores = 1L
@@ -283,7 +283,7 @@ test_that("BRT batch kernels match the per-iteration reference path across stati
 
 test_that("BRT reusable-worker fast path matches the standard path exactly", {
 	set.seed(310)
-	des = DesignSeqOneByOneKK14$new(response_type = "count", n = n_brt)
+	des = DesignSeqOneByOneBernoulli$new(response_type = "count", n = n_brt)
 	for (t in 1 : n_brt){
 		w_t = des$add_one_subject_to_experiment_and_assign(X_brt[t, , drop = FALSE])
 		lam = exp(0.3 + 0.5 * X_brt$x1[t] + 0.5 * (w_t == 1))
@@ -308,7 +308,7 @@ test_that("BRT reusable-worker fast path matches the standard path exactly", {
 
 test_that("SMC short-circuit returns same p-value when full distribution is already cached", {
 	set.seed(5501)
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 0)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 0)
 	inf = new_brt_inference(des)
 	# Pre-compute full distribution at delta = 0
 	draws = inf$.__enclos_env__$private$generate_rand_bootstrap_draws(61L, materialize_w = TRUE)
@@ -325,7 +325,7 @@ test_that("SMC short-circuit returns same p-value when full distribution is alre
 
 test_that("SMC stops after one batch when n_valid >= min_draws and band clears (null clearly not rejected)", {
 	set.seed(5502)
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 0)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 0)
 	inf = new_brt_inference(des, seed = NULL)
 	draws = inf$.__enclos_env__$private$generate_rand_bootstrap_draws(201L, materialize_w = TRUE)
 	# mc_min_draws = 0 means we can stop after the first batch of 100
@@ -349,7 +349,7 @@ test_that("SMC stops after one batch when n_valid >= min_draws and band clears (
 
 test_that("SMC prefix p-value from first half of draws matches direct computation on same prefix", {
 	set.seed(5503)
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 0)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 0)
 	inf = new_brt_inference(des, seed = NULL)
 	B = 100L
 	half = 50L
@@ -369,7 +369,7 @@ test_that("SMC prefix p-value from first half of draws matches direct computatio
 
 test_that("SMC enabled during CI bisection produces same bounds as SMC disabled (within MC tolerance)", {
 	set.seed(5504)
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 1.5)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 1.5)
 	inf = new_brt_inference(des, seed = 77L)
 	ci_full = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, pval_epsilon = 0.01, show_progress = FALSE)
 	# SMC is auto-enabled inside compute_rand_bootstrap_confidence_interval, so this is already
@@ -381,7 +381,7 @@ test_that("SMC enabled during CI bisection produces same bounds as SMC disabled 
 
 test_that("InferenceContinLin has compute_rand_bootstrap_ci_affine_coefs hook", {
 	set.seed(6101)
-	des = DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous")
+	des = DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous")
 	for (t in 1 : n_brt) {
 		w_t = des$add_one_subject_to_experiment_and_assign(X_brt[t, , drop = FALSE])
 		des$add_one_subject_response(t, 0.4 * X_brt$x1[t] + 2 * (w_t == 1) + rnorm(1))
@@ -392,7 +392,7 @@ test_that("InferenceContinLin has compute_rand_bootstrap_ci_affine_coefs hook", 
 
 test_that("Lin affine coefs have finite A and c with mean(c) near 1", {
 	set.seed(6102)
-	des = DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous")
+	des = DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous")
 	for (t in 1 : n_brt) {
 		w_t = des$add_one_subject_to_experiment_and_assign(X_brt[t, , drop = FALSE])
 		des$add_one_subject_response(t, 0.4 * X_brt$x1[t] + 2 * (w_t == 1) + rnorm(1))
@@ -411,7 +411,7 @@ test_that("Lin affine coefs have finite A and c with mean(c) near 1", {
 test_that("Lin closed-form CI is finite and covers true effect", {
 	set.seed(6103)
 	effect = 1.8
-	des = DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous")
+	des = DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous")
 	for (t in 1 : n_brt) {
 		w_t = des$add_one_subject_to_experiment_and_assign(X_brt[t, , drop = FALSE])
 		des$add_one_subject_response(t, 0.5 * X_brt$x1[t] + effect * (w_t == 1) + rnorm(1))
@@ -427,7 +427,7 @@ test_that("Lin closed-form CI is finite and covers true effect", {
 test_that("Lin affine CI no-covariate case equals mean-diff closed-form CI (same seed, same draws)", {
 	set.seed(6104)
 	# Rebuild from summary data so both classes see identical design
-	des = DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous")
+	des = DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous")
 	for (t in 1 : n_brt) {
 		w_t = des$add_one_subject_to_experiment_and_assign(X_brt[t, , drop = FALSE])
 		des$add_one_subject_response(t, 2 * (w_t == 1) + rnorm(1))
@@ -445,7 +445,7 @@ test_that("Lin affine CI no-covariate case equals mean-diff closed-form CI (same
 
 test_that("SMC returns NULL and falls back to full path when draws lack w_b", {
 	set.seed(5505)
-	des = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 0)
+	des = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 0)
 	inf = new_brt_inference(des, seed = NULL)
 	draws_no_w = inf$.__enclos_env__$private$generate_rand_bootstrap_draws(61L, materialize_w = FALSE)
 	y0 = inf$.__enclos_env__$private$y
@@ -463,8 +463,8 @@ test_that("SMC returns NULL and falls back to full path when draws lack w_b", {
 # ── Studentized BRT tests ─────────────────────────────────────────────────────
 
 test_that("studentized BRT p-value is finite, in [0,1], and larger under null than alternative", {
-	des_null = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 0)
-	des_alt  = build_brt_design(function() DesignSeqOneByOneKK14$new(n = n_brt, response_type = "continuous"), effect = 4)
+	des_null = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 0)
+	des_alt  = build_brt_design(function() DesignSeqOneByOneBernoulli$new(n = n_brt, response_type = "continuous"), effect = 4)
 	inf_null = new_brt_inference(des_null)
 	inf_alt  = new_brt_inference(des_alt)
 	p_null = inf_null$compute_rand_bootstrap_two_sided_pval(B = 101, show_progress = FALSE, type = "studentized")
@@ -507,7 +507,7 @@ test_that("studentized BRT CI covers true effect and both bounds are finite", {
 	truth = 1.5
 	covered_stud = covered_van = logical(n_rep)
 	for (r in seq_len(n_rep)) {
-		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		des = DesignSeqOneByOneBernoulli$new(n = 20L, response_type = "continuous")
 		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
@@ -586,7 +586,7 @@ test_that("symmetric-percentile-t BRT CI covers true effect", {
 	truth = 1.5
 	covered = logical(12L)
 	for (r in seq_len(12L)) {
-		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		des = DesignSeqOneByOneBernoulli$new(n = 20L, response_type = "continuous")
 		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
@@ -626,7 +626,7 @@ test_that("smoothed BRT CI covers true effect and both bounds are finite", {
 	truth = 1.5
 	covered = logical(12L)
 	for (r in seq_len(12L)) {
-		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		des = DesignSeqOneByOneBernoulli$new(n = 20L, response_type = "continuous")
 		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
@@ -704,13 +704,21 @@ test_that("CoxPH BRT fast kernel uses compute_fast_rand_bootstrap_distr (not wor
 
 # --- Weibull marginal BRT fast kernel ---
 
+# KK Weibull marginal needs a KK matched-pairs design. BRT is not allowed on the
+# sequential KK14 design (owner ruling 2026-11-14: the bootstrap is unproven on KK
+# designs), so these use the fixed matched-pairs design DesignFixedBinaryMatch.
+make_wb_binary_match_des = function(n, log_hr = 0){
+	des = DesignFixedBinaryMatch$new(response_type = "survival", n = n, m = rep(seq_len(n / 2L), each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	w = as.vector(replicate(n / 2L, sample(0:1)))
+	des$assign_w_to_all_subjects(w)
+	des$add_all_subject_responses(rexp(n, ifelse(w == 1L, exp(-log_hr), 1.0)))
+	des
+}
+
 test_that("Weibull marginal BRT fast kernel: pval finite under null", {
 	set.seed(41)
-	des = DesignSeqOneByOneKK14$new(n = 20, response_type = "survival")
-	for (t in seq_len(20)) {
-		w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-		des$add_one_subject_response(t, rexp(1))
-	}
+	des = make_wb_binary_match_des(20L)
 	inf = InferenceSurvivalKKWeibullMarginal$new(des)
 	inf$num_cores = 1L
 	pval = inf$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 51, show_progress = FALSE)
@@ -720,20 +728,12 @@ test_that("Weibull marginal BRT fast kernel: pval finite under null", {
 
 test_that("Weibull marginal BRT fast kernel: pval under null >= pval under strong alternative", {
 	set.seed(42)
-	# n_wb = 20 made this a genuinely flaky single-realization comparison
+	# (Seed sweep below was on DesignSeqOneByOneKK14 before 2026-11-14.) n_wb = 20 made this a genuinely flaky single-realization comparison
 	# (~27% failure rate swept across seeds 40-50, purely from sampling
 	# noise at that sample size, not a kernel bug): the correct ordering
 	# held reliably across seeds 40-55 at n_wb = 40 instead.
 	n_wb = 40
-	make_wb_des = function(log_hr){
-		des = DesignSeqOneByOneKK14$new(n = n_wb, response_type = "survival")
-		for (t in seq_len(n_wb)) {
-			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-			rate = if (w_t == 1) exp(-log_hr) else 1.0
-			des$add_one_subject_response(t, rexp(1, rate))
-		}
-		des
-	}
+	make_wb_des = function(log_hr) make_wb_binary_match_des(n_wb, log_hr)
 	inf_null = InferenceSurvivalKKWeibullMarginal$new(make_wb_des(0));   inf_null$num_cores = 1L
 	inf_alt  = InferenceSurvivalKKWeibullMarginal$new(make_wb_des(1.5)); inf_alt$num_cores = 1L
 	pval_null = inf_null$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 101, show_progress = FALSE)

@@ -1,0 +1,469 @@
+name: comprehensive-study
+
+# Cloud comprehensive_tests.R campaign (release_v1_1_0.md TODO-194; owner rulings 2026-11-13/14):
+# every inference class on the real datasets of comprehensive_tests.R, 50 reps, at the commit a
+# calibration campaign was pinned to. calibration-study.yml's last wave dispatches it when that
+# campaign completes; workflow_dispatch can start or continue one by hand.
+#
+# A campaign runs in WAVES, like the calibration study: each run plans the next --wave-size jobs
+# of unfinished pieces (R/package_tests/cloud/plan_comprehensive_study.R; a piece is one response
+# type x dataset x design x class x beta_T x rep), runs them, merges the finished ones into the
+# campaign's ledger, publishes, and dispatches the next run until nothing is left. The last wave
+# joins all rows, runs the results audit and regenerates the path audits, compares them with the
+# ones committed at the campaign's commit (compare_path_audits.R, FDR-controlled), and publishes.
+#
+# Where things go:
+#   calibration-results branch, comprehensive/campaigns/<C>/   campaign.env, runs.txt, status.txt,
+#       ledger.csv, discovered.csv, README.md, rows_summary.csv, costs.csv, audit/ (last wave)
+#   prerelease `comprehensive-<C>` (tag on the campaign's commit)  raw rows and logs, xz:
+#       rows-<response>-wave-NNN.csv.xz and logs-wave-NNN.tar.xz while running;
+#       rows-<response>.csv.xz once complete (the per-wave files are then deleted)
+# The raw rows (~130-250 MB) stay off the branch because every publish rebuilds the branch.
+#
+# Shares the calibration study's concurrency group and runner rules (free hosted runners, owner
+# ruling 2026-11-09): max-parallel 16, shards planned to ~25 min of work (a few single pieces run
+# longer), shards step aside while a nightly.yml run is active, and no new wave starts while one
+# is. Never a required check. A finished campaign goes red only on a results-audit finding or a
+# path-audit worsening, or cells whose estimates do not vary across reps (annotation "Comprehensive gate"); any other red X is "Comprehensive CI bug".
+
+on:
+  workflow_dispatch:
+    inputs:
+      campaign:
+        description: 'Campaign id to continue (blank = start a new campaign)'
+        default: ''
+      sha:
+        description: 'Commit for a new campaign (blank = this run''s commit)'
+        default: ''
+
+concurrency:
+  group: calibration-study
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RESULTS_BRANCH: calibration-results
+  REPS: 50
+  WAVE_SIZE: 256
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      campaign: ${{ steps.c.outputs.campaign }}
+      sha: ${{ steps.c.outputs.sha }}
+      wave: ${{ steps.c.outputs.wave }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Start or continue a campaign
+        id: c
+        run: |
+          git clone -q --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results || mkdir -p results
+          c="${{ inputs.campaign }}"
+          if [ -z "$c" ]; then
+            sha="${{ inputs.sha }}"; [ -n "$sha" ] || sha="$GITHUB_SHA"
+            # A calibration campaign pinned before the cloud harness existed (2026-11-14) cannot run
+            # it: use this run's commit instead, and record both.
+            if ! git cat-file -e "${sha}:R/package_tests/cloud/plan_comprehensive_study.R" 2>/dev/null; then
+              echo "::warning title=Comprehensive study::commit ${sha::12} predates the cloud harness; the campaign runs at ${GITHUB_SHA::12} instead."
+              requested="$sha"; sha="$GITHUB_SHA"
+            fi
+            c="$(date -u +%Y-%m-%d)-${sha::8}"
+            d="results/comprehensive/campaigns/$c"; mkdir -p "$d"
+            { echo "SHA=$sha"; echo "REQUESTED_SHA=${requested:-$sha}"; echo "STARTED=$(date -u +%Y-%m-%dT%H:%MZ)"; echo "REPS=$REPS"; } > "$d/campaign.env"
+          else
+            d="results/comprehensive/campaigns/$c"
+            [ -f "$d/campaign.env" ] || { echo "::error title=Comprehensive CI bug::unknown campaign $c"; exit 1; }
+            sha="$(grep '^SHA=' "$d/campaign.env" | cut -d= -f2)"
+          fi
+          wave=$(( $( [ -f "$d/runs.txt" ] && wc -l < "$d/runs.txt" || echo 0 ) + 1 ))
+          echo "campaign=$c" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"; echo "wave=$wave" >> "$GITHUB_OUTPUT"
+          echo "Campaign $c at ${sha::12}, wave $wave"
+          cp -r "$d" campaign
+      - uses: actions/upload-artifact@v7
+        with:
+          name: comp-campaign
+          path: campaign
+          retention-days: 7
+
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EDI_PORTABLE: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - id: cache
+        uses: actions/cache@v5
+        with:
+          path: .edi-install-scratch
+          key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: |
+            any::processx
+            any::PTE
+            any::qgam
+            any::mlbench
+            any::AppliedPredictiveModeling
+            any::gridExtra
+            any::profvis
+            any::devtools
+            any::R.utils
+            any::digest
+      - name: Install the campaign's commit
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .edi-install-scratch
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library=.edi-install-scratch R/EDI
+      - name: Flag a bug in the check
+        if: failure()
+        run: echo "::error title=Comprehensive CI bug::building EDI at the campaign's commit failed."
+
+  wave:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    outputs:
+      jobs: ${{ steps.p.outputs.jobs }}
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          sparse-checkout: R/package_tests/cloud
+      - uses: actions/download-artifact@v8
+        with:
+          name: comp-campaign
+          path: campaign
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - run: Rscript -e 'install.packages("data.table")'
+      # Costs: the newest finished campaign's measured table when there is one, the committed
+      # table (from a local regeneration) for anything it lacks.
+      - id: p
+        run: |
+          git clone -q --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results || mkdir -p results
+          prev="$(for f in results/comprehensive/campaigns/*/status.txt; do [ -f "$f" ] && [ "$(cat "$f")" = complete ] && dirname "$f"; done | sort | tail -1)"
+          committed=R/package_tests/cloud/comprehensive_study_costs.csv
+          if [ -n "$prev" ] && [ -f "$prev/costs.csv" ]; then costs="$prev/costs.csv"; fb="$committed"; else costs="$committed"; fb=""; fi
+          echo "costs: $costs${fb:+ (fallback $fb)}"
+          Rscript R/package_tests/cloud/plan_comprehensive_study.R --costs "$costs" ${fb:+--fallback-costs "$fb"} \
+            --discovered campaign/discovered.csv --ledger campaign/ledger.csv --reps "$REPS" --wave-size "$WAVE_SIZE" \
+            --out-plan plan.csv --out-matrix matrix.json | tee planner.out
+          grep -E '^(jobs|remaining_pieces)=' planner.out >> "$GITHUB_OUTPUT"
+          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: comp-plan
+          path: plan.csv
+          retention-days: 7
+      - name: Flag a bug in the check
+        if: failure()
+        run: echo "::error title=Comprehensive CI bug::planning the wave failed."
+
+  shards:
+    needs: [plan, wave]
+    if: needs.wave.outputs.jobs != '0'
+    runs-on: ubuntu-latest
+    # ~25-30 min of planned work (the shard script starts no new call after 30 min), plus setup and
+    # a call in flight; a single piece can run ~70 min on a hosted runner.
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.wave.outputs.matrix) }}
+    permissions:
+      contents: read
+      actions: read   # the nightly.yml check in the first step
+    env:
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+    steps:
+      # Step aside while a nightly.yml run is queued or in progress (as calibration shards do): no
+      # work, no upload, so the job is re-planned next wave. Fails open.
+      - id: yield
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n="$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly.yml --limit 20 --json status \
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+            echo "go=false" >> "$GITHUB_OUTPUT"; echo "::notice title=Comprehensive yield::nightly.yml is active; job ${{ matrix.job }} steps aside."
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.yield.outputs.go == 'true'
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: actions/cache/restore@v5
+        if: steps.yield.outputs.go == 'true'
+        with:
+          path: .edi-install-scratch
+          key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
+          fail-on-cache-miss: true
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.yield.outputs.go == 'true'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.yield.outputs.go == 'true'
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: |
+            any::processx
+            any::PTE
+            any::qgam
+            any::mlbench
+            any::AppliedPredictiveModeling
+            any::gridExtra
+            any::profvis
+            any::devtools
+            any::R.utils
+            any::digest
+      - uses: actions/download-artifact@v8
+        if: steps.yield.outputs.go == 'true'
+        with:
+          name: comp-plan
+          path: .
+      - name: Run job ${{ matrix.job }}
+        if: steps.yield.outputs.go == 'true'
+        run: |
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch" >> "$GITHUB_ENV"
+          R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch" Rscript R/package_tests/cloud/run_comprehensive_shard.R \
+            --plan plan.csv --job "${{ matrix.job }}" --out-dir "out" --reps "$REPS" --deadline-minutes 30 --repo .
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.yield.outputs.go == 'true'
+        with:
+          name: comp-shard-${{ matrix.job }}
+          path: out
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Flag a bug in the check
+        if: failure()
+        run: echo "::error title=Comprehensive CI bug::job ${{ matrix.job }} failed (a call's own error is a row status, never a failed job)."
+
+  analyze:
+    needs: [plan, wave, shards]
+    if: always() && needs.plan.result == 'success' && needs.wave.result == 'success' && needs.wave.outputs.jobs != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    outputs:
+      complete: ${{ steps.replan.outputs.complete }}
+    env:
+      C: ${{ needs.plan.outputs.campaign }}
+      WAVE: ${{ needs.plan.outputs.wave }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: comp-campaign
+          path: campaign
+      - uses: actions/download-artifact@v8
+        with:
+          name: comp-plan
+          path: .
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: comp-shard-*
+          path: wave
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: |
+            any::processx
+            any::PTE
+            any::qgam
+            any::mlbench
+            any::AppliedPredictiveModeling
+            any::gridExtra
+            any::profvis
+            any::devtools
+            any::R.utils
+            any::digest
+      - name: Merge the wave
+        run: |
+          mkdir -p wave
+          Rscript R/package_tests/cloud/merge_comprehensive_study_wave.R --wave-dir wave --plan plan.csv \
+            --campaign-dir campaign --wave "$WAVE"
+          echo "${{ github.run_id }}" >> campaign/runs.txt
+      - name: Plan what is left
+        id: replan
+        run: |
+          git clone -q --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results || mkdir -p results
+          prev="$(for f in results/comprehensive/campaigns/*/status.txt; do [ -f "$f" ] && [ "$(cat "$f")" = complete ] && dirname "$f"; done | sort | tail -1)"
+          committed=R/package_tests/cloud/comprehensive_study_costs.csv
+          if [ -n "$prev" ] && [ -f "$prev/costs.csv" ]; then costs="$prev/costs.csv"; fb="$committed"; else costs="$committed"; fb=""; fi
+          Rscript R/package_tests/cloud/plan_comprehensive_study.R --costs "$costs" ${fb:+--fallback-costs "$fb"} \
+            --discovered campaign/discovered.csv --ledger campaign/ledger.csv --reps "$REPS" --wave-size "$WAVE_SIZE" \
+            --out-plan next.csv --out-matrix next.json > replan.out
+          left="$(grep '^remaining_pieces=' replan.out | cut -d= -f2)"
+          if [ "$left" = 0 ]; then echo complete > campaign/status.txt; echo "complete=true" >> "$GITHUB_OUTPUT"
+          else echo running > campaign/status.txt; echo "complete=false" >> "$GITHUB_OUTPUT"; fi
+          echo "PROGRESS=wave $WAVE: $left pieces left" >> "$GITHUB_ENV"
+      # Last wave only: every wave's rows from the release, joined; then the audits.
+      - name: Fetch every wave's rows
+        if: steps.replan.outputs.complete == 'true'
+        run: |
+          mkdir -p dl
+          gh release download "comprehensive-$C" -R "$GITHUB_REPOSITORY" -p 'rows-*-wave-*.csv.xz' -D dl || true
+          for f in campaign/rows/*/wave-*.csv.xz; do [ -f "$f" ] && cp "$f" "dl/rows-$(basename "$(dirname "$f")")-$(basename "$f")"; done
+          for f in dl/rows-*-wave-*.csv.xz; do
+            b="$(basename "$f" .csv.xz)"; rt="$(echo "$b" | sed -E 's/^rows-(.*)-wave-[0-9]+$/\1/')"; w="$(echo "$b" | sed -E 's/^.*-(wave-[0-9]+)$/\1/')"
+            mkdir -p "campaign/rows/$rt"; cp "$f" "campaign/rows/$rt/$w.csv.xz"
+          done
+          ls campaign/rows/*
+      - uses: actions/cache/restore@v5
+        if: steps.replan.outputs.complete == 'true'
+        with:
+          path: .edi-install-scratch
+          key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
+          fail-on-cache-miss: true
+      - name: Join the rows and run the audits
+        if: steps.replan.outputs.complete == 'true'
+        env:
+          R_LIBS: ${{ github.workspace }}/.edi-install-scratch
+        run: |
+          set -uo pipefail
+          mkdir -p campaign/audit
+          Rscript R/package_tests/cloud/finalize_comprehensive_study.R --campaign-dir campaign --results-dir R/package_tests
+          echo "::group::results audit"
+          Rscript R/package_tests/audit_comprehensive_results.R --force > campaign/audit/results_audit.txt 2>&1; echo "$?" > campaign/audit/results_audit.exit
+          tail -40 campaign/audit/results_audit.txt; echo "::endgroup::"
+          echo "::group::path audits"
+          Rscript R/package_tests/path_audits_source.R > campaign/audit/path_audits_regen.txt 2>&1; echo "$?" > campaign/audit/path_audits_regen.exit
+          Rscript R/package_tests/compare_path_audits.R --baseline-ref "${{ needs.plan.outputs.sha }}" --new-dir R/package_tests \
+            --out-dir campaign/audit > campaign/audit/path_audits_compare.txt 2>&1; echo "$?" > campaign/audit/path_audits_compare.exit
+          cp R/package_tests/path_audits.html R/package_tests/path_audits_nonestimability_defaults.csv campaign/audit/ 2>/dev/null || true
+          tail -30 campaign/audit/path_audits_compare.txt; echo "::endgroup::"
+      - name: Write the README
+        if: always() && steps.replan.outcome == 'success'
+        run: |
+          d=campaign; f="$d/README.md"
+          {
+            echo "# Comprehensive study campaign $C"
+            echo
+            echo "Commit \`$(grep '^SHA=' $d/campaign.env | cut -d= -f2)\`, started $(grep '^STARTED=' $d/campaign.env | cut -d= -f2), $REPS reps. Status: **$(cat $d/status.txt)** ($PROGRESS)."
+            echo
+            echo "Raw rows and logs: prerelease [comprehensive-$C](https://github.com/${{ github.repository }}/releases/tag/comprehensive-$C)."
+            if [ -f "$d/rows_summary.csv" ]; then echo; echo "## Rows"; echo; echo '```'; cat "$d/rows_summary.csv"; echo '```'; fi
+            if [ -f "$d/audit/results_audit.exit" ]; then
+              echo; echo "## Audits"; echo
+              echo "- results audit: exit $(cat $d/audit/results_audit.exit)"
+              echo "- estimates varying across reps: $(cat $d/audit/rep_variation.count 2>/dev/null || echo '?') cell(s) fail (audit/rep_variation_failures.csv)"
+              echo "- path audit regeneration: exit $(cat $d/audit/path_audits_regen.exit)"
+              echo "- path audit comparison vs the campaign's commit: $(grep -E '^RESULT' $d/audit/path_audits_compare.txt || echo "exit $(cat $d/audit/path_audits_compare.exit)")"
+            fi
+          } > "$f"
+          cat "$f" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.replan.outcome == 'success'
+        with:
+          name: comp-results
+          path: campaign
+          retention-days: 7
+      # The only step allowed to fail for a reason other than a bug: a finished campaign whose audits
+      # found something (a new results-audit finding or an unallowlisted path-audit worsening).
+      - name: Gate verdict
+        if: steps.replan.outputs.complete == 'true'
+        run: |
+          ra="$(cat campaign/audit/results_audit.exit 2>/dev/null || echo 2)"; pc="$(cat campaign/audit/path_audits_compare.exit 2>/dev/null || echo 2)"
+          pr="$(cat campaign/audit/path_audits_regen.exit 2>/dev/null || echo 2)"
+          if [ "$pr" != 0 ] || [ "$pc" -gt 1 ]; then echo "::error title=Comprehensive CI bug::path audit regeneration or comparison failed (exit $pr / $pc)"; exit 1; fi
+          rv="$(cat campaign/audit/rep_variation.count 2>/dev/null || echo 0)"
+          if [ "$ra" != 0 ] || [ "$pc" = 1 ] || [ "$rv" != 0 ]; then
+            echo "::error title=Comprehensive gate::campaign $C: results audit exit $ra, path-audit comparison exit $pc, $rv cell(s) whose estimates do not vary across reps (see comprehensive/campaigns/$C/audit/ on $RESULTS_BRANCH)"; exit 1
+          fi
+          echo "Campaign $C complete: audits pass."
+
+  publish:
+    needs: [plan, wave, analyze]
+    if: >-
+      !cancelled() && needs.plan.result == 'success' && needs.wave.outputs.jobs != '0' &&
+      contains(fromJSON('["success","failure"]'), needs.analyze.result)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # results branch and the campaign's prerelease
+      actions: write    # dispatch the next wave
+    env:
+      GH_TOKEN: ${{ github.token }}
+      C: ${{ needs.plan.outputs.campaign }}
+      SHA: ${{ needs.plan.outputs.sha }}
+      WAVE: ${{ needs.plan.outputs.wave }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: comp-results
+          path: handoff
+      # Raw rows and logs go to the campaign's prerelease, never to the branch.
+      - name: Upload rows and logs to the campaign's prerelease
+        run: |
+          tag="comprehensive-$C"
+          gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" -R "$GITHUB_REPOSITORY" --target "$SHA" --prerelease \
+              --title "Comprehensive study $C" --notes "Raw comprehensive_tests.R rows and logs of campaign $C (commit $SHA). Summary: branch $RESULTS_BRANCH, comprehensive/campaigns/$C/."
+          up=()
+          for f in handoff/rows/*/wave-*.csv.xz; do [ -f "$f" ] || continue; n="$RUNNER_TEMP/rows-$(basename "$(dirname "$f")")-$(basename "$f")"; cp "$f" "$n"; up+=("$n"); done
+          for f in handoff/rows/*.csv.xz; do [ -f "$f" ] || continue; n="$RUNNER_TEMP/rows-$(basename "$f")"; cp "$f" "$n"; up+=("$n"); done
+          for f in handoff/logs/*.tar.xz; do [ -f "$f" ] || continue; n="$RUNNER_TEMP/logs-$(basename "$f")"; cp "$f" "$n"; up+=("$n"); done
+          [ "${#up[@]}" -gt 0 ] && gh release upload "$tag" -R "$GITHUB_REPOSITORY" --clobber "${up[@]}"
+          # Complete: the joined per-response files replace the per-wave ones.
+          if ls handoff/rows/*.csv.xz >/dev/null 2>&1; then
+            for a in $(gh release view "$tag" -R "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -E '^rows-.*-wave-[0-9]+\.csv\.xz$'); do
+              gh release delete-asset "$tag" "$a" -R "$GITHUB_REPOSITORY" -y
+            done
+          fi
+          rm -rf handoff/rows handoff/logs
+      - name: Publish to the results branch
+        run: |
+          git clone -q --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results || mkdir -p results
+          mkdir -p results/comprehensive/campaigns
+          rm -rf "results/comprehensive/campaigns/$C"
+          cp -r handoff "results/comprehensive/campaigns/$C"
+          cd results
+          rm -rf .git
+          git init -q -b "$RESULTS_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "EDI comprehensive study: campaign $C, wave $WAVE"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$RESULTS_BRANCH"
+      # Wave-boundary pause, as in calibration-study.yml: no new wave while nightly.yml runs; its
+      # resume-calibration job restarts the campaign. Fails open.
+      - name: Dispatch the next wave
+        if: needs.analyze.outputs.complete != 'true'
+        run: |
+          n="$(gh run list -R "${{ github.repository }}" --workflow nightly.yml --limit 20 --json status \
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+            echo "::notice title=Comprehensive paused::nightly.yml is active; campaign $C resumes when it ends."; exit 0
+          fi
+          gh workflow run comprehensive-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
+      - name: Flag a bug in the check
+        if: failure()
+        run: echo "::error title=Comprehensive CI bug::publishing (prerelease, results branch or next-wave dispatch) failed."

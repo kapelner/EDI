@@ -963,6 +963,7 @@ R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-he
 R/package_tests/testthat_bulk/test-randomization-pval-from-t0s-too-few-finite-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-sequential-mc-pval-stopping-rule-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-worker-loading-sync-and-iteration-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-read-csv-fast-compressed-without-r-utils.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-register-design-and-inference-class-already-registered-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2500,6 +2501,7 @@ R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-he
 R/package_tests/testthat_bulk/test-randomization-pval-from-t0s-too-few-finite-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-sequential-mc-pval-stopping-rule-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-worker-loading-sync-and-iteration-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-read-csv-fast-compressed-without-r-utils.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-register-design-and-inference-class-already-registered-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,coverage,240,bootstrap

@@ -6,11 +6,11 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
-## [1.0.5] - Unreleased
+## [1.0.4] - Unreleased
 
 Kernel-level changes in `R/EDI/src/*.cpp` since the `py-v1.0.2` tag, so per
 the versioning rule above this is a real version, not a `.postN`. It tracks
-the 1.0.5 correctness release described in `R/EDI/NEWS.md`; the Python
+the 1.0.4 correctness release described in `R/EDI/NEWS.md`; the Python
 bindings compile the same kernel sources and inherit these fixes verbatim.
 Fixes that live only in the R layer are described in `R/EDI/NEWS.md` and do
 not apply here. Seeded output is unchanged: the portable Fisher-Yates shuffle

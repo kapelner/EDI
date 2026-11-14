@@ -162,6 +162,19 @@
 
 suppressPackageStartupMessages(library(data.table))
 
+# fread_unescaped() (R/package_tests/read_csv_fast.R): fread() with data.table
+# 1.18.4's doubled-quote bug undone, so reading results and writing them back
+# never doubles the quotes in a field again (2026-11-14). Loaded from the checkout.
+if (!exists("fread_unescaped", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("fread_unescaped", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
+
 args = commandArgs(trailingOnly = TRUE)
 write_baseline = "--write-baseline" %in% args
 force_run = "--force" %in% args || write_baseline
@@ -329,7 +342,7 @@ null_truth = function(class, beta_T) {
 audit_one = function(path, rt) {
 	need = c("inference_class", "function_run", "status", "result", "result_1", "result_2",
 		"beta_T", "coverage_truth", "beta_T_in_confidence_interval", "error_message")
-	dt = fread(path, select = need, showProgress = FALSE)
+	dt = fread_unescaped(path, select = need, showProgress = FALSE)
 	dt[, `:=`(class = bare_class(inference_class), formula = extract_model_formula(inference_class))]
 	out = list()
 
@@ -599,7 +612,7 @@ if (write_baseline) {
 }
 
 # NB: data.table(key = ...) would set the table's sort key, not a column named "key".
-baseline = if (file.exists(baseline_path)) fread(baseline_path) else setnames(data.table(character()), "key")
+baseline = if (file.exists(baseline_path)) fread_unescaped(baseline_path) else setnames(data.table(character()), "key")
 # Defensive against reading an older baseline written before the `formula`
 # column existed: without this, `resolved[, .(..., formula, ...)]` below
 # would silently resolve the bare symbol `formula` to base R's formula()

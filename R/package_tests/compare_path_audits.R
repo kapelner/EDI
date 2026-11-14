@@ -19,11 +19,23 @@
 #     became_slow        attempted -> SLOW (the path is no longer exercised)
 #     lost_observations  observed rate -> "unknown" (no result rows any more)
 #     estimability_drop  observed estimable rate fell by more than --rate-tol
-#                        (only when both sides have at least --min-n rows),
-#                        or fell to exactly 0% from above 0%
+#                        AND the fall is significant (one-sided Fisher exact
+#                        test, Benjamini-Hochberg q <= --fdr-q across the
+#                        compared cells; only when both sides have at least
+#                        --min-n rows), or fell to exactly 0% from above 0%
 #   defaults CSV rows, keyed by (base_class, function_run):
-#     row_removed / became_design_refused / nonestimable_rate_up (> --rate-tol,
-#     both n >= --min-n, or newly 100% nonestimable)
+#     row_removed / became_design_refused / nonestimable_rate_up (> --rate-tol
+#     and significant as above, both n >= --min-n, or newly 100% nonestimable)
+#
+# Why the test (v1.1.0 TODO-194 plan, Phase 3b; owner request 2026-11-14): a
+# fixed 2-point tolerance is far below sampling noise at these row counts (at
+# n = 30 and a 90% rate the standard error is about 5.5 points), so two
+# regenerations of the same commit could fail the check. --rate-tol stays as a
+# practical-size floor. Rates are turned back into counts as round(rate * n).
+# The Benjamini-Hochberg family is every compared cell (or defaults row) with
+# both rates known and both n >= --min-n, cells and defaults CSV separately;
+# the mirror-image gains are tested the same way, so they are not reported on
+# noise either. The comparison CSVs carry p_value and q_value.
 # The mirror-image transitions are reported as improved; any other state
 # change (e.g. NTS <-> not implemented) is "changed" and never fails.
 #
@@ -63,7 +75,7 @@
 # Usage (from anywhere):
 #   Rscript R/package_tests/compare_path_audits.R \
 #     [--baseline-ref HEAD] [--baseline-dir DIR] [--new-dir R/package_tests] \
-#     [--allowlist FILE] [--rate-tol 0.02] [--min-n 30] [--out-dir DIR]
+#     [--allowlist FILE] [--rate-tol 0.02] [--min-n 30] [--fdr-q 0.05] [--out-dir DIR]
 # --baseline-dir reads the baseline files from a directory instead of git.
 # --out-dir writes path_audits_compare_{cells,defaults}.csv (every non-
 # unchanged row with its classification and allowlist id).
@@ -274,9 +286,10 @@ pa_classify_cell = function(b, nw, b_rate, n_rate, b_n, n_n, rate_tol, min_n) {
 		d = n_rate - b_rate
 		if (n_rate == 0 && b_rate > 0) return(c("worse", "estimability_drop"))
 		big = !is.na(b_n) && !is.na(n_n) && b_n >= min_n && n_n >= min_n
-		if (big && d < -rate_tol) return(c("worse", "estimability_drop"))
+		# Beyond --rate-tol on enough rows: decided by the rate test (pa_resolve_rate_tests).
+		if (big && d < -rate_tol) return(c("pending", "estimability_drop"))
 		if (b_rate == 0 && n_rate > 0) return(c("improved", "estimability_gain"))
-		if (big && d > rate_tol) return(c("improved", "estimability_gain"))
+		if (big && d > rate_tol) return(c("pending", "estimability_gain"))
 		return(c("unchanged", ""))
 	}
 	if (b %in% PA_SUPPORTED && nw %in% PA_UNSUPPORTED) return(c("worse", "support_removed"))
@@ -290,7 +303,41 @@ pa_classify_cell = function(b, nw, b_rate, n_rate, b_n, n_n, rate_tol, min_n) {
 	c("changed", "state_changed")
 }
 
-compare_path_audit_cells = function(base, new, rate_tol = 0.02, min_n = 30) {
+# One-sided Fisher exact p-value that the NEW rate is lower (new_lower = TRUE)
+# or higher than the base rate, from rates and row counts.
+pa_rate_pvalue = function(b_rate, b_n, n_rate, n_n, new_lower) {
+	kb = round(b_rate * b_n); kn = round(n_rate * n_n)
+	m = matrix(c(kb, kn, b_n - kb, n_n - kn), 2L)  # rows base/new; columns k, n - k
+	stats::fisher.test(m, alternative = if (new_lower) "greater" else "less")$p.value
+}
+
+# Adds p_value and q_value to a comparison and resolves its "pending" rows: a
+# pending row becomes `worse_change`/`better_change` (by its kind) when q <=
+# fdr_q, else unchanged. Tested rows: both rates finite and both n >= min_n
+# (the BH family); each is tested in the direction its rate moved.
+pa_resolve_rate_tests = function(out, min_n, fdr_q, worse_kind) {
+	out$p_value = NA_real_; out$q_value = NA_real_
+	tested = which(is.finite(out$base_rate) & is.finite(out$new_rate) &
+		!is.na(out$base_n) & !is.na(out$new_n) & out$base_n >= min_n & out$new_n >= min_n)
+	if (length(tested)) {
+		d = out$new_rate[tested] - out$base_rate[tested]
+		p = rep(1, length(tested))
+		mv = which(d != 0)
+		for (k in mv) {
+			i = tested[k]
+			p[k] = pa_rate_pvalue(out$base_rate[i], out$base_n[i], out$new_rate[i], out$new_n[i], new_lower = d[k] < 0)
+		}
+		out$p_value[tested] = p
+		out$q_value[tested] = stats::p.adjust(p, method = "BH")
+	}
+	pend = which(out$change == "pending")
+	sig = !is.na(out$q_value[pend]) & out$q_value[pend] <= fdr_q
+	out$change[pend] = ifelse(sig, ifelse(out$kind[pend] == worse_kind, "worse", "improved"), "unchanged")
+	out$kind[pend] = ifelse(sig, out$kind[pend], "")
+	out
+}
+
+compare_path_audit_cells = function(base, new, rate_tol = 0.02, min_n = 30, fdr_q = 0.05) {
 	key = function(d) paste(d$table, d$class, d$row_label, d$column, sep = "||")
 	base$key = key(base); new$key = key(new)
 	keys = union(base$key, new$key)
@@ -310,10 +357,10 @@ compare_path_audit_cells = function(base, new, rate_tol = 0.02, min_n = 30) {
 		out$base_n, out$new_n, MoreArgs = list(rate_tol = rate_tol, min_n = min_n), SIMPLIFY = FALSE, USE.NAMES = FALSE)
 	out$change = vapply(cls, `[`, character(1), 1L)
 	out$kind = vapply(cls, `[`, character(1), 2L)
-	out
+	pa_resolve_rate_tests(out, min_n, fdr_q, worse_kind = "estimability_drop")
 }
 
-compare_path_audit_defaults = function(base, new, rate_tol = 0.02, min_n = 30) {
+compare_path_audit_defaults = function(base, new, rate_tol = 0.02, min_n = 30, fdr_q = 0.05) {
 	key = function(d) paste(d$base_class, d$function_run, sep = "||")
 	kb = key(base); kn = key(new)
 	keys = union(kb, kn)
@@ -339,14 +386,18 @@ compare_path_audit_defaults = function(base, new, rate_tol = 0.02, min_n = 30) {
 				d = r$new_rate - r$base_rate
 				big = r$base_n >= min_n && r$new_n >= min_n
 				if (r$new_rate == 1 && r$base_rate < 1) c("worse", "nonestimable_rate_up")
-				else if (big && d > rate_tol) c("worse", "nonestimable_rate_up")
+				else if (big && d > rate_tol) c("pending", "nonestimable_rate_up")
 				else if (r$base_rate == 1 && r$new_rate < 1) c("improved", "nonestimable_rate_down")
-				else if (big && d < -rate_tol) c("improved", "nonestimable_rate_down")
+				else if (big && d < -rate_tol) c("pending", "nonestimable_rate_down")
 				else c("unchanged", "")
 			}
 		change[i] = res[1L]; kind[i] = res[2L]
 	}
 	out$change = change; out$kind = kind
+	# Rate tests (and the BH family) only over rows present on both sides.
+	both = !is.na(bi) & !is.na(ni)
+	out$p_value = NA_real_; out$q_value = NA_real_
+	if (any(both)) out[both, ] = pa_resolve_rate_tests(out[both, , drop = FALSE], min_n, fdr_q, worse_kind = "nonestimable_rate_up")
 	out
 }
 
@@ -421,7 +472,7 @@ pa_summary_lines = function(cmp, label) {
 
 run_compare_path_audits = function(args = commandArgs(trailingOnly = TRUE)) {
 	opt = list(baseline_ref = "HEAD", baseline_dir = NULL, new_dir = NULL, allowlist = NULL,
-		rate_tol = 0.02, min_n = 30, out_dir = NULL, max_print = 60L)
+		rate_tol = 0.02, min_n = 30, fdr_q = 0.05, out_dir = NULL, max_print = 60L)
 	i = 1L
 	while (i <= length(args)) {
 		a = args[i]
@@ -433,6 +484,7 @@ run_compare_path_audits = function(args = commandArgs(trailingOnly = TRUE)) {
 			"--allowlist" = { opt$allowlist = val; i = i + 1L },
 			"--rate-tol" = { opt$rate_tol = as.numeric(val); i = i + 1L },
 			"--min-n" = { opt$min_n = as.numeric(val); i = i + 1L },
+			"--fdr-q" = { opt$fdr_q = as.numeric(val); i = i + 1L },
 			"--out-dir" = { opt$out_dir = val; i = i + 1L },
 			"--max-print" = { opt$max_print = as.integer(val); i = i + 1L },
 			"--help" = { cat("see the header of compare_path_audits.R\n"); return(0L) },
@@ -468,15 +520,15 @@ run_compare_path_audits = function(args = commandArgs(trailingOnly = TRUE)) {
 			base_rule_csv = pa_defaults_counting_rule(base_csv), new_rule_csv = pa_defaults_counting_rule(new_csv))
 	}, error = function(e) { message("compare_path_audits: ", conditionMessage(e)); NULL })
 	if (is.null(res)) return(2L)
-	cells = compare_path_audit_cells(parse_path_audits_html(res$base_html), parse_path_audits_html(res$new_html), opt$rate_tol, opt$min_n)
-	defs = compare_path_audit_defaults(read_path_audits_defaults(res$base_csv), read_path_audits_defaults(res$new_csv), opt$rate_tol, opt$min_n)
+	cells = compare_path_audit_cells(parse_path_audits_html(res$base_html), parse_path_audits_html(res$new_html), opt$rate_tol, opt$min_n, opt$fdr_q)
+	defs = compare_path_audit_defaults(read_path_audits_defaults(res$base_csv), read_path_audits_defaults(res$new_csv), opt$rate_tol, opt$min_n, opt$fdr_q)
 	rule_cells = if (identical(res$base_rule_html, res$new_rule_html)) NULL else res$new_rule_html
 	rule_defs = if (identical(res$base_rule_csv, res$new_rule_csv)) NULL else res$new_rule_csv
 	ac = apply_path_audit_allowlist(cells, res$allow, "cells", rule_cells)
 	ad = apply_path_audit_allowlist(defs, res$allow, "defaults", rule_defs)
 	cells = ac$cmp; defs = ad$cmp
-	cat(sprintf("path audit comparison: baseline = %s, new = %s, rate_tol = %g, min_n = %g\n",
-		res$base_label, normalizePath(opt$new_dir), opt$rate_tol, opt$min_n))
+	cat(sprintf("path audit comparison: baseline = %s, new = %s, rate_tol = %g, min_n = %g, fdr_q = %g\n",
+		res$base_label, normalizePath(opt$new_dir), opt$rate_tol, opt$min_n, opt$fdr_q))
 	if (!is.null(rule_cells) || !is.null(rule_defs)) {
 		cat(sprintf("counting rule changed: html %s -> %s, defaults CSV %s -> %s; rate drops are matched against counting_rule_change allowlist rows only for this comparison\n",
 			res$base_rule_html, res$new_rule_html, res$base_rule_csv, res$new_rule_csv))

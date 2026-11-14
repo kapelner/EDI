@@ -41,9 +41,24 @@ test_that("the case loop seeds each case right before run_tests_for_response", {
 	src <- readLines(comprehensive_path)
 	call_line <- grep("run_tests_for_response(response_type, design_type = design_type", src, fixed = TRUE)
 	expect_length(call_line, 1L)
-	seed_line <- grep("set.seed(comprehensive_case_seed(dataset_name, beta_T, rep_curr, response_type, model_formula, design_type, prob_T_curr))",
+	case_line <- grep("current_case_seed <<- comprehensive_case_seed(dataset_name, beta_T, rep_curr, response_type, model_formula, design_type, prob_T_curr)",
 		src, fixed = TRUE)
+	expect_length(case_line, 1L)
+	seed_line <- grep("set.seed(current_case_seed)", src, fixed = TRUE)
 	expect_length(seed_line, 1L)
-	# Only the header assignment and the tryCatch( opener may sit between them.
+	expect_identical(seed_line, case_line + 1L)
+	# Only the tryCatch( opener may sit between the seed and the call.
 	expect_true(seed_line < call_line && call_line - seed_line <= 2L)
+})
+
+# 2026-11-14 (release_v1_1_0.md TODO-194): each inference class reseeds from the
+# case seed and its own identity, so a class-filtered shard reproduces the full
+# loop's rows for that class (checked by running one case with a one-class and a
+# three-class filter: all 140 rows identical).
+test_that("every inference class reseeds from the case seed and its identity", {
+	src <- readLines(comprehensive_path)
+	def <- grep("^run_inference_checks = function", src)
+	expect_length(def, 1L)
+	expect_identical(trimws(src[def + 1L]), "if (!is.na(current_case_seed)) set.seed(comprehensive_class_seed(seq_des_inf, inference_label))")
+	expect_length(grep("^comprehensive_class_seed = function", src), 1L)
 })

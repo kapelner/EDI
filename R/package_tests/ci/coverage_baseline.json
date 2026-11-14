@@ -5,8 +5,8 @@
     "measured_at": "2026-11-09T16:53:05Z"
   },
   "python": {
-    "coverage_pct": null,
-    "commit": null,
-    "measured_at": null
+    "coverage_pct": 100.0,
+    "commit": "9ff13ff64a02317f3843382d24edd058d8402de5",
+    "measured_at": "2026-11-14T19:38:27Z"
   }
 }

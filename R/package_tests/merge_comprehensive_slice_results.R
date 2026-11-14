@@ -65,7 +65,7 @@
 #   Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR \
 #     [--canonical-dir R/package_tests] [--canonical-nc N] [--expect-keys FILE] \
 #     [--receipt FILE] [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] \
-#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--legacy-no-provenance REASON] [--apply]
+#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...]] [--legacy-no-provenance REASON] [--apply]
 # --expect-keys: one id per line, or a CSV with an `id` column.
 # --canonical-nc: send new keys of an nc_<k> slice to the nc_<N> unfiltered file
 #   (the id does not contain num_cores; the audits and pruner read nc_1 only).
@@ -79,12 +79,38 @@
 # --legacy-no-provenance REASON: for a slice written before receipts and provenance
 #   sidecars existed, accept their absence (works with --apply; the DLL cannot be
 #   verified). Every other check still blocks. The reason is printed in the report.
+#   It also accepts a receipt with a non-zero exit, but only when the slice has no
+#   sidecar at all and the run's stderr shows the runner printed "All tests
+#   complete!" and then died with "cannot hash a missing comprehensive-run
+#   provenance file" (the runner failing to hash its own sidecar after the last row).
+# --accept-same-source-dlls SHA256[,SHA256...]: the owner names EDI.so builds that
+#   were rebuilt from the same source (e.g. reinstalls while a batch was running).
+#   A sidecar whose before/after DLL, or the installed DLL, differs is accepted
+#   (works with --apply) only when every DLL involved is in the list AND git shows
+#   no code change in R/EDI between the checkout heads those builds recorded and the
+#   checkout's current HEAD: every changed line under R/EDI (tests/, man/, vignettes/
+#   and *.md excluded) must be blank or a comment (# in R, // in C/C++). Any such
+#   change blocks. Uncommitted R/EDI code files a sidecar recorded are listed as a
+#   warning (their content at run time cannot be checked).
 # --installed-dll: the native library to compare the sidecar's DLL hash with
 #   (default: <find.package("EDI")>/libs/EDI.so; the package is not loaded).
 # Exit: 0 clean (dry run without blocking issue, or applied), 1 blocking issue,
 # 2 usage/parse error.
 
 suppressPackageStartupMessages(library(data.table))
+
+# fread_unescaped() (R/package_tests/read_csv_fast.R): fread() with data.table
+# 1.18.4's doubled-quote bug undone, so reading results and writing them back
+# never doubles the quotes in a field again (2026-11-14). Loaded from the checkout.
+if (!exists("fread_unescaped", mode = "function")) local({
+	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+	for (d in c(getwd(), if (!is.na(script)) dirname(script))) {
+		top = tryCatch(suppressWarnings(system2("git", c("-C", shQuote(d), "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)), error = function(e) character())
+		helper = if (length(top)) file.path(top[1], "R", "package_tests", "read_csv_fast.R") else ""
+		if (nzchar(helper) && file.exists(helper)) { sys.source(helper, envir = parent.env(environment())); break }
+	}
+	if (!exists("fread_unescaped", mode = "function")) stop("read_csv_fast.R not found: run from inside the EDI git checkout.", call. = FALSE)
+})
 
 script_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)[1]
 here = if (is.na(script_arg)) normalizePath("R/package_tests", mustWork = FALSE) else dirname(normalizePath(sub("^--file=", "", script_arg)))
@@ -95,7 +121,7 @@ source(file.path(here, "comprehensive_beta_filter.R"), local = TRUE)
 usage_text = paste(
 	"usage: Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR",
 	"  [--canonical-dir DIR] [--canonical-nc N] [--expect-keys FILE] [--receipt FILE]",
-	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--legacy-no-provenance REASON] [--apply]",
+	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...]] [--legacy-no-provenance REASON] [--apply]",
 	sep = "\n"
 )
 usage_exit = function(msg) {
@@ -112,9 +138,10 @@ args = commandArgs(trailingOnly = TRUE)
 opts = list(slice_dir = NA_character_, canonical_dir = here, canonical_nc = NA_character_,
 	expect_keys = NA_character_, receipt = NA_character_, report_dir = NA_character_,
 	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_,
-	accept_dll_change = NA_character_, legacy_no_provenance = NA_character_)
+	accept_dll_change = NA_character_, legacy_no_provenance = NA_character_,
+	accept_same_source_dlls = NA_character_)
 flags = c(apply = FALSE, allow_no_receipt = FALSE)
-value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance")
+value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance", "--accept-same-source-dlls")
 seen = character()
 i = 1L
 while (i <= length(args)) {
@@ -140,6 +167,8 @@ if (!dir.exists(opts$canonical_dir)) usage_exit(paste0("--canonical-dir is not a
 if (!is.na(opts$legacy_no_provenance) && nchar(trimws(opts$legacy_no_provenance)) < 10) usage_exit("--legacy-no-provenance needs a reason (at least 10 characters) saying why this slice is trusted")
 if (flags[["apply"]] && flags[["allow_no_receipt"]]) usage_exit("--allow-no-receipt is for dry runs only; it is refused with --apply")
 if (!is.na(opts$accept_dll_change) && !grepl("^[0-9a-fA-F]{64}$", opts$accept_dll_change)) usage_exit("--accept-dll-change takes the 64-hex sha256 of the DLL the run started on")
+same_source_dlls = if (is.na(opts$accept_same_source_dlls)) character() else tolower(trimws(strsplit(opts$accept_same_source_dlls, ",", fixed = TRUE)[[1L]]))
+if (length(same_source_dlls) && !all(grepl("^[0-9a-f]{64}$", same_source_dlls))) usage_exit("--accept-same-source-dlls takes a comma-separated list of 64-hex sha256 values")
 if (!is.na(opts$canonical_nc) && !grepl("^[0-9]+$", opts$canonical_nc)) usage_exit("--canonical-nc must be a positive integer")
 if (!is.na(opts$expect_keys) && !file.exists(opts$expect_keys)) usage_exit(paste0("--expect-keys file not found: ", opts$expect_keys))
 if (!is.na(opts$receipt) && !file.exists(opts$receipt)) usage_exit(paste0("--receipt file not found: ", opts$receipt))
@@ -173,6 +202,25 @@ waived = function(...) {
 	if (!is.na(opts$legacy_no_provenance)) warn(..., " [accepted by --legacy-no-provenance: ", opts$legacy_no_provenance, "]")
 	else if (flags[["allow_no_receipt"]]) warn(..., " [waived for this dry run by --allow-no-receipt]")
 	else block(...)
+}
+
+# --accept-same-source-dlls bookkeeping: checkout states (head + uncommitted R/EDI code
+# files) of every build accepted as same-source; verified against git after the slice loop.
+same_source_used = FALSE
+same_source_heads = character()
+same_source_checkout = NA_character_
+same_source_uncommitted = character()
+is_edi_code_path = function(path) startsWith(path, "R/EDI/") && !grepl("^R/EDI/(tests|man|vignettes)/", path) && !grepl("\\.md$", path)
+same_source_ok = function(...) length(same_source_dlls) && all(!is.na(c(...))) && all(tolower(c(...)) %in% same_source_dlls)
+note_same_source = function(state) {
+	same_source_used <<- TRUE
+	if (!is.null(state$checkout_head) && !is.na(state$checkout_head)) same_source_heads <<- unique(c(same_source_heads, state$checkout_head))
+	if (is.na(same_source_checkout) && !is.null(state$checkout_path)) same_source_checkout <<- state$checkout_path
+	porc = state$checkout_status_porcelain
+	if (length(porc)) {
+		paths = sub(".* -> ", "", substring(porc, 4L))
+		same_source_uncommitted <<- unique(c(same_source_uncommitted, paste0(substr(state$checkout_head, 1L, 8L), ":", paths[vapply(paths, is_edi_code_path, logical(1))])))
+	}
 }
 
 # ---- the runner's own key helpers (evaluated, never sourced) -----------------
@@ -276,7 +324,21 @@ if (!length(receipt_paths)) {
 		receipt_summary = sprintf("%s: state=%s exit_status=%s pid=%s started=%s completed=%s",
 			receipt_paths, receipt$state, format(receipt$exit_status), format(receipt$pid), receipt$started_at_utc, format(receipt$completed_at_utc))
 		if (!identical(receipt$state, "completed")) block("receipt state is '", receipt$state, "', not 'completed'")
-		if (!identical(as.integer(receipt$exit_status), 0L)) block("receipt exit_status is ", format(receipt$exit_status), ", not 0")
+		if (!identical(as.integer(receipt$exit_status), 0L)) {
+			msg = paste0("receipt exit_status is ", format(receipt$exit_status), ", not 0")
+			# Under --legacy-no-provenance only: the runner finished every row, then died
+			# hashing its own (missing) provenance sidecar. Nothing else qualifies.
+			err_path = if (is.list(receipt$stderr)) receipt$stderr$path else NULL
+			err_tail = if (!is.null(err_path) && file.exists(err_path)) tail(readLines(err_path, warn = FALSE), 200L) else character()
+			done_at = grep("All tests complete!", err_tail, fixed = TRUE)
+			errs = grep("^Error", err_tail)
+			no_sidecar = !length(list.files(slice_dir, pattern = "\\.provenance-.*\\.rds$", recursive = TRUE))
+			if (!is.na(opts$legacy_no_provenance) && no_sidecar && length(done_at) && length(errs) &&
+				all(errs > max(done_at)) && all(grepl("cannot hash a missing comprehensive-run provenance file", err_tail[errs], fixed = TRUE))) {
+				warn(msg, " (the runner printed 'All tests complete!' and then failed hashing its missing provenance sidecar)",
+					" [accepted by --legacy-no-provenance: ", opts$legacy_no_provenance, "]")
+			} else block(msg)
+		}
 		for (stream in c("stdout", "stderr")) {
 			ident = receipt[[stream]]
 			if (is.list(ident) && !is.null(ident$path) && file.exists(ident$path) &&
@@ -321,10 +383,17 @@ for (sf in slice_files) {
 				# source; accepted only for that exact starting DLL.
 				if (!is.na(opts$accept_dll_change) && identical(tolower(dll_before), tolower(opts$accept_dll_change))) {
 					warn(msg, " [accepted by --accept-dll-change: owner confirmed same source]")
+				} else if (same_source_ok(dll_before, dll_after)) {
+					note_same_source(p$before); note_same_source(p$after)
+					warn(msg, " [accepted by --accept-same-source-dlls; source checked below]")
 				} else block(msg)
 			}
 			if (is.na(installed_dll_sha)) {
 				block("cannot hash the installed EDI native library (", installed_dll, ") to compare with sidecar ", basename(sc))
+			} else if (!identical(tolower(dll_after), tolower(installed_dll_sha)) && same_source_ok(dll_after, installed_dll_sha)) {
+				note_same_source(p$after)
+				warn("sidecar ", basename(sc), " DLL sha256 ", dll_after, " differs from the installed ", installed_dll, " sha256 ", installed_dll_sha,
+					" [accepted by --accept-same-source-dlls; source checked against the checkout's current HEAD below]")
 			} else if (!identical(tolower(dll_after), tolower(installed_dll_sha))) {
 				block("sidecar ", basename(sc), " DLL sha256 ", dll_after, " (", p$after$edi_dll_path, ") differs from the installed ", installed_dll, " sha256 ", installed_dll_sha)
 			}
@@ -350,7 +419,7 @@ for (sf in slice_files) {
 	lines = read_lines_raw(sf)
 	lines = lines[nzchar(lines)]
 	header_line = lines[1L]
-	dt = tryCatch(fread(sf, colClasses = "character", na.strings = "NA", showProgress = FALSE), error = function(e) parse_exit(paste0("cannot read ", sf, ": ", conditionMessage(e))))
+	dt = tryCatch(fread_unescaped(sf, colClasses = "character", na.strings = "NA", showProgress = FALSE), error = function(e) parse_exit(paste0("cannot read ", sf, ": ", conditionMessage(e))))
 	if (nrow(dt) != length(lines) - 1L) parse_exit(paste0(base, ": ", nrow(dt), " rows but ", length(lines) - 1L, " data lines (embedded newline?)"))
 	fields = tryCatch(split_csv_fields(lines), error = function(e) parse_exit(paste0(base, ": ", conditionMessage(e))))
 	if (any(lengths(fields) != ncol(dt))) parse_exit(paste0(base, ": could not split every line into ", ncol(dt), " fields"))
@@ -361,6 +430,40 @@ for (sf in slice_files) {
 	nc = if (is.na(opts$canonical_nc)) meta$nc else opts$canonical_nc
 	slices[[length(slices) + 1L]] = list(path = sf, base = base, meta = meta, filt = filt, filt_source = filt_source,
 		dt = dt, fields = fields[-1L], header = names(dt), nc = nc, sidecar_lines = sidecar_lines)
+}
+
+# ---- same-source check for --accept-same-source-dlls ------------------------------
+# The installed build is compared through the checkout's current HEAD (the sidecars
+# cannot say which commit built it). Every R/EDI code line changed between any two of
+# these heads must be blank or a comment.
+same_source_summary = character()
+if (same_source_used) {
+	git = function(...) tryCatch(suppressWarnings(system2("git", c("-C", shQuote(same_source_checkout), ...), stdout = TRUE, stderr = TRUE)), error = function(e) structure("git failed", status = 1L))
+	cur = git("rev-parse", "HEAD")
+	if (!is.null(attr(cur, "status"))) block("--accept-same-source-dlls: cannot run git in ", same_source_checkout)
+	else {
+		heads = unique(c(same_source_heads, cur[1L]))
+		top = git("rev-parse", "--show-toplevel")[1L]
+		base_head = heads[1L]
+		for (h in heads[-1L]) {
+			d = git("-C", shQuote(top), "diff", "-U0", "--no-color", base_head, h, "--", "R/EDI")
+			if (!is.null(attr(d, "status"))) { block("--accept-same-source-dlls: git diff ", base_head, " ", h, " failed"); next }
+			file = NA_character_; bad = character()
+			for (ln in d) {
+				if (startsWith(ln, "+++ ")) { file = sub("^\\+\\+\\+ (b/)?", "", ln); next }
+				if (startsWith(ln, "--- ") || !grepl("^[+-]", ln) || is.na(file) || !is_edi_code_path(file)) next
+				body = trimws(substring(ln, 2L))
+				comment = if (grepl("\\.(c|cc|cpp|h|hpp)$", file)) startsWith(body, "//") else startsWith(body, "#")
+				if (nzchar(body) && !comment) bad = c(bad, paste0(file, ": ", substr(ln, 1L, 120L)))
+			}
+			if (length(bad)) block("--accept-same-source-dlls: R/EDI code differs between ", substr(base_head, 1L, 8L), " and ", substr(h, 1L, 8L),
+				" (", length(bad), " non-comment line(s), first: ", bad[1L], ")")
+		}
+		same_source_summary = sprintf("same-source check: heads %s; R/EDI code lines changed between them: comments/blank only unless blocked",
+			paste(substr(heads, 1L, 8L), collapse = ", "))
+		unc = same_source_uncommitted[!grepl(":$", same_source_uncommitted)]
+		if (length(unc)) warn("--accept-same-source-dlls: uncommitted R/EDI code file(s) recorded at run time, content not checkable: ", paste(unc, collapse = ", "))
+	}
 }
 
 # ---- key checks across the whole slice --------------------------------------
@@ -382,7 +485,7 @@ for (s in slices) {
 expect_summary = NULL
 if (!is.na(opts$expect_keys)) {
 	ek = if (grepl("\\.csv$", opts$expect_keys, ignore.case = TRUE)) {
-		e = tryCatch(fread(opts$expect_keys, colClasses = "character", showProgress = FALSE), error = function(e) parse_exit(paste0("cannot read --expect-keys: ", conditionMessage(e))))
+		e = tryCatch(fread_unescaped(opts$expect_keys, colClasses = "character", showProgress = FALSE), error = function(e) parse_exit(paste0("cannot read --expect-keys: ", conditionMessage(e))))
 		if (!"id" %in% names(e)) parse_exit("--expect-keys CSV has no `id` column")
 		e$id
 	} else {
@@ -416,7 +519,7 @@ candidates = if (!is.na(opts$target_file)) {
 	normalizePath(f, winslash = "/", mustWork = TRUE)
 }
 locations = rbindlist(lapply(candidates, function(f) {
-	ids = tryCatch(fread(f, select = "id", colClasses = "character", showProgress = FALSE)$id, error = function(e) {
+	ids = tryCatch(fread_unescaped(f, select = "id", colClasses = "character", showProgress = FALSE)$id, error = function(e) {
 		warn("could not read `id` from ", basename(f), ": ", conditionMessage(e)); character()
 	})
 	hit = unique(intersect(all_slice$id, ids))
@@ -469,7 +572,7 @@ for (target in names(routes)) {
 	if (!schema_ok) next
 	bytes = count_bytes(target)
 	sel = intersect(unique(c(SCOPE_COLUMNS, "function_run", VALUE_COLUMNS)), can_header)
-	can = fread(target, select = sel, colClasses = "character", na.strings = "NA", showProgress = FALSE)
+	can = fread_unescaped(target, select = sel, colClasses = "character", na.strings = "NA", showProgress = FALSE)
 	expected_lf = nrow(can) + 1L
 	lines_ok = bytes$cr == 0 && bytes$lf == expected_lf && bytes$ends_with_lf
 	if (bytes$cr > 0) block(tbase, ": contains CR bytes; lines cannot be preserved byte for byte")
@@ -613,6 +716,7 @@ summary_lines = c(
 	sprintf("receipt: %s", receipt_summary),
 	sprintf("installed DLL: %s sha256=%s", installed_dll, installed_dll_sha),
 	if (length(unlist(lapply(slices, `[[`, "sidecar_lines")))) c("provenance sidecars:", unlist(lapply(slices, `[[`, "sidecar_lines"))) else "provenance sidecars: none",
+	same_source_summary,
 	expect_summary,
 	location_lines,
 	target_summaries,

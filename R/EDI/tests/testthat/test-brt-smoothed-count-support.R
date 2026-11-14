@@ -10,12 +10,21 @@ make_smoothed_count_kk_design <- function(seed = 20260915L, n = 40L){
 	set.seed(seed)
 	x1 <- rnorm(n)
 	x2 <- rnorm(n)
-	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)
-	for (i in seq_len(n)) {
-		w_i <- des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
-		mu_i <- exp(0.20 + 0.35 * w_i + 0.20 * x1[i] - 0.10 * x2[i] + rnorm(1, sd = 0.15))
-		des$add_one_subject_response(i, rpois(1L, lambda = mu_i))
-	}
+	des <- binary_match_test_design(data.frame(x1 = x1, x2 = x2), "count")
+	w <- des$get_w()
+	mu <- exp(0.20 + 0.35 * w + 0.20 * x1 - 0.10 * x2 + rnorm(n, sd = 0.15))
+	des$add_all_subject_responses(rpois(n, lambda = mu))
+	des
+}
+
+# BRT is not allowed on sequential KK designs (owner ruling 2026-11-14: the
+# bootstrap is unproven on KK designs), so the KK classes here run on the fixed
+# matched-pairs design: consecutive subjects paired, treatment randomized in each pair.
+binary_match_test_design <- function(X, response_type) {
+	n <- nrow(X)
+	des <- DesignFixedBinaryMatch$new(response_type = response_type, n = n, m = rep(seq_len(n / 2L), each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects(as.vector(replicate(n / 2L, sample(0:1))))
 	des
 }
 
@@ -103,8 +112,7 @@ test_that("smoothed BRT rejects categorical model refits while preserving real-v
 test_that("historically flagged smoothed classes follow their response and estimator boundary", {
 	set.seed(1801L)
 	n <- 30L
-	incid_des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
-	for (i in seq_len(n)) incid_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	incid_des <- binary_match_test_design(data.frame(x1 = rnorm(n)), "incidence")
 	incid_des$add_all_subject_responses(rbinom(n, 1L, 0.5))
 	incid_inf <- InferenceIncidKKCondLogitOneLik$new(incid_des, verbose = FALSE)
 	expect_false("smoothed" %in% incid_inf$get_supported_rand_bootstrap_pval_types())
@@ -130,8 +138,7 @@ test_that("historically flagged smoothed classes follow their response and estim
 
 	set.seed(1803L)
 	n <- 30L
-	continuous_des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
-	for (i in seq_len(n)) continuous_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	continuous_des <- binary_match_test_design(data.frame(x1 = rnorm(n)), "continuous")
 	continuous_des$add_all_subject_responses(rnorm(n))
 	continuous_inf <- InferenceContinKKRobustRegrOneLik$new(continuous_des, use_rcpp = FALSE, verbose = FALSE)
 	expect_true("smoothed" %in% continuous_inf$get_supported_rand_bootstrap_pval_types())

@@ -244,6 +244,17 @@ noted, and pass on all CI platform legs.
       `windows-latest` release and devel (Rtools gcc/UCRT), and Ubuntu
       devel/release/oldrel-1. A test in `R/EDI/tests/testthat/` runs on all
       six legs automatically, with no new workflow.
+    - **Since 2026-11-14 (owner rulings):** `R-CMD-check.yaml`'s cross-leg
+      `repro-compare` runs weekly and on dispatch only (push runs the six CRAN
+      legs). `.github/workflows/nightly.yml`'s `repro` job runs the
+      reproducibility and thread-count test files (digests, seed
+      reproducibility, OpenMP thread-count scoping, Bai workspaces) nightly on
+      five legs (Ubuntu portable and native, macOS plain and openmp, Windows),
+      at 1/2/4 threads where the runner has the cores (macOS arm64 runners
+      have 3, so 1/2), and `repro-compare` compares them with
+      `compare_repro_digests.R`. It runs only on nights the codebase changed.
+      New invariance tests from TODO-2 join it by matching its `filter` regex
+      or by adding their file name to it.
     - **A cross-leg diff job.** Each leg uploads its computed digests and
       float values as an artifact. A final job collects them into one
       platform × class table and fails on any integer mismatch or any float

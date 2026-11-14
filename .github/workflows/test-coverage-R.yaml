@@ -6,7 +6,8 @@ name: test-coverage
 # the PR feedback loop. The nightly schedule + workflow_dispatch stay on as
 # a backstop for a day with no matching push, or a push whose run failed --
 # but the nightly firing itself is a no-op (see the `check` job) unless a
-# relevant path actually changed since the last successful run, so an idle
+# relevant path changed since the last successful run AND something was
+# pushed in the last 24h, so an idle
 # repo doesn't pay for a coverage run every night.
 on:
   push:
@@ -51,6 +52,14 @@ jobs:
           if [ -z "$last_sha" ] || ! git cat-file -e "$last_sha" 2>/dev/null; then
             echo "No prior successful run found on this branch; running."
             echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Only a push in the last day justifies a nightly run. Without this,
+          # a push whose coverage run failed made every later night re-run the
+          # full ~2h suite on the same unchanged code until something passed.
+          if [ -z "$(git log --since='24 hours ago' --format=%H -1 HEAD)" ]; then
+            echo "No commits pushed in the last 24h; skipping nightly run."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if git diff --quiet "$last_sha" HEAD -- \

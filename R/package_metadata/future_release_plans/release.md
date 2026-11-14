@@ -9,16 +9,61 @@
 > you find yourself writing "for this release, additionally..." here, it
 > probably belongs in the release-specific file instead.
 
+## Release gate: the full R-CMD-check run at the release commit
+
+Owner ruling 2026-11-14. Push and PR run only the lean set below; the rest of
+`.github/workflows/R-CMD-check.yaml` runs weekly (Saturday 04:00 UTC) and on
+manual dispatch. **No release ships until a full run is green at the exact
+release commit**:
+
+```
+gh workflow run R-CMD-check.yaml --ref main    # with main at the release commit
+gh run watch                                   # then check its headSha is the release commit
+```
+
+A weekly run counts only if its `headSha` is the release commit; a green run
+at an earlier commit does not. The full run is the eight gating matrix legs
+(the six CRAN platforms plus the macOS openmp and Ubuntu native legs), the
+cross-platform reproducibility comparison, no-Suggests, ASAN/UBSAN and
+valgrind, plus CRAN incoming. The R-devel development-dependencies leg is
+**not** part of the gate (owner ruling 2026-11-14): it runs with
+`continue-on-error`, so it never turns the run red, and a failure there is
+triaged as possibly upstream's bug. Record the run URL in the release's
+`release_v*.md` before submission. This also satisfies any release gate that
+names the sanitizer and valgrind jobs at a committed SHA (e.g. v1.0.5 G5).
+
 ## CI coverage already enforced on every push
 
 Audited 2026-08-15 against `.github/workflows/R-CMD-check.yaml`, extended
-2026-08-25. This runs continuously and needs no manual action per release:
+2026-08-25, narrowed 2026-11-14 (owner ruling: lean push). Runs on every push
+and PR that touches the package:
 
-- `--as-cran` across a matrix of macOS/Windows/Linux × devel/release/oldrel-1
-  (6 configs as of 2026-08-25, including a Windows R-devel leg) with
-  `error-on: "note"`.
+- `--as-cran` across the six CRAN platforms: macOS/Windows/Linux ×
+  devel/release/oldrel-1 (macOS release, Windows release and devel, Ubuntu
+  devel, release and oldrel-1) with `error-on: "note"`.
+- The CRAN incoming job (below).
+
+Weekly and on manual dispatch only (see the release gate above):
+
+- The macOS openmp and Ubuntu native (`EDI_PORTABLE=0`) legs and the
+  cross-platform reproducibility comparison.
+- An Ubuntu R-devel leg with the development versions of Rcpp, RcppEigen,
+  RcppNumerical, data.table and survival (GitHub default branches) and
+  upstream Eigen master headers, to see upstream breakage before CRAN does.
+
+Weekly, on manual dispatch and on every pull request, but not on a push to
+`main` (so they stay real required checks for contributors' PRs):
+
 - A no-Suggests leg (`dependencies: NA` + `_R_CHECK_SUGGESTS_ONLY_`).
 - ASAN/UBSAN (`rocker/r-devel-san`) and valgrind memcheck.
+
+The weekly run is skipped when no package code changed since the previous
+weekly run (`package change gate` job). A pull request runs the checks only if it
+changes package code; with no change they are skipped, which counts as
+passing. Push and manual dispatch always run.
+
+On every leg:
+
 - `\donttest{}` examples on most legs.
 - Portable Makevars (`EDI_PORTABLE=1`) and compacted vignettes.
 - A dedicated `R-CMD-check-incoming` job with `_R_CHECK_CRAN_INCOMING_` left
