@@ -65,7 +65,7 @@
 #   Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR \
 #     [--canonical-dir R/package_tests] [--canonical-nc N] [--expect-keys FILE] \
 #     [--receipt FILE] [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] \
-#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...]] [--legacy-no-provenance REASON] [--apply]
+#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT]] [--legacy-no-provenance REASON] [--apply]
 # --expect-keys: one id per line, or a CSV with an `id` column.
 # --canonical-nc: send new keys of an nc_<k> slice to the nc_<N> unfiltered file
 #   (the id does not contain num_cores; the audits and pruner read nc_1 only).
@@ -92,6 +92,9 @@
 #   and *.md excluded) must be blank or a comment (# in R, // in C/C++). Any such
 #   change blocks. Uncommitted R/EDI code files a sidecar recorded are listed as a
 #   warning (their content at run time cannot be checked).
+# --installed-build-head COMMIT: the commit the installed EDI.so was built from, used
+#   by the same-source check in place of the checkout's current HEAD (which moves on
+#   as soon as anything is committed after the install).
 # --installed-dll: the native library to compare the sidecar's DLL hash with
 #   (default: <find.package("EDI")>/libs/EDI.so; the package is not loaded).
 # Exit: 0 clean (dry run without blocking issue, or applied), 1 blocking issue,
@@ -121,7 +124,7 @@ source(file.path(here, "comprehensive_beta_filter.R"), local = TRUE)
 usage_text = paste(
 	"usage: Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR",
 	"  [--canonical-dir DIR] [--canonical-nc N] [--expect-keys FILE] [--receipt FILE]",
-	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...]] [--legacy-no-provenance REASON] [--apply]",
+	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT]] [--legacy-no-provenance REASON] [--apply]",
 	sep = "\n"
 )
 usage_exit = function(msg) {
@@ -139,9 +142,9 @@ opts = list(slice_dir = NA_character_, canonical_dir = here, canonical_nc = NA_c
 	expect_keys = NA_character_, receipt = NA_character_, report_dir = NA_character_,
 	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_,
 	accept_dll_change = NA_character_, legacy_no_provenance = NA_character_,
-	accept_same_source_dlls = NA_character_)
+	accept_same_source_dlls = NA_character_, installed_build_head = NA_character_)
 flags = c(apply = FALSE, allow_no_receipt = FALSE)
-value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance", "--accept-same-source-dlls")
+value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance", "--accept-same-source-dlls", "--installed-build-head")
 seen = character()
 i = 1L
 while (i <= length(args)) {
@@ -169,6 +172,7 @@ if (flags[["apply"]] && flags[["allow_no_receipt"]]) usage_exit("--allow-no-rece
 if (!is.na(opts$accept_dll_change) && !grepl("^[0-9a-fA-F]{64}$", opts$accept_dll_change)) usage_exit("--accept-dll-change takes the 64-hex sha256 of the DLL the run started on")
 same_source_dlls = if (is.na(opts$accept_same_source_dlls)) character() else tolower(trimws(strsplit(opts$accept_same_source_dlls, ",", fixed = TRUE)[[1L]]))
 if (length(same_source_dlls) && !all(grepl("^[0-9a-f]{64}$", same_source_dlls))) usage_exit("--accept-same-source-dlls takes a comma-separated list of 64-hex sha256 values")
+if (!is.na(opts$installed_build_head) && is.na(opts$accept_same_source_dlls)) usage_exit("--installed-build-head is only used with --accept-same-source-dlls")
 if (!is.na(opts$canonical_nc) && !grepl("^[0-9]+$", opts$canonical_nc)) usage_exit("--canonical-nc must be a positive integer")
 if (!is.na(opts$expect_keys) && !file.exists(opts$expect_keys)) usage_exit(paste0("--expect-keys file not found: ", opts$expect_keys))
 if (!is.na(opts$receipt) && !file.exists(opts$receipt)) usage_exit(paste0("--receipt file not found: ", opts$receipt))
@@ -295,6 +299,7 @@ parse_slice_filename = function(base) {
 	out
 }
 sha_or_na = function(path) tryCatch(comprehensive_sha256_file(path), error = function(e) NA_character_)
+digest_name = function(x) { f = tempfile(); on.exit(unlink(f)); writeLines(x, f); comprehensive_sha256_file(f) }
 
 # ---- installed DLL -------------------------------------------------------------
 installed_dll = if (!is.na(opts$installed_dll)) {
@@ -433,14 +438,14 @@ for (sf in slice_files) {
 }
 
 # ---- same-source check for --accept-same-source-dlls ------------------------------
-# The installed build is compared through the checkout's current HEAD (the sidecars
-# cannot say which commit built it). Every R/EDI code line changed between any two of
+# The installed build is compared through --installed-build-head, else the checkout's
+# current HEAD (the sidecars cannot say which commit built it). Every R/EDI code line changed between any two of
 # these heads must be blank or a comment.
 same_source_summary = character()
 if (same_source_used) {
 	git = function(...) tryCatch(suppressWarnings(system2("git", c("-C", shQuote(same_source_checkout), ...), stdout = TRUE, stderr = TRUE)), error = function(e) structure("git failed", status = 1L))
-	cur = git("rev-parse", "HEAD")
-	if (!is.null(attr(cur, "status"))) block("--accept-same-source-dlls: cannot run git in ", same_source_checkout)
+	cur = git("rev-parse", "--verify", paste0(if (is.na(opts$installed_build_head)) "HEAD" else opts$installed_build_head, "^{commit}"))
+	if (!is.null(attr(cur, "status"))) block("--accept-same-source-dlls: cannot resolve the installed build's commit (", if (is.na(opts$installed_build_head)) "HEAD" else opts$installed_build_head, ") in ", same_source_checkout)
 	else {
 		heads = unique(c(same_source_heads, cur[1L]))
 		top = git("rev-parse", "--show-toplevel")[1L]
@@ -804,6 +809,12 @@ for (target in names(target_plans)) {
 			stop(basename(target), " changed since it was read; re-run the merge")
 		}
 		backup = paste0(target, ".pre_slice_merge_", stamp, ".bak")
+		# Some _filtered_ names are near the 255-byte file-name limit, so the suffix can
+		# push the backup past it: shorten the stem and tag it with a hash of the full name.
+		if (nchar(basename(backup), type = "bytes") > 250L) {
+			tag = substr(digest_name(basename(target)), 1L, 12L)
+			backup = file.path(dirname(target), paste0(substr(basename(target), 1L, 160L), "~", tag, ".pre_slice_merge_", stamp, ".bak"))
+		}
 		if (file.exists(backup) || !file.copy(target, backup, copy.date = TRUE)) stop("could not create backup ", backup)
 		write_merged(target, plan, changed_idx, target)
 		cat(sprintf("%s: replaced %d row(s), appended %d row(s); backup %s\n", basename(target), length(changed_idx), length(plan$add_lines), backup))
