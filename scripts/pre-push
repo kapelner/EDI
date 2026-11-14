@@ -369,6 +369,62 @@ fi
 
 echo
 
+# Inference consistency check (the "consistency" block; named apart from the
+# scheduled calibration study, which checks size and coverage) for the inference
+# classes this push touched (R/package_tests/calibration/
+# prepush_calibration_checks.R; design: R/package_metadata/new_feature_plans/
+# v1_0_5/calibration_gates.md):
+# per-replicate CI/test agreement, CI-endpoint inversion and a large-effect sign
+# check on synthetic data. Deterministic (fixed seeds); size and coverage are
+# left to the scheduled calibration-fast-tier workflow. Seconds for one class;
+# a change to a base class or the registry selects every class (466 s in one
+# process, 105 s as six, 2026-11-15), so it runs one process per response type, all at once,
+# as its own block alongside the R suite. The response types share nothing: each
+# process judges, and matches known failures for, only its own type.
+# EDI_PREPUSH_CALIBRATION=skip skips it, =all checks every class.
+consistency_response_types=(continuous incidence proportion count ordinal survival)
+consistency_timeout_secs=900
+run_consistency_block() {
+	if [ "$run_r_tests" != "1" ]; then
+		echo "pre-push: no R-relevant files changed, skipping the inference consistency check."
+		return 0
+	fi
+	echo "pre-push: R-relevant files changed -- inference consistency check (CI/test agreement, CI endpoints, effect sign) for touched classes (${#consistency_response_types[@]} processes, one per response type) ..."
+	local cal_dir="$block_log_dir/consistency" rt i status
+	local -a pids=() failed=() timed_out=()
+	mkdir -p "$cal_dir"
+	for rt in "${consistency_response_types[@]}"; do
+		timeout --foreground --kill-after=30s "${consistency_timeout_secs}s" \
+			Rscript R/package_tests/calibration/prepush_calibration_checks.R \
+			--changed-files "$changed_files_file" --response-types "$rt" > "$cal_dir/$rt.log" 2>&1 &
+		pids+=($!)
+	done
+	for i in "${!pids[@]}"; do
+		rt="${consistency_response_types[$i]}"
+		status=0
+		wait "${pids[$i]}" || status=$?
+		if [ "$status" != 0 ]; then
+			failed+=("$rt")
+			if [ "$status" = 124 ] || [ "$status" = 137 ]; then timed_out+=("$rt"); fi
+		fi
+	done
+	# One summary when nothing was touched, instead of six "nothing to check" lines.
+	local touched=0
+	for rt in "${consistency_response_types[@]}"; do
+		if grep -q "nothing to check" "$cal_dir/$rt.log"; then continue; fi
+		touched=1
+		cat "$cal_dir/$rt.log"
+	done
+	if [ "$touched" = 0 ]; then echo "pre-push: no inference class touched -- no consistency check needed."; fi
+	if [ "${#failed[@]}" -gt 0 ]; then
+		if [ "${#timed_out[@]}" -gt 0 ]; then
+			echo "pre-push: inference consistency check TIMED OUT after ${consistency_timeout_secs}s for: ${timed_out[*]}." >&2
+		fi
+		echo "pre-push: inference consistency check FAILED for: ${failed[*]} (details above). A known, triaged failure goes in R/package_tests/calibration/prepush_calibration_known_failures.csv." >&2
+		abort_push
+	fi
+}
+
 run_r_block() {
 if [ "$run_r_tests" = "1" ]; then
 	# Fast structural gate BEFORE the ~3-5 min suite below: (1) every
@@ -392,21 +448,6 @@ if [ "$run_r_tests" = "1" ]; then
 	# The full suite below skips these five files now that they passed
 	# (scripts/structural_check_files.R lists them), instead of running them twice.
 	export EDI_PREPUSH_STRUCTURAL_PASSED=1
-	echo
-
-	# Statistical-calibration check for the inference classes this push
-	# touched (R/package_metadata/new_feature_plans/v1_0_5/calibration_gates.md):
-	# per-replicate CI/test agreement, CI-endpoint inversion and a
-	# large-effect sign check on synthetic data. Deterministic (fixed seeds);
-	# size and coverage are left to the scheduled calibration-fast-tier
-	# workflow. Seconds for one class, ~5 min if a header change selects
-	# every class. EDI_PREPUSH_CALIBRATION=skip skips it, =all checks every
-	# class.
-	echo "pre-push: R-relevant files changed -- calibration check for touched inference classes ..."
-	if ! timeout --foreground --kill-after=30s 900s Rscript R/package_tests/calibration/prepush_calibration_checks.R --changed-files "$changed_files_file"; then
-		echo "pre-push: calibration check FAILED (details above). A known, triaged failure goes in R/package_tests/calibration/prepush_calibration_known_failures.csv." >&2
-		abort_push
-	fi
 	echo
 fi
 
@@ -652,16 +693,17 @@ else
 fi
 }
 
-# The R tests (structural gate, calibration, full suite), the comprehensive
-# suite and the python checks share no files: the R suite writes only gitignored
-# files under R/EDI/tests, the comprehensive suite only R/package_tests (and its
-# drift auto-commit), the python block only python/ -- so they run at the same
-# time (2026-11-14), each into its own log, printed whole as each finishes. The
-# first block to fail stops the others and aborts the push, as before.
+# The R tests (structural gate, full suite), the inference consistency check, the
+# comprehensive suite and the python checks share no files: the R suite writes
+# only gitignored files under R/EDI/tests, the consistency check only its own
+# logs, the comprehensive suite only R/package_tests (and its drift
+# auto-commit), the python block only python/ -- so they run at the same time
+# (2026-11-14; consistency check split out of the R block 2026-11-15), each into
+# its own log, printed whole as each finishes. The first block to fail stops the others and aborts the push, as before.
 # EDI_PREPUSH_SERIAL=1 runs them one after another instead, streaming output.
 block_log_dir="$(mktemp -d)"
-block_names=(r_tests comprehensive_suite python)
-block_fns=(run_r_block run_comprehensive_block run_python_block)
+block_names=(r_tests consistency comprehensive_suite python)
+block_fns=(run_r_block run_consistency_block run_comprehensive_block run_python_block)
 
 # Background jobs of a non-interactive shell ignore SIGINT, and killing a block's
 # subshell leaves its Rscript/pytest children running, so stop whole trees.
@@ -688,7 +730,7 @@ run_parallel_blocks() {
 		block_start[$name]=$SECONDS
 	done
 	trap 'stop_blocks; exit 130' INT TERM
-	echo "pre-push: running R tests, comprehensive suite and python checks in parallel (logs: $block_log_dir) ..."
+	echo "pre-push: running R tests, consistency check, comprehensive suite and python checks in parallel (logs: $block_log_dir) ..."
 	# Heartbeat, since each block's output only appears once it finishes.
 	(
 		while sleep 60; do
@@ -727,6 +769,8 @@ run_parallel_blocks() {
 
 if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
 	run_r_block
+	echo
+	run_consistency_block
 	echo
 	run_comprehensive_block
 	echo

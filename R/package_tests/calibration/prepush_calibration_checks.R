@@ -41,6 +41,9 @@
 #
 # Usage: Rscript R/package_tests/calibration/prepush_calibration_checks.R \
 #          --changed-files FILE [--all] [--write-known-failures PATH]
+#          [--response-types continuous,incidence,...]
+# --response-types checks only those response types (default: all six).
+# scripts/pre-push runs one process per response type at the same time.
 # --write-known-failures writes every current failure as a known-failures CSV
 # (used once to seed the list; review every row before committing it).
 
@@ -83,6 +86,12 @@ arg_value <- function(flag) {
 }
 changed_path <- arg_value("--changed-files")
 write_known <- arg_value("--write-known-failures")
+response_types <- CAL_RESPONSE_TYPES
+if (!is.null(arg_value("--response-types"))) {
+	response_types <- trimws(strsplit(arg_value("--response-types"), ",", fixed = TRUE)[[1L]])
+	bad <- setdiff(response_types, CAL_RESPONSE_TYPES)
+	if (length(bad)) stop("unknown --response-types: ", paste(bad, collapse = ", "), call. = FALSE)
+}
 mode <- Sys.getenv("EDI_PREPUSH_CALIBRATION", unset = "")
 if (identical(mode, "skip")) {
 	cat("prepush_calibration: EDI_PREPUSH_CALIBRATION=skip -- calibration check skipped.\n")
@@ -149,8 +158,12 @@ touched_classes <- function(candidates) {
 			if (length(m)) names_defined <- c(names_defined, sub("\\s*\\($", "", m))
 		}
 	}
-	names_defined <- unique(names_defined[nchar(names_defined) >= 5L])
 	idx <- class_file_index()
+	# A changed class is already selected (with its descendants) via `files` below;
+	# matching its NAME too pulled in every class whose base-class file merely
+	# mentions it (InferenceContinOLS appears in 43 files), so one edited class
+	# selected nearly all of them (2026-11-15).
+	names_defined <- setdiff(unique(names_defined[nchar(names_defined) >= 5L]), names(idx))
 	all_classes <- unique(c(candidates, names(idx)))
 	direct <- character()
 	for (cls in all_classes) {
@@ -161,7 +174,8 @@ touched_classes <- function(candidates) {
 			next
 		}
 		if (length(names_defined)) {
-			txt <- paste(vapply(file.path(r_dir, files), read_text, ""), collapse = "\n")
+			# Code only: names in comments and roxygen examples are not uses.
+			txt <- gsub("(?m)^\\s*#.*$", "", paste(vapply(file.path(r_dir, files), read_text, ""), collapse = "\n"), perl = TRUE)
 			if (any(vapply(names_defined, function(nm) grepl(paste0("\\b", gsub(".", "\\.", nm, fixed = TRUE), "\\b"), txt, perl = TRUE), logical(1L)))) {
 				direct <- c(direct, cls)
 			}
@@ -236,7 +250,7 @@ judge <- function(rows) {
 t_start <- proc.time()[["elapsed"]]
 all_rows <- list()
 n_classes <- 0L
-for (rt in CAL_RESPONSE_TYPES) {
+for (rt in response_types) {
 	plan <- cal_class_plan(rt, PREPUSH_N, unequal = TRUE)
 	plan <- lapply(plan, function(cls) setdiff(cls, PREPUSH_EXCLUDED_CLASSES))
 	keep <- touched_classes(unlist(plan, use.names = FALSE))
@@ -263,12 +277,15 @@ for (rt in CAL_RESPONSE_TYPES) {
 }
 if ("--list-only" %in% args) quit(status = 0L)
 if (!n_classes) {
-	cat("prepush_calibration: no inference class touched -- nothing to check.\n")
+	cat(sprintf("prepush_calibration: no %sinference class touched -- nothing to check.\n",
+		if (length(response_types) < length(CAL_RESPONSE_TYPES)) paste0(paste(response_types, collapse = "/"), " ") else ""))
 	quit(status = 0L)
 }
 rows <- do.call(rbind, Filter(Negate(is.null), all_rows))
 fails <- judge(rows)
-cat(sprintf("prepush_calibration: %d class(es), %d task rows, %.0f s\n", n_classes, nrow(rows), proc.time()[["elapsed"]] - t_start))
+cat(sprintf("prepush_calibration: %s%d class(es), %d task rows, %.0f s\n",
+	if (length(response_types) < length(CAL_RESPONSE_TYPES)) paste0(paste(response_types, collapse = "/"), ": ") else "",
+	n_classes, nrow(rows), proc.time()[["elapsed"]] - t_start))
 
 if (!is.null(write_known)) {
 	out <- if (is.null(fails)) data.frame(response_type = character(), prob_T = character(), inference_class = character(), method = character(), formula = character(),

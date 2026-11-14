@@ -65,7 +65,7 @@
 #   Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR \
 #     [--canonical-dir R/package_tests] [--canonical-nc N] [--expect-keys FILE] \
 #     [--receipt FILE] [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] \
-#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT]] [--legacy-no-provenance REASON] [--apply]
+#     [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT] [--accept-code-change-in PATH[,PATH...]]] [--legacy-no-provenance REASON] [--apply]
 # --expect-keys: one id per line, or a CSV with an `id` column.
 # --canonical-nc: send new keys of an nc_<k> slice to the nc_<N> unfiltered file
 #   (the id does not contain num_cores; the audits and pruner read nc_1 only).
@@ -95,6 +95,10 @@
 # --installed-build-head COMMIT: the commit the installed EDI.so was built from, used
 #   by the same-source check in place of the checkout's current HEAD (which moves on
 #   as soon as anything is committed after the install).
+# --accept-code-change-in PATH[,PATH...]: repo-relative R/EDI files whose code changes
+#   the owner has ruled irrelevant to this slice (e.g. a capability exclusion for a
+#   procedure the slice never ran). Their non-comment changed lines are listed as
+#   warnings instead of blocking; a code change in any other file still blocks.
 # --installed-dll: the native library to compare the sidecar's DLL hash with
 #   (default: <find.package("EDI")>/libs/EDI.so; the package is not loaded).
 # Exit: 0 clean (dry run without blocking issue, or applied), 1 blocking issue,
@@ -124,7 +128,7 @@ source(file.path(here, "comprehensive_beta_filter.R"), local = TRUE)
 usage_text = paste(
 	"usage: Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir DIR",
 	"  [--canonical-dir DIR] [--canonical-nc N] [--expect-keys FILE] [--receipt FILE]",
-	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT]] [--legacy-no-provenance REASON] [--apply]",
+	"  [--report-dir DIR] [--installed-dll FILE] [--target-file FILE] [--out-dir DIR] [--allow-no-receipt] [--accept-dll-change SHA256] [--accept-same-source-dlls SHA256[,SHA256...] [--installed-build-head COMMIT] [--accept-code-change-in PATH[,PATH...]]] [--legacy-no-provenance REASON] [--apply]",
 	sep = "\n"
 )
 usage_exit = function(msg) {
@@ -142,9 +146,10 @@ opts = list(slice_dir = NA_character_, canonical_dir = here, canonical_nc = NA_c
 	expect_keys = NA_character_, receipt = NA_character_, report_dir = NA_character_,
 	installed_dll = NA_character_, target_file = NA_character_, out_dir = NA_character_,
 	accept_dll_change = NA_character_, legacy_no_provenance = NA_character_,
-	accept_same_source_dlls = NA_character_, installed_build_head = NA_character_)
+	accept_same_source_dlls = NA_character_, installed_build_head = NA_character_,
+	accept_code_change_in = NA_character_)
 flags = c(apply = FALSE, allow_no_receipt = FALSE)
-value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance", "--accept-same-source-dlls", "--installed-build-head")
+value_opts = c("--slice-dir", "--canonical-dir", "--canonical-nc", "--expect-keys", "--receipt", "--report-dir", "--installed-dll", "--target-file", "--out-dir", "--accept-dll-change", "--legacy-no-provenance", "--accept-same-source-dlls", "--installed-build-head", "--accept-code-change-in")
 seen = character()
 i = 1L
 while (i <= length(args)) {
@@ -172,6 +177,9 @@ if (flags[["apply"]] && flags[["allow_no_receipt"]]) usage_exit("--allow-no-rece
 if (!is.na(opts$accept_dll_change) && !grepl("^[0-9a-fA-F]{64}$", opts$accept_dll_change)) usage_exit("--accept-dll-change takes the 64-hex sha256 of the DLL the run started on")
 same_source_dlls = if (is.na(opts$accept_same_source_dlls)) character() else tolower(trimws(strsplit(opts$accept_same_source_dlls, ",", fixed = TRUE)[[1L]]))
 if (length(same_source_dlls) && !all(grepl("^[0-9a-f]{64}$", same_source_dlls))) usage_exit("--accept-same-source-dlls takes a comma-separated list of 64-hex sha256 values")
+accepted_code_paths = if (is.na(opts$accept_code_change_in)) character() else trimws(strsplit(opts$accept_code_change_in, ",", fixed = TRUE)[[1L]])
+if (length(accepted_code_paths) && is.na(opts$accept_same_source_dlls)) usage_exit("--accept-code-change-in is only used with --accept-same-source-dlls")
+if (length(accepted_code_paths) && !all(startsWith(accepted_code_paths, "R/EDI/"))) usage_exit("--accept-code-change-in takes repo-relative paths under R/EDI/")
 if (!is.na(opts$installed_build_head) && is.na(opts$accept_same_source_dlls)) usage_exit("--installed-build-head is only used with --accept-same-source-dlls")
 if (!is.na(opts$canonical_nc) && !grepl("^[0-9]+$", opts$canonical_nc)) usage_exit("--canonical-nc must be a positive integer")
 if (!is.na(opts$expect_keys) && !file.exists(opts$expect_keys)) usage_exit(paste0("--expect-keys file not found: ", opts$expect_keys))
@@ -453,14 +461,18 @@ if (same_source_used) {
 		for (h in heads[-1L]) {
 			d = git("-C", shQuote(top), "diff", "-U0", "--no-color", base_head, h, "--", "R/EDI")
 			if (!is.null(attr(d, "status"))) { block("--accept-same-source-dlls: git diff ", base_head, " ", h, " failed"); next }
-			file = NA_character_; bad = character()
+			file = NA_character_; bad = character(); accepted_lines = character()
 			for (ln in d) {
 				if (startsWith(ln, "+++ ")) { file = sub("^\\+\\+\\+ (b/)?", "", ln); next }
 				if (startsWith(ln, "--- ") || !grepl("^[+-]", ln) || is.na(file) || !is_edi_code_path(file)) next
 				body = trimws(substring(ln, 2L))
 				comment = if (grepl("\\.(c|cc|cpp|h|hpp)$", file)) startsWith(body, "//") else startsWith(body, "#")
-				if (nzchar(body) && !comment) bad = c(bad, paste0(file, ": ", substr(ln, 1L, 120L)))
+				if (nzchar(body) && !comment) {
+					if (file %in% accepted_code_paths) accepted_lines = c(accepted_lines, paste0(substr(base_head, 1L, 8L), "..", substr(h, 1L, 8L), " ", file, ": ", substr(ln, 1L, 160L)))
+					else bad = c(bad, paste0(file, ": ", substr(ln, 1L, 120L)))
+				}
 			}
+			for (al in accepted_lines) warn("--accept-code-change-in: code change accepted as irrelevant to this slice: ", al)
 			if (length(bad)) block("--accept-same-source-dlls: R/EDI code differs between ", substr(base_head, 1L, 8L), " and ", substr(h, 1L, 8L),
 				" (", length(bad), " non-comment line(s), first: ", bad[1L], ")")
 		}
