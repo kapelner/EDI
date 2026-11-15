@@ -3,7 +3,7 @@ library(EDI)
 
 # v1.1.0 TODO-48 (2): thread- and worker-count invariance, fork backend
 # (cross_platform_reproducibility.md TODO-2). The mirai half is
-# test-mirai-worker-count-invariance-registry.R; the shared machinery and the
+# test-zz-mirai-worker-count-invariance-registry.R; the shared machinery and the
 # list of cases are in helper-worker-count-invariance.R.
 #
 # Same seed, set_num_cores(1, 2, 4) on fork workers: estimates, SEs/CIs and

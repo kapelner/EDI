@@ -930,6 +930,7 @@ R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-g
 R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-exact-reason-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-quasipoisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-quasipoisson-with-var-kernel-glm-dispersion-ssq-fixed-coefficients-and-df-convention-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-bootstrap-and-kk-gcomp-fallback-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-assignment-into-worker-fallback-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-b-too-small-message-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-closed-form-and-bisection-failed-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1406,7 +1407,6 @@ R/EDI/tests/testthat/test-logistic-plogis-safe.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-logrank-fused-martingale.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logrank-gehan-wilcox-general-censoring.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-miettinen-nurminen-ci-dispatch.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-mirai-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-mixture-submodel-formulas.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mle-km-summary-table.R,coverage,1.7,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-model-matrix-cache-covariate-invalidation.R,coverage,30,bootstrap
@@ -1540,6 +1540,7 @@ R/EDI/tests/testthat/test-zinb-zi-block-unidentified-count-se.R,coverage,30,boot
 R/EDI/tests/testthat/test-zip-hurdle-poisson-marginal-estimand.R,coverage,3.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zip-newton-stall-cold-retry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zoib-kernel-input-length-validation.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zz-mirai-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-abstract-design-support-assertion-guards.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-abstract-inference-contract-helpers.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-abstract-inference-small-privates-signed-w-cached-reduction-warm-weights-reference.R,coverage,240,bootstrap
@@ -2471,6 +2472,7 @@ R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-g
 R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-exact-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-quasipoisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-quasipoisson-with-var-kernel-glm-dispersion-ssq-fixed-coefficients-and-df-convention-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-bootstrap-and-kk-gcomp-fallback-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-assignment-into-worker-fallback-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-b-too-small-message-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-closed-form-and-bisection-failed-guards-reference.R,coverage,240,bootstrap

@@ -63,7 +63,7 @@ test_that("without the hook, solves stay on the main profile", {
 
 test_that("BRT end-to-end: p-value computes, is valid, and is seed-deterministic", {
 	skip_on_cran()
-	des = brt_optimal_design(seed = 64, solver_args = list(brt_max_iter = 400L))
+	des = brt_optimal_design(seed = 64, solver_args = list(brt_solver = "annealing", brt_max_iter = 400L))
 	des$assign_w_to_all_subjects()
 	set.seed(70)
 	des$add_all_subject_responses(rnorm(20))
@@ -81,7 +81,7 @@ test_that("BRT end-to-end: p-value computes, is valid, and is seed-deterministic
 
 test_that("per-replicate w*_b varies beyond mere mirroring (testing-plan item 7)", {
 	skip_on_cran()
-	des = brt_optimal_design(seed = 65, solver_args = list(brt_max_iter = 400L))
+	des = brt_optimal_design(seed = 65, solver_args = list(brt_solver = "annealing", brt_max_iter = 400L))
 	des$assign_w_to_all_subjects()
 	set.seed(72)
 	des$add_all_subject_responses(rnorm(20))
