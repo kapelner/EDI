@@ -25,7 +25,16 @@
 # Usage: ./gitpush_with_hooks_safe.sh [any normal `git push` arguments]
 # Run from the repo root (or anywhere -- it cd's to the repo root itself).
 
+# The whole body is one { ... } block so bash parses it before running any of
+# it: bash otherwise reads a script as it goes, and editing this file while a
+# push is running (2026-11-15) made it resume mid-line with a syntax error.
+{
 set -euo pipefail
+
+# This script runs R itself (fast_roxygenize.R, the drift regenerate) before
+# `git push` starts the hook, so the hook's own export does not reach those
+# runs: without it every EDI load prints the saved-tuning startup message.
+export EDI_SKIP_LOCAL_TUNING=1
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
@@ -71,8 +80,10 @@ if [ "${roxy_lines:-0}" -gt 0 ]; then
 		roxy_out="$(mktemp)"
 		roxy_status=0
 		(cd R && Rscript fast_roxygenize.R) > "$roxy_out" 2>&1 || roxy_status=$?
-		cat "$roxy_out"
+		# Print the output only when something is wrong: on success it is just
+		# package-loading chatter.
 		if [ "$roxy_status" != 0 ] || grep -qE "^Warning" "$roxy_out"; then
+			cat "$roxy_out"
 			rm -f "$roxy_out"
 			echo "gitpush_with_hooks_safe: fast_roxygenize.R failed or reported a documentation warning (see above) -- not pushing." >&2
 			exit 1
@@ -124,3 +135,4 @@ fi
 echo
 echo "gitpush_with_hooks_safe: drift pre-settled -- running the real 'git push' $*"
 exec git push "$@"
+}
