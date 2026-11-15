@@ -726,6 +726,7 @@ R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,correctnes
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-mean-var-cpp-empty-and-singleton-edge-cases-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-merge-comprehensive-slice-results-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-merge-comprehensive-slice-same-source-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-brute-force-optimum-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2268,6 +2269,7 @@ R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,coverage,1
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mean-var-cpp-empty-and-singleton-edge-cases-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-merge-comprehensive-slice-results-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-merge-comprehensive-slice-same-source-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-brute-force-optimum-reference.R,coverage,240,bootstrap
