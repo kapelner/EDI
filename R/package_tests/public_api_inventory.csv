@@ -8723,7 +8723,7 @@
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_testing_type","InferenceSurvivalKKLWACoxPHOneLik","class_local",1,"testing_type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","supports_rand_pval_for_incidence","InferenceSurvivalKKLWACoxPHOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKRankRegrIVWC","r6_class","InferenceSurvivalKKRankRegrIVWC","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalKKRankRegrIVWC","r6_class","InferenceSurvivalKKRankRegrIVWC","","","",0,"",FALSE,FALSE,FALSE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","approximate_bayesian_bootstrap_distribution_beta_hat_T","InferenceSurvivalKKRankRegrIVWC","class_local",4,"B;debug;show_progress;weighting_unit_type",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","approximate_bootstrap_distribution_beta_hat_T","InferenceSurvivalKKRankRegrIVWC","class_local",4,"B;bootstrap_type;debug;show_progress",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","approximate_jackknife_distribution_beta_hat_T","InferenceSurvivalKKRankRegrIVWC","class_local",1,"unit",TRUE,FALSE,TRUE,FALSE,"",TRUE
