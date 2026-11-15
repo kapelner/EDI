@@ -266,6 +266,12 @@ jobs:
           MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
           echo "R_LIBS=${{ runner.temp }}/edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
 
+      # The contract registry .rds is gitignored; build it from the committed
+      # checkmate_argument_contracts.csv (about 6 s).
+      - name: Build the public argument contract registry
+        working-directory: R
+        run: Rscript package_tests/public_argument_contract_registry.R
+
       # Scheduled runs use ALL (every registry target); a dispatch can narrow it.
       - name: Run public argument-combination nightly
         working-directory: R
@@ -511,6 +517,21 @@ jobs:
             any::sandwich
             any::VGAM
             any::commonmark
+            any::blockTools
+            any::carat
+            any::coin
+            any::estimatr
+            any::gamlss
+            any::glmmTMB
+            any::icenReg
+            any::lme4
+            any::Minirand
+            any::nbpMatching
+            any::parfm
+            any::perm
+            any::randomizr
+            any::ri2
+            any::robustbase
       # The current commit's benchmark script times both libraries, so the
       # measuring code is identical; a row the release cannot run (a newer API)
       # is NA on the release side and is not compared.
@@ -542,10 +563,12 @@ jobs:
               [ -n "$pattern" ] && [ "$pattern" != "pattern" ] && allow+=(--allow "$pattern")
             done < benchmark/benchmark_regression_allowlist.csv
           fi
+          # The step shell runs with -e, and compare_benchmark_runs.R exits 1 whenever it sees a
+          # slower row (normal in the noise pairs), so capture the status instead of dying on it.
           cmp() {
+            local rc=0
             Rscript benchmark/compare_benchmark_runs.R --old "$out/$1.md" --new "$out/$2.md" --sections ${{ matrix.section }} \
-              --part R --normalize-host "${allow[@]}" --tsv "$out/$3.tsv" > "$out/$3.txt"
-            rc=$?
+              --part R --normalize-host "${allow[@]}" --tsv "$out/$3.tsv" > "$out/$3.txt" || rc=$?
             if [ "$rc" -gt 1 ]; then
               cat "$out/$3.txt"
               echo "::error title=Benchmark CI bug::compare_benchmark_runs.R failed on $1 vs $2 (exit $rc)"; exit 2
