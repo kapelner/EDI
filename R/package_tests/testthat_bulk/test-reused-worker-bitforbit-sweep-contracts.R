@@ -7,7 +7,7 @@ load_sweep_helpers = function(){
 	suppressMessages(capture.output(sys.source(script_path, envir = e), type = "output"))
 	e$RESAMPLING_NONDEGENERATE_R = 15L
 	# Most comparator cases below use tiny synthetic manifests; production's
-	# record/compare entry points retain the checked-in 240-key requirement.
+	# record/compare entry points retain the checked-in 242-key requirement.
 	e$RESAMPLING_NONDEGENERATE_EXPECTED_KEY_COUNT = 1L
 	fixture_path = testthat::test_path("..", "..", "EDI", "tests", "testthat",
 	                                  "test-reused-worker-resampling-nondegenerate.R")
@@ -256,17 +256,17 @@ test_that("sweep snapshots reject empty rosters and invalid replicate counts", {
 	}
 })
 
-test_that("production sweep roster remains the planned 240 unique keys", {
+test_that("production sweep roster remains the planned 242 unique keys", {
 	e = load_sweep_helpers()
-	keys = paste0("class-", seq_len(240L), "|arm|continuous|production")
+	keys = paste0("class-", seq_len(242L), "|arm|continuous|production")
 	snapshot = structure(rep(list(seq_len(15L)), length(keys)), names = keys)
 	expect_identical(
-		e$validate_sweep_snapshot(snapshot, keys, 15L, expected_key_count = 240L),
+		e$validate_sweep_snapshot(snapshot, keys, 15L, expected_key_count = 242L),
 		snapshot
 	)
 	expect_error(
-		e$validate_sweep_snapshot(snapshot[seq_len(239L)], keys[seq_len(239L)], 15L,
-		                          expected_key_count = 240L),
-		"expected manifest must contain exactly 240 source-derived keys"
+		e$validate_sweep_snapshot(snapshot[seq_len(241L)], keys[seq_len(241L)], 15L,
+		                          expected_key_count = 242L),
+		"expected manifest must contain exactly 242 source-derived keys"
 	)
 })

@@ -2229,14 +2229,14 @@ range, since the plan files' internal numbering did not change.
   - [x] TODO-12-only paired sweep and noise-floor review: 240 entries, 235
   bit-identical, five repeatable noise, zero `fixed`, zero `MOVED`, with the
   robust-regression result restored exactly to the original source result.
-  - [ ] Run the release-wide pre/post sweep on identical fixtures and RNG
+  - [x] (DONE 2026-11-14, owner ticked 2026-11-15; isolated-revert sweep below) Run the release-wide pre/post sweep on identical fixtures and RNG
   seeds with matching package/native environments; review every `fixed`,
   `noise`, or `MOVED` classification. The separate broad
   `362c5d28..430c19bc` comparison spans 614 files and is not attributable to
   TODO-12; do not use its `MOVED` rows for release acceptance. Native-build
   verification remains a separate gate and requires explicit user
   permission; no build/install was performed for this review.
-  **Isolated-revert sweep, 2026-11-14 (run on request; awaiting owner review):**
+  **Isolated-revert sweep, 2026-11-14 (run on request; accepted by owner 2026-11-15):**
   pre = HEAD `9ff13ff64a02317f3843382d24edd058d8402de5` with only the
   TODO-12 cache-reset change reverted at its four behaviour-changing sites
   (randomization worker load/sync ×2, randomization-bootstrap, KK pass-through
@@ -2255,10 +2255,12 @@ range, since the plan files' internal numbering did not change.
   structural zeros (the zero-inflated classes reject zero-free data since
   5153c02c). The roster is 121 classes = 242 keys, both at 9ff13ff6 and at
   4f7a6e4c under the same fixture rules, so the runner's 240-key constant is
-  stale (set to 242 in the scratch trees only). The runner's `compare` mode
-  also fails on its own (`RESAMPLING_NONDEGENERATE_R` not found, because it
-  does not load the fixture); the comparisons were run with the fixture
-  loaded first. Artifacts: `~/edi_regen/todo12_sweep_20261113T001141Z/out/`
+  stale (set to 242 in the scratch trees for the run; repo constant and
+  contract test updated to 242 on 2026-11-15). The runner's `compare` mode
+  also failed on its own (`RESAMPLING_NONDEGENERATE_R` not found, because it
+  did not load the fixture); fixed 2026-11-15 by loading the fixture in the
+  `compare` entry point, and the plain `compare pre1 post1` then reproduced
+  the result above (exit 0). Artifacts: `~/edi_regen/todo12_sweep_20261113T001141Z/out/`
   (`pre1.rds` `8f830bee…`, `pre2.rds` `b174f3d2…`, `post1.rds` `1c5a2490…`,
   `pre_isolated_revert.diff`, `fixture_sweep_fixes.diff`, both comparison
   outputs, both roster listings).

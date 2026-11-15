@@ -53,10 +53,12 @@
 args = commandArgs(trailingOnly = TRUE)
 mode = if (length(args) >= 1L) args[1] else "help"
 
-# TODO-12's accepted paired sweep is the source-derived 240-key roster; fail
-# closed if strict enumeration silently drops every candidate or a later edit
-# changes the cohort without updating the plan and this contract.
-RESAMPLING_NONDEGENERATE_EXPECTED_KEY_COUNT = 240L
+# TODO-12's accepted paired sweep is the source-derived 242-key roster (121
+# classes x production/forced; was 240 until the 2026-11-14 recount, which found
+# the same 121 classes at 4f7a6e4c and 9ff13ff6); fail closed if strict
+# enumeration silently drops every candidate or a later edit changes the cohort
+# without updating the plan and this contract.
+RESAMPLING_NONDEGENERATE_EXPECTED_KEY_COUNT = 242L
 
 repo_root = function(){
 	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])
@@ -330,6 +332,9 @@ if (identical(mode, "record")) {
 	record(args[2L], use_source_tree = "--source" %in% args)
 } else if (identical(mode, "compare")) {
 	if (length(args) < 3L) stop("Usage: reused_worker_bitforbit_sweep.R compare <before.rds> <after.rds>", call. = FALSE)
+	# compare() validates against the fixture's RESAMPLING_NONDEGENERATE_R, so
+	# load the fixture definitions here as record() does.
+	load_sweep_enumeration(repo_root())
 	compare(args[2L], args[3L])
 } else {
 	cat("Usage:\n")

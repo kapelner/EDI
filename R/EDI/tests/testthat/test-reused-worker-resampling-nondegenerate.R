@@ -48,6 +48,10 @@ RESAMPLING_NONDEGENERATE_N_BERNOULLI = 20L
 RESAMPLING_NONDEGENERATE_N_STRUCTURED = 40L
 RESAMPLING_NONDEGENERATE_R = 15L
 RESAMPLING_NONDEGENERATE_SEED = 20260922L
+# Count fixtures carry structural zeros: since 2026-11-04 the zero-inflated
+# count classes refuse zero-free responses (the zero-inflation submodel is not
+# identified), and strict roster enumeration would otherwise stop on them.
+RESAMPLING_NONDEGENERATE_STRUCTURAL_ZERO_PROB = 0.25
 RESAMPLING_NONDEGENERATE_RESPONSE_TYPES = c(
 	"continuous", "incidence", "count", "proportion", "ordinal", "survival"
 )
@@ -91,7 +95,12 @@ resampling_nondegenerate_responses = function(response_type, w01, x){
 		return(list(y = as.integer(stats::plogis(linpred) > stats::quantile(stats::plogis(linpred), 0.45)), dead = NULL))
 	}
 	if (identical(response_type, "count")) {
-		return(list(y = as.integer(pmax(0L, round(exp(0.6 + 0.35 * w01 + 0.2 * x$x)))), dead = NULL))
+		y = as.integer(pmax(0L, round(exp(0.6 + 0.35 * w01 + 0.2 * x$x))))
+		# Structural zeros (every fourth subject, no RNG draw) so the
+		# zero-inflated count classes, which reject zero-free data, stay in the
+		# roster; the Bernoulli arm gets the same share via structural_zero_prob.
+		y[seq(3L, n, by = 4L)] = 0L
+		return(list(y = y, dead = NULL))
 	}
 	if (identical(response_type, "proportion")) {
 		return(list(y = pmin(0.95, pmax(0.05, stats::plogis(linpred))), dead = NULL))
@@ -118,7 +127,8 @@ resampling_nondegenerate_bernoulli_design = function(response_type){
 	EDI:::inference_migration_complete_design(
 		response_type,
 		n = RESAMPLING_NONDEGENERATE_N_BERNOULLI,
-		seed = RESAMPLING_NONDEGENERATE_SEED
+		seed = RESAMPLING_NONDEGENERATE_SEED,
+		structural_zero_prob = RESAMPLING_NONDEGENERATE_STRUCTURAL_ZERO_PROB
 	)
 }
 
@@ -258,6 +268,13 @@ resampling_nondegenerate_cases = function(arm, response_type, des_obj,
 			cases[[length(cases) + 1L]] = list(classname = classname, generator = generator)
 			next
 		}
+		# A class whose own design-structure predicate rejects this fixture (e.g.
+		# InferenceIncidExactFisher on a Bernoulli design) is not a candidate --
+		# the same exclusion InferenceSuite discovery applies -- so strict mode
+		# fails only on constructor errors the class did not declare.
+		reason = tryCatch(EDI:::inference_class_design_compatibility_reason(classname, des_obj),
+		                  error = function(e) NA_character_)
+		if (!is.na(reason)) next
 		probe = tryCatch(generator$new(des_obj, verbose = FALSE), error = function(e) {
 			if (isTRUE(strict)) stop("sweep class constructor failed for ", classname, ": ", conditionMessage(e), call. = FALSE)
 			NULL
