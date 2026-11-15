@@ -17,7 +17,7 @@
 #' available on any inference object.
 #'
 #' @examples
-#' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
 #' for (i in 1:20) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 #' }

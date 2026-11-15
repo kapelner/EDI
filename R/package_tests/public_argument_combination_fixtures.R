@@ -149,6 +149,18 @@ public_argument_fixture_specs = function() {
 			n = 8L,
 			tier = "smoke",
 			n_iter = 1L
+		),
+		# DesignFixedFactorial's own fixture: a design method can only run on a design of its
+		# own class (construct_r6_receiver), and the two-arm factorial (one two-level factor,
+		# the only combination count the class accepts) cannot be built from a Bernoulli one.
+		fixed_factorial_continuous_smoke = list(
+			fixture_id = "fixed_factorial_continuous_smoke",
+			response_type = "continuous",
+			design_type = "factorial",
+			class_name = "DesignFixedFactorial",
+			n = 8L,
+			tier = "smoke",
+			factors = list(treatment = 2)
 		)
 	)
 	specs = c(response_specs, extra_specs)
@@ -182,6 +194,9 @@ construct_public_design = function(spec, covariates) {
 	}
 	if (identical(spec$class_name, "DesignFixedGreedy")) {
 		return(do.call(constructor$new, c(list(n_iter = spec$n_iter %||% 1L), common)))
+	}
+	if (identical(spec$class_name, "DesignFixedFactorial")) {
+		return(do.call(constructor$new, c(list(factors = spec$factors %||% list(treatment = 2)), common)))
 	}
 	do.call(constructor$new, common)
 }

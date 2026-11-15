@@ -34,6 +34,9 @@ CAL_STATS_U <- c(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 
 cal_stats_u_cols <- function() sprintf("cdf_%s", format(CAL_STATS_U, scientific = FALSE, drop0trailing = TRUE))
 
 cal_stats_prepare <- function(d) {
+	# No table yet (cal_stats_read() of a missing file, e.g. a first wave whose every shard stepped aside for a
+	# nightly run): pass the NULL through, so callers' "No results yet" checks see it (run 43720849531 crashed here).
+	if (is.null(d)) return(NULL)
 	d$formula[is.na(d$formula)] <- ""
 	if (!("prob_T" %in% names(d))) d$prob_T <- 0.5
 	d$prob_T[is.na(d$prob_T)] <- 0.5

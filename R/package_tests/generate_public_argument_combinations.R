@@ -61,6 +61,7 @@ target_design_type = function(entry) {
 	if (grepl("BinaryMatch|Matching", txt, ignore.case = TRUE)) return("matched")
 	if (grepl("Greedy|Optimal|AOptimal", txt, ignore.case = TRUE)) return("search")
 	if (grepl("SeqOneByOne|KK14|KK21|Efron|Atkinson", txt, ignore.case = TRUE)) return("sequential")
+	if (grepl("Factorial", txt, ignore.case = TRUE)) return("factorial")
 	if (grepl("Fixed", txt, ignore.case = TRUE)) return("fixed")
 	NA_character_
 }
@@ -128,6 +129,9 @@ fixture_arg_expr = function(arg, value_expr) {
 	if (arg == "y_Rs") return("<fixture:response_y_R>")
 	if (arg %in% c("w", "w_precomputed")) return("<fixture:w>")
 	if (arg %in% c("m", "m_vec")) return("<fixture:m>")
+	# DesignFixedFactorial's factor-level list, not the covariates (<fixture:list>): the class accepts only
+	# levels whose product is 2.
+	if (arg == "factors") return("<fixture:factors>")
 	value_expr
 }
 
@@ -140,6 +144,7 @@ eval_value_expr = function(value_expr, fixture) {
 		if (kind == "data.frame") return(fixture$data)
 		if (kind == "matrix") return(as.matrix(fixture$data))
 		if (kind == "list") return(as.list(fixture$data))
+		if (kind == "factors") return(list(treatment = 2))
 		if (kind == "string") return(fixture$fixture_id)
 		if (kind == "response") return(ifelse(fixture$dead == 1, fixture$response, NA_real_))
 		if (kind == "response_y_L") return(ifelse(fixture$dead == 1, NA_real_, fixture$response))

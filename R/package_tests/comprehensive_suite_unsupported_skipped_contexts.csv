@@ -1,4 +1,15 @@
 "source","tier","target","status","reason","duration_time_sec"
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_coverage","","InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval","skipped_slow","skipped_slow_cases=10",NA
 "public_workflow_coverage","smoke","create_model_matrix_from_features","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","generate_covariate_dataset","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_bootstrap_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
@@ -61,6 +72,9 @@
 "public_workflow_coverage","smoke","InferenceSurvivalKKWeibullMarginal","exempted","InferenceSurvivalKKWeibullMarginal requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","inv_logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","ObservationalDesign","exempted","This operation is not supported. Observational designs are not controlled designs based on randomized allocations.",NA
+"public_workflow_coverage","smoke","ObservationalDesignBlocks","exempted","unused argument (n = 8)",NA
+"public_workflow_coverage","smoke","ObservationalDesignMatching","exempted","This operation is not supported. Observational designs are not controlled designs based on randomized allocations.",NA
 "public_workflow_coverage","smoke","robust_negbinreg","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","robust_survreg","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","robust_survreg_with_surv_object","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA

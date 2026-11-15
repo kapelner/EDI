@@ -209,7 +209,9 @@ testthat::test_that("checked-in allowlist is well formed and every entry names a
 	allow <- pa$read_path_audit_allowlist(find_compare_path_audits_repo_file(
 		file.path("R", "package_tests", "path_audits_regression_allowlist.csv")))
 	testthat::expect_gt(nrow(allow), 10L)
-	testthat::expect_true(all(grepl("^(release_v1_0_5\\.md:TODO-[0-9]+|NEWS\\.md:1\\.0\\.5)$", allow$tracked_in)))
+	# any release plan's TODO (entries for v1.0.6 work cite release_v1_0_6.md) or a NEWS version
+	tracked = grepl("^(release_v[0-9]+_[0-9]+_[0-9]+\\.md:TODO-[0-9]+|NEWS\\.md:[0-9]+\\.[0-9]+\\.[0-9]+)$", allow$tracked_in)
+	testthat::expect_true(all(tracked), info = paste(allow$id[!tracked], collapse = ", "))
 	known_kinds <- c("support_removed", "cell_removed", "guarantee_lost", "became_slow", "lost_observations",
 		"estimability_drop", "row_removed", "became_design_refused", "nonestimable_rate_up")
 	for (i in seq_len(nrow(allow))) {

@@ -57,9 +57,17 @@ filter_cases = function(cases, tier = "smoke", class_filter = NULL, method_filte
 	cases
 }
 
+# Every column but duration_time_sec is text, and result_row() writes "" (never
+# NA) into all of them. Read them back as character: without colClasses an
+# all-blank column (function_name on r6 methods) comes back logical NA, is
+# written as NA, and the next resume reads that as the string "NA", so the
+# committed CSV flipped "" -> NA -> "NA" on successive regenerates (2026-11-15).
 read_existing_results = function(path = results_path) {
 	if (!file.exists(path)) return(NULL)
-	read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character())
+	header = names(read_csv_fast(path, stringsAsFactors = FALSE, nrows = 0L))
+	text_cols = setdiff(header, "duration_time_sec")
+	read_csv_fast(path, stringsAsFactors = FALSE, na.strings = character(),
+		colClasses = stats::setNames(rep("character", length(text_cols)), text_cols))
 }
 
 split_semicolon_signature = function(signature) {
@@ -157,7 +165,9 @@ execute_valid_case = function(case_row, fixture, timeout_sec) {
 	args = args_from_signature(case_row$argument_signature, fixture)
 	if (identical(case_row$api_kind, "r6_public_method")) {
 		receiver = construct_r6_receiver(case_row, fixture)
-		return(capture_call(receiver[[case_row$method_name]], args, timeout_sec))
+		out = capture_call(receiver[[case_row$method_name]], args, timeout_sec)
+		out$receiver = receiver
+		return(out)
 	}
 	if (identical(case_row$api_kind, "function")) {
 		fun = getExportedValue("EDI", case_row$function_name)
@@ -199,6 +209,20 @@ result_row = function(case_row, status, duration_time_sec = 0, warning_message =
 	)
 }
 
+# An all-NA result is documented non-estimability when EDI said why: a warning from this
+# call, or a reason the receiver recorded (is_nonestimable(), or a per-procedure failure
+# reason such as bootstrap_bca_adjustment_on_boundary or
+# bootstrap_degenerate_confidence_interval). Some warnings are issued once per object, so
+# a later NA on the same object has only the recorded reason.
+receiver_explains_na = function(executed) {
+	if (nzchar(executed$warning_message %||% "")) return(TRUE)
+	rec = executed$receiver
+	if (is.null(rec)) return(FALSE)
+	if (is.function(rec$is_nonestimable) && isTRUE(tryCatch(rec$is_nonestimable(), error = function(e) FALSE))) return(TRUE)
+	pf = tryCatch(rec$.__enclos_env__$private$cached_values$procedure_failure_reason, error = function(e) NULL)
+	is.list(pf) && length(pf) > 0L
+}
+
 run_case = function(case_row, fixtures, timeout_sec = 20) {
 	if (!identical(case_row$constraint_status, "valid")) {
 		return(result_row(
@@ -221,10 +245,8 @@ run_case = function(case_row, fixtures, timeout_sec = 20) {
 	})
 	invariant_status = if (identical(executed$status, "unsupported")) "skipped" else
 		check_invariants(executed$result, executed$status, case_row$invariants, context = list(
-			# EDI explains every NA it returns with a warning (e.g. BCa on the boundary at a tiny B),
-			# so an all-NA result that came with one is documented non-estimability.
 			documented_nonestimable_behavior = is.numeric(executed$result) && length(executed$result) > 0L &&
-				all(is.na(executed$result)) && nzchar(executed$warning_message %||% "")))
+				all(is.na(executed$result)) && receiver_explains_na(executed)))
 	result_row(
 		case_row,
 		status = executed$status,

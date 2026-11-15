@@ -737,15 +737,19 @@ jobs:
       - name: Dispatch the next wave of an unfinished campaign
         run: |
           active="$(gh run list -R "$GITHUB_REPOSITORY" --workflow calibration-study.yml --limit 20 --json status \
-                      --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+                      --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)" || active=""  # fail open: under bash -e a failed API call would abort the step
           if [ "${active:-0}" -gt 0 ] 2>/dev/null; then echo "A calibration-study run is already active: nothing to resume."; exit 0; fi
           if ! git clone -q --depth 1 --branch calibration-results "https://github.com/${GITHUB_REPOSITORY}.git" results 2>/dev/null; then
             echo "No calibration-results branch: nothing to resume."; exit 0
           fi
           # Only the NEWEST campaign of each study is ever resumed: older ones still marked "running"
           # were abandoned when a newer one started.
-          newest_running() { n="$(ls -d "$1"/*/ 2>/dev/null | sort | tail -1)"; [ -n "$n" ] && [ "$(cat "$n/status.txt" 2>/dev/null)" = running ] && basename "$n"; }
-          c="$(newest_running results/campaigns)"
+          # Always exits 0 (prints nothing when there is no running campaign): the step shell runs
+          # with -e, and a non-zero `c="$(newest_running ...)"` would end the step as a failure.
+          newest_running() { n="$(ls -d "$1"/*/ 2>/dev/null | sort | tail -1)"; if [ -n "$n" ] && [ "$(cat "$n/status.txt" 2>/dev/null)" = running ]; then basename "$n"; fi; return 0; }
+          # `|| c=""`: newest_running returns 1 when the newest campaign is not running, which under bash -e aborted
+          # the step before the comprehensive study was checked.
+          c="$(newest_running results/campaigns)" || c=""
           if [ -n "$c" ]; then
             gh workflow run calibration-study.yml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}" -f campaign="$c"
             echo "Resumed calibration campaign $c." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
@@ -753,9 +757,9 @@ jobs:
           # No unfinished calibration campaign: resume an unfinished comprehensive study instead
           # (comprehensive-study.yml pauses the same way and shares calibration's concurrency group).
           comp="$(gh run list -R "$GITHUB_REPOSITORY" --workflow comprehensive-study.yml --limit 20 --json status \
-                    --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+                    --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)" || comp=""  # fail open, as above
           if [ "${comp:-0}" -gt 0 ] 2>/dev/null; then echo "A comprehensive-study run is already active: nothing to resume."; exit 0; fi
-          c="$(newest_running results/comprehensive/campaigns)"
+          c="$(newest_running results/comprehensive/campaigns)" || c=""
           if [ -z "$c" ]; then echo "No unfinished calibration or comprehensive campaign: nothing to resume."; exit 0; fi
           gh workflow run comprehensive-study.yml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}" -f campaign="$c"
           echo "Resumed comprehensive campaign $c." | tee -a "$GITHUB_STEP_SUMMARY"
