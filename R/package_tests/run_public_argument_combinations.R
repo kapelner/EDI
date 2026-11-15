@@ -75,6 +75,9 @@ args_from_signature = function(signature, fixture) {
 	for (part in parts) {
 		key = sub("=.*$", "", part)
 		value_expr = sub("^[^=]*=", "", part)
+		# A bare <fixture> placeholder means the registry knows no legal value for this
+		# argument (e.g. choices from a private field): leave it at its formal default.
+		if (identical(trimws(value_expr), "<fixture>")) next
 		out[[key]] = eval_value_expr(value_expr, fixture)
 	}
 	out
@@ -104,7 +107,9 @@ capture_call = function(fun, args, timeout_sec) {
 	tryCatch({
 		setTimeLimit(elapsed = timeout_sec, transient = TRUE)
 		on.exit(setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE), add = TRUE)
-		result <<- withCallingHandlers(
+		# `=`, not `<<-`: this expression runs in this frame, so `<<-` wrote to the global env
+		# and every case returned NULL to the invariants.
+		result = withCallingHandlers(
 			do.call(fun, args),
 			warning = function(w) {
 				warnings <<- c(warnings, conditionMessage(w))
@@ -206,8 +211,20 @@ run_case = function(case_row, fixtures, timeout_sec = 20) {
 	if (is.null(fixture)) {
 		return(result_row(case_row, status = "error", error_message = paste("Missing fixture:", case_row$fixture_id)))
 	}
-	executed = execute_valid_case(case_row, fixture, timeout_sec)
-	invariant_status = check_invariants(executed$result, executed$status, case_row$invariants)
+	# Setup errors (building the receiver or the arguments) belong to this case, not the run.
+	# A receiver no fixture can build (a design class without a fixture of its own, e.g.
+	# DesignFixedFactorial on the Bernoulli fallback) is "unsupported", not an EDI error.
+	executed = tryCatch(execute_valid_case(case_row, fixture, timeout_sec), error = function(e) {
+		msg = conditionMessage(e)
+		list(status = if (startsWith(msg, "Cannot construct receiver")) "unsupported" else "error",
+			result = NULL, duration_time_sec = 0, warning_message = "", message_text = "", error_message = msg)
+	})
+	invariant_status = if (identical(executed$status, "unsupported")) "skipped" else
+		check_invariants(executed$result, executed$status, case_row$invariants, context = list(
+			# EDI explains every NA it returns with a warning (e.g. BCa on the boundary at a tiny B),
+			# so an all-NA result that came with one is documented non-estimability.
+			documented_nonestimable_behavior = is.numeric(executed$result) && length(executed$result) > 0L &&
+				all(is.na(executed$result)) && nzchar(executed$warning_message %||% "")))
 	result_row(
 		case_row,
 		status = executed$status,

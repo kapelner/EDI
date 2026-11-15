@@ -54,6 +54,17 @@ is_r6_generator = function(x) {
 	inherits(x, "R6ClassGenerator")
 }
 
+# Inference methods served by a lazy component are stubs, `function(...)` that install the
+# component on first call (install_lazy_inference_component, EDI/R/contracts_mixins.R). Read the
+# real method's formals and assertions from the component dispatch for this class instead.
+resolve_lazy_component_method = function(fn, class_name, method_name) {
+	component = attr(fn, "inference_lazy_component_stub", exact = TRUE)
+	if (is.null(component) || !nzchar(class_name %||% "")) return(fn)
+	dispatch = tryCatch(get("get_lazy_component_dispatch", envir = asNamespace("EDI"))(component, class_name), error = function(e) NULL)
+	real = dispatch$public[[method_name]]
+	if (is.function(real)) real else fn
+}
+
 r6_public_method_rows = function(export_name, generator) {
 	rows = list()
 	seen = character()
@@ -65,7 +76,10 @@ r6_public_method_rows = function(export_name, generator) {
 			if (method_name %in% seen) next
 			seen = c(seen, method_name)
 			fn = methods[[method_name]]
-			cache_key = paste(current$classname %||% "", method_name, sep = "::")
+			is_stub = !is.null(attr(fn, "inference_lazy_component_stub", exact = TRUE))
+			if (is_stub) fn = resolve_lazy_component_method(fn, generator$classname %||% export_name, method_name)
+			# A stub's real method depends on the leaf class's components, so cache it per leaf class.
+			cache_key = paste(if (is_stub) paste0(generator$classname %||% export_name, "<lazy>") else current$classname %||% "", method_name, sep = "::")
 			if (exists(cache_key, envir = .method_meta_cache, inherits = FALSE)) {
 				meta = get(cache_key, envir = .method_meta_cache, inherits = FALSE)
 			} else {

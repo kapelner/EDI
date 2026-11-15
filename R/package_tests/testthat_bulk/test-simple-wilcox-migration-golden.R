@@ -30,6 +30,23 @@ kk_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
 	})
 }
 
+# Same seeded covariates and responses as kk_wilcox_golden_design(), on a fixed
+# binary-match design (pairs 1-2, 3-4, ...; one treated per pair). The
+# randomization bootstrap refuses KK14 since 2026-11-14, so its KK Wilcoxon
+# golden lives on this design.
+kk_wilcox_binary_match_golden_design = function(n = 12L, seed = 20260728L) {
+	inference_migration_with_seed(seed, {
+		X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+		y = as.numeric(rnorm(n))
+		des = DesignFixedBinaryMatch$new(response_type = "continuous", n = n, m = rep(seq_len(n / 2L), each = 2L), verbose = FALSE)
+		des$add_all_subjects_to_experiment(X)
+		w = as.vector(replicate(n / 2L, sample(0:1)))
+		des$assign_w_to_all_subjects(w)
+		des$add_all_subject_responses(y + 0.35 * w)
+		des
+	})
+}
+
 expect_simple_wilcox_golden = function(label, method, args, expected, tolerance = 1e-8) {
 	des = simple_wilcox_golden_design()
 	obj = InferenceAllSimpleWilcox$new(des)
@@ -312,7 +329,8 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 	# The randomization bootstrap distribution golden (re-recorded 2026-10-12 for
 	# the W-statistic worker fix) lived here. Since 2026-11-14 (owner ruling: the
 	# bootstrap is unproven on KK designs) the randomization bootstrap refuses the
-	# sequential KK14 design, like the nonparametric bootstrap.
+	# sequential KK14 design, like the nonparametric bootstrap; its golden is now
+	# the binary-match test at the end of this file.
 	expect_false(obj$supports("randomization_bootstrap"))
 	expect_error(obj$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE),
 		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
@@ -345,4 +363,32 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		list(delta = 0),
 		NA_real_
 	)
+})
+
+test_that("KK Wilcoxon randomization bootstrap golden on a binary-match design", {
+	skip_on_cran()
+	# Recorded 2026-11-15 on kk_wilcox_binary_match_golden_design(); replaces the
+	# KK14 golden of 2026-10-12. The draws use the randomization statistic (the
+	# standardized W sum, z-score scale) as the randomization distribution does,
+	# and equal the debug = TRUE (pure R) path exactly. At B = r = 199 on this
+	# fixture the BRT p-value is 0.26 and the randomization p-value 0.34.
+	new_obj = function() {
+		obj = InferenceAllKKWilcoxIVWC$new(kk_wilcox_binary_match_golden_design())
+		obj$set_seed(20260811L)
+		obj
+	}
+	expect_true(new_obj()$supports("randomization_bootstrap"))
+	expected = c(
+		0.83862786937753464, -1.5724272550828775, 1.1531133203941102,
+		0.83862786937753464, 1.3627702877384937, 0.10482848367219183,
+		0.94345635304972653, 2.2013981571160284, 1.3627702877384937
+	)
+	obj = new_obj()
+	actual = suppressWarnings(inference_migration_with_seed(20260811L,
+		obj$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE)))
+	expect_equal(actual, expected, tolerance = 1e-8)
+	obj = new_obj()
+	dbg = suppressWarnings(inference_migration_with_seed(20260811L,
+		obj$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE, debug = TRUE)))
+	expect_equal(dbg$values, expected, tolerance = 1e-8)
 })

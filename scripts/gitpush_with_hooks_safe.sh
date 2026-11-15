@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Safe wrapper around `git push`: pre-regenerates and commits every
 # generated file the pre-push hook (scripts/pre-push) itself knows how to
-# auto-fix (the package_tests/ drift CSVs) BEFORE invoking the real
-# `git push`, instead of letting the hook discover the drift mid-push.
+# auto-fix (the package_tests/ drift CSVs), plus the roxygen-generated docs and
+# exports the hook only checks (R/EDI/man, NAMESPACE, RcppExports.*), BEFORE
+# invoking the real `git push`, instead of letting the hook discover the drift
+# mid-push.
 # (README.md's lines-of-code badge used to be handled here too, but it's now
 # a static badge fed by a Gist that .github/workflows/loc-badge.yml updates
 # server-side -- README.md itself never needs a commit for it anymore.)
@@ -41,6 +43,49 @@ if ! git diff --exit-code -- R/package_tests/ci/test_runtimes.csv >/dev/null 2>&
 	echo "gitpush_with_hooks_safe: test_runtimes.csv drifted -- committing the fix ..."
 	git add -- R/package_tests/ci/test_runtimes.csv
 	git commit --quiet -m "pre-push: refresh CI test-runtime manifest" -- R/package_tests/ci/test_runtimes.csv
+fi
+
+# Roxygen-generated docs and exports. scripts/pre-push runs fast_roxygenize.R
+# when the push changes roxygen comments or [[Rcpp::export]] tags, and aborts if
+# the regenerated files differ from HEAD (it deliberately never commits them).
+# Here, run by choice before the push, they are regenerated and committed so the
+# push carries them (owner request 2026-11-15). Runs before the drift CSVs below,
+# since the public API inventory reads NAMESPACE.
+# Same trigger as the hook: roxygen/export lines changed in the commits being
+# pushed (vs the upstream branch, else origin/main).
+generated_paths=(R/EDI/man R/EDI/NAMESPACE R/EDI/R/RcppExports.R R/EDI/src/RcppExports.cpp)
+push_base="$(git rev-parse --verify --quiet '@{upstream}' || git rev-parse --verify --quiet origin/main || true)"
+roxy_lines=0
+if [ -n "$push_base" ]; then
+	roxy_lines="$(git diff -U0 "$push_base" HEAD -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' 2>/dev/null \
+		| grep -cE "^[+-]#'|^[+-].*\[\[Rcpp::export" || true)"
+fi
+if [ "${roxy_lines:-0}" -gt 0 ]; then
+	# The generated files must describe the committed sources. With uncommitted
+	# edits to R/EDI/R or R/EDI/src they would describe the working tree instead,
+	# so leave them to the hook's check.
+	if ! git diff --quiet HEAD -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' ':!R/EDI/R/RcppExports.R' ':!R/EDI/src/RcppExports.cpp'; then
+		echo "gitpush_with_hooks_safe: R/EDI/R or R/EDI/src has uncommitted changes -- not regenerating docs (the pre-push hook will check them)."
+	else
+		echo "gitpush_with_hooks_safe: roxygen comments / [[Rcpp::export]] tags changed -- running fast_roxygenize.R ..."
+		roxy_out="$(mktemp)"
+		roxy_status=0
+		(cd R && Rscript fast_roxygenize.R) > "$roxy_out" 2>&1 || roxy_status=$?
+		cat "$roxy_out"
+		if [ "$roxy_status" != 0 ] || grep -qE "^Warning" "$roxy_out"; then
+			rm -f "$roxy_out"
+			echo "gitpush_with_hooks_safe: fast_roxygenize.R failed or reported a documentation warning (see above) -- not pushing." >&2
+			exit 1
+		fi
+		rm -f "$roxy_out"
+		if [ -n "$(git status --porcelain -- "${generated_paths[@]}")" ]; then
+			echo "gitpush_with_hooks_safe: regenerated docs/exports differ from HEAD -- committing them ..."
+			git add -A -- "${generated_paths[@]}"
+			git commit --quiet -m "pre-push: regenerate roxygen docs and Rcpp exports" -- "${generated_paths[@]}"
+		else
+			echo "gitpush_with_hooks_safe: roxygen docs/exports already match HEAD."
+		fi
+	fi
 fi
 
 echo "gitpush_with_hooks_safe: regenerating package_tests/ drift CSVs (this runs the full generator suite -- can take a few minutes) ..."

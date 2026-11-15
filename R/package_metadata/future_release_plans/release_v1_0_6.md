@@ -475,14 +475,91 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Symptom: same seed, `compute_bootstrap_confidence_interval` (proportion, n = 40, B = 39, seed 99) gives serial
     [-0.0104, 0.1352], fork 2 workers [0.0093, 0.1184], fork 4 [0.0031, 0.1459], mirai 2 [0.0006, 0.1494], mirai 4
     [-0.0003, 0.1256]. Each worker count reproduces itself, so it is not chance. `compute_bootstrap_two_sided_pval` is
-    affected on fork too (0.0769 serial vs 0.0513 at 2 and 4); not yet run on mirai. The Bayesian bootstrap is invariant.
+    affected too (0.0769 serial vs 0.0513 at fork 2 and 4 and mirai 4; mirai 2 matched serial, likely a serial
+    fallback; first nightly sweep, 2026-11-14). The Bayesian bootstrap is invariant.
   - Unverified guess: the class's bootstrap worker draws random numbers inside the workers (per-worker or per-chunk
     streams) instead of using only the resample indices drawn up front. Compare with the 2026-09-22 stale worker-cache
     resampling fix, which touched this class's resampling path.
-  - Test: `R/EDI/tests/testthat/helper-worker-count-invariance.R` lists it in `worker_invariance_known_failures`, and the
-    test asserts the results still differ, so it fails once the bug is fixed; remove the entry then.
+  - Test: `R/EDI/tests/testthat/helper-worker-count-invariance.R` lists `bootstrap_ci` and `bootstrap_pval` in
+    `worker_invariance_known_failures`. Known failures are reported (`known_failure` column), not asserted either way,
+    because a run that falls back to serial matches; remove the entries once fixed.
   - Also: the full sweep (`EDI_EXHAUSTIVE_WORKER_TESTS=true`, nightly on the Ubuntu reproducibility leg since
     2026-11-14) stopped at this class in its first local run, so other classes may fail too; triage what the first
     nightly sweep reports here.
   - Done when: results are `identical()` at 1, 2 and 4 workers on both backends, the known-failure entry is removed, and
     the nightly sweep passes.
+- [ ] TODO-23 (added 2026-11-15, owner; found by the first scheduled-mode run of the nightly argument-combination job,
+  `.github/workflows/nightly.yml` `argument-combinations`): **finish the public argument-combination harness for every
+  registry target, then make the ALL sweep gating.**
+  - Why it went unseen: the pre-push hook's drift check (`R/package_tests/drift_artifacts.sh`) generates and executes
+    only the curated smoke targets (`default_smoke_target_filter`, two targets; the committed results CSV has two
+    rows). The harness's own unit tests (`R/package_tests/smoke_test_*public_argument*.R`) are run by nothing (no
+    hook, workflow or bulk shard) and have rotted: `smoke_test_run_public_argument_combinations.R` fails on HEAD with
+    "Runner did not preserve skipped_slow cases". Nothing had ever executed the other ~1,190 registry targets.
+  - Fixed 2026-11-15 (smoke tests green and wired into pre-push via `R/package_tests/run_harness_smoke_tests.sh`, ~20 s,
+    beside the comprehensive smoke tier; the two ~200 s comprehensive-suite smoke tests stay out):
+    - Lazy-component stubs (`function(...)`, `install_lazy_inference_component`) hid the real methods from
+      `public_api_inventory.R` and `extract_checkmate_argument_contracts.R`, so most inference methods had no
+      argument contracts (about 3,900 contract rows restored; the curated smoke target had silently vanished).
+    - `capture_call()` assigned the method's result with `<<-` inside `tryCatch`, so every case returned NULL and
+      every output invariant checked NULL.
+    - `assertBootstrapArgs()` (EDI's wrapper) was not recognized, so `B` and `min_number_usable_samples` had no domain;
+      an assertion on an expression (`assertCount(as.integer(max_expansions))`) produced a bogus argument name.
+    - The slow-path rule skipped every case of any resampling target below nightly, even `B = 5`; it is now per case.
+    - Bare `<fixture>` placeholders were passed as literal strings; a string argument with a default got the
+      fixture id; an all-NA result with EDI's explaining warning was an invariant failure.
+    - `run_public_workflow_coverage.R`: likelihood families now use `InferenceContinOLS` (the simple mean difference
+      lost them in the hierarchy split); `ObservationalDesign*` classes are covered.
+  - Still open (one-class sweep of `InferenceAllSimpleAverageDiff`, 444 cases after the fixes: 64 errors, 164
+    invariant failures): randomization and randomization-bootstrap CIs on incidence, unsupported by design, counted as
+    errors instead of constraints (60); `pval_in_0_1` and `ci_ordered` failures on bootstrap p-values and CIs (about
+    65; check whether NA without a warning, or a real EDI bug); `distribution_length_valid` on the
+    `approximate_*_distribution` methods (30); `initialize` called without `des_obj` (4).
+  - Found so far (one class, `InferenceAllSimpleAverageDiff`: 35 errors, 106 invariant failures, nearly all harness
+    defects): invariants attached to methods they do not fit (`pval_in_0_1` on a jackknife p-value,
+    `distribution_length_valid` on randomization p-values and distributions, `ci_length_2` on rand CIs that errored);
+    string arguments filled with the fixture id (`testing_type = "fixed_bernoulli_continuous_smoke"`); `initialize`
+    called without `des_obj`; randomization CIs on incidence, deliberately disabled since 2026-08-27, counted as
+    unexpected errors instead of a constraint. Design classes with no fixture of their own (e.g.
+    `DesignFixedFactorial`) used to abort the whole run; since 2026-11-15 they are recorded as `unsupported`.
+  - Until done: the nightly gates on the curated targets and runs ALL report-only (warning plus step summary, failure
+    CSVs in the artifact). Triage that artifact: fix harness defects in the generator, fixtures and invariants; file
+    real EDI bugs as their own TODOs.
+  - Done when: a scheduled ALL sweep has zero unexpected errors and invariant failures, design classes have fixtures
+    (no `unsupported` from missing receivers), and the ALL step's `continue-on-error` is removed.
+- [ ] TODO-24 (added 2026-11-15, agent, owner request to allowlist the remaining path-audit gaps with TODO citations;
+  found by `R/package_tests/compare_path_audits.R` after the 2026-11-12 path-audit gap regeneration batch): **trace why 29
+  nonestimability-defaults rows that HEAD's `path_audits_nonestimability_defaults.csv` still lists are gone from every
+  canonical results CSV.** None of these (class, function_run) pairs is in any `comprehensive_tests_results_nc_1_*.csv`,
+  nor in the pre-merge backups from 2026-11-03 on, and fresh runs of the current runner do not emit them (the 2026-11-12
+  KKGEE / KKGLMM slices have no nonparametric-bootstrap rows), so the batch did not remove them. They are allowlisted as
+  `row_removed` under this TODO (`todo24_v106_*` rows in `path_audits_regression_allowlist.csv`):
+  - Bartlett LR p-value: `InferenceCountHurdlePoisson`, `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalStereotypeLogitRegr`.
+  - `InferenceOrdinalKKGEE` (bootstrap basic / BCa CIs and p-values, symmetric p-value, m-out-of-n, subsampling) and
+    `InferenceOrdinalKKGLMM` (bootstrap CIs, m-out-of-n CI, `compute_rand_two_sided_pval` with and without delta = 0.5;
+    the current runner emits only the `(custom)` rand p-value for it).
+  - `InferenceOrdinalAdjCatLogitRegr` studentized bootstrap CI.
+  - `compute_rand_confidence_interval` (and `(custom)`): `InferencePropKKQuantileRegrOneLik` (the release_v1_1_0.md TODO-25
+    stopgap makes it fail loudly), `InferenceSurvivalCoxPHRegr`, `InferenceSurvivalStratCoxPHRegr`,
+    `InferenceSurvivalKKLWACoxPHOneLik`, `InferenceSurvivalKKStratCoxPHOneLik`.
+  - For each, find the change that stopped the runner emitting it (registry exclusion, support gate, a NEWS 1.0.5 refusal)
+    and either cite that change in the allowlist row or restore the method. A pair the package still advertises but the
+    runner skips is a harness gap, not an accepted change.
+  - Done when: every `todo24_v106_*` allowlist row cites its real cause (or is removed because the rows came back), and the
+    defaults CSV is regenerated without those rows.
+- [ ] TODO-25 (added 2026-11-15, agent; owner accepted these into `comprehensive_results_audit_baseline.csv` the same day):
+  **investigate the 90 results-audit findings accepted after the 2026-11-12 path-audit gap regeneration batch.** Most are
+  rows the batch made visible for the first time: `InferencePropGCompMeanDiff` (26 low_coverage, 17 pval_miscalibration;
+  its proportion rows were regenerated on all seven designs), the AllSimple proportion rows moved out of
+  `..._filtered_class-Inference_AllSimpleAverageDiff_..._AllSimpleWilcox.csv` into the main CSV (AverageDiff 6 + 4,
+  Wilcox 5, MeanDiffPooledVar 2), and ordinal `InferenceOrdinalKKGLMM` (3 + 12) / `InferenceOrdinalKKGEE` (3). The rest
+  (CountKKGLMM 2, IncidKKGCompRiskDiff 4, ContinKKRobustRegrOneLik 2, and one each for CountKKHurdlePoissonOneLik,
+  IncidKKCondLogitOneLik, IncidKKGEE, OrdinalContRatioRegr) sit in files the batch did not touch; check whether they are
+  borderline FDR calls moved by the larger number of tests corrected together. The same baseline rewrite dropped 31
+  findings that no longer occur. Also look at KKGLMM on KK21stepwise: the 2026-11-12 rerun turned 169 diamonds results
+  into NA (`numeric_instability`) with none going the other way.
+  - Already tracked elsewhere: `InferenceContinKKRobustRegrOneLik` (`release_v1_1_0.md` TODO-172, Wald oversized at
+    n = 50) and `InferenceIncidKKCondLogitOneLik` (`release_v1_1_0.md` TODO-177, gradient test oversized); fold their
+    findings into those TODOs rather than re-investigating them here.
+  - Done when: each class above has a cause (real miscalibration with its own TODO, or an accepted limitation in NEWS /
+    roxygen), and the baseline rows are re-justified or removed.

@@ -196,7 +196,10 @@ domain_for_contract = function(contract) {
 		assertList = fixture_domain(contract, "list"),
 		assertDataFrame = fixture_domain(contract, "data.frame"),
 		assertMatrix = fixture_domain(contract, "matrix"),
-		assertString = value_rows(default_value_row(contract$default_expr), value_row("fixture_string", "<fixture:string>", "smoke", "fixture", "fixture-provided string")),
+		# The fixture's id is only a stand-in for a free-form string; an argument with a
+		# default (e.g. testing_type = "wald") keeps its default rather than the id.
+		assertString = if (!is.null(default_value_row(contract$default_expr))) value_rows(default_value_row(contract$default_expr)) else
+			value_rows(value_row("fixture_string", "<fixture:string>", "smoke", "fixture", "fixture-provided string")),
 		assertNoCensoring = value_row("no_censoring", "<fixture:no_censoring>", "smoke", "unsupported_context", "public method requires uncensored data"),
 		fixture_domain(contract, "value")
 	)

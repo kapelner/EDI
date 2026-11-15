@@ -612,6 +612,17 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 		fi
 	fi
 
+	# The harness's own unit tests (R/package_tests/smoke_test_*.R, ~20 s), run
+	# beside the comprehensive smoke tier once the drift check has settled the
+	# committed CSVs they read. Unrun until 2026-11-15, they had rotted
+	# (release_v1_0_6.md TODO-23).
+	harness_smoke_log="$(mktemp "${TMPDIR:-/tmp}/edi_harness_smoke.XXXXXX")"
+	harness_smoke_pid=""
+	if [ "$comprehensive_suite_ok" = "1" ]; then
+		bash R/package_tests/run_harness_smoke_tests.sh > "$harness_smoke_log" 2>&1 &
+		harness_smoke_pid=$!
+	fi
+
 	# Tracked results only, as in CI: never the local, gitignored
 	# comprehensive_tests_results*.csv (see tracked_results_only() in both scripts).
 	if [ "$comprehensive_suite_ok" = "1" ] && (
@@ -628,7 +639,22 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	else
 		echo "pre-push: comprehensive suite / drift check FAILED." >&2
 		echo "pre-push: if this is a drift failure (git diff above), regenerate and commit the affected package_tests/ CSVs -- see R/package_tests/public_argument_combination_runner.md." >&2
+		[ -n "$harness_smoke_pid" ] && { kill "$harness_smoke_pid" 2>/dev/null; wait "$harness_smoke_pid" 2>/dev/null; }
+		rm -f "$harness_smoke_log"
 		abort_push
+	fi
+	if [ -n "$harness_smoke_pid" ]; then
+		if wait "$harness_smoke_pid"; then
+			tail -n 1 "$harness_smoke_log"
+			rm -f "$harness_smoke_log"
+		else
+			cat "$harness_smoke_log" >&2
+			rm -f "$harness_smoke_log"
+			echo "pre-push: harness smoke tests (R/package_tests/smoke_test_*.R) FAILED -- run bash R/package_tests/run_harness_smoke_tests.sh." >&2
+			abort_push
+		fi
+	else
+		rm -f "$harness_smoke_log"
 	fi
 else
 	echo "pre-push: no R/package_tests-relevant files changed, skipping comprehensive suite."

@@ -153,6 +153,13 @@ extract_contract_from_call = function(expr, fn, api_meta, inside_assert_block) {
 	arg_names[is.na(arg_names)] = ""
 	target_expr = get_call_arg(args, arg_names, NULL, 1L)
 	target_arg = simple_arg_name(target_expr)
+	# An assertion on an expression (e.g. assertCount(as.integer(max_expansions))) constrains
+	# the one formal it reads; record that formal, or nothing when it reads none or several.
+	if (!is.symbol(target_expr) && is.function(fn)) {
+		used = intersect(all.names(target_expr), names(formals(fn)))
+		if (length(used) != 1L) return(NULL)
+		target_arg = used
+	}
 	
 	choices_expr = switch(
 		assertion,
@@ -202,7 +209,27 @@ walk_assertion_calls = function(expr, fn, api_meta, inside_assert_block = FALSE)
 		return(rows)
 	}
 	if (nm %in% supported_assertions) {
-		rows[[length(rows) + 1L]] = extract_contract_from_call(expr, fn, api_meta, inside_assert_block)
+		row = extract_contract_from_call(expr, fn, api_meta, inside_assert_block)
+		if (!is.null(row)) rows[[length(rows) + 1L]] = row
+	}
+	# EDI's assertBootstrapArgs() (EDI/R/helper_additional_asserts.R) wraps checkmate:
+	# assertCount(B), assertCount(min_number_usable_samples) and, given allowed_types,
+	# assertChoice(type, allowed_types). Record those contracts at the call site.
+	if (identical(nm, "assertBootstrapArgs")) {
+		a = as.list(expr)[-1L]
+		an = names(a) %||% rep("", length(a))
+		pick = function(name, pos) get_call_arg(a, an, name, if (all(an[seq_len(min(pos, length(an)))] == "")) pos else NULL)
+		emit = function(call) {
+			attr(call, "srcref") = attr(expr, "srcref", exact = TRUE)
+			row = extract_contract_from_call(call, fn, api_meta, TRUE)
+			if (!is.null(row)) rows[[length(rows) + 1L]] <<- row
+		}
+		b = pick("B", 1L)
+		if (!is.null(b)) emit(as.call(list(as.name("assertCount"), b, positive = TRUE)))
+		m = pick("min_number_usable_samples", 2L)
+		if (!is.null(m)) emit(as.call(list(as.name("assertCount"), m, positive = TRUE)))
+		ty = pick("type", 3L); at = pick("allowed_types", 4L)
+		if (!is.null(ty) && !is.null(at)) emit(as.call(list(as.name("assertChoice"), ty, choices = at)))
 	}
 	children = as.list(expr)
 	if (length(children) > 1L) {
@@ -253,7 +280,15 @@ function_for_inventory_row = function(row, ns) {
 	if (identical(row$api_kind, "r6_public_method")) {
 		gen = get(row$export_name, envir = ns)
 		if (!is_r6_generator(gen)) return(NULL)
-		return(find_r6_method(gen, row$method_name, row$method_origin_class))
+		fn = find_r6_method(gen, row$method_name, row$method_origin_class)
+		# Lazy-component stubs (`function(...)`, install_lazy_inference_component in
+		# EDI/R/contracts_mixins.R) hold no assertions: read the real component method.
+		component = if (is.function(fn)) attr(fn, "inference_lazy_component_stub", exact = TRUE) else NULL
+		if (!is.null(component)) {
+			dispatch = tryCatch(get("get_lazy_component_dispatch", envir = ns)(component, gen$classname), error = function(e) NULL)
+			if (is.function(dispatch$public[[row$method_name]])) fn = dispatch$public[[row$method_name]]
+		}
+		return(fn)
 	}
 	NULL
 }

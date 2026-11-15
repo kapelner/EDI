@@ -30,6 +30,9 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		current_file_n_tests = 0L,
 		current_test = "",
 		start_time = NULL,
+		# Lanes the suite ran in (set by run_lanes()); per-file times are summed
+		# across lanes, so the timing summary reports wall clock separately.
+		n_lanes = 1L,
 		file_start_time = NULL,
 		file_timings = list(),
 		timings_path = NULL,
@@ -180,9 +183,15 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			write.csv(timings, self$timings_path, row.names = FALSE)
 			total <- sum(timings$elapsed_secs)
 			top <- head(timings, 10)
-			self$write_out(sprintf("Per-file timings (%d files, %.0fs total) written to %s\n",
-				nrow(timings), total, self$timings_path))
-			self$write_out(sprintf("Slowest files (top %d = %.0f%% of total):\n",
+			wall <- as.numeric(difftime(Sys.time(), self$start_time, units = "secs"))
+			if (self$n_lanes > 1L) {
+				self$write_out(sprintf("Per-file timings (%d files; %.0fs total testing time, %.0fs total runtime across %d cores) written to %s\n",
+					nrow(timings), wall, total, self$n_lanes, self$timings_path))
+			} else {
+				self$write_out(sprintf("Per-file timings (%d files, %.0fs total) written to %s\n",
+					nrow(timings), total, self$timings_path))
+			}
+			self$write_out(sprintf("Slowest files (top %d = %.0f%% of summed file time):\n",
 				nrow(top), 100 * sum(top$elapsed_secs) / max(total, .Machine$double.eps)))
 			self$write_out(sprintf("  %8.1fs  %s\n", top$elapsed_secs, top$file), sep = "")
 			self$write_out("\n")
@@ -459,6 +468,7 @@ run_lanes <- function() {
 	others <- setdiff(run_files, worker)
 	n_lanes <- max(1L, min(n_workers, length(others) + 1L))
 	lanes <- vector("list", n_lanes); lanes[[1]] <- worker
+	reporter$n_lanes <- n_lanes
 	load <- numeric(n_lanes); load[1] <- sum(est[worker])
 	for (f in others[order(-est[others])]) {
 		i <- which.min(load)

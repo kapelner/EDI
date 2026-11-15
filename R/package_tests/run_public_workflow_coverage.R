@@ -279,27 +279,30 @@ build_matched_incidence_fixture = function() {
 	fixture
 }
 
+# Likelihood-based families (score, likelihood ratio, gradient, parametric bootstrap,
+# Bartlett) use InferenceContinOLS: since the inference-hierarchy split the simple
+# difference in means no longer carries them.
 method_family_specs = function() {
 	list(
 		list(family = "estimate", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_estimate", args = list(), tier = "smoke", capability = "estimate"),
 		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_wald_two_sided_pval", args = list(delta = 0), tier = "smoke", capability = "asymp_pval"),
 		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_wald_confidence_interval", args = list(alpha = 0.05), tier = "smoke", capability = "asymp_ci"),
-		list(family = "asymptotic_score", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_score_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "score_pval"),
-		list(family = "asymptotic_score", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_score_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "score_ci"),
-		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "lik_ratio_pval"),
-		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "lik_ratio_ci"),
-		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_gradient_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "gradient_pval"),
-		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_gradient_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "gradient_ci"),
+		list(family = "asymptotic_score", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_score_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "score_pval"),
+		list(family = "asymptotic_score", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_score_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "score_ci"),
+		list(family = "asymptotic_lik_ratio", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_lik_ratio_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "lik_ratio_pval"),
+		list(family = "asymptotic_lik_ratio", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_lik_ratio_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "lik_ratio_ci"),
+		list(family = "asymptotic_gradient", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_gradient_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "gradient_pval"),
+		list(family = "asymptotic_gradient", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_gradient_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "gradient_ci"),
 		list(family = "exact", class_name = "InferenceIncidExactBinomial", response_type = "incidence", method_name = "compute_exact_two_sided_pval_for_treatment_effect", args = list(), tier = "smoke", capability = "exact_pval", fixture_kind = "matched_incidence"),
 		list(family = "exact", class_name = "InferenceIncidExactBinomial", response_type = "incidence", method_name = "compute_exact_confidence_interval", args = list(alpha = 0.05), tier = "smoke", capability = "exact_ci", fixture_kind = "matched_incidence"),
 		list(family = "bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_pval"),
 		list(family = "bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_ci"),
 		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_pval"),
 		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_ci"),
-		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_param_bootstrap_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_pval"),
-		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_param_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_ci"),
-		list(family = "bartlett", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_two_sided_pval", args = list(delta = 0, B = 9L), tier = "nightly", capability = "bartlett_pval"),
-		list(family = "bartlett", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_confidence_interval", args = list(alpha = 0.05, B = 9L), tier = "nightly", capability = "bartlett_ci"),
+		list(family = "parametric_bootstrap", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_param_bootstrap_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_pval"),
+		list(family = "parametric_bootstrap", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_param_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_ci"),
+		list(family = "bartlett", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_two_sided_pval", args = list(delta = 0, B = 9L), tier = "nightly", capability = "bartlett_pval"),
+		list(family = "bartlett", class_name = "InferenceContinOLS", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_confidence_interval", args = list(alpha = 0.05, B = 9L), tier = "nightly", capability = "bartlett_ci"),
 		list(family = "jackknife", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_jackknife_wald_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "jackknife_pval"),
 		list(family = "jackknife", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_jackknife_wald_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "jackknife_ci"),
 		list(family = "randomization", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_rand_two_sided_pval", args = list(r = 9L, delta = 0, show_progress = FALSE), tier = "ci", capability = "rand_pval"),
@@ -521,7 +524,7 @@ run_function_classification = function(function_names) {
 build_public_workflow_coverage = function(tier = "smoke") {
 	inventory = read_csv_fast(repo_path("package_tests", "public_api_inventory.csv"), stringsAsFactors = FALSE)
 	classes = sort(unique(inventory$export_name[inventory$api_kind == "r6_class"]))
-	design_classes = classes[grepl("^Design", classes)]
+	design_classes = classes[grepl("^(Design|ObservationalDesign)", classes)]
 	inference_classes = setdiff(classes[grepl("^Inference", classes)], "InferenceSuite")
 	function_names = sort(unique(inventory$export_name[inventory$api_kind == "function"]))
 	fixtures = build_comprehensive_suite_fixtures(tier)

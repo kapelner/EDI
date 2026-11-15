@@ -272,12 +272,36 @@ jobs:
         working-directory: R
         run: Rscript package_tests/public_argument_contract_registry.R
 
-      # Scheduled runs use ALL (every registry target); a dispatch can narrow it.
-      - name: Run public argument-combination nightly
+      # The gate: the curated smoke targets, which must pass.
+      - name: Run public argument-combination nightly (curated targets, gating)
         working-directory: R
+        run: Rscript package_tests/run_public_argument_combination_nightly.R ""
+
+      # Every registry target (or a dispatch's regex). Report-only while the harness is
+      # unfinished for most targets (release_v1_0_6.md TODO-23): its failures are mostly
+      # harness defects, so a scheduled ALL sweep does not fail the run. A dispatch that
+      # names its own targets is gating. Reuses the gate step's results (same case ids).
+      - name: Run public argument-combination nightly (${{ github.event_name == 'workflow_dispatch' && inputs.argument_targets || 'ALL' }})
+        id: argsweep
+        working-directory: R
+        continue-on-error: ${{ (github.event_name == 'workflow_dispatch' && inputs.argument_targets || 'ALL') == 'ALL' }}
         env:
           TARGETS: ${{ github.event_name == 'workflow_dispatch' && inputs.argument_targets || 'ALL' }}
         run: Rscript package_tests/run_public_argument_combination_nightly.R "$TARGETS"
+
+      - name: Summarize the argument-combination sweep
+        if: ${{ !cancelled() }}
+        working-directory: R/package_tests
+        run: |
+          f=public_argument_combination_ci_failure_summary.csv
+          [ -f "$f" ] || exit 0
+          IFS=, read -r errors invariants should_fail < <(tail -n 1 "$f")
+          { echo "### Public argument combinations"; echo
+            echo "Unexpected errors: $errors; invariant failures: $invariants (sweep outcome: ${{ steps.argsweep.outcome }})."
+            echo; echo "Failures by target: see public_argument_combination_failures.csv in the artifact."; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.argsweep.outcome }}" = "failure" ]; then
+            echo "::warning title=Argument combinations (report-only)::$errors unexpected error(s), $invariants invariant failure(s) across all targets; mostly harness gaps (release_v1_0_6.md TODO-23)"
+          fi
 
       - name: Upload argument-combination artifacts
         if: always()

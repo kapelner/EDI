@@ -362,21 +362,37 @@ jobs:
     steps:
       # Step aside for the nightly suites (owner ruling 2026-11-14): while a
       # nightly.yml run is queued or in progress, this shard does no work and
-      # uploads nothing, so its runner slot frees within seconds. A shard with no
+      # uploads no results, so its runner slot frees within seconds. A shard with no
       # results has no ledger row, so the next wave re-plans it. Fails open: if
       # the API call fails, the shard runs.
+      #
+      # A shard that steps aside uploads a `study-yield-<id>` marker instead, and
+      # analyze leaves it out of planned.csv: the planner counts a planned shard with
+      # no ledger row as dead and abandons a unit after --max-dead of them, so
+      # without the marker every deferred wave pushed units toward abandonment
+      # (wave 3 of campaign 2026-11-12-a46ab113, run 43646680353: 246 of 256 shards
+      # deferred, 21 units abandoned).
       - id: yield
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           n="$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly.yml --limit 20 --json status \
-                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)" || n=""  # fail open: under bash -e a failed API call would otherwise abort the step
           if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
             echo "go=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=Calibration yield::a nightly.yml run is active; shard ${{ matrix.id }} steps aside and will be re-planned."
+            mkdir -p yield && echo "${{ matrix.id }}" > yield/id.txt
           else
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
+      # Best effort: if this upload fails the shard counts as dead, as before the marker existed.
+      - if: steps.yield.outputs.go == 'false'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: study-yield-${{ matrix.id }}
+          path: yield
+          retention-days: 3
       - uses: actions/checkout@v7
         if: steps.yield.outputs.go == 'true'
         with:
@@ -620,16 +636,27 @@ jobs:
         with:
           pattern: study-shard-*
           path: wave
+      # The markers of shards that stepped aside for a nightly run (see the shards job's `yield` step). None is the
+      # usual case; a failed download only means those shards count as dead, as before the markers existed.
+      - continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: study-yield-*
+          path: yielded
       - name: Add this wave to the campaign
         run: |
           d="results/campaigns/$C"
           wave_no=$(( $(wc -l < "$d/runs.txt" 2>/dev/null || echo 0) + 1 ))
           Rscript pinned/R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
-          # Every planned shard, finished or not: the planner abandons a unit after
-          # repeated shards that never wrote shard.csv (died or timed out).
+          # Every planned shard, finished or not, except those that stepped aside for a nightly run: the planner
+          # abandons a unit after repeated shards that never wrote shard.csv (died or timed out), and a shard that
+          # stepped aside did neither.
           [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id" > "$d/planned.csv"
-          echo '${{ needs.roster.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
-            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r] | @csv' >> "$d/planned.csv"
+          yielded="$(cat yielded/*/id.txt 2>/dev/null | jq -R . | jq -sc . || echo '[]')"
+          [ -n "$yielded" ] || yielded='[]'
+          echo "Shards that stepped aside for a nightly run (not counted as dead): $(echo "$yielded" | jq length)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '${{ needs.roster.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" --argjson y "$yielded" \
+            '.include[] | select(.id as $i | $y | index($i) | not) | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r] | @csv' >> "$d/planned.csv"
           echo "${{ github.run_id }}" >> "$d/runs.txt"
           echo "wave_no=$wave_no" >> "$GITHUB_ENV"
           # This wave's raw rows, for deep dives (60 days, so the last two campaigns, ~0.3 GB each, are kept at a
@@ -832,7 +859,7 @@ jobs:
         if: needs.analyze.outputs.complete != 'true'
         run: |
           n="$(gh run list -R "${{ github.repository }}" --workflow nightly.yml --limit 20 --json status \
-                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
+                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)" || n=""  # fail open: under bash -e a failed API call would otherwise abort the step
           if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
             echo "::notice title=Calibration paused::a nightly.yml run is active; campaign $C pauses after this wave and nightly.yml resumes it when it ends."
             exit 0

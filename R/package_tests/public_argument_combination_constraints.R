@@ -266,7 +266,11 @@ constraint_known_slow_paths = function(args, fixture, tier, registry_entry) {
 	B = as_numberish(arg_value(args, "B"))
 	r = as_numberish(arg_value(args, "r"))
 	large_runtime_count = any(c(B, r) > c(smoke = 5L, ci = 25L)[tier] %||% Inf, na.rm = TRUE)
-	if (!length(labels) && !large_runtime_count) return(valid_result("constraint_known_slow_paths"))
+	# Decide per case. "resampling_count" and "higher_tier_values" only say the target HAS
+	# slow values; the case's own B/r (checked above) says whether this case is slow, and the
+	# generator already limits other values to the requested tier. Only an iterative or
+	# root-search target is slow whatever its arguments.
+	if (!large_runtime_count && !("iteration_or_root_search" %in% labels)) return(valid_result("constraint_known_slow_paths"))
 	min_tier = fixture_value(fixture, "min_slow_tier", "nightly")
 	if (is.na(tier_rank[tier]) || is.na(tier_rank[min_tier]) || tier_rank[tier] >= tier_rank[min_tier]) {
 		return(valid_result("constraint_known_slow_paths", "slow path is allowed at requested tier"))
