@@ -20,9 +20,9 @@
 > - **Files:** `.github/workflows/comprehensive-study.yml`; `R/package_tests/cloud/` (`build_comprehensive_study_costs.R`,
 >   `plan_comprehensive_study.R`, `run_comprehensive_shard.R`, `merge_comprehensive_study_wave.R`,
 >   `finalize_comprehensive_study.R`); test `testthat_bulk/test-comprehensive-study-planner-reference.R`.
->   Trigger: `calibration-study.yml` publish, on campaign completion. Pausing and resuming: as calibration (shards
->   step aside for `nightly.yml`; `nightly.yml`'s `resume-calibration` resumes the newest unfinished campaign of
->   either study).
+>   Trigger: `calibration-study.yml` publish, on campaign completion. Waves run alongside `nightly.yml` (owner
+>   ruling 2026-11-15: no step-aside or pause, nightly uses the 4 free slots); `nightly.yml`'s `resume-calibration`
+>   still restarts the newest unfinished campaign of either study if its wave chain broke.
 > - The "estimates vary across reps" gate check: `finalize_comprehensive_study.R` flags a cell (class x dataset x
 >   design x beta_T) with finite estimates on >= 10 reps of which fewer than half are distinct; the gate fails on any.
 >

@@ -599,6 +599,7 @@ R/package_tests/testthat_bulk/test-kk-quantile-regr-one-lik-fit-and-coefficient-
 R/package_tests/testthat_bulk/test-kk-quantile-regr-onelik-migration-golden.R,correctness,4.5,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-rank-regr-and-lwa-cox-ivwc-shared-reservoir-only-branch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-aft-design-candidates-ladder-and-cache-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-deterministic-aftsrr.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-incidence-response-rejected-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-nonzero-delta-not-implemented-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-shared-nonestimable-branches-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1385,7 +1386,6 @@ R/EDI/tests/testthat/test-kk-gee-fallback.R,coverage,1,measured_with_30_percent_
 R/EDI/tests/testthat/test-kk-ivwc-compound-focused-regression.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-mean-diff-ivwc-binary-match-bootstrap.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-ols-se.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-kk-rank-regr-ivwc-deterministic-aftsrr.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
@@ -2142,6 +2142,7 @@ R/package_tests/testthat_bulk/test-kk-quantile-regr-one-lik-fit-and-coefficient-
 R/package_tests/testthat_bulk/test-kk-quantile-regr-onelik-migration-golden.R,coverage,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-rank-regr-and-lwa-cox-ivwc-shared-reservoir-only-branch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-aft-design-candidates-ladder-and-cache-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-deterministic-aftsrr.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-incidence-response-rejected-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-nonzero-delta-not-implemented-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-rank-regr-ivwc-shared-nonestimable-branches-reference.R,coverage,240,bootstrap

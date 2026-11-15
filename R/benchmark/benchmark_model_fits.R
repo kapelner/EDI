@@ -6,9 +6,22 @@ options(warn = -1)
 #   Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs
 # or:
 #   Rscript benchmark/benchmark_model_fits.R --sections procedures,designs
+# `--shard=k/n` runs only the k-th of n contiguous chunks of the models and wald
+# rows (the nightly CI times each of those two sections in two shards):
+#   Rscript benchmark/benchmark_model_fits.R --sections=wald --shard=2/2
+# `--save-results=FILE` also saves the run's raw rows; `--from-results=F1,F2,...`
+# times nothing and builds one report from the rows those runs saved (the
+# nightly CI's combined report):
+#   Rscript benchmark/benchmark_model_fits.R --sections=wald --shard=1/2 --save-results=wald1.rds
+#   Rscript benchmark/benchmark_model_fits.R --from-results=models1.rds,models2.rds,wald1.rds,...
 source("benchmark/benchmark_sections.R")
-BENCHMARK_SECTIONS = parse_benchmark_sections()
+BENCHMARK_FROM_RESULTS = parse_benchmark_from_results()
+BENCHMARK_SAVE_RESULTS = parse_benchmark_save_results()
+BENCHMARK_MERGED = if (!is.null(BENCHMARK_FROM_RESULTS)) merge_benchmark_results(lapply(BENCHMARK_FROM_RESULTS, readRDS)) else NULL
+BENCHMARK_TIMING = is.null(BENCHMARK_MERGED)
+BENCHMARK_SECTIONS = if (BENCHMARK_TIMING) parse_benchmark_sections() else BENCHMARK_MERGED$sections
 run_benchmark_section = function(section) section %in% BENCHMARK_SECTIONS
+BENCHMARK_SHARD = if (BENCHMARK_TIMING) parse_benchmark_shard() else c(k = 1L, n = 1L)
 
 .libPaths(c(file.path(Sys.getenv("HOME"), "R", paste0(R.version$platform, "-library"), paste(R.version$major, sub("\\..*$", "", R.version$minor), sep = ".")), .libPaths()))
 compiler::enableJIT(0) # Disable JIT to prevent R6 on-the-fly compilation overhead
@@ -37,7 +50,7 @@ library(EDI)
 # as benchmark/fast_trigamma_speed_compare.cpp) so this table stays an
 # exhaustive inventory of every fast_* math kernel in the codebase, not just
 # the ones already promoted.
-if (run_benchmark_section("utility")) {
+if (BENCHMARK_TIMING && run_benchmark_section("utility")) {
     suppressPackageStartupMessages(library(Rcpp))
     Sys.setenv(PKG_CPPFLAGS = "-w")
     Rcpp::sourceCpp("benchmark/fast_math_utils_bench.cpp", cacheDir = "/tmp/fast_math_utils_bench_cache")
@@ -1168,10 +1181,12 @@ spec_key = function(s) paste(s$cls, s$pkg, s$func, sep = " | ")
 unique_specs = bench_specs[!duplicated(vapply(bench_specs, spec_key, character(1)))]
 
 if (run_benchmark_section("models")) {
-    for (i in seq_along(unique_specs)) {
-        cat(sprintf("[%d/%d] ", i, length(unique_specs)))
-        run_one(unique_specs[[i]])
-    }
+    if (BENCHMARK_TIMING) {
+        for (i in benchmark_shard_indices(length(unique_specs), BENCHMARK_SHARD)) {
+            cat(sprintf("[%d/%d] ", i, length(unique_specs)))
+            run_one(unique_specs[[i]])
+        }
+    } else results = BENCHMARK_MERGED$results
 }
 
 # ── Wald / Full-Inference Section ──────────────────────────────────────────────
@@ -1779,7 +1794,9 @@ run_one_wald = function(spec) {
 
 if (run_benchmark_section("wald")) {
 wald_unique_specs = wald_specs[!duplicated(vapply(wald_specs, spec_key, character(1)))]
-for (i in seq_along(wald_unique_specs)) run_one_wald(wald_unique_specs[[i]])
+if (BENCHMARK_TIMING) {
+    for (i in benchmark_shard_indices(length(wald_unique_specs), BENCHMARK_SHARD)) run_one_wald(wald_unique_specs[[i]])
+} else wald_results = BENCHMARK_MERGED$wald_results
 
 # Format Wald table
 dt_wald = rbindlist(wald_results)
@@ -1910,7 +1927,9 @@ run_one_utility = function(spec) {
 }
 
 if (run_benchmark_section("utility")) {
-for (i in seq_along(utility_specs)) run_one_utility(utility_specs[[i]])
+if (BENCHMARK_TIMING) {
+    for (i in seq_along(utility_specs)) run_one_utility(utility_specs[[i]])
+} else utility_results = BENCHMARK_MERGED$utility_results
 
 dt_util = rbindlist(utility_results)
 setorder(dt_util, Class)
@@ -2287,7 +2306,7 @@ run_generic_table = function(specs, fixture_builder, label) {
     rbindlist(out)
 }
 
-dt_proc = if (run_benchmark_section("procedures")) run_generic_table(procedure_specs, function(fx) {
+dt_proc = if (!BENCHMARK_TIMING) BENCHMARK_MERGED$dt_proc else if (run_benchmark_section("procedures")) run_generic_table(procedure_specs, function(fx) {
     switch(fx,
         continuous = build_procedure_fixture("continuous"),
         incidence = build_procedure_fixture("incidence"),
@@ -2295,7 +2314,7 @@ dt_proc = if (run_benchmark_section("procedures")) run_generic_table(procedure_s
         survival = build_procedure_fixture("survival")
     )
 }, "Procedure") else NULL
-dt_design = if (run_benchmark_section("designs")) run_generic_table(design_specs, function(fx) build_design_fixture(), "Design") else NULL
+dt_design = if (!BENCHMARK_TIMING) BENCHMARK_MERGED$dt_design else if (run_benchmark_section("designs")) run_generic_table(design_specs, function(fx) build_design_fixture(), "Design") else NULL
 
 # Same shape/colouring as the utility table (no optimizer-iteration columns).
 build_generic_table_lines = function(dt_in, first_col_header) {
@@ -2573,6 +2592,19 @@ compile_context_lines = function() {
   )
 }
 
+# The report's compilation context describes the EDI the rows were timed on: in
+# --from-results mode, the first saved run's (every CI shard times the same build).
+benchmark_compile_context = if (BENCHMARK_TIMING) compile_context_lines() else BENCHMARK_MERGED$compile_context
+
+if (BENCHMARK_TIMING && !is.null(BENCHMARK_SAVE_RESULTS)) {
+  saveRDS(list(sections = BENCHMARK_SECTIONS, shard = BENCHMARK_SHARD,
+               results = results, wald_results = wald_results, utility_results = utility_results,
+               dt_proc = dt_proc, dt_design = dt_design,
+               compile_context = benchmark_compile_context, generated = Sys.time()),
+          BENCHMARK_SAVE_RESULTS)
+  cat("Saved this run's benchmark rows to ", BENCHMARK_SAVE_RESULTS, "\n", sep = "")
+}
+
 edi_version = as.character(utils::packageVersion("EDI"))
 
 report = c(
@@ -2582,9 +2614,14 @@ report = c(
   "",
   paste0("_Selected sections: ", paste(BENCHMARK_SECTIONS, collapse = ", "), "_"),
   "",
+  if (BENCHMARK_SHARD[["n"]] > 1L) c(sprintf("_Shard %d of %d of the %s rows; the other sections run in full._",
+                                          BENCHMARK_SHARD[["k"]], BENCHMARK_SHARD[["n"]],
+                                          paste(BENCHMARK_SHARDED_SECTIONS, collapse = " and ")), ""),
+  if (!BENCHMARK_TIMING) c(paste0("_Assembled from ", length(BENCHMARK_MERGED$runs), " timing runs, each on its own runner: ",
+                                  paste(BENCHMARK_MERGED$runs, collapse = "; "), "._"), ""),
   "This report compares the performance of EDI's Rcpp-optimized model fitting paths against **low-level** canonical R implementations (e.g., `glm.fit`, `lm.fit`, `coxph.fit`) where possible.",
   "",
-  compile_context_lines(),
+  benchmark_compile_context,
   "## Benchmark Dataset Specification",
   "",
   "All benchmarks were performed on a synthetic clinical-trial-scale dataset generated for each response type. The data generation process ensures numerical stability and fair solver comparison by using the following parameters:",

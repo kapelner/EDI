@@ -16,7 +16,8 @@ For each link found it verifies the target is alive:
     Network failures warn after one retry; HTTP errors remain blocking
     except automated-client refusals and rate limiting handled below.
     Roxygen comments contribute external links only ([text](url), \\url{},
-    \\href{}); Rd cross-references like \\link[pkg]{fn} are not checked.
+    \\href{}, and \\doi{X}, checked as https://doi.org/X); Rd
+    cross-references like \\link[pkg]{fn} are not checked.
 
 Runs over the whole corpus above (not just the diff) because a link can be
 broken by a change on the OTHER end -- e.g. renaming/moving the file a doc
@@ -89,6 +90,8 @@ def md_files():
 
 ROXY_LINE_RE = re.compile(r"^\s*#'(.*)$")
 ROXY_TEX_URL_RE = re.compile(r"\\(?:url|href)\{(https?://[^}]+)\}")
+# \doi{X} renders as a link to https://doi.org/X in the help pages.
+ROXY_DOI_RE = re.compile(r"\\doi\{([^}\s]+)\}")
 
 
 def roxygen_files():
@@ -114,6 +117,9 @@ def roxygen_external_urls(r_file: Path) -> list[str]:
     # \href{...\%27...} 404s on the literal backslash that was never part
     # of the real URL.
     urls = [u.replace("\\%", "%") for u in ROXY_TEX_URL_RE.findall(roxy_text)]
+    urls += [
+        "https://doi.org/" + d.replace("\\%", "%") for d in ROXY_DOI_RE.findall(roxy_text)
+    ]
     urls += [
         t.strip()
         for t in LINK_RE.findall(roxy_text)

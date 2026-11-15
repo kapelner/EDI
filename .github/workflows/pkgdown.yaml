@@ -88,9 +88,24 @@ jobs:
         shell: bash
         run: bash scripts/build_llms_full.sh R/EDI/docs
 
+      # The nightly benchmark report (nightly.yml bench-report) lives on the benchmark-results
+      # branch and is served at benchmarks/. Every deploy replaces the whole site, so this
+      # deploy must carry it too.
+      - name: Add the latest nightly benchmark report at benchmarks/
+        run: |
+          if git clone -q --depth 1 --branch benchmark-results "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/bench" 2>/dev/null; then
+            mkdir -p R/EDI/docs/benchmarks
+            cp "$RUNNER_TEMP/bench/index.html" "$RUNNER_TEMP/bench/benchmark_model_fits.md" R/EDI/docs/benchmarks/
+          else
+            echo "No benchmark-results branch yet: the site has no benchmarks/ page."
+          fi
+
+      # Kept 30 days (default 1): nightly.yml's bench-pages redeploys this site with a new
+      # benchmarks/ page instead of rebuilding it.
       - uses: actions/upload-pages-artifact@v5
         with:
           path: R/EDI/docs
+          retention-days: 30
 
   deploy:
     needs: pkgdown

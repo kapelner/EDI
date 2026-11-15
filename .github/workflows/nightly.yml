@@ -11,7 +11,7 @@ name: nightly
 #   fuzz-discover, fuzz    libFuzzer harnesses of the native C++ suite (cpp_tests/fuzz/),
 #                          time-boxed, corpus kept between runs; succeeds while cpp_tests/
 #                          does not exist yet (v1.0.6 TODO-15)
-#   resume-calibration     last job: restarts a paused calibration campaign (see below)
+#   resume-calibration     last job: restarts a stalled calibration campaign (see below)
 #   repro, repro-compare   cross-platform and core-count reproducibility
 #                          (cross_platform_reproducibility.md TODO-4, release_v1_1_0.md
 #                          TODO-48): the seed-pinned reproducibility tests on five
@@ -499,15 +499,27 @@ jobs:
   bench:
     needs: [change-gate, bench-build]
     if: needs.change-gate.outputs.bench == 'true'
-    name: benchmark (${{ matrix.section }})
+    name: benchmark (${{ matrix.section }}${{ matrix.shard != '1/1' && format(' {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
-    # Four runs of one section (A B B A); a section must take under ~75 min per run.
+    # Four runs of one shard (A B B A); a shard must take under ~75 min per run.
     timeout-minutes: 330
     strategy:
       fail-fast: false
-      max-parallel: 3
+      # models and wald took ~2.5 h each as one job (52 and 56 rows x ~40 s x 4 runs), so each
+      # runs as two shards (benchmark_sections.R --shard), each half of the rows. Every row
+      # seeds its own data, so a row times the same in either shard. The four long shards
+      # are listed first so they start together; the three short sections share the fifth
+      # slot, and the whole matrix takes about as long as one long shard (~1.3 h).
+      max-parallel: 5
       matrix:
-        section: [models, wald, utility, procedures, designs]
+        include:
+          - { section: models, shard: 1/2, id: models-1of2 }
+          - { section: models, shard: 2/2, id: models-2of2 }
+          - { section: wald, shard: 1/2, id: wald-1of2 }
+          - { section: wald, shard: 2/2, id: wald-2of2 }
+          - { section: utility, shard: 1/1, id: utility }
+          - { section: procedures, shard: 1/1, id: procedures }
+          - { section: designs, shard: 1/1, id: designs }
     env:
       EDI_PORTABLE: 1
       OMP_NUM_THREADS: 1
@@ -566,13 +578,17 @@ jobs:
           out="$RUNNER_TEMP/runs"; mkdir -p "$out"
           # Phase 0 of the plan (measure): each run's wall time goes to the step summary, so the
           # section's cost on a hosted runner is visible every night.
-          { echo "### Benchmark run times: ${{ matrix.section }}"; echo; echo "| run | library | minutes |"; echo "|---|---|---|"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Benchmark run times: ${{ matrix.section }} (shard ${{ matrix.shard }})"; echo; echo "| run | library | minutes |"; echo "|---|---|---|"; } >> "$GITHUB_STEP_SUMMARY"
           for run in A1 B1 B2 A2; do
             case "$run" in A*) lib="$GITHUB_WORKSPACE/bench-libs/base";; *) lib="$GITHUB_WORKSPACE/bench-libs/head";; esac
             echo "::group::$run (${lib##*/})"
             t0=$(date +%s)
-            R_LIBS="$lib" Rscript benchmark/benchmark_model_fits.R --sections=${{ matrix.section }}
+            # B1 (the first run of this commit) also saves its raw rows, which bench-report merges
+            # into the one combined report, and keeps this shard's own rendered page.
+            save=(); [ "$run" = B1 ] && save=(--save-results="$out/B1.rds")
+            R_LIBS="$lib" Rscript benchmark/benchmark_model_fits.R --sections=${{ matrix.section }} --shard=${{ matrix.shard }} "${save[@]}"
             cp package_metadata/benchmark_model_fits.md "$out/$run.md"
+            if [ "$run" = B1 ] && [ -f package_metadata/benchmark_model_fits_R.html ]; then cp package_metadata/benchmark_model_fits_R.html "$out/B1.html"; fi
             echo "| $run | ${lib##*/} | $(( ($(date +%s) - t0 + 30) / 60 )) |" >> "$GITHUB_STEP_SUMMARY"
             echo "::endgroup::"
           done
@@ -600,7 +616,7 @@ jobs:
           }
           cmp A1 A2 noise_a; cmp B1 B2 noise_b; cmp A1 B1 cmp_1; cmp A2 B2 cmp_2
           Rscript benchmark/benchmark_abba_verdict.R "$out/noise_a.tsv" "$out/noise_b.tsv" "$out/cmp_1.tsv" "$out/cmp_2.tsv" \
-            "${{ matrix.section }} (${{ needs.bench-build.outputs.base_tag }} vs ${GITHUB_SHA:0:12})"
+            "${{ matrix.section }} shard ${{ matrix.shard }} (${{ needs.bench-build.outputs.base_tag }} vs ${GITHUB_SHA:0:12})"
       # Phase 4 of the plan, every night: a 3x slowdown injected into one stable row of
       # tonight's reports must be flagged by the same comparison and verdict, or the
       # check is reported as a CI bug. Runs even when the verdict found regressions.
@@ -611,6 +627,204 @@ jobs:
           out="$RUNNER_TEMP/runs"
           for f in A1 A2 B1 B2; do [ -f "$out/$f.md" ] || { echo "no $f.md (timing step failed): canary skipped"; exit 0; }; done
           Rscript benchmark/benchmark_canary_check.R "$out/A1.md" "$out/A2.md" "$out/B1.md" "$out/B2.md" ${{ matrix.section }}
+      # This shard's four reports, B1's rendered page and B1's raw rows (bench-report merges the rows
+      # of every shard into the combined page). Kept even when the verdict failed, to look into it.
+      - name: Keep this shard's reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ matrix.id }}
+          path: |
+            ${{ runner.temp }}/runs/*.md
+            ${{ runner.temp }}/runs/B1.html
+            ${{ runner.temp }}/runs/B1.rds
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # One combined benchmark page for this commit, built from the raw rows each bench shard's B1
+  # run saved (nothing is timed here), so the page covers every section although no runner
+  # timed them all. It is the "EDI as installed" counterpart of the README's locally-run
+  # report: EDI_PORTABLE=1 (no -march=native), on a free 4-vCPU hosted runner. Published as
+  # the `benchmark-report` artifact and on the `benchmark-results` branch (one commit,
+  # force-pushed, like calibration-results; a GITHUB_TOKEN push starts no workflows), and
+  # from there on the Pages site at https://kapelner.github.io/EDI/benchmarks/ (bench-pages).
+  # Only a complete report (every shard's rows) replaces the published one.
+  bench-report:
+    needs: [change-gate, bench-build, bench]
+    if: ${{ !cancelled() && needs.change-gate.outputs.bench == 'true' && needs.bench-build.result == 'success' }}
+    name: benchmark report (combined)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write   # push to the benchmark-results branch
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    env:
+      EDI_PORTABLE: 1
+      # The number of entries in the bench matrix above: a report missing any of them is partial.
+      BENCH_SHARDS: 7
+    steps:
+      - uses: actions/checkout@v7
+      # The library the B runs timed: the report's version line and compilation context are its.
+      - uses: actions/cache/restore@v5
+        with:
+          path: bench-libs
+          key: bench-libs-${{ runner.os }}-${{ needs.bench-build.outputs.base }}-${{ github.sha }}
+          fail-on-cache-miss: true
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      # Same packages as the bench job: the script loads them before it reaches the report code.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+          extra-packages: |
+            any::microbenchmark
+            any::betareg
+            any::clinfun
+            any::DescTools
+            any::ordinal
+            any::pscl
+            any::quantreg
+            any::sandwich
+            any::VGAM
+            any::commonmark
+            any::blockTools
+            any::carat
+            any::coin
+            any::estimatr
+            any::gamlss
+            any::glmmTMB
+            any::icenReg
+            any::lme4
+            any::Minirand
+            any::nbpMatching
+            any::parfm
+            any::perm
+            any::randomizr
+            any::ri2
+            any::robustbase
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: benchmark-*
+          path: shards
+      - name: Merge every shard's rows into one report
+        id: merge
+        working-directory: R
+        run: |
+          set -euo pipefail
+          files=$(ls "$GITHUB_WORKSPACE"/shards/benchmark-*/B1.rds 2>/dev/null | paste -sd, -) || true
+          if [ -z "$files" ]; then
+            echo "::warning title=Benchmark report::no bench shard saved its rows: no combined report tonight."
+            echo "complete=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          n=$(echo "$files" | tr , '\n' | wc -l)
+          R_LIBS="$GITHUB_WORKSPACE/bench-libs/head" Rscript benchmark/benchmark_model_fits.R --from-results="$files"
+          mkdir -p "$GITHUB_WORKSPACE/bench-report-out"
+          cp package_metadata/benchmark_model_fits_R.html "$GITHUB_WORKSPACE/bench-report-out/index.html"
+          cp package_metadata/benchmark_model_fits.md "$GITHUB_WORKSPACE/bench-report-out/benchmark_model_fits.md"
+          if [ "$n" -eq "$BENCH_SHARDS" ]; then
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Benchmark report::only $n of $BENCH_SHARDS bench shards saved their rows: the report is kept as an artifact but not published."
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Keep the combined report
+        if: ${{ hashFiles('bench-report-out/index.html') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-report
+          path: bench-report-out
+          retention-days: 90
+      - name: Publish to the benchmark-results branch
+        id: publish
+        # Only main's report is public (the github-pages environment deploys only from main).
+        if: steps.merge.outputs.complete == 'true' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/bench-report-out"
+          git init -q -b benchmark-results
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "EDI nightly benchmark report: ${GITHUB_SHA:0:12} vs ${{ needs.bench-build.outputs.base_tag }}"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" HEAD:benchmark-results
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "Combined benchmark report published: https://kapelner.github.io/EDI/benchmarks/ (after bench-pages deploys it)." >> "$GITHUB_STEP_SUMMARY"
+
+  # Puts tonight's report on the Pages site. The site is pkgdown's (pkgdown.yaml), and every
+  # deploy replaces the whole site, so this never deploys the report alone: it takes the last
+  # successful pkgdown build's Pages artifact (kept 30 days), swaps in benchmarks/, and
+  # redeploys that, with no EDI build. pkgdown.yaml itself copies benchmarks/ from the
+  # benchmark-results branch, so its own deploys keep the page. If the artifact has expired,
+  # this dispatches pkgdown.yaml instead, which picks the report up from the branch.
+  bench-pages:
+    needs: [bench-report]
+    if: ${{ !cancelled() && needs.bench-report.outputs.published == 'true' }}
+    name: benchmark report to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Same group as pkgdown.yaml, so the two never deploy at once.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      actions: write    # read pkgdown.yaml's artifact, or dispatch pkgdown.yaml
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Find the last pkgdown site build
+        id: site
+        run: |
+          id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow pkgdown.yaml --branch "${{ github.event.repository.default_branch }}" \
+                 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty') || id=""
+          has=false
+          if [ -n "$id" ] && gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" \
+               --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id' | grep -q .; then
+            has=true
+          fi
+          echo "run=$id" >> "$GITHUB_OUTPUT"; echo "has=$has" >> "$GITHUB_OUTPUT"
+      - name: No site build to add to, so rebuild the site (pkgdown adds the report itself)
+        if: steps.site.outputs.has != 'true'
+        run: |
+          gh workflow run pkgdown.yaml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}"
+          echo "No unexpired pkgdown site artifact: dispatched pkgdown.yaml, which publishes the report from the benchmark-results branch." | tee -a "$GITHUB_STEP_SUMMARY"
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: github-pages
+          run-id: ${{ steps.site.outputs.run }}
+          github-token: ${{ github.token }}
+          path: site-tar
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: benchmark-report
+          path: report
+      - name: Swap tonight's report into the site
+        if: steps.site.outputs.has == 'true'
+        run: |
+          set -euo pipefail
+          mkdir site
+          tar -xf site-tar/artifact.tar -C site
+          rm -rf site/benchmarks
+          mkdir site/benchmarks
+          cp report/index.html report/benchmark_model_fits.md site/benchmarks/
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: deployment
+        if: steps.site.outputs.has == 'true'
+        uses: actions/deploy-pages@v5
 
   # Every night, no change gate (owner ruling 2026-11-14): links die on the
   # other end without any change here, and the check takes minutes.
@@ -713,17 +927,16 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
-  # Calibration (and the comprehensive study after it) pauses for the nightly suites
-  # (owner ruling 2026-11-14): its shards
-  # step aside while this workflow runs, and its publish job does not start a new wave.
-  # This job runs last, whatever the other jobs did, and dispatches the next wave of
-  # the newest campaign if it is unfinished (status.txt "running" on the
-  # calibration-results branch) unless a calibration-study run is already queued or in
-  # progress; with no unfinished calibration campaign it does the same for the
-  # comprehensive study. It also
-  # restarts a campaign whose wave chain broke for any other reason.
+  # Safety net for the calibration campaign (and the comprehensive study after it). Since
+  # owner ruling 2026-11-15 those waves no longer pause for this workflow (it uses the 4
+  # runner slots they leave free), but a wave chain can still break (a failed dispatch, a
+  # cancelled run, a run paused under the old 2026-11-14 rule). This job runs last, whatever
+  # the other jobs did, and dispatches the next wave of the newest campaign if it is
+  # unfinished (status.txt "running" on the calibration-results branch) unless a
+  # calibration-study run is already queued or in progress; with no unfinished calibration
+  # campaign it does the same for the comprehensive study.
   resume-calibration:
-    needs: [change-gate, tier, argument-combinations, repro, repro-compare, bench-build, bench, doc-links, fuzz-discover, fuzz]
+    needs: [change-gate, tier, argument-combinations, repro, repro-compare, bench-build, bench, bench-report, bench-pages, doc-links, fuzz-discover, fuzz]
     if: ${{ always() }}
     name: resume calibration campaign
     runs-on: ubuntu-latest

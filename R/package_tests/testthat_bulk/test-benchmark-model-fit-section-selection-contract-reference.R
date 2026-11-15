@@ -30,6 +30,57 @@ test_that("unknown benchmark sections are rejected", {
 	                 c("models", "wald", "utility", "procedures", "designs"))
 })
 
+test_that("benchmark shards default to every row and accept both CLI forms", {
+	expect_identical(parse_benchmark_shard(character()), c(k = 1L, n = 1L))
+	expect_identical(parse_benchmark_shard("--shard=2/2"), c(k = 2L, n = 2L))
+	expect_identical(parse_benchmark_shard(c("--sections=wald", "--shard", "1/2")), c(k = 1L, n = 2L))
+	expect_identical(benchmark_shard_indices(56L, c(k = 1L, n = 1L)), 1:56)
+	expect_identical(benchmark_shard_indices(56L, c(k = 1L, n = 2L)), 1:28)
+	expect_identical(benchmark_shard_indices(56L, c(k = 2L, n = 2L)), 29:56)
+})
+
+test_that("benchmark shards cover every row exactly once", {
+	for (n_rows in c(0L, 1L, 7L, 55L, 56L)) for (n in 1:4) {
+		rows = unlist(lapply(seq_len(n), function(k) benchmark_shard_indices(n_rows, c(k = k, n = n))))
+		expect_identical(rows, seq_len(n_rows))
+	}
+})
+
+test_that("malformed benchmark shards fail closed", {
+	expect_error(parse_benchmark_shard("--shard"), "requires a value")
+	expect_error(parse_benchmark_shard("--shard=2"), "k/n")
+	expect_error(parse_benchmark_shard("--shard=3/2"), "1 <= k <= n")
+	expect_error(parse_benchmark_shard("--shard=0/2"), "1 <= k <= n")
+	expect_error(parse_benchmark_shard(c("--shard=1/2", "--shard=2/2")), "more than once")
+})
+
+test_that("saved benchmark runs merge into one report's rows", {
+	expect_null(parse_benchmark_save_results(character()))
+	expect_identical(parse_benchmark_save_results("--save-results=a.rds"), "a.rds")
+	expect_error(parse_benchmark_save_results("--save-results=a.rds,b.rds"), "one file")
+	expect_null(parse_benchmark_from_results(character()))
+	f = c(tempfile(fileext = ".rds"), tempfile(fileext = ".rds"))
+	file.create(f)
+	expect_identical(parse_benchmark_from_results(paste0("--from-results=", paste(f, collapse = ","))), f)
+	expect_error(parse_benchmark_from_results(c(paste0("--from-results=", f[1]), "--shard=1/2")), "cannot be combined")
+	expect_error(parse_benchmark_from_results("--from-results=no-such-file.rds"), "not found")
+
+	run = function(sections, k, n, wald = list(), dt_design = NULL) list(
+		sections = sections, shard = c(k = k, n = n), results = list(), wald_results = wald,
+		utility_results = list(), dt_proc = NULL, dt_design = dt_design, compile_context = "ctx")
+	w1 = run("wald", 1L, 2L, wald = list(data.table::data.table(Class = "A")))
+	w2 = run("wald", 2L, 2L, wald = list(data.table::data.table(Class = "B")))
+	d = run("designs", 1L, 1L, dt_design = data.table::data.table(Class = "D"))
+	m = merge_benchmark_results(list(d, w2, w1))
+	expect_identical(m$sections, c("wald", "designs"))
+	expect_identical(m$runs, c("designs", "wald 2/2", "wald 1/2"))
+	expect_identical(vapply(m$wald_results, `[[`, character(1), "Class"), c("B", "A"))
+	expect_identical(m$dt_design$Class, "D")
+	expect_null(m$dt_proc)
+	expect_identical(m$compile_context, "ctx")
+	expect_error(merge_benchmark_results(list(w1, w1)), "same rows: wald 1/2")
+})
+
 test_that("model-fit benchmark metadata binds the loaded EDI R-layer payload", {
 	benchmark_script = file.path("..", "..", "benchmark", "benchmark_model_fits.R")
 	expressions = parse(benchmark_script)

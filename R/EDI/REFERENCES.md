@@ -41,21 +41,21 @@ gaps" at the bottom).
 ### Biased-coin and permuted-block sequential designs
 
 - **[Efron1971]** Efron, B. (1971). "Forcing a sequential experiment to be
-  balanced." *Biometrika*, 58(3), 403-417. doi:10.1093/biomet/58.3.403. —
+  balanced." *Biometrika*, 58(3), 403-417. [doi:10.1093/biomet/58.3.403](https://doi.org/10.1093/biomet/58.3.403). —
   Used by: `DesignSeqOneByOneEfron`, `DesignSeqOneByOneRandomBlockSize`.
 - **[Wei1977]** Wei, L. J. (1977). "A class of designs for sequential
   clinical trials." *Journal of the American Statistical Association*,
-  72(358), 382-386. doi:10.1080/01621459.1977.10481006. — Used by:
+  72(358), 382-386. [doi:10.1080/01621459.1977.10481006](https://doi.org/10.1080/01621459.1977.10481006). — Used by:
   `DesignSeqOneByOneUrn`.
 - **[Wei1978]** Wei, L. J. (1978). "The adaptive biased coin design for
   sequential experiments." *The Annals of Statistics*, 6(1), 92-100.
-  doi:10.1214/aos/1176344068. — Used by: `DesignSeqOneByOneUrn`.
+  [doi:10.1214/aos/1176344068](https://doi.org/10.1214/aos/1176344068). — Used by: `DesignSeqOneByOneUrn`.
 - **[Atkinson1982]** Atkinson, A. C. (1982). "Optimum biased coin designs for
   sequential clinical trials with prognostic factors." *Biometrika*, 69(1),
-  61-67. doi:10.1093/biomet/69.1.61. — Used by: `DesignSeqOneByOneAtkinson`.
+  61-67. [doi:10.1093/biomet/69.1.61](https://doi.org/10.1093/biomet/69.1.61). — Used by: `DesignSeqOneByOneAtkinson`.
 - **[Zelen1974]** Zelen, M. (1974). "The randomization and stratification of
   patients to clinical trials." *Journal of Chronic Diseases*, 27(7-8),
-  365-375. doi:10.1016/0021-9681(74)90015-0. — Used by:
+  365-375. [doi:10.1016/0021-9681(74)90015-0](https://doi.org/10.1016/0021-9681%2874%2990015-0). — Used by:
   `DesignSeqOneByOneSPBR`.
 - **[PocockSimon1975]** Pocock, S. J., and Simon, R. (1975). "Sequential
   Treatment Assignment with Balancing for Prognostic Factors in the
@@ -68,7 +68,7 @@ gaps" at the bottom).
 
 - **[KK14]** Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
   Sequential allocation with higher power and efficiency." *Biometrics*,
-  70(2), 378-388. doi:10.1111/biom.12148. — Used by:
+  70(2), 378-388. [doi:10.1111/biom.12148](https://doi.org/10.1111/biom.12148). — Used by:
   `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` (base algorithm this
   extends), `DesignSeqOneByOneKK21stepwise`, `InferenceAllKKMeanDiffIVWC`,
   `InferenceAllKKWilcoxIVWC` (inverse-variance combination of matched-pair
@@ -101,15 +101,15 @@ gaps" at the bottom).
   design behind the matched-pair-cluster sandwich covariance).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
-  *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
+  *Biostatistics*, 5(2), 263-275. [doi:10.1093/biostatistics/5.2.263](https://doi.org/10.1093/biostatistics/5.2.263). — Used
   by: `DesignFixedBinaryMatch`, `DesignFixedMatchingGreedyPairSwitching`.
 - **[KriegerAzrielKapelner2019]** Krieger, A. M., Azriel, D., and Kapelner,
   A. (2019). "Nearly random designs with greatly improved balance."
-  *Biometrika*, 106(3), 695-701. doi:10.1093/biomet/asz026. — Used by:
+  *Biometrika*, 106(3), 695-701. [doi:10.1093/biomet/asz026](https://doi.org/10.1093/biomet/asz026). — Used by:
   `DesignFixedGreedy`, `DesignFixedMatchingGreedyPairSwitching`.
 - **[MorganRubin2012]** Morgan, K. L., and Rubin, D. B. (2012).
   "Rerandomization to improve covariate balance in experiments." *The
-  Annals of Statistics*, 40(2), 1263-1282. doi:10.1214/12-AOS1008. — Used
+  Annals of Statistics*, 40(2), 1263-1282. [doi:10.1214/12-AOS1008](https://doi.org/10.1214/12-AOS1008). — Used
   by: `DesignFixedRerandomization`.
 - **[AtkinsonDonevTobias2007]** Atkinson, A. C., Donev, A. N., and Tobias,
   R. D. (2007). *Optimum Experimental Designs, with SAS*. Oxford University
@@ -122,20 +122,20 @@ gaps" at the bottom).
   (D-/A-optimality criteria).
 - **[Dinkelbach1967]** Dinkelbach, W. (1967). "On nonlinear fractional
   programming." *Management Science*, 13(7), 492-498.
-  doi:10.1287/mnsc.13.7.492. — Used by: `DesignFixedOptimal` (exact
+  [doi:10.1287/mnsc.13.7.492](https://doi.org/10.1287/mnsc.13.7.492). — Used by: `DesignFixedOptimal` (exact
   A-optimality reduction via fractional programming).
 - **[Hajek1988]** Hajek, B. (1988). "Cooling schedules for optimal
   annealing." *Mathematics of Operations Research*, 13(2), 311-329.
-  doi:10.1287/moor.13.2.311. — Used by: `DesignFixedOptimal` (formal
+  [doi:10.1287/moor.13.2.311](https://doi.org/10.1287/moor.13.2.311). — Used by: `DesignFixedOptimal` (formal
   convergence property of the annealing solver).
 - **[HigginsSavjeSekhon2016]** Higgins, M. J., Sävje, F., and Sekhon, J. S.
   (2016). "Improving massive experiments with threshold blocking."
   *Proceedings of the National Academy of Sciences*, 113(27), 7369-7376.
-  doi:10.1073/pnas.1510504113. — Used by: `DesignFixedOptimalBlocks`.
+  [doi:10.1073/pnas.1510504113](https://doi.org/10.1073/pnas.1510504113). — Used by: `DesignFixedOptimalBlocks`.
 - **[MiddletonAronow2015]** Middleton, J. A., and Aronow, P. M. (2015).
   "Unbiased estimation of the average treatment effect in
   cluster-randomized experiments." *Statistics, Politics and Policy*,
-  6(1-2), 39-75. doi:10.1515/spp-2013-0002. — Used by:
+  6(1-2), 39-75. [doi:10.1515/spp-2013-0002](https://doi.org/10.1515/spp-2013-0002). — Used by:
   `DesignFixedBlockedCluster`, `DesignFixedCluster`.
 
 ### Cited by author-year only (full record not present in source)
@@ -178,30 +178,30 @@ files' `@references`) if/when it becomes available.
 ### Cross-cutting: two-sample location, rank, and robust methods
 
 - **[Student1908]** Student [Gosset, W. S.] (1908). "The Probable Error of a
-  Mean." *Biometrika*, 6(1), 1-25. doi:10.1093/biomet/6.1.1. — Used by:
+  Mean." *Biometrika*, 6(1), 1-25. [doi:10.1093/biomet/6.1.1](https://doi.org/10.1093/biomet/6.1.1). — Used by:
   `InferenceAllSimpleMeanDiffPooledVar` (pooled-variance t-test).
 - **[Welch1947]** Welch, B. L. (1947). "The Generalization of 'Student's'
   Problem when Several Different Population Variances are Involved."
-  *Biometrika*, 34(1-2), 28-35. doi:10.1093/biomet/34.1-2.28. — Used by:
+  *Biometrika*, 34(1-2), 28-35. [doi:10.1093/biomet/34.1-2.28](https://doi.org/10.1093/biomet/34.1-2.28). — Used by:
   `InferenceAllSimpleAverageDiff` (Welch/Satterthwaite unequal-variance
   t-test).
 - **[HodgesLehmann1963]** Hodges, J. L., and Lehmann, E. L. (1963).
   "Estimates of Location Based on Rank Tests." *The Annals of Mathematical
-  Statistics*, 34(2), 598-611. doi:10.1214/aoms/1177704172. — Used by:
+  Statistics*, 34(2), 598-611. [doi:10.1214/aoms/1177704172](https://doi.org/10.1214/aoms/1177704172). — Used by:
   `InferenceAllSimpleWilcox`, `InferenceAllKKWilcoxIVWC`.
 - **[Wilcoxon1945]** Wilcoxon, F. (1945). "Individual Comparisons by
   Ranking Methods." *Biometrics Bulletin*, 1(6), 80-83.
-  doi:10.2307/3001968. — Used by: `InferenceAllSimpleWilcox`.
+  [doi:10.2307/3001968](https://doi.org/10.2307/3001968). — Used by: `InferenceAllSimpleWilcox`.
 - **[MacKinnonWhite1985]** MacKinnon, J. G., and White, H. (1985). "Some
   Heteroskedasticity-Consistent Covariance Matrix Estimators with Improved
   Finite Sample Properties." *Journal of Econometrics*, 29(3), 305-325.
-  doi:10.1016/0304-4076(85)90158-7. — Used by: `ols_hc2_post_fit_cpp` and
+  [doi:10.1016/0304-4076(85)90158-7](https://doi.org/10.1016/0304-4076%2885%2990158-7). — Used by: `ols_hc2_post_fit_cpp` and
   the HC2 sandwich estimator generally (see
   `vignette("backend-contracts")`), `InferenceContinLin` (its HC2 standard
   error).
 - **[Lin2013]** Lin, W. (2013). "Agnostic notes on regression adjustments to
   experimental data: Reexamining Freedman's critique." *The Annals of
-  Applied Statistics*, 7(1), 295-318. doi:10.1214/12-AOAS583. — Used by:
+  Applied Statistics*, 7(1), 295-318. [doi:10.1214/12-AOAS583](https://doi.org/10.1214/12-AOAS583). — Used by:
   `InferenceContinLin` (the centered-covariate, treatment-interacted OLS
   estimator this class fits).
 - **[Rosenbaum2002]** Rosenbaum, P. R. (2002). *Observational Studies* (2nd
@@ -211,7 +211,7 @@ files' `@references`) if/when it becomes available.
 ### Quantile regression
 
 - **[KoenkerBassett1978]** Koenker, R., and Bassett, G. (1978). "Regression
-  Quantiles." *Econometrica*, 46(1), 33-50. doi:10.2307/1913643. — Used by:
+  Quantiles." *Econometrica*, 46(1), 33-50. [doi:10.2307/1913643](https://doi.org/10.2307/1913643). — Used by:
   `InferenceContinQuantileRegr`, `InferencePropQuantileRegr`.
 - **[Koenker2005]** Koenker, R. (2005). *Quantile Regression*. Cambridge
   University Press. — Used by: `InferenceContinQuantileRegr` (Powell-style
@@ -256,7 +256,7 @@ files' `@references`) if/when it becomes available.
 
 - **[LiangZeger1986]** Liang, K.-Y., and Zeger, S. L. (1986). "Longitudinal
   Data Analysis Using Generalized Linear Models." *Biometrika*, 73(1),
-  13-22. doi:10.1093/biomet/73.1.13. — Used by: `InferenceCountPoissonKKGEE`
+  13-22. [doi:10.1093/biomet/73.1.13](https://doi.org/10.1093/biomet/73.1.13). — Used by: `InferenceCountPoissonKKGEE`
   (`inference_count_KK_gee.R`), `InferenceIncidKKGEE`
   (`inference_incidence_KK_combined.R`), `InferencePropKKGEE`
   (`inference_proportion_KK_combined.R`), `InferenceOrdinalKKGEE`
@@ -265,14 +265,14 @@ files' `@references`) if/when it becomes available.
   sandwich-variance framework behind `InferenceMixinKKGEEShared`.
 - **[Touloumis2015]** Touloumis, A. (2015). "R Package multgee: A
   Generalized Estimating Equations Solver for Multinomial Responses."
-  *Journal of Statistical Software*, 64(8), 1-14. doi:10.18637/jss.v064.i08.
+  *Journal of Statistical Software*, 64(8), 1-14. [doi:10.18637/jss.v064.i08](https://doi.org/10.18637/jss.v064.i08).
   — Used by: `InferenceOrdinalKKGEE` (the local-odds-ratio GEE solver,
   `multgee::ordLORgee`, this class's one documented exception to the
   shared binomial/Rcpp GEE path).
 - **[BreslowClayton1993]** Breslow, N. E., and Clayton, D. G. (1993).
   "Approximate Inference in Generalized Linear Mixed Models." *Journal of
   the American Statistical Association*, 88(421), 9-25.
-  doi:10.2307/2290687. — Used by: `InferencePropKKGLMM`,
+  [doi:10.2307/2290687](https://doi.org/10.2307/2290687). — Used by: `InferencePropKKGLMM`,
   `InferenceIncidKKCondLogitGLMMIVWC`, `InferenceIncidKKCondLogitGLMMOneLik`
   (combined conditional-logit-plus-random-intercept-GLMM likelihood family).
 
@@ -280,23 +280,23 @@ files' `@references`) if/when it becomes available.
 
 - **[Zou2004]** Zou, G. (2004). "A Modified Poisson Regression Approach to
   Prospective Studies with Binary Data." *American Journal of Epidemiology*,
-  159(7), 702-706. doi:10.1093/aje/kwh090. — Used by:
+  159(7), 702-706. [doi:10.1093/aje/kwh090](https://doi.org/10.1093/aje/kwh090). — Used by:
   `InferenceIncidModifiedPoisson`, `InferenceIncidKKModifiedPoisson`.
 - **[MiettinenNurminen1985]** Miettinen, O., and Nurminen, M. (1985).
   "Comparative Analysis of Two Rates." *Statistics in Medicine*, 4(2),
-  213-226. doi:10.1002/sim.4780040211. — Used by:
+  213-226. [doi:10.1002/sim.4780040211](https://doi.org/10.1002/sim.4780040211). — Used by:
   `InferenceIncidMiettinenNurminenRiskDiff`, `mn_pvalue_cpp`, `mn_ci_cpp`,
   `mn_z_statistic_cpp`.
 - **[Newcombe1998]** Newcombe, R. G. (1998). "Interval Estimation for the
   Difference Between Independent Proportions: Comparison of Eleven
   Methods." *Statistics in Medicine*, 17(8), 873-890.
-  doi:10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I. —
+  [doi:10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I](https://doi.org/10.1002/%28SICI%291097-0258%2819980430%2917:8%3C873::AID-SIM779%3E3.0.CO;2-I). —
   Used by: `InferenceIncidNewcombeRiskDiff`, `InferenceIncidKKNewcombeRiskDiff`,
   `newcombe_independent_ci_cpp`, `newcombe_paired_ci_cpp` ("Method 10" hybrid
   Wilson-score interval).
 - **[Fisher1935Logic]** Fisher, R. A. (1935). "The Logic of Inductive
   Inference." *Journal of the Royal Statistical Society*, 98(1), 39-82.
-  doi:10.2307/2342435. — Used by: the exact conditional test underlying
+  [doi:10.2307/2342435](https://doi.org/10.2307/2342435). — Used by: the exact conditional test underlying
   `InferenceIncidExactFisher`/`stats::fisher.test`.
 - **[MantelHaenszel1959]** Mantel, N., and Haenszel, W. (1959).
   "Statistical Aspects of the Analysis of Data from Retrospective Studies
@@ -306,7 +306,7 @@ files' `@references`) if/when it becomes available.
 
 - **[Robins1986]** Robins, J. (1986). "A New Approach to Causal Inference in
   Mortality Studies with a Sustained Exposure Period." *Mathematical
-  Modelling*, 7(9-12), 1393-1512. doi:10.1016/0270-0255(86)90088-6. — Used
+  Modelling*, 7(9-12), 1393-1512. [doi:10.1016/0270-0255(86)90088-6](https://doi.org/10.1016/0270-0255%2886%2990088-6). — Used
   by: `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
   (g-computation/standardization estimand).
 - **[Robins1988]** Robins, J. M. (1988). "Confidence Intervals for Causal
@@ -330,7 +330,7 @@ files' `@references`) if/when it becomes available.
 
 - **[Mullahy1986]** Mullahy, J. (1986). "Specification and Testing of
   Some Modified Count Data Models." *Journal of Econometrics*, 33(3),
-  341-365. doi:10.1016/0304-4076(86)90002-3. — Used by:
+  341-365. [doi:10.1016/0304-4076(86)90002-3](https://doi.org/10.1016/0304-4076%2886%2990002-3). — Used by:
   `InferenceCountKKHurdlePoissonOneLik` (two-part hurdle model: a binary
   zero-vs-positive submodel combined with a zero-truncated Poisson
   submodel for the positive counts), `InferenceCountHurdleNegBin`
@@ -338,7 +338,7 @@ files' `@references`) if/when it becomes available.
   (hurdle Poisson variant, migrated 2026-08-21).
 - **[Lambert1992]** Lambert, D. (1992). "Zero-Inflated Poisson Regression,
   with an Application to Defects in Manufacturing." *Technometrics*, 34(1),
-  1-14. doi:10.2307/1269547. — Used by: `InferenceCountZeroInflatedPoisson`,
+  1-14. [doi:10.2307/1269547](https://doi.org/10.2307/1269547). — Used by: `InferenceCountZeroInflatedPoisson`,
   `InferenceCountZeroInflatedNegBin` (zero-inflated count-model framework;
   both migrated 2026-08-21).
 - **[CameronTrivedi2013]** Cameron, A. C., and Trivedi, P. K. (2013).
@@ -351,23 +351,23 @@ files' `@references`) if/when it becomes available.
 
 - **[DixonMood1946]** Dixon, W. J., and Mood, A. M. (1946). "The
   Statistical Sign Test." *Journal of the American Statistical
-  Association*, 41(236), 557-566. doi:10.2307/2280577. — Used by:
+  Association*, 41(236), 557-566. [doi:10.2307/2280577](https://doi.org/10.2307/2280577). — Used by:
   `InferenceOrdinalPairedSignTest` (classical paired sign test on
   within-matched-pair response differences).
 - **[Jonckheere1954]** Jonckheere, A. R. (1954). "A Distribution-Free
   k-Sample Test Against Ordered Alternatives." *Biometrika*, 41(1-2),
-  133-145. doi:10.1093/biomet/41.1-2.133. — Used by:
+  133-145. [doi:10.1093/biomet/41.1-2.133](https://doi.org/10.1093/biomet/41.1-2.133). — Used by:
   `InferenceOrdinalJonckheereTerpstraTest`.
 - **[Terpstra1952]** Terpstra, T. J. (1952). "The Asymptotic Normality and
   Consistency of Kendall's Test Against Trend, When Ties Are Present in One
   Ranking." *Indagationes Mathematicae*, 14, 327-333. — Used by:
   `InferenceOrdinalJonckheereTerpstraTest`.
 - **[Bross1958]** Bross, I. D. J. (1958). "How to Use Ridit Analysis."
-  *Biometrics*, 14(1), 18-38. doi:10.2307/2527727. — Used by:
+  *Biometrics*, 14(1), 18-38. [doi:10.2307/2527727](https://doi.org/10.2307/2527727). — Used by:
   `InferenceOrdinalRidit`, `fast_ridit_analysis`.
 - **[McCullagh1980]** McCullagh, P. (1980). "Regression Models for Ordinal
   Data." *Journal of the Royal Statistical Society, Series B*, 42(2),
-  109-142. doi:10.1111/j.2517-6161.1980.tb01109.x. — Used by:
+  109-142. [doi:10.1111/j.2517-6161.1980.tb01109.x](https://doi.org/10.1111/j.2517-6161.1980.tb01109.x). — Used by:
   `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalPartialProportionalOddsRegr`
   (the full proportional-odds/cumulative-logit model both classes are built
   on), `InferenceOrdinalCloglogRegr` (cumulative-link model family),
@@ -381,17 +381,17 @@ files' `@references`) if/when it becomes available.
   chapter).
 - **[Anderson1984]** Anderson, J. A. (1984). "Regression and Ordered
   Categorical Variables." *Journal of the Royal Statistical Society, Series
-  B*, 46(1), 1-30. doi:10.1111/j.2517-6161.1984.tb01276.x. — Used by:
+  B*, 46(1), 1-30. [doi:10.1111/j.2517-6161.1984.tb01276.x](https://doi.org/10.1111/j.2517-6161.1984.tb01276.x). — Used by:
   `InferenceOrdinalStereotypeLogitRegr` (the stereotype logit model this
   class fits), `fast_stereotype_logit_cpp`.
 - **[PetersonHarrell1990]** Peterson, B., and Harrell, F. E. (1990).
   "Partial Proportional Odds Models for Ordinal Response Variables."
   *Journal of the Royal Statistical Society, Series C (Applied
-  Statistics)*, 39(2), 205-217. doi:10.2307/2347760. — Used by:
+  Statistics)*, 39(2), 205-217. [doi:10.2307/2347760](https://doi.org/10.2307/2347760). — Used by:
   `InferenceOrdinalPartialProportionalOddsRegr`.
 - **[HedekerGibbons1994]** Hedeker, D., and Gibbons, R. D. (1994). "A
   Random-Effects Ordinal Regression Model for Multilevel Analysis."
-  *Biometrics*, 50(4), 933-944. doi:10.2307/2533433. — Used by:
+  *Biometrics*, 50(4), 933-944. [doi:10.2307/2533433](https://doi.org/10.2307/2533433). — Used by:
   `InferenceOrdinalKKGLMM` (the random-intercept cumulative-logit model this
   class fits).
 
@@ -410,7 +410,7 @@ files' `@references`) if/when it becomes available.
   in the two KK stratified-Cox compound classes).
 - **[Tsiatis1990]** Tsiatis, A. A. (1990). "Estimating Regression Parameters
   Using Linear Rank Tests for Censored Data." *The Annals of Statistics*,
-  18(1), 354-372. doi:10.1214/aos/1176347504. — Used by: `InferenceRandCI`
+  18(1), 354-372. [doi:10.1214/aos/1176347504](https://doi.org/10.1214/aos/1176347504). — Used by: `InferenceRandCI`
   (its compute_rand_confidence_interval() method for survival responses: the
   randomization CI inverts an AFT sharp null by rescaling the recorded times
   of treated units — event and censoring times alike, censoring indicators
@@ -421,14 +421,14 @@ files' `@references`) if/when it becomes available.
   same shift). Added 2026-09-04.
 - **[WeiYingLin1990]** Wei, L. J., Ying, Z., and Lin, D. Y. (1990). "Linear
   Regression Analysis of Censored Survival Data Based on Rank Tests."
-  *Biometrika*, 77(4), 845-851. doi:10.1093/biomet/77.4.845. — Used by:
+  *Biometrika*, 77(4), 845-851. [doi:10.1093/biomet/77.4.845](https://doi.org/10.1093/biomet/77.4.845). — Used by:
   `InferenceRandCI`, `InferenceSurvivalWeibullRegr`,
   `compute_coxph_rand_bootstrap_parallel_cpp` (inversion of the rank-based
   AFT tests to obtain confidence intervals — the same test-inversion
   structure the survival randomization CI uses). Added 2026-09-04.
 - **[JinLinWeiYing2003]** Jin, Z., Lin, D. Y., Wei, L. J., and Ying, Z.
   (2003). "Rank-Based Inference for the Accelerated Failure Time Model."
-  *Biometrika*, 90(2), 341-353. doi:10.1093/biomet/90.2.341. — Used by:
+  *Biometrika*, 90(2), 341-353. [doi:10.1093/biomet/90.2.341](https://doi.org/10.1093/biomet/90.2.341). — Used by:
   `InferenceRandCI`, `InferenceSurvivalWeibullRegr`,
   `compute_coxph_rand_bootstrap_parallel_cpp` (modern estimation and
   inference machinery for the AFT model on the same residuals). Added
@@ -436,49 +436,49 @@ files' `@references`) if/when it becomes available.
 - **[LeeWeiAmato1992]** Lee, E. W., Wei, L. J., and Amato, D. A. (1992).
   "Cox-Type Regression Analysis for Large Numbers of Small Groups of
   Correlated Failure Time Observations." In *Survival Analysis: State of
-  the Art*, 237-247. Springer. doi:10.1007/978-94-015-7983-4_14. — Used by:
+  the Art*, 237-247. Springer. [doi:10.1007/978-94-015-7983-4_14](https://doi.org/10.1007/978-94-015-7983-4_14). — Used by:
   `InferenceSurvivalKKLWACoxPHIVWC` (cluster-robust sandwich variance for
   matched-pair Cox regression); `InferenceSurvivalKKStratCoxPHIVWC` and
   `InferenceSurvivalKKStratCoxPHOneLik` (the pair-as-stratum matched-pair
   sub-estimate is a special case of this small-groups stratified Cox approach).
 - **[Breslow1974]** Breslow, N. E. (1974). "Covariance Analysis of
   Censored Survival Data." *Biometrics*, 30(1), 89-99.
-  doi:10.2307/2529620. — Used by: `InferenceSurvivalCoxPHRegr` (tied-event
+  [doi:10.2307/2529620](https://doi.org/10.2307/2529620). — Used by: `InferenceSurvivalCoxPHRegr` (tied-event
   partial-likelihood approximation).
 - **[KaplanMeier1958]** Kaplan, E. L., and Meier, P. (1958). "Nonparametric
   Estimation from Incomplete Observations." *Journal of the American
-  Statistical Association*, 53(282), 457-481. doi:10.2307/2281868. — Used
+  Statistical Association*, 53(282), 457-481. [doi:10.2307/2281868](https://doi.org/10.2307/2281868). — Used
   by: `InferenceSurvivalKMDiff`, `InferenceSurvivalRestrictedMeanDiff`,
   `InferenceSurvivalGehanWilcox` (the survival curve every one of these
   estimators is built from).
 - **[BrookmeyerCrowley1982]** Brookmeyer, R., and Crowley, J. (1982). "A
   Confidence Interval for the Median Survival Time." *Biometrics*, 38(1),
-  29-41. doi:10.2307/2530286. — Used by: `InferenceSurvivalKMDiff` (each
+  29-41. [doi:10.2307/2530286](https://doi.org/10.2307/2530286). — Used by: `InferenceSurvivalKMDiff` (each
   arm's median CI, combined into a CI for the difference by `[ZouDonner2008]`).
 - **[ZouDonner2008]** Zou, G. Y., and Donner, A. (2008). "Construction of
   Confidence Limits About Effect Measures: A General Approach." *Statistics
-  in Medicine*, 27(10), 1693-1702. doi:10.1002/sim.3095. — Used by:
+  in Medicine*, 27(10), 1693-1702. [doi:10.1002/sim.3095](https://doi.org/10.1002/sim.3095). — Used by:
   `InferenceSurvivalKMDiff` (MOVER: the Wald CI and p-value for the median
   difference keep each arm's asymmetric Brookmeyer-Crowley half-widths
   instead of a symmetric back-calculated SE).
 - **[Turnbull1976]** Turnbull, B. W. (1976). "The Empirical Distribution
   Function with Arbitrarily Grouped, Censored and Truncated Data."
   *Journal of the Royal Statistical Society, Series B*, 38(3), 290-295.
-  doi:10.1111/j.2517-6161.1976.tb01597.x. — Used by: `InferenceSurvivalKMDiff`
+  [doi:10.1111/j.2517-6161.1976.tb01597.x](https://doi.org/10.1111/j.2517-6161.1976.tb01597.x). — Used by: `InferenceSurvivalKMDiff`
   (the NPMLE used on the left-/interval-censored path).
 - **[RoystonParmar2013]** Royston, P., and Parmar, M. K. B. (2013).
   "Restricted mean survival time: an alternative to the hazard ratio for
   the design and analysis of randomized trials with a time-to-event
   outcome." *BMC Medical Research Methodology*, 13, 152.
-  doi:10.1186/1471-2288-13-152. — Used by:
+  [doi:10.1186/1471-2288-13-152](https://doi.org/10.1186/1471-2288-13-152). — Used by:
   `InferenceSurvivalRestrictedMeanDiff`.
 - **[Gehan1965]** Gehan, E. A. (1965). "A generalized Wilcoxon test for
   comparing arbitrarily singly-censored samples." *Biometrika*, 52(1-2),
-  203-223. doi:10.1093/biomet/52.1-2.203. — Used by:
+  203-223. [doi:10.1093/biomet/52.1-2.203](https://doi.org/10.1093/biomet/52.1-2.203). — Used by:
   `InferenceSurvivalGehanWilcox`.
 - **[PetoPeto1972]** Peto, R., and Peto, J. (1972). "Asymptotically
   Efficient Rank Invariant Test Procedures." *Journal of the Royal
-  Statistical Society, Series A*, 135(2), 185-207. doi:10.2307/2344317. —
+  Statistical Society, Series A*, 135(2), 185-207. [doi:10.2307/2344317](https://doi.org/10.2307/2344317). —
   Used by: `InferenceSurvivalGehanWilcox` (the rho=1 survival-weighted
   modification), `InferenceSurvivalLogRank` (the rho=0 case of the same
   Fleming-Harrington family).
@@ -494,14 +494,14 @@ files' `@references`) if/when it becomes available.
 - **[Clayton1978]** Clayton, D. G. (1978). "A Model for Association in
   Bivariate Life Tables and Its Application in Epidemiological Studies of
   Familial Tendency in Chronic Disease Incidence." *Biometrika*, 65(1),
-  141-151. doi:10.2307/2335289. — Used by:
+  141-151. [doi:10.2307/2335289](https://doi.org/10.2307/2335289). — Used by:
   `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (the gamma-frailty Clayton copula
   linking matched-pair survival times), `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
   (single combined Weibull-AFT-with-Clayton-copula matched-pair /
   marginal-Weibull reservoir likelihood).
 - **[Oakes1989]** Oakes, D. (1989). "Bivariate Survival Models Induced by
   Frailties." *Journal of the American Statistical Association*, 84(406),
-  487-493. doi:10.2307/2289934. — Used by:
+  487-493. [doi:10.2307/2289934](https://doi.org/10.2307/2289934). — Used by:
   `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (closed-form frailty integration
   underlying the Clayton copula likelihood), `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`.
 - **[VaupelMantonStallard1979]** Vaupel, J. W., Manton, K. G., and Stallard,
@@ -510,7 +510,7 @@ files' `@references`) if/when it becomes available.
   `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` (contrast with the gamma-frailty
   Clayton copula model).
 - **[Hougaard2000]** Hougaard, P. (2000). *Analysis of Multivariate Survival
-  Data*. Springer. doi:10.1007/978-1-4612-1304-8. — Used by:
+  Data*. Springer. [doi:10.1007/978-1-4612-1304-8](https://doi.org/10.1007/978-1-4612-1304-8). — Used by:
   `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` (log-normal-frailty Weibull AFT
   GLMM background).
 
@@ -518,20 +518,20 @@ files' `@references`) if/when it becomes available.
 
 - **[FerrariCribariNeto2004]** Ferrari, S., and Cribari-Neto, F. (2004).
   "Beta regression for modelling rates and proportions." *Journal of
-  Applied Statistics*, 31(7), 799-815. doi:10.1080/0266476042000214501. —
+  Applied Statistics*, 31(7), 799-815. [doi:10.1080/0266476042000214501](https://doi.org/10.1080/0266476042000214501). —
   Used by: `InferencePropBetaRegr`, `fast_beta_regression_cpp` (R;
   `fast_beta_regression` in the Python bindings),
   `InferencePropZeroOneInflatedBetaRegr` (interior beta-regression submodel).
 - **[OspinaFerrari2010]** Ospina, R., and Ferrari, S. L. P. (2010). "Inflated
   beta distributions." *Statistical Papers*, 51(1), 111-126.
-  doi:10.1007/s00362-008-0125-4. — Used by:
+  [doi:10.1007/s00362-008-0125-4](https://doi.org/10.1007/s00362-008-0125-4). — Used by:
   `InferencePropZeroOneInflatedBetaRegr` (the zero/one-inflated beta mixture
   density this class fits).
 - **[PapkeWooldridge1996]** Papke, L. E., and Wooldridge, J. M. (1996).
   "Econometric Methods for Fractional Response Variables with an
   Application to 401(K) Plan Participation Rates." *Journal of Applied
   Econometrics*, 11(6), 619-632.
-  doi:10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1. —
+  [doi:10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1](https://doi.org/10.1002/%28SICI%291099-1255%28199611%2911:6%3C619::AID-JAE418%3E3.0.CO;2-1). —
   Used by: `InferencePropFractionalLogit` (the fractional logistic
   quasi-likelihood model this class fits).
 
@@ -661,7 +661,7 @@ their `reference_key` field.
 - **[PinheiroBates1995]** Pinheiro, J. C., and Bates, D. M. (1995).
   "Approximations to the Log-Likelihood Function in the Nonlinear
   Mixed-Effects Model." *Journal of Computational and Graphical
-  Statistics*, 4(1), 12-35. doi:10.1080/10618600.1995.10474663. — Used by:
+  Statistics*, 4(1), 12-35. [doi:10.1080/10618600.1995.10474663](https://doi.org/10.1080/10618600.1995.10474663). — Used by:
   `fast_ordinal_glmm_cpp`, `InferenceOrdinalKKGLMM`, and (by the same shared
   quadrature engine — see `vignette("backend-contracts")`) `fast_poisson_glmm`,
   `fast_logistic_glmm`, `fast_weibull_frailty`, `fast_gaussian_lmm`,
@@ -671,7 +671,7 @@ their `reference_key` field.
 
 - **[Friedman1991]** Friedman, J. H. (1991). "Multivariate Adaptive
   Regression Splines." *The Annals of Statistics*, 19(1), 1-67.
-  doi:10.1214/aos/1176347963. — Used by: `generate_covariate_dataset()`,
+  [doi:10.1214/aos/1176347963](https://doi.org/10.1214/aos/1176347963). — Used by: `generate_covariate_dataset()`,
   `SimulationFramework` (`cond_exp_func_model = "nonlinear"`'s benchmark
   function).
 

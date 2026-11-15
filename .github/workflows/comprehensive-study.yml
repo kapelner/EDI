@@ -22,8 +22,8 @@ name: comprehensive-study
 #
 # Shares the calibration study's concurrency group and runner rules (free hosted runners, owner
 # ruling 2026-11-09): max-parallel 16, shards planned to ~25 min of work (a few single pieces run
-# longer), shards step aside while a nightly.yml run is active, and no new wave starts while one
-# is. Never a required check. A finished campaign goes red only on a results-audit finding or a
+# longer). Waves run alongside nightly.yml, which gets the 4 free slots (owner ruling 2026-11-15;
+# the 2026-11-14 step-aside and wave-boundary pause are gone). Never a required check. A finished campaign goes red only on a results-audit finding or a
 # path-audit worsening, or cells whose estimates do not vary across reps (annotation "Comprehensive gate"); any other red X is "Comprehensive CI bug".
 
 on:
@@ -187,7 +187,6 @@ jobs:
       matrix: ${{ fromJSON(needs.wave.outputs.matrix) }}
     permissions:
       contents: read
-      actions: read   # the nightly.yml check in the first step
     env:
       EDI_PORTABLE: 1
       NOT_CRAN: true
@@ -195,35 +194,18 @@ jobs:
       MKL_NUM_THREADS: 1
       OPENBLAS_NUM_THREADS: 1
     steps:
-      # Step aside while a nightly.yml run is queued or in progress (as calibration shards do): no
-      # work, no upload, so the job is re-planned next wave. Fails open.
-      - id: yield
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          n="$(gh run list -R "$GITHUB_REPOSITORY" --workflow nightly.yml --limit 20 --json status \
-                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
-          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
-            echo "go=false" >> "$GITHUB_OUTPUT"; echo "::notice title=Comprehensive yield::nightly.yml is active; job ${{ matrix.job }} steps aside."
-          else
-            echo "go=true" >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/checkout@v7
-        if: steps.yield.outputs.go == 'true'
         with:
           ref: ${{ needs.plan.outputs.sha }}
       - uses: actions/cache/restore@v5
-        if: steps.yield.outputs.go == 'true'
         with:
           path: .edi-install-scratch
           key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
           fail-on-cache-miss: true
       - uses: r-lib/actions/setup-r@v2
-        if: steps.yield.outputs.go == 'true'
         with:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
-        if: steps.yield.outputs.go == 'true'
         with:
           working-directory: R/EDI
           dependencies: '"all"'
@@ -239,18 +221,16 @@ jobs:
             any::R.utils
             any::digest
       - uses: actions/download-artifact@v8
-        if: steps.yield.outputs.go == 'true'
         with:
           name: comp-plan
           path: .
       - name: Run job ${{ matrix.job }}
-        if: steps.yield.outputs.go == 'true'
         run: |
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch" >> "$GITHUB_ENV"
           R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch" Rscript R/package_tests/cloud/run_comprehensive_shard.R \
             --plan plan.csv --job "${{ matrix.job }}" --out-dir "out" --reps "$REPS" --deadline-minutes 30 --repo .
       - uses: actions/upload-artifact@v7
-        if: always() && steps.yield.outputs.go == 'true'
+        if: always()
         with:
           name: comp-shard-${{ matrix.job }}
           path: out
@@ -453,16 +433,9 @@ jobs:
           git add -A
           git commit -q -m "EDI comprehensive study: campaign $C, wave $WAVE"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$RESULTS_BRANCH"
-      # Wave-boundary pause, as in calibration-study.yml: no new wave while nightly.yml runs; its
-      # resume-calibration job restarts the campaign. Fails open.
       - name: Dispatch the next wave
         if: needs.analyze.outputs.complete != 'true'
         run: |
-          n="$(gh run list -R "${{ github.repository }}" --workflow nightly.yml --limit 20 --json status \
-                 --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null)"
-          if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
-            echo "::notice title=Comprehensive paused::nightly.yml is active; campaign $C resumes when it ends."; exit 0
-          fi
           gh workflow run comprehensive-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
       - name: Flag a bug in the check
         if: failure()
