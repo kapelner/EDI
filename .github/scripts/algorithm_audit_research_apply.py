@@ -267,7 +267,8 @@ def main():
     tasks = [t for t in a.tasks.split(",") if t]
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
     add_open_copies(Path(a.dir), tasks, a.offline)
-    flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy())
+    shards = drift.inventory_shards() if any(drift.is_inventory_task(t) for t in tasks) else None
+    flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy(), shards)
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
     terms_added, terms_held = add_proposed_terms(Path(a.dir), tasks)

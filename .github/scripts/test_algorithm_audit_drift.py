@@ -369,6 +369,17 @@ class ResearchReportTests(unittest.TestCase):
         self.assertTrue(flagged)
         self.assertIn("called denied tools: Bash x9", text)
 
+    def test_inventory_items_missing_from_a_shard_are_flagged(self):
+        self.put("inventory.12", {"new_symbols": [], "changed_entries": [
+            {"file": "a.R", "symbol": "f", "stale": True, "issue": "x"}]})
+        ctx = {"inventory.12": {"new_symbols": [{"file": "a.R", "symbol": "g"}],
+                                "changed_entries": [{"file": "a.R", "symbol": "f"}, {"file": "b.R", "symbol": "h"}]}}
+        flagged, text = report.render(self.dir, ["inventory.12"], inventory_ctx=ctx)
+        self.assertTrue(flagged)
+        self.assertIn("inventory.12: new function `a.R` `g` (**silently skipped**", text)
+        self.assertIn("inventory.12: changed entry `b.R` `h` (**silently skipped**", text)
+        self.assertNotIn("`a.R` `f` (**silently", text)
+
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("binary-glm-mle", self.problem(
             findings=[self.finding(candidate="one-step bootstrap", keeps_estimator="no")],

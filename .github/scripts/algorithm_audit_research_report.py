@@ -95,10 +95,10 @@ def transcript_gap(data, dirpath, task):
     return "; ".join(problems)
 
 
-def render(dirpath, tasks, batches=None, taxonomy=None):
+def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
     """batches: problem_id -> method_ids it was given (any not accounted for is a silent skip);
     taxonomy: algorithm_taxonomy.json, for the search-plan coverage check."""
-    batches, taxonomy = batches or {}, taxonomy or {}
+    batches, taxonomy, inventory_ctx = batches or {}, taxonomy or {}, inventory_ctx or {}
     notrun, incomplete, findings, reviewed, skipped, mismatched = [], [], [], [], [], []
     gaps, unbacked, proposed, impls = [], [], [], []
     new_algos, plumbing, stale, unchecked = [], 0, [], 0
@@ -118,6 +118,13 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
                     stale.append(c)
                 else:
                     unchecked += 1
+            # every item the shard was given must come back (shards 12, 14, 15 of run
+            # 43957548346 returned only their stale entries)
+            ctx = inventory_ctx.get(task, {})
+            for kind, label in (("new_symbols", "new function"), ("changed_entries", "changed entry")):
+                got = {(x.get("file"), x.get("symbol")) for x in data.get(kind, [])}
+                skipped += [(task, f"{label} `{x['file']}` `{x['symbol']}`") for x in ctx.get(kind, [])
+                            if (x["file"], x["symbol"]) not in got]
             continue
         for f in data.get("findings", []):
             findings.append((task, f))
@@ -223,10 +230,10 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
     L.append("")
 
     if incomplete or skipped:
-        L.append("## 3. Methods not reviewed this run")
+        L.append("## 3. Methods and inventory items not reviewed this run")
         L += [f"- {t}: `{a.get('method_id', '?')}` ({a.get('reason', '')})" for t, a in incomplete]
-        L += [f"- {t}: `{m}` (**silently skipped**: given to the agent but in neither list)"
-              for t, m in skipped]
+        L += [f"- {t}: {m if m.startswith(('new function', 'changed entry')) else f'`{m}`'} "
+              "(**silently skipped**: given to the agent but not in its output)" for t, m in skipped]
         L.append("")
 
     if mismatched:
@@ -280,11 +287,13 @@ def main():
     ap.add_argument("--tasks", required=True, help="comma-separated: problem ids and/or inventory")
     ap.add_argument("--batches", help="JSON problem_id -> method_ids (algorithm_audit_drift.py --research-batches)")
     ap.add_argument("--taxonomy", help="algorithm_taxonomy.json, for the search-plan coverage check")
+    ap.add_argument("--inventory-shards", help="JSON inventory.N -> currency context (--inventory-shards)")
     ap.add_argument("--out", default="-")
     a = ap.parse_args()
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
     taxonomy = json.loads(Path(a.taxonomy).read_text()) if a.taxonomy else None
-    _, text = render(Path(a.dir), [t for t in a.tasks.split(",") if t], batches, taxonomy)
+    shards = json.loads(Path(a.inventory_shards).read_text()) if a.inventory_shards else None
+    _, text = render(Path(a.dir), [t for t in a.tasks.split(",") if t], batches, taxonomy, shards)
     if a.out == "-":
         print(text, end="")
     else:

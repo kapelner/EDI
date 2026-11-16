@@ -56,3 +56,7 @@ corrected `details` text. Some functions have several inventory rows (one per al
 they implement); always give the `algorithm` value of the row you mean, or the correction
 cannot be applied automatically. If the change could affect the row's `verdict`, say so in `issue`,
 but never rewrite a verdict yourself: verdicts change only through a human re-review.
+
+Report **every** entry in `changed_entries`, with `stale: false` for those that still describe
+the code, and every symbol in `new_symbols`, with `is_algorithm: false` for plumbing. An item
+missing from your output is flagged as silently skipped.
