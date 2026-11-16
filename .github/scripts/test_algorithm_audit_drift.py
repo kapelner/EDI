@@ -885,6 +885,92 @@ class SearchLogTests(unittest.TestCase):
         self.assertEqual(len(rec["searches"]), 1)
 
 
+import algorithm_audit_triage as triage_mod  # noqa: E402
+
+
+class TriageTests(InventoryCheckTests):
+    """Reuses the planted repo; RELEASES points at a scratch folder with one release file."""
+
+    def setUp(self):
+        super().setUp()
+        self.saved_rel, self.saved_tri = drift.RELEASES, drift.TRIAGE
+        drift.RELEASES = self.root / "R/package_metadata/future_release_plans"
+        drift.RELEASES.mkdir(parents=True)
+        (drift.RELEASES / "release_v1_1_0.md").write_text("- [ ] TODO-7 (added ...): **x**\n")
+        drift.TRIAGE = self.root / "R/package_metadata/audits/research_triage.csv"
+        drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"binary-glm-mle": {
+            "last_researched": "2026-11-16", "methods": {}, "sources": [],
+            "findings": [{"id": "binary-glm-mle#1.1", "candidate": "irls default"},
+                         {"id": "binary-glm-mle#1.2", "candidate": "x"}]}}}))
+
+    def tearDown(self):
+        drift.RELEASES, drift.TRIAGE = self.saved_rel, self.saved_tri
+        super().tearDown()
+
+    def write_triage(self, rows):
+        with drift.TRIAGE.open("w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=drift.TRIAGE_COLS)
+            w.writeheader()
+            w.writerows([dict({c: "" for c in drift.TRIAGE_COLS}, **r) for r in rows])
+
+    def test_triage_validation(self):
+        self.write_triage([
+            {"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "approved", "todo": "TODO-7-v1.1.0"},
+            {"finding_id": "binary-glm-mle#1.2", "decision": "investigate", "status": "approved", "todo": "TODO-99-v1.1.0"},
+            {"finding_id": "nope#1.1", "decision": "maybe", "status": "draft"},
+            {"finding_id": "binary-glm-mle#1.2", "decision": "defer", "status": "proposed", "revisit": "2000-01-01"}])
+        out = self.run_check()
+        bad = " ".join(out["bad_triage"])
+        self.assertIn("TODO-99-v1.1.0` not found in release_v1_1_0.md", bad)
+        self.assertIn("decision `maybe`", bad)
+        self.assertIn("status `draft`", bad)
+        self.assertIn("finding id not in research_log.json", bad)
+        self.assertNotIn("TODO-7", bad)
+        self.assertEqual(len(out["triage_due"]), 1)
+
+    def test_previous_results_carry_triage(self):
+        self.write_triage([{"finding_id": "binary-glm-mle#1.1", "problem_id": "binary-glm-mle",
+                            "decision": "reject", "status": "approved", "reason": "changes the estimator"}])
+        self.run_check()
+        prev = drift.previous_results("binary-glm-mle", [entry()])
+        self.assertEqual(prev["triage"][0]["decision"], "reject")
+
+    def test_rereported_finding_keeps_its_id_and_is_labelled(self):
+        self.run_check()
+        self.write_triage([{"finding_id": "binary-glm-mle#1.1", "problem_id": "binary-glm-mle",
+                            "decision": "reject", "status": "approved", "reason": "changes the estimator"}])
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        f = lambda **kw: dict({"methods": ["irls"], "candidate": "c", "sources": ["https://x"]}, **kw)
+        (out / "binary-glm-mle.json").write_text(json.dumps({"problem_id": "binary-glm-mle",
+            "methods_reviewed": [{"method_id": "irls", "conclusion": "faster_option_found", "note": "", "vs_previous": "updated"}],
+            "not_reviewed": [], "searches": [],
+            "findings": [f(previous_finding_id="binary-glm-mle#1.1"), f(candidate="brand new")]}))
+        flagged, text = report.render(out, ["binary-glm-mle"], run_id="9", log=drift.load_research_log(),
+                                      triage=drift.load_triage())
+        self.assertIn("## 1b. Previously triaged findings, re-reported", text)
+        self.assertIn("- **Previously triaged:** reject (approved). changes the estimator", text)
+        self.assertIn("`binary-glm-mle#9.2`", text)  # the new one gets this run's id
+        self.assertIn("## 8. Re-reported despite a reject / defer decision", text)  # no new_evidence
+        research_apply.update_research_log(out, ["binary-glm-mle"], "2026-12-03", "9")
+        ids = [x["id"] for x in drift.load_research_log()["binary-glm-mle"]["findings"]]
+        self.assertEqual(ids, ["binary-glm-mle#1.1", "binary-glm-mle#9.2"])  # id kept
+
+    def test_annotate_is_idempotent(self):
+        folder = self.root / "findings"
+        folder.mkdir()
+        md = folder / "2026-11-16-run1.md"
+        md.write_text("## 1. F\n### binary-glm-mle: irls → c `binary-glm-mle#1.1`\n- **Current:** x\n")
+        rows = [{"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "approved",
+                 "todo": "TODO-7-v1.1.0", "reason": "benchmark first", "revisit": "", "decided": "2026-11-17"}]
+        for _ in range(2):
+            n, missing = triage_mod.annotate(rows, folder)
+        text = md.read_text()
+        self.assertEqual((n, missing), (1, []))
+        self.assertEqual(text.count("- **Triage:**"), 1)
+        self.assertIn("- **Triage:** investigate (approved), TODO-7-v1.1.0, 2026-11-17. benchmark first", text)
+
+
 class PromptSchemaTests(unittest.TestCase):
 
     def test_schemas_are_json_without_single_quotes(self):

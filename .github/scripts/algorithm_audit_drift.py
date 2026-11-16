@@ -46,6 +46,11 @@ PINS = META / "audits" / "comparator_versions.json"
 INVENTORY = META / "audits" / "algorithm_inventory.csv"
 RESEARCH_LOG = META / "audits" / "research_log.json"
 TAXONOMY = META / "audits" / "algorithm_taxonomy.json"
+TRIAGE = META / "audits" / "research_triage.csv"
+TRIAGE_COLS = ["finding_id", "run", "problem_id", "finding", "decision", "status", "reason",
+               "todo", "revisit", "decided"]
+TRIAGE_DECISIONS = {"reject", "defer", "investigate", "adopt"}
+TODO_REF = re.compile(r"^TODO-(\d+[a-z]?)-v(\d+)\.(\d+)\.(\d+)$")
 REFERENCES = META / "audits" / "algorithm_references.csv"
 SRC_DIR = ROOT / "R" / "EDI" / "src"
 R_DIR = ROOT / "R" / "EDI" / "R"
@@ -375,7 +380,8 @@ def check_inventory(offline):
     cfg = json.loads(ROW_MAP.read_text())
     inv, refs = load_inventory(), load_references()
     out = {"uncovered": [], "stale_exempt": [], "exempt_inventoried": [], "unwatched_row": [],
-           "bad_file": [], "bad_symbol": [], "bad_row": [], "bad_taxonomy_id": [],
+           "bad_file": [], "bad_symbol": [], "bad_row": [], "bad_taxonomy_id": [], "bad_triage": [],
+           "triage_due": [],
            "unused_taxonomy": [], "taxonomy_terms": [],
            "no_refs": [], "unknown_ref": [], "orphan_ref": [], "dead_ref": [], "ref_errors": [],
            "entries": len(inv), "refs": len(refs), "skipped": offline}
@@ -424,6 +430,31 @@ def check_inventory(offline):
             if u not in known:
                 out["unknown_ref"].append(f"{where}: {u}")
     out["orphan_ref"] = sorted(known - used)
+    # research triage: valid decisions, TODOs that exist, findings that exist, defers that are due
+    log_ids = {f.get("id") for p in load_research_log().values() for f in p.get("findings", [])}
+    today = datetime.date.today().isoformat()
+    for i, t in enumerate(load_triage(), start=2):
+        where = f"research_triage.csv line {i} (`{t.get('finding_id')}`)"
+        dec, todo = t.get("decision", ""), t.get("todo", "")
+        if dec not in TRIAGE_DECISIONS:
+            out["bad_triage"].append(f"{where}: decision `{dec}` is not one of {sorted(TRIAGE_DECISIONS)}")
+        if t.get("status") not in ("proposed", "approved"):
+            out["bad_triage"].append(f"{where}: status `{t.get('status')}` is not proposed / approved")
+        if t.get("finding_id") not in log_ids:
+            out["bad_triage"].append(f"{where}: finding id not in research_log.json")
+        if dec in ("investigate", "adopt") and t.get("status") == "approved":
+            m = TODO_REF.match(todo)
+            rel = RELEASES / f"release_v{m.group(2)}_{m.group(3)}_{m.group(4)}.md" if m else None
+            if not m:
+                out["bad_triage"].append(f"{where}: approved {dec} needs a TODO-<n>-v<version>, got `{todo}`")
+            elif not rel.exists() or not re.search(rf"^- \[[ x]\] (~~)?TODO-{m.group(1)}\b",
+                                                   rel.read_text(), re.M):
+                out["bad_triage"].append(f"{where}: `{todo}` not found in {rel.name}")
+        if dec == "defer":
+            if not re.match(r"^\d{4}-\d{2}-\d{2}$", t.get("revisit", "")):
+                out["bad_triage"].append(f"{where}: defer needs a revisit date (YYYY-MM-DD)")
+            elif t["revisit"] <= today:
+                out["triage_due"].append(f"{where}: deferred until {t['revisit']}; revisit now")
     collecting = {p for p, d in probs.items() if d.get("collects_methods")}
     out["unused_taxonomy"] = ([f"problem `{p}`" for p in sorted(set(probs) - used_p - collecting)]
                               + [f"method `{m}`" for m in sorted(set(meths) - used_m)])
@@ -578,6 +609,19 @@ def load_research_log():
     return json.loads(RESEARCH_LOG.read_text()).get("problems", {})
 
 
+def load_triage():
+    """research_triage.csv rows (owner, 2026-11-16: every research finding gets a decision)."""
+    if not TRIAGE.exists():
+        return []
+    with TRIAGE.open(newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def finding_id(problem_id, run, k):
+    """Stable id of the k-th (1-based) finding of a problem in a run."""
+    return f"{problem_id}#{run}.{k}"
+
+
 def previous_results(problem_id, inventory, log=None, max_commits=5):
     """The problem's last research result from the log, plus the commits that touched its
     inventory files since then (so the agent knows whether the earlier answer still describes
@@ -591,7 +635,10 @@ def previous_results(problem_id, inventory, log=None, max_commits=5):
     if files:
         commits = git("log", f"--since={prev['last_researched']} 23:59:59", "--format=%h %ad %s",
                       "--date=short", "--", *files).strip().splitlines()
-    return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits))
+    triage = [{k: t[k] for k in ("finding_id", "finding", "decision", "status", "reason", "todo", "revisit")}
+              for t in load_triage() if t.get("problem_id") == problem_id]
+    return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits),
+                triage=triage)
 
 
 INVENTORY_SHARD = 25  # items per inventory agent (one got 545 and gave up; at 40, method-heavy
@@ -735,6 +782,8 @@ INVENTORY_FLAGS = [
     ("bad_taxonomy_id", "Entries whose problem_id / method_id is not in algorithm_taxonomy.json"),
     ("unused_taxonomy", "Taxonomy problems / methods no inventory entry uses"),
     ("taxonomy_terms", "Taxonomy entries missing search-term lists"),
+    ("bad_triage", "research_triage.csv rows that are invalid"),
+    ("triage_due", "Deferred research findings due for a revisit"),
     ("no_refs", "Entries with no reference URL"),
     ("unknown_ref", "Reference URLs missing from algorithm_references.csv"),
     ("orphan_ref", "References no entry cites"),

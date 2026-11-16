@@ -145,6 +145,14 @@
           },
           "suggested_action": {
             "type": "string"
+          },
+          "previous_finding_id": {
+            "type": "string",
+            "description": "if this re-reports a finding listed in previous_results.json (same idea), its id; else empty"
+          },
+          "new_evidence": {
+            "type": "string",
+            "description": "when re-reporting a finding whose triage decision is reject or defer: what is new since that decision; else empty"
           }
         }
       }

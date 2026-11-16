@@ -38,7 +38,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Prototype: add a compressed-pattern path to AdjacentCategoryLogitNegLogLik/hessian and route CR through the weighted kernel with counts when the number of distinct (x, y) rows is below about n/2. Start with treatment-only fits and compute_adj_cat_logit_distr_parallel_cpp. Gate on equality of b, ssq_b_1, neg_loglik to 1e-10 against the current path. This mirrors the category-tabulation trick the catalog already adopted for JT/ridit (catalog §6 TODO-9, §10 TODO-1)."
+     "suggested_action": "Prototype: add a compressed-pattern path to AdjacentCategoryLogitNegLogLik/hessian and route CR through the weighted kernel with counts when the number of distinct (x, y) rows is below about n/2. Start with treatment-only fits and compute_adj_cat_logit_distr_parallel_cpp. Gate on equality of b, ssq_b_1, neg_loglik to 1e-10 against the current path. This mirrors the category-tabulation trick the catalog already adopted for JT/ridit (catalog §6 TODO-9, §10 TODO-1).",
+     "id": "adjacent-cat-cr-logit-mle#43925959437.1"
     },
     {
      "methods": [
@@ -50,7 +51,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Run the A/B harness for catalog §2 TODO-1/TODO-2 (wall clock and iterations, AC and CR, n in 50–2000, K in 3–7, p in 1–10). Then switch the defaults to newton_raphson with the existing L-BFGS fallback."
+     "suggested_action": "Run the A/B harness for catalog §2 TODO-1/TODO-2 (wall clock and iterations, AC and CR, n in 50–2000, K in 3–7, p in 1–10). Then switch the defaults to newton_raphson with the existing L-BFGS fallback.",
+     "id": "adjacent-cat-cr-logit-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -247,7 +249,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Prototype a C++ BLDM+CKK kernel with a node/time cap behind a p == 1 branch in optimal_solve_auto. Validate it against enumeration at n ≤ 24 and against SA at n = 50/100/200. Add a row to catalog §12 tables (a)/(b)."
+     "suggested_action": "Prototype a C++ BLDM+CKK kernel with a node/time cap behind a p == 1 branch in optimal_solve_auto. Validate it against enumeration at n ≤ 24 and against SA at n = 50/100/200. Add a row to catalog §12 tables (a)/(b).",
+     "id": "balanced-allocation-optimization#43925959437.1"
     },
     {
      "methods": [
@@ -258,7 +261,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Re-look: benchmark scip low-rank MIQCP against GLPK Fortet at n = 15/20/25/30 (p = 5), behind requireNamespace('scip'), and against the enumeration prototype."
+     "suggested_action": "Re-look: benchmark scip low-rank MIQCP against GLPK Fortet at n = 15/20/25/30 (p = 5), behind requireNamespace('scip'), and against the enumeration prototype.",
+     "id": "balanced-allocation-optimization#43925959437.2"
     },
     {
      "methods": [
@@ -269,7 +273,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Re-look: benchmark GLPK against HiGHS on milp_solve_quadratic at n = 15/20/25 and on milp_solve_l1 at n = 20–200, with HiGHS threads fixed at 1 for determinism."
+     "suggested_action": "Re-look: benchmark GLPK against HiGHS on milp_solve_quadratic at n = 15/20/25 and on milp_solve_l1 at n = 20–200, with HiGHS threads fixed at 1 for determinism.",
+     "id": "balanced-allocation-optimization#43925959437.3"
     }
    ],
    "sources": [
@@ -509,7 +514,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Prototype: swap betareg::betareg for fast_beta_regression_weighted_cpp in the ZOIB BB replicate, gate the logits on the marginal estimand, verify coefficient agreement with betareg, then time a B=1000 run."
+     "suggested_action": "Prototype: swap betareg::betareg for fast_beta_regression_weighted_cpp in the ZOIB BB replicate, gate the logits on the marginal estimand, verify coefficient agreement with betareg, then time a B=1000 run.",
+     "id": "beta-regression-mle#43925959437.1"
     },
     {
      "methods": [
@@ -520,7 +526,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Adopt as a low-priority cleanup, gated on an identical() check of y_sim against the loop under a fixed seed."
+     "suggested_action": "Adopt as a low-priority cleanup, gated on an identical() check of y_sim against the loop under a fixed seed.",
+     "id": "beta-regression-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -660,7 +667,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Re-look (carried over from 2026-11-16; still unaddressed at 8b718ae1). Confirm whether the wrapper default \"lbfgs\" is intentional. If not, switch it to \"irls\" and A/B KK21. Fix the inventory wording 'C++ default L-BFGS' either way."
+     "suggested_action": "Re-look (carried over from 2026-11-16; still unaddressed at 8b718ae1). Confirm whether the wrapper default \"lbfgs\" is intentional. If not, switch it to \"irls\" and A/B KK21. Fix the inventory wording 'C++ default L-BFGS' either way.",
+     "id": "binary-glm-mle#43925959437.1"
     },
     {
      "methods": [
@@ -671,7 +679,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Re-look (carried over from 2026-11-16; code unchanged). Switch the branch to the C++ kernel and benchmark one bootstrap at EDI's n."
+     "suggested_action": "Re-look (carried over from 2026-11-16; code unchanged). Switch the branch to the C++ kernel and benchmark one bootstrap at EDI's n.",
+     "id": "binary-glm-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -795,7 +804,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Add a row to catalog §12 options table (c): 'exact subset DP with lowest-element anchoring (C++, no solver), n ≤ ~22'. Prototype it as an arm of the v1.0.5-TODO-5 benchmark against the current MILP at n ∈ {8, 12, 16, 20}, checking objective equality (not block-id equality). If it wins, dispatch method='ompr' to the DP below the cap. This directly fixes the documented hours-long replay cost at n=16."
+     "suggested_action": "Add a row to catalog §12 options table (c): 'exact subset DP with lowest-element anchoring (C++, no solver), n ≤ ~22'. Prototype it as an arm of the v1.0.5-TODO-5 benchmark against the current MILP at n ∈ {8, 12, 16, 20}, checking objective equality (not block-id equality). If it wins, dispatch method='ompr' to the DP below the cap. This directly fixes the documented hours-long replay cost at n=16.",
+     "id": "blocking-partition#43925959437.1"
     },
     {
      "methods": [
@@ -806,7 +816,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "high",
-     "suggested_action": "In solve_optimal_blocks, add a fast path when n == 2B: call the existing compute_binary_match_structure / nbpMatching::nonbimatch on D and convert the pairs to block ids. Add a test that the objective equals the MILP's at n=8, B=4."
+     "suggested_action": "In solve_optimal_blocks, add a fast path when n == 2B: call the existing compute_binary_match_structure / nbpMatching::nonbimatch on D and convert the pairs to block ids. Add a test that the objective equals the MILP's at n=8, B=4.",
+     "id": "blocking-partition#43925959437.2"
     },
     {
      "methods": [
@@ -817,7 +828,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "In the v1.0.5-TODO-5 benchmark, first confirm that ROI.plugin.highs solves a binary model. If it does, time GLPK vs HiGHS on the current and reformulated models above the DP cap, and add 'highs' to the closed roi_solver set if it wins."
+     "suggested_action": "In the v1.0.5-TODO-5 benchmark, first confirm that ROI.plugin.highs solves a binary model. If it does, time GLPK vs HiGHS on the current and reformulated models above the DP cap, and add 'highs' to the closed roi_solver set if it wins.",
+     "id": "blocking-partition#43925959437.3"
     },
     {
      "methods": [
@@ -828,7 +840,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Keep as a note in catalog table (c), below the subset DP. Do not pursue unless exact blocking at n ≫ 20 becomes a requirement."
+     "suggested_action": "Keep as a note in catalog table (c), below the subset DP. Do not pursue unless exact blocking at n ≫ 20 becomes a requirement.",
+     "id": "blocking-partition#43925959437.4"
     },
     {
      "methods": [
@@ -839,7 +852,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Re-look only if profiling shows the hclust holdout as a hotspot at large n. If so, A/B fastcluster against stats for identical cutree output, including tied-covariate fixtures."
+     "suggested_action": "Re-look only if profiling shows the hclust holdout as a hotspot at large n. If so, A/B fastcluster against stats for identical cutree output, including tied-covariate fixtures.",
+     "id": "blocking-partition#43925959437.5"
     }
    ],
    "sources": [
@@ -1023,7 +1037,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Hoist the outer×inner loop out of the α-grid loop in ci_calibrated_bootstrap. This can be done now, ahead of or as step 1 of v1.0.5-TODO-2, and needs no coverage A/B beyond a regression check."
+     "suggested_action": "Hoist the outer×inner loop out of the α-grid loop in ci_calibrated_bootstrap. This can be done now, ahead of or as step 1 of v1.0.5-TODO-2, and needs no coverage A/B beyond a regression check.",
+     "id": "bootstrap-confidence-interval#43925959437.1"
     }
    ],
    "sources": [
@@ -1132,7 +1147,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "When v1.0.5-TODO-2 is picked up, first swap the unordered_set for a reusable dense marker (bit-identical) and microbenchmark it at k/n in {0.25, 0.5, 0.9} with n up to 1e4. Adopt partial Fisher-Yates for k > n/2 only if it is still materially faster. Add the bitset row to the catalog §7 options table."
+     "suggested_action": "When v1.0.5-TODO-2 is picked up, first swap the unordered_set for a reusable dense marker (bit-identical) and microbenchmark it at k/n in {0.25, 0.5, 0.9} with n up to 1e4. Adopt partial Fisher-Yates for k > n/2 only if it is still materially faster. Add the bitset row to the catalog §7 options table.",
+     "id": "bootstrap-index-generation#43925959437.1"
     },
     {
      "methods": [
@@ -1143,7 +1159,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "No action unless profiling shows RNG/index time matters. If it does, prototype a batched bounded_rand in RNG.h and bundle it with the v1.0.5-TODO-2/TODO-3 stream-change window."
+     "suggested_action": "No action unless profiling shows RNG/index time matters. If it does, prototype a batched bounded_rand in RNG.h and bundle it with the v1.0.5-TODO-2/TODO-3 stream-change window.",
+     "id": "bootstrap-index-generation#43925959437.2"
     }
    ],
    "sources": [
@@ -1300,7 +1317,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold the BRT sequential-MC path into the TODO-156 / v1.2.0 anytime-results proposal (algorithm_choice_audit.md TODO-43). Prototype the binomial betting strategy as an opt-in alternative to the Clopper–Pearson band in compute_two_sided_brt_pval_with_sequential_mc, then compare draws used and the error across looks on existing benchmark workloads. Also cite DOI https://doi.org/10.1093/jrsssb/qkaf014 (taken from the arXiv record; not fetched)."
+     "suggested_action": "Fold the BRT sequential-MC path into the TODO-156 / v1.2.0 anytime-results proposal (algorithm_choice_audit.md TODO-43). Prototype the binomial betting strategy as an opt-in alternative to the Clopper–Pearson band in compute_two_sided_brt_pval_with_sequential_mc, then compare draws used and the error across looks on existing benchmark workloads. Also cite DOI https://doi.org/10.1093/jrsssb/qkaf014 (taken from the arXiv record; not fetched).",
+     "id": "bootstrap-randomization-test#43925959437.1"
     }
    ],
    "sources": [
@@ -1462,7 +1480,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Investigate, prioritised above speed: (1) confirm the weight-semantics mismatch numerically: for one KK dataset and one weight draw, compare clmm's weighted -logLik with a direct Σ_g w_g·log∫ evaluation at the same θ; (2) add a w_g argument to the GLMMObjective/OrdinalGLMMObjective value and gradient (group-level multiply); (3) switch weighted_ordinal_random_intercept_fit callers to it, A/B the Bayesian-bootstrap CIs, and time one replicate against the clmm path. Also retire the stale model-simplification-surrogate inventory row."
+     "suggested_action": "Investigate, prioritised above speed: (1) confirm the weight-semantics mismatch numerically: for one KK dataset and one weight draw, compare clmm's weighted -logLik with a direct Σ_g w_g·log∫ evaluation at the same θ; (2) add a w_g argument to the GLMMObjective/OrdinalGLMMObjective value and gradient (group-level multiply); (3) switch weighted_ordinal_random_intercept_fit callers to it, A/B the Bayesian-bootstrap CIs, and time one replicate against the clmm path. Also retire the stale model-simplification-surrogate inventory row.",
+     "id": "clmm-ordinal-mixed-fit#43925959437.1"
     },
     {
      "methods": [
@@ -1474,7 +1493,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Unchanged from the previous run: cite Stringer 2024 in v1.0.5 TODO-153 and catalog T1, with a lowered node-saving expectation for 20-node ordinal kernels. Prototype AGQ on the 60-node Poisson GLMM before the ordinal kernels."
+     "suggested_action": "Unchanged from the previous run: cite Stringer 2024 in v1.0.5 TODO-153 and catalog T1, with a lowered node-saving expectation for 20-node ordinal kernels. Prototype AGQ on the 60-node Poisson GLMM before the ordinal kernels.",
+     "id": "clmm-ordinal-mixed-fit#43925959437.2"
     }
    ],
    "sources": [
@@ -1638,7 +1658,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Profile block_ra_batch at typical N·r (1e5–1e6) against a design's per-draw statistic time. Write the kernel under v1.0.5-TODO-11 only if draws are a material share; otherwise close v1.0.5-TODO-11 as Keep. Bundle any stream change with v1.0.6 TODO-149(c)."
+     "suggested_action": "Profile block_ra_batch at typical N·r (1e5–1e6) against a design's per-draw statistic time. Write the kernel under v1.0.5-TODO-11 only if draws are a material share; otherwise close v1.0.5-TODO-11 as Keep. Bundle any stream change with v1.0.6 TODO-149(c).",
+     "id": "complete-randomization-draws#43925959437.1"
     },
     {
      "methods": [
@@ -1649,7 +1670,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Record this as an option in the catalog P2 table. Consider it only together with another planned stream change, such as v1.0.6 TODO-149(c), so seeds are refreshed once, and only if profiling shows RNG words are material."
+     "suggested_action": "Record this as an option in the catalog P2 table. Consider it only together with another planned stream change, such as v1.0.6 TODO-149(c), so seeds are refreshed once, and only if profiling shows RNG words are material.",
+     "id": "complete-randomization-draws#43925959437.2"
     }
    ],
    "sources": [
@@ -1756,7 +1778,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into v1.0.5 TODO-2: add a prior-weights argument to fast_logistic_regression[_with_var]_cpp. Then switch fit_clogit_reservoir_logit (full fit, bootstrap and fit_null) to it, with an equivalence test against glm.fit and a microbenchmark at typical KK sizes."
+     "suggested_action": "Fold into v1.0.5 TODO-2: add a prior-weights argument to fast_logistic_regression[_with_var]_cpp. Then switch fit_clogit_reservoir_logit (full fit, bootstrap and fit_null) to it, with an equivalence test against glm.fit and a microbenchmark at typical KK sizes.",
+     "id": "conditional-logit-matched-fit#43925959437.1"
     },
     {
      "methods": [
@@ -1767,7 +1790,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Implement v1.0.5 TODO-2 (weights argument plus halving in fast_cpoisson_combined). Replace the optim call and benchmark the bootstrap loop."
+     "suggested_action": "Implement v1.0.5 TODO-2 (weights argument plus halving in fast_cpoisson_combined). Replace the optim call and benchmark the bootstrap loop.",
+     "id": "conditional-logit-matched-fit#43925959437.2"
     }
    ],
    "sources": [
@@ -1873,7 +1897,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add 'exponential-cone interior point (ECOS/Clarabel)' to catalog §1 O4. In the v1.0.5 TODO-32 constrained-solver Prototype, A/B test an ECOS fallback for fits that fail kkt_verdict_at_bounds, on boundary-MLE fixtures (e.g. Schwendinger's simulation C designs), measuring converged rate and wall-clock at EDI's n and p."
+     "suggested_action": "Add 'exponential-cone interior point (ECOS/Clarabel)' to catalog §1 O4. In the v1.0.5 TODO-32 constrained-solver Prototype, A/B test an ECOS fallback for fits that fail kkt_verdict_at_bounds, on boundary-MLE fixtures (e.g. Schwendinger's simulation C designs), measuring converged rate and wall-clock at EDI's n and p.",
+     "id": "constrained-binomial-mle#43925959437.1"
     },
     {
      "methods": [
@@ -1884,7 +1909,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "high",
-     "suggested_action": "Implement the already-adopted v1.0.5 TODO-1 analytic score and Hessian for the log- and identity-binomial links, weighted and unweighted, and keep an FD test that cross-checks them at interior points."
+     "suggested_action": "Implement the already-adopted v1.0.5 TODO-1 analytic score and Hessian for the log- and identity-binomial links, weighted and unweighted, and keep an FD test that cross-checks them at interior points.",
+     "id": "constrained-binomial-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -2183,7 +2209,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "No new work item. Keep this attached to v1.1.0-TODO-155. The minimal fix is lu.inverse(), which reuses the one factorization. Run an A/B on the vcov fixtures before considering LDLT."
+     "suggested_action": "No new work item. Keep this attached to v1.1.0-TODO-155. The minimal fix is lu.inverse(), which reuses the one factorization. Run an A/B on the vcov fixtures before considering LDLT.",
+     "id": "covariance-from-information#43925959437.1"
     }
    ],
    "sources": [
@@ -2284,7 +2311,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Carried over; the code is unchanged. Implement the audit's Adopt verdict (v1.0.5 audit TODO-7) for .breslow_hazard, and route kk_cox_fully_fixed_null_fit to the C++ compute_cox_neg_ll_only."
+     "suggested_action": "Carried over; the code is unchanged. Implement the audit's Adopt verdict (v1.0.5 audit TODO-7) for .breslow_hazard, and route kk_cox_fully_fixed_null_fit to the C++ compute_cox_neg_ll_only.",
+     "id": "cox-ph-fit#43925959437.1"
     },
     {
      "methods": [
@@ -2295,7 +2323,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Carried over; the code is unchanged. Profile shared() on a KK strat-Cox randomization run, and make the ladder lazy if the cost is material."
+     "suggested_action": "Carried over; the code is unchanged. Profile shared() on a KK strat-Cox randomization run, and make the ladder lazy if the cost is material.",
+     "id": "cox-ph-fit#43925959437.2"
     },
     {
      "methods": [
@@ -2306,7 +2335,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Carried over (coxdev 0.4.0, 2026-11-07, confirmed this run). When TODO-6.1 is scheduled, prototype it on the coxdev header and benchmark per-draw time at n=500."
+     "suggested_action": "Carried over (coxdev 0.4.0, 2026-11-07, confirmed this run). When TODO-6.1 is scheduled, prototype it on the coxdev header and benchmark per-draw time at n=500.",
+     "id": "cox-ph-fit#43925959437.3"
     }
    ],
    "sources": [
@@ -2538,7 +2568,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Prototype: add weights to fast_ordinal_{probit,cloglog}_regression_cpp, route weighted_ordinal_bootstrap_surrogate_fit for probit and cloglog through them with Newton and a warm start, and A/B against polr for coefficient agreement and wall-clock time on EDI's bootstrap fixtures."
+     "suggested_action": "Prototype: add weights to fast_ordinal_{probit,cloglog}_regression_cpp, route weighted_ordinal_bootstrap_surrogate_fit for probit and cloglog through them with Newton and a warm start, and A/B against polr for coefficient agreement and wall-clock time on EDI's bootstrap fixtures.",
+     "id": "cumulative-link-ordinal-mle#43925959437.1"
     },
     {
      "methods": [
@@ -2549,7 +2580,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Use this evidence to move v1.0.5 algorithm-audit TODO-1 (Newton default for concave ordinal fits) forward. Run the A/B harness at EDI's sizes."
+     "suggested_action": "Use this evidence to move v1.0.5 algorithm-audit TODO-1 (Newton default for concave ordinal fits) forward. Run the A/B harness at EDI's sizes.",
+     "id": "cumulative-link-ordinal-mle#43925959437.2"
     },
     {
      "methods": [
@@ -2560,7 +2592,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Investigate: add a tail-accurate cell-probability helper per link in ordinal_fixed_link_helpers.h, and test it against high-precision references for extreme eta. This upgrades the catalog §2 incidental note on cancellation, using the rms 8.2-0 rework as evidence."
+     "suggested_action": "Investigate: add a tail-accurate cell-probability helper per link in ordinal_fixed_link_helpers.h, and test it against high-precision references for extreme eta. This upgrades the catalog §2 incidental note on cancellation, using the rms 8.2-0 rework as evidence.",
+     "id": "cumulative-link-ordinal-mle#43925959437.3"
     },
     {
      "methods": [
@@ -2571,7 +2604,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Re-look, as in the previous run: A/B fastglm_ordinal(nonparallel=) against vglm on EDI's PPO fixtures for agreement, improper-fit handling and wall-clock time. Check fractional weights."
+     "suggested_action": "Re-look, as in the previous run: A/B fastglm_ordinal(nonparallel=) against vglm on EDI's PPO fixtures for agreement, improper-fit handling and wall-clock time. Check fractional weights.",
+     "id": "cumulative-link-ordinal-mle#43925959437.4"
     },
     {
      "methods": [
@@ -2582,7 +2616,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "As in the previous run: gate the cloglog restarts on a convergence certificate, or replace them with a Newton polish, then A/B on the null-refit multistart cases."
+     "suggested_action": "As in the previous run: gate the cloglog restarts on a convergence certificate, or replace them with a Newton polish, then A/B on the null-refit multistart cases.",
+     "id": "cumulative-link-ordinal-mle#43925959437.5"
     }
    ],
    "sources": [
@@ -2731,7 +2766,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Swap the Gram build for selfadjointView().rankUpdate in compute_rand_bootstrap_ols_parallel_cpp. Benchmark paired ABBA at typical n (100-1000) and p (3-20), and check results match to 1e-12."
+     "suggested_action": "Swap the Gram build for selfadjointView().rankUpdate in compute_rand_bootstrap_ols_parallel_cpp. Benchmark paired ABBA at typical n (100-1000) and p (3-20), and check results match to 1e-12.",
+     "id": "dense-linear-algebra#43925959437.1"
     },
     {
      "methods": [
@@ -2742,7 +2778,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Add a unit test with v_b/v_e = 1e8 and singleton groups that compares W against long-double or MPFR. If it shows error above 1e-8 relative, switch to the centred form in neg_ll_and_grad and the matching Hessian code."
+     "suggested_action": "Add a unit test with v_b/v_e = 1e8 and singleton groups that compares W against long-double or MPFR. If it shows error above 1e-8 relative, switch to the centred form in neg_ll_and_grad and the matching Hessian code.",
+     "id": "dense-linear-algebra#43925959437.2"
     }
    ],
    "sources": [
@@ -2860,7 +2897,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Implement a single-cor threshold-ladder helper and use it at the five ladder call sites. Combine it with the catalog §10/§11 incidental notes to cache the candidates per call, since the predictors do not depend on the bootstrap weights. Gate on a test that the per-rung keep-sets are identical to the current function's across the test corpus."
+     "suggested_action": "Implement a single-cor threshold-ladder helper and use it at the five ladder call sites. Combine it with the catalog §10/§11 incidental notes to cache the candidates per call, since the predictors do not depend on the bootstrap weights. Gate on a test that the per-rung keep-sets are identical to the current function's across the test corpus.",
+     "id": "design-matrix-preprocessing#43925959437.1"
     },
     {
      "methods": [
@@ -2871,7 +2909,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Keep as the existing Prototype-lite (v1.0.5 catalog §1 item 6). Prototype it with column-append updates, which keeps the current greedy keep-set semantics, and gate on keep-set equality across the test corpus."
+     "suggested_action": "Keep as the existing Prototype-lite (v1.0.5 catalog §1 item 6). Prototype it with column-append updates, which keeps the current greedy keep-set semantics, and gate on keep-set equality across the test corpus.",
+     "id": "design-matrix-preprocessing#43925959437.2"
     }
    ],
    "sources": [
@@ -2995,7 +3034,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Low priority. Route the single-stratum pval_exact_fisher through zhang_exact_fisher_pval_cpp, or at least pass conf.int = FALSE, keeping the full fisher.test for the CI and estimate. Gate it with an equality test against fisher.test(...)$p.value. Revisit pval.only when EDI's minimum R (currently >= 3.5.0) includes it."
+     "suggested_action": "Low priority. Route the single-stratum pval_exact_fisher through zhang_exact_fisher_pval_cpp, or at least pass conf.int = FALSE, keeping the full fisher.test for the CI and estimate. Gate it with an equality test against fisher.test(...)$p.value. Revisit pval.only when EDI's minimum R (currently >= 3.5.0) includes it.",
+     "id": "exact-conditional-tests#43925959437.1"
     },
     {
      "methods": [
@@ -3006,7 +3046,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Low priority. When zhang_exact_speedups.cpp is next touched, port R's boundary search plus the pbinom tails; otherwise Keep."
+     "suggested_action": "Low priority. When zhang_exact_speedups.cpp is next touched, port R's boundary search plus the pbinom tails; otherwise Keep.",
+     "id": "exact-conditional-tests#43925959437.2"
     }
    ],
    "sources": [
@@ -3165,7 +3206,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold this into the catalog §6 TODO 1 (JT exact null -> polynomial DP), as the 'tail-only with reachable-range bounds' variant. Validate against brute-force enumeration at n<=12 and against the current kernel to 1e-12. Use udist.go (BSD-3, attribution) as a reference implementation or test oracle for tied Mann-Whitney CDFs. Replace the 1e6-allocation refusal with a DP-cell budget."
+     "suggested_action": "Fold this into the catalog §6 TODO 1 (JT exact null -> polynomial DP), as the 'tail-only with reachable-range bounds' variant. Validate against brute-force enumeration at n<=12 and against the current kernel to 1e-12. Use udist.go (BSD-3, attribution) as a reference implementation or test oracle for tied Mann-Whitney CDFs. Replace the 1e6-allocation refusal with a DP-cell budget.",
+     "id": "exact-rank-null-distribution#43925959437.1"
     }
    ],
    "sources": [
@@ -3300,7 +3342,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Re-look, low priority (unchanged from last run). Add the df=1 → fast_erfc(√(T/2)) and df=2 → exp(−T/2) special cases, then the general integer/half-integer finite sums for a<30. Validate against R::pchisq(lower=FALSE) for df ∈ {1..60} and T ∈ [1e-8, 1e3]. Can be folded into the row-O accuracy TODO."
+     "suggested_action": "Re-look, low priority (unchanged from last run). Add the df=1 → fast_erfc(√(T/2)) and df=2 → exp(−T/2) special cases, then the general integer/half-integer finite sums for a<30. Validate against R::pchisq(lower=FALSE) for df ∈ {1..60} and T ∈ [1e-8, 1e3]. Can be folded into the row-O accuracy TODO.",
+     "id": "gamma-family-functions#43925959437.1"
     }
    ],
    "sources": [
@@ -3419,7 +3462,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "When doing TODO-1 (a single cached shared GH rule, deduping all 6 copies), build it from eigenvalues only plus a Newton polish, and take log-weights from the recurrence formula, not from log(v0²). Symmetrise the rule. As a check, compare the log-weights at n = 60 and 100 against a high-precision reference (e.g. Gil–Segura–Temme GHi, or mpmath) before and after the change."
+     "suggested_action": "When doing TODO-1 (a single cached shared GH rule, deduping all 6 copies), build it from eigenvalues only plus a Newton polish, and take log-weights from the recurrence formula, not from log(v0²). Symmetrise the rule. As a check, compare the log-weights at n = 60 and 100 against a high-precision reference (e.g. Gil–Segura–Temme GHi, or mpmath) before and after the change.",
+     "id": "gauss-hermite-nodes#43925959437.1"
     }
    ],
    "sources": [
@@ -3536,7 +3580,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into the v1.0.5 TODO-3 profiled-ML prototype: build the three per-stratum R factors (or Grams) once per dataset/weight vector. Evaluate the NLL and gradient (and the profiled λ objective) from them, reuse them across all `fit_null` δ values, and A/B against the current `neg_ll_and_grad` for agreement (≤1e-8 relative) and for timing at n ∈ {50, 500, 5000}, p ∈ {2, 5, 10}."
+     "suggested_action": "Fold into the v1.0.5 TODO-3 profiled-ML prototype: build the three per-stratum R factors (or Grams) once per dataset/weight vector. Evaluate the NLL and gradient (and the profiled λ objective) from them, reuse them across all `fit_null` δ values, and A/B against the current `neg_ll_and_grad` for agreement (≤1e-8 relative) and for timing at n ∈ {50, 500, 5000}, p ∈ {2, 5, 10}.",
+     "id": "gaussian-lmm-fit#43925959437.1"
     }
    ],
    "sources": [
@@ -3813,7 +3858,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Profile one ordLORgee call at typical KK sizes to split the time between LOR estimation and Fisher scoring. If LOR estimation is a material share, prototype the cache and A/B it against current fits for coefficients identical within tolerance."
+     "suggested_action": "Profile one ordLORgee call at typical KK sizes to split the time between LOR estimation and Fisher scoring. If LOR estimation is a material share, prototype the cache and A/B it against current fits for coefficients identical within tolerance.",
+     "id": "gee-fit#43925959437.1"
     }
    ],
    "sources": [
@@ -3916,7 +3962,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "When prototyping catalog §1 TODO-9, use the √‖g‖ regularization with an LLT/LDLT factorization and the indefiniteness shift. Either honour or remove warm_start_hessian. Measure halving cascades, L-BFGS hand-offs and wall-clock on NB, beta and stereotype in the A/B harness."
+     "suggested_action": "When prototyping catalog §1 TODO-9, use the √‖g‖ regularization with an LLT/LDLT factorization and the indefiniteness shift. Either honour or remove warm_start_hessian. Measure halving cascades, L-BFGS hand-offs and wall-clock on NB, beta and stereotype in the A/B harness.",
+     "id": "generic-smooth-mle-optimization#43925959437.1"
     }
    ],
    "sources": [
@@ -4038,7 +4085,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Add a v1.0.5 catalog section 4 Adopt item for fast_poisson_glmm.cpp (cluster-total form for operator(), hessian and the :515/:545 exports). Gate: the existing tests plus an all.equal(tol 1e-10) A/B on the R8 grid, then benchmark at n=100-1000."
+     "suggested_action": "Add a v1.0.5 catalog section 4 Adopt item for fast_poisson_glmm.cpp (cluster-total form for operator(), hessian and the :515/:545 exports). Gate: the existing tests plus an all.equal(tol 1e-10) A/B on the R8 grid, then benchmark at n=100-1000.",
+     "id": "glmm-marginal-likelihood#43925959437.1"
     },
     {
      "methods": [
@@ -4050,7 +4098,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Keep under v1.1.0 performance_profiling_and_upgrades.md TODO-153. Add arXiv 2202.07864 as the accuracy argument and the Rizopoulos DOI as the frozen-mode route. Prioritise the logistic/clogit 20-node kernels and the hurdle K=7 accuracy item (v1.0.5 catalog TODO 5); the Poisson kernel is lower priority once the cluster-total rewrite lands."
+     "suggested_action": "Keep under v1.1.0 performance_profiling_and_upgrades.md TODO-153. Add arXiv 2202.07864 as the accuracy argument and the Rizopoulos DOI as the frozen-mode route. Prioritise the logistic/clogit 20-node kernels and the hurdle K=7 accuracy item (v1.0.5 catalog TODO 5); the Poisson kernel is lower priority once the cluster-total rewrite lands.",
+     "id": "glmm-marginal-likelihood#43925959437.2"
     }
    ],
    "sources": [
@@ -4201,7 +4250,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into performance_profiling_and_upgrades.md TODO-155 as a cheap first step before the √w∘X + DSYRK option. Check vectorisation with -fopt-info-vec-missed on _helper_functions_core.h users (targeted compile of fast_logistic_regression.cpp only). Then microbenchmark score_weighted_crossprod_colwise_assign against an EDI_SIMD_REDUCTION version and an Eigen-dot version at n ∈ {100, 500, 2000}, p ∈ {2, 5, 10, 20}, and confirm the β agreement tolerance in the logistic and probit tests."
+     "suggested_action": "Fold into performance_profiling_and_upgrades.md TODO-155 as a cheap first step before the √w∘X + DSYRK option. Check vectorisation with -fopt-info-vec-missed on _helper_functions_core.h users (targeted compile of fast_logistic_regression.cpp only). Then microbenchmark score_weighted_crossprod_colwise_assign against an EDI_SIMD_REDUCTION version and an Eigen-dot version at n ∈ {100, 500, 2000}, p ∈ {2, 5, 10, 20}, and confirm the β agreement tolerance in the logistic and probit tests.",
+     "id": "gram-matrix-accumulation#43925959437.1"
     }
    ],
    "sources": [
@@ -4290,7 +4340,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Keep it as a recorded option in catalog P2. Adopt it only together with another planned RNG-stream change, so seeds are refreshed once. Do not prioritise it for this problem."
+     "suggested_action": "Keep it as a recorded option in catalog P2. Adopt it only together with another planned RNG-stream change, so seeds are refreshed once. Do not prioritise it for this problem.",
+     "id": "greedy-swap-allocation-search#43925959437.1"
     }
    ],
    "sources": [
@@ -4397,7 +4448,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Replace the vapply/which loop in kk_pair_and_reservoir_bootstrap_weights with a rowsum-based (or cached index) aggregation. Cache the pair extraction in build_combined_cpoisson_data across replicates. Test that the results equal the old ones to 1e-12."
+     "suggested_action": "Replace the vapply/which loop in kk_pair_and_reservoir_bootstrap_weights with a rowsum-based (or cached index) aggregation. Cache the pair extraction in build_combined_cpoisson_data across replicates. Test that the results equal the old ones to 1e-12.",
+     "id": "grouping-and-level-coding#43925959437.1"
     }
    ],
    "sources": [
@@ -4469,7 +4521,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "high",
-     "suggested_action": "No new decision needed. When catalog Incidental 5 (TODO 5) is picked up, replace both loops with the centered O(n) forms, and test them against the loop to 1e-12 relative, including a fixture with a large offset."
+     "suggested_action": "No new decision needed. When catalog Incidental 5 (TODO 5) is picked up, replace both loops with the centered O(n) forms, and test them against the loop to 1e-12 relative, including a fixture with a large offset.",
+     "id": "hodges-lehmann-estimation#43925959437.1"
     }
    ],
    "sources": [
@@ -4583,7 +4636,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Add icsp2's profile-likelihood vcov to the catalog's ic_sp SE options row as an available implementation, which removes the 'requires a profile maximiser' obstacle. Prototype it with A/B against bs_samples=200 SEs on fixtures. If accepted, compute SEs with it and keep bootstrap as an option."
+     "suggested_action": "Add icsp2's profile-likelihood vcov to the catalog's ic_sp SE options row as an available implementation, which removes the 'requires a profile maximiser' obstacle. Prototype it with A/B against bs_samples=200 SEs on fixtures. If accepted, compute SEs with it and keep bootstrap as an option.",
+     "id": "interval-censored-npmle#43925959437.1"
     },
     {
      "methods": [
@@ -4594,7 +4648,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Unchanged from the previous result: prototype icenReg::ic_np first under v1.0.5 TODO-28 (release_v1_1_0.md TODO-50), with an A/B harness on median and RMST, and deprioritize initEMICM."
+     "suggested_action": "Unchanged from the previous result: prototype icenReg::ic_np first under v1.0.5 TODO-28 (release_v1_1_0.md TODO-50), with an A/B harness on median and RMST, and deprioritize initEMICM.",
+     "id": "interval-censored-npmle#43925959437.2"
     },
     {
      "methods": [
@@ -4605,7 +4660,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Implement within v1.0.5 TODO-11. If it slips, ship the interim icFIT= plus method='pclt' change first."
+     "suggested_action": "Implement within v1.0.5 TODO-11. If it slips, ship the interim icFIT= plus method='pclt' change first.",
+     "id": "interval-censored-npmle#43925959437.3"
     }
    ],
    "sources": [
@@ -4761,7 +4817,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Re-reported from the 2026-11-16 seeded result; still not implemented. Prototype an exact closed-form jackknife fast path for mean difference, OLS/Lin and WLS behind a tolerance test against the refit jackknife, and add the option to the catalog's NEW-jackknife-influence table."
+     "suggested_action": "Re-reported from the 2026-11-16 seeded result; still not implemented. Prototype an exact closed-form jackknife fast path for mean difference, OLS/Lin and WLS behind a tolerance test against the refit jackknife, and add the option to the catalog's NEW-jackknife-influence table.",
+     "id": "jackknife-replicates#43925959437.1"
     },
     {
      "methods": [
@@ -4772,7 +4829,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add a CV3L row to the catalog's NEW-jackknife-influence table, citing DOI 10.1080/07474938.2025.2515161. If v1.0.6-TODO-7 adds per-unit score and information hooks, prototype the linearized jackknife on the same hooks as an opt-in option, A/B against the exact jackknife."
+     "suggested_action": "Add a CV3L row to the catalog's NEW-jackknife-influence table, citing DOI 10.1080/07474938.2025.2515161. If v1.0.6-TODO-7 adds per-unit score and information hooks, prototype the linearized jackknife on the same hooks as an opt-in option, A/B against the exact jackknife.",
+     "id": "jackknife-replicates#43925959437.2"
     }
    ],
    "sources": [
@@ -4894,7 +4952,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Adopt: fold into v1.0.5 TODO-6 (the same reverse-cumsum fix as the weighted KM median) and change the inventory verdict from 'Not yet audited' to Adopt."
+     "suggested_action": "Adopt: fold into v1.0.5 TODO-6 (the same reverse-cumsum fix as the weighted KM median) and change the inventory verdict from 'Not yet audited' to Adopt.",
+     "id": "kaplan-meier-rmst#43925959437.1"
     },
     {
      "methods": [
@@ -4905,7 +4964,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Keep v1.0.5 TODO-6 open (still unimplemented). Widen its scope to a weighted C++ KM sweep shared by weighted_km_median, weighted_survival_stat_for_group and weighted_restricted_mean_se_diff, so all three per-replicate paths go through one routine."
+     "suggested_action": "Keep v1.0.5 TODO-6 open (still unimplemented). Widen its scope to a weighted C++ KM sweep shared by weighted_km_median, weighted_survival_stat_for_group and weighted_restricted_mean_se_diff, so all three per-replicate paths go through one routine.",
+     "id": "kaplan-meier-rmst#43925959437.2"
     }
    ],
    "sources": [
@@ -5122,7 +5182,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Profile univariate_negbin_tstat on a KK21 count fixture. Only if the θ-step special functions are a visible share, reuse the distinct-y helper from fast_zinb.cpp."
+     "suggested_action": "Profile univariate_negbin_tstat on a KK21 count fixture. Only if the θ-step special functions are a visible share, reuse the distinct-y helper from fast_zinb.cpp.",
+     "id": "kk21-covariate-weights#43925959437.1"
     },
     {
      "methods": [
@@ -5133,7 +5194,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "No re-decision needed. When implementing v1.2.0-TODO-23, A/B against statmod::glm.scoretest and run the existing KK21 weight-comparison A/B."
+     "suggested_action": "No re-decision needed. When implementing v1.2.0-TODO-23, A/B against statmod::glm.scoretest and run the existing KK21 weight-comparison A/B.",
+     "id": "kk21-covariate-weights#43925959437.2"
     },
     {
      "methods": [
@@ -5144,7 +5206,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Record as a rejected or optional option in catalog §12 (estimator change). Consider it only if a profile shows the univariate fits dominate KK21 design time and the owner accepts a score-based importance measure."
+     "suggested_action": "Record as a rejected or optional option in catalog §12 (estimator change). Consider it only if a profile shows the univariate fits dominate KK21 design time and the owner accepts a score-based importance measure.",
+     "id": "kk21-covariate-weights#43925959437.3"
     }
    ],
    "sources": [
@@ -5260,7 +5323,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Add Chandrupatla, ITP and modAB to the catalog's row-M options table. Before implementing brent_ci_inversion.md TODO-2, run an evaluation-count test on the score, gradient, Bartlett and count-LR p(δ), including a flat or jumpy case, and pick the solver from that. Keep bisection as the fallback."
+     "suggested_action": "Add Chandrupatla, ITP and modAB to the catalog's row-M options table. Before implementing brent_ci_inversion.md TODO-2, run an evaluation-count test on the score, gradient, Bartlett and count-LR p(δ), including a flat or jumpy case, and pick the solver from that. Keep bisection as the fallback.",
+     "id": "likelihood-ci-inversion#43925959437.1"
     },
     {
      "methods": [
@@ -5271,7 +5335,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "high",
-     "suggested_action": "In algorithm_inventory.csv, change this row's algorithm to 'bisection (test-inversion CI)' and its verdict to 'Keep-tracked (brent_ci_inversion.md)'. Add the log-binomial gradient CI to that plan's test gate."
+     "suggested_action": "In algorithm_inventory.csv, change this row's algorithm to 'bisection (test-inversion CI)' and its verdict to 'Keep-tracked (brent_ci_inversion.md)'. Add the log-binomial gradient CI to that plan's test gate.",
+     "id": "likelihood-ci-inversion#43925959437.2"
     }
    ],
    "sources": [
@@ -5426,7 +5491,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Resolve the cloglog 'Investigate' verdict: make the second start conditional on the first refit failing a gradient-norm certificate, then A/B the LR p-values and CIs on the existing cloglog fixtures."
+     "suggested_action": "Resolve the cloglog 'Investigate' verdict: make the second start conditional on the first refit failing a gradient-norm certificate, then A/B the LR p-values and CIs on the existing cloglog fixtures.",
+     "id": "likelihood-tests-null-refits#43925959437.1"
     }
    ],
    "sources": [
@@ -5565,7 +5631,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Fill the '[cite needed]' in catalog P11 with fdlibm e_log.c. Optionally refit the Horner coefficients as a minimax polynomial in s² on [0,1/9] (Sollya fpminimax), with fewer terms at equal or better error. No urgent speed-driven change."
+     "suggested_action": "Fill the '[cite needed]' in catalog P11 with fdlibm e_log.c. Optionally refit the Horner coefficients as a minimax polynomial in s² on [0,1/9] (Sollya fpminimax), with fewer terms at equal or better error. No urgent speed-driven change.",
+     "id": "link-function-evaluation#43925959437.1"
     }
    ],
    "sources": [
@@ -5719,7 +5786,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Add a catalog row (§10, NEW-survival-sort-sweep) and a TODO for a compute_fast_randomization_distr on InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox (right-censored, delta=0). Build it as fixed pooled residual scores plus one W'm product, with fallback to the existing path when delta!=0 or general censoring applies. It mirrors the interval-censored v1.0.5 audit TODO-11, so implement both together."
+     "suggested_action": "Add a catalog row (§10, NEW-survival-sort-sweep) and a TODO for a compute_fast_randomization_distr on InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox (right-censored, delta=0). Build it as fixed pooled residual scores plus one W'm product, with fallback to the existing path when delta!=0 or general censoring applies. It mirrors the interval-censored v1.0.5 audit TODO-11, so implement both together.",
+     "id": "logrank-family-tests#43925959437.1"
     },
     {
      "methods": [
@@ -5730,7 +5798,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Implement v1.0.5 audit TODO-11 first: pooled NPMLE once plus a linear statistic per draw, in the same change as finding 1. Then A/B ic_np (or npsurv CNM) against icfit for the single pooled solve, compared on the ictest statistic. Cite the Wang & Taylor 2013 DOI 10.1007/s11222-012-9341-9 in the catalog's (f) Turnbull table, which lacks the CNM option."
+     "suggested_action": "Implement v1.0.5 audit TODO-11 first: pooled NPMLE once plus a linear statistic per draw, in the same change as finding 1. Then A/B ic_np (or npsurv CNM) against icfit for the single pooled solve, compared on the ictest statistic. Cite the Wang & Taylor 2013 DOI 10.1007/s11222-012-9341-9 in the catalog's (f) Turnbull table, which lacks the CNM option.",
+     "id": "logrank-family-tests#43925959437.2"
     }
    ],
    "sources": [
@@ -5980,7 +6049,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Keep as the concrete, dependency-free implementation of catalog §12(e) 'stored forest, refit every k' for v1.0.5-TODO-9, and cite the missRanger 2.6.0 NEWS in that row."
+     "suggested_action": "Keep as the concrete, dependency-free implementation of catalog §12(e) 'stored forest, refit every k' for v1.0.5-TODO-9, and cite the missRanger 2.6.0 NEWS in that row.",
+     "id": "missing-covariate-imputation#43925959437.1"
     },
     {
      "methods": [
@@ -5991,7 +6061,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Note missForestPredict (DOI 10.48550/arXiv.2407.03379) in catalog §12(e) as the alternative offering warm starts and exact training replay. Benchmark iterations to convergence, warm versus cold, at n ≈ 100–500 inside the v1.0.5-TODO-9 prototype."
+     "suggested_action": "Note missForestPredict (DOI 10.48550/arXiv.2407.03379) in catalog §12(e) as the alternative offering warm starts and exact training replay. Benchmark iterations to convergence, warm versus cold, at n ≈ 100–500 inside the v1.0.5-TODO-9 prototype.",
+     "id": "missing-covariate-imputation#43925959437.2"
     }
    ],
    "sources": [
@@ -6230,7 +6301,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Unchanged from the previous run. Fold into performance_profiling_and_upgrades.md TODO-155: micro-benchmark try_safe_ols_solve (ColPivQR) against crossprod+LLT with a QR fallback at n∈{100,500,2000}, p∈{2,5,10}, and measure the start's share of a cold-started fit before switching."
+     "suggested_action": "Unchanged from the previous run. Fold into performance_profiling_and_upgrades.md TODO-155: micro-benchmark try_safe_ols_solve (ColPivQR) against crossprod+LLT with a QR fallback at n∈{100,500,2000}, p∈{2,5,10}, and measure the start's share of a cold-started fit before switching.",
+     "id": "mle-starting-values#43925959437.1"
     },
     {
      "methods": [
@@ -6242,7 +6314,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Trivial refactor. Add a try_safe_ols_solve overload taking a MatrixXd RHS, use it in make_truncated_negbin_candidate_starts, and check that the hurdle-NB fixtures are bit-identical."
+     "suggested_action": "Trivial refactor. Add a try_safe_ols_solve overload taking a MatrixXd RHS, use it in make_truncated_negbin_candidate_starts, and check that the hurdle-NB fixtures are bit-identical.",
+     "id": "mle-starting-values#43925959437.2"
     }
    ],
    "sources": [
@@ -6380,7 +6453,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Investigate first as a possible validity bug (the reservoir p-value does not vanish for large |δ|; check the m=0 Bernoulli path with a unit test). Then either fix the null adjustment to the observed w, or, if the current form is intended, replace the per-δ refits with the one-shot affine breakpoint inversion."
+     "suggested_action": "Investigate first as a possible validity bug (the reservoir p-value does not vanish for large |δ|; check the m=0 Bernoulli path with a unit test). Then either fix the null adjustment to the observed w, or, if the current form is intended, replace the per-δ refits with the one-shot affine breakpoint inversion.",
+     "id": "monte-carlo-test-inversion-ci#43925959437.1"
     },
     {
      "methods": [
@@ -6391,7 +6465,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Re-look (updated): when checking whether the studentized BRT pivots are rational in δ, use Zhu & Liu's explicit quadratic roots as the template. If they are, prototype quadratic breakpoints in closed_form_ci_from_affine_null_draws."
+     "suggested_action": "Re-look (updated): when checking whether the studentized BRT pivots are rational in δ, use Zhu & Liu's explicit quadratic roots as the template. If they are, prototype quadratic breakpoints in closed_form_ci_from_affine_null_draws.",
+     "id": "monte-carlo-test-inversion-ci#43925959437.2"
     },
     {
      "methods": [
@@ -6402,7 +6477,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Re-check the premise of garthwaite_buckland_ci_search.md (v1.2.0-TODO-21) against Glazer & Stark 2025. Narrow it to refit-heavy, non-affine statistics or downgrade it."
+     "suggested_action": "Re-check the premise of garthwaite_buckland_ci_search.md (v1.2.0-TODO-21) against Glazer & Stark 2025. Narrow it to refit-heavy, non-affine statistics or downgrade it.",
+     "id": "monte-carlo-test-inversion-ci#43925959437.3"
     },
     {
      "methods": [
@@ -6413,7 +6489,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Use Glazer & Stark as the reference when prototyping catalog TODO-6a, together with the reservoir-equivariance finding above."
+     "suggested_action": "Use Glazer & Stark as the reference when prototyping catalog TODO-6a, together with the reservoir-equivariance finding above.",
+     "id": "monte-carlo-test-inversion-ci#43925959437.4"
     },
     {
      "methods": [
@@ -6424,7 +6501,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Correct the 'step function' rationale in the inventory. Optionally record ITP (n0=0) in the options table; low priority."
+     "suggested_action": "Correct the 'step function' rationale in the inventory. Optionally record ITP (n0=0) in the options table; low priority.",
+     "id": "monte-carlo-test-inversion-ci#43925959437.5"
     }
    ],
    "sources": [
@@ -6575,7 +6653,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Low priority: replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp (preferred, already in EDI), or with fastglm_nb. Then re-run the KK21 count-matching fixtures."
+     "suggested_action": "Low priority: replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp (preferred, already in EDI), or with fastglm_nb. Then re-run the KK21 count-matching fixtures.",
+     "id": "negbin-glm-mle#43925959437.1"
     }
    ],
    "sources": [
@@ -6729,7 +6808,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Consider an opt-in cheap-bootstrap CI type (B ≈ 10) for classes with expensive refits (GLMM, survival, ordinal). Track the Studentized Cheap Bootstrap (arXiv 2606.25968) as its studentized companion. Validate coverage against the B = 501 percentile, BCa and bootstrap-t intervals in the A/B harness, then record the result in the catalog §9 / P3 options table."
+     "suggested_action": "Consider an opt-in cheap-bootstrap CI type (B ≈ 10) for classes with expensive refits (GLMM, survival, ordinal). Track the Studentized Cheap Bootstrap (arXiv 2606.25968) as its studentized companion. Validate coverage against the B = 501 percentile, BCa and bootstrap-t intervals in the A/B harness, then record the result in the catalog §9 / P3 options table.",
+     "id": "nonparametric-bootstrap-distribution#43925959437.1"
     },
     {
      "methods": [
@@ -6740,7 +6820,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "First measure how many iterations warm-started bootstrap refits actually take on representative fixtures. Only if that is well above 3 for some family, prototype an opt-in k-step mode for studentized/t-based bootstrap CIs; otherwise record 'no gain at EDI's warm-start setup' in the catalog §9 J options table."
+     "suggested_action": "First measure how many iterations warm-started bootstrap refits actually take on representative fixtures. Only if that is well above 3 for some family, prototype an opt-in k-step mode for studentized/t-based bootstrap CIs; otherwise record 'no gain at EDI's warm-start setup' in the catalog §9 J options table.",
+     "id": "nonparametric-bootstrap-distribution#43925959437.2"
     }
    ],
    "sources": [
@@ -6865,7 +6946,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "When implementing v1.0.5-TODO-22, prefer an erfcx kernel (port xsf faddeeva erfcx, or Stan's Cody-based one after merge) over the 4-term asymptotic series, and return log Phi and the Mills ratio from one call for the probit/dep-cens score. Gate: R::pnorm(log.p=TRUE) grid on [-40,40] at 1e-12 rel, re-checked against R >= 4.5.0 given its pnorm underflow change. Also microbenchmark against the current fast_log_pnorm on [-8,8]."
+     "suggested_action": "When implementing v1.0.5-TODO-22, prefer an erfcx kernel (port xsf faddeeva erfcx, or Stan's Cody-based one after merge) over the 4-term asymptotic series, and return log Phi and the Mills ratio from one call for the probit/dep-cens score. Gate: R::pnorm(log.p=TRUE) grid on [-40,40] at 1e-12 rel, re-checked against R >= 4.5.0 given its pnorm underflow change. Also microbenchmark against the current fast_log_pnorm on [-8,8].",
+     "id": "normal-cdf-quantile#43925959437.1"
     }
    ],
    "sources": [
@@ -7155,7 +7237,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into catalog §10 TODO candidate 9 (C++ batch randomization kernel for Lin): implement the per-draw step as arm-wise Gram + two small LDLT solves rather than a QR of the interacted design. Gate it on equality with the current lm.fit path (tolerance about 1e-10) on fixtures that include within-arm-constant covariates."
+     "suggested_action": "Fold into catalog §10 TODO candidate 9 (C++ batch randomization kernel for Lin): implement the per-draw step as arm-wise Gram + two small LDLT solves rather than a QR of the interacted design. Gate it on equality with the current lm.fit path (tolerance about 1e-10) on fixtures that include within-arm-constant covariates.",
+     "id": "ols-fit#43925959437.1"
     }
    ],
    "sources": [
@@ -7251,7 +7334,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Low-priority re-look: add XPtr custom-distance support and hoist the per-pair allocations. Otherwise keep the verdict 'Keep (inherent to a black-box R fn)'."
+     "suggested_action": "Low-priority re-look: add XPtr custom-distance support and hoist the per-pair allocations. Otherwise keep the verdict 'Keep (inherent to a black-box R fn)'.",
+     "id": "pairwise-distance-matrix#43925959437.1"
     },
     {
      "methods": [
@@ -7263,7 +7347,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "No new action: this confirms v1.0.5-TODO-29 (catalog §8 TODO-1). Implement with a relative ridge and keep the direct-difference loop on Z."
+     "suggested_action": "No new action: this confirms v1.0.5-TODO-29 (catalog §8 TODO-1). Implement with a relative ridge and keep the direct-difference loop on Z.",
+     "id": "pairwise-distance-matrix#43925959437.2"
     }
    ],
    "sources": [
@@ -7426,7 +7511,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Record the k-step bootstrap in the catalog §9 J options table as an estimator-change option. Before prototyping, measure the iteration counts the warm-started workers actually use. If they converge in 2–3 Newton steps already, drop it."
+     "suggested_action": "Record the k-step bootstrap in the catalog §9 J options table as an estimator-change option. Before prototyping, measure the iteration counts the warm-started workers actually use. If they converge in 2–3 Newton steps already, drop it.",
+     "id": "parametric-bootstrap-simulation#43925959437.1"
     }
    ],
    "sources": [
@@ -7608,7 +7694,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "No verdict change. Implement the paired-difference half of v1.0.5-TODO-12 as described (paired test or seeded bootstrap CI, 5% noise band, adaptive stopping with a minimum and maximum number of pairs), and self-check it on seeded synthetic timings."
+     "suggested_action": "No verdict change. Implement the paired-difference half of v1.0.5-TODO-12 as described (paired test or seeded bootstrap CI, 5% noise band, adaptive stopping with a minimum and maximum number of pairs), and self-check it on seeded synthetic timings.",
+     "id": "performance-autotuning#43925959437.1"
     }
    ],
    "sources": [
@@ -7734,7 +7821,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Prototype a batched random-block-size kernel with dense stratum ids, modelled on generate_permutations_spbr_internal. Check marginal and block-size distribution equivalence against the current function, and benchmark draw_ws_raw at typical n (100–1000) and r (1000–10000)."
+     "suggested_action": "Prototype a batched random-block-size kernel with dense stratum ids, modelled on generate_permutations_spbr_internal. Check marginal and block-size distribution equivalence against the current function, and benchmark draw_ws_raw at typical n (100–1000) and r (1000–10000).",
+     "id": "permuted-block-randomization#43925959437.1"
     }
    ],
    "sources": [
@@ -7909,7 +7997,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Low-priority micro-optimisation. When touching zhang_exact_speedups.cpp, add a variant that takes precomputed central log-weights (or a vectorised p(delta_0) over the bisection), and test it for equality against the current function."
+     "suggested_action": "Low-priority micro-optimisation. When touching zhang_exact_speedups.cpp, add a variant that takes precomputed central log-weights (or a vectorised p(delta_0) over the bisection), and test it for equality against the current function.",
+     "id": "pvalue-combination#43925959437.1"
     },
     {
      "methods": [
@@ -7920,7 +8009,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "high",
-     "suggested_action": "Fold into v1.0.5 TODO-7 (CCT tail numerics): apply the same lower.tail/log1p rewrites to the Stouffer and min-p branches of zhang_combine_exact_pvals, with unit tests at p = 1e-20."
+     "suggested_action": "Fold into v1.0.5 TODO-7 (CCT tail numerics): apply the same lower.tail/log1p rewrites to the Stouffer and min-p branches of zhang_combine_exact_pvals, with unit tests at p = 1e-20.",
+     "id": "pvalue-combination#43925959437.2"
     },
     {
      "methods": [
@@ -7931,7 +8021,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Keep as a comparator for resolving the Investigate verdict in catalog §11. Use DPComb as a test oracle if a mid-p or adjusted variant is added. Use the two-pointer sweep if the exact convolution is adopted."
+     "suggested_action": "Keep as a comparator for resolving the Investigate verdict in catalog §11. Use DPComb as a test oracle if a mid-p or adjusted variant is added. Use the two-pointer sweep if the exact convolution is adopted.",
+     "id": "pvalue-combination#43925959437.3"
     }
    ],
    "sources": [
@@ -8060,7 +8151,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Investigate: on EDI fixtures (matched and reservoir, n 50–1000), compare ISCF vs ISMB(B=100) SE values and timings. If they agree within the A/B tolerance for coverage, switch to se='ISCF', B=1 and drop the RNG wrapper from the SE path. Catalog this as an option on the NEW-rank-AFT row."
+     "suggested_action": "Investigate: on EDI fixtures (matched and reservoir, n 50–1000), compare ISCF vs ISMB(B=100) SE values and timings. If they agree within the A/B tolerance for coverage, switch to se='ISCF', B=1 and drop the RNG wrapper from the SE path. Catalog this as an option on the NEW-rank-AFT row.",
+     "id": "quantile-rank-regression#43925959437.1"
     },
     {
      "methods": [
@@ -8072,7 +8164,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Do not implement now. Record it in the catalog options tables (NEW-quantile-LP / NEW-quantreg) as considered: exact, cited DOI 10.1007/s00181-020-01898-0, gain unproven at EDI's small p. Re-look only if profiling after the rq.fit Adopt shows replicate QR fits dominate at n ≳ 1,000."
+     "suggested_action": "Do not implement now. Record it in the catalog options tables (NEW-quantile-LP / NEW-quantreg) as considered: exact, cited DOI 10.1007/s00181-020-01898-0, gain unproven at EDI's small p. Re-look only if profiling after the rq.fit Adopt shows replicate QR fits dominate at n ≳ 1,000.",
+     "id": "quantile-rank-regression#43925959437.2"
     }
    ],
    "sources": [
@@ -8220,7 +8313,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Micro-benchmark RRng(seed_for_index(...)) construction plus the first draw against the per-candidate work in rerandomization_helpers.cpp at n in {50, 200, 500} and p in {2, 10}. If setup is more than about 30% of a candidate, prototype a Philox-keyed (master, index) child stream behind the seed_for_index call sites, with a key of 64 bits or more. Fix the 32-bit seed truncation in any case. Salmon et al. 2011 is doi 10.1145/2063384.2063405."
+     "suggested_action": "Micro-benchmark RRng(seed_for_index(...)) construction plus the first draw against the per-candidate work in rerandomization_helpers.cpp at n in {50, 200, 500} and p in {2, 10}. If setup is more than about 30% of a candidate, prototype a Philox-keyed (master, index) child stream behind the seed_for_index call sites, with a key of 64 bits or more. Fix the 32-bit seed truncation in any case. Salmon et al. 2011 is doi 10.1145/2063384.2063405.",
+     "id": "random-number-generation#43925959437.1"
     },
     {
      "methods": [
@@ -8231,7 +8325,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add as an option row under catalog P2 and bundle it with the stream-changing RNG work under TODO-149(c). The MIT-licensed batched_random repository is a reference implementation to port and test against."
+     "suggested_action": "Add as an option row under catalog P2 and bundle it with the stream-changing RNG work under TODO-149(c). The MIT-licensed batched_random repository is a reference implementation to port and test against.",
+     "id": "random-number-generation#43925959437.2"
     }
    ],
    "sources": [
@@ -8351,7 +8446,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "When v1.0.6 TODO-156 (Besag–Clifford) is designed, include the Fischer–Ramdas binomial-mixture / anytime-valid BC rule as a compared option for the standalone p-value. Add it to catalog P4, and correct P4's claim that Besag–Clifford saves draws when the result is clearly significant. Keep fixed r as the default."
+     "suggested_action": "When v1.0.6 TODO-156 (Besag–Clifford) is designed, include the Fischer–Ramdas binomial-mixture / anytime-valid BC rule as a compared option for the standalone p-value. Add it to catalog P4, and correct P4's claim that Besag–Clifford saves draws when the result is clearly significant. Keep fixed r as the default.",
+     "id": "randomization-null-distribution#43925959437.1"
     },
     {
      "methods": [
@@ -8362,7 +8458,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fix the catalog P4 description of the current rule. Decide, as a policy question, whether to switch to (b+1)/(r+1), or document why b/r with a floor is retained. Bundle the decision with the v1.0.6 TODO-156 stopping-rule work, since both change the reported p-value."
+     "suggested_action": "Fix the catalog P4 description of the current rule. Decide, as a policy question, whether to switch to (b+1)/(r+1), or document why b/r with a floor is retained. Bundle the decision with the v1.0.6 TODO-156 stopping-rule work, since both change the reported p-value.",
+     "id": "randomization-null-distribution#43925959437.2"
     }
    ],
    "sources": [
@@ -8484,7 +8581,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add a catalog §P6 row. If it is prototyped, benchmark at n = 100-1000, p = 5-20, p_acc = 1e-2 to 1e-4."
+     "suggested_action": "Add a catalog §P6 row. If it is prototyped, benchmark at n = 100-1000, p = 5-20, p_acc = 1e-2 to 1e-4.",
+     "id": "rerandomization-sampling#43925959437.1"
     },
     {
      "methods": [
@@ -8495,7 +8593,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Keep the default sampler. Add arXiv 2604.07524 (doi 10.48550/arXiv.2604.07524) next to PSRSRR in catalog P6's MCMC row as 'invalid for the uniform design law'. If an alternative design is ever offered, it should be a separate, opt-in design."
+     "suggested_action": "Keep the default sampler. Add arXiv 2604.07524 (doi 10.48550/arXiv.2604.07524) next to PSRSRR in catalog P6's MCMC row as 'invalid for the uniform design law'. If an alternative design is ever offered, it should be a separate, opt-in design.",
+     "id": "rerandomization-sampling#43925959437.2"
     }
    ],
    "sources": [
@@ -8638,7 +8737,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into the existing Adopt (v1.0.5-TODO-19 / catalog TODO-6b). Special-case p==0 to nth_element after a tie-rule identity test, and otherwise keep rq.fit."
+     "suggested_action": "Fold into the existing Adopt (v1.0.5-TODO-19 / catalog TODO-6b). Special-case p==0 to nth_element after a tie-rule identity test, and otherwise keep rq.fit.",
+     "id": "resampling-refit-loop#43925959437.1"
     },
     {
      "methods": [
@@ -8649,7 +8749,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Note this in small_kernel_hoists_batch.md Item C, and act only if compute_coxph_rand_bootstrap_cpp gains a caller. Use FastSurvival (MIT) as a test oracle."
+     "suggested_action": "Note this in small_kernel_hoists_batch.md Item C, and act only if compute_coxph_rand_bootstrap_cpp gains a caller. Use FastSurvival (MIT) as a test oracle.",
+     "id": "resampling-refit-loop#43925959437.2"
     },
     {
      "methods": [
@@ -8660,7 +8761,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Record FRB in the catalog options table as an estimator-change option. Revisit only if a true MM estimator is adopted; ROBU (arXiv 2606.26611) would then also be relevant for its initialisation."
+     "suggested_action": "Record FRB in the catalog options table as an estimator-change option. Revisit only if a true MM estimator is adopted; ROBU (arXiv 2606.26611) would then also be relevant for its initialisation.",
+     "id": "resampling-refit-loop#43925959437.3"
     }
    ],
    "sources": [
@@ -8786,7 +8888,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Investigate: add the unbiased Brunner-Konietschke variance as an option (or as the small-n default) beside the DeLong SE. Compare the type-I error and CI coverage of both at small n_T/n_C with heavy ties, in the TODO-106 simulation."
+     "suggested_action": "Investigate: add the unbiased Brunner-Konietschke variance as an option (or as the small-n default) beside the DeLong SE. Compare the type-I error and CI coverage of both at small n_T/n_C with heavy ties, in the TODO-106 simulation.",
+     "id": "ridit-mann-whitney#43925959437.1"
     }
    ],
    "sources": [
@@ -8904,7 +9007,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "When implementing v1.0.5 audit TODO-3 and the brent_ci_inversion.md scope extension to mn_ci_internal, port lrstat's remlRiskDiff (src/miettinen_nurminen.cpp) and its Brent outer root. Test against lrstat::mnRiskDiffCI and remlRiskDiff over an (x_t, n_t, x_c, n_c, δ) grid that includes the boundary cases. Low priority."
+     "suggested_action": "When implementing v1.0.5 audit TODO-3 and the brent_ci_inversion.md scope extension to mn_ci_internal, port lrstat's remlRiskDiff (src/miettinen_nurminen.cpp) and its Brent outer root. Test against lrstat::mnRiskDiffCI and remlRiskDiff over an (x_t, n_t, x_c, n_c, δ) grid that includes the boundary cases. Low priority.",
+     "id": "risk-difference-ci#43925959437.1"
     },
     {
      "methods": [
@@ -8915,7 +9019,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Resolve the Investigate verdict: apply the N/2 correction to the positive φ numerator, and add a test against ratesci::moverpairci (Wilson base, Newcombe correction) or statsmodels confint_proportions_paired(method='newcombe')."
+     "suggested_action": "Resolve the Investigate verdict: apply the N/2 correction to the positive φ numerator, and add a test against ratesci::moverpairci (Wilson base, Newcombe correction) or statsmodels confint_proportions_paired(method='newcombe').",
+     "id": "risk-difference-ci#43925959437.2"
     }
    ],
    "sources": [
@@ -9088,7 +9193,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Revisit catalog O8's 'Newton instead of IRLS' row for the Huber path only. Prototype Madsen–Nielsen/Chen–Pınar Newton and A/B its iteration counts and estimate differences against IRLS at n≈50–1000, p≲10, especially in KK randomization draws where maxit is capped."
+     "suggested_action": "Revisit catalog O8's 'Newton instead of IRLS' row for the Huber path only. Prototype Madsen–Nielsen/Chen–Pınar Newton and A/B its iteration counts and estimate differences against IRLS at n≈50–1000, p≲10, especially in KK randomization draws where maxit is capped.",
+     "id": "robust-m-regression#43925959437.1"
     },
     {
      "methods": [
@@ -9099,7 +9205,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Fill catalog O8's DetS '[cite needed]' with Peña & Yohai 1999 (pyinit/RobStatTM) and statsmodels RLMDetS. In the TODO-4 MM prototype, A/B a deterministic start against FAST-S on time per fit and on breakdown under leverage contamination at n≈50–1000, p≲10."
+     "suggested_action": "Fill catalog O8's DetS '[cite needed]' with Peña & Yohai 1999 (pyinit/RobStatTM) and statsmodels RLMDetS. In the TODO-4 MM prototype, A/B a deterministic start against FAST-S on time per fit and on breakdown under leverage contamination at n≈50–1000, p≲10.",
+     "id": "robust-m-regression#43925959437.2"
     }
    ],
    "sources": [
@@ -9226,7 +9333,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Prototype. Port the estimatr r×r Satterthwaite df (MIT, attribute) and the large-cluster k×k reduction into C++ (or vectorised R). Drop Umat. A/B test against the current function and clubSandwich::coef_test(vcov='CR2', test='Satterthwaite'), including a singular I−H_gg case. Priority rises if the CR2 SE is used inside studentized bootstrap / randomization loops."
+     "suggested_action": "Prototype. Port the estimatr r×r Satterthwaite df (MIT, attribute) and the large-cluster k×k reduction into C++ (or vectorised R). Drop Umat. A/B test against the current function and clubSandwich::coef_test(vcov='CR2', test='Satterthwaite'), including a singular I−H_gg case. Priority rises if the CR2 SE is used inside studentized bootstrap / randomization loops.",
+     "id": "sandwich-variance#43925959437.1"
     },
     {
      "methods": [
@@ -9237,7 +9345,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "no",
      "confidence": "low",
-     "suggested_action": "Optional: do it together with the I-6 fix in compute_robust_vcov; no standalone change."
+     "suggested_action": "Optional: do it together with the I-6 fix in compute_robust_vcov; no standalone change.",
+     "id": "sandwich-variance#43925959437.2"
     }
    ],
    "sources": [
@@ -9365,7 +9474,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Keep TODO-22 (C++ urn kernel). Separately, check whether inference_incidence_cmh.R:196 and the bootstrap draw sites in inference_all_abstract_rand_bootstrap.R are reached with a live urn design, and either call them on a duplicate or have the generic draw_ws_raw restore private$w."
+     "suggested_action": "Keep TODO-22 (C++ urn kernel). Separately, check whether inference_incidence_cmh.R:196 and the bootstrap draw sites in inference_all_abstract_rand_bootstrap.R are reached with a live urn design, and either call them on a duplicate or have the generic draw_ws_raw restore private$w.",
+     "id": "sequential-biased-coin-designs#43925959437.1"
     }
    ],
    "sources": [
@@ -9449,7 +9559,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Under performance_profiling_and_upgrades.md TODO-156, add Fischer & Ramdas 2025 (and Gandy–Hahn–Ding 2020 buckets) to the NEW-seq-mc-stopping options table. Correct the table's objection to decision-only rules: the SMC path only decides p(δ) vs α inside CI searches. Prototype the binomial or binomial-mixture stop in sequential_mc_band_excludes_threshold. Measure draws per CI search and endpoint agreement against fixed r=501 on the GEE and other refit-per-draw classes."
+     "suggested_action": "Under performance_profiling_and_upgrades.md TODO-156, add Fischer & Ramdas 2025 (and Gandy–Hahn–Ding 2020 buckets) to the NEW-seq-mc-stopping options table. Correct the table's objection to decision-only rules: the SMC path only decides p(δ) vs α inside CI searches. Prototype the binomial or binomial-mixture stop in sequential_mc_band_excludes_threshold. Measure draws per CI search and endpoint agreement against fixed r=501 on the GEE and other refit-per-draw classes.",
+     "id": "sequential-mc-pvalue-stopping#43925959437.1"
     }
    ],
    "sources": [
@@ -9563,7 +9674,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Investigate: add an opt-in 'extrapolated' summary for bootstrap and randomization cells. Record the p-values and CIs at nested sub-B values inside each replicate, and validate against a brute-force large-B run on a few cells. Use simhelpers::extrapolate_* (GPL-3) as the reference implementation."
+     "suggested_action": "Investigate: add an opt-in 'extrapolated' summary for bootstrap and randomization cells. Record the p-values and CIs at nested sub-B values inside each replicate, and validate against a brute-force large-B run on a few cells. Use simhelpers::extrapolate_* (GPL-3) as the reference implementation.",
+     "id": "simulation-study-engine#43925959437.1"
     }
    ],
    "sources": [
@@ -9924,7 +10036,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Carry forward: record in the catalog as an estimator-change option (an opt-in cheap CI for expensive refits). No change to existing algorithms."
+     "suggested_action": "Carry forward: record in the catalog as an estimator-change option (an opt-in cheap CI for expensive refits). No change to existing algorithms.",
+     "id": "subsampling-m-out-of-n#43925959437.1"
     }
    ],
    "sources": [
@@ -10022,7 +10135,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Widen catalog §5 TODO-4 to the full cluster-total collapse (O(np+GK)), not just the GEMV hoist. Benchmark it against the current kernel at n=50–500 pairs, p=2–10, and check that log-lik and gradient agree to 1e-10 relative."
+     "suggested_action": "Widen catalog §5 TODO-4 to the full cluster-total collapse (O(np+GK)), not just the GEMV hoist. Benchmark it against the current kernel at n=50–500 pairs, p=2–10, and check that log-lik and gradient agree to 1e-10 relative.",
+     "id": "survival-frailty-copula-mle#43925959437.1"
     },
     {
      "methods": [
@@ -10033,7 +10147,8 @@
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Add Charvat 2023 LAGHQ to v1.0.5 TODO-153 (performance_profiling_and_upgrades.md) as the AGQ route for fast_weibull_frailty.cpp, and name the file in its scope. Prototype it after the collapse finding, check mexhaz for the formulas, then A/B against K=50 non-adaptive GH for σu up to e^1.5."
+     "suggested_action": "Add Charvat 2023 LAGHQ to v1.0.5 TODO-153 (performance_profiling_and_upgrades.md) as the AGQ route for fast_weibull_frailty.cpp, and name the file in its scope. Prototype it after the collapse finding, check mexhaz for the formulas, then A/B against K=50 non-adaptive GH for σu up to e^1.5.",
+     "id": "survival-frailty-copula-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -10182,7 +10297,8 @@
      "keeps_estimator": "unknown",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Fold into multistart_nonconcave_likelihoods.md as the concrete 'deterministic data-driven starts' prototype: init=NULL first, then a moment start, then scaled jitter. A/B the failure rate and the attempts per fit."
+     "suggested_action": "Fold into multistart_nonconcave_likelihoods.md as the concrete 'deterministic data-driven starts' prototype: init=NULL first, then a moment start, then scaled jitter. A/B the failure rate and the attempts per fit.",
+     "id": "weibull-aft-mle#43925959437.1"
     },
     {
      "methods": [
@@ -10193,7 +10309,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Add as an interim sub-item beside the coxph.fit interim in bayesian_bootstrap_performance.md item 2, guarded by a fallback. Benchmark per-draw time first; prefer going straight to the native C++ weighted kernel if that is near."
+     "suggested_action": "Add as an interim sub-item beside the coxph.fit interim in bayesian_bootstrap_performance.md item 2, guarded by a fallback. Benchmark per-draw time first; prefer going straight to the native C++ weighted kernel if that is near.",
+     "id": "weibull-aft-mle#43925959437.2"
     }
    ],
    "sources": [
@@ -10338,7 +10455,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "medium",
-     "suggested_action": "Re-reported from 2026-11-16, still unfixed at 8b718ae. Add se = !estimate_only at both weighted glmmTMB call sites and time one B=200 run before and after."
+     "suggested_action": "Re-reported from 2026-11-16, still unfixed at 8b718ae. Add se = !estimate_only at both weighted glmmTMB call sites and time one B=200 run before and after.",
+     "id": "zero-inflated-count-mle#43925959437.1"
     },
     {
      "methods": [
@@ -10349,7 +10467,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "In catalog §10 TODO-3, record fastglm_hurdle/fastglm_zi (weights=) as the reference for weighted kernels. Prototype weights in EDI's C++ kernels and benchmark against glmmTMB per replicate at n=50–2000."
+     "suggested_action": "In catalog §10 TODO-3, record fastglm_hurdle/fastglm_zi (weights=) as the reference for weighted kernels. Prototype weights in EDI's C++ kernels and benchmark against glmmTMB per replicate at n=50–2000.",
+     "id": "zero-inflated-count-mle#43925959437.2"
     },
     {
      "methods": [
@@ -10360,7 +10479,8 @@
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Delete the dead expected_hessian, or rewrite it with a tail-series or trigamma-free method if it is ever needed."
+     "suggested_action": "Delete the dead expected_hessian, or rewrite it with a tail-series or trigamma-free method if it is ever needed.",
+     "id": "zero-inflated-count-mle#43925959437.3"
     }
    ],
    "sources": [

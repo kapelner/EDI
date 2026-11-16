@@ -95,10 +95,20 @@ def transcript_gap(data, dirpath, task):
     return "; ".join(problems)
 
 
-def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
+def finding_ids(task, findings, run_id, prev_ids):
+    """Ids the PR job will give these findings in research_log.json (same rule as the log)."""
+    return [f.get("previous_finding_id") if f.get("previous_finding_id") in prev_ids
+            else f"{task}#{run_id}.{k}" for k, f in enumerate(findings, start=1)]
+
+
+def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None, run_id="local",
+           log=None, triage=None):
     """batches: problem_id -> method_ids it was given (any not accounted for is a silent skip);
     taxonomy: algorithm_taxonomy.json, for the search-plan coverage check."""
     batches, taxonomy, inventory_ctx = batches or {}, taxonomy or {}, inventory_ctx or {}
+    log, triage = log or {}, {t["finding_id"]: t for t in (triage or [])}
+    today = datetime.date.today().isoformat()
+    rereported, unjustified = [], []
     notrun, incomplete, findings, reviewed, skipped, mismatched = [], [], [], [], [], []
     gaps, unbacked, proposed, impls = [], [], [], []
     new_algos, plumbing, stale, unchecked = [], 0, [], 0
@@ -131,8 +141,17 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
                 skipped += [(task, f"{label} `{x['file']}` `{x['symbol']}`") for x in ctx.get(kind, [])
                             if (x["file"], x["symbol"]) not in got and x["file"] not in whole]
             continue
-        for f in data.get("findings", []):
-            findings.append((task, f))
+        prev_ids = {x.get("id") for x in log.get(task, {}).get("findings", [])}
+        for f, fid in zip(data.get("findings", []), finding_ids(task, data.get("findings", []), run_id, prev_ids)):
+            f = dict(f, _id=fid)
+            t = triage.get(fid) if fid == f.get("previous_finding_id") else None
+            if t:
+                rereported.append((task, f, t))
+                blocked = t["decision"] == "reject" or (t["decision"] == "defer" and t.get("revisit", "") > today)
+                if blocked and not f.get("new_evidence"):
+                    unjustified.append((task, fid, t["decision"]))
+            else:
+                findings.append((task, f))
         for a in data.get("methods_reviewed", []):
             reviewed.append((task, a))
         for a in data.get("not_reviewed", []):
@@ -162,7 +181,7 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
             unbacked.append((task, t))
 
     flagged = bool(notrun or incomplete or skipped or mismatched or gaps or unbacked
-                   or findings or new_algos or stale)
+                   or findings or new_algos or stale or unjustified)
     today = datetime.date.today().isoformat()
     L = ["FLAGGED" if flagged else "CLEAN", "",
          f"# Algorithm research report ({today})", "",
@@ -186,11 +205,16 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
         L += ["Compared with the previous results (`research_log.json`): "
               + ", ".join(f"{n} {k}" for k, n in sorted(vs.items())) + ".", ""]
 
-    L.append("## 1. Faster-algorithm findings")
-    if not findings:
-        L.append("_None._")
-    for task, f in findings:
-        L.append(f"### {task}: {', '.join(f.get('methods', [])) or '?'} → {f.get('candidate', '?')}")
+    def finding_block(task, f, triaged=None):
+        L.append(f"### {task}: {', '.join(f.get('methods', [])) or '?'} → {f.get('candidate', '?')} "
+                 f"`{f['_id']}`")
+        if triaged:
+            L.append(f"- **Previously triaged:** {triaged['decision']} ({triaged.get('status', '')})"
+                     + (f", {triaged['todo']}" if triaged.get("todo") else "")
+                     + (f", revisit {triaged['revisit']}" if triaged.get("revisit") else "")
+                     + f". {triaged.get('reason', '')}")
+            if f.get("new_evidence"):
+                L.append(f"- **New evidence:** {f['new_evidence']}")
         L.append(f"- **Current:** {f.get('current', '')}")
         L.append(f"- **Claimed speedup:** {f.get('claimed_speedup', '')} "
                  f"(applies at EDI's sizes: {f.get('applies_at_edi_sizes', '?')}; "
@@ -209,6 +233,20 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
             reasons = sorted({ACCESS_WHY.get(v, v) for v in f.get("source_access", {}).values()})
             L.append(f"- **Open copies** ({'; '.join(reasons) or 'publisher not usable'}): "
                      + " ".join(f["open_copies"]))
+        L.append("")
+
+    L.append("## 1. Faster-algorithm findings (new; each needs a triage decision)")
+    if not findings:
+        L.append("_None._")
+    for task, f in findings:
+        finding_block(task, f)
+    if rereported:
+        L.append("## 1b. Previously triaged findings, re-reported")
+        for task, f, t in rereported:
+            finding_block(task, f, t)
+    if unjustified:
+        L.append("## 8. Re-reported despite a reject / defer decision, with no new evidence")
+        L += [f"- {t}: `{fid}` (decision: {dec})" for t, fid, dec in unjustified]
         L.append("")
 
     L.append("## 2. Inventory currency")

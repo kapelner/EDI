@@ -196,6 +196,7 @@ def update_research_log(dirpath, tasks, today, run_id):
         if not data or not data.get("methods_reviewed"):
             continue
         prev = log.get(task, {})
+        prev_ids = {f.get("id") for f in prev.get("findings", [])}
         methods = dict(prev.get("methods", {}))
         for a in data["methods_reviewed"]:
             if a.get("method_id"):
@@ -204,10 +205,15 @@ def update_research_log(dirpath, tasks, today, run_id):
         fs = data.get("findings", [])
         log[task] = {
             "last_researched": today, "run": run_id, "methods": dict(sorted(methods.items())),
-            "findings": [{k: f.get(k) for k in ("methods", "candidate", "claimed_speedup",
-                                                 "keeps_estimator", "applies_at_edi_sizes",
-                                                 "confidence", "suggested_action")
-                          if f.get(k) is not None} for f in fs],
+            # a re-reported finding keeps its id, so its triage decision follows it
+            "findings": [dict({k: f.get(k) for k in ("methods", "candidate", "claimed_speedup",
+                                                      "keeps_estimator", "applies_at_edi_sizes",
+                                                      "confidence", "suggested_action", "new_evidence")
+                               if f.get(k)},
+                              id=(f.get("previous_finding_id")
+                                  if f.get("previous_finding_id") in prev_ids
+                                  else drift.finding_id(task, run_id, k)))
+                         for k, f in enumerate(fs, start=1)],
             "sources": sorted({drift.canonical_cran_url(u) for f in fs for u in f.get("sources", [])}
                               | {u for f in fs for u in f.get("open_copies", [])}),
             # open-source implementations found, kept across runs (newest record per name wins)
@@ -268,7 +274,9 @@ def main():
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
     add_open_copies(Path(a.dir), tasks, a.offline)
     shards = drift.inventory_shards() if any(drift.is_inventory_task(t) for t in tasks) else None
-    flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy(), shards)
+    flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy(), shards,
+                                  run_id=a.run_id, log=drift.load_research_log(),
+                                  triage=drift.load_triage())
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
     terms_added, terms_held = add_proposed_terms(Path(a.dir), tasks)

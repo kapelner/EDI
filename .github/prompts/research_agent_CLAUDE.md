@@ -71,6 +71,21 @@ date-focused. Set each method's `vs_previous`: `unchanged` (say what you checked
 (say what changed; re-report a finding that still stands, citing its sources), or `new` (no
 previous result).
 
+## Earlier triage decisions (owner, 2026-11-16)
+
+Every finding is triaged by the owner; `previous_results.json` lists each earlier finding with its
+`id` and, in `triage`, its decision: `reject`, `defer` (with a `revisit` date), `investigate`
+(a release TODO exists) or `adopt`. When you report a finding that is the **same idea** as an
+earlier one, set `previous_finding_id` to its id, so its decision follows it. Then:
+- `reject`: do not report it again unless you found **new evidence** that overturns the stated
+  reason; if you do, report it with `new_evidence` saying what is new and dated.
+- `defer`: before the `revisit` date, the same rule as reject; on or after it, re-assess it.
+- `investigate` / `adopt`: it is already being acted on; report it again only if something
+  changes it (e.g. a newer, faster method), in `new_evidence`.
+- `proposed` decisions (not yet approved) count the same way.
+Findings with no earlier match leave `previous_finding_id` empty. A re-report of a rejected or
+deferred finding without `new_evidence` is flagged in the report.
+
 ## What counts as a faster acceptable method
 
 Answer at the **problem** level: compare what EDI does with every way to solve the problem,

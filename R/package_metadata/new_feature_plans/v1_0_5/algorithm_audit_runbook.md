@@ -249,6 +249,39 @@ fastest acceptable one for its job?**
   currency-context parsing and the report merge (including the NOT RUN rule); the
   workflow runs it first.
 
+## Turning research findings into TODOs (owner, 2026-11-16)
+
+After each research PR is merged:
+
+1. **Housekeeping.** Apply the findings file's "Needs a human" items to the inventory /
+   taxonomy by hand, and re-review every inventory row flagged "may affect the verdict"
+   (Re-review procedure below); record outcomes in `algorithm_choice_audit.md`'s
+   re-review log.
+2. **Triage every new finding** (findings file section 1; each heading carries its id,
+   e.g. `binary-glm-mle#43925959437.1`) into `R/package_metadata/audits/research_triage.csv`
+   (`finding_id, run, problem_id, finding, decision, status, reason, todo, revisit, decided`):
+   - **reject**: changes the estimator when that is not wanted, does not apply at EDI's
+     sizes, incompatible license, or already rejected for a reason that still holds;
+   - **defer**: plausible but low value now; give a `revisit` date;
+   - **investigate** (the normal path): a release TODO with a bounded benchmark and a stop
+     condition, e.g. "benchmark X against the current kernel at EDI sizes; done when there
+     is a >= 1.5x win with identical results, or closed with the numbers". A correctness or
+     regression item goes to the current bug-fix release if it meets that release's entry
+     rule; performance work goes to v1.1.0+; an estimator change needs the owner's decision;
+   - **adopt**: only once something in the repo verifies it (a benchmark, the A/B harness).
+   Drafts are `status: proposed` (a Claude session may draft them); the owner's decision makes
+   them `approved`, and only then is the TODO added to the release file and cited in `todo`
+   as `TODO-<n>-v<version>`.
+3. **Feedback.** The next run's agents get each problem's decisions in
+   `previous_results.json` (`triage`), set `previous_finding_id` when re-reporting the same
+   idea, and do not re-report a rejected (or not-yet-due deferred) finding without
+   `new_evidence`. The report splits section 1 (new) from 1b (re-reported, with the earlier
+   decision) and flags re-reports without new evidence (section 8).
+4. **Annotate:** `python3 .github/scripts/algorithm_audit_triage.py annotate` writes each
+   decision under its finding in the findings files; `... summary` shows what still needs a
+   decision. Check 4 validates the CSV (decisions, statuses, existing finding ids, approved
+   TODOs that exist in their release file, defers with a revisit date; due defers flagged).
+
 ## Guardrails
 
 - **No commits to `main`, no plan edits.** The drift check is read-only; the research job

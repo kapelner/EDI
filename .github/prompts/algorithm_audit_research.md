@@ -19,7 +19,7 @@ system prompt). Follow them exactly; the run transcript is audited against what 
    single source of truth for which algorithms EDI implements and where) with your
    `problem_id`: files, symbols, details, complexity, audit row, current verdicts.
 3. `previous_results.json`: the last research result for this problem (per-method conclusions,
-   findings, sources, `last_researched`), with `code_commits_since` (commits that touched its
+   findings with their ids, the owner's `triage` decision on each, sources, `last_researched`), with `code_commits_since` (commits that touched its
    files since then), or `{"no_previous": true}`; `code_changes.diff`: those commits' diffs
    (you have no shell, so no `git`).
 4. In the repo: the audit sections of the rows your entries belong to
