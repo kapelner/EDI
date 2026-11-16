@@ -784,3 +784,26 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     NA instead of p = 0 when an arm has one subject.
   - Done when: both functions return NA for a single-subject arm, the regression test passes, and the ridit
     randomization / bootstrap paths (which do not use this SE) are unchanged.
+- [ ] TODO-38 (added 2026-11-17, agent, owner request; found by the 2026-11-17 algorithm-research triage of run
+  43925959437 and checked against the code): **Remove the unreachable `robust_negbinreg` fallback in KK21stepwise count
+  weights.**
+  - Dead path: `DesignSeqOneByOneKK21stepwise` count weights never reach `compute_weights_KK21stepwise_count`
+    (`R/design_seq_one_by_one_KK21_stepwise.R` ~L349): the dispatcher returns `kk21_stepwise_negbin_weights_cpp` when
+    `!count_use_speedup` (~L283) and the continuous-weights path when `count_use_speedup` (~L268) first, and nothing
+    else calls the method. Its body is the only caller of `robust_negbinreg` (`R/helper_robust_regression.R` ~L233,
+    `MASS::glm.nb` with a column-drop retry).
+  - Entry rule: this is a cleanup, not a wrong-output fix, so keep it to what changes nothing users see. Remove
+    `compute_weights_KK21stepwise_count` and any test that calls it directly
+    (`R/package_tests/testthat_bulk/test-kk21-stepwise-design-count-and-ordinal-weight-selection-reference.R`,
+    `...-compute-weights-dispatcher-speedup-branches-reference.R`: keep their dispatcher assertions). Do **not** delete
+    `robust_negbinreg` itself in v1.0.6: it is exported (`NAMESPACE`, `man/robust_negbinreg.Rd`), so deleting it is a
+    user-facing API change. Instead mark it deprecated (`.Deprecated()` pointing at `fast_negbin_regression_with_var`,
+    roxygen `@keywords internal` / deprecation note) and schedule its removal for v1.1.0.
+  - Registries: regenerate the `R/package_tests` CSVs that list the removed method or the deprecation
+    (`comprehensive_suite_*`, `public_api_inventory.csv`, `public_argument_*`, `coverage_gap_registry.csv`) and keep
+    `test-robust-negbinreg-column-drop-retry-reference.R` passing (it tests the still-exported function).
+  - Inventory: drop the `robust_negbinreg` row's dead-code verdict once removed (or mark it deprecated), per
+    `R/package_metadata/audits/algorithm_inventory.csv` (check 4 flags a row whose symbol disappears).
+  - Done when: `compute_weights_KK21stepwise_count` is gone, KK21stepwise count weights are unchanged (same seeds give
+    bit-identical designs), `robust_negbinreg` still works with a deprecation warning, the registries and inventory are
+    current, and NEWS records the deprecation.
