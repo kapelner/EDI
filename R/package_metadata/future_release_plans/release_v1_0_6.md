@@ -823,3 +823,32 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     `grep -rn invert_gradient_ci_uniroot R/ python/` must come back empty except history.
   - Done when: the method is renamed everywhere, the registry baseline is regenerated, and all affected tests pass with
     results unchanged (a pure rename).
+- [ ] TODO-40 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `clmm-ordinal-mixed-fit#43925959437.1`, see `audits/research_triage_drafts.md`): **KK CLMM/GLMM Bayesian-bootstrap
+  replicates: check clmm's per-observation weight semantics**
+  - Step 1 (bounded): for one KK ordinal dataset and one Bayesian-bootstrap weight draw, evaluate clmm's weighted
+    -logLik and a direct sum_g w_g log integral (same theta, 20-node GH) and compare; also compare replicate
+    beta_hat_T between the two objectives over 200 draws at n in {50, 200}.
+  - Done when: either the objectives agree (close as not a bug) or they differ and the owner rules on the intended
+    weighting; if a fix is ordered, add w_g to GLMMObjective/OrdinalGLMMObjective, switch the callers, and report
+    replicate CI coverage plus per-replicate time vs clmm.
+- [ ] TODO-41 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `monte-carlo-test-inversion-ci#43925959437.1`, see `audits/research_triage_drafts.md`): **Quantile IVWC Zhang CI:
+  reservoir randomization p-value does not vanish as |delta| grows**
+  - Check whether compute_rand_pval_reservoir tests H0: effect = delta. Unit test on a Bernoulli design (m = 0, all
+    subjects in the reservoir) and on a KK fixture: evaluate p_R(delta) on a grid out to +/-20 SE and record whether
+    it falls below alpha on both sides; then run 200 reps of the IVWC quantile rand CI at n = 100 and record coverage
+    and the share of bounds hitting the bracket edge. Stop condition: if p_R stays above alpha on one side, fix by
+    subtracting delta*w_obs before permuting (standard form) and re-run the coverage check; if not, close with the
+    numbers. Only if the current form is kept, the one-shot affine breakpoint inversion
+    (closed_form_ci_from_affine_null_draws, c_b = 1) becomes a v1.1.0 speed item.
+  - Done when: the reservoir p-value is shown valid or fixed, with coverage within MC error of 95%.
+- [ ] TODO-42 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `sequential-biased-coin-designs#43925959437.1`, see `audits/research_triage_drafts.md`): **Sequential designs:
+  draw_ws_raw overwrites the live design's w (CMH SE path)**
+  - Related: TODO-22-v1.2.0.
+  - Reproduce: build an urn (or other generic-draw_ws_raw sequential) design, run InferenceIncidCMH's SE path
+    (inference_incidence_cmh.R:196), then compare des$get_w() and a second Inference's estimate before and after. If w
+    changes, fix by saving/restoring private$w (and t-dependent state) in draw_ws_raw or by drawing on a duplicate.
+  - Done when: a regression test shows get_w() and downstream estimates unchanged after the CMH SE call, or the check
+    closes with evidence that no reachable path mutates a live design.

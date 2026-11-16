@@ -814,3 +814,47 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).
+- [ ] TODO-204 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `interval-censored-npmle#43925959437.1`, see `audits/research_triage_drafts.md`): **Interval-censored Cox (ic_sp):
+  profile-likelihood SE prototype in place of bs_samples = 200 (owner decision: SE estimator change)**
+  - Port icsp2's vcov/profile_fit logic (warm-started baseline refits at beta +/- h, OIM curvature) around icenReg's
+    fitter, attributing the LGPL source; do not depend on icsp2 (not on CRAN). A/B against bs_samples = 200 on the
+    interval-censored fixtures at n in {50, 200, 1000}: SE ratio, Wald CI coverage in a 1000-rep simulation,
+    wall-clock, and convergence failures for the chosen h.
+  - Done when: >= 1.5x faster SE with coverage within MC error of the bootstrap SE, and the owner approves the estimator
+    change, or closed with the numbers (bootstrap stays the default either way until approved).
+- [ ] TODO-205 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `monte-carlo-test-inversion-ci#43925959437.4`, see `audits/research_triage_drafts.md`): **Quantile Zhang CI: common
+  random numbers across the delta search (catalog §9 TODO-6a)**
+  - After the v1.0.6 reservoir-validity check (finding monte-carlo-test-inversion-ci .1) lands, pre-draw one sign-flip
+    and one permutation matrix per CI search in ci_exact_zhang_combined / compute_rand_pval_matched_pairs /
+    compute_rand_pval_reservoir and use p = (1+#)/(1+N). A/B against the current fresh-draw bisection at n = 50, 200,
+    1000 (nsim_rand default) on the KK quantile IVWC fixtures: wall time, number of p evaluations per bound, and
+    coverage over 500 reps. Needs the A/B harness (release_v1_2_0.md TODO-21); a changed MC realisation is a
+    documented default change for the owner.
+  - Done when: >= 1.5x fewer evaluations with coverage >= nominal within MC error, or closed with the numbers.
+- [ ] TODO-206 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `pvalue-combination#43925959437.3`, see `audits/research_triage_drafts.md`): **Zhang combined p-value: exact joint
+  convolution vs Fisher chi^2_4 on discrete exact p-values (owner decision: test change)**
+  - Compare zhang_combine_exact_pvals (Fisher, Stouffer, min-p; inference_helpers_zhang.R) against (a) the exact joint
+    convolution of the two discrete null supports (two-pointer sweep over log pM + log pR) and (b) DPComb 1.0.1 (MIT)
+    as an oracle for the Wasserstein-adjusted rule, on the incidence KK Zhang classes at n = 50, 200, 1000 with 2,000
+    null and alternative reps. Report size, power and CI width; runtime only to confirm the exact option stays under 1
+    ms.
+  - Done when: the owner picks one rule given the size/power table, or closes it with the numbers (no default change
+    without that decision).
+- [ ] TODO-207 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `randomization-null-distribution#43925959437.2`, see `audits/research_triage_drafts.md`): **Randomization p-value
+  rule: (b+1)/(r+1) vs b/r with floor (owner policy decision)**
+  - Simulate the null rejection rate of the current rule (rand_pval_from_tail_counts) and the Phipson-Smyth rule at r in
+    {101, 201, 501} and alpha in {0.01, 0.05}, using a cheap statistic (mean difference) on 20,000 null datasets, and
+    report the exact size of each. Also fix catalog section 7 P4's description of the current rule.
+  - Done when: the owner decides to switch (documented default change, bundled with release_v1_2_0.md TODO-11 / perf
+    TODO-156) or to keep b/r with the floor and document why, with the size table attached.
+- [ ] TODO-208 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `ridit-mann-whitney#43925959437.1`, see `audits/research_triage_drafts.md`): **Ridit: Brunner-Konietschke unbiased
+  variance as an option beside DeLong (owner decision: estimator change)**
+  - Implement the BK estimator from the placements already computed in ridit_delong_se_from_scores, and compare it with
+    DeLong on Wald size and CI coverage for the ridit class at n_T, n_C in {5, 10, 25, 100} with 3-7 ordered
+    categories and heavy ties (2,000 reps per cell); include the n_i = 1 case.
+  - Done when: the owner chooses default/option/none from the size-coverage table, or the item closes with the numbers.

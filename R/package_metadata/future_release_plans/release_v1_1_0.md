@@ -2282,3 +2282,181 @@ classical solver with a warning, never silently.
   - Implemented 2026-11-14 as a nightly job (`.github/workflows/nightly.yml`, `bench-build`/`bench`), baseline = newest
     release tag; see the plan's header for the differences from its weekly design.
   - Done when: the plan's Phase 4 (a known speedup or slowdown is detected in the right direction) is ticked.
+- [ ] TODO-196 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `adjacent-cat-cr-logit-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **Pattern-compressed
+  (count-weighted) likelihood for adjacent-category and continuation-ratio fits**
+  - Add a grouped path to AdjacentCategoryLogitNegLogLik/hessian (fast_adjacent_category_logit.cpp) and route CR through
+    fast_continuation_ratio_regression_weighted_cpp with pattern counts when distinct (x, y) rows G < n/2. Benchmark
+    against the current path on treatment-only and one-binary-covariate designs, n in {50, 200, 1000, 2000}, K in {3,
+    5, 7}, timing one randomization CI and one parametric-bootstrap run.
+  - Done when: >= 1.5x on the treatment-only rows with b, ssq_b_1 and neg_loglik equal within 1e-10 and no fallback
+    change for continuous X; or closed with the numbers.
+- [ ] TODO-197 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `beta-regression-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **ZOIB Bayesian-bootstrap replicates:
+  fast_beta_regression_weighted_cpp instead of formula betareg()**
+  - In inference_proportion_zero_one_inflated_beta.R compute_estimate_with_bootstrap_weights, replace betareg::betareg
+    (keep it and lm.wfit as fallbacks) with fast_beta_regression_weighted_cpp on the interior rows. Benchmark one
+    Bayesian-bootstrap CI (B = 1000) at n in {100, 500, 2000}, p in {1, 5}, old vs new.
+  - Done when: >= 1.5x on the CI with every replicate beta_hat_T within 1e-6 of betareg's on the same weights (and
+    fallback rate not higher); or closed with the numbers.
+- [ ] TODO-198 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `binary-glm-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **fast_logistic_regression[_with_var]
+  wrappers: decide lbfgs vs irls default**
+  - First confirm whether the "lbfgs" default at helper_glm_fit.R:852/923 is intentional. If not, A/B irls vs lbfgs on
+    the wrapper callers (KK21 and KK21-stepwise designs, helper_glm_fit.R:2015) at n in {50, 200, 1000}, p = 2,
+    including separated fixtures: wall clock per design run and KK21 match/weight equality.
+  - Done when: switched with identical KK21 assignments (or explained differences) and >= 1.5x on the wrapper calls, or
+    closed with the numbers and the inventory wording fixed either way.
+- [ ] TODO-199 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `blocking-partition#43925959437.2`, see `audits/research_triage_drafts.md`): **DesignFixedOptimalBlocks: nonbimatch
+  fast path when n == 2B**
+  - In design_fixed_optimal_blocks.R solve_optimal_blocks, dispatch n == 2B to nbpMatching::nonbimatch on D (offset
+    negatives) and convert pairs to block ids. Compare with the MILP at n in {8, 12, 16} (B = n/2) on euclidean, mahal
+    and a custom dist.
+  - Done when: objective equal to the MILP's within the nonbimatch integer-scaling tolerance on every fixture and >=
+    1.5x per solve; or closed with the numbers.
+- [ ] TODO-200 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `conditional-logit-matched-fit#43925959437.1`, see `audits/research_triage_drafts.md`): **Clogit reservoir logit:
+  fast_logistic_regression_weighted_cpp with fixed_idx instead of glm.fit**
+  - Replace both glm.fit calls in fit_clogit_reservoir_logit (full fit, Bayesian-bootstrap replicate and fixed-delta
+    null refit) with fast_logistic_regression_weighted_cpp, fixing the treatment coordinate via
+    fixed_idx/fixed_values, keeping glm.fit as a fallback and preserving the aliased-column drop. Benchmark one
+    bootstrap CI and one LR CI inversion at KK sizes n in {50, 200, 1000}.
+  - Done when: >= 1.5x with params and neg_loglik within 1e-6 of glm.fit on fixtures (incl. separated/aliased ones); or
+    closed with the numbers.
+- [ ] TODO-201 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `cox-ph-fit#43925959437.2`, see `audits/research_triage_drafts.md`): **KK strat-Cox: build the design-ladder rungs
+  lazily**
+  - Profile shared() in InferenceSurvivalKKStratCox over one randomization CI at n in {100, 500}, p in {2, 10}: share of
+    time spent building rungs (inference_survival_KK_strat_cox.R:155-177) vs fitting. If material, generate each rung
+    only after the previous fit is rejected.
+  - Done when: >= 1.5x on shared() with bit-identical estimates on the KK strat-Cox fixtures; or closed with the profile
+    numbers if ladder building is < 10% of shared().
+- [ ] TODO-202 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `cumulative-link-ordinal-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **Weighted native kernels for
+  the ordinal bootstrap surrogate (replace per-draw MASS::polr)**
+  - Add a weights argument to fast_ordinal_{probit,cloglog}_regression_cpp (FixedOrdinalRegression already supports it)
+    and route weighted_ordinal_bootstrap_surrogate_fit (globals.R:177) through the weighted C++ kernels for logistic,
+    probit and cloglog, warm-started from the full-data fit; keep polr for cauchit (nonconcave) and as the failure
+    fallback. Mind the cloglog sign convention (catalog F18, linpred_sign = 1). Benchmark per-draw time and treatment
+    coefficient against the current polr path on the ordinal Bayesian-bootstrap fixtures at n in {50, 200, 1000}, K in
+    {3, 5}, p in {1, 5}.
+  - Done when: >= 1.5x per-draw speedup with coefficients equal to polr within 1e-6 relative (polr reltol), or closed
+    with the numbers.
+- [ ] TODO-203 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `cumulative-link-ordinal-mle#43925959437.5`, see `audits/research_triage_drafts.md`): **Cloglog ordinal: run the
+  full-data multistart only when the primary fit fails a convergence certificate**
+  - Gate .cloglog_full_data_multistart (inference_ordinal_cloglog.R:1) on a certificate of the primary fit (gradient
+    norm plus PD Hessian, or the Newton decrement already used by ordinal_scale_guard.h), or replace it with a
+    damped-Newton polish. A/B against the current always-on multistart on the cases that motivated it
+    (test-cloglog-parametric-bootstrap-native-sign.R, test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R,
+    and the null-truth comprehensive rows) and time a randomization/bootstrap run at n in {50, 200, 1000}.
+  - Done when: identical selected fits (NLL within 1e-8) on all those cases and >= 1.5x faster per fit, or closed with
+    the numbers (keep the multistart if any case regresses).
+- [ ] TODO-204 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `design-matrix-preprocessing#43925959437.1`, see `audits/research_triage_drafts.md`): **Correlation-threshold design
+  ladder: one cor() per call and candidates cached per dataset**
+  - Add a ladder helper that drops constant columns once, computes cor() once and returns the keep-set for every
+    threshold; use it at the five ladder call sites, and cache the candidate list (cox_design_candidates,
+    gee_predictors_df_candidates) by covariate key so BB replicates reuse it. Test that per-rung keep-sets equal the
+    current drop_highly_correlated_cols output across the test corpus. Benchmark a Bayesian-bootstrap run of the KK
+    GEE and KK LWA Cox classes at n in {100, 500, 2000}, p in {5, 20}.
+  - Done when: identical keep-sets and estimates and >= 1.5x end-to-end on the BB run, or closed with the numbers.
+- [ ] TODO-205 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `glmm-marginal-likelihood#43925959437.1`, see `audits/research_triage_drafts.md`): **Poisson GLMM: cluster-total
+  (sufficient-statistic) form of the GH objective and Louis Hessian**
+  - Rewrite PoissonGLMMObjective::operator(), hessian and the score/Hessian exports in fast_poisson_glmm.cpp to use
+    per-group S_g, log Lambda_g (log-sum-exp) and A_g, so per-node work is O(G) and the beta blocks are one
+    GEMV/crossprod with posterior-weighted e^eta; carry row weights into the group totals and reproduce the eta+b
+    clamp at 700 or document its removal. A/B against the current kernel on the R8 accuracy grid (all.equal tol 1e-10
+    on estimates and SEs) and time fits plus a BB run at n in {100, 500, 1000}, p in {2, 5, 10}, cluster sizes 2 and
+    5, n_gh = 60.
+  - Done when: >= 1.5x per fit with results equal within 1e-10, or closed with the numbers.
+- [ ] TODO-206 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `grouping-and-level-coding#43925959437.1`, see `audits/research_triage_drafts.md`): **KK pair weights: grouped
+  aggregation instead of a per-pair which() scan in every replicate**
+  - Replace the vapply/which loop in kk_pair_and_reservoir_bootstrap_weights (globals.R:276) with a rowsum-based mean
+    (NA weights excluded from both sum and count) or a pair-row index cached per design, and cache the pair extraction
+    in build_combined_cpoisson_data across replicates. Test pair weights equal the old ones to 1e-12. Benchmark the
+    helper alone and a Bayesian-bootstrap run of InferenceContinKKOLSOneLik and the KK cond-Poisson class at n in
+    {100, 1000, 5000}.
+  - Done when: identical results and >= 1.5x on the helper with a measurable end-to-end share, or closed with the
+    numbers.
+- [ ] TODO-207 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `jackknife-replicates#43925959437.1`, see `audits/research_triage_drafts.md`): **Closed-form exact jackknife for
+  least-squares classes (mean difference, OLS, Lin, WLS)**
+  - Add a per-class fast-path hook that computes delete-one-unit/cluster replicates by cross-product downdating
+    (MacKinnon, Nielsen & Webb 2023, eq. 15), weighted for the Bayesian jackknife, falling back to the refit path (or
+    non-estimable) when X'X - X_g'X_g is near-singular. Compare against the current refit jackknife and BCa on the
+    continuous fixtures for unit, pair and cluster deletion at n in {50, 500, 2000}, p in {1, 5, 20}.
+  - Done when: replicates equal the refit jackknife within 1e-10 relative and the jackknife/BCa call is >= 1.5x faster,
+    or closed with the numbers. Coordinate with the v1.0.6 block-jackknife unit fix (SPBR) so both use the same unit
+    resolver.
+- [ ] TODO-208 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `likelihood-tests-null-refits#43925959437.1`, see `audits/research_triage_drafts.md`): **Cloglog null refit: second
+  start only when the first fails a convergence certificate**
+  - In both fit_null closures of inference_ordinal_cloglog.R (:194, :240), run fit_from(full_start) only when the first
+    refit is NULL, non-converged, has max|score| > tol, or a non-PD observed information. Benchmark LR/score/gradient
+    CI and param-bootstrap LR p-value wall time on the existing cloglog fixtures (n = 50, 200, 1000; prob_T 0.5 and
+    0.2), and count how often the second start changes neg_loglik by > 1e-8 on the current code (the fixtures that
+    motivated the multistart, ordinal_cumulative_link_null_refit_multistart.md). Coordinate with release_v1_1_0.md
+    TODO-159.
+  - Done when: the second start never wins by > 1e-8 on certificate-passing fits and the change gives >= 1.5x on the
+    null-refit-heavy paths with p-values/CIs identical within tolerance; or closed with the counts if the second start
+    does win.
+- [ ] TODO-209 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `logrank-family-tests#43925959437.1`, see `audits/research_triage_drafts.md`): **Linear-statistic fast path for
+  right-censored log-rank / Gehan-Wilcoxon randomization nulls**
+  - Add compute_fast_randomization_distr to InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox for right-censored
+    data at delta = 0: compute pooled null scores once (Nelson-Aalen martingale residuals; Peto-Prentice weighted for
+    Gehan) and evaluate all draws as one t(W) %*% m product, falling back to the current path for delta != 0 or
+    general censoring. Benchmark compute_rand_two_sided_pval at n = 100, 500, 2000, r = 501 and 5001 against the
+    per-draw path. Gate: estimates tolerance-equal (1e-12) to fast_logrank_stats_cpp / fast_gehan_wilcox_stats_cpp per
+    draw on fixtures with ties, deaths tied with censorings, and a Bernoulli design with variable n_T. Implement
+    together with the interval-censored version (release_v1_2_0.md TODO-22, audit TODO-11) if that lands first.
+  - Done when: >= 1.5x with identical p-values within tolerance, or closed with the numbers.
+- [ ] TODO-210 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `performance-autotuning#43925959437.1`, see `audits/research_triage_drafts.md`): **Tuning harness: paired-difference
+  acceptance with adaptive stopping (catalog §12 TODO-12)**
+  - In local_machine_tuning_harness.R (edi_tuning_interleaved_ab / _blocked_ab / _accept_candidate), analyze per-round
+    paired differences with a seeded percentile-bootstrap CI (or Wilcoxon signed-rank), accept only when the CI clears
+    the 5% band, and add pairs adaptively between a minimum and maximum. Self-check on seeded synthetic timings (true
+    effects 0%, 3%, 10%, 30%; noise CV 5-20%): false-accept rate, power, and mean reps per cell vs the current median
+    + 2*IQR rule; then one real tune_EDI_for_this_machine() run.
+  - Done when: false accepts at a 0% effect fall at equal or fewer reps, or closed with the numbers.
+- [ ] TODO-211 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `pvalue-combination#43925959437.2`, see `audits/research_triage_drafts.md`): **Tail-accurate p-value combination:
+  Stouffer, min-p and CCT (catalog §11 TODO-7)**
+  - Rewrite zhang_combine_exact_pvals's Stouffer branch as qnorm(p/2, lower.tail=FALSE) and 2*pnorm(abs(z),
+    lower.tail=FALSE), its min-p branch as -expm1(2*log1p(-p)), and cct_combine_pvalues_full with the ACAT small-p
+    branch (1/(p*pi) for p < 1e-15) and pcauchy(T, lower.tail=FALSE). Unit tests at p in {0.5, 1e-8, 1e-16, 1e-20,
+    1e-300}: equal to the old code within 1e-12 relative for p >= 1e-6, and finite, nonzero and correct against Rmpfr
+    references below. No speed benchmark needed (same cost).
+  - Done when: the tests pass and the moved values are listed in NEWS.
+- [ ] TODO-212 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `random-number-generation#43925959437.1`, see `audits/research_triage_drafts.md`): **Per-draw RNG setup cost in
+  index-seeded kernels; widen seed_for_index past 32 bits**
+  - Micro-benchmark RRng(seed_for_index(master, d)) construction plus first draw against the full per-candidate work in
+    rerandomization_search_cpp (and the greedy/optimal/binary-match search loops) at n in {50, 200, 1000}, p in {2,
+    10}. If setup is >= 30% of a candidate, prototype a counter-based child stream (Philox4x32-10 from Random123,
+    BSD-3, or xoshiro256++ via SplitMix64) keyed by the 64-bit (master, index), keeping draw-index determinism and
+    thread-count invariance (TODO-48 (2) tests).
+  - Done when: a >= 1.5x win on rerandomization_search_cpp end-to-end with thread-count invariance tests green and the
+    draw change documented, or closed with the setup-share numbers. The 32-bit truncation is fixed either way (owner:
+    confirm the one-time seed-pinned draw change).
+- [ ] TODO-213 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `weibull-aft-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **robust_survreg: deterministic data-driven
+  starts before random jitter**
+  - On the survival fixtures (lognormal, loglogistic, and Weibull when the C++ warm start fails), count survreg attempts
+    per fit and wall-clock for the current rule vs (1) init omitted (survreg's own start), (2) intercept = mean log
+    time and log-scale from residual SD, then (3) jitter scaled by |start| only as a last resort, at n = 50, 200,
+    1000, p = 1-10.
+  - Done when: >= 1.5x fewer attempts or time with estimates identical within 1e-6 where both converge, or closed with
+    the numbers.
+- [ ] TODO-214 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+  `zero-inflated-count-mle#43925959437.1`, see `audits/research_triage_drafts.md`): **Skip sdreport on estimate-only
+  weighted glmmTMB replicates (ZIP/ZINB/hurdle)**
+  - Add se = !estimate_only at the two weighted glmmTMB call sites and time one Bayesian-bootstrap run (B = 200) per
+    class at n = 100, 500, 2000, before and after; check parallel = 1 inside already-parallel replicate loops in the
+    same run.
+  - Done when: a >= 1.5x win with identical replicate estimates (tolerance 1e-10), or closed with the numbers.
