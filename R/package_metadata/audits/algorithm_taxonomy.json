@@ -348,7 +348,9 @@
     "Laplace approximation GLMM",
     "adaptive Gauss-Hermite quadrature GLMM",
     "lme4 glmer algorithm",
-    "glmmTMB"
+    "glmmTMB",
+    "Poisson-lognormal",
+    "fixed-effect Poisson conditional likelihood (Hausman-Hall-Griliches)"
    ]
   },
   "gram-matrix-accumulation": {
@@ -2115,7 +2117,9 @@
     "adaptive (mode-centered) GHQ",
     "Laplace as 1-node AGQ",
     "sparse grid quadrature",
-    "pseudo-likelihood weighted GHQ"
+    "pseudo-likelihood weighted GHQ",
+    "pseudo-adaptive Gauss-Hermite quadrature",
+    "cluster-total (sufficient-statistic) collapse for log-link random intercept"
    ],
    "software": [
     "lme4 glmer nAGQ",
@@ -2123,7 +2127,8 @@
     "ordinal::clmm",
     "glmmTMB",
     "statmod",
-    "SAS PROC NLMIXED"
+    "SAS PROC NLMIXED",
+    "aghq"
    ]
   },
   "gauss-jordan-elimination": {
@@ -2424,7 +2429,8 @@
     "quasi-likelihood IRLS",
     "Fisher scoring for GEE",
     "truncated IRLS / early stopping",
-    "IRLS with Hessian reuse"
+    "IRLS with Hessian reuse",
+    "scaled least squares estimator for GLMs"
    ],
    "software": [
     "stats::glm.fit",
