@@ -190,7 +190,7 @@ fastest acceptable one for its job?**
   secret; `CLAUDE_CODE_OAUTH_TOKEN` was set 2026-11-16. Each research run is about 70
   agent sessions. Models (owner, 2026-11-16; the action's default was Sonnet 5.5):
   research batches run Opus 5.5 at the default effort, the `inventory` agent Sonnet 5.5
-  at `--effort medium` (set per task in the prepare step) (max 80 turns, 20-minute timeout each since 2026-11-16 (slowest observed 5.7 min), 6 in parallel), billed to that
+  at `--effort medium` (set per task in the prepare step) (max 100 turns since 2026-11-16, was 80: problem trials used up to 65; 20-minute timeout each since 2026-11-16 (slowest observed 5.7 min), 6 in parallel), billed to that
   secret. Trial run 2026-11-16 (row A as a single task, plus inventory): $0.30 and $0.67,
   12 and 18 turns. Use the `research_tasks` input to run a subset by hand.
 - **No overlapping research runs** (owner, 2026-11-16). Two research runs would open PRs

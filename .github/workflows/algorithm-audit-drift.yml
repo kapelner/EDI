@@ -217,6 +217,7 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.tasks != '[]' }}
     runs-on: ubuntu-latest
+    # Max turns 100 (owner, 2026-11-16; was 80): the problem trials used up to 65 of 80.
     # Slowest research job in the 2026-11-16 full run: 5.7 min (median 3.3, max 52 of 80
     # turns). 20 min is >3x that and caps a stuck or looping agent's usage (owner, 2026-11-16).
     timeout-minutes: 20
@@ -303,7 +304,7 @@ jobs:
             --disallowedTools "Edit,Write,NotebookEdit"
             --model ${{ steps.prep.outputs.model }}
             ${{ steps.prep.outputs.extra_args }}
-            --max-turns 80
+            --max-turns 100
             --json-schema '${{ steps.prep.outputs.schema }}'
 
       - name: Save the agent's output

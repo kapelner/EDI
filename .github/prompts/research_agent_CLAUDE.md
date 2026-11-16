@@ -13,7 +13,7 @@ show agents actually doing.
   install or run EDI (an R package with a large C++ core).
 - Your full transcript is saved and audited. Report only searches you actually ran, with the exact
   query text. A reported search that is not in the transcript is treated as fabricated.
-- Do not stop early. You have up to 80 turns. Stopping with turns left and methods unreviewed is
+- Do not stop early. You have up to 100 turns. Stopping with turns left and methods unreviewed is
   a failed run (a previous agent reviewed 2 of 120 algorithms in 12 turns and stopped).
 
 ## The search plan (required; owner, 2026-11-16)
