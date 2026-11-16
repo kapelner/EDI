@@ -21,12 +21,14 @@ on:
   schedule:
     # Drift check: monthly, 06:00 UTC on the 21st (research does not run on this trigger).
     - cron: "0 6 21 * *"
-    # Research: every 8 weeks, 01:00 Friday Asia/Jerusalem ("Thursday night"). Cron is UTC and
-    # has no DST, so both candidate UTC times fire every Thursday and the plan job keeps only
-    # the one that is 01:00 in Jerusalem that week (22:00 UTC in summer, 23:00 UTC in winter)
-    # and only every 8th week counted from RESEARCH_ANCHOR. Drift does not run on these.
-    - cron: "0 22 * * 4"
-    - cron: "0 23 * * 4"
+    # Research: monthly, on the first Thursday of the month at 23:59 Asia/Jerusalem, starting
+    # RESEARCH_START (owner, 2026-11-16: first run Thu 2026-12-03). Cron is UTC with no DST,
+    # and a cron with both day-of-month and day-of-week matches EITHER, so both candidate UTC
+    # times fire every Thursday and the plan job keeps only the one that is 23:59 in Jerusalem
+    # (20:59 UTC in summer, 21:59 UTC in winter) on a first Thursday (day <= 7) on or after
+    # RESEARCH_START. Drift does not run on these.
+    - cron: "59 20 * * 4"
+    - cron: "59 21 * * 4"
   workflow_dispatch:
     inputs:
       research_tasks:
@@ -35,7 +37,7 @@ on:
 
 env:
   MONTHLY_CRON: "0 6 21 * *"
-  RESEARCH_ANCHOR: "2026-11-19"   # a UTC Thursday on which research runs; cycle = 8 weeks
+  RESEARCH_START: "2026-12-03"   # first scheduled research run (Jerusalem date)
 
 permissions:
   contents: read
@@ -113,16 +115,18 @@ jobs:
               req = "none"
               if sched != os.environ["MONTHLY_CRON"]:
                   now = datetime.datetime.now(datetime.timezone.utc)
-                  # the UTC Thursday this firing belongs to (tolerates a late start past midnight)
+                  # the UTC Thursday this firing belongs to (tolerates a start delayed past midnight)
                   day = (now - datetime.timedelta(hours=12)).date()
-                  hour = int(sched.split()[1])
-                  local = datetime.datetime.combine(day, datetime.time(hour), datetime.timezone.utc)
+                  minute, hour = (int(x) for x in sched.split()[:2])
+                  local = datetime.datetime.combine(day, datetime.time(hour, minute), datetime.timezone.utc)
                   local = local.astimezone(zoneinfo.ZoneInfo("Asia/Jerusalem"))
-                  weeks, rem = divmod((day - datetime.date.fromisoformat(os.environ["RESEARCH_ANCHOR"])).days, 7)
-                  if local.hour != 1:
-                      log(f"{sched}: not 01:00 in Jerusalem this week ({local:%H:%M %Z}); skipping")
-                  elif rem or weeks % 8:
-                      log(f"{day}: week {weeks} of the 8-week research cycle; skipping")
+                  start = datetime.date.fromisoformat(os.environ["RESEARCH_START"])
+                  if (local.hour, local.minute) != (23, 59):
+                      log(f"{sched}: not 23:59 in Jerusalem this week ({local:%H:%M %Z}); skipping")
+                  elif local.date() < start:
+                      log(f"{local.date()}: before RESEARCH_START {start}; skipping")
+                  elif local.day > 7:
+                      log(f"{local.date()}: not the first Thursday of the month; skipping")
                   else:
                       req = "all"
           allowed = list(batches) + ["inventory"]
@@ -170,7 +174,7 @@ jobs:
         run: |
           mkdir -p research
           if [ "$TASK" = inventory ]; then
-            python3 .github/scripts/algorithm_audit_drift.py --currency-context 60 --out currency_context.json
+            python3 .github/scripts/algorithm_audit_drift.py --currency-context 40 --out currency_context.json
             prompt_file=.github/prompts/algorithm_audit_currency.md
             schema=.github/prompts/algorithm_audit_currency.schema.json
             what="the inventory currency check"

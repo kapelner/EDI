@@ -808,7 +808,7 @@ none of these numbers should be quoted as a measured result.
     4. algorithm inventory (added 2026-11-16): every `R/EDI/src` and `R/EDI/R`
        file is inventoried or exempt, every entry's file and symbol still exist,
        and every entry's reference URLs are listed and still resolve.
-  - *Research* (every 8 weeks, added 2026-11-16): one Claude agent per batch of
+  - *Research* (monthly, first Thursday 23:59 Jerusalem, added 2026-11-16): one Claude agent per batch of
     ≤ 8 algorithms searches the web for a faster acceptable algorithm, and one
     `inventory` agent judges new and changed functions against the inventory.
     Results arrive as a pull request: `../../audits/research_findings/<date>.md`

@@ -9,7 +9,7 @@
 | Layer | Trigger | Who/what | Output |
 |---|---|---|---|
 | Drift check | Monthly, 21st, 06:00 UTC (`workflow_dispatch` also works) | `.github/workflows/algorithm-audit-drift.yml` → `.github/scripts/algorithm_audit_drift.py` | One issue labelled `algorithm-audit-drift` (updated in place; closed when clean). Report also uploaded as the `drift-report` artifact. |
-| Research (added 2026-11-16) | Every 8 weeks, 01:00 Friday Asia/Jerusalem ("Thursday night"), counted from 2026-11-19; `workflow_dispatch` input `research_tasks` picks a subset (`A`, `A.3`, `inventory`) or `none` | One Claude agent per batch of ≤ 8 distinct algorithms (68 batches as of 2026-11-16) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
+| Research (added 2026-11-16) | Monthly, first Thursday of the month at 23:59 Asia/Jerusalem, from 2026-12-03 (owner, 2026-11-16; was every 8 weeks for an hour); first full run dispatched by hand 2026-11-16; `workflow_dispatch` input `research_tasks` picks a subset (`A`, `A.3`, `inventory`) or `none` | One Claude agent per batch of ≤ 8 distinct algorithms (68 batches as of 2026-11-16) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
 | Full pass | Release close; new kernel family ships; a Prototype item resolves through the A/B harness | A human or a Claude session, following "Re-review procedure" below | Updated audit rows, summary table, exposure column; bumped `reviewed` dates; re-pinned versions |
 
 The drift check never edits a file or commits. It answers only "did anything
@@ -88,7 +88,7 @@ fastest acceptable one for its job?**
   one-agent-per-row on 2026-11-16 after the trial run's row-A agent reviewed 2 of 120
   algorithms in 12 of its 80 turns.)
 - **Inventory task** (`.github/prompts/algorithm_audit_currency.md`): reads
-  `--currency-context 60` output (functions added in the last 60 days that the
+  `--currency-context 40` output (functions added in the last 40 days that the
   inventory lacks; inventory entries whose symbol appears in a changed line or hunk
   header). It proposes inventory rows (with fetched reference URLs) for new functions that
   implement an algorithm, and corrected `details` for rows that no longer describe the
@@ -134,10 +134,13 @@ fastest acceptable one for its job?**
   at `--effort medium` (set per task in the prepare step) (max 80 turns, 60-minute timeout each, 6 in parallel), billed to that
   secret. Trial run 2026-11-16 (row A as a single task, plus inventory): $0.30 and $0.67,
   12 and 18 turns. Use the `research_tasks` input to run a subset by hand.
-- **Schedule mechanics.** Cron is UTC with no DST, so `0 22 * * 4` and `0 23 * * 4` both
-  fire every Thursday; the plan job keeps the one that is 01:00 in Jerusalem that week and
-  only every 8th week from `RESEARCH_ANCHOR`. Drift runs only on the monthly cron (and on
-  manual dispatch); a `skipped` job never triggers the failure notice.
+- **Schedule mechanics.** Cron is UTC with no DST, and a cron that restricts both
+  day-of-month and day-of-week matches either one, so `59 20 * * 4` and `59 21 * * 4` both
+  fire every Thursday; the plan job keeps the one that is 23:59 in Jerusalem (20:59 UTC in
+  summer, 21:59 in winter) on a first Thursday (day ≤ 7) on or after `RESEARCH_START`
+  (2026-12-03). Drift runs only on its monthly cron (and on manual dispatch); a `skipped`
+  job never triggers the failure notice. Each run costs roughly $75-80 of Opus usage
+  (68 batches at about $1.09 each in the 2026-11-16 trial).
 - **Tests:** `python3 .github/scripts/test_algorithm_audit_drift.py` covers the
   currency-context parsing and the report merge (including the NOT RUN rule); the
   workflow runs it first.

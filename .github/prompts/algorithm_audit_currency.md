@@ -1,6 +1,6 @@
-# Algorithm-inventory currency check (every 8 weeks)
+# Algorithm-inventory currency check (monthly)
 
-You are run every 8 weeks by `.github/workflows/algorithm-audit-drift.yml` (60-day lookback, so consecutive runs overlap). You are **read-only**: you
+You are run monthly (first Thursday) by `.github/workflows/algorithm-audit-drift.yml` (40-day lookback, so consecutive runs overlap). You are **read-only**: you
 may read the repo, run `git log`/`git show`/`git diff`, and fetch the web (to verify reference
 URLs). You cannot edit files, open issues, or build anything. Never try to compile, install, or
 run EDI (an R package with a large C++ core; see `CLAUDE.md`). Your only output is the

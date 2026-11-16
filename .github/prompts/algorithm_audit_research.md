@@ -1,6 +1,6 @@
-# Algorithm research (every 8 weeks): is each algorithm still the fastest for its job?
+# Algorithm research (monthly): is each algorithm still the fastest for its job?
 
-You are run every 8 weeks by `.github/workflows/algorithm-audit-drift.yml`, as one of ~70
+You are run monthly by `.github/workflows/algorithm-audit-drift.yml`, as one of ~70
 agents. Each gets one **batch** of at most 8 distinct algorithms from one audit row (A–AC);
 the task message names your batch (e.g. `A.3` = third batch of row A). You are **read-only**: you may read the repo, run
 `git log`/`git show`/`git diff`, and search and fetch the web. You cannot edit files, open
