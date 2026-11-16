@@ -110,6 +110,14 @@ fastest acceptable one for its job?**
     checks do not run on a PR opened with `GITHUB_TOKEN`; the owner merges with the admin
     bypass. Faster-algorithm findings stay unverified: promote a confirmed one to a release
     TODO by hand.
+  - Expect two "failed" runs per research PR (R-CMD-check, test-coverage-python on the
+    `pull_request` event). A PR opened by `github-actions[bot]` creates them with zero jobs;
+    they never start, and GitHub closes them as "failure" the moment the PR is merged
+    (first seen on PR #10, 2026-11-16). Nothing was tested; ignore them.
+  - Before merging a PR you pushed a fix to, check that the PR's head commit shows it.
+    On PR #10 GitHub had not registered a pushed fix (35a3fc3) when the PR was merged
+    minutes later, so the merge took the bot's original commit; the fix went to `main`
+    by cherry-pick instead.
   - Needs Settings > Actions > General > "Allow GitHub Actions to create and approve pull
     requests".
 - **Never silently clean.** A task with no output (no `ANTHROPIC_API_KEY` secret, agent

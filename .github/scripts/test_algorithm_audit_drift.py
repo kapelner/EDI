@@ -315,6 +315,40 @@ class ResearchApplyTests(InventoryCheckTests):
         self.assertEqual({e["verdict"] for e in rows.values()}, {"Keep"})
 
 
+class CanonicalCranUrlTests(unittest.TestCase):
+
+    def test_mirrors_move_to_cran_r_project_org(self):
+        c = drift.canonical_cran_url
+        cases = {
+            "https://mirror.linux.duke.edu/pub/cran/web/packages/ordinal/vignettes/clm_article.pdf":
+                "https://cran.r-project.org/web/packages/ordinal/vignettes/clm_article.pdf",
+            "https://cloud.r-project.org/web/packages/lme4/news.html":
+                "https://cran.r-project.org/web/packages/lme4/news.html",
+            "https://cran.rstudio.com/src/contrib/Archive/lme4/":
+                "https://cran.r-project.org/src/contrib/Archive/lme4/",
+            "https://rdrr.io/cran/fastglm/man/fastglm_nb.html": "https://cran.r-project.org/package=fastglm",
+            "https://github.com/cran/survival/blob/master/R/coxph.R":
+                "https://cran.r-project.org/package=survival",
+            "http://CRAN.R-project.org/package=coin": "https://cran.r-project.org/package=coin",
+        }
+        for src, want in cases.items():
+            self.assertEqual(c(src), want, src)
+        for keep in ("https://en.wikipedia.org/wiki/Bisection_method", "https://doi.org/10.2307/2531595",
+                     "https://github.com/lme4/lme4/pull/961"):
+            self.assertEqual(c(keep), keep)
+
+    def test_report_sources_are_canonicalized(self):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            Path(tmp, "A.1.json").write_text(json.dumps({"row": "A", "algorithms_reviewed": [],
+                "not_reviewed": [], "findings": [{"algorithm": "a", "entries": [], "current": "",
+                "candidate": "b", "claimed_speedup": "", "applies_at_edi_sizes": "unknown",
+                "keeps_estimator": "yes", "tradeoffs": "", "confidence": "low", "suggested_action": "",
+                "sources": ["https://mirror.dogado.de/cran/web/packages/fastglm/vignettes/x.html"]}]}))
+            _, text = report.render(Path(tmp), ["A.1"])
+        self.assertIn("https://cran.r-project.org/web/packages/fastglm/vignettes/x.html", text)
+        self.assertNotIn("dogado", text)
+
+
 class PromptSchemaTests(unittest.TestCase):
 
     def test_schemas_are_json_without_single_quotes(self):

@@ -49,7 +49,14 @@ def ref_title(url, offline):
             return f"{author} {year}, {(m.get('title') or [''])[0]}".strip()
         except (urllib.error.URLError, OSError, KeyError, ValueError, IndexError):
             return None
-    return None  # only Wikipedia and DOI references are accepted from agents
+    if url.startswith(drift.CRAN + "/"):
+        try:
+            drift.http_get(url)
+        except (urllib.error.URLError, OSError):
+            return None
+        tail = urllib.parse.urlsplit(url)
+        return "CRAN: " + (tail.path.strip("/").replace("web/packages/", "") or tail.query)
+    return None  # only Wikipedia, DOI and cran.r-project.org references are accepted
 
 
 def apply(dirpath, tasks, today, offline):
@@ -74,13 +81,14 @@ def apply(dirpath, tasks, today, offline):
             held.append(f"{where}: unknown audit row `{p.get('audit_row')}`; not added")
             continue
         good = []
-        for u in p.get("refs", []):
+        for u in (drift.canonical_cran_url(x) for x in p.get("refs", [])):
             if u in refs:
                 good.append(u)
             else:
                 t = ref_title(u, offline)
                 if t:
-                    refs[u] = {"url": u, "kind": "wikipedia" if "wikipedia" in u else "doi", "title": t}
+                    kind = "wikipedia" if "wikipedia" in u else "doi" if "doi.org" in u else "cran"
+                    refs[u] = {"url": u, "kind": kind, "title": t}
                     good.append(u)
         if not good:
             held.append(f"{where}: none of its references could be verified "
@@ -167,6 +175,11 @@ def main():
         f"- Inventory changes applied here: {len(applied)}; needing a human: {len(held)}\n"
         "- Verdicts are never changed by this workflow. Merging means the findings file is "
         "acknowledged and the inventory changes are accepted.\n\n"
+        "Required checks: a PR opened by `github-actions[bot]` creates `pull_request` runs "
+        "(R-CMD-check, test-coverage-python) that never start; merge with the admin bypass, and "
+        "GitHub then closes those empty runs as \"failure\" (zero jobs; nothing was tested). "
+        "If you pushed a fix to this branch, confirm the PR shows it before merging: GitHub can "
+        "take a few minutes to register a push.\n\n"
         "Created by `.github/workflows/algorithm-audit-drift.yml` (research). "
         "Runbook: `R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md`.\n")
     print("CHANGES")

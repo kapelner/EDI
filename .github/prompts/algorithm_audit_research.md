@@ -51,6 +51,12 @@ breaks:
 
 - Every finding cites at least one source URL **you actually fetched** this run. Never cite
   from memory. No URL means no finding.
+- **CRAN is cited at cran.r-project.org.** Package pages, manuals, vignettes and NEWS are
+  cited at their canonical CRAN URL (`https://cran.r-project.org/package=<pkg>`,
+  `https://cran.r-project.org/web/packages/<pkg>/...`), never at a mirror (university or
+  company mirrors, `cloud.r-project.org`, rdrr.io, github.com/cran). Fetch the canonical URL
+  itself. The job rewrites mirror URLs anyway, but a link you did not fetch at CRAN may not
+  exist there.
 - Speedups are claims from the sources, never measurements. Say where the number comes from
   ("Table 3 of <url>: 4x at n=1,000"). If the source gives no number, say "not quantified".
 - A finding means "re-look", not "wrong". Do not overstate confidence. `high` only when a

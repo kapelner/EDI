@@ -29,7 +29,10 @@ canonical name, matching the names already used in the CSV where possible), `det
 `complexity`, `audit_row` (A–AC; titles in `R/package_metadata/audits/algorithm_audit_row_map.json`),
 and 1–3 `refs`. A reference is a Wikipedia URL
 (`https://en.wikipedia.org/wiki/<Title>`) or a DOI URL (`https://doi.org/<doi>`) that **you
-fetched this run** and that explains this algorithm. Prefer URLs already in
+fetched this run** and that explains this algorithm. A CRAN page
+(`https://cran.r-project.org/...`) is also accepted when the algorithm is best explained by a
+package's documentation or vignette; cite it at cran.r-project.org, never at a mirror (other
+mirrors, rdrr.io, github.com/cran). Prefer URLs already in
 `R/package_metadata/audits/algorithm_references.csv`.
 
 For the rest, a one-line reason is enough. Report every symbol in the list either way.

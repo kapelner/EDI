@@ -61,6 +61,34 @@ MAX_COMMITS = 8
 MAX_FETCH_ERRORS = 3  # more network failures than this and check 1 is not trustworthy
 
 
+CRAN = "https://cran.r-project.org"
+
+
+def canonical_cran_url(url):
+    """CRAN material at its canonical host, cran.r-project.org (owner, 2026-11-16).
+
+    Mirrors serve CRAN's own paths (`.../web/packages/<pkg>/...`, `.../src/contrib/...`) under
+    another host, so those paths move to cran.r-project.org unchanged. rdrr.io and CRAN's
+    read-only GitHub mirror (github.com/cran/<pkg>) have no path equivalent and map to the
+    package page. Anything else is returned unchanged."""
+    parsed = urllib.parse.urlsplit(url.strip())
+    host, path = parsed.netloc.lower(), parsed.path
+    if host == "cran.r-project.org":
+        return urllib.parse.urlunsplit(("https", host) + tuple(parsed)[2:])
+    for marker in ("/web/packages/", "/src/contrib/", "/web/views/"):
+        if marker in path:
+            return CRAN + marker + path.split(marker, 1)[1] + (f"#{parsed.fragment}" if parsed.fragment else "")
+    if host == "rdrr.io" and path.startswith("/cran/") and len(path.split("/")) > 2:
+        return f"{CRAN}/package={path.split('/')[2]}"
+    if host == "github.com" and path.startswith("/cran/") and len(path.split("/")) > 2:
+        return f"{CRAN}/package={path.split('/')[2]}"
+    if parsed.query.startswith("package=") or "/package=" in path:
+        pkg = (parsed.query or path).split("package=", 1)[1].split("&")[0].strip("/")
+        if host.endswith("r-project.org") or "cran" in host:
+            return f"{CRAN}/package={pkg}"
+    return url
+
+
 def http_get(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": "EDI-algorithm-audit-drift"})
     with urllib.request.urlopen(req, timeout=timeout) as r:

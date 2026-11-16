@@ -13,7 +13,11 @@ First line of the output is `FLAGGED` or `CLEAN`, like algorithm_audit_drift.py.
 import argparse
 import datetime
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from algorithm_audit_drift import canonical_cran_url  # noqa: E402
 
 
 def load(dirpath, task):
@@ -91,7 +95,7 @@ def render(dirpath, tasks, batches=None):
         L.append(f"- **Trade-offs:** {f.get('tradeoffs', '')}")
         L.append(f"- **Suggested action:** {f.get('suggested_action', '')}")
         L.append("- **Affects:** " + ", ".join(f"`{e}`" for e in f.get("entries", [])))
-        L.append("- **Sources:** " + " ".join(f.get("sources", [])))
+        L.append("- **Sources:** " + " ".join(canonical_cran_url(u) for u in f.get("sources", [])))
         L.append("")
 
     L.append("## 2. Inventory currency")
@@ -102,7 +106,7 @@ def render(dirpath, tasks, batches=None):
             L.append(f"- `{s.get('file')}` `{s.get('symbol')}`: {p.get('algorithm', '?')} "
                      f"(row {p.get('audit_row', '?')}; {p.get('problem', '')}). "
                      f"{p.get('details', '')} Complexity: {p.get('complexity', '')}. "
-                     "Refs: " + " ".join(p.get("refs", [])))
+                     "Refs: " + " ".join(canonical_cran_url(u) for u in p.get("refs", [])))
     if stale:
         L.append("### Inventory rows that no longer describe the code")
         for c in stale:
