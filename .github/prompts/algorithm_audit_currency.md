@@ -27,6 +27,10 @@ function, it is not new.
 For each one that is an algorithm, propose the inventory row: `problem`, `algorithm` (short
 canonical name, matching the names already used in the CSV where possible), `details`,
 `complexity`, `audit_row` (A–AC; titles in `R/package_metadata/audits/algorithm_audit_row_map.json`),
+`problem_id` and `method_id` (existing ids from
+`R/package_metadata/audits/algorithm_taxonomy.json`: the computational problem it solves and the
+method it uses; research is organised by problem, so pick the problem whose other methods it
+competes with; if no problem or method fits, say so in `reason` and leave the row for a human),
 and 1–3 `refs`. A reference is a Wikipedia URL
 (`https://en.wikipedia.org/wiki/<Title>`) or a DOI URL (`https://doi.org/<doi>`) that **you
 fetched this run** and that explains this algorithm. A CRAN page

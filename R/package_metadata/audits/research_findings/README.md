@@ -1,6 +1,6 @@
 # Algorithm research findings
 
-One file per research run (`<date>.md`), written by the `research-pr` job of
+One file per research run (`<date>-run<run id>.md`, plus `<date>-run<run id>-searches.md`: what each agent actually searched; before 2026-11-17 files were named `<date>.md`), written by the `research-pr` job of
 `.github/workflows/algorithm-audit-drift.yml` and delivered as a pull request together with
 the inventory updates it could apply.
 

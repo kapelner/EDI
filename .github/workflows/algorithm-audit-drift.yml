@@ -6,7 +6,7 @@
 #              algorithm, plus one `inventory` agent that judges new and changed functions
 #              against the inventory. Prompts and output schemas: .github/prompts/.
 #              Opens ONE pull request per run (label `algorithm-audit-research`) with the
-#              findings file research_findings/<date>.md and the inventory updates; no PR when
+#              findings file research_findings/<date>-run<id>.md and the inventory updates; no PR when
 #              there is nothing to report. Needs "Allow GitHub Actions to create and approve
 #              pull requests" (Settings > Actions > General).
 #              Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN repo secret; without
@@ -140,15 +140,24 @@ jobs:
           elif req == "all":
               tasks = allowed
           else:
+              import csv
+              by_row = {}  # audit row letter -> problems with an entry in that row
+              with open("R/package_metadata/audits/algorithm_inventory.csv", newline="") as fh:
+                  for e in csv.DictReader(fh):
+                      for r in (x.strip() for x in e["audit_row"].split("+")):
+                          if e.get("problem_id"):
+                              by_row.setdefault(r, set()).add(e["problem_id"])
               tasks = []
               for t in (x.strip() for x in req.split(",") if x.strip()):
                   if t in allowed:
                       tasks.append(t)
-                  elif t in rows and any(b.split(".")[0] == t for b in batches):
-                      tasks += [b for b in batches if b.split(".")[0] == t]
+                  elif t in rows and by_row.get(t):
+                      tasks += sorted(by_row[t])
                   else:
-                      raise SystemExit(f"unknown research task {t!r}; use a row ({','.join(rows)}), "
-                                       "a batch like A.3, 'inventory', 'all' or 'none'")
+                      raise SystemExit(f"unknown research task {t!r}; use a problem id from "
+                                       "algorithm_taxonomy.json, an audit row letter (all its "
+                                       f"problems: {','.join(rows)}), 'inventory', 'all' or 'none'")
+              tasks = list(dict.fromkeys(tasks))
           log(f"research tasks ({len(tasks)}): {tasks}")
           print("tasks=" + json.dumps(tasks))
           print("task_list=" + ",".join(tasks))
@@ -237,38 +246,37 @@ jobs:
             what="the inventory currency check"
             # mostly sorting new functions into plumbing vs algorithm: Sonnet at medium effort
             model=claude-sonnet-5-5
-            effort_arg="--effort medium"
+            extra_args="--effort medium"
           else
-            python3 .github/scripts/algorithm_audit_drift.py --research-batches --out batches.json
+            # one research task per problem (owner, 2026-11-16): the taxonomy slice, the
+            # problem's inventory rows, and its previous result (research_log.json)
+            python3 .github/scripts/algorithm_audit_drift.py --task-problem "$TASK" --out task_problem.json
             python3 - <<'PY'
-          import csv, json, os
+          import csv, os
           task = os.environ["TASK"]
-          algs = json.load(open("batches.json"))[task]
           with open("R/package_metadata/audits/algorithm_inventory.csv", newline="") as fh:
               rows = list(csv.DictReader(fh))
-          keep = [r for r in rows if r["algorithm"] in algs]
+          keep = [r for r in rows if r.get("problem_id") == task]
           with open("row_entries.csv", "w", newline="") as fh:
               w = csv.DictWriter(fh, fieldnames=list(rows[0]))
               w.writeheader()
               w.writerows(keep)
-          with open("batch_algorithms.txt", "w") as fh:
-              fh.write("\n".join(algs) + "\n")
-          print(f"batch {task}: {len(algs)} algorithms, {len(keep)} inventory entries")
+          print(f"problem {task}: {len(keep)} inventory entries")
           PY
-            # last run's result per algorithm, plus code commits since (research_log.json)
             python3 .github/scripts/algorithm_audit_drift.py --previous-results "$TASK" \
               --out previous_results.json
             prompt_file=.github/prompts/algorithm_audit_research.md
             schema=.github/prompts/algorithm_audit_research.schema.json
-            what="research batch $TASK (audit row ${TASK%%.*})"
-            # judgement-heavy web research: Opus at the default effort (owner, 2026-11-16)
+            what="research problem $TASK"
+            # judgement-heavy web research: Opus at the default effort (owner, 2026-11-16),
+            # with the research method appended to the system prompt
             model=claude-opus-5-5
-            effort_arg=""
+            extra_args="--append-system-prompt-file .github/prompts/research_agent_CLAUDE.md"
           fi
           {
             echo "what=$what"
             echo "model=$model"
-            echo "effort_arg=$effort_arg"
+            echo "extra_args=$extra_args"
             echo "prompt_file=$prompt_file"
             echo "schema=$(jq -c . "$schema")"
           } >> "$GITHUB_OUTPUT"
@@ -294,7 +302,7 @@ jobs:
             --allowedTools "Read,Glob,Grep,WebSearch,WebFetch,Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
             --disallowedTools "Edit,Write,NotebookEdit"
             --model ${{ steps.prep.outputs.model }}
-            ${{ steps.prep.outputs.effort_arg }}
+            ${{ steps.prep.outputs.extra_args }}
             --max-turns 80
             --json-schema '${{ steps.prep.outputs.schema }}'
 
@@ -303,12 +311,30 @@ jobs:
         env:
           OUT: ${{ steps.claude.outputs.structured_output }}
           OUTCOME: ${{ steps.claude.outcome }}
+          TRANSCRIPT: ${{ steps.claude.outputs.execution_file }}
         run: |
           if [ -n "$OUT" ]; then
             printf '%s' "$OUT" > "research/$TASK.json"
           else
             echo "agent produced no structured output (step outcome: $OUTCOME)" > "research/$TASK.notrun"
           fi
+          # what the agent actually searched, from its transcript (owner, 2026-11-16)
+          mkdir -p transcript
+          if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
+            cp "$TRANSCRIPT" "transcript/$TASK.json"
+            python3 .github/scripts/algorithm_audit_search_log.py extract --task "$TASK" \
+              --transcript "$TRANSCRIPT" --out "research/$TASK.searches.json"
+          fi
+
+      # Full transcript (prompts, every tool call and result) for auditing the research method.
+      # An artifact, not the public Actions log (the action's show_full_output would print it there).
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: transcript-${{ matrix.task }}
+          path: transcript/
+          retention-days: 90
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -318,7 +344,7 @@ jobs:
 
   research-pr:
     # Research results land in the repo, not in an issue: one pull request per run with
-    # R/package_metadata/audits/research_findings/<date>.md and the inventory changes the
+    # R/package_metadata/audits/research_findings/<date>-run<id>.md and the inventory changes the
     # inventory agent proposed (verified refs only; verdicts never touched).
     needs: [plan, research]
     if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.tasks != '[]' }}
@@ -376,7 +402,8 @@ jobs:
           git add R/package_metadata/audits/research_findings/ \
             R/package_metadata/audits/algorithm_inventory.csv \
             R/package_metadata/audits/algorithm_references.csv \
-            R/package_metadata/audits/research_log.json
+            R/package_metadata/audits/research_log.json \
+            R/package_metadata/audits/algorithm_taxonomy.json
           git commit -m "Algorithm research $DATE: findings and inventory updates" \
             -m "Generated by the research job of algorithm-audit-drift.yml (run $GITHUB_RUN_ID)."
           git push origin "$branch"

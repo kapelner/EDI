@@ -1,49 +1,18 @@
 {
   "type": "object",
-  "required": [
-    "row",
-    "algorithms_reviewed",
-    "not_reviewed",
-    "findings"
-  ],
+  "required": ["problem_id", "methods_reviewed", "not_reviewed", "findings", "searches", "proposed_terms"],
   "properties": {
-    "row": {
-      "type": "string"
-    },
-    "algorithms_reviewed": {
+    "problem_id": {"type": "string"},
+    "methods_reviewed": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "algorithm",
-          "conclusion",
-          "note",
-          "vs_previous"
-        ],
+        "required": ["method_id", "conclusion", "note", "vs_previous"],
         "properties": {
-          "algorithm": {
-            "type": "string"
-          },
-          "conclusion": {
-            "type": "string",
-            "enum": [
-              "no_faster_acceptable_found",
-              "faster_option_found",
-              "unclear"
-            ]
-          },
-          "note": {
-            "type": "string"
-          },
-          "vs_previous": {
-            "type": "string",
-            "enum": [
-              "unchanged",
-              "updated",
-              "new"
-            ],
-            "description": "compared with previous_results.json: unchanged, updated, or new when there was no previous result"
-          }
+          "method_id": {"type": "string"},
+          "conclusion": {"type": "string", "enum": ["no_faster_acceptable_found", "faster_option_found", "unclear"]},
+          "note": {"type": "string"},
+          "vs_previous": {"type": "string", "enum": ["unchanged", "updated", "new"]}
         }
       }
     },
@@ -51,101 +20,57 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "algorithm",
-          "reason"
-        ],
-        "properties": {
-          "algorithm": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          }
-        }
+        "required": ["method_id", "reason"],
+        "properties": {"method_id": {"type": "string"}, "reason": {"type": "string"}}
       }
     },
     "findings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "algorithm",
-          "entries",
-          "current",
-          "candidate",
-          "claimed_speedup",
-          "applies_at_edi_sizes",
-          "keeps_estimator",
-          "tradeoffs",
-          "sources",
-          "confidence",
-          "suggested_action"
-        ],
+        "required": ["methods", "entries", "current", "candidate", "claimed_speedup", "applies_at_edi_sizes", "keeps_estimator", "tradeoffs", "sources", "confidence", "suggested_action"],
         "properties": {
-          "algorithm": {
-            "type": "string"
-          },
-          "entries": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "file::symbol of affected inventory rows"
-          },
-          "current": {
-            "type": "string"
-          },
-          "candidate": {
-            "type": "string"
-          },
-          "claimed_speedup": {
-            "type": "string"
-          },
-          "applies_at_edi_sizes": {
-            "type": "string",
-            "enum": [
-              "yes",
-              "no",
-              "unknown"
-            ]
-          },
-          "keeps_estimator": {
-            "type": "string",
-            "enum": [
-              "yes",
-              "no",
-              "unknown"
-            ]
-          },
-          "tradeoffs": {
-            "type": "string"
-          },
-          "sources": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          },
-          "confidence": {
-            "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ]
-          },
-          "suggested_action": {
-            "type": "string"
-          },
-          "also_covers": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "other algorithm names from your batch that this same finding applies to; each must also be marked faster_option_found"
-          }
+          "methods": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "method_ids of this problem that the candidate would replace or improve"},
+          "entries": {"type": "array", "items": {"type": "string"}, "description": "file::symbol of affected inventory rows"},
+          "current": {"type": "string"},
+          "candidate": {"type": "string"},
+          "claimed_speedup": {"type": "string"},
+          "applies_at_edi_sizes": {"type": "string", "enum": ["yes", "no", "unknown"]},
+          "keeps_estimator": {"type": "string", "enum": ["yes", "no", "unknown"]},
+          "tradeoffs": {"type": "string"},
+          "sources": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+          "suggested_action": {"type": "string"}
+        }
+      }
+    },
+    "searches": {
+      "type": "array",
+      "description": "every search or source check you actually ran, in order; the run transcript is audited against this list",
+      "items": {
+        "type": "object",
+        "required": ["query", "where", "term_classes", "method_ids", "result"],
+        "properties": {
+          "query": {"type": "string", "description": "the exact query text, or the URL you fetched"},
+          "where": {"type": "string", "enum": ["web", "arxiv", "cran-task-views", "jss", "r-journal", "crossref", "openalex", "github", "other"]},
+          "term_classes": {"type": "array", "minItems": 1, "items": {"type": "string", "enum": ["problem", "synonym", "broader", "narrower", "software", "other"]}},
+          "method_ids": {"type": "array", "items": {"type": "string"}, "description": "methods this query was about; empty for a problem-level query"},
+          "result": {"type": "string", "description": "one line: what it turned up (or nothing relevant)"}
+        }
+      }
+    },
+    "proposed_terms": {
+      "type": "array",
+      "description": "search terms missing from the taxonomy that you found useful; they are added in the research PR",
+      "items": {
+        "type": "object",
+        "required": ["target", "id", "term_class", "term", "why"],
+        "properties": {
+          "target": {"type": "string", "enum": ["problem", "method"]},
+          "id": {"type": "string"},
+          "term_class": {"type": "string", "enum": ["search_terms", "synonyms", "broader", "narrower", "software"]},
+          "term": {"type": "string"},
+          "why": {"type": "string"}
         }
       }
     }

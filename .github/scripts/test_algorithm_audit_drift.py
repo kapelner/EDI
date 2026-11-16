@@ -18,13 +18,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import algorithm_audit_drift as drift  # noqa: E402
 
 COLS = ["file", "symbol", "problem", "algorithm", "details", "complexity", "audit_row",
-        "verdict", "refs", "watch", "source"]
+        "problem_id", "method_id", "verdict", "refs", "watch", "source"]
+TERMS = {"synonyms": ["Fisher scoring"], "broader": ["second-order methods"],
+         "narrower": ["step-halving IRLS"], "software": ["glm"]}
+TAXONOMY = {"problems": {"binary-glm-mle": {"title": "binary GLM MLE", "description": "",
+                                            "search_terms": ["logistic regression fitting"]}},
+            "methods": {"irls": dict(title="IRLS", **TERMS), "lbfgs": dict(title="L-BFGS", **TERMS)}}
 WIKI = "https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares"
 
 
 def entry(**kw):
     e = {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "problem": "logistic MLE",
          "algorithm": "IRLS", "details": "", "complexity": "", "audit_row": "A",
+         "problem_id": "binary-glm-mle", "method_id": "irls",
          "verdict": "Keep", "refs": WIKI, "watch": "A", "source": "test"}
     e.update(kw)
     return e
@@ -43,7 +49,8 @@ class InventoryCheckTests(unittest.TestCase):
         (root / "R/EDI/R/zzz.R").write_text(".onLoad <- function(lib, pkg) NULL\n")
         self.root = root
         self.saved = {k: getattr(drift, k) for k in
-                      ("ROOT", "ROW_MAP", "INVENTORY", "REFERENCES", "SRC_DIR", "R_DIR")}
+                      ("ROOT", "ROW_MAP", "INVENTORY", "REFERENCES", "SRC_DIR", "R_DIR",
+                       "TAXONOMY", "RESEARCH_LOG")}
         audits = root / "R/package_metadata/audits"
         drift.ROOT = root
         drift.ROW_MAP = audits / "algorithm_audit_row_map.json"
@@ -51,6 +58,10 @@ class InventoryCheckTests(unittest.TestCase):
         drift.REFERENCES = audits / "algorithm_references.csv"
         drift.SRC_DIR = root / "R/EDI/src"
         drift.R_DIR = root / "R/EDI/R"
+        drift.TAXONOMY = audits / "algorithm_taxonomy.json"
+        drift.RESEARCH_LOG = audits / "research_log.json"
+        self.taxonomy = json.loads(json.dumps(TAXONOMY))
+        self.taxonomy["methods"].pop("lbfgs")  # only methods the fixture uses
         self.cfg = {"max_age_days": 180,
                     "exempt": {"R/EDI/src/RcppExports.cpp": "generated",
                                "R/EDI/R/zzz.R": "package hooks"},
@@ -65,6 +76,7 @@ class InventoryCheckTests(unittest.TestCase):
 
     def run_check(self):
         drift.ROW_MAP.write_text(json.dumps(self.cfg))
+        drift.TAXONOMY.write_text(json.dumps(self.taxonomy))
         with drift.INVENTORY.open("w", newline="") as fh:
             w = csv.DictWriter(fh, fieldnames=COLS)
             w.writeheader()
@@ -212,9 +224,9 @@ class ResearchReportTests(unittest.TestCase):
         (self.dir / f"{task}.json").write_text(json.dumps(data))
 
     def test_clean_when_every_task_reports_nothing(self):
-        self.put("A", {"row": "A", "algorithms_reviewed": [
-            {"algorithm": "IRLS", "conclusion": "no_faster_acceptable_found", "note": "ok"}],
-            "not_reviewed": [], "findings": []})
+        self.put("A", {"problem_id": "A", "methods_reviewed": [
+            {"method_id": "irls", "conclusion": "no_faster_acceptable_found", "note": "ok",
+             "vs_previous": "new"}], "not_reviewed": [], "findings": []})
         self.put("inventory", {"new_symbols": [{"file": "f", "symbol": "s",
                                                 "is_algorithm": False, "reason": "getter"}],
                                "changed_entries": [{"file": "f", "symbol": "t", "stale": False}]})
@@ -231,74 +243,114 @@ class ResearchReportTests(unittest.TestCase):
         self.assertIn("**B**: ANTHROPIC_API_KEY", text)
         self.assertIn("**C**: output was not valid JSON", text)
 
-    def test_batch_algorithm_in_neither_list_is_a_silent_skip(self):
-        self.put("A.1", {"row": "A", "algorithms_reviewed": [
-            {"algorithm": "IRLS", "conclusion": "no_faster_acceptable_found", "note": "ok"}],
-            "not_reviewed": [], "findings": []})
-        flagged, text = report.render(self.dir, ["A.1"], {"A.1": ["IRLS", "L-BFGS"]})
+    def finding(self, **kw):
+        f = {"methods": ["irls"], "entries": [], "current": "", "candidate": "x",
+             "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+             "tradeoffs": "", "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
+        f.update(kw)
+        return f
+
+    def problem(self, **kw):
+        d = {"problem_id": "binary-glm-mle", "not_reviewed": [], "findings": [], "searches": [],
+             "proposed_terms": [], "methods_reviewed": [
+                 {"method_id": "irls", "conclusion": "no_faster_acceptable_found", "note": "",
+                  "vs_previous": "new"}]}
+        d.update(kw)
+        return d
+
+    def test_method_in_neither_list_is_a_silent_skip(self):
+        self.put("binary-glm-mle", self.problem())
+        flagged, text = report.render(self.dir, ["binary-glm-mle"],
+                                      {"binary-glm-mle": ["irls", "lbfgs"]})
         self.assertTrue(flagged)
-        self.assertIn("Batch A.1: L-BFGS (**silently skipped**", text)
+        self.assertIn("binary-glm-mle: `lbfgs` (**silently skipped**", text)
 
     def test_finding_and_conclusion_must_agree(self):
-        finding = {"algorithm": "glm.nb", "entries": [], "current": "", "candidate": "fastglm",
-                   "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
-                   "tradeoffs": "", "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
-        self.put("A.1", {"row": "A", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
-            {"algorithm": "glm.nb", "conclusion": "no_faster_acceptable_found", "note": ""},
-            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": ""}]})
-        self.put("A.2", {"row": "A", "not_reviewed": [], "algorithms_reviewed": [],
-                         "findings": [dict(finding, algorithm="orphan")]})
-        flagged, text = report.render(self.dir, ["A.1", "A.2"])
+        self.put("binary-glm-mle", self.problem(
+            findings=[self.finding(methods=["irls"]), self.finding(methods=["orphan"])],
+            methods_reviewed=[
+                {"method_id": "irls", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "new"},
+                {"method_id": "lbfgs", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"}]))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"])
         self.assertTrue(flagged)
         self.assertIn("## 4. Inconsistent agent output", text)
-        self.assertIn("Batch A.1: glm.nb: has a finding but is marked `no_faster_acceptable_found`", text)
-        self.assertIn("Batch A.1: IRLS: marked `faster_option_found` but has no finding", text)
-        self.assertIn("Batch A.2: orphan: has a finding but is not in algorithms_reviewed", text)
+        self.assertIn("binary-glm-mle: `irls`: has a finding but is marked `no_faster_acceptable_found`", text)
+        self.assertIn("binary-glm-mle: `lbfgs`: marked `faster_option_found` but has no finding", text)
+        self.assertIn("binary-glm-mle: `orphan`: has a finding but is not in methods_reviewed", text)
 
-    def test_one_finding_can_cover_several_algorithms(self):
-        finding = {"algorithm": "GH", "also_covers": ["GH (fixed 20-node)"], "entries": [],
-                   "current": "", "candidate": "AGQ", "claimed_speedup": "",
-                   "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes", "tradeoffs": "",
-                   "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
-        self.put("C.1", {"row": "C", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
-            {"algorithm": "GH", "conclusion": "faster_option_found", "note": ""},
-            {"algorithm": "GH (fixed 20-node)", "conclusion": "faster_option_found", "note": ""},
-            {"algorithm": "GH + L-BFGS", "conclusion": "faster_option_found", "note": "same"}]})
-        _, text = report.render(self.dir, ["C.1"])
-        self.assertIn("- **Also applies to:** GH (fixed 20-node)", text)
-        self.assertNotIn("C.1: GH (fixed 20-node):", text)  # covered
-        self.assertIn("Batch C.1: GH + L-BFGS: marked `faster_option_found` but has no finding", text)
-
-    def test_consistent_output_has_no_section_4(self):
-        finding = {"algorithm": "IRLS", "entries": [], "current": "", "candidate": "x",
-                   "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
-                   "tradeoffs": "", "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
-        self.put("A.1", {"row": "A", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
-            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": ""}]})
-        _, text = report.render(self.dir, ["A.1"])
+    def test_one_finding_can_name_several_methods(self):
+        self.put("binary-glm-mle", self.problem(
+            findings=[self.finding(methods=["irls", "lbfgs"], candidate="coordinate descent")],
+            methods_reviewed=[
+                {"method_id": "irls", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"},
+                {"method_id": "lbfgs", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"}]))
+        _, text = report.render(self.dir, ["binary-glm-mle"])
+        self.assertIn("### binary-glm-mle: irls, lbfgs → coordinate descent", text)
         self.assertNotIn("Inconsistent agent output", text)
 
+    def test_search_plan_coverage_gaps_are_flagged(self):
+        searches = [
+            {"query": "logistic regression fitting fast", "where": "web", "term_classes": ["problem"],
+             "method_ids": [], "result": ""},
+            {"query": "Fisher scoring OR IRLS logistic", "where": "arxiv",
+             "term_classes": ["synonym", "broader"], "method_ids": ["irls"], "result": ""},
+            {"query": "https://cran.r-project.org/web/views/", "where": "cran-task-views",
+             "term_classes": ["software"], "method_ids": ["irls"], "result": ""}]
+        self.put("binary-glm-mle", self.problem(searches=searches))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"], {"binary-glm-mle": ["irls"]}, TAXONOMY)
+        self.assertTrue(flagged)
+        self.assertIn("## 5. Search-plan gaps", text)
+        self.assertIn("`irls`: no narrower search", text)
+        self.assertIn("venue not checked: jss", text)
+        self.assertIn("venue not checked: r-journal", text)
+        self.assertNotIn("no problem-level search", text)
+        self.assertNotIn("`irls`: no synonym search", text)
+
+    def test_complete_search_plan_has_no_gaps(self):
+        searches = [{"query": q, "where": w, "term_classes": c, "method_ids": m, "result": ""}
+                    for q, w, c, m in [
+                        ("logistic fitting", "web", ["problem"], []),
+                        ("IRLS variants", "arxiv", ["synonym", "broader", "narrower", "software"], ["irls"]),
+                        ("views", "cran-task-views", ["other"], []), ("jss", "jss", ["other"], []),
+                        ("rj", "r-journal", ["other"], [])]]
+        self.put("binary-glm-mle", self.problem(searches=searches))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"], {"binary-glm-mle": ["irls"]}, TAXONOMY)
+        self.assertFalse(flagged, text)
+
+    def test_reported_searches_must_be_backed_by_the_transcript(self):
+        self.put("binary-glm-mle", self.problem(searches=[
+            {"query": f"q{i}", "where": "web", "term_classes": ["other"], "method_ids": [], "result": ""}
+            for i in range(5)]))
+        (self.dir / "binary-glm-mle.searches.json").write_text(json.dumps(
+            {"searches": [{"tool": "WebSearch", "query": "q0"}, {"tool": "WebFetch", "url": "u"}]}))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"])
+        self.assertTrue(flagged)
+        self.assertIn("reports 5 searches but its transcript shows 2", text)
+
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
-        self.put("J", {"row": "J", "algorithms_reviewed": [], "findings": [{
-            "algorithm": "bootstrap loop", "entries": ["R/EDI/src/b.cpp::boot"],
-            "current": "refit per replicate", "candidate": "one-step bootstrap",
-            "claimed_speedup": "10x (Table 2 of url)", "applies_at_edi_sizes": "yes",
-            "keeps_estimator": "no", "tradeoffs": "approximate", "sources": ["https://x"],
-            "confidence": "low", "suggested_action": "prototype"}],
-            "not_reviewed": [{"algorithm": "Bayesian bootstrap", "reason": "turn budget"}]})
+        self.put("binary-glm-mle", self.problem(
+            findings=[self.finding(candidate="one-step bootstrap", keeps_estimator="no")],
+            methods_reviewed=[{"method_id": "irls", "conclusion": "faster_option_found", "note": "",
+                               "vs_previous": "new"}],
+            not_reviewed=[{"method_id": "lbfgs", "reason": "turn budget"}],
+            proposed_terms=[{"target": "method", "id": "irls", "term_class": "synonyms",
+                             "term": "Newton-Raphson for GLMs", "why": "used by paper"}]))
         self.put("inventory", {"new_symbols": [{"file": "f.R", "symbol": "em", "is_algorithm": True,
                                                 "reason": "EM", "proposed": {
                                                     "problem": "p", "algorithm": "EM",
                                                     "details": "d", "complexity": "O(n)",
-                                                    "audit_row": "B", "refs": ["https://y"]}}],
+                                                    "audit_row": "B", "problem_id": "mixture-mle",
+                                                    "method_id": "em", "refs": ["https://y"]}}],
                                "changed_entries": [{"file": "g.cpp", "symbol": "fit", "stale": True,
                                                     "issue": "now L-BFGS",
                                                     "may_affect_verdict": True}]})
-        flagged, text = report.render(self.dir, ["J", "inventory"])
+        flagged, text = report.render(self.dir, ["binary-glm-mle", "inventory"])
         self.assertTrue(flagged)
-        for s in ("bootstrap loop → one-step bootstrap", "keeps the estimator: no",
-                  "`f.R` `em`: EM (row B", "(may affect the verdict)",
-                  "Batch J: Bayesian bootstrap (turn budget)"):
+        for s in ("irls → one-step bootstrap", "keeps the estimator: no",
+                  "`f.R` `em`: EM (problem `mixture-mle`, method `em`, row B",
+                  "(may affect the verdict)", "binary-glm-mle: `lbfgs` (turn budget)",
+                  "## 6. Taxonomy terms proposed by agents",
+                  'method `irls` synonyms: "Newton-Raphson for GLMs"'):
             self.assertIn(s, text)
 
 
@@ -321,16 +373,43 @@ class ResearchApplyTests(InventoryCheckTests):
         d = self.write_agent_output({"new_symbols": [
             {"file": "R/EDI/src/fit.cpp", "symbol": "brent_root", "is_algorithm": True, "reason": "",
              "proposed": {"problem": "root", "algorithm": "Brent", "details": "d",
-                          "complexity": "O(log)", "audit_row": "A", "refs": [WIKI, "https://x.org/y"]}},
+                          "complexity": "O(log)", "audit_row": "A", "problem_id": "binary-glm-mle",
+                          "method_id": "irls", "refs": [WIKI, "https://x.org/y"]}},
             {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "is_algorithm": True, "reason": "",
              "proposed": {"problem": "p", "algorithm": "IRLS", "details": "d", "complexity": "c",
-                          "audit_row": "A", "refs": [WIKI]}}],
+                          "audit_row": "A", "problem_id": "binary-glm-mle", "method_id": "irls",
+                          "refs": [WIKI]}}],
             "changed_entries": []})
         applied, held, skipped = research_apply.apply(d, ["inventory"], "2026-11-16", offline=True)
         self.assertEqual((len(applied), held, skipped), (1, [], 1))
         row = [e for e in drift.load_inventory() if e["symbol"] == "brent_root"][0]
-        self.assertEqual((row["refs"], row["watch"], row["verdict"]),
-                         (WIKI, "A", "Not yet audited (added 2026-11-16)"))
+        self.assertEqual((row["refs"], row["watch"], row["verdict"], row["problem_id"], row["method_id"]),
+                         (WIKI, "A", "Not yet audited (added 2026-11-16)", "binary-glm-mle", "irls"))
+
+    def test_new_row_with_unknown_taxonomy_ids_is_held(self):
+        (self.root / "R/EDI/src/fit.cpp").write_text("double fit_irls() {}\ndouble em() {}\n")
+        self.run_check()
+        d = self.write_agent_output({"new_symbols": [
+            {"file": "R/EDI/src/fit.cpp", "symbol": "em", "is_algorithm": True, "reason": "",
+             "proposed": {"problem": "p", "algorithm": "EM", "details": "d", "complexity": "c",
+                          "audit_row": "A", "problem_id": "no-such-problem", "method_id": "irls",
+                          "refs": [WIKI]}}], "changed_entries": []})
+        applied, held, _ = research_apply.apply(d, ["inventory"], "2026-11-16", offline=True)
+        self.assertEqual(applied, [])
+        self.assertIn("not in the taxonomy", held[0])
+
+    def test_proposed_terms_extend_the_taxonomy(self):
+        self.run_check()
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "binary-glm-mle.json").write_text(json.dumps({"proposed_terms": [
+            {"target": "method", "id": "irls", "term_class": "synonyms", "term": "Newton-Raphson for GLMs", "why": ""},
+            {"target": "method", "id": "irls", "term_class": "synonyms", "term": "fisher SCORING", "why": "dup"},
+            {"target": "method", "id": "nope", "term_class": "synonyms", "term": "x", "why": ""}]}))
+        added, held = research_apply.add_proposed_terms(out, ["binary-glm-mle"])
+        self.assertEqual(len(added), 1)  # the case-insensitive duplicate is skipped
+        self.assertEqual(len(held), 1)   # unknown method id
+        self.assertIn("Newton-Raphson for GLMs", drift.load_taxonomy()["methods"]["irls"]["synonyms"])
 
     def test_unverifiable_refs_or_ambiguous_fixes_are_held_and_verdicts_untouched(self):
         self.entries = [entry(), entry(algorithm="L-BFGS", problem="other")]
@@ -339,7 +418,8 @@ class ResearchApplyTests(InventoryCheckTests):
         d = self.write_agent_output({"new_symbols": [
             {"file": "R/EDI/src/fit.cpp", "symbol": "em", "is_algorithm": True, "reason": "",
              "proposed": {"problem": "p", "algorithm": "EM", "details": "d", "complexity": "c",
-                          "audit_row": "A", "refs": ["https://doi.org/10.1/unknown"]}}],
+                          "audit_row": "A", "problem_id": "binary-glm-mle", "method_id": "irls",
+                          "refs": ["https://doi.org/10.1/unknown"]}}],
             "changed_entries": [
                 {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "stale": True,
                  "issue": "changed", "suggested_details": "new text", "may_affect_verdict": True},
@@ -461,58 +541,108 @@ class OpenCopyTests(unittest.TestCase):
 class ResearchLogTests(InventoryCheckTests):
     """Reuses the planted repo (not a git checkout, so no code commits are found)."""
 
-    def setUp(self):
-        super().setUp()
-        self.saved_log = drift.RESEARCH_LOG
-        drift.RESEARCH_LOG = self.root / "R/package_metadata/audits/research_log.json"
-
-    def tearDown(self):
-        drift.RESEARCH_LOG = self.saved_log
-        super().tearDown()
-
-    def test_log_round_trip_keeps_unreviewed_entries(self):
-        old = {"last_researched": "2026-10-01", "run": "1", "batch": "A.1", "conclusion":
-               "no_faster_acceptable_found", "note": "old", "findings": [], "sources": []}
-        drift.RESEARCH_LOG.write_text(json.dumps({"algorithms": {"Brent": old, "IRLS": old}}))
+    def test_log_round_trip_keeps_unreviewed_methods_and_unrun_problems(self):
+        old_m = {"conclusion": "no_faster_acceptable_found", "note": "old", "last_researched": "2026-10-01"}
+        old = {"last_researched": "2026-10-01", "run": "1", "methods": {"irls": old_m, "lbfgs": old_m},
+               "findings": [], "sources": []}
+        drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"binary-glm-mle": old, "other": old}}))
         out = Path(self.tmp.name) / "research"
         out.mkdir()
-        (out / "A.1.json").write_text(json.dumps({"row": "A", "algorithms_reviewed": [
-            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": "new",
-             "vs_previous": "updated"},
-            {"algorithm": "GH", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"}],
-            "not_reviewed": [{"algorithm": "Brent", "reason": "turn budget"}],
-            "findings": [{"algorithm": "IRLS", "also_covers": ["GH"], "candidate": "x",
+        (out / "binary-glm-mle.json").write_text(json.dumps({"problem_id": "binary-glm-mle",
+            "methods_reviewed": [{"method_id": "irls", "conclusion": "faster_option_found",
+                                  "note": "new", "vs_previous": "updated"}],
+            "not_reviewed": [{"method_id": "lbfgs", "reason": "turn budget"}],
+            "findings": [{"methods": ["irls"], "candidate": "x", "confidence": "low",
                           "sources": ["https://mirror.dogado.de/cran/web/packages/a/b.html"],
-                          "open_copies": ["https://doi.org/10.1101/1"], "confidence": "low"}]}))
-        n = research_apply.update_research_log(out, ["A.1", "inventory"], "2026-11-16", "42")
+                          "open_copies": ["https://doi.org/10.1101/1"]}]}))
+        n = research_apply.update_research_log(out, ["binary-glm-mle", "other", "inventory"],
+                                               "2026-11-16", "42")
         log = drift.load_research_log()
-        self.assertEqual(n, 2)
-        self.assertEqual(log["Brent"], old)  # not reviewed: previous entry kept
-        self.assertEqual((log["IRLS"]["last_researched"], log["IRLS"]["run"]), ("2026-11-16", "42"))
-        self.assertEqual(log["GH"]["findings"][0]["candidate"], "x")  # via also_covers
-        self.assertEqual(log["IRLS"]["sources"], ["https://cran.r-project.org/web/packages/a/b.html",
-                                                  "https://doi.org/10.1101/1"])
+        self.assertEqual(n, 1)
+        self.assertEqual(log["other"], old)  # task did not run: kept whole
+        p = log["binary-glm-mle"]
+        self.assertEqual((p["last_researched"], p["run"]), ("2026-11-16", "42"))
+        self.assertEqual(p["methods"]["lbfgs"], old_m)  # not reviewed: kept
+        self.assertEqual(p["methods"]["irls"]["conclusion"], "faster_option_found")
+        self.assertEqual(p["findings"][0]["methods"], ["irls"])
+        self.assertEqual(p["sources"], ["https://cran.r-project.org/web/packages/a/b.html",
+                                        "https://doi.org/10.1101/1"])
 
-    def test_previous_results_for_a_batch(self):
-        drift.RESEARCH_LOG.write_text(json.dumps({"algorithms": {"IRLS": {
-            "last_researched": "2026-11-16", "conclusion": "no_faster_acceptable_found",
-            "note": "n", "findings": [], "sources": []}}}))
-        prev = drift.previous_results(["IRLS", "Brent"], [entry(algorithm="IRLS")])
-        self.assertEqual(prev["Brent"], {"no_previous": True})
-        self.assertEqual(prev["IRLS"]["conclusion"], "no_faster_acceptable_found")
-        self.assertEqual((prev["IRLS"]["code_changed_since"], prev["IRLS"]["code_commits_since"]),
-                         (False, []))
+    def test_previous_results_for_a_problem(self):
+        drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"binary-glm-mle": {
+            "last_researched": "2026-11-16", "methods": {}, "findings": [], "sources": []}}}))
+        inv = [entry()]
+        self.assertEqual(drift.previous_results("never-seen", inv), {"no_previous": True})
+        prev = drift.previous_results("binary-glm-mle", inv)
+        self.assertEqual((prev["last_researched"], prev["code_changed_since"],
+                          prev["code_commits_since"]), ("2026-11-16", False, []))
+
+    def test_tasks_are_problems_with_their_methods(self):
+        inv = [entry(), entry(symbol="", method_id="lbfgs"), entry(problem_id="other", method_id="irls")]
+        self.assertEqual(drift.research_batches(inv),
+                         {"binary-glm-mle": ["irls", "lbfgs"], "other": ["irls"]})
+
+    def test_inventory_check_validates_taxonomy(self):
+        self.entries = [entry(), entry(symbol="", problem_id="nope")]
+        self.taxonomy["methods"]["unused"] = dict(title="u", **TERMS)
+        self.taxonomy["methods"]["irls"].pop("narrower")
+        out = self.run_check()
+        self.assertEqual(len(out["bad_taxonomy_id"]), 1)
+        self.assertEqual(out["unused_taxonomy"], ["method `unused`"])
+        self.assertEqual(out["taxonomy_terms"], ["method `irls` lacks narrower"])
 
     def test_report_counts_vs_previous(self):
         out = Path(self.tmp.name) / "research"
         out.mkdir()
-        (out / "A.1.json").write_text(json.dumps({"row": "A", "not_reviewed": [], "findings": [],
-            "algorithms_reviewed": [
-                {"algorithm": "a", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
-                {"algorithm": "b", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
-                {"algorithm": "c", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "new"}]}))
-        _, text = report.render(out, ["A.1"])
+        (out / "p.json").write_text(json.dumps({"problem_id": "p", "not_reviewed": [], "findings": [],
+            "methods_reviewed": [
+                {"method_id": "a", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
+                {"method_id": "b", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
+                {"method_id": "c", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "new"}]}))
+        _, text = report.render(out, ["p"])
         self.assertIn("Compared with the previous results (`research_log.json`): 1 new, 2 unchanged.", text)
+
+
+import algorithm_audit_search_log as search_log  # noqa: E402
+
+
+class SearchLogTests(unittest.TestCase):
+    # shape of a real Claude Code stream-json transcript (checked 2026-11-16)
+    LINES = [
+        {"type": "system", "subtype": "init", "tools": ["WebSearch"]},
+        {"type": "assistant", "message": {"content": [
+            {"type": "text", "text": "searching"},
+            {"type": "tool_use", "id": "t1", "name": "WebSearch",
+             "input": {"query": "iteratively reweighted least squares logistic regression"}}]}},
+        {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1"}]}},
+        {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": "t2", "name": "WebFetch",
+             "input": {"url": "https://arxiv.org/abs/2310.01589", "prompt": "speed claims?"}},
+            {"type": "tool_use", "id": "t3", "name": "Read", "input": {"file_path": "README.md"}}]}},
+        {"type": "result", "subtype": "success", "num_turns": 4, "total_cost_usd": 0.02,
+         "is_error": False}]
+
+    def test_extract_and_render(self):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            t = Path(tmp, "exec.jsonl")
+            t.write_text("\n".join(json.dumps(x) for x in self.LINES))
+            rec = search_log.extract(search_log._load_transcript(t))
+            self.assertEqual(rec["tool_counts"], {"WebSearch": 1, "WebFetch": 1, "Read": 1})
+            self.assertEqual(rec["searches"][0], {"tool": "WebSearch", "query":
+                             "iteratively reweighted least squares logistic regression"})
+            self.assertEqual(rec["searches"][1]["url"], "https://arxiv.org/abs/2310.01589")
+            self.assertEqual((rec["num_turns"], rec["is_error"]), (4, False))
+            Path(tmp, "p.searches.json").write_text(json.dumps(dict(task="p", **rec)))
+            md = search_log.render(tmp, ["p", "missing"])
+        self.assertIn("Totals: 1 searches and 1 fetches across 1 agents.", md)
+        self.assertIn("- search: `iteratively reweighted least squares logistic regression`", md)
+        self.assertIn("- fetch: https://arxiv.org/abs/2310.01589 (speed claims?)", md)
+        self.assertIn("## missing\n_No search log", md)
+
+    def test_json_array_transcript_and_duplicate_envelopes(self):
+        call = {"type": "tool_use", "id": "x", "name": "WebSearch", "input": {"query": "q"}}
+        rec = search_log.extract([{"message": {"content": [call]}}, {"wrapped": call}])
+        self.assertEqual(len(rec["searches"]), 1)
 
 
 class PromptSchemaTests(unittest.TestCase):

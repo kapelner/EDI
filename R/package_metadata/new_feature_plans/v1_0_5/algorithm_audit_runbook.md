@@ -9,7 +9,7 @@
 | Layer | Trigger | Who/what | Output |
 |---|---|---|---|
 | Drift check | Monthly, 21st, 06:00 UTC (`workflow_dispatch` also works) | `.github/workflows/algorithm-audit-drift.yml` → `.github/scripts/algorithm_audit_drift.py` | One issue labelled `algorithm-audit-drift` (updated in place; closed when clean). Report also uploaded as the `drift-report` artifact. |
-| Research (added 2026-11-16) | Monthly, first Thursday of the month at 23:59 Asia/Jerusalem, from 2026-12-03 (owner, 2026-11-16; was every 8 weeks for an hour); first full run dispatched by hand 2026-11-16; `workflow_dispatch` input `research_tasks` picks a subset (`A`, `A.3`, `inventory`) or `none` | One Claude agent per batch of ≤ 8 distinct algorithms (68 batches as of 2026-11-16) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
+| Research (added 2026-11-16) | Monthly, first Thursday of the month at 23:59 Asia/Jerusalem, from 2026-12-03 (owner, 2026-11-16; was every 8 weeks for an hour); first full run dispatched by hand 2026-11-16; `workflow_dispatch` input `research_tasks` picks a subset (a problem id, an audit row letter for all its problems, `inventory`) or `none` | One Claude agent per **problem** of `audits/algorithm_taxonomy.json` (all methods EDI uses for it) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>-run<id>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
 | Full pass | Release close; new kernel family ships; a Prototype item resolves through the A/B harness | A human or a Claude session, following "Re-review procedure" below | Updated audit rows, summary table, exposure column; bumped `reviewed` dates; re-pinned versions |
 
 The drift check never edits a file or commits. It answers only "did anything
@@ -74,33 +74,55 @@ The drift check answers "did anything change?". The research layer answers the t
 questions it can't: **is the inventory still accurate?** and **is each algorithm still the
 fastest acceptable one for its job?**
 
-- **Batch tasks** (`.github/prompts/algorithm_audit_research.md`): `algorithm_audit_drift.py
-  --research-batches` assigns each distinct `algorithm` name to the audit row most of its
-  entries list first and cuts each row into batches of 8 (`A.1` ... `A.13`). One agent per
-  batch gets the batch's names (`batch_algorithms.txt`) and every inventory entry using
-  them (`row_entries.csv`), reads the row's audit section and the catalog's options tables (so it does
-  not re-report rejected options without new evidence), and searches the web for a faster
-  algorithm that keeps the estimator, exactness, thread-count determinism, accuracy, and a
-  GPL-3-compatible license, at EDI's actual sizes. Every finding cites URLs the agent
-  fetched that run; speedups are the sources' claims, never measurements. It must account
-  for every algorithm in its batch: the report flags any that appear in neither
-  `algorithms_reviewed` nor `not_reviewed` as **silently skipped**. (Batches replaced
-  one-agent-per-row on 2026-11-16 after the trial run's row-A agent reviewed 2 of 120
-  algorithms in 12 of its 80 turns.)
+- **Problem tasks** (owner, 2026-11-16; replaced label batches, which replaced one agent per
+  row). Research is organised **by problem**: `R/package_metadata/audits/algorithm_taxonomy.json`
+  defines problems (e.g. `binary-glm-mle`) and methods (e.g. `irls`), and every inventory row
+  has a `problem_id` and `method_id`. One agent per problem gets the problem and every method
+  EDI uses for it (`task_problem.json`, from `--task-problem`), the problem's inventory rows
+  (`row_entries.csv`) and its previous result (`previous_results.json`), and answers "what is
+  the fastest acceptable way to solve this problem at EDI's sizes?". Why: the free-text
+  `algorithm` labels fragmented the same work (logistic/Poisson GLM fits sat under ~30 labels
+  in batches A.1-A.10, each researched alone), and no agent compared methods for a problem.
+  Task prompt: `.github/prompts/algorithm_audit_research.md`; the research *method* is in
+  `.github/prompts/research_agent_CLAUDE.md`, appended to the agents' system prompt
+  (`--append-system-prompt-file`); refine it from the search logs.
+- **Taxonomy search terms.** Each method lists `synonyms` (IRLS = iteratively reweighted
+  least squares = Fisher scoring = Newton-Raphson for canonical-link GLMs), `broader`
+  (second-order methods, GLM fitting), `narrower` (step-halving, trust region, LDLT/QR,
+  warm starts) and `software` (glm, speedglm, fastglm, glmnet, liblinear, statsmodels); each
+  problem lists `search_terms`. Agents return `proposed_terms`; the PR job adds them to the
+  taxonomy. Check 4 flags rows whose ids are not in the taxonomy, unused taxonomy entries,
+  and methods missing a term list.
+- **Required search plan, recorded and audited.** For its problem and each method, an agent
+  must search the problem, every synonym, broader and narrower term and the rival software,
+  and check arXiv, CRAN Task Views, JSS and The R Journal; it reports each search
+  (`query`, `where`, `term_classes`, `method_ids`, `result`). The report flags ("Search-plan
+  gaps") any term class or venue a problem's searches skipped, and any agent that reports
+  more searches than its transcript shows.
+- **Transcripts.** Each agent's full Claude Code transcript is the run artifact
+  `transcript-<problem>` (90 days; never `show_full_output`, which would print it in the
+  public log). `.github/scripts/algorithm_audit_search_log.py` extracts every WebSearch
+  query and WebFetch URL; the PR commits them as
+  `audits/research_findings/<date>-run<id>-searches.md`, next to the findings, for critique.
+- Every method of a problem is accounted for: one in neither `methods_reviewed` nor
+  `not_reviewed` is flagged **silently skipped**. (History: one agent per row reviewed 2 of
+  120 algorithms in 12 of its 80 turns, so labels were batched in eights; batching by label
+  then fragmented problems, so tasks became problems.)
   - **Previous results** (owner, 2026-11-16): `R/package_metadata/audits/research_log.json`
-    holds each algorithm's last research result (date, run, batch, conclusion, note,
-    findings, sources). The PR job updates it for every algorithm an agent reviewed (one in
-    `not_reviewed`, or in a task that did not run, keeps its old entry and date); the prepare
-    step gives each agent `previous_results.json` for its batch (`algorithm_audit_drift.py
-    --previous-results <batch>`), with the commits that touched each algorithm's files since.
+    holds each problem's last research result (date, run, per-method conclusions and notes,
+    findings, sources). The PR job updates it for every problem whose agent ran (a method in
+    `not_reviewed` keeps its old entry; a problem whose task did not run keeps its whole
+    entry and date); the prepare step gives each agent `previous_results.json` for its problem
+    (`algorithm_audit_drift.py --previous-results <problem_id>`), with the commits that
+    touched the problem's files since.
     Agents search only for what is new since `last_researched` and report `vs_previous`
     (`unchanged` / `updated` / `new`); the findings file shows the counts. A finding that
     still stands must be re-reported, since the log keeps only the latest run's findings.
     **Every algorithm is researched in every monthly run** (owner, 2026-11-16): the log
     shortens each agent's work, it does not skip anything. A rotation that skips unchanged,
     recently researched algorithms was considered (about a third of the cost) and rejected.
-  - **Consistency check** (2026-11-16): a finding whose algorithm is not marked
-    `faster_option_found`, or a `faster_option_found` with no finding, is listed under
+  - **Consistency check** (2026-11-16): a finding naming a method not marked
+    `faster_option_found`, or a `faster_option_found` method no finding names, is listed under
     "Inconsistent agent output" and flags the report (first seen in batch A.1 of the
     2026-11-16 full run: a `glm.nb` finding marked `no_faster_acceptable_found`).
   - **Open copies of papers** (owner, 2026-11-16): agents must cite a paper's DOI, not only
@@ -124,7 +146,7 @@ fastest acceptable one for its job?**
   `research-pr` job (`.github/scripts/algorithm_audit_research_apply.py`) turns that JSON
   into one pull request (changed 2026-11-16 from an issue, owner decision, so results live
   in the repo):
-  - `R/package_metadata/audits/research_findings/<date>.md`: the full report (findings,
+  - `R/package_metadata/audits/research_findings/<date>-run<id>.md`: the full report (findings,
     tasks that did not run, algorithms not reviewed or silently skipped, inventory changes
     applied and held).
   - Inventory changes it can apply mechanically: a proposed new row, only with reference

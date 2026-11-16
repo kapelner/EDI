@@ -7,7 +7,7 @@
   correction is applied only when it maps to exactly one inventory row. Verdicts are never
   changed. Anything that cannot be applied mechanically is listed for a human instead.
 - Everything (findings, not-run tasks, applied and unapplied inventory changes) goes into
-  R/package_metadata/audits/research_findings/<date>.md, one file per run.
+  R/package_metadata/audits/research_findings/<date>-run<id>.md, one file per run.
 
 Usage:
   algorithm_audit_research_apply.py --dir research --tasks A.1,...,inventory \
@@ -26,6 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import algorithm_audit_drift as drift  # noqa: E402
 import algorithm_audit_research_report as report  # noqa: E402
+import algorithm_audit_search_log as search_log_mod  # noqa: E402
 
 FINDINGS_DIR = drift.META / "audits" / "research_findings"
 
@@ -80,6 +81,12 @@ def apply(dirpath, tasks, today, offline):
         if not rows or any(r not in json.loads(drift.ROW_MAP.read_text())["rows"] for r in rows):
             held.append(f"{where}: unknown audit row `{p.get('audit_row')}`; not added")
             continue
+        tax = drift.load_taxonomy()
+        if p.get("problem_id") not in tax["problems"] or p.get("method_id") not in tax["methods"]:
+            held.append(f"{where}: problem_id `{p.get('problem_id')}` / method_id "
+                        f"`{p.get('method_id')}` not in the taxonomy; not added. Proposed: "
+                        f"{p.get('algorithm', '?')}: {p.get('details', '')}")
+            continue
         good = []
         for u in (drift.canonical_cran_url(x) for x in p.get("refs", [])):
             if u in refs:
@@ -100,6 +107,7 @@ def apply(dirpath, tasks, today, offline):
         inv.append({"file": s["file"], "symbol": s["symbol"], "problem": p.get("problem", ""),
                     "algorithm": p.get("algorithm", ""), "details": p.get("details", ""),
                     "complexity": p.get("complexity", ""), "audit_row": " + ".join(rows),
+                    "problem_id": p["problem_id"], "method_id": p["method_id"],
                     "verdict": f"Not yet audited (added {today})", "refs": " ".join(good),
                     "watch": " ".join(watch), "source": f"{today} research run"})
         applied.append(f"Added {where}: {p.get('algorithm', '?')} (row {' + '.join(rows)})")
@@ -168,44 +176,67 @@ def add_open_copies(dirpath, tasks, offline):
 
 
 def update_research_log(dirpath, tasks, today, run_id):
-    """Record each reviewed algorithm's result in research_log.json (owner, 2026-11-16), so the
-    next run's agents start from it and search only for what is new. An algorithm listed under
-    `not_reviewed`, or in a task that did not run, keeps its previous entry and date. Returns the
-    number of algorithms updated."""
+    """Record each researched problem's result in research_log.json (owner, 2026-11-16), so the
+    next run's agent starts from it and searches only for what is new. A method listed under
+    `not_reviewed` keeps its previous entry; a problem whose task did not run keeps its whole
+    previous entry and date. Returns the number of problems updated."""
     log = drift.load_research_log()
     n = 0
     for task in tasks:
         if task == "inventory":
             continue
         data, _ = report.load(dirpath, task)
-        if not data:
+        if not data or not data.get("methods_reviewed"):
             continue
-        for a in data.get("algorithms_reviewed", []):
-            alg = a.get("algorithm")
-            if not alg:
-                continue
-            mine = [f for f in data.get("findings", [])
-                    if f.get("algorithm") == alg or alg in f.get("also_covers", [])]
-            sources = sorted({drift.canonical_cran_url(u) for f in mine for u in f.get("sources", [])}
-                             | {u for f in mine for u in f.get("open_copies", [])})
-            log[alg] = {
-                "last_researched": today, "run": run_id, "batch": task,
-                "conclusion": a.get("conclusion", ""), "note": a.get("note", ""),
-                "findings": [{k: f.get(k) for k in ("candidate", "claimed_speedup", "keeps_estimator",
-                                                     "applies_at_edi_sizes", "confidence",
-                                                     "suggested_action") if f.get(k) is not None}
-                             for f in mine],
-                "sources": sources,
-            }
-            n += 1
+        prev = log.get(task, {})
+        methods = dict(prev.get("methods", {}))
+        for a in data["methods_reviewed"]:
+            if a.get("method_id"):
+                methods[a["method_id"]] = {"conclusion": a.get("conclusion", ""),
+                                           "note": a.get("note", ""), "last_researched": today}
+        fs = data.get("findings", [])
+        log[task] = {
+            "last_researched": today, "run": run_id, "methods": dict(sorted(methods.items())),
+            "findings": [{k: f.get(k) for k in ("methods", "candidate", "claimed_speedup",
+                                                 "keeps_estimator", "applies_at_edi_sizes",
+                                                 "confidence", "suggested_action")
+                          if f.get(k) is not None} for f in fs],
+            "sources": sorted({drift.canonical_cran_url(u) for f in fs for u in f.get("sources", [])}
+                              | {u for f in fs for u in f.get("open_copies", [])}),
+        }
+        n += 1
     if n:
         drift.RESEARCH_LOG.write_text(json.dumps(
-            {"_comment": "Last research result per algorithm (key = inventory `algorithm`). Written by "
-                         "the research-pr job of algorithm-audit-drift.yml; read by the next run's "
-                         "agents as previous_results.json.",
-             "algorithms": dict(sorted(log.items(), key=lambda kv: kv[0].casefold()))},
-            indent=1, ensure_ascii=False) + "\n")
+            {"_comment": "Last research result per problem (key = algorithm_taxonomy.json problem_id). "
+                         "Written by the research-pr job of algorithm-audit-drift.yml; read by the "
+                         "next run's agents as previous_results.json.",
+             "problems": dict(sorted(log.items()))}, indent=1, ensure_ascii=False) + "\n")
     return n
+
+
+def add_proposed_terms(dirpath, tasks):
+    """Add the search terms agents proposed to algorithm_taxonomy.json (case-insensitive
+    dedupe). Returns (added, held) as human-readable lines."""
+    tax = drift.load_taxonomy()
+    allowed = {"problem": ("problems", {"search_terms"}),
+               "method": ("methods", {"synonyms", "broader", "narrower", "software"})}
+    added, held = [], []
+    for task in tasks:
+        data, _ = report.load(dirpath, task)
+        for p in (data or {}).get("proposed_terms", []) if task != "inventory" else []:
+            target, tid, cls, term = (p.get("target"), p.get("id"), p.get("term_class"),
+                                      str(p.get("term", "")).strip())
+            group, classes = allowed.get(target, (None, set()))
+            if not (group and tid in tax.get(group, {}) and cls in classes and term):
+                held.append(f"{task}: {target} `{tid}` {cls} \"{term}\" (unknown id or class)")
+                continue
+            terms = tax[group][tid].setdefault(cls, [])
+            if term.casefold() not in {t.casefold() for t in terms}:
+                terms.append(term)
+                added.append(f"{target} `{tid}` {cls}: \"{term}\" ({task})")
+    if added:
+        drift.TAXONOMY.write_text(json.dumps(tax, indent=1, ensure_ascii=False) + "\n")
+    return added, held
 
 
 def main():
@@ -221,9 +252,10 @@ def main():
     tasks = [t for t in a.tasks.split(",") if t]
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
     add_open_copies(Path(a.dir), tasks, a.offline)
-    flagged, text = report.render(Path(a.dir), tasks, batches)
+    flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy())
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
+    terms_added, terms_held = add_proposed_terms(Path(a.dir), tasks)
     body = text.split("\n", 2)[2]  # drop the FLAGGED/CLEAN status line
     # the report's inventory section lists proposals; replace it with what actually happened
     head, _, tail = body.partition("## 2. Inventory currency")
@@ -235,23 +267,32 @@ def main():
     if skipped:
         inv_md.append(f"\n_{skipped} proposed new rows were already in the inventory; skipped._")
     inv_md += ["", "### Needs a human (not applied)"]
-    inv_md += [f"- {x}" for x in held] or ["_Nothing._"]
+    inv_md += [f"- {x}" for x in held + terms_held] or ["_Nothing._"]
+    inv_md += ["", "### Taxonomy terms added (`algorithm_taxonomy.json`)"]
+    inv_md += [f"- {x}" for x in terms_added] or ["_Nothing._"]
     findings = head + "\n".join(inv_md) + "\n" + tail
-    if not (flagged or applied or held or logged):
+    if not (flagged or applied or held or logged or terms_added):
         print("NONE")
         Path(a.pr_body).write_text("")
         return
     FINDINGS_DIR.mkdir(parents=True, exist_ok=True)
-    out = FINDINGS_DIR / f"{a.date}.md"
+    # date + run id: two runs on one day (a trial and a full run) must not overwrite each other
+    stem = f"{a.date}-run{a.run_id}"
+    out = FINDINGS_DIR / f"{stem}.md"
     out.write_text(findings)
-    n_find = findings.count("\n### Batch ")
+    search_log = FINDINGS_DIR / f"{stem}-searches.md"
+    search_log.write_text(search_log_mod.render(a.dir, [t for t in tasks if t != "inventory"]))
+    n_find = sum(1 for line in findings.splitlines()
+                 if line.startswith("### ") and " → " in line)
     Path(a.pr_body).write_text(
-        f"Research run {a.date}: findings in `{out.relative_to(drift.ROOT)}`.\n\n"
+        f"Research run {a.date}: findings in `{out.relative_to(drift.ROOT)}`; what each agent "
+        f"actually searched in `{search_log.relative_to(drift.ROOT)}`.\n\n"
         f"- Faster-algorithm findings: {n_find} (unverified web claims; promote a confirmed one to a "
         "release TODO, then delete or annotate it in the findings file)\n"
         f"- Inventory changes applied here: {len(applied)}; needing a human: {len(held)}\n"
-        f"- Research log (`research_log.json`) updated for {logged} algorithms; the next run's "
+        f"- Research log (`research_log.json`) updated for {logged} problems; the next run's "
         "agents start from these results\n"
+        f"- Taxonomy terms proposed by agents and added: {len(terms_added)}\n"
         "- Verdicts are never changed by this workflow. Merging means the findings file is "
         "acknowledged and the inventory changes are accepted.\n\n"
         "Required checks: a PR opened by `github-actions[bot]` creates `pull_request` runs "

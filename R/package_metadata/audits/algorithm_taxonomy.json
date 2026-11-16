@@ -1,0 +1,4240 @@
+{
+ "_comment": "Research taxonomy (owner, 2026-11-16): problems (the unit of algorithm research: one agent per problem) and methods, each with search terms. Every algorithm_inventory.csv row has a problem_id and method_id from here. Agents propose new terms; the research PR adds them. See new_feature_plans/v1_0_5/algorithm_audit_runbook.md.",
+ "problems": {
+  "adjacent-cat-cr-logit-mle": {
+   "title": "Adjacent-category and continuation-ratio logit MLE",
+   "description": "Fit adjacent-category logit and continuation-ratio logit ordinal models: ordinal y, X -> category-specific intercepts and common beta (strictly concave). Per-fit, repeated in resampling loops.",
+   "search_terms": [
+    "adjacent-category logit model",
+    "continuation-ratio logit model",
+    "sequential ratio model ordinal",
+    "ordinal regression concave likelihood",
+    "stopping ratio model"
+   ]
+  },
+  "atkinson-optimal-biased-coin": {
+   "title": "Atkinson D_A-optimal biased coin",
+   "description": "For each arrival, compute the Atkinson (1982) D_A-optimal allocation probability from (X'X)^-1 of previous subjects: covariates so far -> P(treat). Sequential O(n) arrivals, redrawn r times for inference.",
+   "search_terms": [
+    "Atkinson optimum biased coin",
+    "D_A-optimal sequential design",
+    "covariate-adaptive biased coin",
+    "sequential optimal design allocation",
+    "rank-one update inverse"
+   ]
+  },
+  "balanced-allocation-optimization": {
+   "title": "Optimal balanced allocation (binary quadratic / fractional program)",
+   "description": "Find w in {0,1}^n with sum(w)=n_T minimizing a quadratic imbalance w'Qw, an L1 imbalance, or a D/A-optimal ratio (w'Hw+1)/(n_T - w'Pw): X -> one (near-)optimal allocation. Exact for small n (MILP/B&B), heuristic (annealing) for larger n.",
+   "search_terms": [
+    "optimal design allocation binary quadratic program",
+    "balanced allocation optimization",
+    "quadratic unconstrained binary optimization",
+    "mixed integer quadratic programming",
+    "fractional 0-1 programming",
+    "Kallus optimal a priori balance",
+    "Bertsimas optimal design experiments"
+   ]
+  },
+  "bayesian-bootstrap": {
+   "title": "Bayesian bootstrap replicates",
+   "description": "Draw Dirichlet(1,...,1) weights for B replicates and compute the weighted estimator (and SE) per replicate: data, estimator -> B weighted replicates. Inner loop of Bayesian-bootstrap inference.",
+   "search_terms": [
+    "Bayesian bootstrap",
+    "Rubin 1981 Dirichlet weights",
+    "weighted likelihood bootstrap",
+    "exponential weights bootstrap",
+    "random weighting"
+   ]
+  },
+  "beta-regression-mle": {
+   "title": "Beta and zero-one-inflated beta regression MLE",
+   "description": "Fit beta regression (logit mean, precision phi) and zero/one-inflated beta (ZOIB): y in (0,1) or [0,1], X -> (beta, phi, inflation params) with information. Per-fit kernel of proportion inference classes; repeated in resampling loops.",
+   "search_terms": [
+    "beta regression maximum likelihood",
+    "Ferrari-Cribari-Neto beta regression",
+    "zero-one inflated beta regression",
+    "ZOIB model",
+    "proportion response regression",
+    "betareg fitting algorithm",
+    "Smithson-Verkuilen transformation"
+   ]
+  },
+  "binary-glm-mle": {
+   "title": "Binary-response GLM maximum likelihood (logit/probit/cloglog, fractional logit)",
+   "description": "Fit beta-hat and its information/SE for a binary (or fractional 0-1) response with logit, probit or cloglog link: X (n x p, p small), y, optional weights -> beta, score, Hessian, SE. Per-fit kernel inside every incidence/proportion inference class; re-run B times inside randomization, bootstrap and test-inversion loops, so it is a hot path. Includes the Papke-Wooldridge fractional-logit QMLE, IVW pooling of separate pair/reservoir logistic fits and the (uncalled) Firth-penalized objective.",
+   "search_terms": [
+    "logistic regression maximum likelihood",
+    "probit regression MLE",
+    "complementary log-log regression",
+    "binary GLM fitting",
+    "fast logistic regression solver",
+    "fractional logit quasi-likelihood",
+    "Papke-Wooldridge fractional response",
+    "Firth penalized logistic regression",
+    "large-scale logistic regression optimization",
+    "small-p logistic regression many refits"
+   ]
+  },
+  "blocking-partition": {
+   "title": "Partitioning subjects into balanced blocks",
+   "description": "Partition n subjects into B blocks of near-equal size minimizing within-block distance or by covariate quantile strata: X, B -> block ids.",
+   "search_terms": [
+    "optimal blocking",
+    "balanced clustering equal size",
+    "threshold blocking Higgins",
+    "blockTools",
+    "equal-size k-means",
+    "multivariate blocking"
+   ]
+  },
+  "bootstrap-confidence-interval": {
+   "title": "Bootstrap confidence intervals and p-values from replicates",
+   "description": "Turn B bootstrap replicates into percentile, basic, studentized, symmetric, smoothed, BCa and double-bootstrap-calibrated intervals and p-values: B replicates -> CI, p. Post-loop; double bootstrap multiplies cost by B.",
+   "search_terms": [
+    "bootstrap confidence intervals",
+    "BCa interval",
+    "percentile bootstrap",
+    "bootstrap-t interval",
+    "double bootstrap calibration",
+    "iterated bootstrap",
+    "bootstrap p-value"
+   ]
+  },
+  "bootstrap-index-generation": {
+   "title": "Bootstrap and resampling index generation",
+   "description": "Generate B x n resampling index matrices for i.i.d., stratified, cluster/block, pair-preserving (pairs + reservoir) and exchangeable-unit bootstraps: n, structure, B -> index draws. Inner hot loop of every bootstrap.",
+   "search_terms": [
+    "bootstrap resampling indices",
+    "cluster bootstrap",
+    "block bootstrap",
+    "stratified bootstrap",
+    "multinomial sampling with replacement",
+    "fast sampling with replacement",
+    "pairs bootstrap"
+   ]
+  },
+  "bootstrap-randomization-test": {
+   "title": "Bootstrap-randomization test (BRT) null distribution",
+   "description": "Draw B bootstrap resamples that also redraw w (or permute it), recompute the statistic (mean difference, HL, ridit, KM median/RMST, log-rank, MW) per draw, and form the BRT null/reference distribution: data, design -> B draws. Inner hot loop, OpenMP batch kernels.",
+   "search_terms": [
+    "bootstrap randomization test",
+    "bootstrap hypothesis test under null",
+    "combined bootstrap permutation",
+    "resampling null distribution",
+    "bootstrap test mean difference"
+   ]
+  },
+  "clmm-ordinal-mixed-fit": {
+   "title": "Cumulative-link mixed model (ordinal GLMM) fit",
+   "description": "Fit a cumulative-link random-intercept model (CLMM) for matched/clustered ordinal data: ordinal y, X, cluster ids -> (thresholds, beta, sigma_u). Per-fit kernel of ordinal KK GLMM classes; repeated in Bayesian bootstrap.",
+   "search_terms": [
+    "cumulative link mixed model",
+    "ordinal mixed model",
+    "clmm ordinal package",
+    "random effects proportional odds",
+    "ordinal GLMM quadrature"
+   ]
+  },
+  "complete-randomization-draws": {
+   "title": "Complete / Bernoulli / pair randomization draws",
+   "description": "Draw assignment vectors from simple designs: complete randomization (n_T of n), Bernoulli, cluster Bernoulli, blocked complete randomization, and within-pair coin flips for matched designs: n, design -> r assignment vectors. Hot path of randomization inference.",
+   "search_terms": [
+    "random permutation generation",
+    "complete randomization",
+    "sampling without replacement",
+    "Bernoulli randomization",
+    "matched pair randomization",
+    "random combination generation"
+   ]
+  },
+  "conditional-logit-matched-fit": {
+   "title": "Conditional likelihood fit for matched pairs (clogit / conditional Poisson)",
+   "description": "Fit conditional likelihoods for 1:1 matched pairs (conditional logistic, conditional Poisson = binomial-logit on pair totals), optionally jointly with an unconditional reservoir model sharing beta_T: pairs + reservoir data -> beta_T, SE. Per-fit kernel of KK matched inference; repeated in resampling loops.",
+   "search_terms": [
+    "conditional logistic regression",
+    "clogit matched pairs",
+    "conditional Poisson regression",
+    "conditional maximum likelihood matched pairs",
+    "1:1 matched case-control",
+    "discordant pairs logistic"
+   ]
+  },
+  "constrained-binomial-mle": {
+   "title": "Constrained binomial MLE with log or identity link",
+   "description": "Maximize the binomial likelihood under a log link (risk ratio) or identity link (risk difference) where fitted means must stay inside (0,1): X, y -> beta on/near the boundary of the feasible region, plus score/information for score, gradient and Bartlett CIs. Per-fit, repeated inside CI inversion refits.",
+   "search_terms": [
+    "log-binomial regression",
+    "relative risk regression MLE",
+    "identity-link binomial regression",
+    "risk difference regression",
+    "constrained maximum likelihood binomial",
+    "log-binomial convergence problems",
+    "boundary MLE log-binomial",
+    "COPY method log-binomial",
+    "EM algorithm for log-binomial"
+   ]
+  },
+  "count-glm-mle": {
+   "title": "Poisson / quasi-Poisson / modified-Poisson GLM fit",
+   "description": "Fit a log-link count model (Poisson, quasi-Poisson, robust Poisson, Zou's modified Poisson for binary outcomes) X, y -> beta, dispersion, SE. Per-fit kernel for count inference classes and KK marginal RR; repeated in resampling loops.",
+   "search_terms": [
+    "Poisson regression maximum likelihood",
+    "log-linear model fitting",
+    "quasi-Poisson regression",
+    "modified Poisson regression Zou",
+    "robust Poisson relative risk",
+    "Poisson GLM solver",
+    "count regression fast fitting"
+   ]
+  },
+  "covariance-from-information": {
+   "title": "Covariance matrix / SE from an information matrix",
+   "description": "Invert (or partially invert) a small symmetric information/Hessian matrix to get vcov or a single diagonal entry Var(beta_j), with fallbacks for near-singular matrices: p x p information -> vcov or one diagonal entry. Post-fit in every likelihood class; called inside resampling loops.",
+   "search_terms": [
+    "inverse of symmetric positive definite matrix",
+    "diagonal of matrix inverse",
+    "covariance from Fisher information",
+    "pseudo-inverse singular Hessian",
+    "Cholesky inverse",
+    "selected inversion"
+   ]
+  },
+  "cox-ph-fit": {
+   "title": "Cox proportional-hazards partial-likelihood fit",
+   "description": "Maximize the Cox partial likelihood (Breslow/Efron ties, strata, weights, offset-constrained): (time, status, X) -> beta, information, robust variance, baseline hazard. Per-fit kernel of survival classes; repeated in bootstrap/randomization and test-inversion loops.",
+   "search_terms": [
+    "Cox proportional hazards fitting",
+    "partial likelihood maximization",
+    "Breslow ties",
+    "Efron ties approximation",
+    "stratified Cox model",
+    "coxph Newton-Raphson",
+    "fast Cox regression large n",
+    "risk set computation"
+   ]
+  },
+  "cumulative-link-ordinal-mle": {
+   "title": "Cumulative-link ordinal regression MLE",
+   "description": "Fit proportional-odds and other cumulative-link models (logit, probit, cloglog, cauchit) and partial proportional odds: ordinal y with K levels, X -> thresholds alpha and beta with information. Per-fit kernel for ordinal inference classes; repeated in bootstrap/randomization loops.",
+   "search_terms": [
+    "proportional odds model fitting",
+    "cumulative link model",
+    "ordered probit maximum likelihood",
+    "ordinal regression MLE",
+    "partial proportional odds",
+    "polr clm algorithm",
+    "ordered logit Newton-Raphson",
+    "threshold parameters ordinal regression"
+   ]
+  },
+  "design-matrix-preprocessing": {
+   "title": "Design-matrix column selection and standardization",
+   "description": "Detect constant, rank-deficient and near-collinear columns (keeping the treatment column) and standardize columns: X -> reduced, scaled X. Pre-fit, called before every fit.",
+   "search_terms": [
+    "rank-revealing QR",
+    "numerical rank",
+    "collinearity detection",
+    "subset selection column pivoting",
+    "column standardization",
+    "rank deficient design matrix"
+   ]
+  },
+  "exact-conditional-tests": {
+   "title": "Exact conditional tests for 2x2 and matched binary data",
+   "description": "Exact binomial/McNemar/sign tests, Fisher and exact CMH conditional tests and Clopper-Pearson intervals for the conditional OR: counts -> exact p, CI, CMLE. Per-test; also inside exact-CI inversion.",
+   "search_terms": [
+    "Fisher exact test",
+    "exact conditional test odds ratio",
+    "noncentral hypergeometric distribution",
+    "exact McNemar test",
+    "exact Cochran-Mantel-Haenszel",
+    "Clopper-Pearson interval",
+    "exact binomial test two-sided"
+   ]
+  },
+  "exact-rank-null-distribution": {
+   "title": "Exact null distribution of rank statistics with ties",
+   "description": "Compute the exact permutation null PMF of Mann-Whitney / Jonckheere-Terpstra statistics on K tied ordinal levels: level counts per arm -> exact p-value. Per-test; combinatorial blow-up guarded.",
+   "search_terms": [
+    "exact Jonckheere-Terpstra distribution",
+    "exact Wilcoxon Mann-Whitney with ties",
+    "permutation distribution rank statistic",
+    "multivariate hypergeometric enumeration",
+    "network algorithm Mehta Patel",
+    "shift algorithm Streitberg Rohmel"
+   ]
+  },
+  "gamma-family-functions": {
+   "title": "Gamma-family special functions",
+   "description": "Evaluate log Gamma, log Beta, digamma, trigamma, regularized incomplete gamma, chi-square tails and NB log-pmf vectorized: x -> value. Innermost kernel of NB/beta/count likelihoods.",
+   "search_terms": [
+    "log gamma function computation",
+    "digamma trigamma algorithm",
+    "incomplete gamma function",
+    "chi-square tail probability",
+    "special function evaluation",
+    "vectorized lgamma"
+   ]
+  },
+  "gauss-hermite-nodes": {
+   "title": "Gauss-Hermite nodes and weights",
+   "description": "Compute K Gauss-Hermite quadrature nodes and weights: K -> (nodes, weights). Precomputed once per fit for GLMM/frailty marginal likelihoods.",
+   "search_terms": [
+    "Gauss-Hermite quadrature nodes",
+    "Golub-Welsch algorithm",
+    "computing Gaussian quadrature rules",
+    "Glaser-Liu-Rokhlin",
+    "Hale-Townsend quadrature",
+    "statmod gauss.quad"
+   ]
+  },
+  "gaussian-lmm-fit": {
+   "title": "Gaussian random-intercept linear mixed model fit",
+   "description": "Fit a Gaussian random-intercept LMM (pairs + singletons) by exact ML/GLS: y, X, cluster ids -> (beta, sigma_e, sigma_u). Per-fit kernel; repeated in resampling loops. Clusters have size 1 or 2.",
+   "search_terms": [
+    "linear mixed model maximum likelihood",
+    "random intercept model",
+    "REML ML linear mixed model",
+    "generalized least squares variance components",
+    "lme4 lmer algorithm",
+    "balanced one-way random effects"
+   ]
+  },
+  "gcomp-marginal-effects": {
+   "title": "G-computation marginal effects with delta-method SE",
+   "description": "Standardize a fitted outcome model (logistic, fractional logit, proportional odds) over the sample to get marginal RD / RR / mean differences and a delta-method or sandwich SE: fit + X -> marginal estimand, SE. Post-fit; repeated per bootstrap replicate.",
+   "search_terms": [
+    "g-computation",
+    "standardization marginal effect",
+    "marginal risk difference logistic",
+    "delta method standard error",
+    "average treatment effect regression standardization",
+    "stdReg marginaleffects"
+   ]
+  },
+  "gee-fit": {
+   "title": "Generalized estimating equations fit",
+   "description": "Solve GEE with exchangeable (or local-odds-ratio) working correlation within pairs + singletons: y, X, cluster ids -> beta and sandwich variance. Per-fit kernel of KK GEE classes; repeated in randomization loops.",
+   "search_terms": [
+    "generalized estimating equations",
+    "Liang-Zeger GEE",
+    "exchangeable working correlation",
+    "GEE ordinal local odds ratio",
+    "geepack",
+    "marginal model clustered data"
+   ]
+  },
+  "generic-smooth-mle-optimization": {
+   "title": "Generic smooth unconstrained MLE driver",
+   "description": "Minimize a smooth negative log-likelihood given value/gradient (and optional Hessian) for any EDI model without a bespoke kernel: f, grad, theta0 -> theta-hat. Per-fit fallback path.",
+   "search_terms": [
+    "unconstrained optimization",
+    "quasi-Newton methods",
+    "damped Newton method",
+    "maximum likelihood optimizer comparison",
+    "optim vs nlminb",
+    "line search methods"
+   ]
+  },
+  "glmm-marginal-likelihood": {
+   "title": "Random-intercept GLMM marginal-likelihood fit (binary/count/hurdle)",
+   "description": "Maximize the marginal likelihood of random-intercept logistic, Poisson, hurdle-Poisson and clogit+GLMM models over pairs + singletons by integrating out the random effect: data, cluster ids -> (beta, sigma_u) with information. Per-fit kernel of KK GLMM classes; repeated in resampling loops.",
+   "search_terms": [
+    "generalized linear mixed model fitting",
+    "random intercept logistic regression",
+    "Poisson GLMM",
+    "marginal likelihood numerical integration",
+    "Laplace approximation GLMM",
+    "adaptive Gauss-Hermite quadrature GLMM",
+    "lme4 glmer algorithm",
+    "glmmTMB"
+   ]
+  },
+  "gram-matrix-accumulation": {
+   "title": "Weighted Gram matrix accumulation (X'WX, X'Wz)",
+   "description": "Accumulate X'WX, X'Wz and fused score/information sums in IRLS/Newton iterations: X, weights -> p x p Gram. Innermost kernel of all GLM-type fits.",
+   "search_terms": [
+    "weighted Gram matrix",
+    "X transpose W X computation",
+    "SYRK",
+    "BLAS level 3 crossproduct",
+    "crossprod performance"
+   ]
+  },
+  "greedy-swap-allocation-search": {
+   "title": "Greedy pair-switching allocation search",
+   "description": "Starting from a random allocation, repeatedly apply the best improving pairwise swap until a local optimum (Krieger-Azriel-Kapelner greedy pair-switching, D/A-optimal swap, within-pair flips): X, start -> locally optimal allocation; many restarts for randomization inference.",
+   "search_terms": [
+    "greedy pair switching design",
+    "pairwise swap local search",
+    "Kernighan-Lin",
+    "2-opt local search binary",
+    "local search balanced partition",
+    "Krieger Azriel Kapelner"
+   ]
+  },
+  "grouping-and-level-coding": {
+   "title": "Grouping, level coding and strata construction",
+   "description": "Sort/hash rows into contiguous groups, code distinct levels, relabel pair/cluster ids, build strata from low-cardinality columns, compute modes and aggregate weights per group: vectors -> group ids/layout.",
+   "search_terms": [
+    "group by operation",
+    "factor level coding",
+    "hash table counting",
+    "radix sort grouping",
+    "statistical mode computation",
+    "contiguous group layout"
+   ]
+  },
+  "hodges-lehmann-estimation": {
+   "title": "Hodges-Lehmann estimators (Walsh averages / pairwise differences)",
+   "description": "Compute the one-sample HL (median of m(m+1)/2 Walsh averages) and two-sample HL (median of n_T*n_C pairwise differences), weighted variants and their variance: samples -> HL estimate and SE. Per-fit and inside bootstrap/BRT loops.",
+   "search_terms": [
+    "Hodges-Lehmann estimator computation",
+    "median of pairwise differences",
+    "Walsh averages median",
+    "selection in X+Y",
+    "k-th smallest pairwise difference",
+    "Johnson-Mizoguchi selection",
+    "shift estimator Wilcoxon"
+   ]
+  },
+  "interval-censored-npmle": {
+   "title": "Interval-censored survival NPMLE",
+   "description": "Estimate the nonparametric MLE of S(t) for interval-censored data (Turnbull) and semiparametric PH (icenReg): intervals per arm -> survival curve, median/RMST, arm difference; also re-solved per draw in a randomization loop.",
+   "search_terms": [
+    "Turnbull estimator",
+    "NPMLE interval-censored data",
+    "self-consistency algorithm",
+    "iterative convex minorant",
+    "EM-ICM algorithm",
+    "icenReg interval",
+    "interval censoring nonparametric"
+   ]
+  },
+  "jackknife-replicates": {
+   "title": "Jackknife bias, variance and acceleration",
+   "description": "Compute delete-one-unit (observation/cluster/pair/matched set; weighted) replicates and Quenouille bias / Tukey variance / BCa acceleration: data, estimator -> n replicates. Post-fit, O(n) refits.",
+   "search_terms": [
+    "jackknife variance",
+    "delete-one jackknife",
+    "jackknife bias correction",
+    "infinitesimal jackknife",
+    "BCa acceleration constant",
+    "cluster jackknife"
+   ]
+  },
+  "kaplan-meier-rmst": {
+   "title": "Kaplan-Meier median and RMST with variance",
+   "description": "Compute per-arm Kaplan-Meier curves, median with Brookmeyer-Crowley CI, RMST to tau and their (weighted) Greenwood variance, and MOVER CI for differences: (time, status, arm, weights) -> estimates/SEs. Per-fit and per-bootstrap-replicate.",
+   "search_terms": [
+    "Kaplan-Meier estimator",
+    "restricted mean survival time",
+    "median survival confidence interval",
+    "Brookmeyer-Crowley",
+    "Greenwood formula",
+    "weighted Kaplan-Meier"
+   ]
+  },
+  "kk-sequential-matching": {
+   "title": "Kapelner-Krieger sequential matching on arrival",
+   "description": "For each arrival, compute (weighted) Mahalanobis distances to the reservoir, compare with an F/Hotelling T^2 or Monte Carlo quantile threshold, and match the nearest: arrival x, reservoir -> match or reservoir. O(n) arrivals x O(reservoir) per arrival.",
+   "search_terms": [
+    "sequential matching design",
+    "Kapelner Krieger matching on the fly",
+    "nearest neighbour search Mahalanobis",
+    "online matching",
+    "Hotelling T2 threshold"
+   ]
+  },
+  "kk21-covariate-weights": {
+   "title": "KK21 covariate-importance weights",
+   "description": "Per arrival, fit univariate (or forward-stepwise) outcome models of y on each covariate and turn |t|/score statistics into distance weights: responses so far, X -> p weights. Per arrival in KK21 designs, p (or p^2) fits each.",
+   "search_terms": [
+    "covariate importance weights",
+    "univariate screening regression",
+    "forward stepwise selection",
+    "score test variable selection",
+    "Frisch-Waugh-Lovell stepwise",
+    "sure independence screening"
+   ]
+  },
+  "likelihood-ci-inversion": {
+   "title": "Confidence intervals by inverting likelihood-based tests",
+   "description": "Find CI bounds as the roots in delta of p(delta) = alpha for score / gradient / LR / Bartlett tests, where each evaluation is a constrained refit: model, alpha -> [lower, upper]. Per-CI; each step costs a full refit, so iteration count dominates.",
+   "search_terms": [
+    "test inversion confidence interval",
+    "profile likelihood confidence interval",
+    "score confidence interval",
+    "likelihood ratio confidence interval root finding",
+    "Venzon-Moolgavkar",
+    "root finding expensive function"
+   ]
+  },
+  "likelihood-tests-null-refits": {
+   "title": "Likelihood-based test statistics and constrained null refits",
+   "description": "Compute LR, Rao score (via Schur complement efficient information), Terrell gradient and Bartlett-corrected statistics, including constrained/null refits with beta_T fixed: fitted model, delta0 -> statistic, p-value. Per-test; repeated per delta inside CI inversion and parametric bootstrap.",
+   "search_terms": [
+    "likelihood ratio test",
+    "Rao score test",
+    "gradient test Terrell",
+    "Bartlett correction",
+    "constrained maximum likelihood refit",
+    "efficient score nuisance parameters",
+    "profile likelihood test"
+   ]
+  },
+  "link-function-evaluation": {
+   "title": "Link functions and stable softplus/logistic evaluation",
+   "description": "Evaluate link CDFs/densities/derivatives (logit, probit, cloglog, cauchit), clamped logit/expit, softplus, log1p/expm1 forms: eta -> mu and derivatives without overflow. Innermost kernel of GLM/ordinal/GLMM likelihoods.",
+   "search_terms": [
+    "numerically stable logistic function",
+    "softplus log1p exp",
+    "log-sum-exp stable",
+    "link function derivatives",
+    "cauchit link",
+    "numerical stability GLM"
+   ]
+  },
+  "logrank-family-tests": {
+   "title": "Log-rank and weighted log-rank test statistics",
+   "description": "Compute log-rank, Gehan/Peto-Prentice Wilcoxon and Sun-score (interval-censored) statistics and variances from sorted risk sets: (time, status, arm) -> statistic, variance, martingale-residual differences. Per-test and per-randomization replicate.",
+   "search_terms": [
+    "log-rank test computation",
+    "weighted log-rank test",
+    "Gehan Wilcoxon test",
+    "Peto-Prentice test",
+    "Fleming-Harrington test",
+    "survdiff algorithm",
+    "martingale residuals"
+   ]
+  },
+  "matched-pair-reservoir-estimators": {
+   "title": "Kapelner-Krieger matched-pair + reservoir estimators",
+   "description": "Split a KK matching design into matched-pair differences and reservoir subjects, compute summary statistics and combine pair and reservoir estimates (inverse-variance weighting, Bai-Romano-Shaikh pairs-of-pairs variance): y, w, match ids -> compound estimate, SE. Per-fit and inside every KK resampling replicate.",
+   "search_terms": [
+    "matched pairs and unmatched reservoir estimator",
+    "Kapelner Krieger compound estimator",
+    "inverse variance weighted combination",
+    "Bai Romano Shaikh matched pairs variance",
+    "pairs of pairs variance estimator",
+    "paired difference estimator"
+   ]
+  },
+  "missing-covariate-imputation": {
+   "title": "Missing-covariate imputation in designs",
+   "description": "Impute missing covariates (random-forest chained imputation), possibly re-imputing on each arrival, before building the model matrix: X with NA -> completed X.",
+   "search_terms": [
+    "missing data imputation",
+    "missForest",
+    "missRanger",
+    "chained equations imputation",
+    "random forest imputation",
+    "online imputation"
+   ]
+  },
+  "mle-convergence-safeguards": {
+   "title": "Convergence certification and boundary handling for MLE",
+   "description": "Decide whether a stalled or boundary iterate is a genuine optimum (Newton decrement, scaled gradient norm, Poisson-limit theta, pi -> 0), detect separation, and refit reduced models: iterate -> accept/refit. Wraps every iterative fit.",
+   "search_terms": [
+    "convergence criteria optimization",
+    "Newton decrement",
+    "separation detection logistic",
+    "boundary maximum likelihood",
+    "complete separation",
+    "nonexistence of MLE",
+    "Poisson limit negative binomial"
+   ]
+  },
+  "mle-starting-values": {
+   "title": "Starting values for iterative MLE fits",
+   "description": "Produce good initial parameters for Newton/L-BFGS fits (OLS on transformed response, moments, threshold quantiles, start grids, warm starts from pilot fits): data -> theta0. Every iterative fit; determines iteration count.",
+   "search_terms": [
+    "starting values maximum likelihood",
+    "initial estimates GLM",
+    "warm start optimization",
+    "method of moments initial values",
+    "moment estimator start Weibull"
+   ]
+  },
+  "monte-carlo-test-inversion-ci": {
+   "title": "CIs by inverting Monte Carlo or exact randomization tests",
+   "description": "Find CI bounds as roots of a noisy or discontinuous p(delta) from randomization, bootstrap-randomization, parametric-bootstrap or exact tests (incl. Zhang combined exact CI), or by closed-form breakpoints when the statistic is affine in delta: data, design, alpha -> [lower, upper]. Each p(delta) evaluation is itself a resampling loop; top-level hot path.",
+   "search_terms": [
+    "randomization confidence interval",
+    "inverting permutation test",
+    "Hodges-Lehmann inversion randomization",
+    "stochastic root finding",
+    "Robbins-Monro confidence limits",
+    "Garthwaite Buckland Monte Carlo confidence interval",
+    "Fisher randomization interval"
+   ]
+  },
+  "negbin-glm-mle": {
+   "title": "Negative-binomial (NB2) regression MLE",
+   "description": "Jointly estimate beta and the NB2 size/dispersion theta: X, y -> (beta, theta) with SEs; handles theta -> infinity (Poisson limit). Per-fit kernel for NB inference classes and KK21 NB weights; repeated in resampling loops.",
+   "search_terms": [
+    "negative binomial regression maximum likelihood",
+    "NB2 model fitting",
+    "estimating negative binomial dispersion parameter",
+    "theta estimation glm.nb",
+    "overdispersed count regression",
+    "negative binomial Poisson limit boundary"
+   ]
+  },
+  "non-bipartite-matching": {
+   "title": "Minimum-weight perfect non-bipartite matching",
+   "description": "Pair n subjects (or pairs into pairs-of-pairs) minimizing total within-pair distance: distance matrix -> perfect matching. Per design / per variance estimate.",
+   "search_terms": [
+    "minimum weight perfect matching",
+    "non-bipartite matching",
+    "Edmonds blossom algorithm",
+    "optimal nonbipartite matching nbpMatching",
+    "Blossom V",
+    "pair matching experiments"
+   ]
+  },
+  "nonparametric-bootstrap-distribution": {
+   "title": "Nonparametric bootstrap distribution of an estimator",
+   "description": "Resample units B times and recompute the estimator (and SE for studentized variants), with rejection of degenerate resamples: data, estimator -> B (theta*, se*) pairs. Inner hot loop.",
+   "search_terms": [
+    "nonparametric bootstrap",
+    "studentized bootstrap",
+    "bootstrap t",
+    "efficient bootstrap computation",
+    "balanced bootstrap",
+    "importance sampling bootstrap"
+   ]
+  },
+  "normal-cdf-quantile": {
+   "title": "Normal CDF, log-CDF, density and quantile evaluation",
+   "description": "Evaluate Phi(x), log Phi(x), log phi(x), erfc and Phi^-1(p) vectorized with tail accuracy: x -> value. Innermost kernel of probit/cloglog fits, GH quadrature and p-values.",
+   "search_terms": [
+    "normal CDF computation",
+    "inverse normal CDF",
+    "log normal CDF tails",
+    "erfc approximation",
+    "Acklam algorithm",
+    "Wichura AS241",
+    "vectorized special functions"
+   ]
+  },
+  "numerical-derivatives": {
+   "title": "Numerical gradients and Hessians",
+   "description": "Approximate gradients / observed information by finite differences when no analytic Hessian is wired: objective (or gradient) function, theta -> gradient or Hessian. Post-fit (vcov) or inside Newton steps.",
+   "search_terms": [
+    "numerical differentiation",
+    "finite difference Hessian",
+    "numDeriv",
+    "automatic differentiation alternative",
+    "complex-step derivative",
+    "Richardson extrapolation"
+   ]
+  },
+  "ols-coef-resampling": {
+   "title": "OLS treatment coefficient across many resamples",
+   "description": "Compute the OLS treatment coefficient (and SE) for B resampled datasets where only w is permuted or rows are bootstrapped with X mostly fixed: X, y, B assignment/index draws -> B coefficients. Inner kernel of randomization/bootstrap/BRT loops; hot path.",
+   "search_terms": [
+    "fast permutation test regression coefficient",
+    "Frisch-Waugh-Lovell permutation",
+    "bootstrap OLS many replicates",
+    "batched least squares",
+    "updating regression when one column changes",
+    "Freedman-Lane permutation"
+   ]
+  },
+  "ols-fit": {
+   "title": "Ordinary least squares fit with SEs",
+   "description": "Fit OLS (incl. Lin 2013 interacted OLS, stacked pair-difference + reservoir designs): X, y -> beta, sigma^2, Var(beta_j). Per-fit kernel of continuous inference classes.",
+   "search_terms": [
+    "ordinary least squares",
+    "linear regression solver",
+    "normal equations vs QR",
+    "least squares fast small p",
+    "lm.fit",
+    "Lin 2013 regression adjustment"
+   ]
+  },
+  "pairwise-distance-matrix": {
+   "title": "Pairwise distance matrices (Euclidean, L1, Mahalanobis, custom)",
+   "description": "Compute all n x n (or m x m) distances, including Mahalanobis via an inverted sample covariance and user R distance callbacks: X -> distance matrix. Input to matching/blocking.",
+   "search_terms": [
+    "pairwise distance matrix computation",
+    "Mahalanobis distance matrix",
+    "fast Euclidean distance GEMM",
+    "dist function",
+    "distance matrix BLAS"
+   ]
+  },
+  "parallel-task-scheduling": {
+   "title": "Scheduling inference tasks across cores",
+   "description": "Assign heterogeneous (class, method, type) tasks to num_cores workers: task list -> schedule; wall time of the inference suite.",
+   "search_terms": [
+    "list scheduling",
+    "longest processing time first",
+    "parallel task scheduling",
+    "makespan minimization",
+    "work stealing"
+   ]
+  },
+  "parametric-bootstrap-simulation": {
+   "title": "Parametric bootstrap and null-data simulation",
+   "description": "Simulate outcome datasets from a fitted (or null) model -- Gaussian, ordinal, count, Cox event times, Clayton pairs -- and refit to calibrate LR p-values, bias and basic CIs: fitted model, B -> simulated datasets, calibrated p/CI. Inner loop.",
+   "search_terms": [
+    "parametric bootstrap",
+    "parametric bootstrap likelihood ratio test",
+    "simulating from fitted model",
+    "Monte Carlo calibration",
+    "bootstrap bias correction",
+    "simulating survival times Cox model"
+   ]
+  },
+  "per-arrival-design-update": {
+   "title": "Per-arrival design-matrix update in sequential designs",
+   "description": "After each arrival, rebuild design matrices (prev/all/scaled/with-y), detect varying/independent columns and z-scale them: data so far -> cleaned design matrices for the allocation rule. O(n) arrivals.",
+   "search_terms": [
+    "incremental QR update",
+    "updating rank-revealing QR",
+    "online standardization",
+    "sequential design matrix update",
+    "rank-one QR update"
+   ]
+  },
+  "performance-autotuning": {
+   "title": "Per-machine performance autotuning",
+   "description": "Benchmark candidate dispatch settings (cold/warm start, optimizer, parallel crossover n) and accept winners by timing comparisons: machine -> tuned config.",
+   "search_terms": [
+    "autotuning",
+    "performance tuning search",
+    "benchmark statistical comparison",
+    "empirical autotuning",
+    "A/B timing noise",
+    "Bayesian optimization autotuning"
+   ]
+  },
+  "permuted-block-randomization": {
+   "title": "Permuted-block and stratified block randomization",
+   "description": "Generate (stratified) permuted-block sequences with fixed or random block sizes: n, strata, block sizes -> assignment sequence; redrawn in randomization inference.",
+   "search_terms": [
+    "permuted block randomization",
+    "stratified block randomization",
+    "random block size",
+    "blocked randomization clinical trial"
+   ]
+  },
+  "pocock-simon-minimization": {
+   "title": "Pocock-Simon minimization",
+   "description": "Allocate each arrival to minimize marginal covariate imbalance with a biased coin, and replay sequences for null draws: categorical covariates -> assignment sequence.",
+   "search_terms": [
+    "Pocock-Simon minimization",
+    "covariate adaptive randomization",
+    "marginal balance minimization",
+    "Taves minimization"
+   ]
+  },
+  "pvalue-combination": {
+   "title": "Combining dependent or independent p-values",
+   "description": "Combine several p-values into one (Fisher, Stouffer, min-p for pairs + reservoir exact tests; Cauchy combination across methods): p-values -> combined p.",
+   "search_terms": [
+    "p-value combination",
+    "Fisher combination test",
+    "Stouffer method",
+    "Cauchy combination test",
+    "harmonic mean p-value",
+    "combining dependent tests"
+   ]
+  },
+  "quantile-rank-regression": {
+   "title": "Quantile and rank-based regression (L1 / LP)",
+   "description": "Fit linear quantile regression at tau (and on logit(y)) and rank-based Gehan AFT: y, X -> beta_tau with Hendricks-Koenker SE. Per-fit; repeated in sign-flip/permutation and bootstrap loops.",
+   "search_terms": [
+    "quantile regression algorithm",
+    "linear programming L1 regression",
+    "rq quantreg",
+    "Gehan rank regression",
+    "rank-based estimation accelerated failure time",
+    "least absolute deviations"
+   ]
+  },
+  "random-number-generation": {
+   "title": "Pseudo-random number generation and seeding",
+   "description": "Produce uniform words, unbiased bounded integers, U(0,1) doubles, N(0,1) deviates and reproducible per-draw/per-thread seeds: seed -> stream. Underlies every randomization and resampling draw.",
+   "search_terms": [
+    "pseudo-random number generator",
+    "Mersenne Twister",
+    "bounded random integers",
+    "parallel random streams",
+    "counter-based RNG",
+    "seeding parallel RNG",
+    "Philox Xoshiro PCG"
+   ]
+  },
+  "randomization-null-distribution": {
+   "title": "Monte Carlo randomization (permutation) null distribution and p-value",
+   "description": "Redraw assignments from the design r times, recompute the statistic each time, and form the randomization null distribution and Monte Carlo p-value: data, design, statistic -> r null draws, p. Top-level hot path of randomization inference.",
+   "search_terms": [
+    "permutation test Monte Carlo",
+    "randomization inference p-value",
+    "Fisher randomization test",
+    "approximate permutation test",
+    "Monte Carlo p-value",
+    "fast permutation test"
+   ]
+  },
+  "rerandomization-sampling": {
+   "title": "Rerandomization (acceptance-rejection) sampling",
+   "description": "Draw r allocations whose imbalance (Mahalanobis or L1) is below a cutoff, or keep the best fraction of N draws: X, cutoff -> r balanced allocations.",
+   "search_terms": [
+    "rerandomization Morgan Rubin",
+    "acceptance-rejection randomization",
+    "Mahalanobis balance criterion",
+    "constrained randomization",
+    "sampling balanced allocations",
+    "rerandomization asymptotic acceptance"
+   ]
+  },
+  "resampling-refit-loop": {
+   "title": "Executing many model refits inside resampling loops",
+   "description": "Run B refits of a model (Cox, Weibull, OLS, quantile, ordinal) under permuted w or resampled rows, reusing workers, warm starts and threads: model, B draws -> B estimates. Orchestration hot path; per-refit cost times B.",
+   "search_terms": [
+    "warm start bootstrap refits",
+    "parallel bootstrap",
+    "embarrassingly parallel resampling",
+    "reusing factorization across resamples",
+    "one-step bootstrap",
+    "fast permutation refits"
+   ]
+  },
+  "ridit-mann-whitney": {
+   "title": "Ridit / Mann-Whitney superiority estimation",
+   "description": "Compute ridit scores against a reference arm, the mean-ridit (P(Y_T>Y_C)+1/2 P(=)) contrast and its DeLong-type SE: ordinal or continuous samples -> estimate, SE. Per-fit and per-resample.",
+   "search_terms": [
+    "ridit analysis",
+    "probabilistic index",
+    "Mann-Whitney U statistic",
+    "win probability",
+    "DeLong variance AUC",
+    "concordance probability estimation"
+   ]
+  },
+  "risk-difference-ci": {
+   "title": "Risk-difference score and Wald intervals",
+   "description": "Compute CIs/p-values for a difference of two proportions: Wald, Wilson, Newcombe hybrid score (independent and paired) and Miettinen-Nurminen score with constrained-MLE nuisance: 2x2 counts -> CI, p. Per-test; MN/Newcombe inversions nest root finding.",
+   "search_terms": [
+    "risk difference confidence interval",
+    "Miettinen-Nurminen score interval",
+    "Newcombe hybrid score interval",
+    "Wilson score interval",
+    "difference of two proportions CI",
+    "paired proportions difference interval"
+   ]
+  },
+  "robust-m-regression": {
+   "title": "Robust M / MM linear regression",
+   "description": "Fit Huber/bisquare M and MM regression: X, y -> beta with robust scale (median |r|) and Huber sandwich SE. Per-fit; repeated in resampling loops.",
+   "search_terms": [
+    "robust regression M-estimator",
+    "MM-estimation",
+    "Huber regression",
+    "Tukey bisquare",
+    "rlm lmrob",
+    "iteratively reweighted least squares robust"
+   ]
+  },
+  "sandwich-variance": {
+   "title": "Heteroskedasticity- and cluster-robust sandwich variance",
+   "description": "Compute HC0/HC2, CR2 (Bell-McCaffrey) + Satterthwaite df, cluster-robust GLM and Lin-Wei Cox sandwich variances (and delta-method variants) from a fitted model: X, residuals/scores, cluster ids -> covariance matrix. Post-fit, repeated per resample when SE is studentized.",
+   "search_terms": [
+    "sandwich variance estimator",
+    "heteroskedasticity-consistent standard errors",
+    "HC2 HC3",
+    "cluster-robust variance",
+    "CR2 Bell-McCaffrey",
+    "Satterthwaite degrees of freedom",
+    "Lin-Wei robust variance Cox",
+    "sandwich clubSandwich"
+   ]
+  },
+  "sequential-biased-coin-designs": {
+   "title": "Sequential biased-coin and urn designs",
+   "description": "Simulate sequential allocation rules (Efron biased coin, Wei urn, iBCRD/Bernoulli sequential) one arrival at a time, and replay them for null draws: arrival sequence -> assignment sequence. Redrawn r times in randomization inference.",
+   "search_terms": [
+    "Efron biased coin design",
+    "urn design Wei",
+    "sequential randomization",
+    "response-adaptive randomization simulation",
+    "restricted randomization"
+   ]
+  },
+  "sequential-mc-pvalue-stopping": {
+   "title": "Sequential early stopping of Monte Carlo p-values",
+   "description": "Stop a randomization/BRT Monte Carlo loop early once the p-value is certainly above or below alpha (Clopper-Pearson band or sequential rule): stream of exceedance indicators -> stop/continue, p. Controls the number of resamples in hot loops.",
+   "search_terms": [
+    "sequential Monte Carlo p-value",
+    "Besag Clifford sequential test",
+    "early stopping permutation test",
+    "MMCTest Gandy",
+    "anytime-valid Monte Carlo test",
+    "truncated sequential probability ratio test"
+   ]
+  },
+  "simulation-study-engine": {
+   "title": "Simulation-study engine and Monte Carlo summaries",
+   "description": "Run fixed-replicate simulation studies (DGP generation, dedupe of results) and summarize MSE, coverage, power and size with Monte Carlo error: settings -> report.",
+   "search_terms": [
+    "Monte Carlo simulation study",
+    "simulation design statistics",
+    "Monte Carlo standard error",
+    "coverage probability estimation",
+    "simulation study framework"
+   ]
+  },
+  "stacked-design-construction": {
+   "title": "Stacked / expanded design construction",
+   "description": "Expand ordinal outcomes into stacked binary trials (adjacent-category, continuation-ratio) and stack pair-difference and reservoir rows into one design: data -> expanded X, y. Pre-fit.",
+   "search_terms": [
+    "ordinal to binary expansion",
+    "stacked binary regression ordinal",
+    "data augmentation continuation ratio",
+    "expanded design matrix",
+    "stacked regression"
+   ]
+  },
+  "stereotype-logit-mle": {
+   "title": "Stereotype logit MLE (nonconcave bilinear)",
+   "description": "Fit Anderson's stereotype logit with ordered scores phi_k and beta (bilinear phi_k * beta, nonconcave): y, X -> (phi, beta) with information/profile SE. Per-fit with multistart; repeated in resampling loops.",
+   "search_terms": [
+    "stereotype logit model",
+    "stereotype regression Anderson 1984",
+    "ordered stereotype model fitting",
+    "bilinear multinomial logit",
+    "reduced-rank multinomial logit",
+    "rank-one multinomial regression"
+   ]
+  },
+  "stratified-rd-variance": {
+   "title": "Variance of stratified / blocked risk differences",
+   "description": "Compute the variance of a block-stratified risk difference (Robins-Breslow-Greenland, hypergeometric within equal blocks, or Monte Carlo design-based): counts per block (or design draws) -> SE. Per-test.",
+   "search_terms": [
+    "Mantel-Haenszel risk difference variance",
+    "Robins Breslow Greenland variance",
+    "stratified risk difference",
+    "design-based variance randomized blocks",
+    "Cochran-Mantel-Haenszel"
+   ]
+  },
+  "subsampling-m-out-of-n": {
+   "title": "m-out-of-n bootstrap and subsampling",
+   "description": "Draw m-out-of-n bootstrap or Politis-Romano-Wolf subsamples and choose m/b by the minimum-volatility rule: data, m -> replicates, CI. Inner loop plus a grid over m.",
+   "search_terms": [
+    "m out of n bootstrap",
+    "subsampling Politis Romano Wolf",
+    "minimum volatility method",
+    "choice of subsample size",
+    "subsampling confidence intervals"
+   ]
+  },
+  "survival-frailty-copula-mle": {
+   "title": "Frailty and copula survival model MLE",
+   "description": "Fit Weibull AFT with normal frailty (Gauss-Hermite marginal likelihood), gamma frailty / Clayton copula for pairs, and a bivariate log-normal dependent-censoring model: paired survival data -> (beta, frailty/association params). Per-fit, multistart; repeated in bootstrap loops.",
+   "search_terms": [
+    "shared frailty model",
+    "Weibull frailty model maximum likelihood",
+    "Clayton copula survival",
+    "gamma frailty",
+    "dependent censoring copula",
+    "bivariate survival model fitting",
+    "parfm frailtypack"
+   ]
+  },
+  "weibull-aft-mle": {
+   "title": "Weibull AFT parametric survival MLE",
+   "description": "Fit a Weibull accelerated-failure-time model with right/left/interval censoring: (time, status, X) -> (beta, log sigma) with information and cluster-robust SE. Per-fit kernel; repeated in bootstrap loops and KK21 weights.",
+   "search_terms": [
+    "Weibull regression maximum likelihood",
+    "accelerated failure time model fitting",
+    "parametric survival regression",
+    "survreg algorithm",
+    "interval-censored Weibull regression",
+    "extreme value regression log-time"
+   ]
+  },
+  "zero-inflated-count-mle": {
+   "title": "Zero-inflated and hurdle count model MLE",
+   "description": "Fit two-part count mixtures (ZIP, ZINB, hurdle-Poisson, hurdle-NB, zero-truncated NB): X, y -> zero-part and count-part coefficients (+theta) with information/SEs, including reduced fits at boundaries. Per-fit, repeated in Bayesian/parametric bootstrap loops.",
+   "search_terms": [
+    "zero-inflated Poisson regression",
+    "zero-inflated negative binomial",
+    "hurdle model maximum likelihood",
+    "zero-truncated negative binomial",
+    "two-part count model",
+    "mixture model EM vs direct maximization",
+    "ZIP ZINB fitting algorithm"
+   ]
+  }
+ },
+ "methods": {
+  "ab-timing-comparison": {
+   "title": "Interleaved A/B timing comparison",
+   "synonyms": [
+    "A/B benchmark",
+    "interleaved timing",
+    "median timing rule"
+   ],
+   "broader": [
+    "benchmarking methodology",
+    "statistical comparison"
+   ],
+   "narrower": [
+    "unpaired median rule",
+    "paired interleaving",
+    "Mann-Whitney on timings"
+   ],
+   "software": [
+    "bench",
+    "microbenchmark",
+    "Google Benchmark",
+    "hyperfine"
+   ]
+  },
+  "active-set-projection": {
+   "title": "Active-set projection of Newton/IRLS steps",
+   "synonyms": [
+    "active-set method",
+    "projected Newton step",
+    "feasible-direction method",
+    "Fisher-metric projection"
+   ],
+   "broader": [
+    "constrained optimization",
+    "active-set methods",
+    "quadratic programming"
+   ],
+   "narrower": [
+    "projection onto mean-support polytope",
+    "step truncation at boundary",
+    "adaptive barrier",
+    "COPY method",
+    "combinatorial EM log-binomial"
+   ],
+   "software": [
+    "logbin",
+    "glm2",
+    "quadprog",
+    "OSQP",
+    "nloptr"
+   ]
+  },
+  "adaptive-quadrature": {
+   "title": "Adaptive numerical quadrature (QUADPACK)",
+   "synonyms": [
+    "adaptive quadrature",
+    "QUADPACK",
+    "integrate()",
+    "Gauss-Kronrod"
+   ],
+   "broader": [
+    "numerical integration"
+   ],
+   "narrower": [
+    "Gauss-Kronrod 21-point",
+    "adaptive Simpson",
+    "tanh-sinh"
+   ],
+   "software": [
+    "stats::integrate",
+    "cubature",
+    "scipy.integrate.quad",
+    "Boost.Math quadrature"
+   ]
+  },
+  "all-pairs-comparison": {
+   "title": "All-pairs comparison (outer product)",
+   "synonyms": [
+    "all-pairs comparison",
+    "brute-force Mann-Whitney",
+    "outer product comparison"
+   ],
+   "broader": [
+    "U-statistics",
+    "brute-force computation"
+   ],
+   "narrower": [
+    "weighted P(Y_T>Y_C) by all pairs",
+    "sort-based O(n log n) replacement"
+   ],
+   "software": []
+  },
+  "alternating-irls-theta": {
+   "title": "Alternating IRLS for beta and Newton for NB theta",
+   "synonyms": [
+    "alternating estimation glm.nb",
+    "profile IRLS negative binomial",
+    "coordinate-wise beta/theta updates",
+    "glm.nb algorithm"
+   ],
+   "broader": [
+    "block coordinate descent",
+    "alternating optimization",
+    "GLM fitting algorithms"
+   ],
+   "narrower": [
+    "theta.ml Newton",
+    "theta moment estimator update",
+    "outer-inner iteration NB",
+    "joint vs alternating NB estimation"
+   ],
+   "software": [
+    "MASS::glm.nb",
+    "MASS::theta.ml",
+    "statsmodels NegativeBinomial",
+    "glmmTMB nbinom2",
+    "countreg"
+   ]
+  },
+  "analytic-derivatives": {
+   "title": "Analytic score, Hessian and information",
+   "synonyms": [
+    "analytic gradient",
+    "closed-form score",
+    "analytic Hessian",
+    "expected Fisher information",
+    "observed information closed form"
+   ],
+   "broader": [
+    "likelihood evaluation",
+    "derivative computation"
+   ],
+   "narrower": [
+    "fused likelihood-gradient-Hessian pass",
+    "block-diagonal information",
+    "expected vs observed information",
+    "vectorized NLL evaluation"
+   ],
+   "software": [
+    "TMB",
+    "Stan math",
+    "CppAD",
+    "JAX"
+   ]
+  },
+  "asymptotic-series-recurrence": {
+   "title": "Recurrence + asymptotic series (polygamma)",
+   "synonyms": [
+    "digamma recurrence",
+    "asymptotic expansion",
+    "polygamma evaluation"
+   ],
+   "broader": [
+    "special function evaluation",
+    "asymptotic expansions"
+   ],
+   "narrower": [
+    "upward recurrence to x>=6 then asymptotic series",
+    "rational approximation digamma",
+    "Bernoulli number series"
+   ],
+   "software": [
+    "Rmath digamma trigamma",
+    "Boost.Math digamma",
+    "Cephes psi"
+   ]
+  },
+  "atkinson-da-biased-coin": {
+   "title": "Atkinson D_A-optimal biased coin",
+   "synonyms": [
+    "Atkinson biased coin",
+    "D_A-optimal biased coin",
+    "Atkinson 1982"
+   ],
+   "broader": [
+    "optimal design",
+    "covariate-adaptive randomization"
+   ],
+   "narrower": [
+    "full LU inverse per arrival",
+    "Sherman-Morrison rank-one update of (X'X)^-1",
+    "Cholesky update",
+    "column selection per t"
+   ],
+   "software": [
+    "carat",
+    "randomizeR"
+   ]
+  },
+  "balanced-clustering": {
+   "title": "Balanced clustering",
+   "synonyms": [
+    "balanced clustering",
+    "equal-size clustering",
+    "centroid clustering with size constraints"
+   ],
+   "broader": [
+    "clustering",
+    "partitioning"
+   ],
+   "narrower": [
+    "K-way centroid clustering",
+    "Ward holdout",
+    "constrained k-means"
+   ],
+   "software": [
+    "anticlust",
+    "scclust",
+    "blockTools"
+   ]
+  },
+  "barrodale-roberts-simplex": {
+   "title": "Barrodale-Roberts simplex for L1/quantile regression",
+   "synonyms": [
+    "Barrodale-Roberts",
+    "BR simplex",
+    "exterior-point simplex quantile regression",
+    "rq br"
+   ],
+   "broader": [
+    "linear programming",
+    "simplex method",
+    "L1 regression"
+   ],
+   "narrower": [
+    "parametric quantile process",
+    "rq.fit.br",
+    "simplex warm start"
+   ],
+   "software": [
+    "quantreg rq(method='br')",
+    "statsmodels QuantReg",
+    "scikit-learn QuantileRegressor highs"
+   ]
+  },
+  "bayesian-bootstrap": {
+   "title": "Bayesian bootstrap (Dirichlet weights)",
+   "synonyms": [
+    "Bayesian bootstrap",
+    "Dirichlet weights",
+    "weighted likelihood bootstrap",
+    "random weighting"
+   ],
+   "broader": [
+    "resampling methods",
+    "weighted bootstrap"
+   ],
+   "narrower": [
+    "exponential-weight generation",
+    "per-replicate weighted refits",
+    "Bayesian BCa"
+   ],
+   "software": [
+    "bayesboot",
+    "LaplacesDemon",
+    "rsample"
+   ]
+  },
+  "bca-interval": {
+   "title": "BCa bootstrap interval",
+   "synonyms": [
+    "BCa",
+    "bias-corrected and accelerated",
+    "jackknife acceleration"
+   ],
+   "broader": [
+    "bootstrap confidence intervals"
+   ],
+   "narrower": [
+    "empirical influence acceleration",
+    "ABC intervals"
+   ],
+   "software": [
+    "boot::boot.ci",
+    "bcaboot",
+    "scipy.stats.bootstrap BCa"
+   ]
+  },
+  "bernoulli-coin-flips": {
+   "title": "Independent Bernoulli coin flips",
+   "synonyms": [
+    "Bernoulli trials",
+    "coin flips",
+    "uniform threshold",
+    "sign-flip draws"
+   ],
+   "broader": [
+    "random sampling"
+   ],
+   "narrower": [
+    "within-pair coin flips",
+    "cluster-level Bernoulli",
+    "bit-packed random bits",
+    "remaining-slot probability",
+    "per-column seeded flips"
+   ],
+   "software": [
+    "randomizr simple_ra",
+    "base::rbinom",
+    "dqrng"
+   ]
+  },
+  "best-improvement-swap": {
+   "title": "Best-improvement pairwise-swap local search",
+   "synonyms": [
+    "pairwise swap local search",
+    "pair switching",
+    "best-improvement local search",
+    "1-swap neighbourhood"
+   ],
+   "broader": [
+    "local search",
+    "combinatorial optimization heuristics"
+   ],
+   "narrower": [
+    "incremental swap-delta objective",
+    "bound-pruned swap search",
+    "first-improvement swap",
+    "within-pair flips",
+    "Kernighan-Lin",
+    "tabu search"
+   ],
+   "software": [
+    "GreedyExperimentalDesign"
+   ]
+  },
+  "bfgs": {
+   "title": "BFGS quasi-Newton (dense)",
+   "synonyms": [
+    "BFGS",
+    "Broyden-Fletcher-Goldfarb-Shanno",
+    "variable metric method",
+    "optim BFGS"
+   ],
+   "broader": [
+    "quasi-Newton methods",
+    "unconstrained optimization",
+    "smooth optimization"
+   ],
+   "narrower": [
+    "BFGS with analytic gradient",
+    "BFGS with numerical gradient",
+    "damped BFGS",
+    "BFGS inverse Hessian update",
+    "Nelder-Mead fallback"
+   ],
+   "software": [
+    "stats::optim",
+    "MASS::polr",
+    "nlminb",
+    "optimx",
+    "scipy.optimize BFGS",
+    "ucminf"
+   ]
+  },
+  "bisection": {
+   "title": "Bisection root finding",
+   "synonyms": [
+    "bisection",
+    "interval halving",
+    "bisection test inversion",
+    "binary search on parameter"
+   ],
+   "broader": [
+    "root finding",
+    "bracketing methods"
+   ],
+   "narrower": [
+    "bracketing + bisection",
+    "nested bisection",
+    "Monte Carlo test inversion bisection",
+    "confirm pass + bisection refinement",
+    "bisection on the score"
+   ],
+   "software": [
+    "stats::uniroot",
+    "Boost.Math bisect",
+    "scipy.optimize.bisect"
+   ]
+  },
+  "blossom-matching": {
+   "title": "Blossom algorithm for non-bipartite matching",
+   "synonyms": [
+    "Edmonds blossom algorithm",
+    "minimum-weight perfect matching",
+    "Derigs algorithm"
+   ],
+   "broader": [
+    "graph matching",
+    "combinatorial optimization"
+   ],
+   "narrower": [
+    "Blossom V",
+    "Derigs weighted matching",
+    "greedy approximate matching",
+    "auction algorithm"
+   ],
+   "software": [
+    "nbpMatching",
+    "Blossom V",
+    "LEMON",
+    "networkx max_weight_matching",
+    "designmatch"
+   ]
+  },
+  "bordered-normal-equations": {
+   "title": "Bordered normal equations (Frisch-Waugh-Lovell update)",
+   "synonyms": [
+    "bordered normal equations",
+    "Frisch-Waugh-Lovell",
+    "partitioned regression",
+    "Schur complement least squares"
+   ],
+   "broader": [
+    "least squares updating",
+    "linear algebra"
+   ],
+   "narrower": [
+    "precompute X'X once, update w column per draw",
+    "FWL residualization",
+    "column-pivoted QR fallback"
+   ],
+   "software": [
+    "Eigen",
+    "permuco",
+    "lmPerm"
+   ]
+  },
+  "boundary-reduced-refit": {
+   "title": "Boundary detection and reduced-model refit",
+   "synonyms": [
+    "reduced model refit",
+    "boundary refit",
+    "parameter at infinity handling"
+   ],
+   "broader": [
+    "boundary maximum likelihood",
+    "model reduction"
+   ],
+   "narrower": [
+    "ZINB to ZIP at theta=infinity",
+    "pi to zero drop zero-inflation",
+    "drop separating covariate refit"
+   ],
+   "software": [
+    "pscl",
+    "glmmTMB",
+    "countreg"
+   ]
+  },
+  "branch-and-bound-milp": {
+   "title": "MILP branch and bound",
+   "synonyms": [
+    "mixed integer linear programming",
+    "branch and bound",
+    "MILP",
+    "Fortet linearization",
+    "McCormick linearization"
+   ],
+   "broader": [
+    "integer programming",
+    "combinatorial optimization"
+   ],
+   "narrower": [
+    "Fortet/McCormick linearization of binary quadratic",
+    "branch and cut",
+    "MIQP direct",
+    "SDP relaxation bounds"
+   ],
+   "software": [
+    "GLPK",
+    "ompr",
+    "HiGHS",
+    "CBC",
+    "Gurobi",
+    "CPLEX",
+    "SCIP"
+   ]
+  },
+  "breakpoint-inversion": {
+   "title": "Closed-form breakpoint inversion for affine statistics",
+   "synonyms": [
+    "breakpoint inversion",
+    "exact randomization CI by breakpoints",
+    "piecewise-constant p-value inversion"
+   ],
+   "broader": [
+    "exact test inversion",
+    "computational geometry of p-value functions"
+   ],
+   "narrower": [
+    "per-draw affine coefficients (A_b, c_b)",
+    "sorting breakpoints",
+    "Garthwaite exact interval"
+   ],
+   "software": []
+  },
+  "brent-root": {
+   "title": "Brent's method (root finding / golden-section)",
+   "synonyms": [
+    "Brent's method",
+    "uniroot",
+    "Brent-Dekker",
+    "zeroin",
+    "golden-section search"
+   ],
+   "broader": [
+    "root finding",
+    "bracketing methods",
+    "univariate optimization"
+   ],
+   "narrower": [
+    "Brent maximization of p(delta)",
+    "ITP method",
+    "Chandrupatla",
+    "Illinois/regula falsi"
+   ],
+   "software": [
+    "stats::uniroot",
+    "stats::optimize",
+    "Boost.Math toms748",
+    "scipy.optimize.brentq"
+   ]
+  },
+  "breslow-risk-set-cumsum": {
+   "title": "Risk-set sums by reverse cumulative sums",
+   "synonyms": [
+    "reverse cumulative sum risk sets",
+    "Breslow partial likelihood evaluation",
+    "risk-set rescan",
+    "Breslow estimator"
+   ],
+   "broader": [
+    "Cox model computation",
+    "prefix sums"
+   ],
+   "narrower": [
+    "O(n) reverse cumsum after sort",
+    "Efron ties correction",
+    "stratified cumsums",
+    "Breslow cumulative baseline hazard"
+   ],
+   "software": [
+    "survival::coxph",
+    "glmnet cox",
+    "scikit-survival",
+    "lifelines",
+    "fastcox"
+   ]
+  },
+  "brt-monte-carlo": {
+   "title": "Bootstrap-randomization test Monte Carlo",
+   "synonyms": [
+    "bootstrap-randomization test",
+    "BRT",
+    "bootstrap under the null with redrawn assignment"
+   ],
+   "broader": [
+    "bootstrap tests",
+    "randomization tests"
+   ],
+   "narrower": [
+    "studentized BRT",
+    "C++ batch kernel",
+    "masked sums",
+    "draw materialization for common random numbers",
+    "early stopping"
+   ],
+   "software": []
+  },
+  "brute-force-distance": {
+   "title": "Brute-force pairwise distances",
+   "synonyms": [
+    "brute-force distance computation",
+    "all-pairs distances",
+    "dist matrix"
+   ],
+   "broader": [
+    "distance computation",
+    "nearest neighbour search"
+   ],
+   "narrower": [
+    "GEMM trick ||x||^2+||y||^2-2x'y",
+    "weighted Euclidean",
+    "L1 distance",
+    "R callback per pair",
+    "KD-tree / ball tree",
+    "approximate nearest neighbours"
+   ],
+   "software": [
+    "stats::dist",
+    "Rfast::Dist",
+    "parallelDist",
+    "FNN",
+    "RANN",
+    "scikit-learn pairwise_distances"
+   ]
+  },
+  "cholesky-ldlt": {
+   "title": "Cholesky / LDLT factorization",
+   "synonyms": [
+    "Cholesky decomposition",
+    "LDLT",
+    "LDL^T factorization",
+    "normal equations via Cholesky",
+    "Cholesky whitening"
+   ],
+   "broader": [
+    "matrix factorization",
+    "dense linear algebra",
+    "symmetric positive definite solvers"
+   ],
+   "narrower": [
+    "LDLT with QR fallback",
+    "LDLT inverse",
+    "solve against unit vector for one diagonal entry",
+    "Cholesky rank-one update/downdate",
+    "pivoted Cholesky",
+    "normal equations LDLT"
+   ],
+   "software": [
+    "Eigen LDLT/LLT",
+    "LAPACK dpotrf",
+    "RcppArmadillo",
+    "chol2inv",
+    "Matrix (R)"
+   ]
+  },
+  "clogit-logistic-reduction": {
+   "title": "Conditional logit as logistic regression on pair differences",
+   "synonyms": [
+    "clogit-as-logistic reduction",
+    "discordant-pair logistic regression",
+    "pair-difference logistic",
+    "conditional likelihood reduction"
+   ],
+   "broader": [
+    "conditional likelihood",
+    "model reduction"
+   ],
+   "narrower": [
+    "no-intercept logistic on X differences",
+    "conditional Poisson as binomial-logit",
+    "stacked conditional + marginal design"
+   ],
+   "software": [
+    "survival::clogit",
+    "Epi::clogistic",
+    "stats::glm",
+    "mclogit"
+   ]
+  },
+  "clopper-pearson-interval": {
+   "title": "Clopper-Pearson exact binomial interval",
+   "synonyms": [
+    "Clopper-Pearson",
+    "exact binomial confidence interval",
+    "beta quantile interval"
+   ],
+   "broader": [
+    "binomial confidence intervals",
+    "exact intervals"
+   ],
+   "narrower": [
+    "Clopper-Pearson band for Monte Carlo p-values",
+    "MC-error intervals in simulation studies",
+    "Blaker interval"
+   ],
+   "software": [
+    "stats::binom.test",
+    "binom",
+    "PropCIs"
+   ]
+  },
+  "closed-form": {
+   "title": "Closed-form evaluation",
+   "synonyms": [
+    "closed form",
+    "explicit formula",
+    "analytic expression"
+   ],
+   "broader": [
+    "direct computation"
+   ],
+   "narrower": [
+    "vectorized closed form",
+    "lookup tables",
+    "precomputed log-factorials",
+    "single-pass formula"
+   ],
+   "software": []
+  },
+  "cluster-block-resampling": {
+   "title": "Cluster / block / pair-preserving resampling",
+   "synonyms": [
+    "cluster bootstrap",
+    "block bootstrap",
+    "pair bootstrap",
+    "pair-preserving bootstrap"
+   ],
+   "broader": [
+    "resampling methods",
+    "clustered data"
+   ],
+   "narrower": [
+    "bucketed group resampling",
+    "pairs + reservoir resampling",
+    "wild cluster bootstrap"
+   ],
+   "software": [
+    "boot",
+    "clusterSEs",
+    "fwildclusterboot",
+    "rsample group_bootstraps"
+   ]
+  },
+  "continued-fraction-lentz": {
+   "title": "Modified Lentz continued fractions",
+   "synonyms": [
+    "Lentz algorithm",
+    "continued fraction evaluation",
+    "modified Lentz"
+   ],
+   "broader": [
+    "special function evaluation"
+   ],
+   "narrower": [
+    "upper incomplete gamma CF",
+    "chi-square upper tail",
+    "Temme uniform asymptotics"
+   ],
+   "software": [
+    "Rmath pgamma",
+    "Boost.Math gamma_q",
+    "Cephes igamc"
+   ]
+  },
+  "convergence-certification": {
+   "title": "Convergence certificates for iterative fits",
+   "synonyms": [
+    "convergence test",
+    "stopping criterion",
+    "Newton decrement",
+    "scaled gradient norm test"
+   ],
+   "broader": [
+    "optimization termination criteria",
+    "numerical optimization"
+   ],
+   "narrower": [
+    "Newton decrement LDLT",
+    "Hessian-scaled gradient norm",
+    "gradient-norm acceptance threshold",
+    "limit-score boundary certificate",
+    "scale-free convergence certificate",
+    "relative function change tolerance"
+   ],
+   "software": [
+    "optim reltol",
+    "nlminb rel.tol",
+    "glm.control epsilon"
+   ]
+  },
+  "crude-monte-carlo": {
+   "title": "Crude Monte Carlo averaging",
+   "synonyms": [
+    "Monte Carlo estimation",
+    "Monte Carlo averaging",
+    "simulation-based estimate"
+   ],
+   "broader": [
+    "Monte Carlo methods"
+   ],
+   "narrower": [
+    "fixed-replicate Monte Carlo",
+    "quasi-Monte Carlo",
+    "control variates",
+    "hash-set deduplication of results"
+   ],
+   "software": []
+  },
+  "delong-structural-components": {
+   "title": "DeLong structural-components variance",
+   "synonyms": [
+    "DeLong variance",
+    "structural components",
+    "placement values",
+    "U-statistic variance"
+   ],
+   "broader": [
+    "U-statistics",
+    "AUC inference"
+   ],
+   "narrower": [
+    "fast DeLong (Sun-Xu O(n log n))",
+    "variance accounting for estimated reference CDF"
+   ],
+   "software": [
+    "pROC",
+    "fastAUC",
+    "sklearn roc_auc"
+   ]
+  },
+  "delta-method": {
+   "title": "Delta method",
+   "synonyms": [
+    "delta method",
+    "first-order Taylor variance",
+    "propagation of error"
+   ],
+   "broader": [
+    "asymptotic variance approximation"
+   ],
+   "narrower": [
+    "finite-difference gradient delta method",
+    "analytic gradient delta method",
+    "multivariate delta method"
+   ],
+   "software": [
+    "msm::deltamethod",
+    "marginaleffects",
+    "car::deltaMethod"
+   ]
+  },
+  "dinkelbach": {
+   "title": "Dinkelbach parametric iteration",
+   "synonyms": [
+    "Dinkelbach method",
+    "fractional programming",
+    "parametric approach ratio optimization"
+   ],
+   "broader": [
+    "fractional programming",
+    "combinatorial optimization"
+   ],
+   "narrower": [
+    "0-1 fractional program",
+    "Charnes-Cooper transformation"
+   ],
+   "software": []
+  },
+  "double-bootstrap": {
+   "title": "Double (iterated) bootstrap calibration",
+   "synonyms": [
+    "double bootstrap",
+    "iterated bootstrap",
+    "prepivoting"
+   ],
+   "broader": [
+    "bootstrap calibration"
+   ],
+   "narrower": [
+    "fast double bootstrap (Davidson-MacKinnon)",
+    "coverage calibration of alpha"
+   ],
+   "software": [
+    "boot"
+   ]
+  },
+  "efron-biased-coin": {
+   "title": "Efron biased coin",
+   "synonyms": [
+    "Efron biased coin",
+    "biased coin design"
+   ],
+   "broader": [
+    "restricted randomization",
+    "sequential designs"
+   ],
+   "narrower": [
+    "generalized biased coin",
+    "adjustable biased coin",
+    "big stick design"
+   ],
+   "software": [
+    "randomizeR",
+    "carat"
+   ]
+  },
+  "eigen-pseudo-inverse": {
+   "title": "Eigendecomposition / Moore-Penrose pseudo-inverse",
+   "synonyms": [
+    "pseudo-inverse",
+    "Moore-Penrose inverse",
+    "eigendecomposition inverse",
+    "symmetric pseudo-inverse"
+   ],
+   "broader": [
+    "spectral methods",
+    "generalized inverses"
+   ],
+   "narrower": [
+    "truncated eigenvalue pseudo-inverse",
+    "SVD pseudo-inverse",
+    "eigen-pinv fallback"
+   ],
+   "software": [
+    "MASS::ginv",
+    "Eigen SelfAdjointEigenSolver",
+    "LAPACK dsyevr",
+    "corpcor::pseudoinverse"
+   ]
+  },
+  "erfc-normal-cdf": {
+   "title": "erfc-based normal CDF with clamped tails",
+   "synonyms": [
+    "erfc-based Phi",
+    "complementary error function normal CDF",
+    "log Phi via erfc"
+   ],
+   "broader": [
+    "special function evaluation"
+   ],
+   "narrower": [
+    "clamped tails",
+    "log-CDF asymptotic expansion",
+    "vectorized SIMD erfc"
+   ],
+   "software": [
+    "Rmath pnorm",
+    "Boost.Math erfc",
+    "SLEEF",
+    "scipy.special.log_ndtr"
+   ]
+  },
+  "exact-binomial-test": {
+   "title": "Exact binomial / sign / McNemar test",
+   "synonyms": [
+    "exact binomial test",
+    "sign test",
+    "exact McNemar",
+    "conditional binomial test"
+   ],
+   "broader": [
+    "exact tests",
+    "nonparametric tests"
+   ],
+   "narrower": [
+    "minlike two-sided p",
+    "central two-sided p",
+    "mid-p"
+   ],
+   "software": [
+    "stats::binom.test",
+    "exact2x2",
+    "DescTools::SignTest"
+   ]
+  },
+  "exhaustive-autotuning": {
+   "title": "Exhaustive axis-by-axis autotuning",
+   "synonyms": [
+    "exhaustive search autotuning",
+    "grid search tuning",
+    "coordinate-wise tuning"
+   ],
+   "broader": [
+    "autotuning",
+    "performance engineering"
+   ],
+   "narrower": [
+    "axis-by-axis search",
+    "A/B against incumbent",
+    "Bayesian optimization autotuning"
+   ],
+   "software": [
+    "ATLAS",
+    "FFTW planner",
+    "OpenTuner",
+    "Kernel Tuner"
+   ]
+  },
+  "exhaustive-enumeration": {
+   "title": "Exhaustive enumeration / convolution of exact null distributions",
+   "synonyms": [
+    "exhaustive enumeration",
+    "depth-first enumeration",
+    "exact permutation distribution",
+    "convolution of PMFs"
+   ],
+   "broader": [
+    "combinatorial algorithms",
+    "exact inference"
+   ],
+   "narrower": [
+    "DFS over compositions",
+    "log-factorial tables",
+    "generating-function / polynomial multiplication",
+    "network algorithm",
+    "shift algorithm",
+    "FFT convolution"
+   ],
+   "software": [
+    "clinfun jonckheere.test",
+    "coin exact",
+    "exactRankTests",
+    "StatXact",
+    "PMCMRplus"
+   ]
+  },
+  "exponential-bracketing": {
+   "title": "Exponential (doubling) bracketing",
+   "synonyms": [
+    "exponential search",
+    "doubling bracket",
+    "galloping search",
+    "root bracketing"
+   ],
+   "broader": [
+    "root finding",
+    "search algorithms"
+   ],
+   "narrower": [
+    "seeded bracketing from Wald CI",
+    "geometric expansion"
+   ],
+   "software": [
+    "stats::uniroot extendInt"
+   ]
+  },
+  "finite-differences": {
+   "title": "Finite-difference derivatives",
+   "synonyms": [
+    "finite differences",
+    "numerical differentiation",
+    "central differences",
+    "forward differences",
+    "numerical Hessian"
+   ],
+   "broader": [
+    "numerical differentiation",
+    "derivative approximation"
+   ],
+   "narrower": [
+    "central finite differences of the gradient",
+    "forward-difference Hessian",
+    "Richardson extrapolation",
+    "complex-step differentiation",
+    "automatic differentiation replacement",
+    "step-size selection"
+   ],
+   "software": [
+    "numDeriv",
+    "pracma",
+    "TMB",
+    "CppAD",
+    "scipy approx_fprime"
+   ]
+  },
+  "fisher-yates-shuffle": {
+   "title": "Fisher-Yates shuffle",
+   "synonyms": [
+    "Fisher-Yates shuffle",
+    "Knuth shuffle",
+    "random permutation",
+    "partial Fisher-Yates"
+   ],
+   "broader": [
+    "random sampling algorithms",
+    "sampling without replacement"
+   ],
+   "narrower": [
+    "partial shuffle (first n_T)",
+    "batched shuffles within blocks",
+    "permuted blocks via shuffle",
+    "Floyd's algorithm",
+    "merge shuffle parallel"
+   ],
+   "software": [
+    "base::sample",
+    "dqrng",
+    "std::shuffle",
+    "numpy permutation",
+    "randomizr complete_ra"
+   ]
+  },
+  "forward-stepwise-selection": {
+   "title": "Forward stepwise selection",
+   "synonyms": [
+    "forward stepwise",
+    "forward selection",
+    "stepwise regression"
+   ],
+   "broader": [
+    "variable selection"
+   ],
+   "narrower": [
+    "FWL + Gram-Schmidt updates",
+    "Rao score selection",
+    "full Wald refits",
+    "orthogonal matching pursuit",
+    "LARS"
+   ],
+   "software": [
+    "stats::step",
+    "leaps",
+    "lars",
+    "FWL updates"
+   ]
+  },
+  "g-computation": {
+   "title": "G-computation / standardization",
+   "synonyms": [
+    "g-computation",
+    "standardization",
+    "regression standardization",
+    "marginal effects averaging"
+   ],
+   "broader": [
+    "causal effect estimation",
+    "plug-in estimation"
+   ],
+   "narrower": [
+    "closed-form standardization",
+    "standardization with sandwich SE",
+    "drop-largest-coefficient separation fallback"
+   ],
+   "software": [
+    "stdReg",
+    "marginaleffects",
+    "RISCA",
+    "zEpid"
+   ]
+  },
+  "gauss-hermite-quadrature": {
+   "title": "Gauss-Hermite quadrature for random effects",
+   "synonyms": [
+    "Gauss-Hermite quadrature",
+    "GHQ",
+    "non-adaptive Gauss-Hermite",
+    "adaptive Gauss-Hermite quadrature",
+    "AGQ"
+   ],
+   "broader": [
+    "numerical integration",
+    "marginal likelihood approximation",
+    "quadrature methods"
+   ],
+   "narrower": [
+    "fixed K-node GHQ",
+    "adaptive (mode-centered) GHQ",
+    "Laplace as 1-node AGQ",
+    "sparse grid quadrature",
+    "pseudo-likelihood weighted GHQ"
+   ],
+   "software": [
+    "lme4 glmer nAGQ",
+    "GLMMadaptive",
+    "ordinal::clmm",
+    "glmmTMB",
+    "statmod",
+    "SAS PROC NLMIXED"
+   ]
+  },
+  "gauss-jordan-elimination": {
+   "title": "Gauss-Jordan elimination",
+   "synonyms": [
+    "Gauss-Jordan elimination",
+    "Gauss-Jordan inverse",
+    "partial pivoting inverse"
+   ],
+   "broader": [
+    "dense linear algebra",
+    "matrix inversion"
+   ],
+   "narrower": [
+    "ridge + Gauss-Jordan inverse of sample covariance",
+    "in-place inversion"
+   ],
+   "software": [
+    "base::solve",
+    "Eigen"
+   ]
+  },
+  "generalized-least-squares": {
+   "title": "Generalized least squares at fixed variance components",
+   "synonyms": [
+    "GLS",
+    "generalized least squares",
+    "weighted least squares with known covariance",
+    "exact Gaussian likelihood"
+   ],
+   "broader": [
+    "linear mixed model algorithms",
+    "least squares"
+   ],
+   "narrower": [
+    "block-diagonal GLS for pairs",
+    "GLS fast path",
+    "profiled ML"
+   ],
+   "software": [
+    "nlme::gls",
+    "lme4",
+    "mmrm"
+   ]
+  },
+  "golub-welsch": {
+   "title": "Golub-Welsch eigenvalue method",
+   "synonyms": [
+    "Golub-Welsch algorithm",
+    "Jacobi matrix eigenvalues",
+    "quadrature from tridiagonal eigenproblem"
+   ],
+   "broader": [
+    "Gaussian quadrature rule construction",
+    "symmetric tridiagonal eigenproblem"
+   ],
+   "narrower": [
+    "Glaser-Liu-Rokhlin",
+    "Hale-Townsend asymptotic",
+    "Newton on Hermite polynomials",
+    "precomputed node tables"
+   ],
+   "software": [
+    "statmod::gauss.quad",
+    "fastGHQuad",
+    "numpy.polynomial.hermite.hermgauss",
+    "FastGaussQuadrature.jl"
+   ]
+  },
+  "greedy-blocking": {
+   "title": "Greedy blocking",
+   "synonyms": [
+    "greedy blocking",
+    "greedy nearest-pair blocking",
+    "quantile binning strata"
+   ],
+   "broader": [
+    "heuristic partitioning"
+   ],
+   "narrower": [
+    "blockTools optGreedy",
+    "greedy column addition with quantile binning",
+    "threshold blocking"
+   ],
+   "software": [
+    "blockTools",
+    "quickblock",
+    "scclust"
+   ]
+  },
+  "greenwood-variance": {
+   "title": "Greenwood-type variance",
+   "synonyms": [
+    "Greenwood formula",
+    "Greenwood variance",
+    "delta-method RMST variance"
+   ],
+   "broader": [
+    "survival variance estimation"
+   ],
+   "narrower": [
+    "weighted Greenwood",
+    "RMST variance via Greenwood",
+    "Aalen variance"
+   ],
+   "software": [
+    "survival::survfit",
+    "survRM2"
+   ]
+  },
+  "hash-map-grouping": {
+   "title": "Hash-map grouping and counting",
+   "synonyms": [
+    "hash map counting",
+    "hash table grouping",
+    "frequency counting"
+   ],
+   "broader": [
+    "hashing",
+    "group-by algorithms"
+   ],
+   "narrower": [
+    "first-occurrence tie-break mode",
+    "mixed-radix key encoding",
+    "open addressing",
+    "counting sort alternative"
+   ],
+   "software": [
+    "data.table",
+    "collapse",
+    "std::unordered_map",
+    "absl flat_hash_map"
+   ]
+  },
+  "icm-npmle": {
+   "title": "Iterative convex minorant / EM-ICM",
+   "synonyms": [
+    "iterative convex minorant",
+    "ICM",
+    "EM-ICM",
+    "Groeneboom-Wellner ICM"
+   ],
+   "broader": [
+    "isotonic regression",
+    "nonparametric maximum likelihood"
+   ],
+   "narrower": [
+    "EM-ICM hybrid",
+    "semiparametric PH for interval censoring",
+    "bootstrap SE"
+   ],
+   "software": [
+    "icenReg ic_sp",
+    "Icens",
+    "MLEcens"
+   ]
+  },
+  "iid-index-resampling": {
+   "title": "i.i.d. multinomial index resampling",
+   "synonyms": [
+    "sampling with replacement",
+    "multinomial resampling",
+    "bootstrap indices"
+   ],
+   "broader": [
+    "random sampling algorithms"
+   ],
+   "narrower": [
+    "Lemire bounded integer draws",
+    "alias method",
+    "sampling without replacement (m-out-of-n)",
+    "batched B x n index matrix",
+    "Poisson bootstrap"
+   ],
+   "software": [
+    "base::sample.int",
+    "dqrng",
+    "Rfast",
+    "numpy Generator.integers"
+   ]
+  },
+  "induced-smoothing": {
+   "title": "Induced smoothing for rank estimating equations",
+   "synonyms": [
+    "induced smoothing",
+    "smoothed Gehan estimator",
+    "Brown-Wang smoothing"
+   ],
+   "broader": [
+    "rank-based estimation",
+    "estimating equations"
+   ],
+   "narrower": [
+    "smoothed Gehan AFT",
+    "Newton on smoothed equations",
+    "linear programming Gehan"
+   ],
+   "software": [
+    "aftgee",
+    "rankreg",
+    "lss"
+   ]
+  },
+  "interior-point-lp": {
+   "title": "Frisch-Newton interior point for quantile regression",
+   "synonyms": [
+    "Frisch-Newton",
+    "interior point method",
+    "primal-dual interior point",
+    "rq fn"
+   ],
+   "broader": [
+    "linear programming",
+    "convex optimization"
+   ],
+   "narrower": [
+    "preprocessing (Portnoy-Koenker)",
+    "sparse interior point (sfn)",
+    "Mehrotra predictor-corrector"
+   ],
+   "software": [
+    "quantreg rq(method='fn'/'pfn'/'sfn')",
+    "HiGHS",
+    "conquer (smoothed quantile regression)",
+    "CVXR"
+   ]
+  },
+  "inverse-transform-sampling": {
+   "title": "Inverse-transform sampling",
+   "synonyms": [
+    "inverse CDF sampling",
+    "inverse transform method",
+    "conditional inversion"
+   ],
+   "broader": [
+    "random variate generation"
+   ],
+   "narrower": [
+    "categorical sampling by linear scan",
+    "alias method",
+    "AS 241 normal inversion",
+    "conditional inversion for copulas",
+    "binary search inversion"
+   ],
+   "software": [
+    "base R r* functions",
+    "copula",
+    "dqrng"
+   ]
+  },
+  "inverse-variance-weighting": {
+   "title": "Inverse-variance weighted combination",
+   "synonyms": [
+    "inverse-variance weighting",
+    "IVW",
+    "precision weighting",
+    "fixed-effect meta-analytic combination"
+   ],
+   "broader": [
+    "estimator combination",
+    "meta-analysis"
+   ],
+   "narrower": [
+    "Satterthwaite df for combined estimator",
+    "IVW of pair and reservoir estimates",
+    "one-pass moments IVW"
+   ],
+   "software": [
+    "metafor",
+    "meta"
+   ]
+  },
+  "irls": {
+   "title": "Iteratively reweighted least squares (Fisher scoring)",
+   "synonyms": [
+    "IRLS",
+    "iteratively reweighted least squares",
+    "Fisher scoring",
+    "Fisher scoring canonical link",
+    "Newton-Raphson for GLMs",
+    "iterative weighted least squares",
+    "IWLS"
+   ],
+   "broader": [
+    "second-order optimization",
+    "GLM fitting algorithms",
+    "Newton-type methods",
+    "M-estimation algorithms",
+    "convex optimization"
+   ],
+   "narrower": [
+    "step-halving IRLS",
+    "trust-region IRLS",
+    "IRLS with Cholesky/LDLT solve",
+    "IRLS with QR solve",
+    "warm-started IRLS",
+    "IRLS for robust M-estimation",
+    "quasi-likelihood IRLS",
+    "Fisher scoring for GEE",
+    "truncated IRLS / early stopping",
+    "IRLS with Hessian reuse"
+   ],
+   "software": [
+    "stats::glm.fit",
+    "speedglm",
+    "fastglm",
+    "glm2",
+    "RcppEigen fastLm",
+    "statsmodels GLM",
+    "scikit-learn LogisticRegression newton-cholesky",
+    "h2o GLM",
+    "MASS::rlm",
+    "VGAM"
+   ]
+  },
+  "jackknife": {
+   "title": "Jackknife",
+   "synonyms": [
+    "delete-one jackknife",
+    "Quenouille-Tukey jackknife",
+    "leave-one-out"
+   ],
+   "broader": [
+    "resampling methods"
+   ],
+   "narrower": [
+    "weighted delete-one jackknife",
+    "cluster jackknife",
+    "infinitesimal jackknife",
+    "one-step jackknife"
+   ],
+   "software": [
+    "bootstrap::jackknife",
+    "boot::empinf"
+   ]
+  },
+  "kaplan-meier-product-limit": {
+   "title": "Kaplan-Meier product-limit sweep",
+   "synonyms": [
+    "Kaplan-Meier",
+    "product-limit estimator",
+    "survfit"
+   ],
+   "broader": [
+    "survival curve estimation",
+    "sort-and-sweep algorithms"
+   ],
+   "narrower": [
+    "weighted Kaplan-Meier",
+    "KM median (survfit quantile semantics)",
+    "RMST as KM area",
+    "per-draw sort bootstrap KM",
+    "Brookmeyer-Crowley median CI"
+   ],
+   "software": [
+    "survival::survfit",
+    "survRM2",
+    "lifelines KaplanMeierFitter",
+    "scikit-survival"
+   ]
+  },
+  "kkt-boundary-analysis": {
+   "title": "KKT conditions at a boundary optimum",
+   "synonyms": [
+    "Karush-Kuhn-Tucker conditions",
+    "KKT optimality check",
+    "boundary score reduction",
+    "constrained score test"
+   ],
+   "broader": [
+    "constrained optimization",
+    "optimality conditions",
+    "inequality-constrained inference"
+   ],
+   "narrower": [
+    "active-constraint identification",
+    "reduced information on the boundary",
+    "one-sided score test",
+    "chi-bar-squared"
+   ],
+   "software": [
+    "logbin",
+    "nloptr"
+   ]
+  },
+  "lanczos-stirling": {
+   "title": "Lanczos and Stirling approximations of log Gamma",
+   "synonyms": [
+    "Lanczos approximation",
+    "Stirling series",
+    "lgamma"
+   ],
+   "broader": [
+    "special function evaluation",
+    "asymptotic expansions"
+   ],
+   "narrower": [
+    "Lanczos for x<8",
+    "Stirling for x>=8",
+    "log Beta via lgamma differences",
+    "lgamma differences for NB pmf"
+   ],
+   "software": [
+    "Rmath lgammafn",
+    "Boost.Math lgamma",
+    "std::lgamma",
+    "SLEEF",
+    "VDT"
+   ]
+  },
+  "laplace-approximation-tmb": {
+   "title": "Laplace approximation with automatic differentiation (TMB/glmmTMB)",
+   "synonyms": [
+    "Laplace approximation",
+    "TMB",
+    "glmmTMB",
+    "automatic differentiation + nlminb"
+   ],
+   "broader": [
+    "marginal likelihood approximation",
+    "integrated nested approximations"
+   ],
+   "narrower": [
+    "nested Laplace",
+    "sparse Hessian Laplace",
+    "nlminb outer optimizer"
+   ],
+   "software": [
+    "glmmTMB",
+    "TMB",
+    "lme4",
+    "INLA",
+    "RTMB"
+   ]
+  },
+  "largest-remainder-allocation": {
+   "title": "Largest-remainder (Hamilton) allocation",
+   "synonyms": [
+    "largest remainder method",
+    "Hamilton apportionment",
+    "proportional rounding"
+   ],
+   "broader": [
+    "apportionment",
+    "integer rounding"
+   ],
+   "narrower": [
+    "proportional stratum allocation of subsample size"
+   ],
+   "software": []
+  },
+  "lbfgs": {
+   "title": "Limited-memory BFGS (L-BFGS)",
+   "synonyms": [
+    "L-BFGS",
+    "limited-memory BFGS",
+    "LBFGS",
+    "L-BFGS-B",
+    "limited memory quasi-Newton"
+   ],
+   "broader": [
+    "quasi-Newton methods",
+    "first-order/quasi-second-order optimization",
+    "unconstrained optimization",
+    "large-scale optimization"
+   ],
+   "narrower": [
+    "L-BFGS with More-Thuente line search",
+    "L-BFGS with Wolfe line search",
+    "L-BFGS with zero start",
+    "multistart L-BFGS",
+    "L-BFGS memory size m",
+    "OWL-QN",
+    "warm-started L-BFGS",
+    "L-BFGS with analytic gradient"
+   ],
+   "software": [
+    "LBFGSpp",
+    "optim(method='L-BFGS-B')",
+    "lbfgs (R package)",
+    "roptim",
+    "scipy.optimize L-BFGS-B",
+    "liblbfgs",
+    "Ceres Solver",
+    "dlib"
+   ]
+  },
+  "lemire-bounded-integer": {
+   "title": "Lemire nearly-divisionless bounded integers",
+   "synonyms": [
+    "Lemire method",
+    "nearly divisionless random integer",
+    "unbiased bounded random integer"
+   ],
+   "broader": [
+    "random integer generation"
+   ],
+   "narrower": [
+    "multiply-shift rejection",
+    "bitmask rejection",
+    "R sample.int rejection sampling"
+   ],
+   "software": [
+    "dqrng",
+    "numpy Generator.integers",
+    "PCG"
+   ]
+  },
+  "likelihood-factorization": {
+   "title": "Exploiting likelihood factorization / separability",
+   "synonyms": [
+    "separable likelihood",
+    "factorized likelihood",
+    "two-part model decoupling",
+    "block-separable maximization"
+   ],
+   "broader": [
+    "decomposition methods",
+    "block coordinate optimization"
+   ],
+   "narrower": [
+    "hurdle zero part and count part fitted separately",
+    "ZOIB separate logit and beta fits",
+    "block-diagonal information"
+   ],
+   "software": [
+    "pscl::hurdle",
+    "countreg",
+    "zoib",
+    "gamlss"
+   ]
+  },
+  "linear-scan": {
+   "title": "Single-pass linear scan",
+   "synonyms": [
+    "linear scan",
+    "single pass",
+    "one-pass gather"
+   ],
+   "broader": [
+    "streaming algorithms"
+   ],
+   "narrower": [
+    "early-exit scan",
+    "fused gather + summary sums",
+    "ID relabeling pass",
+    "scan for non-constant columns"
+   ],
+   "software": []
+  },
+  "linear-search": {
+   "title": "Linear search",
+   "synonyms": [
+    "linear search",
+    "sequential scan over candidates"
+   ],
+   "broader": [
+    "search algorithms"
+   ],
+   "narrower": [
+    "first-win linear search",
+    "binary search alternative",
+    "galloping"
+   ],
+   "software": []
+  },
+  "list-scheduling": {
+   "title": "Greedy list scheduling",
+   "synonyms": [
+    "list scheduling",
+    "FIFO scheduling",
+    "greedy scheduling"
+   ],
+   "broader": [
+    "scheduling algorithms"
+   ],
+   "narrower": [
+    "longest processing time first (LPT)",
+    "work stealing",
+    "dynamic scheduling"
+   ],
+   "software": [
+    "future",
+    "mirai",
+    "parallel",
+    "OpenMP dynamic schedule"
+   ]
+  },
+  "log-sum-exp": {
+   "title": "Max-shifted log-sum-exp",
+   "synonyms": [
+    "log-sum-exp",
+    "logsumexp",
+    "LSE trick",
+    "softmax normalization"
+   ],
+   "broader": [
+    "numerically stable evaluation"
+   ],
+   "narrower": [
+    "streaming log-sum-exp",
+    "posterior node weights",
+    "vectorized logsumexp"
+   ],
+   "software": [
+    "matrixStats::logSumExp",
+    "scipy.special.logsumexp"
+   ]
+  },
+  "logrank-sweep": {
+   "title": "Sorted risk-set sweep for log-rank statistics",
+   "synonyms": [
+    "log-rank sweep",
+    "sort-and-sweep log-rank",
+    "survdiff algorithm"
+   ],
+   "broader": [
+    "linear-time rank statistics",
+    "survival hypothesis testing"
+   ],
+   "narrower": [
+    "Gehan/Peto-Prentice weights in fused sweep",
+    "hypergeometric variance accumulation",
+    "Fleming-Harrington weights",
+    "per-draw sort bootstrap log-rank"
+   ],
+   "software": [
+    "survival::survdiff",
+    "nph",
+    "lifelines logrank_test",
+    "coin logrank_test"
+   ]
+  },
+  "louis-identity": {
+   "title": "Louis identity for observed information",
+   "synonyms": [
+    "Louis identity",
+    "Louis 1982 formula",
+    "missing information principle"
+   ],
+   "broader": [
+    "EM observed information",
+    "marginal likelihood derivatives"
+   ],
+   "narrower": [
+    "analytic observed information of quadrature marginal likelihood",
+    "posterior node weight covariance"
+   ],
+   "software": []
+  },
+  "lu-decomposition": {
+   "title": "LU decomposition (full/partial pivoting)",
+   "synonyms": [
+    "LU decomposition",
+    "FullPivLU",
+    "Gaussian elimination with pivoting",
+    "LU inverse",
+    "LU log-determinant"
+   ],
+   "broader": [
+    "matrix factorization",
+    "dense linear algebra"
+   ],
+   "narrower": [
+    "full-pivot LU inverse",
+    "partial-pivot LU",
+    "LU log-determinant",
+    "singularity flag from LU rank"
+   ],
+   "software": [
+    "Eigen FullPivLU PartialPivLU",
+    "LAPACK dgetrf",
+    "base::solve"
+   ]
+  },
+  "m-out-of-n-subsampling": {
+   "title": "m-out-of-n bootstrap / subsampling",
+   "synonyms": [
+    "m out of n bootstrap",
+    "subsampling",
+    "Politis-Romano-Wolf"
+   ],
+   "broader": [
+    "resampling methods"
+   ],
+   "narrower": [
+    "without-replacement subsampling",
+    "rate-adjusted subsampling"
+   ],
+   "software": [
+    "boot",
+    "subsampling methods in R"
+   ]
+  },
+  "mahalanobis-quadratic-forms": {
+   "title": "Mahalanobis quadratic forms",
+   "synonyms": [
+    "Mahalanobis distance",
+    "quadratic form evaluation",
+    "Hotelling T^2"
+   ],
+   "broader": [
+    "distance computation",
+    "dense linear algebra"
+   ],
+   "narrower": [
+    "batched quadratic forms via GEMM",
+    "Cholesky whitening then Euclidean",
+    "direct loops",
+    "incremental reservoir distances"
+   ],
+   "software": [
+    "stats::mahalanobis",
+    "Rfast::mahala",
+    "BLAS dgemm"
+   ]
+  },
+  "martingale-residuals": {
+   "title": "Martingale residuals from a null Cox fit",
+   "synonyms": [
+    "martingale residuals",
+    "null-model martingale residuals",
+    "log-rank as score test"
+   ],
+   "broader": [
+    "Cox model residuals",
+    "score tests"
+   ],
+   "narrower": [
+    "weighted martingale residual difference",
+    "per-replicate recomputation"
+   ],
+   "software": [
+    "survival::residuals.coxph"
+   ]
+  },
+  "mersenne-twister": {
+   "title": "Mersenne Twister MT19937",
+   "synonyms": [
+    "MT19937",
+    "Mersenne Twister",
+    "R default RNG"
+   ],
+   "broader": [
+    "pseudo-random number generators"
+   ],
+   "narrower": [
+    "LCG-scrambled seeding",
+    "32-bit word to U(0,1) double",
+    "SIMD-oriented MT (SFMT)"
+   ],
+   "software": [
+    "base R RNG",
+    "dqrng",
+    "std::mt19937",
+    "Boost.Random"
+   ]
+  },
+  "method-of-moments": {
+   "title": "Method of moments",
+   "synonyms": [
+    "method of moments",
+    "moment estimator",
+    "Pearson moment estimator"
+   ],
+   "broader": [
+    "estimating equations",
+    "starting value strategies"
+   ],
+   "narrower": [
+    "Pearson-based theta",
+    "marginal cumulative proportions to thresholds",
+    "Liang-Zeger moment correlation estimator",
+    "iteration-0 information"
+   ],
+   "software": [
+    "MASS::theta.mm",
+    "geepack"
+   ]
+  },
+  "miettinen-nurminen-score": {
+   "title": "Miettinen-Nurminen score statistic",
+   "synonyms": [
+    "Miettinen-Nurminen",
+    "MN score test",
+    "constrained-MLE score statistic for risk difference",
+    "Farrington-Manning"
+   ],
+   "broader": [
+    "score tests",
+    "binomial comparisons"
+   ],
+   "narrower": [
+    "closed-form cubic constrained MLE",
+    "nested bisection CI inversion",
+    "stratified MN"
+   ],
+   "software": [
+    "DescTools::BinomDiffCI",
+    "PropCIs::diffscoreci",
+    "ratesci",
+    "gsDesign"
+   ]
+  },
+  "minimum-volatility": {
+   "title": "Minimum-volatility selection of subsample size",
+   "synonyms": [
+    "minimum volatility method",
+    "block size selection"
+   ],
+   "broader": [
+    "tuning parameter selection"
+   ],
+   "narrower": [
+    "rolling SD over m grid"
+   ],
+   "software": []
+  },
+  "model-simplification-surrogate": {
+   "title": "Simpler surrogate model in resampling",
+   "synonyms": [
+    "surrogate model",
+    "fixed-effects surrogate",
+    "approximate refit"
+   ],
+   "broader": [
+    "approximation methods"
+   ],
+   "narrower": [
+    "fixed-effects fit in place of mixed model",
+    "one-step update"
+   ],
+   "software": [
+    "MASS::polr",
+    "ordinal::clm"
+   ]
+  },
+  "monte-carlo-pair-sampling": {
+   "title": "Monte Carlo sampling of random pairs",
+   "synonyms": [
+    "random pair sampling",
+    "Monte Carlo quantile estimation",
+    "sampled distance distribution"
+   ],
+   "broader": [
+    "Monte Carlo methods",
+    "quantile estimation"
+   ],
+   "narrower": [
+    "rejection for distinct pairs",
+    "streaming quantile sketches"
+   ],
+   "software": []
+  },
+  "monte-carlo-randomization": {
+   "title": "Monte Carlo randomization / permutation test",
+   "synonyms": [
+    "Monte Carlo permutation test",
+    "randomization test",
+    "approximate randomization",
+    "Monte Carlo p-value"
+   ],
+   "broader": [
+    "resampling methods",
+    "permutation tests"
+   ],
+   "narrower": [
+    "masked-sum mean difference kernel",
+    "C++ batch kernel",
+    "two-sided Monte Carlo p",
+    "per-replicate rematching",
+    "rank-statistic kernels"
+   ],
+   "software": [
+    "coin",
+    "ri2",
+    "perm",
+    "lmPerm",
+    "permuco",
+    "scipy.stats.permutation_test"
+   ]
+  },
+  "mover-interval": {
+   "title": "MOVER (method of variance estimates recovery)",
+   "synonyms": [
+    "MOVER",
+    "method of variance estimates recovery",
+    "Zou-Donner MOVER",
+    "Newcombe square-and-add"
+   ],
+   "broader": [
+    "confidence interval for differences"
+   ],
+   "narrower": [
+    "MOVER for KM median difference",
+    "MOVER-R for ratios"
+   ],
+   "software": []
+  },
+  "multistart": {
+   "title": "Multistart / deterministic start grids",
+   "synonyms": [
+    "multistart optimization",
+    "multiple starting values",
+    "random restarts",
+    "start grid"
+   ],
+   "broader": [
+    "global optimization heuristics",
+    "nonconvex optimization"
+   ],
+   "narrower": [
+    "deterministic multistart",
+    "random-restart Newton",
+    "two-start constrained refit",
+    "multistart L-BFGS with Newton polish",
+    "clustering multistart",
+    "basin hopping"
+   ],
+   "software": [
+    "optimx",
+    "GenSA",
+    "nloptr MLSL",
+    "DEoptim"
+   ]
+  },
+  "newcombe-hybrid-score": {
+   "title": "Newcombe hybrid score interval",
+   "synonyms": [
+    "Newcombe method 10",
+    "hybrid score interval",
+    "Wilson-based difference interval",
+    "square-and-add"
+   ],
+   "broader": [
+    "confidence intervals for differences of proportions"
+   ],
+   "narrower": [
+    "paired Newcombe interval",
+    "Brent inversion for p-value"
+   ],
+   "software": [
+    "DescTools::BinomDiffCI",
+    "PropCIs",
+    "ratesci"
+   ]
+  },
+  "newton-raphson": {
+   "title": "Newton-Raphson (damped, step-halving)",
+   "synonyms": [
+    "Newton-Raphson",
+    "Newton's method",
+    "Newton method optimization",
+    "full Newton",
+    "observed-information Newton"
+   ],
+   "broader": [
+    "second-order optimization",
+    "unconstrained optimization",
+    "convex optimization",
+    "maximum likelihood algorithms"
+   ],
+   "narrower": [
+    "damped Newton",
+    "Newton with step-halving",
+    "Newton with backtracking line search",
+    "Newton with LDLT solve",
+    "Newton with Levenberg-Marquardt damping",
+    "trust-region Newton",
+    "Newton with Hessian modification",
+    "truncated Newton",
+    "Newton then L-BFGS fallback",
+    "block-coordinate Newton"
+   ],
+   "software": [
+    "survival::coxph",
+    "survival::survreg",
+    "MASS::glm.nb",
+    "ordinal::clm",
+    "nlm",
+    "trust (R)",
+    "scipy.optimize newton-cg",
+    "Eigen"
+   ]
+  },
+  "noncentral-hypergeometric-enumeration": {
+   "title": "Noncentral hypergeometric enumeration",
+   "synonyms": [
+    "noncentral hypergeometric distribution",
+    "Fisher's noncentral hypergeometric",
+    "conditional exact distribution"
+   ],
+   "broader": [
+    "exact conditional inference",
+    "discrete distributions"
+   ],
+   "narrower": [
+    "convolution of hypergeometrics (exact CMH)",
+    "conditional MLE of odds ratio",
+    "minlike two-sided p",
+    "log-space recursion"
+   ],
+   "software": [
+    "stats::fisher.test",
+    "stats::mantelhaen.test exact",
+    "BiasedUrn",
+    "exact2x2"
+   ]
+  },
+  "nonparametric-bootstrap": {
+   "title": "Nonparametric bootstrap",
+   "synonyms": [
+    "nonparametric bootstrap",
+    "Efron bootstrap",
+    "case resampling",
+    "studentized bootstrap"
+   ],
+   "broader": [
+    "resampling methods"
+   ],
+   "narrower": [
+    "studentized (theta*, se*) pairs",
+    "compound KK bootstrap",
+    "balanced bootstrap",
+    "antithetic resampling"
+   ],
+   "software": [
+    "boot",
+    "bootstrap",
+    "rsample",
+    "scipy.stats.bootstrap"
+   ]
+  },
+  "ols-on-transformed-response": {
+   "title": "OLS on a transformed response as a start",
+   "synonyms": [
+    "working-response OLS start",
+    "linearized start values",
+    "transformed-response least squares"
+   ],
+   "broader": [
+    "starting value strategies",
+    "moment-type estimators"
+   ],
+   "narrower": [
+    "OLS on log(y+c) Poisson start",
+    "OLS on empirical logit start",
+    "OLS on log-time with Gumbel shift (Weibull)",
+    "OLS on logit(y) beta regression start"
+   ],
+   "software": [
+    "glm mustart",
+    "survreg init"
+   ]
+  },
+  "ordinal-binary-expansion": {
+   "title": "Ordinal-to-binary data expansion",
+   "synonyms": [
+    "binary expansion",
+    "stacked binary trials",
+    "data augmentation for ordinal models"
+   ],
+   "broader": [
+    "model reformulation"
+   ],
+   "narrower": [
+    "adjacent-category expansion",
+    "continuation-ratio expansion",
+    "strata x cut stacking"
+   ],
+   "software": [
+    "VGAM",
+    "ordinalNet",
+    "rms"
+   ]
+  },
+  "pairs-of-pairs-variance": {
+   "title": "Pairs-of-pairs variance (Bai-Romano-Shaikh)",
+   "synonyms": [
+    "pairs of pairs variance",
+    "Bai Romano Shaikh variance",
+    "matched-pairs variance estimator"
+   ],
+   "broader": [
+    "design-based variance",
+    "matched pairs inference"
+   ],
+   "narrower": [
+    "blossom pairing of pair means",
+    "lambda-squared variance"
+   ],
+   "software": []
+  },
+  "pairwise-correlation-filter": {
+   "title": "Pairwise-correlation collinearity filter",
+   "synonyms": [
+    "correlation filter",
+    "near-collinearity removal",
+    "findCorrelation"
+   ],
+   "broader": [
+    "feature selection",
+    "collinearity diagnostics"
+   ],
+   "narrower": [
+    "iterated pairwise correlation drop",
+    "VIF-based removal"
+   ],
+   "software": [
+    "caret::findCorrelation",
+    "usdm::vifcor"
+   ]
+  },
+  "parallel-refit-loop": {
+   "title": "Parallel refit loop",
+   "synonyms": [
+    "parallel bootstrap",
+    "OpenMP refit loop",
+    "embarrassingly parallel resampling"
+   ],
+   "broader": [
+    "parallel computing",
+    "resampling engineering"
+   ],
+   "narrower": [
+    "OpenMP static vs dynamic schedule",
+    "thread-local workspaces",
+    "parallel L-BFGS refits",
+    "parallel Newton refits"
+   ],
+   "software": [
+    "OpenMP",
+    "RcppParallel",
+    "future",
+    "parallel::mclapply",
+    "mirai"
+   ]
+  },
+  "parametric-bootstrap": {
+   "title": "Parametric bootstrap",
+   "synonyms": [
+    "parametric bootstrap",
+    "model-based simulation",
+    "parametric null simulation"
+   ],
+   "broader": [
+    "resampling methods",
+    "Monte Carlo tests"
+   ],
+   "narrower": [
+    "parametric-bootstrap LR calibration",
+    "Monte Carlo Bartlett correction",
+    "bias correction",
+    "Gaussian null simulation"
+   ],
+   "software": [
+    "pbkrtest",
+    "boot(sim='parametric')",
+    "lme4 bootMer"
+   ]
+  },
+  "percentile-bootstrap-interval": {
+   "title": "Percentile, basic and studentized bootstrap intervals",
+   "synonyms": [
+    "percentile interval",
+    "basic bootstrap interval",
+    "bootstrap-t",
+    "studentized interval"
+   ],
+   "broader": [
+    "bootstrap confidence intervals"
+   ],
+   "narrower": [
+    "symmetric studentized",
+    "smoothed percentile",
+    "Wald fallback",
+    "tail-count p-values"
+   ],
+   "software": [
+    "boot::boot.ci",
+    "rsample int_pctl"
+   ]
+  },
+  "permuted-blocks": {
+   "title": "Permuted-block randomization",
+   "synonyms": [
+    "permuted blocks",
+    "block randomization",
+    "random block size"
+   ],
+   "broader": [
+    "restricted randomization"
+   ],
+   "narrower": [
+    "stratified permuted blocks",
+    "random block size",
+    "batched blocks"
+   ],
+   "software": [
+    "blockrand",
+    "randomizr block_ra",
+    "randomizeR"
+   ]
+  },
+  "pocock-simon": {
+   "title": "Pocock-Simon minimization",
+   "synonyms": [
+    "Pocock-Simon",
+    "minimization",
+    "marginal imbalance minimization"
+   ],
+   "broader": [
+    "covariate-adaptive randomization"
+   ],
+   "narrower": [
+    "incremental marginal counts",
+    "biased coin minimization",
+    "sequential simulation for null draws"
+   ],
+   "software": [
+    "carat",
+    "Minirand",
+    "randPack"
+   ]
+  },
+  "power-series": {
+   "title": "Power / truncated series",
+   "synonyms": [
+    "power series",
+    "Taylor series",
+    "truncated series"
+   ],
+   "broader": [
+    "special function evaluation"
+   ],
+   "narrower": [
+    "lower incomplete gamma series",
+    "truncated atanh series for softplus",
+    "Horner evaluation"
+   ],
+   "software": [
+    "Rmath",
+    "Boost.Math"
+   ]
+  },
+  "profile-likelihood": {
+   "title": "Profile likelihood",
+   "synonyms": [
+    "profile likelihood",
+    "concentrated likelihood",
+    "profiled log-likelihood"
+   ],
+   "broader": [
+    "likelihood inference",
+    "nuisance parameter elimination"
+   ],
+   "narrower": [
+    "profile curvature standard error",
+    "finite-difference profile Hessian",
+    "profile likelihood CI",
+    "damped Newton profiling"
+   ],
+   "software": [
+    "profileModel",
+    "bbmle",
+    "stats4::profile"
+   ]
+  },
+  "pvalue-combination-rules": {
+   "title": "p-value combination rules",
+   "synonyms": [
+    "Fisher's method",
+    "Stouffer's Z",
+    "min-p",
+    "Cauchy combination test",
+    "ACAT"
+   ],
+   "broader": [
+    "meta-analysis of p-values",
+    "multiple testing"
+   ],
+   "narrower": [
+    "Cauchy combination (Liu-Xie 2020)",
+    "weighted Stouffer",
+    "harmonic mean p-value"
+   ],
+   "software": [
+    "poolr",
+    "metap",
+    "harmonicmeanp",
+    "ACAT"
+   ]
+  },
+  "qr-decomposition": {
+   "title": "QR decomposition (Householder, column-pivoted)",
+   "synonyms": [
+    "QR decomposition",
+    "Householder QR",
+    "column-pivoted QR",
+    "rank-revealing QR",
+    "lm.fit QR"
+   ],
+   "broader": [
+    "matrix factorization",
+    "least squares solvers",
+    "dense linear algebra"
+   ],
+   "narrower": [
+    "column-pivoted Householder QR",
+    "rank-revealing QR rank detection",
+    "QR updating/downdating",
+    "greedy column selection via repeated QR",
+    "QR least squares",
+    "QR inverse (chol2inv)",
+    "Householder projection matrix"
+   ],
+   "software": [
+    "LAPACK dgeqp3",
+    "Eigen ColPivHouseholderQR",
+    "base::qr",
+    "RcppEigen fastLm",
+    "LINPACK dqrdc2"
+   ]
+  },
+  "random-forest-imputation": {
+   "title": "Random-forest chained imputation",
+   "synonyms": [
+    "missForest",
+    "missRanger",
+    "random forest imputation",
+    "chained random forests"
+   ],
+   "broader": [
+    "multiple imputation",
+    "machine-learning imputation"
+   ],
+   "narrower": [
+    "predictive mean matching with RF",
+    "re-imputation per arrival",
+    "incremental imputation"
+   ],
+   "software": [
+    "missRanger",
+    "missForest",
+    "mice (rf)",
+    "ranger"
+   ]
+  },
+  "random-variate-generation": {
+   "title": "Built-in random variate generators",
+   "synonyms": [
+    "random variate generation",
+    "rnorm/rbinom/rpois samplers"
+   ],
+   "broader": [
+    "Monte Carlo sampling"
+   ],
+   "narrower": [
+    "Ziggurat normal",
+    "BTPE binomial",
+    "PTRS Poisson"
+   ],
+   "software": [
+    "base R stats",
+    "dqrng",
+    "Boost.Random",
+    "numpy Generator"
+   ]
+  },
+  "rational-approximation": {
+   "title": "Rational / minimax approximations",
+   "synonyms": [
+    "rational approximation",
+    "minimax approximation",
+    "Pade approximation",
+    "Acklam",
+    "Wichura AS 241",
+    "Cephes"
+   ],
+   "broader": [
+    "special function evaluation",
+    "function approximation"
+   ],
+   "narrower": [
+    "Acklam normal quantile",
+    "AS 241 PPND16",
+    "Cephes erfc",
+    "minimax arctan",
+    "refinement Newton step"
+   ],
+   "software": [
+    "Rmath qnorm",
+    "Boost.Math",
+    "Cephes",
+    "SLEEF",
+    "VDT"
+   ]
+  },
+  "rejection-sampling": {
+   "title": "Acceptance-rejection sampling",
+   "synonyms": [
+    "rejection sampling",
+    "acceptance-rejection",
+    "rerandomization by rejection"
+   ],
+   "broader": [
+    "Monte Carlo sampling"
+   ],
+   "narrower": [
+    "rerandomization with cutoff",
+    "rejection of degenerate bootstrap resamples",
+    "MCMC alternative for low acceptance"
+   ],
+   "software": [
+    "rerandomization (R pkg)",
+    "jumble"
+   ]
+  },
+  "reparameterization": {
+   "title": "Reparameterization for conditioning",
+   "synonyms": [
+    "reparametrization",
+    "change of variables",
+    "covariate centering and scaling",
+    "softmax ordered parameterization"
+   ],
+   "broader": [
+    "preconditioning",
+    "numerical conditioning"
+   ],
+   "narrower": [
+    "cumulative-softmax ordered scores",
+    "log-scale variance parameters",
+    "centering and scaling covariates",
+    "atanh correlation transform",
+    "threshold increments parameterization"
+   ],
+   "software": []
+  },
+  "ridge-regularization": {
+   "title": "Ridge / Tikhonov regularization of ill-conditioned matrices",
+   "synonyms": [
+    "ridge regularization",
+    "Tikhonov regularization",
+    "diagonal loading",
+    "Levenberg damping"
+   ],
+   "broader": [
+    "regularization",
+    "matrix conditioning"
+   ],
+   "narrower": [
+    "escalating ridge",
+    "ridge on Schur complement",
+    "nearPD projection",
+    "jitter for positive definiteness"
+   ],
+   "software": [
+    "Matrix::nearPD",
+    "glmnet"
+   ]
+  },
+  "ridit-scoring": {
+   "title": "Ridit scoring",
+   "synonyms": [
+    "ridit scores",
+    "relative to an identified distribution",
+    "mid-rank scoring",
+    "probabilistic index scoring"
+   ],
+   "broader": [
+    "rank-based methods",
+    "ordinal data analysis"
+   ],
+   "narrower": [
+    "ridit via sort + binary search",
+    "per-replicate ridit rebuild",
+    "mean ridit contrast"
+   ],
+   "software": [
+    "Ridit (R package)",
+    "DescTools",
+    "pim"
+   ]
+  },
+  "robins-breslow-greenland-variance": {
+   "title": "Robins-Breslow-Greenland variance",
+   "synonyms": [
+    "Robins-Breslow-Greenland",
+    "RBG variance",
+    "Mantel-Haenszel variance"
+   ],
+   "broader": [
+    "stratified analysis variance"
+   ],
+   "narrower": [
+    "extended Robins variance",
+    "Sato variance",
+    "Greenland-Robins risk difference"
+   ],
+   "software": [
+    "epitools",
+    "DescTools",
+    "rateratio.test"
+   ]
+  },
+  "safeguarded-newton-root": {
+   "title": "Safeguarded Newton root finding",
+   "synonyms": [
+    "safeguarded Newton",
+    "Newton-bisection hybrid",
+    "rtsafe"
+   ],
+   "broader": [
+    "root finding",
+    "Newton-type methods"
+   ],
+   "narrower": [
+    "Newton with bisection safeguard for LR CI bounds",
+    "secant",
+    "Venzon-Moolgavkar"
+   ],
+   "software": [
+    "Boost.Math newton_raphson_iterate",
+    "scipy.optimize.newton"
+   ]
+  },
+  "sandwich-estimator": {
+   "title": "Sandwich (robust) variance estimator",
+   "synonyms": [
+    "sandwich estimator",
+    "robust variance",
+    "Huber-White",
+    "HC0",
+    "HC2",
+    "cluster-robust variance",
+    "CR2",
+    "Lin-Wei"
+   ],
+   "broader": [
+    "M-estimation variance",
+    "heteroskedasticity-consistent estimation"
+   ],
+   "narrower": [
+    "HC0 HC1 HC2 HC3",
+    "CR2 with Satterthwaite df",
+    "cluster-robust GLM sandwich",
+    "Lin-Wei Cox sandwich prefix sums",
+    "Hendricks-Koenker nid sandwich",
+    "Huber sandwich",
+    "sandwich + delta method"
+   ],
+   "software": [
+    "sandwich",
+    "clubSandwich",
+    "estimatr",
+    "survival robust",
+    "statsmodels cov_type",
+    "fixest"
+   ]
+  },
+  "schur-complement": {
+   "title": "Schur complement / efficient information",
+   "synonyms": [
+    "Schur complement",
+    "efficient information",
+    "partial inverse",
+    "nuisance-adjusted information"
+   ],
+   "broader": [
+    "block matrix algebra",
+    "score tests with nuisance parameters"
+   ],
+   "narrower": [
+    "Rao score via efficient information",
+    "block LDLT",
+    "partitioned inverse"
+   ],
+   "software": [
+    "Eigen"
+   ]
+  },
+  "seed-derivation": {
+   "title": "Seed derivation for parallel streams",
+   "synonyms": [
+    "SplitMix64",
+    "seed derivation",
+    "stream splitting",
+    "per-draw seeding"
+   ],
+   "broader": [
+    "parallel random number generation"
+   ],
+   "narrower": [
+    "SplitMix64 per draw index",
+    "child seed from R uniform",
+    "counter-based Philox/Threefry",
+    "jump-ahead"
+   ],
+   "software": [
+    "dqrng",
+    "parallel L'Ecuyer-CMRG",
+    "Random123",
+    "rlecuyer"
+   ]
+  },
+  "selection-algorithm": {
+   "title": "Selection algorithms (introselect / partial sort)",
+   "synonyms": [
+    "selection algorithm",
+    "quickselect",
+    "introselect",
+    "nth_element",
+    "k-th order statistic",
+    "partial sort"
+   ],
+   "broader": [
+    "order statistics",
+    "sorting and searching"
+   ],
+   "narrower": [
+    "introselect median",
+    "full sort vs partial sort",
+    "Floyd-Rivest",
+    "median of medians",
+    "materialize-and-select pairwise differences"
+   ],
+   "software": [
+    "std::nth_element",
+    "base::sort(partial=)",
+    "Rfast",
+    "matrixStats::rowMedians"
+   ]
+  },
+  "separation-detection": {
+   "title": "Separation and degenerate-fit detection",
+   "synonyms": [
+    "separation detection",
+    "complete separation",
+    "quasi-complete separation check",
+    "monotone likelihood detection"
+   ],
+   "broader": [
+    "MLE existence",
+    "diagnostics"
+   ],
+   "narrower": [
+    "linear programming separation check",
+    "coefficient magnitude heuristic",
+    "bootstrap distribution width heuristic"
+   ],
+   "software": [
+    "detectseparation",
+    "safeBinaryRegression",
+    "brglm2"
+   ]
+  },
+  "sequential-monte-carlo-stopping": {
+   "title": "Sequential Monte Carlo stopping rules",
+   "synonyms": [
+    "sequential Monte Carlo test",
+    "Besag-Clifford",
+    "early stopping of resampling",
+    "sequential p-value"
+   ],
+   "broader": [
+    "sequential analysis",
+    "Monte Carlo methods"
+   ],
+   "narrower": [
+    "Clopper-Pearson band stopping",
+    "MMCTest",
+    "SIMCTEST",
+    "anytime-valid confidence sequences"
+   ],
+   "software": [
+    "simctest",
+    "MCHT"
+   ]
+  },
+  "sequential-replay": {
+   "title": "Sequential replay of an assignment rule",
+   "synonyms": [
+    "sequential replay",
+    "simulate sequential design",
+    "re-run allocation rule"
+   ],
+   "broader": [
+    "simulation"
+   ],
+   "narrower": [
+    "vectorized replay",
+    "batch replay across draws"
+   ],
+   "software": []
+  },
+  "sherman-morrison": {
+   "title": "Sherman-Morrison(-Woodbury) per-cluster inverse",
+   "synonyms": [
+    "Sherman-Morrison formula",
+    "Woodbury identity",
+    "rank-one inverse update"
+   ],
+   "broader": [
+    "matrix inversion lemma",
+    "linear algebra"
+   ],
+   "narrower": [
+    "per-cluster closed-form V^-1",
+    "log-determinant via matrix determinant lemma",
+    "rank-one update of (X'X)^-1"
+   ],
+   "software": [
+    "Eigen",
+    "lme4"
+   ]
+  },
+  "simulated-annealing": {
+   "title": "Simulated annealing",
+   "synonyms": [
+    "simulated annealing",
+    "Metropolis annealing",
+    "single-exchange annealing"
+   ],
+   "broader": [
+    "metaheuristics",
+    "stochastic optimization"
+   ],
+   "narrower": [
+    "swap-move annealing",
+    "initial temperature heuristic (mean |delta|)",
+    "parallel tempering",
+    "threshold accepting"
+   ],
+   "software": [
+    "GenSA",
+    "optim(method='SANN')",
+    "simanneal"
+   ]
+  },
+  "size-based-dispatch": {
+   "title": "Size-threshold solver dispatch",
+   "synonyms": [
+    "algorithm selection",
+    "solver dispatch",
+    "size threshold switch"
+   ],
+   "broader": [
+    "algorithm portfolios"
+   ],
+   "narrower": [
+    "exact solver for small n, heuristic for large n",
+    "mirror coin flip"
+   ],
+   "software": []
+  },
+  "soft-barrier-penalty": {
+   "title": "Soft barrier penalty on variance parameters",
+   "synonyms": [
+    "barrier penalty",
+    "quadratic soft penalty",
+    "boundary-avoiding prior"
+   ],
+   "broader": [
+    "penalized likelihood",
+    "interior-point/barrier methods"
+   ],
+   "narrower": [
+    "weakly informative prior on log sigma",
+    "blme-style penalty"
+   ],
+   "software": [
+    "blme",
+    "glmmTMB priors"
+   ]
+  },
+  "solver-fallback-ladder": {
+   "title": "Fallback ladder of alternative solvers",
+   "synonyms": [
+    "fallback chain",
+    "solver cascade",
+    "robust fitting cascade"
+   ],
+   "broader": [
+    "solver selection",
+    "robust optimization engineering"
+   ],
+   "narrower": [
+    "VGAM then ordinal then custom Newton",
+    "retry with different start",
+    "optimizer portfolio"
+   ],
+   "software": [
+    "VGAM",
+    "ordinal::clm",
+    "MASS::polr"
+   ]
+  },
+  "sort-and-sweep": {
+   "title": "Sort then linear sweep",
+   "synonyms": [
+    "sort and sweep",
+    "comparison sort + linear pass",
+    "sort + unique",
+    "sort + binary search"
+   ],
+   "broader": [
+    "sorting algorithms",
+    "linear-time scans"
+   ],
+   "narrower": [
+    "stable sort of index permutation",
+    "radix sort",
+    "counting sort for few levels",
+    "run-length grouping",
+    "binary search ranking",
+    "deaths-before-censorings tie order"
+   ],
+   "software": [
+    "std::sort",
+    "std::stable_sort",
+    "data.table radix sort",
+    "base::order(method='radix')"
+   ]
+  },
+  "stable-branch-evaluation": {
+   "title": "Branch-split numerically stable evaluation",
+   "synonyms": [
+    "log1p/expm1 forms",
+    "branch-split evaluation",
+    "stable softplus",
+    "Goldberg log1p correction"
+   ],
+   "broader": [
+    "floating-point numerical stability"
+   ],
+   "narrower": [
+    "softplus via log1p(exp(-|x|))",
+    "Goldberg log1p",
+    "log(1-exp(-x)) via log1mexp",
+    "clamped logistic"
+   ],
+   "software": [
+    "Rmpfr log1mexp",
+    "plogis(log.p=TRUE)",
+    "SLEEF",
+    "std::log1p"
+   ]
+  },
+  "stratified-resampling": {
+   "title": "Stratified resampling",
+   "synonyms": [
+    "stratified bootstrap",
+    "within-stratum resampling"
+   ],
+   "broader": [
+    "resampling methods"
+   ],
+   "narrower": [
+    "stratified subsampling",
+    "exchangeable-unit resampling with quantile pivot"
+   ],
+   "software": [
+    "boot(strata=)",
+    "rsample"
+   ]
+  },
+  "streaming-moments": {
+   "title": "One-pass / two-pass moment computation",
+   "synonyms": [
+    "one-pass variance",
+    "streaming moments",
+    "Welford algorithm",
+    "sum of squares variance",
+    "two-pass mean/variance"
+   ],
+   "broader": [
+    "numerical summation",
+    "online algorithms"
+   ],
+   "narrower": [
+    "Welford update",
+    "textbook sum-of-squares",
+    "pairwise summation",
+    "masked sums",
+    "all-pairs variance via moments",
+    "column z-scoring"
+   ],
+   "software": [
+    "matrixStats",
+    "RcppParallel",
+    "Eigen"
+   ]
+  },
+  "truncated-series-summation": {
+   "title": "Truncated series summation for expectations",
+   "synonyms": [
+    "series summation",
+    "truncated infinite sum",
+    "brute-force expected information sum"
+   ],
+   "broader": [
+    "numerical summation",
+    "special function evaluation"
+   ],
+   "narrower": [
+    "tail bound truncation",
+    "Kahan summation",
+    "recursive pmf summation"
+   ],
+   "software": []
+  },
+  "turnbull-em": {
+   "title": "Turnbull self-consistency (EM) NPMLE",
+   "synonyms": [
+    "Turnbull algorithm",
+    "self-consistency algorithm",
+    "EM for interval censoring",
+    "Turnbull NPMLE"
+   ],
+   "broader": [
+    "EM algorithm",
+    "nonparametric maximum likelihood"
+   ],
+   "narrower": [
+    "Turnbull intervals (innermost intervals)",
+    "squared EM acceleration (SQUAREM)",
+    "per-draw NPMLE re-solve",
+    "Sun score log-rank from NPMLE"
+   ],
+   "software": [
+    "interval",
+    "icenReg",
+    "Icens",
+    "MLEcens",
+    "survival survfit interval"
+   ]
+  },
+  "univariate-screening-fits": {
+   "title": "Independent univariate screening fits",
+   "synonyms": [
+    "univariate screening",
+    "marginal regression",
+    "per-covariate fits"
+   ],
+   "broader": [
+    "variable screening"
+   ],
+   "narrower": [
+    "closed-form simple regression t",
+    "univariate logistic/NB/Weibull fits",
+    "sure independence screening",
+    "incremental per-arrival updates"
+   ],
+   "software": [
+    "SIS",
+    "stats::glm"
+   ]
+  },
+  "urn-design": {
+   "title": "Wei urn design",
+   "synonyms": [
+    "Wei urn",
+    "UD(alpha,beta)",
+    "urn randomization"
+   ],
+   "broader": [
+    "restricted randomization"
+   ],
+   "narrower": [
+    "generalized Friedman urn"
+   ],
+   "software": [
+    "randomizeR"
+   ]
+  },
+  "value-space-bisection-selection": {
+   "title": "Value-space bisection selection with two-pointer counting",
+   "synonyms": [
+    "selection in X+Y",
+    "value-space bisection",
+    "two-pointer counting",
+    "k-th pairwise difference selection"
+   ],
+   "broader": [
+    "selection algorithms",
+    "order statistics of sums"
+   ],
+   "narrower": [
+    "Johnson-Mizoguchi X+Y selection",
+    "Frederickson-Johnson sorted matrix selection",
+    "Monahan HL algorithm",
+    "Shamos",
+    "randomized selection on Walsh averages"
+   ],
+   "software": [
+    "DescTools::HodgesLehmann",
+    "ICSNP",
+    "rt.test"
+   ]
+  },
+  "walsh-average-enumeration": {
+   "title": "Enumerate-and-sort Walsh averages / pairwise differences",
+   "synonyms": [
+    "all pairwise differences then median",
+    "naive Hodges-Lehmann",
+    "sorted Walsh averages",
+    "wilcox.test conf.int"
+   ],
+   "broader": [
+    "brute-force computation",
+    "order statistics"
+   ],
+   "narrower": [
+    "exact wilcox.test for m<50",
+    "normal approximation + uniroot",
+    "weighted HL"
+   ],
+   "software": [
+    "stats::wilcox.test",
+    "coin",
+    "exactRankTests"
+   ]
+  },
+  "warm-start-continuation": {
+   "title": "Warm starts and continuation",
+   "synonyms": [
+    "warm start",
+    "continuation method",
+    "homotopy continuation",
+    "chained starting values",
+    "pilot-fit start"
+   ],
+   "broader": [
+    "starting value strategies",
+    "path-following methods"
+   ],
+   "narrower": [
+    "warm start across delta in CI inversion",
+    "sequential null anchoring",
+    "cold start comparison",
+    "pilot fit warm start for survival",
+    "warm start across bootstrap replicates"
+   ],
+   "software": [
+    "glmnet warm starts",
+    "survival::coxph init"
+   ]
+  },
+  "weighted-gram-accumulation": {
+   "title": "Weighted Gram matrix accumulation",
+   "synonyms": [
+    "X'WX accumulation",
+    "weighted crossproduct",
+    "Gram matrix",
+    "DSYRK rank-k update"
+   ],
+   "broader": [
+    "dense linear algebra",
+    "BLAS level 3"
+   ],
+   "narrower": [
+    "unblocked loop accumulation",
+    "BLAS DSYRK",
+    "blocked/tiled accumulation",
+    "fused score + X'WX pass",
+    "SIMD vectorized crossprod"
+   ],
+   "software": [
+    "BLAS dsyrk",
+    "OpenBLAS",
+    "MKL",
+    "Eigen selfadjointView rankUpdate",
+    "base::crossprod"
+   ]
+  },
+  "wilson-score-interval": {
+   "title": "Wilson score interval",
+   "synonyms": [
+    "Wilson interval",
+    "score interval for proportion"
+   ],
+   "broader": [
+    "binomial confidence intervals"
+   ],
+   "narrower": [
+    "continuity-corrected Wilson"
+   ],
+   "software": [
+    "binom",
+    "PropCIs",
+    "statsmodels proportion_confint"
+   ]
+  },
+  "worker-reuse": {
+   "title": "Reused-worker refit loop",
+   "synonyms": [
+    "worker reuse",
+    "object reuse across replicates",
+    "persistent worker"
+   ],
+   "broader": [
+    "resampling engineering",
+    "memoization"
+   ],
+   "narrower": [
+    "reused model object",
+    "cached factorization",
+    "warm start across replicates"
+   ],
+   "software": []
+  }
+ }
+}

@@ -36,7 +36,9 @@
               "details",
               "complexity",
               "audit_row",
-              "refs"
+              "refs",
+              "problem_id",
+              "method_id"
             ],
             "properties": {
               "problem": {
@@ -60,6 +62,14 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "problem_id": {
+                "type": "string",
+                "description": "a problem id from R/package_metadata/audits/algorithm_taxonomy.json"
+              },
+              "method_id": {
+                "type": "string",
+                "description": "a method id from R/package_metadata/audits/algorithm_taxonomy.json"
               }
             }
           }

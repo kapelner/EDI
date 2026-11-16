@@ -44,6 +44,7 @@ ROW_MAP = META / "audits" / "algorithm_audit_row_map.json"
 PINS = META / "audits" / "comparator_versions.json"
 INVENTORY = META / "audits" / "algorithm_inventory.csv"
 RESEARCH_LOG = META / "audits" / "research_log.json"
+TAXONOMY = META / "audits" / "algorithm_taxonomy.json"
 REFERENCES = META / "audits" / "algorithm_references.csv"
 SRC_DIR = ROOT / "R" / "EDI" / "src"
 R_DIR = ROOT / "R" / "EDI" / "R"
@@ -333,7 +334,8 @@ def check_inventory(offline):
     cfg = json.loads(ROW_MAP.read_text())
     inv, refs = load_inventory(), load_references()
     out = {"uncovered": [], "stale_exempt": [], "exempt_inventoried": [], "unwatched_row": [],
-           "bad_file": [], "bad_symbol": [], "bad_row": [],
+           "bad_file": [], "bad_symbol": [], "bad_row": [], "bad_taxonomy_id": [],
+           "unused_taxonomy": [], "taxonomy_terms": [],
            "no_refs": [], "unknown_ref": [], "orphan_ref": [], "dead_ref": [], "ref_errors": [],
            "entries": len(inv), "refs": len(refs), "skipped": offline}
     # Coverage: every source file is inventoried or matches an exempt pattern.
@@ -351,6 +353,9 @@ def check_inventory(offline):
     # Each entry: file exists, symbol still in it, rows exist, refs present and known.
     known = {r["url"] for r in refs}
     used = set()
+    taxonomy = load_taxonomy()
+    probs, meths = taxonomy.get("problems", {}), taxonomy.get("methods", {})
+    used_p, used_m = set(), set()
     text_cache = {}
     for i, e in enumerate(inv, start=2):  # line 1 is the header
         where = f"line {i}: `{e['file']}` `{e['symbol']}`"
@@ -365,6 +370,11 @@ def check_inventory(offline):
         bad = [r for r in entry_rows(e) + e.get("watch", "").split() if r not in cfg["rows"]]
         if bad or not entry_rows(e):
             out["bad_row"].append(f"{where}: audit_row `{e['audit_row']}` watch `{e['watch']}`")
+        pid, mid = e.get("problem_id", ""), e.get("method_id", "")
+        if pid not in probs or mid not in meths:
+            out["bad_taxonomy_id"].append(f"{where}: problem_id `{pid}` method_id `{mid}`")
+        used_p.add(pid)
+        used_m.add(mid)
         urls = e["refs"].split()
         if not urls:
             out["no_refs"].append(where)
@@ -373,6 +383,15 @@ def check_inventory(offline):
             if u not in known:
                 out["unknown_ref"].append(f"{where}: {u}")
     out["orphan_ref"] = sorted(known - used)
+    out["unused_taxonomy"] = ([f"problem `{p}`" for p in sorted(set(probs) - used_p)]
+                              + [f"method `{m}`" for m in sorted(set(meths) - used_m)])
+    for p, d in sorted(probs.items()):
+        if not d.get("search_terms"):
+            out["taxonomy_terms"].append(f"problem `{p}` has no search_terms")
+    for m, d in sorted(meths.items()):
+        missing = [k for k in ("synonyms", "broader", "narrower", "software") if k not in d]
+        if missing:
+            out["taxonomy_terms"].append(f"method `{m}` lacks {', '.join(missing)}")
     if not offline:
         out["dead_ref"], out["ref_errors"] = check_reference_urls(sorted(known))
     return out
@@ -459,57 +478,55 @@ def changed_text_by_file(diff_text):
     return out
 
 
-RESEARCH_BATCH = 8  # distinct algorithms per research agent (one agent got through 2 of 120)
+def load_taxonomy():
+    """algorithm_taxonomy.json: {"problems": {...}, "methods": {...}}; empty when absent."""
+    if not TAXONOMY.exists():
+        return {"problems": {}, "methods": {}}
+    return json.loads(TAXONOMY.read_text())
 
 
-def research_batches(inventory, row_order, size=RESEARCH_BATCH):
-    """Task id ("A.1", "A.2", ...) -> sorted list of distinct `algorithm` names. Each name is
-    researched once, under the audit row most of its entries list first (ties: row order), so an
-    algorithm shared by rows is not researched twice. Deterministic for a given inventory."""
-    votes = {}
-    for e in inventory:
-        primary = entry_rows(e)[0] if entry_rows(e) else ""
-        votes.setdefault(e["algorithm"], {}).setdefault(primary, 0)
-        votes[e["algorithm"]][primary] += 1
-    rank = {r: i for i, r in enumerate(row_order)}
-    by_row = {}
-    for alg, v in votes.items():
-        row = min(v, key=lambda r: (-v[r], rank.get(r, len(rank)), r))
-        by_row.setdefault(row, []).append(alg)
+def research_batches(inventory, row_order=None):
+    """Research task per problem (owner, 2026-11-16): problem_id -> sorted method_ids EDI uses
+    for it, from the inventory's `problem_id` / `method_id` columns. One agent answers "what is
+    the fastest acceptable way to solve this problem?" for all of them. (`row_order` is unused;
+    kept for callers.)"""
     out = {}
-    for row in sorted(by_row, key=lambda r: (rank.get(r, len(rank)), r)):
-        algs = sorted(by_row[row], key=str.casefold)
-        for k in range(0, len(algs), size):
-            out[f"{row}.{k // size + 1}"] = algs[k:k + size]
-    return out
+    for e in inventory:
+        if e.get("problem_id") and e.get("method_id"):
+            out.setdefault(e["problem_id"], set()).add(e["method_id"])
+    return {p: sorted(m) for p, m in sorted(out.items())}
+
+
+def task_problem(problem_id, taxonomy=None):
+    """The taxonomy slice an agent gets: its problem and every method EDI uses for it."""
+    taxonomy = taxonomy or load_taxonomy()
+    methods = research_batches(load_inventory()).get(problem_id, [])
+    return {"problem_id": problem_id,
+            "problem": taxonomy["problems"].get(problem_id, {}),
+            "methods": {m: taxonomy["methods"].get(m, {}) for m in methods}}
 
 
 def load_research_log():
-    """{algorithm name: last research result}; {} when there is no log yet."""
+    """{problem_id: last research result}; {} when there is no log yet."""
     if not RESEARCH_LOG.exists():
         return {}
-    return json.loads(RESEARCH_LOG.read_text()).get("algorithms", {})
+    return json.loads(RESEARCH_LOG.read_text()).get("problems", {})
 
 
-def previous_results(algorithms, inventory, log=None, max_commits=5):
-    """For each algorithm in a research batch: its last result from the research log, plus the
-    commits that touched its inventory files since then (so the agent knows whether the earlier
-    answer still describes the code). Algorithms never researched get {"no_previous": true}."""
+def previous_results(problem_id, inventory, log=None, max_commits=5):
+    """The problem's last research result from the log, plus the commits that touched its
+    inventory files since then (so the agent knows whether the earlier answer still describes
+    the code); {"no_previous": true} when it was never researched."""
     log = load_research_log() if log is None else log
-    out = {}
-    for alg in algorithms:
-        prev = log.get(alg)
-        if not prev:
-            out[alg] = {"no_previous": True}
-            continue
-        files = sorted({e["file"] for e in inventory if e["algorithm"] == alg})
-        commits = []
-        if files:
-            commits = git("log", f"--since={prev['last_researched']} 23:59:59", "--format=%h %ad %s",
-                          "--date=short", "--", *files).strip().splitlines()
-        out[alg] = dict(prev, code_commits_since=commits[:max_commits],
-                        code_changed_since=bool(commits))
-    return out
+    prev = log.get(problem_id)
+    if not prev:
+        return {"no_previous": True}
+    files = sorted({e["file"] for e in inventory if e.get("problem_id") == problem_id})
+    commits = []
+    if files:
+        commits = git("log", f"--since={prev['last_researched']} 23:59:59", "--format=%h %ad %s",
+                      "--date=short", "--", *files).strip().splitlines()
+    return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits))
 
 
 def currency_context(days):
@@ -587,6 +604,9 @@ INVENTORY_FLAGS = [
     ("bad_file", "Entries whose file no longer exists"),
     ("bad_symbol", "Entries whose symbol is no longer in its file"),
     ("bad_row", "Entries with an unknown audit row"),
+    ("bad_taxonomy_id", "Entries whose problem_id / method_id is not in algorithm_taxonomy.json"),
+    ("unused_taxonomy", "Taxonomy problems / methods no inventory entry uses"),
+    ("taxonomy_terms", "Taxonomy entries missing search-term lists"),
     ("no_refs", "Entries with no reference URL"),
     ("unknown_ref", "Reference URLs missing from algorithm_references.csv"),
     ("orphan_ref", "References no entry cites"),
@@ -712,20 +732,21 @@ def main():
     ap.add_argument("--currency-context", type=int, metavar="DAYS")
     ap.add_argument("--research-batches", action="store_true",
                     help="print the research task -> algorithms map as JSON")
-    ap.add_argument("--previous-results", metavar="TASK",
-                    help="print the research log's previous results for one batch as JSON")
+    ap.add_argument("--previous-results", metavar="PROBLEM",
+                    help="print the research log's previous result for one problem as JSON")
+    ap.add_argument("--task-problem", metavar="PROBLEM",
+                    help="print the taxonomy slice (problem + its methods) for one problem")
     a = ap.parse_args()
-    if a.previous_results:
-        rows = list(json.loads(ROW_MAP.read_text())["rows"])
+    if a.previous_results or a.task_problem:
+        pid = a.previous_results or a.task_problem
         inv = load_inventory()
-        algs = research_batches(inv, rows).get(a.previous_results)
-        if algs is None:
-            sys.exit(f"unknown research batch {a.previous_results}")
-        text = json.dumps(previous_results(algs, inv), indent=1, ensure_ascii=False) + "\n"
+        if pid not in research_batches(inv):
+            sys.exit(f"unknown research problem {pid}")
+        obj = previous_results(pid, inv) if a.previous_results else task_problem(pid)
+        text = json.dumps(obj, indent=1, ensure_ascii=False) + "\n"
         return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.research_batches:
-        rows = list(json.loads(ROW_MAP.read_text())["rows"])
-        text = json.dumps(research_batches(load_inventory(), rows), indent=1) + "\n"
+        text = json.dumps(research_batches(load_inventory()), indent=1) + "\n"
         return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.currency_context:
         text = json.dumps(currency_context(a.currency_context), indent=1) + "\n"
