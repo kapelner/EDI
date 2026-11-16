@@ -88,7 +88,12 @@ jobs:
 
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Includes waiting for an earlier research run to finish (see "Wait for earlier research
+    # runs"); a full run takes ~70 min, so allow two of them plus margin.
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: read   # list this workflow's runs and their jobs for the research lock
     outputs:
       tasks: ${{ steps.plan.outputs.tasks }}
       task_list: ${{ steps.plan.outputs.task_list }}
@@ -147,6 +152,56 @@ jobs:
           log(f"research tasks ({len(tasks)}): {tasks}")
           print("tasks=" + json.dumps(tasks))
           print("task_list=" + ",".join(tasks))
+          PY
+
+      # Research lock (owner, 2026-11-16). Two research runs must not overlap: each opens a PR
+      # editing the same inventory CSVs. A workflow-level `concurrency:` group is not used because
+      # GitHub keeps one pending run per group and cancels the older one, so the weekly no-op
+      # Thursday trigger could cancel a real scheduled research run queued behind a manual one.
+      # Instead, a run that will do research waits here while any EARLIER run of this workflow
+      # still has research or research-pr jobs unfinished. Runs without research never wait or
+      # block, nothing is cancelled, and only earlier runs are waited on, so no deadlock.
+      - name: Wait for earlier research runs
+        if: ${{ steps.plan.outputs.tasks != '[]' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, sys, time
+          repo, me = os.environ["GITHUB_REPOSITORY"], int(os.environ["GITHUB_RUN_ID"])
+
+          def api(path):
+              out = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+              if out.returncode:
+                  raise RuntimeError(out.stderr.strip())
+              return json.loads(out.stdout)
+
+          def blockers():
+              runs = []
+              for status in ("in_progress", "queued", "waiting"):
+                  runs += api(f"repos/{repo}/actions/workflows/algorithm-audit-drift.yml/runs"
+                              f"?status={status}&per_page=50")["workflow_runs"]
+              found = []
+              for r in runs:
+                  if r["id"] >= me:  # only earlier runs (run ids increase), so no deadlock
+                      continue
+                  jobs = api(f"repos/{repo}/actions/runs/{r['id']}/jobs?per_page=100")["jobs"]
+                  busy = [j["name"] for j in jobs if j["status"] != "completed"
+                          and (j["name"].startswith("research (") or j["name"] == "research-pr")]
+                  if busy:
+                      found.append((r["id"], len(busy)))
+              return found
+
+          while True:
+              try:
+                  b = blockers()
+              except RuntimeError as e:  # API trouble: do not block research on it
+                  print(f"could not check earlier runs ({e}); continuing", file=sys.stderr)
+                  break
+              if not b:
+                  break
+              print(f"waiting for earlier research run(s): {b}", file=sys.stderr)
+              time.sleep(60)
           PY
 
   research:

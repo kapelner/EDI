@@ -147,6 +147,15 @@ fastest acceptable one for its job?**
   at `--effort medium` (set per task in the prepare step) (max 80 turns, 20-minute timeout each since 2026-11-16 (slowest observed 5.7 min), 6 in parallel), billed to that
   secret. Trial run 2026-11-16 (row A as a single task, plus inventory): $0.30 and $0.67,
   12 and 18 turns. Use the `research_tasks` input to run a subset by hand.
+- **No overlapping research runs** (owner, 2026-11-16). Two research runs would open PRs
+  editing the same inventory CSVs. The plan job's "Wait for earlier research runs" step
+  makes a run that will do research wait (polling every 60 s, plan timeout 180 min) while
+  any earlier run of this workflow still has `research (...)` or `research-pr` jobs
+  unfinished. Not a workflow-level `concurrency:` group: GitHub keeps one pending run per
+  group and cancels the older, so a weekly no-op Thursday trigger could cancel a real
+  research run queued behind a manual one. Runs with no research never wait or block,
+  nothing is cancelled, and only earlier run ids are waited on (no deadlock). Separately,
+  an unmerged research PR still conflicts with the next one: merge each before the next run.
 - **Schedule mechanics.** Cron is UTC with no DST, and a cron that restricts both
   day-of-month and day-of-week matches either one, so `59 20 * * 4` and `59 21 * * 4` both
   fire every Thursday; the plan job keeps the one that is 23:59 in Jerusalem (20:59 UTC in
