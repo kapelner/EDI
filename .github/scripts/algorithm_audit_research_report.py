@@ -229,6 +229,12 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         L += [f"- {t}: **{msg}**" for t, msg in unbacked]
         L.append("")
 
+    if proposed:
+        L.append("## 6. Taxonomy terms proposed by agents")
+        L += [f"- {t}: {p.get('target')} `{p.get('id')}` {p.get('term_class')}: "
+              f"\"{p.get('term')}\" ({p.get('why', '')})" for t, p in proposed]
+        L.append("")
+
     if impls:
         order = {"yes": 0, "conditional": 1, "unknown": 2, "no": 3}
         L.append("## 7. Open-source implementations found (license as stated by the agent's source)")
@@ -243,12 +249,6 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
             L.append(f"| {i.get('gpl3_compatible', 'unknown')} | [{cell(i.get('name', '?'))}]"
                      f"({i.get('url', '')}) | {lic} | {t}: {', '.join(i.get('methods', []))} | "
                      f"{cell(i.get('language', ''))} | {cell(i.get('relevance', ''))} |")
-        L.append("")
-
-    if proposed:
-        L.append("## 6. Taxonomy terms proposed by agents")
-        L += [f"- {t}: {p.get('target')} `{p.get('id')}` {p.get('term_class')}: "
-              f"\"{p.get('term')}\" ({p.get('why', '')})" for t, p in proposed]
         L.append("")
 
     if reviewed:

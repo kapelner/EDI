@@ -117,7 +117,9 @@ def pick_open_copies(work):
         host = urllib.parse.urlsplit(url).netloc.lower()
         d = doi_of(url) or ""
         if "arxiv.org" in host or d.startswith("10.48550/arxiv."):
-            arxiv_id = d.split("arxiv.", 1)[1] if d.startswith("10.48550/") else url.rsplit("/", 1)[-1]
+            arxiv_id = (d.split("arxiv.", 1)[1] if d.startswith("10.48550/")
+                        else urllib.parse.urlsplit(url).path.split("/", 2)[-1])  # abs/<id> or pdf/<id>
+            arxiv_id = re.sub(r"\.pdf$", "", arxiv_id, flags=re.I)
             ranked.append((0, f"https://arxiv.org/abs/{arxiv_id}"))
         elif d.startswith("10.1101/") or "biorxiv.org" in host or "medrxiv.org" in host:
             ranked.append((1, url))

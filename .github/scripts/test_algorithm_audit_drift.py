@@ -351,6 +351,7 @@ class ResearchReportTests(unittest.TestCase):
         self.put("binary-glm-mle", self.problem(implementations=[
             impl("zeta", "no"), impl("alpha", "yes"), impl("beta", "conditional")]))
         _, text = report.render(self.dir, ["binary-glm-mle"])
+        self.assertLess(text.index("## 6."), text.index("## 7.")) if "## 6." in text else None
         sec = text.split("## 7. Open-source implementations found", 1)[1]
         self.assertLess(sec.index("alpha"), sec.index("beta"))
         self.assertLess(sec.index("beta"), sec.index("zeta"))
@@ -526,6 +527,12 @@ class OpenCopyTests(unittest.TestCase):
             "https://pmc.ncbi.nlm.nih.gov/articles/PMC8023675/"])
         self.assertEqual(drift.pick_open_copies({"locations": [
             {"is_oa": True, "landing_page_url": "https://academic.oup.com/x"}]}), [])
+        # arXiv PDF and versioned URLs (seen in run 43922480182) give one clean abs link each
+        self.assertEqual(drift.pick_open_copies({"locations": [
+            {"is_oa": True, "landing_page_url": "https://arxiv.org/pdf/1312.0531.pdf"},
+            {"is_oa": True, "landing_page_url": "http://arxiv.org/abs/1312.0531"},
+            {"is_oa": True, "landing_page_url": "https://arxiv.org/abs/2310.01589v2"}]}),
+            ["https://arxiv.org/abs/1312.0531", "https://arxiv.org/abs/2310.01589v2"])
 
     def test_report_shows_open_copies(self):
         with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
