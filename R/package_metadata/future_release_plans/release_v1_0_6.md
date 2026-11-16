@@ -852,3 +852,30 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     changes, fix by saving/restoring private$w (and t-dependent state) in draw_ws_raw or by drawing on a duplicate.
   - Done when: a regression test shows get_w() and downstream estimates unchanged after the CMH SE call, or the check
     closes with evidence that no reachable path mutates a live design.
+- [ ] TODO-43 (added 2026-11-17, agent, owner request; from the dead code behind three rejected findings of the
+  algorithm-research triage of run 43925959437, see the Rejected section of `audits/research_triage_drafts.md`; each
+  "no caller" claim was checked against the code on 2026-11-17): **Remove three dead C++ code paths.**
+  - `compute_coxph_rand_bootstrap_cpp` (`src/fast_coxph_regression.cpp` ~L1135; finding
+    `resampling-refit-loop#43925959437.2`): no caller in R or C++, and only a reference test calls it
+    (`R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R` ~L28). It
+    is exported (`NAMESPACE` L147) but documented `@keywords internal` (`man/compute_coxph_rand_bootstrap_cpp.Rd`).
+    Delete it, its export, Rd page and test case, and add a NEWS line (an exported internal kernel is removed). If the
+    owner prefers, deprecate it instead, as v1.0.6-TODO-38 does for `robust_negbinreg`.
+  - `newcombe_paired_ci_cpp` (`src/newcombe_speedups.cpp` ~L113; finding `risk-difference-ci#43925959437.2`): not
+    exported, `@keywords internal`, no R caller (`InferenceIncidKKNewcombeRiskDiff` computes its matched part with its
+    own Wald variance, `inference_incidence_KK_newcombe_ivwc_univ.R` ~L140-148). Only
+    `test-proportion-interval-and-distance-matrix-kernels-reference.R` ~L45-47 calls it. Delete it, its Rd page, the
+    `@seealso` link at ~L99 and those test lines. Its paired phi (~L127-128) is also the uncorrected definition the
+    finding flags, so it must not be wired in as it stands.
+  - `TruncatedNegBinCount::expected_hessian` (`src/fast_hurdle_negbin.cpp` ~L474; finding
+    `zero-inflated-count-mle#43925959437.3`): nothing calls `.expected_hessian(` on a truncated-NB object (the Newton
+    path uses `hessian_for_opt` → `hessian`, `_helper_functions_core.h` ~L1397). Delete the method and its
+    `one_row` helper loop. Also check whether `has_expected_hessian` (`_helper_functions_core.h` ~L1390-1395) has any
+    user left; it had none on 2026-11-17, so delete it too if that still holds.
+  - Regenerate `RcppExports` (compileAttributes, at the end of the batch, not mid-way) and the `R/package_tests`
+    registries that list the two kernels (`comprehensive_suite_*`, `coverage_gap_registry.csv`,
+    `public_api_inventory.csv`, `public_argument_*`). Mark or drop the two rows in
+    `R/package_metadata/audits/algorithm_inventory.csv` (~L621, ~L949) so the inventory check stays clean. Compile only
+    the touched `.cpp` files (CLAUDE.md targeted-compile rule).
+  - Done when: `grep -rn` finds none of the three symbols outside history, the hurdle-NB, Cox and Newcombe tests pass
+    with unchanged results, and the registries, inventory and NEWS are current.
