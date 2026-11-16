@@ -42,6 +42,12 @@ nothing faster"). The problem-level search and the four venues are still require
 problem, and a trivial method still appears in `methods_reviewed`. If you think a method marked
 trivial is not (a faster algorithm exists), say so in its note and research it.
 
+**Methods researched in another problem** (`"researched_in": "<problem_id>"`, e.g. the dense
+factorizations in `dense-linear-algebra`; owner, 2026-11-16): outside that problem, review them in
+one line ("researched in dense-linear-algebra"), with no per-term searches, unless how *this*
+problem uses them matters for speed (e.g. a factorization repeated in every resampling replicate
+that could be reused); then say so in the note. Inside their own problem they get the full plan.
+
 A class whose taxonomy list is empty needs no query. One query may serve several classes or
 methods: list them all in `term_classes` / `method_ids`. Record every search and fetch in
 `searches`, with a one-line `result` (including "nothing relevant"); the report flags any problem

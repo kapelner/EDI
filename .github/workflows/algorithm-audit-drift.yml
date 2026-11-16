@@ -253,11 +253,12 @@ jobs:
             # problem's inventory rows, and its previous result (research_log.json)
             python3 .github/scripts/algorithm_audit_drift.py --task-problem "$TASK" --out task_problem.json
             python3 - <<'PY'
-          import csv, os
+          import csv, os, sys
+          sys.path.insert(0, ".github/scripts")
+          import algorithm_audit_drift as drift
           task = os.environ["TASK"]
-          with open("R/package_metadata/audits/algorithm_inventory.csv", newline="") as fh:
-              rows = list(csv.DictReader(fh))
-          keep = [r for r in rows if r.get("problem_id") == task]
+          rows = drift.load_inventory()
+          keep = drift.task_rows(task, rows)  # + collected methods' rows (dense-linear-algebra)
           with open("row_entries.csv", "w", newline="") as fh:
               w = csv.DictWriter(fh, fieldnames=list(rows[0]))
               w.writeheader()

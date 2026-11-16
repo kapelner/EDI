@@ -649,6 +649,55 @@ class ResearchLogTests(InventoryCheckTests):
         self.assertEqual(out["unused_taxonomy"], ["method `unused`"])
         self.assertEqual(out["taxonomy_terms"], ["method `irls` lacks narrower"])
 
+    def collecting_taxonomy(self):
+        self.taxonomy["methods"]["chol"] = dict(title="Cholesky", researched_in="dense-la", **TERMS)
+        self.taxonomy["problems"]["dense-la"] = {"title": "LA", "description": "",
+                                                 "search_terms": ["small matrix"], "collects_methods": ["chol"]}
+        self.entries = [entry(), entry(symbol="", method_id="chol"),
+                        entry(symbol="", problem_id="binary-glm-mle", method_id="chol", file="R/EDI/src/fit.cpp")]
+
+    def test_collecting_problem_gets_shared_methods_and_their_rows(self):
+        self.collecting_taxonomy()
+        out = self.run_check()
+        self.assertEqual(out["unused_taxonomy"], [])  # a collecting problem needs no rows of its own
+        self.assertEqual(out["taxonomy_terms"], [])
+        inv = drift.load_inventory()
+        self.assertEqual(drift.research_batches(inv),
+                         {"binary-glm-mle": ["chol", "irls"], "dense-la": ["chol"]})
+        self.assertEqual(len(drift.task_rows("dense-la", inv)), 2)
+        self.assertEqual(len(drift.task_rows("binary-glm-mle", inv)), 3)
+
+    def test_researched_in_must_point_at_a_collecting_problem(self):
+        self.collecting_taxonomy()
+        self.taxonomy["problems"]["dense-la"]["collects_methods"] = []
+        self.assertIn("method `chol` is researched_in `dense-la`, which does not collect it",
+                      self.run_check()["taxonomy_terms"])
+
+    def test_report_skips_methods_researched_elsewhere(self):
+        self.collecting_taxonomy()
+        self.run_check()
+        tax = drift.load_taxonomy()
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        base = [{"query": q, "where": w, "term_classes": c, "method_ids": m, "result": ""}
+                for q, w, c, m in [("p", "web", ["problem"], []), ("v1", "arxiv", ["other"], []),
+                                   ("v2", "cran-task-views", ["other"], []), ("v3", "jss", ["other"], []),
+                                   ("v4", "r-journal", ["other"], [])]]
+        irls_s = [{"query": "irls", "where": "web", "term_classes": ["synonym", "broader", "narrower", "software"],
+                   "method_ids": ["irls"], "result": ""}]
+        rev = lambda ms: [{"method_id": m, "conclusion": "no_faster_acceptable_found", "note": "",
+                           "vs_previous": "new"} for m in ms]
+        (out / "binary-glm-mle.json").write_text(json.dumps({"methods_reviewed": rev(["irls", "chol"]),
+            "not_reviewed": [], "findings": [], "searches": base + irls_s}))
+        (out / "dense-la.json").write_text(json.dumps({"methods_reviewed": rev(["chol"]),
+            "not_reviewed": [], "findings": [], "searches": base}))
+        _, text = report.render(out, ["binary-glm-mle", "dense-la"],
+                                {"binary-glm-mle": ["chol", "irls"], "dense-la": ["chol"]}, tax)
+        gaps = text.split("## 5. Search-plan gaps", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn("binary-glm-mle", gaps)                    # skipped outside its home
+        self.assertIn("dense-la: `chol`: no synonym search", gaps)  # strict in its own problem
+        self.assertIn("binary-glm-mle: `chol`: no_faster_acceptable_found", text)  # still reviewed
+
     def test_report_counts_vs_previous(self):
         out = Path(self.tmp.name) / "research"
         out.mkdir()

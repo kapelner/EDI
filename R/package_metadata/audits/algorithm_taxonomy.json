@@ -977,6 +977,41 @@
     "mixture model EM vs direct maximization",
     "ZIP ZINB fitting algorithm"
    ]
+  },
+  "dense-linear-algebra": {
+   "title": "Dense linear algebra: factorizations, solves and inverses",
+   "description": "Small dense factorizations, solves, inverses and log-determinants (Cholesky/LDLT, QR, LU, Gauss-Jordan, eigen pseudo-inverse, Sherman-Morrison, Schur complements) used inside many fits: p x p information matrices with p small (typically < 30), n x p least squares, repeated in every Newton step and every resampling replicate. Researched once here (owner, 2026-11-16) instead of inside every problem that uses them; this task gets every inventory row using these methods, whatever its problem.",
+   "search_terms": [
+    "small dense matrix factorization performance",
+    "fast small symmetric positive definite solve",
+    "Cholesky vs LDLT vs QR least squares speed accuracy",
+    "batched small matrix factorization CPU",
+    "Eigen dense decomposition benchmark",
+    "numerically stable small matrix inverse",
+    "rank-revealing QR alternatives",
+    "log-determinant computation small matrices"
+   ],
+   "software": [
+    "Eigen",
+    "LAPACK",
+    "OpenBLAS",
+    "Intel MKL",
+    "BLIS",
+    "Armadillo",
+    "RcppEigen",
+    "RcppArmadillo",
+    "Matrix (R)",
+    "batched BLAS / MAGMA"
+   ],
+   "collects_methods": [
+    "cholesky-ldlt",
+    "qr-decomposition",
+    "lu-decomposition",
+    "gauss-jordan-elimination",
+    "eigen-pseudo-inverse",
+    "sherman-morrison",
+    "schur-complement"
+   ]
   }
  },
  "methods": {
@@ -1609,7 +1644,8 @@
     "RcppArmadillo",
     "chol2inv",
     "Matrix (R)"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "clogit-logistic-reduction": {
    "title": "Conditional logit as logistic regression on pair differences",
@@ -1890,7 +1926,8 @@
     "Eigen SelfAdjointEigenSolver",
     "LAPACK dsyevr",
     "corpcor::pseudoinverse"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "erfc-normal-cdf": {
    "title": "erfc-based normal CDF with clamped tails",
@@ -2165,7 +2202,8 @@
    "software": [
     "base::solve",
     "Eigen"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "generalized-least-squares": {
    "title": "Generalized least squares at fixed variance components",
@@ -2831,7 +2869,8 @@
     "Eigen FullPivLU PartialPivLU",
     "LAPACK dgetrf",
     "base::solve"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "m-out-of-n-subsampling": {
    "title": "m-out-of-n bootstrap / subsampling",
@@ -3488,7 +3527,8 @@
     "base::qr",
     "RcppEigen fastLm",
     "LINPACK dqrdc2"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "random-forest-imputation": {
    "title": "Random-forest chained imputation",
@@ -3748,7 +3788,8 @@
    ],
    "software": [
     "Eigen"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "seed-derivation": {
    "title": "Seed derivation for parallel streams",
@@ -3883,7 +3924,8 @@
    "software": [
     "Eigen",
     "lme4"
-   ]
+   ],
+   "researched_in": "dense-linear-algebra"
   },
   "simulated-annealing": {
    "title": "Simulated annealing",

@@ -65,6 +65,8 @@ def coverage_gaps(data, problem_id, methods, taxonomy):
         entry = taxonomy.get("methods", {}).get(m, {})
         if entry.get("trivial"):  # owner, 2026-11-16: reviewed in one line, no per-term searches
             continue
+        if entry.get("researched_in") and entry["researched_in"] != problem_id:
+            continue  # researched once in its collecting problem (e.g. dense-linear-algebra)
         for key, cls in METHOD_CLASSES:
             if entry.get(key) and (cls, m) not in covered:
                 gaps.append(f"`{m}`: no {cls} search")

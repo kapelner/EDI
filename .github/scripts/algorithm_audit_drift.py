@@ -390,7 +390,8 @@ def check_inventory(offline):
             if u not in known:
                 out["unknown_ref"].append(f"{where}: {u}")
     out["orphan_ref"] = sorted(known - used)
-    out["unused_taxonomy"] = ([f"problem `{p}`" for p in sorted(set(probs) - used_p)]
+    collecting = {p for p, d in probs.items() if d.get("collects_methods")}
+    out["unused_taxonomy"] = ([f"problem `{p}`" for p in sorted(set(probs) - used_p - collecting)]
                               + [f"method `{m}`" for m in sorted(set(meths) - used_m)])
     for p, d in sorted(probs.items()):
         if not d.get("search_terms"):
@@ -399,6 +400,9 @@ def check_inventory(offline):
         missing = [k for k in ("synonyms", "broader", "narrower", "software") if k not in d]
         if missing:
             out["taxonomy_terms"].append(f"method `{m}` lacks {', '.join(missing)}")
+        home = d.get("researched_in")
+        if home and m not in probs.get(home, {}).get("collects_methods", []):
+            out["taxonomy_terms"].append(f"method `{m}` is researched_in `{home}`, which does not collect it")
     if not offline:
         out["dead_ref"], out["ref_errors"] = check_reference_urls(sorted(known))
     return out
@@ -501,7 +505,22 @@ def research_batches(inventory, row_order=None):
     for e in inventory:
         if e.get("problem_id") and e.get("method_id"):
             out.setdefault(e["problem_id"], set()).add(e["method_id"])
+    # A collecting problem (taxonomy `collects_methods`, e.g. dense-linear-algebra; owner,
+    # 2026-11-16) researches shared methods once, across every problem that uses them.
+    used = {e.get("method_id") for e in inventory}
+    for pid, prob in load_taxonomy().get("problems", {}).items():
+        collects = [m for m in prob.get("collects_methods", []) if m in used]
+        if collects:
+            out.setdefault(pid, set()).update(collects)
     return {p: sorted(m) for p, m in sorted(out.items())}
+
+
+def task_rows(problem_id, inventory, taxonomy=None):
+    """Inventory rows an agent gets for its problem: the problem's own rows, plus, for a
+    collecting problem, every row that uses one of its collected methods."""
+    taxonomy = taxonomy or load_taxonomy()
+    collects = set(taxonomy.get("problems", {}).get(problem_id, {}).get("collects_methods", []))
+    return [e for e in inventory if e.get("problem_id") == problem_id or e.get("method_id") in collects]
 
 
 def task_problem(problem_id, taxonomy=None):
@@ -528,7 +547,7 @@ def previous_results(problem_id, inventory, log=None, max_commits=5):
     prev = log.get(problem_id)
     if not prev:
         return {"no_previous": True}
-    files = sorted({e["file"] for e in inventory if e.get("problem_id") == problem_id})
+    files = sorted({e["file"] for e in task_rows(problem_id, inventory)})
     commits = []
     if files:
         commits = git("log", f"--since={prev['last_researched']} 23:59:59", "--format=%h %ad %s",

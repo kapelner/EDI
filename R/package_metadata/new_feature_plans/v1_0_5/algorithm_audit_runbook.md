@@ -106,6 +106,14 @@ fastest acceptable one for its job?**
   problem-level search and the four venues stay required for every problem. Borderline
   methods with known faster algorithms (DeLong variance, erfc normal CDF, separation
   detection, linear search) were deliberately left non-trivial.
+- **Collecting problem: `dense-linear-algebra`** (owner, 2026-11-16). The generic dense
+  factorizations and inversions (Cholesky/LDLT, QR, LU, Gauss-Jordan, eigen pseudo-inverse,
+  Sherman-Morrison, Schur complement) appear inside 12 problems; each agent researched them
+  a little and left coverage gaps. They are now researched once: the problem's
+  `collects_methods` lists them, its agent gets every inventory row using them (57 rows),
+  and each method carries `researched_in: dense-linear-algebra`. Elsewhere they are reviewed
+  in one line and the coverage check skips them; inside `dense-linear-algebra` the full plan
+  applies. Check 4 flags a `researched_in` that points at a problem not collecting the method.
 - **Open-source implementations** (owner, 2026-11-16): agents record every open-source
   implementation they find (`implementations`: name, URL, license as stated with the URL it
   was read from, `gpl3_compatible` yes / conditional / no / unknown, language, methods,
