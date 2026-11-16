@@ -218,7 +218,7 @@ def add_proposed_terms(dirpath, tasks):
     """Add the search terms agents proposed to algorithm_taxonomy.json (case-insensitive
     dedupe). Returns (added, held) as human-readable lines."""
     tax = drift.load_taxonomy()
-    allowed = {"problem": ("problems", {"search_terms"}),
+    allowed = {"problem": ("problems", {"search_terms", "software"}),  # rival packages per problem
                "method": ("methods", {"synonyms", "broader", "narrower", "software"})}
     added, held = [], []
     for task in tasks:

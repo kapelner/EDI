@@ -27,7 +27,8 @@ problem and **each** of its methods, cover every term class, using `task_problem
 2. **synonym**: each method under its synonyms (one query may combine several with OR).
 3. **broader**: the method's broader family applied to this problem.
 4. **narrower**: the variants and sub-techniques (step control, factorization, warm starts...).
-5. **software**: the rival implementations: their docs, vignettes, benchmarks and NEWS.
+5. **software**: the rival implementations (each method's `software`, and the problem's own
+   `software` list when it has one): their docs, vignettes, benchmarks and NEWS.
 
 and check these **venues** at least once per problem (a query or a fetch): **arXiv**
 (`where: arxiv`), **CRAN Task Views** (`cran-task-views`, e.g.

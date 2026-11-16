@@ -405,9 +405,11 @@ class ResearchApplyTests(InventoryCheckTests):
         (out / "binary-glm-mle.json").write_text(json.dumps({"proposed_terms": [
             {"target": "method", "id": "irls", "term_class": "synonyms", "term": "Newton-Raphson for GLMs", "why": ""},
             {"target": "method", "id": "irls", "term_class": "synonyms", "term": "fisher SCORING", "why": "dup"},
-            {"target": "method", "id": "nope", "term_class": "synonyms", "term": "x", "why": ""}]}))
+            {"target": "method", "id": "nope", "term_class": "synonyms", "term": "x", "why": ""},
+            {"target": "problem", "id": "binary-glm-mle", "term_class": "software", "term": "fracreg", "why": ""}]}))
         added, held = research_apply.add_proposed_terms(out, ["binary-glm-mle"])
-        self.assertEqual(len(added), 1)  # the case-insensitive duplicate is skipped
+        self.assertEqual(len(added), 2)  # the case-insensitive duplicate is skipped
+        self.assertEqual(drift.load_taxonomy()["problems"]["binary-glm-mle"]["software"], ["fracreg"])
         self.assertEqual(len(held), 1)   # unknown method id
         self.assertIn("Newton-Raphson for GLMs", drift.load_taxonomy()["methods"]["irls"]["synonyms"])
 
