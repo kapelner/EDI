@@ -917,17 +917,24 @@ class TriageTests(InventoryCheckTests):
 
     def test_triage_validation(self):
         self.write_triage([
-            {"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "approved", "todo": "TODO-7-v1.1.0"},
-            {"finding_id": "binary-glm-mle#1.2", "decision": "investigate", "status": "approved", "todo": "TODO-99-v1.1.0"},
+            {"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "approved", "todo": "v1.1.0-TODO-7"},
+            {"finding_id": "binary-glm-mle#1.2", "decision": "investigate", "status": "approved", "todo": "v1.1.0-TODO-99"},
             {"finding_id": "nope#1.1", "decision": "maybe", "status": "draft"},
             {"finding_id": "binary-glm-mle#1.2", "decision": "defer", "status": "proposed", "revisit": "2000-01-01"}])
         out = self.run_check()
         bad = " ".join(out["bad_triage"])
-        self.assertIn("TODO-99-v1.1.0` not found in release_v1_1_0.md", bad)
+        self.assertIn("v1.1.0-TODO-99` not found in release_v1_1_0.md", bad)
         self.assertIn("decision `maybe`", bad)
         self.assertIn("status `draft`", bad)
         self.assertIn("finding id not in research_log.json", bad)
         self.assertNotIn("TODO-7", bad)
+
+    def test_triage_old_todo_form_rejected(self):
+        """CLAUDE.md: release TODOs are cited release-first (v1.1.0-TODO-7), never TODO-7-v1.1.0."""
+        self.write_triage([{"finding_id": "binary-glm-mle#1.1", "decision": "investigate",
+                            "status": "approved", "todo": "TODO-7-v1.1.0"}])
+        bad = " ".join(self.run_check()["bad_triage"])
+        self.assertIn("needs a v<version>-TODO-<n>, got `TODO-7-v1.1.0`", bad)
         self.assertEqual(len(out["triage_due"]), 1)
 
     def test_previous_results_carry_triage(self):
@@ -964,13 +971,13 @@ class TriageTests(InventoryCheckTests):
         md = folder / "2026-11-16-run1.md"
         md.write_text("## 1. F\n### binary-glm-mle: irls → c `binary-glm-mle#1.1`\n- **Current:** x\n")
         rows = [{"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "approved",
-                 "todo": "TODO-7-v1.1.0", "reason": "benchmark first", "revisit": "", "decided": "2026-11-17"}]
+                 "todo": "v1.1.0-TODO-7", "reason": "benchmark first", "revisit": "", "decided": "2026-11-17"}]
         for _ in range(2):
             n, missing = triage_mod.annotate(rows, folder)
         text = md.read_text()
         self.assertEqual((n, missing), (1, []))
         self.assertEqual(text.count("- **Triage:**"), 1)
-        self.assertIn("- **Triage:** investigate (approved), TODO-7-v1.1.0, 2026-11-17. benchmark first", text)
+        self.assertIn("- **Triage:** investigate (approved), v1.1.0-TODO-7, 2026-11-17. benchmark first", text)
 
 
 class PromptSchemaTests(unittest.TestCase):

@@ -3,7 +3,7 @@
 
 Every faster-algorithm finding gets one decision in R/package_metadata/audits/research_triage.csv:
 reject / defer / investigate / adopt, with status proposed (a draft) or approved (the owner's
-decision). An approved investigate / adopt names its release TODO (TODO-<n>-v<version>).
+decision). An approved investigate / adopt names its release TODO (v<version>-TODO-<n>, e.g. v1.1.0-TODO-196).
 
   algorithm_audit_triage.py annotate   # write each decision under its finding in research_findings/*.md
   algorithm_audit_triage.py summary    # counts by decision / status, and what still needs a decision

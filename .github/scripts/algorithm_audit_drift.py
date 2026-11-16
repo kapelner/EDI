@@ -50,7 +50,7 @@ TRIAGE = META / "audits" / "research_triage.csv"
 TRIAGE_COLS = ["finding_id", "run", "problem_id", "finding", "decision", "status", "reason",
                "todo", "revisit", "decided"]
 TRIAGE_DECISIONS = {"reject", "defer", "investigate", "adopt"}
-TODO_REF = re.compile(r"^TODO-(\d+[a-z]?)-v(\d+)\.(\d+)\.(\d+)$")
+TODO_REF = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-TODO-(\d+[a-z]?)$")  # v1.1.0-TODO-196 (CLAUDE.md form)
 REFERENCES = META / "audits" / "algorithm_references.csv"
 SRC_DIR = ROOT / "R" / "EDI" / "src"
 R_DIR = ROOT / "R" / "EDI" / "R"
@@ -444,10 +444,10 @@ def check_inventory(offline):
             out["bad_triage"].append(f"{where}: finding id not in research_log.json")
         if dec in ("investigate", "adopt") and t.get("status") == "approved":
             m = TODO_REF.match(todo)
-            rel = RELEASES / f"release_v{m.group(2)}_{m.group(3)}_{m.group(4)}.md" if m else None
+            rel = RELEASES / f"release_v{m.group(1)}_{m.group(2)}_{m.group(3)}.md" if m else None
             if not m:
-                out["bad_triage"].append(f"{where}: approved {dec} needs a TODO-<n>-v<version>, got `{todo}`")
-            elif not rel.exists() or not re.search(rf"^- \[[ x]\] (~~)?TODO-{m.group(1)}\b",
+                out["bad_triage"].append(f"{where}: approved {dec} needs a v<version>-TODO-<n>, got `{todo}`")
+            elif not rel.exists() or not re.search(rf"^- \[[ x]\] (~~)?TODO-{m.group(4)}\b",
                                                    rel.read_text(), re.M):
                 out["bad_triage"].append(f"{where}: `{todo}` not found in {rel.name}")
         if dec == "defer":

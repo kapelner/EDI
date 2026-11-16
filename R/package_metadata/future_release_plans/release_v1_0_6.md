@@ -846,7 +846,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
 - [ ] TODO-42 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
   `sequential-biased-coin-designs#43925959437.1`, see `audits/research_triage_drafts.md`): **Sequential designs:
   draw_ws_raw overwrites the live design's w (CMH SE path)**
-  - Related: TODO-22-v1.2.0.
+  - Related: v1.2.0-TODO-22.
   - Reproduce: build an urn (or other generic-draw_ws_raw sequential) design, run InferenceIncidCMH's SE path
     (inference_incidence_cmh.R:196), then compare des$get_w() and a second Inference's estimate before and after. If w
     changes, fix by saving/restoring private$w (and t-dependent state) in draw_ws_raw or by drawing on a duplicate.

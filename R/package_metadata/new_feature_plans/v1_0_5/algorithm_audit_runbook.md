@@ -271,7 +271,7 @@ After each research PR is merged:
    - **adopt**: only once something in the repo verifies it (a benchmark, the A/B harness).
    Drafts are `status: proposed` (a Claude session may draft them); the owner's decision makes
    them `approved`, and only then is the TODO added to the release file and cited in `todo`
-   as `TODO-<n>-v<version>`.
+   as `v<version>-TODO-<n>` (e.g. `v1.1.0-TODO-196`).
 3. **Feedback.** The next run's agents get each problem's decisions in
    `previous_results.json` (`triage`), set `previous_finding_id` when re-reporting the same
    idea, and do not re-report a rejected (or not-yet-due deferred) finding without
