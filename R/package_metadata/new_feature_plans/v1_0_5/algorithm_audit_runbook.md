@@ -114,6 +114,14 @@ fastest acceptable one for its job?**
   and each method carries `researched_in: dense-linear-algebra`. Elsewhere they are reviewed
   in one line and the coverage check skips them; inside `dense-linear-algebra` the full plan
   applies. Check 4 flags a `researched_in` that points at a problem not collecting the method.
+- **EDI's own designs** (owner, 2026-11-16). Problems built on the authors' own methods carry
+  `edi_original` (the citation): `kk21-covariate-weights`, `kk-sequential-matching`,
+  `greedy-swap-allocation-search`, `matched-pair-reservoir-estimators`. Agents do not search
+  for the design by name (only its papers exist); they research its subroutines as used, and
+  the first two problems' `search_terms` name those standard sub-problems (many small
+  regressions and screening; online nearest-neighbour search under a changing metric).
+  `matched-pair-reservoir-estimators` also has `skip_research` (all five methods are trivial
+  closed forms): its rows stay inventoried, but it gets no research agent.
 - **Open-source implementations** (owner, 2026-11-16): agents record every open-source
   implementation they find (`implementations`: name, URL, license as stated with the URL it
   was read from, `gpl3_compatible` yes / conditional / no / unknown, language, methods,

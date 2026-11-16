@@ -667,6 +667,14 @@ class ResearchLogTests(InventoryCheckTests):
         self.assertEqual(len(drift.task_rows("dense-la", inv)), 2)
         self.assertEqual(len(drift.task_rows("binary-glm-mle", inv)), 3)
 
+    def test_skip_research_problem_gets_no_task_but_stays_inventoried(self):
+        self.taxonomy["problems"]["own-design"] = {"title": "t", "description": "", "search_terms": [],
+                                                   "edi_original": "KK 2014", "skip_research": "own"}
+        self.entries = [entry(), entry(symbol="", problem_id="own-design")]
+        out = self.run_check()
+        self.assertEqual((out["bad_taxonomy_id"], out["unused_taxonomy"], out["taxonomy_terms"]), ([], [], []))
+        self.assertEqual(list(drift.research_batches(drift.load_inventory())), ["binary-glm-mle"])
+
     def test_researched_in_must_point_at_a_collecting_problem(self):
         self.collecting_taxonomy()
         self.taxonomy["problems"]["dense-la"]["collects_methods"] = []
