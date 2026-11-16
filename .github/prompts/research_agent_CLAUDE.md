@@ -42,6 +42,13 @@ nothing faster"). The problem-level search and the four venues are still require
 problem, and a trivial method still appears in `methods_reviewed`. If you think a method marked
 trivial is not (a faster algorithm exists), say so in its note and research it.
 
+**EDI's own designs** (`edi_original` on the problem, with the citation; owner, 2026-11-16): the
+design or estimator itself is EDI's authors' work (e.g. KK14 / KK21 matching on the fly, greedy
+pair switching), so there is nothing to find about it beyond those papers. Do not search for
+it by name. Research its **subroutines** as this problem uses them (many tiny fits per arrival, a
+nearest-neighbour query under a metric that changes every arrival, a swap search), using the
+problem's `search_terms`, which name the standard sub-problems.
+
 **Methods researched in another problem** (`"researched_in": "<problem_id>"`, e.g. the dense
 factorizations in `dense-linear-algebra`; owner, 2026-11-16): outside that problem, review them in
 one line ("researched in dense-linear-algebra"), with no per-term searches, unless how *this*

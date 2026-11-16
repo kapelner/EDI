@@ -394,6 +394,8 @@ def check_inventory(offline):
     out["unused_taxonomy"] = ([f"problem `{p}`" for p in sorted(set(probs) - used_p - collecting)]
                               + [f"method `{m}`" for m in sorted(set(meths) - used_m)])
     for p, d in sorted(probs.items()):
+        if d.get("skip_research"):
+            continue
         if not d.get("search_terms"):
             out["taxonomy_terms"].append(f"problem `{p}` has no search_terms")
     for m, d in sorted(meths.items()):
@@ -512,7 +514,10 @@ def research_batches(inventory, row_order=None):
         collects = [m for m in prob.get("collects_methods", []) if m in used]
         if collects:
             out.setdefault(pid, set()).update(collects)
-    return {p: sorted(m) for p, m in sorted(out.items())}
+    # skip_research (owner, 2026-11-16): EDI's own design whose methods are all trivial; its rows
+    # stay inventoried, it just gets no research agent
+    skip = {pid for pid, prob in load_taxonomy().get("problems", {}).items() if prob.get("skip_research")}
+    return {p: sorted(m) for p, m in sorted(out.items()) if p not in skip}
 
 
 def task_rows(problem_id, inventory, taxonomy=None):
