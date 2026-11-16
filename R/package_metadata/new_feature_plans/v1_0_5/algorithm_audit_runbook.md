@@ -9,7 +9,7 @@
 | Layer | Trigger | Who/what | Output |
 |---|---|---|---|
 | Drift check | Monthly, 21st, 06:00 UTC (`workflow_dispatch` also works) | `.github/workflows/algorithm-audit-drift.yml` → `.github/scripts/algorithm_audit_drift.py` | One issue labelled `algorithm-audit-drift` (updated in place; closed when clean). Report also uploaded as the `drift-report` artifact. |
-| Research (added 2026-11-16) | Same run, after the drift check's plan step; `workflow_dispatch` input `research_tasks` picks a subset (`A,J,inventory`) or `none` | One Claude agent per audit row (29) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One issue labelled `algorithm-audit-research` (updated in place; closed when clean). Per-task JSON uploaded as `research-<task>` artifacts. |
+| Research (added 2026-11-16) | Every 8 weeks, 01:00 Friday Asia/Jerusalem ("Thursday night"), counted from 2026-11-19; `workflow_dispatch` input `research_tasks` picks a subset (`A`, `A.3`, `inventory`) or `none` | One Claude agent per batch of ≤ 8 distinct algorithms (68 batches as of 2026-11-16) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
 | Full pass | Release close; new kernel family ships; a Prototype item resolves through the A/B harness | A human or a Claude session, following "Re-review procedure" below | Updated audit rows, summary table, exposure column; bumped `reviewed` dates; re-pinned versions |
 
 The drift check never edits a file or commits. It answers only "did anything
@@ -26,6 +26,12 @@ Source of truth is the script; this is its contract.
      `robustbase`, `coxme`, `lme4`, `glmmTMB`).
    - Compares CRAN's current version (crandb) with
      `R/package_metadata/audits/comparator_versions.json`.
+   - NEWS comes from CRAN's rendered pages (`web/packages/<pkg>/news/news.html` for
+     NEWS.md packages, `news.html` for NEWS.Rd); CRAN does not serve the raw `NEWS` /
+     `NEWS.md` files. Each entry is one whole bullet. The pinned version is matched as a
+     whole token in a heading (so `2.0-6` never matches `2.0-60`); if no heading names it,
+     the report says so and shows the newest entries. A package with no NEWS page
+     (e.g. nlme) is reported as such.
    - Flags a changed version with the keyword-matching lines of that package's
      CRAN NEWS newer than the pinned version (keywords: default, algorithm,
      tie, quadrature, convergence, optimiz, starting value, deprecat, breaking,
@@ -36,8 +42,9 @@ Source of truth is the script; this is its contract.
      and the files it watches from the `watch` column of
      `audits/algorithm_inventory.csv` (a space-separated list of audit rows;
      row X watches every file with an entry whose `watch` contains X).
-   - Runs `git log --since=<reviewed>` over each row's files; flags rows with
-     commits and lists up to 8.
+   - Runs `git log --since="<reviewed> 23:59:59"` over each row's files (a `reviewed`
+     date covers that whole day, including commits made earlier that day); flags rows
+     with commits and lists up to 8.
 3. **Plan-state hygiene.**
    - For every audit TODO header line, each `release_vX_Y_Z.md → TODO-N`
      (ranges like `70..94` expanded) must resolve to an active TODO line in that
@@ -67,43 +74,70 @@ The drift check answers "did anything change?". The research layer answers the t
 questions it can't: **is the inventory still accurate?** and **is each algorithm still the
 fastest acceptable one for its job?**
 
-- **Row tasks** (`.github/prompts/algorithm_audit_research.md`): one agent per audit row
-  gets that row's inventory entries (`row_entries.csv`), groups them by distinct
-  `algorithm`, reads the row's audit section and the catalog's options tables (so it does
+- **Batch tasks** (`.github/prompts/algorithm_audit_research.md`): `algorithm_audit_drift.py
+  --research-batches` assigns each distinct `algorithm` name to the audit row most of its
+  entries list first and cuts each row into batches of 8 (`A.1` ... `A.13`). One agent per
+  batch gets the batch's names (`batch_algorithms.txt`) and every inventory entry using
+  them (`row_entries.csv`), reads the row's audit section and the catalog's options tables (so it does
   not re-report rejected options without new evidence), and searches the web for a faster
   algorithm that keeps the estimator, exactness, thread-count determinism, accuracy, and a
   GPL-3-compatible license, at EDI's actual sizes. Every finding cites URLs the agent
-  fetched that run; speedups are the sources' claims, never measurements. Algorithms it
-  did not reach are listed under "not reviewed", never silently skipped.
+  fetched that run; speedups are the sources' claims, never measurements. It must account
+  for every algorithm in its batch: the report flags any that appear in neither
+  `algorithms_reviewed` nor `not_reviewed` as **silently skipped**. (Batches replaced
+  one-agent-per-row on 2026-11-16 after the trial run's row-A agent reviewed 2 of 120
+  algorithms in 12 of its 80 turns.)
 - **Inventory task** (`.github/prompts/algorithm_audit_currency.md`): reads
-  `--currency-context 35` output (functions added in the last 35 days that the
+  `--currency-context 60` output (functions added in the last 60 days that the
   inventory lacks; inventory entries whose symbol appears in a changed line or hunk
   header). It proposes inventory rows (with fetched reference URLs) for new functions that
   implement an algorithm, and corrected `details` for rows that no longer describe the
   code. It never rewrites a verdict.
-- **Read-only.** Agents get Read/Glob/Grep, WebSearch/WebFetch and `git log|show|diff`
-  only; Edit/Write are disallowed and the job token is `contents: read`. They return JSON
-  through `--json-schema`; nothing is committed. Applying a finding or a proposed row is a
-  human (or a local Claude session) editing `algorithm_inventory.csv` /
-  `algorithm_references.csv`, after which check 4 re-validates it.
+- **Agents are read-only; the PR job writes.** Agents get Read/Glob/Grep,
+  WebSearch/WebFetch and `git log|show|diff` only; Edit/Write are disallowed and their job
+  token is `contents: read`. They return JSON through `--json-schema`. A separate
+  `research-pr` job (`.github/scripts/algorithm_audit_research_apply.py`) turns that JSON
+  into one pull request (changed 2026-11-16 from an issue, owner decision, so results live
+  in the repo):
+  - `R/package_metadata/audits/research_findings/<date>.md`: the full report (findings,
+    tasks that did not run, algorithms not reviewed or silently skipped, inventory changes
+    applied and held).
+  - Inventory changes it can apply mechanically: a proposed new row, only with reference
+    URLs the job verified itself (Wikipedia API, Crossref) and a known audit row; a stale
+    `details` correction, only when it names exactly one inventory row. Everything else is
+    listed under "Needs a human". **Verdicts are never changed.**
+  - The PR body carries an online run of check 4 on the branch, because required status
+    checks do not run on a PR opened with `GITHUB_TOKEN`; the owner merges with the admin
+    bypass. Faster-algorithm findings stay unverified: promote a confirmed one to a release
+    TODO by hand.
+  - Needs Settings > Actions > General > "Allow GitHub Actions to create and approve pull
+    requests".
 - **Never silently clean.** A task with no output (no `ANTHROPIC_API_KEY` secret, agent
-  failure, timeout, invalid JSON) is listed under "Tasks that did not run" and makes the
-  report `FLAGGED`.
+  failure, timeout, invalid JSON) is listed under "Tasks that did not run" in the findings
+  file, and such a run always opens a PR.
 - **Findings are unverified.** They follow the verified/unverified rule below: a finding
   becomes a TODO only after a benchmark or the A/B harness
   (`../v1_2_0/algorithm_ab_testing_framework.md`) confirms it.
 - **Setup and cost.** Needs the `ANTHROPIC_API_KEY` (API billing) or
   `CLAUDE_CODE_OAUTH_TOKEN` (subscription, from `claude setup-token`) repository
-  secret. The Claude GitHub app was installed 2026-11-16, but neither secret was set. Each run is up to 30 agent sessions
-  (max 80 turns, 60-minute timeout each, 4 in parallel), billed to that key. Use the
-  `research_tasks` input to run a subset by hand.
+  secret; `CLAUDE_CODE_OAUTH_TOKEN` was set 2026-11-16. Each research run is about 70
+  agent sessions. Models (owner, 2026-11-16; the action's default was Sonnet 5.5):
+  research batches run Opus 5.5 at the default effort, the `inventory` agent Sonnet 5.5
+  at `--effort medium` (set per task in the prepare step) (max 80 turns, 60-minute timeout each, 6 in parallel), billed to that
+  secret. Trial run 2026-11-16 (row A as a single task, plus inventory): $0.30 and $0.67,
+  12 and 18 turns. Use the `research_tasks` input to run a subset by hand.
+- **Schedule mechanics.** Cron is UTC with no DST, so `0 22 * * 4` and `0 23 * * 4` both
+  fire every Thursday; the plan job keeps the one that is 01:00 in Jerusalem that week and
+  only every 8th week from `RESEARCH_ANCHOR`. Drift runs only on the monthly cron (and on
+  manual dispatch); a `skipped` job never triggers the failure notice.
 - **Tests:** `python3 .github/scripts/test_algorithm_audit_drift.py` covers the
   currency-context parsing and the report merge (including the NOT RUN rule); the
   workflow runs it first.
 
 ## Guardrails
 
-- **Read-only.** No commits, no plan edits, no auto-fixes by the workflow.
+- **No commits to `main`, no plan edits.** The drift check is read-only; the research job
+  only opens a pull request (inventory CSVs and a findings file), which the owner reviews.
 - **No builds, ever.** The check reads `DESCRIPTION`, git history, CRAN
   metadata and markdown. It never runs `R CMD INSTALL`/`build`, `load_all`,
   `pkgbuild`, or a compile. A Claude session doing a full pass follows

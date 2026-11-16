@@ -41,7 +41,9 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 # helper-worker-count-invariance.R's known failures, because the first group
 # comes and goes with R's memory layout. Remove an entry once it is fixed.
 #
-# (1) Memory-alignment-dependent sums, InferenceBaiAdjustedTKK14/KK21 (every
+# Each entry cites the release_v1_0_6.md TODO that fixes it.
+#
+# (1) release_v1_0_6.md TODO-34. Memory-alignment-dependent sums, InferenceBaiAdjustedTKK14/KK21 (every
 #     non-resampling output; seen in 3 of 3 runs, on varying comparisons).
 #     The estimate is d_bar = mean_cpp(y_matched_diffs), and mean_cpp
 #     (_helper_functions.cpp) is Eigen::Map<VectorXd>::mean(). Eigen's
@@ -50,7 +52,7 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 #     vector: the same 17 numbers gave two different means (last bit) across
 #     300 fresh copies. Any Eigen::Map reduction (sum, mean, dot, squaredNorm)
 #     on R-allocated memory has this property; Bai is where this sweep sees it.
-# (2) Worker-count-dependent randomization p-values (stable in 3 of 3 runs):
+# (2) release_v1_0_6.md TODO-35. Worker-count-dependent randomization p-values (stable in 3 of 3 runs):
 #     the permutation draws match but per-replicate estimates differ by
 #     1e-11 to 1e-3 at 4 cores, and InferenceIncidKKCondLogitGLMMOneLik even
 #     has a different number of NA (non-converged) replicates (22 serial vs
@@ -59,10 +61,11 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 #     values, and the point an iterative fit stops at, depends on how the
 #     replicates are split among workers.
 SAME_BINARY_KNOWN_FAILURES = c(
-	as.vector(outer(
+	as.vector(outer(   # v1.0.6 TODO-34
 		c("InferenceBaiAdjustedTKK14|continuous", "InferenceBaiAdjustedTKK21|continuous"),
 		as.vector(outer(c("estimate", "summary", "asymp_ci", "asymp_pval"), c("rerun", "cores"), paste, sep = "|")),
 		paste, sep = "|")),
+	# v1.0.6 TODO-35
 	"InferenceIncidBinomialIdentityRiskDiff|incidence|rand_pval|cores",
 	"InferenceIncidKKCondLogitGLMMOneLik|incidence|rand_pval|cores",
 	"InferenceOrdinalGCompMeanDiff|ordinal|rand_pval|cores"

@@ -54,7 +54,6 @@
     "R/EDI/src/RcppExports.cpp": "infrastructure: no algorithm choice",
     "R/EDI/src/_helper_functions.cpp": "infrastructure: no algorithm choice",
     "R/EDI/src/build_info.cpp": "infrastructure: no algorithm choice",
-    "R/EDI/src/edi_build_flags.h": "infrastructure: no algorithm choice",
     "R/EDI/src/edi_locked_binding.cpp": "infrastructure: no algorithm choice",
     "R/EDI/src/edi_simd.h": "infrastructure: no algorithm choice",
     "R/EDI/src/fast_ordinal_regression_internal.h": "pure forward declaration of fast_ordinal_regression_internal (its algorithm is inventoried under R/EDI/src/fast_ordinal_regression.cpp)",
@@ -67,34 +66,33 @@
     "R/EDI/src/result_map.h": "infrastructure: no algorithm choice",
     "R/EDI/src/result_map_rcpp.h": "infrastructure: no algorithm choice",
     "R/EDI/src/test_smart_starts.cpp": "infrastructure: no algorithm choice",
-    "R/EDI/src/unity_*.cpp": "infrastructure: no algorithm choice",
     "R/EDI/src/user_compiled_fn_shims.cpp": "infrastructure: no algorithm choice",
     "R/EDI/src/user_compiled_fns.h": "infrastructure: no algorithm choice"
   },
   "rows": {
     "A": {
       "title": "Convex/concave likelihood optimization",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "B": {
       "title": "Nonconcave mixture likelihoods",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "C": {
       "title": "GLMM/LMM/frailty marginal likelihood (GH quadrature)",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "D": {
       "title": "Randomization/bootstrap CI search",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "E": {
       "title": "Small permutation p-values",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "F": {
       "title": "Design allocation search (DesignFixedOptimal)",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "G": {
       "title": "Matching (pairs, k = 2)",
@@ -102,31 +100,31 @@
     },
     "H": {
       "title": "Sequential nearest-match designs",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "I": {
       "title": "Rerandomization acceptance-rejection",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "J": {
       "title": "Bootstrap resampling loops",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "K": {
       "title": "GEE working-correlation structure",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "L": {
       "title": "Cox partial-likelihood tie handling",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "M": {
       "title": "Deterministic CI inverters (score/gradient/Bartlett-LR)",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "N": {
       "title": "FD derivatives where analytic forms exist",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "O": {
       "title": "Special functions and floating-point accuracy",
@@ -134,11 +132,11 @@
     },
     "P": {
       "title": "Separable / closed-form models fit by a generic optimizer",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "Q": {
       "title": "Sort-and-sweep statistics; presorting in resampling",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "R": {
       "title": "Exact discrete nulls and enumeration",
@@ -146,7 +144,7 @@
     },
     "S": {
       "title": "Randomization/sequential-design draws, sampling, RNG",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "T": {
       "title": "Forward-stepwise selection (KK21)",
@@ -158,15 +156,15 @@
     },
     "V": {
       "title": "Refit economics in CI searches and replicate loops",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "W": {
       "title": "Quantile-regression LP and rank estimators",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "X": {
       "title": "Robust regression",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "Y": {
       "title": "Interval-censored NPMLE",
@@ -174,19 +172,19 @@
     },
     "Z": {
       "title": "Boundary / constrained MLE, cold starts",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "AA": {
       "title": "Nonconcave non-mixture likelihoods",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "AB": {
       "title": "Variance estimators",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     },
     "AC": {
       "title": "Infrastructure algorithms (LPT scheduling, tuning, imputation)",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-16"
     }
   }
 }

@@ -1,17 +1,19 @@
-# Monthly algorithm research: is each algorithm still the fastest for its job?
+# Algorithm research (every 8 weeks): is each algorithm still the fastest for its job?
 
-You are run monthly by `.github/workflows/algorithm-audit-drift.yml`, once per audit row
-(A–AC). The task message names your row. You are **read-only**: you may read the repo, run
+You are run every 8 weeks by `.github/workflows/algorithm-audit-drift.yml`, as one of ~70
+agents. Each gets one **batch** of at most 8 distinct algorithms from one audit row (A–AC);
+the task message names your batch (e.g. `A.3` = third batch of row A). You are **read-only**: you may read the repo, run
 `git log`/`git show`/`git diff`, and search and fetch the web. You cannot edit files, open
 issues, or build anything. Never try to compile, install, or run EDI (an R package with a large
 C++ core; see `CLAUDE.md`). Your only output is the structured JSON the run asks for.
 
 ## What to read first (in this order)
 
-1. `row_entries.csv` in the working directory: the rows of
+1. `batch_algorithms.txt` in the working directory: your algorithms, one per line (the
+   `algorithm` column values). `row_entries.csv`: every row of
    `R/package_metadata/audits/algorithm_inventory.csv` (the single source of truth for which
-   algorithms EDI implements and where) whose `audit_row` contains your row letter. Group them
-   by the `algorithm` column: you research each **distinct algorithm**, not each row.
+   algorithms EDI implements and where) that uses one of them, so you see each algorithm's
+   files, problems and current verdicts.
 2. Your row's title and `reviewed` date in `R/package_metadata/audits/algorithm_audit_row_map.json`.
 3. Your row's section in `R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md`
    (rows A–M have their own `## <letter>.` sections; N–AC are under "New consolidated rows N–AC").
@@ -55,8 +57,13 @@ breaks:
   source benchmarks the same problem at comparable sizes.
 - "No faster acceptable algorithm found" is a complete, useful answer. Say so per algorithm in
   `algorithms_reviewed` with a one-line reason.
-- You will not finish every algorithm in a large row. List every one you did not get to in
-  `not_reviewed` with the reason (e.g. "turn budget"). Nothing may be silently skipped.
+- **Review every algorithm in your batch.** The batch is sized so you can: you have up to 80
+  turns, and a real review of one algorithm takes several searches and fetches. Stopping
+  with turns left and algorithms unreviewed is a failed run, not a finished one (a previous
+  agent reviewed 2 of 120 algorithms in 12 turns and stopped). Only if you genuinely run out
+  of turns, list the rest in `not_reviewed` with the reason. Nothing may be silently skipped.
+- Every algorithm in `batch_algorithms.txt` must appear in exactly one of
+  `algorithms_reviewed` or `not_reviewed`, spelled exactly as in the file.
 - Spend your effort where it matters: algorithms in hot paths (resampling loops, CI searches,
   per-replicate refits) and rows whose verdict is Prototype or Investigate first; trivial closed
   forms last (one line each is enough: "closed form, O(n), nothing faster").

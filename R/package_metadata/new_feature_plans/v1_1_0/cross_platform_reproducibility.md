@@ -191,7 +191,7 @@ noted, and pass on all CI platform legs.
       tolerance-equal ones;
     - a test that the static check fails on each planted violation,
       including a floating-point `parallel for` reduction.
-  - Status 2026-11-15: static check scripts/check_thread_determinism.py (+ allowlist, 32-case self-test) wired into scripts/pre-push; 0 hits on src. Same-binary test test-same-binary-determinism-registry.R (102 cases, 1 vs rerun vs 4 cores) in the nightly repro filter. OPEN, known failures: (a) InferenceBaiAdjustedTKK14/KK21 last-bit nondeterminism from Eigen::Map mean()/sum() alignment peeling (mean_cpp, _helper_functions.cpp:65) — any Eigen reduction on R memory, not thread-related; (b) InferenceIncidBinomialIdentityRiskDiff, InferenceIncidKKCondLogitGLMMOneLik, InferenceOrdinalGCompMeanDiff rand p differs at 4 cores, likely solver warm starts carried across replicates.
+  - Status 2026-11-15: static check scripts/check_thread_determinism.py (+ allowlist, 32-case self-test) wired into scripts/pre-push; 0 hits on src. Same-binary test test-same-binary-determinism-registry.R (102 cases, 1 vs rerun vs 4 cores) in the nightly repro filter. OPEN, known failures: (a) InferenceBaiAdjustedTKK14/KK21 last-bit nondeterminism from Eigen::Map mean()/sum() alignment peeling (mean_cpp, _helper_functions.cpp:65) — any Eigen reduction on R memory, not thread-related; (b) InferenceIncidBinomialIdentityRiskDiff, InferenceIncidKKCondLogitGLMMOneLik, InferenceOrdinalGCompMeanDiff rand p differs at 4 cores, likely solver warm starts carried across replicates. Tracked as release_v1_0_6.md TODO-34 (a) and TODO-35 (b), cited on SAME_BINARY_KNOWN_FAILURES (2026-11-16).
 - [x] TODO-3: **Tie tolerance in randomization p-value counting.**
   Verify first, then fix.
   - `inference_all_abstract_rand.R:334,712` counts `t0s >= t` and
@@ -400,7 +400,7 @@ noted, and pass on all CI platform legs.
     - a rerandomization fixture whose criterion equals the threshold to
       within 1 ulp, with the same property;
     - the same-binary digests from TODO-2 still pass.
-  - Measured 2026-11-15 (no code change): 1,000 seeded draws, X vs X[, perm]: continuous X 0 changed everywhere; discrete X Greedy 570-767/1000, PairSwitching 556, GreedyDOptimal 766 (best/runner-up ties + unstable std::sort of bound keys, libstdc++ vs libc++), Rerandomization 0. Fix is C++: EDI_TIE_REL_TOL as constexpr, index tie-break, stable sort in greedy_pairwise_swap_engine.h, design_fixed_greedy.cpp, optimal_design_search.cpp, design_optimal_annealing_search.cpp, rerandomization_helpers.cpp; add a discrete-X digest case and an X-vs-X[,perm] test (both fail today).
+  - Measured 2026-11-15 (no code change): 1,000 seeded draws, X vs X[, perm]: continuous X 0 changed everywhere; discrete X Greedy 570-767/1000, PairSwitching 556, GreedyDOptimal 766 (best/runner-up ties + unstable std::sort of bound keys, libstdc++ vs libc++), Rerandomization 0. Fix is C++: EDI_TIE_REL_TOL as constexpr, index tie-break, stable sort in greedy_pairwise_swap_engine.h, design_fixed_greedy.cpp, optimal_design_search.cpp, design_optimal_annealing_search.cpp, rerandomization_helpers.cpp; add a discrete-X digest case and an X-vs-X[,perm] test (both fail today). Scheduled as release_v1_0_6.md TODO-33 (2026-11-16).
 - [ ] TODO-7 (added 2026-10-15): **Owner decision D4: `draw_version`, so
   earlier releases' draws can be reproduced.** Decision-gated; nothing is
   built until the owner accepts it.

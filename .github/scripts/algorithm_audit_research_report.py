@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Merge the monthly algorithm-research agents' JSON into one markdown issue body (stdlib only).
 
-Each task (one per audit row, plus `inventory` for the currency check) leaves either
+Each task (one per research batch such as `A.3`, plus `inventory` for the currency check) leaves either
 `<dir>/<task>.json` (the agent's structured output) or `<dir>/<task>.notrun` (why it did not
 run). A task with neither, or with unparseable JSON, is reported as NOT RUN. Nothing is ever
 treated as clean by default: a missing task makes the report FLAGGED.
 
-Usage: algorithm_audit_research_report.py --dir research --tasks A,B,...,inventory --out report.md
+Usage: algorithm_audit_research_report.py --dir research --tasks A.1,A.2,...,inventory
+       [--batches batches.json] --out report.md
 First line of the output is `FLAGGED` or `CLEAN`, like algorithm_audit_drift.py.
 """
 import argparse
@@ -31,8 +32,10 @@ def load(dirpath, task):
     return None, "no output (job failed, timed out or was cancelled)"
 
 
-def render(dirpath, tasks):
-    notrun, incomplete, findings, reviewed = [], [], [], []
+def render(dirpath, tasks, batches=None):
+    """batches: task -> algorithms it was given; any not accounted for is a silent skip."""
+    batches = batches or {}
+    notrun, incomplete, findings, reviewed, skipped = [], [], [], [], []
     new_algos, plumbing, stale, unchecked = [], 0, [], 0
     for task in tasks:
         data, why = load(dirpath, task)
@@ -57,8 +60,11 @@ def render(dirpath, tasks):
             reviewed.append((task, a))
         for a in data.get("not_reviewed", []):
             incomplete.append((task, a))
+        named = {a.get("algorithm") for a in data.get("algorithms_reviewed", [])
+                 + data.get("not_reviewed", [])}
+        skipped += [(task, alg) for alg in batches.get(task, []) if alg not in named]
 
-    flagged = bool(notrun or incomplete or findings or new_algos or stale)
+    flagged = bool(notrun or incomplete or skipped or findings or new_algos or stale)
     today = datetime.date.today().isoformat()
     L = ["FLAGGED" if flagged else "CLEAN", "",
          f"# Algorithm research report ({today})", "",
@@ -76,7 +82,7 @@ def render(dirpath, tasks):
     if not findings:
         L.append("_None._")
     for task, f in findings:
-        L.append(f"### Row {task}: {f.get('algorithm', '?')} → {f.get('candidate', '?')}")
+        L.append(f"### Batch {task}: {f.get('algorithm', '?')} → {f.get('candidate', '?')}")
         L.append(f"- **Current:** {f.get('current', '')}")
         L.append(f"- **Claimed speedup:** {f.get('claimed_speedup', '')} "
                  f"(applies at EDI's sizes: {f.get('applies_at_edi_sizes', '?')}; "
@@ -109,16 +115,18 @@ def render(dirpath, tasks):
                  "still accurate._")
     L.append("")
 
-    if incomplete:
+    if incomplete or skipped:
         L.append("## 3. Algorithms not reviewed this run")
-        L += [f"- Row {t}: {a.get('algorithm', '?')} ({a.get('reason', '')})" for t, a in incomplete]
+        L += [f"- Batch {t}: {a.get('algorithm', '?')} ({a.get('reason', '')})" for t, a in incomplete]
+        L += [f"- Batch {t}: {alg} (**silently skipped**: in the batch but in neither list)"
+              for t, alg in skipped]
         L.append("")
 
     if reviewed:
         L += ["<details><summary>Algorithms reviewed with no acceptable faster option "
               f"({sum(1 for _, a in reviewed if a.get('conclusion') != 'faster_option_found')})"
               "</summary>", ""]
-        L += [f"- Row {t}: {a.get('algorithm', '?')}: {a.get('conclusion', '?')}. {a.get('note', '')}"
+        L += [f"- Batch {t}: {a.get('algorithm', '?')}: {a.get('conclusion', '?')}. {a.get('note', '')}"
               for t, a in reviewed if a.get("conclusion") != "faster_option_found"]
         L += ["", "</details>"]
     return flagged, "\n".join(L) + "\n"
@@ -128,9 +136,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
     ap.add_argument("--tasks", required=True, help="comma-separated: audit rows and/or inventory")
+    ap.add_argument("--batches", help="JSON task -> algorithms (algorithm_audit_drift.py --research-batches)")
     ap.add_argument("--out", default="-")
     a = ap.parse_args()
-    _, text = render(Path(a.dir), [t for t in a.tasks.split(",") if t])
+    batches = json.loads(Path(a.batches).read_text()) if a.batches else None
+    _, text = render(Path(a.dir), [t for t in a.tasks.split(",") if t], batches)
     if a.out == "-":
         print(text, end="")
     else:

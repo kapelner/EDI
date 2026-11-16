@@ -168,6 +168,34 @@ class CurrencyContextTests(unittest.TestCase):
         self.assertIn("removed_fn", touched)      # removed lines count as changes
 
 
+NEWS_HTML = """<html><head><style>p{}</style></head><body>
+<h2>pkg 2.1-0</h2><ul>
+<li><p>glmer() refreshes the working
+weights before the Laplace <code>approximation</code> (numerical fix).</p></li>
+<li><p>Typo in a vignette.</p></li></ul>
+<h2>pkg 2.0-60</h2><ul><li><p>Default optimizer changed (not newer than the pin).</p></li></ul>
+<h2>pkg 2.0-6</h2><ul><li><p>Old algorithm change.</p></li></ul>
+</body></html>"""
+
+
+class NewsParserTests(unittest.TestCase):
+
+    def test_entries_are_whole_and_stop_at_the_pinned_heading(self):
+        items = drift.news_items(NEWS_HTML)
+        self.assertIn(("item", "glmer() refreshes the working weights before the Laplace "
+                       "approximation (numerical fix)."), items)
+        # 2.0-60 must not be mistaken for the pin 2.0-6; entries above 2.0-6 are kept
+        self.assertEqual(drift.filter_news(items, "2.0-6"), [
+            "glmer() refreshes the working weights before the Laplace approximation (numerical fix).",
+            "Default optimizer changed (not newer than the pin)."])
+        self.assertEqual(drift.filter_news(items, "2.0-60"), [
+            "glmer() refreshes the working weights before the Laplace approximation (numerical fix)."])
+
+    def test_missing_pinned_heading_is_said_not_hidden(self):
+        out = drift.filter_news(drift.news_items(NEWS_HTML), "1.9-0")
+        self.assertTrue(out[0].startswith("(no NEWS heading for the pinned 1.9-0"))
+
+
 import algorithm_audit_research_report as report  # noqa: E402
 
 
@@ -203,6 +231,14 @@ class ResearchReportTests(unittest.TestCase):
         self.assertIn("**B**: ANTHROPIC_API_KEY", text)
         self.assertIn("**C**: output was not valid JSON", text)
 
+    def test_batch_algorithm_in_neither_list_is_a_silent_skip(self):
+        self.put("A.1", {"row": "A", "algorithms_reviewed": [
+            {"algorithm": "IRLS", "conclusion": "no_faster_acceptable_found", "note": "ok"}],
+            "not_reviewed": [], "findings": []})
+        flagged, text = report.render(self.dir, ["A.1"], {"A.1": ["IRLS", "L-BFGS"]})
+        self.assertTrue(flagged)
+        self.assertIn("Batch A.1: L-BFGS (**silently skipped**", text)
+
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("J", {"row": "J", "algorithms_reviewed": [], "findings": [{
             "algorithm": "bootstrap loop", "entries": ["R/EDI/src/b.cpp::boot"],
@@ -223,8 +259,71 @@ class ResearchReportTests(unittest.TestCase):
         self.assertTrue(flagged)
         for s in ("bootstrap loop → one-step bootstrap", "keeps the estimator: no",
                   "`f.R` `em`: EM (row B", "(may affect the verdict)",
-                  "Row J: Bayesian bootstrap (turn budget)"):
+                  "Batch J: Bayesian bootstrap (turn budget)"):
             self.assertIn(s, text)
+
+
+import algorithm_audit_research_apply as research_apply  # noqa: E402
+
+
+class ResearchApplyTests(InventoryCheckTests):
+    """Reuses the planted repo; inherits (and so re-runs) the inventory tests too."""
+
+    def write_agent_output(self, data):
+        out = Path(self.tmp.name) / "research"
+        out.mkdir(exist_ok=True)
+        (out / "inventory.json").write_text(json.dumps(data))
+        return out
+
+    def test_new_row_added_with_known_ref_and_inherited_watch(self):
+        (self.root / "R/EDI/src/fit.cpp").write_text(
+            "double fit_irls() { return 0; }\ndouble brent_root() { return 1; }\n")
+        self.run_check()  # writes the fixture CSVs
+        d = self.write_agent_output({"new_symbols": [
+            {"file": "R/EDI/src/fit.cpp", "symbol": "brent_root", "is_algorithm": True, "reason": "",
+             "proposed": {"problem": "root", "algorithm": "Brent", "details": "d",
+                          "complexity": "O(log)", "audit_row": "A", "refs": [WIKI, "https://x.org/y"]}},
+            {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "is_algorithm": True, "reason": "",
+             "proposed": {"problem": "p", "algorithm": "IRLS", "details": "d", "complexity": "c",
+                          "audit_row": "A", "refs": [WIKI]}}],
+            "changed_entries": []})
+        applied, held, skipped = research_apply.apply(d, ["inventory"], "2026-11-16", offline=True)
+        self.assertEqual((len(applied), held, skipped), (1, [], 1))
+        row = [e for e in drift.load_inventory() if e["symbol"] == "brent_root"][0]
+        self.assertEqual((row["refs"], row["watch"], row["verdict"]),
+                         (WIKI, "A", "Not yet audited (added 2026-11-16)"))
+
+    def test_unverifiable_refs_or_ambiguous_fixes_are_held_and_verdicts_untouched(self):
+        self.entries = [entry(), entry(algorithm="L-BFGS", problem="other")]
+        self.run_check()
+        (self.root / "R/EDI/src/fit.cpp").write_text("double fit_irls() {}\ndouble em() {}\n")
+        d = self.write_agent_output({"new_symbols": [
+            {"file": "R/EDI/src/fit.cpp", "symbol": "em", "is_algorithm": True, "reason": "",
+             "proposed": {"problem": "p", "algorithm": "EM", "details": "d", "complexity": "c",
+                          "audit_row": "A", "refs": ["https://doi.org/10.1/unknown"]}}],
+            "changed_entries": [
+                {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "stale": True,
+                 "issue": "changed", "suggested_details": "new text", "may_affect_verdict": True},
+                {"file": "R/EDI/src/fit.cpp", "symbol": "fit_irls", "algorithm": "L-BFGS",
+                 "stale": True, "issue": "changed", "suggested_details": "lbfgs text"}]})
+        applied, held, _ = research_apply.apply(d, ["inventory"], "2026-11-16", offline=True)
+        self.assertEqual(len(applied), 1)
+        self.assertEqual(len(held), 2)  # unverifiable ref; fix matching two rows
+        rows = {e["algorithm"]: e for e in drift.load_inventory()}
+        self.assertEqual(rows["L-BFGS"]["details"], "lbfgs text")
+        self.assertEqual(rows["IRLS"]["details"], "")
+        self.assertEqual({e["verdict"] for e in rows.values()}, {"Keep"})
+
+
+class PromptSchemaTests(unittest.TestCase):
+
+    def test_schemas_are_json_without_single_quotes(self):
+        # the workflow passes them as --json-schema '<schema>' inside claude_args
+        prompts = Path(__file__).resolve().parents[1] / "prompts"
+        for f in prompts.glob("*.schema.json"):
+            text = f.read_text()
+            json.loads(text)
+            self.assertNotIn("'", text, f"{f.name} contains a single quote")
 
 
 if __name__ == "__main__":

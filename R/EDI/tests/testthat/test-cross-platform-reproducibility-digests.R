@@ -73,6 +73,13 @@ repro_X = local({
 	set.seed(7L)
 	data.frame(x1 = rnorm(repro_n), x2 = rnorm(repro_n), x3 = rnorm(repro_n))
 })
+# The deterministic response revealed to the designs whose allocation reads
+# responses (KK21). It must not be an exact covariate: with y = x1, KK21's
+# covariate-weight regressions fit perfectly, the weights become a ratio of
+# rounding noise, and every platform drew different w (R-CMD-check 2026-11-16:
+# four legs, four digests; a 1e-13 relative nudge to y also changed the draw).
+# This y leaves real residual variance, so the weights are well conditioned.
+repro_response = repro_X$x1 + 0.3 * repro_X$x2 + 0.5 * sin(seq_len(repro_n))
 # The stratified designs need a factor column; the other cases keep repro_X so
 # their digests stay comparable with earlier fixtures.
 repro_X_strata = cbind(repro_X, s = factor(rep(1:2, length.out = repro_n)))
@@ -87,7 +94,7 @@ repro_X_cluster = cbind(repro_X,
 # defaults to repro_X and r to repro_r. sequential = TRUE drives the design
 # through add_one_subject_to_experiment_and_assign() instead of
 # add_all_subjects_to_experiment(); responses = TRUE also reveals a
-# deterministic response (x1) after each assignment, for the designs whose
+# deterministic response (repro_response) after each assignment, for the designs whose
 # allocation reads responses (KK21). The meta-test below requires one case per
 # concrete, seed-reproducible design class in the registry (every class except
 # the observational "none" family, which has no assignment mechanism to draw).
@@ -206,7 +213,7 @@ repro_digest_rows = function() {
 				set.seed(20261013L)
 				for (i in seq_len(nrow(X))) {
 					des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
-					if (isTRUE(case$responses)) des$add_one_subject_response(i, X$x1[i])
+					if (isTRUE(case$responses)) des$add_one_subject_response(i, repro_response[i])
 				}
 				digests$w_seq_md5 = repro_md5(des$get_w())
 			} else {

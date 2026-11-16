@@ -637,3 +637,130 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Done when: on the repro, every randomization replicate (and every bootstrap and jackknife replicate in scope)
     equals the fresh fit to 1e-6, and that check is a regression test; NEWS records that ZIP randomization and
     bootstrap results change.
+- [ ] TODO-31 (added 2026-11-16, agent, owner request; found by the algorithm-audit re-review of drift issue #8, row L,
+  unverified): **Cluster-robust Cox SE: `compute_robust_vcov` still builds risk-set sums by forward subtraction.**
+  - Where: `src/fast_coxph_regression.cpp` `compute_robust_vcov` (from ~L544). `r_exp` and `r_x_exp` start at the
+    stratum's grand total and subtract each subject that leaves the risk set (~L575-585); `safe_r` clamps the remainder
+    at 1e-100.
+  - Why it is suspect: commit 96b34122 (2026-10-23) removed this exact pattern from the sibling
+    `compute_cox_neg_ll_only` (now ~L105-140), because when one subject dominates `exp(eta - max)` the remainder after
+    it leaves is rounding noise. There the line-search objective came out as -509 instead of +363.7 and Newton accepted
+    a diverging step. `compute_cox_ll_grad_hess_fast` (~L151) already sums backwards. The same cancellation here would
+    corrupt `dk/R_k` and `e_k`, so the Lin-Wei score residuals and the cluster-robust SE. Reached only when `cluster`
+    is given (~L897). This is the open half of algorithm-audit catalog note I-6.
+  - Investigate first (bounded): build a stratum where one subject dominates (a large-|eta| outlier that leaves the
+    risk set early) and compare the cluster-robust SE with `survival::coxph(..., ties = "breslow", cluster = )` with
+    and without the outlier. Stop condition: they agree to 1e-6 (the suspicion is wrong; close this with the evidence)
+    or they disagree (the bug is real).
+  - Fix if confirmed: accumulate `r_exp` / `r_x_exp` in reverse, as `compute_cox_ll_grad_hess_fast` does, and make the
+    repro a regression test against `survival::coxph`.
+  - Done when: the repro's cluster-robust SE matches `survival::coxph` to 1e-6 with a regression test, or the
+    investigation shows no error; NEWS notes any change to cluster-robust Cox SEs.
+- [ ] TODO-32 (added 2026-11-16, agent, owner request; found by the algorithm-audit re-review of drift issue #8, row E,
+  unverified): **Randomization tie tolerance scales with the largest replicate, so one blown-up refit can inflate
+  p-values.**
+  - Where: `R/inference_all_abstract_rand.R` `rand_tie_tolerance` (~L34): `tol = EDI_TIE_REL_TOL * max(|t|,
+    max|t0s|)` over the finite draws, used by `rand_tail_counts`, so by the stored-distribution p-value, the affine
+    reuse branch and the sequential-MC band.
+  - Why it is suspect: one finite but blown-up replicate (a near-separated or near-zero-denominator refit returning
+    about 1e7 when typical |t| is about 1) sets the scale for every draw. With `EDI_TIE_REL_TOL = sqrt(eps)` that is a
+    tie window of about 0.15, so draws near t count in both tails and p moves toward 1. The error is conservative, not
+    anti-conservative, and has not been seen in practice.
+  - Investigate first (bounded): count how often a class's randomization draws contain a replicate more than 1e3
+    times the median |t0s|, across the calibration-study and comprehensive_tests result runs, and on any hit compare p
+    with the current scale against p with a robust scale. Stop condition: no class produces such outliers (close with
+    the evidence), or one does (fix).
+  - Fix candidate: scale by a high quantile of |t0s| (e.g. the 0.99 quantile) together with |t| instead of the max.
+    This keeps the unit invariance and the both-tails tie rule that the TODO-112 reproducibility fix and the
+    InferenceOrdinalRidit n = 12 enumeration case need. Re-run those tests.
+  - Done when: an outlier-replicate regression test shows p unchanged by a single 1e7 draw, and the TODO-112 and ridit
+    tie tests still pass; or the investigation shows no class produces such draws and this is closed with the evidence.
+- [ ] TODO-33 (added 2026-11-16, agent, owner request; carries out `new_feature_plans/v1_1_0/cross_platform_reproducibility.md`
+  TODO-6): **Optimizer design draws change when the columns of X are reordered, because near-ties are broken by
+  rounding and an unstable sort.**
+  - Measured 2026-11-15 (1,000 seeded draws each, X vs `X[, perm]`, no code change). Continuous X: 0 draws changed
+    in every design. Discrete X:
+    - Greedy: 570-767 of 1,000 changed;
+    - PairSwitching: 556;
+    - GreedyDOptimal: 766;
+    - Rerandomization: 0.
+    The cause is best-vs-runner-up ties decided by rounding, plus a `std::sort` of bound keys that is not stable. Its
+    order differs between libstdc++ and libc++, so the draws also differ across platforms.
+  - Fix (C++): a `constexpr` copy of `EDI_TIE_REL_TOL` (`sqrt(eps)`, the R-side tie rule of cross-platform TODO-3).
+    Candidates within `tol * max(1, |best|)` count as tied, and the lowest index wins. Use `std::stable_sort`, and
+    accept a rerandomization criterion within `tol` of its threshold. Files:
+    - `greedy_pairwise_swap_engine.h`
+    - `design_fixed_greedy.cpp`
+    - `optimal_design_search.cpp`
+    - `design_optimal_annealing_search.cpp`
+    - `rerandomization_helpers.cpp`
+  - Needs a build (owner); agents compile only the touched files (CLAUDE.md).
+  - This changes seed-pinned draws once. NEWS records it as a documented default change; bundle it with any other
+    draw change in the same release.
+  - Done when all of these pass:
+    - a discrete-X digest case in `test-cross-platform-reproducibility-digests.R`;
+    - an X-vs-`X[, perm]` invariance test (both fail today);
+    - the plan's two constructed fixtures: two exactly tied swaps, and a rerandomization criterion 1 ulp from its
+      threshold;
+    - the same-binary and cross-platform digests, after the fixture is regenerated once.
+- [ ] TODO-34 (added 2026-11-16, agent, owner request; found by `test-same-binary-determinism-registry.R`,
+  cross-platform TODO-2): **`InferenceBaiAdjustedTKK14` / `KK21` give last-bit different results on the same binary,
+  depending on memory alignment.**
+  - Cause, verified: the estimate is `d_bar = mean_cpp(y_matched_diffs)`, and `mean_cpp` (`_helper_functions.cpp:65`)
+    is `Eigen::Map<VectorXd>::mean()`. Eigen's vectorized reduction adds scalars one at a time until the pointer is
+    packet-aligned, so the order of the sum depends on where R allocated the vector. The same 17 numbers gave two
+    different means (in the last bit) across 300 fresh copies.
+  - Affects every non-resampling output (estimate, summary, asymptotic CI and p-value): seen in 3 of 3 runs, on both
+    the rerun and the 1-vs-4-core comparisons. Any `Eigen::Map` reduction (`sum`, `mean`, `dot`, `squaredNorm`) on
+    memory R allocated has the same property; Bai is where the sweep saw it.
+  - Fix: a fixed-order reduction (a plain scalar loop, or a pairwise sum with a fixed block size) for `mean_cpp`,
+    `sum_cpp` and similar helpers. Then grep `src/` for `Map<...>` reductions that feed reported results.
+    `scripts/check_thread_determinism.py` could flag them.
+  - Needs a build (owner). NEWS: Bai results may move in the last bit.
+  - Done when: the Bai entries are removed from `SAME_BINARY_KNOWN_FAILURES` and the same-binary test passes 3 runs
+    in a row.
+- [ ] TODO-35 (added 2026-11-16, agent, owner request; found by `test-same-binary-determinism-registry.R`,
+  cross-platform TODO-2; cause unconfirmed): **Randomization p-values of `InferenceIncidBinomialIdentityRiskDiff`,
+  `InferenceIncidKKCondLogitGLMMOneLik` and `InferenceOrdinalGCompMeanDiff` depend on the worker count.**
+  - Symptom, stable in 3 of 3 runs: the permutation draws match, but per-replicate estimates differ by 1e-11 to 1e-3
+    at 4 cores. KKCondLogitGLMMOneLik even has a different number of NA (non-converged) replicates: 22 serial vs 6.
+  - Guess: the solver warm start is carried from one replicate to the next (`set_fit_warm_start` /
+    `fit_warm_start`). The chain of starting values, and so where an iterative fit stops, then depends on how the
+    replicates are split among workers.
+  - Check first: TODO-30's work now anchors every replicate to the full-data fit for non-concave classes. Re-run the
+    same-binary test on the current tree; this may already be fixed for some of the three.
+  - Investigate (bounded): for each class, compare serial and 4-core replicates with warm starts disabled
+    (`fit_warm_start_enabled = FALSE`). Stop condition: if they are identical, the warm start is the cause, and the
+    fix is to anchor to the full-data fit (or cold-start). If not, find the worker-dependent state. Also explain why
+    the NA count changes, because a converged/non-converged split that depends on the start is a correctness issue,
+    not just reproducibility.
+  - Done when: the three entries are removed from `SAME_BINARY_KNOWN_FAILURES` and the same-binary test passes. NEWS
+    notes any p-value change.
+- [ ] TODO-36 (added 2026-11-16, agent, owner request; found by nightly run 43877847174): **Make KK21 and KK21stepwise
+  assignments robust to last-bit floating-point differences across platforms.**
+  - What was seen: with the digest test's old response (`y = x1`, an exact covariate), KK21 `w_md5` differed on every
+    platform: `7f556fdd…` locally, `170b0370…` (Ubuntu), `621678d5…` (Ubuntu native), `67159e0a…` (both macOS legs),
+    `065fd247…` (Windows). Within each leg it did not change with the thread count.
+  - Cause of that case: the test input, not EDI. With y equal to a covariate the weight regressions fit perfectly, so
+    the weights were ratios of rounding noise (learning l-66ee65e3, 2026-11-16). The test now uses a response with
+    real residual variance, and the four fixture rows were rewritten.
+  - What remains for this TODO: on real data KK21 still makes two floating-point decisions per step in `assign_wt()`
+    (`R/EDI/R/design_seq_one_by_one_KK21.R`): the nearest reservoir subject under the weighted distance
+    (`compute_weighted_sqd_distances_cpp()`), and whether it is below the λ-quantile of the bootstrapped distances
+    (`compute_bootstrapped_weighted_sqd_distances_cpp()` plus `stats::quantile`). A near-tie still flips on last-bit
+    differences (libm, BLAS, FMA contraction on native and Apple arm64 builds), so cross-platform identity is likely
+    but not guaranteed.
+  - Investigate first (bounded): run the nightly with the new response. If all five legs agree, measure how often real
+    decisions are near-ties (per-step margins between the smallest and second-smallest distance, and between the
+    smallest distance and the cutoff) on the calibration datasets. Close this TODO as "not needed" if the chance of a
+    flip per draw is negligible, and document that KK21 is reproducible across platforms except at exact near-ties.
+  - Fix, if needed:
+    1. Round the normalized weights to a fixed relative grid.
+    2. Round each weighted distance and the cutoff to a grid, and compare the rounded values.
+    3. Break exact ties by subject index (`which(... == min(...))[1]` already does this once values are equal).
+
+    Rounding makes a split rare, not impossible: the chance per decision is about the cross-platform error divided by
+    the grid step, so pick a step 1e4-1e6 times the measured error. The fix changes KK21 draws everywhere, so it needs
+    a NEWS entry, regenerated fixture rows and the KK21 comprehensive and calibration slices (gate G4).
+  - Done when: either closed after the investigation, or the fix lands and all five nightly legs agree with the
+    fixture on both designs.

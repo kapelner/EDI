@@ -5,7 +5,10 @@
 #  - research: one Claude agent per audit row searches the web for a faster acceptable
 #              algorithm, plus one `inventory` agent that judges new and changed functions
 #              against the inventory. Prompts and output schemas: .github/prompts/.
-#              Opens/updates ONE issue labelled `algorithm-audit-research`; closes it when clean.
+#              Opens ONE pull request per run (label `algorithm-audit-research`) with the
+#              findings file research_findings/<date>.md and the inventory updates; no PR when
+#              there is nothing to report. Needs "Allow GitHub Actions to create and approve
+#              pull requests" (Settings > Actions > General).
 #              Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN repo secret; without
 #              one, every task is reported as NOT RUN (never as clean).
 # Procedure and guardrails: R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md
@@ -16,12 +19,23 @@ name: algorithm-audit-drift
 
 on:
   schedule:
-    - cron: "0 6 21 * *"   # 06:00 UTC on the 21st of every month
+    # Drift check: monthly, 06:00 UTC on the 21st (research does not run on this trigger).
+    - cron: "0 6 21 * *"
+    # Research: every 8 weeks, 01:00 Friday Asia/Jerusalem ("Thursday night"). Cron is UTC and
+    # has no DST, so both candidate UTC times fire every Thursday and the plan job keeps only
+    # the one that is 01:00 in Jerusalem that week (22:00 UTC in summer, 23:00 UTC in winter)
+    # and only every 8th week counted from RESEARCH_ANCHOR. Drift does not run on these.
+    - cron: "0 22 * * 4"
+    - cron: "0 23 * * 4"
   workflow_dispatch:
     inputs:
       research_tasks:
-        description: "Research tasks: 'all', 'none', or comma-separated audit rows and/or 'inventory' (e.g. A,J,inventory)"
+        description: "Research tasks: 'all', 'none', or comma-separated rows (A = all of A's batches), batches (A.3) and/or 'inventory'"
         default: all
+
+env:
+  MONTHLY_CRON: "0 6 21 * *"
+  RESEARCH_ANCHOR: "2026-11-19"   # a UTC Thursday on which research runs; cycle = 8 weeks
 
 permissions:
   contents: read
@@ -29,6 +43,7 @@ permissions:
 
 jobs:
   drift:
+    if: ${{ github.event_name != 'schedule' || github.event.schedule == '0 6 21 * *' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -79,18 +94,53 @@ jobs:
       - uses: actions/checkout@v7
       - id: plan
         env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
           REQUESTED: ${{ github.event.inputs.research_tasks || 'all' }}
         run: |
+          python3 .github/scripts/algorithm_audit_drift.py --research-batches --out batches.json
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, os
+          import datetime, json, os, sys, zoneinfo
+          batches = json.load(open("batches.json"))
           rows = list(json.load(open("R/package_metadata/audits/algorithm_audit_row_map.json"))["rows"])
+          event, sched = os.environ["EVENT"], os.environ.get("SCHEDULE", "")
           req = os.environ["REQUESTED"].strip()
-          allowed = rows + ["inventory"]
-          tasks = ([] if req == "none" else allowed if req == "all"
-                   else [t.strip() for t in req.split(",") if t.strip()])
-          bad = [t for t in tasks if t not in allowed]
-          if bad:
-              raise SystemExit(f"unknown research task(s): {bad}; allowed: {allowed}")
+
+          def log(msg):
+              print(msg, file=sys.stderr)
+
+          if event == "schedule":
+              req = "none"
+              if sched != os.environ["MONTHLY_CRON"]:
+                  now = datetime.datetime.now(datetime.timezone.utc)
+                  # the UTC Thursday this firing belongs to (tolerates a late start past midnight)
+                  day = (now - datetime.timedelta(hours=12)).date()
+                  hour = int(sched.split()[1])
+                  local = datetime.datetime.combine(day, datetime.time(hour), datetime.timezone.utc)
+                  local = local.astimezone(zoneinfo.ZoneInfo("Asia/Jerusalem"))
+                  weeks, rem = divmod((day - datetime.date.fromisoformat(os.environ["RESEARCH_ANCHOR"])).days, 7)
+                  if local.hour != 1:
+                      log(f"{sched}: not 01:00 in Jerusalem this week ({local:%H:%M %Z}); skipping")
+                  elif rem or weeks % 8:
+                      log(f"{day}: week {weeks} of the 8-week research cycle; skipping")
+                  else:
+                      req = "all"
+          allowed = list(batches) + ["inventory"]
+          if req == "none":
+              tasks = []
+          elif req == "all":
+              tasks = allowed
+          else:
+              tasks = []
+              for t in (x.strip() for x in req.split(",") if x.strip()):
+                  if t in allowed:
+                      tasks.append(t)
+                  elif t in rows and any(b.split(".")[0] == t for b in batches):
+                      tasks += [b for b in batches if b.split(".")[0] == t]
+                  else:
+                      raise SystemExit(f"unknown research task {t!r}; use a row ({','.join(rows)}), "
+                                       "a batch like A.3, 'inventory', 'all' or 'none'")
+          log(f"research tasks ({len(tasks)}): {tasks}")
           print("tasks=" + json.dumps(tasks))
           print("task_list=" + ",".join(tasks))
           PY
@@ -104,7 +154,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 6
       matrix:
         task: ${{ fromJSON(needs.plan.outputs.tasks) }}
     env:
@@ -120,29 +170,44 @@ jobs:
         run: |
           mkdir -p research
           if [ "$TASK" = inventory ]; then
-            python3 .github/scripts/algorithm_audit_drift.py --currency-context 35 --out currency_context.json
+            python3 .github/scripts/algorithm_audit_drift.py --currency-context 60 --out currency_context.json
             prompt_file=.github/prompts/algorithm_audit_currency.md
             schema=.github/prompts/algorithm_audit_currency.schema.json
-            echo "what=the inventory currency check" >> "$GITHUB_OUTPUT"
+            what="the inventory currency check"
+            # mostly sorting new functions into plumbing vs algorithm: Sonnet at medium effort
+            model=claude-sonnet-5-5
+            effort_arg="--effort medium"
           else
+            python3 .github/scripts/algorithm_audit_drift.py --research-batches --out batches.json
             python3 - <<'PY'
-          import csv, os
+          import csv, json, os
           task = os.environ["TASK"]
+          algs = json.load(open("batches.json"))[task]
           with open("R/package_metadata/audits/algorithm_inventory.csv", newline="") as fh:
               rows = list(csv.DictReader(fh))
-          keep = [r for r in rows if task in [x.strip() for x in r["audit_row"].split("+")]]
+          keep = [r for r in rows if r["algorithm"] in algs]
           with open("row_entries.csv", "w", newline="") as fh:
               w = csv.DictWriter(fh, fieldnames=list(rows[0]))
               w.writeheader()
               w.writerows(keep)
-          print(f"row {task}: {len(keep)} inventory entries")
+          with open("batch_algorithms.txt", "w") as fh:
+              fh.write("\n".join(algs) + "\n")
+          print(f"batch {task}: {len(algs)} algorithms, {len(keep)} inventory entries")
           PY
             prompt_file=.github/prompts/algorithm_audit_research.md
             schema=.github/prompts/algorithm_audit_research.schema.json
-            echo "what=audit row $TASK" >> "$GITHUB_OUTPUT"
+            what="research batch $TASK (audit row ${TASK%%.*})"
+            # judgement-heavy web research: Opus at the default effort (owner, 2026-11-16)
+            model=claude-opus-5-5
+            effort_arg=""
           fi
-          echo "prompt_file=$prompt_file" >> "$GITHUB_OUTPUT"
-          echo "schema=$(jq -c . "$schema")" >> "$GITHUB_OUTPUT"
+          {
+            echo "what=$what"
+            echo "model=$model"
+            echo "effort_arg=$effort_arg"
+            echo "prompt_file=$prompt_file"
+            echo "schema=$(jq -c . "$schema")"
+          } >> "$GITHUB_OUTPUT"
 
       - name: No API key
         if: ${{ env.HAS_KEY != 'true' }}
@@ -164,6 +229,8 @@ jobs:
           claude_args: |
             --allowedTools "Read,Glob,Grep,WebSearch,WebFetch,Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
             --disallowedTools "Edit,Write,NotebookEdit"
+            --model ${{ steps.prep.outputs.model }}
+            ${{ steps.prep.outputs.effort_arg }}
             --max-turns 80
             --json-schema '${{ steps.prep.outputs.schema }}'
 
@@ -185,14 +252,18 @@ jobs:
           name: research-${{ matrix.task }}
           path: research/
 
-  research-report:
+  research-pr:
+    # Research results land in the repo, not in an issue: one pull request per run with
+    # R/package_metadata/audits/research_findings/<date>.md and the inventory changes the
+    # inventory agent proposed (verified refs only; verdicts never touched).
     needs: [plan, research]
     if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.tasks != '[]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
-      contents: read
-      issues: write
+      contents: write
+      pull-requests: write
+      issues: write   # creating the PR label
     env:
       GH_TOKEN: ${{ github.token }}
       LABEL: algorithm-audit-research
@@ -205,40 +276,60 @@ jobs:
           path: research
           merge-multiple: true
 
-      - name: Merge the agents' output
+      - name: Apply the agents' output
+        id: apply
         run: |
           mkdir -p research
-          python3 .github/scripts/algorithm_audit_research_report.py --dir research \
-            --tasks "${{ needs.plan.outputs.task_list }}" --out research_report.md
+          python3 .github/scripts/algorithm_audit_drift.py --research-batches --out batches.json
+          status=$(python3 .github/scripts/algorithm_audit_research_apply.py --dir research \
+            --tasks "${{ needs.plan.outputs.task_list }}" --batches batches.json --pr-body pr_body.md)
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          # validate what was written; the result goes into the PR body (required checks do not
+          # run on a PR opened with GITHUB_TOKEN)
+          python3 .github/scripts/algorithm_audit_drift.py --out drift_now.md
+          { echo; echo "Inventory check on this branch (online):"; echo;
+            sed -n '/^## 4\./,$p' drift_now.md | tail -n +2; } >> pr_body.md
 
       - uses: actions/upload-artifact@v7
         with:
-          name: research-report
-          path: research_report.md
+          name: research-findings
+          path: |
+            R/package_metadata/audits/research_findings/
+            pr_body.md
+          if-no-files-found: ignore
 
-      - name: Open, update, or close the research issue
+      - name: Open the pull request
+        if: ${{ steps.apply.outputs.status == 'CHANGES' }}
+        env:
+          DATE: ${{ steps.apply.outputs.date }}
         run: |
+          branch="algorithm-research/$DATE-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add R/package_metadata/audits/research_findings/ \
+            R/package_metadata/audits/algorithm_inventory.csv \
+            R/package_metadata/audits/algorithm_references.csv
+          git commit -m "Algorithm research $DATE: findings and inventory updates" \
+            -m "Generated by the research job of algorithm-audit-drift.yml (run $GITHUB_RUN_ID)."
+          git push origin "$branch"
           gh label create "$LABEL" --color C5DEF5 \
-            --description "Monthly algorithm research report (faster algorithms, inventory currency)" 2>/dev/null || true
-          existing=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
-          status=$(head -n 1 research_report.md)
-          tail -n +3 research_report.md > issue_body.md
-          if [ "$status" = "FLAGGED" ]; then
-            if [ -n "$existing" ]; then
-              gh issue edit "$existing" --body-file issue_body.md
-            else
-              gh issue create --title "Algorithm research ($(date -u +%Y-%m-%d))" \
-                --label "$LABEL" --body-file issue_body.md
-            fi
-          elif [ -n "$existing" ]; then
-            gh issue close "$existing" --comment "Research is clean as of $(date -u +%Y-%m-%d)."
+            --description "Algorithm research findings and inventory updates" 2>/dev/null || true
+          open_prs=$(gh pr list --label "$LABEL" --state open --json number --jq '[.[].number|tostring|"#"+.]|join(", ")')
+          if [ -n "$open_prs" ]; then
+            printf '\nEarlier research PRs still open: %s\n' "$open_prs" >> pr_body.md
           fi
+          gh pr create --base main --head "$branch" --label "$LABEL" \
+            --title "Algorithm research $DATE" --body-file pr_body.md
 
   notify-failure:
     # A crashed or cancelled run must not be mistaken for a clean month. (A research agent
     # that fails is reported as NOT RUN inside the research issue instead.)
-    needs: [drift, research-report]
-    if: ${{ always() && (needs.drift.result != 'success' || needs.research-report.result == 'failure' || needs.research-report.result == 'cancelled') }}
+    needs: [drift, plan, research-pr]
+    # `skipped` is normal (drift is skipped on the weekly research triggers, research on the
+    # monthly one), so only failure/cancelled count.
+    if: ${{ always() && (contains(fromJSON('["failure","cancelled"]'), needs.drift.result) || contains(fromJSON('["failure","cancelled"]'), needs.plan.result) || contains(fromJSON('["failure","cancelled"]'), needs.research-pr.result)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -250,7 +341,7 @@ jobs:
           gh label create "$FAIL_LABEL" --color D93F0B -R "$GITHUB_REPOSITORY" \
             --description "The algorithm-audit drift workflow itself failed" 2>/dev/null || true
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          msg="The algorithm-audit workflow did not complete ($(date -u +%Y-%m-%d); drift: ${{ needs.drift.result }}, research report: ${{ needs.research-report.result }}). That part has no result this month. Run: $url"
+          msg="The algorithm-audit workflow did not complete ($(date -u +%Y-%m-%d); drift: ${{ needs.drift.result }}, research plan: ${{ needs.plan.result }}, research PR: ${{ needs.research-pr.result }}). The failed part has no result this run. Run: $url"
           existing=$(gh issue list -R "$GITHUB_REPOSITORY" --label "$FAIL_LABEL" --state open --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$msg"

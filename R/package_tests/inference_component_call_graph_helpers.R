@@ -520,6 +520,18 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		expect_false("get_procedure_validity@Inference" %in% x)
 		paste(sort(unique(c(x, "get_procedure_validity@Inference"))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.6 (2026-11-16; release_v1_0_6.md TODO-30 records the change): rand
+	# warm-start chaining is gated on the registry's likelihood_concave via the
+	# private helper rand_likelihood_is_nonconcave() on InferenceRand. Reviewed
+	# additive delta: every class with the randomization component gains it, on
+	# the same host as its other rand private methods.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		host <- sub("^compute_randomization_ci_pval_cached@", "", grep("^compute_randomization_ci_pval_cached@", x, value = TRUE))
+		if (length(host) != 1L) return(s)
+		expect_false(any(startsWith(x, "rand_likelihood_is_nonconcave@")))
+		paste(sort(unique(c(x, paste0("rand_likelihood_is_nonconcave@", host)))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

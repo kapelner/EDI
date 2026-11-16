@@ -14,7 +14,7 @@ Usage:
   algorithm_audit_drift.py [--out report.md] [--offline]   # run the checks
   algorithm_audit_drift.py --release-gate                  # pre-release: exit 1 if the gate fails
   algorithm_audit_drift.py --snapshot                      # rewrite comparator_versions.json from CRAN now
-  algorithm_audit_drift.py --currency-context 35 --out ctx.json
+  algorithm_audit_drift.py --currency-context 60 --out ctx.json
       # JSON for the research workflow: functions added in the last N days that the inventory
       # lacks, and inventory entries whose file changed in that window
 
@@ -26,6 +26,7 @@ import argparse
 import csv
 import datetime
 import fnmatch
+import html
 import json
 import re
 import subprocess
@@ -95,20 +96,46 @@ def cran_version(pkg):
     raise last
 
 
+def news_items(page):
+    """CRAN's rendered NEWS HTML -> list of (kind, text): "head" for a heading, "item" for a
+    bullet or paragraph. Wrapped lines are joined, so each item is one whole entry."""
+    page = re.sub(r"<(script|style|head)\b.*?</\1>", "", page, flags=re.S | re.I)
+    out = []
+    for m in re.finditer(r"<(h[1-6]|li|p)\b[^>]*>(.*?)(?=<(?:/?h[1-6]|li|/li|p|/p|/ul|/ol|ul|ol)\b)",
+                         page, flags=re.S | re.I):
+        text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", m.group(2))).split())
+        if text:
+            out.append(("head" if m.group(1).lower().startswith("h") else "item", text))
+    return out
+
+
 def news_since(pkg, pinned):
-    """Keyword-matching NEWS lines newer than the pinned version's heading."""
-    for name in ("NEWS.md", "NEWS"):
+    """Keyword-matching NEWS entries newer than the pinned version's heading; None if CRAN
+    publishes no NEWS for the package. CRAN renders NEWS as HTML at news/news.html (NEWS.md
+    packages) or news.html (NEWS.Rd packages); the raw NEWS/NEWS.md files are not served."""
+    page = None
+    for name in ("news/news.html", "news.html"):
         try:
-            text = http_get(f"https://cran.r-project.org/web/packages/{pkg}/{name}")
+            page = http_get(f"https://cran.r-project.org/web/packages/{pkg}/{name}")
             break
         except (urllib.error.URLError, OSError):
-            text = None
-    if text is None:
+            continue
+    if page is None:
         return None
-    lines = text.splitlines()
-    cut = next((i for i, l in enumerate(lines) if pinned in l), min(len(lines), 400))
-    hits = [l.strip() for l in lines[:cut] if NEWS_KEYWORDS.search(l)]
-    return hits[:MAX_NEWS_LINES]
+    return filter_news(news_items(page), pinned)
+
+
+def filter_news(items, pinned):
+    """Entries above the first heading naming `pinned` (as a whole version token) that match
+    NEWS_KEYWORDS, each capped at 300 characters."""
+    token = re.compile(rf"(?<![\w.-]){re.escape(pinned)}(?![\w-]|\.\d)")
+    cut = next((i for i, (kind, t) in enumerate(items) if kind == "head" and token.search(t)), None)
+    note = []
+    if cut is None:  # pinned heading not found: say so instead of dumping the whole history
+        note, cut = [f"(no NEWS heading for the pinned {pinned}; newest entries shown)"], 40
+    hits = [t if len(t) <= 300 else t[:297] + "..."
+            for kind, t in items[:cut] if kind == "item" and NEWS_KEYWORDS.search(t)]
+    return note + hits[:MAX_NEWS_LINES]
 
 
 def check_versions(offline):
@@ -163,10 +190,16 @@ def row_files(inventory):
 
 
 def source_files():
-    """Every algorithm-bearing source file: R/EDI/src/*.cpp|*.h and R/EDI/R/*.R (repo-relative)."""
-    src = [p for p in SRC_DIR.iterdir() if p.suffix in (".cpp", ".h")]
-    rfiles = [p for p in R_DIR.iterdir() if p.suffix == ".R"]
-    return sorted(str(p.relative_to(ROOT)) for p in src + rfiles)
+    """Every algorithm-bearing source file: git-tracked R/EDI/src/*.cpp|*.h and R/EDI/R/*.R.
+    Build outputs (unity_*.cpp, edi_build_flags.h, RcppExports when regenerated) are untracked,
+    so a local build and CI's fresh checkout see the same set."""
+    tracked = git("ls-files", "--", str(SRC_DIR.relative_to(ROOT)),
+                  str(R_DIR.relative_to(ROOT))).split()
+    if not tracked:  # not a git checkout (e.g. the planted-fixture tests): use the directory
+        tracked = [str(p.relative_to(ROOT)) for d in (SRC_DIR, R_DIR) for p in d.iterdir()]
+    return sorted(f for f in tracked
+                  if (f.startswith(str(SRC_DIR.relative_to(ROOT)) + "/") and f.endswith((".cpp", ".h")))
+                  or (f.startswith(str(R_DIR.relative_to(ROOT)) + "/") and f.endswith(".R")))
 
 
 def check_kernels():
@@ -183,7 +216,8 @@ def check_kernels():
         existing = [f for f in watched.get(key, []) if (ROOT / f).exists()]
         if not existing:
             continue
-        log = git("log", f"--since={row['reviewed']}", "--format=%h %ad %s",
+        # `reviewed` covers that whole day: commits made earlier that day were part of the review
+        log = git("log", f"--since={row['reviewed']} 23:59:59", "--format=%h %ad %s",
                   "--date=short", "--", *existing).strip().splitlines()
         if log:
             out["drifted"].append((key, row["title"], row["reviewed"], log))
@@ -321,6 +355,31 @@ def changed_text_by_file(diff_text):
     return out
 
 
+RESEARCH_BATCH = 8  # distinct algorithms per research agent (one agent got through 2 of 120)
+
+
+def research_batches(inventory, row_order, size=RESEARCH_BATCH):
+    """Task id ("A.1", "A.2", ...) -> sorted list of distinct `algorithm` names. Each name is
+    researched once, under the audit row most of its entries list first (ties: row order), so an
+    algorithm shared by rows is not researched twice. Deterministic for a given inventory."""
+    votes = {}
+    for e in inventory:
+        primary = entry_rows(e)[0] if entry_rows(e) else ""
+        votes.setdefault(e["algorithm"], {}).setdefault(primary, 0)
+        votes[e["algorithm"]][primary] += 1
+    rank = {r: i for i, r in enumerate(row_order)}
+    by_row = {}
+    for alg, v in votes.items():
+        row = min(v, key=lambda r: (-v[r], rank.get(r, len(rank)), r))
+        by_row.setdefault(row, []).append(alg)
+    out = {}
+    for row in sorted(by_row, key=lambda r: (rank.get(r, len(rank)), r)):
+        algs = sorted(by_row[row], key=str.casefold)
+        for k in range(0, len(algs), size):
+            out[f"{row}.{k // size + 1}"] = algs[k:k + size]
+    return out
+
+
 def currency_context(days):
     """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make)."""
     inv = load_inventory()
@@ -428,7 +487,7 @@ def render(v, k, p, n):
         for n in (news or []):
             L.append(f"  - {n}")
         if news is None:
-            L.append("  - (NEWS not found on CRAN)")
+            L.append("  - (CRAN publishes no NEWS for this package; check its ChangeLog or repository)")
     if v["unpinned"]:
         L.append("- Unpinned (run `--snapshot` after review): " +
                  ", ".join(f"{a} `{b}`" for a, b in v["unpinned"]))
@@ -519,7 +578,13 @@ def main():
     ap.add_argument("--snapshot", action="store_true")
     ap.add_argument("--release-gate", action="store_true")
     ap.add_argument("--currency-context", type=int, metavar="DAYS")
+    ap.add_argument("--research-batches", action="store_true",
+                    help="print the research task -> algorithms map as JSON")
     a = ap.parse_args()
+    if a.research_batches:
+        rows = list(json.loads(ROW_MAP.read_text())["rows"])
+        text = json.dumps(research_batches(load_inventory(), rows), indent=1) + "\n"
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.currency_context:
         text = json.dumps(currency_context(a.currency_context), indent=1) + "\n"
         return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)

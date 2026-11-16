@@ -2,6 +2,7 @@ url,kind,title
 https://doi.org/10.1002/(sici)1097-0258(19980430)17:8<873::aid-sim779>3.0.co;2-i,doi,"Newcombe 1998, Interval estimation for the difference between independent proportions: comparison of eleven methods"
 https://doi.org/10.1002/(sici)1097-0258(19981130)17:22<2635::aid-sim954>3.0.co;2-c,doi,"Newcombe 1998, Improved confidence intervals for the difference between binomial proportions based on paired data"
 https://doi.org/10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1,doi,"Papke 1996, Econometric methods for fractional response variables with an application to 401(k) plan participation rates"
+https://doi.org/10.1002/sim.3095,doi,"Zou 2008, Construction of confidence limits about effect measures: A general approach"
 https://doi.org/10.1002/sim.4780040211,doi,"Miettinen 1985, Comparative analysis of two rates"
 https://doi.org/10.1002/sim.4780091208,doi,"Farrington 1990, Test statistics and sample size formulae for comparative binomial trials with null hypothesis of non-zero risk difference or non-unity relative risk"
 https://doi.org/10.1007/bf01436084,doi,"Businger 1965, Linear least squares solutions by householder transformations"
@@ -131,6 +132,7 @@ https://doi.org/10.2307/2530286,doi,"Brookmeyer 1982, A Confidence Interval for 
 https://doi.org/10.2307/2530698,doi,"Finkelstein 1986, A Proportional Hazards Model for Interval-Censored Failure Time Data"
 https://doi.org/10.2307/2530927,doi,"Mehta 1984, Exact Significance Testing to Establish Treatment Equivalence with Ordered Categorical Data"
 https://doi.org/10.2307/2531052,doi,"Robins 1986, Estimators of the Mantel-Haenszel Variance Consistent in Both Sparse Data and Large-Strata Limiting Models"
+https://doi.org/10.2307/2531595,doi,"DeLong 1988, Comparing the Areas under Two or More Correlated Receiver Operating Characteristic Curves: A Nonparametric Approach"
 https://doi.org/10.2307/3314912,doi,"Lawless 1987, Negative binomial and mixed Poisson regression"
 https://doi.org/10.32614/rj-2010-008,doi,"Fay 2010, Two-sided Exact Tests and Matching Confidence Intervals for Discrete Data"
 https://doi.org/10.32614/rj-2011-012,doi,"Marschner 2011, glm2: Fitting Generalized Linear Models with Convergence Problems"
@@ -166,6 +168,7 @@ https://en.wikipedia.org/wiki/Cluster-randomised_controlled_trial,wikipedia,Clus
 https://en.wikipedia.org/wiki/Clustered_standard_errors,wikipedia,Clustered standard errors
 https://en.wikipedia.org/wiki/Cochran–Mantel–Haenszel_statistics,wikipedia,Cochran–Mantel–Haenszel statistics
 https://en.wikipedia.org/wiki/Composition_(combinatorics),wikipedia,Composition (combinatorics)
+https://en.wikipedia.org/wiki/Condition_number,wikipedia,Condition number
 https://en.wikipedia.org/wiki/Conditional_logistic_regression,wikipedia,Conditional logistic regression
 https://en.wikipedia.org/wiki/Convolution_of_probability_distributions,wikipedia,Convolution of probability distributions
 https://en.wikipedia.org/wiki/Copula_(statistics),wikipedia,Copula (statistics)
