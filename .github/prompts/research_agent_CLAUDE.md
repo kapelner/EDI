@@ -81,3 +81,21 @@ Investigate verdicts first; trivial closed forms need one line.
 - Speedups are the sources' claims, never measurements; say where the number comes from, or
   "not quantified". `high` confidence only when a source benchmarks the same problem at
   comparable sizes.
+
+## Lessons from earlier runs (keep this list current)
+
+From the 2026-11-16 runs (trial 43896063512, full run 43903509109; findings in
+`R/package_metadata/audits/research_findings/2026-11-16-run*.md`):
+
+- **Cite DOIs.** Only 1 of 192 cited sources carried a DOI; agents cited arXiv (49), CRAN (71)
+  and GitHub instead. arXiv and CRAN are fine sources, but a published paper also needs its DOI.
+- **Keep conclusions and findings consistent.** 16 of 68 batches filed a finding on an
+  algorithm marked `no_faster_acceptable_found` (or `unclear`), or marked
+  `faster_option_found` with no finding. A finding names, in `methods`, every method it
+  applies to, and each of those is marked `faster_option_found`.
+- **Do not stop early.** One agent reviewed 2 of 120 algorithms in 12 of 80 turns and quit.
+- **Search the problem, not only the method.** Batches organised by method label never asked
+  "what is the fastest way to solve this problem?"; strong findings came from that question
+  (e.g. exact-gradient adaptive Gauss-Hermite quadrature, Stringer arXiv 2310.01589, which
+  removes the obstacle the audit recorded against adaptive quadrature).
+- **Fetch CRAN at cran.r-project.org.** The first trial cited Duke / dogado mirrors and rdrr.io.

@@ -476,6 +476,10 @@ class OpenCopyTests(unittest.TestCase):
         self.assertEqual(drift.doi_of("https://onlinelibrary.wiley.com/doi/10.1111/biom.12345?x=1"),
                          "10.1111/biom.12345")
         self.assertIsNone(drift.doi_of("https://academic.oup.com/bioinformatics/article/36/24/5701/6029133"))
+        self.assertEqual(drift.doi_of("https://projecteuclid.org/journals/annals-of-statistics/volume-27/"
+                                      "issue-5/x/10.1214/aos/1021379865.full"), "10.1214/aos/1021379865")
+        self.assertEqual(drift.doi_of("https://onlinelibrary.wiley.com/doi/abs/10.1002/sim.3095/abstract"),
+                         "10.1002/sim.3095")
 
     def test_open_copies_prefer_preprints_then_pmc_never_publisher(self):
         # shape of OpenAlex's record for glmGamPoi (doi:10.1093/bioinformatics/btaa1009), 2026-11-16

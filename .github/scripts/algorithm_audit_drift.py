@@ -97,7 +97,12 @@ DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>?#]+)", re.I)
 def doi_of(url):
     """The DOI in a URL (doi.org links, and publisher URLs that embed it), else None."""
     m = DOI_RE.search(urllib.parse.unquote(url))
-    return m.group(1).rstrip(".,;)").lower() if m else None
+    if not m:
+        return None
+    doi = m.group(1).rstrip(".,;)")
+    # publisher URL suffixes that are not part of the DOI (Project Euclid ".full", "/abstract", ...)
+    doi = re.sub(r"(\.full|\.short|\.pdf|/full|/abstract|/pdf|/epdf|/meta)+$", "", doi, flags=re.I)
+    return doi.lower()
 
 
 def pick_open_copies(work):
