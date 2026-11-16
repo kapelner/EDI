@@ -272,7 +272,7 @@ The shuffle is a negligible share of each greedy/D/A search draw (the O(n_T n_C)
 ### Null-model score statistics (Rfast::score.glms) instead of per-covariate univariate GLM fits  `kk21-covariate-weights#43925959437.3`
 Estimator change that departs from KK21's Wald-|t| importance measure and would change the design rule; the per-covariate fits are tiny 2-parameter fits (inventory: kk21_logistic/negbin_weights_cpp 'Keep'), so the gain at EDI sizes is small.
 
-### Replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp or fastglm_nb  `negbin-glm-mle#43925959437.1`
+### Replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp or fastglm_nb  `negbin-glm-mle#43925959437.1`  → dead-code cleanup in **v1.0.6-TODO-38**
 The only caller (design_seq_one_by_one_KK21_stepwise.R:352, compute_weights_KK21stepwise_count) is unreachable: compute_weights returns kk21_stepwise_negbin_weights_cpp for count with count_use_speedup=FALSE at :283-284 before the fallback at :295. Speeding up dead code has no value.
 
 ### k-step Newton bootstrap replicates from theta-hat instead of full refits  `nonparametric-bootstrap-distribution#43925959437.2`
@@ -290,13 +290,13 @@ The only host is the legacy InferenceSurvivalKKRankRegrIVWC chain (aftsrr_for_ma
 ### MCMC/gradient rerandomization samplers (PSRSRR, Langevin-Gradient)  `rerandomization-sampling#43925959437.2`
 These samplers do not draw uniformly from {w : f(w) <= a} (LGR is explicitly non-uniform), so they change the design law that rerandomization_search_cpp's exact i.i.d. rejection sampler defines and that the randomization tests condition on. Any such sampler would be a separate opt-in design, not a speedup.
 
-### Per-event-time collapsed Newton for p=1 Cox in rand bootstrap kernel  `resampling-refit-loop#43925959437.2`
+### Per-event-time collapsed Newton for p=1 Cox in rand bootstrap kernel  `resampling-refit-loop#43925959437.2`  → dead-code cleanup in **v1.0.6-TODO-43**
 compute_coxph_rand_bootstrap_cpp (fast_coxph_regression.cpp:1135) has no caller outside RcppExports, so the faster path would speed up dead code. Keep FastSurvival as a test-oracle note in small_kernel_hoists_batch.md Item C if the kernel is ever wired.
 
 ### Fast robust bootstrap (one weighted LS per replicate) for robust rand bootstrap  `resampling-refit-loop#43925959437.3`
 FRB is a linearized approximation of the replicate estimate, so it changes the bootstrap distribution that compute_robust_rand_bootstrap_parallel_cpp (called from inference_continuous_robust_regr.R:413) produces; keeps_estimator = no. Only relevant if a true MM estimator (audit TODO-31, v1.2.0-TODO-23) is adopted.
 
-### Corrected Newcombe phi (AD-BC-N/2) in the paired Newcombe interval  `risk-difference-ci#43925959437.2`
+### Corrected Newcombe phi (AD-BC-N/2) in the paired Newcombe interval  `risk-difference-ci#43925959437.2`  → dead-code cleanup in **v1.0.6-TODO-43**
 newcombe_paired_ci_cpp (newcombe_speedups.cpp:113, phi at :127-128) has no R caller (only RcppExports.R:4784) and is not exported; InferenceIncidKKNewcombeRiskDiff computes its matched part with its own Wald variance (inference_incidence_KK_newcombe_ivwc_univ.R:140-148). Fix the phi definition only if the function is ever wired in.
 
 ### Monotone pointer instead of binary search in Cox robust vcov  `sandwich-variance#43925959437.2`
@@ -305,5 +305,5 @@ The finding itself says it does not apply at EDI sizes: it removes a log K facto
 ### Lam's cheap bootstrap (few-resample t interval) for subsampling CIs  `subsampling-m-out-of-n#43925959437.1`
 It is a different CI procedure (a t-type interval from a handful of resamples), not a faster way to compute the current B = 501 subsampling/m-out-of-n pivot CI (inventory verdict Keep), so it changes the estimator's interval. If wanted, it belongs in a new-methods proposal, not this triage.
 
-### Fast tail-series or trigamma-free expected Hessian for truncated NB  `zero-inflated-count-mle#43925959437.3`
+### Fast tail-series or trigamma-free expected Hessian for truncated NB  `zero-inflated-count-mle#43925959437.3`  → dead-code cleanup in **v1.0.6-TODO-43**
 fast_hurdle_negbin.cpp TruncatedNegBinCount::expected_hessian is dead code with no caller (inventory verdict 'Keep. Dead code'), so speeding it up gains nothing. Delete it in a cleanup pass or rewrite it only if it is ever wired in.
