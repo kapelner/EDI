@@ -96,6 +96,9 @@ fastest acceptable one for its job?**
     Agents search only for what is new since `last_researched` and report `vs_previous`
     (`unchanged` / `updated` / `new`); the findings file shows the counts. A finding that
     still stands must be re-reported, since the log keeps only the latest run's findings.
+    **Every algorithm is researched in every monthly run** (owner, 2026-11-16): the log
+    shortens each agent's work, it does not skip anything. A rotation that skips unchanged,
+    recently researched algorithms was considered (about a third of the cost) and rejected.
   - **Consistency check** (2026-11-16): a finding whose algorithm is not marked
     `faster_option_found`, or a `faster_option_found` with no finding, is listed under
     "Inconsistent agent output" and flags the report (first seen in batch A.1 of the
