@@ -108,9 +108,15 @@ def render(dirpath, tasks, batches=None):
         L.append(f"- **Suggested action:** {f.get('suggested_action', '')}")
         L.append("- **Affects:** " + ", ".join(f"`{e}`" for e in f.get("entries", [])))
         L.append("- **Sources:** " + " ".join(canonical_cran_url(u) for u in f.get("sources", [])))
+        why = {"blocked": "publisher page blocks automated access",
+               "closed": "publisher version is paywalled"}
+        for doi, status in sorted(f.get("source_access", {}).items()):
+            if not f.get("open_copies"):
+                L.append(f"- **No open copy found** for doi:{doi} ({why.get(status, status)})")
         if f.get("open_copies"):
-            L.append("- **Open copies** (preprint / PubMed Central; the publisher page may block "
-                     "automated access): " + " ".join(f["open_copies"]))
+            reasons = sorted({why.get(v, v) for v in f.get("source_access", {}).values()})
+            L.append(f"- **Open copies** ({'; '.join(reasons) or 'publisher not usable'}): "
+                     + " ".join(f["open_copies"]))
         L.append("")
 
     L.append("## 2. Inventory currency")

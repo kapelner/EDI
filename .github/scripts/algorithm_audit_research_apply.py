@@ -135,9 +135,10 @@ def apply(dirpath, tasks, today, offline):
 
 
 def add_open_copies(dirpath, tasks, offline):
-    """For every finding source with a DOI, record open copies (arXiv, bioRxiv/medRxiv, PMC) in
-    the finding's `open_copies`, so a paywalled or bot-blocked publisher page is never the only
-    way to read the source. Rewrites the task JSON in place, before the report is rendered."""
+    """For every finding source with a DOI, try the publisher page first; only if it is blocked or
+    closed, record open copies (arXiv, bioRxiv/medRxiv, PMC) from OpenAlex in `open_copies`, and
+    why in `source_access` ({doi: "blocked" | "closed"}). Rewrites the task JSON in place,
+    before the report is rendered."""
     if offline:
         return
     cache = {}
@@ -148,14 +149,21 @@ def add_open_copies(dirpath, tasks, offline):
             continue
         for f in data["findings"]:
             copies = list(f.get("open_copies", []))
+            notes = dict(f.get("source_access", {}))
             for u in f.get("sources", []):
                 doi = drift.doi_of(u)
-                if doi:
-                    if doi not in cache:
-                        cache[doi] = drift.open_copies(doi)
-                    copies += [c for c in cache[doi] if c not in copies and c not in f["sources"]]
+                if not doi:
+                    continue
+                if doi not in cache:
+                    cache[doi] = drift.doi_access(doi)  # publisher first, then OpenAlex
+                status, found = cache[doi]
+                if status != "publisher":
+                    notes[doi] = status
+                copies += [c for c in found if c not in copies and c not in f["sources"]]
             if copies:
                 f["open_copies"] = copies
+            if notes:
+                f["source_access"] = notes
         path.write_text(json.dumps(data))
 
 

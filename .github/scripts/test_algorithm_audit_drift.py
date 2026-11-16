@@ -404,11 +404,44 @@ class OpenCopyTests(unittest.TestCase):
                 "findings": [{"algorithm": "a", "entries": [], "current": "", "candidate": "b",
                 "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
                 "tradeoffs": "", "confidence": "low", "suggested_action": "",
-                "sources": ["https://doi.org/10.1093/bioinformatics/btaa1009"],
+                "sources": ["https://doi.org/10.1093/bioinformatics/btaa1009", "https://doi.org/10.2307/1"],
+                "source_access": {"10.1093/bioinformatics/btaa1009": "blocked"},
                 "open_copies": ["https://doi.org/10.1101/2020.08.13.249623"]}]}))
             _, text = report.render(Path(tmp), ["A.1"])
-        self.assertIn("- **Open copies** (preprint / PubMed Central", text)
-        self.assertIn("https://doi.org/10.1101/2020.08.13.249623", text)
+        self.assertIn("- **Open copies** (publisher page blocks automated access): "
+                      "https://doi.org/10.1101/2020.08.13.249623", text)
+
+    def test_publisher_first_then_openalex(self):
+        oa_work = {"primary_location": {"is_oa": True}, "locations": [
+            {"is_oa": True, "landing_page_url": "https://doi.org/10.1101/2020.08.13.249623"}]}
+        closed_work = dict(oa_work, primary_location={"is_oa": False})
+        access = drift.doi_access
+        # publisher loads and is open: use it, no fallback copies
+        self.assertEqual(access("10.1/a", reachable=lambda d: True, work_of=lambda d: oa_work),
+                         ("publisher", []))
+        self.assertEqual(access("10.1/a", reachable=lambda d: True, work_of=lambda d: None),
+                         ("publisher", []))
+        # publisher blocks us (403): fall back to OpenAlex's open copies
+        self.assertEqual(access("10.1/a", reachable=lambda d: False, work_of=lambda d: oa_work),
+                         ("blocked", ["https://doi.org/10.1101/2020.08.13.249623"]))
+        # publisher page loads but is paywalled: fall back too
+        self.assertEqual(access("10.1/a", reachable=lambda d: True, work_of=lambda d: closed_work),
+                         ("closed", ["https://doi.org/10.1101/2020.08.13.249623"]))
+        # blocked and no OpenAlex record: say so, no copies
+        self.assertEqual(access("10.1/a", reachable=lambda d: False, work_of=lambda d: None),
+                         ("blocked", []))
+
+    def test_report_says_when_no_open_copy_exists(self):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            Path(tmp, "A.1.json").write_text(json.dumps({"row": "A", "not_reviewed": [],
+                "algorithms_reviewed": [{"algorithm": "a", "conclusion": "faster_option_found", "note": ""}],
+                "findings": [{"algorithm": "a", "entries": [], "current": "", "candidate": "b",
+                "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+                "tradeoffs": "", "confidence": "low", "suggested_action": "",
+                "sources": ["https://doi.org/10.2307/2531595"],
+                "source_access": {"10.2307/2531595": "closed"}}]}))
+            _, text = report.render(Path(tmp), ["A.1"])
+        self.assertIn("- **No open copy found** for doi:10.2307/2531595 (publisher version is paywalled)", text)
 
 
 class PromptSchemaTests(unittest.TestCase):

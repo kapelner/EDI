@@ -92,10 +92,13 @@ fastest acceptable one for its job?**
     "Inconsistent agent output" and flags the report (first seen in batch A.1 of the
     2026-11-16 full run: a `glm.nb` finding marked `no_faster_acceptable_found`).
   - **Open copies of papers** (owner, 2026-11-16): agents must cite a paper's DOI, not only
-    a publisher page, and an open version when the publisher blocks them. The PR job
-    (`add_open_copies`) asks OpenAlex for every cited DOI and lists open copies under
-    "Open copies", best first: arXiv, bioRxiv / medRxiv, PubMed Central / Europe PMC, never
-    a publisher page (first case: the glmGamPoi paper, whose OUP page returns 403; OpenAlex
+    a publisher page, and an open version when the publisher blocks them. For every cited
+    DOI the PR job (`add_open_copies` → `doi_access`) tries the **publisher page first**
+    (owner, 2026-11-16): if it loads and OpenAlex does not mark the published version
+    closed, the DOI link stands. Only if the page is blocked (403 etc.) or paywalled does it
+    fall back to OpenAlex and list "Open copies", best first: arXiv, bioRxiv / medRxiv,
+    PubMed Central / Europe PMC (never a publisher page); with none, the report says "No
+    open copy found" (first case: the glmGamPoi paper, whose OUP page returns 403; OpenAlex
     gives its bioRxiv preprint and PMC8023675).
 - **Inventory task** (`.github/prompts/algorithm_audit_currency.md`): reads
   `--currency-context 40` output (functions added in the last 40 days that the

@@ -124,14 +124,44 @@ def pick_open_copies(work):
     return out
 
 
-def open_copies(doi):
-    """Open copies of the paper with this DOI, via OpenAlex (no key needed); [] on any failure."""
+def openalex_work(doi):
+    """OpenAlex's record for a DOI (no key needed), or None on any failure."""
     try:
-        work = json.loads(http_get("https://api.openalex.org/works/doi:"
+        return json.loads(http_get("https://api.openalex.org/works/doi:"
                                    + urllib.parse.quote(doi, safe="/")))
     except (urllib.error.URLError, OSError, ValueError):
-        return []
-    return pick_open_copies(work)
+        return None
+
+
+def publisher_reachable(doi):
+    """True if the DOI's publisher page loads for an automated client (follows doi.org's
+    redirect); False on 401/403/451, other HTTP errors, or network failure."""
+    try:
+        http_get(f"https://doi.org/{urllib.parse.quote(doi, safe='/')}")
+        return True
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def doi_access(doi, reachable=publisher_reachable, work_of=openalex_work):
+    """Publisher first, OpenAlex as the fallback (owner, 2026-11-16).
+
+    Returns (status, open_copies). status is "publisher" when the publisher page loads and the
+    published version is open (OpenAlex marks it open, or has no record); then no copies are
+    needed. Otherwise it is "blocked" (the page did not load) or "closed" (it loads but OpenAlex
+    marks the published version closed, i.e. a paywall), and open_copies lists preprint / PMC
+    copies from OpenAlex, best first (possibly empty)."""
+    ok = reachable(doi)
+    work = work_of(doi)
+    primary = (work or {}).get("primary_location") or {}
+    if ok and (work is None or primary.get("is_oa", True)):
+        return "publisher", []
+    return ("blocked" if not ok else "closed"), (pick_open_copies(work) if work else [])
+
+
+def open_copies(doi):
+    """Open copies for a DOI whose publisher version is not usable; [] when the publisher is."""
+    return doi_access(doi)[1]
 
 
 def http_get(url, timeout=20):
