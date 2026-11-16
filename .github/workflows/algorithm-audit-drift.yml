@@ -351,7 +351,9 @@ jobs:
     needs: [plan, research]
     if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.tasks != '[]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 2 tasks took 78 s (2026-11-16); a full run adds a publisher + OpenAlex lookup per cited DOI
+    # and the online inventory check, so leave room.
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
