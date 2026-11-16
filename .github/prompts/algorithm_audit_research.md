@@ -39,5 +39,7 @@ system prompt). Follow them exactly; the run transcript is audited against what 
 - `searches`: every search and source check you ran, in order, with its `term_classes` and
   `method_ids` (see the search plan in your instructions). This is checked for coverage and
   against the run transcript.
+- `implementations`: open-source implementations you found of methods relevant to the problem,
+  with the license as stated on a page you fetched and its GPL-3 compatibility.
 - `proposed_terms`: search terms missing from the taxonomy that turned out to matter (a synonym
   a paper used, a rival package you found). They are added to the taxonomy in the research PR.

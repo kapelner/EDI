@@ -306,6 +306,23 @@ class ResearchReportTests(unittest.TestCase):
         self.assertNotIn("no problem-level search", text)
         self.assertNotIn("`irls`: no synonym search", text)
 
+    def test_trivial_methods_need_no_per_term_searches(self):
+        tax = json.loads(json.dumps(TAXONOMY))
+        tax["methods"]["lbfgs"]["trivial"] = True
+        searches = [{"query": q, "where": w, "term_classes": c, "method_ids": m, "result": ""}
+                    for q, w, c, m in [
+                        ("logistic fitting", "web", ["problem"], []),
+                        ("IRLS variants", "arxiv", ["synonym", "broader", "narrower", "software"], ["irls"]),
+                        ("views", "cran-task-views", ["other"], []), ("jss", "jss", ["other"], []),
+                        ("rj", "r-journal", ["other"], [])]]
+        self.put("binary-glm-mle", self.problem(searches=searches))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"], {"binary-glm-mle": ["irls", "lbfgs"]}, tax)
+        self.assertIn("`lbfgs` (**silently skipped**", text)  # still must be accounted for
+        self.assertNotIn("`lbfgs`: no", text)                 # but no term searches required
+        tax["methods"]["lbfgs"]["trivial"] = False
+        _, text = report.render(self.dir, ["binary-glm-mle"], {"binary-glm-mle": ["irls", "lbfgs"]}, tax)
+        self.assertIn("`lbfgs`: no synonym search", text)
+
     def test_complete_search_plan_has_no_gaps(self):
         searches = [{"query": q, "where": w, "term_classes": c, "method_ids": m, "result": ""}
                     for q, w, c, m in [
@@ -326,6 +343,19 @@ class ResearchReportTests(unittest.TestCase):
         flagged, text = report.render(self.dir, ["binary-glm-mle"])
         self.assertTrue(flagged)
         self.assertIn("reports 5 searches but its transcript shows 2", text)
+
+    def test_open_source_implementations_listed_compatible_first(self):
+        impl = lambda n, c: {"name": n, "url": f"https://x/{n}", "license": "L", "license_source":
+                             f"https://x/{n}/LICENSE", "gpl3_compatible": c, "language": "C++",
+                             "methods": ["irls"], "relevance": "port | test"}
+        self.put("binary-glm-mle", self.problem(implementations=[
+            impl("zeta", "no"), impl("alpha", "yes"), impl("beta", "conditional")]))
+        _, text = report.render(self.dir, ["binary-glm-mle"])
+        sec = text.split("## 7. Open-source implementations found", 1)[1]
+        self.assertLess(sec.index("alpha"), sec.index("beta"))
+        self.assertLess(sec.index("beta"), sec.index("zeta"))
+        self.assertIn("| yes | [alpha](https://x/alpha) | [L](https://x/alpha/LICENSE) | "
+                      "binary-glm-mle: irls | C++ | port \\| test |", sec)
 
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("binary-glm-mle", self.problem(
@@ -573,6 +603,21 @@ class ResearchLogTests(InventoryCheckTests):
         self.assertEqual(p["findings"][0]["methods"], ["irls"])
         self.assertEqual(p["sources"], ["https://cran.r-project.org/web/packages/a/b.html",
                                         "https://doi.org/10.1101/1"])
+
+    def test_log_keeps_implementations_across_runs(self):
+        drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"p": {"last_researched": "2026-10-01",
+            "methods": {}, "findings": [], "sources": [],
+            "implementations": [{"name": "fastglm", "license": "GPL-2.0-or-later", "last_seen": "2026-10-01"}]}}}))
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "p.json").write_text(json.dumps({"methods_reviewed": [
+            {"method_id": "irls", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"}],
+            "implementations": [{"name": "glm2", "url": "https://mirror.dogado.de/cran/web/packages/glm2/index.html",
+                                 "license": "GPL-2.0-or-later", "gpl3_compatible": "yes"}]}))
+        research_apply.update_research_log(out, ["p"], "2026-11-16", "1")
+        impls = {i["name"]: i for i in drift.load_research_log()["p"]["implementations"]}
+        self.assertEqual(set(impls), {"fastglm", "glm2"})  # earlier finds are kept
+        self.assertEqual(impls["glm2"]["url"], "https://cran.r-project.org/web/packages/glm2/index.html")
 
     def test_previous_results_for_a_problem(self):
         drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"binary-glm-mle": {

@@ -1,18 +1,51 @@
 {
   "type": "object",
-  "required": ["problem_id", "methods_reviewed", "not_reviewed", "findings", "searches", "proposed_terms"],
+  "required": [
+    "problem_id",
+    "methods_reviewed",
+    "not_reviewed",
+    "findings",
+    "searches",
+    "proposed_terms",
+    "implementations"
+  ],
   "properties": {
-    "problem_id": {"type": "string"},
+    "problem_id": {
+      "type": "string"
+    },
     "methods_reviewed": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["method_id", "conclusion", "note", "vs_previous"],
+        "required": [
+          "method_id",
+          "conclusion",
+          "note",
+          "vs_previous"
+        ],
         "properties": {
-          "method_id": {"type": "string"},
-          "conclusion": {"type": "string", "enum": ["no_faster_acceptable_found", "faster_option_found", "unclear"]},
-          "note": {"type": "string"},
-          "vs_previous": {"type": "string", "enum": ["unchanged", "updated", "new"]}
+          "method_id": {
+            "type": "string"
+          },
+          "conclusion": {
+            "type": "string",
+            "enum": [
+              "no_faster_acceptable_found",
+              "faster_option_found",
+              "unclear"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "vs_previous": {
+            "type": "string",
+            "enum": [
+              "unchanged",
+              "updated",
+              "new"
+            ]
+          }
         }
       }
     },
@@ -20,27 +53,99 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["method_id", "reason"],
-        "properties": {"method_id": {"type": "string"}, "reason": {"type": "string"}}
+        "required": [
+          "method_id",
+          "reason"
+        ],
+        "properties": {
+          "method_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
       }
     },
     "findings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["methods", "entries", "current", "candidate", "claimed_speedup", "applies_at_edi_sizes", "keeps_estimator", "tradeoffs", "sources", "confidence", "suggested_action"],
+        "required": [
+          "methods",
+          "entries",
+          "current",
+          "candidate",
+          "claimed_speedup",
+          "applies_at_edi_sizes",
+          "keeps_estimator",
+          "tradeoffs",
+          "sources",
+          "confidence",
+          "suggested_action"
+        ],
         "properties": {
-          "methods": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "method_ids of this problem that the candidate would replace or improve"},
-          "entries": {"type": "array", "items": {"type": "string"}, "description": "file::symbol of affected inventory rows"},
-          "current": {"type": "string"},
-          "candidate": {"type": "string"},
-          "claimed_speedup": {"type": "string"},
-          "applies_at_edi_sizes": {"type": "string", "enum": ["yes", "no", "unknown"]},
-          "keeps_estimator": {"type": "string", "enum": ["yes", "no", "unknown"]},
-          "tradeoffs": {"type": "string"},
-          "sources": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-          "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
-          "suggested_action": {"type": "string"}
+          "methods": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "method_ids of this problem that the candidate would replace or improve"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "file::symbol of affected inventory rows"
+          },
+          "current": {
+            "type": "string"
+          },
+          "candidate": {
+            "type": "string"
+          },
+          "claimed_speedup": {
+            "type": "string"
+          },
+          "applies_at_edi_sizes": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "unknown"
+            ]
+          },
+          "keeps_estimator": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "unknown"
+            ]
+          },
+          "tradeoffs": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "suggested_action": {
+            "type": "string"
+          }
         }
       }
     },
@@ -49,13 +154,58 @@
       "description": "every search or source check you actually ran, in order; the run transcript is audited against this list",
       "items": {
         "type": "object",
-        "required": ["query", "where", "term_classes", "method_ids", "result"],
+        "required": [
+          "query",
+          "where",
+          "term_classes",
+          "method_ids",
+          "result"
+        ],
         "properties": {
-          "query": {"type": "string", "description": "the exact query text, or the URL you fetched"},
-          "where": {"type": "string", "enum": ["web", "arxiv", "cran-task-views", "jss", "r-journal", "crossref", "openalex", "github", "other"]},
-          "term_classes": {"type": "array", "minItems": 1, "items": {"type": "string", "enum": ["problem", "synonym", "broader", "narrower", "software", "other"]}},
-          "method_ids": {"type": "array", "items": {"type": "string"}, "description": "methods this query was about; empty for a problem-level query"},
-          "result": {"type": "string", "description": "one line: what it turned up (or nothing relevant)"}
+          "query": {
+            "type": "string",
+            "description": "the exact query text, or the URL you fetched"
+          },
+          "where": {
+            "type": "string",
+            "enum": [
+              "web",
+              "arxiv",
+              "cran-task-views",
+              "jss",
+              "r-journal",
+              "crossref",
+              "openalex",
+              "github",
+              "other"
+            ]
+          },
+          "term_classes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "problem",
+                "synonym",
+                "broader",
+                "narrower",
+                "software",
+                "other"
+              ]
+            }
+          },
+          "method_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "methods this query was about; empty for a problem-level query"
+          },
+          "result": {
+            "type": "string",
+            "description": "one line: what it turned up (or nothing relevant)"
+          }
         }
       }
     },
@@ -64,13 +214,97 @@
       "description": "search terms missing from the taxonomy that you found useful; they are added in the research PR",
       "items": {
         "type": "object",
-        "required": ["target", "id", "term_class", "term", "why"],
+        "required": [
+          "target",
+          "id",
+          "term_class",
+          "term",
+          "why"
+        ],
         "properties": {
-          "target": {"type": "string", "enum": ["problem", "method"]},
-          "id": {"type": "string"},
-          "term_class": {"type": "string", "enum": ["search_terms", "synonyms", "broader", "narrower", "software"]},
-          "term": {"type": "string"},
-          "why": {"type": "string"}
+          "target": {
+            "type": "string",
+            "enum": [
+              "problem",
+              "method"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "term_class": {
+            "type": "string",
+            "enum": [
+              "search_terms",
+              "synonyms",
+              "broader",
+              "narrower",
+              "software"
+            ]
+          },
+          "term": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "implementations": {
+      "type": "array",
+      "description": "open-source implementations of methods relevant to this problem that you found (whether or not they are faster); the license must come from a page you fetched",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "url",
+          "license",
+          "license_source",
+          "gpl3_compatible",
+          "language",
+          "methods",
+          "relevance"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "repository or CRAN/PyPI page"
+          },
+          "license": {
+            "type": "string",
+            "description": "SPDX-style identifier as stated, e.g. GPL-2.0-or-later, MIT, Apache-2.0"
+          },
+          "license_source": {
+            "type": "string",
+            "description": "URL of the fetched LICENSE file, CRAN DESCRIPTION page or package metadata stating the license"
+          },
+          "gpl3_compatible": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "conditional",
+              "no",
+              "unknown"
+            ]
+          },
+          "language": {
+            "type": "string"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "method_ids (or candidate names) it implements"
+          },
+          "relevance": {
+            "type": "string",
+            "description": "one line: what EDI could reuse and why"
+          }
         }
       }
     }

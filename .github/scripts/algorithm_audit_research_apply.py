@@ -203,6 +203,12 @@ def update_research_log(dirpath, tasks, today, run_id):
                           if f.get(k) is not None} for f in fs],
             "sources": sorted({drift.canonical_cran_url(u) for f in fs for u in f.get("sources", [])}
                               | {u for f in fs for u in f.get("open_copies", [])}),
+            # open-source implementations found, kept across runs (newest record per name wins)
+            "implementations": sorted(
+                {str(i.get("name", "")).casefold(): dict(i, url=drift.canonical_cran_url(i.get("url", "")),
+                                                         last_seen=today)
+                 for i in prev.get("implementations", []) + data.get("implementations", [])
+                 if i.get("name")}.values(), key=lambda i: str(i["name"]).casefold()),
         }
         n += 1
     if n:

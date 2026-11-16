@@ -99,6 +99,18 @@ fastest acceptable one for its job?**
   (`query`, `where`, `term_classes`, `method_ids`, `result`). The report flags ("Search-plan
   gaps") any term class or venue a problem's searches skipped, and any agent that reports
   more searches than its transcript shows.
+- **Trivial methods** (owner, 2026-11-16): 23 methods are marked `"trivial": true` in the
+  taxonomy, with a `trivial_reason` (O(1) or single-pass work, closed-form formulas,
+  randomization rules costing one draw per subject, orchestration and tooling). They are
+  reviewed in one line and need no per-term searches; the coverage check skips them. The
+  problem-level search and the four venues stay required for every problem. Borderline
+  methods with known faster algorithms (DeLong variance, erfc normal CDF, separation
+  detection, linear search) were deliberately left non-trivial.
+- **Open-source implementations** (owner, 2026-11-16): agents record every open-source
+  implementation they find (`implementations`: name, URL, license as stated with the URL it
+  was read from, `gpl3_compatible` yes / conditional / no / unknown, language, methods,
+  relevance). The findings file lists them compatible-first; `research_log.json` keeps them
+  per problem across runs.
 - **Transcripts.** Each agent's full Claude Code transcript is the run artifact
   `transcript-<problem>` (90 days; never `show_full_output`, which would print it in the
   public log). `.github/scripts/algorithm_audit_search_log.py` extracts every WebSearch

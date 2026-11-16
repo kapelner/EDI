@@ -63,6 +63,8 @@ def coverage_gaps(data, problem_id, methods, taxonomy):
         gaps.append("no problem-level search")
     for m in methods:
         entry = taxonomy.get("methods", {}).get(m, {})
+        if entry.get("trivial"):  # owner, 2026-11-16: reviewed in one line, no per-term searches
+            continue
         for key, cls in METHOD_CLASSES:
             if entry.get(key) and (cls, m) not in covered:
                 gaps.append(f"`{m}`: no {cls} search")
@@ -89,7 +91,7 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
     taxonomy: algorithm_taxonomy.json, for the search-plan coverage check."""
     batches, taxonomy = batches or {}, taxonomy or {}
     notrun, incomplete, findings, reviewed, skipped, mismatched = [], [], [], [], [], []
-    gaps, unbacked, proposed = [], [], []
+    gaps, unbacked, proposed, impls = [], [], [], []
     new_algos, plumbing, stale, unchecked = [], 0, [], 0
     for task in tasks:
         data, why = load(dirpath, task)
@@ -115,6 +117,7 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         for a in data.get("not_reviewed", []):
             incomplete.append((task, a))
         proposed += [(task, p) for p in data.get("proposed_terms", [])]
+        impls += [(task, i) for i in data.get("implementations", [])]
         named = {a.get("method_id") for a in data.get("methods_reviewed", [])
                  + data.get("not_reviewed", [])}
         skipped += [(task, m) for m in batches.get(task, []) if m not in named]
@@ -224,6 +227,22 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         for t, g in gaps:
             L.append(f"- {t}: " + "; ".join(g))
         L += [f"- {t}: **{msg}**" for t, msg in unbacked]
+        L.append("")
+
+    if impls:
+        order = {"yes": 0, "conditional": 1, "unknown": 2, "no": 3}
+        L.append("## 7. Open-source implementations found (license as stated by the agent's source)")
+        L.append("| GPL-3 compatible | Implementation | License | Problem: methods | Language | Relevance |")
+        L.append("|---|---|---|---|---|---|")
+        for t, i in sorted(impls, key=lambda ti: (order.get(ti[1].get("gpl3_compatible"), 2),
+                                                 ti[0], str(ti[1].get("name", "")).casefold())):
+            lic = i.get("license", "?")
+            if i.get("license_source"):
+                lic = f"[{lic}]({i['license_source']})"
+            cell = lambda x: str(x).replace("|", "\\|").replace("\n", " ")
+            L.append(f"| {i.get('gpl3_compatible', 'unknown')} | [{cell(i.get('name', '?'))}]"
+                     f"({i.get('url', '')}) | {lic} | {t}: {', '.join(i.get('methods', []))} | "
+                     f"{cell(i.get('language', ''))} | {cell(i.get('relevance', ''))} |")
         L.append("")
 
     if proposed:

@@ -35,6 +35,13 @@ and check these **venues** at least once per problem (a query or a fetch): **arX
 https://cran.r-project.org/web/views/), the **Journal of Statistical Software** (`jss`) and
 **The R Journal** (`r-journal`).
 
+**Trivial methods** (`"trivial": true` in `task_problem.json`, with a `trivial_reason`): O(1) or
+single-pass work, closed forms, orchestration or tooling, where no faster algorithm can exist. They
+need no per-term searches: review each in one line in `methods_reviewed` (e.g. "closed form, O(n);
+nothing faster"). The problem-level search and the four venues are still required for every
+problem, and a trivial method still appears in `methods_reviewed`. If you think a method marked
+trivial is not (a faster algorithm exists), say so in its note and research it.
+
 A class whose taxonomy list is empty needs no query. One query may serve several classes or
 methods: list them all in `term_classes` / `method_ids`. Record every search and fetch in
 `searches`, with a one-line `result` (including "nothing relevant"); the report flags any problem
@@ -69,6 +76,24 @@ acceptable method found" is a complete, useful answer; give a one-line reason. A
 about robustness rather than speed is still a finding; say so in `tradeoffs`. Spend effort where
 it matters: hot paths (resampling loops, CI searches, per-replicate refits) and Prototype /
 Investigate verdicts first; trivial closed forms need one line.
+
+## Open-source implementations (owner, 2026-11-16)
+
+Record every open-source implementation you find of a method relevant to your problem, in
+`implementations`, whether or not it is faster: name, URL, the **license as stated** and the URL
+you read it from (`license_source`: the LICENSE file, CRAN's package page / DESCRIPTION, PyPI
+metadata), never from memory. Classify `gpl3_compatible` for use in EDI (GPL-3):
+- `yes`: GPL-3.0, GPL-2.0-or-later / "GPL (>= 2)", LGPL-2.1+/3, MIT, BSD-2/3-Clause, Apache-2.0,
+  MPL-2.0, Boost (BSL-1.0), zlib, ISC, public domain / CC0;
+- `conditional`: usable only with conditions worth flagging, e.g. AGPL-3.0 (GPL-3 section 13
+  allows combining, but the AGPL terms then apply to the combined work), or dual licenses where
+  only one option is compatible; say which in `relevance`;
+- `no`: GPL-2.0-only, proprietary, "non-commercial" or no-derivatives licenses, no license stated
+  (all rights reserved);
+- `unknown`: you could not find the license; say so rather than guess.
+In `relevance`, say what EDI could reuse (code to port, a reference implementation to test
+against, a benchmark to replicate). Reuse means porting or depending on it; copying code needs a
+compatible license and attribution.
 
 ## Citing sources
 

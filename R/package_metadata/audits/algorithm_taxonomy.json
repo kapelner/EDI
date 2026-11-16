@@ -997,7 +997,9 @@
     "microbenchmark",
     "Google Benchmark",
     "hyperfine"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "developer tooling, not in a user-facing path"
   },
   "active-set-projection": {
    "title": "Active-set projection of Newton/IRLS steps",
@@ -1275,7 +1277,9 @@
     "randomizr simple_ra",
     "base::rbinom",
     "dqrng"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "one draw per subject; the design defines the law"
   },
   "best-improvement-swap": {
    "title": "Best-improvement pairwise-swap local search",
@@ -1665,7 +1669,9 @@
     "precomputed log-factorials",
     "single-pass formula"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "O(1) or one pass of arithmetic; nothing to speed up algorithmically"
   },
   "cluster-block-resampling": {
    "title": "Cluster / block / pair-preserving resampling",
@@ -1797,7 +1803,9 @@
     "msm::deltamethod",
     "marginaleffects",
     "car::deltaMethod"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "closed-form gradient times covariance"
   },
   "dinkelbach": {
    "title": "Dinkelbach parametric iteration",
@@ -1852,7 +1860,9 @@
    "software": [
     "randomizeR",
     "carat"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "one draw per subject; the design defines the law"
   },
   "eigen-pseudo-inverse": {
    "title": "Eigendecomposition / Moore-Penrose pseudo-inverse",
@@ -1944,7 +1954,9 @@
     "FFTW planner",
     "OpenTuner",
     "Kernel Tuner"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "developer tooling, not in a user-facing path"
   },
   "exhaustive-enumeration": {
    "title": "Exhaustive enumeration / convolution of exact null distributions",
@@ -2237,7 +2249,9 @@
    "software": [
     "survival::survfit",
     "survRM2"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "one pass over event times, alongside the KM sweep"
   },
   "hash-map-grouping": {
    "title": "Hash-map grouping and counting",
@@ -2261,7 +2275,9 @@
     "collapse",
     "std::unordered_map",
     "absl flat_hash_map"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "O(n) expected, the cost of reading the input"
   },
   "icm-npmle": {
    "title": "Iterative convex minorant / EM-ICM",
@@ -2399,7 +2415,9 @@
    "software": [
     "metafor",
     "meta"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "O(k) weighted average"
   },
   "irls": {
    "title": "Iteratively reweighted least squares (Fisher scoring)",
@@ -2579,7 +2597,9 @@
    "narrower": [
     "proportional stratum allocation of subsample size"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "O(k log k) over a handful of strata"
   },
   "lbfgs": {
    "title": "Limited-memory BFGS (L-BFGS)",
@@ -2678,7 +2698,9 @@
     "ID relabeling pass",
     "scan for non-constant columns"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "single O(n) pass, the cost of reading the input"
   },
   "linear-search": {
    "title": "Linear search",
@@ -2737,7 +2759,9 @@
    "software": [
     "matrixStats::logSumExp",
     "scipy.special.logsumexp"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "O(K) per call with small K"
   },
   "logrank-sweep": {
    "title": "Sorted risk-set sweep for log-rank statistics",
@@ -2864,7 +2888,9 @@
    ],
    "software": [
     "survival::residuals.coxph"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "closed form from a fitted null model"
   },
   "mersenne-twister": {
    "title": "Mersenne Twister MT19937",
@@ -3027,7 +3053,9 @@
     "MOVER for KM median difference",
     "MOVER-R for ratios"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "closed form from two intervals"
   },
   "multistart": {
    "title": "Multistart / deterministic start grids",
@@ -3221,7 +3249,9 @@
     "blossom pairing of pair means",
     "lambda-squared variance"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "one O(n) pass"
   },
   "pairwise-correlation-filter": {
    "title": "Pairwise-correlation collinearity filter",
@@ -3421,7 +3451,9 @@
     "metap",
     "harmonicmeanp",
     "ACAT"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "closed form over a few p-values"
   },
   "qr-decomposition": {
    "title": "QR decomposition (Householder, column-pivoted)",
@@ -3634,7 +3666,9 @@
     "epitools",
     "DescTools",
     "rateratio.test"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "closed form over strata"
   },
   "safeguarded-newton-root": {
    "title": "Safeguarded Newton root finding",
@@ -3884,7 +3918,9 @@
     "exact solver for small n, heuristic for large n",
     "mirror coin flip"
    ],
-   "software": []
+   "software": [],
+   "trivial": true,
+   "trivial_reason": "orchestration: chooses between methods researched elsewhere"
   },
   "soft-barrier-penalty": {
    "title": "Soft barrier penalty on variance parameters",
@@ -3904,7 +3940,9 @@
    "software": [
     "blme",
     "glmmTMB priors"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "O(1) penalty term"
   },
   "solver-fallback-ladder": {
    "title": "Fallback ladder of alternative solvers",
@@ -3926,7 +3964,9 @@
     "VGAM",
     "ordinal::clm",
     "MASS::polr"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "orchestration: chooses between solvers researched elsewhere"
   },
   "sort-and-sweep": {
    "title": "Sort then linear sweep",
@@ -4022,7 +4062,9 @@
     "matrixStats",
     "RcppParallel",
     "Eigen"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "one or two O(n) passes, the cost of reading the input"
   },
   "truncated-series-summation": {
    "title": "Truncated series summation for expectations",
@@ -4104,7 +4146,9 @@
    ],
    "software": [
     "randomizeR"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "one draw per subject; the design defines the law"
   },
   "value-space-bisection-selection": {
    "title": "Value-space bisection selection with two-pointer counting",
@@ -4222,7 +4266,9 @@
     "binom",
     "PropCIs",
     "statsmodels proportion_confint"
-   ]
+   ],
+   "trivial": true,
+   "trivial_reason": "closed form"
   },
   "worker-reuse": {
    "title": "Reused-worker refit loop",
