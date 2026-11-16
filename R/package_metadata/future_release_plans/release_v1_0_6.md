@@ -766,3 +766,21 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     a NEWS entry, regenerated fixture rows and the KK21 comprehensive and calibration slices (gate G4).
   - Done when: either closed after the investigation, or the fix lands and all five nightly legs agree with the
     fixture on both designs.
+- [ ] TODO-37 (added 2026-11-17, agent, owner request; noticed by the 2026-11-17 algorithm-research triage of run
+  43925959437 while reviewing the ridit findings, unverified): **Ridit DeLong SE returns 0, not NA, when an arm
+  has a single subject.**
+  - Where: `src/fast_ridit_analysis.cpp` `ridit_delong_se_from_scores` (~L117: `if (n_t < 2 || n_c < 2) return 0.0;`)
+    and its R twin `R/inference_ordinal_ridit.R` `ridit_delong_se` (~L12: `return(0)`), which
+    `InferenceOrdinalRidit` uses for `s_beta_hat_T` (~L284).
+  - Why it is wrong: the DeLong structural-components variance is var(V10)/n_T + var(V01)/n_C; with one subject in an arm
+    that arm's sample variance (denominator n - 1) is undefined, not zero. Returning 0 makes the Wald z infinite, so the
+    asymptotic p-value is 0 and the CI has zero width whatever the data: wrong output, where `NA` (as already returned for
+    an empty arm) is the defined answer.
+  - Investigate first (bounded): confirm with a 1-vs-k ordinal dataset that `InferenceOrdinalRidit`'s asymptotic
+    p-value and CI come out as 0 / a point. Stop condition: they do (fix), or a downstream guard already turns SE = 0
+    into NA (close with the evidence).
+  - Fix: return `NA_real_` in both functions for n_T < 2 or n_C < 2, so the existing NA path (as for an empty arm)
+    applies; keep the two in step. Add a regression test for n_T = 1 and n_C = 1; NEWS: ridit asymptotic results become
+    NA instead of p = 0 when an arm has one subject.
+  - Done when: both functions return NA for a single-subject arm, the regression test passes, and the ridit
+    randomization / bootstrap paths (which do not use this SE) are unchanged.
