@@ -404,7 +404,11 @@ collect_timing_ms = function(expr, times = B_TIME, env = parent.frame(), target_
                 filter_gc = TRUE,
                 memory = FALSE
             )
-        }, error = function(e) NULL)
+        }, error = function(e) {
+            # Not silent: a missing `bench` package once left fast rows NA on CI with no message.
+            cat("  bench::mark Error:", conditionMessage(e), "\n")
+            NULL
+        })
         if (is.null(bm_res)) {
             return(list(median_ms = NA_real_, samples_ms = numeric(0), method = "bench::mark"))
         }
@@ -2763,7 +2767,7 @@ if (requireNamespace("commonmark", quietly = TRUE)) {
   # benchmark_model_fits_python.html's layout exactly), not above it.
   nav_block = paste(
     '<nav><a href="#results">Results</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a><a href="#procedures">Inference procedures</a><a href="#designs">Design generation</a></nav>',
-    '<p>R analog of <a href="https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — the first three tables share its table shape and three-color row coding; the inference-procedure and design-generation tables are R-only.</p>',
+    '<p>R analog of <a href="https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — the first three tables share its table shape and three-color row coding; the inference-procedure and design-generation tables are R-only.</p>',
     sep = "\n"
   )
   body_html = sub("(<h1>[^<]*</h1>\n<p><em>Generated:[^<]*</em></p>\n)", paste0("\\1", nav_block, "\n"), body_html)

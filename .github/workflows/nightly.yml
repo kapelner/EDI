@@ -544,6 +544,7 @@ jobs:
           dependencies: '"hard"'
           extra-packages: |
             any::microbenchmark
+            any::bench
             any::betareg
             any::clinfun
             any::DescTools
@@ -681,6 +682,7 @@ jobs:
           dependencies: '"hard"'
           extra-packages: |
             any::microbenchmark
+            any::bench
             any::betareg
             any::clinfun
             any::DescTools
