@@ -1245,3 +1245,40 @@ package code), ggplot2 and mirai (not algorithmic).
 - **AB** (holds; e4dca08e, 67347569, 618bcbc1, 455a48e3): None of the four commits touch a variance estimator. They only add unrelated helpers that happen to live in helper_robust_sandwich.R. 455a48e3 adds likelihood-test failure-reason routing (edi_lik_test_procedure). 618bcbc1 and e4dca08e add the binomial-MLE boundary count and warning (TODO-128/179). 67347569 adds the warm-start null-refit retry (TODO-177). The HC0 helpers, CR2 and gcomp_speedups.cpp are unchanged, so the Investigate verdict and its facts are unaffected. Both open items are already settled elsewhere: sqrt(w) was refuted (F24), and the g-comp SE estimand was documented under v1.0.5 TODO-88 [x]. The row could be marked resolved, but that is the owner's call.
 - **AC** (holds; 168c2e92, 41696739): 168c2e92 adds a load-time consistency check between the method sentinels and the procedure-regime/convergence registry, plus four validity columns (regime, n_eff, size_order, rate_basis) in the run_all_inference results table. 41696739 adds a requires_even_allocation compatibility filter (prob_T == 0.5). Neither commit touches run_all_inference_fork_dispatch, which still does FIFO greedy list scheduling via mcparallel/mccollect polling, so the LPT Adopt verdict stands and has not been implemented.
 
+
+### 2026-11-17: verdict re-review of inventory rows flagged by inventory runs 43957548346 / 43964304738
+
+Method: three read-only review agents read the code and the plan files each verdict cites; nothing
+was run. 16 flagged rows: 11 verdicts hold, 5 change (applied to `algorithm_inventory.csv`, with
+2 sibling rows the review found stale in the same way).
+
+- **Changed:** stereotype `fit_null` → Keep-tracked (`multistart_nonconcave_likelihoods.md`
+  TODO-5, release_v1_2_0.md → TODO-20; null refits already use the TODO-175/178 deterministic
+  multistart; the copied "Cloglog: Investigate" clause removed). `multivariate_ordinal_tstat` →
+  Prototype (TODO 3): the unprotected-`wrap` crash is gone (it now calls the C++ ordinal kernel
+  directly; v1.0.5 TODO-65 closed). KK cond-logit GLMM `compute_estimate_with_bootstrap_weights`
+  → Keep: glmmTMB is gone and the replicate refits the point estimator's own weighted likelihood
+  (F14 resolved; method relabelled IRLS). `dep_cens_percentile_bootstrap_ci` and sibling
+  `dep_cens_validate_bootstrap_ci` → Keep (audit J): the Wald-swap / |bound|>2 selection rule was
+  removed (F21, algorithm_sweep_verified_findings.md TODO-6). `gee_estimate_exchangeable_alpha`
+  → Keep (audit K): the φ̂ scaling and −p df are in (F20, same plan TODO-18). Sibling
+  `ci_exact_binomial`: the "different two-sided conventions" clause is false since F26 (release
+  v1.0.5 TODO-89); now plain Keep.
+- **Hold, relabelled:** logistic / Poisson GLMM and ordinal CLMM kernels are now multistart
+  L-BFGS (verdicts unchanged: catalog §4 TODO-6 is the Newton-vs-L-BFGS default, TODO-153 AGQ
+  and TODO-4 probit still open).
+- **Hold:** ZOIB wrapper, KK cond-logit GLMM `shared`, binary-match structure (default cost
+  change is the owner's G6 #42 decision), exact binomial p-value, exact JT, serial survival
+  rand-bootstrap kernel, both ridit kernels.
+- *Unverified suspicion*: `helper_zoib.R:135,143` reads `fit$coefficients`, which
+  `fast_zero_one_inflated_beta_cpp` never returns (it returns `params`), so the wrapper would
+  return NULL on real data; it has no callers and the bulk tests mock the kernel.
+- *Unverified suspicion*: exact JT (`fast_jonckheere_terpstra.cpp:123-157`, guard at :211): the
+  1e6 guard counts feasible leaves, but the DFS prunes only at the last level and checks for
+  interrupts only at leaves, so a small control arm with many levels (e.g. ten levels of 20, a
+  top level of 1, n_C = 1: 11 leaves, ~1.7e13 calls) could hang uninterruptibly.
+- *Owner follow-ups found on the way*: `ridit_kernel_level_slots.md` TODO-2 (~lines 66-69) still
+  prescribes the "mean of neighbours" fill for absent levels, which would reintroduce F8 (the
+  code now uses the cumulative-mass rule); v1.0.5 TODO-175/178 are implemented in the code but
+  not ticked; `compute_survival_stat_diff_rand_bootstrap_serial_cpp` has no production caller
+  (tests only) and could be retired rather than presorted.
