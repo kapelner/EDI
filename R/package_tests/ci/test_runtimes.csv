@@ -1372,6 +1372,9 @@ R/EDI/tests/testthat/test-incidence-probit.R,coverage,1,measured_with_30_percent
 R/EDI/tests/testthat/test-inference-class-wiring-completeness.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-dispatch-policy-structure.R,coverage,2.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-factory-transitive-inheritance.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-inference-likelihood-concave-registry.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-inference-likelihood-parameter-layout-live-fits.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-inference-likelihood-properties-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-migration-harness.R,coverage,1.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-suite-discovery.R,coverage,3.9,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-information-inverse-edge-cases.R,coverage,30,bootstrap
@@ -1470,6 +1473,7 @@ R/EDI/tests/testthat/test-rand-custom-delta-shift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-null-construction.R,coverage,1.1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-pval-tie-tolerance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-seed-reproducibility.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rand-warm-start-anchoring-nonconcave.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rcpp-fitting-equivalence.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rcpp-fitting-real-data.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-reference-parity.R,coverage,30,bootstrap
@@ -1533,6 +1537,7 @@ R/EDI/tests/testthat/test-wilcox-regr-bootstrap-fast-path.R,coverage,1,measured_
 R/EDI/tests/testthat/test-zero-augmented-poisson-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-log1m.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-one-inflated-beta-fast-math.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-zhang-exact-ci-inverts-combined-test.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zhang-fisher-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-operator-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-poisson-boundary-score-length.R,coverage,1,measured_with_30_percent_headroom
