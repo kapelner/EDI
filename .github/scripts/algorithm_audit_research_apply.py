@@ -169,9 +169,12 @@ def add_open_copies(dirpath, tasks, offline):
                 if doi not in cache:
                     cache[doi] = drift.doi_access(doi)  # publisher first, then OpenAlex
                 status, found = cache[doi]
-                if status != "publisher":
-                    notes[doi] = status
-                copies += [c for c in found if c not in copies and c not in f["sources"]]
+                cited = {drift.canonical_cran_url(u).rstrip("/") for u in f["sources"]}
+                if status != "publisher" and not found:
+                    notes[doi] = status  # blocked / paywalled / lookup failed, and no open copy
+                # an open copy the agent already cited counts as found but is not repeated
+                # (run 43925959437: cited arXiv copies were dropped and the DOI shown as closed)
+                copies += [c for c in found if c not in copies and c.rstrip("/") not in cited]
             if copies:
                 f["open_copies"] = copies
             if notes:
@@ -310,6 +313,9 @@ def main():
         "Required checks: a PR opened by `github-actions[bot]` creates `pull_request` runs "
         "(R-CMD-check, test-coverage-python) that never start; merge with the admin bypass, and "
         "GitHub then closes those empty runs as \"failure\" (zero jobs; nothing was tested). "
+        "Do not click \"Update branch\" on this PR: it merges main in line by line, and when main "
+        "and this PR edited the same taxonomy entry that produced invalid JSON (PR #14, merge "
+        "36c47841). If main changed the audit JSON files, merge this PR as is and fix up on main. "
         "If you pushed a fix to this branch, confirm the PR shows it before merging: GitHub can "
         "take a few minutes to register a push.\n\n"
         "Created by `.github/workflows/algorithm-audit-drift.yml` (research). "

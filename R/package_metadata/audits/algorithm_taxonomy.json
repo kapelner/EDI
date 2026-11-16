@@ -446,10 +446,10 @@
     "local search balanced partition",
     "Krieger Azriel Kapelner"
    ],
+   "edi_original": "Krieger, Azriel & Kapelner (2019), Nearly random designs with greatly improved balance, Biometrika 106(3), doi:10.1093/biomet/asz026",
    "software": [
     "PSRSRR (pair-switching rerandomization, Metropolis-Hastings)"
    ]
-   "edi_original": "Krieger, Azriel & Kapelner (2019), Nearly random designs with greatly improved balance, Biometrika 106(3), doi:10.1093/biomet/asz026"
   },
   "grouping-and-level-coding": {
    "title": "Grouping, level coding and strata construction",
@@ -525,25 +525,19 @@
    "title": "Kapelner-Krieger sequential matching on arrival",
    "description": "For each arrival, compute (weighted) Mahalanobis distances to the reservoir, compare with an F/Hotelling T^2 or Monte Carlo quantile threshold, and match the nearest: arrival x, reservoir -> match or reservoir. O(n) arrivals x O(reservoir) per arrival.",
    "search_terms": [
-    "sequential matching design",
-    "Kapelner Krieger matching on the fly",
-    "nearest neighbour search Mahalanobis",
-    "online matching",
-    "Hotelling T2 threshold",
-    "sequential rematched randomization"
-   ],
-   "software": [
-    "SeqExpMatch"
-   ]
     "online nearest neighbor search",
     "dynamic nearest neighbor search changing metric",
     "incremental Mahalanobis distance",
     "nearest neighbor search weighted Euclidean metric",
     "online bipartite matching arrivals",
     "streaming nearest neighbor query small dimension",
-    "Monte Carlo quantile of pairwise distances"
+    "Monte Carlo quantile of pairwise distances",
+    "sequential rematched randomization"
    ],
-   "edi_original": "Kapelner & Krieger (2014), Matching on-the-fly: sequential allocation with higher power and efficiency, Biometrics 70(2), doi:10.1111/biom.12148; Kapelner & Krieger (2021), A matching procedure for sequential experiments that iteratively learns which covariates improve power, Biometrics, doi:10.1111/biom.13561"
+   "edi_original": "Kapelner & Krieger (2014), Matching on-the-fly: sequential allocation with higher power and efficiency, Biometrics 70(2), doi:10.1111/biom.12148; Kapelner & Krieger (2021), A matching procedure for sequential experiments that iteratively learns which covariates improve power, Biometrics, doi:10.1111/biom.13561",
+   "software": [
+    "SeqExpMatch"
+   ]
   },
   "kk21-covariate-weights": {
    "title": "KK21 covariate-importance weights",
@@ -633,11 +627,11 @@
     "pairs of pairs variance estimator",
     "paired difference estimator"
    ],
+   "edi_original": "Kapelner & Krieger (2014), Matching on-the-fly: sequential allocation with higher power and efficiency, Biometrics 70(2), doi:10.1111/biom.12148",
+   "skip_research": "EDI's own estimator; all five methods are trivial closed forms or single passes, and a problem-level search can only find the authors' papers (owner, 2026-11-16)",
    "software": [
     "experiment (CRAN, Imai)"
    ]
-   "edi_original": "Kapelner & Krieger (2014), Matching on-the-fly: sequential allocation with higher power and efficiency, Biometrics 70(2), doi:10.1111/biom.12148",
-   "skip_research": "EDI's own estimator; all five methods are trivial closed forms or single passes, and a problem-level search can only find the authors' papers (owner, 2026-11-16)"
   },
   "missing-covariate-imputation": {
    "title": "Missing-covariate imputation in designs",

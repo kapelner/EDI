@@ -561,6 +561,32 @@ class InventoryShardTests(unittest.TestCase):
         self.assertFalse(drift.is_inventory_task("inventory-like-problem"))
 
 
+class AddOpenCopiesTests(unittest.TestCase):
+
+    def run_add(self, sources, access):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            Path(tmp, "p.json").write_text(json.dumps({"findings": [{"methods": ["m"], "sources": sources}]}))
+            saved = drift.doi_access
+            research_apply.drift.doi_access = lambda doi: access[doi]
+            try:
+                research_apply.add_open_copies(Path(tmp), ["p"], offline=False)
+            finally:
+                research_apply.drift.doi_access = saved
+            return json.loads(Path(tmp, "p.json").read_text())["findings"][0]
+
+    def test_already_cited_open_copy_counts_as_found(self):
+        f = self.run_add(["https://arxiv.org/abs/2408.06213", "https://doi.org/10.1002/spe.3369"],
+                         {"10.1002/spe.3369": ("blocked", ["https://arxiv.org/abs/2408.06213"])})
+        self.assertNotIn("source_access", f)   # not reported as "no open copy"
+        self.assertNotIn("open_copies", f)     # and not repeated
+
+    def test_uncited_copy_is_added_and_none_found_is_reported(self):
+        f = self.run_add(["https://doi.org/10.1000/a", "https://doi.org/10.1000/b"],
+                         {"10.1000/a": ("blocked", ["https://arxiv.org/abs/1"]), "10.1000/b": ("closed", [])})
+        self.assertEqual(f["open_copies"], ["https://arxiv.org/abs/1"])
+        self.assertEqual(f["source_access"], {"10.1000/b": "closed"})
+
+
 class OpenCopyTests(unittest.TestCase):
 
     def test_doi_of_finds_dois_in_publisher_urls(self):

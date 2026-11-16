@@ -141,6 +141,12 @@ fastest acceptable one for its job?**
   `inventory.N` (about 40 items each, a file's items in one shard; `--inventory-shards`);
   `research_tasks=inventory` runs all of them, and the PR job merges their outputs. The plan
   job checks out full history so it plans the same shards the research jobs compute.
+- **Never use "Update branch" on a research PR** (2026-11-16). On PR #14 it merged `main`
+  into the bot branch line by line; both sides had appended a key to the same taxonomy entry,
+  the merge dropped a comma, and `algorithm_taxonomy.json` became invalid JSON on `main`
+  (merge 36c47841). The next run's plan and drift jobs then crashed. Repaired by a three-way
+  structural merge from the two parents (main's version plus only what the PR added relative
+  to the common ancestor). Merge research PRs as they are; fix conflicts on `main`.
 - **Transcripts.** Each agent's full Claude Code transcript is the run artifact
   `transcript-<problem>` (90 days; never `show_full_output`, which would print it in the
   public log). `.github/scripts/algorithm_audit_search_log.py` extracts every WebSearch
