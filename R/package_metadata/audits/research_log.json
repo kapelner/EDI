@@ -62,99 +62,205 @@
   },
   "balanced-allocation-optimization": {
    "last_researched": "2026-11-16",
-   "run": "43903509109",
+   "run": "43922480182",
    "methods": {
     "branch-and-bound-milp": {
      "conclusion": "faster_option_found",
-     "note": "[Fortet/McCormick linearization + branch and bound] The formulation-level options (sign-pruned rows, RLT-1, symmetry breaking, low-rank MIQP, enumeration) are already in catalog §12 table (a). New and not recorded anywhere in the repo: the GLPK backend itself is the weak link, and HiGHS is an MIT-licensed MILP solver with GPL-compatible R bindings on CRAN (highs 1.15.1-2, 2026-11-02; ROI.plugin.highs 1.0-4). See the finding. I also checked Harary's arXiv 2510.15168 (an exact n^O(rank) algorithm for rank-r QUBO under cardinality constraints). With rank p ≈ 5 and m ≈ n² swap directions, that is far slower than C(n, n/2) enumeration at n ≤ 30, so it is not useful at EDI's sizes. | [MILP branch and bound (GLPK)] The problem formulation is already covered (TODO-1 enumeration, TODO-2 tightening, symmetry cut). The solver backend is not: EDI offers only glpk, gurobi and cplex. HiGHS is open source, GPL-compatible and on CRAN as highs and ROI.plugin.highs, and it is not considered anywhere in the catalog. Low confidence: no GLPK-vs-HiGHS MILP benchmark exists at EDI's sizes.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Fortet/McCormick linearization + branch and bound",
-      "MILP branch and bound (GLPK)"
-     ]
+     "note": "The previous HiGHS-backend finding still stands and is re-reported. One update: CRAN highs 1.15.1-2 now exposes the HiGHS C API to other packages' compiled code, so EDI could call HiGHS from C++ without going through ompr/ROI. Two new items not in catalog §12 table (a). (1) A free MIQP/MIQCP solver now exists on CRAN: scip 1.10.1-1 (2026-10-04, Apache-2.0, SCIP 10 is Apache-2.0). It supports binary variables plus scip_add_quadratic_cons. This removes the 'MIQP needs a commercial solver' objection to the low-rank formulation (p continuous z = Mw, one convex quadratic). (2) For p = 1, mahal_dist/D/l1 reduce exactly to balanced number partitioning (Kallus 2018, eq. 2.8). That problem has a dedicated exact anytime algorithm, BLDM + complete Karmarkar-Karp (Mertens 1999). Neither speedup is quantified at EDI sizes. Also checked BiqBin (SDP B&B; serial beats Gurobi/SCIP on most of its benchmark instances, but the catalog already rejects SDP B&B as overkill at n ≤ 30) and Mallach's compact linearization (Glover-type, already in the table).",
+     "last_researched": "2026-11-16"
     },
     "cholesky-ldlt": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[Cholesky whitening] One-off closed form, O(np² + p³), and already the recommended form (catalog §8). The dense rank-p n×n Q is a downstream representation issue that v1.0.5-TODO-1/-2 (low-rank formulation, enumeration) already track. Nothing faster.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Cholesky whitening"
-     ]
+     "note": "One-off O(np² + p³) whitening, already optimal. Searched low-rank incremental evaluation: the O(p)-per-swap use of the rank-p factor M is the enumeration/low-rank item already tracked (v1.0.5-TODO-1/-2). Nothing new since 2026-11-16.",
+     "last_researched": "2026-11-16"
     },
     "dinkelbach": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[Dinkelbach parametric iteration] Dinkelbach is already Newton's method on the parametric function (superlinear outer convergence). Searching for 0-1 quadratic-fractional alternatives (a single Li-1994-style MILP linearization, SOCP/SDP plus branch and bound) turned up no computational study showing a win at n ≤ 20. At these sizes the gains come from cheaper subproblems (enumeration, v1.0.5-TODO-1; seeding t_0, v1.0.5-TODO-13; a faster MILP backend, see the Fortet finding), not from replacing the outer iteration.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Dinkelbach parametric iteration"
-     ]
+     "note": "New check: the 'Accelerated Dinkelbach' method (arXiv 2510.26257, √5-order) assumes twice-differentiable parametric functions, which does not hold on a 0-1 feasible set, and it reports no combinatorial experiments. The Charnes-Cooper single-MILP alternative has no binary-case computational evidence. At these sizes the gains still come from cheaper subproblems (enumeration v1.0.5-TODO-1, seeding v1.0.5-TODO-13, a better MILP backend).",
+     "last_researched": "2026-11-16"
     },
     "qr-decomposition": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[Householder QR projection] Runs once per design setup at EDI's n. The only improvement is keeping P = QQ' in low-rank form instead of n×n, which the inventory already records (relevant to TODO-1). Nothing new found.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Householder QR projection"
-     ]
+     "note": "Runs once per setup. The only improvement is w'Pw = ||Q̂'w||² with the thin Q̂ kept instead of the dense n×n P, which is already recorded in the inventory (relevant to v1.0.5-TODO-1). Nothing new.",
+     "last_researched": "2026-11-16"
     },
     "simulated-annealing": {
-     "conclusion": "no_faster_acceptable_found",
-     "note": "[simulated annealing (swap moves)] Beasley's UBQP study (tabu beats SA on most instances, SA wins on the largest) and SA with a 1-opt local-search polish are both already tracked: quantum_upgrade.md TODO-5 (PT/tabu) and catalog TODO-4 (polish plus an n-scaled budget). Nothing newer overturns them. | [simulated annealing (single-exchange Metropolis)] Same kernel as the swap-moves entry. Δ is already O(1) or O(p) per move and O(n) on accept. Better heuristics (PT, tabu, KL) are already tracked and would change the solution quality, not just the speed. | [mean-|Δ| initial temperature heuristic] A one-off O(16·n²) calibration, negligible next to the 20k-move anneal. Standard practice; nothing to gain.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "simulated annealing (swap moves)",
-      "simulated annealing (single-exchange Metropolis)",
-      "mean-|Δ| initial temperature heuristic"
-     ]
+     "conclusion": "faster_option_found",
+     "note": "For p > 1, nothing newer overturns the tracked PT/tabu/polish items: 2025-26 QUBO benchmarks (enhanced PT beats SA and memetic tabu at equal time on Cauchy-coupled instances) are already covered by quantum_upgrade.md TODO-5, and threshold accepting is reported only as comparable to SA. New: for p = 1 the problem is balanced number partitioning (Kallus 2018). BLDM gives an O(n log n) solution, CKK improves it to a certified optimum (anytime), and both are deterministic. This replaces 4×20k-move SA for the p = 1 quadratic/D/l1 kinds at n > 20; see the finding. GKK+ (AISTATS 2026) is a randomized multi-arm design, a design change rather than a solver.",
+     "last_researched": "2026-11-16"
     },
     "size-based-dispatch": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[size-threshold solver dispatch] Glue. The cutoff should move with the solver (TODO-1 enumeration, or a faster MILP backend: see the HiGHS finding). There is no algorithmic alternative. | [solver dispatch + mirror coin flip] Glue: the O(n²) objective re-check plus a fair coin. Nothing faster that matters. The BRT weaker-mechanism concern (incidental #1) is a validity issue, already recorded.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "size-threshold solver dispatch",
-      "solver dispatch + mirror coin flip"
-     ]
+     "note": "Orchestration (trivial). The cutoff should depend on the solver (enumeration, HiGHS/SCIP backend) and, if the p = 1 finding is adopted, on p as well (route p = 1 to BLDM+CKK). There is no algorithmic alternative.",
+     "last_researched": "2026-11-16"
     }
    },
    "findings": [
     {
      "methods": [
+      "simulated-annealing",
       "branch-and-bound-milp"
      ],
-     "label": "Fortet/McCormick linearization + branch and bound",
-     "batch": "F.1",
-     "candidate": "Add HiGHS as a free MILP backend for the same linearized models (a 'highs' option in EDI_OPTIMAL_ROI_SOLVERS via ROI.plugin.highs, or the `highs` CRAN package directly). HiGHS is MIT-licensed and actively developed (highs 1.15.1-2 on CRAN, 2026-11-02). On Mittelmann's MIPLIB2017 benchmark (28 Oct 2026, 240 instances) HiGHS-1.15 solves 158–179 instances, which puts it in the same tier as SCIP (136). GLPK is no longer included in that benchmark. HiGHS does not solve MIQP, so the low-rank MIQP option in catalog table (a) still needs a commercial solver.",
-     "claimed_speedup": "Not quantified for this problem. No fetched source benchmarks GLPK against HiGHS on MILP. Mittelmann (https://plato.asu.edu/ftp/milp.html) lists HiGHS at a shifted geometric mean of 763 s serial and 549 s parallel, but has no GLPK column. The JuMP forum view that 'there is very little reason to use GLPK over HiGHS' is an opinion with no numbers.",
+     "candidate": "Special-case p = 1 (one covariate) for the mahal_dist, D (P from [1,x] with fixed n_T) and l1 kinds. Each objective is then a monotone function of |Σ_T x̃ − Σ_C x̃|, i.e. the balanced number partitioning problem (Kallus 2018 eq. 2.8 shows the reduction and its NP-hardness). Use the balanced largest differencing method (BLDM, O(n log n)) as the start and Mertens' complete-Karmarkar-Karp extension (BLDM+CKK) to search to a certified optimum, an anytime algorithm that returns BLDM first. Equal-cardinality |m| ≤ 1 is exactly Mertens' 'balanced' case. Kapelner's own GreedyExperimentalDesign already ships a Karp method for one covariate.",
+     "claimed_speedup": "Not quantified for EDI. Mertens (arXiv cs/9903011) reports BLDM at O(n log n) time and O(n) space. CKK node counts peak near n_c ≈ 30 for 25-bit integers and fall beyond it. For ≤ 12 significant digits the exact search is 'arbitrary size in practice' (a claim adopted from Korf). With double-precision covariates the hard region extends to larger n, so certification may be exponential near n ≈ 50–60, but BLDM alone should already beat SA's discrepancy. No source compares it with SA or MILP on this problem.",
      "keeps_estimator": "yes",
-     "applies_at_edi_sizes": "unknown",
-     "confidence": "low",
-     "suggested_action": "Re-look. Run the existing in-file benchmark (mahal_dist quadratic, p=5, n = 15/20/25, plus one Dinkelbach A-ratio case) with roi_solver = 'highs' against GLPK. If HiGHS clearly moves the cliff, add it to EDI_OPTIMAL_ROI_SOLVERS and make linearization_max_n depend on the solver (as the optimal_solve_auto catalog row already suggests). Record the result in catalog §12 table (a) as a new row."
+     "applies_at_edi_sizes": "yes",
+     "confidence": "medium",
+     "suggested_action": "Prototype. Add a p = 1 branch in optimal_solve_auto that calls a C++ BLDM+CKK kernel with a node/time cap. Check against enumeration at n ≤ 24 and against SA at n = 50/100/200 (objective and wall time). Record it as a new row in catalog §12 table (a)/(b)."
     },
     {
      "methods": [
       "branch-and-bound-milp"
      ],
-     "label": "MILP branch and bound (GLPK)",
-     "batch": "F.2",
-     "candidate": "Add roi_solver = \"highs\" via ROI.plugin.highs, built on the CRAN package highs (HiGHS 1.15.x, GPL ≥ 2 wrapper of the MIT-licensed solver). It would be an open-source MIP backend and possibly a new default, with the linearization_max_n cutoff re-benchmarked per backend. The model formulation stays the same, so the certified optimum is the same.",
-     "claimed_speedup": "Not quantified for EDI's models. Mittelmann's MILP benchmark (28 Oct 2026, 240 MIPLIB 2017 instances): HiGHS has a scaled shifted geometric mean of 10.7 and solves 158, against SCIP at 14.0 and 136 (HiGHS parallel: 7.69 and 179). GLPK is not in that MILP table at all. GLPK appears only in Mittelmann's LP tables (INFORMS 2022 talk), whose summary slide says \"HiGHS is strong in MILP\". Anecdotal reports go both ways: GLPK was faster on some small IPs.",
+     "candidate": "Low-rank convex MIQCP solved by open-source SCIP via the CRAN package scip (1.10.1-1, published 2026-10-04, Apache-2.0; SCIP 10.0 is Apache-2.0): minimize θ subject to θ ≥ ||z||², z = Mw (p continuous variables), Σw = n_T, w binary, through scip_add_quadratic_cons. This removes all n²/2 auxiliary variables with no commercial dependency. Also usable through CVXR ≥ 1.8.2.",
+     "claimed_speedup": "Not quantified. The SCIP 10 report (arXiv 2511.18580) says it is faster than SCIP 9, with larger gains on nonlinear problems, but has no MIQP or balanced-allocation breakdown. The catalog itself predicted that 'MIQP solvers handle this well'.",
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add \"highs\" to EDI_OPTIMAL_ROI_SOLVERS behind a requireNamespace check. Benchmark GLPK vs HiGHS on milp_solve_l1 (n = 20, 50, 100, 200; p = 5) and on milp_solve_quadratic (n = 15, 20, 25), checking that objectives match. Switch the default and re-tune linearization_max_n only if HiGHS wins at these sizes."
+     "suggested_action": "Re-look. Add 'scip' as an optional backend for the low-rank formulation behind requireNamespace. Benchmark it against GLPK Fortet at n = 15/20/25/30 (p = 5) and against the enumeration prototype. Update catalog §12 table (a), low-rank row, to record that an Apache-2.0 MIQCP solver is available."
+    },
+    {
+     "methods": [
+      "branch-and-bound-milp"
+     ],
+     "candidate": "(Re-reported from the 2026-11-16 previous result, updated.) Add HiGHS (MIT) as a backend through ROI.plugin.highs (1.0-4, GPL-2|GPL-3), or the CRAN highs package (1.15.1-2, 2026-11-02, GPL ≥ 2). New in 1.15.1-2: other packages can call the HiGHS C API from compiled code, so EDI's C++ could build the models directly and skip ompr model construction. HiGHS still does not support MIQP (maintainer statement), so this helps only the linearized models.",
+     "claimed_speedup": "Not quantified. Mittelmann's MILP benchmark (previous run) puts HiGHS in SCIP's tier and does not include GLPK. A JuMP forum anecdote has GLPK about 100× faster than HiGHS on one linearized model and the ranking reversing after reformulation, so results depend on the formulation.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "unknown",
+     "confidence": "low",
+     "suggested_action": "Re-look, as the previous result recommended: benchmark GLPK against HiGHS on milp_solve_quadratic at n = 15/20/25 and on milp_solve_l1 at n = 20–200, then decide on the default and the per-backend linearization_max_n."
     }
    ],
    "sources": [
+    "https://academic.oup.com/jrsssb/article/80/1/85/7048414",
+    "https://ar5iv.labs.arxiv.org/html/cs/9903011",
+    "https://arxiv.org/abs/1312.0531",
+    "https://arxiv.org/abs/1312.0531.pdf",
+    "https://arxiv.org/abs/2511.18580",
+    "https://arxiv.org/abs/cs/9903011",
+    "https://arxiv.org/pdf/1312.0531",
+    "https://bnaras.github.io/scip/articles/scip-examples.html",
+    "https://cran.r-project.org/package=GreedyExperimentalDesign",
     "https://cran.r-project.org/package=ROI.plugin.highs",
     "https://cran.r-project.org/package=highs",
-    "https://cran.r-project.org/web/packages/ROI.plugin.highs/readme/README.html",
-    "https://discourse.julialang.org/t/is-glpk-still-maintained-relevant/116950/4",
-    "https://highs.dev/",
-    "https://plato.asu.edu/ftp/milp.html",
-    "https://plato.asu.edu/talks/informs2022.pdf"
+    "https://cran.r-project.org/package=scip",
+    "https://cran.r-project.org/web/packages/highs/news/news.html",
+    "https://cran.r-project.org/web/packages/scip/readme/README.html",
+    "https://doi.org/10.1111/rssb.12240",
+    "https://github.com/ERGO-Code/HiGHS/blob/master/LICENSE.txt",
+    "https://highs.dev/"
    ],
-   "note": "Seeded 2026-11-16 from the full run's per-label batches (before research was organised by problem): method notes are the label agents' notes, tagged with the label."
+   "implementations": [
+    {
+     "name": "dwave-samplers",
+     "url": "https://github.com/dwavesystems/dwave-samplers/",
+     "license": "Apache-2.0",
+     "license_source": "https://github.com/dwavesystems/dwave-samplers/blob/main/LICENSE",
+     "gpl3_compatible": "yes",
+     "language": "Python/C++",
+     "methods": [
+      "simulated-annealing",
+      "tabu search (MST2)"
+     ],
+     "relevance": "SA and tabu QUBO baselines for the quantum_upgrade.md TODO-5 comparison",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "GenSA",
+     "url": "https://cran.r-project.org/package=GenSA",
+     "license": "GPL-2",
+     "license_source": "https://cran.r-project.org/package=GenSA",
+     "gpl3_compatible": "no",
+     "language": "R/C++",
+     "methods": [
+      "simulated-annealing"
+     ],
+     "relevance": "A continuous generalized SA, not suited to swap moves. The GPL-2 listing does not say 'or later', so treat it as incompatible for code reuse",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "GreedyExperimentalDesign",
+     "url": "https://cran.r-project.org/package=GreedyExperimentalDesign",
+     "license": "GPL-3",
+     "license_source": "https://cran.r-project.org/package=GreedyExperimentalDesign",
+     "gpl3_compatible": "yes",
+     "language": "R/Java",
+     "methods": [
+      "simulated-annealing",
+      "Karmarkar-Karp (p=1)",
+      "branch-and-bound-milp"
+     ],
+     "relevance": "Same owner; its Karp method for one covariate can be ported or tested against",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "HiGHS",
+     "url": "https://highs.dev/",
+     "license": "MIT",
+     "license_source": "https://github.com/ERGO-Code/HiGHS/blob/master/LICENSE.txt",
+     "gpl3_compatible": "yes",
+     "language": "C++",
+     "methods": [
+      "branch-and-bound-milp"
+     ],
+     "relevance": "The underlying MIP solver (no MIQP)",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "highs (R)",
+     "url": "https://cran.r-project.org/package=highs",
+     "license": "GPL (>= 2)",
+     "license_source": "https://cran.r-project.org/package=highs",
+     "gpl3_compatible": "yes",
+     "language": "R/C++",
+     "methods": [
+      "branch-and-bound-milp"
+     ],
+     "relevance": "An open MILP backend for the linearized models; the C API can now be called from EDI's C++",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "prtpy",
+     "url": "https://pypi.org/project/prtpy/",
+     "license": "MIT",
+     "license_source": "https://pypi.org/project/prtpy/",
+     "gpl3_compatible": "yes",
+     "language": "Python",
+     "methods": [
+      "complete Karmarkar-Karp",
+      "ILP partitioning"
+     ],
+     "relevance": "A reference CKK implementation to test a C++ port against (balanced variant not documented)",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "ROI.plugin.highs",
+     "url": "https://cran.r-project.org/package=ROI.plugin.highs",
+     "license": "GPL-2 | GPL-3",
+     "license_source": "https://cran.r-project.org/package=ROI.plugin.highs",
+     "gpl3_compatible": "yes",
+     "language": "R",
+     "methods": [
+      "branch-and-bound-milp"
+     ],
+     "relevance": "A drop-in roi_solver = 'highs' for the existing ompr path",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "scip (R)",
+     "url": "https://cran.r-project.org/package=scip",
+     "license": "Apache License (>= 2)",
+     "license_source": "https://cran.r-project.org/package=scip",
+     "gpl3_compatible": "yes",
+     "language": "R/C++",
+     "methods": [
+      "branch-and-bound-milp",
+      "MIQP direct"
+     ],
+     "relevance": "A free MIQCP solver for the low-rank z = Mw formulation",
+     "last_seen": "2026-11-16"
+    }
+   ]
   },
   "bayesian-bootstrap": {
    "last_researched": "2026-11-16",
@@ -1045,106 +1151,237 @@
   },
   "cox-ph-fit": {
    "last_researched": "2026-11-16",
-   "run": "43903509109",
+   "run": "43922480182",
    "methods": {
     "breslow-risk-set-cumsum": {
      "conclusion": "faster_option_found",
-     "note": "[reverse cumulative-sum risk sets (Breslow)] O(np² + Kp²) per iteration with one sort is already the standard optimal sweep (coxph's own algorithm). Newer work targets other problems: coxdev 0.4.0 (CRAN, 2026-11-07, GPL≥3) uses the same reverse-cumsum structure to give η-space derivatives and matrix-free information for penalized/large-p fits. FastSurvival (arXiv 2410.19081) uses surrogate minimization for high-dimensional, correlated designs and gives no win over Newton at p in the tens. survival NEWS 3.8-x has no change to the risk-set algorithm. The only open item is the constant-factor SYRK Hessian assembly, already catalogued as TODO-5. | [risk-set rescan (Breslow likelihood)] NOT dead code (inventory is stale): kk_cox_fully_fixed_null_fit (inference_survival_KK_strat_cox.R:4, called at :599/:659 and inference_survival_KK_lwa_cox_one_lik_abstract.R:183/:220) uses it as the whole null fit whenever beta_T is the only Cox parameter, including per parametric-bootstrap draw. Per-stratum which() + per-event rescan is O(n*S + nD), ~O(n^2) for KK pairs; sorted reverse-cumsum (already in C++ compute_cox_neg_ll_only) gives the identical Breslow NLL in O(n log n) and adds max-eta shifting. | [Breslow partial likelihood (reverse cumulative sum)] compute_cox_neg_ll_only is O(np) per evaluation. That is the lower bound, since every subject's η has to be read. The survival NEWS (cran.r-project.org/web/packages/survival/news.html) shows only a score-residual speedup in 3.5-7, from O(ndp) to O((n+d)p), and EDI's compute_robust_vcov already matches it with prefix sums. Efron is an accuracy option, not a speed one (row L). | [Breslow estimator (per-event rescan)] Still O(nK) in .breslow_hazard (helper_survival_fits.R:582). The audit's Adopt (reverse cumulative sum after the existing sort, O(n log n), same estimator) is the standard optimal fix. Nothing faster exists, because a sort is needed anyway. The verdict holds and the fix is still not implemented.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "reverse cumulative-sum risk sets (Breslow)",
-      "risk-set rescan (Breslow likelihood)",
-      "Breslow partial likelihood (reverse cumulative sum)",
-      "Breslow estimator (per-event rescan)"
-     ]
+     "note": "The previous finding still stands. kk_cox_fully_fixed_null_fit (inference_survival_KK_strat_cox.R:4-11) still calls the R rescan .cox_neg_loglik_breslow_r, which is O(n·S + nD). The sorted reverse-cumsum NLL that already exists in C++ (compute_cox_neg_ll_only) gives the same Breslow value in O(n log n). .breslow_hazard (helper_survival_fits.R:582-600) is still an O(nK) per-event `y_o >= t_k` rescan. The audit's Adopt verdict (one reverse cumsum after the existing order(), same estimator) is still the optimal fix and has not been implemented. Nothing new beats O(np + n log n). The coxdev vignette and arXiv 2510.19374 restate the same suffix-sum identity. GPU segmented scan (arXiv 2310.16238) is for observational-health scale, not EDI's n. The survival 3.8-10..3.8-12 NEWS has no risk-set change.",
+     "last_researched": "2026-11-16"
     },
     "finite-differences": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[central finite differences] Where these are costly (log/identity-binomial score and Hessian, using a 4-point ℓ stencil at O(2np³)), the closed-form X'diag(∂²ℓ)X is already Adopt (v1.0.5 row N, catalog O5), and nothing beats it. The generic numerical_gradient/numerical_hessian take central differences of the analytic gradient, so a Hessian costs only 2p gradient evaluations at p≤~25. AD and complex-step would not be cheaper (the catalog already rejected both). The R Cox FD helpers are dead code, and ordinal g-comp compute_md_gradient calls a cheap O(nK) functional; its cost is negligible.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "central finite differences"
-     ]
+     "note": "Checked numDeriv (CRAN, unchanged since 2019) and the complex-step / Richardson literature again. For Hessians, complex-step is less accurate than FD, and Richardson costs more evaluations. The Cox FD helpers (.cox_score_breslow_fd_r, .cox_information_breslow_fd_r) still have analytic O(n log n + np²) replacements and appear to be dead code. Nothing new.",
+     "last_researched": "2026-11-16"
     },
     "lbfgs": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[L-BFGS] The generic LBFGSpp driver uses backtracking strong-Wolfe. The Newton alternative for the concave ordinal/CR/AC/beta/logistic fits is already catalogued (catalog §2 TODO-1/2, §1 TODO-7). LBFGSpp releases add a More–Thuente / Nocedal–Wright line search but no performance claim. The literature found (arXiv 1911.04584, 2310.07296) suggests Wolfe/More–Thuente searches use more evaluations than Armijo backtracking, so switching the line search is not a demonstrated win.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "L-BFGS"
-     ]
+     "note": "LBFGSpp 0.4.0 (RcppNumerical 0.7-0, 2026-02-28) adds no performance claim. On a concave Cox partial likelihood at p ≤ ~10, the analytic-Hessian Newton that EDI also has is the standard faster choice. L-BFGS (cox_lbfgs / StratifiedCoxObjective) is an option path, so no algorithm change is warranted.",
+     "last_researched": "2026-11-16"
     },
     "linear-scan": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[per-stratum informative-row filter] An R loop with which(strata_id==s) is O(n·S). A split()/tapply single pass is O(n) and gives the identical row set. It is already recorded as Incidental on the inventory row, the result is cached (strat_cox_informative_rows_cache), and it runs outside resampling loops. It is not an algorithm research item.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "per-stratum informative-row filter"
-     ]
+     "note": "Trivial: a single O(n) pass. The O(n·S) which() loop has an O(n) split() alternative, already recorded as Incidental. The result is cached, and it is not on a hot path.",
+     "last_researched": "2026-11-16"
     },
     "newton-raphson": {
      "conclusion": "faster_option_found",
-     "note": "[Newton–Raphson (stratified Cox) over design ladder] The Newton kernel itself (O(n p²) per iteration, pair strata) is already optimal. FastSurvival (arXiv 2410.19081) compares against a sample-space Newton baseline and targets robustness and sparse fits, not low-p unpenalized Cox. coxdev (CRAN 0.4.0) computes deviance and derivatives; it is not a faster fitter. Implementation finding: the ≤13-rung reservoir design ladder is built eagerly before the first fit is tried (see findings). | [Newton–Raphson with step-halving (survival::coxph)] weighted_cox_bootstrap_surrogate_fit already has the coxph.fit direct-call fast path (bayesian_bootstrap_performance.md TODO-6.1), and the native weighted Efron kernel is planned there. survival NEWS 3.7-3 / 3.8-0 has no algorithmic speedup, only a step-halving NaN fix and a survreg robust-variance fix. FastSurvival targets regimes EDI does not run. | [Cox partial-likelihood Newton / L-BFGS (Breslow ties)] EDI already sorts once and sweeps S0/S1/S2 in reverse in one pass, O(np² + Kp²) per Newton iteration. coxstream 0.1.0 (CRAN, 2026-06-20) uses the same single-descending-pass Newton, aims at memory rather than speed, makes no speed claim and uses Efron ties, which would be an estimator change. The only open idea is BLAS-3 Hessian assembly, already in catalog §5 options (tolerance-equal, about 1.5–3x on assembly at p≥5, theoretical). | [Cox partial-likelihood Newton–Raphson (Efron ties)] Newton–Raphson with step-halving is still the standard fitter for an unpenalized Cox model at small p. The survival NEWS (https://cran.r-project.org/web/packages/survival/news.html) shows no coxph algorithm change from 3.6 to the latest release; the only ties entry is a 3.7-2 test-suite fix. FastSurvival (arXiv 2410.19081) targets high-dimensional and sparse Cox models, and its abstract gives no small-p benchmark. Swapping this call for the in-house C++ cox_newton_raphson would be faster but moves from Efron to Breslow, an estimator change that is already tracked as the 'Investigate' / row L item. | [damped Newton–Raphson (LDLT, step-halving)] cox_newton_raphson: Newton with LDLT on a concave partial likelihood at p ≤ ~10 converges in about 4–8 iterations. That is the optimal local rate, and the survival package uses the same method. Neither the survival NEWS nor the FastSurvival abstract (arXiv 2410.19081, aimed at high-dimensional and sparse Cox) gives a small-p alternative that beats it. | [Newton–Raphson (Cox partial likelihood, Breslow)] survival 3.8-10..3.8-12 NEWS shows no change to coxph fitting. coxstream 0.1.0 (CRAN, 2026-06) is a memory-saving streaming Newton with no speed claim. FastSurvival (Liu, Zhang & Rudin, NeurIPS 2024) targets high-dimensional and sparse Cox via surrogate minimization and gives no win for small-p unpenalized Newton from a good start. EDI's C++ cached risk-set Newton is the hot path; coxph.fit is a fallback only.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Newton–Raphson (stratified Cox) over design ladder",
-      "Newton–Raphson with step-halving (survival::coxph)",
-      "Cox partial-likelihood Newton / L-BFGS (Breslow ties)",
-      "Cox partial-likelihood Newton–Raphson (Efron ties)",
-      "damped Newton–Raphson (LDLT, step-halving)",
-      "Newton–Raphson (Cox partial likelihood, Breslow)"
-     ]
+     "note": "The Newton kernel at small p is still optimal. No new 2025-26 arXiv paper (API listing sorted by date) gives an exact, faster unpenalized Cox fitter. Moment-assisted subsampling (arXiv 2501.06924) and Bayesian Gibbs samplers (2604.06034, 2506.04675) are estimator changes, and exact Poisson-binomial ties (2502.18715) is an estimator change with no speed claim. Cyclops 3.7.1 (cyclic coordinate descent / MM) and coxstream 0.1.0 (memory only) target different regimes, and survival 3.8-12 NEWS has no fitting change. The previous design-ladder finding still stands (nothing has changed in the code). New: the planned native weighted Efron kernel (bayesian_bootstrap_performance.md TODO-6.1, still unchecked) could reuse coxdev's header-only C++ (CRAN 0.4.0, 2026-11-07, GPL≥3; upstream BSD-3). It already handles weights, Efron ties, strata and start times via reverse cumsums, so the kernel would not have to be derived and validated from scratch.",
+     "last_researched": "2026-11-16"
     },
     "sandwich-estimator": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[Cox fit + cluster-robust sandwich] The sandwich is computed with prefix sums and a binary search at O(n log K + np), on top of an O(np²) Newton fit, so nothing is asymptotically better. survival 3.8-x NEWS shows no algorithm change. The faster score residuals in survival date from 3.5-7, and EDI already uses the equivalent cumulative-sum form. mets::phreg (1.3.12, 2026-07-30) makes no speed claim. Recomputing the ≤13-rung candidate ladder on every call is a caching incidental already recorded in the inventory, not an algorithm choice.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Cox fit + cluster-robust sandwich"
-     ]
+     "note": "Lin-Wei score residuals by prefix sums plus binary search, O(n log K + np + Cp²), is already the optimal form. sandwich 3.1-3 (2026-08-03), the SAS PHREG docs and rms robcov offer no faster algorithm. The I-6 forward-subtraction precision note is a robustness issue that is already catalogued. Recomputing the candidate ladder is a caching incidental, already recorded.",
+     "last_researched": "2026-11-16"
     },
     "sort-and-sweep": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[comparison sort + linear sweep] CoxData is built once per dataset and cached via XPtr. A comparison sort is a lower bound for unsorted input, and radix or vectorized sorts only help at n in the thousands. Keep.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "comparison sort + linear sweep"
-     ]
+     "note": "Benchmarks found put the radix-vs-std::sort crossover at roughly 128 to 10,000 elements, depending on the implementation. CoxData sorts once per dataset and caches the result via XPtr, so the sort is not on a hot path. Keep.",
+     "last_researched": "2026-11-16"
     }
    },
    "findings": [
     {
      "methods": [
-      "newton-raphson"
-     ],
-     "label": "Newton–Raphson (stratified Cox) over design ladder",
-     "batch": "A.10",
-     "candidate": "Build the candidates lazily: a generator or iterator that yields the next rung's design only after the previous fit was rejected. The fits are tried in the same order and the same design is accepted, so the result is bit-identical.",
-     "claimed_speedup": "Not quantified. Building the ladder eagerly costs up to ~12 × (O(n p²) correlation + O(n p²) QR) per call, plus R overhead. That is comparable to or larger than the one O(iters·n p²) Newton fit that usually succeeds. The saving is multiplied wherever shared() runs per randomization or bootstrap replicate.",
-     "keeps_estimator": "yes",
-     "applies_at_edi_sizes": "yes",
-     "confidence": "low",
-     "suggested_action": "Profile shared() on a KK strat-Cox randomization run to see what share of time goes to cox_design_candidates. If it is material, make the ladder lazy, gated by the existing fixtures (results must be identical)."
-    },
-    {
-     "methods": [
       "breslow-risk-set-cumsum"
      ],
-     "label": "risk-set rescan (Breslow likelihood)",
-     "batch": "A.13",
-     "candidate": "Standard sorted reverse-cumulative-sum risk sums (Breslow ties: one risk sum per failure time), i.e. sort once by (stratum, time) and take within-stratum reverse cumsums of exp(eta - max eta); EDI already implements exactly this in C++ compute_cox_neg_ll_only (fast_coxph_regression.cpp, backward accumulation, max-eta shift). Expose it (or a vectorized R order/rev-cumsum equivalent) for the fixed-beta NLL.",
-     "claimed_speedup": "not quantified by the source; complexity O(n^2) -> O(n log n) (O(n) after sorting) for KK pair strata",
+     "candidate": "Sort once by (stratum, time, dead desc), then take within-stratum reverse cumsums of exp(eta - max eta). This gives one risk sum per failure time (Breslow) for both the NLL and the cumulative hazard. The NLL is already implemented in C++ as compute_cox_neg_ll_only.",
+     "claimed_speedup": "Not quantified by any source. The complexity drops from O(n²) or O(nK) to O(n log n), or O(n) once sorted.",
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Correct inventory (live, used by KK strat/LWA Cox p=1 null fits incl. param-bootstrap draws); replace the rescan with the existing C++ backward-cumsum NLL or a vectorized R reverse cumsum, and verify equality to 1e-10 on fixtures with ties and strata."
+     "suggested_action": "Carried over from the previous run unchanged; the code is unchanged. Implement the Adopt verdict for .breslow_hazard (v1.0.5 audit TODO-7). Route kk_cox_fully_fixed_null_fit to the C++ reverse-cumsum NLL and verify it agrees to 1e-10."
+    },
+    {
+     "methods": [
+      "newton-raphson"
+     ],
+     "candidate": "Build the rungs lazily, yielding the next rung only after the previous fit is rejected. The order is the same and the same design is accepted, so the result is bit-identical.",
+     "claimed_speedup": "Not quantified. It saves up to about 12 × O(np²) per call, multiplied by the number of randomization or bootstrap replicates.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "yes",
+     "confidence": "low",
+     "suggested_action": "Carried over from the previous run unchanged. Profile shared() on a KK strat-Cox randomization run, and make the ladder lazy if the cost is material."
+    },
+    {
+     "methods": [
+      "newton-raphson"
+     ],
+     "candidate": "Implement TODO-6.1's weighted Efron Newton by reusing coxdev's header-only C++ derivative code via LinkingTo, or porting it. That code handles weights, Efron or Breslow ties, strata and start times via reverse cumsums, and glmnet's coxnet.deviance uses it. Assemble X'IX from its eta-space operators in O(np²) at small p, then run EDI's existing damped LDLT Newton.",
+     "claimed_speedup": "Not quantified by any source: coxdev publishes no benchmark against coxph. The plan's own measurement puts R overhead (data.frame/formula build, concordance about 20%) at a material share of the 5.4 ms refit.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "yes",
+     "confidence": "low",
+     "suggested_action": "When TODO-6.1 is scheduled, prototype it on top of the coxdev header rather than writing a new Efron derivative. Test equivalence against coxph(weights, ties='efron') with strata and heavy ties, then benchmark per-draw time at n=500."
     }
    ],
    "sources": [
+    "https://arxiv.org/abs/2310.16238",
+    "https://cran.r-project.org/package=coxdev",
     "https://cran.r-project.org/web/packages/glmnet/vignettes/coxdev.html",
-    "https://en.wikipedia.org/wiki/Lazy_evaluation"
+    "https://doi.org/10.48550/arXiv.2310.16238",
+    "https://github.com/jonathan-taylor/coxdev"
    ],
-   "note": "Seeded 2026-11-16 from the full run's per-label batches (before research was organised by problem): method notes are the label agents' notes, tagged with the label."
+   "implementations": [
+    {
+     "name": "coxdev",
+     "url": "https://cran.r-project.org/package=coxdev",
+     "license": "GPL (>= 3)",
+     "license_source": "https://cran.r-project.org/package=coxdev",
+     "gpl3_compatible": "yes",
+     "language": "C++ (header-only) / R / Python",
+     "methods": [
+      "breslow-risk-set-cumsum",
+      "newton-raphson"
+     ],
+     "relevance": "Weighted Efron/Breslow risk sums and derivatives with strata, usable via LinkingTo; candidate base for the native weighted Efron kernel (TODO-6.1). The upstream GitHub repo states BSD-3-Clause.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "coxstream",
+     "url": "https://cran.r-project.org/package=coxstream",
+     "license": "MIT (vendored Arrow header Apache-2.0)",
+     "license_source": "https://cran.r-project.org/package=coxstream",
+     "gpl3_compatible": "yes",
+     "language": "R / C++",
+     "methods": [
+      "newton-raphson",
+      "breslow-risk-set-cumsum"
+     ],
+     "relevance": "Single-descending-pass Efron Newton; a reference for a streaming kernel; memory win only.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "Cyclops",
+     "url": "https://cran.r-project.org/package=Cyclops",
+     "license": "Apache-2.0",
+     "license_source": "https://cran.r-project.org/package=Cyclops",
+     "gpl3_compatible": "yes",
+     "language": "R / C++",
+     "methods": [
+      "breslow-risk-set-cumsum"
+     ],
+     "relevance": "Large-scale CCD/MM Cox with segmented-scan risk sets; reference only, as it targets much larger n than EDI.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "eha",
+     "url": "https://cran.r-project.org/package=eha",
+     "license": "GPL (>= 2)",
+     "license_source": "https://cran.r-project.org/package=eha",
+     "gpl3_compatible": "yes",
+     "language": "R / C",
+     "methods": [
+      "newton-raphson"
+     ],
+     "relevance": "Weighted Cox with Efron/Breslow ties matching coxph; a second oracle for tests.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "fastcox",
+     "url": "https://cran.r-project.org/package=fastcox",
+     "license": "GPL-2",
+     "license_source": "https://cran.r-project.org/package=fastcox",
+     "gpl3_compatible": "no",
+     "language": "R / Fortran",
+     "methods": [
+      "breslow-risk-set-cumsum"
+     ],
+     "relevance": "Penalized cocktail algorithm only; not reusable (GPL-2-only) and not relevant to unpenalized fits.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "lifelines",
+     "url": "https://pypi.org/project/lifelines/",
+     "license": "MIT",
+     "license_source": "https://pypi.org/project/lifelines/",
+     "gpl3_compatible": "yes",
+     "language": "Python",
+     "methods": [
+      "newton-raphson",
+      "breslow-risk-set-cumsum"
+     ],
+     "relevance": "Python cross-check for Cox fits (Efron, strata).",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "numDeriv",
+     "url": "https://cran.r-project.org/package=numDeriv",
+     "license": "GPL-2",
+     "license_source": "https://cran.r-project.org/package=numDeriv",
+     "gpl3_compatible": "no",
+     "language": "R",
+     "methods": [
+      "finite-differences"
+     ],
+     "relevance": "Richardson/complex-step reference for testing only; GPL-2-only, so no code reuse.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "RcppNumerical (bundles LBFGS++)",
+     "url": "https://cran.r-project.org/package=RcppNumerical",
+     "license": "GPL (>= 2)",
+     "license_source": "https://cran.r-project.org/package=RcppNumerical",
+     "gpl3_compatible": "yes",
+     "language": "C++",
+     "methods": [
+      "lbfgs"
+     ],
+     "relevance": "Ships LBFGS++ 0.4.0; matches EDI's L-BFGS driver.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "sandwich",
+     "url": "https://cran.r-project.org/package=sandwich",
+     "license": "GPL-2 | GPL-3",
+     "license_source": "https://cran.r-project.org/package=sandwich",
+     "gpl3_compatible": "yes",
+     "language": "R",
+     "methods": [
+      "sandwich-estimator"
+     ],
+     "relevance": "Reference for HC/cluster sandwich tests.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "scikit-survival",
+     "url": "https://pypi.org/project/scikit-survival/",
+     "license": "GPL-3.0-or-later",
+     "license_source": "https://pypi.org/project/scikit-survival/",
+     "gpl3_compatible": "yes",
+     "language": "Python",
+     "methods": [
+      "newton-raphson",
+      "breslow-risk-set-cumsum"
+     ],
+     "relevance": "Python Newton-Raphson Cox with Breslow/Efron; a cross-check for EDI's Python wheel.",
+     "last_seen": "2026-11-16"
+    },
+    {
+     "name": "survival",
+     "url": "https://cran.r-project.org/package=survival",
+     "license": "LGPL (>= 2)",
+     "license_source": "https://cran.r-project.org/package=survival",
+     "gpl3_compatible": "yes",
+     "language": "R / C",
+     "methods": [
+      "newton-raphson",
+      "breslow-risk-set-cumsum",
+      "sandwich-estimator"
+     ],
+     "relevance": "Reference coxph/coxph.fit oracle for equivalence tests; the current fallback.",
+     "last_seen": "2026-11-16"
+    }
+   ]
   },
   "cumulative-link-ordinal-mle": {
    "last_researched": "2026-11-16",
