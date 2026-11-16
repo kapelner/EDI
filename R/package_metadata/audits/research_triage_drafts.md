@@ -11,7 +11,7 @@ reject it. The finding id links to its full text in `research_findings/2026-11-1
 Step 1 (bounded): for one KK ordinal dataset and one Bayesian-bootstrap weight draw, evaluate clmm's weighted -logLik and a direct sum_g w_g log integral (same theta, 20-node GH) and compare; also compare replicate beta_hat_T between the two objectives over 200 draws at n in {50, 200}. Done when: either the objectives agree (close as not a bug) or they differ and the owner rules on the intended weighting; if a fix is ordered, add w_g to GLMMObjective/OrdinalGLMMObjective, switch the callers, and report replicate CI coverage plus per-replicate time vs clmm.
 
 ### Quantile IVWC Zhang CI: reservoir randomization p-value does not vanish as |delta| grows  `monte-carlo-test-inversion-ci#43925959437.1`
-Check whether compute_rand_pval_reservoir tests H0: effect = delta. Unit test on a Bernoulli design (m = 0, all subjects in the reservoir) and on a KK fixture: evaluate p_R(delta) on a grid out to +/-20 SE and record whether it falls below alpha on both sides; then run 200 reps of the IVWC quantile rand CI at n = 100 and record coverage and the share of bounds hitting the bracket edge. Stop condition: if p_R stays above alpha on one side, fix by subtracting delta*w_obs before permuting (standard form) and re-run the coverage check; if not, close with the numbers. Only if the current form is kept, the one-shot affine breakpoint inversion (closed_form_ci_from_affine_null_draws, c_b = 1) becomes a v1.1.0 speed item. Done when: the reservoir p-value is shown valid or fixed, with coverage within MC error of 95%.
+Check whether compute_rand_pval_reservoir tests H0: effect = delta. Unit test on a Bernoulli design (m = 0, all subjects in the reservoir) and on a KK fixture: evaluate p_R(delta) on a grid out to +/-20 SE and record whether it falls below alpha on both sides; then run 200 reps of the IVWC quantile rand CI at n = 100 and record coverage and the share of bounds hitting the bracket edge. Stop condition: if p_R stays above alpha on one side, fix by subtracting delta * w_obs before permuting (standard form) and re-run the coverage check; if not, close with the numbers. Only if the current form is kept, the one-shot affine breakpoint inversion (closed_form_ci_from_affine_null_draws, c_b = 1) becomes a v1.1.0 speed item. Done when: the reservoir p-value is shown valid or fixed, with coverage within MC error of 95%.
 
 ### Sequential designs: draw_ws_raw overwrites the live design's w (CMH SE path)  `sequential-biased-coin-designs#43925959437.1`
 _Also related to existing TODO-22-v1.2.0._
@@ -25,7 +25,7 @@ Add a grouped path to AdjacentCategoryLogitNegLogLik/hessian (fast_adjacent_cate
 ### ZOIB Bayesian-bootstrap replicates: fast_beta_regression_weighted_cpp instead of formula betareg()  `beta-regression-mle#43925959437.1`
 In inference_proportion_zero_one_inflated_beta.R compute_estimate_with_bootstrap_weights, replace betareg::betareg (keep it and lm.wfit as fallbacks) with fast_beta_regression_weighted_cpp on the interior rows. Benchmark one Bayesian-bootstrap CI (B = 1000) at n in {100, 500, 2000}, p in {1, 5}, old vs new. Done when: >= 1.5x on the CI with every replicate beta_hat_T within 1e-6 of betareg's on the same weights (and fallback rate not higher); or closed with the numbers.
 
-### fast_logistic_regression[_with_var] wrappers: decide lbfgs vs irls default  `binary-glm-mle#43925959437.1`
+### fast_logistic_regression/fast_logistic_regression_with_var wrappers: decide lbfgs vs irls default  `binary-glm-mle#43925959437.1`
 First confirm whether the "lbfgs" default at helper_glm_fit.R:852/923 is intentional. If not, A/B irls vs lbfgs on the wrapper callers (KK21 and KK21-stepwise designs, helper_glm_fit.R:2015) at n in {50, 200, 1000}, p = 2, including separated fixtures: wall clock per design run and KK21 match/weight equality. Done when: switched with identical KK21 assignments (or explained differences) and >= 1.5x on the wrapper calls, or closed with the numbers and the inventory wording fixed either way.
 
 ### DesignFixedOptimalBlocks: nonbimatch fast path when n == 2B  `blocking-partition#43925959437.2`
@@ -38,7 +38,7 @@ Replace both glm.fit calls in fit_clogit_reservoir_logit (full fit, Bayesian-boo
 Profile shared() in InferenceSurvivalKKStratCox over one randomization CI at n in {100, 500}, p in {2, 10}: share of time spent building rungs (inference_survival_KK_strat_cox.R:155-177) vs fitting. If material, generate each rung only after the previous fit is rejected. Done when: >= 1.5x on shared() with bit-identical estimates on the KK strat-Cox fixtures; or closed with the profile numbers if ladder building is < 10% of shared().
 
 ### Weighted native kernels for the ordinal bootstrap surrogate (replace per-draw MASS::polr)  `cumulative-link-ordinal-mle#43925959437.1`
-Add a weights argument to fast_ordinal_{probit,cloglog}_regression_cpp (FixedOrdinalRegression already supports it) and route weighted_ordinal_bootstrap_surrogate_fit (globals.R:177) through the weighted C++ kernels for logistic, probit and cloglog, warm-started from the full-data fit; keep polr for cauchit (nonconcave) and as the failure fallback. Mind the cloglog sign convention (catalog F18, linpred_sign = 1). Benchmark per-draw time and treatment coefficient against the current polr path on the ordinal Bayesian-bootstrap fixtures at n in {50, 200, 1000}, K in {3, 5}, p in {1, 5}. Done when: >= 1.5x per-draw speedup with coefficients equal to polr within 1e-6 relative (polr reltol), or closed with the numbers.
+Add a weights argument to fast_ordinal_probit_regression_cpp/fast_ordinal_cloglog_regression_cpp (FixedOrdinalRegression already supports it) and route weighted_ordinal_bootstrap_surrogate_fit (globals.R:177) through the weighted C++ kernels for logistic, probit and cloglog, warm-started from the full-data fit; keep polr for cauchit (nonconcave) and as the failure fallback. Mind the cloglog sign convention (catalog F18, linpred_sign = 1). Benchmark per-draw time and treatment coefficient against the current polr path on the ordinal Bayesian-bootstrap fixtures at n in {50, 200, 1000}, K in {3, 5}, p in {1, 5}. Done when: >= 1.5x per-draw speedup with coefficients equal to polr within 1e-6 relative (polr reltol), or closed with the numbers.
 
 ### Cloglog ordinal: run the full-data multistart only when the primary fit fails a convergence certificate  `cumulative-link-ordinal-mle#43925959437.5`
 Gate .cloglog_full_data_multistart (inference_ordinal_cloglog.R:1) on a certificate of the primary fit (gradient norm plus PD Hessian, or the Newton decrement already used by ordinal_scale_guard.h), or replace it with a damped-Newton polish. A/B against the current always-on multistart on the cases that motivated it (test-cloglog-parametric-bootstrap-native-sign.R, test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R, and the null-truth comprehensive rows) and time a randomization/bootstrap run at n in {50, 200, 1000}. Done when: identical selected fits (NLL within 1e-8) on all those cases and >= 1.5x faster per fit, or closed with the numbers (keep the multistart if any case regresses).
@@ -59,13 +59,13 @@ Add a per-class fast-path hook that computes delete-one-unit/cluster replicates 
 In both fit_null closures of inference_ordinal_cloglog.R (:194, :240), run fit_from(full_start) only when the first refit is NULL, non-converged, has max|score| > tol, or a non-PD observed information. Benchmark LR/score/gradient CI and param-bootstrap LR p-value wall time on the existing cloglog fixtures (n = 50, 200, 1000; prob_T 0.5 and 0.2), and count how often the second start changes neg_loglik by > 1e-8 on the current code (the fixtures that motivated the multistart, ordinal_cumulative_link_null_refit_multistart.md). Coordinate with release_v1_1_0.md TODO-159. Done when: the second start never wins by > 1e-8 on certificate-passing fits and the change gives >= 1.5x on the null-refit-heavy paths with p-values/CIs identical within tolerance; or closed with the counts if the second start does win.
 
 ### Linear-statistic fast path for right-censored log-rank / Gehan-Wilcoxon randomization nulls  `logrank-family-tests#43925959437.1`
-Add compute_fast_randomization_distr to InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox for right-censored data at delta = 0: compute pooled null scores once (Nelson-Aalen martingale residuals; Peto-Prentice weighted for Gehan) and evaluate all draws as one t(W) %*% m product, falling back to the current path for delta != 0 or general censoring. Benchmark compute_rand_two_sided_pval at n = 100, 500, 2000, r = 501 and 5001 against the per-draw path. Gate: estimates tolerance-equal (1e-12) to fast_logrank_stats_cpp / fast_gehan_wilcox_stats_cpp per draw on fixtures with ties, deaths tied with censorings, and a Bernoulli design with variable n_T. Implement together with the interval-censored version (release_v1_2_0.md TODO-22, audit TODO-11) if that lands first. Done when: >= 1.5x with identical p-values within tolerance, or closed with the numbers.
+Add compute_fast_randomization_distr to InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox for right-censored data at delta = 0: compute pooled null scores once (Nelson-Aalen martingale residuals; Peto-Prentice weighted for Gehan) and evaluate all draws as one t(W) % * % m product, falling back to the current path for delta != 0 or general censoring. Benchmark compute_rand_two_sided_pval at n = 100, 500, 2000, r = 501 and 5001 against the per-draw path. Gate: estimates tolerance-equal (1e-12) to fast_logrank_stats_cpp / fast_gehan_wilcox_stats_cpp per draw on fixtures with ties, deaths tied with censorings, and a Bernoulli design with variable n_T. Implement together with the interval-censored version (release_v1_2_0.md TODO-22, audit TODO-11) if that lands first. Done when: >= 1.5x with identical p-values within tolerance, or closed with the numbers.
 
 ### Tuning harness: paired-difference acceptance with adaptive stopping (catalog §12 TODO-12)  `performance-autotuning#43925959437.1`
-In local_machine_tuning_harness.R (edi_tuning_interleaved_ab / _blocked_ab / _accept_candidate), analyze per-round paired differences with a seeded percentile-bootstrap CI (or Wilcoxon signed-rank), accept only when the CI clears the 5% band, and add pairs adaptively between a minimum and maximum. Self-check on seeded synthetic timings (true effects 0%, 3%, 10%, 30%; noise CV 5-20%): false-accept rate, power, and mean reps per cell vs the current median + 2*IQR rule; then one real tune_EDI_for_this_machine() run. Done when: false accepts at a 0% effect fall at equal or fewer reps, or closed with the numbers.
+In local_machine_tuning_harness.R (edi_tuning_interleaved_ab / edi_tuning_interleaved_blocked_ab / edi_tuning_interleaved_accept_candidate), analyze per-round paired differences with a seeded percentile-bootstrap CI (or Wilcoxon signed-rank), accept only when the CI clears the 5% band, and add pairs adaptively between a minimum and maximum. Self-check on seeded synthetic timings (true effects 0%, 3%, 10%, 30%; noise CV 5-20%): false-accept rate, power, and mean reps per cell vs the current median + 2 * IQR rule; then one real tune_EDI_for_this_machine() run. Done when: false accepts at a 0% effect fall at equal or fewer reps, or closed with the numbers.
 
 ### Tail-accurate p-value combination: Stouffer, min-p and CCT (catalog §11 TODO-7)  `pvalue-combination#43925959437.2`
-Rewrite zhang_combine_exact_pvals's Stouffer branch as qnorm(p/2, lower.tail=FALSE) and 2*pnorm(abs(z), lower.tail=FALSE), its min-p branch as -expm1(2*log1p(-p)), and cct_combine_pvalues_full with the ACAT small-p branch (1/(p*pi) for p < 1e-15) and pcauchy(T, lower.tail=FALSE). Unit tests at p in {0.5, 1e-8, 1e-16, 1e-20, 1e-300}: equal to the old code within 1e-12 relative for p >= 1e-6, and finite, nonzero and correct against Rmpfr references below. No speed benchmark needed (same cost). Done when: the tests pass and the moved values are listed in NEWS.
+Rewrite zhang_combine_exact_pvals's Stouffer branch as qnorm(p/2, lower.tail=FALSE) and 2 * pnorm(abs(z), lower.tail=FALSE), its min-p branch as -expm1(2 * log1p(-p)), and cct_combine_pvalues_full with the ACAT small-p branch (1/(p * pi) for p < 1e-15) and pcauchy(T, lower.tail=FALSE). Unit tests at p in {0.5, 1e-8, 1e-16, 1e-20, 1e-300}: equal to the old code within 1e-12 relative for p >= 1e-6, and finite, nonzero and correct against Rmpfr references below. No speed benchmark needed (same cost). Done when: the tests pass and the moved values are listed in NEWS.
 
 ### Per-draw RNG setup cost in index-seeded kernels; widen seed_for_index past 32 bits  `random-number-generation#43925959437.1`
 Micro-benchmark RRng(seed_for_index(master, d)) construction plus first draw against the full per-candidate work in rerandomization_search_cpp (and the greedy/optimal/binary-match search loops) at n in {50, 200, 1000}, p in {2, 10}. If setup is >= 30% of a candidate, prototype a counter-based child stream (Philox4x32-10 from Random123, BSD-3, or xoshiro256++ via SplitMix64) keyed by the 64-bit (master, index), keeping draw-index determinism and thread-count invariance (TODO-48 (2) tests). Done when: a >= 1.5x win on rerandomization_search_cpp end-to-end with thread-count invariance tests green and the draw change documented, or closed with the setup-share numbers. The 32-bit truncation is fixed either way (owner: confirm the one-time seed-pinned draw change).
@@ -93,3 +93,156 @@ Simulate the null rejection rate of the current rule (rand_pval_from_tail_counts
 ### Ridit: Brunner-Konietschke unbiased variance as an option beside DeLong (owner decision: estimator change)  `ridit-mann-whitney#43925959437.1`
 Implement the BK estimator from the placements already computed in ridit_delong_se_from_scores, and compare it with DeLong on Wald size and CI coverage for the ridit class at n_T, n_C in {5, 10, 25, 100} with 3-7 ordered categories and heavy ties (2,000 reps per cell); include the n_i = 1 case. Done when: the owner chooses default/option/none from the size-coverage table, or the item closes with the numbers.
 
+## Deferred (37 findings)
+
+Proposed defers: plausible but low value now (cold path, small share of runtime, new dependency or
+estimator change not wanted yet). No TODO is drafted; each comes back for triage on its revisit date
+(the inventory check flags a defer once its date is due).
+
+### BLDM + complete Karmarkar-Karp for p = 1 optimal allocation  `balanced-allocation-optimization#43925959437.1`
+_Revisit 2027-05-01; related to TODO-23-v1.2.0._
+Plausible but narrow: only p = 1 and the |sum difference| kinds, with an exponential certification tail near n = 50-60. The exact enumeration solver for n <= ~30 (algorithm_choice_audit.md TODO-20, in release_v1_2_0.md TODO-23) covers the MILP range first; revisit for n > 30, p = 1 after it lands.
+
+### Low-rank convex MIQCP via the CRAN scip package for DesignFixedOptimal  `balanced-allocation-optimization#43925959437.2`
+_Revisit 2027-05-01; related to TODO-23-v1.2.0._
+New optional dependency, no benchmark, applies_at_edi_sizes unknown. The MILP is used only up to n = 20 (EDI_OPTIMAL_DEFAULT_LINEARIZATION_MAX_N, helper_optimal_milp_solvers.R:25), which the planned exact enumerator (audit TODO-20, release_v1_2_0.md TODO-23) supersedes up to ~30; the MIQP formulation is already noted in catalog §12 TODO-2.
+
+### HiGHS instead of GLPK as the MILP backend for optimal designs  `balanced-allocation-optimization#43925959437.3`
+_Revisit 2027-05-01; related to TODO-23-v1.2.0._
+Unquantified, new dependency, and the source itself says results depend on the formulation; GLPK runs only at n <= 20 (helper_optimal_milp_solvers.R:25), where audit TODO-20's enumerator (release_v1_2_0.md TODO-23) is the planned replacement. Revisit as one arm of that benchmark if MILPs are still used beyond the enumeration cap.
+
+### Vectorize the per-row rbeta loop in the ZOIB parametric-bootstrap simulator  `beta-regression-mle#43925959437.2`
+_Revisit 2027-05-01._
+Real but small: the loop at inference_proportion_zero_one_inflated_beta.R:791-801 draws u as a vector first and interleaves no other RNG, so a vectorized rbeta should be identical(); but it saves only O(n) interpreted iterations next to a C++ ZOIB refit per replicate. Fold into the ZOIB BB TODO (finding beta-regression-mle#43925959437.1) if that is approved, gated on identical() under a fixed seed.
+
+### Route fractional-logit estimate_only glm.fit branch to C++ IRLS  `binary-glm-mle#43925959437.2`
+_Revisit 2027-05-01._
+The glm.fit(quasibinomial) branch (inference_proportion_fractional_logit.R:165) runs only when harden = FALSE, and harden defaults to TRUE (:140) with no internal caller setting it FALSE, so this is a cold opt-in path; the default path already uses fast_logistic_regression_cpp (:257).
+
+### HiGHS as an open-source MILP backend for optimal blocks  `blocking-partition#43925959437.3`
+_Revisit 2027-05-01; related to TODO-23-v1.2.0._
+Unquantified for this model; ROI.plugin.highs MILP support is unconfirmed by the finding itself, and it adds a dependency. roi_solver is a closed set (helper_optimal_milp_solvers.R:30). Relevant only beyond the small-n range that the reformulation/DP work in release_v1_2_0.md TODO-23 targets.
+
+### Dense bitset instead of unordered_set in sample_group_units  `bootstrap-index-generation#43925959437.1`
+_Revisit 2027-05-01._
+Bit-identical but negligible end to end (the finding says so); rejection + unordered_set is at exchangeable_resampling_draws.cpp:81. The partial Fisher-Yates half (catalog §7 TODO-2) is unscheduled and changes the stream. Revisit only if profiling shows subsampling draws matter.
+
+### Batched bounded random integers (Brackett-Rozinsky & Lemire) for bootstrap indices  `bootstrap-index-generation#43925959437.2`
+_Revisit 2027-05-01; related to TODO-11-v1.2.0._
+Unquantified at EDI sizes, needs 64-bit words while RRng is 32-bit MT19937, changes seed-pinned streams, and index generation is small next to per-replicate refits. Belongs with the RNG-throughput measurement (performance_profiling_and_upgrades.md TODO-149, in release_v1_2_0.md TODO-11).
+
+### C++ partial Fisher-Yates kernel for block_ra_batch  `complete-randomization-draws#43925959437.1`
+_Revisit 2027-05-01; related to TODO-22-v1.2.0._
+block_ra_batch is already vectorized R (design_fixed_blocking.R:16, used by blocking/cluster/optimal-blocks designs), so the old replicate(randomizr) cost that audit TODO-21 (release_v1_2_0.md TODO-22) targeted is mostly gone; the remaining constant-factor gain is unmeasured and changes seed-pinned draws. Profile first under that item.
+
+### Batched bounded random integers for Fisher-Yates shuffles  `complete-randomization-draws#43925959437.2`
+_Revisit 2027-05-01; related to TODO-11-v1.2.0._
+Same as the bootstrap-index finding: measured only with 64-bit generators, changes the seed-pinned R/Python stream, and the shuffle is rarely dominant (rerandomization spends O(np) per draw on balance). Revisit with the RNG-throughput item (performance TODO-149 in release_v1_2_0.md TODO-11).
+
+### Exponential-cone interior-point (ECOS/Clarabel) solver for log/identity-binomial MLE  `constrained-binomial-mle#43925959437.1`
+_Revisit 2027-05-01; related to TODO-23-v1.2.0._
+A robustness idea with a new solver dependency and no measured gain over EDI's own active-set projection and KKT gate; probably slower per fit than IRLS. It is a candidate arm for the log-binomial constrained solver in algorithm_choice_audit.md TODO-32 (release_v1_2_0.md TODO-23), not its own item.
+
+### Factor the information matrix once (reuse FullPivLU or LDLT) for vcov  `covariance-from-information#43925959437.1`
+_Revisit 2027-05-01; related to TODO-11-v1.2.0._
+Microseconds per fit at p <= 20, and the FullPivLU check plus inverse() pair is deliberate for bit-compatibility (comment at _helper_functions_core.h:724-748). Tracked under performance_profiling_and_upgrades.md TODO-155 (release_v1_2_0.md TODO-11); try lu.inverse() there with a vcov-fixture A/B.
+
+### Tail-accurate cell-probability differences per link (rms celldiff) instead of F(u)-F(l) floored at 1e-12  `cumulative-link-ordinal-mle#43925959437.3`
+_Revisit 2027-05-01._
+Robustness only, no speed gain; the cancellation and the 1e-12 floor (ordinal_fixed_link_helpers.h:258,285,343) are already recorded as a catalog section 2 incidental that 'only matters from extreme starts', and no fit failure has been traced to it. Revisit if a near-separated ordinal replicate failure is traced to the floor (it would then be a v1.0.6 false-convergence item).
+
+### fastglm::fastglm_ordinal(nonparallel=) instead of VGAM::vglm for partial proportional odds  `cumulative-link-ordinal-mle#43925959437.4`
+_Revisit 2027-05-01._
+Low confidence: no timings, fractional-weight behaviour undocumented (weights are frequency counts), estimator equivalence unknown, and fastglm_ordinal is a brand-new release (CRAN 0.1.4, 2026-11-11). It would add a dependency, so it would belong in v1.2.0+ with an owner decision; vglm is called at inference_ordinal_partial_proportional_odds.R:574,607. Revisit once the package has matured.
+
+### Cancellation-free centred form of the LMM per-group quadratic form W_g  `dense-linear-algebra#43925959437.2`
+_Revisit 2027-05-01._
+Robustness only, low confidence, and it matters only at v_b/v_e of about 1e6 or more; W_g = Q_g - (v_b/a_g) S_g^2 is at fast_gaussian_lmm.cpp:109-118 / :158. The natural time to change it is the profiled-LMM rewrite (audit TODO-32, release_v1_2_0.md TODO-23), which reworks neg_ll_and_grad anyway.
+
+### Single forced-front pivoted QR or column-append QR updates in qr_reduce_preserve_cols_cpp  `design-matrix-preprocessing#43925959437.2`
+_Revisit 2027-05-01; related to TODO-22-v1.2.0._
+Already listed in audit TODO-29 ('qr_reduce_preserve_cols single factorization', release_v1_2_0.md TODO-22, low-priority linear algebra). The keep-set is cached, so the path is cold, and a different pivot could change the keep-set on near-collinear designs; no new reason to raise its priority.
+
+### p-value-only Fisher exact path (zhang_exact_fisher_pval_cpp or conf.int=FALSE)  `exact-conditional-tests#43925959437.1`
+_Revisit 2027-05-01._
+pval_exact_fisher (inference_indicidence_exact_fisher.R:109) is only reached from the user-level p-value at a given delta (:78); the CI comes from one fisher.test call, not from inversion, so there is no repeated-call hot path. Low value; the conf.int = FALSE change is trivial when the file is next touched.
+
+### Exact finite sums for integer/half-integer df upper chi-square tail  `gamma-family-functions#43925959437.1`
+_Revisit 2027-05-01._
+Catalog verdict for fast_gamma_functions.h fast_pchisq_upper is Keep (catalog line 1024), and the finding expects negligible end-to-end gain since each p-value follows a refit; the accuracy benefit is unquantified. Could ride with the accuracy batch (audit TODO-22, release_v1_1_0.md TODO-50) if that is reopened.
+
+### Cache the multgee uniform local-odds-ratio structure across ladder rungs and draws  `gee-fit#43925959437.1`
+_Revisit 2027-05-01; related to TODO-2-v1.2.0._
+Low confidence: the LOR estimation's share of an ordLORgee call is unmeasured, and the cache couples EDI to multgee's LORterm layout. The native ordinal GEE kernel that replaces multgee::ordLORgee is already scheduled (release_v1_2_0.md TODO-2), which supersedes an interim cache.
+
+### O(n) closed-form Hodges-Lehmann variance from centred group sums  `hodges-lehmann-estimation#43925959437.1`
+_Revisit 2027-05-01._
+Exact and more stable, but the only caller is compute_wilcox_matching_ivwc_bootstrap_parallel_cpp (fast_wilcox_hl.cpp:574-576), used by the legacy InferenceAllKKWilcoxIVWC (inference_all_KK_wilcox_ivwc.R:467). Low value; do it when that file is next touched for the HL SE scale fix.
+
+### Linearized (CV3L) jackknife from per-unit scores/information as an opt-in  `jackknife-replicates#43925959437.2`
+_Revisit 2027-05-01._
+Estimator change (first-order approximation; BCa a-hat and jackknife SE move), low confidence, and it needs per-unit score and information contributions that most EDI specs do not expose (the same obstacle the catalog records for the infinitesimal jackknife, line ~1676). The 'v1.0.6-TODO-7' the finding cites is unrelated (ModifiedPoisson ~1 at large n). Revisit after the exact LS jackknife lands and if per-unit hooks are added.
+
+### Distinct-y frequency table for the NB theta score/information sums in KK21 tstats  `kk21-covariate-weights#43925959437.1`
+_Revisit 2027-05-01._
+Exact regrouping, but the theta step is one Newton step per outer iteration (kk21_weights.cpp:553-564, digamma/trigamma per obs) while the IRLS beta loop (<=25 its) dominates; only reached when count_use_speedup=FALSE. Unquantified, low confidence; revisit with a profile.
+
+### Minimax (fdlibm-style) polynomial in s^2 for fast_log1pexp instead of 10-term Taylor  `link-function-evaluation#43925959437.1`
+_Revisit 2027-05-01._
+Marginal speed (about 3 FMAs per element while exp dominates) and the current series already meets its claimed <5e-12 abs error (inventory row fast_log1pexp, 'Keep'). Worth doing only as an accuracy item; the citation fix for catalog P11 (algorithm_choice_audit_catalog.md:1474) can be done anytime.
+
+### Factor X_pos once for both hurdle-NB OLS start columns  `mle-starting-values#43925959437.2`
+_Revisit 2027-05-01._
+Real but tiny: fast_hurdle_negbin.cpp:167 and :170 each run a ColPivQR on X_pos, saving one O(np^2) factorization in a start grid of a whole iterative fit. Bit-identical; bundle with the next edit to the start code (e.g. TODO-11-v1.2.0's TODO-155 work) rather than ship alone.
+
+### Exact quadratic jump-point inversion for studentized BRT pivots (Zhu & Liu 2024)  `monte-carlo-test-inversion-ci#43925959437.2`
+_Revisit 2027-05-01._
+Applies only to OLS / mean-diff / Lin studentized BRT pivots, which fall back to bisection in invert_rand_bootstrap_test_bisection (inventory 'Keep-tracked'); low confidence, no EDI-size benchmark, and the reference code is unlicensed (implement from the paper). Revisit after release_v1_2_0.md TODO-21's harness exists.
+
+### ITP (n0=0) instead of bisection in zhang_bisect_ci_boundary  `monte-carlo-test-inversion-ci#43925959437.5`
+_Revisit 2027-05-01._
+Each p(delta) evaluation is O(d+S) arithmetic, so even 20 -> 8-10 evaluations saves microseconds; the inventory already lists three conflicting verdicts for zhang_bisect_ci_boundary ('Keep', 'Adopt-with-caveat', 'Prototype') that should be reconciled first (the 'step function' rationale is the part to correct).
+
+### Opt-in cheap bootstrap (B about 5-10) and studentized cheap bootstrap CI types  `nonparametric-bootstrap-distribution#43925959437.1`
+_Revisit 2027-05-01._
+A new, different interval (wider at small B), not a faster way to compute the current one; it needs an owner decision on a new CI type and a coverage A/B, and the studentized variant is an unreviewed 2026 preprint. Revisit after release_v1_2_0.md TODO-21's harness lands.
+
+### XPtr compiled custom distance and hoisted buffers for the R-callback distance matrix  `pairwise-distance-matrix#43925959437.1`
+_Revisit 2027-05-01._
+Adds API surface; the matrix is computed once per design and the ompr MILP dominates (finding tradeoffs; inventory distance_matrix_custom_cpp_impl 'Keep (inherent to a black-box R fn)'). Low value now.
+
+### Portnoy-Koenker/CFM preprocessing for bootstrap quantile-regression refits  `quantile-rank-regression#43925959437.2`
+_Revisit 2027-05-01._
+Exact (same estimates), but the cited gains are against Stata simplex at k = 20 and the paper reports no gain for a single fit at n = 500, k = 8; EDI's quantile classes have small p, and the inventory verdict for inference_continuous_quantile_regr.R is 'Keep br at EDI sizes'. Revisit after the rq.fit/C++ quantile work (release_v1_2_0.md TODO-1, TODO-22 audit TODO-19) if profiling shows replicate QR fits dominate at n >= 1,000.
+
+### Batched bounded integers (Brackett-Rozinsky & Lemire) for Fisher-Yates shuffles  `random-number-generation#43925959437.2`
+_Revisit 2027-05-01._
+bounded_rand (RNG.h:324-336) is already Lemire's method (inventory verdict 'Keep (best-known method)'); the batched variant changes every seed-pinned shuffle for a gain bounded by the RNG share, which is unmeasured and, per the finding above, likely smaller than the per-draw MT seeding cost. Revisit together with the RNG-stream TODO if that benchmark shows word generation matters.
+
+### Early-abandon partial sums in rerandomization acceptance check  `rerandomization-sampling#43925959437.1`
+_Revisit 2027-05-01._
+The gain is bounded by the O(np) GEMV share of a candidate (rerandomization_helpers.cpp:236-238), and the per-draw MT seeding (finding random-number-generation .1) is likely the larger cost at EDI sizes. Accumulating f in a different order can also flip decisions exactly at the cutoff, which changes seed-pinned draws. Revisit after the RNG setup benchmark.
+
+### nth_element sample quantile for intercept-only sign-flip refits instead of rq(yd ~ 1)  `resampling-refit-loop#43925959437.1`
+_Revisit 2027-05-01; related to TODO-22-v1.2.0._
+The rq.fit replacement is already scheduled as audit TODO-19 (catalog section 9 TODO-6b) under release_v1_2_0.md TODO-22, but the code path (qr_intercept_pairs, inference_all_KK_quantile_regr_ivwc_abstract.R:402-407) is hosted only by the legacy KK quantile IVWC classes (inference_continuous_KK_quantile_regr_ivwc.R:69, inference_proportion_KK_quantile_regr_ivwc.R:64), which are never published. Fold the p == 0 nth_element special case into TODO-22 if that work touches this file.
+
+### Closed-form MN constrained MLE (cubic) plus Brent on z(delta) for the risk-difference CI  `risk-difference-ci#43925959437.1`
+_Revisit 2027-05-01._
+Catalog section 6 candidate 3 rates it 'Adopt, low priority': mn_ci_cpp/mn_pvalue_cpp are called once per CI/p-value (inference_incidence_miettinen_nurminen_univ.R:155,172), not inside resampling, and absolute cost is microseconds. No release TODO schedules it; brent_ci_inversion.md (release_v1_1_0.md TODO-17w) does not yet name mn_ci_internal. Fold into that plan when it lands, using lrstat remlRiskDiff as the reference.
+
+### Finite-termination active-set Newton for the Huber M-estimator  `robust-m-regression#43925959437.1`
+_Revisit 2027-05-01._
+Same estimator and same O(np^2) per step; the finding's own source says Huber IRLS converges in 4-5 iterations, so the saving at n <= 1000, p <= 10 is likely small. Robust-regression performance work is already a v1.2.0 lane (release_v1_2_0.md TODO-3, robust_regression_perf_optimization_spec.md); revisit there if profiling shows IRLS iterations dominate KK randomization draws.
+
+### pxp Bell-McCaffrey df and kxk meat reduction for CR2 (estimatr 2.0)  `sandwich-variance#43925959437.1`
+_Revisit 2027-05-01._
+Same CR2 estimator, but cluster_robust_cr2_variance (helper_robust_sandwich.R:116-157) runs once per fit, only on cluster-randomized designs (callers inference_continuous_ols.R:399, inference_continuous_lin.R:392), and its O(nG^2) crossprod is milliseconds at n <= 1000. Revisit if the CR2 SE is put inside studentized bootstrap or randomization loops.
+
+### Boos-Zhang 1/B extrapolation of coverage/power in the simulation engine  `simulation-study-engine#43925959437.1`
+_Revisit 2027-05-01._
+This changes what the simulation report states (an extrapolated B = infinity summary) rather than speeding any EDI algorithm, and it needs nested sub-B bookkeeping in every bootstrap/randomization cell; the inventory verdict for result_key_store is Keep. Plausibly useful for the monthly calibration study (release_v1_2_0.md TODO-36), so revisit when that study's compute budget is set.
+
+### missForestPredict warm-started periodic refits and per-arrival predict  `missing-covariate-imputation#43925959437.2`
+_Revisit 2027-07-01._
+New dependency, a different imputer (estimator change), unquantified gain, and only needed if the missRanger predict path in release_v1_2_0.md TODO-23 (audit TODO-30) proves insufficient. Revisit after that prototype reports.
