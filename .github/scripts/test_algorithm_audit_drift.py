@@ -50,7 +50,7 @@ class InventoryCheckTests(unittest.TestCase):
         self.root = root
         self.saved = {k: getattr(drift, k) for k in
                       ("ROOT", "ROW_MAP", "INVENTORY", "REFERENCES", "SRC_DIR", "R_DIR",
-                       "TAXONOMY", "RESEARCH_LOG")}
+                       "TAXONOMY", "RESEARCH_LOG", "TRIAGE", "RELEASES")}
         audits = root / "R/package_metadata/audits"
         drift.ROOT = root
         drift.ROW_MAP = audits / "algorithm_audit_row_map.json"
@@ -60,6 +60,8 @@ class InventoryCheckTests(unittest.TestCase):
         drift.R_DIR = root / "R/EDI/R"
         drift.TAXONOMY = audits / "algorithm_taxonomy.json"
         drift.RESEARCH_LOG = audits / "research_log.json"
+        drift.TRIAGE = audits / "research_triage.csv"          # never the real repo file
+        drift.RELEASES = root / "R/package_metadata/future_release_plans"
         self.taxonomy = json.loads(json.dumps(TAXONOMY))
         self.taxonomy["methods"].pop("lbfgs")  # only methods the fixture uses
         self.cfg = {"max_age_days": 180,
