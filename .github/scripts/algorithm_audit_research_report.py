@@ -39,7 +39,7 @@ def load(dirpath, task):
 def render(dirpath, tasks, batches=None):
     """batches: task -> algorithms it was given; any not accounted for is a silent skip."""
     batches = batches or {}
-    notrun, incomplete, findings, reviewed, skipped = [], [], [], [], []
+    notrun, incomplete, findings, reviewed, skipped, mismatched = [], [], [], [], [], []
     new_algos, plumbing, stale, unchecked = [], 0, [], 0
     for task in tasks:
         data, why = load(dirpath, task)
@@ -67,8 +67,20 @@ def render(dirpath, tasks, batches=None):
         named = {a.get("algorithm") for a in data.get("algorithms_reviewed", [])
                  + data.get("not_reviewed", [])}
         skipped += [(task, alg) for alg in batches.get(task, []) if alg not in named]
+        # A finding and its algorithm's conclusion must agree, in both directions.
+        conclusion = {a.get("algorithm"): a.get("conclusion")
+                      for a in data.get("algorithms_reviewed", [])}
+        found = {f.get("algorithm") for f in data.get("findings", [])}
+        for alg in sorted(found, key=str):
+            c = conclusion.get(alg)
+            if c != "faster_option_found":
+                why = (f"marked `{c}`" if c else "not in algorithms_reviewed")
+                mismatched.append((task, alg, f"has a finding but is {why}"))
+        for alg, c in conclusion.items():
+            if c == "faster_option_found" and alg not in found:
+                mismatched.append((task, alg, "marked `faster_option_found` but has no finding"))
 
-    flagged = bool(notrun or incomplete or skipped or findings or new_algos or stale)
+    flagged = bool(notrun or incomplete or skipped or mismatched or findings or new_algos or stale)
     today = datetime.date.today().isoformat()
     L = ["FLAGGED" if flagged else "CLEAN", "",
          f"# Algorithm research report ({today})", "",
@@ -96,6 +108,9 @@ def render(dirpath, tasks, batches=None):
         L.append(f"- **Suggested action:** {f.get('suggested_action', '')}")
         L.append("- **Affects:** " + ", ".join(f"`{e}`" for e in f.get("entries", [])))
         L.append("- **Sources:** " + " ".join(canonical_cran_url(u) for u in f.get("sources", [])))
+        if f.get("open_copies"):
+            L.append("- **Open copies** (preprint / PubMed Central; the publisher page may block "
+                     "automated access): " + " ".join(f["open_copies"]))
         L.append("")
 
     L.append("## 2. Inventory currency")
@@ -124,6 +139,11 @@ def render(dirpath, tasks, batches=None):
         L += [f"- Batch {t}: {a.get('algorithm', '?')} ({a.get('reason', '')})" for t, a in incomplete]
         L += [f"- Batch {t}: {alg} (**silently skipped**: in the batch but in neither list)"
               for t, alg in skipped]
+        L.append("")
+
+    if mismatched:
+        L.append("## 4. Inconsistent agent output (check the finding before acting on it)")
+        L += [f"- Batch {t}: {alg}: {why}" for t, alg, why in mismatched]
         L.append("")
 
     if reviewed:

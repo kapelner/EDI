@@ -239,6 +239,31 @@ class ResearchReportTests(unittest.TestCase):
         self.assertTrue(flagged)
         self.assertIn("Batch A.1: L-BFGS (**silently skipped**", text)
 
+    def test_finding_and_conclusion_must_agree(self):
+        finding = {"algorithm": "glm.nb", "entries": [], "current": "", "candidate": "fastglm",
+                   "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+                   "tradeoffs": "", "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
+        self.put("A.1", {"row": "A", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
+            {"algorithm": "glm.nb", "conclusion": "no_faster_acceptable_found", "note": ""},
+            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": ""}]})
+        self.put("A.2", {"row": "A", "not_reviewed": [], "algorithms_reviewed": [],
+                         "findings": [dict(finding, algorithm="orphan")]})
+        flagged, text = report.render(self.dir, ["A.1", "A.2"])
+        self.assertTrue(flagged)
+        self.assertIn("## 4. Inconsistent agent output", text)
+        self.assertIn("Batch A.1: glm.nb: has a finding but is marked `no_faster_acceptable_found`", text)
+        self.assertIn("Batch A.1: IRLS: marked `faster_option_found` but has no finding", text)
+        self.assertIn("Batch A.2: orphan: has a finding but is not in algorithms_reviewed", text)
+
+    def test_consistent_output_has_no_section_4(self):
+        finding = {"algorithm": "IRLS", "entries": [], "current": "", "candidate": "x",
+                   "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+                   "tradeoffs": "", "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
+        self.put("A.1", {"row": "A", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
+            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": ""}]})
+        _, text = report.render(self.dir, ["A.1"])
+        self.assertNotIn("Inconsistent agent output", text)
+
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("J", {"row": "J", "algorithms_reviewed": [], "findings": [{
             "algorithm": "bootstrap loop", "entries": ["R/EDI/src/b.cpp::boot"],
@@ -347,6 +372,43 @@ class CanonicalCranUrlTests(unittest.TestCase):
             _, text = report.render(Path(tmp), ["A.1"])
         self.assertIn("https://cran.r-project.org/web/packages/fastglm/vignettes/x.html", text)
         self.assertNotIn("dogado", text)
+
+
+class OpenCopyTests(unittest.TestCase):
+
+    def test_doi_of_finds_dois_in_publisher_urls(self):
+        self.assertEqual(drift.doi_of("https://doi.org/10.1093/bioinformatics/btaa1009"),
+                         "10.1093/bioinformatics/btaa1009")
+        self.assertEqual(drift.doi_of("https://onlinelibrary.wiley.com/doi/10.1111/biom.12345?x=1"),
+                         "10.1111/biom.12345")
+        self.assertIsNone(drift.doi_of("https://academic.oup.com/bioinformatics/article/36/24/5701/6029133"))
+
+    def test_open_copies_prefer_preprints_then_pmc_never_publisher(self):
+        # shape of OpenAlex's record for glmGamPoi (doi:10.1093/bioinformatics/btaa1009), 2026-11-16
+        work = {"locations": [
+            {"is_oa": True, "landing_page_url": "https://doi.org/10.1093/bioinformatics/btaa1009"},
+            {"is_oa": True, "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8023675/"},
+            {"is_oa": True, "landing_page_url": "https://doi.org/10.1101/2020.08.13.249623"},
+            {"is_oa": False, "landing_page_url": "https://pubmed.ncbi.nlm.nih.gov/33295604"},
+            {"is_oa": True, "landing_page_url": "https://doi.org/10.48550/arxiv.2101.00001"}]}
+        self.assertEqual(drift.pick_open_copies(work), [
+            "https://arxiv.org/abs/2101.00001", "https://doi.org/10.1101/2020.08.13.249623",
+            "https://pmc.ncbi.nlm.nih.gov/articles/PMC8023675/"])
+        self.assertEqual(drift.pick_open_copies({"locations": [
+            {"is_oa": True, "landing_page_url": "https://academic.oup.com/x"}]}), [])
+
+    def test_report_shows_open_copies(self):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            Path(tmp, "A.1.json").write_text(json.dumps({"row": "A", "not_reviewed": [],
+                "algorithms_reviewed": [{"algorithm": "a", "conclusion": "faster_option_found", "note": ""}],
+                "findings": [{"algorithm": "a", "entries": [], "current": "", "candidate": "b",
+                "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+                "tradeoffs": "", "confidence": "low", "suggested_action": "",
+                "sources": ["https://doi.org/10.1093/bioinformatics/btaa1009"],
+                "open_copies": ["https://doi.org/10.1101/2020.08.13.249623"]}]}))
+            _, text = report.render(Path(tmp), ["A.1"])
+        self.assertIn("- **Open copies** (preprint / PubMed Central", text)
+        self.assertIn("https://doi.org/10.1101/2020.08.13.249623", text)
 
 
 class PromptSchemaTests(unittest.TestCase):

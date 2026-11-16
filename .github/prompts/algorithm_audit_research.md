@@ -57,6 +57,12 @@ breaks:
   company mirrors, `cloud.r-project.org`, rdrr.io, github.com/cran). Fetch the canonical URL
   itself. The job rewrites mirror URLs anyway, but a link you did not fetch at CRAN may not
   exist there.
+- **Papers: give the DOI and an open copy.** For every journal or conference paper, list its
+  DOI URL (`https://doi.org/<doi>`) among the sources, not only a publisher page (a publisher
+  URL often carries no DOI and blocks automated access with 403). If the publisher page is
+  paywalled or blocked, find and cite an open version as well: arXiv, bioRxiv / medRxiv,
+  SSRN or RePEc, PubMed Central / Europe PMC, or the authors' own copy. The job also looks up
+  open copies of every cited DOI, but only a DOI lets it find them.
 - Speedups are claims from the sources, never measurements. Say where the number comes from
   ("Table 3 of <url>: 4x at n=1,000"). If the source gives no number, say "not quantified".
 - A finding means "re-look", not "wrong". Do not overstate confidence. `high` only when a
@@ -70,6 +76,13 @@ breaks:
   of turns, list the rest in `not_reviewed` with the reason. Nothing may be silently skipped.
 - Every algorithm in `batch_algorithms.txt` must appear in exactly one of
   `algorithms_reviewed` or `not_reviewed`, spelled exactly as in the file.
+- A finding and its algorithm's `conclusion` must agree: every algorithm with a finding is
+  marked `faster_option_found`, and every `faster_option_found` has at least one finding.
+  If a faster option exists but is not acceptable (changes the estimator, loses exactness,
+  breaks determinism, does not win at EDI's sizes), the conclusion is
+  `no_faster_acceptable_found` and the option goes in the `note`, not in `findings`; a
+  finding that is only about robustness rather than speed is still a finding, so mark it
+  `faster_option_found` and say so in `tradeoffs`.
 - Spend your effort where it matters: algorithms in hot paths (resampling loops, CI searches,
   per-replicate refits) and rows whose verdict is Prototype or Investigate first; trivial closed
   forms last (one line each is enough: "closed form, O(n), nothing faster").

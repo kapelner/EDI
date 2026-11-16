@@ -87,6 +87,16 @@ fastest acceptable one for its job?**
   `algorithms_reviewed` nor `not_reviewed` as **silently skipped**. (Batches replaced
   one-agent-per-row on 2026-11-16 after the trial run's row-A agent reviewed 2 of 120
   algorithms in 12 of its 80 turns.)
+  - **Consistency check** (2026-11-16): a finding whose algorithm is not marked
+    `faster_option_found`, or a `faster_option_found` with no finding, is listed under
+    "Inconsistent agent output" and flags the report (first seen in batch A.1 of the
+    2026-11-16 full run: a `glm.nb` finding marked `no_faster_acceptable_found`).
+  - **Open copies of papers** (owner, 2026-11-16): agents must cite a paper's DOI, not only
+    a publisher page, and an open version when the publisher blocks them. The PR job
+    (`add_open_copies`) asks OpenAlex for every cited DOI and lists open copies under
+    "Open copies", best first: arXiv, bioRxiv / medRxiv, PubMed Central / Europe PMC, never
+    a publisher page (first case: the glmGamPoi paper, whose OUP page returns 403; OpenAlex
+    gives its bioRxiv preprint and PMC8023675).
 - **Inventory task** (`.github/prompts/algorithm_audit_currency.md`): reads
   `--currency-context 40` output (functions added in the last 40 days that the
   inventory lacks; inventory entries whose symbol appears in a changed line or hunk

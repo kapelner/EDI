@@ -134,6 +134,31 @@ def apply(dirpath, tasks, today, offline):
     return applied, held, skipped
 
 
+def add_open_copies(dirpath, tasks, offline):
+    """For every finding source with a DOI, record open copies (arXiv, bioRxiv/medRxiv, PMC) in
+    the finding's `open_copies`, so a paywalled or bot-blocked publisher page is never the only
+    way to read the source. Rewrites the task JSON in place, before the report is rendered."""
+    if offline:
+        return
+    cache = {}
+    for task in tasks:
+        path = dirpath / f"{task}.json"
+        data, _ = report.load(dirpath, task)
+        if not data or not data.get("findings"):
+            continue
+        for f in data["findings"]:
+            copies = list(f.get("open_copies", []))
+            for u in f.get("sources", []):
+                doi = drift.doi_of(u)
+                if doi:
+                    if doi not in cache:
+                        cache[doi] = drift.open_copies(doi)
+                    copies += [c for c in cache[doi] if c not in copies and c not in f["sources"]]
+            if copies:
+                f["open_copies"] = copies
+        path.write_text(json.dumps(data))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
@@ -145,6 +170,7 @@ def main():
     a = ap.parse_args()
     tasks = [t for t in a.tasks.split(",") if t]
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
+    add_open_copies(Path(a.dir), tasks, a.offline)
     flagged, text = report.render(Path(a.dir), tasks, batches)
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     body = text.split("\n", 2)[2]  # drop the FLAGGED/CLEAN status line

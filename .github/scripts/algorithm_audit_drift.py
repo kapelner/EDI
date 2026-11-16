@@ -89,6 +89,51 @@ def canonical_cran_url(url):
     return url
 
 
+DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>?#]+)", re.I)
+
+
+def doi_of(url):
+    """The DOI in a URL (doi.org links, and publisher URLs that embed it), else None."""
+    m = DOI_RE.search(urllib.parse.unquote(url))
+    return m.group(1).rstrip(".,;)").lower() if m else None
+
+
+def pick_open_copies(work):
+    """Open copies of a paper from an OpenAlex work record, best first: arXiv, then bioRxiv /
+    medRxiv, then PubMed Central / Europe PMC. Publisher pages are never returned: they are what
+    blocks automated access (owner, 2026-11-16: prefer preprint servers)."""
+    ranked = []
+    for loc in work.get("locations", []):
+        url = loc.get("landing_page_url") or ""
+        if not (loc.get("is_oa") and url):
+            continue
+        host = urllib.parse.urlsplit(url).netloc.lower()
+        d = doi_of(url) or ""
+        if "arxiv.org" in host or d.startswith("10.48550/arxiv."):
+            arxiv_id = d.split("arxiv.", 1)[1] if d.startswith("10.48550/") else url.rsplit("/", 1)[-1]
+            ranked.append((0, f"https://arxiv.org/abs/{arxiv_id}"))
+        elif d.startswith("10.1101/") or "biorxiv.org" in host or "medrxiv.org" in host:
+            ranked.append((1, url))
+        elif "ncbi.nlm.nih.gov/pmc" in url or "pmc.ncbi.nlm.nih.gov" in host or "europepmc.org" in host:
+            ranked.append((2, url))
+    seen, out = set(), []
+    for _, url in sorted(ranked):
+        if url not in seen:
+            seen.add(url)
+            out.append(url)
+    return out
+
+
+def open_copies(doi):
+    """Open copies of the paper with this DOI, via OpenAlex (no key needed); [] on any failure."""
+    try:
+        work = json.loads(http_get("https://api.openalex.org/works/doi:"
+                                   + urllib.parse.quote(doi, safe="/")))
+    except (urllib.error.URLError, OSError, ValueError):
+        return []
+    return pick_open_copies(work)
+
+
 def http_get(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": "EDI-algorithm-audit-drift"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
