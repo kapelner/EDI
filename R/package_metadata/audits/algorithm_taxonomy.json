@@ -10,7 +10,8 @@
     "sequential ratio model ordinal",
     "ordinal regression concave likelihood",
     "stopping ratio model",
-    "grouped data / covariate-pattern frequency weights ordinal logit"
+    "grouped data / covariate-pattern frequency weights ordinal logit",
+    "Poisson trick / Poisson log-linear equivalence for adjacent-categories logit"
    ],
    "software": [
     "brglm2::bracl",
@@ -43,7 +44,8 @@
     "Bertsimas optimal design experiments",
     "balanced number partitioning",
     "vector balancing / discrepancy minimization",
-    "Gram-Schmidt walk design"
+    "Gram-Schmidt walk design",
+    "k-cluster / densest k-subgraph (cardinality-constrained BQP)"
    ]
   },
   "bayesian-bootstrap": {
@@ -120,7 +122,8 @@
     "bootstrap-t interval",
     "double bootstrap calibration",
     "iterated bootstrap",
-    "bootstrap p-value"
+    "bootstrap p-value",
+    "cheap bootstrap"
    ]
   },
   "bootstrap-index-generation": {
@@ -172,7 +175,8 @@
     "sampling without replacement",
     "Bernoulli randomization",
     "matched pair randomization",
-    "random combination generation"
+    "random combination generation",
+    "sequential random sampling (Vitter Algorithm D / selection sampling)"
    ]
   },
   "conditional-logit-matched-fit": {
@@ -184,7 +188,8 @@
     "conditional Poisson regression",
     "conditional maximum likelihood matched pairs",
     "1:1 matched case-control",
-    "discordant pairs logistic"
+    "discordant pairs logistic",
+    "log-F penalized conditional logistic regression"
    ],
    "software": [
     "bclogit"
@@ -581,7 +586,8 @@
     "Bartlett correction",
     "constrained maximum likelihood refit",
     "efficient score nuisance parameters",
-    "profile likelihood test"
+    "profile likelihood test",
+    "simplified Bartlett correction"
    ],
    "software": [
     "mdscore",
@@ -867,7 +873,8 @@
     "Pocock-Simon minimization",
     "covariate adaptive randomization",
     "marginal balance minimization",
-    "Taves minimization"
+    "Taves minimization",
+    "number of repetitions in re-randomization tests"
    ]
   },
   "pvalue-combination": {
