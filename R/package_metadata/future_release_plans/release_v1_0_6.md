@@ -750,7 +750,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     (`compute_bootstrapped_weighted_sqd_distances_cpp()` plus `stats::quantile`). A near-tie still flips on last-bit
     differences (libm, BLAS, FMA contraction on native and Apple arm64 builds), so cross-platform identity is likely
     but not guaranteed.
-  - Investigate first (bounded): run the nightly with the new response. If all five legs agree, measure how often real
+  - 2026-11-16: nightly run 43896129262 (commit `c9f0a7d6`, new response) passed on all five legs and in the
+    cross-leg comparison, so KK21 and KK21stepwise now match the fixture everywhere and need no exemption.
+  - Investigate first (bounded): measure how often real
     decisions are near-ties (per-step margins between the smallest and second-smallest distance, and between the
     smallest distance and the cutoff) on the calibration datasets. Close this TODO as "not needed" if the chance of a
     flip per draw is negligible, and document that KK21 is reproducible across platforms except at exact near-ties.
