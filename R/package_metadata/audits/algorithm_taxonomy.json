@@ -74,6 +74,10 @@
     "Firth penalized logistic regression",
     "large-scale logistic regression optimization",
     "small-p logistic regression many refits"
+   ],
+   "software": [
+    "fracreg",
+    "detectseparation"
    ]
   },
   "blocking-partition": {
