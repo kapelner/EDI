@@ -103,7 +103,7 @@ collect_timing_ms = function(expr, times = B_TIME, env = parent.frame(), target_
         if (is.null(bm_res)) {
             return(list(median_ms = NA_real_, samples_ms = numeric(0), method = "bench::mark"))
         }
-        t_total = bm_res$time[[1]] * 1000
+        t_total = as.numeric(bm_res$time[[1]]) * 1000
         median_total = as.numeric(bm_res$median[1]) * 1000
         
         list(
