@@ -358,6 +358,14 @@ class ResearchReportTests(unittest.TestCase):
         self.assertIn("| yes | [alpha](https://x/alpha) | [L](https://x/alpha/LICENSE) | "
                       "binary-glm-mle: irls | C++ | port \\| test |", sec)
 
+    def test_denied_tool_use_in_the_transcript_is_flagged(self):
+        self.put("binary-glm-mle", self.problem())
+        (self.dir / "binary-glm-mle.searches.json").write_text(json.dumps(
+            {"searches": [], "tool_counts": {"Read": 4, "Bash": 9, "WebFetch": 2}}))
+        flagged, text = report.render(self.dir, ["binary-glm-mle"])
+        self.assertTrue(flagged)
+        self.assertIn("called denied tools: Bash x9", text)
+
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("binary-glm-mle", self.problem(
             findings=[self.finding(candidate="one-step bootstrap", keeps_estimator="no")],

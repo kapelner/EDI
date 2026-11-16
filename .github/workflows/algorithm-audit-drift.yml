@@ -242,6 +242,7 @@ jobs:
           mkdir -p research
           if [ "$TASK" = inventory ]; then
             python3 .github/scripts/algorithm_audit_drift.py --currency-context 40 --out currency_context.json
+            python3 .github/scripts/algorithm_audit_drift.py --code-changes inventory --out code_changes.diff
             prompt_file=.github/prompts/algorithm_audit_currency.md
             schema=.github/prompts/algorithm_audit_currency.schema.json
             what="the inventory currency check"
@@ -267,6 +268,9 @@ jobs:
           PY
             python3 .github/scripts/algorithm_audit_drift.py --previous-results "$TASK" \
               --out previous_results.json
+            # agents have no shell (owner, 2026-11-16: --allowedTools did not restrict Bash),
+            # so the code changes since the last research are precomputed
+            python3 .github/scripts/algorithm_audit_drift.py --code-changes "$TASK" --out code_changes.diff
             prompt_file=.github/prompts/algorithm_audit_research.md
             schema=.github/prompts/algorithm_audit_research.schema.json
             what="research problem $TASK"
@@ -287,6 +291,12 @@ jobs:
         if: ${{ env.HAS_KEY != 'true' }}
         run: echo "neither the ANTHROPIC_API_KEY nor the CLAUDE_CODE_OAUTH_TOKEN repository secret is set" > "research/$TASK.notrun"
 
+      # Tool policy (owner, 2026-11-16): agents get Read/Glob/Grep/WebSearch/WebFetch only. In run
+      # 43925959437 an agent ran cat, mkdir, sed and authenticated `gh api` calls although
+      # --allowedTools listed only Bash(git log/show/diff:*): the allow list did not restrict
+      # Bash, so Bash is now denied outright (deny rules always win), and Read is denied on paths
+      # that could expose credentials (/proc environ, ~/.config, ~/.ssh), since agents read
+      # untrusted web pages.
       - name: Run the research agent
         id: claude
         if: ${{ env.HAS_KEY == 'true' }}
@@ -301,8 +311,8 @@ jobs:
             Your task: ${{ steps.prep.outputs.what }}. Today is the run date of this workflow.
             Repository: ${{ github.repository }}, commit ${{ github.sha }}.
           claude_args: |
-            --allowedTools "Read,Glob,Grep,WebSearch,WebFetch,Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
-            --disallowedTools "Edit,Write,NotebookEdit"
+            --allowedTools "Read,Glob,Grep,WebSearch,WebFetch"
+            --disallowedTools "Bash,Edit,Write,NotebookEdit,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(~/.config/**),Read(~/.ssh/**),Read(~/.claude/.credentials.json)"
             --model ${{ steps.prep.outputs.model }}
             ${{ steps.prep.outputs.extra_args }}
             --max-turns 100

@@ -1,8 +1,9 @@
 # Algorithm-inventory currency check (monthly)
 
-You are run monthly (first Thursday) by `.github/workflows/algorithm-audit-drift.yml` (40-day lookback, so consecutive runs overlap). You are **read-only**: you
-may read the repo, run `git log`/`git show`/`git diff`, and fetch the web (to verify reference
-URLs). You cannot edit files, open issues, or build anything. Never try to compile, install, or
+You are run monthly (first Thursday) by `.github/workflows/algorithm-audit-drift.yml` (40-day lookback, so consecutive runs overlap). You are **read-only** and have
+**no shell** (Bash is denied): read the repo with Read / Glob / Grep, read the recent commits'
+diffs in `code_changes.diff` (the files the context names, last 40 days), and fetch the web (to
+verify reference URLs). You cannot edit files, open issues, or build anything. Never try to compile, install, or
 run EDI (an R package with a large C++ core; see `CLAUDE.md`). Your only output is the
 structured JSON the run asks for.
 
@@ -45,7 +46,7 @@ For the rest, a one-line reason is enough. Report every symbol in the list eithe
 
 The code of these inventoried functions changed in the window. For each one, read the current
 code and its CSV row (`details`, `algorithm`, `complexity`), and the commits that changed it
-(`git log --since=<window> -p -- <file>`). Report it as stale only if the row no longer
+(in `code_changes.diff`). Report it as stale only if the row no longer
 describes what the code does: different algorithm, a changed default, a step-control or
 convergence change, a different complexity, or a moved responsibility. Cosmetic changes,
 refactors and bug fixes that keep the algorithm are **not** stale. When it is stale, write the

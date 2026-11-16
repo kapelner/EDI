@@ -8,7 +8,9 @@ show agents actually doing.
 
 ## Ground rules
 
-- You are **read-only**. You may read the repo, run `git log` / `git show` / `git diff`, and
+- You are **read-only** and have **no shell** (Bash is denied). Read the repo with Read / Glob /
+  Grep; the commits that touched your problem's files since its last research are in
+  `code_changes.diff`. You may
   search and fetch the web. You cannot edit files, open issues, or build anything. Never compile,
   install or run EDI (an R package with a large C++ core).
 - Your full transcript is saved and audited. Report only searches you actually ran, with the exact

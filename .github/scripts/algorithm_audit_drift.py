@@ -560,6 +560,35 @@ def previous_results(problem_id, inventory, log=None, max_commits=5):
     return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits))
 
 
+CODE_CHANGES_CAP = 400_000  # bytes of diff an agent gets; the rest is cut with a note
+
+
+def code_changes(task, inventory, days=40, cap=CODE_CHANGES_CAP):
+    """Unified diffs agents would otherwise get from `git log -p` (they have no shell). For a
+    research problem: commits since its last research touching its inventory files; for
+    `inventory`: the last `days` days on the files the currency context names."""
+    if task == "inventory":
+        ctx = currency_context(days)
+        files = sorted({x["file"] for x in ctx["new_symbols"] + ctx["changed_entries"]})
+        since = f"{days}.days"
+    else:
+        prev = load_research_log().get(task)
+        files = sorted({e["file"] for e in task_rows(task, inventory)})
+        since = f"{prev['last_researched']} 23:59:59" if prev else None
+        if not since:
+            return "# no previous research for this problem: no diff (review the current code)\n"
+    if not files:
+        return "# no files\n"
+    diff = git("log", f"--since={since}", "-p", "--format=commit %h %ad %s", "--date=short",
+               "--", *files)
+    if not diff.strip():
+        return f"# no commits since {since} on this task's {len(files)} files\n"
+    if len(diff.encode()) > cap:
+        diff = diff.encode()[:cap].decode(errors="ignore")
+        diff += f"\n# ... cut at {cap} bytes; read the current code for the rest\n"
+    return diff
+
+
 def currency_context(days):
     """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make)."""
     inv = load_inventory()
@@ -765,9 +794,14 @@ def main():
                     help="print the research task -> algorithms map as JSON")
     ap.add_argument("--previous-results", metavar="PROBLEM",
                     help="print the research log's previous result for one problem as JSON")
+    ap.add_argument("--code-changes", metavar="TASK",
+                    help="write the diffs an agent gets (a problem id, or inventory)")
     ap.add_argument("--task-problem", metavar="PROBLEM",
                     help="print the taxonomy slice (problem + its methods) for one problem")
     a = ap.parse_args()
+    if a.code_changes:
+        text = code_changes(a.code_changes, load_inventory())
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.previous_results or a.task_problem:
         pid = a.previous_results or a.task_problem
         inv = load_inventory()

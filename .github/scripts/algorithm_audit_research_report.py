@@ -80,12 +80,18 @@ def transcript_gap(data, dirpath, task):
     f = dirpath / f"{task}.searches.json"
     if not f.is_file():
         return None
-    actual = json.loads(f.read_text()).get("searches", [])
+    rec = json.loads(f.read_text())
+    actual = rec.get("searches", [])
     reported = len(data.get("searches", []))
+    problems = []
     if reported > len(actual):
-        return (f"reports {reported} searches but its transcript shows {len(actual)} "
-                "(WebSearch + WebFetch)")
-    return ""
+        problems.append(f"reports {reported} searches but its transcript shows {len(actual)} "
+                        "(WebSearch + WebFetch)")
+    denied = {t: n for t, n in rec.get("tool_counts", {}).items()
+              if t in ("Bash", "Edit", "Write", "NotebookEdit")}
+    if denied:  # tool policy: these are denied; a call means the deny did not hold
+        problems.append("called denied tools: " + ", ".join(f"{t} x{n}" for t, n in sorted(denied.items())))
+    return "; ".join(problems)
 
 
 def render(dirpath, tasks, batches=None, taxonomy=None):
