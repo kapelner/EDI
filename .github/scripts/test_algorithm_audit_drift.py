@@ -928,6 +928,7 @@ class TriageTests(InventoryCheckTests):
         self.assertIn("status `draft`", bad)
         self.assertIn("finding id not in research_log.json", bad)
         self.assertNotIn("TODO-7", bad)
+        self.assertEqual(len(out["triage_due"]), 1)
 
     def test_triage_old_todo_form_rejected(self):
         """CLAUDE.md: release TODOs are cited release-first (v1.1.0-TODO-7), never TODO-7-v1.1.0."""
@@ -935,7 +936,6 @@ class TriageTests(InventoryCheckTests):
                             "status": "approved", "todo": "TODO-7-v1.1.0"}])
         bad = " ".join(self.run_check()["bad_triage"])
         self.assertIn("needs a v<version>-TODO-<n>, got `TODO-7-v1.1.0`", bad)
-        self.assertEqual(len(out["triage_due"]), 1)
 
     def test_previous_results_carry_triage(self):
         self.write_triage([{"finding_id": "binary-glm-mle#1.1", "problem_id": "binary-glm-mle",
