@@ -1,5 +1,5 @@
 {
- "_comment": "Last research result per problem (key = algorithm_taxonomy.json problem_id). Written by the research-pr job of algorithm-audit-drift.yml; read by the next run's agents as previous_results.json. Seeded 2026-11-16 from full run 43903509109.",
+ "_comment": "Last research result per problem (key = algorithm_taxonomy.json problem_id). Written by the research-pr job of algorithm-audit-drift.yml; read by the next run's agents as previous_results.json.",
  "problems": {
   "adjacent-cat-cr-logit-mle": {
    "last_researched": "2026-11-16",
@@ -254,43 +254,27 @@
   },
   "binary-glm-mle": {
    "last_researched": "2026-11-16",
-   "run": "43903509109",
+   "run": "43918277226",
    "methods": {
     "analytic-derivatives": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[closed form] These are direct O(1), O(n) or O(np²) formulas: link cdf/pdf, analytic scores and Hessians, Wald/RD/BRS variances, ridit DeLong SE, lgamma sums. Each is at the lower bound of reading its inputs. Some are dead exports (beta_*_cpp, neg_loglik_nb_cpp). The micro-optimizations already noted (distinct-y lgamma caching in NegBinNoZiLikelihood, SYRK/weighted_crossprod reuse) are constant-factor and trivial.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "closed form"
-     ]
+     "note": "Closed-form score Xᵀ(y−μ) and Hessian −XᵀWX (logit), plus the probit generalized-residual forms, are O(np²), which is the cost of reading X. They cannot be beaten asymptotically. Searched AD rivals (TMB, JSS v070i05): no source shows AD beating a fused hand-written GLM gradient, and a phylogenetics AD study found hand-written analytic gradients faster. No code commits since the 2026-11-16 result.",
+     "last_researched": "2026-11-16"
     },
     "irls": {
      "conclusion": "faster_option_found",
-     "note": "[Fisher scoring (IRLS)] Probit (non-canonical): Fisher scoring needs about 5–10 iterations and has a PSD information matrix; observed-info Newton differs only in the local rate, and no source quantifies an iteration gain for binary probit. fastglm 0.1.4 (2026-11-11) also uses bounded Fisher-scoring updates for binary probit. LDLT on p×p is already the cheapest solve (catalog O2). Step-halving is already an Adopt item (TODO-2), so nothing new. | [Newton–Raphson (IRLS)] fastglm 0.1.4 (CRAN, 2026-11-11) runs the same IRLS with Marschner step-halving. Its Cholesky path is the same per-iteration cost as EDI's C++ LDLT IRLS, so it is no faster than what EDI already has; its value is the step-halving pattern already in TODO-2. KK21 univariate logistic (2×2 IRLS, design-time only, O(p·iter·n)) is not a hot path. A logit(ȳ) start or a closed-form log-OR for two-valued columns would save only an iteration or two. | [Newton–Raphson (IRLS) + inverse-variance weighting] Two small C++ logistic fits plus a closed-form IVW combination. Nothing faster exists; the legacy path only. | [Newton–Raphson (IRLS) quasi-likelihood] The algorithm is right, but the estimate_only + harden=FALSE 'fast path' in compute_estimate calls R's glm.fit(quasibinomial). The C++ fast_logistic_regression_cpp, already used for the same QMLE on the randomization path, is benchmarked ~4× faster than glm.fit at n=1,000 by fastglm's Cholesky-IRLS analogue. See the finding.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Fisher scoring (IRLS)",
-      "Newton–Raphson (IRLS)",
-      "Newton–Raphson (IRLS) + inverse-variance weighting",
-      "Newton–Raphson (IRLS) quasi-likelihood"
-     ]
+     "note": "The C++ LDLT IRLS (logit = Newton; probit = Fisher scoring) is still the right algorithm at EDI's small p. fastglm 0.1.4 (CRAN 2026-11-11; NEWS checked) runs the same IRLS + Cholesky with step-halving at the same per-iteration cost. Its 0.1.4 probit/cloglog changes (tail probabilities, capped scoring updates) back the existing Incidental 3 tail fix and the TODO-2 step-halving item, both already catalogued. Erdogdu-style scaled least squares, sketching and one-step bootstrap approximate the MLE, so each is an estimator change and was rejected. The prior finding still stands: inference_proportion_fractional_logit.R:165 still calls glm.fit(quasibinomial) on the estimate_only + harden=FALSE path, while line 257 uses the C++ kernel for the same QMLE. fastglm's benchmark vignette (dated 2026-11-06) still shows glm.fit at 2.75 ms vs Cholesky IRLS at 0.67 ms at n=1,000, p=30.",
+     "last_researched": "2026-11-16"
     },
     "lbfgs": {
      "conclusion": "faster_option_found",
-     "note": "[L-BFGS] The generic LBFGSpp driver uses backtracking strong-Wolfe. The Newton alternative for the concave ordinal/CR/AC/beta/logistic fits is already catalogued (catalog §2 TODO-1/2, §1 TODO-7). LBFGSpp releases add a More–Thuente / Nocedal–Wright line search but no performance claim. The literature found (arXiv 1911.04584, 2310.07296) suggests Wolfe/More–Thuente searches use more evaluations than Armijo backtracking, so switching the line search is not a demonstrated win. | [L-BFGS / Newton–Raphson (IRLS)] The R wrappers fast_logistic_regression[_with_var] (helper_glm_fit.R:852/923) default to \"lbfgs\", but the C++ kernel defaults to \"irls\" and the catalog row :109 calls L-BFGS a 'non-default alternative'. KK21 design weighting calls them per covariate with p=2, where IRLS is Newton with quadratic convergence. The separation drop-and-refit policy is still the existing catalog (i) Investigate (LP detection, Firth); nothing new there. See findings.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "L-BFGS",
-      "L-BFGS / Newton–Raphson (IRLS)"
-     ]
+     "note": "Re-verified in code. The R wrappers fast_logistic_regression and fast_logistic_regression_with_var (helper_glm_fit.R:852, :923) still default to optimization_alg = \"lbfgs\", while the C++ kernel defaults to \"irls\". KK21 calls the wrapper per covariate with p=2 (design_seq_one_by_one_KK21.R:431), and KK21 stepwise calls it at :345. The scikit-learn docs recommend newton-cholesky when n_samples >> n_features, which is EDI's regime. LBFGSpp's More–Thuente line search comes with no performance claim, so changing the line search is still not a demonstrated win. The previous finding stands.",
+     "last_researched": "2026-11-16"
     },
     "lu-decomposition": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[LU log-determinant] R determinant() (LU) on an information matrix of size p in the tens. A Cholesky log-determinant would save about 1.5x on an O(p^3) term, but the evaluator has no caller yet and the row is already marked Investigate for a sign issue, so a speed change does not matter here.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "LU log-determinant"
-     ]
+     "note": "determinant() (LU) on a p×p information matrix in the uncalled Firth evaluator. Cholesky is about 2× cheaper on an O(p³) term with p small, and Stan Discourse reports no practical gain for Jeffreys-penalized logistic. The evaluator has no caller, and the row is already Investigate for a sign issue. Rival Firth implementations (fastglm firth=TRUE, brglm2 1.1.0, logistf 1.26.1) use quasi-Fisher scoring, not an LU log-det objective. That matters only if the evaluator ever gets a caller.",
+     "last_researched": "2026-11-16"
     }
    },
    "findings": [
@@ -298,36 +282,30 @@
      "methods": [
       "lbfgs"
      ],
-     "label": "L-BFGS / Newton–Raphson (IRLS)",
-     "batch": "A.7",
-     "candidate": "Make \"irls\" (Newton = Fisher scoring for the canonical logit link, already implemented in C++) the wrapper default, matching the C++ default and the catalog's description of L-BFGS as the 'non-default alternative' (catalog §1 row :109).",
-     "claimed_speedup": "Not quantified. The sources give quadratic local convergence for Newton on a strongly convex objective (Wikipedia, Newton's method in optimization) and the equivalence IRLS = Newton for logistic regression (Wikipedia, Logistic regression). At p = 2 each Newton step costs O(n) plus a 2×2 solve, against L-BFGS's superlinear rate with a line search. Typical counts are about 5–8 IRLS iterations against tens for L-BFGS (catalog estimate, not a measurement).",
+     "candidate": "Make \"irls\" (Newton = Fisher scoring for the canonical logit link, LDLT solve, already in C++) the wrapper default, matching the C++ default and catalog row :109, which calls L-BFGS the non-default alternative.",
+     "claimed_speedup": "Not quantified for EDI. scikit-learn's docs recommend newton-cholesky for n_samples >> n_features, and fastglm's benchmark shows Cholesky-IRLS as the fastest exact GLM fit. A typical count of about 5–8 Newton iterations against tens for L-BFGS is the catalog's estimate, not a measurement.",
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "low",
-     "suggested_action": "Re-look. Confirm whether the default \"lbfgs\" in the R wrappers is intentional (the C++ default and catalog row :109 say IRLS). If not, switch the wrapper default to \"irls\" and A/B the KK21 weights and the separation-drop outcomes. Fix the catalog/inventory wording ('C++ default L-BFGS') either way."
+     "suggested_action": "Re-look (carried over from 2026-11-16, still unaddressed at commit 0d1a0036). Confirm whether the wrapper default \"lbfgs\" is intentional. If not, switch it to \"irls\" and A/B the KK21 weights and separation drops. Fix the inventory wording 'C++ default L-BFGS' either way."
     },
     {
      "methods": [
       "irls"
      ],
-     "label": "Newton–Raphson (IRLS) quasi-likelihood",
-     "batch": "A.9",
-     "candidate": "Call the package's C++ kernel fast_logistic_regression_cpp(X, y, estimate_only=TRUE), which compute_treatment_estimate_during_randomization_inference (line 257) already uses for the same Bernoulli quasi-likelihood on y∈[0,1]. This is the same estimator (same score equations, same concave QMLE), solved by C++ IRLS with a Cholesky-family (LDLT) step.",
-     "claimed_speedup": "Not measured for EDI. fastglm's CRAN benchmark vignette (logistic, p=30, n=1,000, median of 5 runs) reports glm.fit at 2.75 ms vs a C++ Cholesky IRLS at 0.67 ms (~4×) and pivoted QR at 1.26 ms (~2.2×). The gap grows with n. At EDI's smaller n, glm.fit's fixed R overhead likely makes the ratio larger, but no source quantifies that.",
+     "candidate": "Route that branch to fast_logistic_regression_cpp(X, y, estimate_only=TRUE): the same Bernoulli quasi-score equations, solved by C++ IRLS with an LDLT step. Keep glm.fit as a fallback on non-convergence.",
+     "claimed_speedup": "fastglm's CRAN benchmark vignette (dated 2026-11-06; logistic, p=30): glm.fit 2.75 ms vs C++ Cholesky IRLS 0.67 ms at n=1,000 (~4×), and 29.0 vs 4.7 ms at n=10,000. Not measured on EDI.",
      "keeps_estimator": "yes",
      "applies_at_edi_sizes": "yes",
      "confidence": "medium",
-     "suggested_action": "Re-look: route the estimate_only/harden=FALSE branch of FracLogit compute_estimate to fast_logistic_regression_cpp(estimate_only=TRUE), matching the randomization-inference path, with a glm.fit fallback on non-convergence. Benchmark one bootstrap at EDI n before adopting. Also check other classes' estimate_only 'fast paths' for the same glm.fit pattern."
+     "suggested_action": "Re-look (carried over from 2026-11-16, code unchanged). Switch the estimate_only/harden=FALSE branch to the C++ kernel and benchmark one bootstrap at EDI's n."
     }
    ],
    "sources": [
-    "https://cran.r-project.org/package=fastglm",
+    "https://cran.r-project.org/web/packages/fastglm/news/news.html",
     "https://cran.r-project.org/web/packages/fastglm/vignettes/benchmarks-fastglm.html",
-    "https://en.wikipedia.org/wiki/Logistic_regression",
-    "https://en.wikipedia.org/wiki/Newton%27s_method_in_optimization"
-   ],
-   "note": "Seeded 2026-11-16 from the full run's per-label batches (before research was organised by problem): method notes are the label agents' notes, tagged with the label."
+    "https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html"
+   ]
   },
   "blocking-partition": {
    "last_researched": "2026-11-16",
@@ -1755,139 +1733,82 @@
   },
   "glmm-marginal-likelihood": {
    "last_researched": "2026-11-16",
-   "run": "43903509109",
+   "run": "43918277226",
    "methods": {
     "bfgs": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[BFGS (optim) with analytic gradient] Nothing beyond what is already tracked. The row is Prototype: damped Newton or trust-region with the analytic Hessian EDI already has. trust 0.1-9 (cran.r-project.org/package=trust, MIT, 2026-02-11) is an off-the-shelf R trust-region solver for that route, but it is not new evidence. The per-call re-sort and Golub–Welsch overhead of the getters is already logged as incidental. The no-op 'BFGS' else 'BFGS' ternary is still at inference_count_KK_cond_poisson.R:1243.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "BFGS (optim) with analytic gradient"
-     ]
+     "note": "Checked general BFGS vs Newton/trust-region evidence: nothing new beyond the existing Prototype (damped Newton/trust-region using the analytic Hessian already available, fit_combined_hurdle). No code commits since the last run.",
+     "last_researched": "2026-11-16"
     },
     "closed-form": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[closed form] These are direct O(1), O(n) or O(np²) formulas: link cdf/pdf, analytic scores and Hessians, Wald/RD/BRS variances, ridit DeLong SE, lgamma sums. Each is at the lower bound of reading its inputs. Some are dead exports (beta_*_cpp, neg_loglik_nb_cpp). The micro-optimizations already noted (distinct-y lgamma caching in NegBinNoZiLikelihood, SYRK/weighted_crossprod reuse) are constant-factor and trivial.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "closed form"
-     ]
+     "note": "Link cdf/pdf policies are O(1). The erfc-based Φ is already the cancellation-free form (Φ(x)=erfc(−x/√2)/2). Fast approximate exp/log would trade accuracy, which is not acceptable.",
+     "last_researched": "2026-11-16"
     },
     "gauss-hermite-quadrature": {
      "conclusion": "faster_option_found",
-     "note": "[Gauss–Hermite quadrature + L-BFGS] fast_clogit_plus_glmm_cpp (GH20 + L-BFGS), its abstract and InferencePropKKGLMM inherit the same AGQ finding. The Laplace/PQL rejections still stand: Stringer (arXiv 2310.01589v2) reports high Laplace bias and low coverage at group sizes 3 and 5. The Investigate verdict on the Bernoulli parametric bootstrap for fractional responses is a statistical question, not an algorithm-speed one, so it was not addressed. | [Gauss–Hermite quadrature GLMM] Covered by the non-adaptive GH finding. Stringer (arXiv 2310.01589 v2, Nov 2024) gives an exact gradient for adaptive quadrature that works with L-BFGS (via LBFGSpp), which removes the obstacle the catalog recorded for v1.0.5 TODO-153. Against EDI's fixed 20 nodes the speed gain is not quantified and probably modest; against Poisson's 60 nodes it is likely larger. Not a drop-in: results change at quadrature tolerance. | [non-adaptive Gauss–Hermite quadrature] See finding: exact-gradient AGQ (Stringer 2024) makes TODO-153 workable with gradient-based optimizers, 2–4× faster than GLMMadaptive/lme4 at m=1000, n=5. The same paper says about 7–17 adaptive points are needed at small cluster sizes, so the expected win over the fixed 20 nodes is small. The bigger win is over the 60-node Poisson kernel, and the gain at large σ is accuracy. | [non-adaptive Gauss–Hermite quadrature (K=7)] The hurdle-Poisson GLMM uses its own K=7 rule, which falls outside TODO-153's scope. The same exact-gradient AGQ result applies. Here the gain is accuracy at about 1× cost, not speed. This keeps catalog item 5 (Investigate, then Prototype) and gives the gradient implementation a citable route.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Gauss–Hermite quadrature + L-BFGS",
-      "Gauss–Hermite quadrature GLMM",
-      "non-adaptive Gauss–Hermite quadrature",
-      "non-adaptive Gauss–Hermite quadrature (K=7)"
-     ]
+     "note": "Re-checked today. New code-level finding: fast_poisson_glmm.cpp operator()/hessian (:199-206, :223-243, :258-300) computes exp(η_i+b_k), an all-n term vector and an X'·(n-vector) product at every one of the 60 nodes, so it costs O(n·K·p). With a log link, group g's integrand depends on b only through S_g=Σw·y, Λ_g=Σw·e^η and A_g=Σw(yη−log y!). That gives O(np + G·K) per evaluation with an identical estimator. The hurdle kernel already uses multiplicative exp sharing, and the catalog records no such note for the Poisson GLMM. The previous AGQ finding still stands (Stringer arXiv 2310.01589, no journal DOI yet). It is now backed by Rizopoulos 2012 pseudo-adaptive GHQ (doi 10.1016/j.csda.2011.09.007) as the frozen-mode route. Nothing newer turned up: the arXiv API had no 2025–26 GLMM quadrature speed paper; arXiv 2607.12184 (lme4 GLMM paper, Jul 2026) and 2606.15933 (package comparison) found no new algorithm; lme4 2.0-6/2.1-0 NEWS has only accuracy and symmetrisation changes; GLMMadaptive NEWS has none.",
+     "last_researched": "2026-11-16"
     },
     "laplace-approximation-tmb": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[Laplace approximation (glmmTMB)] glmmTMB NEWS 1.1.10–1.1.15 (latest 1.1.15.2, 2026-09-29) adds TMBad autopar and an RTMB back-end, but no AGQ and no Laplace speedup. Stringer 2024 confirms Laplace performs very poorly for small binary clusters. The faster replacement for these bootstrap paths is EDI's own C++ GH kernels (already the Prototype/Investigate items), not a new algorithm. | [Laplace approximation + nlminb (glmmTMB)] Gaussian LMM: Laplace is exact and it is only the fallback; the closed-form C++ LMM plus the frozen-VC GLS replicate shortcut is already the fast path. Hurdle Bayesian bootstrap: the known faster option is the existing weighted hurdle-GLMM C++ (Prototype already recorded). No new glmmTMB/TMB optimizer evidence found.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Laplace approximation (glmmTMB)",
-      "Laplace approximation + nlminb (glmmTMB)"
-     ]
+     "note": "glmmTMB 1.1.15.2 (2026-09-29, AGPL-3) is still current. The TMB JSS paper (doi 10.18637/jss.v070.i05) and RJ-2017-066 speed claims are old and relative to ADMB/lme4. arXiv 2606.15933 again reports lower accuracy and convergence for Laplace (lme4_LA, glmmTMB) than AGQ. The faster route for these bootstrap paths is still EDI's own C++ GH kernels (existing Prototype/Investigate items).",
+     "last_researched": "2026-11-16"
     },
     "lbfgs": {
      "conclusion": "faster_option_found",
-     "note": "[L-BFGS] The generic LBFGSpp driver uses backtracking strong-Wolfe. The Newton alternative for the concave ordinal/CR/AC/beta/logistic fits is already catalogued (catalog §2 TODO-1/2, §1 TODO-7). LBFGSpp releases add a More–Thuente / Nocedal–Wright line search but no performance claim. The literature found (arXiv 1911.04584, 2310.07296) suggests Wolfe/More–Thuente searches use more evaluations than Armijo backtracking, so switching the line search is not a demonstrated win. | [L-BFGS (single start)] Logistic, Poisson, clogit+GLMM and ordinal CLMM outer MLE. Stringer (arXiv 2310.01589) gives an exact gradient for adaptive-quadrature GLMMs with L-BFGS (LBFGSpp, the library EDI uses). That removes the catalog's objection to AGQ, which only adds weight to TODO-153. lme4 2.0-6/2.1-0 NEWS has no optimizer change. See findings.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "L-BFGS",
-      "L-BFGS (single start)"
-     ]
+     "note": "The previous Stringer exact-AGQ-gradient finding (which keeps L-BFGS/LBFGSpp) still stands and is re-reported inside the AGQ finding. The LBFGSpp releases page lists no new line-search or performance change; the More–Thuente vs backtracking question is unchanged. Newton as the default (catalog §4 TODO-6) is already tracked.",
+     "last_researched": "2026-11-16"
     },
     "log-sum-exp": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[max-shifted log-sum-exp] O(n_gh) per group, fused with the weight normalisation. One-pass online variants only save a pass over 7–60 values. Nothing faster that matters.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "max-shifted log-sum-exp"
-     ]
+     "note": "O(K) per group. SIMD/vectorised logsumexp threads report gains only for long vectors; at K=7–60 per group it is not a bottleneck. With the Poisson collapse it stays O(G·K).",
+     "last_researched": "2026-11-16"
     },
     "louis-identity": {
-     "conclusion": "no_faster_acceptable_found",
-     "note": "[Louis identity (analytic observed information)] Already analytic and exact for the quadrature-approximated likelihood, at O(n·n_gh·p²): about 1–2 gradient-equivalents. FD, AD and complex-step all cost more. Expected information has no closed form for GLMMs, and L-BFGS curvature pairs give wrong SEs. Cutting the node count (Laplace/AGQ) is a row C estimator question, not a derivative speedup.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "Louis identity (analytic observed information)"
-     ]
+     "conclusion": "faster_option_found",
+     "note": "Changed from no_faster_acceptable_found. For the Poisson GLMM Hessian, the Louis identity itself stays, but its β-β block can be one weighted_crossprod with weights w·e^η·E_g[e^b] instead of 60 per-node crossprods. The per-group E[GGᵀ] follows from G_gk = u_g − e^{b_k}v_g, with u_g=X_gᵀwy and v_g=X_gᵀwe^η, using posterior moments of e^b. So O(n·K·p²) → O(np² + G·(K+p²)), with the same matrix. Logistic and clogit+GLMM Louis Hessians are unchanged (no such factorization). Pan & Thompson 2003 (Comput Stat) remains the standard GHQ score/information reference; nothing faster found.",
+     "last_researched": "2026-11-16"
     },
     "soft-barrier-penalty": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "[quadratic soft barrier penalty] O(1) per evaluation, so it adds no cost. The alternatives listed in catalog T4 (L-BFGS-B, lme4-style σ≥0 bounds, glmmTMB priors) are not faster and change the boundary behaviour. lme4 2.1-0 (2026-10-23) NEWS only changes how zero variances are reported, and glmmTMB 1.1.15.2 NEWS has no boundary or optimizer change: https://cran.r-project.org/web/packages/lme4/news.html https://cran.r-project.org/web/packages/glmmTMB/news.html. The Prototype (low) remains about accuracy and flat gradients, not speed.",
-     "last_researched": "2026-11-16",
-     "labels": [
-      "quadratic soft barrier penalty"
-     ]
+     "note": "O(1). The Chung et al. 2013 boundary-avoiding (log-gamma) penalties and blme change the estimator, not the speed. No new evidence.",
+     "last_researched": "2026-11-16"
     }
    },
    "findings": [
     {
      "methods": [
+      "gauss-hermite-quadrature",
+      "louis-identity"
+     ],
+     "candidate": "Collapse to cluster totals (log link). Per group g: S_g=Σw_i y_i, log Λ_g=log Σw_i e^{η_i} (via LSE), A_g=Σw_i(y_iη_i−log y_i!). Node log term = log w_k + A_g + b_k S_g − exp(b_k + log Λ_g), which is O(G·K). Gradient: β-part = Xᵀ[w⊙(y − e^{η}⊙E_g[e^b])], one GEMV. The σ-part comes from per-group posterior moments E_g[b(S_g−Λ_g e^b)]. Louis Hessian: β-β = −Xᵀdiag(w e^η E_g[e^b])X, one weighted crossprod. Cross and E[GGᵀ] terms come from u_g=X_gᵀwy, v_g=X_gᵀwe^η and E_g[e^b], E_g[e^{2b}], E_g[b e^b], E_g[b² ...]. This is the same quadrature-approximated likelihood algebraically; only the summation order changes. The cluster-total sufficiency is the Hausman–Hall–Griliches structure, and the per-group integral is a Poisson-lognormal-type 1-D function of (S_g, Λ_g, σ). EDI's hurdle kernel already uses the multiplicative e^{η}·e^{b_k} sharing.",
+     "claimed_speedup": "Not quantified by any source. This is my derivation from the code. The n-dependent work drops from O(n·K·p) to O(n·p) per evaluation, with O(G·K) left for the quadrature, so up to about K=60× on the dominant term when n ≫ G. In KK designs (pairs plus singletons, G≈n/2–n) the remaining G·K exp/LSE work is about half to all of the current n·K exp count. A realistic per-evaluation gain is then the removed K·p GEMV/crossprod work plus about 1–2× fewer exps, perhaps 3–10× on gradient+Hessian for p≈5–20. Must be measured.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "yes",
+     "confidence": "medium",
+     "suggested_action": "Add a catalog §4 Adopt item for fast_poisson_glmm.cpp: rewrite PoissonGLMMObjective::operator() and hessian (and the score/Hessian exports at :515,:545) in cluster-total form. Gate on existing Poisson GLMM tests plus an all.equal (tol 1e-10) A/B against the current kernel on the R8 grid, then benchmark at n=100–1000. Cite the hurdle kernel's multiplicative exp sharing as precedent."
+    },
+    {
+     "methods": [
+      "gauss-hermite-quadrature",
       "lbfgs"
      ],
-     "label": "L-BFGS (single start)",
-     "batch": "A.7",
-     "candidate": "Stringer (arXiv 2310.01589v2, Nov 2024): exact gradient of the AGQ approximate log-likelihood for one grouping factor. It handles the mode through implicit differentiation of the stationarity condition and the Cholesky factor through reverse-mode AD. It is optimized with L-BFGS (LBFGSpp) from a GLM start, then one Newton step on a finite-difference-of-exact-gradients Hessian for the Wald SEs. With AGQ, far fewer nodes than 20–60 non-adaptive nodes would be needed.",
-     "claimed_speedup": "Paper §4–5: usually 2–4× faster than lme4 (BOBYQA) and GLMMadaptive. For the scalar random intercept (m = 1000, n = 5, σ² = 2) it is typically 2–4× faster than lme4. On toenail data (m = 294, n ≤ 7) it is up to 7× faster than lme4 and 2.5–10× faster than GLMMadaptive. These are relative to other packages, not to EDI's non-adaptive-GH L-BFGS, so the gain over EDI is not quantified.",
+     "candidate": "Adaptive GH with fewer nodes, by either of two routes. (a) Exact AQ gradient by implicit differentiation of the per-group mode, reusing the inner Cholesky, with L-BFGS (Stringer, arXiv 2310.01589v2, still a preprint with no journal DOI). (b) Pseudo-adaptive GHQ: centre and scale nodes once per group from an initial fit and keep them fixed, so the existing cheap fixed-node analytic gradient applies (Rizopoulos 2012, CSDA 56(3):491–501, doi 10.1016/j.csda.2011.09.007).",
+     "claimed_speedup": "Stringer: about 2–4× faster than lme4/GLMMadaptive at m=1000, n=5 (relative to other packages, not to EDI). Rizopoulos: 'considerably faster than the standard Gauss–Hermite rule', not quantified on the abstract page; a later application cited in search results reports 6 pseudo-adaptive nodes ≈ 20 standard. Against EDI's 20 fixed nodes at m_g≤2 the gain is not quantified and probably small; catalog T1 estimates 1.2–1.6×.",
      "keeps_estimator": "no",
      "applies_at_edi_sizes": "unknown",
      "confidence": "low",
-     "suggested_action": "Add Stringer 2024 to the TODO-153 (adaptive GH) plan and catalog §4. It answers the 'exact AGQ gradient is not an envelope identity' objection while keeping L-BFGS (same LBFGSpp library), so the catalog's 1.2–1.6× estimate should be revisited. The gain is node reduction (60 → ~5–11) at the same or better accuracy. Prototype on the Poisson GLMM first, where 60 non-adaptive nodes are now required."
-    },
-    {
-     "methods": [
-      "gauss-hermite-quadrature"
-     ],
-     "label": "Gauss–Hermite quadrature + L-BFGS",
-     "batch": "C.1",
-     "candidate": "Two published ways to do AGQ that address those objections. (a) Frozen-mode AGQ, as in GLMMadaptive: the modes and curvatures of the random effects are located only every few iterations (update_GH_every, default 10 in the EM phase; once per outer quasi-Newton iteration), so the inner objective is a fixed-node rule with EDI's existing cheap exact gradient. (b) An exact AGQ gradient by implicit differentiation of the mode condition, reusing the Cholesky factor from the mode solve (one forward/back substitution) and warm-starting each group's mode from the previous outer iteration (Stringer, arXiv 2310.01589v2).",
-     "claimed_speedup": "Not quantified against fixed-node GH. Stringer reports about 2–4× over finite-difference-gradient (GLMMadaptive) and derivative-free (lme4) AGQ, at m=1000 groups of size n=5. GLMMadaptive's page gives the rationale for refreshing modes only every few iterations (lower computational cost) but no number.",
-     "keeps_estimator": "unknown",
-     "applies_at_edi_sizes": "unknown",
-     "confidence": "low",
-     "suggested_action": "Amend TODO-153 (performance_profiling_and_upgrades.md) so it names fast_weibull_frailty.cpp and fast_clogit_plus_glmm.cpp, and records these two implementation routes: frozen-mode AGQ with the fixed-node gradient, or the implicit-differentiation exact gradient. Then revisit the catalog's 1.2–1.6× estimate with a perf A/B at EDI sizes (pairs of 2, n≈50–500, σ up to e^1.5)."
-    },
-    {
-     "methods": [
-      "gauss-hermite-quadrature"
-     ],
-     "label": "non-adaptive Gauss–Hermite quadrature",
-     "batch": "C.2",
-     "candidate": "Adaptive GH with an exact gradient of the AQ log-marginal likelihood (Stringer, arXiv 2310.01589 v2, 2024-11-11). It differentiates the mode implicitly (implicit function theorem), reusing the inner Newton's Cholesky factor (one forward and one backward solve, ∂û never formed), plus closed-form third derivatives for the Bernoulli case, and feeds the result to quasi-Newton L-BFGS via LBFGSpp, the same family EDI already uses. The paper covers a single grouping factor, which matches EDI's pair/singleton random intercept.",
-     "claimed_speedup": "The paper benchmarks against GLMMadaptive (finite-difference gradients) and lme4 (BOBYQA), not against fixed-node GH. Sec. 4.3.2 / Fig. 2: typically 2–4× faster at m=1000 groups, n=5 per group. Toenail data (Fig. 4d): 2.5–10× vs GLMMadaptive and up to 7× vs lme4. Against EDI's fixed 20 nodes the gain is not quantified: the paper finds about 7–17 adaptive points are needed for stable inference at n=3–9 per group (App. C.1, Sec. 5), so the node saving over 20 is small. Over the 60-node Poisson default it is larger, roughly 3–8× fewer nodes, minus the per-group mode solve.",
-     "keeps_estimator": "unknown",
-     "applies_at_edi_sizes": "unknown",
-     "confidence": "medium",
-     "suggested_action": "Add Stringer 2024 (arXiv 2310.01589) to v1.0.5 TODO-153 and catalog T1 as the exact-gradient route for AGQ with L-BFGS, replacing the 'needs dû/dθ, lme4 sidesteps with BOBYQA' obstacle. Lower the expected node saving for the 20-node kernels (about 7–17 AGQ points are needed at small clusters), and prioritise the Poisson GLMM (60 fixed nodes) and the K=7 hurdle kernel (accuracy) as the first AGQ targets."
-    },
-    {
-     "methods": [
-      "gauss-hermite-quadrature"
-     ],
-     "label": "non-adaptive Gauss–Hermite quadrature (K=7)",
-     "batch": "C.2",
-     "candidate": "AGQ (K≈5–7, centred and scaled at the per-pair conditional mode) with the exact implicit-differentiation gradient from Stringer 2024, keeping L-BFGS.",
-     "claimed_speedup": "Not quantified for this model. The win is accuracy at about the same cost; the paper's timings (2–4× vs GLMMadaptive/lme4, Fig. 2) are for Bernoulli models and do not transfer.",
-     "keeps_estimator": "unknown",
-     "applies_at_edi_sizes": "unknown",
-     "confidence": "low",
-     "suggested_action": "When v1.0.5 catalog item 5 (hurdle K=7 accuracy) is picked up, cite arXiv 2310.01589 as the gradient method so the AGQ prototype can keep the analytic-gradient L-BFGS path instead of falling back to finite differences."
+     "suggested_action": "Keep under v1.1.0 performance_profiling_and_upgrades.md TODO-153. Add the Rizopoulos 2012 DOI as the frozen-mode route next to Stringer 2024. Lower priority for the Poisson kernel if the cluster-total rewrite lands (the 60 nodes become cheap); prioritise the logistic/clogit 20-node kernels and the hurdle K=7 accuracy item."
     }
    ],
    "sources": [
     "https://arxiv.org/abs/2310.01589",
     "https://arxiv.org/html/2310.01589v2",
-    "https://cran.r-project.org/package=GLMMadaptive",
-    "https://drizopoulos.github.io/GLMMadaptive/articles/Optimization.html"
-   ],
-   "note": "Seeded 2026-11-16 from the full run's per-label batches (before research was organised by problem): method notes are the label agents' notes, tagged with the label."
+    "https://cran.r-project.org/package=poilog",
+    "https://en.wikipedia.org/wiki/Fixed-effect_Poisson_model",
+    "https://ideas.repec.org/a/eee/csdana/v56y2012i3p491-501.html"
+   ]
   },
   "gram-matrix-accumulation": {
    "last_researched": "2026-11-16",
