@@ -109,6 +109,9 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
             continue
         if task == "inventory" or task.startswith("inventory."):
             for s in data.get("new_symbols", []):
+                if s.get("symbol") == "*":
+                    plumbing += 1  # a whole file reported as plumbing
+                    continue
                 if s.get("is_algorithm"):
                     new_algos.append(s)
                 else:
@@ -123,8 +126,10 @@ def render(dirpath, tasks, batches=None, taxonomy=None, inventory_ctx=None):
             ctx = inventory_ctx.get(task, {})
             for kind, label in (("new_symbols", "new function"), ("changed_entries", "changed entry")):
                 got = {(x.get("file"), x.get("symbol")) for x in data.get(kind, [])}
+                whole = {x.get("file") for x in data.get(kind, []) if x.get("symbol") == "*"
+                         and kind == "new_symbols" and x.get("is_algorithm") is False}
                 skipped += [(task, f"{label} `{x['file']}` `{x['symbol']}`") for x in ctx.get(kind, [])
-                            if (x["file"], x["symbol"]) not in got]
+                            if (x["file"], x["symbol"]) not in got and x["file"] not in whole]
             continue
         for f in data.get("findings", []):
             findings.append((task, f))

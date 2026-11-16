@@ -379,6 +379,12 @@ class ResearchReportTests(unittest.TestCase):
         self.assertIn("inventory.12: new function `a.R` `g` (**silently skipped**", text)
         self.assertIn("inventory.12: changed entry `b.R` `h` (**silently skipped**", text)
         self.assertNotIn("`a.R` `f` (**silently", text)
+        # a whole file reported as plumbing covers its new functions (not its changed entries)
+        self.put("inventory.12", {"new_symbols": [{"file": "a.R", "symbol": "*", "is_algorithm": False, "reason": "R6 plumbing"}],
+                                  "changed_entries": [{"file": "a.R", "symbol": "f", "stale": False},
+                                                      {"file": "b.R", "symbol": "h", "stale": False}]})
+        flagged, text = report.render(self.dir, ["inventory.12"], inventory_ctx=ctx)
+        self.assertNotIn("silently skipped", text)
 
     def test_findings_stale_rows_new_algorithms_and_skips_flag(self):
         self.put("binary-glm-mle", self.problem(

@@ -594,7 +594,8 @@ def previous_results(problem_id, inventory, log=None, max_commits=5):
     return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits))
 
 
-INVENTORY_SHARD = 40  # new + changed items per inventory agent (one agent got 545 and gave up)
+INVENTORY_SHARD = 25  # items per inventory agent (one got 545 and gave up; at 40, method-heavy
+                      # R6 files were still left unreported, run 43964304738)
 
 
 def is_inventory_task(task):

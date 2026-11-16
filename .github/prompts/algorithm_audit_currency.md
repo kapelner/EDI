@@ -59,4 +59,7 @@ but never rewrite a verdict yourself: verdicts change only through a human re-re
 
 Report **every** entry in `changed_entries`, with `stale: false` for those that still describe
 the code, and every symbol in `new_symbols`, with `is_algorithm: false` for plumbing. An item
-missing from your output is flagged as silently skipped.
+missing from your output is flagged as silently skipped. When every new function in a file is
+plumbing (typically an R6 class's `initialize`, getters and wrappers), you may report the whole
+file in one entry: `{"file": "<path>", "symbol": "*", "is_algorithm": false, "reason": "..."}`.
+Changed entries are always reported one by one.
