@@ -127,6 +127,20 @@ fastest acceptable one for its job?**
   was read from, `gpl3_compatible` yes / conditional / no / unknown, language, methods,
   relevance). The findings file lists them compatible-first; `research_log.json` keeps them
   per problem across runs.
+- **Tool policy** (2026-11-16 security fix). In full run 43925959437 all 82 agents used Bash
+  (556 calls: reading their inputs, `curl` of CRAN tarballs, `gh api`) although
+  `--allowedTools` listed only `Bash(git log/show/diff:*)`: the allow list does not restrict.
+  A transcript scan found no environment, token or credential access. `--disallowedTools` now
+  denies `Bash`, `Agent`, `Task`, `Edit`, `Write`, `NotebookEdit`, and `Read` on `//proc`,
+  `//sys`, `//etc`, `~/.config`, `~/.ssh` and the Claude credentials file (deny always wins).
+  The git history agents used the shell for is precomputed as `code_changes.diff`
+  (`--code-changes <task>`, 400 KB cap). The report flags any transcript that calls a denied tool.
+- **Inventory shards** (2026-11-16). The same run's inventory agent got 281 new functions and
+  264 changed entries, delegated to four sub-agents through the Agent tool, and submitted an
+  empty answer before they returned. The currency work is now split into `inventory.1` ...
+  `inventory.N` (about 40 items each, a file's items in one shard; `--inventory-shards`);
+  `research_tasks=inventory` runs all of them, and the PR job merges their outputs. The plan
+  job checks out full history so it plans the same shards the research jobs compute.
 - **Transcripts.** Each agent's full Claude Code transcript is the run artifact
   `transcript-<problem>` (90 days; never `show_full_output`, which would print it in the
   public log). `.github/scripts/algorithm_audit_search_log.py` extracts every WebSearch

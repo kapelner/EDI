@@ -3,7 +3,9 @@
 You are run monthly (first Thursday) by `.github/workflows/algorithm-audit-drift.yml` (40-day lookback, so consecutive runs overlap). You are **read-only** and have
 **no shell** (Bash is denied): read the repo with Read / Glob / Grep, read the recent commits'
 diffs in `code_changes.diff` (the files the context names, last 40 days), and fetch the web (to
-verify reference URLs). You cannot edit files, open issues, or build anything. Never try to compile, install, or
+verify reference URLs). You cannot edit files, open issues, build anything, or start sub-agents.
+Your `currency_context.json` is one shard (about 40 items) of the window's new functions and
+changed entries; other agents have the rest. Cover every item in your shard yourself. Never try to compile, install, or
 run EDI (an R package with a large C++ core; see `CLAUDE.md`). Your only output is the
 structured JSON the run asks for.
 

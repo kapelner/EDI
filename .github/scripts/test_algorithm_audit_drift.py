@@ -425,6 +425,30 @@ class ResearchApplyTests(InventoryCheckTests):
         self.assertEqual((row["refs"], row["watch"], row["verdict"], row["problem_id"], row["method_id"]),
                          (WIKI, "A", "Not yet audited (added 2026-11-16)", "binary-glm-mle", "irls"))
 
+    def test_inventory_shards_are_merged(self):
+        (self.root / "R/EDI/src/fit.cpp").write_text("double fit_irls() {}\ndouble em() {}\ndouble mm() {}\n")
+        self.run_check()
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        mk = lambda sym: {"new_symbols": [{"file": "R/EDI/src/fit.cpp", "symbol": sym, "is_algorithm": True,
+            "reason": "", "proposed": {"problem": "p", "algorithm": sym, "details": "d", "complexity": "c",
+            "audit_row": "A", "problem_id": "binary-glm-mle", "method_id": "irls", "refs": [WIKI]}}],
+            "changed_entries": []}
+        (out / "inventory.1.json").write_text(json.dumps(mk("em")))
+        (out / "inventory.2.json").write_text(json.dumps(mk("mm")))
+        applied, held, _ = research_apply.apply(out, ["inventory.1", "inventory.2"], "2026-11-16", offline=True)
+        self.assertEqual((len(applied), held), (2, []))
+
+    def test_problem_level_synonyms_go_to_search_terms(self):
+        self.run_check()
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "binary-glm-mle.json").write_text(json.dumps({"proposed_terms": [
+            {"target": "problem", "id": "binary-glm-mle", "term_class": "broader", "term": "cheap bootstrap", "why": ""}]}))
+        added, held = research_apply.add_proposed_terms(out, ["binary-glm-mle"])
+        self.assertEqual((len(added), held), (1, []))
+        self.assertIn("cheap bootstrap", drift.load_taxonomy()["problems"]["binary-glm-mle"]["search_terms"])
+
     def test_new_row_with_unknown_taxonomy_ids_is_held(self):
         (self.root / "R/EDI/src/fit.cpp").write_text("double fit_irls() {}\ndouble em() {}\n")
         self.run_check()
@@ -507,6 +531,31 @@ class CanonicalCranUrlTests(unittest.TestCase):
             _, text = report.render(Path(tmp), ["A.1"])
         self.assertIn("https://cran.r-project.org/web/packages/fastglm/vignettes/x.html", text)
         self.assertNotIn("dogado", text)
+
+
+class InventoryShardTests(unittest.TestCase):
+
+    def test_shards_keep_a_files_items_together_and_cover_everything(self):
+        ctx = {"window_days": 40, "today": "x",
+               "new_symbols": [{"file": f"f{i % 7}.R", "symbol": f"n{i}"} for i in range(50)],
+               "changed_entries": [{"file": f"f{i % 7}.R", "symbol": f"c{i}"} for i in range(30)]}
+        saved = drift.currency_context
+        drift.currency_context = lambda days: ctx
+        try:
+            shards = drift.inventory_shards(size=25)
+        finally:
+            drift.currency_context = saved
+        self.assertEqual(list(shards), [f"inventory.{i + 1}" for i in range(len(shards))])
+        files = [{x["file"] for k in ("new_symbols", "changed_entries") for x in sh[k]}
+                 for sh in shards.values()]
+        for i, a in enumerate(files):  # each file in exactly one shard
+            for b in files[i + 1:]:
+                self.assertFalse(a & b)
+        self.assertEqual(sum(len(sh["new_symbols"]) for sh in shards.values()), 50)
+        self.assertEqual(sum(len(sh["changed_entries"]) for sh in shards.values()), 30)
+        self.assertTrue(all(sh["window_days"] == 40 for sh in shards.values()))
+        self.assertTrue(drift.is_inventory_task("inventory.3") and drift.is_inventory_task("inventory"))
+        self.assertFalse(drift.is_inventory_task("inventory-like-problem"))
 
 
 class OpenCopyTests(unittest.TestCase):

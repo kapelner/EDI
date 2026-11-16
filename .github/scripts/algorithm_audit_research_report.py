@@ -106,7 +106,7 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         if data is None:
             notrun.append((task, why))
             continue
-        if task == "inventory":
+        if task == "inventory" or task.startswith("inventory."):
             for s in data.get("new_symbols", []):
                 if s.get("is_algorithm"):
                     new_algos.append(s)
@@ -213,7 +213,8 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
             L.append(f"- `{c.get('file')}` `{c.get('symbol')}`{mark}: {c.get('issue', '')}")
             if c.get("suggested_details"):
                 L.append(f"  - Suggested `details`: {c['suggested_details']}")
-    if "inventory" in tasks and not any(t == "inventory" for t, _ in notrun):
+    inv_tasks = [t for t in tasks if t == "inventory" or t.startswith("inventory.")]
+    if inv_tasks and not any(t in inv_tasks for t, _ in notrun):
         L.append(f"_{plumbing} new functions judged plumbing; {unchecked} changed entries "
                  "still accurate._")
     L.append("")

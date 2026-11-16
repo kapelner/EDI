@@ -65,7 +65,11 @@ def apply(dirpath, tasks, today, offline):
     cols = list(inv[0])
     refs = {r["url"]: r for r in drift.load_references()}
     applied, held, skipped = [], [], 0
-    data, _ = report.load(dirpath, "inventory") if "inventory" in tasks else (None, None)
+    data = {"new_symbols": [], "changed_entries": []}  # merged over inventory shards
+    for t in (t for t in tasks if drift.is_inventory_task(t)):
+        d, _ = report.load(dirpath, t)
+        for k in data:
+            data[k] += (d or {}).get(k, [])
     for s in (data or {}).get("new_symbols", []):
         if not s.get("is_algorithm"):
             continue
@@ -183,7 +187,7 @@ def update_research_log(dirpath, tasks, today, run_id):
     log = drift.load_research_log()
     n = 0
     for task in tasks:
-        if task == "inventory":
+        if drift.is_inventory_task(task):
             continue
         data, _ = report.load(dirpath, task)
         if not data or not data.get("methods_reviewed"):
@@ -229,9 +233,11 @@ def add_proposed_terms(dirpath, tasks):
     added, held = [], []
     for task in tasks:
         data, _ = report.load(dirpath, task)
-        for p in (data or {}).get("proposed_terms", []) if task != "inventory" else []:
+        for p in (data or {}).get("proposed_terms", []) if not drift.is_inventory_task(task) else []:
             target, tid, cls, term = (p.get("target"), p.get("id"), p.get("term_class"),
                                       str(p.get("term", "")).strip())
+            if target == "problem" and cls in ("synonyms", "broader", "narrower"):
+                cls = "search_terms"  # problems keep one search-term list (seen in run 43925959437)
             group, classes = allowed.get(target, (None, set()))
             if not (group and tid in tax.get(group, {}) and cls in classes and term):
                 held.append(f"{task}: {target} `{tid}` {cls} \"{term}\" (unknown id or class)")
@@ -287,7 +293,7 @@ def main():
     out = FINDINGS_DIR / f"{stem}.md"
     out.write_text(findings)
     search_log = FINDINGS_DIR / f"{stem}-searches.md"
-    search_log.write_text(search_log_mod.render(a.dir, [t for t in tasks if t != "inventory"]))
+    search_log.write_text(search_log_mod.render(a.dir, [t for t in tasks if not drift.is_inventory_task(t)]))
     n_find = sum(1 for line in findings.splitlines()
                  if line.startswith("### ") and " → " in line)
     Path(a.pr_body).write_text(

@@ -560,6 +560,38 @@ def previous_results(problem_id, inventory, log=None, max_commits=5):
     return dict(prev, code_commits_since=commits[:max_commits], code_changed_since=bool(commits))
 
 
+INVENTORY_SHARD = 40  # new + changed items per inventory agent (one agent got 545 and gave up)
+
+
+def is_inventory_task(task):
+    return task == "inventory" or task.startswith("inventory.")
+
+
+def inventory_shards(days=40, size=INVENTORY_SHARD):
+    """Split the currency context into shards of about `size` items (new symbols + changed
+    entries), keeping each file's items in one shard: {"inventory.1": ctx, ...}. Owner,
+    2026-11-16: a single agent given 281 new symbols and 264 changed entries delegated to
+    sub-agents and returned nothing."""
+    ctx = currency_context(days)
+    by_file = {}
+    for kind in ("new_symbols", "changed_entries"):
+        for x in ctx[kind]:
+            by_file.setdefault(x["file"], {"new_symbols": [], "changed_entries": []})[kind].append(x)
+    shards, cur, n = [], {"new_symbols": [], "changed_entries": []}, 0
+    for f in sorted(by_file):
+        k = len(by_file[f]["new_symbols"]) + len(by_file[f]["changed_entries"])
+        if n and n + k > size:
+            shards.append(cur)
+            cur, n = {"new_symbols": [], "changed_entries": []}, 0
+        for kind in cur:
+            cur[kind] += by_file[f][kind]
+        n += k
+    if n or not shards:
+        shards.append(cur)
+    base = {k: v for k, v in ctx.items() if k not in ("new_symbols", "changed_entries")}
+    return {f"inventory.{i + 1}": dict(base, **sh) for i, sh in enumerate(shards)}
+
+
 CODE_CHANGES_CAP = 400_000  # bytes of diff an agent gets; the rest is cut with a note
 
 
@@ -567,8 +599,9 @@ def code_changes(task, inventory, days=40, cap=CODE_CHANGES_CAP):
     """Unified diffs agents would otherwise get from `git log -p` (they have no shell). For a
     research problem: commits since its last research touching its inventory files; for
     `inventory`: the last `days` days on the files the currency context names."""
-    if task == "inventory":
-        ctx = currency_context(days)
+    if is_inventory_task(task):
+        ctx = (currency_context(days) if task == "inventory"
+               else inventory_shards(days).get(task, {"new_symbols": [], "changed_entries": []}))
         files = sorted({x["file"] for x in ctx["new_symbols"] + ctx["changed_entries"]})
         since = f"{days}.days"
     else:
@@ -794,11 +827,16 @@ def main():
                     help="print the research task -> algorithms map as JSON")
     ap.add_argument("--previous-results", metavar="PROBLEM",
                     help="print the research log's previous result for one problem as JSON")
+    ap.add_argument("--inventory-shards", action="store_true",
+                    help="print {inventory.N: currency context} (shards of ~40 items)")
     ap.add_argument("--code-changes", metavar="TASK",
                     help="write the diffs an agent gets (a problem id, or inventory)")
     ap.add_argument("--task-problem", metavar="PROBLEM",
                     help="print the taxonomy slice (problem + its methods) for one problem")
     a = ap.parse_args()
+    if a.inventory_shards:
+        text = json.dumps(inventory_shards(), indent=1) + "\n"
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.code_changes:
         text = code_changes(a.code_changes, load_inventory())
         return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
