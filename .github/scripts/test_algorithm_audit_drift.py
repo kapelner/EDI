@@ -255,6 +255,20 @@ class ResearchReportTests(unittest.TestCase):
         self.assertIn("Batch A.1: IRLS: marked `faster_option_found` but has no finding", text)
         self.assertIn("Batch A.2: orphan: has a finding but is not in algorithms_reviewed", text)
 
+    def test_one_finding_can_cover_several_algorithms(self):
+        finding = {"algorithm": "GH", "also_covers": ["GH (fixed 20-node)"], "entries": [],
+                   "current": "", "candidate": "AGQ", "claimed_speedup": "",
+                   "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes", "tradeoffs": "",
+                   "sources": ["https://x"], "confidence": "low", "suggested_action": ""}
+        self.put("C.1", {"row": "C", "not_reviewed": [], "findings": [finding], "algorithms_reviewed": [
+            {"algorithm": "GH", "conclusion": "faster_option_found", "note": ""},
+            {"algorithm": "GH (fixed 20-node)", "conclusion": "faster_option_found", "note": ""},
+            {"algorithm": "GH + L-BFGS", "conclusion": "faster_option_found", "note": "same"}]})
+        _, text = report.render(self.dir, ["C.1"])
+        self.assertIn("- **Also applies to:** GH (fixed 20-node)", text)
+        self.assertNotIn("C.1: GH (fixed 20-node):", text)  # covered
+        self.assertIn("Batch C.1: GH + L-BFGS: marked `faster_option_found` but has no finding", text)
+
     def test_consistent_output_has_no_section_4(self):
         finding = {"algorithm": "IRLS", "entries": [], "current": "", "candidate": "x",
                    "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",

@@ -78,6 +78,8 @@ breaks:
   `algorithms_reviewed` or `not_reviewed`, spelled exactly as in the file.
 - A finding and its algorithm's `conclusion` must agree: every algorithm with a finding is
   marked `faster_option_found`, and every `faster_option_found` has at least one finding.
+  When one finding applies to several algorithms in your batch, write it once and list the
+  other names in its `also_covers` (exact spellings); do not repeat it.
   If a faster option exists but is not acceptable (changes the estimator, loses exactness,
   breaks determinism, does not win at EDI's sizes), the conclusion is
   `no_faster_acceptable_found` and the option goes in the `note`, not in `findings`; a

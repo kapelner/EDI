@@ -70,7 +70,9 @@ def render(dirpath, tasks, batches=None):
         # A finding and its algorithm's conclusion must agree, in both directions.
         conclusion = {a.get("algorithm"): a.get("conclusion")
                       for a in data.get("algorithms_reviewed", [])}
-        found = {f.get("algorithm") for f in data.get("findings", [])}
+        primary = {f.get("algorithm") for f in data.get("findings", [])}
+        covered = {a for f in data.get("findings", []) for a in f.get("also_covers", [])}
+        found = primary | covered
         for alg in sorted(found, key=str):
             c = conclusion.get(alg)
             if c != "faster_option_found":
@@ -106,6 +108,8 @@ def render(dirpath, tasks, batches=None):
                  f"confidence: {f.get('confidence', '?')})")
         L.append(f"- **Trade-offs:** {f.get('tradeoffs', '')}")
         L.append(f"- **Suggested action:** {f.get('suggested_action', '')}")
+        if f.get("also_covers"):
+            L.append("- **Also applies to:** " + ", ".join(f.get("also_covers", [])))
         L.append("- **Affects:** " + ", ".join(f"`{e}`" for e in f.get("entries", [])))
         L.append("- **Sources:** " + " ".join(canonical_cran_url(u) for u in f.get("sources", [])))
         why = {"blocked": "publisher page blocks automated access",
