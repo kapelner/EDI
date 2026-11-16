@@ -27,6 +27,7 @@ import csv
 import datetime
 import fnmatch
 import html
+import time
 import json
 import re
 import subprocess
@@ -133,22 +134,48 @@ def pick_open_copies(work):
     return out
 
 
+class LookupFailed(Exception):
+    """A lookup could not be completed (network, rate limit); not the same as 'not found'."""
+
+
+def _get_with_retry(url, tries=4, pause=2.0):
+    """http_get, retrying 429 / 5xx / network errors with backoff (2, 4, 8 s). Raises
+    urllib.error.HTTPError for a definitive 4xx answer, LookupFailed if it never gets one."""
+    for k in range(tries):
+        try:
+            return http_get(url)
+        except urllib.error.HTTPError as e:
+            if e.code != 429 and e.code < 500:
+                raise
+        except (urllib.error.URLError, OSError):
+            pass
+        time.sleep(pause * 2 ** k)
+    raise LookupFailed(url)
+
+
 def openalex_work(doi):
-    """OpenAlex's record for a DOI (no key needed), or None on any failure."""
+    """OpenAlex's record for a DOI (no key needed); None if OpenAlex has no record (404).
+    Raises LookupFailed when OpenAlex could not be reached (seen in run 43925959437: about 100
+    lookups in one job were rate-limited and silently looked like 'no open copy')."""
+    time.sleep(0.2)  # stay well under OpenAlex's request rate
     try:
-        return json.loads(http_get("https://api.openalex.org/works/doi:"
-                                   + urllib.parse.quote(doi, safe="/")))
-    except (urllib.error.URLError, OSError, ValueError):
-        return None
+        return json.loads(_get_with_retry("https://api.openalex.org/works/doi:"
+                                          + urllib.parse.quote(doi, safe="/")))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise LookupFailed(f"OpenAlex HTTP {e.code}")
+    except ValueError as e:
+        raise LookupFailed(f"OpenAlex bad JSON: {e}")
 
 
 def publisher_reachable(doi):
     """True if the DOI's publisher page loads for an automated client (follows doi.org's
     redirect); False on 401/403/451, other HTTP errors, or network failure."""
     try:
-        http_get(f"https://doi.org/{urllib.parse.quote(doi, safe='/')}")
+        _get_with_retry(f"https://doi.org/{urllib.parse.quote(doi, safe='/')}", tries=2)
         return True
-    except (urllib.error.URLError, OSError, ValueError):
+    except (urllib.error.URLError, OSError, ValueError, LookupFailed):
         return False
 
 
@@ -160,8 +187,15 @@ def doi_access(doi, reachable=publisher_reachable, work_of=openalex_work):
     needed. Otherwise it is "blocked" (the page did not load) or "closed" (it loads but OpenAlex
     marks the published version closed, i.e. a paywall), and open_copies lists preprint / PMC
     copies from OpenAlex, best first (possibly empty)."""
+    if doi.lower().startswith("10.48550/arxiv."):
+        return "publisher", []  # an arXiv DOI is itself the open copy; never fetch arXiv for it
     ok = reachable(doi)
-    work = work_of(doi)
+    try:
+        work = work_of(doi)
+    except LookupFailed:
+        if ok:
+            return "publisher", []  # page loads; openness unconfirmed, keep the DOI link
+        return "lookup_failed", []
     primary = (work or {}).get("primary_location") or {}
     if ok and (work is None or primary.get("is_oa", True)):
         return "publisher", []

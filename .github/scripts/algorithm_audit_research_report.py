@@ -29,7 +29,8 @@ VENUES = ("arxiv", "cran-task-views", "jss", "r-journal")
 METHOD_CLASSES = (("synonyms", "synonym"), ("broader", "broader"), ("narrower", "narrower"),
                   ("software", "software"))
 ACCESS_WHY = {"blocked": "publisher page blocks automated access",
-              "closed": "publisher version is paywalled"}
+              "closed": "publisher version is paywalled",
+              "lookup_failed": "publisher blocked and the OpenAlex lookup failed: check manually"}
 
 
 def load(dirpath, task):
@@ -188,7 +189,9 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         L.append("- **Affects:** " + ", ".join(f"`{e}`" for e in f.get("entries", [])))
         L.append("- **Sources:** " + " ".join(canonical_cran_url(u) for u in f.get("sources", [])))
         for doi, status in sorted(f.get("source_access", {}).items()):
-            if not f.get("open_copies"):
+            if status == "lookup_failed":
+                L.append(f"- **Open-copy lookup failed** for doi:{doi} ({ACCESS_WHY[status]})")
+            elif not f.get("open_copies"):
                 L.append(f"- **No open copy found** for doi:{doi} ({ACCESS_WHY.get(status, status)})")
         if f.get("open_copies"):
             reasons = sorted({ACCESS_WHY.get(v, v) for v in f.get("source_access", {}).values()})
@@ -251,10 +254,10 @@ def render(dirpath, tasks, batches=None, taxonomy=None):
         L.append("|---|---|---|---|---|---|")
         for t, i in sorted(impls, key=lambda ti: (order.get(ti[1].get("gpl3_compatible"), 2),
                                                  ti[0], str(ti[1].get("name", "")).casefold())):
-            lic = i.get("license", "?")
+            cell = lambda x: str(x).replace("|", "\\|").replace("\n", " ")
+            lic = cell(i.get("license", "?"))  # e.g. "GPL-2 | GPL-3" broke the table (run 43925959437)
             if i.get("license_source"):
                 lic = f"[{lic}]({i['license_source']})"
-            cell = lambda x: str(x).replace("|", "\\|").replace("\n", " ")
             L.append(f"| {i.get('gpl3_compatible', 'unknown')} | [{cell(i.get('name', '?'))}]"
                      f"({i.get('url', '')}) | {lic} | {t}: {', '.join(i.get('methods', []))} | "
                      f"{cell(i.get('language', ''))} | {cell(i.get('relevance', ''))} |")

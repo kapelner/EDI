@@ -355,6 +355,9 @@ class ResearchReportTests(unittest.TestCase):
         sec = text.split("## 7. Open-source implementations found", 1)[1]
         self.assertLess(sec.index("alpha"), sec.index("beta"))
         self.assertLess(sec.index("beta"), sec.index("zeta"))
+        self.put("binary-glm-mle", self.problem(implementations=[dict(impl("alpha", "yes"), license="GPL-2 | GPL-3")]))
+        _, text2 = report.render(self.dir, ["binary-glm-mle"])
+        self.assertIn("[GPL-2 \\| GPL-3](https://x/alpha/LICENSE)", text2)  # pipe escaped
         self.assertIn("| yes | [alpha](https://x/alpha) | [L](https://x/alpha/LICENSE) | "
                       "binary-glm-mle: irls | C++ | port \\| test |", sec)
 
@@ -624,6 +627,16 @@ class OpenCopyTests(unittest.TestCase):
         # blocked and no OpenAlex record: say so, no copies
         self.assertEqual(access("10.1/a", reachable=lambda d: False, work_of=lambda d: None),
                          ("blocked", []))
+        # an arXiv DOI is the open copy itself: no lookup at all
+        boom = lambda d: (_ for _ in ()).throw(AssertionError("must not be called"))
+        self.assertEqual(access("10.48550/arXiv.2310.01589", reachable=boom, work_of=boom),
+                         ("publisher", []))
+
+        # OpenAlex unreachable: never reported as "no open copy"
+        def fail(d):
+            raise drift.LookupFailed("429")
+        self.assertEqual(access("10.1/a", reachable=lambda d: False, work_of=fail), ("lookup_failed", []))
+        self.assertEqual(access("10.1/a", reachable=lambda d: True, work_of=fail), ("publisher", []))
 
     def test_report_says_when_no_open_copy_exists(self):
         with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
@@ -636,6 +649,18 @@ class OpenCopyTests(unittest.TestCase):
                 "source_access": {"10.2307/2531595": "closed"}}]}))
             _, text = report.render(Path(tmp), ["A.1"])
         self.assertIn("- **No open copy found** for doi:10.2307/2531595 (publisher version is paywalled)", text)
+
+    def test_failed_lookup_is_not_reported_as_no_open_copy(self):
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as tmp:
+            Path(tmp, "p.json").write_text(json.dumps({"problem_id": "p", "not_reviewed": [],
+                "methods_reviewed": [{"method_id": "m", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"}],
+                "findings": [{"methods": ["m"], "entries": [], "current": "", "candidate": "b",
+                "claimed_speedup": "", "applies_at_edi_sizes": "unknown", "keeps_estimator": "yes",
+                "tradeoffs": "", "confidence": "low", "suggested_action": "",
+                "sources": ["https://doi.org/10.1/x"], "source_access": {"10.1/x": "lookup_failed"}}]}))
+            _, text = report.render(Path(tmp), ["p"])
+        self.assertIn("- **Open-copy lookup failed** for doi:10.1/x", text)
+        self.assertNotIn("No open copy found", text)
 
 
 class ResearchLogTests(InventoryCheckTests):
