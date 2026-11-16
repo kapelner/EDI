@@ -91,11 +91,12 @@ jobs:
       # The nightly benchmark report (nightly.yml bench-report) lives on the benchmark-results
       # branch and is served at benchmarks/. Every deploy replaces the whole site, so this
       # deploy must carry it too.
-      - name: Add the latest nightly benchmark report at benchmarks/
+      - name: Add the latest nightly benchmark reports at benchmarks/ (R) and benchmarks/python/
         run: |
           if git clone -q --depth 1 --branch benchmark-results "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/bench" 2>/dev/null; then
             mkdir -p R/EDI/docs/benchmarks
             cp "$RUNNER_TEMP/bench/index.html" "$RUNNER_TEMP/bench/benchmark_model_fits.md" R/EDI/docs/benchmarks/
+            if [ -d "$RUNNER_TEMP/bench/python" ]; then cp -r "$RUNNER_TEMP/bench/python" R/EDI/docs/benchmarks/; fi
           else
             echo "No benchmark-results branch yet: the site has no benchmarks/ page."
           fi

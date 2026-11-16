@@ -9,6 +9,9 @@ options(warn = -1)
 # `--shard=k/n` runs only the k-th of n contiguous chunks of the models and wald
 # rows (the nightly CI times each of those two sections in two shards):
 #   Rscript benchmark/benchmark_model_fits.R --sections=wald --shard=2/2
+# `--families=survival,count` runs only those response families' rows of the models
+# and wald sections (the nightly CI times each family as its own job):
+#   Rscript benchmark/benchmark_model_fits.R --sections=models --families=survival
 # `--save-results=FILE` also saves the run's raw rows; `--from-results=F1,F2,...`
 # times nothing and builds one report from the rows those runs saved (the
 # nightly CI's combined report):
@@ -22,6 +25,7 @@ BENCHMARK_TIMING = is.null(BENCHMARK_MERGED)
 BENCHMARK_SECTIONS = if (BENCHMARK_TIMING) parse_benchmark_sections() else BENCHMARK_MERGED$sections
 run_benchmark_section = function(section) section %in% BENCHMARK_SECTIONS
 BENCHMARK_SHARD = if (BENCHMARK_TIMING) parse_benchmark_shard() else c(k = 1L, n = 1L)
+BENCHMARK_FAMILIES = if (BENCHMARK_TIMING) parse_benchmark_families() else BENCHMARK_FAMILY_NAMES
 
 .libPaths(c(file.path(Sys.getenv("HOME"), "R", paste0(R.version$platform, "-library"), paste(R.version$major, sub("\\..*$", "", R.version$minor), sep = ".")), .libPaths()))
 compiler::enableJIT(0) # Disable JIT to prevent R6 on-the-fly compilation overhead
@@ -1061,15 +1065,9 @@ run_one = function(spec) {
     set.seed(seed_for_class(cls_name))
     cat(sprintf("Benchmarking %s...\n", cls_name))
 
-    # Improved heuristic mapping: Ordinal MUST come before Prop/PropOdds
-    resp_type = "continuous"
-    family = "continuous"
-    if (grepl("Ordinal|AdjCat|ContRatio|Stereotype|Jonckheere|Ridit|Sign", cls_name)) { resp_type = "ordinal"; family = "ordinal" }
-    else if (grepl("Incid|Binomial|Wald|CMH|Fisher|Zhang|Robins|Newcombe|Nurminen|logistic_glmm", cls_name)) { resp_type = "incidence"; family = "logistic" }
-    else if (grepl("Count|Poisson|NegBin|ZINB|ZAP|Hurdle", cls_name)) { resp_type = "count"; family = "poisson" }
-    else if (grepl("Prop|Beta|ZOIB|Fractional", cls_name)) { resp_type = "proportion"; family = "beta" }
-    else if (grepl("Survival|Cox|Weibull|KM|Rank|LogRank|Gehan|RMST|RMDiff|LWACox|Clayton", cls_name)) { resp_type = "survival"; family = "cox" }
-    else if (grepl("Wilcox|MeanDiff|OLS|Lin|Robust|Quantile|Bai", cls_name)) { resp_type = "continuous"; family = "continuous" }
+    # The response type also picks the row's --families group (benchmark_sections.R).
+    resp_type = benchmark_models_response(cls_name)
+    family = BENCHMARK_DATA_FAMILY[[resp_type]]
 
     if (cls_name == "InferenceIncidLogBinomial") family = "log-binomial"
 
@@ -1190,7 +1188,8 @@ unique_specs = bench_specs[!duplicated(vapply(bench_specs, spec_key, character(1
 
 if (run_benchmark_section("models")) {
     if (BENCHMARK_TIMING) {
-        for (i in benchmark_shard_indices(length(unique_specs), BENCHMARK_SHARD)) {
+        for (i in benchmark_row_indices(vapply(unique_specs, `[[`, character(1), "cls"), benchmark_models_response,
+                                        BENCHMARK_FAMILIES, BENCHMARK_SHARD)) {
             cat(sprintf("[%d/%d] ", i, length(unique_specs)))
             run_one(unique_specs[[i]])
         }
@@ -1732,12 +1731,8 @@ run_one_wald = function(spec) {
     set.seed(seed_for_class(cls_name))
     cat(sprintf("Wald [%d/%d] %s...\n", match(cls_name, sapply(wald_unique_specs, `[[`, "cls")), length(wald_unique_specs), cls_name))
 
-    resp_type = "continuous"; family = "continuous"
-    if (grepl("Ordinal|AdjCat|ContRatio|Ridit|Jonckheere", cls_name)) { resp_type = "ordinal"; family = "ordinal" }
-    else if (grepl("Incid|Binomial|Fisher|Newcombe|Nurminen|logistic_glmm", cls_name))  { resp_type = "incidence"; family = "logistic" }
-    else if (grepl("Count|Poisson|NegBin|ZINB|ZAP|Hurdle", cls_name))    { resp_type = "count"; family = "poisson" }
-    else if (grepl("Prop|Beta|ZOIB|Fractional", cls_name))                { resp_type = "proportion"; family = "beta" }
-    else if (grepl("Survival|Cox|Weibull|KM|Rank|LogRank|Gehan", cls_name)) { resp_type = "survival"; family = "cox" }
+    resp_type = benchmark_wald_response(cls_name)
+    family = BENCHMARK_DATA_FAMILY[[resp_type]]
     if (cls_name == "InferenceIncidLogBinomial") family = "log-binomial"
     if (cls_name == "InferenceIncidProbitRegr")  family = "probit"
     if (cls_name %in% c("InferenceCountNegBin","InferenceCountZeroInflatedNegBin","InferenceCountHurdleNegBin")) family = "negbin"
@@ -1803,7 +1798,8 @@ run_one_wald = function(spec) {
 if (run_benchmark_section("wald")) {
 wald_unique_specs = wald_specs[!duplicated(vapply(wald_specs, spec_key, character(1)))]
 if (BENCHMARK_TIMING) {
-    for (i in benchmark_shard_indices(length(wald_unique_specs), BENCHMARK_SHARD)) run_one_wald(wald_unique_specs[[i]])
+    for (i in benchmark_row_indices(vapply(wald_unique_specs, `[[`, character(1), "cls"), benchmark_wald_response,
+                                    BENCHMARK_FAMILIES, BENCHMARK_SHARD)) run_one_wald(wald_unique_specs[[i]])
 } else wald_results = BENCHMARK_MERGED$wald_results
 
 # Format Wald table
@@ -2601,11 +2597,13 @@ compile_context_lines = function() {
 }
 
 # The report's compilation context describes the EDI the rows were timed on: in
-# --from-results mode, the first saved run's (every CI shard times the same build).
+# --from-results mode, the newest saved run's (rows carried over from earlier nights
+# were timed on that night's build of the same configuration).
 benchmark_compile_context = if (BENCHMARK_TIMING) compile_context_lines() else BENCHMARK_MERGED$compile_context
 
 if (BENCHMARK_TIMING && !is.null(BENCHMARK_SAVE_RESULTS)) {
-  saveRDS(list(sections = BENCHMARK_SECTIONS, shard = BENCHMARK_SHARD,
+  saveRDS(list(sections = BENCHMARK_SECTIONS, shard = BENCHMARK_SHARD, families = BENCHMARK_FAMILIES,
+               commit = benchmark_git_commit(),
                results = results, wald_results = wald_results, utility_results = utility_results,
                dt_proc = dt_proc, dt_design = dt_design,
                compile_context = benchmark_compile_context, generated = Sys.time()),
@@ -2614,6 +2612,29 @@ if (BENCHMARK_TIMING && !is.null(BENCHMARK_SAVE_RESULTS)) {
 }
 
 edi_version = as.character(utils::packageVersion("EDI"))
+
+# Which commit and night timed each part of an assembled report. The nightly CI
+# retimes a part only when code it depends on changed (or its rows are two weeks
+# old), and reuses the part's saved rows otherwise, so the parts can come from
+# different commits; this says so at the top of the report.
+benchmark_provenance_lines = function(prov, current) {
+  short = function(x) ifelse(is.na(x), "unknown", substr(x, 1L, 12L))
+  carried = is.na(prov$commit) | is.na(current) | prov$commit != current
+  head_line = if (!is.na(current) && !any(carried)) {
+    sprintf("_Every part below was timed at commit `%s`._", short(current))
+  } else {
+    paste0("_**This report combines timings from different runs.** Each part (a section, or one response family ",
+           "of the models and Wald sections) is retimed only when code it depends on has changed since it was last ",
+           "timed, or when its timings are two weeks old; every other part is carried over unchanged from the run ",
+           "that last timed it. ", if (is.na(current)) "" else sprintf("This report was assembled at commit `%s`. ", short(current)),
+           "Rows from different parts can differ by runner-to-runner noise as well as by code._")
+  }
+  # A list, not a table: commonmark here renders no pipe tables, and every <table> gets the row-color legend.
+  c(head_line, "",
+    sprintf("*   **%s**: %s, timed at commit `%s` (%s)", prov$part, ifelse(carried, "carried over", "retimed in this run"),
+            short(prov$commit), ifelse(is.na(prov$timed), "time unknown", prov$timed)),
+    "")
+}
 
 report = c(
   paste0("# EDI v", edi_version, " Exhaustive C++ Model Fit Benchmarks"),
@@ -2625,8 +2646,10 @@ report = c(
   if (BENCHMARK_SHARD[["n"]] > 1L) c(sprintf("_Shard %d of %d of the %s rows; the other sections run in full._",
                                           BENCHMARK_SHARD[["k"]], BENCHMARK_SHARD[["n"]],
                                           paste(BENCHMARK_SHARDED_SECTIONS, collapse = " and ")), ""),
-  if (!BENCHMARK_TIMING) c(paste0("_Assembled from ", length(BENCHMARK_MERGED$runs), " timing runs, each on its own runner: ",
-                                  paste(BENCHMARK_MERGED$runs, collapse = "; "), "._"), ""),
+  if (BENCHMARK_TIMING && !setequal(BENCHMARK_FAMILIES, BENCHMARK_FAMILY_NAMES))
+    c(sprintf("_Response families of the %s rows: %s; the other sections run in full._",
+              paste(BENCHMARK_FAMILY_SECTIONS, collapse = " and "), paste(BENCHMARK_FAMILIES, collapse = ", ")), ""),
+  if (!BENCHMARK_TIMING) benchmark_provenance_lines(BENCHMARK_MERGED$provenance, benchmark_git_commit()),
   "This report compares the performance of EDI's Rcpp-optimized model fitting paths against **low-level** canonical R implementations (e.g., `glm.fit`, `lm.fit`, `coxph.fit`) where possible.",
   "",
   benchmark_compile_context,
@@ -2771,7 +2794,7 @@ if (requireNamespace("commonmark", quietly = TRUE)) {
   # benchmark_model_fits_python.html's layout exactly), not above it.
   nav_block = paste(
     '<nav><a href="#results">Results</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a><a href="#procedures">Inference procedures</a><a href="#designs">Design generation</a></nav>',
-    '<p>R analog of <a href="https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — the first three tables share its table shape and three-color row coding; the inference-procedure and design-generation tables are R-only.</p>',
+    '<p>R analog of <a href="https://kapelner.github.io/EDI/benchmarks/python/">the Python benchmark report</a> (published by the same nightly run) — the first three tables share its table shape and three-color row coding; the inference-procedure and design-generation tables are R-only.</p>',
     sep = "\n"
   )
   body_html = sub("(<h1>[^<]*</h1>\n<p><em>Generated:[^<]*</em></p>\n)", paste0("\\1", nav_block, "\n"), body_html)

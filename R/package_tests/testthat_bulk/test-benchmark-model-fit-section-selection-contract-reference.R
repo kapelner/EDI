@@ -81,6 +81,47 @@ test_that("saved benchmark runs merge into one report's rows", {
 	expect_error(merge_benchmark_results(list(w1, w1)), "same rows: wald 1/2")
 })
 
+test_that("benchmark families select models and wald rows by response type", {
+	expect_identical(parse_benchmark_families(character()), BENCHMARK_FAMILY_NAMES)
+	expect_identical(parse_benchmark_families("--families=survival,count"), c("count", "survival"))
+	expect_identical(parse_benchmark_families(c("--families", "Ordinal")), "ordinal")
+	expect_error(parse_benchmark_families("--families="), "non-empty")
+	expect_error(parse_benchmark_families("--families"), "requires a comma-separated value")
+	expect_error(parse_benchmark_families("--families=surv"), "Unknown benchmark famil")
+	expect_identical(benchmark_models_response("InferenceSurvivalCoxPHRegr"), "survival")
+	expect_identical(benchmark_models_response("InferenceOrdinalPropOddsRegr"), "ordinal")
+	expect_identical(benchmark_models_response("InferencePropBetaRegr"), "proportion")
+	expect_identical(benchmark_models_response("InferenceContinOLS"), "continuous")
+	expect_identical(benchmark_models_response("InferenceIncidExactZhang"), "incidence")
+	classes = c("InferenceContinOLS", "InferenceSurvivalKMDiff", "InferenceCountPoisson", "InferenceSurvivalCoxPHRegr")
+	expect_identical(benchmark_row_indices(classes, benchmark_models_response, "survival", c(k = 1L, n = 1L)), c(2L, 4L))
+	expect_identical(benchmark_row_indices(classes, benchmark_models_response, "survival", c(k = 2L, n = 2L)), 4L)
+	expect_identical(benchmark_row_indices(classes, benchmark_models_response, BENCHMARK_FAMILY_NAMES, c(k = 1L, n = 1L)), 1:4)
+	# Every row is in exactly one family.
+	all_rows = sort(unlist(lapply(BENCHMARK_FAMILY_NAMES, function(f) benchmark_row_indices(classes, benchmark_models_response, f, c(k = 1L, n = 1L)))))
+	expect_identical(all_rows, 1:4)
+	expect_error(parse_benchmark_from_results(c("--from-results=x.rds", "--families=count")), "cannot be combined")
+})
+
+test_that("merged runs record which commit timed each part", {
+	run = function(sections, families = NULL, commit = NULL, k = 1L, n = 1L) list(
+		sections = sections, shard = c(k = k, n = n), families = families, commit = commit,
+		generated = as.POSIXct("2026-11-16 02:30:00", tz = "UTC"), results = list(), wald_results = list(),
+		utility_results = list(), dt_proc = NULL, dt_design = NULL, compile_context = "ctx")
+	s = run("models", "survival", "a1"); c2 = run("models", "count", "b2"); u = run("utility")
+	expect_identical(benchmark_run_units(s), "models (survival)")
+	expect_identical(benchmark_run_units(u), "utility")
+	expect_identical(benchmark_run_units(run("wald", BENCHMARK_FAMILY_NAMES)), "wald")
+	m = merge_benchmark_results(list(s, c2, u))
+	expect_identical(m$provenance$part, c("models (survival)", "models (count)", "utility"))
+	expect_identical(m$provenance$commit, c("a1", "b2", NA))
+	expect_identical(m$provenance$timed[[1L]], "2026-11-16 02:30 UTC")
+	expect_error(merge_benchmark_results(list(s, s)), "same rows: models \\(survival\\)")
+	# Every family at once overlaps any one family of the same section.
+	expect_error(merge_benchmark_results(list(s, run("models"))), "same rows: models and models \\(survival\\)")
+	expect_error(merge_benchmark_results(list(s, run("models", k = 1L, n = 2L))), "same rows")
+})
+
 test_that("model-fit benchmark metadata binds the loaded EDI R-layer payload", {
 	benchmark_script = file.path("..", "..", "benchmark", "benchmark_model_fits.R")
 	expressions = parse(benchmark_script)

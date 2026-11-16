@@ -117,9 +117,14 @@ def _bootstrap_edi_kernels():
         EDI_PY_AVAILABLE = True
         print(f"EDI Python kernels: built OK, {len([n for n in dir(edi_core) if not n.startswith('_')])} functions available.")
     except Exception as e:
-        print(f"EDI Python kernels: build/import failed ({e!r}); all EDI columns stay NA.")
+        detail = (getattr(e, "stderr", None) or "")[-4000:]
+        print(f"EDI Python kernels: build/import failed ({e!r}); all EDI columns stay NA.\n{detail}")
         EDI_PY_AVAILABLE = False
         _edi_core = None
+        # The nightly CI sets this: a report whose every EDI column is NA because the
+        # build broke must fail the job, not be published.
+        if os.environ.get("EDI_BENCH_REQUIRE_BINDINGS") == "1":
+            sys.exit("EDI_BENCH_REQUIRE_BINDINGS=1 and the edi_kernels build/import failed.")
 
 
 _bootstrap_edi_kernels()
@@ -1949,6 +1954,16 @@ def main():
     wald_excluded_html = "\n".join(f"<li><code>{cls}</code>: {note}</li>" for cls, note in WALD_EXCLUDED.items())
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    # In the nightly CI (GITHUB_SHA set) this page is retimed only when the C++ kernels it
+    # binds or the Python bindings change, and is otherwise carried over: say so up top.
+    commit = os.environ.get("GITHUB_SHA", "")
+    provenance_html = (
+        f"<p><em>Timed at commit <code>{commit[:12]}</code>. The nightly run regenerates this page only when "
+        "the C++ kernels the Python bindings compile, the bindings themselves, or this benchmark script have "
+        "changed since it was last timed, or when it is two weeks old; on other nights the last page is kept "
+        "as it is. Rows are therefore timed at the commit above, which can be older than current "
+        "<code>main</code>.</em></p>\n"
+        if re.fullmatch(r"[0-9a-f]{40}", commit) else "")
     edi_version = edi_kernels_version()
     versions = []
     for modname in ("numpy", "scipy", "pandas", "statsmodels", "sksurv", "lifelines"):
@@ -1986,7 +2001,7 @@ nav a {{ margin-right: 1rem; }}
 </head><body>
 <h1>EDI v{edi_version} Python Baseline Benchmarks</h1>
 <p><em>Generated: {generated}</em></p>
-<nav><a href="#results">Point-estimate</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>
+{provenance_html}<nav><a href="#results">Point-estimate</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>
 
 <p>Python analog of <a href="https://kapelner.github.io/EDI/benchmarks/">the R benchmark report</a> (nightly, current <code>main</code>) —
 same three tables (point-estimate, Wald/full-inference, utility math kernels), same table shape,

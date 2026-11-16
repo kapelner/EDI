@@ -496,6 +496,13 @@ jobs:
   # (TODO-203 Amendment E: the shard interface is fixed, so it can change mid-campaign) and the
   # analysis, so a campaign is gated by the current rules at completion.
   #
+  # Exception: the acceptance list (calibration_study_accepted.csv) comes from the campaign's
+  # pinned commit, not this run's (owner, 2026-11-17). Otherwise a row added mid-campaign
+  # re-levels its cell at the next wave and withdraws a flag the BH screen promised never to
+  # withdraw: campaign 2026-11-15-e36c7710 went from 120 flags (wave 5) to 0 (wave 6) when
+  # c28bbb34 accepted all 120, 54 of them before confirmation. Rows added on `main` take
+  # effect from the next campaign. A pinned commit without the file means no accepted rows.
+  #
   # Failure contract (owner, 2026-11-10). The ONLY red X that means "the calibration failed" is
   # this job's last step, `Gate verdict`, and only for a completed campaign with confirmed
   # failing cells (annotation title "Calibration gate"). Every other failure, in any job, is a
@@ -518,6 +525,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       C: ${{ needs.plan.outputs.campaign }}
       SIM_SHA: ${{ needs.plan.outputs.sha }}
+      # The campaign's own acceptance list (see the comment above this job), from the `pinned` checkout.
+      ACCEPTED: pinned/R/package_tests/calibration/calibration_study_accepted.csv
     steps:
       # Analysis scripts and the registry: this run's own commit.
       - uses: actions/checkout@v7
@@ -648,7 +657,7 @@ jobs:
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS"
           Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" > /dev/null
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" \
-            --out-dir "$d/summary" > /dev/null
+            --out-dir "$d/summary" --accepted "$ACCEPTED" > /dev/null
           Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" --roster "$d/roster.csv" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
@@ -691,8 +700,10 @@ jobs:
       - name: Analyze, plot and write the READMEs
         run: |
           d="results/campaigns/$C"
+          echo "Acceptance list: $(( $(wc -l < "$ACCEPTED" 2>/dev/null || echo 1) - 1 )) row(s) from the campaign's commit ${SIM_SHA}" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" \
-            --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY" \
+            --accepted "$ACCEPTED" --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY" \
             $([ "$COMPLETE" = true ] && echo --final)
           Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir "$d/summary" \
             --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/ --class-figures
