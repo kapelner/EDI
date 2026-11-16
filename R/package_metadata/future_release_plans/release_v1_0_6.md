@@ -807,3 +807,19 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Done when: `compute_weights_KK21stepwise_count` is gone, KK21stepwise count weights are unchanged (same seeds give
     bit-identical designs), `robust_negbinreg` still works with a deprecation warning, the registries and inventory are
     current, and NEWS records the deprecation.
+- [ ] TODO-39 (added 2026-11-17, agent, owner request; found by the 2026-11-17 algorithm-research triage of run
+  43925959437 and checked against the code): **Rename `invert_gradient_ci_uniroot`: it never calls `uniroot`.**
+  - The private `InferenceExtCIInversion` method (`R/inference_ext_ci_inversion.R` ~L150) builds the gradient-test
+    p-value function and inverts it with `pval_invert_ci_cpp` (C++ Wald-seeded exponential bracketing, then bisection,
+    with the TODO-174 jump guard). The name says Brent / `uniroot`, which misled the algorithm inventory (its
+    log-binomial row said Brent until 2026-11-17).
+  - Rename to `invert_gradient_ci_bisection` (or another name the owner prefers). It is a private R6 method, so no
+    user-facing change. Touches: the definition and its roxygen mention (`inference_ext_ci_inversion.R` ~L9, ~L150);
+    callers `inference_continuous_KK_ols_one_lik.R` ~L139, `inference_incidence_log_binomial.R` ~L392,
+    `inference_all_abstract_asymp_lik.R` ~L317; tests `R/EDI/tests/testthat/test-ext-ci-inversion.R` and
+    `R/package_tests/testthat_bulk/test-asymp-lik-gradient-ci-inversion-guards-reference.R` (+ the comment in
+    `...-compute-likelihood-test-two-sided-pval-unavailable-reason-reference.R`); regenerate
+    `R/package_tests/testthat_bulk/fixtures/inference_component_registry_baseline.csv`, which lists method names.
+    `grep -rn invert_gradient_ci_uniroot R/ python/` must come back empty except history.
+  - Done when: the method is renamed everywhere, the registry baseline is regenerated, and all affected tests pass with
+    results unchanged (a pure rename).
