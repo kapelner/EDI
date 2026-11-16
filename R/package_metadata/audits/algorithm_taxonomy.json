@@ -9,7 +9,13 @@
     "continuation-ratio logit model",
     "sequential ratio model ordinal",
     "ordinal regression concave likelihood",
-    "stopping ratio model"
+    "stopping ratio model",
+    "grouped data / covariate-pattern frequency weights ordinal logit"
+   ],
+   "software": [
+    "brglm2::bracl",
+    "VGAM acat/cratio/sratio",
+    "ordinalNet"
    ]
   },
   "atkinson-optimal-biased-coin": {
@@ -20,7 +26,8 @@
     "D_A-optimal sequential design",
     "covariate-adaptive biased coin",
     "sequential optimal design allocation",
-    "rank-one update inverse"
+    "rank-one update inverse",
+    "sequential D-optimal design Sherman-Morrison greedy"
    ]
   },
   "balanced-allocation-optimization": {
@@ -35,7 +42,8 @@
     "Kallus optimal a priori balance",
     "Bertsimas optimal design experiments",
     "balanced number partitioning",
-    "vector balancing / discrepancy minimization"
+    "vector balancing / discrepancy minimization",
+    "Gram-Schmidt walk design"
    ]
   },
   "bayesian-bootstrap": {
@@ -59,7 +67,11 @@
     "ZOIB model",
     "proportion response regression",
     "betareg fitting algorithm",
-    "Smithson-Verkuilen transformation"
+    "Smithson-Verkuilen transformation",
+    "ordered beta regression"
+   ],
+   "software": [
+    "BetaRegression.jl"
    ]
   },
   "binary-glm-mle": {
@@ -79,7 +91,10 @@
    ],
    "software": [
     "fracreg",
-    "detectseparation"
+    "detectseparation",
+    "logistf",
+    "brglm2",
+    "maxLik"
    ]
   },
   "blocking-partition": {
@@ -91,7 +106,8 @@
     "threshold blocking Higgins",
     "blockTools",
     "equal-size k-means",
-    "multivariate blocking"
+    "multivariate blocking",
+    "approximation algorithm for blocking (Karmakar)"
    ]
   },
   "bootstrap-confidence-interval": {
@@ -140,6 +156,11 @@
     "clmm ordinal package",
     "random effects proportional odds",
     "ordinal GLMM quadrature"
+   ],
+   "software": [
+    "rms::orm (cluster random intercept, AGQ)",
+    "mixor",
+    "tramME"
    ]
   },
   "complete-randomization-draws": {
@@ -164,6 +185,9 @@
     "conditional maximum likelihood matched pairs",
     "1:1 matched case-control",
     "discordant pairs logistic"
+   ],
+   "software": [
+    "bclogit"
    ]
   },
   "constrained-binomial-mle": {
@@ -178,7 +202,8 @@
     "log-binomial convergence problems",
     "boundary MLE log-binomial",
     "COPY method log-binomial",
-    "EM algorithm for log-binomial"
+    "EM algorithm for log-binomial",
+    "exponential cone log-binomial"
    ]
   },
   "count-glm-mle": {
@@ -192,6 +217,11 @@
     "robust Poisson relative risk",
     "Poisson GLM solver",
     "count regression fast fitting"
+   ],
+   "software": [
+    "rqlm",
+    "fastglm",
+    "geesmv"
    ]
   },
   "covariance-from-information": {
@@ -204,6 +234,9 @@
     "pseudo-inverse singular Hessian",
     "Cholesky inverse",
     "selected inversion"
+   ],
+   "software": [
+    "SAS PROC CALIS G4= Moore-Penrose fallback"
    ]
   },
   "cox-ph-fit": {
@@ -217,11 +250,13 @@
     "stratified Cox model",
     "coxph Newton-Raphson",
     "fast Cox regression large n",
-    "risk set computation"
+    "risk set computation",
+    "spectral survival analysis"
    ],
    "software": [
     "coxdev",
-    "Cyclops"
+    "Cyclops",
+    "coxstream"
    ]
   },
   "cumulative-link-ordinal-mle": {
@@ -235,7 +270,8 @@
     "partial proportional odds",
     "polr clm algorithm",
     "ordered logit Newton-Raphson",
-    "threshold parameters ordinal regression"
+    "threshold parameters ordinal regression",
+    "cumulative probability model big data"
    ]
   },
   "design-matrix-preprocessing": {
@@ -272,7 +308,8 @@
     "permutation distribution rank statistic",
     "multivariate hypergeometric enumeration",
     "network algorithm Mehta Patel",
-    "shift algorithm Streitberg Rohmel"
+    "shift algorithm Streitberg Rohmel",
+    "Mann Whitney Wilcoxon distribution linked list ties"
    ]
   },
   "gamma-family-functions": {
@@ -285,6 +322,9 @@
     "chi-square tail probability",
     "special function evaluation",
     "vectorized lgamma"
+   ],
+   "software": [
+    "boostmath (CRAN)"
    ]
   },
   "gauss-hermite-nodes": {
@@ -296,7 +336,11 @@
     "computing Gaussian quadrature rules",
     "Glaser-Liu-Rokhlin",
     "Hale-Townsend quadrature",
-    "statmod gauss.quad"
+    "statmod gauss.quad",
+    "Gil Segura Temme classical Gaussian quadratures"
+   ],
+   "software": [
+    "pracma::gaussHermite"
    ]
   },
   "gaussian-lmm-fit": {
@@ -308,7 +352,11 @@
     "REML ML linear mixed model",
     "generalized least squares variance components",
     "lme4 lmer algorithm",
-    "balanced one-way random effects"
+    "balanced one-way random effects",
+    "sufficient statistics linear mixed model"
+   ],
+   "software": [
+    "MixedModels.jl"
    ]
   },
   "gcomp-marginal-effects": {
@@ -321,6 +369,10 @@
     "delta method standard error",
     "average treatment effect regression standardization",
     "stdReg marginaleffects"
+   ],
+   "software": [
+    "Margins.jl / FormulaCompiler.jl",
+    "risks (margstd_delta)"
    ]
   },
   "gee-fit": {
@@ -333,6 +385,11 @@
     "GEE ordinal local odds ratio",
     "geepack",
     "marginal model clustered data"
+   ],
+   "software": [
+    "geeM",
+    "fastFGEE",
+    "multgee"
    ]
   },
   "generic-smooth-mle-optimization": {
@@ -345,6 +402,9 @@
     "maximum likelihood optimizer comparison",
     "optim vs nlminb",
     "line search methods"
+   ],
+   "software": [
+    "optimflex"
    ]
   },
   "glmm-marginal-likelihood": {
@@ -360,7 +420,8 @@
     "lme4 glmer algorithm",
     "glmmTMB",
     "Poisson-lognormal",
-    "fixed-effect Poisson conditional likelihood (Hausman-Hall-Griliches)"
+    "fixed-effect Poisson conditional likelihood (Hausman-Hall-Griliches)",
+    "random intercept probit bivariate normal CDF clusters of size two"
    ]
   },
   "gram-matrix-accumulation": {
@@ -385,6 +446,9 @@
     "local search balanced partition",
     "Krieger Azriel Kapelner"
    ],
+   "software": [
+    "PSRSRR (pair-switching rerandomization, Metropolis-Hastings)"
+   ]
    "edi_original": "Krieger, Azriel & Kapelner (2019), Nearly random designs with greatly improved balance, Biometrika 106(3), doi:10.1093/biomet/asz026"
   },
   "grouping-and-level-coding": {
@@ -396,7 +460,8 @@
     "hash table counting",
     "radix sort grouping",
     "statistical mode computation",
-    "contiguous group layout"
+    "contiguous group layout",
+    "hash-based vs sort-based group-by aggregate"
    ]
   },
   "hodges-lehmann-estimation": {
@@ -422,7 +487,8 @@
     "iterative convex minorant",
     "EM-ICM algorithm",
     "icenReg interval",
-    "interval censoring nonparametric"
+    "interval censoring nonparametric",
+    "left-truncated interval-censored NPMLE algorithm"
    ]
   },
   "jackknife-replicates": {
@@ -435,6 +501,9 @@
     "infinitesimal jackknife",
     "BCa acceleration constant",
     "cluster jackknife"
+   ],
+   "software": [
+    "bcaboot"
    ]
   },
   "kaplan-meier-rmst": {
@@ -447,12 +516,25 @@
     "Brookmeyer-Crowley",
     "Greenwood formula",
     "weighted Kaplan-Meier"
+   ],
+   "software": [
+    "FastSurvival"
    ]
   },
   "kk-sequential-matching": {
    "title": "Kapelner-Krieger sequential matching on arrival",
    "description": "For each arrival, compute (weighted) Mahalanobis distances to the reservoir, compare with an F/Hotelling T^2 or Monte Carlo quantile threshold, and match the nearest: arrival x, reservoir -> match or reservoir. O(n) arrivals x O(reservoir) per arrival.",
    "search_terms": [
+    "sequential matching design",
+    "Kapelner Krieger matching on the fly",
+    "nearest neighbour search Mahalanobis",
+    "online matching",
+    "Hotelling T2 threshold",
+    "sequential rematched randomization"
+   ],
+   "software": [
+    "SeqExpMatch"
+   ]
     "online nearest neighbor search",
     "dynamic nearest neighbor search changing metric",
     "incremental Mahalanobis distance",
@@ -488,7 +570,11 @@
     "score confidence interval",
     "likelihood ratio confidence interval root finding",
     "Venzon-Moolgavkar",
-    "root finding expensive function"
+    "root finding expensive function",
+    "robust Venzon-Moolgavkar (RVM)"
+   ],
+   "software": [
+    "profileCI"
    ]
   },
   "likelihood-tests-null-refits": {
@@ -502,6 +588,10 @@
     "constrained maximum likelihood refit",
     "efficient score nuisance parameters",
     "profile likelihood test"
+   ],
+   "software": [
+    "mdscore",
+    "likelihoodAsy"
    ]
   },
   "link-function-evaluation": {
@@ -527,6 +617,9 @@
     "Fleming-Harrington test",
     "survdiff algorithm",
     "martingale residuals"
+   ],
+   "software": [
+    "clinfun permlogrank; mdir.logrank"
    ]
   },
   "matched-pair-reservoir-estimators": {
@@ -540,6 +633,9 @@
     "pairs of pairs variance estimator",
     "paired difference estimator"
    ],
+   "software": [
+    "experiment (CRAN, Imai)"
+   ]
    "edi_original": "Kapelner & Krieger (2014), Matching on-the-fly: sequential allocation with higher power and efficiency, Biometrics 70(2), doi:10.1111/biom.12148",
    "skip_research": "EDI's own estimator; all five methods are trivial closed forms or single passes, and a problem-level search can only find the authors' papers (owner, 2026-11-16)"
   },
@@ -553,6 +649,9 @@
     "chained equations imputation",
     "random forest imputation",
     "online imputation"
+   ],
+   "software": [
+    "mixgb"
    ]
   },
   "mle-convergence-safeguards": {
@@ -565,7 +664,8 @@
     "boundary maximum likelihood",
     "complete separation",
     "nonexistence of MLE",
-    "Poisson limit negative binomial"
+    "Poisson limit negative binomial",
+    "completion of exponential family"
    ]
   },
   "mle-starting-values": {
@@ -590,6 +690,9 @@
     "Robbins-Monro confidence limits",
     "Garthwaite Buckland Monte Carlo confidence interval",
     "Fisher randomization interval"
+   ],
+   "software": [
+    "ri2 ri_ci / blockTools invertRIconfInt"
    ]
   },
   "negbin-glm-mle": {
@@ -602,6 +705,9 @@
     "theta estimation glm.nb",
     "overdispersed count regression",
     "negative binomial Poisson limit boundary"
+   ],
+   "software": [
+    "brglm2::brnb"
    ]
   },
   "non-bipartite-matching": {
@@ -625,7 +731,8 @@
     "bootstrap t",
     "efficient bootstrap computation",
     "balanced bootstrap",
-    "importance sampling bootstrap"
+    "importance sampling bootstrap",
+    "bag of little bootstraps"
    ]
   },
   "normal-cdf-quantile": {
@@ -638,7 +745,8 @@
     "erfc approximation",
     "Acklam algorithm",
     "Wichura AS241",
-    "vectorized special functions"
+    "vectorized special functions",
+    "Mills ratio computation"
    ]
   },
   "numerical-derivatives": {
@@ -662,7 +770,9 @@
     "bootstrap OLS many replicates",
     "batched least squares",
     "updating regression when one column changes",
-    "Freedman-Lane permutation"
+    "Freedman-Lane permutation",
+    "covariate-adjusted Fisher randomization test",
+    "residual randomization permutation procedure"
    ]
   },
   "ols-fit": {
@@ -674,7 +784,11 @@
     "normal equations vs QR",
     "least squares fast small p",
     "lm.fit",
-    "Lin 2013 regression adjustment"
+    "Lin 2013 regression adjustment",
+    "Lin estimator as separate per-arm regressions (imputation form)"
+   ],
+   "software": [
+    "estimatr lm_lin / lm_robust (try_cholesky)"
    ]
   },
   "pairwise-distance-matrix": {
@@ -685,7 +799,8 @@
     "Mahalanobis distance matrix",
     "fast Euclidean distance GEMM",
     "dist function",
-    "distance matrix BLAS"
+    "distance matrix BLAS",
+    "cdist"
    ]
   },
   "parallel-task-scheduling": {
@@ -696,7 +811,8 @@
     "longest processing time first",
     "parallel task scheduling",
     "makespan minimization",
-    "work stealing"
+    "work stealing",
+    "non-clairvoyant scheduling with predictions"
    ]
   },
   "parametric-bootstrap-simulation": {
@@ -720,6 +836,9 @@
     "online standardization",
     "sequential design matrix update",
     "rank-one QR update"
+   ],
+   "software": [
+    "CARM"
    ]
   },
   "performance-autotuning": {
@@ -732,6 +851,9 @@
     "empirical autotuning",
     "A/B timing noise",
     "Bayesian optimization autotuning"
+   ],
+   "software": [
+    "atime"
    ]
   },
   "permuted-block-randomization": {
@@ -763,7 +885,8 @@
     "Stouffer method",
     "Cauchy combination test",
     "harmonic mean p-value",
-    "combining dependent tests"
+    "combining dependent tests",
+    "combining discrete p-values"
    ]
   },
   "quantile-rank-regression": {
@@ -775,7 +898,8 @@
     "rq quantreg",
     "Gehan rank regression",
     "rank-based estimation accelerated failure time",
-    "least absolute deviations"
+    "least absolute deviations",
+    "coordinate descent least absolute deviations"
    ]
   },
   "random-number-generation": {
@@ -788,7 +912,11 @@
     "parallel random streams",
     "counter-based RNG",
     "seeding parallel RNG",
-    "Philox Xoshiro PCG"
+    "Philox Xoshiro PCG",
+    "ziggurat normal generator"
+   ],
+   "software": [
+    "Randompack"
    ]
   },
   "randomization-null-distribution": {
@@ -800,7 +928,8 @@
     "Fisher randomization test",
     "approximate permutation test",
     "Monte Carlo p-value",
-    "fast permutation test"
+    "fast permutation test",
+    "cheap permutation testing"
    ]
   },
   "rerandomization-sampling": {
@@ -813,6 +942,9 @@
     "constrained randomization",
     "sampling balanced allocations",
     "rerandomization asymptotic acceptance"
+   ],
+   "software": [
+    "cvcrand"
    ]
   },
   "resampling-refit-loop": {
@@ -824,7 +956,8 @@
     "embarrassingly parallel resampling",
     "reusing factorization across resamples",
     "one-step bootstrap",
-    "fast permutation refits"
+    "fast permutation refits",
+    "k-step bootstrap"
    ]
   },
   "ridit-mann-whitney": {
@@ -836,7 +969,11 @@
     "Mann-Whitney U statistic",
     "win probability",
     "DeLong variance AUC",
-    "concordance probability estimation"
+    "concordance probability estimation",
+    "relative effect / stochastic superiority"
+   ],
+   "software": [
+    "rankFD"
    ]
   },
   "risk-difference-ci": {
@@ -848,7 +985,8 @@
     "Newcombe hybrid score interval",
     "Wilson score interval",
     "difference of two proportions CI",
-    "paired proportions difference interval"
+    "paired proportions difference interval",
+    "Elliptically Optimal confidence interval"
    ]
   },
   "robust-m-regression": {
@@ -861,6 +999,10 @@
     "Tukey bisquare",
     "rlm lmrob",
     "iteratively reweighted least squares robust"
+   ],
+   "software": [
+    "pyinit",
+    "robustreg"
    ]
   },
   "sandwich-variance": {
@@ -885,7 +1027,11 @@
     "urn design Wei",
     "sequential randomization",
     "response-adaptive randomization simulation",
-    "restricted randomization"
+    "restricted randomization",
+    "biased-coin minimization power evaluation"
+   ],
+   "software": [
+    "RARfreq"
    ]
   },
   "sequential-mc-pvalue-stopping": {
@@ -897,7 +1043,8 @@
     "early stopping permutation test",
     "MMCTest Gandy",
     "anytime-valid Monte Carlo test",
-    "truncated sequential probability ratio test"
+    "truncated sequential probability ratio test",
+    "risk of overestimated significance"
    ]
   },
   "simulation-study-engine": {
@@ -908,7 +1055,14 @@
     "simulation design statistics",
     "Monte Carlo standard error",
     "coverage probability estimation",
-    "simulation study framework"
+    "simulation study framework",
+    "number of replications Monte Carlo study"
+   ],
+   "software": [
+    "simhelpers",
+    "SimDesign",
+    "rsimsum",
+    "SimEngine"
    ]
   },
   "stacked-design-construction": {
@@ -931,7 +1085,12 @@
     "ordered stereotype model fitting",
     "bilinear multinomial logit",
     "reduced-rank multinomial logit",
-    "rank-one multinomial regression"
+    "rank-one multinomial regression",
+    "ordered stereotype model (OSM)"
+   ],
+   "software": [
+    "clustord::osm",
+    "gnm (Mult term, eliminate)"
    ]
   },
   "stratified-rd-variance": {
@@ -942,7 +1101,8 @@
     "Robins Breslow Greenland variance",
     "stratified risk difference",
     "design-based variance randomized blocks",
-    "Cochran-Mantel-Haenszel"
+    "Cochran-Mantel-Haenszel",
+    "sparse-stratum asymptotics risk difference"
    ]
   },
   "subsampling-m-out-of-n": {
@@ -953,7 +1113,8 @@
     "subsampling Politis Romano Wolf",
     "minimum volatility method",
     "choice of subsample size",
-    "subsampling confidence intervals"
+    "subsampling confidence intervals",
+    "scalable subsampling"
    ]
   },
   "survival-frailty-copula-mle": {
@@ -966,7 +1127,12 @@
     "gamma frailty",
     "dependent censoring copula",
     "bivariate survival model fitting",
-    "parfm frailtypack"
+    "parfm frailtypack",
+    "log-normal shared frailty proportional hazards"
+   ],
+   "software": [
+    "mexhaz",
+    "CopulaCenR"
    ]
   },
   "weibull-aft-mle": {
@@ -979,6 +1145,10 @@
     "survreg algorithm",
     "interval-censored Weibull regression",
     "extreme value regression log-time"
+   ],
+   "software": [
+    "icenReg ic_par",
+    "eha aftreg"
    ]
   },
   "zero-inflated-count-mle": {
@@ -991,7 +1161,8 @@
     "zero-truncated negative binomial",
     "two-part count model",
     "mixture model EM vs direct maximization",
-    "ZIP ZINB fitting algorithm"
+    "ZIP ZINB fitting algorithm",
+    "fastglm_zi fastglm_hurdle fastglm_truncated"
    ]
   },
   "dense-linear-algebra": {
@@ -1017,7 +1188,8 @@
     "RcppEigen",
     "RcppArmadillo",
     "Matrix (R)",
-    "batched BLAS / MAGMA"
+    "batched BLAS / MAGMA",
+    "Intel MKL compact batched routines (mkl_?potrf_compact)"
    ],
    "collects_methods": [
     "cholesky-ldlt",
@@ -1036,7 +1208,8 @@
    "synonyms": [
     "A/B benchmark",
     "interleaved timing",
-    "median timing rule"
+    "median timing rule",
+    "randomized multiple interleaved trials (RMIT)"
    ],
    "broader": [
     "benchmarking methodology",
@@ -1051,7 +1224,8 @@
     "bench",
     "microbenchmark",
     "Google Benchmark",
-    "hyperfine"
+    "hyperfine",
+    "perfgate-paired"
    ],
    "trivial": true,
    "trivial_reason": "developer tooling, not in a user-facing path"
@@ -1074,7 +1248,8 @@
     "step truncation at boundary",
     "adaptive barrier",
     "COPY method",
-    "combinatorial EM log-binomial"
+    "combinatorial EM log-binomial",
+    "BSW algorithm"
    ],
    "software": [
     "logbin",
@@ -1141,14 +1316,17 @@
     "theta.ml Newton",
     "theta moment estimator update",
     "outer-inner iteration NB",
-    "joint vs alternating NB estimation"
+    "joint vs alternating NB estimation",
+    "Anscombe frequency-table overdispersion MLE",
+    "inner Brent theta maximization"
    ],
    "software": [
     "MASS::glm.nb",
     "MASS::theta.ml",
     "statsmodels NegativeBinomial",
     "glmmTMB nbinom2",
-    "countreg"
+    "countreg",
+    "fastglm::fastglm_nb"
    ]
   },
   "analytic-derivatives": {
@@ -1168,13 +1346,15 @@
     "fused likelihood-gradient-Hessian pass",
     "block-diagonal information",
     "expected vs observed information",
-    "vectorized NLL evaluation"
+    "vectorized NLL evaluation",
+    "exact-width cell probability difference (celldiff)"
    ],
    "software": [
     "TMB",
     "Stan math",
     "CppAD",
-    "JAX"
+    "JAX",
+    "nabla (R, dual-number AD)"
    ]
   },
   "asymptotic-series-recurrence": {
@@ -1204,7 +1384,8 @@
    "synonyms": [
     "Atkinson biased coin",
     "D_A-optimal biased coin",
-    "Atkinson 1982"
+    "Atkinson 1982",
+    "DoptBCD"
    ],
    "broader": [
     "optimal design",
@@ -1214,11 +1395,14 @@
     "full LU inverse per arrival",
     "Sherman-Morrison rank-one update of (X'X)^-1",
     "Cholesky update",
-    "column selection per t"
+    "column selection per t",
+    "block inverse / Schur complement with w-independent C_t",
+    "rank-Greville recursive least squares (rank-deficient)"
    ],
    "software": [
     "carat",
-    "randomizeR"
+    "randomizeR",
+    "covadap"
    ]
   },
   "balanced-clustering": {
@@ -1235,12 +1419,14 @@
    "narrower": [
     "K-way centroid clustering",
     "Ward holdout",
-    "constrained k-means"
+    "constrained k-means",
+    "balanced k-means optimal transport (BalLOT)"
    ],
    "software": [
     "anticlust",
     "scclust",
-    "blockTools"
+    "blockTools",
+    "fastcluster"
    ]
   },
   "barrodale-roberts-simplex": {
@@ -1259,7 +1445,9 @@
    "narrower": [
     "parametric quantile process",
     "rq.fit.br",
-    "simplex warm start"
+    "simplex warm start",
+    "preprocessing bootstrap (boot.rq.pwxy)",
+    "Portnoy-Koenker preprocessing for bootstrap"
    ],
    "software": [
     "quantreg rq(method='br')",
@@ -1273,7 +1461,9 @@
     "Bayesian bootstrap",
     "Dirichlet weights",
     "weighted likelihood bootstrap",
-    "random weighting"
+    "random weighting",
+    "fractional random weight bootstrap",
+    "perturbation bootstrap"
    ],
    "broader": [
     "resampling methods",
@@ -1282,12 +1472,14 @@
    "narrower": [
     "exponential-weight generation",
     "per-replicate weighted refits",
-    "Bayesian BCa"
+    "Bayesian BCa",
+    "generative bootstrap sampler / amortized weighted M-estimation"
    ],
    "software": [
     "bayesboot",
     "LaplacesDemon",
-    "rsample"
+    "rsample",
+    "fwb"
    ]
   },
   "bca-interval": {
@@ -1354,7 +1546,8 @@
     "first-improvement swap",
     "within-pair flips",
     "Kernighan-Lin",
-    "tabu search"
+    "tabu search",
+    "bichromatic maximum inner product search"
    ],
    "software": [
     "GreedyExperimentalDesign"
@@ -1406,12 +1599,15 @@
     "nested bisection",
     "Monte Carlo test inversion bisection",
     "confirm pass + bisection refinement",
-    "bisection on the score"
+    "bisection on the score",
+    "sequential-test bisection (STB)",
+    "ITP (interpolate-truncate-project) method"
    ],
    "software": [
     "stats::uniroot",
     "Boost.Math bisect",
-    "scipy.optimize.bisect"
+    "scipy.optimize.bisect",
+    "permutest"
    ]
   },
   "blossom-matching": {
@@ -1419,7 +1615,8 @@
    "synonyms": [
     "Edmonds blossom algorithm",
     "minimum-weight perfect matching",
-    "Derigs algorithm"
+    "Derigs algorithm",
+    "Gabow O(n^3) weighted matching"
    ],
    "broader": [
     "graph matching",
@@ -1429,14 +1626,16 @@
     "Blossom V",
     "Derigs weighted matching",
     "greedy approximate matching",
-    "auction algorithm"
+    "auction algorithm",
+    "Blossom VI"
    ],
    "software": [
     "nbpMatching",
     "Blossom V",
     "LEMON",
     "networkx max_weight_matching",
-    "designmatch"
+    "designmatch",
+    "rustworkx max_weight_matching"
    ]
   },
   "bordered-normal-equations": {
@@ -1459,7 +1658,9 @@
    "software": [
     "Eigen",
     "permuco",
-    "lmPerm"
+    "lmPerm",
+    "RRPP",
+    "PALM (FSL)"
    ]
   },
   "boundary-reduced-refit": {
@@ -1502,7 +1703,10 @@
     "branch and cut",
     "MIQP direct",
     "SDP relaxation bounds",
-    "complete Karmarkar-Karp (CKK) branch and bound"
+    "complete Karmarkar-Karp (CKK) branch and bound",
+    "FLSSS fixed-size subset sum",
+    "subset (bitmask) dynamic programming with lowest-element anchoring",
+    "minimum-weight perfect non-bipartite matching (block size 2)"
    ],
    "software": [
     "GLPK",
@@ -1512,7 +1716,9 @@
     "Gurobi",
     "CPLEX",
     "SCIP",
-    "scip (CRAN R package, Apache-2.0)"
+    "scip (CRAN R package, Apache-2.0)",
+    "designmatch",
+    "nbpMatching"
    ]
   },
   "breakpoint-inversion": {
@@ -1520,7 +1726,8 @@
    "synonyms": [
     "breakpoint inversion",
     "exact randomization CI by breakpoints",
-    "piecewise-constant p-value inversion"
+    "piecewise-constant p-value inversion",
+    "analytical inversion of the Fisher randomization test"
    ],
    "broader": [
     "exact test inversion",
@@ -1529,9 +1736,13 @@
    "narrower": [
     "per-draw affine coefficients (A_b, c_b)",
     "sorting breakpoints",
-    "Garthwaite exact interval"
+    "Garthwaite exact interval",
+    "quadratic jump points for studentized statistics",
+    "regression (shift) equivariance of the statistic"
    ],
-   "software": []
+   "software": [
+    "CIPerm"
+   ]
   },
   "brent-root": {
    "title": "Brent's method (root finding / golden-section)",
@@ -1551,13 +1762,15 @@
     "Brent maximization of p(delta)",
     "ITP method",
     "Chandrupatla",
-    "Illinois/regula falsi"
+    "Illinois/regula falsi",
+    "modified Anderson-Björck (modAB)"
    ],
    "software": [
     "stats::uniroot",
     "stats::optimize",
     "Boost.Math toms748",
-    "scipy.optimize.brentq"
+    "scipy.optimize.brentq",
+    "roots-fortran"
    ]
   },
   "breslow-risk-set-cumsum": {
@@ -1603,9 +1816,13 @@
     "C++ batch kernel",
     "masked sums",
     "draw materialization for common random numbers",
-    "early stopping"
+    "early stopping",
+    "sequential Monte Carlo testing by betting",
+    "anytime-valid Monte Carlo p-value"
    ],
-   "software": []
+   "software": [
+    "simctest"
+   ]
   },
   "brute-force-distance": {
    "title": "Brute-force pairwise distances",
@@ -1624,7 +1841,8 @@
     "L1 distance",
     "R callback per pair",
     "KD-tree / ball tree",
-    "approximate nearest neighbours"
+    "approximate nearest neighbours",
+    "Rf_eval pre-built call vs Rcpp::Function"
    ],
    "software": [
     "stats::dist",
@@ -1632,7 +1850,9 @@
     "parallelDist",
     "FNN",
     "RANN",
-    "scikit-learn pairwise_distances"
+    "scikit-learn pairwise_distances",
+    "SimSIMD / NumKong",
+    "RcppXPtrUtils"
    ]
   },
   "cholesky-ldlt": {
@@ -1655,7 +1875,8 @@
     "solve against unit vector for one diagonal entry",
     "Cholesky rank-one update/downdate",
     "pivoted Cholesky",
-    "normal equations LDLT"
+    "normal equations LDLT",
+    "symmetric rank-k update (SYRK / selfadjointView().rankUpdate) for the Gram matrix"
    ],
    "software": [
     "Eigen LDLT/LLT",
@@ -1687,7 +1908,8 @@
     "survival::clogit",
     "Epi::clogistic",
     "stats::glm",
-    "mclogit"
+    "mclogit",
+    "fastglm"
    ]
   },
   "clopper-pearson-interval": {
@@ -1709,7 +1931,9 @@
    "software": [
     "stats::binom.test",
     "binom",
-    "PropCIs"
+    "PropCIs",
+    "exactci",
+    "BlakerCI"
    ]
   },
   "closed-form": {
@@ -1753,7 +1977,8 @@
     "boot",
     "clusterSEs",
     "fwildclusterboot",
-    "rsample group_bootstraps"
+    "rsample group_bootstraps",
+    "boottest"
    ]
   },
   "continued-fraction-lentz": {
@@ -1769,7 +1994,8 @@
    "narrower": [
     "upper incomplete gamma CF",
     "chi-square upper tail",
-    "Temme uniform asymptotics"
+    "Temme uniform asymptotics",
+    "integer/half-integer finite sum (DLMF 8.4.10, 8.4.14)"
    ],
    "software": [
     "Rmath pgamma",
@@ -1817,7 +2043,9 @@
     "fixed-replicate Monte Carlo",
     "quasi-Monte Carlo",
     "control variates",
-    "hash-set deduplication of results"
+    "hash-set deduplication of results",
+    "Boos-Zhang extrapolation of bootstrap power/coverage in 1/B",
+    "sequential stopping rules for Monte Carlo"
    ],
    "software": []
   },
@@ -1827,7 +2055,8 @@
     "DeLong variance",
     "structural components",
     "placement values",
-    "U-statistic variance"
+    "U-statistic variance",
+    "Brunner-Munzel variance"
    ],
    "broader": [
     "U-statistics",
@@ -1835,7 +2064,8 @@
    ],
    "narrower": [
     "fast DeLong (Sun-Xu O(n log n))",
-    "variance accounting for estimated reference CDF"
+    "variance accounting for estimated reference CDF",
+    "unbiased Mann-Whitney variance estimator (Brunner-Konietschke / Bamber)"
    ],
    "software": [
     "pROC",
@@ -1896,7 +2126,11 @@
    ],
    "narrower": [
     "fast double bootstrap (Davidson-MacKinnon)",
-    "coverage calibration of alpha"
+    "coverage calibration of alpha",
+    "sequential iterated bootstrap (SPRT inner stopping, Lee-Young 1996)",
+    "asymptotic iterated bootstrap (analytic coverage correction, Lee-Young 1995)",
+    "second-level interpolation (Hall-Lee-Young 2000)",
+    "reuse of inner distributions across calibration grid (common random numbers)"
    ],
    "software": [
     "boot"
@@ -1915,7 +2149,8 @@
    "narrower": [
     "generalized biased coin",
     "adjustable biased coin",
-    "big stick design"
+    "big stick design",
+    "Hollander-Peña recursion (exact randomization distribution)"
    ],
    "software": [
     "randomizeR",
@@ -1945,7 +2180,8 @@
     "MASS::ginv",
     "Eigen SelfAdjointEigenSolver",
     "LAPACK dsyevr",
-    "corpcor::pseudoinverse"
+    "corpcor::pseudoinverse",
+    "Eigen CompleteOrthogonalDecomposition"
    ],
    "researched_in": "dense-linear-algebra"
   },
@@ -1954,7 +2190,8 @@
    "synonyms": [
     "erfc-based Phi",
     "complementary error function normal CDF",
-    "log Phi via erfc"
+    "log Phi via erfc",
+    "erfcx-based log Phi"
    ],
    "broader": [
     "special function evaluation"
@@ -1968,7 +2205,9 @@
     "Rmath pnorm",
     "Boost.Math erfc",
     "SLEEF",
-    "scipy.special.log_ndtr"
+    "scipy.special.log_ndtr",
+    "Stan Math std_normal_lcdf",
+    "scipy xsf log_ndtr (stats.h)"
    ]
   },
   "exact-binomial-test": {
@@ -1991,7 +2230,8 @@
    "software": [
     "stats::binom.test",
     "exact2x2",
-    "DescTools::SignTest"
+    "DescTools::SignTest",
+    "DiscreteTests"
    ]
   },
   "exhaustive-autotuning": {
@@ -2037,14 +2277,17 @@
     "generating-function / polynomial multiplication",
     "network algorithm",
     "shift algorithm",
-    "FFT convolution"
+    "FFT convolution",
+    "Cheung-Klotz linked-list / tail-bounded (twoUmin, twoUmax) recursion"
    ],
    "software": [
     "clinfun jonckheere.test",
     "coin exact",
     "exactRankTests",
     "StatXact",
-    "PMCMRplus"
+    "PMCMRplus",
+    "golang.org/x/perf internal/stats udist.go",
+    "kSamples jt.test"
    ]
   },
   "exponential-bracketing": {
@@ -2086,14 +2329,19 @@
     "Richardson extrapolation",
     "complex-step differentiation",
     "automatic differentiation replacement",
-    "step-size selection"
+    "step-size selection",
+    "hyper-dual numbers",
+    "sparse Hessian graph colouring (Curtis-Powell-Reid)"
    ],
    "software": [
     "numDeriv",
     "pracma",
     "TMB",
     "CppAD",
-    "scipy approx_fprime"
+    "scipy approx_fprime",
+    "pnd",
+    "nlme fdHess",
+    "nabla"
    ]
   },
   "fisher-yates-shuffle": {
@@ -2113,14 +2361,18 @@
     "batched shuffles within blocks",
     "permuted blocks via shuffle",
     "Floyd's algorithm",
-    "merge shuffle parallel"
+    "merge shuffle parallel",
+    "batched ranged random integers",
+    "randomness recycling"
    ],
    "software": [
     "base::sample",
     "dqrng",
     "std::shuffle",
     "numpy permutation",
-    "randomizr complete_ra"
+    "randomizr complete_ra",
+    "randompack",
+    "randomizr block_ra (C++ since 2.0.1)"
    ]
   },
   "forward-stepwise-selection": {
@@ -2144,7 +2396,8 @@
     "stats::step",
     "leaps",
     "lars",
-    "FWL updates"
+    "FWL updates",
+    "greybox::stepwise"
    ]
   },
   "g-computation": {
@@ -2153,7 +2406,8 @@
     "g-computation",
     "standardization",
     "regression standardization",
-    "marginal effects averaging"
+    "marginal effects averaging",
+    "marginal standardization"
    ],
    "broader": [
     "causal effect estimation",
@@ -2162,13 +2416,15 @@
    "narrower": [
     "closed-form standardization",
     "standardization with sandwich SE",
-    "drop-largest-coefficient separation fallback"
+    "drop-largest-coefficient separation fallback",
+    "one-step (linearized) bootstrap"
    ],
    "software": [
     "stdReg",
     "marginaleffects",
     "RISCA",
-    "zEpid"
+    "zEpid",
+    "stdReg2"
    ]
   },
   "gauss-hermite-quadrature": {
@@ -2192,7 +2448,11 @@
     "sparse grid quadrature",
     "pseudo-likelihood weighted GHQ",
     "pseudo-adaptive Gauss-Hermite quadrature",
-    "cluster-total (sufficient-statistic) collapse for log-link random intercept"
+    "cluster-total (sufficient-statistic) collapse for log-link random intercept",
+    "cluster-weighted vs observation-weighted quadrature likelihood (case weights)",
+    "clmm nAGQ negative (non-adaptive GHQ)",
+    "consistency of non-adaptive quadrature MLE",
+    "Lambert-W adaptive Gauss-Hermite quadrature (LAGHQ)"
    ],
    "software": [
     "lme4 glmer nAGQ",
@@ -2201,7 +2461,9 @@
     "glmmTMB",
     "statmod",
     "SAS PROC NLMIXED",
-    "aghq"
+    "aghq",
+    "MixedModels.jl",
+    "glmmML"
    ]
   },
   "gauss-jordan-elimination": {
@@ -2231,7 +2493,8 @@
     "GLS",
     "generalized least squares",
     "weighted least squares with known covariance",
-    "exact Gaussian likelihood"
+    "exact Gaussian likelihood",
+    "error-components model (Wansbeek–Kapteyn incomplete panels)"
    ],
    "broader": [
     "linear mixed model algorithms",
@@ -2240,7 +2503,8 @@
    "narrower": [
     "block-diagonal GLS for pairs",
     "GLS fast path",
-    "profiled ML"
+    "profiled ML",
+    "sum/difference (Helmert) rotation of pairs"
    ],
    "software": [
     "nlme::gls",
@@ -2263,13 +2527,17 @@
     "Glaser-Liu-Rokhlin",
     "Hale-Townsend asymptotic",
     "Newton on Hermite polynomials",
-    "precomputed node tables"
+    "precomputed node tables",
+    "Newton polish + analytic weights (SciPy modified Golub-Welsch)",
+    "high relative accuracy Gaussian quadrature weights",
+    "modified Halley method"
    ],
    "software": [
     "statmod::gauss.quad",
     "fastGHQuad",
     "numpy.polynomial.hermite.hermgauss",
-    "FastGaussQuadrature.jl"
+    "FastGaussQuadrature.jl",
+    "lme4::GHrule"
    ]
   },
   "greedy-blocking": {
@@ -2306,7 +2574,8 @@
    "narrower": [
     "weighted Greenwood",
     "RMST variance via Greenwood",
-    "Aalen variance"
+    "Aalen variance",
+    "Xie-Liu weighted Kaplan-Meier variance"
    ],
    "software": [
     "survival::survfit",
@@ -2336,7 +2605,8 @@
     "data.table",
     "collapse",
     "std::unordered_map",
-    "absl flat_hash_map"
+    "absl flat_hash_map",
+    "collapse::fmode"
    ],
    "trivial": true,
    "trivial_reason": "O(n) expected, the cost of reading the input"
@@ -2356,12 +2626,14 @@
    "narrower": [
     "EM-ICM hybrid",
     "semiparametric PH for interval censoring",
-    "bootstrap SE"
+    "bootstrap SE",
+    "profile-likelihood variance (Murphy-van der Vaart)"
    ],
    "software": [
     "icenReg ic_sp",
     "Icens",
-    "MLEcens"
+    "MLEcens",
+    "icsp2"
    ]
   },
   "iid-index-resampling": {
@@ -2379,13 +2651,15 @@
     "alias method",
     "sampling without replacement (m-out-of-n)",
     "batched B x n index matrix",
-    "Poisson bootstrap"
+    "Poisson bootstrap",
+    "batched ranged random integer generation"
    ],
    "software": [
     "base::sample.int",
     "dqrng",
     "Rfast",
-    "numpy Generator.integers"
+    "numpy Generator.integers",
+    "Randompack"
    ]
   },
   "induced-smoothing": {
@@ -2402,12 +2676,14 @@
    "narrower": [
     "smoothed Gehan AFT",
     "Newton on smoothed equations",
-    "linear programming Gehan"
+    "linear programming Gehan",
+    "ISCF closed-form variance (Johnson-Strawderman)"
    ],
    "software": [
     "aftgee",
     "rankreg",
-    "lss"
+    "lss",
+    "fastAFT"
    ]
   },
   "interior-point-lp": {
@@ -2449,12 +2725,14 @@
     "alias method",
     "AS 241 normal inversion",
     "conditional inversion for copulas",
-    "binary search inversion"
+    "binary search inversion",
+    "Gumbel-max categorical sampling"
    ],
    "software": [
     "base R r* functions",
     "copula",
-    "dqrng"
+    "dqrng",
+    "mets rchaz / sim_phreg"
    ]
   },
   "inverse-variance-weighting": {
@@ -2510,7 +2788,10 @@
     "Fisher scoring for GEE",
     "truncated IRLS / early stopping",
     "IRLS with Hessian reuse",
-    "scaled least squares estimator for GLMs"
+    "scaled least squares estimator for GLMs",
+    "adjusted score IWLS (bias-reduced IWLS)",
+    "one-step GEE estimator",
+    "finite-termination Newton for Huber (Madsen–Nielsen)"
    ],
    "software": [
     "stats::glm.fit",
@@ -2522,7 +2803,13 @@
     "scikit-learn LogisticRegression newton-cholesky",
     "h2o GLM",
     "MASS::rlm",
-    "VGAM"
+    "VGAM",
+    "ECOSolveR",
+    "aRD",
+    "lbm",
+    "fastglm_ordinal",
+    "savvyGLM",
+    "statsmodels RLMDetS / RLMDetSMM"
    ]
   },
   "jackknife": {
@@ -2530,7 +2817,8 @@
    "synonyms": [
     "delete-one jackknife",
     "Quenouille-Tukey jackknife",
-    "leave-one-out"
+    "leave-one-out",
+    "CV3 / CRV3 jackknife cluster-robust variance"
    ],
    "broader": [
     "resampling methods"
@@ -2539,11 +2827,15 @@
     "weighted delete-one jackknife",
     "cluster jackknife",
     "infinitesimal jackknife",
-    "one-step jackknife"
+    "one-step jackknife",
+    "linearized cluster jackknife (CV3L)",
+    "V-fold jackknife"
    ],
    "software": [
     "bootstrap::jackknife",
-    "boot::empinf"
+    "boot::empinf",
+    "summclust",
+    "sandwich::vcovJK"
    ]
   },
   "kaplan-meier-product-limit": {
@@ -2568,7 +2860,9 @@
     "survival::survfit",
     "survRM2",
     "lifelines KaplanMeierFitter",
-    "scikit-survival"
+    "scikit-survival",
+    "FastSurvival",
+    "prodlim"
    ]
   },
   "kkt-boundary-analysis": {
@@ -2592,7 +2886,8 @@
    ],
    "software": [
     "logbin",
-    "nloptr"
+    "nloptr",
+    "detectseparation"
    ]
   },
   "lanczos-stirling": {
@@ -2617,7 +2912,9 @@
     "Boost.Math lgamma",
     "std::lgamma",
     "SLEEF",
-    "VDT"
+    "VDT",
+    "TFP log_gamma_difference / log_gamma_correction",
+    "CORE-MATH"
    ]
   },
   "laplace-approximation-tmb": {
@@ -2635,7 +2932,8 @@
    "narrower": [
     "nested Laplace",
     "sparse Hessian Laplace",
-    "nlminb outer optimizer"
+    "nlminb outer optimizer",
+    "RTMB DataEval (successor of DATA_UPDATE)"
    ],
    "software": [
     "glmmTMB",
@@ -2686,7 +2984,9 @@
     "L-BFGS memory size m",
     "OWL-QN",
     "warm-started L-BFGS",
-    "L-BFGS with analytic gradient"
+    "L-BFGS with analytic gradient",
+    "Fisher-scoring polish after quasi-Newton",
+    "ML degree of variance component models"
    ],
    "software": [
     "LBFGSpp",
@@ -2696,7 +2996,12 @@
     "scipy.optimize L-BFGS-B",
     "liblbfgs",
     "Ceres Solver",
-    "dlib"
+    "dlib",
+    "RcppNumerical fastLR",
+    "BranchGLM",
+    "lmm (Schafer ECME/Fisher scoring)",
+    "ucminf",
+    "marqLevAlg"
    ]
   },
   "lemire-bounded-integer": {
@@ -2712,7 +3017,8 @@
    "narrower": [
     "multiply-shift rejection",
     "bitmask rejection",
-    "R sample.int rejection sampling"
+    "R sample.int rejection sampling",
+    "batched ranged random integer generation"
    ],
    "software": [
     "dqrng",
@@ -2741,7 +3047,9 @@
     "pscl::hurdle",
     "countreg",
     "zoib",
-    "gamlss"
+    "gamlss",
+    "gamlss.dist BEINF",
+    "statsmodels HurdleCountModel"
    ]
   },
   "linear-scan": {
@@ -2760,7 +3068,9 @@
     "ID relabeling pass",
     "scan for non-constant columns"
    ],
-   "software": [],
+   "software": [
+    "base::rowsum"
+   ],
    "trivial": true,
    "trivial_reason": "single O(n) pass, the cost of reading the input"
   },
@@ -2776,7 +3086,8 @@
    "narrower": [
     "first-win linear search",
     "binary search alternative",
-    "galloping"
+    "galloping",
+    "probabilistic bisection"
    ],
    "software": []
   },
@@ -2793,13 +3104,15 @@
    "narrower": [
     "longest processing time first (LPT)",
     "work stealing",
-    "dynamic scheduling"
+    "dynamic scheduling",
+    "zig-zag sorting / size balancing (mclapplySB)"
    ],
    "software": [
     "future",
     "mirai",
     "parallel",
-    "OpenMP dynamic schedule"
+    "OpenMP dynamic schedule",
+    "crew"
    ]
   },
   "log-sum-exp": {
@@ -2830,7 +3143,8 @@
    "synonyms": [
     "log-rank sweep",
     "sort-and-sweep log-rank",
-    "survdiff algorithm"
+    "survdiff algorithm",
+    "linear rank test (coin logrank_trafo)"
    ],
    "broader": [
     "linear-time rank statistics",
@@ -2840,13 +3154,15 @@
     "Gehan/Peto-Prentice weights in fused sweep",
     "hypergeometric variance accumulation",
     "Fleming-Harrington weights",
-    "per-draw sort bootstrap log-rank"
+    "per-draw sort bootstrap log-rank",
+    "label-invariant pooled scores for permutation log-rank (linear rank statistic)"
    ],
    "software": [
     "survival::survdiff",
     "nph",
     "lifelines logrank_test",
-    "coin logrank_test"
+    "coin logrank_test",
+    "FastSurvival survdiff_fast"
    ]
   },
   "louis-identity": {
@@ -2900,7 +3216,8 @@
     "Politis-Romano-Wolf"
    ],
    "broader": [
-    "resampling methods"
+    "resampling methods",
+    "cheap bootstrap"
    ],
    "narrower": [
     "without-replacement subsampling",
@@ -2908,7 +3225,9 @@
    ],
    "software": [
     "boot",
-    "subsampling methods in R"
+    "subsampling methods in R",
+    "moonboot",
+    "dqrng"
    ]
   },
   "mahalanobis-quadratic-forms": {
@@ -2926,12 +3245,14 @@
     "batched quadratic forms via GEMM",
     "Cholesky whitening then Euclidean",
     "direct loops",
-    "incremental reservoir distances"
+    "incremental reservoir distances",
+    "rank-one Cholesky update"
    ],
    "software": [
     "stats::mahalanobis",
     "Rfast::mahala",
-    "BLAS dgemm"
+    "BLAS dgemm",
+    "mvnfast::maha"
    ]
   },
   "martingale-residuals": {
@@ -2986,7 +3307,8 @@
    ],
    "broader": [
     "estimating equations",
-    "starting value strategies"
+    "starting value strategies",
+    "quasi-least squares (QLS) correlation estimation"
    ],
    "narrower": [
     "Pearson-based theta",
@@ -3005,7 +3327,8 @@
     "Miettinen-Nurminen",
     "MN score test",
     "constrained-MLE score statistic for risk difference",
-    "Farrington-Manning"
+    "Farrington-Manning",
+    "restricted maximum likelihood (REML) estimates with specified risk difference"
    ],
    "broader": [
     "score tests",
@@ -3020,14 +3343,17 @@
     "DescTools::BinomDiffCI",
     "PropCIs::diffscoreci",
     "ratesci",
-    "gsDesign"
+    "gsDesign",
+    "lrstat::mnRiskDiffCI / remlRiskDiff",
+    "cicalc::ci_prop_diff_mn"
    ]
   },
   "minimum-volatility": {
    "title": "Minimum-volatility selection of subsample size",
    "synonyms": [
     "minimum volatility method",
-    "block size selection"
+    "block size selection",
+    "Kolmogorov-Smirnov subsample size selection (Jach-McElroy-Politis)"
    ],
    "broader": [
     "tuning parameter selection"
@@ -3090,7 +3416,9 @@
     "C++ batch kernel",
     "two-sided Monte Carlo p",
     "per-replicate rematching",
-    "rank-statistic kernels"
+    "rank-statistic kernels",
+    "anytime-valid Monte Carlo p-value (testing by betting)",
+    "Phipson-Smyth (b+1)/(r+1) correction"
    ],
    "software": [
     "coin",
@@ -3098,7 +3426,9 @@
     "perm",
     "lmPerm",
     "permuco",
-    "scipy.stats.permutation_test"
+    "scipy.stats.permutation_test",
+    "hamstest",
+    "statmod::permp"
    ]
   },
   "mover-interval": {
@@ -3116,7 +3446,9 @@
     "MOVER for KM median difference",
     "MOVER-R for ratios"
    ],
-   "software": [],
+   "software": [
+    "rifttable survdiff_ci"
+   ],
    "trivial": true,
    "trivial_reason": "closed form from two intervals"
   },
@@ -3138,7 +3470,9 @@
     "two-start constrained refit",
     "multistart L-BFGS with Newton polish",
     "clustering multistart",
-    "basin hopping"
+    "basin hopping",
+    "factor once, multiple right-hand sides",
+    "METOD early-terminated multistart"
    ],
    "software": [
     "optimx",
@@ -3153,7 +3487,8 @@
     "Newcombe method 10",
     "hybrid score interval",
     "Wilson-based difference interval",
-    "square-and-add"
+    "square-and-add",
+    "MOVER-NW"
    ],
    "broader": [
     "confidence intervals for differences of proportions"
@@ -3181,7 +3516,8 @@
     "second-order optimization",
     "unconstrained optimization",
     "convex optimization",
-    "maximum likelihood algorithms"
+    "maximum likelihood algorithms",
+    "MM algorithm Cox model"
    ],
    "narrower": [
     "damped Newton",
@@ -3193,7 +3529,9 @@
     "Newton with Hessian modification",
     "truncated Newton",
     "Newton then L-BFGS fallback",
-    "block-coordinate Newton"
+    "block-coordinate Newton",
+    "quadratic/cubic surrogate minimization (FastSurvival)",
+    "gradient-regularized Newton (AN2C, sqrt(||g||) regularization)"
    ],
    "software": [
     "survival::coxph",
@@ -3204,7 +3542,15 @@
     "trust (R)",
     "scipy.optimize newton-cg",
     "Eigen",
-    "eha::coxreg"
+    "eha::coxreg",
+    "rms::lrm.fit / rms::orm.fit",
+    "glm2",
+    "rms::orm.fit",
+    "marqLevAlg",
+    "maxLik::maxNR",
+    "fastglm::fastglm_ordinal",
+    "FastSurvival::coxph_fast",
+    "survival::survreg.fit"
    ]
   },
   "noncentral-hypergeometric-enumeration": {
@@ -3212,7 +3558,9 @@
    "synonyms": [
     "noncentral hypergeometric distribution",
     "Fisher's noncentral hypergeometric",
-    "conditional exact distribution"
+    "conditional exact distribution",
+    "extended hypergeometric distribution",
+    "Birch exact test"
    ],
    "broader": [
     "exact conditional inference",
@@ -3222,13 +3570,16 @@
     "convolution of hypergeometrics (exact CMH)",
     "conditional MLE of odds ratio",
     "minlike two-sided p",
-    "log-space recursion"
+    "log-space recursion",
+    "Bernoulli convolution representation of the hypergeometric (Kou & Ying; Barrett 2017)",
+    "fisher.test pval.only"
    ],
    "software": [
     "stats::fisher.test",
     "stats::mantelhaen.test exact",
     "BiasedUrn",
-    "exact2x2"
+    "exact2x2",
+    "scipy.stats.contingency.odds_ratio"
    ]
   },
   "nonparametric-bootstrap": {
@@ -3246,13 +3597,16 @@
     "studentized (theta*, se*) pairs",
     "compound KK bootstrap",
     "balanced bootstrap",
-    "antithetic resampling"
+    "antithetic resampling",
+    "cheap bootstrap / studentized cheap bootstrap",
+    "k-step bootstrap"
    ],
    "software": [
     "boot",
     "bootstrap",
     "rsample",
-    "scipy.stats.bootstrap"
+    "scipy.stats.bootstrap",
+    "fwb"
    ]
   },
   "ols-on-transformed-response": {
@@ -3270,11 +3624,13 @@
     "OLS on log(y+c) Poisson start",
     "OLS on empirical logit start",
     "OLS on log-time with Gumbel shift (Weibull)",
-    "OLS on logit(y) beta regression start"
+    "OLS on logit(y) beta regression start",
+    "Buckley-James / Gehan initial estimate for AFT"
    ],
    "software": [
     "glm mustart",
-    "survreg init"
+    "survreg init",
+    "pscl zeroinfl start (glm.fit / EM)"
    ]
   },
   "ordinal-binary-expansion": {
@@ -3282,7 +3638,8 @@
    "synonyms": [
     "binary expansion",
     "stacked binary trials",
-    "data augmentation for ordinal models"
+    "data augmentation for ordinal models",
+    "sequential logit / stopping ratio model"
    ],
    "broader": [
     "model reformulation"
@@ -3290,12 +3647,16 @@
    "narrower": [
     "adjacent-category expansion",
     "continuation-ratio expansion",
-    "strata x cut stacking"
+    "strata x cut stacking",
+    "stage-case format (person-stage data)",
+    "amalgamated conditional logistic regression"
    ],
    "software": [
     "VGAM",
     "ordinalNet",
-    "rms"
+    "rms",
+    "GLMcat",
+    "brms cratio / Stata crreg"
    ]
   },
   "pairs-of-pairs-variance": {
@@ -3303,11 +3664,13 @@
    "synonyms": [
     "pairs of pairs variance",
     "Bai Romano Shaikh variance",
-    "matched-pairs variance estimator"
+    "matched-pairs variance estimator",
+    "paired-strata variance estimator"
    ],
    "broader": [
     "design-based variance",
-    "matched pairs inference"
+    "matched pairs inference",
+    "graph-Laplacian variance estimators finely stratified experiments"
    ],
    "narrower": [
     "blossom pairing of pair means",
@@ -3330,11 +3693,14 @@
    ],
    "narrower": [
     "iterated pairwise correlation drop",
-    "VIF-based removal"
+    "VIF-based removal",
+    "threshold ladder sharing one correlation matrix"
    ],
    "software": [
     "caret::findCorrelation",
-    "usdm::vifcor"
+    "usdm::vifcor",
+    "corrselect::corrPrune",
+    "coop::pcor"
    ]
   },
   "parallel-refit-loop": {
@@ -3359,7 +3725,8 @@
     "RcppParallel",
     "future",
     "parallel::mclapply",
-    "mirai"
+    "mirai",
+    "FRB"
    ]
   },
   "parametric-bootstrap": {
@@ -3367,7 +3734,8 @@
    "synonyms": [
     "parametric bootstrap",
     "model-based simulation",
-    "parametric null simulation"
+    "parametric null simulation",
+    "bootstrap Bartlett correction (Rocke 1989)"
    ],
    "broader": [
     "resampling methods",
@@ -3377,12 +3745,15 @@
     "parametric-bootstrap LR calibration",
     "Monte Carlo Bartlett correction",
     "bias correction",
-    "Gaussian null simulation"
+    "Gaussian null simulation",
+    "k-step bootstrap"
    ],
    "software": [
     "pbkrtest",
     "boot(sim='parametric')",
-    "lme4 bootMer"
+    "lme4 bootMer",
+    "pbkrtest::PBmodcomp / seqPBmodcomp",
+    "pbkrtest seqPBmodcomp"
    ]
   },
   "percentile-bootstrap-interval": {
@@ -3415,7 +3786,8 @@
     "random block size"
    ],
    "broader": [
-    "restricted randomization"
+    "restricted randomization",
+    "merged block randomization"
    ],
    "narrower": [
     "stratified permuted blocks",
@@ -3425,7 +3797,9 @@
    "software": [
     "blockrand",
     "randomizr block_ra",
-    "randomizeR"
+    "randomizeR",
+    "carat StrPBR",
+    "randomizr strata_rs"
    ]
   },
   "pocock-simon": {
@@ -3433,7 +3807,8 @@
    "synonyms": [
     "Pocock-Simon",
     "minimization",
-    "marginal imbalance minimization"
+    "marginal imbalance minimization",
+    "minimisation re-randomisation test"
    ],
    "broader": [
     "covariate-adaptive randomization"
@@ -3446,7 +3821,8 @@
    "software": [
     "carat",
     "Minirand",
-    "randPack"
+    "randPack",
+    "covadap"
    ]
   },
   "power-series": {
@@ -3462,11 +3838,13 @@
    "narrower": [
     "lower incomplete gamma series",
     "truncated atanh series for softplus",
-    "Horner evaluation"
+    "Horner evaluation",
+    "Estrin scheme"
    ],
    "software": [
     "Rmath",
-    "Boost.Math"
+    "Boost.Math",
+    "fdlibm e_log.c"
    ]
   },
   "profile-likelihood": {
@@ -3508,13 +3886,17 @@
    "narrower": [
     "Cauchy combination (Liu-Xie 2020)",
     "weighted Stouffer",
-    "harmonic mean p-value"
+    "harmonic mean p-value",
+    "Lancaster mid-p combination",
+    "truncated Cauchy combination test (TCCT)"
    ],
    "software": [
     "poolr",
     "metap",
     "harmonicmeanp",
-    "ACAT"
+    "ACAT",
+    "DPComb",
+    "GFisher"
    ],
    "trivial": true,
    "trivial_reason": "closed form over a few p-values"
@@ -3540,14 +3922,20 @@
     "greedy column selection via repeated QR",
     "QR least squares",
     "QR inverse (chol2inv)",
-    "Householder projection matrix"
+    "Householder projection matrix",
+    "local maximum volume pivoting",
+    "QR column insertion (add_column)",
+    "block-diagonal reparametrization of interacted design",
+    "R-only QR updating (Q-less update/downdate)"
    ],
    "software": [
     "LAPACK dgeqp3",
     "Eigen ColPivHouseholderQR",
     "base::qr",
     "RcppEigen fastLm",
-    "LINPACK dqrdc2"
+    "LINPACK dqrdc2",
+    "fastQR (CRAN)",
+    "fastQR (R)"
    ],
    "researched_in": "dense-linear-algebra"
   },
@@ -3566,13 +3954,16 @@
    "narrower": [
     "predictive mean matching with RF",
     "re-imputation per arrival",
-    "incremental imputation"
+    "incremental imputation",
+    "out-of-sample imputation / imputing new observations with saved models",
+    "warm-start initialization (custom x_init)"
    ],
    "software": [
     "missRanger",
     "missForest",
     "mice (rf)",
-    "ranger"
+    "ranger",
+    "missForestPredict"
    ]
   },
   "random-variate-generation": {
@@ -3593,7 +3984,8 @@
     "base R stats",
     "dqrng",
     "Boost.Random",
-    "numpy Generator"
+    "numpy Generator",
+    "zigg / RcppZiggurat"
    ]
   },
   "rational-approximation": {
@@ -3622,7 +4014,10 @@
     "Boost.Math",
     "Cephes",
     "SLEEF",
-    "VDT"
+    "VDT",
+    "Arm optimized-routines",
+    "Sollya fpminimax",
+    "DPQ qnormAsymp"
    ]
   },
   "rejection-sampling": {
@@ -3638,7 +4033,9 @@
    "narrower": [
     "rerandomization with cutoff",
     "rejection of degenerate bootstrap resamples",
-    "MCMC alternative for low acceptance"
+    "MCMC alternative for low acceptance",
+    "mirror allocations (complement w -> 1-w for symmetric criteria)",
+    "Langevin-gradient rerandomization (LGR)"
    ],
    "software": [
     "rerandomization (R pkg)",
@@ -3709,7 +4106,8 @@
    "software": [
     "Ridit (R package)",
     "DescTools",
-    "pim"
+    "pim",
+    "ridittools"
    ]
   },
   "robins-breslow-greenland-variance": {
@@ -3717,7 +4115,8 @@
    "synonyms": [
     "Robins-Breslow-Greenland",
     "RBG variance",
-    "Mantel-Haenszel variance"
+    "Mantel-Haenszel variance",
+    "Robins (1988) risk-difference variance"
    ],
    "broader": [
     "stratified analysis variance"
@@ -3725,12 +4124,15 @@
    "narrower": [
     "extended Robins variance",
     "Sato variance",
-    "Greenland-Robins risk difference"
+    "Greenland-Robins risk difference",
+    "Greenland-Robins (GR) / modified GR (mGR) variance"
    ],
    "software": [
     "epitools",
     "DescTools",
-    "rateratio.test"
+    "rateratio.test",
+    "RobinCar",
+    "RI2by2"
    ],
    "trivial": true,
    "trivial_reason": "closed form over strata"
@@ -3779,7 +4181,9 @@
     "Lin-Wei Cox sandwich prefix sums",
     "Hendricks-Koenker nid sandwich",
     "Huber sandwich",
-    "sandwich + delta method"
+    "sandwich + delta method",
+    "Satterthwaite df via r×r Gram products (no J×J matrix)",
+    "CV3 / cluster jackknife (vcovJK)"
    ],
    "software": [
     "sandwich",
@@ -3787,7 +4191,9 @@
     "estimatr",
     "survival robust",
     "statsmodels cov_type",
-    "fixest"
+    "fixest",
+    "dfadjust",
+    "coxdev"
    ]
   },
   "schur-complement": {
@@ -3827,13 +4233,16 @@
     "SplitMix64 per draw index",
     "child seed from R uniform",
     "counter-based Philox/Threefry",
-    "jump-ahead"
+    "jump-ahead",
+    "event-keyed counter-based RNG",
+    "seed_seq_fe128 spawn keys"
    ],
    "software": [
     "dqrng",
     "parallel L'Ecuyer-CMRG",
     "Random123",
-    "rlecuyer"
+    "rlecuyer",
+    "sitmo"
    ]
   },
   "selection-algorithm": {
@@ -3861,7 +4270,8 @@
     "std::nth_element",
     "base::sort(partial=)",
     "Rfast",
-    "matrixStats::rowMedians"
+    "matrixStats::rowMedians",
+    "miniselect"
    ]
   },
   "separation-detection": {
@@ -3870,7 +4280,8 @@
     "separation detection",
     "complete separation",
     "quasi-complete separation check",
-    "monotone likelihood detection"
+    "monotone likelihood detection",
+    "overlap condition (MLE existence)"
    ],
    "broader": [
     "MLE existence",
@@ -3879,12 +4290,14 @@
    "narrower": [
     "linear programming separation check",
     "coefficient magnitude heuristic",
-    "bootstrap distribution width heuristic"
+    "bootstrap distribution width heuristic",
+    "Fisher information null eigenvector (Eck-Geyer) post-fit existence check"
    ],
    "software": [
     "detectseparation",
     "safeBinaryRegression",
-    "brglm2"
+    "brglm2",
+    "losep"
    ]
   },
   "sequential-monte-carlo-stopping": {
@@ -3893,7 +4306,8 @@
     "sequential Monte Carlo test",
     "Besag-Clifford",
     "early stopping of resampling",
-    "sequential p-value"
+    "sequential p-value",
+    "Monte Carlo testing by betting"
    ],
    "broader": [
     "sequential analysis",
@@ -3903,11 +4317,16 @@
     "Clopper-Pearson band stopping",
     "MMCTest",
     "SIMCTEST",
-    "anytime-valid confidence sequences"
+    "anytime-valid confidence sequences",
+    "binomial mixture betting strategy",
+    "p-value buckets"
    ],
    "software": [
     "simctest",
-    "MCHT"
+    "MCHT",
+    "MChtest",
+    "rfvimptest",
+    "MC-testing-by-betting"
    ]
   },
   "sequential-replay": {
@@ -3940,7 +4359,8 @@
    "narrower": [
     "per-cluster closed-form V^-1",
     "log-determinant via matrix determinant lemma",
-    "rank-one update of (X'X)^-1"
+    "rank-one update of (X'X)^-1",
+    "centred within-group quadratic form (two-pass / Welford)"
    ],
    "software": [
     "Eigen",
@@ -3970,7 +4390,8 @@
     "GenSA",
     "optim(method='SANN')",
     "simanneal",
-    "dwave-samplers (neal SA, MST2 tabu)"
+    "dwave-samplers (neal SA, MST2 tabu)",
+    "tabuSearch (CRAN), NMOF threshold accepting"
    ]
   },
   "size-based-dispatch": {
@@ -4085,7 +4506,8 @@
     "Rmpfr log1mexp",
     "plogis(log.p=TRUE)",
     "SLEEF",
-    "std::log1p"
+    "std::log1p",
+    "LogExpFunctions.jl"
    ]
   },
   "stratified-resampling": {
@@ -4099,11 +4521,13 @@
    ],
    "narrower": [
     "stratified subsampling",
-    "exchangeable-unit resampling with quantile pivot"
+    "exchangeable-unit resampling with quantile pivot",
+    "bitset rejection sampling without replacement"
    ],
    "software": [
     "boot(strata=)",
-    "rsample"
+    "rsample",
+    "resample (samp.bootstrap)"
    ]
   },
   "streaming-moments": {
@@ -4113,7 +4537,8 @@
     "streaming moments",
     "Welford algorithm",
     "sum of squares variance",
-    "two-pass mean/variance"
+    "two-pass mean/variance",
+    "Chan-Golub-LeVeque pairwise covariance update"
    ],
    "broader": [
     "numerical summation",
@@ -4125,7 +4550,8 @@
     "pairwise summation",
     "masked sums",
     "all-pairs variance via moments",
-    "column z-scoring"
+    "column z-scoring",
+    "bariance"
    ],
    "software": [
     "matrixStats",
@@ -4140,7 +4566,9 @@
    "synonyms": [
     "series summation",
     "truncated infinite sum",
-    "brute-force expected information sum"
+    "brute-force expected information sum",
+    "trigamma-free expected information",
+    "trigamma-free information matrix"
    ],
    "broader": [
     "numerical summation",
@@ -4149,7 +4577,8 @@
    "narrower": [
     "tail bound truncation",
     "Kahan summation",
-    "recursive pmf summation"
+    "recursive pmf summation",
+    "adaptive truncation of infinite sums"
    ],
    "software": []
   },
@@ -4169,14 +4598,18 @@
     "Turnbull intervals (innermost intervals)",
     "squared EM acceleration (SQUAREM)",
     "per-draw NPMLE re-solve",
-    "Sun score log-rank from NPMLE"
+    "Sun score log-rank from NPMLE",
+    "constrained Newton method (CNM / HCNM)"
    ],
    "software": [
     "interval",
     "icenReg",
     "Icens",
     "MLEcens",
-    "survival survfit interval"
+    "survival survfit interval",
+    "longevity np_elife",
+    "SQUAREM / daarem",
+    "npsurv"
    ]
   },
   "univariate-screening-fits": {
@@ -4197,7 +4630,9 @@
    ],
    "software": [
     "SIS",
-    "stats::glm"
+    "stats::glm",
+    "Rfast::score.glms",
+    "Rfast::logistic_only"
    ]
   },
   "urn-design": {
@@ -4211,7 +4646,8 @@
     "restricted randomization"
    ],
    "narrower": [
-    "generalized Friedman urn"
+    "generalized Friedman urn",
+    "Friedman urn (non-exchangeable)"
    ],
    "software": [
     "randomizeR"
@@ -4225,7 +4661,8 @@
     "selection in X+Y",
     "value-space bisection",
     "two-pointer counting",
-    "k-th pairwise difference selection"
+    "k-th pairwise difference selection",
+    "k-th smallest pair distance binary search"
    ],
    "broader": [
     "selection algorithms",
@@ -4241,7 +4678,9 @@
    "software": [
     "DescTools::HodgesLehmann",
     "ICSNP",
-    "rt.test"
+    "rt.test",
+    "NAG g07ebf / g07eaf (HLQEST)",
+    "robslopes"
    ]
   },
   "walsh-average-enumeration": {
@@ -4250,7 +4689,8 @@
     "all pairwise differences then median",
     "naive Hodges-Lehmann",
     "sorted Walsh averages",
-    "wilcox.test conf.int"
+    "wilcox.test conf.int",
+    "pseudomedian"
    ],
    "broader": [
     "brute-force computation",
@@ -4285,7 +4725,8 @@
     "sequential null anchoring",
     "cold start comparison",
     "pilot fit warm start for survival",
-    "warm start across bootstrap replicates"
+    "warm start across bootstrap replicates",
+    "tangent predictor"
    ],
    "software": [
     "glmnet warm starts",
@@ -4298,7 +4739,8 @@
     "X'WX accumulation",
     "weighted crossproduct",
     "Gram matrix",
-    "DSYRK rank-k update"
+    "DSYRK rank-k update",
+    "sandwich product X'diag(d)X"
    ],
    "broader": [
     "dense linear algebra",
@@ -4309,14 +4751,16 @@
     "BLAS DSYRK",
     "blocked/tiled accumulation",
     "fused score + X'WX pass",
-    "SIMD vectorized crossprod"
+    "SIMD vectorized crossprod",
+    "omp simd reduction / multiple accumulators for FP dot products"
    ],
    "software": [
     "BLAS dsyrk",
     "OpenBLAS",
     "MKL",
     "Eigen selfadjointView rankUpdate",
-    "base::crossprod"
+    "base::crossprod",
+    "tabmat (Quantco) dense_helpers sandwich"
    ]
   },
   "wilson-score-interval": {
