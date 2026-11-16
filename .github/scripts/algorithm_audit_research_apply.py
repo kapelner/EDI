@@ -167,6 +167,47 @@ def add_open_copies(dirpath, tasks, offline):
         path.write_text(json.dumps(data))
 
 
+def update_research_log(dirpath, tasks, today, run_id):
+    """Record each reviewed algorithm's result in research_log.json (owner, 2026-11-16), so the
+    next run's agents start from it and search only for what is new. An algorithm listed under
+    `not_reviewed`, or in a task that did not run, keeps its previous entry and date. Returns the
+    number of algorithms updated."""
+    log = drift.load_research_log()
+    n = 0
+    for task in tasks:
+        if task == "inventory":
+            continue
+        data, _ = report.load(dirpath, task)
+        if not data:
+            continue
+        for a in data.get("algorithms_reviewed", []):
+            alg = a.get("algorithm")
+            if not alg:
+                continue
+            mine = [f for f in data.get("findings", [])
+                    if f.get("algorithm") == alg or alg in f.get("also_covers", [])]
+            sources = sorted({drift.canonical_cran_url(u) for f in mine for u in f.get("sources", [])}
+                             | {u for f in mine for u in f.get("open_copies", [])})
+            log[alg] = {
+                "last_researched": today, "run": run_id, "batch": task,
+                "conclusion": a.get("conclusion", ""), "note": a.get("note", ""),
+                "findings": [{k: f.get(k) for k in ("candidate", "claimed_speedup", "keeps_estimator",
+                                                     "applies_at_edi_sizes", "confidence",
+                                                     "suggested_action") if f.get(k) is not None}
+                             for f in mine],
+                "sources": sources,
+            }
+            n += 1
+    if n:
+        drift.RESEARCH_LOG.write_text(json.dumps(
+            {"_comment": "Last research result per algorithm (key = inventory `algorithm`). Written by "
+                         "the research-pr job of algorithm-audit-drift.yml; read by the next run's "
+                         "agents as previous_results.json.",
+             "algorithms": dict(sorted(log.items(), key=lambda kv: kv[0].casefold()))},
+            indent=1, ensure_ascii=False) + "\n")
+    return n
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
@@ -174,6 +215,7 @@ def main():
     ap.add_argument("--batches")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--offline", action="store_true")
+    ap.add_argument("--run-id", default="local")
     ap.add_argument("--pr-body", required=True)
     a = ap.parse_args()
     tasks = [t for t in a.tasks.split(",") if t]
@@ -181,6 +223,7 @@ def main():
     add_open_copies(Path(a.dir), tasks, a.offline)
     flagged, text = report.render(Path(a.dir), tasks, batches)
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
+    logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
     body = text.split("\n", 2)[2]  # drop the FLAGGED/CLEAN status line
     # the report's inventory section lists proposals; replace it with what actually happened
     head, _, tail = body.partition("## 2. Inventory currency")
@@ -194,7 +237,7 @@ def main():
     inv_md += ["", "### Needs a human (not applied)"]
     inv_md += [f"- {x}" for x in held] or ["_Nothing._"]
     findings = head + "\n".join(inv_md) + "\n" + tail
-    if not (flagged or applied or held):
+    if not (flagged or applied or held or logged):
         print("NONE")
         Path(a.pr_body).write_text("")
         return
@@ -207,6 +250,8 @@ def main():
         f"- Faster-algorithm findings: {n_find} (unverified web claims; promote a confirmed one to a "
         "release TODO, then delete or annotate it in the findings file)\n"
         f"- Inventory changes applied here: {len(applied)}; needing a human: {len(held)}\n"
+        f"- Research log (`research_log.json`) updated for {logged} algorithms; the next run's "
+        "agents start from these results\n"
         "- Verdicts are never changed by this workflow. Merging means the findings file is "
         "acknowledged and the inventory changes are accepted.\n\n"
         "Required checks: a PR opened by `github-actions[bot]` creates `pull_request` runs "

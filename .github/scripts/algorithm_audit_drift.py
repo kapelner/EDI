@@ -43,6 +43,7 @@ RELEASES = META / "future_release_plans"
 ROW_MAP = META / "audits" / "algorithm_audit_row_map.json"
 PINS = META / "audits" / "comparator_versions.json"
 INVENTORY = META / "audits" / "algorithm_inventory.csv"
+RESEARCH_LOG = META / "audits" / "research_log.json"
 REFERENCES = META / "audits" / "algorithm_references.csv"
 SRC_DIR = ROOT / "R" / "EDI" / "src"
 R_DIR = ROOT / "R" / "EDI" / "R"
@@ -483,6 +484,34 @@ def research_batches(inventory, row_order, size=RESEARCH_BATCH):
     return out
 
 
+def load_research_log():
+    """{algorithm name: last research result}; {} when there is no log yet."""
+    if not RESEARCH_LOG.exists():
+        return {}
+    return json.loads(RESEARCH_LOG.read_text()).get("algorithms", {})
+
+
+def previous_results(algorithms, inventory, log=None, max_commits=5):
+    """For each algorithm in a research batch: its last result from the research log, plus the
+    commits that touched its inventory files since then (so the agent knows whether the earlier
+    answer still describes the code). Algorithms never researched get {"no_previous": true}."""
+    log = load_research_log() if log is None else log
+    out = {}
+    for alg in algorithms:
+        prev = log.get(alg)
+        if not prev:
+            out[alg] = {"no_previous": True}
+            continue
+        files = sorted({e["file"] for e in inventory if e["algorithm"] == alg})
+        commits = []
+        if files:
+            commits = git("log", f"--since={prev['last_researched']} 23:59:59", "--format=%h %ad %s",
+                          "--date=short", "--", *files).strip().splitlines()
+        out[alg] = dict(prev, code_commits_since=commits[:max_commits],
+                        code_changed_since=bool(commits))
+    return out
+
+
 def currency_context(days):
     """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make)."""
     inv = load_inventory()
@@ -683,7 +712,17 @@ def main():
     ap.add_argument("--currency-context", type=int, metavar="DAYS")
     ap.add_argument("--research-batches", action="store_true",
                     help="print the research task -> algorithms map as JSON")
+    ap.add_argument("--previous-results", metavar="TASK",
+                    help="print the research log's previous results for one batch as JSON")
     a = ap.parse_args()
+    if a.previous_results:
+        rows = list(json.loads(ROW_MAP.read_text())["rows"])
+        inv = load_inventory()
+        algs = research_batches(inv, rows).get(a.previous_results)
+        if algs is None:
+            sys.exit(f"unknown research batch {a.previous_results}")
+        text = json.dumps(previous_results(algs, inv), indent=1, ensure_ascii=False) + "\n"
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.research_batches:
         rows = list(json.loads(ROW_MAP.read_text())["rows"])
         text = json.dumps(research_batches(load_inventory(), rows), indent=1) + "\n"

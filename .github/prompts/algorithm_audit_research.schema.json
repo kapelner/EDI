@@ -17,7 +17,8 @@
         "required": [
           "algorithm",
           "conclusion",
-          "note"
+          "note",
+          "vs_previous"
         ],
         "properties": {
           "algorithm": {
@@ -33,6 +34,15 @@
           },
           "note": {
             "type": "string"
+          },
+          "vs_previous": {
+            "type": "string",
+            "enum": [
+              "unchanged",
+              "updated",
+              "new"
+            ],
+            "description": "compared with previous_results.json: unchanged, updated, or new when there was no previous result"
           }
         }
       }

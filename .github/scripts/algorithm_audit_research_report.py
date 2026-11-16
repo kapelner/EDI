@@ -96,6 +96,13 @@ def render(dirpath, tasks, batches=None):
         L += [f"- **{t}**: {why}" for t, why in notrun]
         L.append("")
 
+    vs = {}
+    for _, a in reviewed:
+        vs[a.get("vs_previous", "unrecorded")] = vs.get(a.get("vs_previous", "unrecorded"), 0) + 1
+    if vs:
+        L += ["Compared with the previous results (`research_log.json`): "
+              + ", ".join(f"{n} {k}" for k, n in sorted(vs.items())) + ".", ""]
+
     L.append("## 1. Faster-algorithm findings")
     if not findings:
         L.append("_None._")

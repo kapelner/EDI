@@ -87,6 +87,15 @@ fastest acceptable one for its job?**
   `algorithms_reviewed` nor `not_reviewed` as **silently skipped**. (Batches replaced
   one-agent-per-row on 2026-11-16 after the trial run's row-A agent reviewed 2 of 120
   algorithms in 12 of its 80 turns.)
+  - **Previous results** (owner, 2026-11-16): `R/package_metadata/audits/research_log.json`
+    holds each algorithm's last research result (date, run, batch, conclusion, note,
+    findings, sources). The PR job updates it for every algorithm an agent reviewed (one in
+    `not_reviewed`, or in a task that did not run, keeps its old entry and date); the prepare
+    step gives each agent `previous_results.json` for its batch (`algorithm_audit_drift.py
+    --previous-results <batch>`), with the commits that touched each algorithm's files since.
+    Agents search only for what is new since `last_researched` and report `vs_previous`
+    (`unchanged` / `updated` / `new`); the findings file shows the counts. A finding that
+    still stands must be re-reported, since the log keeps only the latest run's findings.
   - **Consistency check** (2026-11-16): a finding whose algorithm is not marked
     `faster_option_found`, or a `faster_option_found` with no finding, is listed under
     "Inconsistent agent output" and flags the report (first seen in batch A.1 of the

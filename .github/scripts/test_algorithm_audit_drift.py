@@ -458,6 +458,63 @@ class OpenCopyTests(unittest.TestCase):
         self.assertIn("- **No open copy found** for doi:10.2307/2531595 (publisher version is paywalled)", text)
 
 
+class ResearchLogTests(InventoryCheckTests):
+    """Reuses the planted repo (not a git checkout, so no code commits are found)."""
+
+    def setUp(self):
+        super().setUp()
+        self.saved_log = drift.RESEARCH_LOG
+        drift.RESEARCH_LOG = self.root / "R/package_metadata/audits/research_log.json"
+
+    def tearDown(self):
+        drift.RESEARCH_LOG = self.saved_log
+        super().tearDown()
+
+    def test_log_round_trip_keeps_unreviewed_entries(self):
+        old = {"last_researched": "2026-10-01", "run": "1", "batch": "A.1", "conclusion":
+               "no_faster_acceptable_found", "note": "old", "findings": [], "sources": []}
+        drift.RESEARCH_LOG.write_text(json.dumps({"algorithms": {"Brent": old, "IRLS": old}}))
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "A.1.json").write_text(json.dumps({"row": "A", "algorithms_reviewed": [
+            {"algorithm": "IRLS", "conclusion": "faster_option_found", "note": "new",
+             "vs_previous": "updated"},
+            {"algorithm": "GH", "conclusion": "faster_option_found", "note": "", "vs_previous": "new"}],
+            "not_reviewed": [{"algorithm": "Brent", "reason": "turn budget"}],
+            "findings": [{"algorithm": "IRLS", "also_covers": ["GH"], "candidate": "x",
+                          "sources": ["https://mirror.dogado.de/cran/web/packages/a/b.html"],
+                          "open_copies": ["https://doi.org/10.1101/1"], "confidence": "low"}]}))
+        n = research_apply.update_research_log(out, ["A.1", "inventory"], "2026-11-16", "42")
+        log = drift.load_research_log()
+        self.assertEqual(n, 2)
+        self.assertEqual(log["Brent"], old)  # not reviewed: previous entry kept
+        self.assertEqual((log["IRLS"]["last_researched"], log["IRLS"]["run"]), ("2026-11-16", "42"))
+        self.assertEqual(log["GH"]["findings"][0]["candidate"], "x")  # via also_covers
+        self.assertEqual(log["IRLS"]["sources"], ["https://cran.r-project.org/web/packages/a/b.html",
+                                                  "https://doi.org/10.1101/1"])
+
+    def test_previous_results_for_a_batch(self):
+        drift.RESEARCH_LOG.write_text(json.dumps({"algorithms": {"IRLS": {
+            "last_researched": "2026-11-16", "conclusion": "no_faster_acceptable_found",
+            "note": "n", "findings": [], "sources": []}}}))
+        prev = drift.previous_results(["IRLS", "Brent"], [entry(algorithm="IRLS")])
+        self.assertEqual(prev["Brent"], {"no_previous": True})
+        self.assertEqual(prev["IRLS"]["conclusion"], "no_faster_acceptable_found")
+        self.assertEqual((prev["IRLS"]["code_changed_since"], prev["IRLS"]["code_commits_since"]),
+                         (False, []))
+
+    def test_report_counts_vs_previous(self):
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "A.1.json").write_text(json.dumps({"row": "A", "not_reviewed": [], "findings": [],
+            "algorithms_reviewed": [
+                {"algorithm": "a", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
+                {"algorithm": "b", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "unchanged"},
+                {"algorithm": "c", "conclusion": "no_faster_acceptable_found", "note": "", "vs_previous": "new"}]}))
+        _, text = report.render(out, ["A.1"])
+        self.assertIn("Compared with the previous results (`research_log.json`): 1 new, 2 unchanged.", text)
+
+
 class PromptSchemaTests(unittest.TestCase):
 
     def test_schemas_are_json_without_single_quotes(self):

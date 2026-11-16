@@ -25,6 +25,25 @@ C++ core; see `CLAUDE.md`). Your only output is the structured JSON the run asks
    evidence (a paper, software release or benchmark dated after the row's `reviewed` date) that
    overturns the reason it was rejected.
 5. For any entry you need to understand better, the code at its `file` / `symbol`.
+6. `previous_results.json` in the working directory: for each of your algorithms, the last
+   research result (`last_researched` date, `conclusion`, `note`, `findings`, `sources`)
+   and `code_commits_since` (commits that touched its files since then), or
+   `{"no_previous": true}`.
+
+## Start from the previous result
+
+For an algorithm with a previous result, do not redo that research. Read its note, findings
+and sources, then spend your searches on what is **new since `last_researched`**: papers and
+preprints after that date, comparator-package releases and NEWS after it, and the commits in
+`code_commits_since` (if the code changed, check that the earlier conclusion still describes
+it). Then set `vs_previous`:
+- `unchanged`: nothing new changes the earlier conclusion; say briefly what you checked in
+  the `note` (e.g. "searched 2026-11..2026-12: no new work; code unchanged").
+- `updated`: something new changes or adds to it; explain what in the `note`, and carry
+  forward an earlier finding that still stands (re-cite its sources) along with any new one.
+- `new`: there was no previous result (`no_previous`), so this is a full review.
+A previous finding that still stands must appear again in `findings` (the log keeps only the
+latest run's findings).
 
 ## The question, per distinct algorithm
 
