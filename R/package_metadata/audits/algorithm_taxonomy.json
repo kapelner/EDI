@@ -33,7 +33,9 @@
     "mixed integer quadratic programming",
     "fractional 0-1 programming",
     "Kallus optimal a priori balance",
-    "Bertsimas optimal design experiments"
+    "Bertsimas optimal design experiments",
+    "balanced number partitioning",
+    "vector balancing / discrepancy minimization"
    ]
   },
   "bayesian-bootstrap": {
@@ -216,6 +218,10 @@
     "coxph Newton-Raphson",
     "fast Cox regression large n",
     "risk set computation"
+   ],
+   "software": [
+    "coxdev",
+    "Cyclops"
    ]
   },
   "cumulative-link-ordinal-mle": {
@@ -1485,7 +1491,8 @@
     "Fortet/McCormick linearization of binary quadratic",
     "branch and cut",
     "MIQP direct",
-    "SDP relaxation bounds"
+    "SDP relaxation bounds",
+    "complete Karmarkar-Karp (CKK) branch and bound"
    ],
    "software": [
     "GLPK",
@@ -1494,7 +1501,8 @@
     "CBC",
     "Gurobi",
     "CPLEX",
-    "SCIP"
+    "SCIP",
+    "scip (CRAN R package, Apache-2.0)"
    ]
   },
   "breakpoint-inversion": {
@@ -1558,7 +1566,8 @@
     "O(n) reverse cumsum after sort",
     "Efron ties correction",
     "stratified cumsums",
-    "Breslow cumulative baseline hazard"
+    "Breslow cumulative baseline hazard",
+    "segmented scan"
    ],
    "software": [
     "survival::coxph",
@@ -1852,7 +1861,8 @@
    "synonyms": [
     "Dinkelbach method",
     "fractional programming",
-    "parametric approach ratio optimization"
+    "parametric approach ratio optimization",
+    "accelerated Dinkelbach / interval Dinkelbach"
    ],
    "broader": [
     "fractional programming",
@@ -3183,7 +3193,8 @@
     "nlm",
     "trust (R)",
     "scipy.optimize newton-cg",
-    "Eigen"
+    "Eigen",
+    "eha::coxreg"
    ]
   },
   "noncentral-hypergeometric-enumeration": {
@@ -3942,12 +3953,14 @@
     "swap-move annealing",
     "initial temperature heuristic (mean |delta|)",
     "parallel tempering",
-    "threshold accepting"
+    "threshold accepting",
+    "balanced largest differencing method (BLDM) / Karmarkar-Karp differencing"
    ],
    "software": [
     "GenSA",
     "optim(method='SANN')",
-    "simanneal"
+    "simanneal",
+    "dwave-samplers (neal SA, MST2 tabu)"
    ]
   },
   "size-based-dispatch": {
