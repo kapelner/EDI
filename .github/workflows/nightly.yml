@@ -410,7 +410,7 @@ jobs:
           library(testthat)
           res = test_dir(
             "R/EDI/tests/testthat",
-            filter = "cross-platform-reproducibility-digests|seed-reproducibility|rand-seed-reproducibility|omp-kernel-thread-count-scoped|bai-thread-local-workspaces|worker-count-invariance",
+            filter = "cross-platform-reproducibility-digests|seed-reproducibility|rand-seed-reproducibility|omp-kernel-thread-count-scoped|bai-thread-local-workspaces|worker-count-invariance|same-binary-determinism",
             package = "EDI", load_package = "installed",
             reporter = "summary", stop_on_failure = TRUE
           )
@@ -432,7 +432,7 @@ jobs:
     timeout-minutes: 15
     env:
       REPRO_EXPECTED_LEGS: 5
-      REPRO_FLOAT_TOL: 1e-8
+      REPRO_FLOAT_TOL: 1e-12  # observed max cross-leg relative spread 3.7e-16 (nightly run 43741847553, 2026-11-15)
     steps:
       - uses: actions/checkout@v7
         with:

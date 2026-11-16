@@ -377,18 +377,16 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			if (B_valid == 0L || 2 / B_valid >= pval_th) return(NULL)
 			# Slope ~ 0 draws never flip; carry their constant tail contributions separately
 			is_const = abs(cs) < 1e-12
-			n_const_ge = sum(A[is_const] >= t_obs)
-			n_const_le = sum(A[is_const] <= t_obs)
+			A_const = A[is_const]
 			A_v = A[!is_const]; c_v = cs[!is_const]
 			if (length(A_v) == 0L) return(NULL)
 			breakpoints = sort(unique((t_obs - A_v) / c_v))
 			K = length(breakpoints)
 			if (K < 2L) return(NULL)
 			pval_at = function(d){
-				t0 = A_v + d * c_v
-				G = sum(t0 >= t_obs) + n_const_ge
-				L = sum(t0 <= t_obs) + n_const_le
-				min(1, max(2 / B_valid, 2 * min(G, L) / B_valid))
+				# Same tie rule as the bisection path's p-value (rand_tail_counts(), TODO-3).
+				tails = rand_tail_counts(c(A_v + d * c_v, A_const), t_obs)
+				min(1, max(2 / B_valid, 2 * min(tails[["ge"]], tails[["le"]]) / B_valid))
 			}
 			# Probe each open interval: outer probes detect an unbounded acceptance region
 			span_pad = max(1, diff(range(breakpoints)))

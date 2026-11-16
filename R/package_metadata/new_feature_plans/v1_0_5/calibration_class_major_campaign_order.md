@@ -335,3 +335,43 @@ campaign's on the results branch):
 * The workflow now takes `plan_calibration_study.R` from the run's current commit (owner, 2026-11-11), so this planner takes
   over the running campaign on its next wave; it reads only the campaign's existing roster.csv, ledger.csv, planned.csv and
   stats/tests.csv.gz.
+
+### Amendment E follow-up (2026-11-16): new classes, overhead per class
+
+Observed on campaign 2026-11-14 (a46ab113 was abandoned before count, so the roster had the 2 s default for 310 of the 379
+count rows and all ordinal, proportion and survival rows), wave 3 (run 43789410751, 256 shards): 86% of the skipped
+replicates (22,191 of 25,724) were in packs with a count class still on the default (CountHurdleNegBin ~10 s per replicate
+at n = 50, AllSimpleWilcox 0.16 s), made worse by the roster correction: learned on cheap classes with previous costs
+(~0.3-0.8), it was applied to the defaults too. Of the shards that finished in under 5 minutes, 30 were cheap packs that
+still had default costs. Another 9 were one-class confirmation shards, charged the median overhead of ~10-class packs
+(planned 1.9 s per replicate, ran 0.28 s), and 7 were true leftovers. Once a class has been measured, the predictions are
+fine (actual / predicted IQR 0.75-1.14).
+
+Done 2026-11-16 (uncommitted), `plan_calibration_study.R` and `build_calibration_study_roster.R`:
+* The roster records `secs_source` (`previous` / `default`). The planner infers it from `secs_n50 == 2` for a roster written
+  before that column.
+* **Borrowed costs.** A default row takes the median previous cost of the same class on the roster's other designs of its
+  response type, else on other response types (`borrowed`). On the running campaign, that applies to 8 (response type,
+  class) pairs, all AllSimple*.
+* **No correction for defaults.** The measured / roster ratio is computed from, and applied to, only non-default rows. A
+  unit still on the default has cost source `default`: the 2 s default scaled to n, uncorrected.
+* **Probe shards.** For each (response type, class, n) with cost source `default`, the first unit in priority order with
+  missing replicates runs alone, neither folded nor packed. The class's other default units at that n wait (`held`). They
+  keep their missing replicates, so their blocks stay unfinished and confirmation does not start early. The next wave
+  prices them from the probe's measurement (`measured_n` / `measured_design`). A probe that dies or is abandoned passes
+  the role to the next unit, so nothing stalls; the campaign cannot look finished (wave 0) while units are held, because
+  the probe is planned in the same pass.
+  - Cost: one extra wave per new class. While a class is held, its cell-mates that are already priced may run in short
+    shards with nothing to pack with.
+* **Overhead per class.** The ledger overhead is (shard `secs_per_rep` − its class costs) / its number of classes, and a
+  bin costs overhead × classes + class costs. On wave 3, the overhead per class was ~0.09-0.12 s at n = 50 / 200 and
+  0.16-0.37 s at n = 1000. A pack of k classes is still predicted about right, and a one-class shard no longer pays a
+  whole pack's overhead. It may now be slightly underpredicted: a linear fit gives ~0.7 s per pack + 0.07 s per class at
+  n = 50.
+* **Tests.** `test-calibration-measured-costs-and-folded-leftovers.R` has 3 new tests: overhead per class; borrowed and
+  uncorrected defaults, including an old roster without `secs_source`; and the probe and hold, released once measured.
+  9 tests in all, 0 failed; `test-calibration-class-major-order.R` has 0 failed.
+* **Dry run** on the campaign folder after wave 3, wave size 256. Unit cost sources were roster 2,079 and default 9,552,
+  with 9,402 units held, most of them ordinal, proportion and survival. Shards predicted under 8.3 min went from 9 to 34;
+  most of the new ones are count n = 1000 AllSimpleWilcox shards whose cell-mates are held. That is the transition cost
+  above, not an estimate error.

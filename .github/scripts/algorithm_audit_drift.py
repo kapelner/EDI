@@ -1,21 +1,29 @@
 #!/usr/bin/env python3
 """Algorithm-audit drift check (stdlib only; read-only; never builds EDI).
 
-Three checks, one markdown report:
+Four checks, one markdown report:
   1. comparator versions  -- CRAN version vs R/package_metadata/audits/comparator_versions.json
   2. kernel drift         -- git log per audit row since the row's `reviewed` date
   3. plan-state hygiene   -- every audit TODO's "scheduled in release_vX.md -> TODO-N" target exists
+  4. algorithm inventory  -- R/package_metadata/audits/algorithm_inventory.csv, the single source of
+                             truth for which algorithms EDI implements and where: every R/EDI/src and
+                             R/EDI/R file is inventoried or exempt, every entry's file and symbol still
+                             exist, and every entry cites reference URLs that still resolve
 
 Usage:
   algorithm_audit_drift.py [--out report.md] [--offline]   # run the checks
   algorithm_audit_drift.py --release-gate                  # pre-release: exit 1 if the gate fails
   algorithm_audit_drift.py --snapshot                      # rewrite comparator_versions.json from CRAN now
+  algorithm_audit_drift.py --currency-context 35 --out ctx.json
+      # JSON for the research workflow: functions added in the last N days that the inventory
+      # lacks, and inventory entries whose file changed in that window
 
 Exit code is always 0 on a completed run; the report's first line is
 `FLAGGED` or `CLEAN` so the workflow can branch on it. See
 R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md.
 """
 import argparse
+import csv
 import datetime
 import fnmatch
 import json
@@ -23,6 +31,7 @@ import re
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -32,6 +41,10 @@ AUDIT = META / "new_feature_plans" / "v1_0_5" / "algorithm_choice_audit.md"
 RELEASES = META / "future_release_plans"
 ROW_MAP = META / "audits" / "algorithm_audit_row_map.json"
 PINS = META / "audits" / "comparator_versions.json"
+INVENTORY = META / "audits" / "algorithm_inventory.csv"
+REFERENCES = META / "audits" / "algorithm_references.csv"
+SRC_DIR = ROOT / "R" / "EDI" / "src"
+R_DIR = ROOT / "R" / "EDI" / "R"
 DESCRIPTION = ROOT / "R" / "EDI" / "DESCRIPTION"
 
 # Comparators the audit's verdicts lean on, whether or not DESCRIPTION lists them.
@@ -125,43 +138,213 @@ def git(*args):
                           text=True, check=False).stdout
 
 
+def load_inventory():
+    with INVENTORY.open(newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def load_references():
+    with REFERENCES.open(newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def entry_rows(entry):
+    """Audit-row letters of an inventory entry: "A + Z" -> ["A", "Z"]."""
+    return [r.strip() for r in entry["audit_row"].split("+") if r.strip()]
+
+
+def row_files(inventory):
+    """Audit row -> files whose change re-opens it (the inventory's `watch` column)."""
+    out = {}
+    for e in inventory:
+        for r in e.get("watch", "").split():
+            out.setdefault(r, set()).add(e["file"])
+    return {r: sorted(f) for r, f in out.items()}
+
+
+def source_files():
+    """Every algorithm-bearing source file: R/EDI/src/*.cpp|*.h and R/EDI/R/*.R (repo-relative)."""
+    src = [p for p in SRC_DIR.iterdir() if p.suffix in (".cpp", ".h")]
+    rfiles = [p for p in R_DIR.iterdir() if p.suffix == ".R"]
+    return sorted(str(p.relative_to(ROOT)) for p in src + rfiles)
+
+
 def check_kernels():
     cfg = json.loads(ROW_MAP.read_text())
     rows = cfg["rows"]
+    watched = row_files(load_inventory())
     max_age = cfg.get("max_age_days", 180)
-    out = {"drifted": [], "missing": [], "stale": [], "uncovered": [], "unassigned": 0,
-           "max_age": max_age}
+    out = {"drifted": [], "stale": [], "max_age": max_age}
     today = datetime.date.today()
     for key, row in rows.items():
         age = (today - datetime.date.fromisoformat(row["reviewed"])).days
         if age > max_age:
             out["stale"].append((key, row["title"], row["reviewed"], age))
-        files = [f"R/EDI/src/{f}" if f.endswith((".cpp", ".h")) else f"R/EDI/R/{f}"
-                 for f in row["files"]]
-        for f in files:
-            if not (ROOT / f).exists():
-                out["missing"].append((key, f))
-        existing = [f for f in files if (ROOT / f).exists()]
+        existing = [f for f in watched.get(key, []) if (ROOT / f).exists()]
         if not existing:
             continue
         log = git("log", f"--since={row['reviewed']}", "--format=%h %ad %s",
                   "--date=short", "--", *existing).strip().splitlines()
         if log:
             out["drifted"].append((key, row["title"], row["reviewed"], log))
-    # Coverage: every kernel source file must be mapped to a row or explicitly exempt.
-    mapped = {f for r in rows.values() for f in r["files"]}
-    exempt = cfg.get("exempt", {})
-    patterns = [p for group in exempt.values() for p in group]
-    src = sorted(p.name for p in (ROOT / "R" / "EDI" / "src").iterdir()
-                 if p.suffix in (".cpp", ".h"))
-    out["uncovered"] = [f for f in src if f not in mapped
-                        and not any(fnmatch.fnmatch(f, pat) for pat in patterns)]
-    for pat in patterns:  # an exempt entry matching nothing is a stale entry
-        if not any(fnmatch.fnmatch(f, pat) for f in src):
-            out["missing"].append(("exempt", pat))
-    out["unassigned"] = sum(1 for f in src if any(
-        fnmatch.fnmatch(f, pat) for pat in exempt.get("unassigned_kernels", [])))
     return out
+
+
+def check_inventory(offline):
+    """Check 4: the inventory is complete, current, and every entry is referenced."""
+    cfg = json.loads(ROW_MAP.read_text())
+    inv, refs = load_inventory(), load_references()
+    out = {"uncovered": [], "stale_exempt": [], "exempt_inventoried": [], "unwatched_row": [],
+           "bad_file": [], "bad_symbol": [], "bad_row": [],
+           "no_refs": [], "unknown_ref": [], "orphan_ref": [], "dead_ref": [], "ref_errors": [],
+           "entries": len(inv), "refs": len(refs), "skipped": offline}
+    # Coverage: every source file is inventoried or matches an exempt pattern.
+    files = source_files()
+    patterns = list(cfg.get("exempt", {}))  # {path or glob: reason}
+    inventoried = {e["file"] for e in inv}
+    out["uncovered"] = [f for f in files if f not in inventoried
+                        and not any(fnmatch.fnmatch(f, pat) for pat in patterns)]
+    out["stale_exempt"] = [pat for pat in patterns
+                           if not any(fnmatch.fnmatch(f, pat) for f in files)]
+    out["exempt_inventoried"] = sorted(f for f in inventoried
+                                       if any(fnmatch.fnmatch(f, pat) for pat in patterns))
+    watched = row_files(inv)
+    out["unwatched_row"] = [r for r in cfg["rows"] if r not in watched]
+    # Each entry: file exists, symbol still in it, rows exist, refs present and known.
+    known = {r["url"] for r in refs}
+    used = set()
+    text_cache = {}
+    for i, e in enumerate(inv, start=2):  # line 1 is the header
+        where = f"line {i}: `{e['file']}` `{e['symbol']}`"
+        path = ROOT / e["file"]
+        if not path.is_file():
+            out["bad_file"].append(where)
+            continue
+        if e["symbol"]:
+            text = text_cache.setdefault(e["file"], path.read_text(errors="replace"))
+            if e["symbol"] not in text:
+                out["bad_symbol"].append(where)
+        bad = [r for r in entry_rows(e) + e.get("watch", "").split() if r not in cfg["rows"]]
+        if bad or not entry_rows(e):
+            out["bad_row"].append(f"{where}: audit_row `{e['audit_row']}` watch `{e['watch']}`")
+        urls = e["refs"].split()
+        if not urls:
+            out["no_refs"].append(where)
+        for u in urls:
+            used.add(u)
+            if u not in known:
+                out["unknown_ref"].append(f"{where}: {u}")
+    out["orphan_ref"] = sorted(known - used)
+    if not offline:
+        out["dead_ref"], out["ref_errors"] = check_reference_urls(sorted(known))
+    return out
+
+
+def check_reference_urls(urls):
+    """(dead, errors): dead = resolved to 'does not exist'; errors = could not be checked."""
+    dead, errors = [], []
+    wiki = {}
+    for u in urls:
+        if u.startswith("https://en.wikipedia.org/wiki/"):
+            title = urllib.parse.unquote(u.rsplit("/wiki/", 1)[1].split("#", 1)[0])
+            wiki[title.replace("_", " ")] = u
+            continue
+        try:
+            if u.startswith("https://doi.org/"):
+                doi = urllib.parse.quote(u[len("https://doi.org/"):], safe="/")
+                code = json.loads(http_get(f"https://doi.org/api/handles/{doi}"))["responseCode"]
+                if code != 1:
+                    dead.append(u)
+            else:
+                http_get(u)
+        except urllib.error.HTTPError as e:
+            (dead if e.code in (404, 410) else errors).append(u)
+        except (urllib.error.URLError, OSError, KeyError, ValueError):
+            errors.append(u)
+    titles = sorted(wiki)
+    for k in range(0, len(titles), 50):  # the API takes 50 titles per query
+        batch = titles[k:k + 50]
+        q = urllib.parse.urlencode({"action": "query", "format": "json", "redirects": 1,
+                                    "titles": "|".join(batch)})
+        try:
+            pages = json.loads(http_get(f"https://en.wikipedia.org/w/api.php?{q}"))
+        except (urllib.error.URLError, OSError, ValueError):
+            errors += [wiki[t] for t in batch]
+            continue
+        q = pages.get("query", {})
+        rename = {n["from"]: n["to"] for n in q.get("normalized", []) + q.get("redirects", [])}
+        missing = {p["title"] for p in q.get("pages", {}).values() if "missing" in p}
+        for t in batch:
+            final = rename.get(rename.get(t, t), rename.get(t, t))
+            if final in missing:
+                dead.append(wiki[t])
+    return dead, errors
+
+
+R_DEF = re.compile(r"^\+\s*([A-Za-z.][\w.]*)\s*(?:<-|=)\s*function\s*\(")
+CPP_DEF = re.compile(r"^\+\s*(?:template\s*<[^>]*>\s*)?(?:[\w:<>,*&]+\s+)+[*&]?([A-Za-z_]\w*)\s*\([^;]*$")
+CPP_NOT_DEF = {"if", "for", "while", "switch", "return", "else", "catch", "sizeof", "do",
+               "new", "delete", "case", "throw", "using", "typedef", "operator"}
+
+
+def added_definitions(diff_text):
+    """(file, symbol) for function definitions on added lines of a unified diff."""
+    out, path = [], None
+    for line in diff_text.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else None
+            continue
+        if not path or not line.startswith("+"):
+            continue
+        if path.endswith(".R"):
+            m = R_DEF.match(line)
+        elif path.endswith((".cpp", ".h")) and "=" not in line.split("(", 1)[0]:
+            m = CPP_DEF.match(line)
+            if m and m.group(1) in CPP_NOT_DEF:
+                m = None
+        else:
+            m = None
+        if m:
+            out.append((path, m.group(1)))
+    return out
+
+
+def changed_text_by_file(diff_text):
+    """file -> text of its changed lines plus hunk headers (git names the enclosing function)."""
+    out, path = {}, None
+    for line in diff_text.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else None
+        elif path and (line.startswith("@@") or
+                       (line[:1] in "+-" and not line.startswith(("---", "+++")))):
+            out[path] = out.get(path, "") + line + "\n"
+    return out
+
+
+def currency_context(days):
+    """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make)."""
+    inv = load_inventory()
+    known = {(e["file"], e["symbol"]) for e in inv}
+    exempt = list(json.loads(ROW_MAP.read_text()).get("exempt", {}))
+    since = f"{days}.days"
+    paths = ["R/EDI/src", "R/EDI/R"]
+    diff = git("log", f"--since={since}", "-p", "--unified=0", "--format=", "--", *paths)
+    new, seen = [], set()
+    for f, sym in added_definitions(diff):
+        if (f, sym) in known or (f, sym) in seen or any(fnmatch.fnmatch(f, p) for p in exempt):
+            continue
+        path = ROOT / f
+        if path.is_file() and sym in path.read_text(errors="replace"):  # still there today
+            seen.add((f, sym))
+            new.append({"file": f, "symbol": sym})
+    touched = changed_text_by_file(git("log", f"--since={since}", "-p", "--unified=3",
+                                       "--format=", "--", *paths))
+    entries = [{"file": e["file"], "symbol": e["symbol"], "algorithm": e["algorithm"],
+                "audit_row": e["audit_row"]} for e in inv
+               if e["symbol"] and re.search(rf"\b{re.escape(e['symbol'])}\b",
+                                            touched.get(e["file"], ""))]
+    return {"window_days": days, "today": datetime.date.today().isoformat(),
+            "new_symbols": new, "changed_entries": entries}
 
 
 TODO_HEAD = re.compile(r"^- \[([ x])\] (?:~~)?TODO-([0-9A-Za-z]+)")
@@ -205,10 +388,27 @@ def check_plan_state():
     return out
 
 
-def render(v, k, p):
+INVENTORY_FLAGS = [
+    ("uncovered", "Source files neither inventoried nor exempt"),
+    ("stale_exempt", "Exempt patterns that match no file"),
+    ("exempt_inventoried", "Files both inventoried and exempt (drop the exempt entry)"),
+    ("unwatched_row", "Audit rows no inventory entry watches"),
+    ("bad_file", "Entries whose file no longer exists"),
+    ("bad_symbol", "Entries whose symbol is no longer in its file"),
+    ("bad_row", "Entries with an unknown audit row"),
+    ("no_refs", "Entries with no reference URL"),
+    ("unknown_ref", "Reference URLs missing from algorithm_references.csv"),
+    ("orphan_ref", "References no entry cites"),
+    ("dead_ref", "Reference URLs that no longer resolve"),
+]
+
+
+def render(v, k, p, n):
     broken = len(v["errors"]) > MAX_FETCH_ERRORS
-    flagged = bool(broken or v["changed"] or v["unpinned"] or k["drifted"] or k["missing"]
-                   or k["stale"] or k["uncovered"] or p["dangling"] or p["untagged"])
+    refs_broken = len(n["ref_errors"]) > MAX_FETCH_ERRORS
+    flagged = bool(broken or v["changed"] or v["unpinned"] or k["drifted"]
+                   or k["stale"] or p["dangling"] or p["untagged"] or refs_broken
+                   or any(n[key] for key, _ in INVENTORY_FLAGS))
     L = ["FLAGGED" if flagged else "CLEAN", "",
          f"# Algorithm-audit drift report ({datetime.date.today().isoformat()})", "",
          "Read-only output of `.github/scripts/algorithm_audit_drift.py`. A flag means "
@@ -242,22 +442,35 @@ def render(v, k, p):
         L += [f"  - `{c}`" for c in log[:MAX_COMMITS]]
         if len(log) > MAX_COMMITS:
             L.append(f"  - … and {len(log) - MAX_COMMITS} more")
-    L += [f"- **Map error:** row {r} lists `{f}`, which does not exist" for r, f in k["missing"]]
-    if not (k["drifted"] or k["missing"]):
-        L.append("_No mapped file changed._")
+    if not k["drifted"]:
+        L.append("_No watched file changed._")
     L += ["", f"### Rows past the maximum review age ({k['max_age']} days)"]
     L += [f"- **Row {key}** ({title}): last reviewed {d}, {age} days ago"
           for key, title, d, age in k["stale"]] or ["_None._"]
-    L += ["", "### Kernel files in `R/EDI/src` that are neither mapped nor exempt"]
-    L += [f"- `{f}`" for f in k["uncovered"]] or ["_None._"]
-    if k["unassigned"]:
-        L.append(f"\n_Info: {k['unassigned']} algorithm kernels sit in the map's "
-                 "`unassigned_kernels` exempt list (no audit row yet); not flagged._")
     L += ["", "## 3. Plan-state hygiene"]
     L += [f"- **Audit TODO-{t}**: {why}" for t, why in p["dangling"]]
     L += [f"- **Audit TODO-{t}**: unchecked but carries no release tag" for t in p["untagged"]]
     if not (p["dangling"] or p["untagged"]):
         L.append("_All audit TODOs resolve._")
+    L += ["", "## 4. Algorithm inventory",
+          f"`R/package_metadata/audits/algorithm_inventory.csv`: {n['entries']} entries, "
+          f"{n['refs']} references."]
+    if refs_broken:
+        L.append(f"- **REFERENCE CHECK UNRELIABLE:** {len(n['ref_errors'])} URLs could not be "
+                 f"checked (limit {MAX_FETCH_ERRORS}), so 'all resolve' means nothing.")
+    elif n["ref_errors"]:
+        L.append("- Could not check (below the limit, ignored this run): "
+                 + ", ".join(n["ref_errors"]))
+    if n["skipped"]:
+        L.append("_Reference URLs not checked (offline)._")
+    for key, title in INVENTORY_FLAGS:
+        if n[key]:
+            L.append(f"### {title}")
+            L += [f"- {x}" if key not in ("uncovered", "stale_exempt", "exempt_inventoried",
+                                                  "unwatched_row", "orphan_ref", "dead_ref")
+                  else f"- `{x}`" for x in n[key]]
+    if not (refs_broken or any(n[key] for key, _ in INVENTORY_FLAGS)):
+        L.append("_Complete and current._")
     return flagged, "\n".join(L) + "\n"
 
 
@@ -305,12 +518,17 @@ def main():
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--snapshot", action="store_true")
     ap.add_argument("--release-gate", action="store_true")
+    ap.add_argument("--currency-context", type=int, metavar="DAYS")
     a = ap.parse_args()
+    if a.currency_context:
+        text = json.dumps(currency_context(a.currency_context), indent=1) + "\n"
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.release_gate:
         sys.exit(release_gate())
     if a.snapshot:
         return snapshot()
-    _, text = render(check_versions(a.offline), check_kernels(), check_plan_state())
+    _, text = render(check_versions(a.offline), check_kernels(), check_plan_state(),
+                     check_inventory(a.offline))
     if a.out == "-":
         sys.stdout.write(text)
     else:

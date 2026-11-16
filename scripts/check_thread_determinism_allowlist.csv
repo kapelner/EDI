@@ -1,0 +1,7 @@
+# Allowlist for scripts/check_thread_determinism.py (v1.1.0
+# cross_platform_reproducibility.md TODO-2). One row per excused hit; the
+# reason is required. `match` is a substring of the offending source line with
+# comments removed and whitespace collapsed. Only float-reduction,
+# float-atomic, float-critical and thread-partials can be listed; RNG rules
+# are always banned. A row that matches nothing fails the check.
+file,rule,match,reason

@@ -610,7 +610,7 @@ jobs:
       # Relative tolerance for estimates, CIs and p-values across legs.
       # Provisional until TODO-1 fixes the documented value from the
       # observed spread this job reports.
-      REPRO_FLOAT_TOL: 1e-8
+      REPRO_FLOAT_TOL: 1e-12  # observed max cross-leg relative spread 3.7e-16 (nightly run 43741847553, 2026-11-15)
     steps:
       - uses: actions/checkout@v7
         with:

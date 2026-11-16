@@ -1,4 +1,4 @@
-# Appendix to `algorithm_choice_audit.md`: Per-Kernel Algorithm Catalog
+# Appendix to `algorithm_choice_audit.md`: Per-Kernel Algorithm Catalog (frozen 2026-10-09 evidence; the live inventory is `../../audits/algorithm_inventory.csv`)
 
 > **Parent:** `algorithm_choice_audit.md` (rows A–M, plus the consolidated rows
 > N–AC that this sweep added; read its "2026-10-09 full-catalog sweep"
@@ -102,7 +102,7 @@ All paths relative to `R/EDI/src/`. Line numbers are from the 2026-10-09 working
   - `matrix_rank_cpp` uses threshold 1e-7 relative to the largest pivot.
   - `qr_reduce_*` use Eigen's default threshold (≈ eps·min(n,p)), so the two can disagree about rank.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity (n, p, B, K, \|R\| as relevant) | family | verdict |
 |---|---|---|---|---|---|
 | fast_logistic_regression.cpp:177-287 `fast_logistic_regression_internal` (IRLS path, default) | logistic MLE | Newton = IRLS (canonical link, Fisher = observed). Fused score + XᵀWX column-pair dot products (`score_weighted_crossprod_colwise_assign`). **LDLT** solve. **Full step, no halving/line search.** Stops on ‖score‖<tol or ‖δ‖<tol. Optional warm/“smart” XᵀWX on iter 0 | O(K·n p²/2 + K p³/3), K≈5–8 | A | Keep algorithm; **Adopt** monotone step-halving (TODO-2) |
@@ -346,7 +346,7 @@ Count: 59 catalog rows (including the 3 shared-engine rows), covering all 21 ass
 
 Shared machinery referenced below (not in this group's files, read to classify): `optimize_fixed_likelihood` (`_helper_functions_core.h:1552`) dispatches `"lbfgs"` → LBFGSpp, strong-Wolfe backtracking, stops on gradient norm OR relative function decrease `delta = tol, past = 1` (`:1312-1345`); anything else → damped Newton on the **observed** Hessian (FullPivLU solve, step-halving to 1e-4, no LM/trust-region modification; `:1394-1478`), falling back to L-BFGS if Newton does not converge (`:1481-1508`). **`warm_start_hessian` is ignored by both paths** (`(void)warm_start_hessian;` at `:1399`; the L-BFGS path never receives it). d = number of free parameters below.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | ordinal_fixed_link_helpers.h:26 `init_levels` | distinct sorted levels | sort + unique | O(n log n) once | — | Keep |
@@ -478,7 +478,7 @@ Files: `R/EDI/src/fast_zinb.cpp`, `fast_zero_augmented_poisson.cpp` (ZAP = ZIP +
 
 Net: row B's EM recommendation applies to **ZINB and ZIP only**. Hurdle-Poisson and ZOIB are factorizable concave or near-concave two-part models (fit them separately). Hurdle-NB and the hurdle-Poisson GLMM already fit the parts separately. Row B's description should also drop "multistart" (none of these kernels has it today).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | fast_zinb.cpp:87 `ZeroInflatedNegBin::operator()` | ZINB NLL + analytic gradient | Eigen-batched exp/log (`:97-103`), distinct-y tables for lgamma/digamma(y+θ) (`:111-115`), two GEMVs | O(n(p_c+p_z)) + O(D) special functions per eval | B | Keep (objective). The fit around it is the TODO, see row `fast_zinb_internal` |
@@ -604,7 +604,7 @@ Files covered (all `R/EDI/src/`): `_glmm_engine.h`, `_glmm_links.h`, `fast_logis
 
 So the audit's row C is right for every non-Gaussian file. All five use **fixed, non-adaptive 20-node GH**, and none uses Laplace or PQL. The Gaussian LMM was never a quadrature kernel.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | `_glmm_engine.h:32` `gauss_hermite_rule` | GH nodes and weights | Golub–Welsch: a dense `SelfAdjointEigenSolver` on the n_gh×n_gh Jacobi matrix; log-weights normalised to N(0,1). Rebuilt on every `GLMMData` construction, so once per fit and once per score/Hessian export call | O(n_gh³) per fit (20³) | NEW-gh-rule | **Adopt** (cache it; TODO-1) |
@@ -792,7 +792,7 @@ Files covered (all `R/EDI/src/`): `fast_coxph_regression.cpp`, `fast_survival_mo
 - **Kaplan–Meier:** sort, then one product-limit sweep, O(n log n). That is optimal for a single evaluation.
 - **Per-replicate re-sorting in resampling loops:** present in the Cox BRT (×2), log-rank BRT, and KM/RMST BRT (×2) kernels. The Weibull BRT kernel doesn't sort. Only the Cox case is tracked (`small_kernel_hoists_batch.md` Item C), and that plan's shortcut is **incomplete for `delta ≠ 0`** (finding I-4). KM/RMST and log-rank are new TODO candidates (1, 2).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity (n, p, B, K, \|R\| as relevant) | family | verdict |
 |---|---|---|---|---|---|
 | fast_coxph_regression.cpp:37 `CoxData::CoxData` | order subjects by time, build unique event times and tie counts | `std::sort` of an index by (time asc, dead desc), then two linear sweeps; X copied row-major | O(n log n + np) once per dataset; cached via XPtr (`:757`, `:764`) for repeated fits | NEW-survival-sort-sweep | Keep |
@@ -965,7 +965,7 @@ Verdict: Keep (trivial cost).
 
 Scope: 20 files in `R/EDI/src/` (all read in full). "Dead" = no caller in `R/EDI/R/` or `R/EDI/tests/` (grep, 2026-10-09); may still be reachable from a Python/`EDI_CORE_ONLY` binding. Complexity symbols: `n` subjects, `n_T,n_C` arm sizes, `m` pairs, `K` ordinal levels, `S = 2·n_T·n_C` (JT stat support), `B` replicates, `L` value-space bisection passes (≤96, ~53 typical for doubles).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | fast_wilcox_hl.cpp:45 `median_in_place` | median of a materialized array | two `std::nth_element` calls (introselect) | O(N) | NEW-rank-selection | Keep (linear-time selection is optimal) |
@@ -1138,7 +1138,7 @@ Scope: 20 files in `R/EDI/src/` (all read in full). "Dead" = no caller in `R/EDI
 
 Files are in `R/EDI/src/`. "Dead" means the R package never calls the function (checked by grep of `R/EDI/R` with `RcppExports.R` excluded); "test-only" means only `tests/testthat` calls it. Sizes: n tens–low thousands, p tens, B (r) hundreds–low thousands; R's randomization default is `r = 501` (`inference_all_abstract_rand.R:28`).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | RNG.h:172 `RRng::mt_genrand` | uniform 32-bit PRNG word | Mersenne Twister MT19937. Verbatim port of R's `MT_genrand` (Matsumoto & Nishimura 1998), so it is bit-identical to R's stream | O(1) amortized per word (one 624-word twist every 624 draws); 2.5 KB state | NEW-prng-core | Keep (R-parity reproducibility is the binding constraint); throughput and parallel-stream question already tracked as Keep-tracked `performance_profiling_and_upgrades.md → TODO-149(c)` |
@@ -1320,7 +1320,7 @@ Answers to the "pay special attention" questions, up front:
 - **Optimal blocks distance.** A dense n×n matrix for the ompr MILP, built by brute force O(n²p) for Euclidean and L1, and O(n²p²) for Mahalanobis (see above).
 - **Binary match search.** Not a search. It draws independent fair coin flips per pair for `r` columns, O(n·r), with per-column RNG streams, so it is invariant to thread count.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | compute_mahal_distances.cpp:10 `compute_proportional_mahal_distances_cpp` | KK14: Mahalanobis distance from the arrival to every reservoir subject | Builds the difference matrix D (|R|×p) column-major, then `rowsum((D·S⁻¹)∘D)` in one GEMM. S⁻¹ comes from R `solve()` per arrival | O(\|R\|p²) per arrival + O(p³) inverse in R; O(n\|R\|p²) summed | H | Keep-tracked (`kk14_incremental_covariance.md` TODO-3 swaps `solve()` for a Cholesky solve; its "out of scope" section correctly notes that whitening the reservoir costs the same) |
@@ -1552,7 +1552,7 @@ Scope: all 37 files `R/EDI/R/inference_all_*.R` + `inference_ext_*.R` (16,143 li
 - Row M also misses that **count-likelihood LR CIs** (`inference_all_abstract_count_likelihood.R:211`, also `inference_count_composite_likelihood.R:105`) route through the bisection inverter, not the Newton LR inverter.
 - Row D says `randomization_ci_affine_shift_reuse.md` "already shipped": **false**. No `supports_additive_delta_shift`, no write site for `cached_values$t0s_rand`; the read branch at `inference_all_abstract_rand.R:303` is still dead. Shipped pieces: sequential-MC early stopping and the high-precision confirm pass (`randomization_ci_search_precision.md`), and the BRT closed-form affine inversion (`inference_all_abstract_rand_bootstrap_ci.R:365`).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity (n, p, B, K, \|R\| as relevant) | family | verdict |
 |---|---|---|---|---|---|
 | 1. `inference_ext_ci_inversion.R:65` `invert_test_pval_confidence_interval` → `pval_invert_ci_cpp` (`src/lrt_ci_newton.cpp:214`) | score / Bartlett-exact / Bartlett-approx / count-LR CI by test inversion | Wald seed, then exponential bracket (step = SE·2^i), then **pure bisection** in δ to 1e-6; p(δ) memoized per δ (row 7); R closure called from C++ | ≈ 1 + k_bracket + ⌈log₂(width/1e-6)⌉ ≈ 20–25 constrained refits/bound, each O(iter·n·p²) | M | Keep-tracked (`brent_ci_inversion.md` TODO-1..3, **not implemented**) |
@@ -1769,7 +1769,7 @@ Notation: n obs, p covariates, K ordinal levels, m pairs, B/r replicates, D dist
 "RW-loop" = the R-level reused-worker loop that re-runs the class's full estimator once per permutation (parallelised by chunk over cores, but each
 draw is an R call); its cost is r × (cost of one estimate).
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | **CONTINUOUS** ||||||
@@ -1949,7 +1949,7 @@ Scope: 44 files in `R/EDI/R/inference_*.R` (incidence_*, indicidence_*, incid_*,
 
 Key negative finding up front: **no unconditional exact test (Barnard / Boschloo / Suissa–Shuster / Chan–Zhang) exists anywhere in EDI** (grepped R/ and src/). Every "exact" incidence path is *conditional* (Fisher noncentral hypergeometric, conditional binomial on discordant pairs, exact CMH convolution). So the nuisance-parameter-maximization question (grid vs Berger–Boos restriction) is moot today. It is recorded in the options table as a feature gap, not as a swap.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | inference_indicidence_exact_fisher.R:121 `get_exact_fisher_htest` (single stratum) | Exact conditional test, CI, and CMLE for the 2x2 odds ratio | `stats::fisher.test` 2x2 branch: direct enumeration of the noncentral-hypergeometric pmf over the support (`dnhyper`), "minlike" two-sided p-value (sum of pmf ≤ observed·(1+1e-7)). CMLE and conditional CI come from `uniroot` (Brent) on the pnhyper mean and tails. This is not the Mehta–Patel network algorithm: FEXACT is only used for r×c tables larger than 2x2. | O(S) per p-value, S = min margin ≤ n; CI ≈ 2×(10–30) Brent evals × O(S) | NEW-exact-conditional-2x2 | Keep |
@@ -2111,7 +2111,7 @@ Scope: `R/EDI/R/` design_*.R (36), helper_*.R (21), local_machine_tuning*.R (6),
 
 Notation: n subjects, p covariates, r design draws, B resamples, |R| = KK reservoir size, K = Turnbull intervals or event times, k = number of strata columns.
 
-### Catalog rows
+### Catalog rows (frozen 2026-10-09 snapshot: do not edit; current file, symbol, algorithm and reference URLs live in `../../audits/algorithm_inventory.csv`)
 | kernel (file:line `function`) | problem | current algorithm | complexity | family | verdict |
 |---|---|---|---|---|---|
 | helper_optimal_milp_solvers.R:97 `prepare_optimal_objective_matrices` | Write the greedy-design imbalance criteria as forms in w | Center X; Cholesky of S (with an rcond guard); `forwardsolve` gives M = L^-1 X'/n, Q = 4M'M (rank p); l1 matrix A = (2/n)X_std' | O(np² + n²p) | F | Keep. Q is built as a dense n×n matrix even though it has rank p. TODO-1/2 use the rank-p structure |

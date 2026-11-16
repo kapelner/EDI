@@ -311,6 +311,29 @@ fi
 
 echo
 
+# Thread-count determinism (v1.1.0 cross_platform_reproducibility.md TODO-2,
+# decision D3): R/EDI/src must not use <random>/std::shuffle/rand() or
+# per-thread seeds, nor combine floats in thread order (parallel reductions,
+# atomics/criticals on floats, per-thread partials) unless allowlisted with a
+# reason in scripts/check_thread_determinism_allowlist.csv. Pure text scan,
+# ~3s. The checker's own planted-violation tests run only when it changes.
+if grep -qE '^R/EDI/src/.*\.(cpp|h|hpp)$|^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$|^scripts/pre-push$' "$changed_files_file"; then
+	echo "pre-push: C++ sources changed -- checking thread-count determinism ..."
+	if grep -qE '^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$' "$changed_files_file" \
+		&& ! python3 scripts/test_check_thread_determinism.py; then
+		echo "pre-push: thread-determinism checker self-test FAILED (see output above)." >&2
+		abort_push
+	fi
+	if ! python3 scripts/check_thread_determinism.py; then
+		echo "pre-push: thread-count determinism check FAILED (see output above)." >&2
+		abort_push
+	fi
+else
+	echo "pre-push: no C++ source changes, skipping thread-count determinism check."
+fi
+
+echo
+
 # Only C++ sources or configure feed this check (it copies R/EDI/src/*.cpp,
 # *.h and configure), so an .R/.Rd-only push skips it (2026-11-14).
 if grep -qE '^R/EDI/(src/.*\.(cpp|h|hpp)|configure(\.win)?)$' "$changed_files_file"; then

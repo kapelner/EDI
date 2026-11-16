@@ -12,18 +12,32 @@ rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
 	)
 }
 
-# Tail counts of a randomization distribution, with draws within 1e-8
-# (relative to |t|) of the observed statistic counted as ties in BOTH tails.
-# A redraw that reproduces the observed allocation (or its mirror) yields the
-# observed statistic up to rounding (~1e-15 relative), and an exact >= / <=
-# then counted it or not depending on the build's floating-point path: seeded
-# 1-core and 2-core sessions disagreed by 2/r on Linux CI (TODO-112 test,
-# bulk run 42638595069). Counting ties in both tails is the conservative
-# convention and makes the p-value deterministic.
-RAND_PVAL_TIE_REL_TOL = 1e-8
+# Tail counts of a randomization distribution, with draws tied to the observed
+# statistic counted in BOTH tails. A draw is a tie when it is within
+# EDI_TIE_REL_TOL * scale of t, where scale = max(|t|, max |t0s|) over the
+# finite draws (cross_platform_reproducibility.md TODO-3).
+# Why: a redraw that reproduces the observed allocation (or one with the same
+# sufficient table) gives the observed statistic only up to rounding, and an
+# exact >= / <= then counted it or not depending on the build's floating-point
+# path: seeded 1-core and 2-core sessions disagreed by 2/r on Linux CI
+# (TODO-112 test, bulk run 42638595069).
+# Why the scale includes the draws, not just |t|: when t is 0 in exact
+# arithmetic (a balanced discrete outcome), rounding leaves tied draws at
+# +-1e-17, which a tolerance proportional to |t| alone (0) never caught
+# (InferenceOrdinalRidit, n = 12: 127 of 248 exact ties fell below t = 0,
+# p = 0.9935 instead of the enumerated 1). Rounding error in a draw is
+# relative to the magnitude of the quantities it was computed from, which the
+# distribution's own magnitude tracks; using max(1, |t|) instead would not be
+# invariant to the response's units.
+# Counting ties in both tails is the conservative convention and makes the
+# p-value deterministic.
+rand_tie_tolerance = function(t0s, t){
+	scale = max(abs(t), abs(t0s[is.finite(t0s)]), 0)
+	EDI_TIE_REL_TOL * scale
+}
 rand_tail_counts = function(t0s, t){
 	t0s = t0s[is.finite(t0s)]
-	tol = RAND_PVAL_TIE_REL_TOL * abs(t)
+	tol = rand_tie_tolerance(t0s, t)
 	c(ge = sum(t0s >= t - tol), le = sum(t0s <= t + tol))
 }
 
@@ -547,6 +561,17 @@ InferenceRand = R6::R6Class("InferenceRand",
 			}
 			format(as.numeric(delta), scientific = TRUE, digits = 17)
 		},
+		# TRUE when the first registered class in this object's class chain
+		# declares likelihood_concave = FALSE. NA (no likelihood, or an
+		# unregistered user subclass) and TRUE both return FALSE.
+		rand_likelihood_is_nonconcave = function() {
+			for (cls in class(self)) {
+				if (exists(cls, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
+					return(isFALSE(get(cls, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)$likelihood_concave))
+				}
+			}
+			FALSE
+		},
 		compute_randomization_distr_via_reused_worker_states = function(permutations, delta, transform_responses, actual_rand_cores, show_progress, setup, zero_one_logit_clamp) {
 			nsim = if (!is.null(permutations$w_mat)) ncol(permutations$w_mat) else length(permutations)
 			if (!isTRUE(nsim > 0L)) return(numeric(0))
@@ -572,6 +597,12 @@ InferenceRand = R6::R6Class("InferenceRand",
 			chunk_id = ceiling(seq_len(nsim) / ceiling(nsim / chunk_n))
 			chunks = split(seq_len(nsim), chunk_id)
 			contract = private$get_resampling_draw_contract("rand")
+			# Chain warm starts across permutations only when every local optimum of
+			# the likelihood is global (registry `likelihood_concave` TRUE or NA).
+			# For a nonconcave likelihood, one replicate that lands on a wrong local
+			# optimum would seed the next, so every replicate starts from the
+			# full-data MLE instead.
+			chain_warm_start = !private$rand_likelihood_is_nonconcave()
 			# Serial dispatch (chunk_n == 1L, the common case: num_cores = 1 is
 			# InferenceSuite's default) is where `create_bootstrap_worker_state()`'s
 			# `self$duplicate()` + design `duplicate()` becomes the dominant cost when
@@ -629,7 +660,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 						)
 						as.numeric(estimate_draw(worker_state))[1L]
 					}, error = function(e) NA_real_)
-					# Sequential null anchoring: after each successful permutation, update
+					# Sequential null anchoring (concave likelihoods only, see
+					# chain_warm_start above): after each successful permutation, update
 					# base_fit_warm_start to the converged parameters so the next permutation
 					# starts from the current null-distribution point rather than the MLE.
 					# Iterative models (logistic, Poisson, NegBin, ordinal, survival, etc.) call
@@ -637,7 +669,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 					# params to inf_priv$fit_warm_start.  We copy that here.
 					# Cold objects (fit_warm_start_enabled = FALSE) have set_fit_warm_start() as a
 					# no-op, so inf_priv$fit_warm_start stays NULL and no update occurs.
-					if (is.finite(out[k])) {
+					if (chain_warm_start && is.finite(out[k])) {
 						inf_priv_seq = if (!is.null(worker_state$worker_inf)) {
 							worker_state$worker_inf$.__enclos_env__$private
 						} else if (!is.null(worker_state$worker_priv)) {

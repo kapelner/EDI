@@ -6,8 +6,8 @@
 # Each R-CMD-check leg writes one CSV from
 # R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R. This
 # script fails (exit 1) when:
-#   - a design's seed-pinned draw digest is not identical on every leg and at
-#     every thread count;
+#   - a design's or resampling method's seed-pinned draw digest is not
+#     identical on every leg and at every thread count;
 #   - a float (estimate, CI bound, p-value) differs across legs by more than
 #     REPRO_FLOAT_TOL relative to max(1, |median|);
 #   - fewer legs reported than REPRO_EXPECTED_LEGS.
@@ -18,7 +18,7 @@ args = commandArgs(trailingOnly = TRUE)
 if (length(args) != 1L) stop("usage: Rscript compare_repro_digests.R <dir-of-leg-csvs>")
 dir = args[[1L]]
 expected_legs = as.integer(Sys.getenv("REPRO_EXPECTED_LEGS", "0"))
-float_tol = as.numeric(Sys.getenv("REPRO_FLOAT_TOL", "1e-8"))
+float_tol = as.numeric(Sys.getenv("REPRO_FLOAT_TOL", "1e-12"))
 
 summary_lines = character()
 emit = function(...) {
@@ -43,15 +43,17 @@ if (expected_legs > 0L && length(legs) < expected_legs) {
 }
 
 if (!is.null(rows) && nrow(rows)) {
-	# Integer draws: one digest per design and quantity (w_md5 for the r
-	# redraws; w_seq_md5 for a sequential design's one-at-a-time assignment)
-	# across every leg and thread count.
-	design = rows[rows$kind == "design_draw", , drop = FALSE]
+	# Digests: one per case and quantity across every leg and thread count.
+	# Design draws ("design_draw": w_md5 for the r redraws, w_seq_md5 for a
+	# sequential design's one-at-a-time assignment) and resampling draws
+	# ("resampling_draw": one per resampling method) are both digest rows; every
+	# kind except "inference_float" is compared exactly.
+	design = rows[rows$kind != "inference_float", , drop = FALSE]
 	design$key = paste(design$name, design$quantity, sep = "$")
 	emit("")
-	emit("### Seed-pinned design draws (md5 of w, first 8 characters)")
+	emit("### Seed-pinned design and resampling draws (md5, first 8 characters)")
 	emit("")
-	emit("| design | ", paste(legs, collapse = " | "), " | identical |")
+	emit("| case | ", paste(legs, collapse = " | "), " | identical |")
 	emit("|", paste(rep("---", length(legs) + 2L), collapse = "|"), "|")
 	for (key in sort(unique(design$key))) {
 		d = design[design$key == key, , drop = FALSE]

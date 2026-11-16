@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "required": ["new_symbols", "changed_entries"],
+  "properties": {
+    "new_symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "symbol", "is_algorithm", "reason"],
+        "properties": {
+          "file": {"type": "string"},
+          "symbol": {"type": "string"},
+          "is_algorithm": {"type": "boolean"},
+          "reason": {"type": "string"},
+          "proposed": {
+            "type": "object",
+            "required": ["problem", "algorithm", "details", "complexity", "audit_row", "refs"],
+            "properties": {
+              "problem": {"type": "string"},
+              "algorithm": {"type": "string"},
+              "details": {"type": "string"},
+              "complexity": {"type": "string"},
+              "audit_row": {"type": "string"},
+              "refs": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
+    "changed_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "symbol", "stale"],
+        "properties": {
+          "file": {"type": "string"},
+          "symbol": {"type": "string"},
+          "stale": {"type": "boolean"},
+          "issue": {"type": "string"},
+          "suggested_details": {"type": "string"},
+          "may_affect_verdict": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

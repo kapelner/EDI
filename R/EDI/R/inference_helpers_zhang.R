@@ -211,9 +211,9 @@ zhang_pval_exact_combined = function(inf_obj, delta_0, combination_method = "Fis
 	zhang_combine_exact_pvals(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
 }
 
-zhang_compute_ci_bounds_parallel = function(inf_obj, est, lo_bound, hi_bound, alpha, pval_epsilon, combination_method){
+zhang_compute_ci_bounds_parallel = function(inf_obj, inside, lo_bound, hi_bound, alpha, pval_epsilon, combination_method){
 	private = inf_obj$.__enclos_env__$private
-	bound_specs = list(list(inside = est, outside = lo_bound), list(inside = est, outside = hi_bound))
+	bound_specs = list(list(inside = inside, outside = lo_bound), list(inside = inside, outside = hi_bound))
 	n_cores_ci = min(2L, inf_obj$num_cores)
 	child_budget = max(1L, as.integer(floor(inf_obj$num_cores / n_cores_ci)))
 	inf_template = inf_obj$duplicate()
@@ -236,6 +236,41 @@ zhang_compute_ci_bounds_parallel = function(inf_obj, est, lo_bound, hi_bound, al
 	c(results[[1]], results[[2]])
 }
 
+# A point the combined test accepts (p > alpha), to start both endpoint searches from.
+# The reservoir log odds ratio alone is not one: with no reservoir (every subject
+# matched, e.g. DesignFixedBinaryMatch) it is always 0, so the interval always held 0
+# even when the test rejected; with a small reservoir (KK designs at large n) it is
+# noise the matched pairs outweigh, and a start the test rejects sent the bisection to
+# a wrong endpoint (calibration campaign 2026-11-15-e36c7710: coverage 0.85-0.88 at
+# KK21 n = 1000, 1.00 on BinaryMatch, while the test's size was 0.02-0.05).
+# Candidates: the reservoir estimate, the matched-pairs conditional MLE and their
+# inverse-variance combination; if none is accepted, the maximiser of the combined
+# p-value over the search range (an empty acceptance set then gives a degenerate
+# interval at that maximiser).
+zhang_ci_inside_point = function(p_fn, exact_stats, lo_bound, hi_bound, alpha){
+	p_at = function(delta){
+		p = tryCatch(p_fn(delta), error = function(e) NA_real_)
+		if (is.na(p) || !is.finite(p)) 0 else p
+	}
+	est_R = zhang_incid_treatment_estimate(exact_stats)
+	var_R = 1/(exact_stats$n11 + 0.5) + 1/(exact_stats$n10 + 0.5) + 1/(exact_stats$n01 + 0.5) + 1/(exact_stats$n00 + 0.5)
+	has_R = exact_stats$nRT > 0L && exact_stats$nRC > 0L
+	k = exact_stats$d_plus + exact_stats$d_minus
+	cands = if (has_R) est_R else numeric(0)
+	if (exact_stats$m > 0L && k > 0L) {
+		est_M = log((exact_stats$d_plus + 0.5) / (exact_stats$d_minus + 0.5))
+		var_M = 1/(exact_stats$d_plus + 0.5) + 1/(exact_stats$d_minus + 0.5)
+		cands = c(cands, est_M)
+		if (has_R) cands = c(cands, (est_R / var_R + est_M / var_M) / (1 / var_R + 1 / var_M))
+	}
+	if (length(cands) == 0L) cands = est_R
+	p_c = vapply(cands, p_at, numeric(1))
+	if (max(p_c) > alpha) return(cands[which.max(p_c)])
+	rng = range(c(lo_bound, hi_bound, cands))
+	opt = stats::optimize(function(d) -p_at(d), interval = rng)
+	if (-opt$objective > max(p_c)) opt$minimum else cands[which.max(p_c)]
+}
+
 zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_method = "Fisher"){
 	exact_stats = zhang_get_exact_stats(inf_obj)
 	est = zhang_incid_treatment_estimate(exact_stats)
@@ -246,17 +281,21 @@ zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_met
 	ci_width = mle_ci[2] - mle_ci[1]
 	lo_bound = mle_ci[1] - 0.5 * ci_width
 	hi_bound = mle_ci[2] + 0.5 * ci_width
+	p_fn = function(delta_0){
+		p_M = if (exact_stats$m > 0) zhang_compute_exact_pval_matched_pairs(inf_obj, delta_0) else NA_real_
+		p_R = if (exact_stats$nRT > 0 && exact_stats$nRC > 0) zhang_compute_exact_pval_reservoir(inf_obj, delta_0) else NA_real_
+		zhang_combine_exact_pvals(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
+	}
+	inside = zhang_ci_inside_point(p_fn, exact_stats, lo_bound, hi_bound, alpha)
+	# The bounds are only starting scales for the bisection, but each must lie on its own side of `inside`.
+	lo_bound = min(lo_bound, inside - 1)
+	hi_bound = max(hi_bound, inside + 1)
 	if (inf_obj$num_cores > 1L) {
-		zhang_compute_ci_bounds_parallel(inf_obj, est, lo_bound, hi_bound, alpha, pval_epsilon, combination_method)
+		zhang_compute_ci_bounds_parallel(inf_obj, inside, lo_bound, hi_bound, alpha, pval_epsilon, combination_method)
 	} else {
-		p_fn = function(delta_0){
-			p_M = if (exact_stats$m > 0) zhang_compute_exact_pval_matched_pairs(inf_obj, delta_0) else NA_real_
-			p_R = if (exact_stats$nRT > 0 && exact_stats$nRC > 0) zhang_compute_exact_pval_reservoir(inf_obj, delta_0) else NA_real_
-			zhang_combine_exact_pvals(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
-		}
 		c(
-			zhang_bisect_ci_boundary(p_fn, inside = est, outside = lo_bound, pval_th = alpha, tol = pval_epsilon),
-			zhang_bisect_ci_boundary(p_fn, inside = est, outside = hi_bound, pval_th = alpha, tol = pval_epsilon)
+			zhang_bisect_ci_boundary(p_fn, inside = inside, outside = lo_bound, pval_th = alpha, tol = pval_epsilon),
+			zhang_bisect_ci_boundary(p_fn, inside = inside, outside = hi_bound, pval_th = alpha, tol = pval_epsilon)
 		)
 	}
 }

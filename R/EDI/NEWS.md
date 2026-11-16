@@ -29,12 +29,17 @@ methods.
   GLMM, now grouped correctly.
 * GitHub source installs build the portable CRAN configuration by default;
   `EDI_PORTABLE=0` restores the machine-tuned build.
-* Randomization p-values (and their Monte Carlo bands) count a redrawn
-  statistic within 1e-8 (relative) of the observed one as a tie in both
-  tails. A redraw that reproduces the observed allocation gives the observed
-  statistic only up to rounding, so before it could be counted or not
-  depending on the build and core count (seeded 1-core and 2-core sessions
-  could differ by 2/r). P-values with such ties can rise by up to 2/r.
+* Randomization p-values (and their Monte Carlo bands, the studentized
+  randomization-bootstrap p-values and the closed-form randomization-bootstrap
+  CI) count a redrawn statistic as a tie in both tails when it is within
+  `sqrt(.Machine$double.eps)` times max(|observed|, largest |redraw|) of the
+  observed one. A redraw that reproduces the observed allocation gives the
+  observed statistic only up to rounding, so before it could be counted or
+  not depending on the build, core count and subject order (seeded 1-core
+  and 2-core sessions could differ by 2/r). Scaling by the redraws as well
+  covers an observed statistic of exactly 0: an enumerated 12-subject Ridit
+  test had half its exact ties at -5.6e-17 and gave a one-sided p of 0.497
+  instead of 0.634. P-values with such ties can only rise.
 * Seed-pinned draws change once: a portable shuffle replaces
   `std::shuffle`, and greedy, D-optimal, pair-switching and rerandomization
   designs no longer depend on the thread count.
@@ -139,6 +144,16 @@ methods.
 
 ## Bug fixes
 
+* `InferenceIncidExactZhang$compute_exact_confidence_interval()` (and the
+  `type = "Zhang"` randomization CI for incidence) now inverts the combined
+  test it reports. Its endpoint search started from the log odds ratio of the
+  unmatched (reservoir) subjects only. With every subject matched
+  (`DesignFixedBinaryMatch`) that is always 0, so the interval held 0 even
+  when the test rejected (coverage 1.00 at the null); with a small reservoir
+  (KK designs at large n) a start the test rejects gave a wrong endpoint
+  (coverage 0.85-0.88 at n = 1000 on `DesignSeqOneByOneKK21`, while the test's
+  size was 0.03). The search now starts from a point the combined test
+  accepts. Intervals that already started from an accepted point do not change.
 * `tune_EDI_for_this_machine()` no longer refuses to run on an idle machine
   with "calibration timings are noisy". Its idle check timed a single ~1 ms
   operation with a 1 ms clock, so the measured spread was mostly the clock's

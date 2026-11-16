@@ -1979,7 +1979,8 @@ ticked in their **owning plans**; this list is the release index.
   - Why: accepted rows wald ~. n = 50 prob_T 0.2 (size 0.105, coverage 0.895); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run 42184383402. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: which HC variant is used; HC0/HC1 is known to be anti-conservative with about 10 treated and interacted covariates.
   - Fix (candidates): HC2 / HC3 default or a t reference with residual df.
-  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-173`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-173`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` and `R/package_tests/calibration/calibration_study_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+  - **2026-11-15:** the full calibration study fails the same cell in every campaign (size 0.17 / 0.17 / 0.192 on 1000 reps, campaigns 2026-11-09-8c32d060, 2026-11-12-a46ab113, 2026-11-15-e36c7710; level cap 0.10). Owner added accepted rows to `calibration_study_accepted.csv` at size 0.20 / coverage 0.80 so this known cell does not turn each campaign red.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
 - [ ] TODO-174 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceCountHurdlePoisson`: Hurdle Poisson: model-based likelihood tests anti-conservative when covariates are omitted.**
@@ -1988,6 +1989,19 @@ ticked in their **owning plans**; this list is the release index.
   - Fix (candidates): robust (sandwich-information) score / LR variants, or document only and keep the sandwich Wald as the default.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-174`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
+  - **2026-11-16, calibration campaign 2026-11-15-e36c7710 (after wave 4, screen stage, 1000 reps per cell):**
+    the same cause on far more cells. 54 tests flagged (q down to 7e-35), confirmation pending, on 6 designs:
+    FixedBernoulli, FixediBCRD, SeqOneByOneKK14, SeqOneByOneKK21stepwise, SeqOneByOneSPBR and SeqOneByOneUrn.
+    - Score, gradient and LR size, averaged over designs: `~1` 0.142-0.148 at n = 50, 0.151-0.153 at n = 200,
+      0.099 at n = 1000. With covariates (`~.`) the same tests are nominal (0.038-0.053). That is the "Investigate
+      first" check, now done.
+    - Randomization p-values are nominal (0.044-0.051). HurdleNegBin `~1` is nominal (0.036-0.084) on the same cells.
+    - Sandwich Wald `~1` is conservative at n = 1000 (0.015). That is new and worth a look.
+    - The roxygen's "up to about 8.5%" figure understates it: the campaign DGP overdisperses the count part more
+      than the fast tier does, so update the number, or word it as depending on how much the omitted covariates
+      explain.
+    - Not a null-fit bug: the 2026-11-07 check found the EDI score p matches an independent truncated-Poisson score
+      test to 2e-5.
 
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
@@ -1997,6 +2011,7 @@ ticked in their **owning plans**; this list is the release index.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-175`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
+  - **2026-11-16:** the full calibration study (campaign 2026-11-15-e36c7710) fails the same cell on four designs (Bernoulli, Blocking, iBCRD, SeqOneByOneBernoulli at prob_T 0.2, n = 50, `~.`: size 0.141-0.159). Accepted rows at observed + 3 SE added to `R/package_tests/calibration/calibration_study_accepted.csv`; prune them too when this is done.
 - [ ] TODO-176 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidGCompRiskDiff`: G-computation risk difference: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.10) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: delta-method SE vs sd(estimate); separation in the 10-subject arm.
@@ -2011,6 +2026,7 @@ ticked in their **owning plans**; this list is the release index.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-177`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
+  - **2026-11-16:** the full calibration study (campaign 2026-11-15-e36c7710) shows a larger excess than the fast tier: gradient size 0.145-0.149 at n = 50 on BinaryMatch, KK21 and KK21stepwise (`~.`). Accepted rows at observed + 3 SE added to `R/package_tests/calibration/calibration_study_accepted.csv`; prune them too when this is done.
 - [ ] TODO-178 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidLogBinomial`: Log-binomial: score / gradient / LR miscalibrated at prob_T = 0.2, n = 50.**
   - Why: accepted rows score ~. size 0.255, gradient ~. coverage 0.88, lik_ratio ~. coverage 0.895, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run (before the v1.0.5 TODO-181 KKT boundary score). Re-run 2026-11-10 (installed build with the KKT score, 1000 reps, n = 50): score ~. size 0.106 / coverage 0.906 at prob_T 0.2 and 0.087 / 0.918 at prob_T 0.5 (still above nominal; size row tightened 0.255 -> 0.13); gradient and LR are now nominal (0.053-0.060), and their 3 coverage rows were pruned; `~1` score 0.071 at prob_T 0.2 (passes). What is left is the score test at n = 50. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: re-run on the build with the KKT score (v1.0.5 TODO-181); share of fits at exp(Xb) = 1; overlap with v1.0.5 TODO-179 (Wald) and v1.0.6 TODO-5 (boundary full fit; was v1.1 TODO-165). Since 2026-11-09 the Wald test is NA at boundary MLEs (v1.0.5 TODO-179; leftovers in TODO-189), and LR CIs there no longer fall back to Wald for lack of a feasible null start.
@@ -2018,6 +2034,7 @@ ticked in their **owning plans**; this list is the release index.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-178`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
+  - **2026-11-16:** the full calibration study (campaign 2026-11-15-e36c7710) also fails it on Blocking and SeqOneByOneSPBR (score size 0.148-0.153, prob_T 0.2, n = 50). Accepted rows added to `R/package_tests/calibration/calibration_study_accepted.csv`. The n = 1000 excess is a separate item: `release_v1_0_6.md` TODO-29.
 - [ ] TODO-179 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidRiskDiff`: Risk difference: Wald oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.095) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: unpooled Wald SE with about 10 treated (known anti-conservative); zero-event arms.

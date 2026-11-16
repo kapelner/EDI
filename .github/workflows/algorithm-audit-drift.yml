@@ -1,5 +1,13 @@
-# Monthly algorithm-audit drift check. Read-only: no R, no compile, no commits.
-# Opens/updates ONE issue labelled `algorithm-audit-drift`; closes it when clean.
+# Monthly algorithm audit. Read-only: no R, no compile, no commits.
+#  - drift:    mechanical checks (comparator versions, kernel drift, plan state, and that
+#              algorithm_inventory.csv / algorithm_references.csv are complete and current).
+#              Opens/updates ONE issue labelled `algorithm-audit-drift`; closes it when clean.
+#  - research: one Claude agent per audit row searches the web for a faster acceptable
+#              algorithm, plus one `inventory` agent that judges new and changed functions
+#              against the inventory. Prompts and output schemas: .github/prompts/.
+#              Opens/updates ONE issue labelled `algorithm-audit-research`; closes it when clean.
+#              Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN repo secret; without
+#              one, every task is reported as NOT RUN (never as clean).
 # Procedure and guardrails: R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md
 #
 # Note: GitHub disables scheduled workflows after 60 days of repo inactivity.
@@ -10,6 +18,10 @@ on:
   schedule:
     - cron: "0 6 21 * *"   # 06:00 UTC on the 21st of every month
   workflow_dispatch:
+    inputs:
+      research_tasks:
+        description: "Research tasks: 'all', 'none', or comma-separated audit rows and/or 'inventory' (e.g. A,J,inventory)"
+        default: all
 
 permissions:
   contents: read
@@ -26,6 +38,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # the kernel-drift check reads full git history
+
+      - name: Self-test the inventory check
+        run: python3 .github/scripts/test_algorithm_audit_drift.py
 
       - name: Run drift checks
         run: python3 .github/scripts/algorithm_audit_drift.py --out drift_report.md
@@ -54,10 +69,176 @@ jobs:
             gh issue close "$existing" --comment "Drift check is clean as of $(date -u +%Y-%m-%d)."
           fi
 
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tasks: ${{ steps.plan.outputs.tasks }}
+      task_list: ${{ steps.plan.outputs.task_list }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: plan
+        env:
+          REQUESTED: ${{ github.event.inputs.research_tasks || 'all' }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          rows = list(json.load(open("R/package_metadata/audits/algorithm_audit_row_map.json"))["rows"])
+          req = os.environ["REQUESTED"].strip()
+          allowed = rows + ["inventory"]
+          tasks = ([] if req == "none" else allowed if req == "all"
+                   else [t.strip() for t in req.split(",") if t.strip()])
+          bad = [t for t in tasks if t not in allowed]
+          if bad:
+              raise SystemExit(f"unknown research task(s): {bad}; allowed: {allowed}")
+          print("tasks=" + json.dumps(tasks))
+          print("task_list=" + ",".join(tasks))
+          PY
+
+  research:
+    needs: plan
+    if: ${{ needs.plan.outputs.tasks != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        task: ${{ fromJSON(needs.plan.outputs.tasks) }}
+    env:
+      TASK: ${{ matrix.task }}
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the currency task reads the last month of history
+
+      - name: Prepare task context
+        id: prep
+        run: |
+          mkdir -p research
+          if [ "$TASK" = inventory ]; then
+            python3 .github/scripts/algorithm_audit_drift.py --currency-context 35 --out currency_context.json
+            prompt_file=.github/prompts/algorithm_audit_currency.md
+            schema=.github/prompts/algorithm_audit_currency.schema.json
+            echo "what=the inventory currency check" >> "$GITHUB_OUTPUT"
+          else
+            python3 - <<'PY'
+          import csv, os
+          task = os.environ["TASK"]
+          with open("R/package_metadata/audits/algorithm_inventory.csv", newline="") as fh:
+              rows = list(csv.DictReader(fh))
+          keep = [r for r in rows if task in [x.strip() for x in r["audit_row"].split("+")]]
+          with open("row_entries.csv", "w", newline="") as fh:
+              w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+              w.writeheader()
+              w.writerows(keep)
+          print(f"row {task}: {len(keep)} inventory entries")
+          PY
+            prompt_file=.github/prompts/algorithm_audit_research.md
+            schema=.github/prompts/algorithm_audit_research.schema.json
+            echo "what=audit row $TASK" >> "$GITHUB_OUTPUT"
+          fi
+          echo "prompt_file=$prompt_file" >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c . "$schema")" >> "$GITHUB_OUTPUT"
+
+      - name: No API key
+        if: ${{ env.HAS_KEY != 'true' }}
+        run: echo "neither the ANTHROPIC_API_KEY nor the CLAUDE_CODE_OAUTH_TOKEN repository secret is set" > "research/$TASK.notrun"
+
+      - name: Run the research agent
+        id: claude
+        if: ${{ env.HAS_KEY == 'true' }}
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Read ${{ steps.prep.outputs.prompt_file }} and follow it exactly.
+            Your task: ${{ steps.prep.outputs.what }}. Today is the run date of this workflow.
+            Repository: ${{ github.repository }}, commit ${{ github.sha }}.
+          claude_args: |
+            --allowedTools "Read,Glob,Grep,WebSearch,WebFetch,Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
+            --disallowedTools "Edit,Write,NotebookEdit"
+            --max-turns 80
+            --json-schema '${{ steps.prep.outputs.schema }}'
+
+      - name: Save the agent's output
+        if: ${{ always() && env.HAS_KEY == 'true' }}
+        env:
+          OUT: ${{ steps.claude.outputs.structured_output }}
+          OUTCOME: ${{ steps.claude.outcome }}
+        run: |
+          if [ -n "$OUT" ]; then
+            printf '%s' "$OUT" > "research/$TASK.json"
+          else
+            echo "agent produced no structured output (step outcome: $OUTCOME)" > "research/$TASK.notrun"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: research-${{ matrix.task }}
+          path: research/
+
+  research-report:
+    needs: [plan, research]
+    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.tasks != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LABEL: algorithm-audit-research
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: research-*
+          path: research
+          merge-multiple: true
+
+      - name: Merge the agents' output
+        run: |
+          mkdir -p research
+          python3 .github/scripts/algorithm_audit_research_report.py --dir research \
+            --tasks "${{ needs.plan.outputs.task_list }}" --out research_report.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: research-report
+          path: research_report.md
+
+      - name: Open, update, or close the research issue
+        run: |
+          gh label create "$LABEL" --color C5DEF5 \
+            --description "Monthly algorithm research report (faster algorithms, inventory currency)" 2>/dev/null || true
+          existing=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          status=$(head -n 1 research_report.md)
+          tail -n +3 research_report.md > issue_body.md
+          if [ "$status" = "FLAGGED" ]; then
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file issue_body.md
+            else
+              gh issue create --title "Algorithm research ($(date -u +%Y-%m-%d))" \
+                --label "$LABEL" --body-file issue_body.md
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "Research is clean as of $(date -u +%Y-%m-%d)."
+          fi
+
   notify-failure:
-    # A crashed or cancelled run must not be mistaken for a clean month.
-    needs: drift
-    if: ${{ always() && needs.drift.result != 'success' }}
+    # A crashed or cancelled run must not be mistaken for a clean month. (A research agent
+    # that fails is reported as NOT RUN inside the research issue instead.)
+    needs: [drift, research-report]
+    if: ${{ always() && (needs.drift.result != 'success' || needs.research-report.result == 'failure' || needs.research-report.result == 'cancelled') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -69,7 +250,7 @@ jobs:
           gh label create "$FAIL_LABEL" --color D93F0B -R "$GITHUB_REPOSITORY" \
             --description "The algorithm-audit drift workflow itself failed" 2>/dev/null || true
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          msg="The drift workflow did not complete ($(date -u +%Y-%m-%d), result: ${{ needs.drift.result }}). No drift result exists for this month. Run: $url"
+          msg="The algorithm-audit workflow did not complete ($(date -u +%Y-%m-%d); drift: ${{ needs.drift.result }}, research report: ${{ needs.research-report.result }}). That part has no result this month. Run: $url"
           existing=$(gh issue list -R "$GITHUB_REPOSITORY" --label "$FAIL_LABEL" --state open --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$msg"

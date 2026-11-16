@@ -25,7 +25,10 @@ corrections to A–M, new TODOs). The per-kernel evidence (one row per `.cpp`
 kernel and R hot loop, with options-and-disadvantages tables) is in the
 companion file **`algorithm_choice_audit_catalog.md`**. It is ~2,400 lines,
 which is why it is a separate file rather than appended here. Start with the
-section "2026-10-09 full-catalog sweep" below.
+section "2026-10-09 full-catalog sweep" below. **Which algorithms EDI implements, and where:**
+the single source of truth is `../../audits/algorithm_inventory.csv` (one row per
+file and symbol, with its audit row and reference URLs; built 2026-11-16 from the
+catalog's kernel tables, which are now a frozen snapshot).
 
 ## Scope and method
 
@@ -793,15 +796,23 @@ none of these numbers should be quoted as a measured result.
     close (the original trigger), when a new kernel family ships, and after
     each Prototype item resolves through the harness (TODO-1).
   - *Drift check* (mechanical, read-only): **monthly, the 21st at 06:00 UTC**,
-    `.github/workflows/algorithm-audit-drift.yml`. It runs three checks and
+    `.github/workflows/algorithm-audit-drift.yml`. It runs four checks and
     opens or updates one issue labelled `algorithm-audit-drift`; it commits
     nothing and closes the issue when clean:
     1. comparator versions: CRAN vs `audits/comparator_versions.json`, with
        keyword-filtered NEWS since the pinned version;
     2. kernel drift: `git log` since each row's `reviewed` date over the files
-       in `audits/algorithm_audit_row_map.json`;
+       that the `watch` column of `audits/algorithm_inventory.csv` assigns to it;
     3. plan-state hygiene: every audit TODO's `release_vX.md → TODO-N` target
-       must exist and not be a moved-stub, and every unchecked TODO needs a tag.
+       must exist and not be a moved-stub, and every unchecked TODO needs a tag;
+    4. algorithm inventory (added 2026-11-16): every `R/EDI/src` and `R/EDI/R`
+       file is inventoried or exempt, every entry's file and symbol still exist,
+       and every entry's reference URLs are listed and still resolve.
+  - *Research* (same monthly run, added 2026-11-16): one Claude agent per
+    audit row searches the web for a faster acceptable algorithm, and one
+    `inventory` agent judges new and changed functions against the inventory.
+    Read-only; findings are unverified and go to one `algorithm-audit-research`
+    issue. Needs the `ANTHROPIC_API_KEY` secret. Details: `algorithm_audit_runbook.md`.
   - *Re-review trigger:* a flag means "re-look", not "wrong". A row is cleared
     by re-reviewing it, then bumping its `reviewed` date and re-pinning
     (`--snapshot`) in the same commit.

@@ -112,10 +112,29 @@ roster <- cal_plan_read_roster(roster_path)
 # The designs are the roster's (discovered from the installed EDI by the roster job): "all" = every roster design.
 designs <- if (identical(designs, "all")) unique(roster$design) else split_csv(designs)
 if (!all(designs %in% roster$design)) stop("--designs not in the campaign roster: ", paste(setdiff(designs, roster$design), collapse = ", "))
+# Where each roster cost came from (secs_source, build_calibration_study_roster.R): "previous" (the previous campaign's
+# statistics) or "default" (2 s, no earlier measurement). A roster written before that column: a cost equal to the default
+# is one. A default row first borrows the median previous cost of the same class on the roster's other designs of its
+# response type, else on other response types ("borrowed"); a class that has none stays "default" (campaign 2026-11-14:
+# CountHurdleNegBin ran ~10 s per replicate against the 2 s default, AllSimpleWilcox 0.16 s).
+CAL_PLAN_ROSTER_DEFAULT_SECS_N50 <- 2   # build_calibration_study_roster.R's CAL_ROSTER_DEFAULT_SECS_N50
+if (!"secs_source" %in% names(roster)) roster$secs_source <- ifelse(roster$secs_n50 == CAL_PLAN_ROSTER_DEFAULT_SECS_N50, "default", "previous")
+local({
+	src <- roster$secs_source
+	known <- src != "default"
+	for (i in which(!known)) {
+		same <- known & roster$inf_class == roster$inf_class[[i]]
+		pick <- same & roster$response_type == roster$response_type[[i]]
+		if (!any(pick)) pick <- same
+		if (any(pick)) { roster$secs_n50[[i]] <<- stats::median(roster$secs_n50[pick]); src[[i]] <- "borrowed" }
+	}
+	roster$secs_source <<- src
+})
 units <- cal_plan_units(roster, rts = rts, designs = designs, ns = ns, effects = effects,
 	power_ns = power_ns, null_reps = null_reps, power_reps = power_reps, slow_null_reps = slow_null_reps,
 	slow_reduced_n = slow_reduced_n, slow_power_ns = slow_power_ns)
 if (is.null(units)) stop("the class roster has no unit for the requested response types and designs")
+units$secs_source <- roster$secs_source[match(paste(units$response_type, units$design, units$inf_class), paste(roster$response_type, roster$design, roster$inf_class))]
 m_total <- cal_plan_m_total(units)
 
 # plan.csv: every screening unit of the campaign, in run order, with its replicates and the upper bound
@@ -187,9 +206,12 @@ dead_of <- function(k) dead_n[[k]] %||% 0L
 #   measured_n        same (response type, n, class) on other designs (median; the same matched / iid family if there is one)
 #   measured_class    same (response type, class) at the nearest other n (same design if measured there, else other designs),
 #                     scaled to the unit's n by the measured cost table (calibration_study_costs.csv)
-#   roster            the roster's secs_n50 (previous campaign, else the 2 s default), scaled to n by that table, times a
-#                     correction: the median of (measured / roster estimate) over this campaign's measured units of the
-#                     same (response type, n), else of the response type, else 1
+#   roster            the roster's secs_n50 (previous campaign, or borrowed from the same class's other designs: see above),
+#                     scaled to n by that table, times a correction: the median of (measured / roster estimate) over this
+#                     campaign's measured units of the same (response type, n) whose roster cost is not the default, else of
+#                     the response type, else 1
+#   default           the 2 s default scaled to n, uncorrected: the correction is learned on classes that were measured
+#                     before and says nothing about one that never was. Such a unit is new: see plan_unit_set().
 # The measured cost of a class is read from stats/tests.csv.gz (calibration_study_stats.R): fit_secs / reps summed over the class's
 # (formula, procedure) rows, pooled over effects and stages, the same definition as the roster's secs_n50 -- per-class timing
 # exists, so no shard time is apportioned. `reps` there counts replicates actually completed, never planned ones, so a shard
@@ -197,8 +219,10 @@ dead_of <- function(k) dead_n[[k]] %||% 0L
 # deadline are not in it) and the next wave's shards refine it. A class needs --min-measured-reps replicates to count.
 # Runner setup is not in these numbers (the shard's elapsed time starts after it). What a measured class cost does not include
 # is the work a pack shares (data, design, assignment): the ledger's per-shard secs_per_rep minus the sum of the shard's
-# measured class costs is that overhead, taken as the median per (response type, design, n), else per (design, n), else per
-# (response type, n), else per n, else 0, and charged once per pack.
+# measured class costs is that overhead. It grows with the pack (about 0.1 s per class at n = 50 and 200, campaign 2026-11-14),
+# so it is taken per class: (shard secs_per_rep - its class costs) / its number of classes, the median per (response type,
+# design, n), else per (design, n), else per (response type, n), else per n, else 0, and charged once per class of a pack.
+# (Charged once per pack, a median over packs of ~10 classes made a one-class confirmation shard ~6x too expensive.)
 costs <- read_csv_fast(file.path(script_dir, "calibration_study_costs.csv"), stringsAsFactors = FALSE)
 cost_rest <- function(rt, fam, n) {
 	cf <- costs[costs$response_type == rt & costs$family == fam & costs$group == "rest", ]
@@ -280,17 +304,21 @@ resolve_cost_raw <- function(df, roster_fac = function(rt, n) 1) {
 				v <- base * cost_curve(u, u$n) / cost_curve(u, nn); s <- "measured_class"
 			}
 		}
-		if (is.na(v)) v <- unit_cost(u) * roster_fac(u$response_type, u$n)
+		if (is.na(v)) {
+			if (identical(u$secs_source, "default")) { v <- unit_cost(u); s <- "default" }
+			else v <- unit_cost(u) * roster_fac(u$response_type, u$n)
+		}
 		assign(ck, list(v, s), envir = cache)
 		cost[[i]] <- v; src[[i]] <- s
 	}
 	list(cost = cost, source = src)
 }
-# The roster correction from this campaign's measured units: median of measured / roster estimate by (response type, n), else by
-# response type, else 1; clamped to [0.02, 20].
+# The roster correction from this campaign's measured units whose roster cost is not the default: median of measured / roster
+# estimate by (response type, n), else by response type, else 1; clamped to [0.02, 20].
 roster_fac_fn <- function(df) {
 	if (is.null(meas)) return(function(rt, n) 1)
-	r <- unique(df[c("response_type", "design", "n", "inf_class", "family", "secs_n50")])
+	r <- unique(df[c("response_type", "design", "n", "inf_class", "family", "secs_n50", "secs_source")])
+	r <- r[r$secs_source != "default", , drop = FALSE]
 	m <- meas_cost[mkey(r$response_type, r$design, r$n, r$inf_class)]
 	r <- r[!is.na(m), , drop = FALSE]
 	if (!nrow(r)) return(function(rt, n) 1)
@@ -303,6 +331,7 @@ roster_fac_fn <- function(df) {
 }
 resolve_cost <- function(df) {
 	if (!"family" %in% names(df)) df$family <- cal_plan_family(df$design)
+	if (!"secs_source" %in% names(df)) df$secs_source <- "previous"
 	resolve_cost_raw(df, roster_fac_fn(df))
 }
 rc <- resolve_cost(units)
@@ -321,7 +350,7 @@ overhead_fn <- function() {
 		m <- meas_cost[mkey(l$response_type[[i]], l$design[[i]], l$n[[i]], cl)]
 		if (!length(m) || anyNA(m)) next
 		rows[[length(rows) + 1L]] <- data.frame(rt = l$response_type[[i]], d = l$design[[i]], n = as.integer(l$n[[i]]),
-			ov = max(0, l$secs_per_rep[[i]] - sum(m)), stringsAsFactors = FALSE)
+			ov = max(0, l$secs_per_rep[[i]] - sum(m)) / length(cl), stringsAsFactors = FALSE)
 	}
 	if (!length(rows)) return(none)
 	o <- do.call(rbind, rows)
@@ -347,21 +376,22 @@ cls_short <- function(x) sub("^Inference", "", x)
 # shard carries ONE replicate set, so only classes whose missing sets contain that set can share it (a class never repeats a
 # replicate it has done: the statistics add up).
 #  1. Classes with the same missing set, in priority order, are packed next-fit into bins whose whole work (replicates x
-#     (summed class costs + the cell's overhead)) fits --pack-minutes on --cores cores (one class per bin when --pack-minutes
-#     is 0). A unit that has already lost a shard to a death or timeout always runs alone, and is never folded.
+#     (summed class costs + the cell's overhead per class)) fits --pack-minutes on --cores cores (one class per bin when
+#     --pack-minutes is 0). A unit that has already lost a shard to a death or timeout always runs alone, and is never
+#     folded; so does a new class's probe (plan_unit_set()).
 #  2. Fold (Amendment E): a bin whose predicted time is under --min-shard-minutes (typically the leftovers of a shard that hit
 #     its deadline) takes in further classes of the cell whose missing set contains the bin's replicates -- fresh classes, or
 #     classes with larger leftovers -- in priority order, while the pack budget allows, until it reaches the minimum. The guests'
 #     other replicates are planned as usual. Without such a class the bin stays small.
 #  3. A bin's replicates are cut into the fewest chunks of about --target-minutes, of equal size (no tiny tail chunk).
 # The classes of a pack share every replicate's data and design, so a shard's cost is the sum of its classes' costs plus the
-# overhead.
+# overhead per class times their number.
 shards <- list()
 overhead_of <- overhead_fn()
 plan_cell <- function(u, m, confirm) {
 	rt <- u$response_type[[1L]]; dd <- u$design[[1L]]; nn <- u$n[[1L]]; ef <- u$effect[[1L]]
-	ov <- overhead_of(rt, dd, nn)
-	bin_cost <- function(b) ov + sum(u$cost[b])
+	ov <- overhead_of(rt, dd, nn)   # per class of the pack
+	bin_cost <- function(b) ov * length(b) + sum(u$cost[b])
 	emit <- function(b, reps) {
 		cost <- bin_cost(b)
 		per <- max(cores, floor(target_secs * cores / cost))
@@ -388,8 +418,9 @@ plan_cell <- function(u, m, confirm) {
 		bins
 	}
 	active <- which(lengths(m) > 0L)
-	for (i in active[u$dead[active] > 0L]) emit(i, m[[i]])   # a unit that lost a shard runs alone
-	pool <- active[u$dead[active] == 0L]
+	alone <- u$dead > 0L | u$probe
+	for (i in active[alone[active]]) emit(i, m[[i]])   # a unit that lost a shard, or a new class's probe, runs alone
+	pool <- active[!alone[active]]
 	repeat {
 		if (!length(pool) || pack_secs <= 0 || fold_secs <= 0) break
 		sets <- vapply(pool, function(i) ranges(m[[i]]), character(1L))
@@ -423,7 +454,12 @@ plan_cell <- function(u, m, confirm) {
 }
 plan_unit_set <- function(us, confirm) {
 	# us: units with key (for the ledger), reps, rep_from, priority; returns counts.
-	cnt <- list(done = 0L, units_done = 0L, abandoned = 0L)
+	# A new unit (cost source "default": its class has no cost from this campaign or an earlier one) is planned only as a probe:
+	# the first such unit (in priority order) with replicates missing of each (response type, class, n) runs alone, and the
+	# class's other new units at that n wait (they keep their missing replicates, so their blocks stay unfinished). Packed
+	# with others, an underestimate made the whole pack hit its deadline (campaign 2026-11-14, wave 3: 86% of the skipped
+	# replicates); alone, it costs only that class, the deadline still stops it, and its timings price the rest next wave.
+	cnt <- list(done = 0L, units_done = 0L, abandoned = 0L, held = 0L)
 	us$missing_str <- ""
 	miss <- vector("list", nrow(us))
 	us$dead <- 0L
@@ -440,9 +476,19 @@ plan_unit_set <- function(us, confirm) {
 		miss[[i]] <- m
 		us$missing_str[[i]] <- ranges(m)
 	}
+	us$probe <- FALSE
+	held <- rep(FALSE, nrow(us))
+	new <- which(us$cost_source %in% "default" & nzchar(us$missing_str))
+	if (length(new)) {
+		new <- new[order(us$priority[new])]
+		first <- !duplicated(paste(us$response_type[new], us$inf_class[new], us$n[new]))
+		us$probe[new[first]] <- TRUE
+		held[new[!first]] <- TRUE
+		cnt$held <- sum(!first)
+	}
 	cell <- paste(us$response_type, us$design, us$n, us$effect)
 	for (cg in unique(cell)) {
-		ix <- which(cell == cg & nzchar(us$missing_str))
+		ix <- which(cell == cg & nzchar(us$missing_str) & !held)
 		if (!length(ix)) next
 		ix <- ix[order(us$priority[ix])]
 		plan_cell(us[ix, , drop = FALSE], miss[ix], confirm)
@@ -455,6 +501,7 @@ res <- plan_unit_set(units, FALSE)
 reps_done_total <- res$counts$done
 units_done <- res$counts$units_done
 units_abandoned <- res$counts$abandoned
+if (res$counts$held) message(sprintf("calibration planner: %d units of classes with no cost yet wait for their probe shards", res$counts$held))
 
 # Confirmation (stage 2 of the gate, analyze_calibration_study.R): a block (effect, response type, class) whose
 # screening replicates are all done or abandoned has its flagged tests confirmed on fresh replicates
@@ -481,6 +528,7 @@ if (nzchar(campaign_dir) && file.exists(confirm_path) && file.size(confirm_path)
 			# Cost of a class on a design is that of the same class's screening unit (the confirmation reuses it).
 			ci <- match(confirm_units$key, units$key)
 			confirm_units$secs_n50 <- 1
+			confirm_units$secs_source <- "previous"
 			confirm_units$cost <- ifelse(is.na(ci), resolve_cost(confirm_units)$cost, units$cost[ci])
 			o <- order(match(confirm_units$effect, CAL_PLAN_EFFECTS), cal_rt_rank(confirm_units$response_type), confirm_units$inf_class,
 				units$design_rank[match(confirm_units$design, units$design)], confirm_units$design, confirm_units$n)

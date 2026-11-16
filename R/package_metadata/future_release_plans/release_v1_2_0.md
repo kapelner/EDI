@@ -92,6 +92,14 @@ release, none of it needed to ship v1.1.0's inference-quality theme:**
   logit, copula/dependent-censoring survival, ordinal cauchit, bisquare);
   the documented-failure tranche (ZINB/ZIP/hurdle-NegBin, beta
   regression) stayed in v1.1.0 as `release_v1_1_0.md → TODO-17s`.
+- `nonconcave_optimizer_techniques.md` (see `TODO-202`): profile grids,
+  continuation from the concave limit, saddle and null-versus-full checks,
+  bounded variance parameters and trust-region Newton for the nonconcave
+  likelihoods (added 2026-11-16, owner request); composes with TODO-20
+  and TODO-21.
+- `trust_region_and_bounded_optimizer_engines.md` (see `TODO-203`): two
+  new `optimization_alg` engines, trust-region Newton and bounded L-BFGS
+  (added 2026-11-16, owner request); engines for TODO-202.
 - `algorithm_ab_testing_framework.md` and its two harness-gated Prototype
   items, `garthwaite_buckland_ci_search.md` and
   `em_algorithm_zero_inflated_mixtures.md` (see `TODO-21`) — each is
@@ -313,6 +321,42 @@ Ticked in owning plans; this list is the index.
   hybrid start for ZINB/ZIP, TODO-6/ZOIB deferred until TODO-2/3 validate
   the pattern; composes with TODO-20's multistart as one more
   deterministic start).
+
+- [ ] TODO-202 (added 2026-11-16, owner request): **Optimizer techniques for
+  the nonconcave likelihoods.**
+  - Plan: `../new_feature_plans/v1_2_0/nonconcave_optimizer_techniques.md`.
+  - The techniques are: a profile grid over the nuisance parameters (T1),
+    continuation from the concave limit (T2), a post-convergence
+    saddle-point check (T3), bounded natural-scale variance and dispersion
+    parameters (T4), a null-versus-full fit check (T6) and trust-region
+    Newton (T7). EM (T5) is TODO-21.
+  - Classes are chosen from the registry's `likelihood_concave`,
+    `boundary_parameters`, `parameter_layout` and `derivatives` fields.
+  - T1 and T2 become extra deterministic starts in TODO-20's multistart
+    helper. T7 is promoted only on an A/B harness (TODO-21) win.
+  - The phase 1 checks (T3, T6) change nothing on fits that pass. They
+    could be pulled into v1.1.0 next to `release_v1_1_0.md → TODO-17s` if
+    the owner wants them sooner.
+  - The 2026-11-16 ZIP randomization finding turned out to be a warm-start
+    bug, not an optimizer failure; it is `release_v1_0_6.md → TODO-30`.
+  - Concave classes stay bit-for-bit.
+
+- [ ] TODO-203 (added 2026-11-16, owner request): **Two new optimizer
+  engines: trust-region Newton and bounded L-BFGS.**
+  - Plan: `../new_feature_plans/v1_2_0/trust_region_and_bounded_optimizer_engines.md`.
+  - Adds `optimization_alg = "trust_region"` (handles indefinite
+    Hessians and cannot stop at a saddle) and `"lbfgsb"` (box constraints;
+    a boundary MLE stops at its bound and is reported in `at_bound`
+    instead of a false `converged = TRUE`).
+  - No new dependency: `LBFGSpp::LBFGSBSolver` ships in RcppNumerical
+    0.7.0 and in the LBFGSpp v0.4.0 the Python build pins.
+  - Bounds come from the registry's `parameter_layout` and
+    `boundary_parameters`. A new registry field `optimization_algs`
+    lists the engines each class accepts.
+  - Opt-in only. Defaults change per class only after TODO-21's A/B
+    harness report and a calibration comparison.
+  - Provides the engines for TODO-202's T4 and T7; native tests under
+    TODO-37.
 
 - [ ] TODO-22 (added 2026-10-15, user decision): **Algorithm audit:
   speed-only drop-ins** — `algorithm_choice_audit.md → TODO-10, -11, -18,

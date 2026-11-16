@@ -780,9 +780,11 @@ Inference = R6::R6Class("Inference",
 			}
 			
 			# Resampling fits should not replace the primary MLE warm state.
-			# Randomization is the intentional exception: it chains sequentially
-			# across permutations by updating the worker warm start after each
-			# successful null fit.
+			# Randomization is the intentional exception: for concave likelihoods
+			# it chains sequentially across permutations by updating the worker
+			# warm start after each successful null fit (nonconcave ones restart
+			# every permutation from the full-data MLE; see
+			# compute_randomization_distr_via_reused_worker_states()).
 			if (!is.null(private$active_resampling_operation) &&
 					!identical(private$active_resampling_operation, "rand")) {
 				return(invisible(NULL))

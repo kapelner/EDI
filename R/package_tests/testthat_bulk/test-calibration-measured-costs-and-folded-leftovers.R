@@ -27,10 +27,10 @@ sys.source(file.path(cal_dir, "calibration_study_synthetic_fixture.R"), envir = 
 # secs_n50) and, optionally, finished shards: `done` is a list of list(cls, design, n, reps_done, reps_stat, fit) giving one
 # ledger row and the class's statistics rows (wald and rand, `fit` seconds per replicate in all); reps_stat is the number of
 # replicates the statistics hold (the ones actually done).
-amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL) {
+amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, roster = env$cal_synth_roster()) {
 	root = tempfile("calamende"); dir.create(file.path(root, "c", "stats"), recursive = TRUE)
 	roster_path = file.path(root, "roster.csv")
-	utils::write.csv(env$cal_synth_roster(), roster_path, row.names = FALSE)
+	utils::write.csv(roster, roster_path, row.names = FALSE)
 	cdir = file.path(root, "c")
 	u = env$cal_stats_u_cols()
 	tests = list(); led = list()
@@ -78,7 +78,7 @@ test_that("a class's measured cost from this campaign replaces the roster's, per
 	w0 = amend_e_plan(amend_e_campaign(), "--pack-minutes", 0)
 	expect_equal(find_shard(w0, bern, 50L, "InferenceContinLin")$secs_per_rep, 0.1)
 	# ContinLin measured at 1.0 s per replicate (wald + rand) on Bernoulli, n = 50, 100 replicates; the ledger says its shard took
-	# 1.4 s per replicate, so the cell's overhead is 0.4 s per replicate, charged once per pack.
+	# 1.4 s per replicate, so the cell's overhead is 0.4 s per replicate per class.
 	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 1)), ledger_spr = 1.4)
 	# Planned 150 replicates: the 50 missing ones are re-planned (no -- leftover), and the cost is the measured one + overhead.
 	w = amend_e_plan(cp, "--pack-minutes", 0, null_reps = 150)
@@ -199,4 +199,64 @@ test_that("class-major priority order is kept with folding: null before power, r
 		suppressWarnings(system2(rscript, c(shQuote(file.path(cal_dir, "plan_calibration_study.R")), "--plan-only", "--roster", shQuote(cp$roster), "--campaign-dir", shQuote(cdir),
 			"--plan-out", shQuote(if (identical(cdir, cp$cdir)) f else f0)), stdout = TRUE, stderr = TRUE))
 	expect_identical(readLines(f), readLines(f0))
+})
+
+test_that("the pack overhead is charged per class: a one-class shard is not charged a whole pack's overhead", {
+	# campaign 2026-11-14: single-class confirmation shards were charged the median overhead of ~10-class packs (planned 1.9 s per
+	# replicate, ran 0.28 s). Here a Lin + OLS pack took 1.4 s per replicate for 0.5 + 0.5 s of class costs: 0.2 s per class.
+	bern = "DesignFixedBernoulli"
+	pk = "InferenceContinLin;InferenceContinOLS"
+	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", only = pk, design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5),
+		list(cls = "InferenceContinOLS", only = pk, design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5)), ledger_spr = 1.4)
+	w1 = amend_e_plan(cp, "--pack-minutes", 0, null_reps = 150)
+	expect_equal(find_shard(w1, bern, 50L, "InferenceContinLin", 101)$secs_per_rep, 0.7)
+	w2 = amend_e_plan(cp, null_reps = 150)
+	s = find_shard(w2, bern, 50L, "InferenceContinLin", 101)
+	expect_equal(s$only, "InferenceContinLin,InferenceContinOLS")
+	expect_equal(s$secs_per_rep, 1.4)
+})
+
+test_that("a default roster cost borrows the class's cost on other designs and is never scaled by the measured / roster correction", {
+	bern = "DesignFixedBernoulli"; ibcrd = "DesignFixediBCRD"
+	r = env$cal_synth_roster()
+	r$secs_source = "previous"
+	r$secs_n50[r$inf_class == "InferenceContinOLS" & r$design == ibcrd] = 2
+	r$secs_source[r$inf_class == "InferenceContinOLS" & r$design == ibcrd] = "default"
+	# ContinLin measured at 1.0 against its roster 0.1: the continuous correction is 10.
+	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 1)), roster = r)
+	w = amend_e_plan(cp, "--pack-minutes", 0, null_reps = 150)
+	# OLS on iBCRD takes OLS's previous cost on Bernoulli (0.2), then the correction like any previous cost: 2.0, as on Bernoulli.
+	expect_equal(find_shard(w, ibcrd, 50L, "InferenceContinOLS")$secs_per_rep, 2)
+	expect_equal(find_shard(w, bern, 50L, "InferenceContinOLS")$secs_per_rep, 2)
+	# A roster written before secs_source: a cost equal to the 2 s default is one (same plan).
+	r$secs_source = NULL
+	w0 = amend_e_plan(amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 1)), roster = r),
+		"--pack-minutes", 0, null_reps = 150)
+	expect_equal(find_shard(w0, ibcrd, 50L, "InferenceContinOLS")$secs_per_rep, 2)
+	# A class with no cost anywhere (OLS default on both designs) stays at the default, uncorrected (2, not 20).
+	r$secs_n50[r$inf_class == "InferenceContinOLS"] = 2
+	w2 = amend_e_plan(amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 1)), roster = r),
+		"--pack-minutes", 0, null_reps = 150)
+	expect_equal(find_shard(w2, bern, 50L, "InferenceContinOLS")$secs_per_rep, 2)
+})
+
+test_that("a class with no cost at all runs one probe shard per n, alone; its other units wait for a measurement", {
+	bern = "DesignFixedBernoulli"; ibcrd = "DesignFixediBCRD"
+	r = env$cal_synth_roster()
+	r$secs_source = ifelse(r$inf_class == "InferenceContinOLS", "default", "previous")
+	r$secs_n50[r$inf_class == "InferenceContinOLS"] = 2
+	cp = amend_e_campaign(roster = r)
+	w = amend_e_plan(cp)
+	ols = w[grepl("InferenceContinOLS", w$only, fixed = TRUE), ]
+	expect_true(all(ols$only == "InferenceContinOLS"))                       # never packed or folded with Lin
+	expect_equal(sort(ols$n), c(50L, 200L))                                   # one probe per n ...
+	expect_true(all(ols$design == bern))                                      # ... the first unit in run order
+	expect_equal(nrow(find_shard(w, ibcrd, 50L, "InferenceContinLin")), 1L)   # the other classes are planned as usual
+	# Once the probe has a measurement, the class is priced from it and planned in full, packed again.
+	cp2 = amend_e_campaign(list(list(cls = "InferenceContinOLS", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.3),
+		list(cls = "InferenceContinOLS", design = bern, n = 200L, reps_done = "1:100", reps_stat = 100L, fit = 0.6)), roster = r)
+	w2 = amend_e_plan(cp2)
+	o2 = w2[grepl("InferenceContinOLS", w2$only, fixed = TRUE), ]
+	expect_true(any(o2$design == ibcrd))
+	expect_true(any(grepl(",", o2$only, fixed = TRUE)))
 })

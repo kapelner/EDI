@@ -1090,11 +1090,13 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (isTRUE(symmetric)) {
 				z0 = abs(t0_b[ok] - delta) / se0_b[ok]
 				z_obs = abs(t - delta) / se_obs
-				min(1, max(2 / n_ok, mean(z0 >= z_obs)))
+				# Ties within EDI_TIE_REL_TOL count as extreme (rand_tail_counts(), TODO-3).
+				min(1, max(2 / n_ok, rand_tail_counts(z0, z_obs)[["ge"]] / n_ok))
 			} else {
 				z0 = (t0_b[ok] - delta) / se0_b[ok]
 				z_obs = (t - delta) / se_obs
-				min(1, max(2 / n_ok, 2 * min(mean(z0 >= z_obs), mean(z0 <= z_obs))))
+				tails = rand_tail_counts(z0, z_obs)
+				min(1, max(2 / n_ok, 2 * min(tails[["ge"]], tails[["le"]]) / n_ok))
 			}
 		},
 		# One null draw: build the resampled sub-design/sub-inference, draw (or inject) a fresh

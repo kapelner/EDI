@@ -956,6 +956,386 @@ infer_inference_adjusts_for_covariates = function(name) {
 	NA
 }
 
+# `likelihood_concave`, audited 2026-11-16 by tracing each concrete class's fit
+# path to the objective it optimizes (the fast_*_cpp kernel, or lm.fit/glm.fit/
+# quantreg::rq). The source table for the kernels is
+# new_feature_plans/v1_1_0/multistart_nonconcave_likelihoods.md, "The finding".
+#
+# TRUE means the objective is concave (or, for the check-loss and M-estimator
+# objectives, convex) in SOME parametrization of the parameters the kernel fits.
+# A local optimum stays a local optimum under any smooth one-to-one
+# reparametrization, so TRUE means: every local optimum is global, and a single
+# start is enough. Example: Weibull AFT is concave in Burridge's (beta / sigma,
+# 1 / sigma), so the kernel's (beta, log sigma) fit has no spurious optima either.
+# FALSE means the objective can have several local optima (variance components,
+# mixtures, a jointly fitted dispersion, bilinear terms, a non-log-concave link,
+# a redescending psi, or a copula dependence parameter). Those classes need a
+# multistart (multistart_nonconcave_likelihoods.md). NA means "not audited". It is
+# allowed only on likelihood tiers "none" and "quasi" (GEE has estimating
+# equations, not an objective). Every "full" and "partial" class must appear in
+# exactly one list (tests/testthat/test-inference-likelihood-concave-registry.R).
+EDI_INFERENCE_CLASSES_CONCAVE_LIKELIHOOD = c(
+	# Gaussian linear model, one sigma (fast_ols_cpp / lm.fit).
+	"InferenceContinOLS", "InferenceContinLin",
+	"InferenceContinKKOLSIVWC", "InferenceContinKKOLSOneLik",
+	# quantreg::rq check-function loss: a linear program, convex.
+	"InferenceContinKKQuantileRegrOneLik", "InferencePropKKQuantileRegrOneLik",
+	# GLMs with canonical or log-concave links: logistic, probit, Poisson, and
+	# log/identity binomial (concave on their feasible region). The fractional
+	# logit and the Zou modified-Poisson working likelihood share these kernels.
+	"InferenceIncidLogRegr", "InferenceIncidProbitRegr", "InferenceIncidLogBinomial",
+	"InferenceIncidBinomialIdentityRiskDiff", "InferenceIncidModifiedPoisson",
+	"InferencePropFractionalLogit", "InferenceCountPoisson",
+	# Hurdle Poisson: a logit for the zero part plus a zero-truncated Poisson,
+	# which is an exponential family in log lambda. Both parts are concave and
+	# separable (fast_zero_augmented_poisson_cpp, hurdle branch).
+	"InferenceCountHurdlePoisson",
+	# Conditional Poisson on pairs (a binomial logit) plus a Poisson reservoir
+	# with shared beta (fast_cpoisson_combined_with_var_cpp). A sum of concave terms.
+	"InferenceCountKKCondPoissonOneLik",
+	# Conditional logit on discordant pairs (+ a reservoir logit). The two
+	# GLMM-named incidence classes now fit this stacked logit and no GLMM
+	# (TODO-187, uses_reservoir_logit() == TRUE in inference_incidence_KK_cond_logit_glmm.R).
+	"InferenceIncidKKCondLogitIVWC", "InferenceIncidKKCondLogitOneLik",
+	"InferenceIncidKKCondLogitGLMMIVWC", "InferenceIncidKKCondLogitGLMMOneLik",
+	# Cumulative-link ordinal models whose latent density is log-concave
+	# (logistic, normal, Gumbel): concave jointly in (cutpoints, beta) (Pratt 1981).
+	# Adjacent-category and continuation-ratio models are logit families. Conditional
+	# adjacent-category is a conditional logit on the expanded data (clogit_helper).
+	"InferenceOrdinalPropOddsRegr", "InferenceOrdinalOrderedProbitRegr",
+	"InferenceOrdinalCloglogRegr", "InferenceOrdinalAdjCatLogitRegr",
+	"InferenceOrdinalContRatioRegr", "InferenceOrdinalKKCondAdjCatLogitRegr",
+	# Cox and stratified-Cox partial likelihoods. The LWA marginal Cox uses an
+	# independence working partial likelihood.
+	"InferenceSurvivalCoxPHRegr", "InferenceSurvivalStratCoxPHRegr",
+	"InferenceSurvivalKKLWACoxPHIVWC", "InferenceSurvivalKKLWACoxPHOneLik",
+	"InferenceSurvivalKKStratCoxPHIVWC", "InferenceSurvivalKKStratCoxPHOneLik",
+	# Weibull AFT: concave in Burridge's parametrization, including grouped/
+	# interval-censored data (the extreme-value density is log-concave).
+	# KKWeibullMarginal is the same likelihood with cluster-robust SEs.
+	"InferenceSurvivalWeibullRegr", "InferenceSurvivalKKWeibullMarginal",
+	# quasi tier, but the fit maximizes the Poisson log-likelihood.
+	"InferenceCountQuasiPoisson", "InferenceCountRobustPoisson"
+)
+
+EDI_INFERENCE_CLASSES_NONCONCAVE_LIKELIHOOD = c(
+	# Random-effect marginal likelihoods (log sigma): fast_gaussian_lmm_cpp,
+	# fast_poisson_glmm_cpp, fast_ordinal_glmm_cpp, fast_ordinal_clmm_cpp,
+	# fast_clogit_plus_glmm_cpp (proportion pairs keep the GLMM), fast_hurdle_poisson_glmm_cpp.
+	"InferenceContinKKGLMM", "InferenceCountKKGLMM", "InferenceOrdinalKKGLMM",
+	"InferenceOrdinalKKCLMM", "InferenceOrdinalKKCLMMProbit",
+	"InferenceOrdinalKKCLMMCloglog", "InferenceOrdinalKKCLMMCauchit",
+	"InferencePropKKGLMM",
+	"InferenceCountKKHurdlePoissonIVWC", "InferenceCountKKHurdlePoissonOneLik",
+	# Frailty models: normal frailty (fast_weibull_frailty_cpp), and log-gamma
+	# frailty fitted as a Clayton-copula Weibull AFT (fast_clayton_weibull_aft_optim_cpp).
+	"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+	# Dependence parameter of the bivariate transformation (fast_dep_cens_transform_optim_cpp).
+	"InferenceSurvivalDepCensTransformRegr",
+	# Negative binomial with (beta, log theta) fitted jointly, and the mixtures.
+	"InferenceCountNegBin", "InferenceCountHurdleNegBin",
+	"InferenceCountZeroInflatedPoisson", "InferenceCountZeroInflatedNegBin",
+	# Beta regression with (beta, log phi) fitted jointly, and the zero-one-inflated beta mixture.
+	"InferencePropBetaRegr", "InferencePropZeroOneInflatedBetaRegr",
+	# Bilinear score-by-coefficient term with a sign symmetry (multimodal; bug_fix_plans/v1_0_5/multimodal_log_liks.md).
+	"InferenceOrdinalStereotypeLogitRegr",
+	# Cauchy latent density is not log-concave.
+	"InferenceOrdinalCauchitRegr",
+	# quasi tier: the default method = "MM" uses Tukey's bisquare, a redescending
+	# psi, so the objective is nonconvex. Huber (method = "M") would be convex.
+	# The registry records the class default.
+	"InferenceContinRobustRegr", "InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"
+)
+
+infer_inference_likelihood_concave = function(name) {
+	if (name %in% EDI_INFERENCE_CLASSES_CONCAVE_LIKELIHOOD) return(TRUE)
+	if (name %in% EDI_INFERENCE_CLASSES_NONCONCAVE_LIKELIHOOD) return(FALSE)
+	NA
+}
+
+# Further likelihood properties, audited 2026-11-16 alongside `likelihood_concave`.
+# Each concrete "full"/"partial" likelihood class has one entry. Parameter layouts and
+# derivative sources were checked against live fits: each class was fitted on simulated
+# data and its get_likelihood_test_spec() was read. The kernels' own parameter-vector
+# comments were read too. The fields are:
+#
+# mle_nonexistence: the data configurations under which the regression coefficients
+#   have no finite maximizer (the estimate diverges and the optimizer reports
+#   non-convergence or a huge |beta|). character(0) means the MLE is finite whenever the
+#   design matrix has full rank. Vocabulary (EDI_LIKELIHOOD_MLE_NONEXISTENCE_CAUSES):
+#   "separation" (a linear combination of covariates perfectly separates outcome
+#   levels: logit/probit/ordinal/zero-part models), "zero_count_arm" (an arm, or a
+#   covariate-defined subgroup, has all-zero outcomes under a log link) and
+#   "monotone_likelihood" (survival: an arm has no events, or event order is
+#   perfectly predicted).
+# boundary_parameters: nuisance parameters whose MLE (or null value) can sit on the
+#   edge of the parameter space. There the Wald/LR/score null distributions are no
+#   longer the usual chi-square (for one boundary parameter, typically a 50:50 chi-bar-
+#   square mixture), and a log-scale parameter can run off toward -Inf. Vocabulary
+#   (EDI_LIKELIHOOD_BOUNDARY_PARAMETERS): "random_effect_variance",
+#   "dispersion_poisson_limit" (theta -> Inf), "inflation_probability" (zero- or one-
+#   inflation probability -> 0), "probability_feasible_region" (fitted probabilities
+#   at 0 or 1), "copula_dependence" (Clayton theta -> 0, independence) and
+#   "correlation" (|rho| -> 1, clamped at |atanh rho| = 3 in the kernel).
+# parameter_layout: the ordered blocks of the parameter vector that the likelihood
+#   test spec optimizes (spec$extract_start(spec$full_fit)), as
+#   list(blocks = list(<lik_param_block>...), treatment_index = "<expr>"). Block sizes
+#   and treatment_index are expressions in p = ncol(spec$X) (regression columns as the
+#   spec sees them, intercept included when present) and K = the number of ordinal
+#   categories. NULL means the class exposes no single likelihood parameter vector:
+#   either it has no get_likelihood_test_spec() (IVWC combinations, rq/quasi fits,
+#   CLMM-only paths), or the vector is internal to the fit.
+# derivatives: c(score = , information = ), each "analytic" (closed form, in C++ or R)
+#   or "numerical" (finite differences, or a Hessian finite-differenced from an
+#   analytic gradient). NULL when parameter_layout is NULL.
+# nonregular_points: free-text descriptions of parameter values where the model is
+#   not regular (a parameter is unidentified, or the information is singular), so the
+#   asymptotic tests misbehave near those values. character(0) means none known.
+EDI_LIKELIHOOD_MLE_NONEXISTENCE_CAUSES = c("separation", "zero_count_arm", "monotone_likelihood")
+EDI_LIKELIHOOD_BOUNDARY_PARAMETERS = c(
+	"random_effect_variance", "dispersion_poisson_limit", "inflation_probability",
+	"probability_feasible_region", "copula_dependence", "correlation"
+)
+EDI_LIKELIHOOD_PARAMETER_ROLES = c("coefficients", "cutpoints", "nuisance")
+EDI_LIKELIHOOD_PARAMETER_SCALES = c("identity", "log", "atanh", "constrained")
+EDI_LIKELIHOOD_DERIVATIVE_SOURCES = c("analytic", "numerical")
+
+lik_param_block = function(name, size, role = "nuisance", scale = "identity") {
+	list(name = name, size = as.character(size), role = role, scale = scale)
+}
+lik_layout = function(..., treatment_index) {
+	list(blocks = list(...), treatment_index = as.character(treatment_index))
+}
+lik_props = function(mle_nonexistence = character(), boundary_parameters = character(),
+		parameter_layout = NULL, derivatives = NULL, nonregular_points = character()) {
+	list(
+		mle_nonexistence = mle_nonexistence,
+		boundary_parameters = boundary_parameters,
+		parameter_layout = parameter_layout,
+		derivatives = derivatives,
+		nonregular_points = nonregular_points
+	)
+}
+
+EDI_INFERENCE_LIKELIHOOD_PROPERTIES = local({
+	b = function(scale = "identity") lik_param_block("beta", "p", "coefficients", scale)
+	cut = lik_param_block("cutpoints", "K-1", "cutpoints")
+	log1 = function(nm) lik_param_block(nm, 1L, "nuisance", "log")
+	exact = c(score = "analytic", information = "analytic")
+	num_info = c(score = "analytic", information = "numerical")
+	coef_only = function(j = "2", scale = "identity") lik_layout(b(scale), treatment_index = j)
+	ordinal = function(...) lik_layout(cut, b(), ..., treatment_index = "K")
+	zero_aug = lik_layout(
+		lik_param_block("beta_count", "p", "coefficients"),
+		lik_param_block("beta_zero", "p", "nuisance"),
+		treatment_index = "2"
+	)
+	stereotype_np = paste(
+		"beta_T = 0: the category score parameters phi multiply beta, so they are not",
+		"identified when the effect is zero; the likelihood is flat in phi there and",
+		"Wald/score tests near zero effect are non-regular (multimodal_log_liks.md)."
+	)
+	zi_np = paste(
+		"Inflation probability -> 0: the inflation-part coefficients are not identified",
+		"(a Davies-type problem), so testing 'no inflation' is non-regular."
+	)
+	sep = "separation"; zc = "zero_count_arm"; mono = "monotone_likelihood"
+	re = "random_effect_variance"
+	gaussian_layout = lik_layout(b(), treatment_index = "2")
+
+	props = list(
+		InferenceContinOLS = lik_props(parameter_layout = gaussian_layout, derivatives = exact),
+		InferenceContinLin = lik_props(parameter_layout = gaussian_layout, derivatives = exact),
+		InferenceContinKKOLSOneLik = lik_props(parameter_layout = gaussian_layout, derivatives = exact),
+		InferenceContinKKOLSIVWC = lik_props(),
+		InferenceContinKKQuantileRegrOneLik = lik_props(),
+		InferencePropKKQuantileRegrOneLik = lik_props(),
+		InferenceContinKKGLMM = lik_props(
+			boundary_parameters = re,
+			parameter_layout = lik_layout(b(), log1("log_sigma_e"), log1("log_sigma_b"), treatment_index = "2"),
+			derivatives = exact
+		),
+
+		InferenceIncidLogRegr = lik_props(sep, parameter_layout = coef_only(), derivatives = exact),
+		InferenceIncidProbitRegr = lik_props(sep, parameter_layout = coef_only(), derivatives = exact),
+		InferenceIncidLogBinomial = lik_props(
+			c(sep, zc), "probability_feasible_region",
+			parameter_layout = coef_only(scale = "constrained"),
+			derivatives = c(score = "numerical", information = "numerical")
+		),
+		InferenceIncidBinomialIdentityRiskDiff = lik_props(
+			boundary_parameters = "probability_feasible_region",
+			parameter_layout = coef_only(scale = "constrained"), derivatives = exact
+		),
+		InferenceIncidModifiedPoisson = lik_props(zc, parameter_layout = coef_only(), derivatives = exact),
+		InferencePropFractionalLogit = lik_props(sep),
+		InferenceIncidKKCondLogitIVWC = lik_props(sep),
+		InferenceIncidKKCondLogitOneLik = lik_props(sep, parameter_layout = coef_only(), derivatives = exact),
+		# IVWC fits the discordant-pair conditional logit alone: no intercept column,
+		# so the treatment is column 1.
+		InferenceIncidKKCondLogitGLMMIVWC = lik_props(sep, parameter_layout = coef_only("1"), derivatives = exact),
+		InferenceIncidKKCondLogitGLMMOneLik = lik_props(sep, parameter_layout = coef_only(), derivatives = exact),
+
+		InferenceCountPoisson = lik_props(zc, parameter_layout = coef_only(), derivatives = exact),
+		InferenceCountNegBin = lik_props(
+			zc, "dispersion_poisson_limit",
+			parameter_layout = lik_layout(b(), log1("log_theta"), treatment_index = "2"),
+			derivatives = exact
+		),
+		# The spec covers the truncated-negbin count part only. The zero part is a
+		# separate logistic fit.
+		InferenceCountHurdleNegBin = lik_props(
+			c(sep, zc), "dispersion_poisson_limit",
+			parameter_layout = lik_layout(b(), log1("log_theta"), treatment_index = "2"),
+			derivatives = exact
+		),
+		InferenceCountHurdlePoisson = lik_props(c(sep, zc), parameter_layout = zero_aug, derivatives = exact),
+		InferenceCountZeroInflatedPoisson = lik_props(
+			c(sep, zc), "inflation_probability",
+			parameter_layout = zero_aug, derivatives = exact, nonregular_points = zi_np
+		),
+		InferenceCountZeroInflatedNegBin = lik_props(
+			c(sep, zc), c("inflation_probability", "dispersion_poisson_limit"),
+			parameter_layout = lik_layout(
+				lik_param_block("beta_count", "p", "coefficients"),
+				lik_param_block("beta_zero", "p", "nuisance"),
+				log1("log_theta"),
+				treatment_index = "2"
+			),
+			derivatives = num_info, nonregular_points = zi_np
+		),
+		# KK OneLik count specs have no spec$X; p is the number of regression columns.
+		InferenceCountKKCondPoissonOneLik = lik_props(zc, parameter_layout = coef_only(), derivatives = exact),
+		InferenceCountKKGLMM = lik_props(
+			zc, re, parameter_layout = lik_layout(b(), log1("log_sigma"), treatment_index = "2"), derivatives = exact
+		),
+		InferenceCountKKHurdlePoissonOneLik = lik_props(
+			c(sep, zc), re, parameter_layout = lik_layout(b(), log1("log_sigma"), treatment_index = "2"), derivatives = exact
+		),
+		InferenceCountKKHurdlePoissonIVWC = lik_props(c(sep, zc), re),
+
+		InferenceOrdinalPropOddsRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalOrderedProbitRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalCloglogRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalCauchitRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalAdjCatLogitRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalContRatioRegr = lik_props(sep, parameter_layout = ordinal(), derivatives = exact),
+		InferenceOrdinalStereotypeLogitRegr = lik_props(
+			sep,
+			parameter_layout = ordinal(lik_param_block("phi_scores", "K-2", "nuisance", "constrained")),
+			derivatives = num_info, nonregular_points = stereotype_np
+		),
+		InferenceOrdinalKKCondAdjCatLogitRegr = lik_props(sep),
+		InferenceOrdinalKKGLMM = lik_props(
+			sep, re, parameter_layout = ordinal(log1("log_sigma")), derivatives = num_info
+		),
+		InferenceOrdinalKKCLMM = lik_props(sep, re),
+		InferenceOrdinalKKCLMMProbit = lik_props(sep, re),
+		InferenceOrdinalKKCLMMCloglog = lik_props(sep, re),
+		InferenceOrdinalKKCLMMCauchit = lik_props(sep, re),
+
+		InferencePropBetaRegr = lik_props(
+			parameter_layout = lik_layout(b(), log1("log_phi"), treatment_index = "2"), derivatives = exact
+		),
+		InferencePropZeroOneInflatedBetaRegr = lik_props(
+			sep, "inflation_probability",
+			parameter_layout = lik_layout(
+				b(), log1("log_phi"),
+				lik_param_block("gamma_zero", "p", "nuisance"),
+				lik_param_block("gamma_one", "p", "nuisance"),
+				treatment_index = "2"
+			),
+			derivatives = exact
+		),
+		InferencePropKKGLMM = lik_props(
+			boundary_parameters = re,
+			parameter_layout = lik_layout(b(), log1("log_sigma"), treatment_index = "2"), derivatives = exact
+		),
+
+		InferenceSurvivalCoxPHRegr = lik_props(mono, parameter_layout = coef_only("1"), derivatives = exact),
+		InferenceSurvivalStratCoxPHRegr = lik_props(mono, parameter_layout = coef_only("1"), derivatives = exact),
+		InferenceSurvivalKKLWACoxPHOneLik = lik_props(mono, parameter_layout = coef_only("1"), derivatives = exact),
+		InferenceSurvivalKKStratCoxPHOneLik = lik_props(mono, parameter_layout = coef_only("1"), derivatives = exact),
+		InferenceSurvivalKKLWACoxPHIVWC = lik_props(mono),
+		InferenceSurvivalKKStratCoxPHIVWC = lik_props(mono),
+		InferenceSurvivalWeibullRegr = lik_props(
+			mono, parameter_layout = lik_layout(b(), log1("log_sigma"), treatment_index = "2"), derivatives = exact
+		),
+		InferenceSurvivalKKWeibullMarginal = lik_props(mono),
+		InferenceSurvivalDepCensTransformRegr = lik_props(
+			mono, "correlation",
+			parameter_layout = lik_layout(
+				lik_param_block("beta_event", "p", "coefficients"),
+				lik_param_block("beta_cens", "p", "nuisance"),
+				log1("log_sigma_event"), log1("log_sigma_cens"),
+				lik_param_block("atanh_rho", 1L, "nuisance", "atanh"),
+				treatment_index = "2"
+			),
+			derivatives = num_info
+		),
+		# Normal frailty builds its design with the treatment column first.
+		InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = lik_props(
+			mono, re,
+			parameter_layout = lik_layout(b(), log1("log_sigma_eps"), log1("log_sigma_u"), treatment_index = "1"),
+			derivatives = num_info
+		),
+		InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = lik_props(mono, re),
+		# Log-gamma frailty is fitted as a Clayton-copula Weibull AFT.
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = lik_props(
+			mono, "copula_dependence",
+			parameter_layout = lik_layout(b(), log1("log_sigma"), log1("log_theta_clayton"), treatment_index = "2"),
+			derivatives = num_info
+		),
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = lik_props(mono, "copula_dependence"),
+
+		# quasi tier: fitted objectives, no likelihood test spec.
+		InferenceCountQuasiPoisson = lik_props(zc),
+		InferenceCountRobustPoisson = lik_props(zc),
+		InferenceContinRobustRegr = lik_props(),
+		InferenceContinKKRobustRegrIVWC = lik_props(),
+		InferenceContinKKRobustRegrOneLik = lik_props()
+	)
+	props
+})
+
+infer_inference_likelihood_properties = function(name) {
+	EDI_INFERENCE_LIKELIHOOD_PROPERTIES[[name]] %||% list(
+		mle_nonexistence = NA_character_,
+		boundary_parameters = NA_character_,
+		parameter_layout = NULL,
+		derivatives = NULL,
+		nonregular_points = NA_character_
+	)
+}
+
+validate_likelihood_parameter_layout = function(layout, name) {
+	if (is.null(layout)) return(invisible(TRUE))
+	bad = function(why) stop(sprintf("Inference metadata for %s has invalid `parameter_layout`: %s", name, why), call. = FALSE)
+	if (!is.list(layout) || !is.list(layout$blocks) || length(layout$blocks) == 0L) bad("needs a non-empty `blocks` list")
+	if (!is.character(layout$treatment_index) || length(layout$treatment_index) != 1L) bad("`treatment_index` must be a character scalar")
+	for (blk in layout$blocks) {
+		if (!is.character(blk$name) || length(blk$name) != 1L) bad("block `name` must be a character scalar")
+		if (!is.character(blk$size) || length(blk$size) != 1L) bad("block `size` must be a character scalar")
+		if (!(blk$role %in% EDI_LIKELIHOOD_PARAMETER_ROLES)) bad(sprintf("unknown role '%s'", blk$role))
+		if (!(blk$scale %in% EDI_LIKELIHOOD_PARAMETER_SCALES)) bad(sprintf("unknown scale '%s'", blk$scale))
+	}
+	if (sum(vapply(layout$blocks, function(blk) identical(blk$role, "coefficients"), logical(1))) != 1L) {
+		bad("exactly one block must have role 'coefficients' (it holds the treatment effect)")
+	}
+	invisible(TRUE)
+}
+
+# Evaluate a layout for concrete dimensions: total parameter length and the
+# treatment index, given p (regression columns) and K (ordinal categories).
+evaluate_likelihood_parameter_layout = function(layout, p, K = NA_integer_) {
+	env = list(p = p, K = K)
+	sizes = vapply(layout$blocks, function(blk) as.integer(eval(str2lang(blk$size), env)), integer(1))
+	list(sizes = stats::setNames(sizes, vapply(layout$blocks, `[[`, character(1), "name")),
+		length = sum(sizes),
+		treatment_index = as.integer(eval(str2lang(layout$treatment_index), env)))
+}
+
 infer_inference_abstract = function(name) {
 	identical(name, "Inference") ||
 		name %in% EDI_INFERENCE_ABSTRACT_CLASS_NAMES ||
@@ -2187,6 +2567,34 @@ validate_inference_class_metadata = function(metadata) {
 			(!is.logical(adjusts_for_covariates) || length(adjusts_for_covariates) != 1L)) {
 		stop(sprintf("Inference metadata for %s has invalid `adjusts_for_covariates`.", metadata$name), call. = FALSE)
 	}
+	likelihood_concave = metadata$likelihood_concave
+	if (!is.null(likelihood_concave) &&
+			(!is.logical(likelihood_concave) || length(likelihood_concave) != 1L)) {
+		stop(sprintf("Inference metadata for %s has invalid `likelihood_concave`.", metadata$name), call. = FALSE)
+	}
+	check_vocab = function(field, vocab) {
+		val = metadata[[field]]
+		if (is.null(val) || identical(val, NA_character_)) return(invisible(TRUE))
+		if (!is.character(val) || !all(val %in% vocab)) {
+			stop(sprintf("Inference metadata for %s has invalid `%s`: %s", metadata$name, field,
+				paste(val, collapse = ", ")), call. = FALSE)
+		}
+	}
+	check_vocab("mle_nonexistence", EDI_LIKELIHOOD_MLE_NONEXISTENCE_CAUSES)
+	check_vocab("boundary_parameters", EDI_LIKELIHOOD_BOUNDARY_PARAMETERS)
+	if (!is.null(metadata$nonregular_points) && !is.character(metadata$nonregular_points)) {
+		stop(sprintf("Inference metadata for %s has invalid `nonregular_points`.", metadata$name), call. = FALSE)
+	}
+	validate_likelihood_parameter_layout(metadata$parameter_layout, metadata$name)
+	derivatives = metadata$derivatives
+	if (!is.null(derivatives) && (!is.character(derivatives) ||
+			!identical(sort(names(derivatives)), c("information", "score")) ||
+			!all(derivatives %in% EDI_LIKELIHOOD_DERIVATIVE_SOURCES))) {
+		stop(sprintf("Inference metadata for %s has invalid `derivatives`.", metadata$name), call. = FALSE)
+	}
+	if (xor(is.null(metadata$parameter_layout), is.null(derivatives))) {
+		stop(sprintf("Inference metadata for %s must declare `parameter_layout` and `derivatives` together.", metadata$name), call. = FALSE)
+	}
 	design_compatibility_reason = metadata$design_compatibility_reason
 	if (!is.null(design_compatibility_reason) && !is.function(design_compatibility_reason)) {
 		stop(sprintf("Inference metadata for %s has invalid `design_compatibility_reason`.", metadata$name), call. = FALSE)
@@ -2214,7 +2622,8 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			requires_even_allocation = FALSE,
 			requires_kk_matching_design = FALSE,
 			estimand = NA_character_,
-			adjusts_for_covariates = NA
+			adjusts_for_covariates = NA,
+			likelihood_concave = NA
 		),
 		metadata
 	)
@@ -3457,7 +3866,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 		register_inference_class(
 			name = name,
 			parent = parent_name,
-			metadata = list(
+			metadata = c(list(
 				abstract = infer_inference_abstract(name),
 				# NA sentinel: getNamespaceExports("EDI") is unreliable this early in the
 				# sourcing sequence (see get_inference_class_metadata()'s note); resolved
@@ -3480,7 +3889,12 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				supports_additive_delta_shift = name %in% EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES,
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
-				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)
+				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name),
+				likelihood_concave = infer_inference_likelihood_concave(name)
+			),
+				# mle_nonexistence, boundary_parameters, parameter_layout, derivatives,
+				# nonregular_points (see EDI_INFERENCE_LIKELIHOOD_PROPERTIES).
+				infer_inference_likelihood_properties(name)
 			),
 			direct_components = infer_inference_direct_components(name)
 		)

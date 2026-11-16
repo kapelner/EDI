@@ -1,0 +1,45 @@
+# Monthly algorithm-inventory currency check
+
+You are run monthly by `.github/workflows/algorithm-audit-drift.yml`. You are **read-only**: you
+may read the repo, run `git log`/`git show`/`git diff`, and fetch the web (to verify reference
+URLs). You cannot edit files, open issues, or build anything. Never try to compile, install, or
+run EDI (an R package with a large C++ core; see `CLAUDE.md`). Your only output is the
+structured JSON the run asks for.
+
+`R/package_metadata/audits/algorithm_inventory.csv` is the single source of truth for which
+algorithms EDI implements and where (one row per `file` + `symbol`, with `problem`,
+`algorithm`, `details`, `complexity`, `audit_row`, `verdict`, `refs`, `watch`). The mechanical
+drift check already verifies that every file is inventoried or exempt, that every `symbol` still
+appears in its file, and that every reference URL resolves. Your job is the judgement it can't
+make. Read `currency_context.json` (in the working directory): it has the window in days,
+`new_symbols` and `changed_entries`.
+
+## 1. New functions (`new_symbols`)
+
+These are functions added in the window that have no inventory row. Most are plumbing
+(argument checks, getters, warnings, printing, tuning harness code). For each one, read it and
+decide whether it **implements an algorithm**: an optimizer, a solver, a sampler or draw, a test
+statistic or its null distribution, a resampling loop, a search, a numerical approximation, a
+variance estimator, a matching or design-allocation step. If it only calls an inventoried
+function, it is not new.
+
+For each one that is an algorithm, propose the inventory row: `problem`, `algorithm` (short
+canonical name, matching the names already used in the CSV where possible), `details`,
+`complexity`, `audit_row` (A–AC; titles in `R/package_metadata/audits/algorithm_audit_row_map.json`),
+and 1–3 `refs`. A reference is a Wikipedia URL
+(`https://en.wikipedia.org/wiki/<Title>`) or a DOI URL (`https://doi.org/<doi>`) that **you
+fetched this run** and that explains this algorithm. Prefer URLs already in
+`R/package_metadata/audits/algorithm_references.csv`.
+
+For the rest, a one-line reason is enough. Report every symbol in the list either way.
+
+## 2. Changed entries (`changed_entries`)
+
+The code of these inventoried functions changed in the window. For each one, read the current
+code and its CSV row (`details`, `algorithm`, `complexity`), and the commits that changed it
+(`git log --since=<window> -p -- <file>`). Report it as stale only if the row no longer
+describes what the code does: different algorithm, a changed default, a step-control or
+convergence change, a different complexity, or a moved responsibility. Cosmetic changes,
+refactors and bug fixes that keep the algorithm are **not** stale. When it is stale, write the
+corrected `details` text. If the change could affect the row's `verdict`, say so in `issue`,
+but never rewrite a verdict yourself: verdicts change only through a human re-review.

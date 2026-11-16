@@ -25,6 +25,9 @@
 # (the previous published campaign's statistics, null screening rows) where that (response type, design, class)
 # existed there, else CAL_ROSTER_DEFAULT_SECS_N50 = 2 s, about the 90th percentile of the classes measured in
 # campaign 2026-11-09-8c32d060 (median 0.43 s), i.e. conservative: an over-estimate only makes shards smaller.
+# secs_source says which: "previous" or "default". The planner borrows a default row's cost from the same class on
+# other designs (then other response types), never scales a default by its measured / roster correction, and runs a
+# class with no cost at all as one probe shard per n before planning the rest (plan_calibration_study.R).
 
 CAL_ROSTER_DEFAULT_SECS_N50 <- 2
 
@@ -71,10 +74,12 @@ cal_roster_build <- function(response_types, designs, n_nominal = 50L, costs = N
 	if (!length(parts)) stop("no class applies to any requested (response type, design)")
 	out <- do.call(rbind, parts)
 	out$secs_n50 <- default_secs
+	out$secs_source <- "default"
 	out$design_rank <- cal_study_design_rank(out$design)
 	if (!is.null(costs) && nrow(costs)) {
 		hit <- match(paste(out$response_type, out$design, out$inf_class, sep = "\r"), paste(costs$response_type, costs$design, costs$inf_class, sep = "\r"))
 		out$secs_n50[!is.na(hit)] <- costs$secs_n50[hit[!is.na(hit)]]
+		out$secs_source[!is.na(hit)] <- "previous"
 	}
 	out <- out[out$n_size > 0L, , drop = FALSE]
 	out <- out[order(cal_rt_rank(out$response_type), out$inf_class, out$design_rank, out$design), ]
@@ -114,5 +119,5 @@ if (sys.nframe() == 0L) {
 	dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)
 	utils::write.csv(roster, out, row.names = FALSE)
 	cat(sprintf("%d (response type, design, class) rows, %d classes, %d with a previous cost -> %s\n", nrow(roster),
-		length(unique(roster$inf_class)), sum(roster$secs_n50 != CAL_ROSTER_DEFAULT_SECS_N50), out))
+		length(unique(roster$inf_class)), sum(roster$secs_source == "previous"), out))
 }

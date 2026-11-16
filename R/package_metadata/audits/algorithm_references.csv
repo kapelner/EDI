@@ -1,0 +1,345 @@
+url,kind,title
+https://doi.org/10.1002/(sici)1097-0258(19980430)17:8<873::aid-sim779>3.0.co;2-i,doi,"Newcombe 1998, Interval estimation for the difference between independent proportions: comparison of eleven methods"
+https://doi.org/10.1002/(sici)1097-0258(19981130)17:22<2635::aid-sim954>3.0.co;2-c,doi,"Newcombe 1998, Improved confidence intervals for the difference between binomial proportions based on paired data"
+https://doi.org/10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1,doi,"Papke 1996, Econometric methods for fractional response variables with an application to 401(k) plan participation rates"
+https://doi.org/10.1002/sim.4780040211,doi,"Miettinen 1985, Comparative analysis of two rates"
+https://doi.org/10.1002/sim.4780091208,doi,"Farrington 1990, Test statistics and sample size formulae for comparative binomial trials with null hypothesis of non-zero risk difference or non-unity relative risk"
+https://doi.org/10.1007/bf01436084,doi,"Businger 1965, Linear least squares solutions by householder transformations"
+https://doi.org/10.1007/bf01589116,doi,"Liu 1989, On the limited memory BFGS method for large scale optimization"
+https://doi.org/10.1007/bf02288324,doi,"Derigs 1988, Solving non-bipartite matching problems via shortest path techniques"
+https://doi.org/10.1016/0197-2456(88)90048-7,doi,"Wei 1988, Properties of the urn randomization in clinical trials"
+https://doi.org/10.1016/0270-0255(86)90088-6,doi,"Robins 1986, A new approach to causal inference in mortality studies with a sustained exposure period—application to control of the healthy worker survivor effect"
+https://doi.org/10.1016/0304-4076(85)90158-7,doi,"MacKinnon 1985, Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties"
+https://doi.org/10.1016/0304-4076(86)90002-3,doi,"Mullahy 1986, Specification and testing of some modified count data models"
+https://doi.org/10.1016/0304-4076(90)90014-k,doi,"Cameron 1990, Regression-based tests for overdispersion in the Poisson model"
+https://doi.org/10.1016/j.csda.2011.10.005,doi,"Ospina 2012, A general class of zero-or-one inflated beta regression models"
+https://doi.org/10.1017/cbo9780511804441,doi,"Boyd 2004, Convex Optimization"
+https://doi.org/10.1017/s0305004100023987,doi,"Radhakrishna Rao 1948, Large sample tests of statistical hypotheses concerning several parameters with applications to problems of estimation"
+https://doi.org/10.1037/1082-989x.11.1.54,doi,"Smithson 2006, A better lemon squeezer? Maximum-likelihood regression with beta-distributed dependent variables."
+https://doi.org/10.1037/met0000301,doi,"Papenberg 2021, Using anticlustering to partition data sets into equivalent parts."
+https://doi.org/10.1073/pnas.72.1.20,doi,"Tsiatis 1975, A nonidentifiability aspect of the problem of competing risks."
+https://doi.org/10.1080/00031305.1983.10483115,doi,"Chan 1983, Algorithms for Computing the Sample Variance: Analysis and Recommendations"
+https://doi.org/10.1080/00031305.1996.10473566,doi,"Hyndman 1996, Sample Quantiles in Statistical Packages"
+https://doi.org/10.1080/00401706.1974.10489171,doi,"Beaton 1974, The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data"
+https://doi.org/10.1080/01621459.1927.10502953,doi,"Wilson 1927, Probable Inference, the Law of Succession, and Statistical Inference"
+https://doi.org/10.1080/01621459.1958.10501452,doi,"Kaplan 1958, Nonparametric Estimation from Incomplete Observations"
+https://doi.org/10.1080/01621459.1977.10480613,doi,"Efron 1977, The Efficiency of Cox's Likelihood Function for Censored Data"
+https://doi.org/10.1080/01621459.1977.10480998,doi,"Harville 1977, Maximum Likelihood Approaches to Variance Component Estimation and to Related Problems"
+https://doi.org/10.1080/01621459.1981.10477613,doi,"Pratt 1981, Concavity of the Log Likelihood"
+https://doi.org/10.1080/01621459.1987.10478410,doi,"Efron 1987, Better Bootstrap Confidence Intervals"
+https://doi.org/10.1080/01621459.1989.10478874,doi,"Lin 1989, The Robust Inference for the Cox Proportional Hazards Model"
+https://doi.org/10.1080/01621459.1992.10475175,doi,"Hendricks 1992, Hierarchical Spline Models for Conditional Quantiles and the Demand for Electricity"
+https://doi.org/10.1080/01621459.1997.10474049,doi,"Wellner 1997, A Hybrid Algorithm for Computation of the Nonparametric Maximum Likelihood Estimator from Censored Data"
+https://doi.org/10.1080/01621459.2018.1554485,doi,"Liu 2019, Cauchy Combination Test: A Powerful Test With Analytic <i>p</i> -Value Calculation Under Arbitrary Dependency Structures"
+https://doi.org/10.1080/01621459.2021.1883437,doi,"Bai 2021, Inference in Experiments With Matched Pairs"
+https://doi.org/10.1080/0266476042000214501,doi,"Ferrari 2004, Beta Regression for Modelling Rates and Proportions"
+https://doi.org/10.1080/07350015.2016.1247004,doi,"Pustejovsky 2017, Small-Sample Methods for Cluster-Robust Variance Estimation and Hypothesis Testing in Fixed Effects Models"
+https://doi.org/10.1080/10618600.1995.10474663,doi,"Pinheiro 1995, Approximations to the Log-Likelihood Function in the Nonlinear Mixed-Effects Model"
+https://doi.org/10.1080/10618600.1999.10474804,doi,"Pan 1999, Extending the Iterative Convex Minorant Algorithm to the Cox Model for Interval-Censored Data"
+https://doi.org/10.1090/s0025-5718-1969-0247736-4,doi,"Cody 1969, Rational Chebyshev approximations for the error function"
+https://doi.org/10.1090/s0025-5718-69-99647-1,doi,"Golub 1969, Calculation of Gauss quadrature rules"
+https://doi.org/10.1093/aje/kwh090,doi,"Zou 2004, A Modified Poisson Regression Approach to Prospective Studies with Binary Data"
+https://doi.org/10.1093/bioinformatics/btr597,doi,"Stekhoven 2011, MissForest—non-parametric missing value imputation for mixed-type data"
+https://doi.org/10.1093/biomet/26.4.404,doi,"CLOPPER 1934, THE USE OF CONFIDENCE OR FIDUCIAL LIMITS ILLUSTRATED IN THE CASE OF THE BINOMIAL"
+https://doi.org/10.1093/biomet/41.1-2.133,doi,"Jonckheere 1954, A distribution-free k-sample test against ordered alternatives"
+https://doi.org/10.1093/biomet/43.3-4.295,doi,"LAWLEY 1956, A GENERAL METHOD FOR APPROXIMATING TO THE DISTRIBUTION OF LIKELIHOOD RATIO CRITERIA"
+https://doi.org/10.1093/biomet/58.3.403,doi,"EFRON 1971, Forcing a sequential experiment to be balanced"
+https://doi.org/10.1093/biomet/65.1.141,doi,"CLAYTON 1978, A model for association in bivariate life tables and its application in epidemiological studies of familial tendency in chronic disease incidence"
+https://doi.org/10.1093/biomet/65.1.167,doi,"Prentice 1978, Linear rank tests with right censored data"
+https://doi.org/10.1093/biomet/68.3.703,doi,"Gail 1981, Likelihood calculations for matched case-control studies and survival studies with tied death times"
+https://doi.org/10.1093/biomet/69.1.61,doi,"ATKINSON 1982, Optimum biased coin designs for sequential clinical trials with prognostic factors"
+https://doi.org/10.1093/biomet/71.1.1,doi,"Albert 1984, On the existence of maximum likelihood estimates in logistic regression models"
+https://doi.org/10.1093/biomet/71.1.11,doi,"BECG 1984, Calculation of polychotomous logistic regression parameters using individualized regressions"
+https://doi.org/10.1093/biomet/72.1.206,doi,"LÄÄRÄ 1985, The equivalence of two models for ordinal data"
+https://doi.org/10.1093/biomet/73.1.13,doi,"LIANG 1986, Longitudinal data analysis using generalized linear models"
+https://doi.org/10.1093/biomet/74.3.457,doi,"BERAN 1987, Prepivoting to reduce level error of confidence sets"
+https://doi.org/10.1093/biomet/74.3.469,doi,"SILVERMAN 1987, The bootstrap: To smooth or not to smooth?"
+https://doi.org/10.1093/biomet/75.4.661,doi,"HALL 1988, On bootstrap resampling and iteration"
+https://doi.org/10.1093/biomet/78.2.301,doi,"BESAG 1991, Sequential Monte Carlo <i>p</i> -values"
+https://doi.org/10.1093/biomet/80.1.27,doi,"FIRTH 1993, Bias reduction of maximum likelihood estimates"
+https://doi.org/10.1093/biomet/81.3.624,doi,"Liu 1994, A note on Gauss-Hermite quadrature"
+https://doi.org/10.1093/biomet/90.2.341,doi,"Jin 2003, Rank-based inference for the accelerated failure time model"
+https://doi.org/10.1093/biomet/asp025,doi,"Johnson 2009, Induced smoothing for the semiparametric accelerated failure time model: asymptotics and extensions to clustered data"
+https://doi.org/10.1093/biomet/asz026,doi,"Krieger 2019, Nearly random designs with greatly improved balance"
+https://doi.org/10.1093/comjnl/14.4.422,doi,"Brent 1971, An algorithm with guaranteed convergence for finding a zero of a function"
+https://doi.org/10.1093/jnci/22.4.719,doi,"Mantel & Haenszel 1959, Statistical Aspects of the Analysis of Data From Retrospective Studies of Disease"
+https://doi.org/10.1093/oxfordjournals.aje.a114212,doi,"WACHOLDER 1986, BINOMIAL REGRESSION IN GLIM: ESTIMATING RISK RATIOS AND RISK DIFFERENCES1"
+https://doi.org/10.1093/pan/mps025,doi,"Moore 2012, Multivariate Continuous Blocking to Improve Political Science Experiments"
+https://doi.org/10.1111/biom.12054,doi,"Touloumis 2013, GEE for Multinomial Responses Using a Local Odds Ratios Parameterization"
+https://doi.org/10.1111/biom.12148,doi,"Kapelner 2014, Matching on‐the‐fly: Sequential allocation with higher power and efficiency"
+https://doi.org/10.1111/biom.13561,doi,"Kapelner 2021, A matching procedure for sequential experiments that iteratively learns which covariates improve power"
+https://doi.org/10.1111/j.2517-6161.1972.tb00899.x,doi,"Cox 1972, Regression Models and Life-Tables"
+https://doi.org/10.1111/j.2517-6161.1976.tb01597.x,doi,"Turnbull 1976, The Empirical Distribution Function with Arbitrarily Grouped, Censored and Truncated Data"
+https://doi.org/10.1111/j.2517-6161.1980.tb01109.x,doi,"McCullagh 1980, Regression Models for Ordinal Data"
+https://doi.org/10.1111/j.2517-6161.1982.tb01203.x,doi,"Louis 1982, Finding the Observed Information Matrix When Using the EM Algorithm"
+https://doi.org/10.1111/j.2517-6161.1984.tb01270.x,doi,"Anderson 1984, Regression and Ordered Categorical Variables"
+https://doi.org/10.1111/j.2517-6161.1988.tb01735.x,doi,"Hall 1988, On the Distribution of a Studentized Quantile"
+https://doi.org/10.1111/j.2517-6161.1996.tb02095.x,doi,"Yee 1996, Vector Generalized Additive Models"
+https://doi.org/10.1126/science.220.4598.671,doi,"Kirkpatrick 1983, Optimization by Simulated Annealing"
+https://doi.org/10.1137/0117039,doi,"Graham 1969, Bounds on Multiprocessing Timing Anomalies"
+https://doi.org/10.1137/0403036,doi,"Sherali 1990, A Hierarchy of Relaxations between the Continuous and Convex Hull Representations for Zero-One Programming Problems"
+https://doi.org/10.1137/0701008,doi,"Lanczos 1964, A Precision Approximation of the Gamma Function"
+https://doi.org/10.1137/0710069,doi,"Barrodale 1973, An Improved Algorithm for Discrete $l_1 $ Linear Approximation"
+https://doi.org/10.1145/103162.103163,doi,"Goldberg 1991, What every computer scientist should know about floating-point arithmetic"
+https://doi.org/10.1145/1271.319414,doi,"Monahan 1984, Algorithm 616: fast computation of the Hodges-Lehmann location estimator"
+https://doi.org/10.1145/2714064.2660195,doi,"Steele 2014, Fast splittable pseudorandom number generators"
+https://doi.org/10.1145/272991.272995,doi,"Matsumoto 1998, Mersenne twister"
+https://doi.org/10.1145/3230636,doi,"Lemire 2019, Fast Random Integer Generation in an Interval"
+https://doi.org/10.1145/364520.364540,doi,"Durstenfeld 1964, Algorithm 235: Random permutation"
+https://doi.org/10.1145/366622.366647,doi,"Hoare 1961, Algorithm 65: find"
+https://doi.org/10.1177/009286151104500409,doi,"Ge 2011, Covariate-Adjusted Difference in Proportions from Clinical Trials Using Logistic Regression and Weighted Risk Differences"
+https://doi.org/10.1186/1471-2288-13-152,doi,"Royston 2013, Restricted mean survival time: an alternative to the hazard ratio for the design and analysis of randomized trials with a time-to-event outcome"
+https://doi.org/10.1198/tast.2011.08294,doi,"Lu 2011, Optimal Nonbipartite Matching and Its Statistical Applications"
+https://doi.org/10.1214/12-aoas583,doi,"Lin 2013, Agnostic notes on regression adjustments to experimental data: Reexamining Freedman’s critique"
+https://doi.org/10.1214/12-aos1008,doi,"Morgan 2012, Rerandomization to improve covariate balance in experiments"
+https://doi.org/10.1214/aoms/1177703732,doi,"Huber 1964, Robust Estimation of a Location Parameter"
+https://doi.org/10.1214/aoms/1177704172,doi,"Hodges 1963, Estimates of Location Based on Rank Tests"
+https://doi.org/10.1214/aoms/1177707045,doi,"Dwass 1957, Modified Randomization Tests for Nonparametric Hypotheses"
+https://doi.org/10.1214/aos/1176325770,doi,"Politis 1994, Large Sample Confidence Regions Based on Subsamples under Minimal Assumptions"
+https://doi.org/10.1214/aos/1176342503,doi,"Huber 1973, Robust Regression: Asymptotics, Conjectures and Monte Carlo"
+https://doi.org/10.1214/aos/1176344068,doi,"Wei 1978, The Adaptive Biased Coin Design for Sequential Experiments"
+https://doi.org/10.1214/aos/1176344552,doi,"Efron 1979, Bootstrap Methods: Another Look at the Jackknife"
+https://doi.org/10.1214/aos/1176345338,doi,"Rubin 1981, The Bayesian Bootstrap"
+https://doi.org/10.1214/aos/1176350366,doi,"Yohai 1987, High Breakdown-Point and High Efficiency Robust Estimates for Regression"
+https://doi.org/10.1214/ss/1030037960,doi,"Portnoy 1997, The Gaussian hare and the Laplacian tortoise: computability of squared-error versus absolute-error estimators"
+https://doi.org/10.1287/mnsc.13.7.492,doi,"Dinkelbach 1967, On Nonlinear Fractional Programming"
+https://doi.org/10.1287/mnsc.22.4.455,doi,"Glover 1975, Improved Linear Integer Programming Formulations of Nonlinear Integer Problems"
+https://doi.org/10.1287/mnsc.22.8.868,doi,"Schaible 1976, Fractional Programming. II, On Dinkelbach's Algorithm"
+https://doi.org/10.1364/ao.15.000668,doi,"Lentz 1976, Generating Bessel functions in Mie scattering calculations using continued fractions"
+https://doi.org/10.18637/jss.v036.i02,doi,"Fay 2010, Exact and Asymptotic Weighted Logrank Tests for Interval Censored Data: The interval R Package"
+https://doi.org/10.18637/jss.v039.i05,doi,"Simon 2011, Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent"
+https://doi.org/10.18637/jss.v070.i05,doi,"Kristensen 2016, TMB : Automatic Differentiation and Laplace Approximation"
+https://doi.org/10.18637/jss.v077.i01,doi,"Wright 2017, <b>ranger</b> : A Fast Implementation of Random Forests for High Dimensional Data in <i>C++</i> and <i>R</i>"
+https://doi.org/10.18637/jss.v081.i12,doi,"Anderson-Bergman 2017, icenReg: Regression Models for Interval Censored Data in R"
+https://doi.org/10.2202/1544-6115.1585,doi,"Phipson 2010, Permutation P-values Should Never Be Zero: Calculating Exact P-values When Permutations Are Randomly Drawn"
+https://doi.org/10.2307/1269547,doi,"Lambert 1992, Zero-Inflated Poisson Regression, with an Application to Defects in Manufacturing"
+https://doi.org/10.2307/1912934,doi,"White 1980, A Heteroskedasticity-Consistent Covariance Matrix Estimator and a Direct Test for Heteroskedasticity"
+https://doi.org/10.2307/1913643,doi,"Koenker 1978, Regression Quantiles"
+https://doi.org/10.2307/2331986,doi,"CLOPPER 1934, THE USE OF CONFIDENCE OR FIDUCIAL LIMITS ILLUSTRATED IN THE CASE OF THE BINOMIAL"
+https://doi.org/10.2307/2333825,doi,"Gehan 1965, A Generalized Wilcoxon Test for Comparing Arbitrarily Singly-Censored Samples"
+https://doi.org/10.2307/2344317,doi,"Peto 1972, Asymptotically Efficient Rank Invariant Test Procedures"
+https://doi.org/10.2307/2344614,doi,"Nelder 1972, Generalized Linear Models"
+https://doi.org/10.2307/2347330,doi,"Wichura 1988, Algorithm AS 241: The Percentage Points of the Normal Distribution"
+https://doi.org/10.2307/2347496,doi,"Venzon 1988, A Method for Computing Profile-Likelihood-Based Confidence Intervals"
+https://doi.org/10.2307/2347760,doi,"Peterson 1990, Partial Proportional Odds Models for Ordinal Response Variables"
+https://doi.org/10.2307/2347802,doi,"Koenker 1987, Algorithm AS 229: Computing Regression Quantiles"
+https://doi.org/10.2307/2527727,doi,"Bross 1958, How to Use Ridit Analysis"
+https://doi.org/10.2307/2529620,doi,"Breslow 1974, Covariance Analysis of Censored Survival Data"
+https://doi.org/10.2307/2529712,doi,"Pocock 1975, Sequential Treatment Assignment with Balancing for Prognostic Factors in the Controlled Clinical Trial"
+https://doi.org/10.2307/2529876,doi,"Laird 1982, Random-Effects Models for Longitudinal Data"
+https://doi.org/10.2307/2530286,doi,"Brookmeyer 1982, A Confidence Interval for the Median Survival Time"
+https://doi.org/10.2307/2530698,doi,"Finkelstein 1986, A Proportional Hazards Model for Interval-Censored Failure Time Data"
+https://doi.org/10.2307/2530927,doi,"Mehta 1984, Exact Significance Testing to Establish Treatment Equivalence with Ordered Categorical Data"
+https://doi.org/10.2307/2531052,doi,"Robins 1986, Estimators of the Mantel-Haenszel Variance Consistent in Both Sparse Data and Large-Strata Limiting Models"
+https://doi.org/10.2307/3314912,doi,"Lawless 1987, Negative binomial and mixed Poisson regression"
+https://doi.org/10.32614/rj-2010-008,doi,"Fay 2010, Two-sided Exact Tests and Matching Confidence Intervals for Discrete Data"
+https://doi.org/10.32614/rj-2011-012,doi,"Marschner 2011, glm2: Fitting Generalized Linear Models with Convergence Problems"
+https://doi.org/10.32614/rj-2017-066,doi,"Brooks 2017, glmmTMB Balances Speed and Flexibility Among Packages for Zero-inflated Generalized Linear Mixed Modeling"
+https://en.wikipedia.org/wiki/A/B_testing,wikipedia,A/B testing
+https://en.wikipedia.org/wiki/Accelerated_failure_time_model,wikipedia,Accelerated failure time model
+https://en.wikipedia.org/wiki/Active-set_method,wikipedia,Active-set method
+https://en.wikipedia.org/wiki/Adaptive_quadrature,wikipedia,Adaptive quadrature
+https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance,wikipedia,Algorithms for calculating variance
+https://en.wikipedia.org/wiki/Asymptotic_expansion,wikipedia,Asymptotic expansion
+https://en.wikipedia.org/wiki/Backtracking_line_search,wikipedia,Backtracking line search
+https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms,wikipedia,Basic Linear Algebra Subprograms
+https://en.wikipedia.org/wiki/Bernoulli_process,wikipedia,Bernoulli process
+https://en.wikipedia.org/wiki/Beta_distribution,wikipedia,Beta distribution
+https://en.wikipedia.org/wiki/Beta_function,wikipedia,Beta function
+https://en.wikipedia.org/wiki/Beta_regression,wikipedia,Beta regression
+https://en.wikipedia.org/wiki/Binary_search,wikipedia,Binary search
+https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval,wikipedia,Binomial proportion confidence interval
+https://en.wikipedia.org/wiki/Binomial_test,wikipedia,Binomial test
+https://en.wikipedia.org/wiki/Bisection_method,wikipedia,Bisection method
+https://en.wikipedia.org/wiki/Blocking_(statistics),wikipedia,Blocking (statistics)
+https://en.wikipedia.org/wiki/Blossom_algorithm,wikipedia,Blossom algorithm
+https://en.wikipedia.org/wiki/Bootstrapping_(statistics),wikipedia,Bootstrapping (statistics)
+https://en.wikipedia.org/wiki/Box–Muller_transform,wikipedia,Box–Muller transform
+https://en.wikipedia.org/wiki/Branch_and_bound,wikipedia,Branch and bound
+https://en.wikipedia.org/wiki/Brent's_method,wikipedia,Brent's method
+https://en.wikipedia.org/wiki/Broyden–Fletcher–Goldfarb–Shanno_algorithm,wikipedia,Broyden–Fletcher–Goldfarb–Shanno algorithm
+https://en.wikipedia.org/wiki/Cauchy_distribution,wikipedia,Cauchy distribution
+https://en.wikipedia.org/wiki/Censoring_(statistics),wikipedia,Censoring (statistics)
+https://en.wikipedia.org/wiki/Chi-squared_distribution,wikipedia,Chi-squared distribution
+https://en.wikipedia.org/wiki/Cholesky_decomposition,wikipedia,Cholesky decomposition
+https://en.wikipedia.org/wiki/Cluster-randomised_controlled_trial,wikipedia,Cluster-randomised controlled trial
+https://en.wikipedia.org/wiki/Clustered_standard_errors,wikipedia,Clustered standard errors
+https://en.wikipedia.org/wiki/Cochran–Mantel–Haenszel_statistics,wikipedia,Cochran–Mantel–Haenszel statistics
+https://en.wikipedia.org/wiki/Composition_(combinatorics),wikipedia,Composition (combinatorics)
+https://en.wikipedia.org/wiki/Conditional_logistic_regression,wikipedia,Conditional logistic regression
+https://en.wikipedia.org/wiki/Convolution_of_probability_distributions,wikipedia,Convolution of probability distributions
+https://en.wikipedia.org/wiki/Copula_(statistics),wikipedia,Copula (statistics)
+https://en.wikipedia.org/wiki/Correlation,wikipedia,Correlation
+https://en.wikipedia.org/wiki/Counting_sort,wikipedia,Counting sort
+https://en.wikipedia.org/wiki/Cumulative_distribution_function,wikipedia,Cumulative distribution function
+https://en.wikipedia.org/wiki/Delta_method,wikipedia,Delta method
+https://en.wikipedia.org/wiki/Digamma_function,wikipedia,Digamma function
+https://en.wikipedia.org/wiki/Dirichlet_distribution,wikipedia,Dirichlet distribution
+https://en.wikipedia.org/wiki/Distance_matrix,wikipedia,Distance matrix
+https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix,wikipedia,Eigendecomposition of a matrix
+https://en.wikipedia.org/wiki/Error_function,wikipedia,Error function
+https://en.wikipedia.org/wiki/Euclidean_distance,wikipedia,Euclidean distance
+https://en.wikipedia.org/wiki/Expectation–maximization_algorithm,wikipedia,Expectation–maximization algorithm
+https://en.wikipedia.org/wiki/Exponential_family,wikipedia,Exponential family
+https://en.wikipedia.org/wiki/Feature_scaling,wikipedia,Feature scaling
+https://en.wikipedia.org/wiki/Finite_difference,wikipedia,Finite difference
+https://en.wikipedia.org/wiki/Fisher's_exact_test,wikipedia,Fisher's exact test
+https://en.wikipedia.org/wiki/Fisher's_method,wikipedia,Fisher's method
+https://en.wikipedia.org/wiki/Fisher's_noncentral_hypergeometric_distribution,wikipedia,Fisher's noncentral hypergeometric distribution
+https://en.wikipedia.org/wiki/Fisher_information,wikipedia,Fisher information
+https://en.wikipedia.org/wiki/Fisher–Yates_shuffle,wikipedia,Fisher–Yates shuffle
+https://en.wikipedia.org/wiki/Fractional_programming,wikipedia,Fractional programming
+https://en.wikipedia.org/wiki/Frisch–Waugh–Lovell_theorem,wikipedia,Frisch–Waugh–Lovell theorem
+https://en.wikipedia.org/wiki/Gaussian_elimination,wikipedia,Gaussian elimination
+https://en.wikipedia.org/wiki/Gauss–Hermite_quadrature,wikipedia,Gauss–Hermite quadrature
+https://en.wikipedia.org/wiki/Generalized_estimating_equation,wikipedia,Generalized estimating equation
+https://en.wikipedia.org/wiki/Generalized_least_squares,wikipedia,Generalized least squares
+https://en.wikipedia.org/wiki/Generalized_linear_mixed_model,wikipedia,Generalized linear mixed model
+https://en.wikipedia.org/wiki/Generalized_linear_model,wikipedia,Generalized linear model
+https://en.wikipedia.org/wiki/Global_optimization,wikipedia,Global optimization
+https://en.wikipedia.org/wiki/Gram_matrix,wikipedia,Gram matrix
+https://en.wikipedia.org/wiki/Gram–Schmidt_process,wikipedia,Gram–Schmidt process
+https://en.wikipedia.org/wiki/Greedy_algorithm,wikipedia,Greedy algorithm
+https://en.wikipedia.org/wiki/Gumbel_distribution,wikipedia,Gumbel distribution
+https://en.wikipedia.org/wiki/Hash_table,wikipedia,Hash table
+https://en.wikipedia.org/wiki/Heteroskedasticity-consistent_standard_errors,wikipedia,Heteroskedasticity-consistent standard errors
+https://en.wikipedia.org/wiki/Hill_climbing,wikipedia,Hill climbing
+https://en.wikipedia.org/wiki/Hodges–Lehmann_estimator,wikipedia,Hodges–Lehmann estimator
+https://en.wikipedia.org/wiki/Hotelling's_T-squared_distribution,wikipedia,Hotelling's T-squared distribution
+https://en.wikipedia.org/wiki/Householder_transformation,wikipedia,Householder transformation
+https://en.wikipedia.org/wiki/Hurdle_model,wikipedia,Hurdle model
+https://en.wikipedia.org/wiki/Hypergeometric_distribution,wikipedia,Hypergeometric distribution
+https://en.wikipedia.org/wiki/Hyperparameter_optimization,wikipedia,Hyperparameter optimization
+https://en.wikipedia.org/wiki/Imputation_(statistics),wikipedia,Imputation (statistics)
+https://en.wikipedia.org/wiki/Incomplete_gamma_function,wikipedia,Incomplete gamma function
+https://en.wikipedia.org/wiki/Integer_programming,wikipedia,Integer programming
+https://en.wikipedia.org/wiki/Introselect,wikipedia,Introselect
+https://en.wikipedia.org/wiki/Introsort,wikipedia,Introsort
+https://en.wikipedia.org/wiki/Inverse-variance_weighting,wikipedia,Inverse-variance weighting
+https://en.wikipedia.org/wiki/Inverse_transform_sampling,wikipedia,Inverse transform sampling
+https://en.wikipedia.org/wiki/Inverse_trigonometric_functions,wikipedia,Inverse trigonometric functions
+https://en.wikipedia.org/wiki/Invertible_matrix,wikipedia,Invertible matrix
+https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares,wikipedia,Iteratively reweighted least squares
+https://en.wikipedia.org/wiki/Jackknife_resampling,wikipedia,Jackknife resampling
+https://en.wikipedia.org/wiki/Jeffreys_prior,wikipedia,Jeffreys prior
+https://en.wikipedia.org/wiki/Jonckheere's_trend_test,wikipedia,Jonckheere's trend test
+https://en.wikipedia.org/wiki/Kaplan–Meier_estimator,wikipedia,Kaplan–Meier estimator
+https://en.wikipedia.org/wiki/Karush–Kuhn–Tucker_conditions,wikipedia,Karush–Kuhn–Tucker conditions
+https://en.wikipedia.org/wiki/LU_decomposition,wikipedia,LU decomposition
+https://en.wikipedia.org/wiki/Lanczos_approximation,wikipedia,Lanczos approximation
+https://en.wikipedia.org/wiki/Laplace's_approximation,wikipedia,Laplace's approximation
+https://en.wikipedia.org/wiki/Laplace's_method,wikipedia,Laplace's method
+https://en.wikipedia.org/wiki/Largest_remainder_method,wikipedia,Largest remainder method
+https://en.wikipedia.org/wiki/Lehmer_random_number_generator,wikipedia,Lehmer random number generator
+https://en.wikipedia.org/wiki/Lentz's_algorithm,wikipedia,Lentz's algorithm
+https://en.wikipedia.org/wiki/Likelihood-ratio_test,wikipedia,Likelihood-ratio test
+https://en.wikipedia.org/wiki/Likelihood_function,wikipedia,Likelihood function
+https://en.wikipedia.org/wiki/Limited-memory_BFGS,wikipedia,Limited-memory BFGS
+https://en.wikipedia.org/wiki/Linear_congruential_generator,wikipedia,Linear congruential generator
+https://en.wikipedia.org/wiki/Linear_probability_model,wikipedia,Linear probability model
+https://en.wikipedia.org/wiki/Linear_search,wikipedia,Linear search
+https://en.wikipedia.org/wiki/List_scheduling,wikipedia,List scheduling
+https://en.wikipedia.org/wiki/Local_search_(optimization),wikipedia,Local search (optimization)
+https://en.wikipedia.org/wiki/LogSumExp,wikipedia,LogSumExp
+https://en.wikipedia.org/wiki/Logistic_distribution,wikipedia,Logistic distribution
+https://en.wikipedia.org/wiki/Logistic_function,wikipedia,Logistic function
+https://en.wikipedia.org/wiki/Logistic_regression,wikipedia,Logistic regression
+https://en.wikipedia.org/wiki/Logit,wikipedia,Logit
+https://en.wikipedia.org/wiki/Logrank_test,wikipedia,Logrank test
+https://en.wikipedia.org/wiki/M-estimator,wikipedia,M-estimator
+https://en.wikipedia.org/wiki/Mahalanobis_distance,wikipedia,Mahalanobis distance
+https://en.wikipedia.org/wiki/Mann–Whitney_U_test,wikipedia,Mann–Whitney U test
+https://en.wikipedia.org/wiki/Maximum_likelihood_estimation,wikipedia,Maximum likelihood estimation
+https://en.wikipedia.org/wiki/McNemar's_test,wikipedia,McNemar's test
+https://en.wikipedia.org/wiki/Median_absolute_deviation,wikipedia,Median absolute deviation
+https://en.wikipedia.org/wiki/Mersenne_Twister,wikipedia,Mersenne Twister
+https://en.wikipedia.org/wiki/Method_of_moments_(statistics),wikipedia,Method of moments (statistics)
+https://en.wikipedia.org/wiki/Mills_ratio,wikipedia,Mills ratio
+https://en.wikipedia.org/wiki/Minimax_approximation_algorithm,wikipedia,Minimax approximation algorithm
+https://en.wikipedia.org/wiki/Minimisation_(clinical_trials),wikipedia,Minimisation (clinical trials)
+https://en.wikipedia.org/wiki/Mixed_model,wikipedia,Mixed model
+https://en.wikipedia.org/wiki/Mixed_radix,wikipedia,Mixed radix
+https://en.wikipedia.org/wiki/Mode_(statistics),wikipedia,Mode (statistics)
+https://en.wikipedia.org/wiki/Monte_Carlo_method,wikipedia,Monte Carlo method
+https://en.wikipedia.org/wiki/Moore–Penrose_inverse,wikipedia,Moore–Penrose inverse
+https://en.wikipedia.org/wiki/Multicollinearity,wikipedia,Multicollinearity
+https://en.wikipedia.org/wiki/Multinomial_logistic_regression,wikipedia,Multinomial logistic regression
+https://en.wikipedia.org/wiki/Multivariate_normal_distribution,wikipedia,Multivariate normal distribution
+https://en.wikipedia.org/wiki/Negative_binomial_distribution,wikipedia,Negative binomial distribution
+https://en.wikipedia.org/wiki/Nelder–Mead_method,wikipedia,Nelder–Mead method
+https://en.wikipedia.org/wiki/Nelson–Aalen_estimator,wikipedia,Nelson–Aalen estimator
+https://en.wikipedia.org/wiki/Newton's_method,wikipedia,Newton's method
+https://en.wikipedia.org/wiki/Newton's_method_in_optimization,wikipedia,Newton's method in optimization
+https://en.wikipedia.org/wiki/Non-uniform_random_variate_generation,wikipedia,Non-uniform random variate generation
+https://en.wikipedia.org/wiki/Normal_distribution,wikipedia,Normal distribution
+https://en.wikipedia.org/wiki/Numerical_continuation,wikipedia,Numerical continuation
+https://en.wikipedia.org/wiki/Numerical_differentiation,wikipedia,Numerical differentiation
+https://en.wikipedia.org/wiki/Observed_information,wikipedia,Observed information
+https://en.wikipedia.org/wiki/Optimal_experimental_design,wikipedia,Optimal experimental design
+https://en.wikipedia.org/wiki/Ordered_logit,wikipedia,Ordered logit
+https://en.wikipedia.org/wiki/Ordinal_regression,wikipedia,Ordinal regression
+https://en.wikipedia.org/wiki/Ordinary_least_squares,wikipedia,Ordinary least squares
+https://en.wikipedia.org/wiki/Overdispersion,wikipedia,Overdispersion
+https://en.wikipedia.org/wiki/Paired_difference_test,wikipedia,Paired difference test
+https://en.wikipedia.org/wiki/Partial_sorting,wikipedia,Partial sorting
+https://en.wikipedia.org/wiki/Penalty_method,wikipedia,Penalty method
+https://en.wikipedia.org/wiki/Permutation_test,wikipedia,Permutation test
+https://en.wikipedia.org/wiki/Phi_coefficient,wikipedia,Phi coefficient
+https://en.wikipedia.org/wiki/Poisson_regression,wikipedia,Poisson regression
+https://en.wikipedia.org/wiki/Polygamma_function,wikipedia,Polygamma function
+https://en.wikipedia.org/wiki/Prefix_sum,wikipedia,Prefix sum
+https://en.wikipedia.org/wiki/Probit,wikipedia,Probit
+https://en.wikipedia.org/wiki/Probit_model,wikipedia,Probit model
+https://en.wikipedia.org/wiki/Proportional_hazards_model,wikipedia,Proportional hazards model
+https://en.wikipedia.org/wiki/Pseudorandom_number_generator,wikipedia,Pseudorandom number generator
+https://en.wikipedia.org/wiki/QR_decomposition,wikipedia,QR decomposition
+https://en.wikipedia.org/wiki/QUADPACK,wikipedia,QUADPACK
+https://en.wikipedia.org/wiki/Quadratic_unconstrained_binary_optimization,wikipedia,Quadratic unconstrained binary optimization
+https://en.wikipedia.org/wiki/Quantile,wikipedia,Quantile
+https://en.wikipedia.org/wiki/Quantile_regression,wikipedia,Quantile regression
+https://en.wikipedia.org/wiki/Quasi-likelihood,wikipedia,Quasi-likelihood
+https://en.wikipedia.org/wiki/Quasi-maximum_likelihood_estimate,wikipedia,Quasi-maximum likelihood estimate
+https://en.wikipedia.org/wiki/RRQR_factorization,wikipedia,RRQR factorization
+https://en.wikipedia.org/wiki/Random_seed,wikipedia,Random seed
+https://en.wikipedia.org/wiki/Rank_(linear_algebra),wikipedia,Rank (linear algebra)
+https://en.wikipedia.org/wiki/Rejection_sampling,wikipedia,Rejection sampling
+https://en.wikipedia.org/wiki/Restricted_randomization,wikipedia,Restricted randomization
+https://en.wikipedia.org/wiki/Ridge_regression,wikipedia,Ridge regression
+https://en.wikipedia.org/wiki/Ridit_scoring,wikipedia,Ridit scoring
+https://en.wikipedia.org/wiki/Risk_difference,wikipedia,Risk difference
+https://en.wikipedia.org/wiki/Robust_regression,wikipedia,Robust regression
+https://en.wikipedia.org/wiki/Root-finding_algorithm,wikipedia,Root-finding algorithm
+https://en.wikipedia.org/wiki/Sample_mean_and_covariance,wikipedia,Sample mean and covariance
+https://en.wikipedia.org/wiki/Schur_complement,wikipedia,Schur complement
+https://en.wikipedia.org/wiki/Score_test,wikipedia,Score test
+https://en.wikipedia.org/wiki/Scoring_algorithm,wikipedia,Scoring algorithm
+https://en.wikipedia.org/wiki/Separation_(statistics),wikipedia,Separation (statistics)
+https://en.wikipedia.org/wiki/Sequential_analysis,wikipedia,Sequential analysis
+https://en.wikipedia.org/wiki/Sherman–Morrison_formula,wikipedia,Sherman–Morrison formula
+https://en.wikipedia.org/wiki/Sign_test,wikipedia,Sign test
+https://en.wikipedia.org/wiki/Simple_linear_regression,wikipedia,Simple linear regression
+https://en.wikipedia.org/wiki/Simple_random_sample,wikipedia,Simple random sample
+https://en.wikipedia.org/wiki/Simulated_annealing,wikipedia,Simulated annealing
+https://en.wikipedia.org/wiki/Softmax_function,wikipedia,Softmax function
+https://en.wikipedia.org/wiki/Softplus,wikipedia,Softplus
+https://en.wikipedia.org/wiki/Sorting_algorithm,wikipedia,Sorting algorithm
+https://en.wikipedia.org/wiki/Standard_score,wikipedia,Standard score
+https://en.wikipedia.org/wiki/Stepwise_regression,wikipedia,Stepwise regression
+https://en.wikipedia.org/wiki/Stirling's_approximation,wikipedia,Stirling's approximation
+https://en.wikipedia.org/wiki/Stratified_randomization,wikipedia,Stratified randomization
+https://en.wikipedia.org/wiki/Stratified_sampling,wikipedia,Stratified sampling
+https://en.wikipedia.org/wiki/Taxicab_geometry,wikipedia,Taxicab geometry
+https://en.wikipedia.org/wiki/Trigamma_function,wikipedia,Trigamma function
+https://en.wikipedia.org/wiki/Truncated_distribution,wikipedia,Truncated distribution
+https://en.wikipedia.org/wiki/Variance,wikipedia,Variance
+https://en.wikipedia.org/wiki/Wald_test,wikipedia,Wald test
+https://en.wikipedia.org/wiki/Ward's_method,wikipedia,Ward's method
+https://en.wikipedia.org/wiki/Weibull_distribution,wikipedia,Weibull distribution
+https://en.wikipedia.org/wiki/Weighted_least_squares,wikipedia,Weighted least squares
+https://en.wikipedia.org/wiki/Welch's_t-test,wikipedia,Welch's t-test
+https://en.wikipedia.org/wiki/Welch–Satterthwaite_equation,wikipedia,Welch–Satterthwaite equation
+https://en.wikipedia.org/wiki/Whitening_transformation,wikipedia,Whitening transformation
+https://en.wikipedia.org/wiki/Wilcoxon_signed-rank_test,wikipedia,Wilcoxon signed-rank test
+https://en.wikipedia.org/wiki/Wolfe_conditions,wikipedia,Wolfe conditions
+https://en.wikipedia.org/wiki/Zero-inflated_model,wikipedia,Zero-inflated model
+https://en.wikipedia.org/wiki/Zero-truncated_Poisson_distribution,wikipedia,Zero-truncated Poisson distribution

@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "required": ["row", "algorithms_reviewed", "not_reviewed", "findings"],
+  "properties": {
+    "row": {"type": "string"},
+    "algorithms_reviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["algorithm", "conclusion", "note"],
+        "properties": {
+          "algorithm": {"type": "string"},
+          "conclusion": {"type": "string", "enum": ["no_faster_acceptable_found", "faster_option_found", "unclear"]},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "not_reviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["algorithm", "reason"],
+        "properties": {"algorithm": {"type": "string"}, "reason": {"type": "string"}}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["algorithm", "entries", "current", "candidate", "claimed_speedup", "applies_at_edi_sizes", "keeps_estimator", "tradeoffs", "sources", "confidence", "suggested_action"],
+        "properties": {
+          "algorithm": {"type": "string"},
+          "entries": {"type": "array", "items": {"type": "string"}, "description": "file::symbol of affected inventory rows"},
+          "current": {"type": "string"},
+          "candidate": {"type": "string"},
+          "claimed_speedup": {"type": "string"},
+          "applies_at_edi_sizes": {"type": "string", "enum": ["yes", "no", "unknown"]},
+          "keeps_estimator": {"type": "string", "enum": ["yes", "no", "unknown"]},
+          "tradeoffs": {"type": "string"},
+          "sources": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+          "suggested_action": {"type": "string"}
+        }
+      }
+    }
+  }
+}

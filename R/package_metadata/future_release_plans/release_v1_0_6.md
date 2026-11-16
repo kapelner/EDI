@@ -563,3 +563,77 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     findings into those TODOs rather than re-investigating them here.
   - Done when: each class above has a cause (real miscalibration with its own TODO, or an accepted limitation in NEWS /
     roxygen), and the baseline rows are re-justified or removed.
+- [ ] TODO-26 (added 2026-11-16, agent, owner request; found by calibration campaign 2026-11-15-e36c7710):
+  **`InferenceIncidExactZhang`: the exact CI did not invert its own combined test on matched designs.** At the null, the
+  test's size was 0.02-0.05 everywhere, but CI coverage was 1.00 on `DesignFixedBinaryMatch` at every n and 0.85-0.88 on
+  `DesignSeqOneByOneKK21` / `KK21stepwise` at n = 1000 (should be about 1 - size).
+  - Cause: `zhang_ci_exact_combined()` (`R/EDI/R/inference_helpers_zhang.R`) started both endpoint bisections from the
+    reservoir-only log odds ratio. With no reservoir it is always 0, so the interval always held 0; with a small reservoir
+    it is noise the matched pairs outweigh, and a start the test rejects sends the bisection to a wrong endpoint.
+  - Fixed 2026-11-16 (uncommitted): new `zhang_ci_inside_point()` starts the search from a point the combined test
+    accepts (reservoir estimate, matched-pairs conditional MLE, their inverse-variance blend, else the maximiser of the
+    combined p-value). Also fixes the `type = "Zhang"` randomization CI for incidence, which calls the same helper.
+    Regression test `R/EDI/tests/testthat/test-zhang-exact-ci-inverts-combined-test.R`; the migration goldens in
+    `test-exact-incidence-migration-baseline.R` are unchanged. Simulated (installed EDI with the patched helper, 300 null
+    reps, BinaryMatch): n = 50 coverage 1.00 -> 0.973, n = 200 1.00 -> 0.97, size 0.027; KK21 n = 1000 (150 reps, same seeds): coverage 0.90 -> 0.947, size 0.053, test and CI agree on every rep; the test and the CI now disagree
+    only where the two-sided exact binomial p-value jumps at delta = 0 itself (1 of 300 reps).
+  - Watch out: the exact two-sided binomial p-value is discontinuous at delta = 0 (p0 = 1/2), so an endpoint can land
+    within 1e-7 of 0 while the test accepts at exactly 0. That is a property of the test, not of the search.
+  - Done when: the next calibration campaign (run at a commit with the fix) passes the Zhang coverage cells on KK21 and
+    KK21stepwise at n = 1000 and BinaryMatch coverage is about 1 - size.
+- [ ] TODO-27 (added 2026-11-16, agent, owner request; found by calibration campaign 2026-11-15-e36c7710, confirmation
+  pending): **`InferenceIncidKKCondLogitGLMMOneLik`: likelihood-ratio and score tests oversized at n = 50 on matched
+  designs, and the LR test disagrees with its own CI.** Null, `~.`, n = 50: LR size 0.188 (BinaryMatch), 0.198 (KK21),
+  0.180 (KK21stepwise), against a 0.10 cap, while LR CI coverage is 0.99-1.00; score size 0.286 (BinaryMatch).
+  - Why it looks like a bug, not small-sample noise: a test that rejects 19% of the time paired with an interval that
+    covers the null 99-100% of the time means the CI is not the inversion of the test (compare TODO-26). Check whether
+    the LR p-value and the LR CI use the same null fit (`fit_null`) and the same reference distribution; the model was
+    rewritten in v1.0.4 (conditional logit on discordant pairs plus a reservoir logit, TODO-187).
+  - Done when: the cause is found; either fixed (the cells pass the calibration gate) or accepted with a reason and rows
+    in `R/package_tests/calibration/calibration_study_accepted.csv` citing this TODO.
+- [ ] TODO-28 (added 2026-11-16, agent, owner request; found by calibration campaign 2026-11-15-e36c7710, confirmation
+  pending): **`InferenceIncidKKNewcombeRiskDiff`: Wald size 0.159, coverage 0.841 at n = 50 on
+  `DesignSeqOneByOneKK21stepwise`** (`~.` and `~1` identical; cap 0.10 / 0.90). Not seen on the other KK designs at
+  n = 50 so far.
+  - Investigate first: the KK21stepwise match/reservoir split at n = 50 (few pairs or a tiny reservoir) and how the
+    Newcombe hybrid interval combines the two parts; whether n = 200 passes.
+  - Done when: fixed, or accepted as small-sample with a reason and calibration_study_accepted.csv rows citing this TODO.
+- [ ] TODO-29 (added 2026-11-16, agent, owner request; found by calibration campaign 2026-11-15-e36c7710, confirmation
+  pending): **`InferenceIncidLogBinomial`: score test oversized at n = 1000**, not only at n = 50 (`release_v1_1_0.md`
+  TODO-178 and this file's TODO-9 cover n = 50). Null, `~.`, n = 1000: size 0.086-0.091 and coverage 0.911-0.916 on
+  `DesignFixedBlocking` (prob_T 0.2), `DesignFixedRerandomization` (0.2), `DesignSeqOneByOneBernoulli` (0.5) and
+  `DesignSeqOneByOneiBCRD` (0.2); level 0.0525 (rate rule, order unknown).
+  - Why it matters: an excess that does not shrink by n = 1000 is not small-sample anti-conservatism. Suspects: the
+    boundary-MLE active-set handling of the null fit (the 2026-11-07 cold-refit fix in `get_likelihood_test_spec()`
+    `fit_null`; the profile score p-value is discontinuous where the binding set changes), or a score variance that
+    ignores the boundary.
+  - Done when: the cause is found and the n = 1000 cells pass, or the owner accepts them with a reason and rows citing
+    this TODO.
+- [ ] TODO-30 (added 2026-11-16, agent, owner request; found while gating randomization warm-start chaining on
+  `likelihood_concave`): **`InferenceCountZeroInflatedPoisson`: randomization replicates are stuck at the full-data
+  fit's zero-inflation ridge, so the randomization distribution is wrong.**
+  - Repro: `set.seed(3)`, n = 80, `DesignFixedBernoulli`, `~ x1 + x2`, y zero-inflated Poisson
+    (inflation `plogis(-0.8 + 0.3 w - 0.3 x1)`, mean `exp(0.3 + 0.2 w + 0.2 x1 - 0.1 x2)`), `set_seed(11)`, 30
+    permutations. The full-data fit has zero-part intercept -23.8 and zero-part treatment coefficient +23.8 (a flat
+    ridge where the two cancel). Its count-part treatment estimate is 0.806, which matches `pscl::zeroinfl`.
+  - Wrong output: all 30 warm-started replicates differ from a fresh fit on the same permuted data, by up to 0.84. The
+    fresh fits match `pscl::zeroinfl` exactly, and on four replicates an independent multistart fit confirms they are
+    the maximum. The warm-started replicates sit 0.05-1.3 log-likelihood units lower. With warm starts disabled
+    (`fit_warm_start_enabled = FALSE`, `null_fit_warm_start_enabled = FALSE`), every replicate equals the fresh fit.
+  - So the fitter is fine; the warm start is the cause. Neither anchoring every replicate to the full-data fit (now the
+    behaviour for nonconcave classes) nor the old chaining fixes it: chaining was also wrong, and order-dependent.
+  - Same family as the 2026-11-03 ZINB/ZIP score-CI finding (flat zero-inflation ridge) and the CI-search guard in
+    `inference_count_zero_augmented_poisson_abstract.R` (TODO-169, "refit from the full fit, keep the lower nll").
+    That guard does not help here, because its alternative start is the same ridge point.
+  - Fix candidates, cheapest first:
+    1. Do not use a warm start whose zero-part coefficients are on a ridge or boundary. That means
+       `zero_inflation_at_boundary`, or zero-part coefficients that are large and cancel. Cold-start those replicates
+       instead (the TODO-128 log-binomial pattern of dropping boundary warm starts).
+    2. Fit from the warm start and a cold start, and keep the lower nll. This doubles the cost of each replicate, so
+       use it only when 1 flags the warm start.
+  - Scope to check: the other resampling paths that warm-start from the full-data fit (nonparametric bootstrap,
+    jackknife, parametric bootstrap, rand CI search); ZINB and the hurdle classes; and ZOIB, which has the same
+    inflation structure.
+  - Done when: on the repro, every randomization replicate (and every bootstrap and jackknife replicate in scope)
+    equals the fresh fit to 1e-6, and that check is a regression test; NEWS records that ZIP randomization and
+    bootstrap results change.

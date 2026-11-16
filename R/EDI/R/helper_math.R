@@ -78,3 +78,16 @@ sample_mode = function(data){
 	sample_mode_cpp(data)
 }
 
+
+# Package-wide relative tolerance for treating two floating-point values as
+# tied: sqrt(.Machine$double.eps) (about 1.49e-8), the convention of
+# all.equal() and coin. Values that agree in exact arithmetic but were computed
+# along different code paths, summation orders or libm/FMA builds differ by a
+# few ulps (~1e-16 relative), far inside it. Genuinely distinct values of a
+# discrete statistic (a rank-sum contrast moves in steps of 1 / (n_T n_C))
+# stay apart up to n of about 1e4; beyond that, values closer than the
+# tolerance are merged, which can only make a p-value larger (both tails
+# count a tie) and by a negligible mass. Used for randomization p-value tail
+# counts (rand_tail_counts(); cross_platform_reproducibility.md TODO-3) and
+# reserved for the optimizer near-tie comparisons of TODO-6.
+EDI_TIE_REL_TOL = sqrt(.Machine$double.eps)

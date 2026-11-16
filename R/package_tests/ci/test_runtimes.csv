@@ -1468,6 +1468,7 @@ R/EDI/tests/testthat/test-rand-ci-capability-response-type-aware.R,coverage,30,b
 R/EDI/tests/testthat/test-rand-ci-model-scale-classification.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-custom-delta-shift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-null-construction.R,coverage,1.1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-rand-pval-tie-tolerance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-seed-reproducibility.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rcpp-fitting-equivalence.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rcpp-fitting-real-data.R,coverage,1,measured_with_30_percent_headroom
@@ -1488,6 +1489,7 @@ R/EDI/tests/testthat/test-robust-regression-mad.R,coverage,1,measured_with_30_pe
 R/EDI/tests/testthat/test-robust-regression-xtx-cache.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-robust-survreg-jitter-rng.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-runtime-argument-combination-assertions.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-same-binary-determinism-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-seed-reproducibility-all-designs.R,coverage,3.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-seed-reproducibility-single-thread-metadata.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-sequential-nonparam-bootstrap-disabled.R,coverage,2.9,measured_with_30_percent_headroom
