@@ -1,0 +1,9 @@
+{
+ "reference-check-d053c8a0d": {
+  "first_seen": "2026-11-17T22:48:47+00:00",
+  "key": "authors",
+  "last_seen": "2026-11-17T22:48:47+00:00",
+  "text": "`R/EDI/REFERENCES.md#[LeeWeiAmato1992]` (authors): The entry lists Lee, Wei and Amato. The Crossref record lists a fourth author, Sue Leurgans (n_authors 4). Title, pages (237-247) and year (1992) match. Leurgans may be the volume's editor, mis-tagged as an author in Crossref, so a human should check the chapter's byline before changing the entry.",
+  "unit": "R/EDI/REFERENCES.md#[LeeWeiAmato1992]"
+ }
+}

@@ -1,13 +1,13 @@
 {
- "issue_hash": "ea7752b6b1606980",
- "last_run": "2026-11-17T19:41:11+00:00",
+ "issue_hash": "4c72324d79cec588",
+ "last_run": "2026-11-17T22:48:47+00:00",
  "units": {
   "R/EDI/R/RcppExports.R#10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "5cf030cc73126d72",
    "hash": "704e8ec96f5b02dc",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/RcppExports.R#10.1016/0304-4076(85)90158-7": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -45,11 +45,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/design_fixed_cluster.R#10.1515/spp-2013-0002": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "c6514d1f7a1dbea2",
    "hash": "1005dae739d64999",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/design_fixed_greedy.R#10.1093/biomet/asz026": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -80,11 +80,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/design_fixed_rerandomization.R#10.1214/12-AOS1008": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "4d458e6427e5f9d9",
    "hash": "1242f2364d399ccf",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/design_seq_one_by_one_KK14.R#10.1111/biom.12148": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -94,11 +94,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/design_seq_one_by_one_KK21.R#10.1111/biom.12148": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "68b7dfa01e33a26b",
    "hash": "2b7da2030e87746c",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/design_seq_one_by_one_KK21.R#10.1111/biom.13561": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -136,18 +136,18 @@
    "run": "44048308591"
   },
   "R/EDI/R/design_seq_one_by_one_pocock_simon.R#10.2307/2529712": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "e911ba473f02caba",
    "hash": "414fed1416b4d145",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/design_seq_one_by_one_random_block_size.R#10.1093/biomet/58.3.403": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "d2433b393af52e99",
    "hash": "36e894adc7e12413",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/design_seq_one_by_one_spbr.R#10.1016/0021-9681(74)90015-0": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -185,11 +185,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_all_KK_wilcox_ivwc.R#10.1214/aoms/1177704172": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "ef8d8c04a807c874",
    "hash": "8727796f25ada3b2",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_all_abstract_rand_ci.R#10.1093/biomet/77.4.845": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -269,11 +269,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_continuous_lin.R#10.1214/12-AOAS583": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "26b0c74785763da6",
    "hash": "bf56d74a7d648ec0",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_continuous_quantile_regr.R#10.2307/1913643": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -346,18 +346,18 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_incidence_KK_marginal.R#10.1016/0270-0255(86)90088-6": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "a819987058c1bcc0",
-   "hash": "afb51abd9a4626ac",
+   "hash": "88ac12635f0967e8",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_incidence_KK_marginal.R#10.1016/0270-0255(86)90088-6#2": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "a819987058c1bcc0",
-   "hash": "afb51abd9a4626ac",
+   "hash": "88ac12635f0967e8",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_incidence_KK_marginal.R#10.1093/aje/kwh090": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -367,11 +367,11 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_incidence_KK_marginal.R#10.1111/biom.12148": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "68b7dfa01e33a26b",
    "hash": "f3ea890ffafdb962",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_incidence_KK_newcombe_ivwc_univ.R#10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -409,18 +409,18 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_ordinal_KK_combined.R#10.1080/10618600.1995.10474663": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "d152054bd041b00e",
    "hash": "4f9f06cc29782b07",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_KK_combined.R#10.1093/biomet/73.1.13": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "f84b579d4960d898",
    "hash": "5a6a40cae5acc138",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_KK_combined.R#10.18637/jss.v064.i08": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -430,18 +430,18 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_ordinal_KK_combined.R#10.2307/2533433": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "3be99a3de9383365",
    "hash": "5343501f8d5caa89",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_KK_cond_adj_cat_logit.R#10.1111/biom.12148": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "68b7dfa01e33a26b",
    "hash": "e0ae286cea24c522",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_jonckheere_terpstra_test.R#10.1093/biomet/41.1-2.133": {
    "audited_at": "2026-11-17T10:36:09+00:00",
@@ -451,18 +451,18 @@
    "run": "44048308591"
   },
   "R/EDI/R/inference_ordinal_ordered_probit.R#10.1111/j.2517-6161.1980.tb01109.x": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "c96a2cb23b8c2e22",
-   "hash": "26717d1dca55b9eb",
+   "hash": "6a08e05398681c6b",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_paired_sign_test.R#10.1111/biom.12148": {
-   "audited_at": "2026-11-17T10:36:09+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "68b7dfa01e33a26b",
    "hash": "f4d27fdb785ac079",
    "open_findings": 0,
-   "run": "44048308591"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_paired_sign_test.R#10.2307/2280577": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -472,11 +472,11 @@
    "run": "44146480855"
   },
   "R/EDI/R/inference_ordinal_partial_proportional_odds.R#10.1111/j.2517-6161.1980.tb01109.x": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "c96a2cb23b8c2e22",
    "hash": "4bca8a35a209c62f",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_ordinal_partial_proportional_odds.R#10.2307/2347760": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -577,11 +577,11 @@
    "run": "44146480855"
   },
   "R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R#10.1093/biomet/65.1.141": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "325c6f7634da9d7e",
    "hash": "2b34b01757015c72",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R#10.2307/2289934": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -591,18 +591,18 @@
    "run": "44146480855"
   },
   "R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R#10.2307/2335289": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "65c2710604e02a76",
    "hash": "89d34d8dc911c122",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_survival_KK_lwa_cox.R#10.1007/978-94-015-7983-4_14": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "cecf478972ef7815",
    "hash": "e076a730b65284f6",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_survival_KK_strat_cox.R#10.1007/978-94-015-7983-4_14": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -619,11 +619,11 @@
    "run": "44146480855"
   },
   "R/EDI/R/inference_survival_coxph.R#10.2307/2529620": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "ce0e98cbc077e878",
    "hash": "1ee6a153c369225a",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_survival_gehan_wilcox.R#10.1093/biomet/52.1-2.203": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -647,11 +647,11 @@
    "run": "44146480855"
   },
   "R/EDI/R/inference_survival_km_diff.R#10.1111/j.2517-6161.1976.tb01597.x": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "bbfc3e03c8e4b73b",
    "hash": "8161c5ae2654cf7f",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/R/inference_survival_km_diff.R#10.2307/2281868": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -724,11 +724,11 @@
    "run": "44146480855"
   },
   "R/EDI/REFERENCES.md#[Atkinson1982]": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "099ad94ffb5dbc20",
    "hash": "2ae8165fd51b3188",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/REFERENCES.md#[Breslow1974]": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -759,11 +759,11 @@
    "run": "44146480855"
   },
   "R/EDI/REFERENCES.md#[Clayton1978]": {
-   "audited_at": "2026-11-17T19:41:11+00:00",
+   "audited_at": "2026-11-17T22:48:47+00:00",
    "deps": "65c2710604e02a76",
    "hash": "36f7e767ebff8580",
    "open_findings": 0,
-   "run": "44146480855"
+   "run": "44173489712"
   },
   "R/EDI/REFERENCES.md#[Dinkelbach1967]": {
    "audited_at": "2026-11-17T19:41:11+00:00",
@@ -890,6 +890,244 @@
    "hash": "482f15a75485d94d",
    "open_findings": 0,
    "run": "44146480855"
+  },
+  "R/EDI/REFERENCES.md#[KaplanMeier1958]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "526ded055a4793eb",
+   "hash": "3940255e36873a23",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[KoenkerBassett1978]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "5cb1835e221f948c",
+   "hash": "5ec088dfbf70528d",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[KriegerAzrielKapelner2019]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "44f5737d47ccbdd5",
+   "hash": "7d8c556f6d9a0653",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Lambert1992]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "6e1189d408dab719",
+   "hash": "a3218b8f4483d0a9",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[LeeWeiAmato1992]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "cecf478972ef7815",
+   "hash": "32b22d62f2cab51a",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[LiangZeger1986]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "f84b579d4960d898",
+   "hash": "e5a43f22d537437e",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Lin2013]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "26b0c74785763da6",
+   "hash": "5047f33fa151af50",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[MacKinnonWhite1985]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "17dddc99099af5ef",
+   "hash": "7f9aa0a93a79d37f",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[McCullagh1980]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "c96a2cb23b8c2e22",
+   "hash": "a8014849de610c1b",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[MiddletonAronow2015]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "c6514d1f7a1dbea2",
+   "hash": "d7aceb553c206ae5",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[MiettinenNurminen1985]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "79d994fd5f3d29a3",
+   "hash": "5fa492498db42735",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[MorganRubin2012]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "4d458e6427e5f9d9",
+   "hash": "8aece315eb87d1b9",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Mullahy1986]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "25bd9534bce09b12",
+   "hash": "ad46aea0c93230f0",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Newcombe1998]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "5cf030cc73126d72",
+   "hash": "ed7f020512a39528",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Oakes1989]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "8c3951c0db9b719b",
+   "hash": "ec6520ebadab9995",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[OspinaFerrari2010]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "6b0bc2e9921da01a",
+   "hash": "b4d56f598744058b",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[PapkeWooldridge1996]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "681fabad9e111153",
+   "hash": "9adfdb7a7cb8b804",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[PetersonHarrell1990]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "cbc0bd8aa8c1fac8",
+   "hash": "d474d28a8a578bc1",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[PetoPeto1972]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "73d2071c893d7839",
+   "hash": "a626d4c89c8b068f",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[PinheiroBates1995]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "d152054bd041b00e",
+   "hash": "573cd3af4a148e4a",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Robins1986]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "a819987058c1bcc0",
+   "hash": "f1eba78a41afe899",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[RoystonParmar2013]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "d035a07b4dfcd575",
+   "hash": "14ac31111db20adf",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Student1908]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "6d3ee27b2ed3ae17",
+   "hash": "86afaf818be5a0ae",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Touloumis2015]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "1148c66a96dce854",
+   "hash": "83190841d005aeb2",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Tsiatis1990]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "040ff5ae9a957ef8",
+   "hash": "967514be34bccc8c",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Turnbull1976]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "bbfc3e03c8e4b73b",
+   "hash": "8873f8331830e86d",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Wei1977]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "6300ec86b7f7ef39",
+   "hash": "124faac3eac1e141",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Wei1978]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "41083f9633641979",
+   "hash": "683b7c7e2801b666",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[WeiYingLin1990]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "a42ec1e9d918ea59",
+   "hash": "c1f98e13ec27857b",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Welch1947]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "0bd73a0a0abdae29",
+   "hash": "7e26c6964830e98b",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Wilcoxon1945]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "13be076dd992ef56",
+   "hash": "ee6f86d70d8fe355",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Zelen1974]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "6bd784d231572dea",
+   "hash": "22f11935c83fdad8",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[Zou2004]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "1c1442e7306cc4e2",
+   "hash": "028a4370d9ba1de5",
+   "open_findings": 0,
+   "run": "44173489712"
+  },
+  "R/EDI/REFERENCES.md#[ZouDonner2008]": {
+   "audited_at": "2026-11-17T22:48:47+00:00",
+   "deps": "1bbc68612698510d",
+   "hash": "64604fbdd5477d84",
+   "open_findings": 0,
+   "run": "44173489712"
   }
  }
 }
