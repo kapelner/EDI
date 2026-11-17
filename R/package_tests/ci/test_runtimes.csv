@@ -198,6 +198,7 @@ R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-covariate-imputation-ignores-outcome.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-cox-bartlett-approx-remains-disabled-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-cox-cached-constrained-risk-set-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1749,6 +1750,7 @@ R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-covariate-imputation-ignores-outcome.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-cox-bartlett-approx-remains-disabled-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-cox-cached-constrained-risk-set-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,coverage,1,measured_with_30_percent_headroom
