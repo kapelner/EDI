@@ -3424,21 +3424,25 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #'
 #' Fits a robust linear regression by iteratively reweighted least squares (IRLS),
 #' minimizing \eqn{\sum_i \rho(r_i / \hat\sigma)} for residuals \eqn{r_i = y_i -
-#' x_i^\top\beta} and a fixed robustness scale \eqn{\hat\sigma}, rather than
+#' x_i^\top\beta} and a robustness scale \eqn{\hat\sigma}, rather than
 #' ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
 #' weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
 #' otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
 #' any other value of \code{method} (including the default, \code{"MM"}) uses
 #' \strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
 #' and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
-#' this exported wrapper, though the internal fitter accepts it). The scale
-#' \eqn{\hat\sigma} is fixed once at the start as the normalized median absolute
-#' deviation of the OLS residuals, \eqn{\hat\sigma = \mathrm{median}(|r_i|) /
-#' 0.6745} (the internal fitter also accepts a caller-supplied fixed scale, but
-#' this wrapper always estimates it). Each IRLS iteration re-weights and re-solves
-#' the weighted normal equations \eqn{X^\top W X\, \beta = X^\top W y} via
-#' \code{Eigen::LDLT}; convergence is declared when the relative change in
-#' \eqn{\beta} falls below \code{tol}. Column 1 of a real design typically holds
+#' this exported wrapper, though the internal fitter accepts it). The scale is the
+#' normalized median absolute deviation of the current residuals,
+#' \eqn{\hat\sigma = \mathrm{median}(|r_i|) / 0.6745}. For \code{method = "M"} it is
+#' re-estimated at the start of every IRLS iteration and convergence is declared when
+#' the relative change in the residual vector, \eqn{\|r_{old} - r\| / \|r_{old}\|}, is at
+#' most \code{tol}: this is exactly \code{MASS::rlm(method = "M", scale.est = "MAD",
+#' test.vec = "resid")}, with \code{tol} playing the role of \code{acc}. For
+#' \code{"MM"} the scale is fixed once at the start value and convergence is declared
+#' when the relative change in \eqn{\beta} falls below \code{tol}. (The internal
+#' fitter also accepts a caller-supplied fixed scale, but this wrapper always
+#' estimates it.) Each IRLS iteration re-weights and re-solves the weighted normal
+#' equations \eqn{X^\top W X\, \beta = X^\top W y} via \code{Eigen::LDLT}. Column 1 of a real design typically holds
 #' the intercept, but no columns are treated specially except via \code{fixed_idx}.
 #'
 #' @section Fixed parameters, warm starts:
@@ -3463,7 +3467,8 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 #' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 #' @param maxit Maximum number of IRLS iterations.
-#' @param tol Relative parameter-change convergence tolerance.
+#' @param tol Convergence tolerance: relative residual change for \code{"M"} (as
+#'   \code{MASS::rlm}'s \code{acc}), relative coefficient change for \code{"MM"}.
 #' @param fixed_idx Optional indices of fixed parameters.
 #' @param fixed_values Optional values for fixed parameters.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
@@ -3472,15 +3477,16 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.
 #'
 #' @return If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
-#'   (the fixed MAD-based robustness scale \eqn{\hat\sigma}), \code{converged}, \code{iterations}.
+#'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{iterations}.
 #'   Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
 #'   \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
 #'   or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance
-#'   \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \left(\frac{n}{n-p}\right) \frac{\sum_i
+#'   \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \kappa^2 \left(\frac{n}{n-p}\right) \frac{\sum_i
 #'   \psi(r_i)^2}{n\,\bar\psi'^2} \, [(X^\top X)^{-1}]_{jj}}, where \eqn{\psi} is the
-#'   derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}) and \eqn{\bar\psi'} is
-#'   the mean of \eqn{\psi'} across observations, matching the classical Huber (1981)
-#'   sandwich-free M-estimator variance formula; \code{NA} if \code{j} indexes a fixed
+#'   derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}), \eqn{\bar\psi'} is
+#'   the mean of \eqn{\psi'} across observations and \eqn{\kappa = 1 + p\,\mathrm{Var}(\psi') /
+#'   (n\,\bar\psi'^2)} is Huber's (1981) small-sample correction, the same formula as
+#'   \code{summary(MASS::rlm(...))} (default \code{method = "XtX"}); \code{NA} if \code{j} indexes a fixed
 #'   coefficient or the fit neither converged nor exhausted \code{maxit}.
 #' @export
 #' @keywords internal
