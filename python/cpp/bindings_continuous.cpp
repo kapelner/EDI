@@ -178,7 +178,7 @@ void bind_continuous(py::module_& m) {
     "    (Tukey bisquare weighting, constant fixed at 4.685, with a fixed MAD-based scale).\n"
     "j : int, default 2\n"
     "    1-based index of the coefficient for which to return an individual variance\n"
-    "    (ssq_b_j in the result).\n"
+    "    (not returned by this binding; j currently has no effect on the result).\n"
     "c : float, default 1.345\n"
     "    Huber tuning constant (used for the M-step; the Tukey bisquare tuning\n"
     "    constant used when method is MM is fixed internally at 4.685).\n"
