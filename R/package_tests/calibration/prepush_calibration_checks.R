@@ -282,6 +282,13 @@ if (!n_classes) {
 	quit(status = 0L)
 }
 rows <- do.call(rbind, Filter(Negate(is.null), all_rows))
+# Touched classes that support none of the checked procedures (e.g. exact-only
+# InferenceIncidExactFisher has no wald/score/lik_ratio/gradient) yield no rows.
+if (is.null(rows) || !nrow(rows)) {
+	cat("prepush_calibration: the touched classes support none of the checked procedures (",
+		paste(CAL_METHODS, collapse = "/"), ") -- nothing to check.\n", sep = "")
+	quit(status = 0L)
+}
 fails <- judge(rows)
 cat(sprintf("prepush_calibration: %s%d class(es), %d task rows, %.0f s\n",
 	if (length(response_types) < length(CAL_RESPONSE_TYPES)) paste0(paste(response_types, collapse = "/"), ": ") else "",
