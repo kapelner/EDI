@@ -294,51 +294,51 @@ The base implementation returns \code{FALSE}. Designs that compose
       \item{\code{n}}{The sample size (if fixed).}
       \item{\code{verbose}}{Flag for verbosity.}
       \item{\code{missingness_method}}{How to handle missing values in covariates when building the
-model matrix for inference. One of:
-\describe{
-  \item{\code{"impute"} (default)}{Missing values are filled in using random-forest
-    imputation (\code{missRanger}, falling back to \code{missForest} on failure).
-    Only the covariates are used to impute; the response and the assignment are
-    not, so an imputed covariate stays independent of treatment and adjusting for
-    it does not bias the treatment estimate. The imputation is seeded (this
-    design's \code{seed}, else a fixed seed) without changing the caller's random
-    number stream, so the same covariates always give the same imputed values.
-    This preserves all covariates and all subjects but introduces imputed values
-    that influence inference.
+  model matrix for inference. One of:
+  \describe{
+    \item{\code{"impute"} (default)}{Missing values are filled in using random-forest
+      imputation (\code{missRanger}, falling back to \code{missForest} on failure).
+      Only the covariates are used to impute; the response and the assignment are
+      not, so an imputed covariate stays independent of treatment and adjusting for
+      it does not bias the treatment estimate. The imputation is seeded (this
+      design's \code{seed}, else a fixed seed) without changing the caller's random
+      number stream, so the same covariates always give the same imputed values.
+      This preserves all covariates and all subjects but introduces imputed values
+      that influence inference.
 
-    Why the extra imputation variance does not enter: Rubin's between-imputation
-    variance matters when the target parameter is defined through the variable
-    being imputed (such as the coefficient on that covariate), or when the
-    imputations use the outcome. Here the target is the treatment effect, and an
-    imputed covariate is only an adjustment covariate. It is a function of
-    baseline data alone (the observed covariates, the missingness pattern and the
-    seed), so it is independent of the randomized assignment. In a randomized
-    experiment, adjusting for any such covariate, even a poorly chosen one, gives
-    a consistent estimate of the effect with a large-sample valid (at worst
-    conservative) standard error (Freedman 2008; Lin 2013). A different
-    imputation draw amounts to a different choice of adjustment covariate: the
-    estimate moves, but each choice's interval covers at the nominal rate, so
-    coverage holds overall. A noisier imputation costs precision (a wider
-    interval), not coverage. In simulation (\code{InferenceContinOLS},
-    n = 200, a covariate missing at random depending on another covariate,
-    600 trials each with a fresh imputation seed), 95\% intervals covered
-    95.8\% (linear outcome) and 94.5\% (nonlinear outcome), and on one dataset
-    the estimate's spread across imputation seeds was 0.5\% of its standard
-    error. This argument needs the imputation to ignore the outcome and the
-    assignment, as it does here. See Freedman, D. A. (2008), "On regression
-    adjustments to experimental data", \emph{Advances in Applied Mathematics},
-    40(2), 180-193, \doi{10.1016/j.aam.2006.12.003}; and Lin, W. (2013),
-    "Agnostic notes on regression adjustments to experimental data:
-    Reexamining Freedman's critique", \emph{The Annals of Applied Statistics},
-    7(1), 295-318, \doi{10.1214/12-AOAS583}.}
-  \item{\code{"drop_column"}}{Any covariate column that contains at least one
-    missing value is dropped entirely from the model matrix before inference.
-    No values are invented; the remaining complete columns are used as-is.
-    This is conservative but transparent.}
-  \item{\code{"error"}}{An error is thrown as soon as any missing value is
-    detected in the covariate matrix. Use this when you want to guarantee that
-    inference runs on exactly the data you supplied, with no silent modification.}
-}}
+      Why the extra imputation variance does not enter: Rubin's between-imputation
+      variance matters when the target parameter is defined through the variable
+      being imputed (such as the coefficient on that covariate), or when the
+      imputations use the outcome. Here the target is the treatment effect, and an
+      imputed covariate is only an adjustment covariate. It is a function of
+      baseline data alone (the observed covariates, the missingness pattern and the
+      seed), so it is independent of the randomized assignment. In a randomized
+      experiment, adjusting for any such covariate, even a poorly chosen one, gives
+      a consistent estimate of the effect with a large-sample valid (at worst
+      conservative) standard error (Freedman 2008; Lin 2013). A different
+      imputation draw amounts to a different choice of adjustment covariate: the
+      estimate moves, but each choice's interval covers at the nominal rate, so
+      coverage holds overall. A noisier imputation costs precision (a wider
+      interval), not coverage. In simulation (\code{InferenceContinOLS},
+      n = 200, a covariate missing at random depending on another covariate,
+      600 trials each with a fresh imputation seed), 95\% intervals covered
+      95.8\% (linear outcome) and 94.5\% (nonlinear outcome), and on one dataset
+      the estimate's spread across imputation seeds was 0.5\% of its standard
+      error. This argument needs the imputation to ignore the outcome and the
+      assignment, as it does here. See Freedman, D. A. (2008), "On regression
+      adjustments to experimental data", \emph{Advances in Applied Mathematics},
+      40(2), 180-193, \doi{10.1016/j.aam.2006.12.003}; and Lin, W. (2013),
+      "Agnostic notes on regression adjustments to experimental data:
+      Reexamining Freedman's critique", \emph{The Annals of Applied Statistics},
+      7(1), 295-318, \doi{10.1214/12-AOAS583}.}
+    \item{\code{"drop_column"}}{Any covariate column that contains at least one
+      missing value is dropped entirely from the model matrix before inference.
+      No values are invented; the remaining complete columns are used as-is.
+      This is conservative but transparent.}
+    \item{\code{"error"}}{An error is thrown as soon as any missing value is
+      detected in the covariate matrix. Use this when you want to guarantee that
+      inference runs on exactly the data you supplied, with no silent modification.}
+  }}
       \item{\code{design_formula}}{A formula object used to create the design matrix from
 covariates. Default is \code{~ .}.}
       \item{\code{ordinal_levels}}{If the response type is "ordinal", the labels for the levels.}

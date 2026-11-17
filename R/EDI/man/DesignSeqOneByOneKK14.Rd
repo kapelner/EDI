@@ -22,11 +22,13 @@ set to 0 for that subject) — matching does not begin until enough subjects hav
 accumulated to estimate a stable covariate covariance structure.
 
 \strong{Matching test.} Once past burn-in, for new subject \eqn{t} with covariate
-vector \eqn{x_t}, the squared Mahalanobis distance (via
-\code{compute_proportional_mahal_distances_cpp()}, using the sample covariance of
-all prior subjects' covariates, ridge-regularized by \code{.Machine$double.eps}) to
-every subject currently in the reservoir is computed, and the closest one is a
-candidate match. The match is \strong{accepted} only if that squared distance falls
+vector \eqn{x_t}, the Hotelling statistic
+\eqn{T^2 = \frac{1}{2}(x_t - x_j)^\top S^{-1}(x_t - x_j)} (half the squared
+Mahalanobis distance, since the difference of two exchangeable subjects has
+covariance \eqn{2\Sigma}; \eqn{S} is the sample covariance of all prior subjects'
+covariates, lightly ridge-regularized) to every subject \eqn{j} currently in the
+reservoir is computed, and the closest one is a candidate match. The match is
+\strong{accepted} only if that \eqn{T^2} falls
 below a threshold \eqn{T^2_{\mathrm{cutoff}}} derived from an F critical value,
 \deqn{T^2_{\mathrm{cutoff}} = \frac{p(n-1)}{n-p} \, F_{p,\, t-p}(\lambda),}
 where \eqn{p} is the rank of the covariate matrix so far, \eqn{n} is the design's
