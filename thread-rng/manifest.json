@@ -1,6 +1,6 @@
 {
- "last_run": "2026-11-17T10:54:48+00:00",
- "open_pr": 32,
+ "last_run": "2026-11-17T19:58:20+00:00",
+ "open_pr": 42,
  "units": {
   "R/EDI/R/contracts_mixins.R": {
    "audited_at": "2026-11-17T10:54:48+00:00",
@@ -169,6 +169,174 @@
    "hash": "03fcdb09fb319c4f",
    "open_findings": 0,
    "run": "44048330115"
+  },
+  "R/EDI/R/inference_mixin_kk_passthrough.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "2a9c0d87a4a77863",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/inference_ordinal_stereotype_logit.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "6fe073fcf0c26e43",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/inference_proportion_gcomp.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "0013753608b5abcd",
+   "open_findings": 1,
+   "run": "44146508363"
+  },
+  "R/EDI/R/inference_suite.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "8bef8b56912cde79",
+   "open_findings": 1,
+   "run": "44146508363"
+  },
+  "R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "83a7c84096af7125",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/local_machine_tuning.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "7745022418d8afa7",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/local_machine_tuning_axes.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "b1e2ede8c9c65378",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/local_machine_tuning_persistence.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "575ff31131cffb85",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/local_machine_tuning_synthetic_fixtures.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "ff82b6011fec8081",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/R/simulations_framework.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "704a8060bc4547a4",
+   "open_findings": 1,
+   "run": "44146508363"
+  },
+  "R/EDI/R/zzz.R": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "8928224137676079",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/RNG.h": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "2c0db7ee9a7e587b",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/_helper_functions_core.h": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "132cbb15c9907dc1",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/atkinson_assign.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "c3565ee6ed000e91",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/binary_match_search.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "b3b95a1b3366f747",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/bootstrap_indices.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "53f4b6f52385abf0",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/bootstrap_match_indices.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "08510aa063e53592",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/design_fixed_greedy.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "6fa5a5e35a7c351c",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/design_optimal_annealing_search.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "e35001f8931b0014",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/edi_simd.h": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "693b45ce386598f3",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/exchangeable_resampling_draws.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "072522c08190b529",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/fast_adjacent_category_logit.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "601d33cf914db353",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/fast_bai_parallel.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "d57527989c1bdb2c",
+   "open_findings": 0,
+   "run": "44146508363"
+  },
+  "R/EDI/src/fast_coxph_regression.cpp": {
+   "audited_at": "2026-11-17T19:58:20+00:00",
+   "deps": null,
+   "hash": "350af67d54f242b9",
+   "open_findings": 0,
+   "run": "44146508363"
   }
  }
 }
