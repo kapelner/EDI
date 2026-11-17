@@ -4,7 +4,7 @@
 #' shallow design hierarchy (see \code{fix_design_hierarchy.md}). It is intentionally
 #' separated from R6 generator environments so metadata can be validated without
 #' instantiating design classes. \code{direct_components} is populated from the
-#' resolved component set \code{define_design_class()} stashes on each generator it
+#' unexpanded component list \code{define_design_class()} stashes on each generator it
 #' builds (\code{design_class_factory.R}); a generator built with plain
 #' \code{R6::R6Class()} instead (not yet migrated) has no such attribute and reads
 #' as \code{character()}.
@@ -42,7 +42,7 @@ EDI_DESIGN_ABSTRACT_CLASS_NAMES = c(
 # is()/inherits() class-name dispatch at inference/simulation call sites (see
 # fix_design_hierarchy.md, "Evidence of the Problem" item 5 and "Class-Identity
 # Dispatch Replacement" TODOs). Every concrete/extension-base design maps to exactly
-# one value; the five unsplit-or-timing-root abstract bases map to NA (no single
+# one value; the three unsplit-or-timing-root abstract bases map to NA (no single
 # mechanism -- that's what makes them bases).
 EDI_DESIGN_RANDOMIZATION_FAMILY_BY_NAME = c(
 	DesignFixedBernoulli = "bernoulli",
@@ -441,10 +441,10 @@ clear_design_effective_metadata_cache = function() {
 	invisible(TRUE)
 }
 
-# No DesignComponent registry exists yet (see fix_design_hierarchy.md's "Component
-# Registry"/"Component Extraction" TODOs, not yet implemented) -- direct_components is
-# always character() today, so this just walks the metadata chain for a future-proof
-# shape. Once components exist, this gets the same dependency-resolution treatment as
+# Walks the metadata chain root-first, resolving each class's direct_components (read
+# from the generator by infer_design_direct_components()) against the DesignComponent
+# registry; a class may not re-list a component its parent already has. Dependencies get
+# the same dependency-resolution treatment as
 # resolve_inference_components().
 resolve_design_components = function(name) {
 	metadata = get_design_class_metadata(name)
@@ -481,8 +481,8 @@ get_effective_design_components = function(name) {
 	components
 }
 
-# Until real DesignComponent()s exist, effective capabilities are just the
-# class-owned scalars restated as named booleans/strings so callers have one query
+# Effective capabilities are the union of provides_capabilities over the effective
+# components, so callers have one query
 # surface (design_obj$supports("blocking")/randomization_family()/etc. get built on
 # top of this once the public Design$capabilities()/supports() API lands -- that's a
 # later TODO section, not this one).
@@ -498,7 +498,7 @@ get_effective_design_capabilities = function(name) {
 	capabilities
 }
 
-# Reads back the resolved component set define_design_class() stashed on the
+# Reads back the direct (unexpanded) component list define_design_class() stashed on the
 # generator (see its own comment). Plain R6::R6Class()-built generators (not
 # yet migrated onto define_design_class()) carry no such attribute -- character()
 # for those, same as before this existed.
