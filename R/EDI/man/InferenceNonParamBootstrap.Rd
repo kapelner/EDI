@@ -788,7 +788,7 @@ Any non-\code{NULL} value is rejected for designs outside that blocking family.}
       \item{\code{delta}}{Null hypothesis value. Default 0.}
       \item{\code{B}}{Number of bootstrap samples. Default 501.}
       \item{\code{type}}{Bootstrap p-value type. Supported values are
-\code{"percentile"} (default), \code{"symmetric"}, \code{"studentized"},
+\code{"percentile"}, \code{"symmetric"}, \code{"studentized"},
 \code{"bootstrap-t"}, and \code{"bca"}.
 \code{"percentile"}: shifts the bootstrap distribution to be centred at
 \code{delta} and counts the two-tail proportion (Hall 1992).
