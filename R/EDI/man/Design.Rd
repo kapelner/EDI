@@ -84,7 +84,7 @@ stream. Randomization p-values/CIs draw their permutations from a
 \code{Inference$set_seed()} and \code{clear_randomization_cache()}.
 
 \strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
-once, inside \code{maybe_set_seed()} at construction time, and is
+once per call, inside \code{maybe_set_seed()} (at construction for sequential designs, on each draw for fixed ones), and is
 \emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
 after a reload therefore draws from whatever the global
 \code{.Random.seed} happens to be in the new session, not a deterministic

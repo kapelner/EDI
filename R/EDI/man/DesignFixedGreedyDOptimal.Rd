@@ -113,7 +113,7 @@ linear model with an intercept are the same goal.
 The two classes give different draws when:
 \itemize{
   \item \code{prob_T} is not 0.5 (or \eqn{n} is odd). \code{DesignFixedGreedy}
-    refuses these; this class runs them. The identity above holds for any fixed
+    also accepts these (any prob_T in (0, 1)); the identity above holds for any fixed
     \eqn{n_T}, so this class is then the Mahalanobis-balancing greedy search at an
     unequal allocation.
   \item \code{objective = "A"} with \code{interest = "all"} or a covariate subset.

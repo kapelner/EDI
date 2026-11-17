@@ -40,7 +40,7 @@ The dispatcher checks the inference class name against
   near-canonical link (Poisson, quasi-Poisson, robust Poisson, various incidence
   models) default to \code{"irls"}, most non-canonical-link and ordinal/survival
   models default to \code{"lbfgs"}, and stratified Cox PH and most matched
-  (\code{KK*GLMM}-adjacent) models default to \code{"newton_raphson"}.
+  (\code{InferenceCountKKGLMM} only; other \code{KK*GLMM} classes use \code{"lbfgs"}) models default to \code{"newton_raphson"}.
 }
 \examples{
 get_optimization_dispatch_policy()
