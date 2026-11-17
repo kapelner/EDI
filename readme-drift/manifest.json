@@ -1,0 +1,76 @@
+{
+ "issue_hash": "8df7c5c2f1f117ff",
+ "last_run": "2026-11-17T10:27:51+00:00",
+ "units": {
+  "R/EDI/README.md": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "8ea6e3bb6991ee80",
+   "hash": "0e3bb56f2622f364",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/EDI.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "f5b434cf0241c67d",
+   "hash": "ab9ad0012643eafa",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/articles/learn-statistics-through-edi.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "569091cc2ee28224",
+   "hash": "f23e91bc90759868",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-continuous.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "fc291eb72d46e88f",
+   "hash": "d0982f85c04cbadd",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-count.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "fe1815c1000c12a2",
+   "hash": "5a4b58727f7208b2",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-incidence.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "2d02a3f095b2844b",
+   "hash": "eaee78fe3afb7eac",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-ordinal.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "4c1dd9f560355702",
+   "hash": "3f34043962242fc6",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-proportion.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "1ec7a9c3345fadb4",
+   "hash": "65591b9fa26402c9",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/cookbook-survival.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "6901487c035f6a87",
+   "hash": "350910ed59e8ba68",
+   "open_findings": 0,
+   "run": "44048303784"
+  },
+  "R/EDI/vignettes/extending-edi.Rmd": {
+   "audited_at": "2026-11-17T10:27:51+00:00",
+   "deps": "65e541b76139430d",
+   "hash": "43f6367db8318136",
+   "open_findings": 0,
+   "run": "44048303784"
+  }
+ }
+}
