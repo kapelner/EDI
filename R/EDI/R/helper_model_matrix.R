@@ -13,7 +13,7 @@
 #'
 #' @details
 #' \strong{What it does.} (1) If \code{data} has zero columns, returns a numeric
-#' \code{nrow(data) x 0} matrix immediately (no covariates to expand). (2) Otherwise calls
+#' \code{nrow(data) x 0} matrix (logical storage) immediately (no covariates to expand). (2) Otherwise calls
 #' \code{\link[stats]{model.matrix}(formula, data = data)}, which performs standard
 #' formula expansion: factor variables are dummy-coded against their reference level (the
 #' first level of \code{\link[base]{levels}}, or the level ordering already present in

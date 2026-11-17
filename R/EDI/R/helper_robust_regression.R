@@ -180,7 +180,7 @@ robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, di
 				dist = dist,
 				init = init,
 				control = 	survival::survreg.control(
-								maxiter = 100,			#default
+								maxiter = 100,			#survreg default is 30
 								rel.tolerance = 1e-9, 	#default
 								outer.max = 10			#default
 							)

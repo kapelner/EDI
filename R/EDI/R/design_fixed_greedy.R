@@ -131,7 +131,7 @@ DesignFixedGreedy = define_design_class(
 			if (!is.numeric(prob_T) || length(prob_T) != 1L || !is.finite(prob_T) || prob_T <= 0 || prob_T >= 1) {
 				stop("prob_T must be a single number strictly between 0 and 1.")
 			}
-			# GED availability is checked lazily in draw_ws_according_to_design so
+			# (No GED/JVM availability check is made here; the search is native C++.)
 			# that workers using pre-computed w vectors never trigger a JVM load.
 			if (should_run_asserts()) {
 				if (!is.infinite(n_iter) && (!is.numeric(n_iter) || length(n_iter) != 1L || n_iter <= 0 || n_iter != floor(n_iter)))
