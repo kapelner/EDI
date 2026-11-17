@@ -1,0 +1,1375 @@
+{
+ "10.1002/(sici)1097-0258(19980430)17:8<873::aid-sim779>3.0.co;2-i": {
+  "doi": "10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1002/(sici)1097-0258(19980430)17:8<873::aid-sim779>3.0.co;2-i",
+   "authors": [
+    "Robert G. Newcombe"
+   ],
+   "container": "Statistics in Medicine",
+   "issue": "8",
+   "issued": 1998,
+   "n_authors": 1,
+   "page": "873-890",
+   "published-online": null,
+   "published-print": 1998,
+   "subtitle": "",
+   "title": "Interval estimation for the difference between independent proportions: comparison of eleven methods",
+   "type": "journal-article",
+   "volume": "17"
+  },
+  "status": "ok"
+ },
+ "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1": {
+  "doi": "10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1",
+   "authors": [
+    "Leslie E. Papke",
+    "Jeffrey M. Wooldridge"
+   ],
+   "container": "Journal of Applied Econometrics",
+   "issue": "6",
+   "issued": 1996,
+   "n_authors": 2,
+   "page": "619-632",
+   "published-online": null,
+   "published-print": 1996,
+   "subtitle": "",
+   "title": "Econometric methods for fractional response variables with an application to 401(k) plan participation rates",
+   "type": "journal-article",
+   "volume": "11"
+  },
+  "status": "ok"
+ },
+ "10.1002/sim.3095": {
+  "doi": "10.1002/sim.3095",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1002/sim.3095",
+   "authors": [
+    "G. Y. Zou",
+    "A. Donner"
+   ],
+   "container": "Statistics in Medicine",
+   "issue": "10",
+   "issued": 2007,
+   "n_authors": 2,
+   "page": "1693-1702",
+   "published-online": 2007,
+   "published-print": 2008,
+   "subtitle": "",
+   "title": "Construction of confidence limits about effect measures: A general approach",
+   "type": "journal-article",
+   "volume": "27"
+  },
+  "status": "ok"
+ },
+ "10.1002/sim.4780040211": {
+  "doi": "10.1002/sim.4780040211",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1002/sim.4780040211",
+   "authors": [
+    "Olli Miettinen",
+    "Markku Nurminen"
+   ],
+   "container": "Statistics in Medicine",
+   "issue": "2",
+   "issued": 1985,
+   "n_authors": 2,
+   "page": "213-226",
+   "published-online": 2006,
+   "published-print": 1985,
+   "subtitle": "",
+   "title": "Comparative analysis of two rates",
+   "type": "journal-article",
+   "volume": "4"
+  },
+  "status": "ok"
+ },
+ "10.1007/978-1-4612-1304-8": {
+  "doi": "10.1007/978-1-4612-1304-8",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1007/978-1-4612-1304-8",
+   "authors": [
+    "Philip Hougaard"
+   ],
+   "container": "Statistics for Biology and Health",
+   "issue": null,
+   "issued": 2000,
+   "n_authors": 1,
+   "page": null,
+   "published-online": null,
+   "published-print": 2000,
+   "subtitle": "",
+   "title": "Analysis of Multivariate Survival Data",
+   "type": "book",
+   "volume": null
+  },
+  "status": "ok"
+ },
+ "10.1007/978-94-015-7983-4_14": {
+  "doi": "10.1007/978-94-015-7983-4_14",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1007/978-94-015-7983-4_14",
+   "authors": [
+    "Eric W. Lee",
+    "L. J. Wei",
+    "David A. Amato",
+    "Sue Leurgans"
+   ],
+   "container": "Survival Analysis: State of the Art",
+   "issue": null,
+   "issued": 1992,
+   "n_authors": 4,
+   "page": "237-247",
+   "published-online": null,
+   "published-print": 1992,
+   "subtitle": "",
+   "title": "Cox-Type Regression Analysis for Large Numbers of Small Groups of Correlated Failure Time Observations",
+   "type": "book-chapter",
+   "volume": null
+  },
+  "status": "ok"
+ },
+ "10.1007/s00362-008-0125-4": {
+  "doi": "10.1007/s00362-008-0125-4",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1007/s00362-008-0125-4",
+   "authors": [
+    "Raydonal Ospina",
+    "Silvia L. P. Ferrari"
+   ],
+   "container": "Statistical Papers",
+   "issue": "1",
+   "issued": 2008,
+   "n_authors": 2,
+   "page": "111-126",
+   "published-online": 2008,
+   "published-print": 2010,
+   "subtitle": "",
+   "title": "Inflated beta distributions",
+   "type": "journal-article",
+   "volume": "51"
+  },
+  "status": "ok"
+ },
+ "10.1016/0021-9681(74)90015-0": {
+  "doi": "10.1016/0021-9681(74)90015-0",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1016/0021-9681(74)90015-0",
+   "authors": [
+    "M. Zelen"
+   ],
+   "container": "Journal of Chronic Diseases",
+   "issue": "7-8",
+   "issued": 1974,
+   "n_authors": 1,
+   "page": "365-375",
+   "published-online": null,
+   "published-print": 1974,
+   "subtitle": "",
+   "title": "The randomization and stratification of patients to clinical trials",
+   "type": "journal-article",
+   "volume": "27"
+  },
+  "status": "ok"
+ },
+ "10.1016/0270-0255(86)90088-6": {
+  "doi": "10.1016/0270-0255(86)90088-6",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1016/0270-0255(86)90088-6",
+   "authors": [
+    "James Robins"
+   ],
+   "container": "Mathematical Modelling",
+   "issue": "9-12",
+   "issued": 1986,
+   "n_authors": 1,
+   "page": "1393-1512",
+   "published-online": null,
+   "published-print": 1986,
+   "subtitle": "",
+   "title": "A new approach to causal inference in mortality studies with a sustained exposure period\u2014application to control of the healthy worker survivor effect",
+   "type": "journal-article",
+   "volume": "7"
+  },
+  "status": "ok"
+ },
+ "10.1016/0304-4076(85)90158-7": {
+  "doi": "10.1016/0304-4076(85)90158-7",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1016/0304-4076(85)90158-7",
+   "authors": [
+    "James G MacKinnon",
+    "Halbert White"
+   ],
+   "container": "Journal of Econometrics",
+   "issue": "3",
+   "issued": 1985,
+   "n_authors": 2,
+   "page": "305-325",
+   "published-online": null,
+   "published-print": 1985,
+   "subtitle": "",
+   "title": "Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties",
+   "type": "journal-article",
+   "volume": "29"
+  },
+  "status": "ok"
+ },
+ "10.1016/0304-4076(86)90002-3": {
+  "doi": "10.1016/0304-4076(86)90002-3",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1016/0304-4076(86)90002-3",
+   "authors": [
+    "John Mullahy"
+   ],
+   "container": "Journal of Econometrics",
+   "issue": "3",
+   "issued": 1986,
+   "n_authors": 1,
+   "page": "341-365",
+   "published-online": null,
+   "published-print": 1986,
+   "subtitle": "",
+   "title": "Specification and testing of some modified count data models",
+   "type": "journal-article",
+   "volume": "33"
+  },
+  "status": "ok"
+ },
+ "10.1017/cbo9780511754098": {
+  "doi": "10.1017/CBO9780511754098",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1017/cbo9780511754098",
+   "authors": [
+    "Roger Koenker"
+   ],
+   "container": "",
+   "issue": null,
+   "issued": 2005,
+   "n_authors": 1,
+   "page": null,
+   "published-online": 2009,
+   "published-print": 2005,
+   "subtitle": "",
+   "title": "Quantile Regression",
+   "type": "monograph",
+   "volume": null
+  },
+  "status": "ok"
+ },
+ "10.1073/pnas.1510504113": {
+  "doi": "10.1073/pnas.1510504113",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1073/pnas.1510504113",
+   "authors": [
+    "Michael J. Higgins",
+    "Fredrik S\u00e4vje",
+    "Jasjeet S. Sekhon"
+   ],
+   "container": "Proceedings of the National Academy of Sciences",
+   "issue": "27",
+   "issued": 2016,
+   "n_authors": 3,
+   "page": "7369-7376",
+   "published-online": 2016,
+   "published-print": 2016,
+   "subtitle": "",
+   "title": "Improving massive experiments with threshold blocking",
+   "type": "journal-article",
+   "volume": "113"
+  },
+  "status": "ok"
+ },
+ "10.1080/01621459.1977.10481006": {
+  "doi": "10.1080/01621459.1977.10481006",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1977.10481006",
+   "authors": [
+    "Stephen J. Finch"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "358",
+   "issued": 1977,
+   "n_authors": 1,
+   "page": "387-392",
+   "published-online": null,
+   "published-print": 1977,
+   "subtitle": "",
+   "title": "Robust Univariate Test of Symmetry",
+   "type": "journal-article",
+   "volume": "72"
+  },
+  "status": "ok"
+ },
+ "10.1080/01621459.1989.10478795": {
+  "doi": "10.1080/01621459.1989.10478795",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1989.10478795",
+   "authors": [
+    "David Oakes"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "406",
+   "issued": 1989,
+   "n_authors": 1,
+   "page": "487-493",
+   "published-online": 2012,
+   "published-print": 1989,
+   "subtitle": "",
+   "title": "Bivariate Survival Models Induced by Frailties",
+   "type": "journal-article",
+   "volume": "84"
+  },
+  "status": "ok"
+ },
+ "10.1080/0266476042000214501": {
+  "doi": "10.1080/0266476042000214501",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/0266476042000214501",
+   "authors": [
+    "Silvia Ferrari",
+    "Francisco Cribari-Neto"
+   ],
+   "container": "Journal of Applied Statistics",
+   "issue": "7",
+   "issued": 2004,
+   "n_authors": 2,
+   "page": "799-815",
+   "published-online": null,
+   "published-print": 2004,
+   "subtitle": "",
+   "title": "Beta Regression for Modelling Rates and Proportions",
+   "type": "journal-article",
+   "volume": "31"
+  },
+  "status": "ok"
+ },
+ "10.1080/10618600.1995.10474663": {
+  "doi": "10.1080/10618600.1995.10474663",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/10618600.1995.10474663",
+   "authors": [
+    "Jos\u00e9 C. Pinheiro",
+    "Douglas M. Bates"
+   ],
+   "container": "Journal of Computational and Graphical Statistics",
+   "issue": "1",
+   "issued": 1995,
+   "n_authors": 2,
+   "page": "12-35",
+   "published-online": null,
+   "published-print": 1995,
+   "subtitle": "",
+   "title": "Approximations to the Log-Likelihood Function in the Nonlinear Mixed-Effects Model",
+   "type": "journal-article",
+   "volume": "4"
+  },
+  "status": "ok"
+ },
+ "10.1093/aje/kwh090": {
+  "doi": "10.1093/aje/kwh090",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/aje/kwh090",
+   "authors": [
+    "G. Zou"
+   ],
+   "container": "American Journal of Epidemiology",
+   "issue": "7",
+   "issued": 2004,
+   "n_authors": 1,
+   "page": "702-706",
+   "published-online": null,
+   "published-print": 2004,
+   "subtitle": "",
+   "title": "A Modified Poisson Regression Approach to Prospective Studies with Binary Data",
+   "type": "journal-article",
+   "volume": "159"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/34.1-2.28": {
+  "doi": "10.1093/biomet/34.1-2.28",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/34.1-2.28",
+   "authors": [
+    "B. L. WELCH"
+   ],
+   "container": "Biometrika",
+   "issue": "1-2",
+   "issued": 1947,
+   "n_authors": 1,
+   "page": "28-35",
+   "published-online": null,
+   "published-print": 1947,
+   "subtitle": "",
+   "title": "THE GENERALIZATION OF \u2018STUDENT'S\u2019 PROBLEM WHEN SEVERAL DIFFERENT POPULATION VARLANCES ARE INVOLVED",
+   "type": "journal-article",
+   "volume": "34"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/41.1-2.133": {
+  "doi": "10.1093/biomet/41.1-2.133",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/41.1-2.133",
+   "authors": [
+    "A. R. JONCKHEERE"
+   ],
+   "container": "Biometrika",
+   "issue": "1-2",
+   "issued": 1954,
+   "n_authors": 1,
+   "page": "133-145",
+   "published-online": null,
+   "published-print": 1954,
+   "subtitle": "",
+   "title": "A DISTRIBUTION-FREE\n                    <i>k</i>\n                    -SAMPLE TEST AGAINST ORDERED ALTERNATIVES",
+   "type": "journal-article",
+   "volume": "41"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/52.1-2.203": {
+  "doi": "10.1093/biomet/52.1-2.203",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/52.1-2.203",
+   "authors": [
+    "E. A. Gehan"
+   ],
+   "container": "Biometrika",
+   "issue": "1-2",
+   "issued": 1965,
+   "n_authors": 1,
+   "page": "203-224",
+   "published-online": null,
+   "published-print": 1965,
+   "subtitle": "",
+   "title": "A generalized Wilcoxon test for comparing arbitrarily singly-censored samples",
+   "type": "journal-article",
+   "volume": "52"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/58.3.403": {
+  "doi": "10.1093/biomet/58.3.403",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/58.3.403",
+   "authors": [
+    "BRADLEY EFRON"
+   ],
+   "container": "Biometrika",
+   "issue": "3",
+   "issued": 1971,
+   "n_authors": 1,
+   "page": "403-417",
+   "published-online": null,
+   "published-print": 1971,
+   "subtitle": "",
+   "title": "Forcing a sequential experiment to be balanced",
+   "type": "journal-article",
+   "volume": "58"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/6.1.1": {
+  "doi": "10.1093/biomet/6.1.1",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2331554",
+   "authors": [
+    "Student"
+   ],
+   "container": "Biometrika",
+   "issue": "1",
+   "issued": 1908,
+   "n_authors": 1,
+   "page": "1",
+   "published-online": null,
+   "published-print": 1908,
+   "subtitle": "",
+   "title": "The Probable Error of a Mean",
+   "type": "journal-article",
+   "volume": "6"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/65.1.141": {
+  "doi": "10.1093/biomet/65.1.141",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/65.1.141",
+   "authors": [
+    "D. G. CLAYTON"
+   ],
+   "container": "Biometrika",
+   "issue": "1",
+   "issued": 1978,
+   "n_authors": 1,
+   "page": "141-151",
+   "published-online": null,
+   "published-print": 1978,
+   "subtitle": "",
+   "title": "A model for association in bivariate life tables and its application in epidemiological studies of familial tendency in chronic disease incidence",
+   "type": "journal-article",
+   "volume": "65"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/69.1.61": {
+  "doi": "10.1093/biomet/69.1.61",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/69.1.61",
+   "authors": [
+    "A. C. ATKINSON"
+   ],
+   "container": "Biometrika",
+   "issue": "1",
+   "issued": 1982,
+   "n_authors": 1,
+   "page": "61-67",
+   "published-online": null,
+   "published-print": 1982,
+   "subtitle": "",
+   "title": "Optimum biased coin designs for sequential clinical trials with prognostic factors",
+   "type": "journal-article",
+   "volume": "69"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/73.1.13": {
+  "doi": "10.1093/biomet/73.1.13",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/73.1.13",
+   "authors": [
+    "KUNG-YEE LIANG",
+    "SCOTT L. ZEGER"
+   ],
+   "container": "Biometrika",
+   "issue": "1",
+   "issued": 1986,
+   "n_authors": 2,
+   "page": "13-22",
+   "published-online": null,
+   "published-print": 1986,
+   "subtitle": "",
+   "title": "Longitudinal data analysis using generalized linear models",
+   "type": "journal-article",
+   "volume": "73"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/77.4.845": {
+  "doi": "10.1093/biomet/77.4.845",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/77.4.845",
+   "authors": [
+    "L. J. WEI",
+    "Z. YING",
+    "D. Y. LIN"
+   ],
+   "container": "Biometrika",
+   "issue": "4",
+   "issued": 1990,
+   "n_authors": 3,
+   "page": "845-851",
+   "published-online": null,
+   "published-print": 1990,
+   "subtitle": "",
+   "title": "Linear regression analysis of censored survival data based on rank tests",
+   "type": "journal-article",
+   "volume": "77"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/90.2.341": {
+  "doi": "10.1093/biomet/90.2.341",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/90.2.341",
+   "authors": [
+    "Z. Jin"
+   ],
+   "container": "Biometrika",
+   "issue": "2",
+   "issued": 2003,
+   "n_authors": 1,
+   "page": "341-353",
+   "published-online": null,
+   "published-print": 2003,
+   "subtitle": "",
+   "title": "Rank-based inference for the accelerated failure time model",
+   "type": "journal-article",
+   "volume": "90"
+  },
+  "status": "ok"
+ },
+ "10.1093/biomet/asz026": {
+  "doi": "10.1093/biomet/asz026",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/asz026",
+   "authors": [
+    "A M Krieger",
+    "D Azriel",
+    "A Kapelner"
+   ],
+   "container": "Biometrika",
+   "issue": "3",
+   "issued": 2019,
+   "n_authors": 3,
+   "page": "695-701",
+   "published-online": 2019,
+   "published-print": 2019,
+   "subtitle": "",
+   "title": "Nearly random designs with greatly improved balance",
+   "type": "journal-article",
+   "volume": "106"
+  },
+  "status": "ok"
+ },
+ "10.1093/biostatistics/5.2.263": {
+  "doi": "10.1093/biostatistics/5.2.263",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biostatistics/5.2.263",
+   "authors": [
+    "R. Greevy"
+   ],
+   "container": "Biostatistics",
+   "issue": "2",
+   "issued": 2004,
+   "n_authors": 1,
+   "page": "263-275",
+   "published-online": null,
+   "published-print": 2004,
+   "subtitle": "",
+   "title": "Optimal multivariate matching before randomization",
+   "type": "journal-article",
+   "volume": "5"
+  },
+  "status": "ok"
+ },
+ "10.1111/biom.12148": {
+  "doi": "10.1111/biom.12148",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1111/biom.12148",
+   "authors": [
+    "Adam Kapelner",
+    "Abba Krieger"
+   ],
+   "container": "Biometrics",
+   "issue": "2",
+   "issued": 2014,
+   "n_authors": 2,
+   "page": "378-388",
+   "published-online": 2014,
+   "published-print": 2014,
+   "subtitle": "",
+   "title": "Matching on\u2010the\u2010fly: Sequential allocation with higher power and efficiency",
+   "type": "journal-article",
+   "volume": "70"
+  },
+  "status": "ok"
+ },
+ "10.1111/j.2517-6161.1976.tb01597.x": {
+  "doi": "10.1111/j.2517-6161.1976.tb01597.x",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1111/j.2517-6161.1976.tb01597.x",
+   "authors": [
+    "Bruce W. Turnbull"
+   ],
+   "container": "Journal of the Royal Statistical Society Series B: Statistical Methodology",
+   "issue": "3",
+   "issued": 1976,
+   "n_authors": 1,
+   "page": "290-295",
+   "published-online": 2018,
+   "published-print": 1976,
+   "subtitle": "",
+   "title": "The Empirical Distribution Function with Arbitrarily Grouped, Censored and Truncated Data",
+   "type": "journal-article",
+   "volume": "38"
+  },
+  "status": "ok"
+ },
+ "10.1111/j.2517-6161.1980.tb01109.x": {
+  "doi": "10.1111/j.2517-6161.1980.tb01109.x",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1111/j.2517-6161.1980.tb01109.x",
+   "authors": [
+    "Peter McCullagh"
+   ],
+   "container": "Journal of the Royal Statistical Society Series B: Statistical Methodology",
+   "issue": "2",
+   "issued": 1980,
+   "n_authors": 1,
+   "page": "109-127",
+   "published-online": 2018,
+   "published-print": 1980,
+   "subtitle": "",
+   "title": "Regression Models for Ordinal Data",
+   "type": "journal-article",
+   "volume": "42"
+  },
+  "status": "ok"
+ },
+ "10.1111/j.2517-6161.1984.tb01276.x": {
+  "doi": "10.1111/j.2517-6161.1984.tb01276.x",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1111/j.2517-6161.1984.tb01276.x",
+   "authors": [
+    "Katsuto Tanaka"
+   ],
+   "container": "Journal of the Royal Statistical Society Series B: Statistical Methodology",
+   "issue": "1",
+   "issued": 1984,
+   "n_authors": 1,
+   "page": "58-67",
+   "published-online": 2018,
+   "published-print": 1984,
+   "subtitle": "",
+   "title": "An Asymptotic Expansion Associated with the Maximum Likelihood Estimators in Arma Models",
+   "type": "journal-article",
+   "volume": "46"
+  },
+  "status": "ok"
+ },
+ "10.1186/1471-2288-13-152": {
+  "doi": "10.1186/1471-2288-13-152",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1186/1471-2288-13-152",
+   "authors": [
+    "Patrick Royston",
+    "Mahesh KB Parmar"
+   ],
+   "container": "BMC Medical Research Methodology",
+   "issue": "1",
+   "issued": 2013,
+   "n_authors": 2,
+   "page": null,
+   "published-online": 2013,
+   "published-print": 2013,
+   "subtitle": "",
+   "title": "Restricted mean survival time: an alternative to the hazard ratio for the design and analysis of randomized trials with a time-to-event outcome",
+   "type": "journal-article",
+   "volume": "13"
+  },
+  "status": "ok"
+ },
+ "10.1214/12-aoas583": {
+  "doi": "10.1214/12-AOAS583",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/12-aoas583",
+   "authors": [
+    "Winston Lin"
+   ],
+   "container": "The Annals of Applied Statistics",
+   "issue": "1",
+   "issued": 2013,
+   "n_authors": 1,
+   "page": "295-318",
+   "published-online": null,
+   "published-print": 2013,
+   "subtitle": "",
+   "title": "Agnostic notes on regression adjustments to experimental data: Reexamining Freedman\u2019s critique",
+   "type": "journal-article",
+   "volume": "7"
+  },
+  "status": "ok"
+ },
+ "10.1214/12-aos1008": {
+  "doi": "10.1214/12-AOS1008",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/12-aos1008",
+   "authors": [
+    "Kari Lock Morgan",
+    "Donald B. Rubin"
+   ],
+   "container": "The Annals of Statistics",
+   "issue": "2",
+   "issued": 2012,
+   "n_authors": 2,
+   "page": "1263-1282",
+   "published-online": null,
+   "published-print": 2012,
+   "subtitle": "",
+   "title": "Rerandomization to improve covariate balance in experiments",
+   "type": "journal-article",
+   "volume": "40"
+  },
+  "status": "ok"
+ },
+ "10.1214/aoms/1177704172": {
+  "doi": "10.1214/aoms/1177704172",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/aoms/1177704172",
+   "authors": [
+    "J. L. Hodges",
+    "E. L. Lehmann"
+   ],
+   "container": "The Annals of Mathematical Statistics",
+   "issue": "2",
+   "issued": 1963,
+   "n_authors": 2,
+   "page": "598-611",
+   "published-online": null,
+   "published-print": 1963,
+   "subtitle": "",
+   "title": "Estimates of Location Based on Rank Tests",
+   "type": "journal-article",
+   "volume": "34"
+  },
+  "status": "ok"
+ },
+ "10.1214/aos/1176344068": {
+  "doi": "10.1214/aos/1176344068",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/aos/1176344068",
+   "authors": [
+    "L. J. Wei"
+   ],
+   "container": "The Annals of Statistics",
+   "issue": "1",
+   "issued": 1978,
+   "n_authors": 1,
+   "page": "92-100",
+   "published-online": null,
+   "published-print": 1978,
+   "subtitle": "",
+   "title": "The Adaptive Biased Coin Design for Sequential Experiments",
+   "type": "journal-article",
+   "volume": "6"
+  },
+  "status": "ok"
+ },
+ "10.1214/aos/1176347504": {
+  "doi": "10.1214/aos/1176347504",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/aos/1176347504",
+   "authors": [
+    "Anastasios A. Tsiatis"
+   ],
+   "container": "The Annals of Statistics",
+   "issue": "1",
+   "issued": 1990,
+   "n_authors": 1,
+   "page": "354-372",
+   "published-online": null,
+   "published-print": 1990,
+   "subtitle": "",
+   "title": "Estimating Regression Parameters Using Linear Rank Tests for Censored Data",
+   "type": "journal-article",
+   "volume": "18"
+  },
+  "status": "ok"
+ },
+ "10.1214/aos/1176347963": {
+  "doi": "10.1214/aos/1176347963",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1214/aos/1176347963",
+   "authors": [
+    "Jerome H. Friedman"
+   ],
+   "container": "The Annals of Statistics",
+   "issue": "1",
+   "issued": 1991,
+   "n_authors": 1,
+   "page": "1-67",
+   "published-online": null,
+   "published-print": 1991,
+   "subtitle": "",
+   "title": "Multivariate Adaptive Regression Splines",
+   "type": "journal-article",
+   "volume": "19"
+  },
+  "status": "ok"
+ },
+ "10.1287/mnsc.13.7.492": {
+  "doi": "10.1287/mnsc.13.7.492",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1287/mnsc.13.7.492",
+   "authors": [
+    "Werner Dinkelbach"
+   ],
+   "container": "Management Science",
+   "issue": "7",
+   "issued": 1967,
+   "n_authors": 1,
+   "page": "492-498",
+   "published-online": null,
+   "published-print": 1967,
+   "subtitle": "",
+   "title": "On Nonlinear Fractional Programming",
+   "type": "journal-article",
+   "volume": "13"
+  },
+  "status": "ok"
+ },
+ "10.1287/moor.13.2.311": {
+  "doi": "10.1287/moor.13.2.311",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1287/moor.13.2.311",
+   "authors": [
+    "Bruce Hajek"
+   ],
+   "container": "Mathematics of Operations Research",
+   "issue": "2",
+   "issued": 1988,
+   "n_authors": 1,
+   "page": "311-329",
+   "published-online": null,
+   "published-print": 1988,
+   "subtitle": "",
+   "title": "Cooling Schedules for Optimal Annealing",
+   "type": "journal-article",
+   "volume": "13"
+  },
+  "status": "ok"
+ },
+ "10.1515/spp-2013-0002": {
+  "doi": "10.1515/spp-2013-0002",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1515/spp-2013-0002",
+   "authors": [
+    "Joel A. Middleton",
+    "Peter M. Aronow"
+   ],
+   "container": "Statistics, Politics and Policy",
+   "issue": "1-2",
+   "issued": 2015,
+   "n_authors": 2,
+   "page": null,
+   "published-online": null,
+   "published-print": 2015,
+   "subtitle": "",
+   "title": "Unbiased Estimation of the Average Treatment Effect in Cluster-Randomized Experiments",
+   "type": "journal-article",
+   "volume": "6"
+  },
+  "status": "ok"
+ },
+ "10.18637/jss.v064.i08": {
+  "doi": "10.18637/jss.v064.i08",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.18637/jss.v064.i08",
+   "authors": [
+    "Anestis Touloumis"
+   ],
+   "container": "Journal of Statistical Software",
+   "issue": "8",
+   "issued": 2015,
+   "n_authors": 1,
+   "page": null,
+   "published-online": 2015,
+   "published-print": null,
+   "subtitle": "",
+   "title": "<i>R</i>Package<b>multgee</b>: A Generalized Estimating Equations Solver for Multinomial Responses",
+   "type": "journal-article",
+   "volume": "64"
+  },
+  "status": "ok"
+ },
+ "10.2307/1269547": {
+  "doi": "10.2307/1269547",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/1269547",
+   "authors": [
+    "Diane Lambert"
+   ],
+   "container": "Technometrics",
+   "issue": "1",
+   "issued": 1992,
+   "n_authors": 1,
+   "page": "1",
+   "published-online": null,
+   "published-print": 1992,
+   "subtitle": "",
+   "title": "Zero-Inflated Poisson Regression, with an Application to Defects in Manufacturing",
+   "type": "journal-article",
+   "volume": "34"
+  },
+  "status": "ok"
+ },
+ "10.2307/1913643": {
+  "doi": "10.2307/1913643",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/1913643",
+   "authors": [
+    "Roger Koenker",
+    "Gilbert Bassett"
+   ],
+   "container": "Econometrica",
+   "issue": "1",
+   "issued": 1978,
+   "n_authors": 2,
+   "page": "33",
+   "published-online": null,
+   "published-print": 1978,
+   "subtitle": "",
+   "title": "Regression Quantiles",
+   "type": "journal-article",
+   "volume": "46"
+  },
+  "status": "ok"
+ },
+ "10.2307/2280577": {
+  "doi": "10.2307/2280577",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1946.10501898",
+   "authors": [
+    "W. J. Dixon",
+    "A. M. Mood"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "236",
+   "issued": 1946,
+   "n_authors": 2,
+   "page": "557-566",
+   "published-online": null,
+   "published-print": 1946,
+   "subtitle": "",
+   "title": "The Statistical Sign Test",
+   "type": "journal-article",
+   "volume": "41"
+  },
+  "status": "ok"
+ },
+ "10.2307/2281868": {
+  "doi": "10.2307/2281868",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1958.10501452",
+   "authors": [
+    "E. L. Kaplan",
+    "Paul Meier"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "282",
+   "issued": 1958,
+   "n_authors": 2,
+   "page": "457-481",
+   "published-online": 2012,
+   "published-print": 1958,
+   "subtitle": "",
+   "title": "Nonparametric Estimation from Incomplete Observations",
+   "type": "journal-article",
+   "volume": "53"
+  },
+  "status": "ok"
+ },
+ "10.2307/2289934": {
+  "doi": "10.2307/2289934",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1989.10478795",
+   "authors": [
+    "David Oakes"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "406",
+   "issued": 1989,
+   "n_authors": 1,
+   "page": "487-493",
+   "published-online": 2012,
+   "published-print": 1989,
+   "subtitle": "",
+   "title": "Bivariate Survival Models Induced by Frailties",
+   "type": "journal-article",
+   "volume": "84"
+  },
+  "status": "ok"
+ },
+ "10.2307/2290687": {
+  "doi": "10.2307/2290687",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1080/01621459.1993.10594284",
+   "authors": [
+    "N. E. Breslow",
+    "D. G. Clayton"
+   ],
+   "container": "Journal of the American Statistical Association",
+   "issue": "421",
+   "issued": 1993,
+   "n_authors": 2,
+   "page": "9-25",
+   "published-online": 2012,
+   "published-print": 1993,
+   "subtitle": "",
+   "title": "Approximate Inference in Generalized Linear Mixed Models",
+   "type": "journal-article",
+   "volume": "88"
+  },
+  "status": "ok"
+ },
+ "10.2307/2335289": {
+  "doi": "10.2307/2335289",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.1093/biomet/65.1.141",
+   "authors": [
+    "D. G. CLAYTON"
+   ],
+   "container": "Biometrika",
+   "issue": "1",
+   "issued": 1978,
+   "n_authors": 1,
+   "page": "141-151",
+   "published-online": null,
+   "published-print": 1978,
+   "subtitle": "",
+   "title": "A model for association in bivariate life tables and its application in epidemiological studies of familial tendency in chronic disease incidence",
+   "type": "journal-article",
+   "volume": "65"
+  },
+  "status": "ok"
+ },
+ "10.2307/2342435": {
+  "doi": "10.2307/2342435",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2342435",
+   "authors": [
+    "R. A. Fisher"
+   ],
+   "container": "Journal of the Royal Statistical Society",
+   "issue": "1",
+   "issued": 1935,
+   "n_authors": 1,
+   "page": "39",
+   "published-online": null,
+   "published-print": 1935,
+   "subtitle": "",
+   "title": "The Logic of Inductive Inference",
+   "type": "journal-article",
+   "volume": "98"
+  },
+  "status": "ok"
+ },
+ "10.2307/2344317": {
+  "doi": "10.2307/2344317",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2344317",
+   "authors": [
+    "Richard Peto",
+    "Julian Peto"
+   ],
+   "container": "Journal of the Royal Statistical Society. Series A (General)",
+   "issue": "2",
+   "issued": 1972,
+   "n_authors": 2,
+   "page": "185",
+   "published-online": null,
+   "published-print": 1972,
+   "subtitle": "",
+   "title": "Asymptotically Efficient Rank Invariant Test Procedures",
+   "type": "journal-article",
+   "volume": "135"
+  },
+  "status": "ok"
+ },
+ "10.2307/2347760": {
+  "doi": "10.2307/2347760",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2347760",
+   "authors": [
+    "Bercedis Peterson",
+    "Frank E. Harrell"
+   ],
+   "container": "Applied Statistics",
+   "issue": "2",
+   "issued": 1990,
+   "n_authors": 2,
+   "page": "205",
+   "published-online": null,
+   "published-print": 1990,
+   "subtitle": "",
+   "title": "Partial Proportional Odds Models for Ordinal Response Variables",
+   "type": "journal-article",
+   "volume": "39"
+  },
+  "status": "ok"
+ },
+ "10.2307/2527727": {
+  "doi": "10.2307/2527727",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2527727",
+   "authors": [
+    "Irwin D. J. Bross"
+   ],
+   "container": "Biometrics",
+   "issue": "1",
+   "issued": 1958,
+   "n_authors": 1,
+   "page": "18",
+   "published-online": null,
+   "published-print": 1958,
+   "subtitle": "",
+   "title": "How to Use Ridit Analysis",
+   "type": "journal-article",
+   "volume": "14"
+  },
+  "status": "ok"
+ },
+ "10.2307/2529620": {
+  "doi": "10.2307/2529620",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2529620",
+   "authors": [
+    "N. Breslow"
+   ],
+   "container": "Biometrics",
+   "issue": "1",
+   "issued": 1974,
+   "n_authors": 1,
+   "page": "89",
+   "published-online": null,
+   "published-print": 1974,
+   "subtitle": "",
+   "title": "Covariance Analysis of Censored Survival Data",
+   "type": "journal-article",
+   "volume": "30"
+  },
+  "status": "ok"
+ },
+ "10.2307/2529712": {
+  "doi": "10.2307/2529712",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2529712",
+   "authors": [
+    "Stuart J. Pocock",
+    "Richard Simon"
+   ],
+   "container": "Biometrics",
+   "issue": "1",
+   "issued": 1975,
+   "n_authors": 2,
+   "page": "103",
+   "published-online": null,
+   "published-print": 1975,
+   "subtitle": "",
+   "title": "Sequential Treatment Assignment with Balancing for Prognostic Factors in the Controlled Clinical Trial",
+   "type": "journal-article",
+   "volume": "31"
+  },
+  "status": "ok"
+ },
+ "10.2307/2530286": {
+  "doi": "10.2307/2530286",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2530286",
+   "authors": [
+    "Ron Brookmeyer",
+    "John Crowley"
+   ],
+   "container": "Biometrics",
+   "issue": "1",
+   "issued": 1982,
+   "n_authors": 2,
+   "page": "29",
+   "published-online": null,
+   "published-print": 1982,
+   "subtitle": "",
+   "title": "A Confidence Interval for the Median Survival Time",
+   "type": "journal-article",
+   "volume": "38"
+  },
+  "status": "ok"
+ },
+ "10.2307/2533433": {
+  "doi": "10.2307/2533433",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/2533433",
+   "authors": [
+    "Donald Hedeker",
+    "Robert D. Gibbons"
+   ],
+   "container": "Biometrics",
+   "issue": "4",
+   "issued": 1994,
+   "n_authors": 2,
+   "page": "933",
+   "published-online": null,
+   "published-print": 1994,
+   "subtitle": "",
+   "title": "A Random-Effects Ordinal Regression Model for Multilevel Analysis",
+   "type": "journal-article",
+   "volume": "50"
+  },
+  "status": "ok"
+ },
+ "10.2307/3001968": {
+  "doi": "10.2307/3001968",
+  "fetched_at": "2026-11-17T08:59:34+00:00",
+  "record": {
+   "DOI": "10.2307/3001968",
+   "authors": [
+    "Frank Wilcoxon"
+   ],
+   "container": "Biometrics Bulletin",
+   "issue": "6",
+   "issued": 1945,
+   "n_authors": 1,
+   "page": "80",
+   "published-online": null,
+   "published-print": 1945,
+   "subtitle": "",
+   "title": "Individual Comparisons by Ranking Methods",
+   "type": "journal-article",
+   "volume": "1"
+  },
+  "status": "ok"
+ }
+}
