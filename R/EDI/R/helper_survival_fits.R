@@ -348,7 +348,7 @@
 	}
 
 	best = NULL
-	# Use a slightly coarser tolerance for randomization draws if nsim is high
+	# Fixed tolerance (reltol 1e-9) for the R optim BFGS fallback
 	control_list = list(maxit = 2000, reltol = 1e-9)
 
 	# Attempt C++ fast path first
@@ -638,7 +638,7 @@
 	times = breslow$times
 	cumhaz = breslow$cumhaz
 	# Defaults to this call's own y_obs, as before; .cox_simulate_stratified()
-	# instead passes the fallback from its full (cross-stratum) y_obs so the
+	# (callers may pass max_time explicitly) so the
 	# "no event time covers this draw" ceiling stays on one consistent scale
 	# across strata rather than jumping with each stratum's own local max.
 	if (is.null(max_time)) max_time = max(y_obs) * 2

@@ -668,7 +668,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples
 		#'   required after filtering. Default 5. Must be less than or equal to \code{B}.
 		#' @param type  				Bootstrap p-value type. Supported values are
-		#'   \code{"percentile"} (default), \code{"symmetric"}, \code{"studentized"},
+		#'   \code{"percentile"}, \code{"symmetric"}, \code{"studentized"},
 		#'   \code{"bootstrap-t"}, and \code{"bca"}.
 		#'   \code{"percentile"}: shifts the bootstrap distribution to be centred at
 		#'   \code{delta} and counts the two-tail proportion (Hall 1992).
