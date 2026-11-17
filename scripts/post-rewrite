@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# git post-rewrite hook: after a rebase (e.g. `git pull --rebase`), reinstall
+# EDI if the rebase changed package files. Amends ($1 = amend) are skipped.
+[ "$1" = "rebase" ] || exit 0
+cat > /dev/null
+exec "$(git rev-parse --show-toplevel)/scripts/rebuild_edi_after_pull.sh" "$(git rev-parse --verify --quiet ORIG_HEAD)"

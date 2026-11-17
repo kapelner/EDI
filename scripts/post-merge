@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# git post-merge hook (merge and fast-forward pulls): reinstall EDI if the
+# merge changed package files. ORIG_HEAD is the commit before the merge.
+exec "$(git rev-parse --show-toplevel)/scripts/rebuild_edi_after_pull.sh" "$(git rev-parse --verify --quiet ORIG_HEAD)"
