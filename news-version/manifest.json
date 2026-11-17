@@ -1,0 +1,34 @@
+{
+ "issue_hash": "1aa9c57274731b4c",
+ "last_run": "2026-11-17T10:03:42+00:00",
+ "units": {
+  "commit:1d79ebed": {
+   "audited_at": "2026-11-17T10:03:42+00:00",
+   "deps": "ed47ff24618b6669",
+   "hash": "1d79ebedd33719cde11def21b4c817b51d42614f",
+   "open_findings": 0,
+   "run": "44048282057"
+  },
+  "commit:4fc58cd0": {
+   "audited_at": "2026-11-17T10:03:42+00:00",
+   "deps": "ed47ff24618b6669",
+   "hash": "4fc58cd063bc41a7197a3e6bff79e1163c240b17",
+   "open_findings": 0,
+   "run": "44048282057"
+  },
+  "commit:a62da6e4": {
+   "audited_at": "2026-11-17T10:03:42+00:00",
+   "deps": "ed47ff24618b6669",
+   "hash": "a62da6e4337a6401d41fa83c9d842c78b000d115",
+   "open_findings": 0,
+   "run": "44048282057"
+  },
+  "commit:c28bbb34": {
+   "audited_at": "2026-11-17T10:03:42+00:00",
+   "deps": "ed47ff24618b6669",
+   "hash": "c28bbb34e12faf60db21a6145796b171970b7e62",
+   "open_findings": 0,
+   "run": "44048282057"
+  }
+ }
+}
