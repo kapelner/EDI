@@ -1,0 +1,27 @@
+{
+ "last_run": "2026-11-17T10:34:33+00:00",
+ "open_pr": 29,
+ "units": {
+  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::ArrayWrapper<Eigen::Matrix<double, -1, 1, 0, -1, 1> >, ~add1db40": {
+   "audited_at": "2026-11-17T10:34:33+00:00",
+   "deps": null,
+   "hash": "e43938dddc195fe9",
+   "open_findings": 0,
+   "run": "44048252033"
+  },
+  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::CwiseUnaryOp<Ei~2640af9b": {
+   "audited_at": "2026-11-17T10:34:33+00:00",
+   "deps": null,
+   "hash": "071fb8165ccc2fe4",
+   "open_findings": 0,
+   "run": "44048252033"
+  },
+  "R/EDI/src/fast_adjacent_category_logit.cpp::": {
+   "audited_at": "2026-11-17T10:34:33+00:00",
+   "deps": null,
+   "hash": "75427ce7aefe99ae",
+   "open_findings": 1,
+   "run": "44048252033"
+  }
+ }
+}
