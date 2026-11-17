@@ -20,7 +20,7 @@
 #' \strong{Matching test.} Once past burn-in, for new subject \eqn{t} with covariate
 #' vector \eqn{x_t}, the squared Mahalanobis distance (via
 #' \code{compute_proportional_mahal_distances_cpp()}, using the sample covariance of
-#' all prior subjects' covariates, ridge-regularized by \code{.Machine$double.eps}) to
+#' all prior subjects' covariates, ridge-regularized by \code{sqrt(.Machine$double.eps)} times the mean covariate variance) to
 #' every subject currently in the reservoir is computed, and the closest one is a
 #' candidate match. The match is \strong{accepted} only if that squared distance falls
 #' below a threshold \eqn{T^2_{\mathrm{cutoff}}} derived from an F critical value,

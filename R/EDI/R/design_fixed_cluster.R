@@ -15,11 +15,11 @@
 #' @details
 #' \strong{Randomization mechanism.} \code{draw_ws_raw(r)} extracts each subject's
 #' cluster ID from \code{cluster_col} (erroring if any are missing) and calls
-#' \code{\link[randomizr]{cluster_ra}} (\pkg{randomizr}) once per replicate, which
+#' \code{block_ra_batch()} once for all replicates (same law as \pkg{randomizr}'s cluster_ra), which
 #' performs complete random assignment at the cluster level: subject to rounding,
 #' \code{prob_T} of clusters are assigned to treatment, and all subjects sharing a
 #' cluster inherit that cluster's assignment. \code{r} independent replicate columns are
-#' generated via \code{replicate()} (one \pkg{randomizr} call per replicate).
+#' generated in one vectorized \code{block_ra_batch()} pass (no per-replicate loop).
 #'
 #' \strong{Cluster-aware bootstrap.} \code{draw_bootstrap_indices()} overrides the
 #' default subject-level bootstrap to resample whole clusters with replacement (via

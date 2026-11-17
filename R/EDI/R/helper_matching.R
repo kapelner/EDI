@@ -120,13 +120,13 @@ split_kk_matched_reservoir_idx = function(m_vec, n){
 		return(c(des_priv$xm_structural, wy))
 	}
 
-	# --- Fast path 2: inference-level structural cache (bootstrap case) ---
+	# --- (no inference-level cache for the bootstrap case; falls through to full computation) ---
 	# --- Full computation ---
 	full = compute_zhang_match_data_cpp(as.matrix(X), as.numeric(y), as.integer(w), as.integer(m_vec))
 	structural = full[c("m", "X_matched_diffs", "X_matched_diffs_full", "X_reservoir")]
 
 	# Store in the design when the current m_vec is the design's own m_vec (so all
-	# inference objects on this design share it); otherwise store locally (bootstrap).
+	# inference objects on this design share it); otherwise nothing is cached (bootstrap).
 	if (!is.null(des_priv)){
 		des_m = des_priv$m
 		if (is.null(des_m)) des_m = rep(NA_integer_, n)
