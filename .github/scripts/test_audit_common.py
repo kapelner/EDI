@@ -267,5 +267,24 @@ class Body(unittest.TestCase):
         self.assertLessEqual(len(ac.fit_body("x\n" * 50000)), ac.BODY_LIMIT)
 
 
+
+class IssueNote(unittest.TestCase):
+    def test_says_not_a_task(self):
+        n = ac.issue_note({"name": "results-freshness"})
+        self.assertIn("not a task", n)
+        self.assertIn("audit-results-freshness.yml", n)
+        self.assertTrue(n.startswith("> [!NOTE]"))
+
+
+class SettleOpenCounts(unittest.TestCase):
+    def test_merged_pr_clears_open_findings(self):
+        m = {"units": {"a": {"hash": "h", "open_findings": 2}, "b": {"hash": "h", "open_findings": 1},
+                       "c": {"hash": "h", "open_findings": 1}}}
+        ac.settle_open_counts(m, [{"unit": "a"}, {"unit": "a"}, {"unit": "b"}, {"unit": "gone"}])
+        self.assertEqual([m["units"][u]["open_findings"] for u in "abc"], [0, 0, 1])
+        now = ac.now_utc()
+        chosen, reasons, _ = ac.select_units({u: {"hash": "h"} for u in "abc"}, m, "auto", 10**6, now)
+        self.assertEqual(chosen, ["c"])          # only the unit with a still-open finding
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

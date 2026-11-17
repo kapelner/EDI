@@ -133,7 +133,9 @@ test_that("incidence, count, and proportion KK GEE wrappers match backend fits",
 	# diff ~1.8e-4, a ~0.05% relative difference on this fixture, confirmed
 	# stable and not a regression); loosened to match the same comparison's
 	# count/proportion siblings below, which already use far looser tolerances.
-	compare_kk_gee_wrapper_paths("InferenceIncidKKGEE", des_incid, use_rcpp_tolerance_est = 1e-3, use_rcpp_tolerance_se = 1e-4)
+	# 2026-11-17: est 5e-3. After the v1.0.6-TODO-45 KK14 matching fix (more pairs
+	# form) this fixture's two solvers differ by 3.2e-3 relative (-0.537 vs -0.535).
+	compare_kk_gee_wrapper_paths("InferenceIncidKKGEE", des_incid, use_rcpp_tolerance_est = 5e-3, use_rcpp_tolerance_se = 1e-4)
 
 	des_count <- make_kk_design_for_gee_test("count")
 	des_count$add_all_subject_responses(simulate_kk_response_for_gee_test(des_count, "poisson"))

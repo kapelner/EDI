@@ -27,8 +27,12 @@ Python present:
 # apt-installs any missing system library on Debian/Ubuntu
 Rscript -e 'pak::local_install_deps("R/EDI", dependencies = TRUE, ask = FALSE)'
 # Contributor tools not in DESCRIPTION (they aren't needed to check the package)
-Rscript -e 'install.packages(c("roxygen2", "devtools", "pkgdown", "profvis", "proftools",
+Rscript -e 'install.packages(c("remotes", "devtools", "pkgdown", "profvis", "proftools",
                                "microbenchmark", "DescTools"))'
+# roxygen2: the exact commit the committed man/*.Rd files come from (ROXYGEN2_REF
+# in .github/workflows/audit.yml; r-lib/roxygen2 PR #1914). CRAN's or upstream's
+# roxygen2 rewrites many Rd files; R/fast_roxygenize.R refuses a wrong commit
+Rscript -e 'remotes::install_github("kapelner/roxygen2@c9203b7f504b8d01cf29411f6166efa584e377d8")'
 # R/package_tests/comprehensive_tests.R's own dependencies -- a separate
 # list from EDI's own Suggests above, not installed by anything else here
 Rscript R/package_tests/install_comprehensive_tests_deps.R

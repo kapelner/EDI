@@ -13,6 +13,12 @@
   computed from them, including KK21 and KK21stepwise before they have enough
   responses to leave their KK14 fallback. To reproduce an old allocation
   approximately, pass `lambda = 0.1 * 2^(-p/2)` for p covariates.
+* `InferenceIncidExactFisher` now reports the estimate as nonestimable (reason
+  `"exact_fisher_conditional_mle_infinite"`) when the conditional MLE of the
+  log odds ratio is infinite, as happens when the table is separated (for
+  example, every discordant matched pair favors the same arm). It used to
+  return `Inf` or `-Inf`, which `InferenceSuite` listed as an "ok" row. The
+  exact p-value and confidence interval are unchanged.
 * `missingness_method = "impute"` no longer uses the outcome to impute missing
   covariates (v1.0.6-TODO-44). missRanger/missForest were given the response as
   a predictor. Treated subjects' responses are shifted, so the imputed covariate

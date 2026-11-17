@@ -55,7 +55,11 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 	# GEE solvers (different working-correlation estimation details), so a
 	# loose tolerance is appropriate -- matching test-kk-gee-parity.R's own
 	# unweighted proportion tolerance (2e-2) for this class.
-	expect_equal(as.numeric(est_pkg), as.numeric(coef(mod_ref)["w"]), tolerance = 2e-2)
+	# 2026-11-17: 5e-2. With weights the two solvers differ more than without:
+	# over 20 seeds of this fixture, |EDI - geepack| was at most 0.035 weighted
+	# but at most 0.003 unweighted. The 2e-2 bar only held for the old KK14
+	# assignments; the v1.0.6-TODO-45 matching fix changed w and the data here.
+	expect_equal(as.numeric(est_pkg), as.numeric(coef(mod_ref)["w"]), tolerance = 5e-2)
 
 	# Unit weights reproduce the unweighted estimate.
 	inf_u <- InferencePropKKGEE$new(f$des, use_rcpp = TRUE, verbose = FALSE)

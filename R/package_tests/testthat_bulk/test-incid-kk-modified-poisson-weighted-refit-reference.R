@@ -53,7 +53,10 @@ test_that("KK modified-Poisson weighted-bootstrap refit matches an independent w
 	cluster_score <- rowsum(X * ((y - mu) * sqrt(weights)), cluster_id, reorder = FALSE)
 	meat <- crossprod(cluster_score)
 	se_ref <- sqrt((bread %*% meat %*% bread)[2L, 2L])
-	expect_equal(priv$last_weighted_refit$s_beta_hat_T, se_ref, tolerance = 1e-6)
+	# 1e-5: the package's IRLS and glm.fit stop at slightly different betas, so the
+	# sandwich SEs differ at that level (6.3e-6 relative on the fixture's data after
+	# the v1.0.6-TODO-45 KK14 matching fix, 2026-11-17).
+	expect_equal(priv$last_weighted_refit$s_beta_hat_T, se_ref, tolerance = 1e-5)
 
 	inf2 <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	install_bb_context(inf2, n)

@@ -87,7 +87,9 @@ def when(ts):
 def render(rows, generated_at, run_url="", repo=""):
     lines = [f"# {TITLE}", "",
              f"Updated {when(generated_at)} by `.github/workflows/audit-status.yml`"
-             + (f" ([run]({run_url}))" if run_url else "") + ". Edited in place; do not edit by hand.", ""]
+             + (f" ([run]({run_url}))" if run_url else "") + ". Edited in place; do not edit by hand.", "",
+             "> [!NOTE]", "> **This is a status board, not a task.** It stays open and pinned; do not close it "
+             "(the next update reopens it). Each audit's own issue or PR, linked below, carries its findings.", ""]
     bad = [r for r in rows if r["result"].startswith(("FAILED", "timed out"))]
     lines.append(f"{len(rows)} audits; {len(bad)} failed on their last run"
                  + (": " + ", ".join(f"`{r['audit']}`" for r in bad) if bad else "") + ".")

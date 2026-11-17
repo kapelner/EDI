@@ -88,9 +88,11 @@ def harvest(spec, notes):
             r = subprocess.run(["git", "show", f"HEAD:{path}"], capture_output=True, text=True)
         return r.stdout if not r.returncode else None
 
+    before = {h["id"]: h.get("status") for h in notes.findings()}
     hist, lines = ac.harvest_pr(notes.findings(), state, pr, read_main)
     notes.save_findings(hist)
     notes.add_decisions(lines)
+    ac.settle_open_counts(m, [h for h in hist if before.get(h["id"]) == "proposed" and h.get("status") != "proposed"])
     m["open_pr"] = None
     notes.save_manifest(m)
     print(f"PR #{pr} is {state}: {len(lines)} finding(s) recorded as rejected")
@@ -254,8 +256,11 @@ def publish_issue(spec, notes, m, report, label, findings):
     issue = gh("issue", "list", "--label", label, "--state", "open", "--json", "number",
                "--jq", ".[0].number // empty", check=False)
     body_hash = ac.text_hash(report.split("\nRun: ")[0])
+    report = ac.issue_note(spec) + report
     if findings:
         if issue and m.get("issue_hash") == body_hash:
+            # Same findings: refresh the body (run link, note) without a comment, so no notification.
+            gh("issue", "edit", issue, "--body", report)
             print(f"issue #{issue} already says this; not notifying again")
         elif issue:
             gh("issue", "edit", issue, "--body", report)

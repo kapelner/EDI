@@ -1,5 +1,39 @@
 options(keep.source = TRUE)
 
+# The committed man/*.Rd files come from one exact roxygen2 commit, pinned as
+# ROXYGEN2_REF in .github/workflows/audit.yml (the single record of it). Any
+# other roxygen2, CRAN or upstream included, rewrites many Rd files while
+# reporting the same version, and scripts/pre-push would commit that drift. So
+# stop on a known wrong commit. A roxygen2 installed from a local source tree
+# has no RemoteSha and cannot be checked: print a note (a message, not a
+# warning, since scripts/pre-push aborts on any warning). EDI_ROXYGEN2_ANY=true
+# skips the check (for deliberately trying a new roxygen2 before moving the pin).
+local({
+	if (identical(tolower(Sys.getenv("EDI_ROXYGEN2_ANY")), "true")) return(invisible())
+	audit_yml = file.path("..", ".github", "workflows", "audit.yml")
+	if (!file.exists(audit_yml)) {
+		message("fast_roxygenize.R: note: ", audit_yml, " not found (run from R/); roxygen2 commit not checked")
+		return(invisible())
+	}
+	pin_line = grep("^\\s*ROXYGEN2_REF:", readLines(audit_yml, warn = FALSE), value = TRUE)[1]
+	if (is.na(pin_line)) stop("fast_roxygenize.R: no ROXYGEN2_REF line in ", audit_yml, call. = FALSE)
+	ref = trimws(sub("^\\s*ROXYGEN2_REF:\\s*", "", pin_line))
+	pinned_sha = sub("^.*@", "", ref)
+	install_cmd = sprintf("Rscript -e 'remotes::install_github(\"%s\")'", ref)
+	if (!requireNamespace("roxygen2", quietly = TRUE)) {
+		stop("fast_roxygenize.R: roxygen2 is not installed. Install the pinned commit:\n  ", install_cmd, call. = FALSE)
+	}
+	have_sha = packageDescription("roxygen2")$RemoteSha
+	if (is.null(have_sha) || !nzchar(have_sha)) {
+		message("fast_roxygenize.R: note: installed roxygen2 has no RemoteSha, so it can't be checked against the pin ",
+			ref, ". If the Rd diff is large, install the pinned commit:\n  ", install_cmd)
+	} else if (!identical(have_sha, pinned_sha)) {
+		stop("fast_roxygenize.R: installed roxygen2 is commit ", have_sha, " but the committed Rd files come from ",
+			ref, " (ROXYGEN2_REF in .github/workflows/audit.yml). Install it:\n  ", install_cmd,
+			"\n(or set EDI_ROXYGEN2_ANY=true to run anyway)", call. = FALSE)
+	}
+})
+
 load_source_with_filenames = function(path) {
 	env = new.env(parent = globalenv())
 	methods::setPackageName("roxygen_devtest", env)

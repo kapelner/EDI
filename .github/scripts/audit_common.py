@@ -291,6 +291,17 @@ def harvest_pr(history, pr_state, merged, file_reader):
     return history, lines
 
 
+def settle_open_counts(manifest, settled):
+    """Lower each unit's `open_findings` by its findings just settled (fixed or rejected), so a unit
+    whose PR was merged or closed is not re-read as "open finding" on every later run."""
+    units = manifest.get("units", {})
+    for h in settled:
+        u = units.get(h.get("unit"))
+        if u and u.get("open_findings"):
+            u["open_findings"] = max(0, u["open_findings"] - 1)
+    return manifest
+
+
 # ---------------------------------------------------------------- reports
 
 def render_report(spec, parts, coverage, run_url):
@@ -307,6 +318,19 @@ def render_report(spec, parts, coverage, run_url):
     md += [f"- {k}: {v}" for k, v in coverage.items()]
     md += ["", f"Run: {run_url}", ""]
     return "\n".join(md)
+
+
+def issue_note(spec):
+    """The note at the top of an audit's issue: it is a standing report, not a task to close."""
+    wf = f"audit-{spec['name']}.yml"
+    repo = os.environ.get("GITHUB_REPOSITORY", "kapelner/EDI")
+    return ("> [!NOTE]\n"
+            "> **This is a standing audit report, not a task.** The `" + spec["name"] + "` audit "
+            f"([`{wf}`](https://github.com/{repo}/actions/workflows/{wf})) rewrites this issue on every run and closes it "
+            "itself when a run finds nothing. Do not close it, assign it or work in it: closing it by hand "
+            "only makes the next run open a new one. To act on a finding, fix it in its own PR or open a "
+            "release TODO (`v<version>-TODO-<n>`); a finding leaves this report once a run no longer "
+            "finds it.\n\n")
 
 
 BODY_LIMIT = 60000   # GitHub rejects PR and issue bodies and comments over 65,536 characters

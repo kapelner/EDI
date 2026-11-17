@@ -124,3 +124,19 @@ test_that("eligibility: iBCRD, blocked and matched designs are accepted; other d
 	expect_equal(f$p$normalize_exact_inference_args("Fisher", list(Fisher = list(a = 1))), list(Fisher = list(a = 1)))
 	expect_error(f$p$assert_exact_inference_params("Fisher", list(Other = list())), "must contain a list for Fisher")
 })
+
+test_that("separated table: infinite conditional MLE is nonestimable, exact p-value still reported", {
+	# 2026-11-17 user ruling: an infinite conditional MLE (every case in the treated arm) is
+	# reported as nonestimable, not as an "ok" fit with estimate Inf.
+	n <- 20L
+	des <- DesignFixediBCRD$new(n = n, response_type = "incidence", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = seq_len(n))); des$assign_w_to_all_subjects()
+	w <- des$get_w(); y <- as.numeric(w == 1 & seq_len(n) %% 2 == 0); y[which(w == 1)[1:3]] <- 1
+	des$add_all_subject_responses(y)
+	expect_true(is.infinite(fisher.test(ref_tab(w, y))$estimate))
+	inf <- InferenceIncidExactFisher$new(des, verbose = FALSE)
+	expect_true(is.na(inf$compute_estimate()))
+	expect_true(inf$is_nonestimable("estimate"))
+	expect_identical(inf$get_nonestimable_reason(), "exact_fisher_conditional_mle_infinite")
+	expect_equal(inf$compute_exact_two_sided_pval_for_treatment_effect(), fisher.test(ref_tab(w, y))$p.value, tolerance = 1e-10)
+})

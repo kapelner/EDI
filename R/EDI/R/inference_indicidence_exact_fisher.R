@@ -116,7 +116,16 @@ ExactFisherIncidenceSource = list(
 			ci
 		},
 		get_exact_fisher_log_or_estimate = function(){
-			log(as.numeric(private$get_exact_fisher_htest()$estimate[[1]]))
+			est = log(as.numeric(private$get_exact_fisher_htest()$estimate[[1]]))
+			# The conditional MLE is infinite when the table is separated (e.g. every
+			# discordant matched pair favors the same arm). Report that as nonestimable
+			# instead of an "ok" fit with estimate +/-Inf (user ruling 2026-11-17). The
+			# exact p-value and CI do not use this estimate and stay available.
+			if (!is.finite(est)) {
+				private$cache_nonestimable_estimate("exact_fisher_conditional_mle_infinite")
+				return(NA_real_)
+			}
+			est
 		},
 		get_exact_fisher_htest = function(alpha = 0.05, delta_0 = 0){
 			if (should_run_asserts()) {
