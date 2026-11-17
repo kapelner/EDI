@@ -27,6 +27,16 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch: {}
 
+# A newer push cancels the coverage run of the push before it (owner, 2026-11-17): each run is ~98
+# shard jobs, and runs from successive pushes queued behind each other for hours, holding the 20
+# free runners. Only push runs share a group (one per branch); the nightly schedule and
+# workflow_dispatch get a group of their own (the run id), so they never cancel or get cancelled.
+# If the newer push is skipped by the push gate below, the cancelled commit's coverage is picked up
+# by the nightly backstop (relevant commits since the last successful run).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
   # Schedule fires unconditionally every night regardless of path filters
   # (those only apply to `push`); this job re-applies the same path list to
