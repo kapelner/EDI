@@ -1,0 +1,426 @@
+{
+ "last_run": "2026-11-17T10:46:36+00:00",
+ "open_pr": 31,
+ "units": {
+  "R/EDI/R/EDI.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "03ef9c0065a08922",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/comprehensive_slow_paths.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "d3350a90bbcbefad",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/contracts_mixins.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "87d2bf7a2ce8a130",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/contracts_resampling_draws.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "877a4f4e97926d95",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_abstract.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "6cf87ce9d76ca4d3",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_blocking_abstract.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "5f8a39008c197cba",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_class_factory.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "9225f888cf06c023",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_class_registry.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "82881f6915644561",
+   "open_findings": 9,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_component_registry.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "7222915a97737563",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_custom_extensions.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "52c1755030ea8052",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_abstract.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "d4ab8ab8d5f910bf",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_bernoulli.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "93d8fcf87265e17f",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_binary_match.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "8281e7a02b175f25",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_blocked_cluster.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "34e665f622043a73",
+   "open_findings": 3,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_blocking.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "b959e66f1a5b46f7",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_cluster.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "133fb6bdddccbfe4",
+   "open_findings": 2,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_factorial.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "acbe32b3241be3b1",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_greedy.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "ecfac430b020a629",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_greedy_d_optimal.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "6bba2c89c0afa7d2",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_ibcrd.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "240c82a5a1a5d038",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_matching_greedy_pair_switching.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "e691f52cd26dc478",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_optimal.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "4f81ab329083dc5a",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_optimal_blocks.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "e85b41f08ce76408",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_fixed_rerandomization.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "df0182a896b0f8e7",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_matching_abstract.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "65116f8a15387023",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_observational.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "d2d3caa2905fe73c",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_observational_blocks.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "09a59c0919bfa686",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_observational_matching.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "2e5e0defaa8d4337",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_KK14.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "ff9cef353538bf37",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_KK21.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "7afe7c082970be77",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_KK21_stepwise.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "fef7994e7979200e",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_abstract.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "89c648e1e44b848e",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_atkinson.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "2982f99219a5268f",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_bernoulli.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "5296b6cbfa342bf2",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_efron.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "9c7be7960d42e5fb",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_ibcrd.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "e1d1485ca185c399",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_pocock_simon.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "e73439cbffba6cca",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_random_block_size.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "7703b921cecaf259",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_spbr.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "74496d4d4a424c69",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/design_seq_one_by_one_urn.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "d700609b7e6d229b",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/globals.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "05fe993d85281968",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_additional_asserts.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "cc0531ba09df6c2a",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_bootstrap_ci.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "678a1d8e606b1e53",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_gcomp.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "ee0f98cea89de20b",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_glm_fit.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "0a0523970547ad11",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_inference_survival_turnbull.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "9a1662815dfac9bb",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_marginal_estimand.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "05bb7a5c3052f115",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_matching.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "0cdddcbfe06da2ef",
+   "open_findings": 2,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_math.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "ee7ce73e5df11094",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_model_matrix.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "82b9373f2dbea2b0",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_optimal_annealing.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "a350e9ef1a617dc6",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_optimal_milp_solvers.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "cb73426473779c2a",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_optimal_shared.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "0b8390361f8d045e",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_ordinal_mixed_fit.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "367b99e2ef2d23da",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_package_checks.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "d3b11c49b5ca892c",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_rcpp_doc_stubs.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "5fc7e387aab5af2a",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_response_asserts.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "fda32b00ef3a5ac3",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_reused_worker_private_cache.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "a9ef1ac625cb3702",
+   "open_findings": 0,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_robust_regression.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "42080ba6d210e74d",
+   "open_findings": 1,
+   "run": "44048321176"
+  },
+  "R/EDI/R/helper_robust_sandwich.R": {
+   "audited_at": "2026-11-17T10:46:36+00:00",
+   "deps": null,
+   "hash": "2a18c18fc45b6b00",
+   "open_findings": 0,
+   "run": "44048321176"
+  }
+ }
+}
