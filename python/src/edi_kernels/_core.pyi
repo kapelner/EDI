@@ -597,7 +597,7 @@ def fast_log_dnorm(x: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m,
     """
 def fast_log_pnorm(x: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
     """
-    Vectorized log standard normal CDF (elementwise). Matches scipy.stats.norm.logcdf.
+    Vectorized log standard normal CDF (elementwise). Matches scipy.stats.norm.logcdf only for |x| < 8 (clamped to -35.0496 for x <= -8 and -6.661e-16 for x >= 8).
     """
 def fast_logistic_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_id: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], j_T: typing.SupportsInt | typing.SupportsIndex, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, n_gh: typing.SupportsInt | typing.SupportsIndex = 20, maxit: typing.SupportsInt | typing.SupportsIndex = 300, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-06, optimization_alg: str = 'lbfgs', fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
@@ -1111,13 +1111,13 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
         start") with no prior knowledge. Ignored if a warm start is provided.
     method : str, default "MM"
         Robust estimation method: "M" (single-stage Huber M-estimation) or "MM"
-        (S-then-M two-stage estimation, more resistant to high-leverage outliers).
+        (Tukey bisquare weighting, constant fixed at 4.685, with a fixed MAD-based scale).
     j : int, default 2
         1-based index of the coefficient for which to return an individual variance
         (ssq_b_j in the result).
     c : float, default 1.345
         Huber tuning constant (used for the M-step; the Tukey bisquare tuning
-        constant for the MM-step's S-estimator is fixed internally at 4.685).
+        constant used when method is MM is fixed internally at 4.685).
     maxit : int, default 50
         Maximum number of IRLS iterations.
     tol : float, default 1e-7
