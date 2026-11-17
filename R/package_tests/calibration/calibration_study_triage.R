@@ -34,9 +34,10 @@ if (!exists("read_csv_fast", mode = "function")) local({
 
 CAL_TRIAGE_REPRO_REPS <- "1:200"
 
-# Short design names as in the README tables ("KK21", "Bernoulli@0.2").
+# Design labels as in the README tables ("SeqOneByOne:KK21", "Fixed:Bernoulli@0.2"). The Fixed / SeqOneByOne prefix stays:
+# without it the two Bernoulli (and iBCRD, ...) designs collapse into one label and n_designs undercounts (2026-11-17).
 cal_triage_short_design <- function(design, prob_T)
-	paste0(sub("^Design(Fixed|SeqOneByOne)", "", design), ifelse(!is.na(prob_T) & abs(prob_T - 0.5) > 1e-9, paste0("@", prob_T), ""))
+	paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", design), ifelse(!is.na(prob_T) & abs(prob_T - 0.5) > 1e-9, paste0("@", prob_T), ""))
 
 cal_triage_repro <- function(response_type, design, prob_T, n, effect, inf_class) {
 	label <- ifelse(!is.na(prob_T) & abs(prob_T - 0.5) > 1e-9, paste0(design, "@prob_T=", prob_T), design)

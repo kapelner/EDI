@@ -46,6 +46,11 @@ read_env <- function(f) {
 	stats::setNames(as.list(sub("^[^=]*=", "", l)), sub("=.*$", "", l))
 }
 rd <- function(f) if (file.exists(f)) readLines(f, warn = FALSE) else character()
+# Design label for every table ("Fixed:Bernoulli", "SeqOneByOne:iBCRD@0.2"): the Fixed / SeqOneByOne prefix and the
+# allocation stay, since DesignFixedBernoulli and DesignSeqOneByOneBernoulli (or prob_T 0.5 and 0.2) are different
+# designs; stripped, they read as one design listed twice with different numbers (owner, 2026-11-17).
+design_label <- function(x, p = NULL) paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", x),
+	if (is.null(p)) "" else ifelse(!is.na(p) & abs(p - 0.5) > 1e-9, paste0("@", p), ""))
 env <- read_env(file.path(cdir, "campaign.env"))
 runs <- rd(file.path(cdir, "runs.txt"))
 gate <- rd(file.path(cdir, "summary", "gate_failures.txt"))
@@ -181,7 +186,7 @@ flag_body <- if (file.exists(conf) && file.size(conf) > 0) {
 			sprintf("The %d most significant (all rows: [`summary/confirmation_summary.csv`](summary/confirmation_summary.csv)).", nrow(shown)), "",
 			"| response | design | class | procedure | formula | n | effect | metric | level | rule | q | confirmation | status |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
 			sprintf("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |", shown$response_type,
-				sub("^Design(Fixed|SeqOneByOne)", "", shown$design), sub("^Inference", "", shown$inf_class), shown$inf_procedure, shown$formula,
+				design_label(shown$design, shown$prob_T), sub("^Inference", "", shown$inf_class), shown$inf_procedure, shown$formula,
 				shown$n, shown$effect_label, shown$metric, fm(shown$level), if ("rule" %in% names(shown)) shown$rule else "", fm(shown$q),
 				ifelse(is.na(shown$confirm_value), "pending", sprintf("%s over %s", fm(shown$confirm_value), shown$confirm_n)), shown$status), "")
 	} else "Nothing flagged at the screen."
@@ -202,7 +207,7 @@ dc_body <- if (file.exists(dc) && file.size(dc) > 2L) {
 			nrow(d), sum(d$q_bh < 0.05, na.rm = TRUE)), "", sprintf("The %d most significant:", nrow(top)), "",
 			"| response | n | effect | class | procedure | formula | design | power (design) | power (Bernoulli) | q |", "|---|---|---|---|---|---|---|---|---|---|",
 			sprintf("| %s | %s | %s | %s | %s | %s | %s | %.3f | %.3f | %.2g |", top$response_type, top$n_nominal, top$effect_label,
-				sub("^Inference", "", top$inf_class), top$inf_procedure, top$formula, sub("^Design(Fixed|SeqOneByOne)", "", top$design),
+				sub("^Inference", "", top$inf_class), top$inf_procedure, top$formula, design_label(top$design, top$prob_T),
 				top$power_design, top$power_base, top$q_bh), "")
 	} else c("No comparisons.", "")
 } else c("`design_comparison.csv` (paired power tests between designs) is written when the campaign completes.", "")
@@ -242,7 +247,7 @@ rdcsv <- function(f) {
 cstat <- rdcsv("class_status.csv")
 cfmt <- function(x, d = 3) ifelse(is.na(x), "", trimws(formatC(x, digits = d, format = "fg")))
 cshort <- function(x) sub("^Inference", "", x)
-cdesign <- function(x, p) paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", x), ifelse(!is.na(p) & p != 0.5, paste0("@", p), ""))
+cdesign <- design_label
 if (is.null(cstat)) {
 	add_page("classes.md", "Classes", c("No class data yet: the first waves have not finished.", ""))
 	class_counts <- NULL

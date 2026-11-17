@@ -66,7 +66,8 @@ test_that("failing cells group by class x procedure x metric with pattern, categ
 	expect_equal(a$n_confirmed, 1L)
 	expect_equal(a$failing_ns, "50")
 	expect_equal(a$tested_ns, "50;1000")
-	expect_match(a$worst_cell, "^KK21, ~\\., n = 50, null: size 0\\.09 vs level 0\\.05$")
+	# design labels keep the Fixed / SeqOneByOne prefix (2026-11-17), as on the README pages
+	expect_match(a$worst_cell, "^SeqOneByOne:KK21, ~\\., n = 50, null: size 0\\.09 vs level 0\\.05$")
 	expect_match(a$repro, "--design 'DesignSeqOneByOneKK21' --n 50 --effect null --only InferenceContinA", fixed = TRUE)
 	b = g("continuous/ContinB/wald/size")
 	expect_equal(b$category, "small_sample")

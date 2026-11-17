@@ -404,7 +404,9 @@ fmt <- function(x, d = 3) ifelse(is.na(x), "", trimws(formatC(x, digits = d, for
 lv_cell <- function(v, fail, level, rule) sprintf("%s%s (level %s, %s)", fmt(v), ifelse(fail, " **FAIL**", ""), fmt(level), sub("_", " ", rule))
 order_cell <- function(o, basis) ifelse(is.na(o), "unknown", paste0(ifelse(is.infinite(o), "Inf", fmt(o)), " (", basis, ")"))
 neff_cell <- function(n, flag) paste0(fmt(n), ifelse(flag == "nominal", "", " (proxy)"))
-short_design <- function(x, p) paste0(sub("^Design(Fixed|SeqOneByOne)", "", x), ifelse(p != 0.5, paste0("@", p), ""))
+# Keeps the Fixed / SeqOneByOne prefix: stripped, DesignFixedBernoulli and DesignSeqOneByOneBernoulli read as one design
+# listed twice with different numbers (owner, 2026-11-17). Same form as the README pages ("Fixed:Bernoulli@0.2").
+short_design <- function(x, p) paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", x), ifelse(!is.na(p) & abs(p - 0.5) > 1e-9, paste0("@", p), ""))
 md <- c(paste("##", title), "", if (nzchar(note)) c(note, "") else NULL,
 	if (K > 0 && have_plan) c(sprintf(paste("%d null cells and %d power cells have results; %d of the plan's %d tests (null size and coverage,",
 		"coverage of the true estimand at the power effects) have a p-value from a completed cell. Two-stage gate:",

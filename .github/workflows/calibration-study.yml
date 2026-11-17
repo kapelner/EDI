@@ -707,7 +707,7 @@ jobs:
           for s in wave/study-shard-*; do
             f="$s/rows.csv.gz"
             [ -f "$f" ] || continue
-            h="$(zcat "$f" | head -n 1)"
+            h="$(zcat "$f" | sed -n 1p)"   # sed reads to the end: head would close the pipe and gzip log "Broken pipe"
             [ -n "$header" ] || { header="$h"; printf '%s\n' "$header" > rows/rows.csv; }
             if [ "$h" = "$header" ]; then zcat "$f" | tail -n +2 >> rows/rows.csv
             else cp "$f" "rows/${s#wave/study-shard-}.rows.csv.gz"; fi
