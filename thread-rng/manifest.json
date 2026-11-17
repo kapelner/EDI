@@ -1,6 +1,6 @@
 {
- "last_run": "2026-11-17T19:58:20+00:00",
- "open_pr": 42,
+ "last_run": "2026-11-17T23:07:05+00:00",
+ "open_pr": null,
  "units": {
   "R/EDI/R/contracts_mixins.R": {
    "audited_at": "2026-11-17T10:54:48+00:00",
@@ -188,14 +188,14 @@
    "audited_at": "2026-11-17T19:58:20+00:00",
    "deps": null,
    "hash": "0013753608b5abcd",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44146508363"
   },
   "R/EDI/R/inference_suite.R": {
    "audited_at": "2026-11-17T19:58:20+00:00",
    "deps": null,
    "hash": "8bef8b56912cde79",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44146508363"
   },
   "R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R": {
@@ -237,7 +237,7 @@
    "audited_at": "2026-11-17T19:58:20+00:00",
    "deps": null,
    "hash": "704a8060bc4547a4",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44146508363"
   },
   "R/EDI/R/zzz.R": {
@@ -337,6 +337,174 @@
    "hash": "350af67d54f242b9",
    "open_findings": 0,
    "run": "44146508363"
+  },
+  "R/EDI/src/fast_jonckheere_terpstra.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "c30a6d1b14dffe18",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_kk_wilcox_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "b31aa850f193cbfa",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_logrank.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "d602cf873969dafc",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_robust_regression.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "79502900432d923d",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_sample_int.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "16ea6248a7d8cc4e",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_shuffle.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "a2dff8c337fbe1ed",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_stereotype_logit.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "6fa4883576d78536",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_survival_stats.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "f03f002429e8185f",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_weibull_regression.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "7060c169dfd18659",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/fast_wilcox_hl.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "f17c201257f69e77",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/generate_permutations.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "adc19c86b60d17f3",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/greedy_pairwise_swap_engine.h": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "fc0726d3ce9558e2",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/kk_compound_distr_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "a40cc4b14b916f6d",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/ols_distr_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "4796f72cc0b87ddd",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/omp_control.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "0c7994ade4294312",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/optimal_design_search.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "3a2d3d787bef9a5b",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/pocock_simon_assign.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "cf750288bfa82590",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/r_seed_draw.h": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "7f5f0a43738d4553",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/rand_bootstrap_mean_diff_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "ad32f587a898a19a",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/rand_bootstrap_ols_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "234eab83e0c3053f",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/random_block_size_speedups.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "95b1eeea6abbca7c",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/randomization_loop.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "0671a7c8d7b10c93",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/rerandomization_helpers.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "842d4d6163dcf41f",
+   "open_findings": 0,
+   "run": "44173517884"
+  },
+  "R/EDI/src/ridit_distr_parallel.cpp": {
+   "audited_at": "2026-11-17T23:07:05+00:00",
+   "deps": null,
+   "hash": "66683b3b2799fb4e",
+   "open_findings": 0,
+   "run": "44173517884"
   }
  }
 }
