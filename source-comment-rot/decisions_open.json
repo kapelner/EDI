@@ -1,0 +1,44 @@
+{
+ "source-comment-rot-d0cf8b6ee": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_ordinal_adj_cat_logit.R:91`: The comment says the 1e4 max_abs_reasonable_coef threshold is the same as InferenceIncidKKCondLogitOneLik's assess_combined_fit(), but that class sets max_abs_reasonable_coef = 10, while this class sets 1e4 (line 93). The pattern is shared; the threshold is not. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# itself. Same threshold/pattern as every other class's` -> `# itself. Same pattern (threshold value varies by class) as every other class's`",
+  "unit": "R/EDI/R/inference_ordinal_adj_cat_logit.R"
+ },
+ "source-comment-rot-d0e0b7557": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_incidence_cmh.R:109`: The @param documents the default of se_est_num_vectors as 1000L, but the initialize() signature defaults it to 5000L. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `#'   drawn from the design to estimate the standard error. Default \\code{1000L}.` -> `#'   drawn from the design to estimate the standard error. Default \\code{5000L}.`",
+  "unit": "R/EDI/R/inference_incidence_cmh.R"
+ },
+ "source-comment-rot-d4adc9b4d": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_incidence_gcomp_abstract.R:33`: the code may be the wrong side: The roxygen for `prob_clip_eps` says it must be in [0, 0.5), which excludes 0.5. The assertion `assertNumber(prob_clip_eps, lower = 0, upper = 0.5)` accepts 0.5, because checkmate bounds are inclusive. At 0.5 every fitted probability is clipped to exactly 0.5, so the code may be too permissive. Alternatively the comment should say [0, 0.5]. Comment: `#'   \\eqn{mu(1-mu)} is bounded away from zero. Must be in \\code{[0, 0.5)}.`",
+  "unit": "R/EDI/R/inference_incidence_gcomp_abstract.R"
+ },
+ "source-comment-rot-d6669db65": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_ordinal_paired_sign_test.R:143`: The doc says pairs with no discordant weighted votes are cached as nonestimable. When n_eff <= 0 the code instead caches beta_hat_T = 0 with s_beta_hat_T = NA and calls neither cache_nonestimable_estimate() nor cache_nonestimable_se() (lines 181-186). Only the no-pairs case (line 163) uses cache_nonestimable_estimate(). Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `#'   discordant (untied) weighted votes are cached as nonestimable.` -> `#'   discordant (untied) weighted votes get an estimate of \\code{0} and an \\code{NA} standard error.`",
+  "unit": "R/EDI/R/inference_ordinal_paired_sign_test.R"
+ },
+ "source-comment-rot-dabed9e81": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_incidence_log_binomial.R:273`: The comment says compute_estimate_with_bootstrap_weights() is defined 'below' this helper. It is defined earlier in the file, in the public list at line 44, above is_log_binomial_fit_reasonable at line 262. The call with check_probability_boundary = FALSE is at lines 83 and 89. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# weights() below), never for the primary fit. Under Dirichlet` -> `# weights() above), never for the primary fit. Under Dirichlet`",
+  "unit": "R/EDI/R/inference_incidence_log_binomial.R"
+ },
+ "source-comment-rot-df6e615ac": {
+  "first_seen": "2026-11-17T22:56:57+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-17T22:56:57+00:00",
+  "text": "`R/EDI/R/inference_incidence_KK_newcombe_ivwc_univ.R:10`: the code may be the wrong side: The docs say the matched-pair component applies the paired Newcombe (Method-10-style Wilson-score) interval, and that the reservoir uses the independent-samples Newcombe interval. shared_combined() only computes Wald-type point estimates and variances: var_m = (p10 + p01 - (p10 - p01)^2)/n at line 147 and var_r = pRT(1-pRT)/nRT + pRC(1-pRC)/nRC at line 157. It does no Wilson-score computation. Either the docs overstate the method or the code does not implement the Newcombe method. Comment: `#' The matched-pair component applies the paired Newcombe (Method-10-style`",
+  "unit": "R/EDI/R/inference_incidence_KK_newcombe_ivwc_univ.R"
+ }
+}
