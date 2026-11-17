@@ -1,0 +1,519 @@
+---
+title: "Running a Sequential Trial: Enrollment, Persistence and the Audit Trail"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+In a sequential trial, subjects enroll one at a time over weeks or months, and each
+one is assigned to treatment or control on the day they enroll. The statistics of
+such designs are covered elsewhere: [Matching on the Fly](matching-on-the-fly.html)
+explains the Kapelner–Krieger designs, and [Planning a Study](planning-a-study.html)
+covers power and sample size. This article is about operations. It covers what has
+to happen between the first enrollment and the final analysis when the trial is
+spread over many R sessions, probably several computers, and possibly several people:
+
+* creating the design before the first subject arrives;
+* assigning each arrival and saving the design to disk between enrollments;
+* making the allocation reproducible, so that an interrupted trial continues exactly
+  as an uninterrupted one would have;
+* recording responses that arrive late or out of order;
+* what to do when some responses never arrive;
+* keeping an audit trail from which anyone can reproduce the allocation;
+* the final analysis.
+
+It assumes the four steps of an EDI (Experimental Design and Inference) analysis
+(design, assign, record responses, infer) from [Get started](EDI.html).
+
+## The sequential designs
+
+EDI's sequential designs all share the same interface: a `$new()` call before the
+trial, then one `add_one_subject_to_experiment_and_assign()` call per arrival and
+one `add_one_subject_response()` call per outcome. Everything in this article
+applies to all of them.
+
+| Class | How each arrival is assigned |
+|---|---|
+| `DesignSeqOneByOneBernoulli` | An independent coin with probability `prob_T` |
+| `DesignSeqOneByOneiBCRD` | Complete randomization run sequentially: exactly `n * prob_T` treated at the end |
+| `DesignSeqOneByOneRandomBlockSize` | Permuted blocks of randomly varying size, optionally within strata |
+| `DesignSeqOneByOneSPBR` | Stratified permuted blocks of fixed size |
+| `DesignSeqOneByOneEfron` | Efron's biased coin toward the arm that is behind |
+| `DesignSeqOneByOneUrn` | Wei's adaptive urn |
+| `DesignSeqOneByOneAtkinson` | Atkinson's covariate-adjusted biased coin |
+| `DesignSeqOneByOnePocockSimon` | Pocock–Simon minimization over categorical strata |
+| `DesignSeqOneByOneKK14` | Matching on the fly with a Mahalanobis distance |
+| `DesignSeqOneByOneKK21` | Matching on the fly with weights learned from the responses so far |
+| `DesignSeqOneByOneKK21stepwise` | As KK21, with stepwise weights |
+
+The running example uses `DesignSeqOneByOneKK21`, because it is the one design whose
+assignments depend on the responses recorded so far, which makes the order of events
+part of the allocation. That is the hardest case for persistence and auditing; a trial
+run with any other design in the table is a special case of it.
+
+## The trial
+
+Sixty patients enroll over about seven months, with three baseline covariates
+recorded at enrollment. The outcome is measured at a follow-up visit eight weeks
+later, give or take two weeks, so outcomes come back in a different order from the
+one in which patients enrolled, and for most of the trial the most recent patients'
+outcomes are still unknown.
+
+In a real trial the arrival dates, covariates and outcomes come from the clinic. Here
+they are simulated, all in advance, so that nothing below draws random numbers except
+the design itself. `y0` is the outcome each patient would have under control; the
+treatment adds `true_effect`.
+
+```{r trial-data}
+set.seed(20261117)
+n = 60
+X = data.frame(age_z = round(rnorm(n), 2), severity = round(rnorm(n), 2),
+               biomarker = round(rnorm(n), 2))
+true_effect = 0.5
+y0 = 1.5 * X$severity + 0.8 * X$biomarker + rnorm(n)
+
+day_enrolled = sort(round(cumsum(rexp(n, rate = 1 / 3.5))))   # one arrival every 3.5 days
+day_outcome  = day_enrolled + round(runif(n, 42, 70))          # follow-up 6 to 10 weeks later
+start = as.POSIXct("2027-01-04 09:00", tz = "UTC")
+```
+
+The trial's history is a list of events, in calendar order. An enrollment is always
+before that patient's outcome; on a day with both kinds of event, the enrollment
+goes first.
+
+```{r trial-events}
+events = rbind(
+  data.frame(day = day_enrolled, type = "enroll",  subject = seq_len(n)),
+  data.frame(day = day_outcome,  type = "outcome", subject = seq_len(n))
+)
+events = events[order(events$day, events$type == "outcome", events$subject), ]
+events$time = start + events$day * 86400
+rownames(events) = NULL
+head(events, 8)
+```
+
+## Before the first subject: create the design and save it
+
+Everything that defines the allocation rule is fixed at construction: the class, the
+response type, the target sample size `n`, the design's tuning arguments, and the
+`seed`. Write these into the protocol.
+
+* **Set `n`.** The Kapelner–Krieger designs need it, since their burn-in
+  (`t_0_pct * n` subjects) and their matching threshold depend on it, and EDI's
+  fixed-sample analysis assumes that the number of subjects was fixed before
+  enrollment and not chosen by watching the outcomes. The design does not stop
+  enrollment for you: it is up to you to stop at exactly `n`.
+* **Fix the covariate list.** Every arrival must be a one-row data frame with the
+  same columns, of the same types, measured before assignment. A column whose type
+  changes partway through (an integer that arrives as a character string, say)
+  produces a warning. A missing covariate value is allowed: it is imputed (see the
+  `missingness_method` argument).
+* **Set `seed`.** The constructor calls `set.seed(seed)` once. From then on, every
+  assignment draws from R's random number generator, so the seed fixes the whole
+  allocation only if the generator's state is carried from one assignment to the
+  next. The section after next shows how.
+
+The trial state lives in one file: the design object, the state of R's random number
+generator, and the event log. `saveRDS()` stores the whole R6 object, including the
+assignments, the responses, the match structure and KK21's weight history; there is
+no special save function. Each save writes a temporary file first and then renames it
+over the old one, so a crash during a save cannot leave a half-written trial file.
+
+```{r create-trial}
+save_trial = function(state, file) {
+  tmp = paste0(file, ".tmp")
+  saveRDS(state, tmp)
+  invisible(file.rename(tmp, file))    # replaces the old file only once the new one is complete
+}
+
+trial_seed = 7041
+trial_file = file.path(tempdir(), "trial.rds")
+
+des = DesignSeqOneByOneKK21$new(response_type = "continuous", n = n, seed = trial_seed)
+save_trial(list(
+  design = des,
+  rng    = .Random.seed,     # the generator state right after set.seed(trial_seed)
+  log    = data.frame(time = start[0], event = character(0), subject = integer(0),
+                      value = numeric(0))
+), trial_file)
+rm(des)
+```
+
+In practice the file goes somewhere that is backed up, and the copy made after each
+enrollment is worth keeping (a dated file name, or a version-controlled directory),
+so that a mistaken entry can be undone by going back one file.
+
+## Each arrival: load, assign, save
+
+Two small functions do all the bookkeeping. `enroll()` loads the trial, puts R's
+random number generator into the state saved after the previous assignment, assigns
+the new patient, saves the generator's new state with the design, appends a line to
+the log, and writes the file back. `record_outcome()` does the same for an outcome;
+it draws no random numbers. Both put the session's own random number stream back the
+way they found it, so other work in the same R session neither affects the trial nor
+is affected by it.
+
+```{r enroll-functions}
+with_trial_rng = function(state, expr) {
+  session_rng = get0(".Random.seed", envir = globalenv(), inherits = FALSE)
+  on.exit(if (!is.null(session_rng)) assign(".Random.seed", session_rng, envir = globalenv()))
+  assign(".Random.seed", state$rng, envir = globalenv())
+  value = expr                                   # lazy: evaluated here, under the trial's stream
+  list(value = value, rng = get(".Random.seed", envir = globalenv()))
+}
+
+log_event = function(state, time, event, subject, value) {
+  state$log = rbind(state$log, data.frame(time = time, event = event,
+                                          subject = subject, value = value))
+  state
+}
+
+enroll = function(file, x_new, time) {
+  state = readRDS(file)
+  res = with_trial_rng(state, state$design$add_one_subject_to_experiment_and_assign(x_new))
+  state$rng = res$rng
+  state = log_event(state, time, "assign", state$design$get_t(), res$value)
+  save_trial(state, file)
+  res$value
+}
+
+record_outcome = function(file, subject, y, time) {
+  state = readRDS(file)
+  state$design$add_one_subject_response(subject, y)
+  state = log_event(state, time, "outcome", subject, y)
+  save_trial(state, file)
+  invisible(y)
+}
+```
+
+Now run the trial, one event at a time. Every call reads the file from disk and
+writes it back, as it would if each enrollment happened on a different day in a
+different R session. The `runif()` line stands in for whatever else the session does
+between enrollments.
+
+```{r run-trial}
+w_assigned = rep(NA_integer_, n)
+for (e in seq_len(nrow(events))) {
+  i = events$subject[e]
+  if (events$type[e] == "enroll") {
+    w_assigned[i] = enroll(trial_file, X[i, , drop = FALSE], events$time[e])
+  } else {
+    record_outcome(trial_file, i, y0[i] + true_effect * w_assigned[i], events$time[e])
+  }
+  invisible(runif(10))    # other work in the session
+}
+state = readRDS(trial_file)
+c(enrolled = state$design$get_t(), treated = sum(state$design$get_w()),
+  pairs = max(state$design$get_block_ids()))
+```
+
+The subject index `t` that `add_one_subject_response()` takes is the enrollment
+order, so the trial's own patient identifiers need a lookup table to `t`; here they
+coincide.
+
+## Saving and restoring is exact
+
+Because the generator state travels with the design, stopping and restarting the
+trial makes no difference to the allocation. To check, rerun the same events in a
+single session, holding the design in memory and never saving it, with nothing else
+using the random number generator in between:
+
+```{r uninterrupted}
+uninterrupted = function(events, seed, skip_outcomes = integer(0)) {
+  d = DesignSeqOneByOneKK21$new(response_type = "continuous", n = n, seed = seed)
+  for (e in seq_len(nrow(events))) {
+    i = events$subject[e]
+    if (events$type[e] == "enroll") {
+      d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+    } else if (!(i %in% skip_outcomes)) {
+      d$add_one_subject_response(i, y0[i] + true_effect * d$get_w()[i])
+    }
+  }
+  d
+}
+des_mem = uninterrupted(events, trial_seed)
+c(same_assignments = identical(des_mem$get_w(), state$design$get_w()),
+  same_pairs = identical(des_mem$get_block_ids(), state$design$get_block_ids()))
+```
+
+Both runs give the same 60 assignments and the same pairs.
+
+Saving the design object alone is not enough. `readRDS()` restores the design but not
+R's random number stream, and EDI does not set the seed again after a reload: it draws
+from whatever state the generator is in. Here is the same trial with the design kept
+in memory but with the session's other work (the `runif()` calls) sharing the
+generator, as happens when the generator state is not saved and restored:
+
+```{r shared-stream}
+d_shared = DesignSeqOneByOneKK21$new(response_type = "continuous", n = n, seed = trial_seed)
+for (e in seq_len(nrow(events))) {
+  i = events$subject[e]
+  if (events$type[e] == "enroll") {
+    d_shared$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  } else {
+    d_shared$add_one_subject_response(i, y0[i] + true_effect * d_shared$get_w()[i])
+  }
+  invisible(runif(10))
+}
+sum(d_shared$get_w() != state$design$get_w())    # assignments that differ
+```
+
+That allocation is just as valid a draw from the design, so the trial's validity does
+not depend on any of this. What is lost is the ability to show afterwards that the
+allocation is the one the seed produces.
+
+The design records the EDI version it was created under. If a design saved under one
+major version of EDI is reloaded under another, the first assignment after the reload
+gives a warning. Within a trial, keep the EDI version fixed, and record it:
+
+```{r version}
+state$design$get_edi_version_created()
+```
+
+## Outcomes that arrive late or out of order
+
+`add_one_subject_response(t, y)` records the outcome of the subject enrolled `t`-th,
+whenever it arrives; `t` must be a subject who has already enrolled. With `n` set, the
+outcomes can come in any order, which they did here:
+
+```{r out-of-order}
+outcome_order = state$log$subject[state$log$event == "outcome"]
+head(outcome_order, 15)
+```
+
+Recording an outcome a second time replaces the first value with a warning
+("Overwriting previous response for t = ..."). Use this to correct a data-entry
+error, and log the correction like any other event.
+
+**What late outcomes do to KK21.** Every design except KK21 and KK21stepwise ignores
+the outcomes while assigning, so for them the outcomes only need to be recorded before
+the analysis. KK21 is different: at each assignment it estimates its covariate weights
+from the outcomes recorded *at that moment*. Until at least $2(p+2)$ outcomes are
+in ($p = 3$ covariates here, so 10), it cannot estimate the weights and uses the KK14
+rule instead. Here is how many outcomes were known at each assignment, and the first
+assignment at which KK21 used weights:
+
+```{r outcomes-at-assignment}
+ev_log = state$log
+known_at_assignment = sapply(which(ev_log$event == "assign"),
+                             function(k) sum(ev_log$event[seq_len(k)] == "outcome"))
+iw = state$design$get_iteration_weights()
+first_weighted = which(!vapply(seq_len(n), function(t) t > length(iw) || is.null(iw[[t]]),
+                               logical(1)))[1]
+c(burn_in_ends_after = floor(0.35 * n), first_weighted_assignment = first_weighted,
+  outcomes_known_then = known_at_assignment[first_weighted])
+known_at_assignment[c(20, 30, 40, 50, 60)]
+```
+
+For comparison, the same 60 patients with each outcome known as soon as the patient is
+assigned (as if the outcome were immediate):
+
+```{r immediate-outcomes}
+immediate = events[events$type == "enroll", ]
+immediate = immediate[rep(seq_len(n), each = 2), ]
+immediate$type = rep(c("enroll", "outcome"), n)
+des_immediate = uninterrupted(immediate, trial_seed)
+iw_imm = des_immediate$get_iteration_weights()
+which(!vapply(seq_len(n), function(t) t > length(iw_imm) || is.null(iw_imm[[t]]),
+              logical(1)))[1]
+```
+
+With immediate outcomes, KK21 weights from the first assignment after the burn-in.
+With the follow-up delay it started at subject `r first_weighted`, and every assignment
+used fewer outcomes than there were subjects: when the last patient enrolled, only
+`r known_at_assignment[n]` of the earlier 59 outcomes were known. The longer the
+follow-up relative to the enrollment period, the larger this gap.
+
+Two practical consequences:
+
+* **The order of events is part of the allocation.** For KK21, the same patients,
+  outcomes and seed give a different allocation if the outcomes are recorded at
+  different times. To reproduce a KK21 allocation, you need the order in which
+  enrollments and outcomes were entered, not just the data. The audit log below
+  records it.
+* **Record outcomes as soon as they are final.** An outcome that sits in a case report
+  form for a month is a month during which KK21 matches on less information. Do not
+  hold outcomes back and enter them in a batch. If the follow-up is so long that only
+  a few outcomes will be known before enrollment ends, KK21 will spend most of the
+  trial applying the KK14 rule, and KK14 is the simpler choice.
+
+## The audit trail
+
+The log saved with the trial has one line per event: when it happened, what it was,
+which subject, and the assignment or the outcome.
+
+```{r audit-log}
+head(state$log, 10)
+table(state$log$event)
+```
+
+Together with the protocol's design arguments, the seed, the covariate rows exactly
+as they were entered, and the EDI and R versions, this log is enough for anyone to
+reproduce the allocation. The replay below starts a fresh design with the same seed
+and walks through the log, entering each enrollment and each logged outcome in the
+recorded order, and checks every assignment against the log as it goes. Nothing in the
+replay depends on the trial file or on the generator states it stored.
+
+```{r replay}
+replay = function(log, X, seed) {
+  d = DesignSeqOneByOneKK21$new(response_type = "continuous", n = nrow(X), seed = seed)
+  for (k in seq_len(nrow(log))) {
+    i = log$subject[k]
+    if (log$event[k] == "assign") {
+      w = d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+      if (w != log$value[k]) stop("assignment of subject ", i, " does not match the log")
+    } else {
+      d$add_one_subject_response(i, log$value[k])
+    }
+  }
+  d
+}
+des_replayed = replay(state$log, X, trial_seed)
+identical(des_replayed$get_w(), state$design$get_w())
+```
+
+The replay reproduces every assignment. Keep the covariate rows in a format that
+stores numbers exactly (an `.rds` file, or a CSV written with full precision): a
+covariate rounded on export changes the distances the design computed, and with them
+possibly the matches. A full account of where EDI draws random numbers, including in
+randomization tests and the bootstrap, is in [Reproducibility](reproducibility.html).
+
+## When some outcomes never arrive
+
+Patients withdraw, move away or miss their follow-up visit. EDI's inference classes
+need an outcome for every enrolled subject: building one on a design with a missing
+outcome stops with an error. To see this, rerun the trial with the outcomes of two
+patients never recorded, as if they had been lost to follow-up:
+
+```{r lost-to-follow-up}
+lost = c(12, 41)
+des_lost = uninterrupted(events, trial_seed, skip_outcomes = lost)
+des_lost$check_experiment_completed()
+tryCatch(InferenceContinKKOLSOneLik$new(des_lost, verbose = FALSE),
+         error = function(e) conditionMessage(e))
+```
+
+The same check refuses an analysis when fewer than `n` subjects enrolled. EDI has no
+way to shrink `n` after the fact or to analyze a design with missing outcomes, so the
+choices are made outside the design object:
+
+* **Time-to-event outcomes.** A patient lost to follow-up is censored at their last
+  contact: record `add_one_subject_response(t, y_L = last_contact, y_R = Inf)` on a
+  design with `response_type = "survival"`. The survival analyses handle this, under
+  the usual assumption that censoring is independent of the event time. See the
+  [survival cookbook](cookbook-survival.html).
+* **Other outcomes: get the outcome.** Every effort to ascertain the outcome (a phone
+  call, a registry, a late visit) is worth more than any analysis fix.
+* **A complete-case analysis, as a secondary analysis.** Enter the completers'
+  covariates, realized assignments and outcomes into an analysis-only design, as in
+  [Analyzing an Experiment You Already Ran](analyzing-an-existing-experiment.html), and use
+  an asymptotic, covariate-adjusted analysis:
+
+```{r complete-case}
+keep = setdiff(seq_len(n), lost)
+w_all = des_lost$get_w()
+y_all = des_lost$get_y()
+des_cc = DesignFixedBernoulli$new(n = length(keep), response_type = "continuous",
+                                  verbose = FALSE)
+des_cc$add_all_subjects_to_experiment(X[keep, ])
+des_cc$assign_w_to_all_subjects(w_precomputed = w_all[keep])
+des_cc$add_all_subject_responses(y_all[keep])
+inf_cc = InferenceContinOLS$new(des_cc, verbose = FALSE)
+inf_cc$compute_estimate()
+inf_cc$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+A complete-case analysis is unbiased only if dropping out is unrelated to the outcome
+given the covariates and the treatment, which no data can confirm. It also discards
+the matched-pair structure: a pair that lost one member is no longer a pair. And the
+analysis design is not the design that made the assignments, so its randomization
+test and bootstrap would resample from the wrong mechanism; use only its asymptotic
+results. Report it as what it is, together with the number lost in each arm. Imputing
+the missing outcomes and then entering them as if they were observed is worse: the
+analysis would treat imputed values as data and understate its uncertainty.
+
+## The final analysis
+
+When the last subject has enrolled and the last outcome is in, load the trial file
+once more, confirm that it is complete, and analyze the design object as usual. The
+recommended analysis for a continuous outcome under a KK design is
+`InferenceContinKKOLSOneLik`, described in [Matching on the Fly](matching-on-the-fly.html):
+
+```{r final-analysis}
+final = readRDS(trial_file)
+des_final = final$design
+des_final$check_experiment_completed()
+
+inf = InferenceContinKKOLSOneLik$new(des_final, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+The randomization test redraws assignments from the design's own mechanism. Give the
+inference object its own seed so that the p-value can be reproduced; `set_seed()`
+does not disturb the session's random number stream.
+
+```{r final-rand}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+The same steps apply to every other design and outcome type; the cookbooks list the
+analyses for each outcome type (for example the
+[continuous cookbook](cookbook-continuous.html)), and `InferenceSuite` runs all of the
+analyses that apply to a design.
+
+The sequential designs have no interim analysis or stopping rule: the analysis is run
+once, after `n` subjects. Looking at the treatment effect partway through and stopping
+when it looks good invalidates the fixed-sample p-values and intervals above.
+
+## Checklist
+
+Before the first subject:
+
+1. Fix the design class and its arguments, `n`, the response type, the covariate list
+   and the seed in the protocol, and record the EDI and R versions.
+2. Create the design and save it, together with `.Random.seed`, to a backed-up file.
+
+For each arrival:
+
+3. Load the trial file, restore the saved generator state, call
+   `add_one_subject_to_experiment_and_assign()`, save the new generator state, log the
+   event with its time, and write the file back.
+
+For each outcome:
+
+4. Call `add_one_subject_response()` with the subject's enrollment index as soon as
+   the outcome is final, log it, and save.
+
+At the end:
+
+5. Check `check_experiment_completed()`, replay the log to confirm the allocation, and
+   run the prespecified analysis once.
+
+## Where to go next
+
+* [Matching on the Fly](matching-on-the-fly.html): how the KK14, KK21 and
+  KK21stepwise designs work, and how much they gain.
+* [Planning a Study](planning-a-study.html): power and sample size by simulation,
+  including sequential designs.
+* [Reproducibility](reproducibility.html): every place EDI draws random numbers.
+* [Analyzing an Experiment You Already Ran](analyzing-an-existing-experiment.html): analyzing
+  assignments made outside EDI.
+* The help pages [`DesignSeqOneByOneKK21`](../reference/DesignSeqOneByOneKK21.html)
+  and [`InferenceContinKKOLSOneLik`](../reference/InferenceContinKKOLSOneLik.html).
+
+```{r cleanup, include = FALSE}
+unlink(trial_file)
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("running-a-sequential-trial rendered in %.0f seconds", render_secs))
+```

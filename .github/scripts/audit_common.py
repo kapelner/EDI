@@ -43,7 +43,10 @@ DEFAULT_SPEC = {
     "tools": "Read,Glob,Grep", # agent tools; Bash is always denied
     "max_turns": 60,
     "timeout_minutes": 20,     # per agent
-    "pr_draft": False,         # open the PR as a draft (a follow-up job marks it ready)
+    "pr_draft": False,
+    # A decision whose unit is not among this run's units stays listed (rather than counting as
+    # resolved) when this is True: for audits whose units are only what changed (dependency-license).
+    "decisions_keep_unlisted": False,         # open the PR as a draft (a follow-up job marks it ready)
 }
 
 
@@ -302,18 +305,121 @@ def settle_open_counts(manifest, settled):
     return manifest
 
 
+# ---------------------------------------------------------------- decisions for the owner
+
+DISMISSED_FILE = "R/package_metadata/audits/dismissed_decisions.md"
+RELEASE_GLOB = "R/package_metadata/future_release_plans/release_v*.md"
+DECISION_ID = re.compile(r"\b([a-z][a-z0-9-]*-d[0-9a-f]{8}(?:-\d+)?)\b")
+
+
+def decision(text, unit=None, key=None):
+    """A "Decisions for you" item. `unit` (the audit's unit id) and `key` (a fixed word for the kind of
+    decision, never agent prose) give it an id that stays the same across runs. Without a unit the id
+    comes from the text, so the item counts as resolved as soon as a run stops reporting it."""
+    return {"text": text, "unit": unit, "key": key}
+
+
+def texts(items):
+    """The text of each "human" item (a str or a decision())."""
+    return [x["text"] if isinstance(x, dict) else x for x in items or []]
+
+
+def decision_id(audit, unit, key, text):
+    basis = ("u", unit, key) if unit is not None else ("t", re.sub(r"\s+", " ", str(text)).strip())
+    return f"{audit}-d{text_hash(*basis)[:8]}"
+
+
+def cited_decisions(repo):
+    """Decision ids cited in an open (unticked) TODO of a release file."""
+    out = set()
+    for rel in sorted(Path(repo).glob(RELEASE_GLOB)):
+        for block in re.split(r"\n(?=- \[[ xX]\] )", rel.read_text(errors="replace")):
+            if block.startswith("- [ ]"):
+                out.update(DECISION_ID.findall(block))
+    return out
+
+
+def dismissed_decisions(repo):
+    p = Path(repo) / DISMISSED_FILE
+    return set(DECISION_ID.findall(p.read_text(errors="replace"))) if p.is_file() else set()
+
+
+def track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp, keep_unlisted=False):
+    """Carry the owner's open decisions from run to run.
+
+    items: this run's "human" items (str or decision()). prev: {id: record} from the last run.
+    A previous decision this run did not report again stays open if its unit was not re-read this
+    run (covered), else it is resolved (the finding is gone). One cited by an open release TODO is
+    kept but not listed; one whose id is in DISMISSED_FILE is dropped.
+    Returns (open records to save, report lines, {"cited": n, "dismissed": n}).
+    """
+    cur = {}
+    for it in items:
+        it = it if isinstance(it, dict) else decision(it)
+        base = decision_id(audit, it.get("unit"), it.get("key"), it["text"])
+        did, n = base, 1
+        while did in cur:
+            n += 1
+            did = f"{base}-{n}"
+        old = prev.get(did) or {}
+        cur[did] = {"unit": it.get("unit"), "key": it.get("key"), "text": it["text"],
+                    "first_seen": old.get("first_seen", stamp), "last_seen": stamp}
+    for did, rec in prev.items():
+        u = rec.get("unit")
+        if did in cur or u is None or u in covered:
+            continue
+        if u in plan_units or keep_unlisted:
+            cur[did] = {**rec, "carried": True}
+    counts = {"cited": 0, "dismissed": 0}
+    open_, lines = {}, []
+    for did, rec in cur.items():
+        if did in dismissed:
+            counts["dismissed"] += 1
+            continue
+        open_[did] = {k: v for k, v in rec.items() if k != "carried"}
+        if did in cited:
+            counts["cited"] += 1
+            continue
+        tag = (f" <sub>`{did}` · open since {str(rec['first_seen'])[:10]}"
+               + (" · not re-checked this run" if rec.get("carried") else "") + "</sub>")
+        first, sep, rest = rec["text"].partition("\n")
+        lines.append(first + tag + sep + rest)
+    return open_, lines, counts
+
+
+def decision_note(counts):
+    extra = []
+    if counts.get("cited"):
+        extra.append(f"{counts['cited']} more are cited by an open release TODO and not listed")
+    if counts.get("dismissed"):
+        extra.append(f"{counts['dismissed']} dismissed")
+    return ("Each item stays here, run after run, until a run no longer finds it, an open release TODO cites "
+            "its id (the `<audit>-d<hex>` tag after the item), or its id is listed in "
+            f"`{DISMISSED_FILE}` with a reason."
+            + (" " + "; ".join(extra) + "." if extra else ""))
+
+
 # ---------------------------------------------------------------- reports
 
 def render_report(spec, parts, coverage, run_url):
-    """parts: {"applied": [str], "mechanical": [str], "human": [str], "summary": str}."""
+    """parts: {"applied": [str], "mechanical": [str], "human": [str], "info": [str], "summary": str,
+    "decision_note": str}. "human" is rendered as "Decisions for you"; "info" (verdicts, progress
+    notes, detector summaries: nothing to decide) goes in a collapsed block."""
     md = [f"## {spec['title']}", ""]
     if parts.get("summary"):
         md += [parts["summary"], ""]
     for key, title in (("applied", "Applied changes"), ("mechanical", "Mechanical findings"),
-                       ("human", "Needs a human")):
+                       ("human", "Decisions for you")):
         items = parts.get(key) or []
         if items:
-            md += [f"### {title} ({len(items)})", ""] + [f"- {x}" for x in items] + [""]
+            md += [f"### {title} ({len(items)})", ""]
+            if key == "human" and parts.get("decision_note"):
+                md += [parts["decision_note"], ""]
+            md += [f"- {x}" for x in items] + [""]
+    info = parts.get("info") or []
+    if info:
+        md += [f"<details><summary>For information ({len(info)}): nothing to decide</summary>", ""]
+        md += [f"- {x}" for x in info] + ["", "</details>", ""]
     md += ["### Coverage", ""]
     md += [f"- {k}: {v}" for k, v in coverage.items()]
     md += ["", f"Run: {run_url}", ""]
@@ -329,8 +435,9 @@ def issue_note(spec):
             f"([`{wf}`](https://github.com/{repo}/actions/workflows/{wf})) rewrites this issue on every run and closes it "
             "itself when a run finds nothing. Do not close it, assign it or work in it: closing it by hand "
             "only makes the next run open a new one. To act on a finding, fix it in its own PR or open a "
-            "release TODO (`v<version>-TODO-<n>`); a finding leaves this report once a run no longer "
-            "finds it.\n\n")
+            "release TODO (`v<version>-TODO-<n>`) that cites its id (the `<audit>-d<hex>` tag after a "
+            "decision), or dismiss it by listing that id in `" + DISMISSED_FILE + "`; a decision leaves "
+            "this report once a run no longer finds it.\n\n")
 
 
 BODY_LIMIT = 60000   # GitHub rejects PR and issue bodies and comments over 65,536 characters
@@ -348,6 +455,8 @@ def fit_body(report, run_link="", limit=BODY_LIMIT):
     cut = head_text.rfind("\n", 0, room)
     head = head_text[:cut if cut > 0 else room]
     left = head_text[len(head):].count("\n")
+    if head.count("<details>") > head.count("</details>"):
+        head += "\n\n</details>"   # a cut inside the "For information" block must not swallow the rest
     note = (f"\n\n**Report cut to fit GitHub's size limit: {left} more line(s) not shown.** The full report "
             f"is in the run's summary{': ' + run_link if run_link else ''}.\n")
     return head + note + tail

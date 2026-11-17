@@ -1,0 +1,478 @@
+---
+title: "EDI from Python: R and Python Side by Side"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+EDI (Experimental Design and Inference) is two packages built on one C++ code base.
+The R package, [`EDI` on CRAN](https://cran.r-project.org/package=EDI), does the
+whole job: it designs the experiment, assigns treatment, records responses and runs
+inference. The Python package,
+[`edi_kernels` on PyPI](https://pypi.org/project/edi_kernels/), is much smaller. It
+exposes the C++ model-fitting kernels that the R inference classes call, with no R
+dependency. This article shows what each package can do, runs the same analyses in
+both, and lists the differences that trip people up.
+
+The R code below runs when this page is built. The Python code does not; it was run
+by hand and its output is pasted underneath each block as `#>` comment lines.
+
+## Installing
+
+In R:
+
+```{r, eval = FALSE}
+install.packages("EDI")
+```
+
+In Python:
+
+```bash
+pip install edi_kernels
+```
+
+The import name is the same as the package name:
+
+```python
+import edi_kernels as ek
+```
+
+The Python output on this page came from `edi_kernels` 1.0.4 under Python 3.14,
+with numpy and scipy installed. The Python version number tracks the R package's
+version. A PyPI release can lag the R package by a version, so check
+`pip show edi_kernels` if your numbers differ in the last digits from the ones
+here; the [Python changelog](https://github.com/kapelner/EDI/blob/main/python/CHANGELOG.md)
+lists which kernels changed in each release.
+
+## What the Python package covers
+
+`edi_kernels` exports 63 functions, all of them numerical kernels that take numpy
+arrays and return a `dict` (or a number or tuple):
+
+| Family | Python functions |
+|---|---|
+| Continuous | `fast_ols`, `fast_robust_regression`, `wilcox_hl_point_estimate`, `ols_hc2_post_fit` |
+| Binary | `fast_logistic_regression`, `fast_probit_regression`, `fast_log_binomial_regression`, `fast_identity_binomial_regression` (each of the last two with a `_with_var` sibling), `mn_ci`, `mn_pvalue`, `newcombe_independent_ci` |
+| Count | `fast_poisson_regression`, `fast_neg_bin`, `fast_zinb`, `fast_zinb_with_var`, `fast_zero_augmented_poisson`, `fast_zero_augmented_poisson_with_var`, `fast_hurdle_negbin`, `fast_truncated_negbin_count`, `fast_cpoisson_combined` |
+| Proportion | `fast_beta_regression`, `fast_zero_one_inflated_beta` |
+| Ordinal | `fast_ordinal_regression` (logit), `fast_ordinal_probit_regression`, `fast_ordinal_cauchit_regression`, `fast_ordinal_cloglog_regression`, `fast_adjacent_category_logit`, `fast_continuation_ratio_regression`, `fast_stereotype_logit`, `fast_ridit_analysis`, `fast_ordinal_clmm`, `fast_ordinal_glmm` |
+| Survival | `fast_coxph_regression`, `fast_stratified_coxph_regression`, `fast_weibull_regression_general`, `fast_weibull_frailty`, `fast_clayton_weibull_aft_optim`, `fast_dep_cens_transform_optim`, `fast_logrank_stats`, `fast_gehan_wilcox_stats`, `get_survival_stat_diff` |
+| Mixed models and GEE (pairs and singletons) | `fast_gaussian_lmm`, `fast_logistic_glmm`, `fast_poisson_glmm`, `fast_hurdle_poisson_glmm`, `fast_clogit_plus_glmm`, `gee_pairs_singletons` |
+| Math utilities | `fast_digamma`, `fast_trigamma`, `fast_lgamma`, `fast_lbeta`, `fast_dnbinom_mu`, `fast_qnorm`, `fast_log_pnorm`, `fast_log_dnorm`, `fast_erfc`, `pnorm_fast`, `dnorm_fast`, `fast_atan`, `fast_log1pexp`, `fast_pchisq_upper` |
+
+Each one fits a model or computes a statistic and hands back the numbers. `help()`
+on any of them prints its arguments, and the package ships type stubs for IDE
+completion.
+
+Everything else is R only:
+
+* **Designs.** None of the fixed or sequential designs (`DesignFixediBCRD`,
+  `DesignFixedRerandomization`, `DesignFixedBlocking`, `DesignSeqOneByOneKK21`, and
+  the rest) exist in Python. Python cannot draw an allocation, assign subjects one at
+  a time, or match subjects on arrival.
+* **Inference classes.** The `Inference*` classes, which choose the model for a
+  design and response type, build the design matrix, and return an estimate,
+  confidence interval and p-value, are R only. In Python you build `X` yourself and
+  turn the kernel's output into a standard error, interval and p-value yourself.
+* **Resampling.** Randomization tests and intervals, the bootstrap, the jackknife and
+  subsampling all need the design to redraw assignments or resample subjects, so they
+  are R only. No permutation or shuffling function is exported to Python.
+* **Everything built on those**: `InferenceSuite`, `SimulationFramework`, missing-data
+  handling, and seeds (see [Seeds and reproducibility](#seeds-and-reproducibility)).
+* **Some kernel variants.** The R package exports `_with_var` variants that return a
+  standard error directly (`fast_ols_with_var_cpp`,
+  `fast_logistic_regression_with_var_cpp`, and similar for probit, Poisson, negative
+  binomial and the ordinal links), plus score and Hessian helpers. Python has
+  `_with_var` variants only for the log-binomial, identity-binomial, zero-inflated
+  negative binomial and zero-augmented Poisson kernels. For the others, compute the
+  standard error from the information matrix the kernel returns, as the examples below
+  do.
+
+So the practical split is: design and randomize in R; fit models in whichever
+language your pipeline lives in. Python is a fast replacement for statsmodels or
+lifelines model fits (see the speed tables in the
+[PyPI README](https://pypi.org/project/edi_kernels/)), not a replacement for the R
+package.
+
+## Task 1: design an experiment and assign treatment (R only)
+
+Eighty subjects with two baseline covariates are assigned to treatment or control by
+complete randomization with equal arms (`DesignFixediBCRD`):
+
+```{r design}
+set.seed(2026)
+n = 80
+X = data.frame(age = round(rnorm(n, 50, 10)), bmi = round(rnorm(n, 27, 4), 1))
+
+des = DesignFixediBCRD$new(n = n, response_type = "continuous")
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+table(w)
+```
+
+There is no Python version of this step. To work in Python from here, write the
+allocation out of R. The examples below need outcomes too, so this chunk simulates
+three of them, one per task: a continuous outcome `y`, a binary outcome `event`, and
+a right-censored survival time `time` with event indicator `dead`. In a real trial
+you would record these instead.
+
+```{r outcomes}
+y = round(2 + 0.05 * X$age + 0.1 * X$bmi + 1.0 * w + rnorm(n), 3)
+event = rbinom(n, 1, plogis(-3 + 0.05 * X$age + 1.0 * w))
+t_event = rexp(n, rate = 0.1 * exp(-0.8 * w + 0.03 * (X$age - 50)))
+t_follow = runif(n, 5, 20)
+time = round(pmin(t_event, t_follow), 2)
+dead = as.integer(t_event <= t_follow)
+
+trial = data.frame(X, w, y, event, time, dead)
+csv_dir = tempdir()
+write.csv(trial, file.path(csv_dir, "trial.csv"), row.names = FALSE)
+head(trial, 3)
+```
+
+Python reads the same file with numpy (a pandas data frame works too once you convert
+the columns you need with `.to_numpy()`):
+
+```python
+import numpy as np
+import edi_kernels as ek
+from scipy import stats
+
+d = np.genfromtxt("trial.csv", delimiter=",", names=True)
+n = len(d)
+print(n, int(d["w"].sum()))
+print(d.dtype.names)
+print(d[:3])
+```
+```
+#> 80 40
+#> ('age', 'bmi', 'w', 'y', 'event', 'time', 'dead')
+#> [(55., 22.4, 1., 7.846, 1., 11.96, 1.)
+#>  (39., 33. , 0., 8.871, 0.,  0.51, 1.)
+#>  (51., 22.4, 0., 7.263, 0.,  8.76, 0.)]
+```
+
+The R chunks below analyze the same data through a design object. Since the
+allocation already exists, each one rebuilds the design with the recorded `w`
+(`assign_w_to_all_subjects(w_precomputed = w)`, as in
+[Analyzing an existing experiment](analyzing-an-existing-experiment.html)) and the
+right response type:
+
+```{r analysis-design}
+analysis_design = function(response_type) {
+  d = DesignFixediBCRD$new(n = n, response_type = response_type)
+  d$add_all_subjects_to_experiment(X)
+  d$assign_w_to_all_subjects(w_precomputed = w)
+  d
+}
+```
+
+## Task 2: a continuous outcome (OLS)
+
+In R, `InferenceContinOLS` regresses `y` on treatment and the covariates and reports
+the treatment coefficient:
+
+```{r ols}
+des_cont = analysis_design("continuous")
+des_cont$add_all_subject_responses(ys = trial$y)
+ols = InferenceContinOLS$new(des_cont)
+ols$compute_estimate()
+ols$compute_asymp_confidence_interval()
+ols$compute_asymp_two_sided_pval()
+```
+
+In Python, `fast_ols` returns the coefficients and, with `estimate_only=False`, the
+cross-product matrix $X^\top X$. The intercept column is yours to add. The standard
+error, the t interval and the p-value are computed by hand, the same way
+`InferenceContinOLS` does (homoskedastic OLS variance, t with $n - p$ degrees of
+freedom):
+
+```python
+X = np.column_stack([np.ones(n), d["w"], d["age"], d["bmi"]])
+fit = ek.fast_ols(X, d["y"], estimate_only=False)
+b = fit["b"]
+df = n - X.shape[1]
+resid = d["y"] - X @ b
+se = np.sqrt(resid @ resid / df * np.linalg.inv(fit["XtWX"])[1, 1])
+t_crit = stats.t.ppf(0.975, df)
+print(b[1])
+print(b[1] - t_crit * se, b[1] + t_crit * se)
+print(2 * stats.t.sf(abs(b[1] / se), df))
+```
+```
+#> 0.9223775048911442
+#> 0.4979715061421437 1.3467835036401448
+#> 4.518592998865402e-05
+```
+
+The numbers agree with R's. `b[1]` is the treatment coefficient because Python
+indexes from 0 and column 0 is the intercept.
+
+## Task 3: a binary outcome (risk difference and odds ratio)
+
+The Miettinen-Nurminen score interval for the risk difference, in R:
+
+```{r mn}
+des_bin = analysis_design("incidence")
+des_bin$add_all_subject_responses(ys = trial$event)
+mn = InferenceIncidMiettinenNurminenRiskDiff$new(des_bin)
+mn$compute_estimate()
+mn$compute_asymp_confidence_interval()
+mn$compute_asymp_two_sided_pval()
+```
+
+In Python, `mn_ci` and `mn_pvalue` take the event counts and arm sizes:
+
+```python
+w, ev = d["w"], d["event"]
+x_t, n_t = ev[w == 1].sum(), (w == 1).sum()
+x_c, n_c = ev[w == 0].sum(), (w == 0).sum()
+p_t, p_c = x_t / n_t, x_c / n_c
+print(p_t - p_c)
+print(ek.mn_ci(x_t, n_t, x_c, n_c, p_t, p_c, alpha=0.05))
+print(ek.mn_pvalue(x_t, n_t, x_c, n_c, 0.0, p_t, p_c))
+```
+```
+#> 0.125
+#> (-0.09143825007891654, 0.3304342067842484)
+#> 0.2591350435284231
+```
+
+Covariate-adjusted logistic regression, in R. The estimate is the log odds ratio for
+treatment:
+
+```{r logistic}
+logit_inf = InferenceIncidLogRegr$new(des_bin)
+logit_inf$compute_estimate()
+logit_inf$compute_asymp_confidence_interval()
+logit_inf$compute_asymp_two_sided_pval()
+```
+
+In Python, `fast_logistic_regression` returns the coefficients `b` and the Fisher
+information `XtWX`; the Wald interval comes from its inverse. The result also has an
+`ssq_b_j` field, but this kernel leaves it as `nan`, so do not read the variance from
+there:
+
+```python
+fit = ek.fast_logistic_regression(X, d["event"])
+b = fit["b"]
+se = np.sqrt(np.linalg.inv(fit["XtWX"])[1, 1])
+z = stats.norm.ppf(0.975)
+print(b[1], fit["converged"])
+print(b[1] - z * se, b[1] + z * se)
+print(2 * stats.norm.sf(abs(b[1] / se)))
+```
+```
+#> 0.5013391832372562 True
+#> -0.43203061901933393 1.4347089854938464
+#> 0.29245475917202635
+```
+
+## Task 4: a survival outcome (Cox regression)
+
+R records each survival response as an interval: an observed event at time `t` is
+`y = t`, and right-censoring at `t` is `y_L = t, y_R = Inf`. See the
+[survival cookbook](cookbook-survival.html).
+
+```{r cox}
+des_surv = analysis_design("survival")
+for (i in 1 : n) {
+  if (trial$dead[i] == 1) {
+    des_surv$add_one_subject_response(i, y = trial$time[i])
+  } else {
+    des_surv$add_one_subject_response(i, y_L = trial$time[i], y_R = Inf)
+  }
+}
+cox = InferenceSurvivalCoxPHRegr$new(des_surv, verbose = FALSE)
+cox$compute_estimate()
+cox$compute_asymp_confidence_interval()
+cox$compute_asymp_two_sided_pval()
+```
+
+The Python kernels use the older time-plus-event-indicator coding: `y` is the
+follow-up time and `dead` is 1 for an event and 0 for a censored subject. Cox
+regression has no intercept, so `X` holds only treatment and the covariates. This
+kernel returns its results under different key names than the GLM kernels:
+`coefficients` and a ready-made `vcov`.
+
+```python
+Xs = np.column_stack([d["w"], d["age"], d["bmi"]])
+fit = ek.fast_coxph_regression(Xs, d["time"], d["dead"])
+b = fit["coefficients"]
+se = np.sqrt(fit["vcov"][0, 0])
+print(b[0], fit["converged"])
+print(b[0] - z * se, b[0] + z * se)
+print(2 * stats.norm.sf(abs(b[0] / se)))
+```
+```
+#> -0.42844401317363584 True
+#> -0.9666305241329187 0.1097424977856471
+#> 0.11868794034420851
+```
+
+The estimate is the log hazard ratio for treatment, the same in both languages.
+
+## Task 5: a sequential matched design (design in R, model in either)
+
+`DesignSeqOneByOneKK21` assigns subjects one at a time as they arrive. Each new
+subject is matched to a waiting subject with similar covariates when one is close
+enough (the pair then gets opposite treatments); otherwise they wait in a reservoir.
+This is R only:
+
+```{r kk}
+set.seed(7)
+n_kk = 40
+X_kk = data.frame(x = round(rnorm(n_kk), 3))
+des_kk = DesignSeqOneByOneKK21$new(n = n_kk, response_type = "continuous")
+for (i in 1 : n_kk) {
+  des_kk$add_one_subject_to_experiment_and_assign(X_kk[i, , drop = FALSE])
+}
+w_kk = des_kk$get_w()
+y_kk = round(1 + 2 * X_kk$x + 0.8 * w_kk + rnorm(n_kk), 4)
+des_kk$add_all_subject_responses(y_kk)
+
+pair = des_kk$get_matching_cluster_ids()
+table(cluster_size = table(pair))
+```
+
+`get_matching_cluster_ids()` gives each matched pair a shared id and each reservoir
+subject an id of their own. One analysis for this design is a linear mixed model
+with a random intercept per pair:
+
+```{r kk-glmm}
+kk_inf = InferenceContinKKGLMM$new(des_kk)
+kk_inf$compute_estimate()
+kk_inf$compute_asymp_confidence_interval()
+write.csv(data.frame(X_kk, w = w_kk, y = y_kk, pair = pair),
+          file.path(csv_dir, "trial_kk.csv"), row.names = FALSE)
+```
+
+Python can fit the same model from the exported pair ids with `fast_gaussian_lmm`.
+The ids must be integers, and every cluster must have one or two subjects (the
+kernel is specialized for pairs and singletons). Include the intercept column in `X`,
+as the R class does. The returned `b` is the fixed effects followed by
+$\log\sigma_e$ and $\log\sigma_b$, and `ssq_b_T` is the treatment coefficient's
+variance:
+
+```python
+k = np.genfromtxt("trial_kk.csv", delimiter=",", names=True)
+Xk = np.column_stack([np.ones(len(k)), k["w"], k["x"]])
+fit = ek.fast_gaussian_lmm(Xk, k["y"], k["pair"].astype(np.int32), estimate_only=False)
+b_T, se = fit["b"][1], np.sqrt(fit["ssq_b_T"])
+print(b_T, fit["converged"])
+print(b_T - z * se, b_T + z * se)
+```
+```
+#> 0.9924783774159754 True
+#> 0.3970216716546706 1.5879350831772803
+```
+
+## Seeds and reproducibility
+
+In R, the seed fixes the allocation. Running the design twice from the same seed
+gives the same `w`:
+
+```{r seeds}
+draw_w = function(seed) {
+  set.seed(seed)
+  d = DesignFixediBCRD$new(n = 10, response_type = "continuous")
+  d$add_all_subjects_to_experiment(data.frame(x = 1 : 10))
+  d$assign_w_to_all_subjects()
+  d$get_w()
+}
+draw_w(1)
+identical(draw_w(1), draw_w(1))
+```
+
+`edi_kernels` has no random number generator and no seed argument. Its kernels are
+deterministic: the same arrays in give the same numbers out.
+
+```python
+a = ek.fast_logistic_regression(X, d["event"])["b"]
+b = ek.fast_logistic_regression(X, d["event"])["b"]
+print(np.array_equal(a, b))
+```
+```
+#> True
+```
+
+There is therefore no "same seed, same allocation in both languages" to check:
+allocations only come from R. Do not expect R and numpy random streams to line up
+either. `set.seed(1)` and `np.random.default_rng(1)` are different generators:
+
+```{r rng}
+set.seed(1)
+round(runif(3), 4)
+```
+
+```python
+print(np.round(np.random.default_rng(1).random(3), 4))
+```
+```
+#> [0.5118 0.9505 0.1442]
+```
+
+To reproduce a trial across languages, draw everything random in R with a seed and
+pass the data (allocation, and simulated outcomes if any) to Python as a file, as
+this article does.
+
+## Differences to watch
+
+* **Treatment coding.** R designs return `w` as 0/1, and the Python kernels that take
+  a treatment vector (`wilcox_hl_point_estimate`, `get_survival_stat_diff`,
+  `fast_logrank_stats`, `fast_ridit_analysis`, and others) expect 0/1 with 1 =
+  treatment. They do not check it. Recode first if your data use 1/2, -1/1 or
+  strings (`w = (arm == "treatment").astype(int)`). In the regression kernels
+  treatment is just a column of `X`, so any coding fits, but the coefficient then
+  means something else: with -1/1 coding it is half the treated-minus-control effect.
+* **Event coding.** Python survival kernels take `dead` (1 = event, 0 = censored).
+  R records `(y_L, y_R]` intervals, as in Task 4.
+* **Indexing.** Python arrays index from 0, so the treatment coefficient after an
+  intercept is `b[1]`, where R's would be `b[2]`. The kernel arguments that name a
+  position are not consistent: `j_T` in the GLMM kernels and the pair indices in
+  `fast_clayton_weibull_aft_optim` are 0-based, but `fixed_idx`, `j` in
+  `fast_robust_regression` and `j_treat` in `ols_hc2_post_fit` are 1-based, as in R.
+  Check the docstring of the argument you are passing.
+* **Design matrices.** R inference classes build `X` from your covariate data frame,
+  including the intercept and dummy columns for factors. Python kernels take a
+  numeric matrix as given. Whether to include an intercept column depends on the
+  model: yes for OLS, GLMs and `fast_gaussian_lmm`, no for Cox. Expand factors to
+  dummy columns yourself.
+* **Return values.** R inference classes return an estimate, interval and p-value.
+  Python kernels return a `dict` whose keys follow the R kernel's list: `b`/`XtWX`
+  for the GLMs, `coefficients`/`vcov` for Cox, and so on. Check `fit.keys()` and
+  `fit["converged"]` before using a fit.
+* **Missing values.** R designs and inference classes handle missing covariates and
+  responses. Python kernels expect complete numeric arrays; drop or impute first.
+
+## Where to get help
+
+* [Get started](EDI.html) and the cookbooks, one per outcome type:
+  [continuous](cookbook-continuous.html), [incidence](cookbook-incidence.html),
+  [count](cookbook-count.html), [proportion](cookbook-proportion.html),
+  [survival](cookbook-survival.html), [ordinal](cookbook-ordinal.html). These cover
+  the R workflow this article only sketches.
+* [Analyzing an existing experiment](analyzing-an-existing-experiment.html): bringing
+  an allocation made elsewhere (for example in Python) into R for randomization
+  inference.
+* The [Python README](https://github.com/kapelner/EDI/tree/main/python) and
+  [`edi_kernels` on PyPI](https://pypi.org/project/edi_kernels/): one usage example
+  per kernel and the speed benchmarks against statsmodels, lifelines and
+  scikit-survival. In Python, `help(ek.fast_coxph_regression)` (or any other kernel)
+  prints its arguments.
+* The [reference index](../reference/index.html) lists the R classes and the R-side
+  kernels (`fast_*_cpp`) under "Backend".
+* Bugs and questions for either package: the
+  [GitHub issue tracker](https://github.com/kapelner/EDI/issues).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("edi-from-python rendered in %.0f seconds", render_secs))
+```

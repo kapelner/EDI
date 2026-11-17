@@ -244,7 +244,7 @@ class Stages(unittest.TestCase):
         parts = cc.apply(self.ctx, r, [])
         self.assertEqual(len(parts["applied"]), 1)
         self.assertIn("Benchmark check pending", parts["applied"][0])
-        self.assertEqual(parts["human"], [])
+        self.assertEqual(ac.texts(parts["human"]), [])
         self.assertIn("draft PR", parts["summary"])
         src = (self.root / "R/EDI/src/fast_work.cpp").read_text()
         self.assertIn("s += ex[i];", src)
@@ -271,21 +271,22 @@ class Stages(unittest.TestCase):
 
     def test_detector_findings_listed_once(self):
         parts = cc.apply(self.ctx, [], [])
-        self.assertEqual(len(parts["human"]), 1)
-        self.assertIn("Detector findings in `work`", parts["human"][0])
-        self.assertEqual(cc.apply(self.ctx, [], [])["human"], [])  # unchanged: not listed again
+        self.assertEqual(len(parts["info"]), 1)                    # information, not a decision
+        self.assertEqual(ac.texts(parts["human"]), [])
+        self.assertIn("Detector findings in `work`", parts["info"][0])
+        self.assertEqual(cc.apply(self.ctx, [], [])["info"], [])  # unchanged: not listed again
         hot = json.loads(json.dumps(HOT))
         hot["hot"][0]["detectors"]["allocation_in_loop"] = {"_Znwm@plt": 1}
         (self.work / cc.WORK_SUB / "hot.json").write_text(json.dumps(hot))
-        self.assertEqual(len(cc.apply(self.ctx, [], [])["human"]), 1)  # changed: listed again
+        self.assertEqual(len(cc.apply(self.ctx, [], [])["info"]), 1)  # changed: listed again
 
     def test_proposal_that_does_not_apply(self):
         r = self.results()
         r[0]["findings"][0]["old_code"] = "not in the file"
-        self.assertIn("occurs 0 times", cc.apply(self.ctx, r, [])["human"][0])
+        self.assertIn("occurs 0 times", ac.texts(cc.apply(self.ctx, r, [])["human"])[0])
         r[0]["findings"][0]["file"] = "python/cpp/x.cpp"
         parts = cc.apply(self.ctx, r, [])
-        self.assertIn("not under R/EDI/src", parts["human"][0])
+        self.assertIn("not under R/EDI/src", ac.texts(parts["human"])[0])
         self.assertEqual(parts["proposed"], [])
         self.assertFalse((self.work / cc.FOLLOWUP_SUB / "proposals.json").exists())
 

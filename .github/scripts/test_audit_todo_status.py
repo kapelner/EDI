@@ -308,7 +308,7 @@ class Apply(unittest.TestCase):
                                    [u])
             self.assertEqual(self.f106.read_text(), before, refs)
             self.assertEqual(parts["applied"], [])
-            self.assertIn("not ticked", parts["human"][0])
+            self.assertIn("not ticked", ac.texts(parts["human"])[0])
         f = self.done(u, [self.sha])
         f["parts"].append({"part": "rest", "status": "not done", "evidence": []})
         self.assertEqual(self.run_apply([f], [u])["applied"], [])
@@ -324,7 +324,7 @@ class Apply(unittest.TestCase):
         before = self.f106.read_text()
         parts = self.run_apply([self.done(u, [self.sha])], [u])
         self.assertEqual(self.f106.read_text(), before)
-        self.assertIn("pointer", parts["human"][0])
+        self.assertIn("pointer", ac.texts(parts["human"])[0])
 
     def test_untick_and_owner_closed(self):
         u2 = f"{REL}/release_v1_0_5.md::TODO-2"
@@ -339,7 +339,7 @@ class Apply(unittest.TestCase):
         self.assertIn("*(unticked by the TODO audit 2026-11-18: the CI test was deleted in abc1234)*", t2)
         self.assertTrue(t1.startswith("- [x] TODO-1"))                   # owner closed it: never unticked
         self.assertEqual(len(parts["applied"]), 1)
-        self.assertIn("owner closed", parts["human"][0])
+        self.assertIn("owner closed", ac.texts(parts["human"])[0])
 
     def test_partly_done_and_changed_verdicts(self):
         u1 = f"{REL}/release_v1_0_6.md::TODO-1"
@@ -352,13 +352,14 @@ class Apply(unittest.TestCase):
                "gap": ""}
         parts = self.run_apply([f1, f10], [u1, u10])
         self.assertEqual(self.f106.read_text(), before)
-        self.assertEqual(len(parts["human"]), 2)
-        self.assertIn("not done", parts["human"][0])       # short changed verdicts come first
-        self.assertIn("partly done", parts["human"][1])
-        self.assertIn(self.sha, parts["human"][1])
+        self.assertEqual(ac.texts(parts["human"]), [])                # verdicts and progress: information only
+        self.assertEqual(len(parts["info"]), 2)
+        self.assertIn("not done", parts["info"][0])        # short changed verdicts come first
+        self.assertIn("partly done", parts["info"][1])
+        self.assertIn(self.sha, parts["info"][1])
         # The same `not done` next week is not listed again; partly done still is.
         parts = self.run_apply([f1, f10], [u1, u10])
-        self.assertEqual(len(parts["human"]), 1)
+        self.assertEqual(len(parts["info"]), 1)
         saved = json.loads((self.ctx.notes.dir / "verdicts.json").read_text())
         self.assertEqual(saved[u10]["verdict"], "not done")
 

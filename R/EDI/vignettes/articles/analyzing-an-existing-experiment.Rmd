@@ -147,7 +147,7 @@ site.
 
 ```{r boot}
 inf$set_seed(1)
-inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 501, show_progress = FALSE)
 ```
 
 ## Every applicable analysis

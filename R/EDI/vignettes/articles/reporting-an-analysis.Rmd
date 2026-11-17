@@ -1,0 +1,366 @@
+---
+title: "Reporting an Analysis: From EDI Output to a Paper"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+An analysis is not finished when the p-value prints. Someone has to turn the
+output into a results table, write a methods section that says exactly what was
+done, and record enough to let a reader (or you, a year later) rerun it. This
+article goes from an EDI (Experimental Design and Inference) analysis to those
+three things, and ends with how to cite the software and the design.
+
+It assumes you know the four steps of an EDI analysis (design, assign, record
+responses, infer) from [Get started](EDI.html) or the
+[continuous cookbook](cookbook-continuous.html). The analysis below follows the
+cookbook, so it is shown with little comment.
+
+## 1. A worked analysis
+
+Sixty subjects with three baseline covariates. Treatment is assigned by
+rerandomization (Morgan and Rubin, 2012): candidate assignments with 30 treated
+and 30 control are drawn by complete randomization, and only the 5% with the
+smallest Mahalanobis imbalance in the covariate means are kept. The design gets
+its own `seed`, so the assignment can be redrawn exactly.
+
+```{r analysis}
+set.seed(20261117)
+n = 60
+X = data.frame(
+  age  = round(rnorm(n, 45, 12)),
+  bmi  = round(rnorm(n, 27, 4), 1),
+  male = rbinom(n, 1, 0.5)
+)
+
+design_seed = 7
+prop_acceptable = 0.05
+des = DesignFixedRerandomization$new(n = n, response_type = "continuous",
+                                     prop_acceptable = prop_acceptable,
+                                     objective = "mahal_dist",
+                                     seed = design_seed, verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+y = 10 + 2.5 * w + 0.1 * X$age - 0.3 * X$bmi + rnorm(n, sd = 3)
+des$add_all_subject_responses(y)
+```
+
+`InferenceSuite` finds every inference class that applies to this design and
+response, and `run_all_inference()` fits them. Here it is restricted to the three
+mean-difference estimators (the unadjusted difference in means, OLS adjusted for
+the covariates, and Lin's interacted regression) and to three procedures: the
+Wald interval and test, the randomization test and interval, and the percentile
+bootstrap. `compute_conf_intervals = TRUE` asks for intervals as well as
+p-values; the default computes p-values only. The suite streams each row as it
+finishes; that live output is hidden here and the finished results are printed
+instead.
+
+```{r suite, results = "hide"}
+set.seed(1)
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(
+  screen = TRUE, plots = FALSE, num_cores = 1L,
+  classes = c("InferenceAllSimpleAverageDiff", "InferenceContinOLS", "InferenceContinLin"),
+  methods = list(wald = NULL, rand = NULL, bootstrap = "percentile"),
+  compute_conf_intervals = TRUE
+)
+```
+
+```{r suite-print}
+res
+```
+
+The last lines are a Cauchy-combined p-value across all nine rows. It is evidence
+that at least one of these procedures found an effect; it is not an estimate and
+does not belong in a results table as one (the
+[`InferenceSuite`](../reference/InferenceSuite.html) help page explains why).
+
+## 2. A results table
+
+### From the suite
+
+`res$results_table` is a plain `data.frame`, one row per class and procedure, with
+the estimate, interval (`ci_a`, `ci_b`), p-value and the procedure's validity
+regime. Pick the columns you need:
+
+```{r suite-table}
+tab = res$results_table[, c("inference_class", "method", "type", "estimate",
+                            "ci_a", "ci_b", "pval", "regime")]
+tab
+```
+
+`type` is filled in only for the resampling procedures that come in several
+flavors (here the percentile bootstrap) and is `NA` for the others. Several
+p-values equal 0.00399, which is 2/501: the smallest value the suite's
+default 501 randomization or bootstrap draws can give (more on this below).
+
+### From one inference object
+
+More often a paper reports one pre-specified analysis, with one or two others as
+sensitivity checks. Then it is simpler to fit that class directly and call the
+procedures you will report. Each `compute_*_confidence_interval()` returns a
+length-2 numeric vector and each `compute_*_two_sided_pval()` a single number, so
+a table is a few lines:
+
+```{r one-class}
+inf = InferenceContinOLS$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf_seed = 1
+inf$set_seed(inf_seed)
+
+alpha = 0.05
+r = 1000   # randomization draws
+B = 501    # bootstrap draws
+
+est = inf$compute_estimate()
+ci_wald = inf$compute_asymp_confidence_interval(alpha = alpha)
+p_wald  = inf$compute_asymp_two_sided_pval()
+ci_rand = inf$compute_rand_confidence_interval(alpha = alpha, r = r, show_progress = FALSE)
+p_rand  = inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE)
+ci_boot = inf$compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = "bca",
+                                                    show_progress = FALSE)
+p_boot  = inf$compute_bootstrap_two_sided_pval(B = B, type = "percentile",
+                                               show_progress = FALSE)
+
+results = data.frame(
+  procedure = c("Wald (t)", "Randomization", "Bootstrap"),
+  interval  = c("model-based SE",
+                sprintf("test inversion, r = %d", r),
+                sprintf("BCa, B = %d", B)),
+  estimate  = est,
+  lower     = c(ci_wald[1], ci_rand[1], ci_boot[1]),
+  upper     = c(ci_wald[2], ci_rand[2], ci_boot[2]),
+  p_value   = c(p_wald, p_rand, p_boot)
+)
+results
+```
+
+The bootstrap row pairs a BCa interval with a percentile p-value, so say so in a
+table note. BCa needs `B` of about 501 or more; with fewer draws its adjusted
+tails land on the edge of the bootstrap sample and the interval is `NA` with a
+warning, and `type = "percentile"` is the choice if you need a small `B`.
+
+For the paper, format it with `knitr::kable()` (or any table package). The one
+thing to get right is the p-value from a resampling test: with `r` draws the
+smallest p-value EDI reports is `2 / r`, so a value at that floor should be
+printed as an upper bound, not as an exact number.
+
+```{r kable}
+fmt_p = function(p, floor = 0) {
+  out = format.pval(p, digits = 2, eps = 0.001)
+  ifelse(p <= floor, paste0("≤ ", signif(floor, 2)), out)
+}
+pretty = data.frame(
+  Procedure  = results$procedure,
+  Interval   = results$interval,
+  Estimate   = sprintf("%.2f", results$estimate),
+  `95% CI`   = sprintf("(%.2f, %.2f)", results$lower, results$upper),
+  p          = c(fmt_p(p_wald), fmt_p(p_rand, floor = 2 / r), fmt_p(p_boot, floor = 2 / B)),
+  check.names = FALSE
+)
+knitr::kable(pretty, align = "llrcr",
+             caption = "Covariate-adjusted (OLS) treatment effect, three ways.")
+```
+
+### Which interval is which, and which to report
+
+* **Wald (asymptotic).** Estimate plus or minus a critical value times a
+  model-based standard error. For this OLS class it uses the t distribution.
+  Valid as `n` grows; its error at a given `n` depends on the class and design.
+* **Randomization.** The p-value tests the *sharp* null: treatment had no effect on
+  any subject. It redraws the assignment `r` times from the design itself (here,
+  from the accepted rerandomization assignments), so it is exact in finite samples
+  up to Monte Carlo error. The interval inverts that test under a constant additive
+  effect: it is the set of shifts `delta` the test does not reject.
+* **Bootstrap.** Resamples subjects with their observed assignment `B` times.
+  Percentile and BCa intervals have the same two-sided coverage order; BCa corrects
+  for bias and skew. The bootstrap does not replay the rerandomization step.
+
+The asymptotic and bootstrap tests are tests of a *weak* null: the average
+treatment effect (here, the adjusted mean difference) is zero. The randomization
+test is of the sharp null. Say which one you report; the two answer different
+questions, and the difference matters most when effects vary across subjects.
+
+The `regime` column in the suite table records this split (`"finite_sample"` vs
+`"asymptotic"`), and `inf$get_procedure_validity()` gives, for every procedure,
+the expected order of the size error and where that rate comes from. Which
+procedure to trust at your sample size is the subject of
+[Which procedure can I trust at my sample size?](procedure-trust.html), and the
+simulation evidence behind each class is in
+[Validation evidence](validation-evidence.html). Choose the primary procedure
+before you see the data, put it in the protocol, and report the others as
+sensitivity analyses. When they disagree, the table should show it.
+
+## 3. A methods paragraph
+
+A methods section needs enough detail for a reader to rerun the analysis. For an
+EDI analysis, state:
+
+* **The design and its parameters.** For rerandomization: the base randomization
+  (complete, fixed arm sizes), the imbalance measure, and the acceptance rule
+  (`prop_acceptable` or `obj_val_cutoff`). For a KK21 matching-on-the-fly design:
+  `lambda` (the quantile cutoff for a match, default 10%) and `t_0_pct` (the share
+  of subjects enrolled before matching starts, default 35%). For a blocked or
+  stratified design: the blocking variables.
+* **The estimand.** For example, the average treatment effect on the outcome scale,
+  adjusted for named covariates; for other outcomes, an odds ratio, rate ratio or
+  hazard ratio.
+* **The test and its null.** Sharp null (randomization tests) or weak null
+  (asymptotic, likelihood and bootstrap tests); two-sided; `alpha`.
+* **The interval type and the number of draws.** Wald, randomization (with `r`),
+  bootstrap (BCa or percentile, with `B`).
+* **The seeds.** The design seed and the inference seed.
+* **The software.** R and EDI versions (`packageVersion("EDI")`) and the
+  citation (`citation("EDI")`).
+
+Writing the paragraph with inline R code keeps every number in it tied to the
+objects that produced it. In the R Markdown source, the start of the paragraph
+below reads
+
+```markdown
+A total of `r knitr::inline_expr("n")` participants were assigned to treatment
+(n = `r knitr::inline_expr("n_T")`) or control (n = `r knitr::inline_expr("n_C")`) by rerandomization ...
+```
+
+where `n_T` and `n_C` are computed in a hidden chunk from `des$get_w()`. Every
+number in it comes from the objects above:
+
+```{r methods-values, include = FALSE}
+n_T = sum(w)
+n_C = n - n_T
+covs = names(X)
+rand_p_text = if (p_rand <= 2 / r) {
+  sprintf("p ≤ %s", format(2 / r))
+} else {
+  sprintf("p = %s", format(signif(p_rand, 2)))
+}
+r_version = paste(R.version$major, R.version$minor, sep = ".")
+edi_cite_year = citation("EDI")$year
+```
+
+> **Methods.** A total of `r n` participants were assigned to treatment (n =
+> `r n_T`) or control (n = `r n_C`) by rerandomization (Morgan and Rubin, 2012).
+> Candidate assignments were drawn by complete randomization with equal arm sizes,
+> and the `r 100 * prop_acceptable`% with the smallest Mahalanobis distance between
+> the treated and control means of `r paste(covs, collapse = ", ")` were accepted;
+> the assignment used was one draw from that accepted set (design seed
+> `r design_seed`). The estimand was the average treatment effect on the outcome,
+> estimated by ordinary least squares regression of the outcome on treatment and
+> `r paste(covs, collapse = ", ")`. The primary analysis was a two-sided
+> randomization test of the sharp null hypothesis of no treatment effect for any
+> participant, using `r format(r, big.mark = ",")` assignments redrawn from the same
+> rerandomization design, at level `r alpha`. The
+> `r 100 * (1 - alpha)`% confidence interval was obtained by inverting this test
+> under a constant additive treatment effect. As sensitivity analyses we report the
+> Wald interval based on the model standard error and a BCa bootstrap interval
+> (`r B` resamples of participants). Resampling used seed `r inf_seed`. Analyses were
+> run in R `r r_version` with the EDI package, version
+> `r as.character(packageVersion("EDI"))` (Kapelner, `r edi_cite_year`).
+>
+> **Results.** The estimated treatment effect was `r sprintf("%.2f", est)`
+> (95% randomization CI `r sprintf("%.2f", ci_rand[1])` to
+> `r sprintf("%.2f", ci_rand[2])`; randomization `r rand_p_text`). The Wald interval
+> was `r sprintf("%.2f", ci_wald[1])` to `r sprintf("%.2f", ci_wald[2])` and the BCa
+> bootstrap interval `r sprintf("%.2f", ci_boot[1])` to `r sprintf("%.2f", ci_boot[2])`.
+
+Two things in it deserve a sentence in any methods section. First, the
+randomization test used the design that was actually run: redrawing from complete
+randomization instead would ignore the acceptance rule and give the wrong
+reference distribution. Second, the primary procedure is named, and the others are
+labeled sensitivity analyses, so a reader does not have to guess which p-value
+was planned.
+
+## 4. What to record for reproducibility
+
+Rerunning an EDI analysis exactly needs the data, the code, the seeds and the
+software versions. Two details are specific to EDI:
+
+* **Both seeds.** The design `seed` fixes the assignment. The inference object's
+  `set_seed()` fixes its randomization and bootstrap draws. Without it, the
+  randomization draws fall back to the design seed and the bootstrap follows R's
+  global RNG state, so a `set.seed()` call before the analysis is then part of
+  the record. Record every seed you set.
+* **The design object itself.** It holds the covariates, the assignment, the
+  responses and the design settings. Saving it with `saveRDS()` lets anyone rerun
+  every inference procedure on exactly the assignment that was used, without
+  redrawing it:
+
+```{r save-design}
+design_file = tempfile(fileext = ".rds")
+saveRDS(des, design_file)
+
+des_reloaded = readRDS(design_file)
+identical(des_reloaded$get_w(), des$get_w())
+
+inf_reloaded = InferenceContinOLS$new(des_reloaded, verbose = FALSE)
+inf_reloaded$num_cores = 1L
+inf_reloaded$set_seed(inf_seed)
+all.equal(inf_reloaded$compute_rand_two_sided_pval(r = r, show_progress = FALSE), p_rand)
+```
+
+In a real project, write the file next to the data rather than to a temporary
+directory. Record the versions too: `packageVersion("EDI")` here is
+`r as.character(packageVersion("EDI"))`, and the design object stores the version
+that created it (`des$get_edi_version_created()`), as does the suite result
+(`res$edi_version`). `sessionInfo()` covers R and every other package.
+
+How seeds reach each procedure, and which procedures give the same result at
+any number of cores, is covered in [Reproducibility](reproducibility.html).
+
+## 5. How to cite EDI and the design
+
+Cite the software:
+
+```{r citation}
+citation("EDI")
+```
+
+`toBibtex(citation("EDI"))` gives the BibTeX entry. The citation records the
+installed version, which should match the version in your methods section.
+
+Also cite the paper behind the design you used, and the paper behind the
+estimator where there is one. The package's
+[`REFERENCES.md`](https://github.com/kapelner/EDI/blob/main/R/EDI/REFERENCES.md)
+file lists each reference with the classes that use it. For the designs most often used with EDI:
+
+* **Rerandomization** (`DesignFixedRerandomization`): Morgan, K. L., and Rubin,
+  D. B. (2012). Rerandomization to improve covariate balance in experiments.
+  *The Annals of Statistics*, 40(2), 1263-1282.
+  [doi:10.1214/12-AOS1008](https://doi.org/10.1214/12-AOS1008).
+* **KK21 matching on the fly** (`DesignSeqOneByOneKK21`): Kapelner, A., and
+  Krieger, A. M. (2023). A matching procedure for sequential experiments that
+  iteratively learns which covariates improve power. *Biometrics*, 79(1), 216-229.
+  [doi:10.1111/biom.13561](https://doi.org/10.1111/biom.13561).
+* **KK14 matching on the fly** (`DesignSeqOneByOneKK14`, and the matched-pair
+  plus reservoir estimators): Kapelner, A., and Krieger, A. M. (2014). Matching
+  on-the-fly: Sequential allocation with higher power and efficiency.
+  *Biometrics*, 70(2), 378-388.
+  [doi:10.1111/biom.12148](https://doi.org/10.1111/biom.12148).
+
+Each design's help page (for example `?DesignFixedRerandomization`) names its
+source in the References section.
+
+## Where to go next
+
+* [Which procedure can I trust at my sample size?](procedure-trust.html): choosing
+  the primary procedure.
+* [Validation evidence](validation-evidence.html): how each class was checked.
+* [Reproducibility](reproducibility.html): seeds, RNG streams and parallel runs.
+* [Planning a Study](planning-a-study.html): the protocol side, power and sample
+  size by simulation.
+* [`InferenceSuite`](../reference/InferenceSuite.html): every option of
+  `run_all_inference()`, including HTML and JSON output.
+* EDI on [CRAN](https://cran.r-project.org/package=EDI).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("reporting-an-analysis rendered in %.0f seconds", render_secs))
+```

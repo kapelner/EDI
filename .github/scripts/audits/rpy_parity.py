@@ -499,22 +499,22 @@ def apply(ctx, results, mech):
             fix = f.get("fix") or {}
             rel = (fix.get("file") or "").strip().lstrip("./")
             if f.get("kind") != "docstring" or not rel:
-                human.append(label + (f" Suggested: {f['suggestion']}" if f.get("suggestion") else ""))
+                human.append(ac.decision(label + (f" Suggested: {f['suggestion']}" if f.get("suggestion") else ""), unit=f.get("unit"), key=f.get("kind")))
                 proposed.append(f)
                 continue
             if not rel.startswith("python/") or ".." in Path(rel).parts:
-                human.append(f"{label} (not applied: the fix is outside python/)")
+                human.append(ac.decision(f"{label} (not applied: the fix is outside python/)", unit=f.get("unit"), key=f.get("kind")))
                 proposed.append(f)
                 continue
             text = get(rel)
             if text is None:
-                human.append(f"{label} (not applied: `{rel}` not found)")
+                human.append(ac.decision(f"{label} (not applied: `{rel}` not found)", unit=f.get("unit"), key=f.get("kind")))
                 proposed.append(f)
                 continue
             old, new = fix.get("old_text") or "", fix.get("new_text")
             why = check_fix(text, rel, old, new)
             if why:
-                human.append(f"{label} (not applied: {why})")
+                human.append(ac.decision(f"{label} (not applied: {why})", unit=f.get("unit"), key=f.get("kind")))
                 proposed.append(f)
                 continue
             texts[rel] = text.replace(old, new, 1)

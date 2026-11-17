@@ -622,7 +622,7 @@ def applied_marker(old, new, original):
 
 def apply(ctx, results, mech):
     res = _load_stage(ctx) or {"hot": [], "notes": [], "errors": []}
-    human, mechanical_lines = [], [m.get("text", "") for m in mech]
+    human, info, mechanical_lines = [], [], [m.get("text", "") for m in mech]
     notes_dir = ctx.notes.dir
     hot_by_unit = {unit_id(h["source_file"], h["function"]): h for h in res.get("hot", []) if h.get("function") and h.get("source_file")}
     proposals_for = set()
@@ -645,7 +645,7 @@ def apply(ctx, results, mech):
                 state = None if c == 1 and new != old else (
                     "the new code equals the old code" if c == 1 else f"the old code occurs {c} times (must be once)")
             if state:
-                human.append(f"Not applied: `{f.get('unit', '')}`: {f.get('text', '').strip()} ({state}).")
+                human.append(ac.decision(f"Not applied: `{f.get('unit', '')}`: {f.get('text', '').strip()} ({state}).", unit=f.get("unit"), key="not-applied"))
                 continue
             path.write_text(text.replace(old, new, 1))
             pid = f"p{len(followup) + 1}"
@@ -681,7 +681,7 @@ def apply(ctx, results, mech):
         reported[uid] = dh
         det = "; ".join(f"{k}: " + ", ".join(f"{t} x{n}" for t, n in sorted(v.items())[:6])
                         for k, v in sorted(h["detectors"].items()))
-        human.append(f"Detector findings in `{short_name(h['function'])}` (`{h['source_file']}:{h['start_line']}`, "
+        info.append(f"Detector findings in `{short_name(h['function'])}` (`{h['source_file']}:{h['start_line']}`, "
                      f"{h['share']}% of EDI.so samples), no proposal kept: {det}")
     rep_path.write_text(json.dumps(reported, indent=1, sort_keys=True) + "\n")
     hot = res.get("hot", [])
@@ -693,4 +693,4 @@ def apply(ctx, results, mech):
     if res.get("notes"):
         summary += " Profile runs: " + "; ".join(res["notes"]) + "."
     return {"summary": summary, "applied": applied, "mechanical": mechanical_lines, "human": human,
-            "proposed": proposed}
+            "info": info, "proposed": proposed}

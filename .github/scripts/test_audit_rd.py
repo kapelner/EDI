@@ -343,7 +343,7 @@ class Apply(unittest.TestCase):
         parts = self.go(self.result(kind="example-fix", example_block=block, cause="no zeros"), run)
         self.assertEqual(self.src(), FOO_R)
         self.assertEqual(parts["applied"], [])
-        self.assertIn("seed 3 of 5", parts["human"][0])
+        self.assertIn("seed 3 of 5", ac.texts(parts["human"])[0])
         self.assertEqual(parts["proposed"], [])
 
     def test_plain_part_too_slow_rejected(self):
@@ -351,7 +351,7 @@ class Apply(unittest.TestCase):
         parts = self.go(self.result(kind="example-fix", example_block=block, cause="slow"),
                         FakeRunner({"cran": ok_run(4.5, 4.5)}))
         self.assertEqual(self.src(), FOO_R)
-        self.assertIn("4.5 s elapsed", parts["human"][0])
+        self.assertIn("4.5 s elapsed", ac.texts(parts["human"])[0])
 
     def test_clean_proposal_applied_only_to_examples(self):
         block = "x = Foo$new(n = 4)\n\\donttest{\nx$fit()\n}"
@@ -376,7 +376,7 @@ class Apply(unittest.TestCase):
             self.setUp()
             parts = self.go(self.result(kind="example-fix", example_block=block, cause="c", **extra), FakeRunner())
             self.assertEqual(self.src(), FOO_R, block)
-            self.assertIn(why, parts["human"][0], block)
+            self.assertIn(why, ac.texts(parts["human"])[0], block)
         self.setUp()
         parts = self.go(self.result(kind="example-fix", example_block="\\donttest{\nFoo$new(n = 1)\n}", cause="c",
                                     plain_part_reason="every constructor call takes 10 s"), FakeRunner())
@@ -386,7 +386,7 @@ class Apply(unittest.TestCase):
         sh.write_json(self.ctx.workdir / "rd_failing.json", {})
         parts = self.go(self.result(kind="example-fix", example_block="Foo$new(n = 1)", cause="c"), FakeRunner())
         self.assertEqual(self.src(), FOO_R)
-        self.assertEqual(len(parts["human"]), 1)
+        self.assertEqual(len(ac.texts(parts["human"])), 1)
 
     def test_sentence_fix(self):
         parts = self.go(self.result(kind="grammar", source_file="R/EDI/R/foo.R", old_sentence="It have one method.",
@@ -404,7 +404,7 @@ class Apply(unittest.TestCase):
             self.setUp()
             parts = self.go(self.result(source_file="R/EDI/R/foo.R", **f), FakeRunner())
             self.assertEqual(self.src(), FOO_R, f)
-            self.assertEqual(len(parts["human"]), 1, f)
+            self.assertEqual(len(ac.texts(parts["human"])), 1, f)
 
     def test_rejected_before_is_not_reapplied(self):
         fid = rd.text_fix_id(self.REL, "grammar", "It have one method.", "It has one method.")

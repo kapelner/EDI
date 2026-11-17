@@ -1,0 +1,207 @@
+---
+title: "Censored Survival Outcomes"
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+For a time-to-event outcome, the event time is often known only to lie in an
+interval: a patient was still event-free when the study closed (right censoring), or
+an infection was only found at the next scheduled visit (interval censoring). This
+article shows how to record censored outcomes in EDI (Experimental Design and
+Inference), analyze right- and interval-censored data, which inference classes accept
+interval censoring, and what censoring assumes. It assumes you know the four steps
+of an EDI analysis (design, assign, record responses, infer) from
+[Get started](EDI.html).
+
+## Recording censored outcomes
+
+For a `"survival"` response, EDI records each outcome as an interval `(y_L, y_R]`
+that the event time is known to lie in:
+
+| What you know | Record it as |
+|---|---|
+| The event happened at time `t` | `y = t` |
+| Event-free at last contact, time `t` (right censored) | `y_L = t, y_R = Inf` |
+| The event happened before time `t` (left censored) | `y_L = 0, y_R = t` |
+| The event happened between visits at `a` and `b` (interval censored) | `y_L = a, y_R = b` |
+
+With `add_all_subject_responses()` you pass three vectors `ys`, `y_Ls` and `y_Rs`;
+each subject has either a `ys` value or both bounds, and `NA` in the others.
+`add_one_subject_response()` takes the same three arguments one subject at a time.
+The [survival cookbook](cookbook-survival.html) is the full worked example for right
+censoring, including the randomization test, bootstrap, `InferenceSuite` and a
+sequential design; this article only adds what is different.
+
+## Right censoring at the end of follow-up
+
+In many trials censoring is administrative: patients enroll over two years, the
+study closes at year three, and anyone still event-free is censored at however long
+they have been followed.
+
+```{r right-censored}
+set.seed(2)
+n = 150
+X_surv = data.frame(age = round(rnorm(n, 60, 10)), stage = sample(1:3, n, replace = TRUE))
+des_rc = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
+des_rc$add_all_subjects_to_experiment(X_surv)
+des_rc$assign_w_to_all_subjects()
+w_rc = des_rc$get_w()
+
+event_time = rexp(n, rate = exp(-1 - 0.5 * w_rc + 0.02 * (X_surv$age - 60) +
+                                0.3 * (X_surv$stage - 2)))
+follow_up = 3 - runif(n, 0, 2)          # enrolled during years 0-2, study ends at year 3
+observed = event_time <= follow_up
+
+des_rc$add_all_subject_responses(
+  ys   = ifelse(observed, event_time, NA),
+  y_Ls = ifelse(observed, NA, follow_up),
+  y_Rs = ifelse(observed, NA, Inf)
+)
+table(event_observed = observed)
+
+inf_rc = InferenceSurvivalCoxPHRegr$new(des_rc, verbose = FALSE)
+inf_rc$num_cores = 1L
+log_hr = inf_rc$compute_estimate()
+ci_rc = inf_rc$compute_lik_ratio_confidence_interval(alpha = 0.05)
+exp(c(hazard_ratio = log_hr, ci_rc))
+```
+
+The true hazard ratio is `r round(exp(-0.5), 2)`; the estimate is
+`r round(exp(log_hr), 2)`, and the interval contains the truth. Every survival class in
+EDI accepts right-censored data.
+
+## Interval censoring: events found at scheduled visits
+
+Now suppose the event (say, a recurrence) can only be detected at clinic visits every
+three months, for two years. A recurrence found at the month-9 visit happened
+sometime after month 6. A recurrence found at the first visit happened sometime
+before month 3, which is left censoring, the case `y_L = 0`. Patients with no
+recurrence by month 24 are right censored there.
+
+```{r interval-censored}
+set.seed(7)
+n = 120
+X_ic = data.frame(age = round(rnorm(n, 60, 10)))
+des_ic = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
+des_ic$add_all_subjects_to_experiment(X_ic)
+des_ic$assign_w_to_all_subjects()
+w_ic = des_ic$get_w()
+
+# Weibull event times; treatment multiplies the time scale by exp(0.4), about 1.5
+t_event = rweibull(n, shape = 1.5, scale = 12 * exp(0.4 * w_ic - 0.02 * (X_ic$age - 60)))
+visits = seq(3, 24, by = 3)
+y_L = sapply(t_event, function(t) max(c(0, visits[visits < t])))
+y_R = sapply(t_event, function(t) if (t > max(visits)) Inf else min(visits[visits >= t]))
+
+des_ic$add_all_subject_responses(y_Ls = y_L, y_Rs = y_R)
+table(type = ifelse(is.infinite(y_R), "right censored",
+                    ifelse(y_L == 0, "left censored", "interval censored")))
+head(cbind(y_L, y_R))
+```
+
+No subject has an exact time, and you should not invent one (the visit time or the
+midpoint), because that biases the analysis. Instead, use a class that takes the
+intervals as they are. A Weibull accelerated-failure-time model gives a time ratio:
+
+```{r ic-weibull}
+inf_wb = InferenceSurvivalWeibullRegr$new(des_ic, verbose = FALSE)
+inf_wb$num_cores = 1L
+exp(c(time_ratio = inf_wb$compute_estimate(),
+      inf_wb$compute_lik_ratio_confidence_interval(alpha = 0.05)))
+```
+
+On interval-censored data, the Cox class switches to the semiparametric
+proportional-hazards model of
+[icenReg](https://cran.r-project.org/package=icenReg) (`ic_sp()`), and the log-rank
+class to the interval-censored log-rank test of Sun (1996), via
+[interval](https://cran.r-project.org/package=interval):
+
+```{r ic-cox-logrank}
+inf_cox = InferenceSurvivalCoxPHRegr$new(des_ic, verbose = FALSE)
+inf_cox$num_cores = 1L
+exp(c(hazard_ratio = inf_cox$compute_estimate(),
+      inf_cox$compute_asymp_confidence_interval(alpha = 0.05)))
+
+inf_lr = InferenceSurvivalLogRank$new(des_ic, verbose = FALSE)
+inf_lr$num_cores = 1L
+inf_lr$compute_asymp_two_sided_pval()
+inf_lr$set_seed(1)
+inf_lr$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+For these Weibull data with shape 1.5, a time ratio of $e^{0.4} \approx 1.49$ is the
+same as a hazard ratio of $e^{-0.4 \times 1.5} \approx 0.55$, so the two models agree.
+The randomization test needs nothing new: it redraws `w` from the design and
+recomputes the interval-censored statistic.
+
+## Which classes accept interval censoring
+
+A class that cannot use left- or interval-censored data refuses at construction, with
+an error that says so, rather than treating the intervals as right-censored. Trying
+each class on this design shows which ones accept it:
+
+```{r ic-classes}
+survival_classes = c("InferenceSurvivalCoxPHRegr", "InferenceSurvivalWeibullRegr",
+                     "InferenceSurvivalLogRank", "InferenceSurvivalGehanWilcox",
+                     "InferenceSurvivalRestrictedMeanDiff", "InferenceSurvivalKMDiff",
+                     "InferenceSurvivalStratCoxPHRegr", "InferenceSurvivalDepCensTransformRegr")
+accepts = sapply(survival_classes, function(cl)
+  tryCatch({ get(cl)$new(des_ic, verbose = FALSE); TRUE }, error = function(e) FALSE))
+data.frame(accepts_interval_censoring = accepts)
+```
+
+In short:
+
+- **Accept left- and interval-censored data:**
+  [`InferenceSurvivalCoxPHRegr`](../reference/InferenceSurvivalCoxPHRegr.html)
+  (icenReg semiparametric PH),
+  [`InferenceSurvivalWeibullRegr`](../reference/InferenceSurvivalWeibullRegr.html)
+  (the interval-censored Weibull likelihood),
+  [`InferenceSurvivalLogRank`](../reference/InferenceSurvivalLogRank.html) and
+  [`InferenceSurvivalGehanWilcox`](../reference/InferenceSurvivalGehanWilcox.html)
+  (interval-censored rank tests),
+  [`InferenceSurvivalRestrictedMeanDiff`](../reference/InferenceSurvivalRestrictedMeanDiff.html)
+  and [`InferenceSurvivalKMDiff`](../reference/InferenceSurvivalKMDiff.html) (survival
+  curves from the Turnbull NPMLE
+  [(Turnbull 1976, doi:10.1111/j.2517-6161.1976.tb01597.x)](https://doi.org/10.1111/j.2517-6161.1976.tb01597.x)).
+- **Exact and right-censored data only:** the stratified Cox, dependent-censoring,
+  frailty and KK matched-pair survival classes.
+
+Not every procedure is available on the interval-censored path; for example, the
+Bayesian bootstrap is not. Each class's help page lists what changes. The `InferenceSuite`
+(see the [survival cookbook](cookbook-survival.html#everything-at-once)) skips the
+classes that do not apply.
+
+## What censoring assumes
+
+All of these methods assume censoring is *noninformative*: given the covariates, a
+patient censored at time `t` has the same future risk as one still under follow-up.
+Administrative censoring at the end of the study satisfies this; dropout because a
+patient felt worse does not. In a randomized trial the comparison stays fair as long
+as censoring does not depend on prognosis differently in the two arms, but that is an
+assumption, not something the data can confirm.
+[`InferenceSurvivalDepCensTransformRegr`](../reference/InferenceSurvivalDepCensTransformRegr.html)
+relaxes it under a parametric model (a bivariate log-normal for event and censoring
+times), for right-censored data.
+
+## Where to go next
+
+- The full right-censored workflow (randomization test, bootstrap, `InferenceSuite`,
+  sequential design): [survival cookbook](cookbook-survival.html).
+- Missing baseline covariates, and why EDI cannot analyze outcomes that are simply
+  missing: [Missing Covariate Values and Imputation](missing-covariates.html).
+- Which procedures hold their level at your sample size:
+  [Procedure trust](procedure-trust.html).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("censored-survival-outcomes rendered in %.0f seconds", render_secs))
+```

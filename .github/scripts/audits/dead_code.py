@@ -393,11 +393,10 @@ def apply(ctx, results, mech):
         lines[u] = line
         proposed.append({"unit": u, "kind": "dead-code", "text": finding_text(c),
                          "applied_file": CANDIDATES_FILE, "applied_text": f"- `{u}` "})
-        human.append(f"`{c['name']}` ({c['kind']}, `{c['file']}:{c['line']}`): {text}")
     for f in unsure:
         c = cands[f["unit"]]
         text = re.sub(r"\s+", " ", f.get("text", "")).strip()
-        human.append(f"Unsure, `{c['name']}` ({c['kind']}, `{c['file']}:{c['line']}`): {text}")
+        human.append(ac.decision(f"Unsure, `{c['name']}` ({c['kind']}, `{c['file']}:{c['line']}`): {text}", unit=f.get("unit"), key="unsure"))
     applied = []
     new = render(list(lines.values()))
     if (lines or old is not None) and new != old:

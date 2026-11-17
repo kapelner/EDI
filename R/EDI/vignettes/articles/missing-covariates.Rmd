@@ -1,0 +1,295 @@
+---
+title: "Missing Covariate Values and Imputation"
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Real trial data are rarely complete: a baseline lab value was never drawn, or a
+questionnaire item was skipped. This article covers what EDI (Experimental Design
+and Inference) does when a baseline covariate is `NA` for some subjects: it fills the
+gaps (or drops the column, or stops) when it builds the model matrix. It explains why
+the default imputation uses the covariates only, and why a single imputation is
+enough here. It ends with what EDI does *not* handle: outcomes that are simply
+missing. Censored time-to-event outcomes have their own article,
+[Censored Survival Outcomes](censored-survival-outcomes.html).
+It assumes you know the four steps of an EDI analysis (design, assign, record
+responses, infer) from [Get started](EDI.html).
+
+## The three options
+
+Every design takes a `missingness_method` argument. It decides what happens to
+covariate columns with `NA`s when the design builds the model matrix that the
+inference classes use:
+
+| `missingness_method` | What happens |
+|---|---|
+| `"impute"` (default) | Missing values are filled in by random-forest imputation ([missRanger](https://cran.r-project.org/package=missRanger), falling back to [missForest](https://cran.r-project.org/package=missForest)), using **only the other covariates**. |
+| `"drop_column"` | Every covariate column with at least one `NA` is left out of the model. Nothing is invented. |
+| `"error"` | Inference stops with an error naming the incomplete columns, so nothing is changed without your knowledge. |
+
+A second argument, `include_is_missing_as_a_new_feature`, adds a 0/1 indicator
+column for each covariate that had missing values (the default is `TRUE` for the
+fixed and sequential designs). It only applies under `"impute"`.
+
+A small data set shows all three. Forty subjects, two covariates, and `bmi` missing
+for six of them:
+
+```{r small-data}
+set.seed(1)
+n = 40
+X = data.frame(age = round(rnorm(n, 50, 10)), bmi = round(rnorm(n, 28, 4), 1))
+w = sample(rep(0:1, each = n / 2))
+y = 10 + 2 * w + 0.1 * X$age + 0.5 * X$bmi + rnorm(n)
+X$bmi[c(3, 8, 15, 22, 30, 37)] = NA   # BMI not recorded for six subjects
+
+make_design = function(method) {
+  des = DesignFixediBCRD$new(n = n, response_type = "continuous",
+                             missingness_method = method, verbose = FALSE)
+  des$add_all_subjects_to_experiment(X)
+  des$assign_w_to_all_subjects(w_precomputed = w)
+  des$add_all_subject_responses(y)
+  des
+}
+```
+
+Under the default, the model matrix holds the imputed `bmi` and the indicator
+`bmi_is_missing`:
+
+```{r impute-default}
+des_imp = make_design("impute")
+head(des_imp$get_X(), 4)
+des_imp$get_X_imp()[c(3, 8), ]
+```
+
+With `"drop_column"`, BMI is gone; with `"error"`, constructing an inference class
+stops:
+
+```{r other-options}
+colnames(make_design("drop_column")$get_X())
+
+tryCatch(InferenceContinOLS$new(make_design("error"), verbose = FALSE),
+         error = function(e) conditionMessage(e))
+```
+
+`"error"` is the right choice in a confirmatory analysis whose plan specifies its own
+handling of missing covariates (for example, imputing them yourself before the data
+reach EDI). The other two are discussed below.
+
+## What "impute" uses, and what it does not
+
+The imputation model sees the covariate data frame you passed to the design (plus the
+missingness indicators) and nothing else. It does **not** see the outcome or the
+treatment assignment. It is also seeded, by the design's `seed` if you gave one and by
+a fixed seed otherwise, and it restores your random number stream afterwards. So the
+same covariates always give the same imputed values, and imputing does not change any
+random numbers your script draws later:
+
+```{r imputation-seeded}
+set.seed(99); u_without = runif(1)
+set.seed(99)
+imp_1 = make_design("impute")$get_X_imp()
+u_with = runif(1)
+imp_2 = make_design("impute")$get_X_imp()
+
+identical(imp_1, imp_2)       # same covariates, same imputed values
+identical(u_without, u_with)  # your RNG stream is untouched
+```
+
+(EDI 1.0.4 and earlier also gave the imputation model the outcome, and did not seed
+it; see the section on why that biases the estimate.)
+
+## Why single imputation is enough here
+
+The usual worry about single imputation is that it treats guessed values as if they
+were observed, so the standard errors are too small; multiple imputation and Rubin's
+rules exist to add the between-imputation variance back. That worry applies when the
+parameter you want is defined through the variable being imputed (the coefficient on
+BMI, say), or when the imputations use the outcome.
+
+In a randomized experiment the target is the treatment effect, and the covariates are
+only there to sharpen it. An imputed BMI computed from the baseline covariates alone
+(the observed values, the missingness pattern and the seed) is a function of
+pre-treatment data. Randomization makes it independent of the assignment, exactly
+like any covariate you measured. And regression adjustment for *any* pre-treatment
+covariate, even a poorly chosen or badly mismeasured one, gives a consistent estimate
+of the average treatment effect with a large-sample valid (at worst conservative)
+standard error [(Freedman 2008, doi:10.1016/j.aam.2006.12.003;](https://doi.org/10.1016/j.aam.2006.12.003)
+[Lin 2013, doi:10.1214/12-AOAS583)](https://doi.org/10.1214/12-AOAS583).
+The imputed covariate is just another adjustment covariate.
+
+A different imputation would amount to a different choice of covariate: the estimate
+moves a little, but each choice's interval covers at the nominal rate. A noisy
+imputation costs precision (the covariate explains less of the outcome, so the interval
+is wider), not coverage. The same reasoning covers the missingness indicator, which is
+also a baseline quantity. If you want an adjustment that, in large samples, is never
+less precise than the unadjusted difference in means, use
+[`InferenceContinLin`](../reference/InferenceContinLin.html), the
+treatment-by-covariate interacted estimator of Lin (2013).
+
+This argument needs the imputation to ignore the outcome and the assignment. The next
+simulation checks it, and shows what goes wrong when the outcome is used.
+
+## A small simulation
+
+Each simulated trial has `n = 100` subjects and two correlated covariates; the
+outcome depends on both, and the true treatment effect is 1. `x2` is missing at
+random (MAR): the chance that it is missing rises with `x1`, from about 10% to about
+70%, and averages about one third. Each trial is analyzed four ways with
+`InferenceContinOLS`:
+
+- `complete`: the data before any values went missing (the benchmark);
+- `impute`: EDI's default;
+- `drop_column`: `x2` left out;
+- `impute_with_y`: `x2` imputed by missRanger with the outcome as an extra predictor,
+  then handed to EDI as if complete (what EDI 1.0.4 and earlier did by default).
+
+```{r sim-setup}
+one_trial = function(n = 100, tau = 1) {
+  x1 = rnorm(n)
+  x2 = 0.6 * x1 + rnorm(n, sd = 0.8)
+  w  = sample(rep(0:1, n / 2))
+  y  = tau * w + x1 + 2 * x2 + rnorm(n)
+  X_obs = data.frame(x1 = x1, x2 = ifelse(runif(n) < plogis(-1 + 1.5 * x1), NA, x2))
+
+  fit = function(X, method = "impute") {
+    des = DesignFixediBCRD$new(n = n, response_type = "continuous",
+                               missingness_method = method, verbose = FALSE)
+    des$add_all_subjects_to_experiment(X)
+    des$assign_w_to_all_subjects(w_precomputed = w)
+    des$add_all_subject_responses(y)
+    inf = InferenceContinOLS$new(des, verbose = FALSE)
+    inf$num_cores = 1L
+    c(inf$compute_estimate(), inf$compute_asymp_confidence_interval(alpha = 0.05))
+  }
+  X_with_y = missRanger::missRanger(data.frame(X_obs, y = y), num.trees = 100,
+                                    num.threads = 1, verbose = 0)[, c("x1", "x2")]
+  rbind(complete      = fit(data.frame(x1 = x1, x2 = x2)),
+        impute        = fit(X_obs),
+        drop_column   = fit(X_obs, "drop_column"),
+        impute_with_y = fit(X_with_y))
+}
+```
+
+```{r sim-run}
+set.seed(20261117)
+R = 200
+res = replicate(R, one_trial())   # 4 analyses x (estimate, lower, upper) x R trials
+
+est = res[, 1, ]
+covered = res[, 2, ] <= 1 & res[, 3, ] >= 1
+data.frame(mean_estimate = round(rowMeans(est), 3),
+           mc_se         = round(apply(est, 1, sd) / sqrt(R), 3),
+           coverage      = rowMeans(covered),
+           mean_ci_width = round(rowMeans(res[, 3, ] - res[, 2, ]), 2))
+```
+
+```{r sim-numbers, include = FALSE}
+cov_mcse = sqrt(0.95 * 0.05 / R)
+bias_y = mean(est["impute_with_y", ]) - 1
+```
+
+This simulation is deliberately small, `r R` trials so that the page builds in
+seconds, so the coverage figures carry a Monte Carlo standard error of about
+`r round(100 * cov_mcse, 1)` percentage points. Within that noise, the default
+`"impute"` is unbiased and its 95% intervals cover at the nominal rate. Its intervals
+are wider than with complete data: a third of the values of the strongest covariate are
+guesses, and a guess explains less of the outcome than the real value. Dropping `x2`
+altogether is also unbiased, but wider still. The calculation for `missingness_method`
+in `?Design` repeats this with 600 trials and both linear and nonlinear outcomes.
+
+Imputing with the outcome is the one that fails: its mean estimate is
+`r round(-bias_y, 2)` too small, about `r round(-bias_y / (sd(est["impute_with_y", ]) / sqrt(R)))`
+Monte Carlo standard errors, and its coverage is the lowest of the four. The bias does
+not shrink as the trial grows, while the interval does, so in larger trials the
+coverage falls further.
+
+## Why imputing with the outcome biases toward zero
+
+Treated subjects have higher outcomes. An imputation model that uses `y` to predict
+the missing `x2` therefore gives treated subjects higher imputed `x2` values than
+control subjects with the same observed covariates. The imputed covariate is now
+correlated with treatment, which a baseline covariate in a randomized trial can never
+be. The regression then attributes part of the treated arm's higher outcomes to
+"higher `x2`" and takes it out of the treatment coefficient, so the estimate shrinks
+toward zero. The more values are missing and the more prognostic the covariate, the
+larger the bias. (Multiple imputation with the outcome *and* the assignment in the
+imputation model avoids this; leaving both out, as EDI does, avoids it more simply.)
+
+## Practical points
+
+- Pass the covariate data frame with its `NA`s. Do not fill gaps with zeros or means
+  before handing it to EDI, unless your analysis plan says to.
+- Designs that use the covariates to *assign* treatment (KK matching, greedy pair
+  switching, rerandomization) read the same model matrix, so the same
+  `missingness_method` applies there.
+- `model_formula` in an inference class chooses which (imputed) covariates enter the
+  model; see [Analyzing an Experiment You Already Ran](analyzing-an-existing-experiment.html#covariates).
+- The randomization test under the sharp null is valid whatever the covariates are:
+  it compares a statistic across reassignments of `w`, and the imputed covariates do
+  not change between reassignments.
+
+## What EDI does not handle: missing outcomes
+
+EDI has no method for outcomes that are simply missing: a continuous score never
+measured, a binary endpoint never ascertained, a patient lost to follow-up in a
+non-survival trial. Every subject needs a response, and EDI refuses to run otherwise
+rather than silently dropping subjects:
+
+```{r missing-outcome}
+y_missing = y
+y_missing[c(5, 12)] = NA
+des_na = DesignFixediBCRD$new(n = 40, response_type = "continuous", verbose = FALSE)
+des_na$add_all_subjects_to_experiment(X)
+des_na$assign_w_to_all_subjects(w_precomputed = w)
+tryCatch(des_na$add_all_subject_responses(y_missing),
+         error = function(e) conditionMessage(e))
+```
+
+(The message mentions `y_Ls` and `y_Rs` because a missing `ys` is allowed only for a
+censored survival response.) If you record responses one at a time, subjects without
+one simply have no response yet, and every inference class stops with "This experiment
+is incomplete as all responses aren't recorded yet."
+
+So missing outcomes have to be dealt with before the data reach EDI, and the choice is
+a scientific one, not a software default:
+
+- **Complete-case analysis**, analyzing only the subjects with an outcome, is unbiased
+  only if missingness is unrelated to the outcome within arm (missing completely at
+  random, or at random given covariates you adjust for). It also changes the
+  randomization: the remaining subjects are no longer a draw from the original
+  design, so declare the design that matches them (for example, `DesignFixediBCRD`
+  with the observed number treated) and treat randomization p-values as approximate.
+- **Multiple imputation of the outcome**, with the assignment in the imputation model,
+  for example with [mice](https://cran.r-project.org/package=mice), then EDI on each
+  completed data set and Rubin's rules to combine. EDI does not do the combining for you.
+- **Inverse-probability weighting** for dropout, or **bounds** that make no
+  assumption about the missing outcomes, are not implemented in EDI.
+- **Time-to-event outcomes are the exception:** a patient lost to follow-up is right
+  censored at their last contact, under the noninformative-censoring assumption
+  described in [Censored Survival Outcomes](censored-survival-outcomes.html).
+
+Whatever you choose, report how many outcomes were missing in each arm and a
+sensitivity analysis under a different assumption.
+
+## Where to go next
+
+- Censored time-to-event outcomes: [Censored Survival Outcomes](censored-survival-outcomes.html).
+- Analyzing data whose covariates have gaps, from a trial already run:
+  [Analyzing an Experiment You Already Ran](analyzing-an-existing-experiment.html).
+- Every option of the designs, including `missingness_method` and
+  `include_is_missing_as_a_new_feature`: [`Design`](../reference/Design.html).
+- Which procedures hold their level at your sample size:
+  [Procedure trust](procedure-trust.html).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("missing-covariates rendered in %.0f seconds", render_secs))
+```

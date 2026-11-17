@@ -1,0 +1,563 @@
+---
+title: "Cluster-Randomized and Factorial Experiments"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+The cookbooks and the other articles all randomize individual subjects to one of two
+arms. This article covers the two other treatment structures EDI has designs for:
+
+1. **Cluster-randomized experiments.** Whole groups (schools, clinics, villages,
+   households) are randomized, and outcomes are measured on the individuals inside
+   them. The designs are `DesignFixedCluster` and `DesignFixedBlockedCluster`.
+2. **Factorial experiments.** Subjects get a combination of levels of several
+   treatment factors. The design is `DesignFixedFactorial`. Its current support is
+   limited to two arms, and the section below says exactly what it can and cannot
+   do, and how to run and analyze a 2 x 2 factorial with the pieces EDI has today.
+
+It assumes you know the four steps of an EDI analysis (design, assign, record
+responses, infer) from [Get started](EDI.html) or the
+[continuous cookbook](cookbook-continuous.html).
+
+# Part 1: cluster-randomized experiments
+
+## Why the cluster changes the analysis
+
+When a school is randomized, every student in it gets the same arm, and students in
+the same school also share teachers, neighborhoods and test conditions. Their outcomes
+are correlated. The information about the treatment effect then grows with the number
+of *schools*, not the number of students. An analysis that treats the students as
+independently randomized overstates the sample size, so its standard errors are too
+small and its p-values too small. The section
+[What goes wrong if you ignore the clusters](#what-goes-wrong-if-you-ignore-the-clusters)
+shows how badly.
+
+## A school trial
+
+Twenty-four schools take part, with 15 to 25 students each. Half the schools are
+randomized to a new curriculum. Each student has a pretest score; the outcome is an
+end-of-year test score. Schools differ from each other (a school effect with standard
+deviation 4 points) on top of student-level noise (standard deviation 6 points). The
+true effect of the curriculum is 3 points.
+
+```{r school-data}
+set.seed(20261117)
+G = 24
+school_size = sample(15:25, G, replace = TRUE)
+school = factor(rep(sprintf("S%02d", 1:G), times = school_size))
+n = length(school)
+X = data.frame(school = school, pretest = round(rnorm(n, 50, 10)))
+n
+```
+
+### The design: name the cluster column
+
+`DesignFixedCluster` takes the name of the column of `X` that identifies each
+subject's cluster as `cluster_col`. The cluster column stays in `X`, but it is an
+assignment label, not a covariate: it is left out of the default `~ .` covariate
+model that the regression-based inference classes fit.
+
+```{r cluster-design}
+des = DesignFixedCluster$new(n = n, response_type = "continuous", cluster_col = "school",
+                             verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+```
+
+`w` is the usual 0/1 vector with one entry per student. Every student in a school has
+the same value, and `prob_T = 0.5` (the default) means half the *schools* are treated.
+Because the schools have different sizes, the share of *students* treated is not
+exactly one half.
+
+```{r cluster-check}
+all(tapply(w, school, function(s) length(unique(s))) == 1)   # one arm per school
+table(w_school = tapply(w, school, max))
+mean(w)
+```
+
+Every redraw from the design has the same structure. This is what the randomization
+test uses as its reference distribution:
+
+```{r cluster-redraws}
+draws = des$draw_ws_according_to_design(1000)
+all(apply(draws, 2, function(v) all(tapply(v, school, function(s) length(unique(s))) == 1)))
+table(colSums(draws[!duplicated(school), ]))   # treated schools per redraw
+```
+
+Now record the outcomes.
+
+```{r cluster-outcomes}
+true_effect = 3
+school_effect = rnorm(G, sd = 4)[as.integer(school)]
+y = 60 + true_effect * w + 0.5 * (X$pretest - 50) + school_effect + rnorm(n, sd = 6)
+des$add_all_subject_responses(y)
+```
+
+### Which inference respects the clustering
+
+On a cluster design, EDI's procedures fall into two groups.
+
+**Cluster-aware on any inference class:**
+
+* **Randomization test and interval** (`compute_rand_two_sided_pval()`,
+  `compute_rand_confidence_interval()`). The reference distribution is built from
+  `draw_ws_according_to_design()`, so it re-randomizes whole schools, exactly as the
+  trial did.
+* **Nonparametric bootstrap** (`compute_bootstrap_confidence_interval()`,
+  `compute_bootstrap_two_sided_pval()`). The design resamples whole schools with
+  replacement, not students.
+* **Jackknife** (`compute_jackknife_wald_confidence_interval()`,
+  `compute_jackknife_wald_two_sided_pval()`, `compute_jackknife_std_error()`). On a
+  cluster design the default `unit = "auto"` drops one cluster at a time; you can
+  also say `unit = "cluster"` explicitly.
+
+**Wald (asymptotic) inference depends on the class:**
+
+* `InferenceContinOLS` and `InferenceContinLin` switch to a CR2 (Bell-McCaffrey)
+  cluster-robust standard error with Satterthwaite degrees of freedom (`G - 1` if
+  those cannot be computed) when the design is a cluster design.
+* Every other class still computes its Wald, score, likelihood-ratio and
+  parametric-bootstrap results as if subjects were independent. It says so with a
+  warning of class `edi_cluster_independence_warning`, once per object and procedure
+  family. Treat that warning as "use the randomization test, bootstrap or jackknife
+  instead". OLS and Lin also give this warning for their likelihood-based procedures,
+  which have no cluster-robust version.
+
+EDI has no mixed-model (random cluster effect) analysis for cluster designs. Its
+GLMM classes (such as `InferenceContinKKGLMM`) model matched pairs from the KK
+matching designs, not clusters.
+
+### Running the analysis
+
+`InferenceContinOLS` regresses the outcome on treatment and `pretest`. Its Wald
+interval and p-value use the CR2 cluster-robust standard error:
+
+```{r cluster-ols}
+inf = InferenceContinOLS$new(des, verbose = FALSE)
+inf$num_cores = 1L
+
+est = inf$compute_estimate()
+ci_wald = inf$compute_asymp_confidence_interval(alpha = 0.05)
+est; ci_wald
+inf$compute_asymp_two_sided_pval()
+```
+
+The estimate is `r round(est, 2)` points against a true effect of `r true_effect`.
+With only 24 schools, an error of this size is not surprising: the interval is wide
+because the school effects add noise that does not average away over students.
+
+The randomization test and its inverted interval re-randomize whole schools. Setting
+the argument `r` (the number of redraws) to 500 keeps this page fast; use more in a real analysis.
+
+```{r cluster-rand}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_rand_confidence_interval(alpha = 0.05, r = 500, show_progress = FALSE)
+```
+
+The cluster bootstrap resamples schools. The percentile interval is used here; a BCa
+interval also works but needs `B` of about 501 or more.
+
+```{r cluster-boot}
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 501, type = "percentile",
+                                          show_progress = FALSE)
+```
+
+The delete-one-school jackknife:
+
+```{r cluster-jack}
+inf$compute_jackknife_std_error(unit = "cluster")
+inf$compute_jackknife_wald_confidence_interval(alpha = 0.05, unit = "cluster")
+```
+
+All four agree roughly, and all are about as wide as you would expect from 24
+schools.
+
+A class without a cluster-robust Wald variance warns. The simple difference in means
+is the example here; its randomization test is still cluster-aware and gives no
+warning.
+
+```{r cluster-warning}
+inf_diff = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+inf_diff$num_cores = 1L
+inf_diff$compute_asymp_confidence_interval()      # warns: SE treats students as independent
+inf_diff$set_seed(1)
+inf_diff$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)   # no warning
+```
+
+If you have read the warning and only want the cluster-aware procedures to print, wrap
+the call in `suppressWarnings(expr, classes = "edi_cluster_independence_warning")`.
+
+## What goes wrong if you ignore the clusters
+
+Suppose the same data were analyzed as if each student had been randomized on their
+own. That is what you get by declaring an individual-level design (here
+`DesignFixedBernoulli`) and supplying the observed assignment, as in
+[Analyzing an existing experiment](analyzing-an-existing-experiment.html):
+
+```{r naive-design}
+des_naive = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+des_naive$add_all_subjects_to_experiment(X[, "pretest", drop = FALSE])
+des_naive$assign_w_to_all_subjects(w_precomputed = w)
+des_naive$add_all_subject_responses(y)
+
+inf_naive = InferenceContinOLS$new(des_naive, verbose = FALSE)
+inf_naive$num_cores = 1L
+inf_naive$compute_asymp_confidence_interval(alpha = 0.05)
+inf_naive$compute_asymp_two_sided_pval()
+inf_naive$set_seed(1)
+inf_naive$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+```
+
+The point estimate is the same, but the interval is much narrower and both p-values
+are much smaller. The naive randomization test is wrong too: it re-randomizes
+individual students, which is not how the trial was run. EDI cannot catch this
+mistake for you, since nothing in the data says the treatment was assigned by school.
+Declaring the design that matches the real assignment is the analyst's job.
+
+### A small simulation
+
+How much too narrow? The simulation below repeats the trial 200 times with a smaller
+setup (20 schools of 20 students, school-effect standard deviation 0.5, student-level
+standard deviation 1, so the intraclass correlation is 0.2) and records whether each
+95% Wald interval covers the true effect. It is small so that the page builds quickly;
+the Monte Carlo standard error of each coverage figure is about 1.5 percentage points
+near 95%.
+
+```{r sim}
+sim_once = function(G = 20, m = 20, beta = 0.5, sd_school = 0.5, sd_student = 1) {
+  school = factor(rep(seq_len(G), each = m))
+  n = G * m
+  X = data.frame(school = school, x = rnorm(n))
+
+  d = DesignFixedCluster$new(n = n, response_type = "continuous", cluster_col = "school",
+                             verbose = FALSE)
+  d$add_all_subjects_to_experiment(X)
+  d$assign_w_to_all_subjects()
+  w = d$get_w()
+  y = beta * w + X$x + rnorm(G, sd = sd_school)[school] + rnorm(n, sd = sd_student)
+  d$add_all_subject_responses(y)
+
+  d0 = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+  d0$add_all_subjects_to_experiment(X[, "x", drop = FALSE])
+  d0$assign_w_to_all_subjects(w_precomputed = w)
+  d0$add_all_subject_responses(y)
+
+  ci_cluster = InferenceContinOLS$new(d, verbose = FALSE)$compute_asymp_confidence_interval()
+  ci_naive = InferenceContinOLS$new(d0, verbose = FALSE)$compute_asymp_confidence_interval()
+  c(cover_cluster = unname(ci_cluster[1] <= beta & beta <= ci_cluster[2]),
+    cover_naive   = unname(ci_naive[1] <= beta & beta <= ci_naive[2]),
+    width_cluster = unname(diff(ci_cluster)),
+    width_naive   = unname(diff(ci_naive)))
+}
+
+set.seed(1)
+res = t(replicate(200, sim_once()))
+round(colMeans(res), 3)
+```
+
+The cluster-robust interval covers close to its nominal 95%. The naive interval is
+less than half as wide and misses the true effect far more often than 5% of the time.
+The gap grows with cluster size and with the intraclass correlation: the variance
+inflation from clustering (the "design effect") is roughly $1 + (m - 1)\rho$ for
+clusters of size $m$ and intraclass correlation $\rho$, which is
+$1 + 19 \times 0.2 = 4.8$ here.
+
+## Blocking the clusters: `DesignFixedBlockedCluster`
+
+If clusters fall into natural strata (districts, regions, clinic types), randomizing
+clusters within each stratum keeps the arms balanced on the stratum.
+`DesignFixedBlockedCluster` takes both `strata_cols` and `cluster_col`. Within each
+block, `prob_T` of the clusters are treated, and each cluster must lie within a single
+block (the design errors otherwise).
+
+Here 24 schools sit in four districts, six per district. One current restriction
+applies: **every block must have the same number of subjects**. The design has no
+`equal_block_sizes` argument, so with blocks of different sizes it errors the first
+time the blocks are used. This example gives every school 20 students so that each
+district has 120.
+
+```{r blocked-cluster}
+set.seed(20261118)
+G = 24
+school = factor(rep(sprintf("S%02d", 1:G), each = 20))
+district = factor(rep(rep(c("North", "South", "East", "West"), each = 6), each = 20))
+n = length(school)
+Xb = data.frame(school = school, district = district, pretest = round(rnorm(n, 50, 10)))
+
+des_b = DesignFixedBlockedCluster$new(n = n, response_type = "continuous",
+                                      strata_cols = "district", cluster_col = "school",
+                                      verbose = FALSE)
+des_b$add_all_subjects_to_experiment(Xb)
+des_b$assign_w_to_all_subjects()
+wb = des_b$get_w()
+table(district = district[!duplicated(school)], treated = tapply(wb, school, unique))
+```
+
+Each district has three treated and three control schools. The district column is
+also a covariate (it is in `X` and is not the cluster column), so OLS adjusts for it.
+The randomization test re-randomizes schools within districts, and the bootstrap
+resamples schools within districts.
+
+```{r blocked-cluster-inference}
+yb = 60 + 3 * wb + 0.5 * (Xb$pretest - 50) + rnorm(G, sd = 4)[as.integer(school)] +
+  rnorm(n, sd = 6)
+des_b$add_all_subject_responses(yb)
+
+inf_b = InferenceContinOLS$new(des_b, verbose = FALSE)
+inf_b$num_cores = 1L
+inf_b$compute_estimate()
+inf_b$compute_asymp_confidence_interval()
+inf_b$set_seed(1)
+inf_b$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+inf_b$set_seed(1)
+inf_b$compute_bootstrap_confidence_interval(B = 501, type = "percentile",
+                                            show_progress = FALSE)
+```
+
+The cluster jackknife is not available on this design: on a blocked design,
+`compute_jackknife_wald_confidence_interval()` returns `NA` (without a warning) for
+`unit = "auto"`, `"cluster"` and `"observation"`. `unit = "block"` works, but it drops
+a whole district at a time, and with four districts that is too few units to be
+useful. Use the randomization test or the bootstrap.
+
+## Checklist for cluster trials
+
+* Put the cluster ID in `X` and name it as `cluster_col`. Make it a factor or
+  character column with no missing values.
+* Use the randomization test, the bootstrap or the cluster jackknife with any
+  inference class. For a Wald interval, use `InferenceContinOLS` or
+  `InferenceContinLin`, which are cluster-robust on these designs.
+* Heed `edi_cluster_independence_warning`: the procedure it names treats subjects as
+  independent.
+* Do not put the cluster column in a custom `model_formula`. Treatment is constant
+  within clusters, so cluster indicators are collinear with it; EDI warns
+  (`edi_cluster_col_in_model_formula_warning`).
+* Plan the number of clusters, not just the number of subjects. With few clusters
+  (say, under 20) every procedure has limited precision, and the randomization test,
+  which is exact for the sharp null, is the safest choice.
+* If an existing cluster trial was randomized by someone else, declare
+  `DesignFixedCluster` (or `DesignFixedBlockedCluster`) and pass the recorded
+  assignment with `assign_w_to_all_subjects(w_precomputed = )`. Then check that
+  `w` is constant within clusters.
+
+# Part 2: factorial experiments
+
+## What `DesignFixedFactorial` supports today
+
+A factorial experiment crosses two or more treatment factors: in a 2 x 2 factorial,
+factor A (say, a text reminder) and factor B (say, a small incentive) are each on or
+off, giving four cells. Each subject gets one cell.
+
+`DesignFixedFactorial` takes the factors as a named list of their numbers of levels.
+**At present the product of the levels must be exactly 2**, so the only accepted
+input is a single two-level factor such as `list(reminder = 2)`. A true 2 x 2
+(`list(A = 2, B = 2)`) or a three-level factor errors in the constructor:
+
+```{r factorial-2x2-error}
+tryCatch(
+  DesignFixedFactorial$new(n = 40, response_type = "continuous",
+                           factors = list(reminder = 2, incentive = 2)),
+  error = function(e) conditionMessage(e)
+)
+```
+
+Support for more than two cells is planned along with EDI's multi-arm designs. Until
+then:
+
+* With a single two-level factor, `DesignFixedFactorial` is a balanced complete
+  randomization: exactly half of the subjects (off by at most one when `n` is odd)
+  are in each arm. It works with every inference class, like any other two-arm design.
+* EDI has no main-effect or interaction estimates for multi-factor designs. A 2 x 2
+  can still be run and its main effects analyzed with EDI's blocked designs; the
+  interaction needs a regression outside EDI. Both are shown below.
+
+## A one-factor `DesignFixedFactorial`
+
+`w` is coded {0, 1} (1 = treated) both internally and in the public accessors, the
+same as every other EDI design. `get_w_factorial()` returns the factor levels as a
+data frame with one column per factor, using levels `1:levels`. For a two-level
+factor, `w = 0` is level 1 and `w = 1` is level 2.
+
+```{r factorial-one}
+set.seed(20261119)
+n = 40
+Xf = data.frame(age = round(rnorm(n, 40, 10)))
+
+des_f = DesignFixedFactorial$new(n = n, response_type = "continuous",
+                                 factors = list(reminder = 2), verbose = FALSE)
+des_f$add_all_subjects_to_experiment(Xf)
+des_f$assign_w_to_all_subjects()
+w_f = des_f$get_w()
+table(w_f)
+head(data.frame(w = w_f, des_f$get_w_factorial(), row.names = NULL))
+```
+
+From here the analysis is the same as for any two-arm design:
+
+```{r factorial-one-inference}
+y_f = 10 + 2 * w_f + 0.1 * Xf$age + rnorm(n, sd = 2)
+des_f$add_all_subject_responses(y_f)
+
+inf_f = InferenceContinOLS$new(des_f, verbose = FALSE)
+inf_f$num_cores = 1L
+inf_f$compute_estimate()
+inf_f$compute_asymp_confidence_interval()
+inf_f$set_seed(1)
+inf_f$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+```
+
+The randomization test redraws balanced allocations, as the design did. The
+nonparametric bootstrap resamples subjects without keeping the arms exactly
+balanced, which makes it slightly conservative on this design.
+
+## Running a 2 x 2 factorial with blocked designs
+
+A balanced 2 x 2 with `n` subjects puts `n / 4` in each cell. The same assignment
+can be produced in two steps: randomize factor A with equal arms, then randomize
+factor B with equal arms *within each level of A*. The second step is a blocked
+design with A as the stratum. Seen from either factor, the result is a balanced
+randomization blocked on the other factor, and that is what the analysis declares.
+
+Eighty participants; A is a reminder, B an incentive. The outcome is a continuous
+engagement score.
+
+```{r ff-assign}
+set.seed(20261120)
+n = 80
+Xff = data.frame(age = round(rnorm(n, 40, 10)))
+
+# Step 1: factor A, balanced
+des_A = DesignFixedFactorial$new(n = n, response_type = "continuous",
+                                 factors = list(reminder = 2), verbose = FALSE)
+des_A$add_all_subjects_to_experiment(Xff)
+des_A$assign_w_to_all_subjects()
+A = des_A$get_w()
+
+# Step 2: factor B, balanced within each level of A
+des_B = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "A",
+                                verbose = FALSE)
+des_B$add_all_subjects_to_experiment(data.frame(Xff, A = factor(A)))
+des_B$assign_w_to_all_subjects()
+B = des_B$get_w()
+
+table(A, B)
+```
+
+Every cell has 20 participants. The outcomes below have a reminder effect of 2 when
+there is no incentive and 3 when there is one, an incentive effect of 1 without the
+reminder and 2 with it: an interaction of 1. The main effect of each factor (its
+effect averaged over the two levels of the other factor) is therefore 2.5 for the
+reminder and 1.5 for the incentive.
+
+```{r ff-outcomes}
+y_ff = 20 + 2 * A + 1 * B + 1 * A * B + 0.1 * (Xff$age - 40) + rnorm(n, sd = 2)
+```
+
+### Main effects
+
+To analyze the main effect of A, declare the design that describes how A was
+assigned *given B*: a balanced randomization of A within each level of B. That is
+`DesignFixedBlocking` with `strata_cols = "B"`, with the observed A supplied as
+`w_precomputed`. B is in `X`, so OLS adjusts for it; in a balanced 2 x 2, the
+coefficient on A in a model with A and B (and no interaction) is the average of A's
+effect at the two levels of B, which is the main effect. The randomization test
+permutes A within the levels of B, which keeps every cell at 20, as in the real
+assignment.
+
+```{r ff-main-A}
+X_for_A = data.frame(Xff, B = factor(B))
+des_mA = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "B",
+                                 verbose = FALSE)
+des_mA$add_all_subjects_to_experiment(X_for_A)
+des_mA$assign_w_to_all_subjects(w_precomputed = A)
+des_mA$add_all_subject_responses(y_ff)
+
+inf_A = InferenceContinOLS$new(des_mA, verbose = FALSE)
+inf_A$num_cores = 1L
+inf_A$compute_estimate()
+inf_A$compute_asymp_confidence_interval()
+inf_A$set_seed(1)
+inf_A$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+```
+
+The main effect of B is the same analysis with the roles swapped:
+
+```{r ff-main-B}
+X_for_B = data.frame(Xff, A = factor(A))
+des_mB = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "A",
+                                 verbose = FALSE)
+des_mB$add_all_subjects_to_experiment(X_for_B)
+des_mB$assign_w_to_all_subjects(w_precomputed = B)
+des_mB$add_all_subject_responses(y_ff)
+
+inf_B = InferenceContinOLS$new(des_mB, verbose = FALSE)
+inf_B$num_cores = 1L
+inf_B$compute_estimate()
+inf_B$compute_asymp_confidence_interval()
+inf_B$set_seed(1)
+inf_B$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+```
+
+Each estimate should be read as "the effect of this factor, averaged over the two
+levels of the other". When the interaction is large, the average can hide effects of
+different sizes (or even opposite signs) in the two levels, so look at the
+interaction before reporting main effects alone.
+
+### The interaction
+
+No EDI class estimates the A x B interaction. It is the difference between A's effect
+when B = 1 and A's effect when B = 0, which is the coefficient on `A:B` in an
+ordinary regression with both factors and their product. Base R's `lm()` gives it
+with a model-based standard error:
+
+```{r ff-interaction}
+fit = lm(y_ff ~ A * B + age, data = data.frame(y_ff, A, B, age = Xff$age))
+round(summary(fit)$coefficients["A:B", ], 3)
+round(confint(fit)["A:B", ], 3)
+```
+
+Note how the coefficients of this model differ from main effects. With the product
+term in the model, the coefficient on `A` is A's effect *when B = 0* (a simple
+effect), not its main effect. Main effects come from the EDI analyses above (or, in
+`lm()`, from a model without the product term, or with A and B coded -1/+1).
+
+A 2 x 2 factorial is usually sized to estimate main effects. An interaction of the
+same size is estimated with twice the standard error, so a trial powered for main
+effects has little power for the interaction. A non-significant interaction test here
+is weak evidence that there is no interaction.
+
+### What this recipe does not cover
+
+* Unequal cells. The recipe assumes `n` divisible by 4 and equal cells. With other
+  allocations, the per-factor blocked designs no longer reproduce the joint
+  assignment exactly; check `draw_ws_according_to_design()` against the real cell
+  counts before trusting a randomization test.
+* More than two levels per factor, or more than two factors.
+* A randomization test of the interaction. Testing "no interaction" does not fix all
+  potential outcomes under the null, so a simple permutation test does not apply.
+
+## Where to go next
+
+* The four-step pattern and the main design and inference classes:
+  [Get started](EDI.html).
+* Declaring the design for data you already have:
+  [Analyzing an existing experiment](analyzing-an-existing-experiment.html).
+* Power and sample size by simulation, which also works for cluster designs (vary
+  the number of clusters): [Planning a study](planning-a-study.html).
+* Which procedures to trust at your sample size:
+  [Procedure trust](procedure-trust.html).
+* Seeds and reproducible randomization tests: [Reproducibility](reproducibility.html).
+* Reference pages: [`DesignFixedCluster`](../reference/DesignFixedCluster.html),
+  [`DesignFixedBlockedCluster`](../reference/DesignFixedBlockedCluster.html),
+  [`DesignFixedFactorial`](../reference/DesignFixedFactorial.html) and
+  [`DesignFixedBlocking`](../reference/DesignFixedBlocking.html).

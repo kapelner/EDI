@@ -687,18 +687,18 @@ def apply(ctx, results, mech):
             old = (prev.get(uid) or {}).get("verdict")
             verdicts[uid] = {"verdict": verdict, "at": date, "text": summary}
             if it is None:
-                human.append(f"{label}: verdict `{verdict}`, but the item is no longer in the file; not applied.")
+                human.append(ac.decision(f"{label}: verdict `{verdict}`, but the item is no longer in the file; not applied.", unit=uid, key="item-gone"))
                 continue
             path = ctx.path(it["file"])
             if verdict == "done":
                 if it["checked"]:
                     continue
                 if it["pointer"]:
-                    human.append(f"{label}: `done`, but it is a pointer; pointers are never ticked. {summary}")
+                    human.append(ac.decision(f"{label}: `done`, but it is a pointer; pointers are never ticked. {summary}", unit=uid, key="pointer-done"))
                     continue
                 why = check_done(f, ev)
                 if why:
-                    human.append(f"{label}: `done` but not ticked ({why}). {summary}")
+                    human.append(ac.decision(f"{label}: `done` but not ticked ({why}). {summary}", unit=uid, key="done-not-ticked"))
                     continue
                 refs = _refs(f)
                 note = f"*(ticked by the TODO audit {date}: {_clean('; '.join(refs), 300)})*"
@@ -711,11 +711,11 @@ def apply(ctx, results, mech):
                     continue
                 gap = _clean(f.get("gap") or f.get("text"), 300)
                 if it["owner_closed"]:
-                    human.append(f"{label}: `undone` ({gap}), but the owner closed this item explicitly; "
-                                 "not unticked.")
+                    human.append(ac.decision(f"{label}: `undone` ({gap}), but the owner closed this item explicitly; "
+                                 "not unticked.", unit=uid, key="undone-owner-closed"))
                     continue
                 if not gap:
-                    human.append(f"{label}: `undone` with no gap stated; not unticked.")
+                    human.append(ac.decision(f"{label}: `undone` with no gap stated; not unticked.", unit=uid, key="undone-no-gap"))
                     continue
                 note = f"*(unticked by the TODO audit {date}: {gap})*"
                 set_box(path, it["line"], False, note)
@@ -739,15 +739,14 @@ def apply(ctx, results, mech):
         (ctx.notes.dir / "verdicts.json").write_text(json.dumps(verdicts, indent=1, sort_keys=True) + "\n")
     except OSError:
         pass
-    # Long `partly done` lines go last: a report over GitHub's body limit is cut from the end
-    # (audit_common.fit_body). The first run (2026-11-17) had 69 of them (~69K characters); cut from
-    # the end, they would have pushed all 41 changed `not done` / `unclear` verdicts out of the PR
-    # body. Short, actionable lines first.
-    human += changed_info + partly
+    # Changed `not done` / `unclear` verdicts and `partly done` progress notes are information, not
+    # decisions (the TODO already tracks the work): they go in the collapsed "For information" block,
+    # which comes last, so a report over GitHub's body limit is cut there first (audit_common.fit_body).
+    info = changed_info + partly
     tally = ", ".join(f"{v} {k}" for k, v in sorted(counts.items())) or "no verdicts"
     split = ", ".join("v" + ".".join(map(str, v)) for v in sorted(st["opus"])) or "none"
     summary = (f"Verdicts this run: {tally}. Opus judged the TODOs of {split}; Sonnet the later releases. "
                "Every tick and untick below needs the owner's review; reverting one on this branch records "
                "it as rejected.")
     return {"summary": summary, "applied": applied, "mechanical": [m["text"] for m in mech],
-            "human": human, "proposed": proposed}
+            "human": human, "info": info, "proposed": proposed}

@@ -136,7 +136,7 @@ class Apply(Fixture):
         self.assertEqual(len(parts["proposed"]), 1)
         p = parts["proposed"][0]
         self.assertIn(p["applied_text"], body)
-        self.assertTrue(any(h.startswith("Unsure") for h in parts["human"]))
+        self.assertTrue(any(h.startswith("Unsure") for h in ac.texts(parts["human"])))
         self.assertIn("ruled out 1", parts["summary"])
         self.assertEqual(len(parts["applied"]), 1)
 

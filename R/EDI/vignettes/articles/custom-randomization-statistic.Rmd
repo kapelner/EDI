@@ -1,0 +1,521 @@
+---
+title: "Randomization Tests with Your Own Test Statistic"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Every EDI inference class has a randomization test built in, but each one tests
+with its own statistic: a mean difference, a regression coefficient, a log hazard
+ratio. Sometimes the statistic you want is different. You may care about the
+median rather than the mean, about the whole distribution rather than a location
+shift, or about a covariate-adjusted contrast that no built-in class computes.
+`InferenceRandCustom` runs a randomization test, and for continuous outcomes a
+randomization confidence interval, on any statistic you write as an R function.
+
+The reference distribution comes from the design you actually ran. If the trial
+used matched pairs, the test redraws assignments within those pairs. If it used
+rerandomization, it redraws only assignments that pass the same balance criterion.
+It does not shuffle treatment labels freely, which would be the right reference
+distribution only for a completely randomized design.
+
+This article assumes you know the four steps of an EDI analysis (design, assign,
+record responses, infer) from [Get started](EDI.html) or the
+[continuous cookbook](cookbook-continuous.html). If you need more than a test and
+an interval, such as a standard error, a bootstrap or your own design, see
+[Extending EDI](extending-edi.html), which shows how to write a full inference
+class.
+
+## What the test does
+
+Write $y_i(1)$ and $y_i(0)$ for subject $i$'s potential outcomes under treatment
+and control, and $w$ for the vector of treatment assignments. The randomization
+test checks the **sharp null hypothesis**
+
+$$H_0: y_i(1) = y_i(0) + \delta \quad \text{for every subject } i,$$
+
+with $\delta = 0$ by default. "Sharp" means the hypothesis fixes every subject's
+missing potential outcome, not just an average. If treatment does nothing at all,
+each subject's response would have been the same under any assignment. So under
+$H_0$ you can compute what your statistic $T(y, w)$ would have been under any
+assignment the design could have produced, using only the data you observed.
+
+The test then:
+
+1. computes $T$ on the observed data;
+2. draws `r` new assignment vectors $w^{(1)}, \dots, w^{(r)}$ from the design's own
+   randomization mechanism, and computes $T$ on each, holding the responses fixed
+   at their values under $H_0$;
+3. reports how extreme the observed $T$ is in that reference distribution.
+
+The default two-sided p-value doubles the smaller tail:
+$\min\{1, 2\min(\hat P(T_0 \ge t), \hat P(T_0 \le t))\}$ over the draws $T_0$, with a
+floor of $2/r$. The test is valid, meaning it rejects a true $H_0$ at most at the
+nominal rate up to Monte Carlo error, for **any** statistic you choose, because
+validity comes from the randomization and not from a model. The choice of
+statistic affects only power: how often the test rejects when $H_0$ is false.
+
+The sharp null is a stronger statement than "the average effect is zero." A
+treatment that helps some subjects and harms others, with zero average effect,
+violates the sharp null, and a test of it can reject in that situation. Read a
+small p-value as evidence that the treatment changed some outcomes, in the
+direction your statistic is sensitive to.
+
+## The statistic function
+
+You pass a function of three arguments, `(y, w, dead)`, that returns one number:
+
+- `y`: the response vector, one entry per subject, in the order the subjects were
+  added to the design.
+- `w`: a 0/1 treatment vector of the same length. On the observed data it is the
+  actual assignment; in the reference draws it is a redrawn one.
+- `dead`: the event indicator for survival outcomes (1 = event, 0 = censored). For
+  other response types it is passed as a vector of 1s and you can ignore it.
+
+EDI calls the function as `fn(y, w, dead)`, so it must accept all three arguments
+even if it uses only two. Write `function(y, w, dead)` or `function(y, w, ...)`;
+`function(y, w)` fails with "unused argument (dead)".
+
+The function is called once on the observed data, which is what
+`compute_estimate()` returns, and once per reference draw.
+
+## A first example: difference in medians on a matched-pair design
+
+Here is a trial of 60 subjects with a right-skewed outcome (for example, length of
+hospital stay). The subjects were paired on two baseline covariates and treatment
+was assigned at random within each pair, using `DesignFixedBinaryMatch`.
+
+```{r pairs-data}
+set.seed(20261117)
+n = 60
+X = data.frame(age = rnorm(n, 50, 10), severity = rnorm(n))
+
+des = DesignFixedBinaryMatch$new(n = n, response_type = "continuous", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+y = exp(1 + 0.02 * (X$age - 50) + 0.4 * X$severity + rnorm(n, sd = 0.6)) - 0.8 * w
+des$add_all_subject_responses(y)
+```
+
+With a skewed outcome, the difference in medians is less sensitive to a few very
+long stays than the difference in means:
+
+```{r median-stat}
+median_diff = function(y, w, dead) median(y[w == 1]) - median(y[w == 0])
+
+inf_med = InferenceRandCustom$new(des, custom_randomization_statistic_function = median_diff)
+inf_med$compute_estimate()
+
+inf_med$set_seed(1)
+inf_med$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+```
+
+`set_seed()` fixes the randomization draws so the p-value is reproducible (see
+[Reproducibility](reproducibility.html)). `r` is the number of draws; the
+[speed section](#speed) below discusses how many you need.
+
+### Checking that the draws follow the design
+
+The statistic sees each redrawn `w`, so a wrapper that records them shows what
+the reference distribution is built from. On this design every draw should
+assign exactly one subject of each pair to treatment:
+
+```{r check-draws}
+pair_id = des$get_block_ids()
+seen = list()
+recording_stat = function(y, w, dead) {
+  seen[[length(seen) + 1]] <<- w
+  median_diff(y, w, dead)
+}
+inf_check = InferenceRandCustom$new(des, custom_randomization_statistic_function = recording_stat)
+inf_check$set_seed(1)
+invisible(inf_check$compute_rand_two_sided_pval(r = 200, show_progress = FALSE))
+
+length(seen)                     # the observed assignment plus 200 draws
+all(vapply(seen, function(w) all(tapply(w, pair_id, sum) == 1), logical(1)))
+```
+
+Every draw respects the pairs. A naive permutation test, which shuffles the 60
+labels freely, would have split many pairs into two treated or two control
+subjects, which this design can never do.
+
+You can also look at the reference distribution itself.
+`approximate_randomization_distribution_beta_hat_T()` returns the `r` values of the
+statistic under $H_0$; with the same seed, they are the draws the p-value above
+was computed from:
+
+```{r null-hist}
+inf_med$set_seed(1)
+t0 = inf_med$approximate_randomization_distribution_beta_hat_T(r = 1000, show_progress = FALSE)
+hist(t0, breaks = 40, main = "Difference in medians under the sharp null",
+     xlab = "statistic", col = "grey85", border = "white")
+abline(v = inf_med$compute_estimate(), col = "firebrick", lwd = 2)
+```
+
+## Shifted nulls and a confidence interval
+
+For a continuous outcome you can test a nonzero $\delta$: the sharp null that
+treatment adds exactly $\delta$ to every subject's response. EDI subtracts
+$\delta$ from the observed treated responses to recover the control outcomes, then
+adds $\delta$ back to whichever subjects each draw assigns to treatment, and
+computes your statistic on that:
+
+```{r delta-pvals}
+deltas = c(-2, -1, -0.5, 0, 0.5)
+pvals = vapply(deltas, function(d) {
+  inf_med$set_seed(1)
+  inf_med$compute_rand_two_sided_pval(r = 1000, delta = d, show_progress = FALSE)
+}, numeric(1))
+data.frame(delta = deltas, p_value = pvals)
+```
+
+The set of $\delta$ values that are not rejected at level $\alpha$ is a
+$1 - \alpha$ confidence interval for the additive effect.
+`compute_rand_confidence_interval()` finds its endpoints by bisection:
+
+```{r median-ci}
+inf_med$set_seed(1)
+inf_med$compute_rand_confidence_interval(alpha = 0.05, r = 1000, show_progress = FALSE)
+```
+
+Three things to know about this interval:
+
+- **It is an interval for $\delta$, on the response scale, whatever your statistic
+  measures.** The statistic only decides which $\delta$ values look implausible.
+  A t statistic, a mean difference and ten times a mean difference all give the
+  same interval. The interval assumes the additive model in $H_0$: a constant
+  shift for every subject.
+- **The statistic must respond to the shift.** As $\delta$ moves away from the
+  truth, the observed statistic should move steadily toward one tail of the
+  reference distribution. Location statistics (differences in means, medians,
+  trimmed means) do. A statistic that ignores location, such as a difference in
+  variances, cannot be inverted this way.
+- **Each step of the search reruns all `r` draws.** The interval costs a few dozen
+  p-value evaluations. Keep the statistic cheap (see [Speed](#speed)).
+
+The search starts from the observed difference in means and its standard error,
+not from your statistic's value, so the statistic can be on any scale.
+
+## A statistic that uses covariates
+
+The statistic may use any information that does not depend on the treatment
+assignment, such as baseline covariates. Covariates are fixed under the sharp null,
+so using them does not affect validity, and a statistic that removes the outcome
+variation the covariates explain can have much more power.
+
+A simple choice is the difference in means of the residuals from regressing the
+outcome on the covariates alone, not on treatment. The fitted values are a
+fixed linear function of `y` (the hat matrix), so precompute that matrix once,
+outside the statistic:
+
+```{r rerand-data}
+set.seed(20261118)
+n = 80
+X = data.frame(x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n))
+
+des_rr = DesignFixedRerandomization$new(n = n, response_type = "continuous",
+                                        prop_acceptable = 0.1, verbose = FALSE)
+des_rr$add_all_subjects_to_experiment(X)
+des_rr$assign_w_to_all_subjects()
+w = des_rr$get_w()
+y = 2 * X$x1 + 1.5 * X$x2 - X$x3 + 0.5 * w + rnorm(n)
+des_rr$add_all_subject_responses(y)
+```
+
+`DesignFixedRerandomization` draws assignments until it finds one whose covariate
+imbalance is in the best 10% (`prop_acceptable = 0.1`); the randomization test
+redraws under the same rule.
+
+```{r resid-stat}
+Z = cbind(1, as.matrix(X))
+H = Z %*% solve(crossprod(Z), t(Z))      # hat matrix for y ~ x1 + x2 + x3
+
+resid_diff = function(y, w, dead) {
+  e = y - drop(H %*% y)
+  mean(e[w == 1]) - mean(e[w == 0])
+}
+mean_diff = function(y, w, dead) mean(y[w == 1]) - mean(y[w == 0])
+
+inf_res = InferenceRandCustom$new(des_rr, custom_randomization_statistic_function = resid_diff)
+inf_raw = InferenceRandCustom$new(des_rr, custom_randomization_statistic_function = mean_diff)
+
+ci = rbind(
+  residualized = { inf_res$set_seed(1); inf_res$compute_rand_confidence_interval(r = 500, show_progress = FALSE) },
+  unadjusted   = { inf_raw$set_seed(1); inf_raw$compute_rand_confidence_interval(r = 500, show_progress = FALSE) }
+)
+cbind(ci, width = ci[, 2] - ci[, 1])
+```
+
+Both intervals are valid, and both are intervals for the same additive effect.
+The residualized statistic gives a narrower one because it removes the part of
+the outcome variation that the covariates explain.
+
+Two rules for statistics like this one:
+
+- Compute anything that depends on `y` **inside** the function. Under a shifted
+  null, `y` changes from draw to draw, so residualizing the observed `y` once in
+  advance would be wrong. Only quantities that do not involve `y` or `w`, like `H`
+  here, can be precomputed.
+- Never let the statistic use the **observed** assignment, for example by
+  capturing `des$get_w()` or group means computed from it. The statistic must
+  depend on the assignment only through its `w` argument; otherwise the reference
+  draws no longer represent what would have happened under another assignment.
+
+## A statistic for any change in distribution
+
+A statistic does not have to be signed. The Kolmogorov-Smirnov distance between
+the treated and control outcome distributions, the largest vertical gap between
+their empirical distribution functions, picks up a change in spread or shape as
+well as a shift. It is never negative, and only large values are evidence against
+$H_0$. For a statistic like that, the default two-sided p-value, which doubles the
+smaller tail, is wrong: pass `alternative = "greater"` to get the upper-tail
+p-value.
+
+Here treatment leaves the median alone but makes the outcome more variable:
+
+```{r ks-data}
+set.seed(20261119)
+n = 80
+X = data.frame(x1 = rnorm(n))
+des_ks = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+des_ks$add_all_subjects_to_experiment(X)
+des_ks$assign_w_to_all_subjects()
+w = des_ks$get_w()
+y = rnorm(n, sd = ifelse(w == 1, 2.5, 1))
+des_ks$add_all_subject_responses(y)
+```
+
+```{r ks-stat}
+ks_stat = function(y, w, dead) {
+  grid = sort(y)
+  max(abs(ecdf(y[w == 1])(grid) - ecdf(y[w == 0])(grid)))
+}
+inf_ks = InferenceRandCustom$new(des_ks, custom_randomization_statistic_function = ks_stat)
+inf_ks$compute_estimate()
+
+inf_ks$set_seed(1)
+inf_ks$compute_rand_two_sided_pval(r = 1000, alternative = "greater", show_progress = FALSE)
+
+inf_mean = InferenceRandCustom$new(des_ks, custom_randomization_statistic_function = mean_diff)
+inf_mean$set_seed(1)
+inf_mean$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+```
+
+The distribution statistic detects the change; the mean difference, which looks
+only for a shift, does not. There is no confidence interval for the KS statistic,
+because it does not measure a location shift (see the previous section).
+
+`alternative = "less"` gives the lower-tail p-value, for a statistic where only
+small values are evidence against $H_0$.
+
+## Using the design's structure in the statistic
+
+Any statistic gives a valid test, but a statistic that matches the design's
+structure is usually more powerful. The next trial uses the Kapelner-Krieger
+sequential matching design (`DesignSeqOneByOneKK14`), which pairs each arriving
+subject with a similar earlier subject when it can and leaves the rest in a
+"reservoir" (see [Matching on the Fly](matching-on-the-fly.html)).
+
+```{r kk-data}
+set.seed(20261117)
+n = 60
+X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+des_kk = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
+for (t in seq_len(n)) {
+  w_t = des_kk$add_one_subject_to_experiment_and_assign(X[t, , drop = FALSE])
+  des_kk$add_one_subject_response(t, 1.5 * X$x1[t] + X$x2[t] + 0.5 * w_t + rnorm(1))
+}
+m = des_kk$get_block_ids()               # 0 = reservoir, k > 0 = pair k
+table(ifelse(m == 0, "reservoir", "matched"))
+```
+
+The randomization test on this design keeps the matched pairs that the trial
+formed and redraws the assignments within them. So a statistic can use the pair
+labels `m`, which are fixed, together with the redrawn `w`. This one averages the
+treated-minus-control difference within each pair, which removes the between-pair
+variation that matching created, and ignores the reservoir for simplicity:
+
+```{r kk-stats}
+pair_diff = function(y, w, dead) {
+  matched = m > 0
+  signed = ifelse(w[matched] == 1, y[matched], -y[matched])
+  mean(tapply(signed, m[matched], sum))
+}
+
+inf_pair = InferenceRandCustom$new(des_kk, custom_randomization_statistic_function = pair_diff)
+inf_naive = InferenceRandCustom$new(des_kk, custom_randomization_statistic_function = mean_diff)
+
+ci_kk = rbind(
+  pair_differences = { inf_pair$set_seed(1); inf_pair$compute_rand_confidence_interval(r = 500, show_progress = FALSE) },
+  mean_difference  = { inf_naive$set_seed(1); inf_naive$compute_rand_confidence_interval(r = 500, show_progress = FALSE) }
+)
+cbind(ci_kk, width = ci_kk[, 2] - ci_kk[, 1])
+```
+
+Both intervals come from the same design-based reference distribution and both are
+valid. The pair-difference statistic gives the narrower interval because it uses the
+matching. The built-in `InferenceContinKKOLSOneLik` goes further and combines the
+pairs with the reservoir; your own statistic is useful when you want something it
+does not compute.
+
+## Other response types
+
+The randomization test works for every response type. The statistic receives the
+responses on their own scale: 0/1 for incidence, the raw counts for count
+outcomes, the proportions for proportion outcomes, and the observed times plus the
+event indicator `dead` for survival outcomes. For example, the difference in crude
+event rates (events per unit of follow-up time) for a survival outcome with
+right-censoring:
+
+```{r survival}
+set.seed(20261120)
+n = 80
+X = data.frame(x1 = rnorm(n))
+des_surv = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+des_surv$add_all_subjects_to_experiment(X)
+des_surv$assign_w_to_all_subjects()
+w = des_surv$get_w()
+event_time = rexp(n, rate = exp(-0.7 * w))
+follow_up = runif(n, 0.5, 3)
+censored = event_time > follow_up
+des_surv$add_all_subject_responses(
+  ys   = ifelse(censored, NA, event_time),
+  y_Ls = ifelse(censored, follow_up, NA),
+  y_Rs = ifelse(censored, Inf, NA)
+)
+
+rate_diff = function(y, w, dead) {
+  sum(dead[w == 1]) / sum(y[w == 1]) - sum(dead[w == 0]) / sum(y[w == 0])
+}
+inf_surv = InferenceRandCustom$new(des_surv, custom_randomization_statistic_function = rate_diff)
+inf_surv$compute_estimate()
+inf_surv$set_seed(1)
+inf_surv$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+```
+
+Use a nonzero `delta` and `compute_rand_confidence_interval()` with **continuous
+responses only**. The interval is for an additive shift of the response, which has
+a clear meaning for a continuous outcome but not for the other types: EDI refuses
+the interval for incidence, count and proportion responses, and a nonzero `delta`
+test is not a coherent hypothesis for those types or for survival. For an effect
+estimate with an interval on those outcomes, use the matching built-in class from
+the cookbooks ([incidence](cookbook-incidence.html), [count](cookbook-count.html),
+[proportion](cookbook-proportion.html), [survival](cookbook-survival.html),
+[ordinal](cookbook-ordinal.html)).
+
+## Speed {#speed}
+
+The cost of a test is about `r` calls to your statistic, and a confidence interval
+costs a few dozen tests. The statistic is called in a loop in your R session, so
+setting `num_cores` does not split its calls across workers. Three things help:
+
+- **Choose `r` for the precision you need.** The Monte Carlo standard error of a
+  p-value near $p$ is about $\sqrt{p(1-p)/r}$. With 1,000 draws and a p-value near
+  0.05, that is about 0.007. For a final report near a decision threshold, use
+  several thousand draws.
+- **Keep the statistic cheap.** Precompute everything that depends on neither `y`
+  nor `w` (like the hat matrix above) and use vectorized base R inside. A
+  statistic that fits a model on each call, such as `lm()` or `glm()`, is many
+  times slower than the matrix product used above.
+- **Write it in C++.** `custom_randomization_statistic_cpp` takes C++ source
+  defining a function of `(NumericVector y, IntegerVector w)`, or
+  `(NumericVector y, IntegerVector w, IntegerVector dead)`, that returns a
+  `double`. EDI compiles it with Rcpp when the object is created, which takes a
+  few seconds and needs a C++ compiler:
+
+```{r cpp-stat}
+mean_diff_cpp = "
+double mean_diff(Rcpp::NumericVector y, Rcpp::IntegerVector w) {
+  double s1 = 0, s0 = 0; int n1 = 0, n0 = 0;
+  for (int i = 0; i < y.size(); i++) {
+    if (w[i] == 1) { s1 += y[i]; n1++; } else { s0 += y[i]; n0++; }
+  }
+  return s1 / n1 - s0 / n0;
+}"
+inf_cpp = InferenceRandCustom$new(des_rr, custom_randomization_statistic_cpp = mean_diff_cpp)
+inf_cpp$set_seed(1)
+inf_cpp$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+inf_raw$set_seed(1)
+inf_raw$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+```
+
+The two versions agree. Supply either `custom_randomization_statistic_function`
+or `custom_randomization_statistic_cpp`, not both. For a simple statistic like
+this one the R version is already fast; C++ pays off when the statistic loops
+over subjects in a way base R cannot vectorize.
+
+## Pitfalls
+
+**A statistic that ignores the design is still valid, but can lose power.** The
+reference distribution always comes from the design, so a statistic that knows
+nothing about the pairs or blocks still gives a test with the right size. It just
+may not use the precision the design bought, as the pair-difference example shows.
+
+**Draws where the statistic is not finite are dropped.** If the function returns
+`NA`, `NaN` or `Inf` on some draws, EDI drops them and computes the p-value from the
+rest, without a warning. Here is a subgroup statistic for a subgroup of six
+subjects, with treatment assigned by coin flip:
+
+```{r na-stat}
+set.seed(20261121)
+n = 40
+X = data.frame(female = rep(c(1, 0), c(6, 34)), x1 = rnorm(n))
+des_sub = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+des_sub$add_all_subjects_to_experiment(X)
+des_sub$assign_w_to_all_subjects()
+w = des_sub$get_w()
+des_sub$add_all_subject_responses(0.5 * w + rnorm(n))
+
+subgroup_diff = function(y, w, dead) {
+  s = X$female == 1
+  mean(y[s & w == 1]) - mean(y[s & w == 0])     # NaN if no one in the subgroup is treated (or all are)
+}
+inf_sub = InferenceRandCustom$new(des_sub, custom_randomization_statistic_function = subgroup_diff)
+inf_sub$set_seed(1)
+t0 = inf_sub$approximate_randomization_distribution_beta_hat_T(r = 1000, show_progress = FALSE)
+mean(!is.finite(t0))                             # share of draws dropped
+```
+
+Dropping draws changes the reference distribution: the p-value now conditions on
+the draws where the statistic exists. Check this share for any statistic that can
+fail, and prefer a statistic that is defined for every assignment the design can
+produce. If fewer than 10 draws, or fewer than 10% of `r`, give a finite value,
+the p-value is `NA`.
+
+**Return exactly one number.** EDI keeps only the first element of whatever the
+function returns, so a function that accidentally returns a vector gives a test
+of its first element, with no error.
+
+**Pass `alternative = "greater"` for a non-negative statistic.** Squared
+differences, absolute values, distances and chi-square-type statistics only signal
+departures from $H_0$ in their upper tail. The default two-sided p-value counts
+the lower tail as evidence too.
+
+**Use a location statistic for confidence intervals.** The interval inverts an
+additive shift, so it needs a statistic that moves steadily with the shift, and
+it is only meaningful for continuous responses.
+
+## Where to go next
+
+* [Extending EDI](extending-edi.html): write a full inference class, with a
+  standard error, a bootstrap, or a design of your own.
+* [Matching on the Fly](matching-on-the-fly.html): the KK designs and their
+  built-in matched analyses.
+* [Speed and scaling](speed-and-scaling.html): parallelism and how EDI spends
+  time on resampling.
+* [Reproducibility](reproducibility.html): seeds, `set_seed()` and worker counts.
+* The help page [`InferenceRandCustom`](../reference/InferenceRandCustom.html).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("custom-randomization-statistic rendered in %.0f seconds", render_secs))
+```

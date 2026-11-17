@@ -3,6 +3,7 @@
 import datetime as dt
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -285,6 +286,78 @@ class SettleOpenCounts(unittest.TestCase):
         now = ac.now_utc()
         chosen, reasons, _ = ac.select_units({u: {"hash": "h"} for u in "abc"}, m, "auto", 10**6, now)
         self.assertEqual(chosen, ["c"])          # only the unit with a still-open finding
+
+
+class Decisions(unittest.TestCase):
+    def track(self, items, prev, covered=(), units=("u1", "u2"), cited=(), dismissed=(), keep=False):
+        return ac.track_decisions("rd", items, prev, set(covered), set(units), set(cited), set(dismissed),
+                                  "2026-11-17T00:00:00+00:00", keep_unlisted=keep)
+
+    def test_id_is_stable_across_wording(self):
+        a = ac.decision_id("rd", "u1", "example", "it fails on seed 3")
+        self.assertEqual(a, ac.decision_id("rd", "u1", "example", "seed 3 fails, says the agent"))
+        self.assertRegex(a, r"^rd-d[0-9a-f]{8}$")
+        self.assertNotEqual(a, ac.decision_id("rd", "u2", "example", "x"))
+
+    def test_carried_resolved_cited_dismissed(self):
+        first, lines, _ = self.track([ac.decision("A fails", "u1", "example"), ac.decision("B odd", "u2", "x"),
+                                      "mechanical thing"], {})
+        self.assertEqual(len(first), 3)
+        self.assertTrue(all("open since 2026-11-17" in l for l in lines))
+        ida, idb, idm = list(first)
+        # next run: nothing reported; u1 not re-read (carried), u2 re-read (resolved), text-only item gone
+        nxt, lines, _ = ac.track_decisions("rd", [], first, {"u2"}, {"u1", "u2"}, set(), set(), "2026-11-24T00:00:00+00:00")
+        self.assertEqual(list(nxt), [ida])
+        self.assertIn("not re-checked this run", lines[0])
+        self.assertIn("open since 2026-11-17", lines[0])          # first_seen kept
+        # a unit that is no longer an audit unit is resolved, unless the audit keeps unlisted units
+        self.assertEqual(self.track([], first, units=())[0], {})
+        self.assertEqual(set(self.track([], first, units=(), keep=True)[0]), {ida, idb})
+        # cited by an open TODO: kept, not listed; dismissed: dropped
+        kept, lines, counts = self.track([ac.decision("A fails", "u1", "example")], first, covered=("u1", "u2"), cited={ida})
+        self.assertIn(ida, kept)
+        self.assertEqual(lines, [])
+        self.assertEqual(counts["cited"], 1)
+        kept, lines, counts = self.track([ac.decision("A fails", "u1", "example")], first, covered=("u1", "u2"), dismissed={ida})
+        self.assertNotIn(ida, kept)
+        self.assertEqual(counts["dismissed"], 1)
+
+    def test_same_unit_and_key_twice(self):
+        kept, _, _ = self.track([ac.decision("one", "u1", "k"), ac.decision("two", "u1", "k")], {})
+        self.assertEqual(len(kept), 2)
+
+    def test_multiline_item_tag_on_first_line(self):
+        _, lines, _ = self.track([ac.decision("head\n  - detail", "u1", "k")], {})
+        self.assertTrue(lines[0].startswith("head <sub>`rd-d"))
+        self.assertTrue(lines[0].endswith("\n  - detail"))
+
+    def test_cited_and_dismissed_from_files(self):
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            d = tmp / "R/package_metadata/future_release_plans"
+            d.mkdir(parents=True)
+            (d / "release_v1_0_6.md").write_text("- [ ] TODO-1 x (rd-d0123abcd)\n- [x] TODO-2 y (rd-d99999999)\n")
+            self.assertEqual(ac.cited_decisions(tmp), {"rd-d0123abcd"})
+            (tmp / ac.DISMISSED_FILE).parent.mkdir(parents=True)
+            (tmp / ac.DISMISSED_FILE).write_text("- `rpy-parity-d00000001`: intended difference\n")
+            self.assertEqual(ac.dismissed_decisions(tmp), {"rpy-parity-d00000001"})
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_render_sections(self):
+        md = ac.render_report({"title": "T"}, {"human": ["decide this"], "info": ["fyi"],
+                                               "decision_note": "note"}, {"k": 1}, "u")
+        self.assertIn("### Decisions for you (1)", md)
+        self.assertIn("<details><summary>For information (1)", md)
+        self.assertNotIn("Needs a human", md)
+        self.assertLess(md.index("Decisions for you"), md.index("For information"))
+        self.assertFalse(ac.has_findings({"info": ["fyi"]}))       # information alone opens nothing
+
+    def test_cut_inside_details_closes_it(self):
+        md = ac.render_report({"title": "T"}, {"info": [f"line {i} " + "x" * 80 for i in range(200)]}, {"k": 1}, "u")
+        cut = ac.fit_body(md, "", limit=4000)
+        self.assertEqual(cut.count("<details>"), cut.count("</details>"))
+        self.assertIn("### Coverage", cut)
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -319,15 +319,15 @@ def apply(ctx, results, mech, roxygen=None):
             doi = f.get("doi") or (e["dois"][0] if e and len(e["dois"]) == 1 else "")
             rec = (records.get(doi.lower()) or {}).get("record") if doi else None
             if f.get("kind") not in ("year", "title-typo"):
-                human.append(note)
+                human.append(ac.decision(note, unit=uid, key=f.get("kind")))
                 continue
             if not e or not rec:
-                human.append(note + "\n  - not applied automatically: entry or Crossref record not found "
-                                    "(name the DOI for an entry with several)")
+                human.append(ac.decision(note + "\n  - not applied automatically: entry or Crossref record not found "
+                                    "(name the DOI for an entry with several)", unit=uid, key=f.get("kind")))
                 continue
             if e["file"] in sh.GENERATED_R:
-                human.append(note + "\n  - not applied automatically: this text is generated from a C++ `//'` "
-                                    "comment in R/EDI/src; fix it there")
+                human.append(ac.decision(note + "\n  - not applied automatically: this text is generated from a C++ `//'` "
+                                    "comment in R/EDI/src; fix it there", unit=uid, key=f.get("kind")))
                 continue
             fid = ac.finding_id(ctx.spec["name"], uid, f["kind"], f"{f.get('old_text')} -> {f.get('new_text')}")
             if fid in rejected:
@@ -340,7 +340,7 @@ def apply(ctx, results, mech, roxygen=None):
                 if span.count(f["old_text"]) != 1:
                     ok, why = False, "old_text is not exactly once in the entry as it is in the file"
             if not ok:
-                human.append(note + f"\n  - not applied automatically: {why}")
+                human.append(ac.decision(note + f"\n  - not applied automatically: {why}", unit=uid, key=f.get("kind")))
                 continue
             new_span = span.replace(f["old_text"], f["new_text"], 1)
             new_text = "\n".join(lines[:e["start"] - 1] + [new_span] + lines[e["end"]:])

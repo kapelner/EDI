@@ -72,7 +72,7 @@ class Units(unittest.TestCase):
         finally:
             tv.r_available = orig
         self.assertEqual(parts["applied"], [])
-        self.assertIn("NOT VERIFIED", parts["human"][0])
+        self.assertIn("NOT VERIFIED", ac.texts(parts["human"])[0])
 
 
 if __name__ == "__main__":

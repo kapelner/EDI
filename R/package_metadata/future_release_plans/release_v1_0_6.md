@@ -1243,6 +1243,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     chunks (`cookbook-count`, `-proportion`, `-survival`, `EDI.Rmd`, `articles/analyzing-an-existing-experiment`)
     rendered without the warning, so they were left as they are (they still use BCa at B = 200, which can go `NA`
     if their data change).
+  - Follow-up 2026-11-17 (owner request): those five chunks now use B = 501 too, so no page runs BCa at B = 200.
+    Rendered with the installed EDI into `$TMPDIR`: proportion 5.0 s, count 2.4 s, existing-experiment article
+    2.4 s, Getting started 2.0 s, survival 1.9 s; no warnings and no `NA` interval.
 - [x] TODO-70 (added 2026-11-17, agent, owner request; from GitHub issue #28, the docs-claims audit): **Design
   docs that the code or tests contradict.** Fix the docs or the code for each (decide which side is right):
   - `DesignFixedBinaryMatch` (`design_fixed_binary_match.R:44`): says it falls back to complete randomization
@@ -1328,3 +1331,230 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     binding's `py::arg` defaults against its `<name>_cpp` twin in `RcppExports.R` (no compiled module needed);
     it fails on the old binding and passes now. The rpy-parity mechanical check now reports 0 findings (was these
     2). No other default mismatch with a same-name twin. **Takes effect only when the wheel is rebuilt.**
+- [ ] TODO-73 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent):
+  **`DesignFixedBlockedCluster` refuses blocks with different numbers of subjects, and its error points to an
+  argument it does not take.** The blocking base (`design_blocking_abstract.R`, `equal_block_sizes = TRUE` by
+  default, checked ~L263/L286) rejects strata of unequal size and says "Set equal_block_sizes = FALSE", but
+  `DesignFixedBlockedCluster$new()` has no such argument, so following the message fails with `unused argument`.
+  Real clusters almost never have equal sizes, so most real blocked cluster trials hit this. The tests miss it
+  because they build equal subject counts per block (`test-cluster-batched-draws.R`).
+  Repro (installed 1.0.4):
+  ```r
+  library(EDI); set.seed(1)
+  cl = factor(rep(1:8, times = c(3,4,5,6,3,4,5,7))); blk = factor(rep(c("a","b"), times = c(18, 19)))
+  X = data.frame(cl = cl, blk = blk, x = rnorm(37))
+  d = DesignFixedBlockedCluster$new(n = 37, response_type = "continuous", strata_cols = "blk", cluster_col = "cl")
+  d$add_all_subjects_to_experiment(X); d$assign_w_to_all_subjects()   # error: unequal block sizes
+  DesignFixedBlockedCluster$new(n = 37, response_type = "continuous", strata_cols = "blk", cluster_col = "cl",
+    equal_block_sizes = FALSE)                                         # error: unused argument
+  ```
+  Fix: expose `equal_block_sizes` on the constructor (or default it to FALSE for cluster designs, where the
+  balance unit is the cluster, not the subject), and add a test with unequal cluster and block sizes. Check
+  that the batched `block_ra_batch()` path then balances clusters within each block. The
+  `cluster-and-factorial-experiments.Rmd` article works around this (every school has 20 students) and states
+  the restriction; update it when fixed.
+- [ ] TODO-74 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent): **The
+  jackknife silently returns `c(NA, NA)` on `DesignFixedBlockedCluster`.**
+  `compute_jackknife_wald_confidence_interval()` gives `NA, NA` with no warning for `unit = "auto"`,
+  `"cluster"` and `"observation"`; only `unit = "block"` works. The cause is
+  `jackknife_block_size_gt_one_unsupported()` (`R/inference_all_abstract_jackknife.R`, see its ~L164 comment).
+  Meanwhile `edi_cluster_independence_warning` tells users to call `unit = "cluster"`, which on this design gives
+  `NA` without a word. Repro: build the `blocked-cluster` design from
+  `vignettes/articles/cluster-and-factorial-experiments.Rmd`, then
+  `InferenceContinOLS$new(des_b)$compute_jackknife_wald_confidence_interval(unit = "cluster")`.
+  Fix: make `unit = "cluster"` (and `"auto"`, which should resolve to it) work on blocked cluster designs by
+  deleting one cluster at a time, or, if that is not valid here, error or warn with the unit that works
+  instead of returning `NA` silently, and make the cluster-independence warning name a unit that works on the
+  design at hand. Add a test for each unit on this design. Update the article's stated limitation when fixed.
+- [ ] TODO-75 (added 2026-11-17, agent, owner request; found by the reporting-an-analysis article agent): **The
+  BCa bootstrap p-value returns `NA`, with no warning, exactly when the evidence is strongest**: when the null
+  value lies outside the whole bootstrap distribution. BCa is the default p-value type, so the default call
+  fails this way. The percentile, symmetric and studentized types return the 2/B floor in the same situation,
+  and the BCa CI on the same object works.
+  - Cause: in `bca_pval_core()` (`R/EDI/R/inference_ext_bca_bootstrap_ci.R`), `bca_midrank_cdf(boot, 0)` is
+    clamped to machine epsilon; its normal quantile is about -8.1, so the `|adj_z| > 8` check reports
+    `adjustment_on_boundary` and returns `NA`. In `run_all_inference()` it shows as an `NA` p-value on the
+    `boot (bca)` row.
+  - Repro (installed 1.0.4; bootstrap range about [0.36, 4.68], so 0 is outside it):
+    ```r
+    library(EDI); set.seed(20261117); n = 60
+    X = data.frame(age = round(rnorm(n,45,12)), bmi = round(rnorm(n,27,4),1), male = rbinom(n,1,.5))
+    des = DesignFixedRerandomization$new(n = n, response_type = "continuous", prop_acceptable = 0.05, seed = 7)
+    des$add_all_subjects_to_experiment(X); des$assign_w_to_all_subjects(); w = des$get_w()
+    des$add_all_subject_responses(10 + 2.5*w + 0.1*X$age - 0.3*X$bmi + rnorm(n, sd = 3))
+    inf = InferenceContinOLS$new(des, verbose = FALSE); inf$num_cores = 1L; inf$set_seed(1)
+    inf$compute_bootstrap_two_sided_pval(B = 501, show_progress = FALSE)                          # NA, no warning
+    inf$compute_bootstrap_two_sided_pval(B = 501, type = "percentile", show_progress = FALSE)     # 0.00399 = 2/501
+    inf$compute_bootstrap_two_sided_pval(B = 501, type = "bca", delta = 1, show_progress = FALSE) # 0.054, works
+    ```
+  - Fix: when the null value is outside the bootstrap support, return the 2/B floor like the other types (or
+    at least warn); keep `NA` only for a genuinely degenerate adjustment. Add a test with this repro, and check
+    the same clamp in any other BCa p-value path. `vignettes/articles/reporting-an-analysis.Rmd` works around it
+    by pairing the BCa CI with a percentile p-value; it can use the default once this is fixed.
+- [ ] TODO-76 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+  **KK14, KK21 and KK21stepwise crash on the first assignment when `n = NULL`**, although the docs say
+  `n = NULL` means the sample size is not fixed. `too_early_to_match()` (`R/design_seq_one_by_one_KK14.R`
+  ~L213) computes `private$t <= private$t_0_pct * private$n`, which is `logical(0)` when `n` is NULL, and `||`
+  then errors "missing value where TRUE/FALSE needed" (or "invalid 'x' type"). Repro:
+  `DesignSeqOneByOneKK21$new(response_type = "continuous")$add_one_subject_to_experiment_and_assign(data.frame(x1 = 1))`.
+  Fix: decide what burn-in means without `n` (e.g. an absolute `t_0` or require `n` for KK and error clearly at
+  construction), document it, and test KK14/KK21/KK21stepwise with `n = NULL`. See also v1.0.6-TODO-77 and -78:
+  together they mean `n = NULL` does not work for sequential designs at all.
+- [ ] TODO-77 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+  **No sequential design with `n = NULL` can be analyzed.** `check_experiment_completed()` and
+  `assert_all_subjects_arrived()` (`R/design_abstract.R` ~L482 and ~L500) evaluate
+  `if (private$fixed_sample & private$t < private$n)`, which is `if (logical(0))` when `n` is NULL ("argument is of
+  length zero"), so every `Inference*$new()` errors. Repro:
+  `d = DesignSeqOneByOneEfron$new(response_type = "continuous"); for (t in 1:10) { d$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1))); d$add_one_subject_response(t, rnorm(1)) }; d$check_experiment_completed()`.
+  Fix: use `&&` with the `fixed_sample` test first (`isTRUE(private$fixed_sample) && private$t < private$n`); add a
+  test that an `n = NULL` sequential design can be analyzed once every enrolled subject has a response.
+- [ ] TODO-78 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+  **With `n = NULL`, responses must be added in enrollment order, and the error message is wrong.**
+  `add_one_subject_response()` (`R/design_abstract.R` ~L370-382) only appends to `y` when the sample size is not
+  fixed. After enrolling 5 subjects, `d$add_one_subject_response(3, 1)` stops with "You cannot add a response for a
+  subject that has not yet arrived when the sample size is not fixed in advance", but subject 3 has arrived. With
+  `n` fixed, any order works. Fix: grow `y` (and the censoring vectors) to `t` with `NA` so any arrived subject can
+  get a response in any order; keep the error only for `i > t`. Test out-of-order responses with `n = NULL`.
+- [ ] TODO-79 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+  **`vignettes/reproducibility.Rmd` overstates re-seeding for sequential designs.** Around L23-37 it says
+  `maybe_set_seed()` runs "immediately before each call that consumes randomness" and that calling a draw method
+  twice re-seeds. For the `DesignSeqOneByOne*` family the seed is applied once, at construction (as the `Design`
+  roxygen correctly says), so a design reloaded from disk draws from whatever state the session's generator is in.
+  Fix the vignette (say this for sequential designs and show saving `.Random.seed` with the design, as
+  `articles/running-a-sequential-trial.Rmd` does), or decide that sequential designs should carry their own RNG
+  state (a larger change; would make save/restore exact without user code).
+- [ ] TODO-80 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
+  **`InferenceRandCustom` with a nonzero `delta` tests an incoherent hypothesis for count and survival responses
+  (probably proportion too).** The null template removes `delta` on the log scale (multiplicatively; rounded for
+  counts), then the custom fast path (`R/inference_rand_custom.R` ~L186, `y + delta * wj`) adds it back
+  additively, so the hypothesis at `delta != 0` is a hybrid. Count and proportion CIs are refused, but survival
+  runs and returns an interval, e.g. (-1.71, 1.04) on this fixture:
+  ```r
+  set.seed(3); n=40; ds=DesignFixedBernoulli$new(n=n,response_type="survival",verbose=FALSE)
+  ds$add_all_subjects_to_experiment(data.frame(x1=rnorm(n))); ds$assign_w_to_all_subjects()
+  t=rexp(n); c=runif(n)<.25; ds$add_all_subject_responses(ys=ifelse(c,NA,t), y_Ls=ifelse(c,t,NA), y_Rs=ifelse(c,Inf,NA))
+  seen=list(); f=function(y,w,dead){seen[[length(seen)+1]]<<-y; mean(y[w==1])-mean(y[w==0])}
+  o=InferenceRandCustom$new(ds, custom_randomization_statistic_function=f); o$set_seed(1)
+  o$compute_rand_two_sided_pval(r=20, delta=1, show_progress=FALSE)
+  cbind(t, w=ds$get_w(), y=seen[[2]])[c(3,6),]  # 4.255 -> 4.255/e+1 = 2.565 ; 0.763 -> 0.763/e = 0.281
+  o$compute_rand_confidence_interval(r=200, show_progress=FALSE)  # returns numbers
+  ```
+  For count, `response_type = "count"` with Poisson responses: a treated y = 5 becomes 3 (round(5/e) + 1) and a
+  control 6 becomes 7. Fix: apply the shift on one scale consistently (the template's), or refuse nonzero `delta`
+  for these types in `InferenceRandCustom`; add a test that the imputed null responses are on one scale.
+- [ ] TODO-81 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
+  **Incidence responses with an R-function custom statistic get past the documented ban on nonzero `delta`.**
+  The roxygen says "A nonzero delta is not supported for incidence responses", but the guards in
+  `R/inference_all_abstract_rand.R` (~L308, ~L347, ~L537) only fire when
+  `is.null(private$custom_randomization_statistic_function)`, so `InferenceRandCustom` with an R function runs
+  `compute_rand_two_sided_pval(delta = 0.1)` on binary y (returned 0.01), while a `_cpp` statistic stops. Fix:
+  apply the incidence `delta` guard regardless of how the statistic is supplied; test both forms.
+- [ ] TODO-82 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
+  **`na.rm` in `compute_rand_two_sided_pval()` does nothing, and the finite-draw minimum is misdocumented.**
+  `R/inference_all_abstract_rand.R` ~L343-352 asserts `na.rm` but never uses it; non-finite draws are always
+  dropped with no warning (`na.rm = FALSE` gave the same p-value, 0.7251, with about half the draws `NA`). The
+  roxygen says "at least 10 finite reference statistics"; the code requires `max(10, 10% of r)`. Fix: honour
+  `na.rm = FALSE` (return `NA` if any draw is non-finite) or remove the argument; warn when draws are dropped,
+  with the count; make the roxygen state the real minimum. Test both.
+- [ ] TODO-83 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
+  **A custom statistic that returns more than one value is silently truncated.** `evaluate_stat` keeps
+  `as.numeric(...)[1L]` (see also `R/inference_all_abstract_rand.R` ~L196/L214), so
+  `function(y, w, dead) c(1, 2)` gives an estimate of 1 with no error, though the docs say it must return one
+  scalar. Fix: error (naming the length) when the return value is not length 1, at least for the observed
+  statistic; test it.
+- [ ] TODO-84 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
+  **Wrong refusal message and capabilities for `InferenceRandCustom` CIs on count and proportion responses.** The
+  refusal (`R/inference_all_abstract_rand_ci.R`) says "the randomization-bootstrap CI remain available", but
+  `InferenceRandCustom` has no bootstrap, and `capabilities()` still lists `"randomization_ci"` for those response
+  types. Fix: make the message say what this class can do (the p-value at `delta = 0`), and drop
+  `"randomization_ci"` from its capabilities for the types where it is refused (check the capability-registry
+  tests that pin this). Related: v1.0.6-TODO-80.
+- [ ] TODO-85 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **The
+  `fast_gaussian_lmm` docstring says X has "no intercept column", but it needs one.**
+  `python/src/edi_kernels/_core.pyi` (~L324, and the binding docstring it mirrors) says so, but the R class
+  `InferenceContinKKGLMM` passes (intercept, w, covariates), and the PyPI README example includes an intercept.
+  On the article's KK21 data an intercept column gives treatment 1.03748533 (R: 1.037485); without one the first
+  coefficient is 1.7279, a different model. Fix the stub and binding docstrings (and check the other "no
+  intercept column" claims in the stub, ~L178 and ~L206, against what each R caller passes); add a test that
+  the documented X layout reproduces the R class's estimate.
+- [ ] TODO-86 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Python
+  kernels don't check that `w` is 0/1.** With `y = [1, 2, 3.5, 4, 2.2, 3.1]`, `dead` all 1 and
+  `w = [1, 2, 1, 2, 1, 2]` (and likewise with -1/1 coding), `wilcox_hl_point_estimate`, `get_survival_stat_diff`
+  and `fast_ridit_analysis` silently return `nan`, and `fast_logrank_stats(...)["beta_hat"]` silently flips sign
+  (+0.511 instead of -0.511), the worst case. No error in any of them. The R classes validate `w` before calling
+  these kernels, so this only affects direct (Python, or R `_cpp`) callers. Fix: validate `w` in {0, 1} at the
+  Python binding layer (cheap, once per call) for every kernel that takes a treatment vector, with a clear
+  error; add a parametrized test over all such kernels with 1/2 and -1/1 coding. Python package; takes effect
+  when the wheel is rebuilt.
+- [ ] TODO-87 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Variance
+  outputs are missing from the Python kernels.** `fast_ols(estimate_only=False)` returns only `b` and `XtWX`
+  (R's `fast_ols_with_var_cpp` also returns `ssq_b_j` and `sigma2_hat`); `fast_logistic_regression` always
+  returns `ssq_b_j`/`ssq_b_2`/`sigma2_hat` as `nan` (the fields exist but are never filled, which invites
+  misuse); and Python has none of R's `_with_var` variants (OLS, logistic, probit, Poisson, negative binomial,
+  ordinal links). Fix: either bind the `_with_var` kernels or fill the variance fields, and never return
+  always-`nan` fields (drop them or document them); update the stub, README and `python/CHANGELOG.md`, and
+  extend the rpy-parity audit's list so this gap is tracked. Python package; needs a wheel rebuild.
+- [ ] TODO-88 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent):
+  **`min_eigenvalue_information` is always NaN in Cox regression, in R and Python.** In
+  `R/EDI/src/fast_coxph_regression.cpp` the field is NaN-initialized (`CoxFitResult`, ~L261), copied (~L512) and
+  returned (~L691-895), but nothing ever computes it. Its comment says it is "computed only when !converged"
+  (optimizer_diagnostics_report.md TODO-1), so the non-converged fallback path was meant to fill it and doesn't.
+  Fix: compute the minimum eigenvalue of the observed information at the returned beta on that path (or remove
+  the field everywhere); add a test with a non-converging fit that checks it is finite. C++ change: needs a
+  targeted compile to verify and an owner rebuild.
+- [ ] TODO-89 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **The Python
+  API's conventions are inconsistent.** Index arguments are mixed: `j_T` and the Clayton `pair_idx` are 0-based,
+  while `fixed_idx`, `j` and `j_treat` are 1-based. Return-value keys differ between kernels: the GLM kernels
+  return `b`/`XtWX`, Cox returns `coefficients`/`vcov`. `vignettes/articles/edi-from-python.Rmd` documents both
+  as they are. Fix: decide one convention for the Python layer (0-based indices and one key set are the natural
+  Python choice), translate at the binding layer so the C++ and R stay unchanged, deprecate the old forms with a
+  warning for a release, and update the stub, README, CHANGELOG and the article. Breaking for Python users, so
+  schedule with a minor version bump.
+- [ ] TODO-90 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
+  article agent): **`InferenceSurvivalKMDiff` returns `NA` on interval-censored data with no warning, despite its
+  documented bootstrap fallback.** `compute_asymp_confidence_interval()`, `compute_asymp_two_sided_pval()` and
+  `compute_bootstrap_confidence_interval(B = 501)` all return `NA`; the bootstrap call takes 0.07 s, so it is not
+  actually resampling. The roxygen (`R/EDI/R/inference_survival_km_diff.R`) says these "silently fall back to a
+  nonparametric bootstrap instead of returning NA" and that the interval-censored path "relies entirely on the
+  bootstrap fallback". Same on installed 1.0.4. Repro (shared with TODO-91):
+  ```r
+  set.seed(7); n = 120
+  des = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(x = rnorm(n))); des$assign_w_to_all_subjects(); w = des$get_w()
+  t_event = rweibull(n, 1.5, 12 * exp(0.4 * w)); L = floor(t_event / 3) * 3
+  des$add_all_subject_responses(y_Ls = L, y_Rs = L + 3)
+  inf = InferenceSurvivalKMDiff$new(des); inf$compute_asymp_confidence_interval()   # NA, no warning
+  ```
+  Fix: find why the bootstrap returns at once (likely every replicate's estimate is non-finite on the
+  interval-censored Turnbull path, or an early return), make the fallback work or warn and say why; test on
+  this fixture. `articles/censored-survival-outcomes.Rmd` lists KMDiff as accepting interval
+  censoring but does not demonstrate it; add a demo once fixed.
+- [ ] TODO-91 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
+  article agent): **`InferenceSurvivalRestrictedMeanDiff`'s bootstrap interval is `NA` on interval-censored data**,
+  with no warning, even with `type = "percentile"` and B = 501, although
+  `approximate_bootstrap_distribution_beta_hat_T(B = 101)` is all finite (range 0.29 to 6.65). Seen on the
+  article's visit-schedule data set (same construction as the TODO-90 repro, seed 7; `R/EDI/R/inference_survival_rmst.R`).
+  A percentile interval from a finite distribution should never be `NA`, so the interval step is discarding the
+  draws (check the CI path's finiteness/minimum-draw filter and any interval-censoring-specific branch). Test on
+  that fixture; add the article demo once fixed.
+- [ ] TODO-92 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
+  article agent): **The BCa boundary warning recommends the B that was just used.** On interval-censored data,
+  `InferenceSurvivalLogRank`'s BCa interval at B = 501 returns `NA` with "BCa adjustment on the boundary at B = 501
+  ... increase B (>= 501 recommended) or use type = \"percentile\"". The message comes from
+  `R/EDI/R/helper_robust_sandwich.R` (~L477-480) for every class. Fix: when B is already >= 501, drop the
+  "increase B" advice (say the adjustment is on the boundary for this data and suggest `type = "percentile"`),
+  and check whether this is the same epsilon-clamp cause as v1.0.6-TODO-75 (the boundary test on |adj_z| > 8).
+  Test the message at B = 200 and B = 501.
+- [ ] TODO-93 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
+  article agent): **A missing non-survival response gives an error about survival-only arguments.**
+  `add_all_subject_responses()` with an `NA` in `ys` for a continuous or incidence response stops with "Each
+  subject needs either ys or both y_Ls and y_Rs." (`R/EDI/R/design_abstract.R` ~L434 and
+  `design_fixed_abstract.R` ~L139). Fix: for non-survival response types say that responses may not be `NA`
+  (name the first offending subject) and point to the missing-outcomes section of
+  `articles/missing-covariates.Rmd`; keep the y_L/y_R wording for survival only. Test both.
+- [ ] TODO-94 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
+  article agent; minor): **`add_one_subject_response(1, y = NA_real_)` is accepted silently on a continuous
+  design.** `assert_y()` (`R/EDI/R/design_abstract.R` ~L1083) has no NA check for continuous responses. The result
+  is not wrong (inference later stops with "This experiment is incomplete..."), but the error comes far from the
+  cause. Fix: reject `NA` at `add_one_subject_response()` for non-survival types with the same message as
+  v1.0.6-TODO-93; test it.

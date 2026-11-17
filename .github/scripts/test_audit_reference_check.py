@@ -214,7 +214,7 @@ class Fixes(unittest.TestCase):
         self.assertIn("Zelen, M. (1974)", body)
         self.assertEqual(body.count("1974"), REFS.count("1974") + 1)
         self.assertEqual(len(parts["applied"]), 1)
-        self.assertEqual(len(parts["human"]), 2)
+        self.assertEqual(len(ac.texts(parts["human"])), 2)
         self.assertEqual((self.ctx.repo / "R/EDI/R/urn.R").read_text(), URN_R)
         self.assertIn(parts["proposed"][0]["applied_text"], body)
 

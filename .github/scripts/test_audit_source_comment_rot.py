@@ -101,7 +101,7 @@ class Apply(Fixture):
             self.f("R/EDI/R/fit.R", "\ty = x + 1  # always positive", "\ty = x + 1  # positive when x > -1"),
             self.f("R/EDI/src/f.cpp", "   * uses Newton steps", "   * uses fixed-point steps"),
             self.f("R/EDI/src/f.cpp", "  return n * k; // returns n squared", "  return n * k; // returns 100 n"))
-        self.assertEqual(len(parts["applied"]), 4, parts["human"])
+        self.assertEqual(len(parts["applied"]), 4, ac.texts(parts["human"]))
         r = (self.repo / "R/EDI/R/fit.R").read_text()
         self.assertIn("Default 1e-8.", r)
         self.assertIn("# positive when x > -1", r)
@@ -122,19 +122,19 @@ class Apply(Fixture):
         ]
         parts = self.apply(*cases)
         self.assertEqual(parts["applied"], [])
-        self.assertEqual(len(parts["human"]), len(cases))
-        self.assertTrue(any("touches code" in h for h in parts["human"]))
-        self.assertTrue(any("2 times" in h for h in parts["human"]))
-        self.assertTrue(any("holds no comment" in h for h in parts["human"]))
-        self.assertTrue(any("0 times" in h for h in parts["human"]))
-        self.assertTrue(any("one line" in h for h in parts["human"]))
+        self.assertEqual(len(ac.texts(parts["human"])), len(cases))
+        self.assertTrue(any("touches code" in h for h in ac.texts(parts["human"])))
+        self.assertTrue(any("2 times" in h for h in ac.texts(parts["human"])))
+        self.assertTrue(any("holds no comment" in h for h in ac.texts(parts["human"])))
+        self.assertTrue(any("0 times" in h for h in ac.texts(parts["human"])))
+        self.assertTrue(any("one line" in h for h in ac.texts(parts["human"])))
         self.assertEqual((self.repo / "R/EDI/R/fit.R").read_text(), R_FILE)
         self.assertEqual((self.repo / "R/EDI/src/f.cpp").read_text(), CPP_FILE)
 
     def test_code_may_be_wrong_goes_to_human(self):
         parts = self.apply(self.f("R/EDI/R/fit.R", "\ty = x + 1  # always positive", "", kind="code_may_be_wrong"))
         self.assertEqual(parts["applied"], [])
-        self.assertIn("may be the wrong side", parts["human"][0])
+        self.assertIn("may be the wrong side", ac.texts(parts["human"])[0])
         self.assertEqual((self.repo / "R/EDI/R/fit.R").read_text(), R_FILE)
 
     def test_second_fix_of_the_same_line_is_refused(self):
@@ -142,7 +142,7 @@ class Apply(Fixture):
             self.f("R/EDI/R/fit.R", "\ty = x + 1  # always positive", "\ty = x + 1  # nonnegative"),
             self.f("R/EDI/R/fit.R", "\ty = x + 1  # always positive", "\ty = x + 1  # other"))
         self.assertEqual(len(parts["applied"]), 1)
-        self.assertEqual(len(parts["human"]), 1)
+        self.assertEqual(len(ac.texts(parts["human"])), 1)
 
 
 if __name__ == "__main__":

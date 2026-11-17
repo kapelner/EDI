@@ -215,7 +215,7 @@ class Apply(unittest.TestCase):
         parts = tv.apply_tests(self.ctx, self.results(self.finding), "X",
                                availability=lambda: (False, "R could not load EDI"))
         self.assertEqual(parts["applied"], [])
-        self.assertTrue(parts["human"][0].startswith("NOT VERIFIED (R could not load EDI)"))
+        self.assertTrue(ac.texts(parts["human"])[0].startswith("NOT VERIFIED (R could not load EDI)"))
         self.assertFalse(any(p.get("applied_file") for p in parts["proposed"]))
         self.assertEqual(list((Path(self.root) / tv.BULK).glob("test-foo-loglik*")), [])
 
@@ -237,8 +237,8 @@ class Apply(unittest.TestCase):
         kept = [x for x in parts["proposed"] if x.get("applied_file")]
         self.assertEqual(kept[0]["applied_file"], f"{tv.BULK}/test-foo-loglik-finite-at-boundary.R")
         self.assertIn(kept[0]["applied_text"], text)
-        self.assertTrue(any("passed on the current code" in h for h in parts["human"]))
-        self.assertTrue(any("refresh_manifest.py not found" in h for h in parts["human"]))
+        self.assertTrue(any("passed on the current code" in h for h in ac.texts(parts["human"])))
+        self.assertTrue(any("refresh_manifest.py not found" in h for h in ac.texts(parts["human"])))
 
     def test_name_clash_gets_suffix(self):
         (Path(self.root) / tv.BULK / "test-foo-loglik-finite-at-boundary.R").write_text("# exists\n")

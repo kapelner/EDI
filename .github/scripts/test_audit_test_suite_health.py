@@ -283,8 +283,8 @@ class Apply(unittest.TestCase):
         self.assertIn("test-cox-matched-todo110.Rx", rt)            # only exact paths are rewritten
         self.assertEqual(len(parts["applied"]), 1)
         self.assertIn("R/helper.R", parts["applied"][0])          # other referrers are named
-        self.assertEqual(len(parts["human"]), 2)                  # alpha: no release; delta: name taken
-        self.assertTrue(any("is taken" in h for h in parts["human"]))
+        self.assertEqual(len(ac.texts(parts["human"])), 2)                  # alpha: no release; delta: name taken
+        self.assertTrue(any("is taken" in h for h in ac.texts(parts["human"])))
         findings_file = (self.repo / tsh.FINDINGS_FILE).read_text()
         for p in parts["proposed"]:
             self.assertIn(p["applied_text"], (self.repo / p["applied_file"]).read_text())

@@ -189,9 +189,9 @@ class Repo(unittest.TestCase):
         self.assertIn("Maximum count of", (self.root / "python/cpp/bindings_foo.cpp").read_text())
         self.assertIn("Maximum count of", (self.root / rp.STUB).read_text())      # stub kept in step
         self.assertIn("same change in", parts["applied"][0])
-        self.assertEqual(len(parts["human"]), 2)
-        self.assertIn("raise to 100", parts["human"][0])
-        self.assertIn("outside python/", parts["human"][1])
+        self.assertEqual(len(ac.texts(parts["human"])), 2)
+        self.assertIn("raise to 100", ac.texts(parts["human"])[0])
+        self.assertIn("outside python/", ac.texts(parts["human"])[1])
         self.assertEqual((self.root / "R/EDI/R/foo.R").read_text(), R_CALL)
         applied = [p for p in parts["proposed"] if p.get("applied_file")]
         self.assertEqual([(p["applied_file"], p["applied_text"]) for p in applied],

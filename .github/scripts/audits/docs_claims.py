@@ -136,7 +136,7 @@ def apply(ctx, results, mech):
             if f.get("suggested_test"):
                 s += f"; test idea: {f['suggested_test']}"
             items.append(s)
-        human.append(f"`{c}` ({len(items)}):\n" + "\n".join(f"  - {x}" for x in items))
+        human.append(ac.decision(f"`{c}` ({len(items)}):\n" + "\n".join(f"  - {x}" for x in items), unit=c, key="claims"))
     summary = (f"- {counts['claims']} testable claims checked: {counts['covered']} covered, {counts['partly']} partly, "
                f"{counts['uncovered']} with no test, {counts['contradicted']} contradicted.\n"
                "- This audit changes no file, so its findings go in this issue (label "

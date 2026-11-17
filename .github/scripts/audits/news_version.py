@@ -209,10 +209,10 @@ def apply(ctx, results, mech):
             if v == "missing":
                 line = str(f.get("news_line") or "").strip()
                 sec = str(f.get("news_section") or "").strip() or "(section not given)"
-                human.append(f"`{uid}`: user-visible, not in NEWS. {text}<br>Draft for `{sec}`:<br>"
-                             f"<code>{line or '(no draft)'}</code>")
+                human.append(ac.decision(f"`{uid}`: user-visible, not in NEWS. {text}<br>Draft for `{sec}`:<br>"
+                             f"<code>{line or '(no draft)'}</code>", unit=uid, key="missing"))
             elif v == "unclear":
-                human.append(f"`{uid}`: unclear whether users see this. {text}")
+                human.append(ac.decision(f"`{uid}`: unclear whether users see this. {text}", unit=uid, key="unclear"))
     tally = ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) or "no commits judged"
     summary = (f"Commits judged this run: {tally}. Drafted NEWS lines are never applied: copy the ones you "
                f"agree with into `{NEWS}`.")

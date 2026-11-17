@@ -165,7 +165,7 @@ class NumberFix(unittest.TestCase):
         parts = rdr.apply(ctx, res, [])
         self.assertIn("about 0.39 and", (ctx.repo / doc).read_text())
         self.assertEqual(len(parts["applied"]), 1)
-        self.assertEqual(len(parts["human"]), 1)
+        self.assertEqual(len(ac.texts(parts["human"])), 1)
         p = parts["proposed"][0]
         self.assertIn(p["applied_text"], (ctx.repo / doc).read_text())
 

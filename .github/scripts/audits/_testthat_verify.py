@@ -28,6 +28,8 @@ import subprocess
 import time
 from pathlib import Path
 
+import audit_common as ac
+
 BULK = "R/package_tests/testthat_bulk"
 SKIP_LINE = 'skip("open a release TODO for this")'
 WRONG_CALL = re.compile(
@@ -227,7 +229,7 @@ def apply_tests(ctx, results, title, per_test_timeout=240, total_budget=1800, av
     ok, why = availability()
     if not ok:
         for f in findings:
-            human.append(f"NOT VERIFIED ({why}): {finding_label(f)}")
+            human.append(ac.decision(f"NOT VERIFIED ({why}): {finding_label(f)}", unit=f.get("unit"), key="not-verified"))
             proposed.append({**f, "status_note": "not verified"})
         summary.append("R or EDI was not available, so no test was run and nothing was added.")
         return {"summary": " ".join(summary), "applied": [], "mechanical": [], "human": human,
@@ -238,18 +240,18 @@ def apply_tests(ctx, results, title, per_test_timeout=240, total_budget=1800, av
         label = finding_label(f)
         body = f.get("test_code") or ""
         if not body.strip():
-            human.append(f"NOT VERIFIED (no test code): {label}")
+            human.append(ac.decision(f"NOT VERIFIED (no test code): {label}", unit=f.get("unit"), key="not-verified"))
             proposed.append(f)
             continue
         if time.time() - start > total_budget:
-            human.append(f"NOT VERIFIED (the run's {total_budget // 60}-minute test budget was used up): {label}")
+            human.append(ac.decision(f"NOT VERIFIED (the run's {total_budget // 60}-minute test budget was used up): {label}", unit=f.get("unit"), key="not-verified"))
             proposed.append(f)
             continue
         run = runner(ctx.workdir, f"{i:03d}", f.get("test_name") or f.get("text"), body, per_test_timeout)
         run.setdefault("timeout", f"{per_test_timeout} s")
         keep, reason = judge(run, f)
         if not keep:
-            human.append(f"Not kept ({reason}): {label}")
+            human.append(ac.decision(f"Not kept ({reason}): {label}", unit=f.get("unit"), key="not-kept"))
             proposed.append({**f, "status_note": "test did not fail as claimed"})
             continue
         rel = unique_test_path(ctx.repo, slugify(f.get("test_file_slug") or f.get("test_name") or f.get("text")),

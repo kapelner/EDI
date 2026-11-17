@@ -81,8 +81,8 @@ class Repo(unittest.TestCase):
         self.assertNotIn("DESCRIPTION", status)
         self.assertIn("topic1.Rd", status)
         self.assertEqual(len(parts["applied"]), 4)
-        self.assertTrue(any("code.R" in h for h in parts["human"]))
-        self.assertFalse(any("Rplots" in h and "DESCRIPTION" in h for h in parts["human"]))
+        self.assertTrue(any("code.R" in h for h in ac.texts(parts["human"])))
+        self.assertFalse(any("Rplots" in h and "DESCRIPTION" in h for h in ac.texts(parts["human"])))
         self.assertTrue(any("@param y" in m for m in parts["mechanical"]))
         self.assertIn("version line", parts["summary"])
         by = {p["unit"]: p for p in parts["proposed"]}
@@ -111,14 +111,14 @@ class Repo(unittest.TestCase):
         parts = gd.apply(self.ctx, [], [])
         self.assertEqual((self.repo / "R/EDI/man/topic1.Rd").read_text(), "\\name{topic1}\n")
         self.assertEqual([p["unit"] for p in parts["proposed"]], ["R/EDI/vignettes/procedure-trust.Rmd"])
-        self.assertTrue(any("failed (exit 1)" in h for h in parts["human"]))
+        self.assertTrue(any("failed (exit 1)" in h for h in ac.texts(parts["human"])))
 
     def test_mass_rd_change_is_held_back(self):
         self.generators({f"R/EDI/man/topic{i}.Rd": f"% roxygen 9\n\\name{{topic{i}}}\n" for i in range(8)}
                         | {"R/EDI/NAMESPACE": "# new header\nexport(a)\n", "R/EDI/src/RcppExports.cpp": "// new\n"})
         parts = gd.apply(self.ctx, [], [])
         self.assertEqual([p["unit"] for p in parts["proposed"]], ["R/EDI/src/RcppExports.cpp"])
-        self.assertTrue(any("roxygen2 9.9.9" in h and "8 of 20" in h for h in parts["human"]))
+        self.assertTrue(any("roxygen2 9.9.9" in h and "8 of 20" in h for h in ac.texts(parts["human"])))
         self.assertNotIn("man/", self.git("status", "--porcelain"))
 
     def test_mass_rd_change_names_the_pinned_build(self):
@@ -130,7 +130,7 @@ class Repo(unittest.TestCase):
         self.git("commit", "-qm", "pin")
         self.generators({f"R/EDI/man/topic{i}.Rd": f"% roxygen 9\n\\name{{topic{i}}}\n" for i in range(8)})
         parts = gd.apply(self.ctx, [], [])
-        self.assertTrue(any(f"someone/roxygen2@{sha}" in h for h in parts["human"]))
+        self.assertTrue(any(f"someone/roxygen2@{sha}" in h for h in ac.texts(parts["human"])))
 
     def test_rejected_output_is_not_proposed_again(self):
         edit = {"R/EDI/man/topic1.Rd": "\\name{topic1}\n\\title{New}\n"}

@@ -225,8 +225,8 @@ class Stages(unittest.TestCase):
              "edi_files": ["R/EDI/R/cox.R:3"]}]}]
         parts = dl.apply(r.ctx(), results, [])
         self.assertEqual(parts["applied"], [])                             # nothing automatic
-        self.assertEqual(parts["human"][0], "`Rcpp`: version changed; NEWS not summarised (agent NOT RUN).")
-        self.assertIn("survConcordance is defunct", parts["human"][1])
+        self.assertEqual(ac.texts(parts["human"])[0], "`Rcpp`: version changed; NEWS not summarised (agent NOT RUN).")
+        self.assertIn("survConcordance is defunct", ac.texts(parts["human"])[1])
         self.assertEqual(parts["proposed"][0]["kind"], "news-check")
         self.assertNotIn("applied_file", parts["proposed"][0])
         self.assertEqual(subprocess.run(["git", "status", "--porcelain"], cwd=r.repo, capture_output=True,

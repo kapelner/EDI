@@ -657,37 +657,37 @@ def apply(ctx, results, mech, run=None, extract=None, roxygen=None, checkrd=None
                 skipped_rejected += 1
                 continue
             if unit not in failing:
-                human.append(f"`{rd_name}`: example fix proposed for a page whose example did not fail: {cause}")
+                human.append(ac.decision(f"`{rd_name}`: example fix proposed for a page whose example did not fail: {cause}", unit=unit, key="example"))
                 continue
             shown = f"Cause given: {cause}\n\n```r\n{body.strip()}\n```"
             if re.search(r"\b(try|tryCatch|suppressWarnings|suppressMessages)\s*\(", body):
-                human.append(f"`{rd_name}`: proposed example NOT applied, it hides the problem "
-                             f"(try/tryCatch/suppress*). {shown}")
+                human.append(ac.decision(f"`{rd_name}`: proposed example NOT applied, it hides the problem "
+                             f"(try/tryCatch/suppress*). {shown}", unit=unit, key="example"))
                 continue
             reason = (f.get("dontrun_reason") or "none").strip()
             if "\\dontrun" in body and reason not in DONTRUN_REASONS:
-                human.append(f"`{rd_name}`: proposed example NOT applied, it uses \\dontrun without one of the "
-                             f"allowed reasons ({', '.join(sorted(DONTRUN_REASONS))}). {shown}")
+                human.append(ac.decision(f"`{rd_name}`: proposed example NOT applied, it uses \\dontrun without one of the "
+                             f"allowed reasons ({', '.join(sorted(DONTRUN_REASONS))}). {shown}", unit=unit, key="example"))
                 continue
             targets = []
             for s in srcs:
                 t = ctx.read(s) or ""
                 targets += [(s, t, b) for b in _blocks_in(t, s, unit, idx) if "examples" in b.tags]
             if len(targets) != 1:
-                human.append(f"`{rd_name}`: could not find exactly one @examples block for it in "
+                human.append(ac.decision(f"`{rd_name}`: could not find exactly one @examples block for it in "
                              f"{', '.join(srcs) or 'its sources'} ({len(targets)} found). Cause: {cause}\n\n"
-                             f"```r\n{body.strip()}\n```")
+                             f"```r\n{body.strip()}\n```", unit=unit, key="example"))
                 continue
             rec = verify_example(ctx, unit, body, run=run, extract=extract)
             if not clean(rec):
-                human.append(f"`{rd_name}`: proposed example NOT applied, it does not pass the check "
+                human.append(ac.decision(f"`{rd_name}`: proposed example NOT applied, it does not pass the check "
                              f"(default part under {VERIFY_SECONDS} s, CPU/elapsed at most {CPU_RATIO:g}, every seed "
                              f"clean): " + "; ".join(p["text"] for p in rec["problems"]
-                                                     if p["kind"] != "example-donttest-time") + f". {shown}")
+                                                     if p["kind"] != "example-donttest-time") + f". {shown}", unit=unit, key="example"))
                 continue
             if rec.get("no_plain_part") and not (f.get("plain_part_reason") or "").strip():
-                human.append(f"`{rd_name}`: proposed example NOT applied, it has no plain code CRAN runs by "
-                             f"default and gives no reason why none is possible. {shown}")
+                human.append(ac.decision(f"`{rd_name}`: proposed example NOT applied, it has no plain code CRAN runs by "
+                             f"default and gives no reason why none is possible. {shown}", unit=unit, key="example"))
                 continue
             s, t, b = targets[0]
             new_t = sh.replace_tag_lines(t, b, "examples", body)
@@ -705,7 +705,7 @@ def apply(ctx, results, mech, run=None, extract=None, roxygen=None, checkrd=None
         if old and new:
             note += f"\n  - now: “{sh.norm_ws(old)}”\n  - suggested: “{sh.norm_ws(new)}”"
         if kind not in TEXT_KINDS or f.get("changes_claim") or not (old and new):
-            human.append(note)
+            human.append(ac.decision(note, unit=unit, key=kind))
             continue
         fid = text_fix_id(unit, kind, old, new)
         if fid in rejected:
@@ -713,16 +713,16 @@ def apply(ctx, results, mech, run=None, extract=None, roxygen=None, checkrd=None
             continue
         ok, why = sh.safe_text_fix(old, new)
         if not ok or src not in srcs:
-            human.append(note + f"\n  - not applied automatically: {why or 'its source file is not editable'}")
+            human.append(ac.decision(note + f"\n  - not applied automatically: {why or 'its source file is not editable'}", unit=unit, key=kind))
             continue
         t = ctx.read(src) or ""
         blocks = _blocks_in(t, src, unit, idx)
         n = sh.count_in_blocks(t, blocks, old)
         new_t = sh.replace_in_blocks(t, blocks, old, new) if n == 1 else None
         if new_t is None:
-            human.append(note + f"\n  - not applied automatically: the sentence occurs {n} times in the "
+            human.append(ac.decision(note + f"\n  - not applied automatically: the sentence occurs {n} times in the "
                                 f"roxygen source (needs exactly once)" if n != 1 else
-                         note + "\n  - not applied automatically: the changed words straddle a line break")
+                         note + "\n  - not applied automatically: the changed words straddle a line break", unit=unit, key=kind))
             continue
         ctx.path(src).write_text(new_t)
         edited.add(src)

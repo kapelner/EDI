@@ -51,6 +51,7 @@ SPEC = {
     "name": "dependency-license",
     "title": "Dependency and license drift",
     "report": "pr",
+    "decisions_keep_unlisted": True,   # its units are only the packages whose version changed
     "claude": True,
     "model": ac.SONNET,
     "batch_size": 8,
@@ -338,9 +339,9 @@ def apply(ctx, results, mech):
         fs = by_unit.get(pkg, [])
         checks = [f.get("text", "") for f in fs if f.get("kind") == "check"]
         if checks:
-            human.append(f"`{pkg}`: " + " ".join(checks))
+            human.append(ac.decision(f"`{pkg}`: " + " ".join(checks), unit=pkg, key="check"))
         elif pkg not in covered:
-            human.append(f"`{pkg}`: version changed; NEWS not summarised (agent NOT RUN).")
+            human.append(ac.decision(f"`{pkg}`: version changed; NEWS not summarised (agent NOT RUN).", unit=pkg, key="not-run"))
     quiet = [p for p in changed if p in covered and not any(f.get("kind") == "check" for f in by_unit.get(p, []))]
     summary = (f"{len(changed)} non-pinned dependencies changed version since the last snapshot"
                + (f"; nothing for EDI to check in: {', '.join(quiet)}" if quiet else "") + "."

@@ -307,7 +307,7 @@ def apply(ctx, results, mech):
                 note += f"\n  - output: `{f['output_line']}`"
             text = ctx.read(doc)
             if f.get("kind") != "number-drift" or text is None:
-                human.append(note)
+                human.append(ac.decision(note, unit=f.get("unit"), key=f.get("kind")))
                 continue
             fid = ac.finding_id(ctx.spec["name"], doc, "number-drift",
                                 f"{f.get('old_text')}: {f.get('old_number')} -> {f.get('new_number')}")
@@ -316,7 +316,7 @@ def apply(ctx, results, mech):
             rec = sh.read_json(outputs_path(ctx, doc), {})
             ok, why, new_doc = check_number_fix(text, _output_text(rec), f, markdown=doc.endswith(".md"))
             if not ok:
-                human.append(note + f"\n  - not applied automatically: {why}")
+                human.append(ac.decision(note + f"\n  - not applied automatically: {why}", unit=f.get("unit"), key=f.get("kind")))
                 continue
             ctx.path(doc).write_text(new_doc)
             new_line = f["old_text"].replace(f["old_number"], f["new_number"], 1)

@@ -107,8 +107,8 @@ class Apply(unittest.TestCase):
         self.assertEqual((ctx.repo / "R/EDI/R/foo.R").read_text(), before)
         self.assertEqual(parts["applied"], [])
         self.assertEqual(parts["proposed"], [])
-        self.assertEqual([h.split(" ")[0] for h in parts["human"]], ["`Baz`", "`Foo`"])
-        foo = parts["human"][1]
+        self.assertEqual([h.split(" ")[0] for h in ac.texts(parts["human"])], ["`Baz`", "`Foo`"])
+        foo = ac.texts(parts["human"])[1]
         self.assertIn("(2):", foo)
         self.assertIn("“The default number of draws is 501.” (R/EDI/R/foo.R:3; no test)", foo)
         self.assertIn("test-foo.R:1 passes n = 1", foo)

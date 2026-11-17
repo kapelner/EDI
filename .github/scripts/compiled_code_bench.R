@@ -26,31 +26,27 @@ if (!is.function(env$bench_setup) || !is.function(env$bench_run))
 	stop("the bench code must define bench_setup() and bench_run(d)")
 d = env$bench_setup()
 
-# Warm up (page faults, lazy loading, first-call caches), then size the loop so the timed
-# part takes at least MIN_SECONDS.
+# Clock: Sys.time() has microsecond resolution on Linux; proc.time() counts whole milliseconds,
+# which for a 4.6 ms call timed in 20 ms blocks quantized every measurement to 0.2 ms (4%), so
+# all 20 ABBA blocks of the first PR (#38) gave the same ratio and a zero-width interval.
+now = function() as.numeric(Sys.time())
+
+# Warm up (page faults, lazy loading, first-call caches), then time blocks of calls: each block
+# at least BLOCK_SECONDS (so the clock's resolution is under 1e-5 of it), MIN_SECONDS in all.
 MIN_SECONDS = 1.5
-MAX_REPS = 500L
+BLOCK_SECONDS = 0.25
+MAX_BLOCKS = 500L
 res = env$bench_run(d)
 for (i in 1:2) env$bench_run(d)
-one = system.time(env$bench_run(d))[["elapsed"]]
-reps = max(5L, min(MAX_REPS, as.integer(ceiling(MIN_SECONDS / max(one, 1e-4)))))
-times = numeric(reps)
-for (i in seq_len(reps)) {
-	s = proc.time()[["elapsed"]]
-	env$bench_run(d)
-	times[i] = proc.time()[["elapsed"]] - s
+s = now(); invisible(env$bench_run(d)); one = max(now() - s, 1e-6)
+block = max(1L, as.integer(ceiling(BLOCK_SECONDS / one)))
+nb = min(MAX_BLOCKS, max(5L, as.integer(ceiling(MIN_SECONDS / (block * one)))))
+times = numeric(nb)
+for (i in seq_len(nb)) {
+	s = now()
+	for (j in seq_len(block)) env$bench_run(d)
+	times[i] = (now() - s) / block
 }
-# proc.time() has millisecond resolution; for very short calls time blocks of calls instead.
-if (stats::median(times) < 0.005) {
-	block = as.integer(ceiling(0.02 / max(mean(times), 1e-6)))
-	nb = max(5L, as.integer(ceiling(reps / block)))
-	times = numeric(nb)
-	for (i in seq_len(nb)) {
-		s = proc.time()[["elapsed"]]
-		for (j in seq_len(block)) env$bench_run(d)
-		times[i] = (proc.time()[["elapsed"]] - s) / block
-	}
-	reps = nb * block
-}
+reps = nb * block
 if (!is.na(rds)) saveRDS(res, rds)
 writeLines(sprintf('{"per_call": %.9g, "reps": %d, "load": %.4g}', stats::median(times), reps, load_s), out)

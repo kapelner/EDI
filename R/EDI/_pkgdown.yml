@@ -57,13 +57,22 @@ articles:
   navbar: Guides
   desc: >
     Task-focused guides: choose a sample size by simulation before the
-    trial, analyze an experiment whose treatment was assigned outside EDI,
-    understand the Kapelner-Krieger matching-on-the-fly designs, and make
-    EDI run fast.
+    trial, run a sequential trial that enrolls over months, analyze an
+    experiment whose treatment was assigned outside EDI, understand the
+    Kapelner-Krieger matching-on-the-fly designs, handle cluster and
+    factorial experiments, missing covariate values and censored survival
+    outcomes, write your own randomization test statistic, report the
+    results, and make EDI run fast.
   contents:
   - articles/planning-a-study
+  - articles/running-a-sequential-trial
   - articles/analyzing-an-existing-experiment
   - articles/matching-on-the-fly
+  - articles/cluster-and-factorial-experiments
+  - articles/missing-covariates
+  - articles/censored-survival-outcomes
+  - articles/custom-randomization-statistic
+  - articles/reporting-an-analysis
   - articles/speed-and-scaling
 - title: Case Studies
   navbar: Case Studies
@@ -75,11 +84,13 @@ articles:
 - title: Ecosystem
   navbar: Ecosystem
   desc: >
-    Where EDI sits among R's experiment-design and inference packages, and
-    how to try it without installing anything.
+    Where EDI sits among R's experiment-design and inference packages, how
+    to try it without installing anything, and how to use its kernels from
+    Python.
   contents:
   - articles/relation-to-other-packages
   - articles/try-edi-in-your-browser
+  - articles/edi-from-python
 - title: Teaching
   navbar: Teaching
   desc: >

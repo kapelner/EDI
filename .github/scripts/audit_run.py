@@ -209,6 +209,20 @@ def cmd_finish(a):
     m["last_run"] = stamp
     notes.save_manifest(m)
 
+    # Decisions for the owner persist until fixed, cited by an open release TODO, or dismissed.
+    dpath = notes.dir / "decisions_open.json"
+    try:
+        prev_dec = json.loads(dpath.read_text())
+    except (OSError, ValueError):
+        prev_dec = {}
+    open_dec, parts["human"], dcounts = ac.track_decisions(
+        spec["name"], parts.get("human") or [], prev_dec, covered, set(plan["units"]),
+        ac.cited_decisions(a.repo), ac.dismissed_decisions(a.repo), stamp,
+        keep_unlisted=spec.get("decisions_keep_unlisted", False))
+    dpath.write_text(json.dumps(open_dec, indent=1, sort_keys=True) + "\n")
+    if parts["human"] or dcounts["cited"] or dcounts["dismissed"]:
+        parts["decision_note"] = ac.decision_note(dcounts)
+
     coverage = {
         "units in scope": len(plan["units"]),
         "re-read this run": f"{len(covered)} of {len(plan['chosen'])} chosen "

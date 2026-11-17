@@ -215,7 +215,7 @@ des_prp = fixed_design("proportion", function(w) {
 })
 inf_prp = InferencePropBetaRegr$new(des_prp, verbose = FALSE)
 inf_prp$num_cores = 1L; inf_prp$set_seed(1)
-inf_prp$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+inf_prp$compute_bootstrap_confidence_interval(alpha = 0.05, B = 501, show_progress = FALSE)
 ```
 
 More in `vignette("cookbook-proportion")`.

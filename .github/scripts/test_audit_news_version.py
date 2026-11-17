@@ -97,8 +97,8 @@ class NewsVersion(unittest.TestCase):
         parts = nv.apply(self.ctx, res, [])
         self.assertEqual((self.repo / "R/EDI/NEWS.md").read_text(), before)
         self.assertEqual(parts["applied"], [])
-        self.assertEqual(len(parts["human"]), 2)
-        self.assertIn("`foo()` now defaults to 2.", parts["human"][0])
+        self.assertEqual(len(ac.texts(parts["human"])), 2)
+        self.assertIn("`foo()` now defaults to 2.", ac.texts(parts["human"])[0])
         self.assertIn("1 covered", parts["summary"])
 
 

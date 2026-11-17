@@ -228,15 +228,15 @@ def apply(ctx, results, mech):
             why = re.sub(r"\s+", " ", f.get("text", "")).strip()
             where = f"`{path}:{f.get('line', '?')}`"
             if path not in known:
-                human.append(f"{where}: {why} (not a source file this audit covers; not applied)")
+                human.append(ac.decision(f"{where}: {why} (not a source file this audit covers; not applied)", unit=f.get("unit"), key="contradiction"))
                 continue
             if f.get("kind") != "contradiction":
-                human.append(f"{where}: the code may be the wrong side: {why} Comment: `{old.strip()}`"
-                             + (f"; suggested: `{new.strip()}`" if new.strip() else ""))
+                human.append(ac.decision(f"{where}: the code may be the wrong side: {why} Comment: `{old.strip()}`"
+                             + (f"; suggested: `{new.strip()}`" if new.strip() else ""), unit=f.get("unit"), key="contradiction"))
                 continue
             err = try_replace(ctx, path, old, new)
             if err:
-                human.append(f"{where}: {why} Not applied: {err}. Suggested: `{old.strip()}` -> `{new.strip()}`")
+                human.append(ac.decision(f"{where}: {why} Not applied: {err}. Suggested: `{old.strip()}` -> `{new.strip()}`", unit=f.get("unit"), key="contradiction"))
                 continue
             applied.append(f"{where}: `{old.strip()}` -> `{new.strip()}` ({why})")
             proposed.append({"unit": path, "kind": "contradiction", "text": f"{old.strip()} -> {new.strip()}",
