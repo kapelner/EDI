@@ -204,18 +204,25 @@ def update_research_log(dirpath, tasks, today, run_id):
                 methods[a["method_id"]] = {"conclusion": a.get("conclusion", ""),
                                            "note": a.get("note", ""), "last_researched": today}
         fs = data.get("findings", [])
+        # a re-reported finding keeps its id, so its triage decision follows it
+        new = [dict({k: f.get(k) for k in ("methods", "candidate", "claimed_speedup",
+                                            "keeps_estimator", "applies_at_edi_sizes",
+                                            "confidence", "suggested_action", "new_evidence")
+                     if f.get(k)},
+                    id=(f.get("previous_finding_id")
+                        if f.get("previous_finding_id") in prev_ids
+                        else drift.finding_id(task, run_id, k)))
+               for k, f in enumerate(fs, start=1)]
+        # Earlier findings are kept (run 44040196501, 2026-11-17): research_triage.csv points at
+        # their ids, and the agents are told not to re-report rejected or deferred ones, so a
+        # finding missing from this run is not withdrawn. A re-reported one replaces its entry.
+        reused = {f["id"] for f in new}
+        kept = [f for f in prev.get("findings", []) if f.get("id") not in reused]
         log[task] = {
             "last_researched": today, "run": run_id, "methods": dict(sorted(methods.items())),
-            # a re-reported finding keeps its id, so its triage decision follows it
-            "findings": [dict({k: f.get(k) for k in ("methods", "candidate", "claimed_speedup",
-                                                      "keeps_estimator", "applies_at_edi_sizes",
-                                                      "confidence", "suggested_action", "new_evidence")
-                               if f.get(k)},
-                              id=(f.get("previous_finding_id")
-                                  if f.get("previous_finding_id") in prev_ids
-                                  else drift.finding_id(task, run_id, k)))
-                         for k, f in enumerate(fs, start=1)],
-            "sources": sorted({drift.canonical_cran_url(u) for f in fs for u in f.get("sources", [])}
+            "findings": kept + new,
+            "sources": sorted(set(prev.get("sources", []))
+                              | {drift.canonical_cran_url(u) for f in fs for u in f.get("sources", [])}
                               | {u for f in fs for u in f.get("open_copies", [])}),
             # open-source implementations found, kept across runs (newest record per name wins)
             "implementations": sorted(

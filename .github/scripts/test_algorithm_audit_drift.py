@@ -739,6 +739,25 @@ class ResearchLogTests(InventoryCheckTests):
         self.assertEqual(p["sources"], ["https://cran.r-project.org/web/packages/a/b.html",
                                         "https://doi.org/10.1101/1"])
 
+    def test_log_keeps_earlier_findings_and_reuses_re_reported_ids(self):
+        """Run 44040196501: a rerun replaced each problem's findings, so research_triage.csv rows
+        pointed at ids that were gone. Earlier findings are kept; a re-report replaces its entry."""
+        drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"p": {"last_researched": "2026-11-16",
+            "run": "1", "methods": {}, "sources": ["https://old.example/a"],
+            "findings": [{"id": "p#1.1", "candidate": "old A"}, {"id": "p#1.2", "candidate": "old B"}]}}}))
+        out = Path(self.tmp.name) / "research"
+        out.mkdir()
+        (out / "p.json").write_text(json.dumps({"methods_reviewed": [
+            {"method_id": "irls", "conclusion": "faster_option_found", "note": "", "vs_previous": "updated"}],
+            "findings": [{"candidate": "B again", "previous_finding_id": "p#1.2", "new_evidence": "2026 paper",
+                          "sources": ["https://new.example/b"]},
+                         {"candidate": "new C"}]}))
+        research_apply.update_research_log(out, ["p"], "2026-11-17", "2")
+        p = drift.load_research_log()["p"]
+        self.assertEqual([(f["id"], f["candidate"]) for f in p["findings"]],
+                         [("p#1.1", "old A"), ("p#1.2", "B again"), ("p#2.2", "new C")])
+        self.assertEqual(p["sources"], ["https://new.example/b", "https://old.example/a"])
+
     def test_log_keeps_implementations_across_runs(self):
         drift.RESEARCH_LOG.write_text(json.dumps({"problems": {"p": {"last_researched": "2026-10-01",
             "methods": {}, "findings": [], "sources": [],
@@ -1000,7 +1019,8 @@ class TriageTests(InventoryCheckTests):
         self.assertIn("## 8. Re-reported despite a reject / defer decision", text)  # no new_evidence
         research_apply.update_research_log(out, ["binary-glm-mle"], "2026-12-03", "9")
         ids = [x["id"] for x in drift.load_research_log()["binary-glm-mle"]["findings"]]
-        self.assertEqual(ids, ["binary-glm-mle#1.1", "binary-glm-mle#9.2"])  # id kept
+        # #1.1 re-reported keeps its id; #1.2 (not re-reported) is kept, not dropped
+        self.assertEqual(ids, ["binary-glm-mle#1.2", "binary-glm-mle#1.1", "binary-glm-mle#9.2"])
 
     def test_annotate_is_idempotent(self):
         folder = self.root / "findings"
