@@ -101,12 +101,19 @@ inline double loglik_from_eta(const Eigen::VectorXd& eta,
   double ll = 0.0;
   for (int i = 0; i < n; ++i) {
     const double ei = eta[i];
+    const double yi = y[i];
     if (link_type == BinomialConstrainedLink::kLog) {
       if (ei >= kMaxEtaLog) return (-std::numeric_limits<double>::infinity());
-      ll += y[i] * ei + (1.0 - y[i]) * std::log1p(-std::exp(ei));
+      // yi == 1: the (1 - yi) term is 0 * finite (ei < -1e-8 keeps log1p(-exp(ei)) finite), so the
+      // sum is exactly ei; skip the exp + log1p.
+      if (yi == 1.0) { ll += ei; continue; }
+      ll += yi * ei + (1.0 - yi) * std::log1p(-std::exp(ei));
     } else {
       if (ei <= kMinMu || ei >= kMaxMu) return (-std::numeric_limits<double>::infinity());
-      ll += y[i] * std::log(ei) + (1.0 - y[i]) * std::log1p(-ei);
+      // ei in (1e-8, 1 - 1e-8): both logs are finite and nonzero, so a zero coefficient adds exactly 0.
+      if (yi == 1.0) { ll += std::log(ei); continue; }
+      if (yi == 0.0) { ll += std::log1p(-ei); continue; }
+      ll += yi * std::log(ei) + (1.0 - yi) * std::log1p(-ei);
     }
   }
   return ll;
