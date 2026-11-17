@@ -2466,3 +2466,15 @@ classical solver with a warning, never silently.
     class at n = 100, 500, 2000, before and after; check parallel = 1 inside already-parallel replicate loops in the
     same run.
   - Done when: a >= 1.5x win with identical replicate estimates (tolerance 1e-10), or closed with the numbers.
+- [ ] TODO-215 (added 2026-11-17, agent, owner request; opened for accepted calibration rows): **`InferenceIncidExtendedRobins`:
+  owner revisit of the matched-design anti-conservatism (size about 0.15 at every n).**
+  - v1.0.5-TODO-168 (closed) checked the kernel against the paper (Azriel, Krieger, Kapelner, arXiv:2607.05768,
+    Sec. 2.3.2: Eq. 12 per-block Robins + Eq. 13) and recorded the owner ruling of 2026-10-28: published estimator,
+    inherent at small blocks, fix not applied because it changes default output.
+  - The allowlist-hygiene audit (PR #19, 2026-11-17) removed the 24 `calibration_study_accepted.csv` rows citing that
+    closed TODO, so later campaigns would flag these cells again. Owner 2026-11-17: the rows stay for now and cite this
+    TODO; the owner will look into the behaviour later.
+  - Cells: `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`, prob_T 0.5, formulas `~.` and `~1`,
+    n = 50 (52), 200, 1000, size and coverage (campaign 2026-11-15-e36c7710).
+  - Done when: the owner either keeps the published estimator (record the ruling here, and the rows keep citing a
+    permanent rationale the hygiene audit accepts) or changes it (then the rows go and the cells pass).
