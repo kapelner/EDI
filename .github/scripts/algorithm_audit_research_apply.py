@@ -18,6 +18,7 @@ import argparse
 import csv
 import datetime
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -260,6 +261,25 @@ def add_proposed_terms(dirpath, tasks):
     return added, held
 
 
+def mark_inventory_reviewed(dirpath, tasks, shards, today, run_id, head=None):
+    """Advance audits/inventory_reviewed.json to the reviewed commit when this run planned every
+    inventory shard and each one reported back (owner, 2026-11-17), so the next run reviews only
+    code changed after it. A partial run (some shards rerun, or one failed) leaves it alone.
+    Returns True when it was written."""
+    if shards is None:
+        return False
+    planned = {t for t in tasks if drift.is_inventory_task(t)}
+    nonempty = {k for k, v in shards.items() if v["new_symbols"] or v["changed_entries"]}
+    if not nonempty <= planned or any(report.load(dirpath, t)[0] is None for t in nonempty):
+        return False
+    head = head or os.environ.get("GITHUB_SHA") or drift.git("rev-parse", "HEAD").strip()
+    if not head:
+        return False
+    drift.INVENTORY_REVIEWED.write_text(json.dumps(
+        {"commit": head, "date": today, "run": str(run_id)}, indent=1) + "\n")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
@@ -280,6 +300,7 @@ def main():
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
     terms_added, terms_held = add_proposed_terms(Path(a.dir), tasks)
+    reviewed = mark_inventory_reviewed(Path(a.dir), tasks, shards, a.date, a.run_id)
     body = text.split("\n", 2)[2]  # drop the FLAGGED/CLEAN status line
     # the report's inventory section lists proposals; replace it with what actually happened
     head, _, tail = body.partition("## 2. Inventory currency")
@@ -295,7 +316,7 @@ def main():
     inv_md += ["", "### Taxonomy terms added (`algorithm_taxonomy.json`)"]
     inv_md += [f"- {x}" for x in terms_added] or ["_Nothing._"]
     findings = head + "\n".join(inv_md) + "\n" + tail
-    if not (flagged or applied or held or logged or terms_added):
+    if not (flagged or applied or held or logged or terms_added or reviewed):
         print("NONE")
         Path(a.pr_body).write_text("")
         return

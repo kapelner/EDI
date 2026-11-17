@@ -645,16 +645,50 @@ INVENTORY_SHARD = 25  # items per inventory agent (one got 545 and gave up; at 4
                       # R6 files were still left unreported, run 43964304738)
 
 
+INVENTORY_REVIEWED = META / "audits" / "inventory_reviewed.json"
+
+
+def inventory_base():
+    """The commit the inventory was last fully reviewed at (every shard of a research run reported
+    back; written by the research PR), or None to fall back to the day window. Owner, 2026-11-17:
+    a run must not re-review changes an earlier run already reviewed."""
+    try:
+        commit = json.loads(INVENTORY_REVIEWED.read_text())["commit"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    ok = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", commit, "HEAD"],
+                        capture_output=True).returncode == 0
+    return commit if ok else None
+
+
+def _log_range(days, base):
+    return [f"{base}..HEAD"] if base else [f"--since={days}.days"]
+
+
+def research_needed(problem_id, inventory, log=None, today=None):
+    """Why a problem needs research in a `changed` run, or '' (owner, 2026-11-17): never
+    researched, code commits on its files since it was, or a deferred finding now due."""
+    prev = previous_results(problem_id, inventory, log)
+    if prev.get("no_previous"):
+        return "never researched"
+    if prev.get("code_changed_since"):
+        return f"{len(prev['code_commits_since'])}+ commit(s) since {prev['last_researched']}"
+    today = today or datetime.date.today().isoformat()
+    due = [t["finding_id"] for t in prev.get("triage", [])
+           if t["decision"] == "defer" and t.get("revisit") and t["revisit"] <= today]
+    return f"defer due: {', '.join(due)}" if due else ""
+
+
 def is_inventory_task(task):
     return task == "inventory" or task.startswith("inventory.")
 
 
-def inventory_shards(days=40, size=INVENTORY_SHARD):
+def inventory_shards(days=40, size=INVENTORY_SHARD, base="auto"):
     """Split the currency context into shards of about `size` items (new symbols + changed
     entries), keeping each file's items in one shard: {"inventory.1": ctx, ...}. Owner,
     2026-11-16: a single agent given 281 new symbols and 264 changed entries delegated to
     sub-agents and returned nothing."""
-    ctx = currency_context(days)
+    ctx = currency_context(days, base)
     by_file = {}
     for kind in ("new_symbols", "changed_entries"):
         for x in ctx[kind]:
@@ -682,36 +716,41 @@ def code_changes(task, inventory, days=40, cap=CODE_CHANGES_CAP):
     research problem: commits since its last research touching its inventory files; for
     `inventory`: the last `days` days on the files the currency context names."""
     if is_inventory_task(task):
-        ctx = (currency_context(days) if task == "inventory"
-               else inventory_shards(days).get(task, {"new_symbols": [], "changed_entries": []}))
+        base = inventory_base()
+        ctx = (currency_context(days, base) if task == "inventory"
+               else inventory_shards(days, base=base).get(task, {"new_symbols": [], "changed_entries": []}))
         files = sorted({x["file"] for x in ctx["new_symbols"] + ctx["changed_entries"]})
-        since = f"{days}.days"
+        rng = _log_range(days, base)
     else:
         prev = load_research_log().get(task)
         files = sorted({e["file"] for e in task_rows(task, inventory)})
         since = f"{prev['last_researched']} 23:59:59" if prev else None
         if not since:
             return "# no previous research for this problem: no diff (review the current code)\n"
+        rng = [f"--since={since}"]
     if not files:
         return "# no files\n"
-    diff = git("log", f"--since={since}", "-p", "--format=commit %h %ad %s", "--date=short",
+    diff = git("log", *rng, "-p", "--format=commit %h %ad %s", "--date=short",
                "--", *files)
     if not diff.strip():
-        return f"# no commits since {since} on this task's {len(files)} files\n"
+        return f"# no commits ({rng[0]}) on this task's {len(files)} files\n"
     if len(diff.encode()) > cap:
         diff = diff.encode()[:cap].decode(errors="ignore")
         diff += f"\n# ... cut at {cap} bytes; read the current code for the rest\n"
     return diff
 
 
-def currency_context(days):
-    """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make)."""
+def currency_context(days, base="auto"):
+    """Inputs for the monthly inventory-currency agent (judgement the mechanical check can't make):
+    code changed since the last full inventory review (`inventory_base()`), or in the last `days`
+    days when there is none."""
+    base = inventory_base() if base == "auto" else base
+    rng = _log_range(days, base)
     inv = load_inventory()
     known = {(e["file"], e["symbol"]) for e in inv}
     exempt = list(json.loads(ROW_MAP.read_text()).get("exempt", {}))
-    since = f"{days}.days"
     paths = ["R/EDI/src", "R/EDI/R"]
-    diff = git("log", f"--since={since}", "-p", "--unified=0", "--format=", "--", *paths)
+    diff = git("log", *rng, "-p", "--unified=0", "--format=", "--", *paths)
     new, seen = [], set()
     for f, sym in added_definitions(diff):
         if (f, sym) in known or (f, sym) in seen or any(fnmatch.fnmatch(f, p) for p in exempt):
@@ -720,13 +759,14 @@ def currency_context(days):
         if path.is_file() and sym in path.read_text(errors="replace"):  # still there today
             seen.add((f, sym))
             new.append({"file": f, "symbol": sym})
-    touched = changed_text_by_file(git("log", f"--since={since}", "-p", "--unified=3",
+    touched = changed_text_by_file(git("log", *rng, "-p", "--unified=3",
                                        "--format=", "--", *paths))
     entries = [{"file": e["file"], "symbol": e["symbol"], "algorithm": e["algorithm"],
                 "audit_row": e["audit_row"]} for e in inv
                if e["symbol"] and re.search(rf"\b{re.escape(e['symbol'])}\b",
                                             touched.get(e["file"], ""))]
-    return {"window_days": days, "today": datetime.date.today().isoformat(),
+    return {"window_days": None if base else days, "since_commit": base,
+            "today": datetime.date.today().isoformat(),
             "new_symbols": new, "changed_entries": entries}
 
 
@@ -913,11 +953,18 @@ def main():
                     help="print the research log's previous result for one problem as JSON")
     ap.add_argument("--inventory-shards", action="store_true",
                     help="print {inventory.N: currency context} (shards of ~40 items)")
+    ap.add_argument("--research-needed", action="store_true",
+                    help="print {problem: reason} for problems a `changed` run researches")
     ap.add_argument("--code-changes", metavar="TASK",
                     help="write the diffs an agent gets (a problem id, or inventory)")
     ap.add_argument("--task-problem", metavar="PROBLEM",
                     help="print the taxonomy slice (problem + its methods) for one problem")
     a = ap.parse_args()
+    if a.research_needed:
+        inv, log = load_inventory(), load_research_log()
+        need = {p: r for p in research_batches(inv) if (r := research_needed(p, inv, log))}
+        text = json.dumps(need, indent=1) + "\n"
+        return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)
     if a.inventory_shards:
         text = json.dumps(inventory_shards(), indent=1) + "\n"
         return sys.stdout.write(text) if a.out == "-" else Path(a.out).write_text(text)

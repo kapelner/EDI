@@ -141,6 +141,17 @@ fastest acceptable one for its job?**
   `inventory.N` (about 40 items each, a file's items in one shard; `--inventory-shards`);
   `research_tasks=inventory` runs all of them, and the PR job merges their outputs. The plan
   job checks out full history so it plans the same shards the research jobs compute.
+- **Incremental runs** (owner, 2026-11-17: a run must not redo what the last one did).
+  The inventory shards cover only code changed since the last full inventory review, the commit
+  in `audits/inventory_reviewed.json`; the 40-day window is only the fallback when that file is
+  missing or its commit is not an ancestor of HEAD. The research PR advances the marker to the
+  run's commit only when the run planned every non-empty shard and each reported back (a partial
+  rerun of some shards leaves it alone), and shards with no items are not run. For research,
+  `research_tasks=changed` runs only the problems that were never researched, had commits on
+  their inventory files since `last_researched`, or have a deferred finding whose revisit date
+  has passed (`--research-needed` prints them with the reason), plus the inventory shards. `all`
+  still re-researches every problem: the monthly run keeps doing that, since the literature
+  changes even when the code does not.
 - **Never use "Update branch" on a research PR** (2026-11-16). On PR #14 it merged `main`
   into the bot branch line by line; both sides had appended a key to the same taxonomy entry,
   the merge dropped a comma, and `algorithm_taxonomy.json` became invalid JSON on `main`

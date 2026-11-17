@@ -50,7 +50,7 @@ class InventoryCheckTests(unittest.TestCase):
         self.root = root
         self.saved = {k: getattr(drift, k) for k in
                       ("ROOT", "ROW_MAP", "INVENTORY", "REFERENCES", "SRC_DIR", "R_DIR",
-                       "TAXONOMY", "RESEARCH_LOG", "TRIAGE", "RELEASES")}
+                       "TAXONOMY", "RESEARCH_LOG", "TRIAGE", "RELEASES", "INVENTORY_REVIEWED")}
         audits = root / "R/package_metadata/audits"
         drift.ROOT = root
         drift.ROW_MAP = audits / "algorithm_audit_row_map.json"
@@ -62,6 +62,7 @@ class InventoryCheckTests(unittest.TestCase):
         drift.RESEARCH_LOG = audits / "research_log.json"
         drift.TRIAGE = audits / "research_triage.csv"          # never the real repo file
         drift.RELEASES = root / "R/package_metadata/future_release_plans"
+        drift.INVENTORY_REVIEWED = audits / "inventory_reviewed.json"
         self.taxonomy = json.loads(json.dumps(TAXONOMY))
         self.taxonomy["methods"].pop("lbfgs")  # only methods the fixture uses
         self.cfg = {"max_age_days": 180,
@@ -562,7 +563,7 @@ class InventoryShardTests(unittest.TestCase):
                "new_symbols": [{"file": f"f{i % 7}.R", "symbol": f"n{i}"} for i in range(50)],
                "changed_entries": [{"file": f"f{i % 7}.R", "symbol": f"c{i}"} for i in range(30)]}
         saved = drift.currency_context
-        drift.currency_context = lambda days: ctx
+        drift.currency_context = lambda days, base=None: ctx
         try:
             shards = drift.inventory_shards(size=25)
         finally:
@@ -929,6 +930,42 @@ class TriageTests(InventoryCheckTests):
         self.assertIn("finding id not in research_log.json", bad)
         self.assertNotIn("TODO-7", bad)
         self.assertEqual(len(out["triage_due"]), 1)
+
+    def test_research_needed_only_for_new_changed_or_due(self):
+        """Owner, 2026-11-17: a `changed` run researches only these problems."""
+        self.assertEqual(drift.research_needed("never-seen", []), "never researched")
+        self.assertEqual(drift.research_needed("binary-glm-mle", [], today="2026-11-17"), "")
+        self.write_triage([{"finding_id": "binary-glm-mle#1.2", "problem_id": "binary-glm-mle",
+                            "decision": "defer", "status": "proposed", "revisit": "2026-12-01"}])
+        self.assertEqual(drift.research_needed("binary-glm-mle", [], today="2026-11-30"), "")
+        self.assertIn("defer due: binary-glm-mle#1.2",
+                      drift.research_needed("binary-glm-mle", [], today="2026-12-01"))
+
+    def test_inventory_marker_advances_only_after_a_complete_inventory_run(self):
+        out = self.root / "out"
+        out.mkdir()
+        item = {"new_symbols": [{"file": "f.R", "symbol": "s"}], "changed_entries": []}
+        empty = {"new_symbols": [], "changed_entries": []}
+        shards = {"inventory.1": item, "inventory.2": item, "inventory.3": empty}
+        (out / "inventory.1.json").write_text("{}")
+        mark = research_apply.mark_inventory_reviewed
+        # one shard did not report back
+        self.assertFalse(mark(out, ["inventory.1", "inventory.2"], shards, "d", 1, head="abc"))
+        # a partial run (only some shards planned)
+        (out / "inventory.2.json").write_text("{}")
+        self.assertFalse(mark(out, ["inventory.1"], shards, "d", 1, head="abc"))
+        self.assertFalse(drift.INVENTORY_REVIEWED.exists())
+        # every non-empty shard planned and reported (the empty one is never run)
+        self.assertTrue(mark(out, ["inventory.1", "inventory.2"], shards, "d", 7, head="abc"))
+        self.assertEqual(json.loads(drift.INVENTORY_REVIEWED.read_text())["commit"], "abc")
+        self.assertFalse(mark(out, ["binary-glm-mle"], None, "d", 1, head="abc"))
+
+    def test_inventory_base_falls_back_without_a_valid_marker(self):
+        self.assertIsNone(drift.inventory_base())  # no file
+        drift.INVENTORY_REVIEWED.write_text('{"commit": "deadbeef"}')
+        self.assertIsNone(drift.inventory_base())  # not an ancestor of HEAD (no repo here)
+        drift.INVENTORY_REVIEWED.write_text("not json")
+        self.assertIsNone(drift.inventory_base())
 
     def test_triage_old_todo_form_rejected(self):
         """CLAUDE.md: release TODOs are cited release-first (v1.1.0-TODO-7), never TODO-7-v1.1.0."""
