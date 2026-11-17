@@ -1,0 +1,8 @@
+{
+ "R/package_metadata/new_feature_plans/v1_4_0/censored_count_response.md:406#term8": {
+  "hash": "f520cac74c50b60c",
+  "judged_at": "2026-11-17T10:08:27+00:00",
+  "kind": "benign",
+  "text": "The masked word is an institution name in a plan-file literature note about a published dissertation or technical report on zero-heavy count data. It is not about a grant, and nothing in the context points to private information, so it looks like a different word that is only spelled close to [TERM #8]."
+ }
+}

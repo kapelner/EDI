@@ -1,0 +1,12 @@
+{
+ "last_run": "2026-11-17T10:08:27+00:00",
+ "units": {
+  "R/package_metadata/new_feature_plans/v1_4_0/censored_count_response.md:406#term8": {
+   "audited_at": "2026-11-17T10:08:27+00:00",
+   "deps": null,
+   "hash": "f520cac74c50b60c",
+   "open_findings": 0,
+   "run": "44048291041"
+  }
+ }
+}
