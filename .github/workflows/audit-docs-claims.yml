@@ -29,6 +29,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      actions: read      # the reusable prepare job reads run data
     uses: ./.github/workflows/audit.yml
     with:
       audit: docs-claims

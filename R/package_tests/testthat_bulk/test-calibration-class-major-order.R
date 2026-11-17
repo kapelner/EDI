@@ -187,7 +187,7 @@ test_that("roster costs come from the previous campaign where the class existed,
 	}
 })
 
-test_that("the workflow's job graph is plan -> build -> roster -> shards -> analyze -> publish", {
+test_that("the workflow's job graph is plan -> build -> roster -> shards -> analyze -> publish, with the balance backfill beside the shards", {
 	wf_path = NA_character_
 	d = cal_dir
 	for (i in 1:8) { f = file.path(d, ".github", "workflows", "calibration-study.yml"); if (file.exists(f)) { wf_path = f; break }; d = dirname(d) }
@@ -196,7 +196,7 @@ test_that("the workflow's job graph is plan -> build -> roster -> shards -> anal
 	job_start = grep("^  [a-z]+:$", wf)
 	jobs = sub("^  ([a-z]+):$", "\\1", wf[job_start])
 	jobs = jobs[job_start > grep("^jobs:", wf)]
-	expect_identical(jobs, c("plan", "build", "roster", "shards", "analyze", "publish"))
+	expect_identical(jobs, c("plan", "build", "roster", "shards", "balance", "analyze", "publish"))
 	block = function(j) { i = grep(paste0("^  ", j, ":$"), wf); e = c(job_start[job_start > i], length(wf) + 1L)[[1L]]; wf[i:(e - 1L)] }
 	needs = function(j) {
 		l = grep("^    needs:", block(j), value = TRUE)
@@ -207,7 +207,12 @@ test_that("the workflow's job graph is plan -> build -> roster -> shards -> anal
 	expect_identical(needs("build"), "plan")
 	expect_identical(needs("roster"), c("plan", "build"))
 	expect_identical(needs("shards"), c("plan", "roster"))
-	expect_identical(needs("analyze"), c("plan", "roster", "shards"))
+	# The covariate balance backfill (owner, 2026-11-17) runs beside the shards on the campaign's EDI and only feeds
+	# analyze; analyze's always() condition keeps a failed backfill from stopping the analysis.
+	expect_identical(needs("balance"), c("plan", "build"))
+	expect_identical(needs("analyze"), c("plan", "roster", "shards", "balance"))
+	expect_true(any(grepl("balance_calibration_study.R", block("balance"), fixed = TRUE)))
+	expect_true(any(grepl("Calibration CI bug", block("balance"), fixed = TRUE)))
 	expect_identical(needs("publish"), c("plan", "roster", "analyze"))
 	# plan no longer computes the matrix; roster does, and shards read it from roster.
 	expect_false(any(grepl("matrix:|wave:|plan_calibration_study.R", block("plan"))))

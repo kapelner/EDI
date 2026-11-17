@@ -1,0 +1,174 @@
+---
+title: "Get Started with EDI"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Get Started with EDI}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+EDI (Experimental Design and Inference) is an R package for two-arm randomized
+experiments. It provides randomization designs, both **fixed** (every subject is
+known before anyone is assigned) and **sequential** (subjects arrive and are
+assigned one at a time). It supports six response types, and for each design and
+response type it offers inference procedures that respect how treatment was
+actually assigned.
+
+This page is a short tour. It shows the pattern every analysis follows, helps you
+pick a response type and a design, runs one small example end to end, and points
+you to the more detailed vignettes.
+
+## The four-step pattern
+
+Every EDI analysis has the same four steps:
+
+1. **Construct a `Design`** for `n` subjects and a `response_type`.
+2. **Assign treatment**: all at once for a fixed design, or one subject at a time
+   for a sequential design.
+3. **Record responses.**
+4. **Construct an `Inference` class** on the completed design and call its
+   `compute_*` methods, or hand the design to `InferenceSuite` to run every
+   applicable procedure at once.
+
+Designs and inference classes are R6 classes, so you create them with `$new()` and
+call methods with `$`.
+
+## Choosing your response type
+
+The `response_type` argument of every design constructor takes one of six strings.
+Pick the one that matches what you record for each subject. Each has a cookbook
+vignette that runs the full workflow for that type.
+
+| `response_type` | What each subject's response looks like | A typical inference class | Cookbook |
+|---|---|---|---|
+| `"continuous"` | A real number (blood pressure, test score) | `InferenceContinOLS` | `vignette("cookbook-continuous")` |
+| `"incidence"` | A 0/1 outcome (event happened or not) | `InferenceIncidLogRegr` | `vignette("cookbook-incidence")` |
+| `"count"` | A non-negative integer (number of visits, seizures) | `InferenceCountPoisson` | `vignette("cookbook-count")` |
+| `"proportion"` | A fraction in (0, 1) (adherence rate, fraction of tissue affected) | `InferencePropFractionalLogit` | `vignette("cookbook-proportion")` |
+| `"survival"` | A time to event, either exact or censored | `InferenceSurvivalCoxPHRegr` | `vignette("cookbook-survival")` |
+| `"ordinal"` | An ordered level coded `1, 2, ..., K` (a Likert rating) | `InferenceOrdinalPropOddsRegr` | `vignette("cookbook-ordinal")` |
+
+Inference class names follow the response type: `InferenceContin*`,
+`InferenceIncid*`, `InferenceCount*`, `InferenceProp*`, `InferenceSurvival*` and
+`InferenceOrdinal*`. The `"incidence"` and `"proportion"` types are different: an
+incidence response is a single 0 or 1 per subject, while a proportion response is
+itself a fraction for each subject.
+
+## Choosing a design
+
+A fixed design needs every subject's covariates before assignment. A sequential
+design assigns each subject on arrival, using only what has been seen so far.
+EDI has many designs of each kind (see the
+[reference index](https://kapelner.github.io/EDI/reference/index.html)); a few
+representative ones are below.
+
+| Design | Kind | How it assigns treatment | When to use it |
+|---|---|---|---|
+| `DesignFixedBernoulli` | Fixed | An independent coin flip per subject; the number treated is random | The simplest baseline |
+| `DesignFixediBCRD` | Fixed | Complete randomization: exactly `round(n * prob_T)` treated, every such allocation equally likely | You want a fixed number of treated subjects |
+| `DesignFixedBlocking` | Fixed | Forms blocks from covariates (`strata_cols`) and randomizes within each block | A few prognostic covariates, such as site or sex |
+| `DesignFixedBinaryMatch` | Fixed | Pairs subjects by an optimal covariate matching, then randomizes within each pair | Many covariates, all subjects known up front |
+| `DesignSeqOneByOneEfron` | Sequential | Efron's biased coin: favors the under-represented arm (default probability 2/3); ignores covariates | Keep arm sizes balanced during enrollment |
+| `DesignSeqOneByOneKK21` | Sequential | Matches each arrival to a close earlier unmatched subject, with covariates weighted by their estimated association with the response | Covariate balance during sequential enrollment |
+
+For a fixed design you call `add_all_subjects_to_experiment()`,
+`assign_w_to_all_subjects()` and `add_all_subject_responses()`. For a sequential
+design you call `add_one_subject_to_experiment_and_assign()` and
+`add_one_subject_response()` once per subject; `vignette("cookbook-continuous")`
+shows that loop.
+
+## A small example
+
+EDI is on [CRAN](https://CRAN.R-project.org/package=EDI). Not evaluated here: the
+vignette builds inside an already-installed package.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI")
+# or the development version: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+We simulate 50 subjects with two covariates and a continuous response, and use
+complete randomization.
+
+```{r setup}
+library(EDI)
+set.seed(20261117)
+
+n = 50
+X = data.frame(
+  age = round(rnorm(n, 45, 12)),
+  bmi = round(rnorm(n, 27, 4), 1)
+)
+true_effect = 2
+```
+
+Steps 1 to 3: construct the design, assign treatment, record responses.
+
+```{r design}
+des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()                                  # 0/1 treatment vector
+table(w)
+
+y = 10 + true_effect * w + 0.1 * X$age - 0.3 * X$bmi + rnorm(n, sd = 3)
+des$add_all_subject_responses(y)
+```
+
+Step 4: construct an inference class. `InferenceContinOLS` regresses the response
+on treatment and the covariates. The estimate is the coefficient on treatment,
+with a Wald confidence interval and p-value.
+
+```{r inference}
+inf = InferenceContinOLS$new(des, verbose = FALSE)
+inf$num_cores = 1L
+
+inf$compute_estimate()
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+The randomization test makes no distributional assumption. It redraws treatment
+`r` times from the same design and compares the observed statistic with that
+reference distribution. `set_seed()` makes the result reproducible. A real
+analysis would use a larger `r`.
+
+```{r rand}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Every applicable analysis: `InferenceSuite`
+
+`InferenceSuite` finds every inference class compatible with the design and
+response type, runs each applicable procedure, and prints a results table with
+a combined p-value. By default it runs every method, including the resampling ones
+at their full replicate counts, which takes minutes. To keep this vignette fast,
+the call below runs only the asymptotic methods and limits each class to 15
+seconds. Drop the `methods` argument for the complete report.
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Where to go next
+
+- **Cookbooks**, one per response type, each with a fixed and a sequential design:
+  `vignette("cookbook-continuous")`, `vignette("cookbook-incidence")`,
+  `vignette("cookbook-count")`, `vignette("cookbook-proportion")`,
+  `vignette("cookbook-survival")` and `vignette("cookbook-ordinal")`.
+- **Which procedures to trust at your sample size**: `vignette("procedure-trust")`.
+- **How the estimates were validated**: `vignette("validation-evidence")`.
+- **Seeds, RNG streams and parallel reproducibility**: `vignette("reproducibility")`.
+- **Writing your own designs and inference classes**: `vignette("extending-edi")`.
+- **Symbols and naming conventions**: `vignette("notation-glossary")`.
+- **Try EDI without installing it**:
+  [Try EDI in your browser](https://kapelner.github.io/EDI/articles/try-edi-in-your-browser.html).
+- **Learn statistics with EDI**:
+  [Learn statistics through EDI](https://kapelner.github.io/EDI/articles/learn-statistics-through-edi.html).

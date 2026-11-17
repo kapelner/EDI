@@ -73,6 +73,7 @@ install.packages("R/EDI", repos = NULL, type = "source")
 
 ```r
 library(EDI)
+vignette("EDI", package = "EDI")                  # start here: a short tour of designs, response types, and inference
 vignette("reproducibility", package = "EDI")      # RNG/seed conventions across designs, bootstrap, and simulation
 vignette("extending-edi", package = "EDI")        # writing your own Design/Inference R6 subclasses
 vignette("backend-contracts", package = "EDI")    # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
