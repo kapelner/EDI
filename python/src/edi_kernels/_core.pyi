@@ -892,7 +892,7 @@ def fast_ordinal_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     """
 def fast_ordinal_probit_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-06, optimization_alg: str = 'lbfgs', fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
-    Fast proportional-odds (probit link) ordinal regression via Newton-Raphson/L-BFGS. Parameters sourced from R/EDI/man/ documentation for fast_ordinal_probit_regression_cpp.
+    Fast proportional-odds (probit link) ordinal regression via Newton-Raphson/L-BFGS. Returns an empty dict if the outcome has fewer than 2 observed categories. Parameters sourced from R/EDI/man/ documentation for fast_ordinal_probit_regression_cpp.
     
     Parameters
     ----------
@@ -1270,7 +1270,7 @@ def fast_weibull_frailty(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
         Number of Gauss-Hermite quadrature nodes used to integrate out the
         shared frailty term.
     max_abs_log_sigma : float, default 8.0
-        Maximum allowed value for log(sigma) (the frailty SD).
+        Symmetric clamp: both log-scale parameters (shape and frailty SD) are limited to +/- this value.
     maxit : int, default 300
         Maximum number of iterations.
     eps_g : float, default 1e-6

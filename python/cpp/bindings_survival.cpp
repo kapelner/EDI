@@ -423,7 +423,7 @@ void bind_survival(py::module_& m) {
     "    Number of Gauss-Hermite quadrature nodes used to integrate out the\n"
     "    shared frailty term.\n"
     "max_abs_log_sigma : float, default 8.0\n"
-    "    Maximum allowed value for log(sigma) (the frailty SD).\n"
+    "    Symmetric clamp: both log-scale parameters (shape and frailty SD) are limited to +/- this value.\n"
     "maxit : int, default 300\n"
     "    Maximum number of iterations.\n"
     "eps_g : float, default 1e-6\n"
