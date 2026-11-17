@@ -777,7 +777,7 @@
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","initialize","DesignFixedRerandomization","class_local",11,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;obj_val_cutoff;objective;prob_T;prop_acceptable;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","initialize","DesignFixedRerandomization","class_local",11,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;obj_val_cutoff;objective;prob_T;prop_acceptable;response_type;seed;verbose",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_a_kk_matching_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
