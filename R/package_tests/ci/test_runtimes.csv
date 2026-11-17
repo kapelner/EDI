@@ -617,6 +617,7 @@ R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-fit-combined-pairs-and
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-fit-rlm-unavailable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-rlm-control-resolution-and-nonconvergence-warning-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-weighted-combined-fit-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-robust-regr-rcpp-matches-mass-rlm-across-seeds.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-rcpp-cox-fit-is-usable-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-shared-matched-reservoir-combination-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-shared-no-events-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2183,6 +2184,7 @@ R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-fit-combined-pairs-and
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-fit-rlm-unavailable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-rlm-control-resolution-and-nonconvergence-warning-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-robust-regr-one-lik-weighted-combined-fit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-robust-regr-rcpp-matches-mass-rlm-across-seeds.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-rcpp-cox-fit-is-usable-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-shared-matched-reservoir-combination-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-strat-cox-ivwc-shared-no-events-guard-reference.R,coverage,240,bootstrap
