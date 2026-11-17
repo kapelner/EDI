@@ -1,6 +1,6 @@
 {
- "issue_hash": null,
- "last_run": "2026-11-17T19:35:57+00:00",
+ "issue_hash": "d156f1d520b71421",
+ "last_run": "2026-11-17T22:43:35+00:00",
  "units": {
   "R/EDI/README.md": {
    "audited_at": "2026-11-17T10:27:51+00:00",
@@ -10,25 +10,53 @@
    "run": "44048303784"
   },
   "R/EDI/vignettes/EDI.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "8aff9d3a7fcf9394",
-   "hash": "ab9ad0012643eafa",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "1ebf61b8f743d664",
+   "hash": "0db805e27bb69578",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "25fd8ab3fd7e0e2f",
-   "hash": "3286c54ad49d191e",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "45ec4949ff80acd8",
+   "hash": "228d63cd7dbd7ae7",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/articles/case-study.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "633553127ae79e7c",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "c6f4bea4de0043eb",
    "hash": "1852a733d7e06cbd",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/censored-survival-outcomes.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "6f8e7dc0d0e19e73",
+   "hash": "196f768b85a83905",
+   "open_findings": 0,
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "05ee66661ca29acc",
+   "hash": "dd9e50c6a8b136db",
+   "open_findings": 0,
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/custom-randomization-statistic.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "31dac9d377ab0e2d",
+   "hash": "472dc27763d7aa3a",
+   "open_findings": 0,
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/edi-from-python.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "201c4770fad4c3eb",
+   "hash": "1718496405f5e38b",
+   "open_findings": 0,
+   "run": "44173484561"
   },
   "R/EDI/vignettes/articles/learn-statistics-through-edi.Rmd": {
    "audited_at": "2026-11-17T10:27:51+00:00",
@@ -38,25 +66,46 @@
    "run": "44048303784"
   },
   "R/EDI/vignettes/articles/matching-on-the-fly.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "df0e4430617d6d02",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "fabcb112a1fd958e",
    "hash": "ae3996a7b79ac881",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/missing-covariates.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "42ef2f4a0742eade",
+   "hash": "1acadc4c0c6f4705",
+   "open_findings": 0,
+   "run": "44173484561"
   },
   "R/EDI/vignettes/articles/planning-a-study.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "a7ca13867fb4493c",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "a2fdad18facc4eac",
    "hash": "05a92afab6206f47",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/reporting-an-analysis.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "d82145d47cd97892",
+   "hash": "93cecfefdedc6d3b",
+   "open_findings": 0,
+   "run": "44173484561"
+  },
+  "R/EDI/vignettes/articles/running-a-sequential-trial.Rmd": {
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "c5a5619c53961b37",
+   "hash": "85f9840d5023baa8",
+   "open_findings": 0,
+   "run": "44173484561"
   },
   "R/EDI/vignettes/articles/speed-and-scaling.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "bf3c10ee46a5f500",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "2881453c859e7c1c",
    "hash": "0ea84b8680df5077",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-continuous.Rmd": {
    "audited_at": "2026-11-17T19:35:57+00:00",
@@ -66,25 +115,25 @@
    "run": "44146476275"
   },
   "R/EDI/vignettes/cookbook-count.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "5d5fe6cebab03400",
-   "hash": "5a4b58727f7208b2",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "074c7b34db9118ed",
+   "hash": "afef83bde26e6b7e",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-incidence.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "8254e4ccc58e9706",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "5791a01d11138e63",
    "hash": "b1ddabcf1fb1b033",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-ordinal.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "7613edfbafe6f0c6",
+   "audited_at": "2026-11-17T22:43:35+00:00",
+   "deps": "eee0dc9861dfd9e6",
    "hash": "181f963b9f0eb52c",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-proportion.Rmd": {
    "audited_at": "2026-11-17T19:35:57+00:00",
