@@ -6,7 +6,7 @@
 #' covariate-weighted matching). The point estimate and its variance are the
 #' closed-form Bai-adjusted-t combination of the matched-pairs mean
 #' difference and the unmatched-reservoir mean difference,
-#' inverse-variance-weighted when both are usable; see
+#' inverse-variance-weighted when both are usable and \code{convex_flag = TRUE}; see
 #' \code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}} for
 #' the full formula, the pair-distance definition, and the
 #' confidence-interval/p-value construction shared with this class.

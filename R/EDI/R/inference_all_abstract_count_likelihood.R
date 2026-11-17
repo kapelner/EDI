@@ -260,7 +260,7 @@ CountLikelihoodPlumbingSource = list(
 # CountLikelihoodPlumbingSource above plus an is_a_ marker) was deleted
 # 2026-08-17 (fix_inference_hierarchy.md, "Base Deletion"): it had zero
 # remaining inheritors anywhere in the package -- every count class either
-# still descends through InferenceCountLikelihood (the with-param-bootstrap
-# base, which stays until those classes migrate) or has already migrated to
+# still descended through InferenceCountLikelihood (the with-param-bootstrap
+# base, since deleted) or had already migrated to
 # define_inference_class() composing the CountLikelihoodPlumbing/
 # CountCompositeLikelihood components, which read the Source lists directly.

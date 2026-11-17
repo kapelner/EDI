@@ -5,7 +5,7 @@
 #' Kapelner-Krieger 2014 sequential matching-on-the-fly design). The point
 #' estimate and its variance are the closed-form Bai-adjusted-t combination of
 #' the matched-pairs mean difference and the unmatched-reservoir mean
-#' difference, inverse-variance-weighted when both are usable; the full
+#' difference, inverse-variance-weighted when both are usable and \code{convex_flag = TRUE}; the full
 #' formula, pair-distance definition, and confidence-interval/p-value
 #' construction are shared with
 #' \code{\link[EDI:InferenceBaiAdjustedTKK21]{InferenceBaiAdjustedTKK21}}.

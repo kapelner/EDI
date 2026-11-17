@@ -10,7 +10,7 @@
 #' treatment shifts only the excess-zero probability, with no change in the
 #' conditional count rate, will report a null treatment coefficient here even
 #' though \eqn{E[Y]} changed. A marginal (unconditional-mean) estimand is not
-#' yet implemented for this family (see \code{marginal_estimand_report.md}).
+#' yet implemented for the negative-binomial variants (see \code{marginal_estimand_report.md}).
 #'
 #' @keywords internal
 #' @noRd
@@ -167,8 +167,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 			# Fixed 2026-09-07: glmmTMB::glmmTMB() is called with no
 			# se=FALSE/sdreport=FALSE override, so it already computes its
 			# full sdreport (Hessian-based vcov) for this weighted fit -- the
-			# unweighted sibling path a few dozen lines below (generate_mod(),
-			# ~line 1132-1135) already extracts the SE this exact way from the
+			# unweighted sibling path further below (generate_mod(),
+			# ~line 1353-1354) already extracts the SE this exact way from the
 			# identical kind of fit; this weighted path just never did,
 			# starving the Bayesian-bootstrap studentized/BCa variants of a
 			# per-replicate SE.
