@@ -1,6 +1,7 @@
 {
  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::ArrayWrapper<Eigen::Matrix<double, -1, 1, 0, -1, 1> >, ~add1db40": "3644b049e675158a",
  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::CwiseUnaryOp<Ei~2640af9b": "3644b049e675158a",
+ "R/EDI/src/fast_adjacent_category_logit.cpp::": "da5a5f177be19cda",
  "R/EDI/src/fast_beta_regression.cpp::": "2a0f5447334f7a1f",
  "R/EDI/src/fast_coxph_regression.cpp::": "8b8b67c2bafc6df2",
  "R/EDI/src/fast_log_binomial_regression.cpp::fit_constrained_binomial_cpp_impl": "aa0324099c62e0c4",
@@ -8,11 +9,12 @@
  "R/EDI/src/fast_negbin_regression.cpp::": "6066552f258b6fe8",
  "R/EDI/src/fast_poisson_regression.cpp::": "a02e5c73ef4c8c76",
  "R/EDI/src/fast_probit_regression.cpp::fast_probit_regression_internal": "31063541f5faac87",
- "R/EDI/src/fast_robust_regression.cpp::fast_robust_regression_internal": "d1b9b223ae2ddfd4",
+ "R/EDI/src/fast_robust_regression.cpp::fast_robust_regression_internal": "a9c4993c0f80a4d4",
  "R/EDI/src/fast_weibull_regression.cpp::": "d887282bde6a4488",
  "R/EDI/src/fast_zero_augmented_poisson.cpp::": "b78d5c5e46d9a6d1",
  "R/EDI/src/generate_permutations.cpp::generate_permutations_ibcrd_internal": "4c8549afbeb4939a",
  "R/EDI/src/ordinal_fixed_link_helpers.h::edi_ordinal::FixedOrdinalRegression::hessian": "da6d7da5d9404164",
  "R/EDI/src/ordinal_fixed_link_helpers.h::edi_ordinal::FixedOrdinalRegression::operator": "ac6b02c62fa8318c",
+ "R/EDI/src/simple_mean_diff_parallel.cpp::compute_simple_mean_diff_parallel_cpp": "dca45d6557a4c6b7",
  "R/EDI/src/zhang_exact_speedups.cpp::zhang_exact_fisher_pval_cpp": "875a4aee330a83ad"
 }
