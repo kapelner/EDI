@@ -330,7 +330,7 @@ void bind_ordinal(py::module_& m) {
     "tol : float, default 1e-8\n"
     "    Convergence tolerance.\n"
     "warm_start_beta : ndarray, optional\n"
-    "    Optional starting values for coefficients.\n"
+    "    Optional starting values for the full [alpha, beta] parameter vector (length K - 1 + p).\n"
     "smart_cold_start : bool, default True\n"
     "    If True, use an initial OLS-based guess when no warm start is provided.\n"
     "fixed_idx : ndarray of int, optional\n"
@@ -440,7 +440,7 @@ void bind_ordinal(py::module_& m) {
     py::arg("fixed_values") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Fast proportional-odds (probit link) ordinal regression via Newton-Raphson/L-BFGS. "
+    "Fast proportional-odds (probit link) ordinal regression via Newton-Raphson/L-BFGS. Returns an empty dict if the outcome has fewer than 2 observed categories. "
     "Parameters sourced from R/EDI/man/ documentation for "
     "fast_ordinal_probit_regression_cpp.\n\n"
     "Parameters\n"
@@ -807,7 +807,7 @@ void bind_ordinal(py::module_& m) {
     "    Optional starting values for all parameters [alpha, beta, log_sigma]. If\n"
     "    provided, smart_cold_start is ignored.\n"
     "warm_start_beta : ndarray, optional\n"
-    "    Optional starting values for coefficients. If provided (and\n"
+    "    Optional starting values: beta alone (length ncol(X)) or the full vector. If provided (and\n"
     "    warm_start_params is not), smart_cold_start is ignored.\n"
     "optimization_alg : str, default \"lbfgs\"\n"
     "    Optimization algorithm.\n"
