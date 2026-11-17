@@ -375,6 +375,7 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,co
 R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-explicit-nonestimability-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-negbin-poisson-boundary-rescue-acceptance-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,correctness,1.4,measured_with_30_percent_headroom
@@ -942,6 +943,7 @@ R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,correc
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-logit-and-count-shift-transform-codes-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-parallel-threshold-crossing-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-se-logit-and-count-shift-transform-codes-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-bootstrap-smoothed-lazy-assignment-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-two-sided-pval-observed-statistic-unavailable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -953,6 +955,7 @@ R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,correctness,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-incidence-non-zhang-eligible-unsupported-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1210,6 +1213,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delt
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-and-compute-marginal-estimand-estimate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1926,6 +1930,7 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,co
 R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-explicit-nonestimability-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-poisson-boundary-rescue-acceptance-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
@@ -2493,6 +2498,7 @@ R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,covera
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-logit-and-count-shift-transform-codes-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-parallel-threshold-crossing-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-se-logit-and-count-shift-transform-codes-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-bootstrap-smoothed-lazy-assignment-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-two-sided-pval-observed-statistic-unavailable-guard-reference.R,coverage,240,bootstrap
@@ -2504,6 +2510,7 @@ R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-incidence-non-zhang-eligible-unsupported-guard-reference.R,coverage,240,bootstrap
@@ -2761,6 +2768,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delt
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-and-compute-marginal-estimand-estimate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,coverage,240,bootstrap
