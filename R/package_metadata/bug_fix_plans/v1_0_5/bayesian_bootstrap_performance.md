@@ -311,7 +311,7 @@ current-tree instrumented/bulk-CI run of the deterministic serial-clamp
 contract, with build and source provenance retained, is the bounded next
 acceptance step. Do not use the historical real-fork reproduction as a gate.
 
-- [ ] TODO-1: **Benchmark harness, before any change.** Promote the
+- [x] TODO-1: **Benchmark harness, before any change.** Promote the *(ticked by the TODO audit 2026-11-17: R/benchmark/benchmark_bayesian_bootstrap_performance.R:36; R/benchmark/benchmark_bayesian_bootstrap_child.R:153; R/benchmark/benchmark_bayesian_bootstrap_child.R:54; R/benchmark/benchmark_bayesian_bootstrap_performance.R:72; R/benchmark/benchmark_bayesian_bootstrap_performance.R:110)*
   scratch timing (1 vs. 3 cores, B ∈ {1000, 5000}, OLS / logistic / Cox /
   Weibull / median regression / difference in means / beta regression) to
   `R/benchmark/` so every later TODO reports before/after on the same

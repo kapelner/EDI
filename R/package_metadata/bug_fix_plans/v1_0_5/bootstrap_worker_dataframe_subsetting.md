@@ -136,7 +136,7 @@ documented default change under the standing constraint.
   row names. Full fixed-seed distribution confirmation on the three
   performance fixtures remains part of TODO-6's installed-runtime gate.
 
-- [ ] TODO-3: **Subset the model matrix instead of rebuilding it (F2).**
+- [x] TODO-3: **Subset the model matrix instead of rebuilding it (F2).** *(ticked by the TODO audit 2026-11-17: R/EDI/R/inference_all_abstract_non_param_boot.R:1214; R/EDI/R/inference_all_abstract_non_param_boot.R:1262; R/package_tests/testthat_bulk/test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R:219; R/package_tests/testthat_bulk/test-design-backed-bootstrap-worker-state-and-sampl...)*
   Store `base_X` (the full-data model matrix) in the worker state and set
   `des_priv$X = base_X[indices, , drop = FALSE]` per draw. This differs
   from the rebuild only when a draw changes which columns
@@ -251,7 +251,7 @@ documented default change under the standing constraint.
   justified by this optimization request; TODO-58's benchmark and authentic
   EDI 1.0.2 parity gates remain open.
 
-- [ ] TODO-5: **Fast-path hook + wire `compute_ols_bootstrap_parallel_cpp` (F5).**
+- [x] TODO-5: **Fast-path hook + wire `compute_ols_bootstrap_parallel_cpp` (F5).** *(ticked by the TODO audit 2026-11-17: R/EDI/R/inference_all_abstract_non_param_boot.R:586; R/EDI/R/inference_continuous_ols.R:264; R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R:115; R/package_metadata/new_feature_plans/v1_0_5/ols_randomization_distr_cpp_wiring.md:226)*
   Add a `compute_fast_bootstrap_distr()` dispatch in the non-parametric
   bootstrap (mirroring `inference_all_abstract_rand.R:60`) and let
   `InferenceContinOLS` implement it with the batched kernel. The kernel
