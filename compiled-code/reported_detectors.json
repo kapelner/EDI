@@ -1,10 +1,11 @@
 {
  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::ArrayWrapper<Eigen::Matrix<double, -1, 1, 0, -1, 1> >, ~add1db40": "3644b049e675158a",
  "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::CwiseUnaryOp<Ei~2640af9b": "3644b049e675158a",
+ "R/EDI/src/Householder.h::void Eigen::MatrixBase<Eigen::Block<Eigen::Matrix<double, -1, 1, 0, -1, 1>, -1, -1, false> >::applyHouseholderOnThe~0d7fac36": "a4bb80c5b775a5a2",
  "R/EDI/src/fast_adjacent_category_logit.cpp::": "da5a5f177be19cda",
  "R/EDI/src/fast_beta_regression.cpp::": "2a0f5447334f7a1f",
  "R/EDI/src/fast_coxph_regression.cpp::": "8b8b67c2bafc6df2",
- "R/EDI/src/fast_log_binomial_regression.cpp::fit_constrained_binomial_cpp_impl": "aa0324099c62e0c4",
+ "R/EDI/src/fast_log_binomial_regression.cpp::fit_constrained_binomial_cpp_impl": "1423f963d3c6cf89",
  "R/EDI/src/fast_logistic_regression.cpp::fast_logistic_regression_internal": "b5a7220d627ddb28",
  "R/EDI/src/fast_negbin_regression.cpp::": "6066552f258b6fe8",
  "R/EDI/src/fast_poisson_regression.cpp::": "a02e5c73ef4c8c76",

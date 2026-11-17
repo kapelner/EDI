@@ -1,6 +1,6 @@
 {
- "last_run": "2026-11-17T19:38:13+00:00",
- "open_pr": 38,
+ "last_run": "2026-11-17T22:45:09+00:00",
+ "open_pr": 48,
  "units": {
   "R/EDI/src/AssignEvaluator.h::void Eigen::internal::call_dense_assignment_loop<Eigen::ArrayWrapper<Eigen::Matrix<double, -1, 1, 0, -1, 1> >, ~add1db40": {
    "audited_at": "2026-11-17T10:34:33+00:00",
@@ -15,6 +15,13 @@
    "hash": "071fb8165ccc2fe4",
    "open_findings": 0,
    "run": "44048252033"
+  },
+  "R/EDI/src/Householder.h::void Eigen::MatrixBase<Eigen::Block<Eigen::Matrix<double, -1, 1, 0, -1, 1>, -1, -1, false> >::applyHouseholderOnThe~0d7fac36": {
+   "audited_at": "2026-11-17T22:45:09+00:00",
+   "deps": null,
+   "hash": "3b56a0d56aa90862",
+   "open_findings": 0,
+   "run": "44173425512"
   },
   "R/EDI/src/fast_adjacent_category_logit.cpp::": {
    "audited_at": "2026-11-17T10:34:33+00:00",
@@ -41,8 +48,22 @@
    "audited_at": "2026-11-17T19:38:13+00:00",
    "deps": null,
    "hash": "00e45f5de06fc231",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44146419965"
+  },
+  "R/EDI/src/fast_logistic_regression.cpp::fast_logistic_regression_internal": {
+   "audited_at": "2026-11-17T22:45:09+00:00",
+   "deps": null,
+   "hash": "7184e5499d655c10",
+   "open_findings": 1,
+   "run": "44173425512"
+  },
+  "R/EDI/src/fast_negbin_regression.cpp::": {
+   "audited_at": "2026-11-17T22:45:09+00:00",
+   "deps": null,
+   "hash": "26ff08bcef0f80fd",
+   "open_findings": 0,
+   "run": "44173425512"
   }
  }
 }
