@@ -916,6 +916,7 @@ R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coe
 R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-procedure-trust-vignette-tables.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-prop-gcomp-bootstrap-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,correctness,6.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-kk-glmm-weighted-refit-reference.R,correctness,1.8,measured_with_30_percent_headroom
@@ -1038,6 +1039,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-combined-evidence-weights-s
 R/package_tests/testthat_bulk/test-run-all-inference-combined-evidence-weights-summary-line-and-per-estimand-breakdown-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-fmt-wrapped-row-two-line-and-single-line-column-padding-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-fork-timeout-row-and-unavailable-packages-footer-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-run-all-inference-fork-workers-seed-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-format-html-table-row-classes-cell-escaping-and-cov-key-legend-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-format-pretty-table-group-rules-wrapped-rows-and-cov-key-legend-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-formula-element-type-and-custom-weighting-requires-weights-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1108,6 +1110,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-report-empty-results-no-
 R/package_tests/testthat_bulk/test-simulation-framework-response-type-constructor-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-helpers-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-validate-custom-replication-data-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2486,6 +2489,7 @@ R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coe
 R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-procedure-trust-vignette-tables.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-prop-gcomp-bootstrap-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,coverage,1.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-kk-glmm-weighted-refit-reference.R,coverage,240,bootstrap
@@ -2608,6 +2612,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-combined-evidence-weights-s
 R/package_tests/testthat_bulk/test-run-all-inference-combined-evidence-weights-summary-line-and-per-estimand-breakdown-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-fmt-wrapped-row-two-line-and-single-line-column-padding-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-fork-timeout-row-and-unavailable-packages-footer-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-run-all-inference-fork-workers-seed-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-format-html-table-row-classes-cell-escaping-and-cov-key-legend-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-format-pretty-table-group-rules-wrapped-rows-and-cov-key-legend-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-formula-element-type-and-custom-weighting-requires-weights-guards-reference.R,coverage,240,bootstrap
@@ -2678,6 +2683,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-report-empty-results-no-
 R/package_tests/testthat_bulk/test-simulation-framework-response-type-constructor-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-validate-custom-replication-data-reference.R,coverage,240,bootstrap
