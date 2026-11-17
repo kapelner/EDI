@@ -1,0 +1,230 @@
+{
+ "last_run": "2026-11-17T10:19:35+00:00",
+ "open_pr": 26,
+ "units": {
+  "python/cpp/bindings_binary.cpp::<name>": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "b473f111c6fa04c0",
+   "hash": "56d83e9688caac1b",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_binary.cpp::<name_with_var>": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "b473f111c6fa04c0",
+   "hash": "a471f9be9cc5c4d7",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_binary.cpp::fast_logistic_regression": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "287f584fb610073c",
+   "hash": "d778319c66b4423e",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_binary.cpp::fast_probit_regression": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "0d902403746b8811",
+   "hash": "c4d440989686ba29",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_continuous.cpp::fast_ols": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "5f9b812809a7fdc4",
+   "hash": "1525579191b7c3da",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_continuous.cpp::fast_robust_regression": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "0f8959fa9b78efb2",
+   "hash": "84110f362b155ce0",
+   "open_findings": 3,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_continuous.cpp::ols_hc2_post_fit": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "5b9eb7d1b4a1cdf8",
+   "hash": "125746f5ba0827c6",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_continuous.cpp::wilcox_hl_point_estimate": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "d27a4f6c704e4ff3",
+   "hash": "69a9f9404cc80d45",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_cpoisson_combined": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "34b7ef4d2a28910b",
+   "hash": "22cf1bc8ca395f85",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_hurdle_negbin": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "727da72e98772a05",
+   "hash": "7845dde2eafb5169",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_neg_bin": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "12a83730f3760c11",
+   "hash": "76a63e606282b6b2",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_poisson_regression": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "221fd3e2f43bbc60",
+   "hash": "30748044ed466ed4",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_truncated_negbin_count": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c3e21f4392ac699a",
+   "hash": "1019eb8949f4990a",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "f44669374cb4a70d",
+   "hash": "eaff6ff3c919c501",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "f755d614cbb79687",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_zinb": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "bf5ee9e17da695e6",
+   "hash": "e3f2b858797a5341",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_count.cpp::fast_zinb_with_var": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "60fc1c94b03897d0",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::dnorm_fast": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "72df2e09ca29d646",
+   "hash": "a745c06ab28bda6b",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_atan": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "bf9fbfa24010fa9f",
+   "hash": "1f73a05385662550",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_digamma": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "8e3b361deaa47063",
+   "hash": "b041f0ad5326c896",
+   "open_findings": 2,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_dnbinom_mu": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "f8089f50897e9e81",
+   "open_findings": 2,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_erfc": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "001c9058dba9f75b",
+   "hash": "ef9cde7f76630e76",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_lbeta": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "608ad55f72d4a7d2",
+   "hash": "a5dc58d80deab41a",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_lgamma": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "be9b8dc82b54909b",
+   "hash": "0ecd71b665c683e7",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_log1pexp": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "e1aab4f7fd41fab1",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_log_dnorm": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "2de8692562cc1ba8",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_log_pnorm": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "b21ae6b91fd769ab",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_pchisq_upper": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "7799bd3de931cb07",
+   "hash": "bfead829eb9dcd1c",
+   "open_findings": 2,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_pchisq_upper#2": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "7799bd3de931cb07",
+   "hash": "03c25df95e377a64",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_qnorm": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "d156f0a080da84dd",
+   "hash": "e03c19cab5e8f103",
+   "open_findings": 0,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::fast_trigamma": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "8e3b361deaa47063",
+   "hash": "9aa4d14b9e50c1c2",
+   "open_findings": 1,
+   "run": "44048317273"
+  },
+  "python/cpp/bindings_fast_math.cpp::pnorm_fast": {
+   "audited_at": "2026-11-17T10:19:35+00:00",
+   "deps": "72df2e09ca29d646",
+   "hash": "7e37238946706db3",
+   "open_findings": 0,
+   "run": "44048317273"
+  }
+ }
+}
