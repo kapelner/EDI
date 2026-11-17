@@ -1,0 +1,16 @@
+{
+ "news-version-d60ae9bce": {
+  "first_seen": "2026-11-17T22:24:34+00:00",
+  "key": "missing",
+  "last_seen": "2026-11-17T22:24:34+00:00",
+  "text": "`commit:b43f668e`: user-visible, not in NEWS. There are two user-visible changes. `DesignSeqOneByOneKK14$new(morrison = TRUE)` now warns that it is not implemented, and the KK21 docs now say so. Also, `get_block_ids()` on a sequential matching design used to error \"improperly sized\" mid-trial and now returns the ids. I found neither in NEWS.md (grep for morrison and get_block_ids finds nothing). The KK14 T^2 halving in this commit is already covered.<br>Draft for `Bug fixes`:<br><code>* `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise` now warn when `morrison = TRUE` is passed: the Morrison (2025) threshold calibration is not implemented, so the argument was silently ignored and the standard `lambda`/`t_0_pct` schedule runs (v1.0.6-TODO-46). The documentation now says the argument is reserved. `get_block_ids()` on a sequential matching design no longer errors with \"improperly sized\" before the trial is full; it returns the match ids of the subjects enrolled so far (v1.0.6-TODO-46).</code>",
+  "unit": "commit:b43f668e"
+ },
+ "news-version-dc5e82fc5": {
+  "first_seen": "2026-11-17T22:24:34+00:00",
+  "key": "missing",
+  "last_seen": "2026-11-17T22:24:34+00:00",
+  "text": "`commit:c28bbb34`: user-visible, not in NEWS. The tie-tolerance change to randomization p-values and the `InferenceIncidExactZhang` exact CI fix are covered by the NEWS edits in this commit. One user-visible change is not described: for classes whose registry entry has `likelihood_concave = FALSE`, randomization no longer chains warm starts from one permutation to the next, and every replicate restarts from the full-data MLE. That can change randomization p-values and CIs for those classes. The registry audit and the thread-determinism scripts are internal.<br>Draft for `Changes that alter results`:<br><code>* Randomization tests (`compute_two_sided_pval_for_treatment_effect_rand()` and the randomization CIs) for inference classes with a nonconcave likelihood now start every permutation's null fit from the full-data MLE instead of chaining each fit's solution into the next. One replicate that landed on a wrong local optimum used to seed the following ones. Seeded randomization p-values and intervals for those classes can change; concave-likelihood classes still chain warm starts and are unchanged.</code>",
+  "unit": "commit:c28bbb34"
+ }
+}
