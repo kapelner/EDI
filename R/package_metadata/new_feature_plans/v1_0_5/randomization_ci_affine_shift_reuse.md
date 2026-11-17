@@ -48,7 +48,7 @@ side, and the CI search's attempt to warm it
 landed.
 
 **Re-confirmed 2026-08-30** by an independent repo-wide grep during the
-research-plan audit (`new_research_ideas/paper/fast_randomization_inference/fast_randomization_inference.md`),
+research-plan audit (owner's private research notes),
 which also found a **second read site this plan did not own**:
 `inference_mixin_kk_gee_shared.R:167-169` — the KK-GEE mixin's own copy of
 `compute_rand_two_sided_pval()` carries the identical

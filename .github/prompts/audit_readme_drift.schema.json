@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "ids (document paths) of every unit in your batch that you actually read",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text"],
+        "properties": {
+          "unit": {"type": "string", "description": "the document path, exactly as the unit id in the batch"},
+          "kind": {"type": "string", "enum": ["number-drift", "claim-drift", "output-drift", "other"]},
+          "text": {"type": "string", "description": "what the prose says, what the output shows, and where (doc line, chunk index)"},
+          "doc_line": {"type": "integer", "description": "line of the prose in the document"},
+          "chunk": {"type": "integer", "description": "index of the chunk whose output is the evidence"},
+          "old_text": {"type": "string", "description": "number-drift: a fragment of ONE prose line, copied exactly, that contains the number once"},
+          "old_number": {"type": "string", "description": "number-drift: the number as written in old_text"},
+          "new_number": {"type": "string", "description": "number-drift: the number the output supports, written the way the prose writes numbers"},
+          "output_line": {"type": "string", "description": "number-drift: the line of recorded output, copied exactly, that shows the new number"}
+        }
+      }
+    }
+  }
+}

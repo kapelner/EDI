@@ -1,0 +1,53 @@
+# Rd audit (weekly, Saturday 06:00 UTC): the help pages in R/EDI/man and their roxygen source.
+#  - Mechanical, on every page: tools::checkRd, topic links, tools::codoc, spelling with
+#    R/EDI/inst/WORDLIST (seeded on the first run), and every \examples block run in a fresh
+#    Rscript against the EDI built from this commit: the part CRAN runs by default once (CRAN's
+#    rules: at most 5 s of CPU and of elapsed time, CPU at most 2.5 x elapsed), the whole block
+#    with \donttest under set.seed(1..5) (300 s limit; a \donttest part over 60 s is reported), and
+#    \dontrun code once (a \dontrun that runs clean is a finding). Example timings are kept in the
+#    manifest so a page that got much slower is reported. The Examples sections of the published
+#    reference pages (kapelner.github.io/EDI/reference) are read for "#> Error"/"#> Warning" lines.
+#  - Claude (Sonnet), on changed pages + a 1/8 rotation + every page whose example fails (always,
+#    while it fails): grammar, unclear text, @param/@return vs the code, weak examples, and a
+#    replacement @examples block for each failing example.
+#  - Apply: one-sentence spelling/grammar fixes in the roxygen source; a replacement @examples block
+#    only after it runs clean on all 5 seeds with the default part under 4 s and CPU/elapsed at
+#    most 2.5, its \donttest part clean, \dontrun only with a stated reason (credentials, network,
+#    interactive, software not on CRAN, shows an error), no try()/tryCatch(), and some plain code
+#    or a reason why none is possible. Then roxygen runs once (R/fast_roxygenize.R, source loader).
+#    Everything else is listed under "Needs a human". The finish stage builds EDI to verify
+#    proposed examples. URLs are not checked here (scripts/check_doc_links.py, nightly).
+#  - Reports with ONE pull request (branch audit/rd, label audit-rd).
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 2).
+
+name: audit-rd
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation + failing examples), all (every page), none (mechanical only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: rd
+      finish_timeout: 150
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      install_edi: true
+      r_packages: any::spelling
+      finish_needs_r: true
+      finish_install_edi: true
+      prepare_timeout: 180
+    secrets: inherit

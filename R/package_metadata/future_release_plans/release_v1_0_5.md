@@ -11072,7 +11072,7 @@ baseline as expected/benign.
 ### Agent-harness tier-1 findings, verified 2026-10-22 (TODO-103..119)
 
 These came from the agent harness audit
-(`private/marketing_plans/agent_harness_audit.md`, tier 1). Each was checked
+(owner's private notes, tier 1). Each was checked
 against the source on 2026-10-22, and against the installed EDI 1.0.3, whose
 R/C++ source equals HEAD 478104b0. Repro scripts are in
 `/tmp/claude-1000/verify_tier1/<group>/`. Unless a TODO says otherwise, it was
@@ -13057,8 +13057,7 @@ against the source").
       This is agent test work; the box stays checked because it is a follow-up, not a reopening.
     - G6 #44: the unowned bootstrap-CI-NA finding is now TODO-129.
 - [ ] TODO-125 (added 2026-10-22, user decision; asked for as "TODO-120", but
-  120-124 were already taken; found while drafting the R Journal note,
-  `private/papers/RJournal/`): **A raw `$clone()` of an inference object
+  120-124 were already taken; found while drafting a paper): **A raw `$clone()` of an inference object
   leaves lazily installed methods pointing at the original object. Fix it at
   the source by closing installed methods over the object's enclosing
   environment.**
@@ -13068,12 +13067,12 @@ against the source").
     - `install_lazy_inference_component()` (`contracts_mixins.R:2926`) sets
       `method_env = parent.frame()`. That is the stub's call frame, a child
       of the enclosing environment, so `clone()` skips those methods.
-    - Standalone repro: `private/papers/RJournal/mre/mre1_clone_trap.R`.
+    - A standalone repro is kept in the owner's private notes.
     - Team learning:
       `.trail/learnings/2026-10-22-r6-clone-remap-rule-and-edi-adam.md`.
   - Evidence on the installed package: `InferenceContinOLS` after
     `compute_estimate()` and one `compute_bootstrap_confidence_interval(B = 50)`.
-    Script: `private/papers/RJournal/mre/edi_clone_check.R`.
+    The script is kept in the owner's private notes.
 
     | Copy made with | Methods still reaching the original |
     |---|---|

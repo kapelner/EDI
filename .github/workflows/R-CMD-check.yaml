@@ -19,6 +19,7 @@ on:
       # change to either must still trigger the cross-platform run.
       - 'R/EDI/tests/**'
       - '.github/scripts/compare_repro_digests.R'
+      - '.github/scripts/package_budget.py'
   # No `paths:` filter on pull_request (owner ruling 2026-11-14): eleven jobs
   # here are required checks, and a PR that a path filter never starts would
   # wait on them forever. The `weekly change gate` job skips every check job
@@ -259,6 +260,9 @@ jobs:
       # now tests the same performance explanation already confirmed on the
       # Ubuntu and macOS legs while retaining the OpenMP deadlock precaution.
       _R_CHECK_DONTTEST_EXAMPLES_: true
+      # Log every step's time in 00check.log (install, examples, tests), not only the
+      # steps over --as-cran's 10 s threshold. Read by the size and time budget below.
+      _R_CHECK_TIMINGS_: '0'
       # Diagnostic for the intermittent "checking tests" hang: makes
       # tests/testthat.R add a LocationReporter so testthat.Rout names each
       # test as it runs -- the hang watchdog's .Rout tail then identifies
@@ -510,7 +514,15 @@ jobs:
         shell: pwsh
         run: scripts/switch-windows-r-to-openblas.ps1
 
+      # Size and time budget (owner, 2026-11-17): the six CRAN-platform legs record their
+      # figures; the package-budget job compares them with the last 8 weeks.
+      - name: Start the budget clock
+        if: ${{ !matrix.config.variant }}
+        shell: bash
+        run: echo "BUDGET_T0=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: r-lib/actions/check-r-package@v2
+        id: check
         with:
           working-directory: R/EDI
           upload-snapshots: true
@@ -541,6 +553,25 @@ jobs:
           # exists to test native results, not CRAN portability, so it fails
           # only on ERROR.
           error-on: ${{ matrix.config.variant == 'native' && '"error"' || '"warning"' }}
+
+      - name: Record the size and time budget
+        if: ${{ always() && !matrix.config.variant && steps.check.outcome != 'skipped' }}
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then PY=python; else PY=python3; fi
+          "$PY" .github/scripts/package_budget.py collect --check-dir R/EDI/check \
+            --leg "${{ matrix.config.os }}-${{ matrix.config.r }}" \
+            --check-seconds $(( $(date +%s) - ${BUDGET_T0:-$(date +%s)} )) \
+            --out "$RUNNER_TEMP/budget-out/record.json"
+
+      - name: Keep the budget record
+        if: ${{ always() && !matrix.config.variant && steps.check.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: budget-${{ matrix.config.os }}-${{ matrix.config.r }}
+          path: ${{ runner.temp }}/budget-out/record.json
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Upload cross-platform digests
         if: always()
@@ -812,6 +843,179 @@ jobs:
           else
             echo "no hang-watch.log written"
           fi
+
+  # Package size and time budgets (owner, 2026-11-17). Reads the record each CRAN-platform
+  # leg wrote (source tarball size, installed size, install / examples / tests / whole-check
+  # times; test-bulk-non-cran.yml lists the slowest test files) and compares each figure with
+  # CRAN's 5 MB tarball limit (warning at 4 MB) and with its median on the same leg over the
+  # last 8 weeks (a jump is > 20%). The history is `budgets/history.jsonl` on the
+  # `audit-notes` branch; only pushes to main add to it. On main, one issue (label
+  # `size-time-budget`) is opened or updated on a breach and closed when a run is clean.
+  # Never fails the push: a breach is a notice, not a broken build.
+  package-budget:
+    needs: [weekly-gate, R-CMD-check]
+    if: ${{ !cancelled() && needs.weekly-gate.outputs.run == 'true' }}
+    runs-on: ubuntu-latest
+    name: package size and time budget
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: budget-*
+          path: budget-records
+      - name: Compare with the last 8 weeks
+        id: report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ON_MAIN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          set -euo pipefail
+          notes="$RUNNER_TEMP/audit-notes"
+          if git clone -q --depth 1 --branch audit-notes "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$notes" 2>/dev/null; then
+            echo "Read the history from audit-notes."
+          else
+            mkdir -p "$notes"; echo "No audit-notes branch yet; starting the history."
+          fi
+          append=(); [ "$ON_MAIN" = true ] && append=(--append-history)
+          python3 .github/scripts/package_budget.py report --records budget-records \
+            --history "$notes/budgets/history.jsonl" "${append[@]}" \
+            --out "$RUNNER_TEMP/budget.md" --github-output "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/budget.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the history
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.report.outputs.records != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes="$RUNNER_TEMP/audit-notes"
+          cd "$notes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ ! -d .git ]; then
+            git init -q -b audit-notes
+            git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+          git add budgets/history.jsonl
+          git commit -qm "Size and time budget: ${GITHUB_SHA::8} (run ${GITHUB_RUN_ID})"
+          # Two pushes can finish together: on a rejected push, re-read the branch, re-append
+          # this run's lines and try again.
+          lines=$(git show HEAD:budgets/history.jsonl | tail -n "${{ steps.report.outputs.records }}")
+          for i in 1 2 3; do
+            git push -q origin HEAD:audit-notes && exit 0
+            git fetch -q --depth 1 origin audit-notes
+            git reset -q --hard origin/audit-notes
+            mkdir -p budgets; printf '%s\n' "$lines" >> budgets/history.jsonl
+            git add budgets/history.jsonl
+            git commit -qm "Size and time budget: ${GITHUB_SHA::8} (run ${GITHUB_RUN_ID})"
+          done
+          echo "::warning::Could not save the budget history after 3 attempts."
+      - name: Open, update or close the budget issue
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.report.outputs.records != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BREACH: ${{ steps.report.outputs.breach }}
+        run: |
+          set -euo pipefail
+          label=size-time-budget
+          gh label create "$label" --color D93F0B --description "Package size or check time over budget" 2>/dev/null || true
+          issue=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')
+          body="$RUNNER_TEMP/budget.md"
+          echo -e "\nRun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "$body"
+          if [ "$BREACH" = true ]; then
+            if [ -n "$issue" ]; then
+              gh issue comment "$issue" --body-file "$body"
+            else
+              gh issue create --title "Package size or check time over budget" --label "$label" --body-file "$body"
+            fi
+          elif [ -n "$issue" ]; then
+            gh issue close "$issue" --comment "Back within budget at ${GITHUB_SHA::8}: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+
+  # CRAN's "additional checks", run here before CRAN runs them (owner, 2026-11-17). CRAN
+  # mails a fix deadline when one of these fails on its own machines. rchk runs on every
+  # push and PR; lto, gcc16, clang23 and nold run weekly and on dispatch, like the other
+  # long legs, to keep push CI under the 20-runner limit. Each leg is an R-hub container
+  # (https://github.com/r-hub/containers) built to match the CRAN machine of the same name:
+  #   rchk     static analysis of PROTECT errors in the compiled code (unprotected R objects
+  #            across an allocation: the class of the KK21 `f(wrap(X), wrap(y))` crash).
+  #            Installs only; runs no tests.
+  #   lto      link-time optimization: catches declarations that disagree between files
+  #            (-Wlto-type-mismatch, -Wodr). Compile and link only.
+  #   gcc16    the newest GCC with CRAN's warning flags. Compile only.
+  #   clang23  the newest Clang with CRAN's warning flags. Compile only.
+  #   nold     R built without long double: catches results that depend on 80-bit
+  #            arithmetic. Runs the tests CRAN would run (NOT_CRAN=false).
+  # The container names carry compiler versions; when R-hub replaces one (gcc16 -> gcc17)
+  # the image pull fails, which is the cue to bump the name here.
+  # The r-hub actions take no working-directory, so the package is copied to the workspace
+  # root first. The R-hub actions read `matrix.config.label`, so the matrix keeps that shape.
+  # These legs are not required status checks.
+  R-CMD-check-cran-extra:
+    needs: weekly-gate
+    if: needs.weekly-gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    name: CRAN extra check (${{ matrix.config.label }})
+    timeout-minutes: ${{ matrix.config.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # rchk on every event; lto, gcc16, clang23 and nold only on schedule and dispatch.
+        config: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '[{"label":"rchk","timeout":90,"compile_only":false,"tests":false},{"label":"lto","timeout":90,"compile_only":true,"tests":false},{"label":"gcc16","timeout":90,"compile_only":true,"tests":false},{"label":"clang23","timeout":90,"compile_only":true,"tests":false},{"label":"nold","timeout":180,"compile_only":false,"tests":true}]' || '[{"label":"rchk","timeout":90,"compile_only":false,"tests":false}]') }}
+    container:
+      image: ghcr.io/r-hub/containers/${{ matrix.config.label }}:latest
+    env:
+      EDI_PORTABLE: 1
+      R_KEEP_PKG_SOURCE: yes
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      JOB_CONFIG: '{"name":"${{ matrix.config.label }}","label":"${{ matrix.config.label }}"}'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: repo
+      - name: Put the package at the workspace root
+        shell: bash
+        run: |
+          cp -a repo/R/EDI/. .
+          rm -rf repo
+          test -f DESCRIPTION
+      # Written to GITHUB_ENV, not to `env:`, because an `env:` key cannot be left out per
+      # leg, and an empty value would override what the rchk image sets for itself
+      # (LinkingTo-only dependencies and its own check script).
+      - name: Configure this leg
+        if: matrix.config.label != 'rchk'
+        shell: bash
+        run: |
+          {
+            # Hard dependencies only, as in the sanitizer jobs: the Suggests comparators
+            # are not needed to compile, and the tests skip when one is missing.
+            echo 'RHUB_ACTIONS_DEPS_DEPENDENCIES="hard"'
+            echo '_R_CHECK_FORCE_SUGGESTS_=false'
+            echo '_R_CHECK_CRAN_INCOMING_=false'
+            echo 'BUILD_ARGS=--no-build-vignettes'
+            if [ "${{ matrix.config.compile_only }}" = "true" ]; then
+              echo 'CHECK_ARGS=--no-manual --no-build-vignettes --ignore-vignettes --no-tests --no-examples'
+            else
+              echo 'CHECK_ARGS=--no-manual --no-build-vignettes --ignore-vignettes --no-examples'
+              echo 'NOT_CRAN=false'
+            fi
+          } >> "$GITHUB_ENV"
+      - uses: r-hub/actions/platform-info@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          job-config: ${{ env.JOB_CONFIG }}
+      - uses: r-hub/actions/setup-deps@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          job-config: ${{ env.JOB_CONFIG }}
+          extra-packages: ${{ matrix.config.tests && 'any::rcmdcheck, any::testthat' || 'any::rcmdcheck' }}
+      - uses: r-hub/actions/run-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          job-config: ${{ env.JOB_CONFIG }}
 
   # ASAN/UBSAN sanitizer build. Catches C++ undefined behavior (out-of-bounds
   # access, sign/integer overflow, misaligned access, use-after-free, etc.)

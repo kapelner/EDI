@@ -1,0 +1,38 @@
+# CRAN check-results watcher (daily). No Claude, no R.
+# Reads https://cran.r-project.org/web/checks/check_results_EDI.html and reports every flavor
+# that is not OK (NOTE, WARNING, ERROR, FAIL) with the first lines of its check details, the
+# "Additional issues" entries, and any CRAN deadline note. Opens or updates ONE issue
+# (label `cran-check`), and closes it when the page is clean. CRAN sets a fix
+# deadline, so this audit runs daily.
+# Module: .github/scripts/audits/cran_watcher.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-cran-watcher
+
+on:
+  schedule:
+    - cron: "0 7 * * *"     # daily 07:00 UTC (after the 02:30 nightly)
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto, all or none (this audit has no Claude stage, so all three behave the same)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: cran-watcher
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 15
+    secrets: inherit

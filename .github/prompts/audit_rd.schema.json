@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "ids (Rd file paths) of every unit in your batch that you actually read",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text"],
+        "properties": {
+          "unit": {"type": "string", "description": "the Rd file path, exactly as the unit id in the batch"},
+          "kind": {
+            "type": "string",
+            "enum": ["spelling", "grammar", "unclear", "param-mismatch", "return-mismatch", "example-weak",
+                     "example-fix", "other"]
+          },
+          "text": {"type": "string", "description": "one or two sentences: what is wrong and the evidence (file:line)"},
+          "source_file": {"type": "string", "description": "the R/EDI/R/*.R file holding the roxygen text"},
+          "old_sentence": {"type": "string", "description": "spelling or grammar: the whole sentence copied exactly from the roxygen source, without the #-quote prefixes"},
+          "new_sentence": {"type": "string", "description": "spelling or grammar: the same sentence, corrected"},
+          "changes_claim": {"type": "boolean", "description": "true if the new sentence states something different from the old one"},
+          "example_block": {"type": "string", "description": "example-fix: the complete new @examples section as plain text, one line per code line, WITHOUT the leading #-quote prefixes and WITHOUT the @examples tag line"},
+          "cause": {"type": "string", "description": "example-fix: one line, why the old example failed"},
+          "dontrun_reason": {
+            "type": "string",
+            "enum": ["none", "credentials", "network", "interactive", "non-cran-software", "shows-error"],
+            "description": "example-fix: why the new block uses dontrun; none if it does not"
+          },
+          "plain_part_reason": {"type": "string", "description": "example-fix: only if the new block has no code outside donttest and dontrun, why no fast plain part is possible; else empty"}
+        }
+      }
+    }
+  }
+}

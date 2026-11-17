@@ -122,7 +122,7 @@ about <- c(
 # The analysis's markdown starts with its own "## <title>" (it doubles as the job summary);
 # bare csv names in it become links into summary/. Sub-pages sit next to README.md, so the same
 # relative links (summary/, figures/) work on every page.
-link_csv <- function(x) gsub("`(calibration_summary|confirmation_summary|null_bias_summary|nonnull_bias_summary|power_summary|pvalue_curves|design_comparison|convergence_summary|convergence_points)\\.csv`",
+link_csv <- function(x) gsub("`(calibration_summary|confirmation_summary|null_bias_summary|nonnull_bias_summary|power_summary|pvalue_curves|design_comparison|convergence_summary|convergence_points|balance_summary)\\.csv`",
 	"[`summary/\\1.csv`](summary/\\1.csv)", x)
 summary_md <- link_csv(rd(file.path(cdir, "summary", "calibration_summary.md")))
 back <- sprintf("[← Campaign %s summary](README.md)", campaign)
@@ -207,6 +207,8 @@ dc_body <- if (file.exists(dc) && file.size(dc) > 2L) {
 	} else c("No comparisons.", "")
 } else c("`design_comparison.csv` (paired power tests between designs) is written when the campaign completes.", "")
 add_page("designs.md", "Design comparison and power", c(blk("Power"), dc_body))
+bal_md <- rd(file.path(cdir, "summary", "balance_summary.md"))
+add_page("balance.md", "Covariate balance", c(if (length(bal_md)) link_csv(bal_md) else "No covariate balance statistics yet.", ""))
 
 # Convergence (TODO-199).
 conv_md <- link_csv(rd(file.path(cdir, "summary", "convergence_summary.md")))
@@ -313,6 +315,8 @@ data_body <- c(
 		"  [`summary/design_comparison.csv`](summary/design_comparison.csv) (paired power tests, each design vs Bernoulli),"
 	else "  `design_comparison.csv` (paired power tests between designs; written when the campaign completes),",
 	"  [`summary/convergence_summary.csv`](summary/convergence_summary.csv) and [`summary/convergence_points.csv`](summary/convergence_points.csv),",
+	if (file.exists(file.path(cdir, "summary", "balance_summary.csv")))
+		"  [`summary/balance_summary.csv`](summary/balance_summary.csv) (covariate balance per design and n: Mahalanobis, SMD, variance ratio, KS, energy),",
 	"  [`summary/pvalue_curves.csv`](summary/pvalue_curves.csv) (null p-value CDF minus u, the p-value curve figures).",
 	if (length(runs))
 		sprintf("* Raw per-replicate rows: the `study-rows` artifact of each workflow run (%s), one `rows.csv.xz` per wave (read it in R with `read_csv_fast(xzfile(\"rows.csv.xz\"))`; kept 60 days, so the last two campaigns; a GitHub login is needed to download).", paste(sprintf("[%s](https://github.com/%s/actions/runs/%s)", runs, repo, runs), collapse = ", "))
@@ -340,6 +344,7 @@ toc <- c("| Page | Contents |", "|---|---|",
 	"| [Null bias](null-bias.md) | bias at beta_T = 0, `bias_sd_large_n` flag (reported, not gated) |",
 	"| [Coverage and bias away from the null](nonnull.md) | gated coverage of the true estimand, bias at beta_T != 0 |",
 	"| [Design comparison and power](designs.md) | paired power tests between designs |",
+	"| [Covariate balance](balance.md) | each design's covariate imbalance: Mahalanobis, SMD, variance ratio, KS, energy |",
 	"| [Classes](classes.md) | every class: status, verdict and its own page (figure, cells) |",
 	"| [Convergence slopes](convergence.md) | error versus n_eff against the registry's expected order |",
 	sprintf("| [Figures: %s](%s) | null and non-null figures |", rts, fig_files[rts]),

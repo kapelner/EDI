@@ -1,0 +1,43 @@
+# Numerical-robustness review (monthly, first Saturday 06:00 UTC). Claude (Opus) reads the C++
+# kernels in R/EDI/src and the R fitting files in R/EDI/R that are new or changed since the last
+# run, plus a 1/6 monthly rotation, for the bug patterns that have happened here: converged set
+# without checking the criterion, unguarded log(0) / exp overflow / division by a near-zero
+# information, NA where a value is defined, a null refit with a single cold start.
+# A finding counts only with a testthat test that fails on the current code: the finish stage
+# installs EDI from this commit, runs each test with a time limit and keeps only those that fail
+# an expectation as claimed. The PR adds them under R/package_tests/testthat_bulk/, skipped until
+# the owner opens a release TODO. Label `audit-numerical-robustness`.
+# Module: .github/scripts/audits/numerical_robustness.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-numerical-robustness
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 1 keeps the first Saturday of the month
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (full pass), none (no Claude stage)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: numerical-robustness
+      finish_timeout: 120
+      nth: 1
+      scope: ${{ inputs.scope || 'auto' }}
+      finish_install_edi: true
+      prepare_timeout: 30
+    secrets: inherit

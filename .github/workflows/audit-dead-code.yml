@@ -1,0 +1,39 @@
+# Dead-code audit: monthly, 2nd Monday 06:00 UTC (a weekly Monday cron; the gate keeps the 2nd).
+# Mechanical: a regex cross-reference over the sources (no compile, no R) finds exported R
+# functions and classes with no caller, test, example or vignette use, Rcpp exports whose R
+# wrapper nothing calls, and file-scope C++ functions in R/EDI/src with no call site.
+# Claude (Sonnet, one unit per candidate, batches of 8, at most 8 batches): rules out false
+# positives (R6 methods called by name, .Call targets, do.call()/get() on built names, Python
+# bindings under python/cpp, macros) and confirms the rest.
+# Reports with ONE pull request (label `audit-dead-code`) that lists the confirmed candidates in
+# R/package_metadata/audits/dead_code_candidates.md. It removes no code.
+# Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one, every batch is
+# reported NOT RUN.
+# Module: .github/scripts/audits/dead_code.py; prompt: .github/prompts/audit_dead_code.md.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-dead-code
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "auto (changed + rotation), all (full pass), none (mechanical checks only)"
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: dead-code
+      nth: 2
+      scope: ${{ inputs.scope || 'auto' }}
+    secrets: inherit

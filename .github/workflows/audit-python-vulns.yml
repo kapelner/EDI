@@ -1,0 +1,38 @@
+# Python dependency vulnerabilities (weekly). No Claude, no R.
+# Runs pip-audit on the dependencies declared in python/pyproject.toml (runtime, optional
+# groups and build requirements) and any tracked python/**/requirements*.txt. One finding per
+# vulnerable package with its advisory ids and fixed versions. Opens or updates ONE issue
+# (label `python-vulnerabilities`), and closes it when clean.
+# Module: .github/scripts/audits/python_vulns.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-python-vulns
+
+on:
+  schedule:
+    - cron: "0 7 * * 5"     # Fridays 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto, all or none (this audit has no Claude stage, so all three behave the same)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: python-vulns
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      python_packages: pip-audit
+      prepare_timeout: 30
+    secrets: inherit

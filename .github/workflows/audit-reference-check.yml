@@ -1,0 +1,40 @@
+# Reference check (monthly, 3rd Monday 06:00 UTC): does each DOI the package cites lead to the work
+# the text names (title, authors, year)? The nightly link job only checks that DOIs resolve.
+#  - Mechanical: every DOI in R/EDI/REFERENCES.md and in roxygen @references (R/EDI/R/*.R) is
+#    looked up on Crossref (generic User-Agent, about one request a second, 60-day cache on the
+#    audit-notes branch). A DOI Crossref does not know is reported.
+#  - Claude (Sonnet), on new or changed entries plus a 1/6 monthly rotation: compares each entry
+#    with its Crossref record (in the agent's context; no web tools).
+#  - Apply: only a year, or a typo in a title, when the agent cites the Crossref field and the
+#    record agrees; then roxygen runs once if an R file changed. The rest is "Needs a human".
+#  - Reports with ONE pull request (branch audit/reference-check, label audit-reference-check).
+# Runs on a weekly Monday cron; the gate keeps only the 3rd Monday of the month.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-reference-check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (every entry), none (Crossref lookups only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: reference-check
+      nth: 3
+      scope: ${{ inputs.scope || 'auto' }}
+      finish_needs_r: true
+      prepare_timeout: 30
+    secrets: inherit

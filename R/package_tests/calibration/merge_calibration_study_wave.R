@@ -2,7 +2,8 @@
 # Adds one wave of the published calibration study (release_v1_2_0.md TODO-36) to
 # its campaign: every <wave-dir>/<id>/shard.csv is appended to
 # <campaign-dir>/ledger.csv (with its id), and every shard's tests.csv.gz /
-# est.csv.gz to <campaign-dir>/stats/{tests,est}.csv.gz. A shard id already in the
+# est.csv.gz to <campaign-dir>/stats/{tests,est}.csv.gz, and its balance.csv.gz (covariate balance,
+# calibration_study_balance.R) to <campaign-dir>/stats/balance.csv.gz. A shard id already in the
 # ledger is skipped, so re-running a merge never double-counts. No EDI needed.
 #
 # Usage: Rscript R/package_tests/calibration/merge_calibration_study_wave.R \
@@ -24,6 +25,7 @@ if (!exists("read_csv_fast", mode = "function")) local({
 
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir, "calibration_study_stats.R"))
+source(file.path(script_dir, "calibration_study_balance.R"))
 args <- commandArgs(TRUE)
 arg_value <- function(flag, default = NULL) {
 	i <- match(flag, args)
@@ -42,6 +44,7 @@ dirs <- list.dirs(wave_dir, recursive = FALSE)
 new_ledger <- list()
 new_tests <- list()
 new_est <- list()
+new_bal <- list()
 for (d in dirs) {
 	id <- sub("^study-shard-", "", basename(d))
 	f <- file.path(d, "shard.csv")
@@ -51,6 +54,7 @@ for (d in dirs) {
 	new_ledger[[length(new_ledger) + 1L]] <- x
 	new_tests[[length(new_tests) + 1L]] <- cal_stats_read(file.path(d, "tests.csv.gz"))
 	new_est[[length(new_est) + 1L]] <- cal_stats_read(file.path(d, "est.csv.gz"))
+	new_bal[[length(new_bal) + 1L]] <- cal_balance_read(file.path(d, "balance.csv.gz"))
 }
 if (length(new_ledger)) {
 	all <- do.call(rbind, c(if (!is.null(ledger)) list(ledger), new_ledger))
@@ -60,5 +64,8 @@ if (length(new_ledger)) {
 		merged <- cal_stats_merge(c(list(cal_stats_read(path)), if (kind == "tests") new_tests else new_est), kind)
 		if (!is.null(merged)) cal_stats_write(merged, path)
 	}
+	bpath <- file.path(campaign_dir, "stats", "balance.csv.gz")
+	bal <- cal_balance_merge(c(list(cal_balance_read(bpath)), new_bal))
+	if (!is.null(bal)) cal_stats_write(bal, bpath)
 }
 cat(sprintf("merged %d new shard(s) into %s\n", length(new_ledger), campaign_dir))

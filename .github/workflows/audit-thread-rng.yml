@@ -1,0 +1,45 @@
+# Thread and random-number review (monthly, third Sunday 06:00 UTC). Claude (Opus) reads the C++
+# and R files with parallel loops or RNG use (OpenMP, threads, R's RNG, RRng, mirai / fork
+# clusters, set_num_cores, set.seed) that are new or changed since the last run, plus a 1/6
+# monthly rotation, for streams seeded per thread instead of per draw index, shared mutable state
+# in parallel loops, R API calls from threads, and results that change with the core count.
+# A finding counts only with a testthat test that shows the result changing with set_num_cores()
+# (or with the draw order): the finish stage installs EDI from this commit, runs each test with a
+# time limit and keeps only those that fail as claimed. The PR adds them under
+# R/package_tests/testthat_bulk/, skipped until the owner opens a release TODO.
+# Label `audit-thread-rng`.
+# Module: .github/scripts/audits/thread_rng.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-thread-rng
+
+on:
+  schedule:
+    - cron: "0 6 * * 0"     # Sundays 06:00 UTC; nth: 3 keeps the third Sunday of the month
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (full pass), none (no Claude stage)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: thread-rng
+      finish_timeout: 120
+      nth: 3
+      scope: ${{ inputs.scope || 'auto' }}
+      finish_install_edi: true
+      r_packages: any::callr
+      prepare_timeout: 30
+    secrets: inherit

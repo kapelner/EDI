@@ -1,0 +1,40 @@
+# README / vignette / article drift audit (weekly, Thursday 06:00 UTC).
+#  - Mechanical: every R chunk of R/EDI/README.md (README.Rmd if present), R/EDI/vignettes/*.Rmd and
+#    R/EDI/vignettes/articles/*.Rmd runs in order in a fresh R session per document (15 min limit),
+#    against the EDI built from this commit; output, messages, warnings and errors are recorded.
+#    eval = FALSE chunks are not run; package installs and viewers are skipped. Errors, warnings
+#    and time-outs are reported as they are.
+#  - Claude (Sonnet), on documents that changed or whose output changed, plus a 4-week rotation:
+#    compares numbers and claims in the prose with the recorded output.
+#  - Apply: only an exact single-number replacement in prose, shown with the recorded output line
+#    that supports it; the rest is listed under "Needs a human".
+#  - Reports with ONE pull request (branch audit/readme-drift, label audit-readme-drift).
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-readme-drift
+
+on:
+  schedule:
+    - cron: "0 6 * * 4"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (every document), none (run the chunks only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: readme-drift
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      install_edi: true
+      prepare_timeout: 150
+    secrets: inherit

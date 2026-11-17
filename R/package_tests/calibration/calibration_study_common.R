@@ -35,6 +35,7 @@ if (!exists("read_csv_fast", mode = "function")) local({
 
 script_dir_study <- if (exists("script_dir")) script_dir else dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 source(file.path(script_dir_study, "calibration_fast_tier_common.R"))
+source(file.path(script_dir_study, "calibration_study_balance.R"))
 
 CAL_STUDY_P <- 5L
 CAL_STUDY_COEF <- 1 / sqrt(3 + 2 * 0.25)
@@ -291,20 +292,26 @@ cal_study_stage <- function(rep) if (rep > CAL_STUDY_CONFIRM_REP0) "confirm" els
 # own estimand, which coverage and bias are measured against).
 cal_study_run_rep <- function(response_type, design_label, n_nominal, effect_label, rep, classes,
 		methods = CAL_STUDY_TIER1_METHODS, pval_only = CAL_STUDY_TIER1_PVAL_ONLY, effects = cal_study_effects_table(),
-		truths = cal_study_truths_table()) {
+		truths = cal_study_truths_table(), balance = FALSE) {
 	n <- cal_study_effective_n(design_label, n_nominal)
 	effect <- cal_study_effect(response_type, n_nominal, effect_label, effects)
 	dgps <- cal_class_dgp(classes)
 	tab <- NULL
+	bal <- NULL
 	for (dgp in unique(dgps)) {
 		set.seed(cal_study_seed(response_type, n, rep))
 		X <- cal_study_gen_X(n)
 		po <- cal_study_potential_outcomes(response_type, X, cal_dgp_effect(effect, dgp), dgp = dgp)
 		des <- cal_study_run_design(design_label, response_type, X, po)
+		# Covariate balance of this replicate's assignment (calibration_study_balance.R), from the first DGP's run:
+		# every DGP reuses X, and only a response-adaptive design (KK21) assigns differently under another DGP.
+		if (isTRUE(balance) && is.null(bal)) bal <- cal_balance_metrics(X, des$get_w())
 		tab <- rbind(tab, cal_run_tasks(des, classes[dgps == dgp], methods = methods, pval_only = pval_only))
 	}
-	if (is.null(tab)) return(NULL)
 	entry <- cal_plan_entry(design_label)
+	if (!is.null(bal)) bal <- data.frame(response_type = response_type, design = entry$design, prob_T = entry$prob_T, n = n,
+		n_nominal = as.integer(n_nominal), effect_label = effect_label, rep = rep, bal, stringsAsFactors = FALSE)
+	if (is.null(tab)) return(NULL)
 	tab$response_type <- response_type
 	tab$design <- entry$design
 	tab$prob_T <- entry$prob_T
@@ -323,6 +330,7 @@ cal_study_run_rep <- function(response_type, design_label, n_nominal, effect_lab
 	names(tab)[names(tab) == "estimate"] <- "beta_T_hat"
 	names(tab)[names(tab) == "ci_a"] <- "ci_beta_T_a"
 	names(tab)[names(tab) == "ci_b"] <- "ci_beta_T_b"
+	attr(tab, "balance") <- bal
 	tab
 }
 

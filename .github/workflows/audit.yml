@@ -1,0 +1,336 @@
+# Reusable workflow for the scheduled audits (owner, 2026-11-17).
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 1).
+#
+# Each audit is a caller workflow (.github/workflows/audit-<name>.yml) with its schedule, plus
+#   .github/scripts/audits/<name>.py           mechanical checks, units for Claude, apply rules
+#   .github/prompts/audit_<name>.md            the agents' instructions   (Claude audits only)
+#   .github/prompts/audit_<name>.schema.json   the agents' output schema  (Claude audits only)
+# Stages: prepare (gate, mechanical checks, choose units, batch them) -> claude (one agent per
+# batch, read-only tools, no shell) -> finish (apply, report, save notes) -> PR or issue.
+# The cache is the `audit-notes` branch (one folder per audit), written only by these jobs.
+# Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret for the Claude stage; without
+# one, every batch is reported NOT RUN (never as clean) and the mechanical stage still runs.
+# PRs opened with GITHUB_TOKEN trigger no other workflows, so the owner merges them with the
+# admin bypass, as for the algorithm audit. Needs "Allow GitHub Actions to create and approve
+# pull requests" (Settings > Actions > General).
+
+name: audit (reusable)
+
+# roxygen2 is pinned to the build the committed Rd files come from (Config/roxygen2/version in
+# R/EDI/DESCRIPTION: 8.0.0.9000, the last r-lib/roxygen2 commit before the 8.1.0 bump). CRAN's
+# roxygen2 rewrites many Rd files, which would turn every doc fix into a mass diff. When you
+# upgrade roxygen2 locally and re-document, move this pin to the same version; the finish job
+# warns when the two disagree.
+env:
+  ROXYGEN2_REF: r-lib/roxygen2@9a82bf429353bd6463a30d404a80e57e648a048e
+
+on:
+  workflow_call:
+    inputs:
+      audit:
+        description: Audit name (module .github/scripts/audits/<name>.py)
+        type: string
+        required: true
+      nth:
+        description: For monthly audits on a weekly cron, the week of the month to run (1-4); 0 = always
+        type: number
+        default: 0
+      scope:
+        description: auto (changed + rotation), all (full pass), none (mechanical checks only)
+        type: string
+        default: auto
+      setup_r:
+        description: Install R and the package's dependencies
+        type: boolean
+        default: false
+      install_edi:
+        description: Also build and install EDI from this commit (implies setup_r)
+        type: boolean
+        default: false
+      r_packages:
+        description: Extra R packages (pak syntax, comma or newline separated)
+        type: string
+        default: ''
+      python_packages:
+        description: Extra pip packages, space separated
+        type: string
+        default: ''
+      apt_packages:
+        description: Extra apt packages, space separated
+        type: string
+        default: ''
+      finish_needs_r:
+        description: The finish stage runs R too (e.g. roxygen after applying doc fixes)
+        type: boolean
+        default: false
+      finish_install_edi:
+        description: The finish stage also builds and installs EDI (e.g. to run tests an agent wrote)
+        type: boolean
+        default: false
+      prepare_timeout:
+        type: number
+        default: 90
+      finish_timeout:
+        description: Minutes for the finish stage (raise it when finish builds EDI or re-runs examples)
+        type: number
+        default: 60
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.prepare_timeout }}
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read        # ci-self-check reads workflow and run data
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      batches: ${{ steps.prepare.outputs.batches }}
+      claude: ${{ steps.prepare.outputs.claude }}
+    env:
+      EDI_PORTABLE: 1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Is it this audit's week?
+        id: gate
+        run: python3 .github/scripts/audit_run.py gate --audit "${{ inputs.audit }}" --nth "${{ inputs.nth }}"
+      - name: System packages
+        if: steps.gate.outputs.run == 'true' && inputs.apt_packages != ''
+        run: sudo apt-get update -q && sudo apt-get install -y -q ${{ inputs.apt_packages }}
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.gate.outputs.run == 'true' && (inputs.setup_r || inputs.install_edi)
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.gate.outputs.run == 'true' && (inputs.setup_r || inputs.install_edi)
+        with:
+          working-directory: R/EDI
+          extra-packages: |
+            any::jsonlite
+            ${{ inputs.r_packages }}
+      - name: Build and install EDI from this commit
+        if: steps.gate.outputs.run == 'true' && inputs.install_edi
+        run: R CMD INSTALL --no-test-load R/EDI
+      # A setup-python interpreter, not the system one: pip refuses to install into the
+      # runner's externally managed system Python.
+      - uses: actions/setup-python@v6
+        if: steps.gate.outputs.run == 'true' && inputs.python_packages != ''
+        with:
+          python-version: '3.12'
+      - name: Python packages
+        if: steps.gate.outputs.run == 'true' && inputs.python_packages != ''
+        run: python3 -m pip install --quiet ${{ inputs.python_packages }}
+      - name: Read the audit notes
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          if git clone -q --branch audit-notes "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/notes" 2>/dev/null; then
+            echo "Read the notes from audit-notes."
+          else
+            mkdir -p "$RUNNER_TEMP/notes"; echo "No audit-notes branch yet: every unit is new."
+          fi
+      - name: Mechanical checks, choose and batch the units
+        id: prepare
+        if: steps.gate.outputs.run == 'true'
+        env:
+          AUDIT_SECRET_TERMS: ${{ secrets.AUDIT_PRIVACY_TERMS }}
+        run: |
+          cd .github/scripts
+          python3 audit_run.py prepare --audit "${{ inputs.audit }}" --repo "$GITHUB_WORKSPACE" \
+            --notes "$RUNNER_TEMP/notes" --work "$RUNNER_TEMP/work" --scope "${{ inputs.scope }}"
+      - uses: actions/upload-artifact@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          name: audit-${{ inputs.audit }}-work
+          path: ${{ runner.temp }}/work
+          retention-days: 30
+      # The notes as they stand after harvesting closed PRs; finish continues from these. The
+      # clone above is anonymous, so no token is written into the uploaded .git/config.
+      - uses: actions/upload-artifact@v7
+        if: steps.gate.outputs.run == 'true'
+        with:
+          name: audit-${{ inputs.audit }}-notes
+          path: ${{ runner.temp }}/notes
+          include-hidden-files: true
+          retention-days: 7
+
+  claude:
+    needs: prepare
+    if: needs.prepare.outputs.run == 'true' && needs.prepare.outputs.claude == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        batch: ${{ fromJSON(needs.prepare.outputs.batches) }}
+    env:
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+      BATCH: ${{ matrix.batch.id }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-${{ inputs.audit }}-work
+          path: .audit-work
+      - name: Agent settings
+        id: prep
+        run: |
+          mkdir -p results
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, ".github/scripts")
+          import audit_common as ac
+          spec = ac.spec_of(ac.load_audit("${{ inputs.audit }}"))
+          schema = json.load(open(f".github/prompts/audit_{spec['name'].replace('-', '_')}.schema.json"))
+          print("schema=" + json.dumps(schema, separators=(",", ":")))
+          print("tools=" + spec["tools"])
+          print("turns=" + str(spec["max_turns"]))
+          print("effort=" + (f"--effort {spec['effort']}" if spec["effort"] else ""))
+          print("prompt=.github/prompts/audit_" + spec["name"].replace("-", "_") + ".md")
+          PY
+      - name: No API key
+        if: env.HAS_KEY != 'true'
+        run: echo "neither the ANTHROPIC_API_KEY nor the CLAUDE_CODE_OAUTH_TOKEN repository secret is set" > "results/$BATCH.notrun"
+      # Tool policy as in the algorithm audit: no Bash (an allow list does not restrict it, so it is
+      # denied), no writes, and no reads of paths that could hold credentials.
+      - name: Run the agent
+        id: claude
+        if: env.HAS_KEY == 'true'
+        continue-on-error: true
+        timeout-minutes: 25
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Read ${{ steps.prep.outputs.prompt }} and follow it exactly.
+            Your batch: .audit-work/batches/${{ matrix.batch.id }}.json. Settled decisions you must
+            respect: .audit-work/decisions.md. Mechanical findings already reported (do not repeat
+            them): .audit-work/mechanical.json.
+            Repository: ${{ github.repository }}, commit ${{ github.sha }}.
+          claude_args: |
+            --allowedTools "${{ steps.prep.outputs.tools }}"
+            --disallowedTools "Bash,Agent,Task,Edit,Write,NotebookEdit,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(~/.config/**),Read(~/.ssh/**),Read(~/.claude/.credentials.json)"
+            --model ${{ matrix.batch.model }}
+            ${{ steps.prep.outputs.effort }}
+            --max-turns ${{ steps.prep.outputs.turns }}
+            --json-schema '${{ steps.prep.outputs.schema }}'
+      # An audit module may define scrub_output(ctx, text) to remove text that must never be
+      # stored, even in an artifact (the privacy audit masks matched words); it runs before upload.
+      - name: Save the agent's output
+        if: always() && env.HAS_KEY == 'true'
+        env:
+          OUT: ${{ steps.claude.outputs.structured_output }}
+          OUTCOME: ${{ steps.claude.outcome }}
+          AUDIT_SECRET_TERMS: ${{ secrets.AUDIT_PRIVACY_TERMS }}
+        run: |
+          if [ -n "$OUT" ]; then
+            python3 - <<'PY'
+          import os, sys, tempfile
+          sys.path.insert(0, ".github/scripts")
+          import audit_common as ac
+          mod = ac.load_audit("${{ inputs.audit }}")
+          text = os.environ["OUT"]
+          if hasattr(mod, "scrub_output"):
+              spec = ac.spec_of(mod)
+              ctx = ac.Context(spec, ".", ac.Notes(tempfile.mkdtemp(), spec["name"]), ".audit-work")
+              text = mod.scrub_output(ctx, text)
+          open(f"results/{os.environ['BATCH']}.json", "w").write(text)
+          PY
+          else
+            echo "agent produced no structured output (step outcome: $OUTCOME)" > "results/$BATCH.notrun"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: audit-${{ inputs.audit }}-result-${{ matrix.batch.id }}
+          path: results/
+          retention-days: 30
+
+  finish:
+    needs: [prepare, claude]
+    if: ${{ !cancelled() && needs.prepare.outputs.run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.finish_timeout }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    concurrency:
+      group: audit-finish-${{ inputs.audit }}
+      cancel-in-progress: false
+    env:
+      EDI_PORTABLE: 1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-${{ inputs.audit }}-work
+          path: ${{ runner.temp }}/work
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-${{ inputs.audit }}-notes
+          path: ${{ runner.temp }}/notes
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: audit-${{ inputs.audit }}-result-*
+          path: ${{ runner.temp }}/results
+          merge-multiple: true
+      - uses: r-lib/actions/setup-r@v2
+        if: inputs.finish_needs_r || inputs.finish_install_edi
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: inputs.finish_needs_r || inputs.finish_install_edi
+        with:
+          working-directory: R/EDI
+          extra-packages: |
+            ${{ env.ROXYGEN2_REF }}
+            any::testthat
+            ${{ inputs.r_packages }}
+      - name: Check the roxygen2 pin against DESCRIPTION
+        if: inputs.finish_needs_r || inputs.finish_install_edi
+        run: |
+          Rscript -e 'want = read.dcf("R/EDI/DESCRIPTION", fields = "Config/roxygen2/version")[1, 1]; have = as.character(packageVersion("roxygen2")); if (is.na(want) || want != have) cat(sprintf("::warning::roxygen2 on the runner is %s but R/EDI/DESCRIPTION says %s; move ROXYGEN2_REF in .github/workflows/audit.yml\n", have, want)) else cat("roxygen2", have, "matches DESCRIPTION\n")'
+      - name: Build and install EDI from this commit
+        if: inputs.finish_install_edi
+        run: R CMD INSTALL --no-test-load R/EDI
+      - name: Apply the findings and write the report
+        id: finish
+        run: |
+          cd .github/scripts
+          python3 audit_run.py finish --audit "${{ inputs.audit }}" --repo "$GITHUB_WORKSPACE" \
+            --notes "$RUNNER_TEMP/notes" --work "$RUNNER_TEMP/work" --results "$RUNNER_TEMP/results"
+          cat "$RUNNER_TEMP/work/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open or update the PR or issue
+        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
+        run: |
+          cd .github/scripts
+          python3 audit_run.py publish --audit "${{ inputs.audit }}" --repo "$GITHUB_WORKSPACE" \
+            --notes "$RUNNER_TEMP/notes" --work "$RUNNER_TEMP/work" \
+            --changed "${{ steps.finish.outputs.changed }}" --findings "${{ steps.finish.outputs.findings }}"
+      # Input for an audit's follow-up jobs in its caller workflow (e.g. the compiled-code
+      # benchmark check): whatever the module wrote to <work>/followup.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: audit-${{ inputs.audit }}-followup
+          path: ${{ runner.temp }}/work/followup/
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Save the audit notes
+        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
+        run: |
+          python3 .github/scripts/audit_run.py save-notes --notes "$RUNNER_TEMP/notes" \
+            --message "${{ inputs.audit }} audit: run ${GITHUB_RUN_ID} at ${GITHUB_SHA::8}"

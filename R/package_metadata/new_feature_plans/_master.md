@@ -1123,9 +1123,8 @@ already stated there:**
   assignment timing. So Phase A (**every design family**, continuous +
   incidence, the workflow + the test + provenance + CI inversion
   (post-grant, paired with the Garthwaite–Buckland driver — 2026-09-07) +
-  simulation study) is v1.1.0 — and the scoped deliverable of the R
-  Consortium ISC proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`,
-  re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
+  simulation study) is v1.1.0 — and the scoped deliverable of a
+  funding proposal (re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
   narrows to just the remaining response types, with an open question
   (not yet resolved) whether that remainder still belongs in 2.0.0 or
   fits v1.4.0's response-and-data-extensions theme better. 5AE's own

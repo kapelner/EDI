@@ -1,0 +1,39 @@
+# TODO-status audit (weekly, Wednesday 06:00 UTC, after the 02:30 nightly).
+# Checks every checkbox TODO of the unreleased release files and of the plan files they link to:
+# mechanical checks on moved pointers (target exists; target ticked), then one Claude agent per 8
+# TODOs judges done / partly done / not done / undone / unclear with evidence per part. Opus for
+# the current and next release (worked out from the release files), Sonnet for later releases.
+# Opens ONE pull request (label `audit-todo-status`) that ticks `done` items and unticks `undone`
+# ones, each with a dated note; everything else is listed under "Needs a human".
+# Module: .github/scripts/audits/todo_status.py; prompt and schema: .github/prompts/audit_todo_status.*
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 3).
+
+name: audit-todo-status
+
+on:
+  schedule:
+    - cron: "0 6 * * 3"     # weekly, Wednesday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (full pass, still capped by max_batches) or none (mechanical only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: todo-status
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 20
+    secrets: inherit

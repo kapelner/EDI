@@ -1,0 +1,66 @@
+{
+  "type": "object",
+  "required": [
+    "units_checked",
+    "findings"
+  ],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "paths of every file in the batch you read completely"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "unit",
+          "kind",
+          "line",
+          "old",
+          "new",
+          "text",
+          "evidence"
+        ],
+        "properties": {
+          "unit": {
+            "type": "string",
+            "description": "the file path from the batch"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "contradiction",
+              "code_may_be_wrong"
+            ]
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "old": {
+            "type": "string",
+            "description": "the whole comment line exactly as it is in the file"
+          },
+          "new": {
+            "type": "string",
+            "description": "the corrected line; only the comment part changes; may be empty for code_may_be_wrong"
+          },
+          "text": {
+            "type": "string",
+            "description": "what the comment claims and what the code does, with file:line"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

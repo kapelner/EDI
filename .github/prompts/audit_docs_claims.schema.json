@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings", "claims"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "class names of every unit in your batch that you finished",
+      "items": {"type": "string"}
+    },
+    "claims": {
+      "type": "array",
+      "description": "every testable claim you extracted, covered or not",
+      "items": {
+        "type": "object",
+        "required": ["unit", "claim", "documented_at", "status"],
+        "properties": {
+          "unit": {"type": "string", "description": "the class name"},
+          "claim": {"type": "string", "description": "the claim, quoted or closely paraphrased from the docs"},
+          "documented_at": {"type": "string", "description": "R/EDI/R/<file>.R:<line> of the roxygen text"},
+          "status": {"type": "string", "enum": ["covered", "partly", "uncovered", "contradicted"]},
+          "covered_by": {"type": "string", "description": "test file:line and test_that description, or empty"}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "one per claim with status partly, uncovered or contradicted",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text", "claim", "documented_at"],
+        "properties": {
+          "unit": {"type": "string", "description": "the class name"},
+          "kind": {"type": "string", "enum": ["uncovered-claim", "partly-covered-claim", "contradicted-claim"]},
+          "text": {"type": "string", "description": "what is missing or what contradicts the claim, with file:line"},
+          "claim": {"type": "string"},
+          "documented_at": {"type": "string", "description": "R/EDI/R/<file>.R:<line>"},
+          "covered_by": {"type": "string", "description": "the nearest test that exists, if any"},
+          "suggested_test": {"type": "string", "description": "one sentence: what a test would check"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+# R / Python parity (monthly, third Saturday 06:00 UTC, and after a push to main that touches
+# the bindings (python/cpp, python/src, python/CMakeLists.txt) or one of the R/EDI/src kernel
+# files python/CMakeLists.txt compiles). Claude (Sonnet) compares each pybind11 binding in
+# python/cpp/ that is new or changed (plus, on the monthly run, a 1/6 rotation) with the R side
+# that calls the same kernel: defaults, argument names, return fields and documented behaviour.
+# Mechanical checks (no Claude): py::arg defaults that differ from the same-named R export
+# (fast_ols vs fast_ols_cpp), and bindings missing from the stub or the package imports. The PR
+# applies docstring-only fixes in python/ whose old text occurs exactly once; the rest is listed
+# under "Needs a human". Label `audit-rpy-parity`.
+# One job serves both triggers: the gate applies `nth` only to scheduled runs (audit_common.
+# due_today), so a push run always proceeds, and on a push the module reads only new and changed
+# bindings (no rotation slice). The path list below must match python/CMakeLists.txt's kernel
+# sources; .github/scripts/test_audit_rpy_parity.py checks that.
+# Module: .github/scripts/audits/rpy_parity.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-rpy-parity
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 3 keeps the third Saturday of the month
+  push:
+    branches: [main]
+    paths:
+      - "python/cpp/**"
+      - "python/src/**"
+      - "python/CMakeLists.txt"
+      - "R/EDI/src/fast_adjacent_category_logit.cpp"
+      - "R/EDI/src/fast_beta_regression.cpp"
+      - "R/EDI/src/fast_clogit_plus_glmm.cpp"
+      - "R/EDI/src/fast_continuation_ratio_regression.cpp"
+      - "R/EDI/src/fast_coxph_regression.cpp"
+      - "R/EDI/src/fast_cpoisson_combined.cpp"
+      - "R/EDI/src/fast_gaussian_lmm.cpp"
+      - "R/EDI/src/fast_gee.cpp"
+      - "R/EDI/src/fast_gehan_wilcox.cpp"
+      - "R/EDI/src/fast_hurdle_negbin.cpp"
+      - "R/EDI/src/fast_hurdle_poisson_glmm.cpp"
+      - "R/EDI/src/fast_log_binomial_regression.cpp"
+      - "R/EDI/src/fast_logistic_glmm.cpp"
+      - "R/EDI/src/fast_logistic_regression.cpp"
+      - "R/EDI/src/fast_logrank.cpp"
+      - "R/EDI/src/fast_negbin_regression.cpp"
+      - "R/EDI/src/fast_ols.cpp"
+      - "R/EDI/src/fast_ordinal_cauchit_regression.cpp"
+      - "R/EDI/src/fast_ordinal_clmm.cpp"
+      - "R/EDI/src/fast_ordinal_cloglog_regression.cpp"
+      - "R/EDI/src/fast_ordinal_glmm.cpp"
+      - "R/EDI/src/fast_ordinal_probit_regression.cpp"
+      - "R/EDI/src/fast_ordinal_regression.cpp"
+      - "R/EDI/src/fast_poisson_glmm.cpp"
+      - "R/EDI/src/fast_poisson_regression.cpp"
+      - "R/EDI/src/fast_probit_regression.cpp"
+      - "R/EDI/src/fast_ridit_analysis.cpp"
+      - "R/EDI/src/fast_robust_regression.cpp"
+      - "R/EDI/src/fast_stereotype_logit.cpp"
+      - "R/EDI/src/fast_survival_models_optim.cpp"
+      - "R/EDI/src/fast_survival_stats.cpp"
+      - "R/EDI/src/fast_weibull_frailty.cpp"
+      - "R/EDI/src/fast_weibull_regression.cpp"
+      - "R/EDI/src/fast_wilcox_hl.cpp"
+      - "R/EDI/src/fast_zero_augmented_poisson.cpp"
+      - "R/EDI/src/fast_zero_one_inflated_beta.cpp"
+      - "R/EDI/src/fast_zinb.cpp"
+      - "R/EDI/src/miettinen_nurminen_speedups.cpp"
+      - "R/EDI/src/newcombe_speedups.cpp"
+      - "R/EDI/src/robust_post_fit_speedups.cpp"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (full pass), none (mechanical checks only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+# Pushes in quick succession queue behind the running audit instead of running side by side.
+concurrency:
+  group: audit-rpy-parity
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: rpy-parity
+      nth: 3
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 20
+    secrets: inherit

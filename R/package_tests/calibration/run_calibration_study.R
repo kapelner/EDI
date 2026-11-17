@@ -6,7 +6,8 @@
 # xz-compressed CSV, kept as a 60-day artifact for deep
 # dives), the shard's mergeable statistics to <out-dir>/tests.csv.gz and
 # est.csv.gz (calibration_study_stats.R; what the publish step adds to the
-# campaign's totals), and <out-dir>/shard.csv with the replicates actually
+# campaign's totals), the covariate balance of its replicates to <out-dir>/balance.csv.gz
+# (calibration_study_balance.R; only the shard holding the unit's first class), and <out-dir>/shard.csv with the replicates actually
 # finished and their cost.
 #
 # Time-boxed: a replicate starts only if --secs-per-rep (the planner's estimate)
@@ -57,8 +58,13 @@ if (!effect_label %in% names(CAL_STUDY_EFFECT_NCP)) stop("--effect must be one o
 if (is.null(out_dir)) stop("--out-dir is required")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-classes <- setdiff(cal_study_classes(response_type, design_label, n_nominal), exclude)
+all_classes <- cal_study_classes(response_type, design_label, n_nominal)
+classes <- setdiff(all_classes, exclude)
 if (length(only)) classes <- intersect(classes, only)
+# Covariate balance (calibration_study_balance.R) is a property of the replicate, not the class: the shards of a
+# unit run the same seeds for different class packs, so only the shard holding the unit's first class records it,
+# and only for screening replicates. Every replicate is then counted once.
+record_balance <- length(all_classes) > 0L && all_classes[[1L]] %in% classes
 effects <- cal_study_effects_table()
 truths <- cal_study_truths_table()
 cat(sprintf("calibration study: %s %s n=%d %s, %d rep(s), %d class(es), %d core(s)\n", response_type, design_label,
@@ -70,7 +76,7 @@ run_one <- function(r) {
 	first_round <- as.numeric(difftime(now, loop_start, units = "secs")) < 30
 	if (!first_round && now + secs_per_rep > deadline) return("skipped")
 	tryCatch(cal_study_run_rep(response_type, design_label, n_nominal, effect_label, r, classes,
-		effects = effects, truths = truths),
+		effects = effects, truths = truths, balance = record_balance && r <= CAL_STUDY_CONFIRM_REP0),
 		error = function(e) {
 			message(sprintf("rep %d failed: %s", r, conditionMessage(e)))
 			"failed"
@@ -84,6 +90,8 @@ elapsed <- proc.time()[["elapsed"]] - t0
 skipped <- vapply(res, identical, logical(1L), "skipped")
 failed <- vapply(res, function(x) identical(x, "failed") || inherits(x, "try-error"), logical(1L))
 rows <- do.call(rbind, Filter(function(x) is.data.frame(x) && nrow(x), res))
+bal <- do.call(rbind, lapply(Filter(is.data.frame, res), attr, "balance"))
+if (!is.null(bal) && nrow(bal)) cal_stats_write(cal_balance_stats(bal), file.path(out_dir, "balance.csv.gz"))
 if (!is.null(rows)) {
 	# The raw-row file (a deep-dive artifact only) rounds the result columns to 7
 	# significant digits: full-precision doubles were most of its bytes, and rounding

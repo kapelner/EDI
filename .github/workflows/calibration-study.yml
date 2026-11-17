@@ -485,6 +485,85 @@ jobs:
         run: |
           echo "::error title=Calibration CI bug::Shard ${{ matrix.id }} failed: a bug in the check, not a calibration result."
 
+  # Covariate balance backfill (owner, 2026-11-17), once per campaign. Shards record each replicate's covariate
+  # balance (calibration_study_balance.R) only from campaigns pinned after that was added; for an earlier campaign
+  # this job re-runs every null (design, n) unit's designs, without inference, on the campaign's own seeds and the
+  # pinned EDI, and hands balance/backfill.csv.gz to `analyze`. It does nothing once the campaign has either file,
+  # or before the first wave has published the campaign's plan. Reported, not gated: a failure here is a bug in the
+  # check, and `analyze` runs without it.
+  balance:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    env:
+      EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      C: ${{ needs.plan.outputs.campaign }}
+    steps:
+      - name: Does the campaign need a balance backfill?
+        id: need
+        run: |
+          git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
+            || mkdir -p results
+          d="results/campaigns/$C"
+          if [ -f "$d/stats/balance.csv.gz" ] || [ -f "$d/balance/backfill.csv.gz" ]; then
+            echo "Campaign $C already has covariate balance statistics."; echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f "$d/plan.csv" ]; then
+            echo "Campaign $C has no published plan yet; the backfill runs at a later wave."; echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Seeds, data generation and designs: the campaign's pinned commit, so the assignments are the campaign's own.
+      - if: steps.need.outputs.run == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          path: pinned
+      # The backfill script and the balance metrics: this run's own commit.
+      - if: steps.need.outputs.run == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: current
+      - if: steps.need.outputs.run == 'true'
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - if: steps.need.outputs.run == 'true'
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: pinned/R/EDI
+          dependencies: '"all"'
+      # The campaign's compiled EDI (see the build job); restore only, never compile here: on a miss (a runner OS with
+      # no build) the backfill waits for a later wave.
+      - name: EDI cache key
+        if: steps.need.outputs.run == 'true'
+        id: edikey
+        run: echo "key=calibration-study-edi-${ImageOS:-unknown}-${{ needs.plan.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      - if: steps.need.outputs.run == 'true'
+        id: edic
+        uses: actions/cache/restore@v5
+        with:
+          path: .edi-install-scratch
+          key: ${{ steps.edikey.outputs.key }}
+      - name: Recompute the campaign's covariate balance
+        if: steps.need.outputs.run == 'true' && steps.edic.outputs.cache-hit == 'true'
+        run: |
+          export R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}"
+          Rscript current/R/package_tests/calibration/balance_calibration_study.R \
+            --plan "results/campaigns/$C/plan.csv" --common-dir pinned/R/package_tests/calibration \
+            --out balance/backfill.csv.gz --cores "$(nproc)"
+      - uses: actions/upload-artifact@v7
+        if: steps.need.outputs.run == 'true' && steps.edic.outputs.cache-hit == 'true'
+        with:
+          name: study-balance
+          path: balance
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::The covariate balance backfill failed: a bug in the check, not a calibration result. The analysis ran without it."
+
   # The analysis (v1.0.5 TODO-200): its own check job between the shards and publish. It
   # merges the wave's statistics into the campaign's totals, runs the gate and the
   # convergence study, the design comparison at completion, the figures and the READMEs,
@@ -512,7 +591,7 @@ jobs:
   # (analyze_calibration_study.R), a cell whose power-law fit fails is `undetermined`
   # (convergence_calibration_study.R). The step that can fail is therefore always the last one.
   analyze:
-    needs: [plan, roster, shards]
+    needs: [plan, roster, shards, balance]
     if: always() && needs.plan.result == 'success' && needs.roster.result == 'success' && needs.roster.outputs.wave != '0'
     runs-on: ubuntu-latest
     permissions:
@@ -697,6 +776,20 @@ jobs:
           d="results/campaigns/$C"
           Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" \
             $([ "$COMPLETE" = true ] && echo --final)
+      # The campaign's covariate balance backfill, when the `balance` job made one this run (absent otherwise).
+      - name: Fetch the covariate balance backfill
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: study-balance
+          path: balance-backfill
+      - name: Covariate balance summary
+        run: |
+          d="results/campaigns/$C"
+          if [ -f balance-backfill/backfill.csv.gz ] && [ ! -f "$d/balance/backfill.csv.gz" ]; then
+            mkdir -p "$d/balance"; cp balance-backfill/backfill.csv.gz "$d/balance/backfill.csv.gz"
+          fi
+          Rscript R/package_tests/calibration/summarize_balance_calibration_study.R --campaign-dir "$d" --out-dir "$d/summary"
       - name: Analyze, plot and write the READMEs
         run: |
           d="results/campaigns/$C"

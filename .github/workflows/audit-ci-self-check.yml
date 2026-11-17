@@ -1,0 +1,39 @@
+# CI self-check (weekly). No Claude, no R.
+# Through the GitHub API (gh api with the job token): actions pinned to a major behind their
+# latest release, workflows GitHub disabled for inactivity, each workflow's latest successful
+# run against its 8-week median (flagged > 50% over), and bot PRs or audit/* and
+# algorithm-research/* PRs and branches open over 4 weeks. Opens or updates ONE issue
+# (label `ci-self-check`), and closes it when clean.
+# Module: .github/scripts/audits/ci_self_check.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-ci-self-check
+
+on:
+  schedule:
+    - cron: "0 6 * * 5"     # Fridays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto, all or none (this audit has no Claude stage, so all three behave the same)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: ci-self-check
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 20
+    secrets: inherit

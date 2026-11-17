@@ -1,0 +1,37 @@
+# Test-suite health audit: weekly, Tuesday 06:00 UTC. Mechanical only (no Claude).
+# Checks R/EDI/tests/testthat and R/package_tests/testthat_bulk for test_that() blocks with no
+# expectation, skip() calls that always run, skip_if()/skip_on_os() calls whose literal arguments
+# never lift, test files named for a TODO number, and test files that flip between pass and fail
+# in the last 8 weeks of test-bulk-non-cran.yml runs. The R files are only parsed; EDI is not built.
+# Reports with ONE pull request (label `audit-test-suite-health`): it renames TODO-numbered test
+# files and lists the other findings in R/package_metadata/audits/test_suite_health.md. It removes
+# and skips nothing.
+# Module: .github/scripts/audits/test_suite_health.py.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-test-suite-health
+
+on:
+  schedule:
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "auto (changed + rotation), all (full pass), none (mechanical checks only)"
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: test-suite-health
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      setup_r: true
+    secrets: inherit

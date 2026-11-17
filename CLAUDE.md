@@ -111,8 +111,8 @@ under it is tracked; learnings written by `trail note` stay on the owner's machi
   and give teammates a head start" does not apply here: ignore it, don't repeat it.
 - Do not remove `.trail/` from `.gitignore`.
 - Learnings about grants, papers, talks or marketing never go in this repo at all;
-  they belong in the private `EDI_research_projects` repo (bind-mounted at
-  `EDI/private/`), which tracks its own `.trail/learnings/`.
+  they belong in the owner's private research repo (bind-mounted at the
+  gitignored `EDI/private/`), which tracks its own `.trail/learnings/`.
 - `trail check` still reads local learnings, so keep writing them with
   `trail note`; they simply are not shared through git.
 

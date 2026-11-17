@@ -1,0 +1,39 @@
+# NEWS and version consistency (weekly, Thursday 07:00 UTC).
+# Mechanical: the version in R/EDI/DESCRIPTION against python/pyproject.toml, the Python CHANGELOG,
+# CITATION.cff, python/CITATION.cff, codemeta.json, R/EDI/inst/CITATION and the READMEs' BibTeX,
+# and against the last release tag. Claude (Sonnet): one agent per 8 commits since the last release
+# tag that touch R/EDI/R or R/EDI/src decides whether each changes what a user sees and whether
+# R/EDI/NEWS.md's top section covers it. Drafted NEWS lines are listed under "Needs a human" and
+# never applied, so this audit proposes no file changes itself.
+# Module: .github/scripts/audits/news_version.py; prompt and schema: .github/prompts/audit_news_version.*
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-news-version
+
+on:
+  schedule:
+    - cron: "0 7 * * 4"     # weekly, Thursday 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (new commits, or all of them after a NEWS edit), all, or none (mechanical only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: news-version
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 15
+    secrets: inherit

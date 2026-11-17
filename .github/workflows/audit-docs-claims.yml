@@ -1,0 +1,38 @@
+# Docs claims audit (monthly, 2nd Saturday 06:00 UTC): is each testable claim in an exported
+# class's documentation backed by a test?
+#  - No mechanical checks. Units: every exported R6 class (R/EDI/NAMESPACE), with its roxygen text
+#    and the test files that mention it (R/EDI/tests, R/package_tests/testthat_bulk).
+#  - Claude (Opus), on new or changed classes, classes whose tests changed, and a 1/6 monthly
+#    rotation (at most 24 classes a run): extracts the claims and names the test that covers each.
+#  - Apply: nothing. Uncovered, partly covered and contradicted claims are listed under "Needs a
+#    human", grouped by class. With nothing changed, the framework opens no PR: the list is in the
+#    run summary (and in the PR body if a later framework version reports PR-less findings).
+# Runs on a weekly Saturday cron; the gate keeps only the 2nd Saturday of the month.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-docs-claims
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (changed + rotation), all (every class, capped per run), none (nothing to read)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: docs-claims
+      nth: 2
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 20
+    secrets: inherit

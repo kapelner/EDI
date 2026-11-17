@@ -75,7 +75,7 @@ RUN apt-get update && \
 # reference manual step whenever run without --no-manual (every CI job
 # passes --no-manual, so this only matters for a manual local run); and
 # (2) the real .tex sources under private/ (grants, papers, a beamer talk;
-# gitignored, present only where the EDI_research_projects repo is mounted
+# gitignored, present only where the owner's private research repo is mounted
 # there) -- confirmed by grepping
 # every \usepackage/\documentclass across those files, not guessed. `texlive`
 # (the "recommended" tier: latex-base + latex-recommended + fonts-recommended

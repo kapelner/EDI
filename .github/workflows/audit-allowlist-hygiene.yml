@@ -1,0 +1,40 @@
+# Allowlist and baseline hygiene (weekly, Monday 07:00 UTC). No Claude, no R.
+# Finds allowlist and accepted-row entries whose cited TODO is ticked, missing or moved, reading
+# the TODO state from the release and plan files (the TODO-status audit's parser): the calibration
+# acceptances (calibration_study_accepted.csv, calibration_fast_tier_accepted.csv), the path-audit
+# regression allowlist, stale_ok_row_rules.csv, and the known-failure lists in R test code. Also
+# entries that visibly match nothing (their class or design is gone, or their class pattern
+# matches no class). Opens ONE pull request (label `audit-allowlist-hygiene`) that deletes the
+# CSV entries whose TODO is ticked or missing; everything else is listed in the PR body.
+# Module: .github/scripts/audits/allowlist_hygiene.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-allowlist-hygiene
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"     # weekly, Monday 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto, all or none (this audit has no Claude stage, so all three behave the same)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: allowlist-hygiene
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 15
+    secrets: inherit

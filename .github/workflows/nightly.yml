@@ -644,7 +644,12 @@ jobs:
       # every night until it passes, so a regression is not hidden by the gate.
       - name: Record the verdict
         if: ${{ !cancelled() }}
-        run: mkdir -p "$RUNNER_TEMP/runs" && echo "${{ steps.verdict.outcome }}" > "$RUNNER_TEMP/runs/verdict.txt"
+        # job.txt names the job: download-artifact extracts a pattern that matches a single
+        # artifact straight into its path, with no benchmark-<id>/ folder to tell jobs apart.
+        run: |
+          mkdir -p "$RUNNER_TEMP/runs"
+          echo "${{ steps.verdict.outcome }}" > "$RUNNER_TEMP/runs/verdict.txt"
+          echo "${{ matrix.id }}" > "$RUNNER_TEMP/runs/job.txt"
       # This job's four reports, B1's rendered page, B1's raw rows (bench-report merges the rows
       # of every job into the combined page) and the verdict. Kept even when the verdict failed.
       - name: Keep this job's reports
@@ -657,6 +662,7 @@ jobs:
             ${{ runner.temp }}/runs/B1.html
             ${{ runner.temp }}/runs/B1.rds
             ${{ runner.temp }}/runs/verdict.txt
+            ${{ runner.temp }}/runs/job.txt
           if-no-files-found: ignore
           retention-days: 30
 
@@ -760,21 +766,29 @@ jobs:
           entry = lambda verdict: {"commit": os.environ["GITHUB_SHA"], "timed_at": now,
                                    "run_id": int(os.environ["GITHUB_RUN_ID"]), "verdict": verdict}
           os.makedirs(os.path.join(out, "rows"), exist_ok=True)
+          # Find each job's folder by its job.txt, not by folder name: when the pattern matches a
+          # single artifact, download-artifact puts its files straight into shards/ (and py/).
+          shard_dir = {}
+          for root, _, files in os.walk(os.path.join(ws, "shards")):
+              if "job.txt" in files and "B1.rds" in files:
+                  shard_dir[open(os.path.join(root, "job.txt")).read().strip()] = root
           new, carried, missing = [], [], []
           for j in jobs:
-              src = os.path.join(ws, "shards", f"benchmark-{j}", "B1.rds")
+              src = os.path.join(shard_dir.get(j, "/nonexistent"), "B1.rds")
               dst = os.path.join(out, "rows", f"{j}.rds")
               if os.path.exists(src):
                   shutil.copy(src, dst)
-                  vfile = os.path.join(ws, "shards", f"benchmark-{j}", "verdict.txt")
+                  vfile = os.path.join(shard_dir[j], "verdict.txt")
                   verdict = open(vfile).read().strip() if os.path.exists(vfile) else "unknown"
                   manifest["jobs"][j] = entry(verdict); new.append(j)
               elif os.path.exists(dst):
                   carried.append(j)
               else:
                   missing.append(j)
-          py_src = os.path.join(ws, "py", "bench-python", "index.html")
-          py_new = os.path.exists(py_src)
+          py_src = next((c for c in (os.path.join(ws, "py", "index.html"),
+                                     os.path.join(ws, "py", "bench-python", "index.html"))
+                         if os.path.exists(c)), "")
+          py_new = bool(py_src)
           if py_new:
               os.makedirs(os.path.join(out, "python"), exist_ok=True)
               shutil.copy(py_src, os.path.join(out, "python", "index.html"))

@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "ids of every unit in your batch that you judged; a unit you ran out of turns for is left out",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "description": "exactly one entry per unit in units_checked",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text", "parts", "searched", "gap"],
+        "properties": {
+          "unit": {"type": "string", "description": "the unit id from the batch file"},
+          "kind": {
+            "type": "string",
+            "enum": ["done", "partly done", "not done", "undone", "unclear"],
+            "description": "the verdict"
+          },
+          "text": {"type": "string", "description": "two or three sentences: the verdict and the main reason"},
+          "parts": {
+            "type": "array",
+            "description": "every separate request of the TODO (its numbered steps, bullets and Done-when conditions), each judged on its own",
+            "items": {
+              "type": "object",
+              "required": ["part", "status", "evidence"],
+              "properties": {
+                "part": {"type": "string", "description": "the request, in a few words quoted or paraphrased from the TODO"},
+                "status": {"type": "string", "enum": ["done", "not done", "unclear"]},
+                "evidence": {
+                  "type": "array",
+                  "description": "for a done part: at least one reference that shows it is in the checkout",
+                  "items": {
+                    "type": "object",
+                    "required": ["ref", "what"],
+                    "properties": {
+                      "ref": {"type": "string", "description": "a commit SHA (7 to 40 hex characters), a repo-relative path:line, or a test file name or test_that description"},
+                      "what": {"type": "string", "description": "one line: what this reference shows"}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "searched": {
+            "type": "array",
+            "description": "for not done or unclear: what you searched for and where",
+            "items": {"type": "string"}
+          },
+          "gap": {"type": "string", "description": "for undone: what is missing or no longer meets the TODO; else empty"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "ids of every commit unit in your batch that you judged",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "description": "exactly one entry per unit in units_checked",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text", "news_section", "news_line"],
+        "properties": {
+          "unit": {"type": "string", "description": "the unit id from the batch file, e.g. commit:1a2b3c4d"},
+          "kind": {
+            "type": "string",
+            "enum": ["covered", "missing", "not user-visible", "unclear"],
+            "description": "covered: user-visible and the NEWS top section describes it; missing: user-visible and not described; not user-visible: refactor, tests, comments, internal speed-up with identical results; unclear: cannot tell"
+          },
+          "text": {"type": "string", "description": "one or two sentences: what a user would notice (or why nothing), and for covered the NEWS bullet that describes it"},
+          "news_section": {"type": "string", "description": "for missing: the NEWS subsection the line belongs in (Breaking changes, Bug fixes, New features, Performance, Documentation, ...); else empty"},
+          "news_line": {"type": "string", "description": "for missing: a drafted NEWS bullet in the style of the existing ones, starting with * ; else empty"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "required": [
+    "units_checked",
+    "findings",
+    "notes"
+  ],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "unit",
+          "kind",
+          "text",
+          "file",
+          "old_code",
+          "new_code",
+          "removes",
+          "expected_effect",
+          "risk_to_results",
+          "bench_code"
+        ],
+        "properties": {
+          "unit": {
+            "type": "string",
+            "description": "the unit id from the batch file"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "proposal"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "what the change does and why it is faster"
+          },
+          "file": {
+            "type": "string",
+            "description": "the file under R/EDI/src to change"
+          },
+          "old_code": {
+            "type": "string",
+            "description": "exact code in the file, occurring once"
+          },
+          "new_code": {
+            "type": "string"
+          },
+          "removes": {
+            "type": "string",
+            "description": "the detector name and the call target or remark the change removes"
+          },
+          "expected_effect": {
+            "type": "string",
+            "description": "what should change in the assembly and the timing"
+          },
+          "risk_to_results": {
+            "type": "string",
+            "description": "why results stay identical under D2, or what could change"
+          },
+          "bench_code": {
+            "type": "string",
+            "description": "R code defining bench_setup() and bench_run(d); see the prompt"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

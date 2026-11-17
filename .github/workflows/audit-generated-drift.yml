@@ -1,0 +1,37 @@
+# Generated-file drift audit: weekly, Tuesday 07:00 UTC. Mechanical only (no Claude).
+# In the finish stage it runs the generators that need neither a compiled EDI nor a timing run:
+# R/fast_roxygenize.R (Rcpp::compileAttributes, which writes RcppExports.R/.cpp and compiles
+# nothing, then roxygen2 with the R code sourced: man/*.Rd, NAMESPACE) and the registry block of
+# vignettes/procedure-trust.Rmd. Not the drift artifacts of drift_artifacts.sh (they need a built
+# EDI; test-coverage-R-advanced.yml diffs them on every push), not the benchmark reports, and
+# nothing timed.
+# Reports with ONE pull request (label `audit-generated-drift`) holding the regenerated files.
+# Module: .github/scripts/audits/generated_drift.py.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-generated-drift
+
+on:
+  schedule:
+    - cron: "0 7 * * 2"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "auto (changed + rotation), all (full pass), none (mechanical checks only)"
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: generated-drift
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      finish_needs_r: true
+    secrets: inherit

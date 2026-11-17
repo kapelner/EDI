@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text"],
+        "properties": {
+          "unit": {"type": "string"},
+          "kind": {"type": "string", "enum": ["exposes", "benign", "unclear"]},
+          "text": {"type": "string"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Results freshness (weekly, Sunday 06:00 UTC). No Claude, no R.
+# Finds comprehensive-test aggregate rows (R/package_tests/comprehensive_tests_*.csv,
+# comprehensive_coverage_attempt_summary.csv) and the latest calibration campaign's summary rows
+# (calibration-results branch) generated before the class, a class it inherits from, or the
+# shared code of its response family last had a functional change. File-to-family rules are
+# benchmark_gate.py's. The aggregates carry no per-row commit, so their file's last commit stands
+# in. Opens or updates ONE issue (label `audit-results-freshness`) listing the stale row groups
+# with the command that regenerates each, and closes it when nothing is stale. No PR:
+# regenerating results is a campaign, not an edit.
+# Module: .github/scripts/audits/results_freshness.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-results-freshness
+
+on:
+  schedule:
+    - cron: "0 6 * * 0"     # weekly, Sunday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto, all or none (this audit has no Claude stage, so all three behave the same)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: results-freshness
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 15
+    secrets: inherit

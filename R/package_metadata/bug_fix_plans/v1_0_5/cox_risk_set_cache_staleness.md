@@ -3,8 +3,7 @@
 > **Release:** v1.0.5 (`../../future_release_plans/release_v1_0_5.md → TODO-30`,
 > slotted 2026-09-24, user decision) — a *correctness* fix. Found 2026-08-30 during the
 > research-plan verification audit
-> (`../new_research_ideas/paper/fast_randomization_inference/fast_randomization_inference.md`, work item
-> V2). Reused workers in the current checkout can realize the stale hit;
+> (owner's private research notes, work item V2). Reused workers in the current checkout can realize the stale hit;
 > the tagged v1.0.0 source has the same `w`-only Cox guards, but no tagged
 > binary was independently exercised in this audit.
 >

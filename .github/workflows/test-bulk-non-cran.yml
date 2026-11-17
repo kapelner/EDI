@@ -13,6 +13,7 @@ on:
       - 'R/EDI/NAMESPACE'
       - 'R/package_tests/testthat_bulk/**'
       - 'R/package_tests/ci/**'
+      - '.github/scripts/package_budget.py'
       - '.github/workflows/test-bulk-non-cran.yml'
   pull_request:
     branches: [main, master]
@@ -190,6 +191,33 @@ jobs:
           name: correctness-shard-${{ matrix.shard }}
           path: shard-results/${{ matrix.shard }}
           if-no-files-found: error
+
+  # The slowest test files, and the files that took longer than their estimate in
+  # R/package_tests/ci/test_runtimes.csv, from the timings every shard already uploads
+  # (owner, 2026-11-17: this run times every file, so the push checks' size and time
+  # budget does not time tests again). Report only: it never fails the run.
+  test-times:
+    name: test file times
+    needs: shards
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/scripts
+            R/package_tests/ci
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: correctness-shard-[0-9]*
+          path: shard-timings
+      - name: List the slowest files and the files over their estimate
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/package_budget.py slowest --timings shard-timings \
+            --out "$RUNNER_TEMP/test-times.md"
+          cat "$RUNNER_TEMP/test-times.md" >> "$GITHUB_STEP_SUMMARY"
 
   # Single, fixed check name for branch protection to require -- the shard
   # count above is planned dynamically per run (plan_shards.py bin-packs the

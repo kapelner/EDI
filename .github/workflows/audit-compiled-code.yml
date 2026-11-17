@@ -1,0 +1,261 @@
+# Compiled-code audit (monthly, fourth Saturday 06:00 UTC). Stage 1 builds EDI from this commit
+# (EDI_UNITY=0, portable, -g -O2, into a temp library) and profiles short runs of the benchmark
+# sections under `perf record`; the functions that make up the top 90% of the EDI.so samples are
+# the hot functions. Stage 2 runs detectors on them: GCC missed-vectorization and missed-inlining
+# remarks, and, from the disassembly, allocation, R API calls, asserts, libm calls and indirect
+# calls inside loop bodies. Stage 3: Claude (Opus, one agent per flagged function, at most 3 a
+# run) proposes one source change per function. Stage 4 (benchmark and D2 numerical-equivalence
+# verification) is not implemented yet, so nothing is applied: proposals are reported as NOT
+# VERIFIED and kept on the audit-notes branch. With no file change there is no PR; the framework
+# reports the findings in the audit's issue instead (label `audit-compiled-code`).
+# The units are keyed by a hash of each function's normalised disassembly, so an unchanged
+# function is not re-read; a compiler upgrade re-audits it.
+# Module: .github/scripts/audits/compiled_code.py
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 5).
+
+name: audit-compiled-code
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 4 keeps the fourth Saturday of the month
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (new or changed assembly), all (every flagged hot function), none (profile and detectors only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: compiled-code
+      nth: 4
+      scope: ${{ inputs.scope || 'auto' }}
+      # The module builds EDI itself (EDI_UNITY=0, the plan's flags); install_edi would build
+      # the unity default as well.
+      setup_r: true
+      apt_packages: linux-tools-common linux-tools-azure binutils
+      # The benchmark script's comparators (as in the nightly benchmark job).
+      r_packages: |
+        any::microbenchmark
+        any::bench
+        any::betareg
+        any::clinfun
+        any::DescTools
+        any::ordinal
+        any::pscl
+        any::quantreg
+        any::sandwich
+        any::VGAM
+        any::commonmark
+        any::blockTools
+        any::carat
+        any::coin
+        any::estimatr
+        any::gamlss
+        any::glmmTMB
+        any::icenReg
+        any::lme4
+        any::Minirand
+        any::nbpMatching
+        any::parfm
+        any::perm
+        any::randomizr
+        any::ri2
+        any::robustbase
+      prepare_timeout: 180
+    secrets: inherit
+
+  # ---------------------------------------------------------------- stage 4: benchmark check
+  verify-plan:
+    needs: audit
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    outputs:
+      has: ${{ steps.plan.outputs.has }}
+      builds: ${{ steps.plan.outputs.builds }}
+      proposals: ${{ steps.plan.outputs.proposals }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/download-artifact@v8
+        continue-on-error: true    # no artifact: no proposal was applied
+        with:
+          name: audit-compiled-code-followup
+          path: ${{ runner.temp }}/followup
+      - id: plan
+        run: python3 .github/scripts/compiled_code_verify.py plan --followup "$RUNNER_TEMP/followup"
+
+  verify-build:
+    needs: verify-plan
+    if: needs.verify-plan.outputs.has == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        build: ${{ fromJSON(needs.verify-plan.outputs.builds) }}
+    env:
+      NOT_CRAN: true
+      CI: true
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      EDI_PREPUSH_NO_PARALLEL: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-compiled-code-followup
+          path: ${{ runner.temp }}/followup
+      - name: Apply only this proposal
+        if: matrix.build != 'base'
+        run: |
+          python3 .github/scripts/compiled_code_verify.py patch --proposals "$RUNNER_TEMP/followup/proposals.json" \
+            --ids "${{ matrix.build }}" --repo "$GITHUB_WORKSPACE"
+          git diff --stat
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: any::jsonlite, any::pkgload, any::testthat
+      # The default build (unity, portable), the same for base and every proposal, so the timing
+      # compares what users install.
+      - name: Build and install EDI
+        run: |
+          mkdir -p "$RUNNER_TEMP/lib"
+          R CMD INSTALL --no-test-load --library="$RUNNER_TEMP/lib" R/EDI
+      - name: Run the tests related to the changed file
+        if: matrix.build != 'base'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          props = {p["id"]: p for p in json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "followup/proposals.json")))}
+          open("changed.txt", "w").write(props["${{ matrix.build }}"]["file"] + "\n")
+          PY
+          python3 R/package_tests/ci/select_pr_coverage_tests.py --changed-files-from changed.txt \
+            --output "$RUNNER_TEMP/shard" --budget-seconds 900
+          set +e
+          Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "$RUNNER_TEMP/shard/shard-0.json" correctness "$RUNNER_TEMP/tests"
+          code=$?
+          set -e
+          python3 - "$code" <<'PY'
+          import csv, json, os, sys
+          rt = os.environ["RUNNER_TEMP"]
+          rows = list(csv.DictReader(open(os.path.join(rt, "tests/timings.csv")))) if os.path.exists(os.path.join(rt, "tests/timings.csv")) else []
+          bad = [r["test_file"] for r in rows if r.get("status") != "complete"]
+          status = "pass" if sys.argv[1] == "0" and rows else ("fail" if rows else "none")
+          if sys.argv[1] != "0" and not bad:
+              bad = ["see the verify-build job log"]
+          json.dump({"status": status, "files": len(rows), "failed": bad}, open(os.path.join(rt, "lib/tests.json"), "w"))
+          print(status, len(rows), "files", bad[:5])
+          PY
+      - name: Pack the library
+        run: tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/lib-${{ matrix.build }}.tgz" lib
+      - uses: actions/upload-artifact@v7
+        with:
+          name: compiled-code-lib-${{ matrix.build }}
+          path: ${{ runner.temp }}/lib-${{ matrix.build }}.tgz
+          retention-days: 3
+
+  verify-bench:
+    needs: [verify-plan, verify-build]
+    if: ${{ !cancelled() && needs.verify-plan.outputs.has == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        proposal: ${{ fromJSON(needs.verify-plan.outputs.proposals) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-compiled-code-followup
+          path: ${{ runner.temp }}/followup
+      - uses: actions/download-artifact@v8
+        with:
+          name: compiled-code-lib-base
+          path: ${{ runner.temp }}/libs
+      - uses: actions/download-artifact@v8
+        continue-on-error: true    # its build failed: the verdict says so
+        with:
+          name: compiled-code-lib-${{ matrix.proposal }}
+          path: ${{ runner.temp }}/libs
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      # EDI's imports only: the bench code may use base R and what EDI imports.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+          extra-packages: any::jsonlite
+      - name: Unpack the two builds
+        id: libs
+        run: |
+          for b in base "${{ matrix.proposal }}"; do
+            mkdir -p "$RUNNER_TEMP/b-$b"
+            f=$(find "$RUNNER_TEMP/libs" -name "lib-$b.tgz" | head -1)
+            if [ -n "$f" ]; then tar -C "$RUNNER_TEMP/b-$b" -xzf "$f"; fi
+          done
+          echo "tests=$RUNNER_TEMP/b-${{ matrix.proposal }}/lib/tests.json" >> "$GITHUB_OUTPUT"
+      - name: Equal results, then ABBA timing
+        run: |
+          python3 .github/scripts/compiled_code_verify.py bench --proposals "$RUNNER_TEMP/followup/proposals.json" \
+            --id "${{ matrix.proposal }}" --base-lib "$RUNNER_TEMP/b-base/lib" \
+            --new-lib "$RUNNER_TEMP/b-${{ matrix.proposal }}/lib" --tests "${{ steps.libs.outputs.tests }}" \
+            --work "$RUNNER_TEMP/bench" --out "$RUNNER_TEMP/verdict-${{ matrix.proposal }}.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: compiled-code-verdict-${{ matrix.proposal }}
+          path: ${{ runner.temp }}/verdict-${{ matrix.proposal }}.json
+          retention-days: 30
+
+  verify-report:
+    needs: [verify-plan, verify-bench]
+    if: ${{ !cancelled() && needs.verify-plan.outputs.has == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: audit-finish-compiled-code
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: audit-compiled-code-followup
+          path: ${{ runner.temp }}/followup
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: compiled-code-verdict-*
+          path: ${{ runner.temp }}/verdicts
+      - name: Keep the changes that are clearly faster with equal results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          publish=""
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event_name }}" = "schedule" ]; then publish=--publish; fi
+          python3 .github/scripts/compiled_code_verify.py report --proposals "$RUNNER_TEMP/followup/proposals.json" \
+            --verdicts "$RUNNER_TEMP/verdicts" --repo "$GITHUB_WORKSPACE" --sha "${{ github.sha }}" \
+            --out "$RUNNER_TEMP/verify.md" $publish
+          cat "$RUNNER_TEMP/verify.md" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,40 @@
+# Privacy check on public files (weekly). Claude (Sonnet) only on borderline hits.
+# Scans every tracked text file for the terms in the AUDIT_PRIVACY_TERMS repository secret (one
+# term per line, optionally `term|category`; the list is never in the repository). The reusable
+# workflow passes it to the prepare step as AUDIT_SECRET_TERMS. Whole-word hits are reported as
+# `file:line` and "term #n", never the term itself; partial-word and near matches go to an agent
+# that sees only masked text. Without the secret, the run reports that the list is not
+# configured. Nothing is applied automatically.
+# Module: .github/scripts/audits/privacy.py
+# Prompt: .github/prompts/audit_privacy.md (+ .schema.json)
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-privacy
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"     # Mondays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (new or changed borderline hits), all (re-judge every hit), none (mechanical only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: privacy
+      nth: 0
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 30
+    secrets: inherit

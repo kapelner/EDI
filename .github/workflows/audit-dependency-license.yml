@@ -1,0 +1,40 @@
+# Dependency and license drift (monthly, first Monday). Claude (Sonnet) only summarises NEWS.
+# For every package in R/EDI/DESCRIPTION (Depends, Imports, Suggests, LinkingTo), reads its
+# CRAN page and reports license changes against the snapshot kept on the audit-notes branch,
+# packages archived on CRAN, and deprecated functions EDI still calls. For each package whose
+# version changed, an agent reads the NEWS excerpt and says what EDI should check. Packages
+# behind the dataset rows deliberately pinned to old releases are never flagged for version
+# drift. Nothing is applied automatically; results go under "Needs a human".
+# Module: .github/scripts/audits/dependency_license.py
+# Prompt: .github/prompts/audit_dependency_license.md (+ .schema.json)
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit-dependency-license
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"     # Mondays 06:00 UTC; the gate keeps the first Monday of the month (nth: 1)
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: auto (packages whose version changed), all, or none (mechanical checks only)
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: dependency-license
+      nth: 1
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 30
+    secrets: inherit

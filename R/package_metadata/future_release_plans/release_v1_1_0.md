@@ -1027,10 +1027,9 @@ ticked in their **owning plans**; this list is the release index.
   as assumption gates once both exist; with 17z in v1.2.0 the optional gate
   waits for that release (the gate is optional for the pilot;
   the assumption-light fallback class is mandatory regardless).
-  Externally: this is the scoped deliverable of the R Consortium ISC
-  proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`; the
-  earlier LaTeX draft was deleted 2026-09-07), re-scoped 2026-09-06 to
-  this widened Phase A and carrying no blinding claims.
+  Externally: this is also the scoped deliverable of a funding proposal,
+  re-scoped 2026-09-06 to this widened Phase A and carrying no blinding
+  claims.
 - [ ] ~~TODO-17z~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision, lighten-1.1.0 pass 2): `ModelDiagnostics` — declaration contract + pilot batteries.
 - [ ] TODO-18: **Consolidate duplicated parallelization primitives**
   (added 2026-09-07, user decision): `consolidate_parallelization_code.md
@@ -2002,6 +2001,13 @@ ticked in their **owning plans**; this list is the release index.
       explain.
     - Not a null-fit bug: the 2026-11-07 check found the EDI score p matches an independent truncated-Poisson score
       test to 2e-5.
+  - **2026-11-17, same campaign after wave 7:** 235 tests flagged across all 21 designs, all `~1` score,
+    gradient or LR; every one has an accepted row citing this TODO. The excess does not shrink with n: `~1` LR size at
+    n = 1000 is 0.15-0.185 on designs that don't balance covariates (Bernoulli, iBCRD, SPBR, Rerandomization,
+    PocockSimon, Efron), 0.09-0.11 on covariate-balancing ones (Greedy, Optimal, KK14, Atkinson), and 0.05-0.085 on
+    matched ones (KK21, BinaryMatch, PairSwitching). So the size tracks how much covariate imbalance is left
+    unadjusted, which fits misspecification, not a finite-sample effect. Sandwich Wald `~1` ranges 0.005-0.069 at
+    n = 1000.
 
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.

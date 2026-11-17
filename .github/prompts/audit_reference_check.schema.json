@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "description": "ids of every reference entry in your batch that you actually compared",
+      "items": {"type": "string"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit", "kind", "text"],
+        "properties": {
+          "unit": {"type": "string", "description": "the entry id, exactly as in the batch"},
+          "kind": {
+            "type": "string",
+            "enum": ["year", "title-typo", "title", "authors", "venue", "wrong-paper", "other"]
+          },
+          "text": {"type": "string", "description": "what the entry says, what the Crossref record says, and which field"},
+          "doi": {"type": "string", "description": "the DOI whose record you compared (required when the entry has several)"},
+          "old_text": {"type": "string", "description": "year or title-typo: the text to replace, copied exactly from the entry"},
+          "new_text": {"type": "string", "description": "year or title-typo: the replacement"},
+          "crossref_field": {"type": "string", "description": "the record field that supports the fix: issued, published-print, published-online or title"},
+          "crossref_value": {"type": "string", "description": "that field value, copied exactly from the record"}
+        }
+      }
+    }
+  }
+}

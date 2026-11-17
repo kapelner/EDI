@@ -395,8 +395,7 @@ which loses only the object's internal memoization
 (`private$cached_values`), not the draws. This section scopes making the
 fitted `Inference` object itself a supported serialization unit.
 
-What the JSS manuscript already says (2026-09-01,
-`../new_research_ideas/paper/JSS_EDI_exposition/manuscript.tex` §3.1):
+What the package paper draft already says (2026-09-01, §3.1; private):
 extract-as-data is the current pattern, and extending the serialization
 audit to `Inference` objects "is a candidate for a future release" — this
 section is that candidate, now slated.
