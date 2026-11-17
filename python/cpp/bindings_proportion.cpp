@@ -81,7 +81,7 @@ void bind_proportion(py::module_& m) {
     "parameterization (mean E[Y_i]=mu_i, Var(Y_i)=mu_i*(1-mu_i)/(1+phi)),\n"
     "with logit(mu_i) = x_i^T beta and a single scalar precision phi shared\n"
     "across all observations (not modeled as a function of covariates).\n"
-    "Returned 'b' is [beta, log_phi] (phi optimized on the log scale for\n"
+    "Returned 'b' is beta only (phi is returned as 'dispersion', optimized on the log scale for\n"
     "positivity). Parameters sourced from R/EDI/man/ documentation for\n"
     "fast_beta_regression_cpp/fast_beta_regression_weighted_cpp. Analogous to\n"
     "statsmodels' BetaModel (link=logit) or R's betareg::betareg; see\n"

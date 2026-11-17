@@ -1114,7 +1114,7 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
         (Tukey bisquare weighting, constant fixed at 4.685, with a fixed MAD-based scale).
     j : int, default 2
         1-based index of the coefficient for which to return an individual variance
-        (ssq_b_j in the result).
+        (not returned by this binding; j currently has no effect on the result).
     c : float, default 1.345
         Huber tuning constant (used for the M-step; the Tukey bisquare tuning
         constant used when method is MM is fixed internally at 4.685).
@@ -1137,7 +1137,7 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
     """
 def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, smart_cold_start: bool = True, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, estimate_only: bool = False) -> dict:
     """
-    Fast stereotype logit ordinal regression via Newton-Raphson. Returns ssq_b_1/ssq_b_j (variance of the first beta) via a profile-likelihood fallback when the Fisher-information diagonal entry isn't directly invertible; vcov is always None (not computed by this kernel). Parameters sourced from R/EDI/man/ documentation for fast_stereotype_logit_cpp/fast_stereotype_logit_with_var_cpp (this binding unifies both R exports).
+    Fast stereotype logit ordinal regression via Newton-Raphson. Returns ssq_b_1/ssq_b_j (variance of the first beta) via a profile-likelihood fallback when the Fisher-information diagonal entry isn't directly invertible; vcov is always None (not computed by this kernel). smart_cold_start has no effect here (starting values come from the kernel default unless a warm start is given; warm_start_params takes precedence over warm_start_beta). Parameters sourced from R/EDI/man/ documentation for fast_stereotype_logit_cpp/fast_stereotype_logit_with_var_cpp (this binding unifies both R exports).
     
     Parameters
     ----------
@@ -1260,7 +1260,7 @@ def fast_weibull_frailty(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     group_id : ndarray of int
         Group (shared-frailty cluster) identifiers, one per row of X/y.
     warm_start_params : ndarray, optional
-        Optional starting values for all parameters [beta, log_sigma_shape,
+        Optional starting values for all parameters [beta, log_sigma_eps,
         log_sigma_frailty].
     warm_start_beta : ndarray, optional
         Optional starting values for the coefficients only.
