@@ -73,6 +73,11 @@ class Status(unittest.TestCase):
 
 
 class Repo(unittest.TestCase):
+    def test_labels_come_from_the_module(self):
+        self.assertEqual(st.label_of("ci-self-check"), "ci-self-check")
+        self.assertEqual(st.label_of("rd"), "audit-rd")
+        self.assertEqual(st.label_of("no-such-audit"), "audit-no-such-audit")
+
     def test_every_caller_triggers_the_status_workflow(self):
         wf = Path(__file__).resolve().parents[1] / "workflows"
         status = (wf / "audit-status.yml").read_text()

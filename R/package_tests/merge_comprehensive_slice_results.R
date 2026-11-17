@@ -461,10 +461,16 @@ if (same_source_used) {
 		for (h in heads[-1L]) {
 			d = git("-C", shQuote(top), "diff", "-U0", "--no-color", base_head, h, "--", "R/EDI")
 			if (!is.null(attr(d, "status"))) { block("--accept-same-source-dlls: git diff ", base_head, " ", h, " failed"); next }
+			# Files whose edits are only comments/whitespace (re-indented or re-wrapped lines included)
+			# are not code changes (scripts/significant_changes.py, owner ruling 2026-11-17). If the
+			# helper fails, every file falls through to the line check below.
+			sig = tryCatch(suppressWarnings(system2("python3", c(shQuote(file.path(top, "scripts", "significant_changes.py")),
+				"-C", shQuote(top), base_head, h, "--", "R/EDI"), stdout = TRUE, stderr = FALSE)), error = function(e) structure("", status = 1L))
+			comment_only = function(f) is.null(attr(sig, "status")) && !(f %in% sig)
 			file = NA_character_; bad = character(); accepted_lines = character()
 			for (ln in d) {
 				if (startsWith(ln, "+++ ")) { file = sub("^\\+\\+\\+ (b/)?", "", ln); next }
-				if (startsWith(ln, "--- ") || !grepl("^[+-]", ln) || is.na(file) || !is_edi_code_path(file)) next
+				if (startsWith(ln, "--- ") || !grepl("^[+-]", ln) || is.na(file) || !is_edi_code_path(file) || comment_only(file)) next
 				body = trimws(substring(ln, 2L))
 				comment = if (grepl("\\.(c|cc|cpp|h|hpp)$", file)) startsWith(body, "//") else startsWith(body, "#")
 				if (nzchar(body) && !comment) {

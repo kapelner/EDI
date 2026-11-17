@@ -311,7 +311,7 @@ def cmd_report(a):
     g("commit", "-qm", f"Compiled-code audit: {len(kept)} benchmarked change(s)\n\n{run_url}")
     g("push", "--force", "origin", f"{BRANCH}:{BRANCH}")
     old = gh("pr", "view", pr, "--json", "body", "--jq", ".body", check=False)
-    gh("pr", "edit", pr, "--body", body + "\n---\n\n" + old)
+    gh("pr", "edit", pr, "--body", (body + "\n---\n\n" + old)[:60000])
     gh("pr", "ready", pr, check=False)
     print(f"PR #{pr}: {len(kept)} of {len(props)} kept, marked ready")
     return 0

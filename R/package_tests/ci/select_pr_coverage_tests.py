@@ -67,11 +67,11 @@ CPP_TYPE_WORDS = {"const", "inline", "static", "template", "typename", "return",
 
 
 def changed_files(base, head, root):
-    out = subprocess.run(
-        ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACMR", f"{base}...{head}"],
-        check=True, capture_output=True, text=True,
-    ).stdout
-    return [line.strip() for line in out.splitlines() if line.strip()]
+    """Files the PR changes (base...head), minus R/C++/Python files whose edits are only comments
+    or whitespace: those select no tests (scripts/significant_changes.py)."""
+    sys.path.insert(0, str(Path(root) / "scripts"))
+    import significant_changes as sc
+    return sc.significant_changes(root, f"{base}...{head}", None, diff_filter="ACMR")
 
 
 def stem_tokens_for(path):

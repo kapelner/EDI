@@ -239,7 +239,7 @@ def _count(reasons, covered):
 def cmd_publish(a):
     module, spec, notes, ctx = context(a)
     work = Path(a.work)
-    report = (work / "report.md").read_text()
+    report = ac.fit_body((work / "report.md").read_text(), run_url())
     m = notes.manifest()
     label = spec["label"]
     gh("label", "create", label, "--color", "5319E7", "--description", f"{spec['title']} findings",

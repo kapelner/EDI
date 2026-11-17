@@ -145,19 +145,24 @@ DesignSeqOneByOneKK14 = define_design_class(
 							private$m[private$t] = 0
 							return(private$assign_wt_Bernoulli())
 						}
-						sqd_distances_times_two = compute_proportional_mahal_distances_cpp(
+						# The kernel returns d' S^-1 d for each reservoir subject, d = x_t - x_j. Under
+						# exchangeability d has covariance 2 Sigma, so the Hotelling statistic is half
+						# of that (Kapelner and Krieger 2014; SeqExpMatch 0.1.0 used 1/2 * d' S^-1 d).
+						# v1.0.6-TODO-45: the halving was lost in the port to C++, which made the
+						# test twice as strict as published and formed fewer matches.
+						T_sq = compute_proportional_mahal_distances_cpp(
 							all_subject_data$xt_prev,
 							all_subject_data$X_prev,
 							as.integer(reservoir_indices),
 							S_xs_inv
-						)
+						) / 2
 						#compute F-test threshold
 						F_crit = qf(private$compute_lambda(), all_subject_data$rank_prev, private$t - all_subject_data$rank_prev)
 						n = self$get_n()
 						T_cutoff_sq = all_subject_data$rank_prev * (n - 1) / (n - all_subject_data$rank_prev) * F_crit
-						min_sqd_dist_index = which(sqd_distances_times_two == min(sqd_distances_times_two))
+						min_sqd_dist_index = which(T_sq == min(T_sq))
 						if (length(min_sqd_dist_index) > 1) min_sqd_dist_index = min_sqd_dist_index[1]
-						if (sqd_distances_times_two[min_sqd_dist_index] < T_cutoff_sq){
+						if (T_sq[min_sqd_dist_index] < T_cutoff_sq){
 							#we matched!
 							match_num = max(private$m) + 1
 							#update previous subject's match number

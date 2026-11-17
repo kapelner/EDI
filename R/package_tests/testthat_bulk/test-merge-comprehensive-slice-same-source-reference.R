@@ -33,11 +33,15 @@ testthat::test_that("same-source DLL acceptance checks git, and the legacy exit 
 	dll_c <- file.path(root, "C.so"); writeLines("build C", dll_c)
 	sa <- sha256(dll_a); sb <- sha256(dll_b); sc <- sha256(dll_c)
 
-	# A throwaway checkout: c1 -> c2 changes only a comment and a test file -> c3
-	# changes one code line in R/EDI/R/registry.R.
+	# A throwaway checkout: c1 -> c2 changes only a comment, the spacing of a code
+	# line and a test file -> c3 changes one code line in R/EDI/R/registry.R. The
+	# checkout carries scripts/significant_changes.py, which the same-source check
+	# uses to treat comment/whitespace-only edits as no change (2026-11-17).
 	repo <- file.path(root, "repo")
 	dir.create(file.path(repo, "R", "EDI", "R"), recursive = TRUE)
 	dir.create(file.path(repo, "R", "EDI", "tests"), recursive = TRUE)
+	dir.create(file.path(repo, "scripts"))
+	file.copy(find_repo_file(file.path("scripts", "significant_changes.py")), file.path(repo, "scripts"))
 	git <- function(...) {
 		out <- suppressWarnings(system2("git", c("-C", shQuote(repo), ...), stdout = TRUE, stderr = TRUE))
 		if (!is.null(attr(out, "status"))) stop("git ", paste(c(...), collapse = " "), " failed: ", paste(out, collapse = "\n"))
@@ -53,7 +57,7 @@ testthat::test_that("same-source DLL acceptance checks git, and the legacy exit 
 	writeLines("excluded = c('x')", file.path(repo, "R", "EDI", "R", "registry.R"))
 	writeLines("test_that('t', {})", file.path(repo, "R", "EDI", "tests", "t.R"))
 	c1 <- commit("c1")
-	writeLines(c("# helper, reworded", "f = function(x) x + 1", ""), file.path(repo, "R", "EDI", "R", "a.R"))
+	writeLines(c("# helper, reworded", "f = function(x)   x+1  # same code, re-spaced", ""), file.path(repo, "R", "EDI", "R", "a.R"))
 	writeLines("test_that('t2', {})", file.path(repo, "R", "EDI", "tests", "t.R"))
 	c2 <- commit("c2")
 	writeLines("excluded = c('x', 'y')", file.path(repo, "R", "EDI", "R", "registry.R"))
@@ -133,7 +137,7 @@ testthat::test_that("same-source DLL acceptance checks git, and the legacy exit 
 	res <- run(plain, "--accept-same-source-dlls", sa, "--installed-build-head", c2, installed = dll_b)
 	testthat::expect_identical(res$status, 1L, info = res$out)
 
-	# Both listed, installed head c2: only comment/blank/test lines changed, so it passes.
+	# Both listed, installed head c2: only comment/whitespace/test edits, so it passes.
 	res <- run(plain, "--accept-same-source-dlls", ok_list, "--installed-build-head", c2, installed = dll_b)
 	testthat::expect_identical(res$status, 0L, info = res$out)
 	testthat::expect_match(res$out, "accepted by --accept-same-source-dlls", fixed = TRUE)

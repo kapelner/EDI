@@ -1,0 +1,490 @@
+---
+title: "Planning a Study: Power and Sample Size by Simulation"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Before a trial starts, someone has to answer "how many subjects do we need?" The
+textbook formulas answer it for a two-sample t-test or a two-proportion z-test.
+The trial you are planning may use a covariate-balancing design, a covariate-adjusted
+analysis, a binary or survival outcome, or subjects who arrive one at a time. No
+closed-form formula covers that combination. A simulation does: generate the trial
+many times with a treatment effect you plant, run the analysis you will actually
+run, and count how often it rejects.
+
+This article walks through that workflow with EDI (Experimental Design and
+Inference). It assumes you know the four steps of an EDI analysis (design, assign,
+record responses, infer) from [Get started](EDI.html) or the
+[continuous cookbook](cookbook-continuous.html). If you have never computed power
+by simulation, Lesson 3 of
+[Learn Statistics Through EDI](learn-statistics-through-edi.html) does it for a
+plain t-test first.
+
+## The recipe
+
+1. **Fix what the trial will do.** The design (how treatment is assigned), the
+   analysis (an inference class and a procedure, such as its Wald test), and the
+   significance level `alpha`.
+2. **Fix what you believe about the world.** An outcome model: how the covariates
+   you will record relate to the outcome, how noisy the outcome is, and how the
+   covariates are distributed in the population you will enroll. Then the
+   effect size you want to detect, on the scale the analysis reports.
+3. **Simulate.** For each candidate sample size `n`, simulate `R` trials. In each,
+   draw `n` subjects, assign treatment with the design, generate outcomes with the
+   planted effect, run the analysis, and record whether `p < alpha`.
+4. **Read off power.** Power at `n` is the rejection rate. Pick the smallest `n`
+   whose lower Monte Carlo bound clears your target (80% below). Using the lower
+   bound rather than the point estimate guards against picking an `n` that only
+   looks adequate because of simulation noise.
+5. **Check size.** Rerun at the chosen `n` with the effect set to zero. If the
+   procedure rejects much more than `alpha` of the time there, its power at that
+   `n` means nothing (see [Checking size too](#checking-size-too)).
+
+A rejection rate estimated from `R` trials has Monte Carlo standard error
+$\sqrt{p(1-p)/R}$. Near the target $p = 0.8$, the number of trials needed for a
+95% interval of half-width $h$ is $R = 1.96^2 \times 0.8 \times 0.2 / h^2$:
+
+```{r reps-needed}
+h = c(0.05, 0.04, 0.03, 0.02, 0.01)
+data.frame(half_width = h, R_needed = ceiling(qnorm(0.975)^2 * 0.8 * 0.2 / h^2))
+```
+
+This article uses `R` = 400 to 500 per point so that it builds in a few minutes,
+which gives a half-width of about 4 percentage points. For a real protocol, use
+1,500 or more at the final `n`.
+
+Two small helpers turn rejection rates into intervals and pick the `n`:
+
+```{r helpers}
+alpha = 0.05
+target_power = 0.80
+
+mc_bounds = function(p, R) {
+  h = qnorm(0.975) * sqrt(p * (1 - p) / R)
+  data.frame(lower = pmax(p - h, 0), upper = pmin(p + h, 1))
+}
+
+smallest_n = function(n, power, R, target = target_power) {
+  ok = which(mc_bounds(power, R)$lower >= target)
+  if (length(ok) == 0) NA else n[min(ok)]
+}
+```
+
+## Worked example 1: a continuous outcome, two designs
+
+**The question.** A trial will record two baseline covariates and a continuous
+outcome. How many subjects are needed for 80% power to detect a treatment effect
+of 0.9 outcome units at `alpha = 0.05`, under complete randomization versus
+pairwise matching on the covariates?
+
+**The outcome model.** The covariates are standard normal. The outcome depends on
+them partly linearly and partly not, with residual noise of standard deviation 1:
+
+```{r ex1-model}
+draw_covariates = function(n) data.frame(x1 = rnorm(n), x2 = rnorm(n))
+outcome_model = function(X) X$x1 + 0.5 * X$x2 + 0.8 * (X$x1^2 - 1) + 0.6 * X$x1 * X$x2
+beta1 = 0.9          # the treatment effect to detect, in outcome units
+```
+
+**The designs and analyses.**
+
+* `DesignFixediBCRD`: complete randomization with equal arms, analyzed with
+  `InferenceContinOLS` (regression on treatment and the covariates).
+* `DesignFixedBinaryMatch`: subjects are paired on Mahalanobis distance and one of
+  each pair is treated. Analyzed two ways: with the same `InferenceContinOLS`, and
+  with `InferenceContinKKOLSOneLik`, the matched analysis, which fits one
+  covariate-adjusted regression over the within-pair differences (and any unmatched
+  subjects).
+
+### With `SimulationFramework`
+
+[`SimulationFramework`](../reference/SimulationFramework.html) fits this job well.
+It takes vectors of sample sizes `n` and effects `betaT`, runs every design against
+every inference class (skipping combinations that do not apply, such as the matched
+analysis on a design that does not match), and reports power per cell. Its built-in
+outcome model is linear in the covariates. To use your own, pass
+`custom_replication_data_generator`, a function of `(state, rep)` that returns the
+covariates `X` and the control-arm mean `y_linear_model` for `state$n` subjects. For
+a continuous outcome the framework then adds `betaT` to treated subjects and normal
+noise with standard deviation `sd_noise`.
+
+`inference_types_and_params = list(asymp_pval = list())` limits each analysis to its
+asymptotic p-value, the fast choice for screening sample sizes. `seed` gives every
+replication its own seed (`seed + i`), so the run is reproducible whatever
+`num_cores` is (see [Reproducibility](reproducibility.html)).
+
+```{r ex1-sim, message = FALSE}
+ns1 = c(30L, 50L, 70L, 90L, 120L, 150L)
+R1 = 400L
+
+generator = function(state, rep) {
+  X = draw_covariates(state$n)
+  list(X = X, y_linear_model = outcome_model(X))
+}
+
+sim1 = SimulationFramework$new(
+  response_type = "continuous",
+  design_classes_and_params = list(DesignFixediBCRD = list(), DesignFixedBinaryMatch = list()),
+  inference_classes_and_params = list(InferenceContinOLS = list(), InferenceContinKKOLSOneLik = list()),
+  n = ns1, p = 2L, betaT = beta1, sd_noise = 1, alpha = alpha, Nrep_W = R1,
+  custom_replication_data_generator = generator,
+  inference_types_and_params = list(asymp_pval = list()),
+  results_filename = tempfile(fileext = ".csv"), continue_from_last_result_row = FALSE,
+  seed = 2026L, num_cores = 2L, verbose = FALSE
+)
+sim1$run()
+pow1 = as.data.frame(SimulationFrameworkReport$new(sim1)$summarize())
+pow1$analysis = paste(sub("^Design", "", pow1$design), "+", sub("^Inference", "", pow1$inference))
+pow1 = cbind(pow1, mc_bounds(pow1$power, pow1$n_pow))
+pow1[, c("n", "analysis", "power", "lower", "upper", "n_pow")]
+```
+
+```{r ex1-pick}
+analyses1 = c(crd   = "FixediBCRD + ContinOLS",
+              m_ols = "FixedBinaryMatch + ContinOLS",
+              m_kk  = "FixedBinaryMatch + ContinKKOLSOneLik")
+curve1 = lapply(analyses1, function(a) pow1[pow1$analysis == a, ][order(pow1$n[pow1$analysis == a]), ])
+n_pick1 = sapply(curve1, function(d) smallest_n(d$n, d$power, d$n_pow))
+n_pick1
+power_at = function(curve, n) curve$power[curve$n == n]
+```
+
+```{r ex1-fig, echo = FALSE}
+cols1 = c(crd = "darkorange", m_ols = "grey45", m_kk = "steelblue")
+offs1 = c(crd = -1.2, m_ols = 0, m_kk = 1.2)
+plot(NA, xlim = range(ns1) + c(-3, 3), ylim = c(0, 1), xlab = "total sample size n",
+     ylab = "power (rejection rate at alpha = 0.05)",
+     main = sprintf("Power to detect an effect of %.1f, continuous outcome", beta1))
+abline(h = target_power, lty = 3)
+for (k in names(curve1)) {
+  d = curve1[[k]]
+  x = d$n + offs1[k]
+  lines(x, d$power, type = "b", pch = 19, lwd = 2, col = cols1[k])
+  arrows(x, d$lower, x, d$upper, angle = 90, code = 3, length = 0.03, col = cols1[k])
+}
+legend("bottomright", bty = "n", lwd = 2, pch = 19, col = cols1,
+       legend = c("complete randomization + OLS", "matched pairs + OLS (ignores pairs)",
+                  "matched pairs + matched analysis"))
+```
+
+The bars are 95% Monte Carlo intervals from `r R1` simulated trials per point, and
+the dotted line is the 80% target. The smallest `n` on the grid whose lower bound
+clears 80% is:
+
+* complete randomization with OLS: **n = `r n_pick1["crd"]`** (power
+  `r sprintf("%.1f%%", 100 * power_at(curve1$crd, n_pick1["crd"]))`);
+* matched pairs with the matched analysis: **n = `r n_pick1["m_kk"]`** (power
+  `r sprintf("%.1f%%", 100 * power_at(curve1$m_kk, n_pick1["m_kk"]))`);
+* matched pairs analyzed with plain OLS: n = `r n_pick1["m_ols"]`.
+
+These are provisional until the size check in [Checking size too](#checking-size-too).
+
+So under this outcome model the matched design needs about
+`r sprintf("%.0f%%", 100 * (1 - n_pick1["m_kk"] / n_pick1["crd"]))` fewer subjects
+than complete randomization, for the same analysis goal. The design changed the
+sample size, but only together with an analysis that uses the pairs. Plain OLS on
+the matched design estimates the effect just as precisely as the matched analysis
+(its mean squared error at n = `r max(ns1)` was
+`r sprintf("%.3f", pow1$MSE[pow1$analysis == analyses1["m_ols"] & pow1$n == max(ns1)])`
+versus
+`r sprintf("%.3f", pow1$MSE[pow1$analysis == analyses1["m_kk"] & pow1$n == max(ns1)])`
+for the matched analysis and
+`r sprintf("%.3f", pow1$MSE[pow1$analysis == analyses1["crd"] & pow1$n == max(ns1)])`
+under complete randomization), but its standard error does not know about the
+matching, so it overstates the uncertainty and gives up part of the gain.
+
+The gain depends on the outcome model. Here the covariates act on the outcome
+partly through a square and an interaction, which pairing on the covariates balances
+and linear adjustment does not remove. If the outcome were linear in the
+covariates, OLS adjustment alone would remove most of what matching removes, and the
+two designs would need similar sample sizes. That is why the outcome model is part
+of the plan: change `outcome_model` to `function(X) X$x1 + 0.5 * X$x2` and rerun to
+see it.
+
+The grid is coarse. To pin the answer down, rerun with a finer grid between the last
+`n` that failed and the first that passed, and more trials per point.
+
+## Worked example 2: a binary outcome, adjusted versus unadjusted
+
+`SimulationFramework` is convenient, but a plain loop is short and shows every step.
+This example uses one.
+
+**The question.** A binary outcome (an event occurs or not) with about a 40%
+control-arm risk. Treatment lowers the log odds by 0.75. One strong continuous
+prognostic covariate and one binary covariate are recorded at baseline. Under
+complete randomization, how many subjects are needed for 80% power, analyzing the
+risk difference with and without covariate adjustment?
+
+```{r ex2-model}
+draw_covariates2 = function(n) data.frame(x1 = rnorm(n), x2 = rbinom(n, 1, 0.4))
+log_odds_control = function(X) -0.7 + 1.2 * X$x1 + 0.5 * X$x2
+beta2 = -0.75        # treatment effect on the log-odds scale
+```
+
+The effect is planted on the log-odds scale, but both analyses report a risk
+difference, so translate it. A large draw from the covariate distribution gives the
+marginal risks the trial would see:
+
+```{r ex2-risks}
+set.seed(1)
+X_big = draw_covariates2(1e6)
+risk_c = mean(plogis(log_odds_control(X_big)))
+risk_t = mean(plogis(log_odds_control(X_big) + beta2))
+c(control = risk_c, treated = risk_t, risk_difference = risk_t - risk_c)
+```
+
+The planted effect is a drop from `r sprintf("%.1f%%", 100 * risk_c)` to
+`r sprintf("%.1f%%", 100 * risk_t)`, a risk difference of
+`r sprintf("%.1f", 100 * (risk_t - risk_c))` percentage points. The two analyses are
+`InferenceIncidGCompRiskDiff` (a logistic model with the covariates, standardized to
+a marginal risk difference) and `InferenceIncidNewcombeRiskDiff` (the unadjusted
+two-proportion comparison). Each simulated trial is analyzed both ways, so the two
+power curves share the same trials.
+
+```{r ex2-loop}
+one_trial2 = function(n, beta, seed) {
+  set.seed(seed)                                   # one seed per trial
+  X = draw_covariates2(n)
+  des = DesignFixediBCRD$new(n = n, response_type = "incidence", verbose = FALSE)
+  des$add_all_subjects_to_experiment(X)
+  des$assign_w_to_all_subjects()
+  w = des$get_w()
+  des$add_all_subject_responses(rbinom(n, 1, plogis(log_odds_control(X) + beta * w)))
+  c(adjusted   = InferenceIncidGCompRiskDiff$new(des, verbose = FALSE)$compute_asymp_two_sided_pval(),
+    unadjusted = InferenceIncidNewcombeRiskDiff$new(des, verbose = FALSE)$compute_asymp_two_sided_pval())
+}
+
+rejection_rates2 = function(n, beta, R, seed0) {
+  pvals = vapply(seq_len(R), function(i) one_trial2(n, beta, seed0 + i), numeric(2))
+  rowMeans(pvals < alpha)
+}
+
+ns2 = c(150L, 250L, 350L, 450L, 550L)
+R2 = 500L
+pow2 = t(sapply(ns2, rejection_rates2, beta = beta2, R = R2, seed0 = 0L))
+rownames(pow2) = paste0("n=", ns2)
+pow2
+n_pick2 = apply(pow2, 2, function(p) smallest_n(ns2, p, R2))
+n_pick2
+```
+
+```{r ex2-fig, echo = FALSE}
+cols2 = c(adjusted = "steelblue", unadjusted = "darkorange")
+offs2 = c(adjusted = -3, unadjusted = 3)
+plot(NA, xlim = range(ns2) + c(-10, 10), ylim = c(0, 1), xlab = "total sample size n",
+     ylab = "power (rejection rate at alpha = 0.05)",
+     main = sprintf("Power to detect a %.1f-point drop in risk, binary outcome",
+                    100 * (risk_c - risk_t)))
+abline(h = target_power, lty = 3)
+for (k in colnames(pow2)) {
+  b = mc_bounds(pow2[, k], R2)
+  x = ns2 + offs2[k]
+  lines(x, pow2[, k], type = "b", pch = 19, lwd = 2, col = cols2[k])
+  arrows(x, b$lower, x, b$upper, angle = 90, code = 3, length = 0.03, col = cols2[k])
+}
+legend("bottomright", bty = "n", lwd = 2, pch = 19, col = cols2,
+       legend = c("adjusted (g-computation risk difference)", "unadjusted (Newcombe risk difference)"))
+```
+
+With `r R2` trials per point, the smallest grid `n` whose lower bound clears 80% is
+**n = `r n_pick2["adjusted"]`** for the adjusted analysis and
+**n = `r n_pick2["unadjusted"]`** for the unadjusted one. At n =
+`r n_pick2["adjusted"]` the adjusted analysis has power
+`r sprintf("%.1f%%", 100 * pow2[paste0("n=", n_pick2["adjusted"]), "adjusted"])`
+and the unadjusted one
+`r sprintf("%.1f%%", 100 * pow2[paste0("n=", n_pick2["adjusted"]), "unadjusted"])`.
+Here the design is fixed and the analysis changes the sample size: adjusting for a
+covariate that predicts the outcome buys power for free.
+
+The loop uses the same seeds (`seed0 + i`) at every `n`. Using common random numbers
+like this makes the curves smoother than independent seeds would, since neighboring
+points share much of their noise. It does not bias any single point.
+
+## Checking size too
+
+A power curve answers "how often does the test reject when the effect is real?" It
+is only useful if the test rejects about `alpha` of the time when there is no effect.
+A test that rejects 9% of the time under the null at your `n` will also look more
+powerful than it is. Its "power" is partly false positives, and the sample size you
+read off it is too small.
+
+The [procedure-trust](procedure-trust.html) article explains which procedures are
+valid at every sample size (exact and randomization tests) and which only as `n`
+grows (Wald, likelihood-ratio, bootstrap and others). The Wald p-values used above
+are in the second group, so check them by simulation at the `n` you chose: same
+setup, `betaT = 0`.
+
+For example 1, `SimulationFramework` reports `size` and an exact binomial test of it
+against `alpha` (`size_pval`) when `betaT = 0`:
+
+```{r ex1-size, message = FALSE}
+R_size = 500L
+sim1_null = SimulationFramework$new(
+  response_type = "continuous",
+  design_classes_and_params = list(DesignFixediBCRD = list(), DesignFixedBinaryMatch = list()),
+  inference_classes_and_params = list(InferenceContinOLS = list(), InferenceContinKKOLSOneLik = list()),
+  n = unique(as.integer(c(n_pick1["crd"], n_pick1["m_kk"]))), p = 2L, betaT = 0, sd_noise = 1,
+  alpha = alpha, Nrep_W = R_size,
+  custom_replication_data_generator = generator,
+  inference_types_and_params = list(asymp_pval = list()),
+  results_filename = tempfile(fileext = ".csv"), continue_from_last_result_row = FALSE,
+  seed = 7001L, num_cores = 2L, verbose = FALSE
+)
+sim1_null$run()
+size1 = as.data.frame(SimulationFrameworkReport$new(sim1_null)$summarize())
+size1$analysis = paste(sub("^Design", "", size1$design), "+", sub("^Inference", "", size1$inference))
+size1 = cbind(size1, mc_bounds(size1$size, size1$n_size))
+size1 = size1[(size1$analysis == analyses1["crd"]  & size1$n == n_pick1["crd"]) |
+              (size1$analysis != analyses1["crd"]  & size1$n == n_pick1["m_kk"]), ]
+size1[, c("n", "analysis", "size", "lower", "upper", "size_pval")]
+size_of = function(a) size1$size[size1$analysis == analyses1[a]]
+row_of  = function(a) size1[size1$analysis == analyses1[a], ]
+```
+
+At the chosen sample sizes the rejection rates under no effect are
+`r sprintf("%.1f%%", 100 * size_of("crd"))` (complete randomization + OLS),
+`r sprintf("%.1f%%", 100 * size_of("m_kk"))` (matched analysis) and
+`r sprintf("%.1f%%", 100 * size_of("m_ols"))` (plain OLS on the matched design),
+each with a Monte Carlo standard error of about
+`r sprintf("%.1f", 100 * sqrt(0.05 * 0.95 / R_size))` percentage points.
+
+`r if (row_of("m_ols")$upper < alpha) "Plain OLS on the matched design rejects well below 5%. This is the overstated standard error seen above: the analysis is conservative, which costs power but does not invalidate it." else "Plain OLS on the matched design is not clearly below 5% here; its overstated standard error shows up mainly as lost power."`
+
+`r kk = row_of("m_kk"); if (kk$lower > alpha) sprintf("The matched analysis is oversized at n = %d: its 95%% interval (%.1f%% to %.1f%%) lies above 5%%. Part of its %.0f%% power there is false positives, so n = %d is too small for its Wald test. Move up the grid, or use the randomization test, whose size is exact at every n.", kk$n, 100 * kk$lower, 100 * kk$upper, 100 * power_at(curve1$m_kk, kk$n), kk$n) else if (kk$size > 0.06) sprintf("The matched analysis rejects %.1f%% at n = %d (95%% interval %.1f%% to %.1f%%, exact binomial p-value %.2f against 5%%). That is above 5%%, though not clearly beyond Monte Carlo noise with %d trials. Its Wald test uses a normal reference distribution and the effective sample size of this design is the number of pairs (%d here), so some excess at this n is plausible. Before quoting n = %d in a protocol, rerun this check with more trials and confirm power and size with the randomization test at that n (see the tips below).", 100 * kk$size, kk$n, 100 * kk$lower, 100 * kk$upper, kk$size_pval, R_size, kk$n %/% 2L, kk$n) else sprintf("The matched analysis rejects %.1f%% at n = %d, close to 5%%.", 100 * kk$size, kk$n)`
+
+For example 2, check both the chosen `n` and a small one:
+
+```{r ex2-size}
+R_size2 = 1000L
+n_small = 60L
+size2 = rbind(rejection_rates2(n_pick2["adjusted"], beta = 0, R = R_size2, seed0 = 1e6),
+              rejection_rates2(n_small,              beta = 0, R = R_size2, seed0 = 2e6))
+rownames(size2) = paste0("n=", c(n_pick2["adjusted"], n_small))
+size2
+small_lower = mc_bounds(size2[2, "adjusted"], R_size2)$lower
+```
+
+At n = `r n_pick2["adjusted"]` the adjusted test rejects
+`r sprintf("%.1f%%", 100 * size2[1, "adjusted"])` of null trials, so its power there
+can be trusted. At n = `r n_small` it rejects
+`r sprintf("%.1f%%", 100 * size2[2, "adjusted"])` (lower 95% bound
+`r sprintf("%.1f%%", 100 * small_lower)`, from `r R_size2` trials),
+`r if (small_lower > alpha) "clearly above" else "not clearly above"` the nominal 5%.
+`r if (small_lower > alpha) "A power curve for this analysis at small n would overstate what the trial can detect; a planner working at that size should switch to a randomization test, whose size is exact at every n." else "Even so, check size at your own n: the Wald test for a fitted logistic model is only asymptotically valid."`
+
+## A sequential design
+
+Many trials enroll subjects one at a time, and the design must assign each on
+arrival. `DesignSeqOneByOneKK21` matches each new subject to an earlier unmatched one
+when their covariates are close, so pairs form as the trial runs. In a simulation
+the per-subject loop sits inside the per-trial loop. Here is power at the sample size
+example 1 chose for the fixed matched design, with the same outcome model and effect,
+analyzed by the matched class `InferenceContinKKOLSOneLik` (as in the
+[continuous cookbook](cookbook-continuous.html)):
+
+```{r seq}
+one_trial_seq = function(n, beta, seed) {
+  set.seed(seed)
+  X = draw_covariates(n)
+  mu = outcome_model(X)
+  des = DesignSeqOneByOneKK21$new(n = n, response_type = "continuous", verbose = FALSE)
+  for (i in seq_len(n)) {                                      # subjects arrive one by one
+    w_i = des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+    des$add_one_subject_response(i, mu[i] + beta * w_i + rnorm(1))
+  }
+  InferenceContinKKOLSOneLik$new(des, verbose = FALSE)$compute_asymp_two_sided_pval()
+}
+
+n_seq = as.integer(n_pick1["m_kk"])
+R_seq = 200L
+p_seq = vapply(seq_len(R_seq), function(i) one_trial_seq(n_seq, beta1, 3e6 + i), numeric(1))
+power_seq = mean(p_seq < alpha)
+cbind(power = power_seq, mc_bounds(power_seq, R_seq))
+```
+
+At n = `r n_seq` the sequential matching design has power
+`r sprintf("%.1f%%", 100 * power_seq)` (95% interval
+`r sprintf("%.1f%%", 100 * mc_bounds(power_seq, R_seq)$lower)` to
+`r sprintf("%.1f%%", 100 * mc_bounds(power_seq, R_seq)$upper)`, from only
+`r R_seq` trials because each sequential trial is slower to simulate), against
+`r sprintf("%.1f%%", 100 * power_at(curve1$m_kk, n_seq))` for the fixed matched design
+that sees every subject before pairing. A sequential design cannot match as well as
+one that waits for all the covariates, so expect some loss, and check the size at
+your `n` as above before using the number. `SimulationFramework` also accepts
+sequential design classes (its reference example runs `DesignSeqOneByOneKK21`) and
+runs this per-subject loop for you.
+
+## Practical tips
+
+**Seeds.** Give each simulated trial its own seed, derived from its index
+(`seed0 + i` above, `seed + i` inside `SimulationFramework`), rather than setting one
+seed at the top and running everything in sequence. Then any single trial can be
+reproduced on its own, and the results do not depend on how trials are split across
+cores. [Reproducibility](reproducibility.html) explains how EDI seeds designs,
+resampling and `SimulationFramework`.
+
+**Cores.** `SimulationFramework` parallelizes over replications with `num_cores`
+(this article uses 2). In your own loop, wrap the per-trial function in
+`parallel::mclapply()` (Unix) or a `mirai`/`future` map, keeping the per-trial seed.
+When the trials run in parallel, leave each inference object at `num_cores = 1`
+so the two levels of parallelism do not compete for the same cores.
+
+**Speed.** Screen sample sizes with asymptotic p-values, which take milliseconds.
+Randomization and bootstrap p-values repeat the analysis hundreds of times per trial,
+so run them only at the final `n`, to confirm the power and size of the procedure
+you will report. For example:
+
+```{r final-check, eval = FALSE}
+sim_final = SimulationFramework$new(
+  response_type = "continuous",
+  design_classes_and_params = list(DesignFixedBinaryMatch = list()),
+  inference_classes_and_params = list(InferenceContinKKOLSOneLik = list()),
+  n = as.integer(n_pick1["m_kk"]), p = 2L, betaT = c(0, beta1), Nrep_W = 2000L,
+  custom_replication_data_generator = generator,
+  inference_types_and_params = list(asymp_pval = list(), rand_pval = list(r = 499L)),
+  results_filename = "final_check.csv.bz2", seed = 2026L, num_cores = 8L
+)
+sim_final$run()
+SimulationFrameworkReport$new(sim_final)$summarize()
+```
+
+With `results_filename` on disk and `continue_from_last_result_row = TRUE` (the
+default), an interrupted run resumes where it stopped.
+
+**Report what you assumed.** A simulated sample size is only as good as its
+inputs, so the protocol should state them: the design and its settings; the analysis
+class, procedure and `alpha`; the effect size and its scale (mean difference, log
+odds, risk difference); the outcome model, including how strongly each covariate
+predicts the outcome and the noise level or baseline risk; the covariate
+distribution; the number of simulated trials per point and the resulting Monte
+Carlo error; the seed; and the size check at the chosen `n`. A sensitivity run with
+a weaker covariate effect or a smaller treatment effect shows how much the answer
+depends on them.
+
+## Where to go next
+
+* [Get started](EDI.html): the design, assign, record, infer pattern.
+* [Which procedure can I trust at my sample size?](procedure-trust.html): which
+  tests hold their level at small `n`.
+* [Learn Statistics Through EDI](learn-statistics-through-edi.html): power, size and
+  coverage by simulation, for teaching.
+* The cookbooks, one per outcome type: [continuous](cookbook-continuous.html),
+  [incidence](cookbook-incidence.html), [count](cookbook-count.html),
+  [proportion](cookbook-proportion.html), [survival](cookbook-survival.html),
+  [ordinal](cookbook-ordinal.html).
+* [`SimulationFramework`](../reference/SimulationFramework.html) and
+  [`SimulationFrameworkReport`](../reference/SimulationFrameworkReport.html): every
+  option, including outcome types beyond these two.
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("planning-a-study rendered in %.0f seconds", render_secs))
+```

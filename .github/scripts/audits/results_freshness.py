@@ -14,7 +14,7 @@ Sources and how each row's generation commit is known:
   `campaigns/<id>/summary/calibration_summary.csv`, generated at the `SHA` in its `campaign.env`.
 
 A row group is (results file, class). It is stale when a file it depends on has a functional change
-(benchmark_gate.is_functional_change: not only blank or comment lines) between its generation
+(benchmark_gate.is_functional_change: more than comments and whitespace) between its generation
 commit and HEAD. Dependencies, from benchmark_gate.r_targets (imported, not copied):
 
 - class-specific: the class's own R file and the files of the classes it inherits from;

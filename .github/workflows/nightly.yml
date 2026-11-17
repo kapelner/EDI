@@ -113,7 +113,9 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"; echo "fuzz=true" >> "$GITHUB_OUTPUT"
             echo "::warning::No base commit found; running everything."; exit 0
           fi
-          changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
+          # scripts/significant_changes.py drops R/C++ files whose edits are only comments or
+          # whitespace (owner ruling 2026-11-17): such an edit is not a codebase change.
+          changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
           if [ "$rc" -ne 0 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"; echo "fuzz=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Change detection failed; running everything."; exit 0
@@ -126,7 +128,7 @@ jobs:
             echo "No codebase change $how: skipping the nightly suites." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
           # Fuzzing only when C++ code or the native test suite changed (owner ruling 2026-11-14).
-          fuzz_changed="$(git diff --name-only "$base" HEAD -- ':(glob)R/EDI/src/**' ':(glob)cpp_tests/**')"
+          fuzz_changed="$(python3 scripts/significant_changes.py "$base" HEAD -- ':(glob)R/EDI/src/**' ':(glob)cpp_tests/**' || echo failed)"
           if [ -n "$fuzz_changed" ]; then
             echo "fuzz=true" >> "$GITHUB_OUTPUT"; echo "C++ or cpp_tests/ changed $how: fuzzing runs."
           else

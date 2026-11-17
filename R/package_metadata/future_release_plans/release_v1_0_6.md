@@ -879,3 +879,28 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     the touched `.cpp` files (CLAUDE.md targeted-compile rule).
   - Done when: `grep -rn` finds none of the three symbols outside history, the hurdle-NB, Cox and Newcombe tests pass
     with unchanged results, and the registries, inventory and NEWS are current.
+- [ ] TODO-44 (added 2026-11-17, agent, owner request; found by the case-study article agent): **Covariate
+  imputation must not use the outcome.** `missingness_method = "impute"` (`R/EDI/R/design_abstract.R`,
+  `covariate_impute_if_necessary_and_then_create_model_matrix()`) gave missRanger/missForest the response
+  (`get_effective_time()`) as an extra predictor but not the assignment. Treated subjects have shifted responses, so
+  the imputed covariate carried part of the treatment effect, and adjusting for it biased the estimate toward 0
+  (`InferenceContinOLS`, n = 200, true effect 1, 30% of x missing, 150 reps: mean 0.900 (MC SE 0.014), 95% CI
+  coverage 0.91; complete data 0.988 and 0.97). The imputation was also unseeded, so the same data gave slightly
+  different estimates, and it advanced the caller's RNG.
+  - Done 2026-11-17: impute from the covariates only; seed with the design's `seed`, else 1, inside a
+    `.Random.seed` save/restore. After the fix the same simulation gives 0.996 (MC SE 0.018) and coverage 0.93.
+    Roxygen and `man/Design.Rd` updated by hand (no interim roxygenize). Test:
+    `R/package_tests/testthat_bulk/test-covariate-imputation-ignores-outcome.R` (fails on 1.0.4, passes now);
+    the missForest-fallback test's wording updated. The randomization test under the sharp null was never affected
+    (imputation ran once with y fixed and w unused).
+  - The two articles that described the old default (`vignettes/articles/case-study.Rmd`,
+    `vignettes/articles/analyzing-an-existing-experiment.Rmd`) are updated; the case study re-rendered on the new
+    code (adjusted HR 0.68 (0.54, 0.86), unchanged to two decimals; its blocked and unblocked designs now give the
+    identical estimate).
+  - Single imputation does not understate the variance here (owner question 2026-11-17): the imputed covariate is
+    outcome- and assignment-free, so it is just an adjustment covariate (Freedman 2008; Lin 2013). Checked: 600
+    trials, fresh imputation seed each, MAR missingness: coverage 0.958 (linear) and 0.945 (nonlinear outcome),
+    MC SE 0.009; on one dataset the estimate's SD across 30 imputation seeds was 0.001 vs SE 0.186. The argument
+    and numbers are in the `missingness_method` roxygen (`Design.Rd`); Freedman2008 added to `REFERENCES.md`.
+  - Still to do: a NEWS line under the next release's heading (imputed values and covariate-adjusted estimates change
+    for data with missing covariates, and are now reproducible).

@@ -13,8 +13,8 @@ library(EDI)
 # for real, not just dispatch-checked.
 #   1. When missRanger() throws, missForest() is invoked exactly once (a call-count probe) and the
 #      resulting Ximp has no missing values, with every observed (non-NA) value preserved exactly.
-#   2. The same fallback also runs correctly when there is a response column to condition on
-#      (get_effective_time() non-NA), matching the happy path's own y-conditioning behavior.
+#   2. The same fallback also runs correctly once responses are recorded. Since v1.0.6-TODO-44 the
+#      imputation no longer uses the response (see test-covariate-imputation-ignores-outcome.R).
 
 miss_covariates <- function(n = 30L, seed = 3L) {
 	set.seed(seed)
@@ -59,7 +59,7 @@ test_that("when missRanger() throws, missForest() is invoked exactly once and pr
 	expect_true(as.character(priv$Ximp$d[4]) %in% c("u", "v"))
 })
 
-test_that("the same fallback runs correctly when there is a response column to condition on", {
+test_that("the same fallback runs correctly once responses are recorded", {
 	X <- miss_covariates(seed = 4L)
 	des <- miss_design(X, response = rnorm(nrow(X)))
 	priv <- des$.__enclos_env__$private

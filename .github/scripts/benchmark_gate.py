@@ -31,6 +31,10 @@ import re
 import subprocess
 import sys
 
+# The repo-wide "is this a code change?" rule (comments/whitespace never count).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "scripts"))
+import significant_changes  # noqa: E402
+
 FAMILIES = ["continuous", "incidence", "count", "proportion", "ordinal", "survival"]
 FAMILY_SECTIONS = ["models", "wald"]
 R_JOBS = ([f"{sec}-{fam}" for sec in FAMILY_SECTIONS for fam in FAMILIES]
@@ -95,7 +99,6 @@ BUILD_FILES = {"R/EDI/DESCRIPTION", "R/EDI/NAMESPACE", "R/EDI/configure", "R/EDI
 R_HARNESS = {"R/benchmark/benchmark_model_fits.R", "R/benchmark/benchmark_sections.R"}
 PYTHON_HARNESS = "R/benchmark/benchmark_model_fits_python.py"
 PYTHON_BUILD = ("python/cpp/", "python/src/", "python/CMakeLists.txt", "python/pyproject.toml")
-SOURCE_EXT = (".R", ".r", ".cpp", ".c", ".h", ".hpp", ".py")
 
 
 def keyword_families(base):
@@ -163,21 +166,10 @@ def git(*args, check=True):
     return subprocess.run(["git", *args], capture_output=True, text=True, check=check).stdout
 
 
-COMMENT_OR_BLANK = re.compile(r"^(|#.*|//.*|/\*.*|\*.*)$")
-
-
 def is_functional_change(base, head, path):
-    """A build or harness file counts on any change; a source file only when a
-    changed line is not blank and not a comment (#, roxygen #', //, /* */)."""
-    if not path.endswith(SOURCE_EXT):
-        return True
-    diff = git("diff", "-U0", base, head, "--", path)
-    for line in diff.splitlines():
-        if line.startswith(("+++", "---")) or not line.startswith(("+", "-")):
-            continue
-        if not COMMENT_OR_BLANK.match(line[1:].strip()):
-            return True
-    return False
+    """A build or harness file counts on any change; an R, C/C++ or Python source only when
+    it differs in more than comments and whitespace (scripts/significant_changes.py)."""
+    return significant_changes.is_functional_change(base, head, path)
 
 
 def changed_files(base, head):

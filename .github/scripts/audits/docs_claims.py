@@ -139,7 +139,7 @@ def apply(ctx, results, mech):
         human.append(f"`{c}` ({len(items)}):\n" + "\n".join(f"  - {x}" for x in items))
     summary = (f"- {counts['claims']} testable claims checked: {counts['covered']} covered, {counts['partly']} partly, "
                f"{counts['uncovered']} with no test, {counts['contradicted']} contradicted.\n"
-               "- This audit changes no file, so with the current framework it opens no PR on its own: these "
-               "findings are in the run summary, and in the PR body only when another change is proposed.")
+               "- This audit changes no file, so its findings go in this issue (label "
+               "`audit-docs-claims`), which closes itself on a clean run.")
     return {"summary": summary, "applied": [], "mechanical": [m["text"] for m in mech], "human": human,
             "proposed": []}

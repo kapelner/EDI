@@ -172,5 +172,6 @@ inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
 - How the estimates were validated: `vignette("validation-evidence")`.
 - Seeds, RNG streams, and parallel reproducibility:
   `vignette("reproducibility")`.
-- Power and operating characteristics for a planned design:
-  `SimulationFramework` (see its reference page's `\donttest{}` example).
+- Power and sample size for a planned design:
+  [Planning a Study](https://kapelner.github.io/EDI/articles/planning-a-study.html)
+  and `SimulationFramework`.

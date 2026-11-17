@@ -108,6 +108,16 @@ def render(rows, generated_at, run_url="", repo=""):
     return "\n".join(lines) + "\n"
 
 
+def label_of(audit):
+    """The audit's issue/PR label from its module SPEC (ci-self-check uses its own), else audit-<name>."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import audit_common as ac
+        return ac.spec_of(ac.load_audit(audit))["label"]
+    except Exception:  # noqa: BLE001 - a module that fails to import still gets a row
+        return f"audit-{audit}"
+
+
 def collect(repo, wf_dir):
     rows = []
     prs = json.loads(gh("pr", "list", "--repo", repo, "--state", "open", "--limit", "200",
@@ -115,7 +125,7 @@ def collect(repo, wf_dir):
     issues = json.loads(gh("issue", "list", "--repo", repo, "--state", "open", "--limit", "200",
                            "--json", "number,url,labels") or "[]")
     for c in callers(wf_dir):
-        label = f"audit-{c['audit']}"
+        label = label_of(c["audit"])
         runs = json.loads(gh("api", f"repos/{repo}/actions/workflows/{c['file']}/runs?per_page=10",
                              check=False) or "{}").get("workflow_runs", [])
         run = runs[0] if runs else None

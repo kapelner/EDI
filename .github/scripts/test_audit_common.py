@@ -250,5 +250,22 @@ class Repo(unittest.TestCase):
             self.assertIn(f"audit: {spec['name']}", wf.read_text(), name)
 
 
+class Body(unittest.TestCase):
+    def test_fit_body(self):
+        short = "## A\n\n- one\n"
+        self.assertEqual(ac.fit_body(short), short)
+        lines = "\n".join(f"- finding {i} " + "x" * 200 for i in range(2000))
+        report = "## TODO-status audit\n\n" + lines + "\n\n### Coverage\n\n- units in scope: 2054\n\nRun: https://r\n"
+        out = ac.fit_body(report, "https://r")
+        self.assertLessEqual(len(out), ac.BODY_LIMIT)
+        self.assertTrue(out.startswith("## TODO-status audit"))
+        self.assertIn("### Coverage", out)
+        self.assertIn("units in scope: 2054", out)
+        self.assertIn("more line(s) not shown", out)
+        self.assertIn("https://r", out)
+        # no Coverage section: still cut to fit
+        self.assertLessEqual(len(ac.fit_body("x\n" * 50000)), ac.BODY_LIMIT)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

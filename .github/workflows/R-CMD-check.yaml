@@ -97,7 +97,10 @@ jobs:
   # same paths as the push filter above:
   #   schedule      only if package code changed since the previous weekly run
   #   pull_request  only if the PR changes package code (no paths filter on PRs)
-  #   push, dispatch  always (push is already path-filtered). Fails open: any error in this job
+  #   push          only if the pushed commits change package code in more than comments or
+  #                 whitespace (the path filter above cannot look at content; 2026-11-17)
+  #   dispatch      always. "Changed" never counts comment/whitespace-only edits to R/C++ files
+  #                 (scripts/significant_changes.py). Fails open: any error in this job
   # (no earlier run, a force-pushed base, an API failure) means run=true, so a
   # problem here can never skip the push checks. Job-level permissions only
   # affect this job.
@@ -112,7 +115,7 @@ jobs:
       run: ${{ steps.decide.outputs.run }}
     steps:
       - uses: actions/checkout@v7
-        if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           fetch-depth: 0
       - id: decide
@@ -120,18 +123,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
+          # Changed files come from scripts/significant_changes.py: an R/C++ edit that only
+          # touches comments or whitespace is not a package change (owner ruling 2026-11-17).
           event="${{ github.event_name }}"
-          if [ "$event" != "schedule" ] && [ "$event" != "pull_request" ]; then
+          if [ "$event" != "schedule" ] && [ "$event" != "pull_request" ] && [ "$event" != "push" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"; echo "Event $event: running."; exit 0
           fi
           paths=(':(glob)R/EDI/**/*.R' ':(glob)R/EDI/**/*.Rd' ':(glob)R/EDI/**/*.cpp' ':(glob)R/EDI/**/*.h'
                  ':(glob)R/EDI/**/*.hpp' 'R/EDI/DESCRIPTION' 'R/EDI/NAMESPACE' 'R/EDI/configure' 'R/EDI/configure.win'
                  'R/EDI/src/Makevars' 'R/EDI/src/Makevars.win' '.github/workflows/R-CMD-check.yaml'
                  ':(glob)R/EDI/tests/**' '.github/scripts/compare_repro_digests.R')
-          if [ "$event" = "pull_request" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
-            changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
-            how="in this pull request (vs base ${base:0:12})"
+          if [ "$event" = "pull_request" ] || [ "$event" = "push" ]; then
+            if [ "$event" = "push" ]; then
+              base="${{ github.event.before }}"; how="in this push (vs ${base:0:12})"
+            else
+              base="${{ github.event.pull_request.base.sha }}"; how="in this pull request (vs base ${base:0:12})"
+            fi
+            if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              echo "run=true" >> "$GITHUB_OUTPUT"; echo "No usable base commit (${base:-none}): running."; exit 0
+            fi
+            changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
             if [ "$rc" -ne 0 ]; then
               echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::Change detection failed; running."; exit 0
             fi
@@ -149,10 +160,14 @@ jobs:
                     --limit 20 --json databaseId,headSha,conclusion \
                     --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.conclusion == \"success\" or .conclusion == \"failure\")][0].headSha" 2>/dev/null)"
           if [ -n "$base" ] && git cat-file -e "${base}^{commit}" 2>/dev/null; then
-            changed="$(git diff --name-only "$base" HEAD -- "${paths[@]}")"; rc=$?
+            changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
             how="since the previous weekly run at ${base:0:12}"
           else
-            changed="$(git log --since='8 days ago' --name-only --format= -- "${paths[@]}")"; rc=$?
+            base="$(git rev-list -1 --before='8 days ago' HEAD)"
+            if [ -z "$base" ]; then
+              echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::No base commit found; running."; exit 0
+            fi
+            changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
             how="in the last 8 days (no usable previous weekly run)"
           fi
           if [ "$rc" -ne 0 ]; then

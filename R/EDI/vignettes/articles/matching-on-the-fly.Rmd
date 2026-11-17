@@ -1,0 +1,606 @@
+---
+title: "Matching on the Fly: The Kapelner–Krieger Sequential Designs"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+render_start = Sys.time()
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Pair matching is one of the oldest ways to make a two-arm experiment more precise:
+put similar subjects into pairs, then flip a coin within each pair. A matched design
+needs every subject's covariates before anyone is assigned. In a clinical trial, a
+field experiment or an online test, subjects arrive one at a time, and each must be
+assigned when they arrive. The design cannot see who comes next, so it cannot form
+the pairs up front.
+
+The usual fallback is to randomize each arrival on its own (a coin flip, or complete
+randomization run sequentially). That is valid, but in a small trial chance alone can
+leave the two arms noticeably different on an important covariate, and the analysis
+pays for that imbalance with a wider interval.
+
+Kapelner and Krieger's *matching on the fly* (Kapelner and Krieger, 2014) keeps the
+pairs and gives up the requirement to see everyone first. Each arrival is compared
+with the earlier subjects who have not been matched yet. If one of them is close
+enough, the two become a pair and the new subject gets the opposite treatment.
+Otherwise the new subject is randomized and waits, unmatched, for a later arrival.
+EDI (Experimental Design and Inference) implements this design and its extension
+(Kapelner and Krieger, 2021) as three classes:
+
+| Class | Distance used to find a match | Acceptance threshold |
+|---|---|---|
+| `DesignSeqOneByOneKK14` | Mahalanobis distance on all covariates | An F critical value (closed form) |
+| `DesignSeqOneByOneKK21` | Weighted squared distance on standardized covariates; weights estimated from the responses so far | A quantile of resampled pairwise distances |
+| `DesignSeqOneByOneKK21stepwise` | As KK21, with weights from forward stepwise regression | As KK21 |
+
+This article explains how the three designs work, runs one trial subject by subject,
+describes the matched estimator and its inference classes, and measures by simulation
+how much the matching gains and when it gains little. It assumes the four steps of an
+EDI analysis (design, assign, record responses, infer) from [Get started](EDI.html)
+and the [continuous cookbook](cookbook-continuous.html).
+
+## How the designs work
+
+Every KK design keeps a vector of match labels, one per subject. A label of 0 means
+the subject is in the **reservoir**: randomized, and not (yet) matched. A positive
+label is a pair number; the two subjects that share it form a matched pair, one
+treated and one control. When subject `t` arrives, the design does one of two things:
+
+1. **Match.** Find the reservoir subject closest to subject `t`. If the distance is
+   below a threshold, give both the next pair number and assign subject `t` the
+   opposite of their partner's treatment. The partner leaves the reservoir.
+2. **Randomize.** Otherwise assign subject `t` by a fair coin and add them to the
+   reservoir.
+
+Allocation is 1:1 (there is no `prob_T` argument): each pair adds one treated and one
+control subject, and reservoir subjects are assigned with probability 1/2. The designs
+differ only in how they measure "closest" and what counts as "close enough".
+
+### KK14: Mahalanobis distance and an F threshold
+
+**Burn-in.** For the first `t_0_pct * n` subjects (default `t_0_pct = 0.35`) the
+design only randomizes, so that there are enough subjects to estimate the covariance
+of the covariates. Every burn-in subject goes into the reservoir.
+
+**Distance.** After burn-in, the design computes the sample covariance matrix $S$ of
+the covariates of the subjects seen so far (with a small ridge added for numerical
+stability) and, for each reservoir subject $r$, the squared Mahalanobis distance
+$$D^2_{t,r} = (x_t - x_r)^\top S^{-1} (x_t - x_r).$$
+
+**Threshold.** The closest reservoir subject is accepted as a match only if
+$$D^2_{t,r} < \frac{p\,(n-1)}{n-p}\, F_{p,\; t-p}(\lambda),$$
+where $p$ is the rank of the covariate matrix so far, $n$ is the planned sample size,
+$t$ is the number of subjects enrolled so far, and $F_{p,\,t-p}(\lambda)$ is the
+$\lambda$ quantile of the F distribution with $p$ and $t-p$ degrees of freedom. This
+is a Hotelling $T^2$-type test of whether the covariate difference is small. The
+argument `lambda` (default 0.1) sets how strict it is: a smaller `lambda` accepts
+fewer, closer matches and leaves more subjects in the reservoir.
+
+KK14 uses only the covariates. It never looks at a response, so it gives every
+covariate the same importance after the Mahalanobis scaling, including covariates that
+have nothing to do with the outcome.
+
+### KK21: weight covariates by how much they predict the response
+
+In most trials some covariates predict the outcome strongly and others not at all.
+Matching closely on an irrelevant covariate costs matches and buys no precision.
+`DesignSeqOneByOneKK21` learns which covariates matter from the responses collected so
+far, so it needs the responses recorded as the trial runs
+(`add_one_subject_response()` after each outcome is observed).
+
+**Weights.** At each assignment, for each covariate $j$ separately, KK21 regresses the
+responses observed so far on that covariate alone and takes the absolute $t$
+statistic (coefficient divided by its standard error) as the raw weight. The model
+depends on the response type: OLS for continuous responses, logistic regression for
+incidence, and for count, proportion, survival and ordinal responses a fast OLS on a
+transformed response by default (on $\log(y+1)$, the logit, $\log(y)$ when nothing is
+censored yet, and the numeric level), switchable to a negative binomial, beta, AFT or
+proportional-odds fit with the `*_use_speedup` arguments. The weights are normalized to
+sum to one; `get_covariate_weights()` returns the latest vector and
+`get_iteration_weights()` the whole history.
+
+**Distance.** With standardized covariates $z$ and weights $w_j$, the distance to
+reservoir subject $r$ is
+$$d^2_{t,r} = \sum_j w_j\, (z_{t,j} - z_{r,j})^2 .$$
+
+**Threshold.** Instead of an F quantile, KK21 draws `num_boot` (default 500) random
+pairs of the subjects enrolled so far, computes the same weighted distance for each,
+and accepts the closest reservoir subject if its distance is below the `lambda`
+quantile (default 10%) of those distances. A match must therefore be closer than about
+90% of random pairs.
+
+**Fallback.** Until at least $2(p+2)$ responses are available ($p$ covariates), the
+regressions are too unstable to use, and KK21 applies the KK14 rule above. Burn-in
+works as in KK14.
+
+### KK21stepwise: weights that account for correlated covariates
+
+KK21's weights are marginal: two correlated covariates that carry the same information
+can both get a high weight, which counts that information twice.
+`DesignSeqOneByOneKK21stepwise` computes the weights by forward stepwise selection
+instead. At each step it fits the response on each remaining covariate together with
+the covariates already selected and the treatment indicator, picks the covariate with
+the largest absolute association statistic, and uses that statistic as its weight. A
+covariate whose information is already captured by earlier selections gets a small
+weight. Everything else (burn-in, threshold, matching) is inherited from KK21. Because
+the stepwise models include the treatment column, the pairs could in principle depend
+on the assignment path; the `condition_on_ws_for_rand_tests` argument controls how the
+randomization test handles that (see its help page).
+
+## A worked trial
+
+Sixty subjects arrive one at a time, each with four covariates. The outcome depends
+strongly on `x1`, less on `x2`, and not at all on `x3` or `x4`; the treatment adds
+`true_effect`. The trial uses KK21 with its defaults, and each response is recorded
+as soon as the subject is assigned.
+
+```{r trial-data}
+set.seed(20261117)
+n = 60
+X = data.frame(x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n), x4 = rnorm(n))
+true_effect = 0.5
+eps = rnorm(n)
+y0 = 1.5 * X$x1 + 1.0 * X$x2 + eps        # response under control
+```
+
+```{r trial-run}
+des = DesignSeqOneByOneKK21$new(n = n, response_type = "continuous", verbose = FALSE)
+for (t in seq_len(n)) {
+  w_t = des$add_one_subject_to_experiment_and_assign(X[t, , drop = FALSE])
+  des$add_one_subject_response(t, y0[t] + true_effect * w_t)
+}
+m = des$get_block_ids()        # match labels: 0 = reservoir, k > 0 = pair k
+w = des$get_w()
+```
+
+Once all `n` subjects are in, `get_block_ids()` returns the match labels. A pair is
+formed when its later member arrives, so the labels also tell us who was waiting in
+the reservoir after each arrival: subject `s` was waiting at time `t` if `s <= t` and
+`s` is either never matched or matched to someone who arrives after `t`.
+
+```{r trial-reservoir-path}
+partner = sapply(seq_len(n), function(s) if (m[s] == 0) NA else setdiff(which(m == m[s]), s))
+reservoir_size = sapply(seq_len(n), function(t) {
+  s = seq_len(t)
+  sum(m[s] == 0 | partner[s] > t)       # TRUE | NA is TRUE for never-matched subjects
+})
+```
+
+The first `r floor(0.35 * n)` arrivals are burn-in (`t <= t_0_pct * n`), all
+randomized into the reservoir; after that, most arrivals find a partner.
+
+```{r trial-pairs}
+first_match = which(m > 0 & duplicated(m))[1]       # first arrival that completed a pair
+first_match
+num_pairs = max(m)
+num_reservoir = sum(m == 0)
+c(pairs = num_pairs, matched_subjects = 2 * num_pairs, reservoir = num_reservoir)
+
+# the first few pairs: who was matched to whom, and the treatment each got
+pair_ids = sort(unique(m[m > 0]))[1:6]
+t(sapply(pair_ids, function(k) {
+  ij = which(m == k)
+  c(pair = k, earlier_subject = ij[1], later_subject = ij[2],
+    w_earlier = w[ij[1]], w_later = w[ij[2]])
+}))
+```
+
+Every pair has one treated and one control subject. The reservoir grew during burn-in
+and then shrank as later arrivals drew partners out of it; it held
+`r max(reservoir_size)` subjects at its largest and `r num_reservoir` at the end:
+
+```{r trial-reservoir}
+reservoir_size[c(10, 20, 30, 40, 50, 60)]
+```
+
+The weights at the last assignment put most of the matching effort on `x1` and `x2`,
+the two covariates that drive the outcome:
+
+```{r trial-weights}
+round(des$get_covariate_weights(), 3)
+```
+
+### Balance compared with complete randomization
+
+A single trial says little about balance, because both designs are random. The next
+chunk keeps these 60 subjects and their potential outcomes fixed and reruns the
+whole trial `n_replay` times under each of three sequential designs: KK14, KK21, and
+`DesignSeqOneByOneiBCRD`, complete randomization run sequentially (exactly 30 treated,
+with no use of covariates). For each run it records the standardized difference in
+means of each covariate between the arms, $(\bar x_T - \bar x_C)/\mathrm{sd}(x)$.
+
+The replays are spread over two forked processes with `parallel::mclapply()` (on
+Windows they run serially). Each replay sets its own seed, so the results do not
+depend on the number of processes.
+
+```{r balance-replay}
+n_proc = if (.Platform$OS.type == "unix") 2L else 1L
+run_trial = function(design_class, X, y0, effect, seed) {
+  set.seed(seed)
+  d = design_class$new(n = nrow(X), response_type = "continuous", verbose = FALSE)
+  for (t in seq_len(nrow(X))) {
+    w_t = d$add_one_subject_to_experiment_and_assign(X[t, , drop = FALSE])
+    d$add_one_subject_response(t, y0[t] + effect * w_t)
+  }
+  d
+}
+std_diff = function(d, X) {
+  w = d$get_w()
+  sapply(X, function(x) (mean(x[w == 1]) - mean(x[w == 0])) / sd(x))
+}
+designs = list(CR = DesignSeqOneByOneiBCRD, KK14 = DesignSeqOneByOneKK14,
+               KK21 = DesignSeqOneByOneKK21)
+n_replay = 100L
+balance = lapply(designs, function(D) {
+  do.call(rbind, parallel::mclapply(seq_len(n_replay), function(i)
+    std_diff(run_trial(D, X, y0, true_effect, seed = 1000L + i), X), mc.cores = n_proc))
+})
+sapply(balance, function(b) round(sqrt(colMeans(b^2)), 3))   # RMS standardized difference
+```
+
+```{r balance-fig, echo = FALSE, fig.height = 4.2}
+cols = c(CR = "darkorange", KK14 = "grey45", KK21 = "steelblue")
+vals = list(); at = c(); k = 0
+for (j in seq_len(ncol(X))) for (nm in names(balance)) {
+  k = k + 1
+  vals[[k]] = abs(balance[[nm]][, j])
+  at = c(at, (j - 1) * 4 + match(nm, names(balance)))
+}
+boxplot(vals, at = at, col = rep(cols, ncol(X)), xaxt = "n", outline = FALSE,
+        ylim = c(0, 0.85),
+        ylab = "|standardized difference in means|",
+        main = sprintf("Covariate imbalance over %d replays of the same %d subjects", n_replay, n))
+axis(1, at = (seq_len(ncol(X)) - 1) * 4 + 2,
+     labels = c("x1 (strong)", "x2 (moderate)", "x3 (no effect)", "x4 (no effect)"))
+legend("topright", bty = "n", fill = cols, cex = 0.85,
+       legend = c("complete randomization (iBCRD)", "KK14", "KK21"))
+```
+
+```{r balance-numbers, include = FALSE}
+rms = sapply(balance, function(b) sqrt(colMeans(b^2)))
+ratio_x1_kk21 = rms["x1", "CR"] / rms["x1", "KK21"]
+ratio_x1_kk14 = rms["x1", "CR"] / rms["x1", "KK14"]
+```
+
+By the root-mean-square standardized difference (printed above), both matching designs
+are better balanced than complete randomization on every covariate, though on single
+replays the distributions overlap a good deal. On `x1`, the root-mean-square standardized difference is
+`r round(ratio_x1_kk14, 1)` times smaller under KK14 and `r round(ratio_x1_kk21, 1)`
+times smaller under KK21 than under complete randomization. KK21 concentrates its
+balance on `x1` and `x2`, the covariates its weights favor, and balances `x3` and `x4`
+less tightly than KK14 does; those two covariates do not affect the outcome, so that
+costs nothing.
+
+## The estimator and its inference
+
+A KK trial ends with two kinds of subjects: $m$ matched pairs and $n_R$ reservoir
+subjects. The pairs give $m$ within-pair differences, treated minus control, each an
+unbiased estimate of the treatment effect with most of the covariate noise removed.
+The reservoir is a small completely randomized experiment of its own, which gives a
+two-sample difference in means. Kapelner and Krieger (2014) combine the two with
+inverse-variance weights,
+$$\hat\beta_T = w^*\,\bar d + (1-w^*)\,\bar r, \qquad
+  w^* = \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar d)},$$
+where $\bar d$ is the mean pair difference and $\bar r$ is the reservoir difference in
+means. When only one part is usable, the estimate falls back to that part.
+
+EDI's recommended class for continuous outcomes, `InferenceContinKKOLSOneLik`, fits the
+two parts as a single regression instead: it stacks the $m$ pair-difference rows
+(response difference on covariate differences, with a unit treatment column) and the
+$n_R$ reservoir rows (response on treatment and covariates) and fits one OLS. The
+treatment coefficient is the estimate, and the standard errors use the HC2
+heteroskedasticity-consistent sandwich, since pair differences and reservoir outcomes
+need not have the same variance. By default it adjusts for the covariates in the
+design's formula; pass `model_formula = ~ 1` to drop them. Because it is a full
+Gaussian likelihood, the score and likelihood-ratio tests are available as well as
+Wald.
+
+```{r trial-inference}
+inf = InferenceContinKKOLSOneLik$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+**The randomization test.** `compute_rand_two_sided_pval()` redraws the assignment
+from the design's own mechanism: each matched pair's treatments are swapped with
+probability 1/2, and each reservoir subject is redrawn by a fair coin. Under the sharp
+null hypothesis the responses do not change with the assignment, and neither KK14's
+pairs (which depend only on the covariates) nor KK21's (whose weights regress the
+response on each covariate without the treatment) depend on the assignment path, so
+conditioning on the realized pairs is exact for these two designs.
+
+```{r trial-rand}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+**No nonparametric bootstrap.** EDI does not offer the nonparametric bootstrap on
+sequential designs: resampling subjects would not reproduce how the pairs and the
+reservoir formed. The call stops with an error:
+
+```{r trial-boot}
+tryCatch(inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 100, show_progress = FALSE),
+         error = function(e) conditionMessage(e))
+```
+
+**Other continuous-outcome classes.** The reference index lists all of them; the ones
+specific to KK designs are:
+
+* `InferenceContinKKOLSOneLik`: the stacked OLS above (recommended).
+* `InferenceContinKKRobustRegrOneLik`: the same stacked fit with robust regression,
+  for heavy-tailed outcomes.
+* `InferenceContinKKGLMM`: a linear mixed model with a random intercept per pair.
+* `InferenceBaiAdjustedTKK14` and `InferenceBaiAdjustedTKK21`: the Bai, Romano and
+  Shaikh adjusted $t$ variance for matched pairs, combined with the reservoir (these
+  need the suggested package nbpMatching).
+* `InferenceContinKKOLSIVWC`, `InferenceAllKKMeanDiffIVWC` and
+  `InferenceAllKKWilcoxIVWC`: the inverse-variance-weighted combination (IVWC) of
+  separate pair and reservoir fits; `InferenceAllKKMeanDiffIVWC` is the unadjusted
+  estimator displayed above. These are legacy classes; use a `*OneLik` class for new
+  analyses.
+
+## Efficiency by simulation
+
+How much does matching on the fly gain over randomizing each arrival? It depends on
+how well the covariates predict the outcome. The simulation below runs two scenarios
+with four standard-normal covariates and $\mathrm{N}(0,1)$ noise:
+
+* **Prognostic covariates:** $y = 1.5\,x_1 + x_2 + \beta_T w + \varepsilon$. The
+  covariates explain about three quarters of the outcome variance.
+* **Uninformative covariates:** $y = \beta_T w + \varepsilon$. No covariate predicts
+  the outcome.
+
+Each scenario runs at $n = 40$ and $n = 100$ under three sequential designs
+(complete randomization via `DesignSeqOneByOneiBCRD`, KK14 and KK21, all with default
+settings) and two analyses each, with the effect fixed at $\beta_T = 0.5$:
+
+* complete randomization: the difference in means
+  (`InferenceAllSimpleMeanDiffPooledVar`) and covariate-adjusted OLS
+  (`InferenceContinOLS`);
+* KK14 and KK21: `InferenceContinKKOLSOneLik` without covariates
+  (`model_formula = ~ 1`, so the only adjustment is the matching itself) and with
+  them (the default).
+
+For each combination we record the mean squared error (MSE) of the estimate and the
+power of the Wald test at level 0.05.
+
+```{r sim, message = FALSE}
+beta_T = 0.5
+ns = c(40L, 100L)
+n_sim = 160L
+outcome = list(prognostic    = function(X) 1.5 * X$x1 + 1.0 * X$x2,
+               uninformative = function(X) rep(0, nrow(X)))
+
+one_rep = function(i) {
+  out = list()
+  for (sc in names(outcome)) for (nn in ns) {
+    set.seed(50000L + 1000L * nn + i)
+    Xs = data.frame(x1 = rnorm(nn), x2 = rnorm(nn), x3 = rnorm(nn), x4 = rnorm(nn))
+    y0s = outcome[[sc]](Xs) + rnorm(nn)
+    for (dn in names(designs)) {
+      d = run_trial(designs[[dn]], Xs, y0s, beta_T, seed = 70000L + 1000L * nn + i)
+      infs = if (dn == "CR") {
+        list(unadjusted = InferenceAllSimpleMeanDiffPooledVar$new(d, verbose = FALSE),
+             adjusted   = InferenceContinOLS$new(d, verbose = FALSE))
+      } else {
+        list(unadjusted = InferenceContinKKOLSOneLik$new(d, model_formula = ~ 1, verbose = FALSE),
+             adjusted   = InferenceContinKKOLSOneLik$new(d, verbose = FALSE))
+      }
+      for (an in names(infs)) {
+        out[[length(out) + 1]] = data.frame(
+          scenario = sc, n = nn, design = dn, analysis = an,
+          est = infs[[an]]$compute_estimate(),
+          pval = infs[[an]]$compute_asymp_two_sided_pval(),
+          pairs = if (dn == "CR") NA_integer_ else max(d$get_block_ids()))
+      }
+    }
+  }
+  do.call(rbind, out)
+}
+sim_start = Sys.time()
+sims = do.call(rbind, parallel::mclapply(seq_len(n_sim), one_rep, mc.cores = n_proc))
+sim_secs = as.numeric(difftime(Sys.time(), sim_start, units = "secs"))
+
+summ = do.call(rbind, lapply(split(sims, sims[, c("scenario", "n", "design", "analysis")],
+                                   drop = TRUE), function(s) {
+  se2 = (s$est - beta_T)^2
+  pw = mean(s$pval < 0.05)
+  data.frame(scenario = s$scenario[1], n = s$n[1], design = s$design[1],
+             analysis = s$analysis[1], mse = mean(se2), mse_mcse = sd(se2) / sqrt(nrow(s)),
+             power = pw, power_mcse = sqrt(pw * (1 - pw) / nrow(s)),
+             mean_pairs = mean(s$pairs))
+}))
+rownames(summ) = NULL
+summ$rel_eff = NA_real_                       # MSE of CR difference in means / this MSE
+for (k in seq_len(nrow(summ))) {
+  ref = summ$scenario == summ$scenario[k] & summ$n == summ$n[k] &
+        summ$design == "CR" & summ$analysis == "unadjusted"
+  summ$rel_eff[k] = summ$mse[ref] / summ$mse[k]
+}
+summ = summ[order(summ$scenario, summ$n, match(summ$design, names(designs)), summ$analysis), ]
+fmt = transform(summ, mse = sprintf("%.4f (%.4f)", mse, mse_mcse),
+                power = sprintf("%.2f (%.2f)", power, power_mcse),
+                rel_eff = round(rel_eff, 2), mean_pairs = round(mean_pairs, 1))
+fmt[, c("scenario", "n", "design", "analysis", "mse", "rel_eff", "power", "mean_pairs")]
+```
+
+In the table, `mse` and `power` show the Monte Carlo standard error in parentheses,
+`rel_eff` is the MSE of the unadjusted completely randomized analysis divided by the
+row's MSE (above 1 means more efficient), and `mean_pairs` is the average number of
+matched pairs.
+
+```{r sim-fig, echo = FALSE, fig.height = 4.6}
+par(mfrow = c(1, 2), mar = c(4.5, 4.5, 3, 1))
+for (sc in names(outcome)) {
+  s = summ[summ$scenario == sc, ]
+  ylim = c(0, max(s$mse + 2 * s$mse_mcse))
+  plot(NA, xlim = c(0.6, 2.4), ylim = ylim, xaxt = "n", xlab = "sample size n",
+       ylab = "MSE of the estimate", main = paste(sc, "covariates"))
+  axis(1, at = 1:2, labels = ns)
+  offs = c(CR = -0.2, KK14 = 0, KK21 = 0.2)
+  for (dn in names(designs)) for (an in c("unadjusted", "adjusted")) {
+    r = s[s$design == dn & s$analysis == an, ]
+    r = r[order(r$n), ]
+    x = match(r$n, ns) + offs[dn] + if (an == "adjusted") 0.05 else -0.05
+    lines(x, r$mse, type = "b", col = cols[dn], pch = if (an == "adjusted") 17 else 19,
+          lty = if (an == "adjusted") 2 else 1, lwd = 2)
+    arrows(x, r$mse - 2 * r$mse_mcse, x, r$mse + 2 * r$mse_mcse,
+           angle = 90, code = 3, length = 0.02, col = cols[dn])
+  }
+  if (sc == "prognostic")
+    legend("topright", bty = "n", cex = 0.8, col = c(cols, "black", "black"),
+           lwd = 2, lty = c(1, 1, 1, 1, 2), pch = c(NA, NA, NA, 19, 17),
+           legend = c("complete randomization", "KK14", "KK21",
+                      "no covariate adjustment", "covariate-adjusted"))
+}
+```
+
+```{r sim-numbers, include = FALSE}
+get = function(sc, nn, dn, an, col) summ[summ$scenario == sc & summ$n == nn &
+                                         summ$design == dn & summ$analysis == an, col]
+re_kk21_u_40  = get("prognostic", 40, "KK21", "unadjusted", "rel_eff")
+re_kk21_u_100 = get("prognostic", 100, "KK21", "unadjusted", "rel_eff")
+re_kk14_u_40  = get("prognostic", 40, "KK14", "unadjusted", "rel_eff")
+re_kk14_u_100 = get("prognostic", 100, "KK14", "unadjusted", "rel_eff")
+pw_cr_u_100   = get("prognostic", 100, "CR", "unadjusted", "power")
+pw_kk21_u_100 = get("prognostic", 100, "KK21", "unadjusted", "power")
+pw_cr_a_40    = get("prognostic", 40, "CR", "adjusted", "power")
+pw_kk21_a_40  = get("prognostic", 40, "KK21", "adjusted", "power")
+re_un = summ$rel_eff[summ$scenario == "uninformative" & summ$design != "CR"]
+mcse_pw_max = max(summ$power_mcse)
+re_cr_a_100   = get("prognostic", 100, "CR", "adjusted", "rel_eff")
+re_kk14_a_100 = get("prognostic", 100, "KK14", "adjusted", "rel_eff")
+re_kk21_a_100 = get("prognostic", 100, "KK21", "adjusted", "rel_eff")
+pw_cr_a_100   = get("prognostic", 100, "CR", "adjusted", "power")
+pw_kk14_a_100 = get("prognostic", 100, "KK14", "adjusted", "power")
+pw_kk21_a_100 = get("prognostic", 100, "KK21", "adjusted", "power")
+pw_kk14_a_40  = get("prognostic", 40, "KK14", "adjusted", "power")
+pairs_kk14_40  = get("prognostic", 40, "KK14", "adjusted", "mean_pairs")
+pairs_kk21_40  = get("prognostic", 40, "KK21", "adjusted", "mean_pairs")
+pairs_kk14_100 = get("prognostic", 100, "KK14", "adjusted", "mean_pairs")
+pairs_kk21_100 = get("prognostic", 100, "KK21", "adjusted", "mean_pairs")
+n_half_100 = 50
+pw_un_40  = summ$power[summ$scenario == "uninformative" & summ$n == 40]
+pw_un_100 = summ$power[summ$scenario == "uninformative" & summ$n == 100]
+```
+
+What the simulation shows (`r n_sim` simulated trials per cell; the largest Monte Carlo
+standard error of a power estimate is `r round(mcse_pw_max, 3)`):
+
+* **With prognostic covariates, matching alone recovers much of the precision.**
+  Without any covariate adjustment in the analysis, KK21 is
+  `r round(re_kk21_u_40, 1)` times as efficient as the completely randomized difference
+  in means at $n = 40$ and `r round(re_kk21_u_100, 1)` times at $n = 100$ (KK14:
+  `r round(re_kk14_u_40, 1)` and `r round(re_kk14_u_100, 1)`). At $n = 100$ the power
+  rises from `r round(pw_cr_u_100, 2)` to `r round(pw_kk21_u_100, 2)`. KK21 forms more
+  pairs than KK14 (on average `r round(pairs_kk21_100, 1)` vs.
+  `r round(pairs_kk14_100, 1)` of the `r n_half_100` possible at $n = 100$), and spends
+  them on the covariates that matter.
+* **Covariate adjustment does most of the same work.** When the analysis also adjusts
+  for the covariates, the designs end up close together. At $n = 100$ the relative
+  efficiencies are `r round(re_cr_a_100, 1)` (complete randomization),
+  `r round(re_kk14_a_100, 1)` (KK14) and `r round(re_kk21_a_100, 1)` (KK21), with
+  power `r round(pw_cr_a_100, 2)`, `r round(pw_kk14_a_100, 2)` and
+  `r round(pw_kk21_a_100, 2)`; the differences are about the size of the Monte Carlo
+  error. At $n = 40$ the MSEs are again similar, but the adjusted KK analyses have
+  *lower* power (`r round(pw_kk14_a_40, 2)` for KK14 and `r round(pw_kk21_a_40, 2)` for
+  KK21, vs. `r round(pw_cr_a_40, 2)`): with only about `r round(pairs_kk14_40)` to
+  `r round(pairs_kk21_40)` pairs, the stacked regression estimates the covariate
+  slopes from few rows and its HC2 standard error is larger. Matching pays off most
+  when the analysis is a simple comparison fixed in advance, and is not a substitute
+  for adjustment in a small trial whose outcome model is known to be linear.
+* **With uninformative covariates, matching buys nothing.** When no covariate predicts
+  the outcome, the KK relative efficiencies range from `r round(min(re_un), 2)` to
+  `r round(max(re_un), 2)`, and within each sample size the powers of all six analyses
+  lie between `r round(min(pw_un_40), 2)` and `r round(max(pw_un_40), 2)` at $n = 40$
+  and between `r round(min(pw_un_100), 2)` and `r round(max(pw_un_100), 2)` at
+  $n = 100$, mostly within two Monte Carlo standard errors of each other. The matches
+  are made on noise, so they cannot help.
+
+One detail of the table: the covariate-adjusted analyses under complete randomization
+and KK14 give exactly the same MSE in both scenarios. Neither design looks at the
+response, both scenarios use the same covariates and noise, and a regression on the
+covariates removes a linear covariate effect exactly, so the estimates are identical.
+KK21's assignments depend on the responses, so its numbers differ between scenarios.
+
+This is one data-generating process with linear covariate effects; the numbers are an
+illustration, not a general rate. To size a real KK trial, simulate the outcome model
+you expect with [Planning a Study](planning-a-study.html), which also covers
+`SimulationFramework`.
+
+## Other response types
+
+The three KK designs accept every EDI response type (`"continuous"`, `"incidence"`,
+`"proportion"`, `"count"`, `"survival"`, `"ordinal"`), and each type has inference
+classes built for the pair-plus-reservoir structure. Some examples:
+
+| Response type | KK inference classes |
+|---|---|
+| Incidence | `InferenceIncidKKCondLogitOneLik`, `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKModifiedPoisson` |
+| Count | `InferenceCountKKCondPoissonOneLik`, `InferenceCountKKHurdlePoissonOneLik` |
+| Proportion | `InferencePropKKGLMM`, `InferencePropKKGEE` |
+| Survival | `InferenceSurvivalKKStratCoxPHOneLik`, `InferenceSurvivalKKLWACoxPHOneLik`, `InferenceSurvivalKKWeibullMarginal` |
+| Ordinal | `InferenceOrdinalKKCLMM`, `InferenceOrdinalKKCondAdjCatLogitRegr` |
+
+The workflow is the same as above; only the response and the inference class change.
+For example, a binary outcome:
+
+```{r incidence}
+set.seed(7)
+n_b = 80
+Xb = data.frame(x1 = rnorm(n_b), x2 = rnorm(n_b))
+des_b = DesignSeqOneByOneKK21$new(n = n_b, response_type = "incidence", verbose = FALSE)
+for (t in seq_len(n_b)) {
+  w_t = des_b$add_one_subject_to_experiment_and_assign(Xb[t, , drop = FALSE])
+  p_t = plogis(-0.5 + 1.2 * Xb$x1[t] + 0.8 * w_t)
+  des_b$add_one_subject_response(t, rbinom(1, 1, p_t))
+}
+inf_b = InferenceIncidKKCondLogitOneLik$new(des_b, verbose = FALSE)
+inf_b$num_cores = 1L
+inf_b$compute_estimate()                            # log odds ratio
+inf_b$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+`InferenceSuite` finds every class that applies to a given KK design and response
+type and runs them together; see the [continuous cookbook](cookbook-continuous.html).
+
+## References
+
+* Kapelner, A., and Krieger, A. M. (2014). Matching on-the-fly: Sequential allocation
+  with higher power and efficiency. *Biometrics*, 70(2), 378–388.
+  [doi:10.1111/biom.12148](https://doi.org/10.1111/biom.12148). The KK14 design and
+  the inverse-variance combination of the matched-pair and reservoir estimates.
+* Kapelner, A., and Krieger, A. M. (2021). The outcome-weighted extension of matching
+  on the fly that `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise`
+  implement.
+* Bai, Y., Romano, J. P., and Shaikh, A. M. (2021; in print 2022). Inference in experiments with
+  matched pairs. *Journal of the American Statistical Association*, 117(540),
+  1726–1737. The adjusted $t$ variance used by `InferenceBaiAdjustedTKK14` and
+  `InferenceBaiAdjustedTKK21`.
+
+## Where to go next
+
+* [Get started](EDI.html): the design, assign, record, infer pattern.
+* [Cookbook: continuous outcome](cookbook-continuous.html): a fixed design and a KK21
+  trial end to end, including `InferenceSuite`.
+* [Learn Statistics Through EDI](learn-statistics-through-edi.html): power, size and
+  coverage by simulation, for teaching.
+* [Planning a Study](planning-a-study.html): power and sample size by simulation,
+  including sequential designs.
+* The help pages [`DesignSeqOneByOneKK14`](../reference/DesignSeqOneByOneKK14.html),
+  [`DesignSeqOneByOneKK21`](../reference/DesignSeqOneByOneKK21.html),
+  [`DesignSeqOneByOneKK21stepwise`](../reference/DesignSeqOneByOneKK21stepwise.html)
+  and [`InferenceContinKKOLSOneLik`](../reference/InferenceContinKKOLSOneLik.html).
+
+```{r render-time, include = FALSE}
+render_secs = as.numeric(difftime(Sys.time(), render_start, units = "secs"))
+message(sprintf("matching-on-the-fly rendered in %.0f seconds (simulation %.0f)",
+                render_secs, sim_secs))
+```

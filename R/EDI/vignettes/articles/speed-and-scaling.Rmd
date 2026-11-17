@@ -1,0 +1,554 @@
+---
+title: "Speed and Scaling"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Most of EDI's (Experimental Design and Inference) model fits run in compiled C++
+and take well under a millisecond. Most of the waiting in a real analysis comes
+from procedures that refit the model many times: randomization tests, bootstraps,
+test-inversion confidence intervals, and simulation studies. This article covers
+the settings that control that cost: parallel workers, a per-machine tuning
+step, how the package was compiled, and the choice of procedure and replicate
+count. It also summarizes how EDI's timings compare with other R packages,
+including the cases where EDI is slower.
+
+It assumes you know the four steps of an EDI analysis (design, assign, record
+responses, infer) from [Get started](EDI.html).
+
+## Parallelism
+
+### `set_num_cores()` and per-object `num_cores`
+
+EDI runs serially by default. `set_num_cores(k)` sets a package-wide budget of
+`k` workers and starts a persistent worker pool: a fork cluster on Unix-alikes
+(Linux, macOS), or `mirai` daemons on Windows or when you pass
+`force_mirai = TRUE`. `unset_num_cores()` stops the pool and returns to serial
+execution.
+
+```{r cores-api, eval = FALSE}
+set_num_cores(4)     # package-wide budget: 4 workers
+# ... analyses ...
+unset_num_cores()    # back to serial
+```
+
+Every inference object has a `num_cores` field. It reads the package-wide budget
+unless you set it on that object, which overrides the budget for that object only:
+
+```{r cores-field, eval = FALSE}
+inf = InferenceContinOLS$new(des)
+inf$num_cores          # the package-wide budget
+inf$num_cores = 1L     # this object runs serially
+```
+
+Designs do not have their own setting; they use the package-wide budget.
+
+### What runs in parallel
+
+- **Randomization tests and intervals** (`compute_rand_two_sided_pval()`,
+  `compute_rand_confidence_interval()`): the `r` redraws of the statistic are
+  split across workers.
+- **Bootstraps** (`compute_bootstrap_confidence_interval()`,
+  `compute_bootstrap_two_sided_pval()` and the other resampling families): the
+  `B` resamples are split across workers.
+- **Design draws in native code.** `DesignFixedGreedy`,
+  `DesignFixedMatchingGreedyPairSwitching`, `DesignFixedBinaryMatch`,
+  `DesignFixedRerandomization`, `DesignFixedGreedyDOptimal` and
+  `DesignFixedOptimal` run their searches in OpenMP threads, so both the
+  allocation and the redraws a randomization test needs use the cores.
+  `DesignFixedBlocking`, `DesignFixedOptimalBlocks`, `DesignFixedCluster` and
+  `DesignFixedBlockedCluster` draw all `r` assignments in one vectorized pass in
+  the main R process; extra cores do not change their speed or their draws.
+- **`InferenceSuite$run_all_inference(num_cores = k)`** fits the applicable
+  inference classes in parallel across `k` forked workers (Unix-alikes only; on
+  other platforms it falls back to sequential with a warning).
+- **`SimulationFramework$new(num_cores = k)`** runs Monte Carlo replications in
+  parallel. While it does, parallelism inside each inference call is turned
+  off so the machine is not oversubscribed.
+
+More cores do not always help. Two rules keep EDI from using workers where
+they are known to lose time:
+
+- **A serial blocklist.** Workloads that were consistently slower with multiple
+  workers in the package benchmarks always run serially: incidence
+  randomization confidence intervals, bootstraps for incidence procedures,
+  bootstraps for non-KK survival procedures, and bootstraps for one KK
+  Wilcoxon class. `get_parallel_dispatch_policy()` shows the current list
+  and `set_parallel_dispatch_policy()` changes it.
+- **A warm-up check.** Before a parallel randomization run, EDI times one
+  iteration. If `r` iterations would finish faster than the cost of sending
+  them to the workers, it runs serially.
+
+```{r dispatch-policy}
+str(get_parallel_dispatch_policy())
+```
+
+### Reproducibility across core counts
+
+Each parallel stream in EDI is seeded from the logical index of the draw or the
+chunk, not from the worker that happens to compute it. With a seed set, a
+randomization p-value or bootstrap interval is the same at 1, 2 or 8 cores. The
+timing demo [below](#a-timing-demo) checks this with `identical()`.
+`SimulationFramework` gives each replication its own seed (`seed + i`), so its
+results do not depend on `num_cores` or on the fork or `mirai` backend.
+
+Before version 1.0.4, seeded draws from the greedy, D-optimal, pair-switching
+and rerandomization designs changed with the thread count. Version 1.0.4 fixed
+this; those designs' seeded allocations changed once as a result (see `NEWS`).
+A package-wide guarantee, with invariance tests across every class at
+1, 2 and 4 cores on both backends and a reproducibility record attached to each
+result, is planned under v1.1.0-TODO-48 and is not yet in place. If an exact
+match across core counts matters for your analysis, check it with `identical()`
+on your own design and procedure. `vignette("reproducibility")` explains the
+seeding rules in full.
+
+## Machine tuning
+
+Several of EDI's performance defaults were chosen by timing them on the
+maintainer's machine. These are speed choices only, never statistical ones:
+whether a model fit starts from a quick OLS warm-up or from zero, whether
+resampling reuses the previous replicate's solution as a starting point (and
+up to what sample size), which optimizer a family uses, and at what sample
+size parallel resampling starts to beat serial. The best choice depends on the
+core count, caches, BLAS library and compiler flags, so it can differ on your
+machine.
+
+`tune_EDI_for_this_machine()` repeats those timings on your hardware.
+
+```{r tune, eval = FALSE}
+tune_EDI_for_this_machine()                    # "standard": about 3-4 hours
+tune_EDI_for_this_machine(effort = "quick")    # about 1 hour
+tune_EDI_for_this_machine(dry_run = TRUE)      # benchmark, but save and apply nothing
+```
+
+The duration estimates are the ones the function prints; they were measured on
+a 6-core laptop. `effort = "thorough"` has not been timed; plan on running it
+overnight.
+
+**What is measured.** Four axes: the cold-start setting, the warm-start setting
+for each resampling operation, the optimizer algorithm (only when you supply a
+`converged_fn` that reports whether a fit converged), and the parallel-versus-serial
+crossover sample size (Unix-alikes with at least 2 cores). For each inference
+family and sample size, both settings are timed on the same synthetic data. A
+setting replaces the shipped default only if its median time is at least 5%
+better and the improvement exceeds twice its own interquartile range. Each
+accepted change is then refit once under both settings, and it is discarded if
+the results disagree. The bootstrap interval type and the serial blocklist
+above are never tuned.
+
+**Run it on an idle machine.** A tuning run on a busy machine measures the
+contention, not the hardware. The function checks the load average and the
+noise in a short calibration timing first, and refuses to run if the machine
+looks busy (in an interactive session it asks first), unless you pass
+`force = TRUE`.
+
+**Where it is stored.** The result is written to `machine_policies.rds` in
+`tools::R_user_dir("EDI", which = "config")`, a per-user directory, and applied
+immediately. Every later `library(EDI)` applies it again.
+
+```{r tune-manage, eval = FALSE}
+get_local_EDI_optimization()     # print what is saved; changes nothing
+clear_local_EDI_optimization()   # delete the saved file and restore the shipped defaults
+```
+
+To ignore a saved tuning for one session without deleting it, set the
+environment variable `EDI_SKIP_LOCAL_TUNING=1` before `library(EDI)`. This is
+useful for checking whether the tuning is behind a timing difference you see.
+
+**The core count is never applied for you.** The parallel axis records the
+core count that was fastest, but EDI never changes the core count at load time.
+If a saved tuning includes one, `library(EDI)` prints a startup message:
+
+```
+EDI: this machine's saved tuning found parallel execution fastest at 2 cores.
+This is not applied automatically -- call set_num_cores(2) to opt in.
+```
+
+Call `set_num_cores()` with that number if you want it.
+
+**The fingerprint and when to re-tune.** The saved file records the machine it
+was measured on: logical and physical core counts, CPU model, vendor and
+architecture, RAM, BLAS and LAPACK libraries, R version and platform,
+operating system, and the build of EDI itself (portable or native, link-time
+optimization, compiler and compiler flags; see [Builds](#builds)). At load, EDI
+compares only the logical core count and the CPU model. If either differs, it
+still applies the saved settings but prints a message suggesting a re-run.
+EDI does not detect the other changes, so re-run `tune_EDI_for_this_machine()`
+yourself (it overwrites the old file) after:
+
+- moving to different hardware,
+- reinstalling EDI with different build flags (for example, switching to or
+  from the native build),
+- changing your BLAS library, or
+- upgrading EDI, since the shipped defaults themselves may have changed.
+
+## Builds
+
+EDI's C++ code can be compiled in two ways.
+
+- **Portable** (`EDI_PORTABLE=1`, the default). This is the build CRAN and
+  R-universe ship, and also what you get from a source install such as
+  `remotes::install_github()` or `install.packages(type = "source")`. It uses
+  only R's standard compiler flags, so it runs on any CPU of the target
+  architecture, and the same seed gives the same results on Linux, macOS and
+  Windows.
+- **Native** (`EDI_PORTABLE=0`, opt-in, source installs only). The `configure`
+  script adds `-march=native -mtune=native` (every vector instruction set the
+  build machine supports) and forces `-O3`. Link-time optimization stays off
+  unless you also set `EDI_NATIVE_LTO=1`, because LTO builds have slowed some of
+  the small model-fit kernels considerably.
+
+```{r native-build, eval = FALSE}
+# Not run: a native build compiles the whole package and takes several minutes.
+Sys.setenv(EDI_PORTABLE = "0")
+remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+The tradeoff: the native build can be faster, but the binary runs only on
+CPUs like the one it was compiled on, and floating-point results can differ in
+the last bits from the portable build. Seeded results from a native build may
+therefore not match a colleague's CRAN install exactly. If you change build,
+re-run the machine tuning.
+
+`edi_build_info_cpp()` reports how the loaded copy of EDI was compiled. The
+values are fixed when the shared library is built. The fields below are the
+ones that matter for speed (the full list also includes the build machine's
+host name and R installation path):
+
+```{r build-info}
+info = edi_build_info_cpp()
+str(info[c("env_edi_portable", "env_edi_native_lto", "pkg_cxxflags",
+           "compiler", "compiler_optimize_macro", "compiler_fast_math_macro",
+           "eigen_dont_vectorize_macro")])
+```
+
+`env_edi_portable` is `"1"` for the portable build and `"0"` for the native one.
+
+## How EDI compares
+
+EDI's benchmark suite runs nightly on a GitHub-hosted Linux runner. The
+numbers below come from the report published on
+[the benchmarks page](https://kapelner.github.io/EDI/benchmarks/) on
+2026-11-17 (timed 2026-11-16 and 2026-11-17 UTC at EDI commit `7d906456f26f`;
+report commit `1d407fae` on the `benchmark-results` branch). That run used the
+portable build (`EDI_PORTABLE=1`), R 4.6.2 and g++ 15.2.0. The numbers will
+change as the code changes; the page has the current run and full tables.
+"Speedup" is the other package's time divided by EDI's time, so values below 1
+mean EDI was slower.
+
+### Model fits and Wald inference
+
+These tables time EDI's compiled kernels against the lowest-level function each
+comparison package exposes (`lm.fit`, `glm.fit`, `coxph.fit`, `MASS::glm.nb`,
+`MASS::rlm`, `betareg`, `pscl`, `ordinal::clm`, `VGAM::vglm`, `lme4`,
+`glmmTMB` and others), with design matrices built outside the timed region on
+both sides. They time the numerical work only. They do **not** include
+constructing an EDI inference object, which took about 0.7 to 1.8 ms in the
+procedure benchmarks below. For a single fit, that construction cost can be
+larger than the fit itself; the [timing demo](#a-timing-demo) shows this for
+OLS.
+
+The full-inference table (fit, standard error and Wald p-value, $n = 200$)
+summarized by response type:
+
+```{r bench-wald, echo = FALSE}
+wald = data.frame(
+  `Response type`    = c("continuous", "incidence", "count", "proportion", "survival", "ordinal"),
+  `Comparisons`      = c(12, 11, 11, 3, 9, 8),
+  `Median speedup`   = c("19x", "11x", "29x", "50x", "21x", "14x"),
+  `Smallest speedup` = c("1.0x (quantreg `rq`)", "1.2x (`fisher.test`)", "8.1x (glmmTMB Poisson GLMM)",
+                         "26x (`glm` quasi + g-computation)", "1.05x (`survfit` median)",
+                         "3.3x (clinfun `jonckheere`)"),
+  check.names = FALSE
+)
+knitr::kable(wald)
+```
+
+EDI's kernel was faster in all 54 comparisons, by a median of 21x. In 52 of
+them the difference was significant at the 5% level. The two that were not are
+quantile regression against `quantreg` (1.0x: EDI uses the same algorithm) and
+the Kaplan-Meier median difference against `survival::survfit` (1.05x). The
+point-estimate-only table ($n = 1{,}000$; 500 for survival) is similar: EDI was
+faster in all 50 comparisons, by a median of 14x, with quantile regression
+again the only non-significant one. The largest ratios come from comparisons
+against general-purpose fitters, such as a Weibull frailty model against
+`parfm` and Gaussian mixed models against `glmmTMB`.
+
+### Resampling procedures
+
+The procedure table times complete calls ($n = 1{,}000$; 500 for Cox), with
+$r = 1{,}000$ randomizations or $B = 1{,}000$ (OLS) or $500$ (logistic, Cox)
+bootstrap draws on both sides, and percentile bootstrap intervals on both sides.
+"R6" rows go through the public inference classes, the way you would call
+them. "Kernel" rows call EDI's C++ kernel directly.
+
+```{r bench-procedures, echo = FALSE}
+proc = data.frame(
+  Procedure = c(
+    "Randomization p-value, mean difference",
+    "Randomization p-value, mean difference",
+    "Randomization p-value, mean difference",
+    "Randomization p-value, mean difference",
+    "Randomization p-value, OLS with covariates",
+    "Bootstrap CI, OLS",
+    "Bootstrap CI, OLS",
+    "Bootstrap CI, logistic regression",
+    "Bootstrap CI, Cox model",
+    "Exact Fisher 2x2 p-value",
+    "Exact CI for the log odds ratio"),
+  `EDI path` = c("R6 `InferenceAllSimpleAverageDiff`", "R6 `InferenceAllSimpleAverageDiff`",
+                 "kernel", "kernel",
+                 "R6 `InferenceContinOLS`",
+                 "R6 `InferenceContinOLS`", "kernel (not used by any class yet)",
+                 "R6 `InferenceIncidLogRegr`", "R6 `InferenceSurvivalCoxPHRegr`",
+                 "kernel", "R6 `InferenceIncidExactZhang`"),
+  `EDI (ms)` = c(43.5, 41.7, 3.65, 3.42, 39.8, 1616, 13.9, 550.5, 353, 0.03, 1.74),
+  Comparison = c("coin `oneway_test`", "ri2 `conduct_ri`", "coin `oneway_test`", "ri2 `conduct_ri`",
+                 "ri2 `conduct_ri`", "boot + `boot.ci`", "boot + `boot.ci`", "boot + `boot.ci`",
+                 "boot + `boot.ci`", "`fisher.test`", "`fisher.test(conf.int = TRUE)`"),
+  `Comparison (ms)` = c(8.84, 932, 8.31, 946.5, 971.5, 105, 105, 516.5, 148, 0.70, 0.56),
+  Speedup = c("0.20x", "22x", "2.3x", "277x", "24x", "0.065x", "7.5x", "0.94x (not significant)",
+              "0.42x", "22x", "0.32x"),
+  check.names = FALSE
+)
+knitr::kable(proc)
+```
+
+The R6 resampling paths carry a lot of overhead. EDI's mean-difference kernel
+is about 2.3 times faster than `coin`, but the same test called through
+`InferenceAllSimpleAverageDiff` is about 5 times slower than `coin`. The OLS
+bootstrap through `InferenceContinOLS` took about 15 times as long as `boot`.
+EDI has a compiled OLS bootstrap kernel that beats `boot` by 7.5x, but no
+inference class calls it yet. The Cox bootstrap was about 2.4 times slower than
+`boot`, the logistic bootstrap was about even, and the exact interval from
+`InferenceIncidExactZhang` took about 3 times as long as `fisher.test()`. EDI's
+randomization tests are 22 to 24 times faster than `ri2`, and the randomization
+confidence intervals (about 0.1 s for test inversion at $r = 1{,}000$) have no
+counterpart in `ri2`, `coin` or `perm` to compare against.
+
+### Designs
+
+Producing one allocation of $n = 1{,}000$ subjects. "Total" includes
+constructing the design and adding the covariates; the reported speedup uses
+the assignment step only.
+
+```{r bench-designs, echo = FALSE}
+des_tab = data.frame(
+  Design = c("`DesignFixediBCRD` (complete randomization)",
+             "`DesignFixedBlocking` (6 blocks)",
+             "`DesignFixedBinaryMatch` (optimal pairs, 4 covariates)",
+             "`DesignFixedBinaryMatch` (optimal pairs, 4 covariates)",
+             "`DesignSeqOneByOnePocockSimon` (1,000 arrivals)",
+             "`DesignSeqOneByOnePocockSimon` (1,000 arrivals)"),
+  `EDI total (ms)` = c(0.61, 1.12, 208.5, 203.8, 168.5, 167.5),
+  `EDI assignment (ms)` = c(0.04, 0.50, 205.5, 201.0, 166.5, 166.0),
+  Comparison = c("randomizr `complete_ra`", "randomizr `block_ra`",
+                 "nbpMatching (optimal)", "blockTools (greedy)",
+                 "carat `PocSimMIN`", "Minirand (R loop)"),
+  `Comparison (ms)` = c(0.11, 0.34, 277, 240, 3.21, 795.5),
+  Speedup = c("2.7x", "0.68x", "1.35x (not significant)", "1.19x (not significant)", "0.019x", "4.8x"),
+  check.names = FALSE
+)
+knitr::kable(des_tab)
+```
+
+`randomizr` is faster end to end for simple designs. EDI's assignment step for
+complete randomization is quicker, but constructing the design object brings
+EDI's total to about 5 times `randomizr`'s, and blocking is slower even in the
+assignment step. Optimal matching is about even with `nbpMatching`, which EDI
+calls for the matching itself. Pocock-Simon minimization is about 50 times
+slower than `carat`, which runs the whole arrival sequence in one C++ call;
+EDI processes each arrival through a separate method call, the way a
+sequential trial enrolls subjects. It is still about 5 times faster than
+`Minirand`.
+
+In short, EDI's model fitting is fast, but each R6 inference object carries a
+fixed cost on the order of a millisecond or more (the [timing demo](#a-timing-demo) measures
+it on the machine that built this page), and several resampling and design
+paths are slower than the dedicated packages. If raw speed for one of those
+procedures is the main concern, the packages above are good choices.
+
+## Practical tips
+
+### Cheap and expensive procedures
+
+Costs for one inference object, from cheapest to most expensive:
+
+1. **Asymptotic procedures** (`compute_asymp_confidence_interval()`,
+   `compute_asymp_two_sided_pval()`, and the score, likelihood-ratio and
+   gradient versions): one fit, or a few for the score and likelihood-ratio
+   intervals, which invert a test. Milliseconds. Use these for screening many
+   models or settings.
+2. **Exact procedures** (for example `InferenceIncidExactFisher`): fast for 2x2
+   tables.
+3. **Randomization p-values**: `r` redraws from the design plus `r` refits.
+   Redraws are cheap for most designs and expensive for search-based designs
+   such as `DesignFixedGreedy`, `DesignFixedRerandomization` and
+   `DesignFixedOptimal`.
+4. **Randomization confidence intervals**: invert the test, so they evaluate
+   the p-value at several effect sizes. In the benchmarks above, the interval
+   took about 3 times as long as one p-value at the same `r`.
+5. **Bootstrap intervals**: `B` refits. The default interval type for most
+   classes is BCa (`get_bootstrap_dispatch_policy()$default_type`), which also
+   runs a leave-one-out jackknife ($n$ more refits). `type = "percentile"`
+   skips the jackknife. Double and calibrated bootstraps nest a second level of
+   resampling and cost far more.
+
+### Choosing `r` and `B`
+
+The defaults are $r = 501$ and $B = 501$. A resampling p-value is a Monte Carlo
+estimate. Its standard error is about $\sqrt{p(1-p)/r}$, where $p$ is the
+p-value you would get with unlimited draws:
+
+```{r mc-error}
+mc_se = function(p, r) sqrt(p * (1 - p) / r)
+r_grid = c(101, 501, 1999, 9999)
+knitr::kable(data.frame(
+  r = r_grid,
+  `MC SE at p = 0.05` = round(mc_se(0.05, r_grid), 4),
+  `MC SE at p = 0.5`  = round(mc_se(0.5, r_grid), 4),
+  check.names = FALSE
+))
+```
+
+Near $p = 0.05$, the default $r = 501$ gives a standard error of about
+`r round(mc_se(0.05, 501), 3)`, so a reported p-value of 0.04 or 0.06 cannot be
+reliably placed on either side of 0.05. For a final result near your
+threshold, use `r` in the thousands. Halving the standard error takes four
+times as many draws, and four times the run time. Bootstrap interval
+endpoints are noisy quantile estimates with no comparably simple formula;
+re-run with a different seed and check that the interval does not move by an
+amount you care about. Use small `r` and `B` while you develop code, and large
+ones for the reported analysis.
+
+### `InferenceSuite`: limit methods and time
+
+`InferenceSuite$run_all_inference()` runs every applicable class and method by
+default, including the resampling methods at full replicate counts, which can
+take minutes. (Paths known to be very slow, listed in
+`EDI_COMPREHENSIVE_SLOW_PATHS`, are left out unless you request them.) Three
+arguments keep it manageable:
+
+- `methods = c("wald", "score", "lik_ratio")` runs only asymptotic methods, a
+  quick first pass.
+- `max_secs_per_class = 30` stops any class that runs longer than 30 seconds
+  and marks its row `"timeout"`. R checks the limit only between R-level
+  operations, so one long call into compiled code can overrun it.
+- `classes =` and `exclude_classes =` choose which classes to fit.
+
+```{r suite, eval = FALSE}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(methods = c("wald", "score", "lik_ratio"),
+                              max_secs_per_class = 30)
+```
+
+### `show_progress`
+
+The resampling methods print a progress bar by default
+(`show_progress = TRUE`). It does not affect the result. Set
+`show_progress = FALSE` in scripts, R Markdown documents and simulation loops.
+
+### A timing demo
+
+A small count-response trial: 300 subjects, three covariates, complete
+randomization, and a negative binomial model. We time one OLS model fit, then a
+randomization p-value ($r = 500$) and a percentile bootstrap interval
+($B = 500$) at 1 core and at 2 cores, with the same seed both times. Your
+timings will differ: they depend on the machine, its load, and the build.
+
+```{r demo-data}
+set.seed(20261117)
+n = 300
+X = data.frame(x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n))
+des = DesignFixediBCRD$new(n = n, response_type = "count", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+des$add_all_subject_responses(rnbinom(n, size = 2, mu = exp(1 + 0.3 * w + 0.5 * X$x1)))
+```
+
+First, the fixed cost of a single fit through an inference object. We fit OLS
+on a continuous response with the same covariates, through `InferenceContinOLS`
+and through a bare `lm.fit()` on a prebuilt matrix:
+
+```{r demo-fit}
+des_ols = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+des_ols$add_all_subjects_to_experiment(X)
+des_ols$assign_w_to_all_subjects()
+y_ols = 1 + 0.3 * des_ols$get_w() + X$x1 + rnorm(n)
+des_ols$add_all_subject_responses(y_ols)
+Xmat = cbind(1, w = des_ols$get_w(), as.matrix(X))
+
+InferenceContinOLS$new(des_ols, verbose = FALSE)$compute_estimate()   # warm-up, not timed
+t_edi = system.time(for (i in 1:20) {
+  InferenceContinOLS$new(des_ols, verbose = FALSE)$compute_estimate()
+})[["elapsed"]] / 20
+t_lmfit = system.time(for (i in 1:200) lm.fit(Xmat, y_ols))[["elapsed"]] / 200
+round(1000 * c(InferenceContinOLS = t_edi, lm.fit = t_lmfit), 3)   # milliseconds per fit
+```
+
+Constructing the object and fitting took `r round(1000 * t_edi, 1)` ms, against
+`r round(1000 * t_lmfit, 2)` ms for `lm.fit()`. The object's fixed cost
+(checking the design, building the model matrix, setting up caches) is
+negligible for one analysis, but it adds up when you construct thousands of
+objects in a loop.
+
+Now the resampling procedures at 1 and 2 cores. `clear_randomization_cache()`
+makes sure each run draws its own permutations rather than reusing the cached
+ones.
+
+```{r demo-cores}
+run_resampling = function(k) {
+  inf = InferenceCountNegBin$new(des, verbose = FALSE)
+  inf$num_cores = k
+  inf$set_seed(1)
+  inf$clear_randomization_cache()
+  t_rand = system.time(
+    p <- inf$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+  )[["elapsed"]]
+  t_boot = system.time(
+    ci <- inf$compute_bootstrap_confidence_interval(B = 500, type = "percentile",
+                                                    show_progress = FALSE)
+  )[["elapsed"]]
+  list(time = c(rand_pval = t_rand, bootstrap_ci = t_boot), p = p, ci = ci)
+}
+
+invisible(run_resampling(1L))   # warm-up, not timed: first calls pay one-time costs
+one = run_resampling(1L)
+set_num_cores(2)
+two = run_resampling(2L)
+unset_num_cores()
+
+rbind(`1 core` = one$time, `2 cores` = two$time)   # seconds
+c(rand_pval_identical = identical(one$p, two$p),
+  bootstrap_ci_identical = identical(one$ci, two$ci))
+```
+
+The randomization p-value is `r one$p` and the bootstrap interval is
+(`r round(one$ci[1], 3)`, `r round(one$ci[2], 3)`)
+`r if (identical(one$p, two$p) && identical(one$ci, two$ci)) "at both core counts" else "at 1 core; the 2-core run differed (see the check above)"`.
+On the machine that built this page, the 2-core run took
+`r round(100 * two$time[["rand_pval"]] / one$time[["rand_pval"]])`% of the 1-core
+time for the randomization test and
+`r round(100 * two$time[["bootstrap_ci"]] / one$time[["bootstrap_ci"]])`% for the
+bootstrap. A second core can at best about halve the time, and starting and
+feeding the workers takes a share of a run this small. Parallelism pays off when each refit is expensive, when `r` or `B` is in
+the thousands, or for a simulation study run through `SimulationFramework`.
+Time your own workload at the core counts you are considering, or let
+`tune_EDI_for_this_machine()` measure the crossover for you.
+
+## See also
+
+- [Get started](EDI.html): the four-step pattern and a first analysis.
+- `vignette("reproducibility")`: seeds, random number streams, and parallel
+  reproducibility.
+- [Planning a study](planning-a-study.html): power and sample size by
+  simulation, where run time matters most.
+- [Benchmarks](https://kapelner.github.io/EDI/benchmarks/): the full, current
+  nightly benchmark tables for R and Python.

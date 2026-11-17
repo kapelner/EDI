@@ -1,0 +1,486 @@
+---
+title: "Case Study: Reanalyzing a Published Randomized Experiment"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+```
+
+Simulated data show that a method works when its assumptions hold. Real data show
+what happens when a study has missing covariates, censored outcomes, and a published
+answer to compare against. This article takes one well-known randomized trial and
+analyzes it end to end with EDI: the unadjusted estimate, a covariate-adjusted
+model, a randomization test, a bootstrap, and every applicable asymptotic procedure
+through `InferenceSuite`. It then compares the results with each other and with
+the published effect.
+
+It assumes you know the four-step pattern (design, assign, record, infer) from
+[Get started](EDI.html). The [survival cookbook](cookbook-survival.html) covers
+the same classes on simulated data.
+
+```{r setup, message = FALSE}
+library(EDI)
+library(survival)   # the trial data and Kaplan-Meier curves
+set.seed(20261117)
+```
+
+## The study
+
+In the late 1980s, three US cooperative oncology groups ran a trial of adjuvant
+chemotherapy after surgery for colon cancer. Patients whose stage III (Dukes C)
+colon cancer had been resected with curative intent in the previous 1 to 5 weeks
+were randomly assigned to one of three arms: observation only, levamisole alone,
+or levamisole plus fluorouracil (5-FU) for one year. The outcomes were cancer
+recurrence and death.
+
+The first report (Moertel et al., 1990) found that levamisole plus 5-FU reduced
+the risk of recurrence by 41% and the overall death rate by 33% (P ≈ 0.006) among
+the stage C patients, and that levamisole alone had no detectable effect. The
+final report (Moertel et al., 1995), with all 929 eligible patients followed for
+at least 5 years (median 6.5 years), gave these figures:
+
+* levamisole plus 5-FU reduced the recurrence rate by 40% (P < 0.0001) and the
+  death rate by 33% (P = 0.0007);
+* levamisole alone reduced the recurrence rate by 2% and the death rate by 6%.
+
+The trial made levamisole plus 5-FU the standard adjuvant treatment for stage III
+colon cancer at the time.
+
+The data ship with the `survival` package as `colon` (LGPL (>= 2), so they can be
+reproduced in documentation). The help page, `?survival::colon`, says the
+data set is closest to the final report. It has two rows per patient, one for
+recurrence (`etype = 1`) and one for death (`etype = 2`), and these baseline
+covariates:
+
+| Column | Meaning |
+|---|---|
+| `age` | age in years |
+| `sex` | 1 = male |
+| `obstruct`, `perfor`, `adhere` | tumor obstructed the colon, perforated it, or adhered to nearby organs |
+| `nodes` | number of lymph nodes with detectable cancer |
+| `differ` | tumor differentiation (1 = well, 2 = moderate, 3 = poor) |
+| `extent` | extent of local spread (1 = submucosa up to 4 = contiguous structures) |
+| `surg` | time from surgery to registration (0 = short, 1 = long) |
+
+### Two arms and the design
+
+EDI analyzes two-arm experiments, so we compare the two arms that carry the
+headline result: observation (control, `w = 0`) and levamisole plus 5-FU
+(treatment, `w = 1`). Dropping the levamisole-only arm is legitimate under
+randomization. Among patients randomized to one of these two arms, which of the
+two each one received was still decided by the randomization, so the comparison
+remains a randomized comparison.
+
+The primary analysis uses overall survival: time from registration to death, with
+patients alive at last contact right-censored.
+
+```{r data}
+d = subset(survival::colon, etype == 2 & rx %in% c("Obs", "Lev+5FU"))
+d$w = as.integer(d$rx == "Lev+5FU")
+covs = c("age", "sex", "obstruct", "perfor", "adhere", "nodes", "differ", "extent", "surg")
+X = d[, covs]
+n = nrow(d)
+table(arm = d$rx[, drop = TRUE])
+colSums(is.na(X))[colSums(is.na(X)) > 0]
+```
+
+How was treatment assigned? The abstracts cited here describe a randomized,
+concurrently controlled trial but do not give the allocation scheme, and
+the `survival` help page does not either. Our primary analysis therefore treats the
+assignment as complete randomization with the observed arm sizes: every split of
+these `r n` patients into `r sum(d$w == 0)` controls and `r sum(d$w == 1)` treated
+was equally likely. That is what `DesignFixediBCRD` draws when `prob_T` is set to
+the observed fraction treated. In the
+[Sensitivity check](#sensitivity-check-re-randomizing-within-strata) below we
+re-randomize within prognostic strata instead and see whether the conclusion
+changes.
+
+## Exploratory look
+
+### Balance
+
+Randomization should leave the arms similar on every baseline covariate. The
+table shows each covariate's mean by arm and the standardized difference (the
+difference in means divided by the pooled standard deviation). A common rule of
+thumb flags absolute values above 0.1.
+
+```{r balance}
+balance = data.frame(
+  covariate = covs,
+  control   = sapply(covs, function(v) mean(X[d$w == 0, v], na.rm = TRUE)),
+  treated   = sapply(covs, function(v) mean(X[d$w == 1, v], na.rm = TRUE)),
+  std_diff  = sapply(covs, function(v) {
+    x0 = X[d$w == 0, v]; x1 = X[d$w == 1, v]
+    (mean(x1, na.rm = TRUE) - mean(x0, na.rm = TRUE)) /
+      sqrt((var(x0, na.rm = TRUE) + var(x1, na.rm = TRUE)) / 2)
+  }),
+  row.names = NULL
+)
+knitr::kable(balance, digits = 2)
+```
+
+```{r balance-max, include = FALSE}
+worst = balance[which.max(abs(balance$std_diff)), ]
+```
+
+The largest standardized difference is `r round(worst$std_diff, 2)`, for
+`` `r worst$covariate` ``. Imbalances of this size are what chance produces in a
+trial of `r n` patients. They do not bias the unadjusted comparison, but they add
+noise to it, and adjusting for prognostic covariates removes some of that noise.
+
+### The outcome by arm
+
+```{r km, fig.cap = "Kaplan-Meier estimates of overall survival by arm."}
+km = survfit(Surv(time / 365.25, status) ~ rx, data = droplevels(d))
+plot(km, col = c("grey40", "#1f77b4"), lwd = 2, xlab = "Years since registration",
+     ylab = "Proportion alive", mark.time = FALSE)
+legend("bottomleft", c("Observation", "Levamisole + 5-FU"), col = c("grey40", "#1f77b4"),
+       lwd = 2, bty = "n")
+s5 = summary(km, times = 5)$surv
+deaths = tapply(d$status, d$w, sum)
+```
+
+The curves separate within the first two years and stay apart. At five years,
+`r round(100 * s5[1])`% of the observation arm and `r round(100 * s5[2])`% of the
+treated arm were alive. Over the whole follow-up there were `r deaths[["0"]]`
+deaths among `r sum(d$w == 0)` controls and `r deaths[["1"]]` among
+`r sum(d$w == 1)` treated patients.
+
+## Recording the trial in EDI
+
+The treatment was assigned decades ago, outside EDI. A fixed design accepts an
+existing assignment through `assign_w_to_all_subjects(w_precomputed = )`: the
+supplied vector becomes the design's assignment, while the design's own
+randomization mechanism is still used to redraw assignments for the
+randomization test. Setting `prob_T` to the observed fraction treated makes every
+redraw treat exactly `r sum(d$w)` patients, as the trial did.
+
+Survival responses are recorded as intervals: a death at time `t` is `ys = t`, and a
+patient alive at last contact at time `t` is `y_Ls = t, y_Rs = Inf`.
+
+```{r design}
+des = DesignFixediBCRD$new(n = n, response_type = "survival", prob_T = mean(d$w),
+                           verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects(w_precomputed = d$w)
+
+died = d$status == 1
+des$add_all_subject_responses(ys   = ifelse(died, d$time, NA),
+                              y_Ls = ifelse(died, NA, d$time),
+                              y_Rs = ifelse(died, NA, Inf))
+colSums(des$draw_ws_according_to_design(3))   # each redraw treats the same number
+```
+
+`r sum(is.na(X))` covariate values are missing (in `nodes` and `differ`). By default
+(`missingness_method = "impute"`) EDI fills them in by random-forest imputation
+(`missRanger`) and adds a missingness indicator column for each affected
+covariate, so no patient is dropped. The imputation uses only the other
+covariates, never the outcome or the treatment, so the imputed values cannot carry
+part of the treatment effect, and it is seeded, so the same data always impute the
+same way.
+
+## Analysis
+
+All hazard ratios below compare levamisole plus 5-FU with observation, so a value
+below 1 means the treatment lowered the hazard of death.
+
+### Unadjusted and covariate-adjusted Cox models
+
+`InferenceSurvivalCoxPHRegr` fits a Cox proportional hazards model. By default it
+adjusts for every recorded covariate. Passing `model_formula = ~ 1` drops them,
+leaving treatment as the only predictor.
+
+```{r cox}
+cox_unadj = InferenceSurvivalCoxPHRegr$new(des, model_formula = ~ 1, verbose = FALSE)
+cox_unadj$num_cores = 1L
+cox_unadj$compute_estimate()                      # log hazard ratio
+cox_unadj$compute_asymp_confidence_interval(alpha = 0.05)
+cox_unadj$compute_asymp_two_sided_pval()
+
+cox_adj = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+cox_adj$num_cores = 1L
+cox_adj$compute_estimate()
+cox_adj$compute_asymp_confidence_interval(alpha = 0.05)
+cox_adj$compute_asymp_two_sided_pval()
+```
+
+The default asymptotic procedure is the Wald test. The likelihood-ratio interval
+inverts the partial-likelihood ratio test instead:
+
+```{r cox-lr}
+cox_adj$compute_lik_ratio_confidence_interval(alpha = 0.05)
+cox_adj$compute_lik_ratio_two_sided_pval()
+```
+
+### Randomization test
+
+The randomization test redraws the treatment assignment `r` times from the design
+(here complete randomization with `r sum(d$w)` treated), refits the adjusted Cox
+model on each redraw, and compares the observed estimate with that reference
+distribution. It needs no proportional-hazards or large-sample assumption for its
+validity under the sharp null of no effect for any patient.
+
+```{r rand}
+cox_adj$set_seed(1)
+p_rand = cox_adj$compute_rand_two_sided_pval(r = 2000, show_progress = FALSE)
+p_rand
+```
+
+The p-value can be no smaller than about `1 / (r + 1)`, so with 2000 redraws it
+says only that the observed estimate is more extreme than nearly every redraw.
+EDI deliberately offers no randomization confidence interval for Cox-family
+classes (see the [survival cookbook](cookbook-survival.html)); the bootstrap
+supplies the interval.
+
+### Bootstrap
+
+The design is fixed and assigns patients independently of one another's outcomes,
+so resampling patients with replacement is valid here.
+
+```{r boot}
+cox_adj$set_seed(1)
+ci_boot = cox_adj$compute_bootstrap_confidence_interval(alpha = 0.05, B = 1000,
+                                                        show_progress = FALSE)
+ci_boot
+```
+
+### Other estimands
+
+Three other classes answer related questions on different scales:
+
+* `InferenceSurvivalLogRank`: the log-rank test, unadjusted and nonparametric,
+  the test most trial reports of this era used;
+* `InferenceSurvivalWeibullRegr`: a Weibull accelerated failure time model whose
+  estimate is a log *time* ratio (above 0 means the treatment lengthened survival);
+* `InferenceSurvivalRestrictedMeanDiff`: the difference in restricted mean
+  survival time up to five years, in days, which needs no model.
+
+```{r others}
+lr = InferenceSurvivalLogRank$new(des, verbose = FALSE)
+lr$num_cores = 1L
+p_logrank = lr$compute_asymp_two_sided_pval()
+
+wb = InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
+wb$num_cores = 1L
+wb_est = wb$compute_estimate()
+wb_ci  = wb$compute_asymp_confidence_interval(alpha = 0.05)
+wb_p   = wb$compute_asymp_two_sided_pval()
+
+rmst = InferenceSurvivalRestrictedMeanDiff$new(des, tau = 5 * 365.25, verbose = FALSE)
+rmst$num_cores = 1L
+rmst_est = rmst$compute_estimate()
+rmst_ci  = rmst$compute_asymp_confidence_interval(alpha = 0.05)
+rmst_p   = rmst$compute_asymp_two_sided_pval()
+
+# the same difference over the longest horizon both arms reach (the default tau)
+rmst_full = InferenceSurvivalRestrictedMeanDiff$new(des, verbose = FALSE)
+rmst_full$num_cores = 1L
+rmst_full_est = rmst_full$compute_estimate()
+rmst_full_p   = rmst_full$compute_asymp_two_sided_pval()
+tau_full = min(tapply(d$time, d$w, max)) / 365.25   # years
+```
+
+### Every asymptotic procedure: `InferenceSuite`
+
+`InferenceSuite` runs every inference class that applies to this design and
+response type. As in the cookbooks, this call is limited to the asymptotic
+methods with a per-class time limit; drop `methods` to also run every resampling
+procedure at its full replicate count.
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"),
+                              max_secs_per_class = 15)
+```
+
+Two rows need a word of explanation. "Strat Cox PH" is
+`InferenceSurvivalStratCoxPHRegr`, which picks low-cardinality covariates
+automatically and gives each of their strata its own baseline hazard. "Dep Cens
+Transform" is `InferenceSurvivalDepCensTransformRegr`, a log-normal time model
+fitted jointly with a model for the censoring times that allows the two to be
+correlated. The Cox-type rows agree closely with each other. The two log time
+ratio models agree less well, because they assume different time distributions
+(Weibull versus log-normal) and handle censoring differently, but both point the
+same way. Here censoring is mostly administrative: patients were censored because
+they were still alive when follow-up ended, and
+`r round(100 * mean(d$time[!died] >= 5 * 365.25))`% of censored patients had been
+followed for at least five years. The independent-censoring models are the
+natural ones for such data.
+
+### Sensitivity check: re-randomizing within strata
+
+Trials like this one often balanced assignment within prognostic strata. If that
+was done here, the matching randomization test redraws treatment within those
+strata. We do not know the trial's actual strata, so as a check we form four
+strata from two prognostic factors recorded in the data, more than four positive
+nodes (`node4`) and the time from surgery (`surg`), and pass them to
+`DesignFixedBlocking` as explicit block identifiers `m`. Its redraws randomize
+within each block at the same overall rate.
+
+```{r blocked}
+m = as.integer(interaction(d$node4, d$surg, drop = TRUE))
+table(block = m, w = d$w)
+
+des_blk = DesignFixedBlocking$new(n = n, response_type = "survival", m = m,
+                                  equal_block_sizes = FALSE, prob_T = mean(d$w),
+                                  verbose = FALSE)
+des_blk$add_all_subjects_to_experiment(X)
+des_blk$assign_w_to_all_subjects(w_precomputed = d$w)
+des_blk$add_all_subject_responses(ys   = ifelse(died, d$time, NA),
+                                  y_Ls = ifelse(died, NA, d$time),
+                                  y_Rs = ifelse(died, NA, Inf))
+
+cox_blk = InferenceSurvivalCoxPHRegr$new(des_blk, verbose = FALSE)
+cox_blk$num_cores = 1L
+cox_blk$compute_estimate()
+cox_blk$set_seed(1)
+p_rand_blk = cox_blk$compute_rand_two_sided_pval(r = 2000, show_progress = FALSE)
+p_rand_blk
+```
+
+The point estimate is the same as above: the data, the imputed covariates and
+the model are the same. Only the reference distribution changes, and the blocked randomization p-value, `r signif(p_rand_blk, 2)`, leads to the same
+conclusion as the complete-randomization one, `r signif(p_rand, 2)`.
+
+### Secondary endpoint: recurrence
+
+The published 40% reduction refers to recurrence. Repeating the adjusted Cox fit
+on the recurrence rows (`etype = 1`) gives:
+
+```{r recurrence}
+dr = subset(survival::colon, etype == 1 & rx %in% c("Obs", "Lev+5FU"))
+stopifnot(identical(dr$id, d$id))    # same patients, same order
+rec = dr$status == 1
+des_rec = DesignFixediBCRD$new(n = n, response_type = "survival", prob_T = mean(d$w),
+                               verbose = FALSE)
+des_rec$add_all_subjects_to_experiment(X)
+des_rec$assign_w_to_all_subjects(w_precomputed = d$w)
+des_rec$add_all_subject_responses(ys   = ifelse(rec, dr$time, NA),
+                                  y_Ls = ifelse(rec, NA, dr$time),
+                                  y_Rs = ifelse(rec, NA, Inf))
+cox_rec = InferenceSurvivalCoxPHRegr$new(des_rec, verbose = FALSE)
+cox_rec$num_cores = 1L
+rec_est = cox_rec$compute_estimate()
+rec_ci  = cox_rec$compute_asymp_confidence_interval(alpha = 0.05)
+rec_p   = cox_rec$compute_asymp_two_sided_pval()
+exp(c(estimate = rec_est, rec_ci))
+```
+
+## All results together
+
+```{r compare}
+hr = function(x) sprintf("%.2f", exp(x))
+ci_hr = function(ci) sprintf("(%.2f, %.2f)", exp(ci[1]), exp(ci[2]))
+pf = function(p) format.pval(p, digits = 2, eps = 1e-4)
+p_text = function(p) if (p < 1e-4) "p < 0.0001" else paste("p =", pf(p))
+
+est_unadj = cox_unadj$compute_estimate()
+est_adj   = cox_adj$compute_estimate()
+ci_unadj  = cox_unadj$compute_asymp_confidence_interval(alpha = 0.05)
+ci_adj    = cox_adj$compute_asymp_confidence_interval(alpha = 0.05)
+ci_lr     = cox_adj$compute_lik_ratio_confidence_interval(alpha = 0.05)
+
+results = data.frame(
+  Procedure = c("Cox, Wald", "Cox, Wald", "Cox, likelihood ratio",
+                "Cox, bootstrap CI / randomization p", "Cox, blocked randomization p",
+                "Log-rank test", "Weibull AFT, Wald", "RMST difference at 5 years, Wald"),
+  Adjusted = c("no", "yes", "yes", "yes", "yes", "no", "yes", "no"),
+  Scale = c(rep("hazard ratio", 5), "(test only)", "time ratio", "days"),
+  Estimate = c(hr(est_unadj), hr(est_adj), hr(est_adj), hr(est_adj), hr(est_adj), "",
+               hr(wb_est), sprintf("%.0f", rmst_est)),
+  `95% CI` = c(ci_hr(ci_unadj), ci_hr(ci_adj), ci_hr(ci_lr), ci_hr(ci_boot), "", "",
+               ci_hr(wb_ci), sprintf("(%.0f, %.0f)", rmst_ci[1], rmst_ci[2])),
+  p = c(pf(cox_unadj$compute_asymp_two_sided_pval()), pf(cox_adj$compute_asymp_two_sided_pval()),
+        pf(cox_adj$compute_lik_ratio_two_sided_pval()), pf(p_rand), pf(p_rand_blk),
+        pf(p_logrank), pf(wb_p), pf(rmst_p)),
+  check.names = FALSE
+)
+knitr::kable(results, align = "llllll")
+```
+
+For comparison, the final report gave a 33% reduction in the death rate
+(P = 0.0007) for these two arms (Moertel et al., 1995).
+
+## Discussion
+
+**Agreement with the published result.** The unadjusted hazard ratio is
+`r hr(est_unadj)`, a `r round(100 * (1 - exp(est_unadj)))`% reduction in the
+hazard of death, and the adjusted one is `r hr(est_adj)`, a
+`r round(100 * (1 - exp(est_adj)))`% reduction. Both are close to the 33% the
+final report gave. Every hazard-ratio, log-rank and time-ratio procedure in the
+table rejects the null of no effect at the 1% level; the five-year restricted
+mean difference is weaker, for reasons given below. The recurrence hazard ratio,
+`r hr(rec_est)` (`r round(100 * (1 - exp(rec_est)))`% reduction,
+`r p_text(rec_p)`), matches the
+published 40% reduction in recurrence. Small differences from the published
+figures are expected. The abstracts do not say exactly how they computed the
+percentage reduction or which covariates their models used. The `survival` data
+are also described as closest to the final report, not identical to it.
+
+**Why the procedures differ where they do.** The procedures fall into three
+groups, and the differences come from what each one estimates or how it
+quantifies uncertainty.
+
+* *Same estimand, different uncertainty.* The Wald, likelihood-ratio and
+  bootstrap intervals for the adjusted hazard ratio are nearly the same. With
+  `r sum(deaths)` deaths the partial likelihood is close to quadratic, so the
+  large-sample approximations behind Wald and likelihood ratio agree with each
+  other and with the bootstrap. The randomization p-values are bounded below by
+  about 1/2001; they confirm the asymptotic p-values without adding resolution.
+* *Different estimands.* The Weibull model reports a time ratio,
+  `r hr(wb_est)`: under that model treated patients' survival times are stretched
+  by about `r round(100 * (exp(wb_est) - 1))`%, with evidence as strong as the
+  Cox models'. The restricted mean difference says treated patients lived on
+  average `r round(rmst_est)` days (about `r round(rmst_est / 30.44, 1)` months)
+  longer during the first five years (`r p_text(rmst_p)`). That is the weakest
+  evidence in the table because it only counts time lived up to five years, when
+  the curves had separated by about `r round(100 * (s5[2] - s5[1]))` percentage points; the gap kept
+  widening after that (see the figure). Over the longest horizon both arms reach
+  (`r round(tau_full, 1)` years, the class's default), the difference is
+  `r round(rmst_full_est)` days (`r p_text(rmst_full_p)`). None of these are
+  hazard ratios, so they should not be compared with the published 33% directly.
+* *Adjusted versus unadjusted.* In a Cox model, adding prognostic covariates does
+  not shrink the standard error the way it does in linear regression. It moves the
+  estimate away from zero instead, because the hazard ratio is not collapsible.
+  The conditional (adjusted) and marginal (unadjusted) hazard ratios are different
+  estimands, and the adjusted one is usually further from 1 even without any
+  imbalance.
+
+**What covariate adjustment buys here.** In this trial, not much. The adjusted
+log hazard ratio is `r round(est_adj, 3)` against `r round(est_unadj, 3)`
+unadjusted, and the z-statistic grows from
+`r round(est_unadj / ((ci_unadj[2] - ci_unadj[1]) / (2 * qnorm(0.975))), 2)` to
+`r round(est_adj / ((ci_adj[2] - ci_adj[1]) / (2 * qnorm(0.975))), 2)`. With
+`r n` patients and well-balanced arms, randomization alone already gives a
+precise answer. Adjustment does help in another way: the number of positive
+nodes and the extent of local spread are established prognostic factors in colon
+cancer, and conditioning on them guards against chance imbalances like those in
+the balance table above, so the estimate depends less on which patients happened
+to land in which arm. It would matter more in a
+smaller trial, where chance imbalance on a strong prognostic factor is more
+likely.
+
+## References
+
+* Moertel CG, Fleming TR, Macdonald JS, et al. Levamisole and fluorouracil for
+  adjuvant therapy of resected colon carcinoma. *New England Journal of Medicine*
+  1990; 322:352–358. doi:10.1056/NEJM199002083220602.
+* Moertel CG, Fleming TR, Macdonald JS, et al. Fluorouracil plus levamisole as
+  effective adjuvant therapy after resection of stage III colon carcinoma: a final
+  report. *Annals of Internal Medicine* 1995; 122:321–326.
+  doi:10.7326/0003-4819-122-5-199503010-00001.
+* Laurie JA, Moertel CG, Fleming TR, et al. Surgical adjuvant therapy of
+  large-bowel carcinoma: an evaluation of levamisole and the combination of
+  levamisole and fluorouracil. *Journal of Clinical Oncology* 1989; 7:1447–1456.
+* Therneau T. `survival`: Survival Analysis. R package; data set `colon`
+  (`?survival::colon`).
+
+## Where to go next
+
+* [Get started](EDI.html): the design, assign, record, infer pattern.
+* [Survival cookbook](cookbook-survival.html): the same classes on simulated data,
+  with a sequential design.
+* [Which procedure can I trust at my sample size?](procedure-trust.html): how the
+  asymptotic and resampling procedures behave at smaller samples than this one.

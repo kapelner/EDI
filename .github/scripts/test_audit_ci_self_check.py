@@ -130,6 +130,15 @@ class Workflows(unittest.TestCase):
         runs[-1]["updated_at"] = iso(NOW - dt.timedelta(days=1) + dt.timedelta(seconds=90))
         self.assertIsNone(cs.slow_run("x", runs))                     # 2.2x but only 50 s longer
 
+    def test_runs_stopped_by_a_gate_are_not_the_baseline(self):
+        # mostly 20-second gate-only runs, a few real 120-min runs, latest real run 130 min: not slow
+        quick = [{**run(d, 0, d), "updated_at": iso(NOW - dt.timedelta(days=d) + dt.timedelta(seconds=20))}
+                 for d in range(40, 10, -1)]
+        runs = quick + [run(d, 120, d) for d in (9, 7, 5)] + [run(1, 130, 99)]
+        self.assertIsNone(cs.slow_run("x", runs))
+        # with too few real runs to compare with, nothing is reported
+        self.assertIsNone(cs.slow_run("x", quick + [run(1, 130, 99)]))
+
     def test_too_few_runs(self):
         self.assertIsNone(cs.slow_run("x", [run(10, 10), run(1, 100)]))
 

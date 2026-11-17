@@ -12,7 +12,9 @@ sets):
    no repository activity);
 3. per workflow: the latest successful run's duration against the median of the successful
    runs before it in the last 8 weeks; flagged when more than 50% over (and at least
-   MIN_SLOWDOWN_S longer, so a 40 s job taking 70 s is not noise in the issue);
+   MIN_SLOWDOWN_S longer, so a 40 s job taking 70 s is not noise in the issue). Only earlier runs
+   of at least BASELINE_MIN_S count: many workflows usually stop early in a gate, and those
+   runs would make one real run look hundreds of times slower;
 4. open bot PRs, and open PRs or branches named audit/* or algorithm-research/*, older than
    4 weeks (a branch counts by the date of its last commit, and only if no open PR uses it).
 
@@ -41,6 +43,7 @@ WINDOW_WEEKS = 8
 SLOW_FACTOR = 1.5
 MIN_SLOWDOWN_S = 120
 MIN_PRIOR_RUNS = 3
+BASELINE_MIN_S = 120          # earlier runs shorter than this stopped early (a gate or path filter)
 STALE_DAYS = 28
 BOT_PREFIXES = ("audit/", "algorithm-research/")
 
@@ -190,12 +193,17 @@ def slow_run(path, runs):
     if len(timed) < MIN_PRIOR_RUNS + 1:
         return None
     latest_s, latest = timed[-1][1], timed[-1][2]
-    median = statistics.median(s for _, s, _ in timed[:-1])
+    prior = [s for _, s, _ in timed[:-1]]
+    if latest_s >= BASELINE_MIN_S:
+        prior = [s for s in prior if s >= BASELINE_MIN_S]
+    if len(prior) < MIN_PRIOR_RUNS:
+        return None
+    median = statistics.median(prior)
     if median > 0 and latest_s > SLOW_FACTOR * median and latest_s - median >= MIN_SLOWDOWN_S:
         return {"unit": f"runtime:{path}", "kind": "slow-run",
                 "text": f"`{path}`: latest successful run took {latest_s / 60:.0f} min against an "
                         f"{WINDOW_WEEKS}-week median of {median / 60:.0f} min "
-                        f"({latest_s / median:.1f}x; {len(timed) - 1} earlier runs; "
+                        f"({latest_s / median:.1f}x; {len(prior)} earlier runs; "
                         f"{latest.get('html_url', '')})."}
     return None
 

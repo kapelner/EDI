@@ -86,7 +86,7 @@ jobs:
       builds: ${{ steps.plan.outputs.builds }}
       proposals: ${{ steps.plan.outputs.proposals }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: .github/scripts
       - uses: actions/download-artifact@v8
@@ -114,7 +114,7 @@ jobs:
       OPENBLAS_NUM_THREADS: 1
       EDI_PREPUSH_NO_PARALLEL: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: audit-compiled-code-followup
@@ -183,7 +183,7 @@ jobs:
       matrix:
         proposal: ${{ fromJSON(needs.verify-plan.outputs.proposals) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: audit-compiled-code-followup
@@ -238,7 +238,7 @@ jobs:
       group: audit-finish-compiled-code
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v8

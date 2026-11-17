@@ -309,6 +309,26 @@ def render_report(spec, parts, coverage, run_url):
     return "\n".join(md)
 
 
+BODY_LIMIT = 60000   # GitHub rejects PR and issue bodies and comments over 65,536 characters
+
+
+def fit_body(report, run_link="", limit=BODY_LIMIT):
+    """The report, cut to fit a PR or issue body. Keeps the head and the Coverage section, cuts
+    at a line boundary, and says how much was left out and where the full report is."""
+    if len(report) <= limit:
+        return report
+    i = report.rfind("\n### Coverage")
+    tail = report[i:] if i >= 0 and len(report) - i < limit // 4 else ""
+    head_text = report[:i] if tail else report
+    room = limit - len(tail) - 400
+    cut = head_text.rfind("\n", 0, room)
+    head = head_text[:cut if cut > 0 else room]
+    left = head_text[len(head):].count("\n")
+    note = (f"\n\n**Report cut to fit GitHub's size limit: {left} more line(s) not shown.** The full report "
+            f"is in the run's summary{': ' + run_link if run_link else ''}.\n")
+    return head + note + tail
+
+
 def has_findings(parts):
     return any(parts.get(k) for k in ("applied", "mechanical", "human"))
 

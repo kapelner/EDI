@@ -22,14 +22,15 @@ export EDI_SKIP_LOCAL_TUNING=1
 
 zero_sha="0000000000000000000000000000000000000000"
 empty_tree_sha="4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # git's canonical empty-tree object, always valid
-changed_files_file="$(mktemp)"
+changed_files_file="$(mktemp)"      # changes that count: comment/whitespace-only source edits dropped
+changed_files_raw="$(mktemp)"       # every file git reports as changed
 # On every exit (pass, fail or early skip), report how long the hook ran.
 # SECONDS is bash's builtin count of seconds since the script started.
 prepush_report_elapsed() {
 	local status=$? s=$SECONDS verdict="passed"
 	[[ $status -ne 0 ]] && verdict="FAILED (exit $status)"
 	printf 'pre-push: %s after %02d:%02d:%02d elapsed.\n' "$verdict" $((s / 3600)) $((s % 3600 / 60)) $((s % 60)) >&2
-	rm -f "$changed_files_file"
+	rm -f "$changed_files_file" "$changed_files_raw"
 }
 trap prepush_report_elapsed EXIT
 roxygen_touched=0
@@ -50,7 +51,15 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 		base="$remote_sha"
 	fi
 
-	git diff --name-only "$base" "$local_sha" >> "$changed_files_file"
+	git diff --name-only "$base" "$local_sha" >> "$changed_files_raw"
+	# The gates below key on this list. An R, C/C++ or Python file whose edits
+	# are only comments or whitespace is not a code change and does not count
+	# (owner ruling 2026-11-17; see scripts/significant_changes.py). If the
+	# helper itself fails, every changed file counts (fail open).
+	if ! python3 scripts/significant_changes.py --report-ignored "$base" "$local_sha" >> "$changed_files_file"; then
+		echo "pre-push: significant_changes.py failed; counting every changed file." >&2
+		git diff --name-only "$base" "$local_sha" >> "$changed_files_file"
+	fi
 
 	# Content-level check, not just "did the file change": most edits to an R
 	# source file don't touch its roxygen comments at all, so gating on the
@@ -71,9 +80,17 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 done
 
 sort -u "$changed_files_file" -o "$changed_files_file"
+sort -u "$changed_files_raw" -o "$changed_files_raw"
 
-if [ ! -s "$changed_files_file" ]; then
-	echo "pre-push: no file changes detected relative to the remote, skipping local checks."
+# Comment-only edits can still need the roxygen and doc-link checks, which
+# read git's unfiltered diff ($changed_files_raw and the roxygen line count).
+if [ ! -s "$changed_files_file" ] && [ "$roxygen_touched" = "0" ] \
+	&& ! grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_raw"; then
+	if [ -s "$changed_files_raw" ]; then
+		echo "pre-push: only comment/whitespace edits relative to the remote, skipping local checks."
+	else
+		echo "pre-push: no file changes detected relative to the remote, skipping local checks."
+	fi
 	exit 0
 fi
 
@@ -172,7 +189,8 @@ fi
 # points at breaks every doc that links to the old path, none of which show
 # up in a diff of the doc file itself).
 run_doc_link_check=0
-if grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_file"; then
+# Unfiltered list: roxygen comments carry the links, so a comment-only edit counts here.
+if grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_raw"; then
 	run_doc_link_check=1
 fi
 
@@ -310,6 +328,16 @@ else
 fi
 
 echo
+
+# The comment/whitespace change filter every gate above relies on: its own
+# tests run only when it (or its tests) change. Pure Python, ~1s.
+if grep -qE '^scripts/(test_)?significant_changes\.py$' "$changed_files_raw"; then
+	echo "pre-push: significant_changes.py changed -- running its tests ..."
+	if ! python3 scripts/test_significant_changes.py; then
+		echo "pre-push: significant_changes.py self-test FAILED (see output above)." >&2
+		abort_push
+	fi
+fi
 
 # Thread-count determinism (v1.1.0 cross_platform_reproducibility.md TODO-2,
 # decision D3): R/EDI/src must not use <random>/std::shuffle/rand() or

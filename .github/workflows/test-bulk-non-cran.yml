@@ -21,7 +21,37 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  # A comment- or whitespace-only edit to an R/C++ file in the path filter above is
+  # not a change (owner ruling 2026-11-17): `on: paths:` cannot look at content, so
+  # this gate (scripts/significant_changes.py) lets the jobs below skip. Fails open.
+  changes:
+    name: code change gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: gate
+        uses: ./.github/actions/code-change-gate
+        with:
+          paths: |
+            :(glob)R/EDI/**/*.R
+            :(glob)R/EDI/**/*.cpp
+            :(glob)R/EDI/**/*.h
+            :(glob)R/EDI/**/*.hpp
+            R/EDI/DESCRIPTION
+            R/EDI/NAMESPACE
+            :(glob)R/package_tests/testthat_bulk/**
+            :(glob)R/package_tests/ci/**
+            .github/scripts/package_budget.py
+            .github/workflows/test-bulk-non-cran.yml
+
   plan:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
@@ -55,6 +85,8 @@ jobs:
   # own Rcpp -- watch for load/runtime errors on pkgload::load_all() if
   # dependency resolution ever changes mid-run.
   build:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       # Required, not optional, for a build-once-share-with-every-shard
@@ -199,7 +231,7 @@ jobs:
   test-times:
     name: test file times
     needs: shards
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.shards.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -229,12 +261,15 @@ jobs:
   # "skipped") when plan or shards failed, rather than being skipped itself.
   gate:
     name: bulk tests passed
-    needs: [plan, build, shards]
+    needs: [changes, plan, build, shards]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check plan, build, and every shard succeeded
         run: |
+          if [ "${{ needs.changes.result }}" = "success" ] && [ "${{ needs.changes.outputs.run }}" = "false" ]; then
+            echo "Only comment/whitespace edits: nothing to test."; exit 0
+          fi
           echo "plan: ${{ needs.plan.result }}"
           echo "build: ${{ needs.build.result }}"
           echo "shards: ${{ needs.shards.result }}"

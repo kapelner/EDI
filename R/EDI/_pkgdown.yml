@@ -53,6 +53,25 @@ articles:
   - cookbook-proportion
   - cookbook-survival
   - cookbook-ordinal
+- title: Guides
+  navbar: Guides
+  desc: >
+    Task-focused guides: choose a sample size by simulation before the
+    trial, analyze an experiment whose treatment was assigned outside EDI,
+    understand the Kapelner-Krieger matching-on-the-fly designs, and make
+    EDI run fast.
+  contents:
+  - articles/planning-a-study
+  - articles/analyzing-an-existing-experiment
+  - articles/matching-on-the-fly
+  - articles/speed-and-scaling
+- title: Case Studies
+  navbar: Case Studies
+  desc: >
+    Published randomized experiments reanalyzed end to end with EDI and
+    compared with the published results.
+  contents:
+  - articles/case-study
 - title: Ecosystem
   navbar: Ecosystem
   desc: >

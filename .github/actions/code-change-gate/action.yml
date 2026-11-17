@@ -1,0 +1,49 @@
+name: Code change gate
+description: >-
+  Decides whether this push or pull request changed any of the given paths in more than
+  comments and whitespace (scripts/significant_changes.py; owner ruling 2026-11-17). A
+  workflow's `on: paths:` filter cannot look at content, so a comment-only edit to an R or
+  C++ file still starts the workflow; this gate lets it skip the expensive jobs. Needs a
+  checkout with full history (fetch-depth: 0). Fails open: any other event, an unknown or
+  all-zero base commit, or a failure of the helper means run=true.
+inputs:
+  paths:
+    description: Newline-separated git pathspecs (use ':(glob)' for '**' patterns), normally the workflow's own path filter.
+    required: true
+outputs:
+  run:
+    description: "'true' when the watched paths changed in more than comments/whitespace (or the gate could not tell)."
+    value: ${{ steps.decide.outputs.run }}
+runs:
+  using: composite
+  steps:
+    - id: decide
+      shell: bash
+      env:
+        EVENT: ${{ github.event_name }}
+        PUSH_BEFORE: ${{ github.event.before }}
+        PR_BASE: ${{ github.event.pull_request.base.sha }}
+        WATCHED: ${{ inputs.paths }}
+      run: |
+        set +e
+        case "$EVENT" in
+          push) base="$PUSH_BEFORE" ;;
+          pull_request) base="$PR_BASE" ;;
+          *) echo "run=true" >> "$GITHUB_OUTPUT"; echo "Event $EVENT: running."; exit 0 ;;
+        esac
+        if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+          echo "run=true" >> "$GITHUB_OUTPUT"; echo "No usable base commit (${base:-none}): running."; exit 0
+        fi
+        mapfile -t paths < <(printf '%s\n' "$WATCHED" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
+        changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
+        if [ "$rc" -ne 0 ]; then
+          echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::Change detection failed; running."; exit 0
+        fi
+        if [ -n "$changed" ]; then
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          echo "Watched files changed in more than comments/whitespace since ${base:0:12}:"; echo "$changed" | head -20
+        else
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "Only comment/whitespace edits to the watched files since ${base:0:12}: skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+        fi

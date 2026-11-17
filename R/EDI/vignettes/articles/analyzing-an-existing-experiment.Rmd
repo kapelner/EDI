@@ -1,0 +1,373 @@
+---
+title: "Analyzing an Experiment You Already Ran"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+Every other EDI vignette starts with EDI assigning treatment. Many analyses start
+later than that. The experiment is over, treatment was assigned by someone else (a
+randomization list, a sealed-envelope system, an online platform), and what you
+have is a data frame: one row per subject, some covariates, a 0/1 treatment column
+and an outcome.
+
+EDI (Experimental Design and Inference) analyzes that data frame with the same
+classes it uses everywhere else. The only change is in step 2 of the usual
+four-step pattern (see [Get started](EDI.html)): instead of letting the design draw
+the assignment, you hand it the assignment you already have.
+
+1. **Construct the `Design` that matches how treatment was actually assigned**, with
+   the same `n`, `prob_T` and blocks as the real experiment.
+2. **Supply the observed treatment vector** with
+   `assign_w_to_all_subjects(w_precomputed = w)`.
+3. **Record the responses** with `add_all_subject_responses()`.
+4. **Construct an `Inference` class** (or an `InferenceSuite`) and compute.
+
+## Why the design class matters
+
+A point estimate, a Wald interval or a likelihood-ratio test only looks at the data
+you have. For those, the design class mostly affects how the covariates are stored.
+
+Randomization inference is different. A randomization test asks: if treatment had no
+effect, how unusual is the observed statistic among all the assignments the
+experiment *could* have produced? EDI answers by redrawing `w` many times from the
+design object's own randomization law, so that law has to be the one that was
+really used. The bootstrap is affected in the same way for blocked designs, because
+it resamples within blocks. If you declare complete randomization for an experiment
+that was randomized within sites, the reference distribution includes assignments
+that could never have happened, and the p-value is wrong.
+
+So before writing any code, find out from the protocol or the randomization log:
+
+| What was done | EDI design | What to set |
+|---|---|---|
+| A fixed number treated, all such allocations equally likely ("complete randomization") | `DesignFixediBCRD` | `prob_T = n_T / n`, so `round(n * prob_T)` is the number actually treated |
+| An independent coin flip per subject; the number treated was random | `DesignFixedBernoulli` | `prob_T` = the coin's probability (often 0.5), not the realized fraction |
+| Complete randomization within strata (site, sex, ...) | `DesignFixedBlocking` | `strata_cols` naming the stratum column(s), or `m` with one block ID per subject |
+| Pairs formed first, one of each pair treated | `DesignFixedBinaryMatch` | see its help page |
+| Not randomized (treatment chosen by subjects or clinicians) | `ObservationalDesign` | no `prob_T`; randomization inference is unavailable |
+
+The remaining fixed designs in the
+[reference index](https://kapelner.github.io/EDI/reference/index.html) all have
+`assign_w_to_all_subjects(w_precomputed = )` too. If the experiment used a
+covariate-adaptive or response-adaptive *sequential* procedure (Efron's biased
+coin, Pocock-Simon minimization, KK matching on the fly), this article does not
+apply: EDI's sequential designs assign each subject as they arrive and have no
+argument for supplying a recorded assignment.
+
+## A finished multi-site trial
+
+Here is the kind of data frame this article is about. Eighty patients were enrolled
+at four sites, twenty per site. At each site, ten were assigned to treatment by
+complete randomization. BMI was not recorded for a few patients. The outcome is a
+continuous score. The data are simulated, but the analysis below only uses the data
+frame `trial`, exactly as if it had been read from a file.
+
+```{r data}
+set.seed(20261117)
+n = 80
+trial = data.frame(
+  site   = rep(c("A", "B", "C", "D"), each = 20),
+  age    = round(rnorm(n, 50, 10)),
+  bmi    = round(rnorm(n, 28, 4), 1),
+  smoker = rbinom(n, 1, 0.3)
+)
+trial$treated = unlist(lapply(1:4, function(s) sample(rep(0:1, each = 10))))
+trial$bmi[sample(n, 6)] = NA
+site_effect = c(A = 0, B = 6, C = 12, D = -6)
+trial$score = 20 + 3 * trial$treated + 0.2 * trial$age + site_effect[trial$site] +
+  rnorm(n, sd = 4)
+
+head(trial)
+table(trial$site, trial$treated)
+```
+
+Treatment was randomized within site, so the matching design is `DesignFixedBlocking`
+with `strata_cols = "site"`. The covariate data frame passed to the design holds
+only the covariates: no treatment column and no outcome.
+
+```{r design}
+X = trial[, c("site", "age", "bmi", "smoker")]
+
+des = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "site",
+                              prob_T = 0.5, verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects(w_precomputed = trial$treated)
+des$add_all_subject_responses(trial$score)
+
+all(des$get_w() == trial$treated)
+```
+
+It is worth checking that the design reproduces the real randomization law. Each
+column of `draw_ws_according_to_design()` is one assignment the design could have
+produced; every one should treat ten patients at each site, as the real trial did.
+
+```{r check-draws}
+draws = des$draw_ws_according_to_design(5)
+apply(draws, 2, function(w) tapply(w, trial$site, sum))
+```
+
+## Estimate, interval and p-value
+
+`InferenceContinOLS` regresses the outcome on treatment and the covariates.
+
+```{r ols}
+inf = InferenceContinOLS$new(des, verbose = FALSE)
+inf$num_cores = 1L
+
+est = inf$compute_estimate()
+ci = inf$compute_asymp_confidence_interval(alpha = 0.05)
+p_wald = inf$compute_asymp_two_sided_pval()
+est; ci; p_wald
+```
+
+The estimated treatment effect is `r round(est, 2)` points, with a 95% Wald interval
+from `r round(ci[1], 2)` to `r round(ci[2], 2)`.
+
+## Randomization test
+
+The randomization test redraws `w` within sites `r` times, recomputes the statistic
+for each draw, and compares the observed statistic with that reference
+distribution. It needs no assumption about the distribution of the outcome. A real
+analysis would use a larger `r`.
+
+```{r rand}
+inf$set_seed(1)
+p_rand = inf$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+p_rand
+```
+
+The bootstrap also follows the blocks: by default it resamples patients within each
+site.
+
+```{r boot}
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## Every applicable analysis
+
+`InferenceSuite` runs every inference class that applies to this design and
+response type. As in the cookbooks, the call below runs only the asymptotic methods
+and gives each class at most 15 seconds; drop `methods` for the full report,
+including the randomization and bootstrap procedures, which takes minutes.
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"),
+                              max_secs_per_class = 15)
+```
+
+## Covariates
+
+### Choosing which covariates enter the model
+
+By default, an inference class adjusts for every covariate in the design's
+covariate matrix. Character and factor columns become dummy variables, so `site`
+enters as three indicators:
+
+```{r get-x}
+head(des$get_X())
+```
+
+The `model_formula` argument of an inference class chooses a different
+adjustment set. It is applied to the design's covariates (after imputation, see
+below), and the treatment term is added for you.
+
+```{r model-formula}
+inf_age_site = InferenceContinOLS$new(des, model_formula = ~ age + site, verbose = FALSE)
+inf_age_site$num_cores = 1L
+inf_age_site$compute_estimate()
+inf_age_site$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+Choose the adjustment set before looking at the results, ideally from the
+analysis plan. Picking the covariates that give the smallest p-value invalidates
+the p-value.
+
+### Missing covariate values
+
+Six patients have no BMI. Two design arguments control what happens:
+
+- `missingness_method` decides how the gaps are handled. `"impute"` (the default)
+  fills them in by random-forest imputation (`missRanger`) from the other covariates
+  only, never the outcome or the treatment, so an imputed value cannot carry part of
+  the treatment effect; it is seeded, so the same data always impute the same way.
+  `"drop_column"` drops any
+  covariate column with a missing value; `"error"` stops so that nothing is changed
+  silently.
+- `include_is_missing_as_a_new_feature` (default `TRUE`) adds a 0/1 indicator for
+  each covariate with missing values. That is the `bmi_is_missing` column above.
+
+Under the defaults, the model above used imputed BMI values plus the indicator. To
+leave BMI out of the analysis instead:
+
+```{r drop-column}
+des_drop = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "site",
+                                   prob_T = 0.5, missingness_method = "drop_column",
+                                   verbose = FALSE)
+des_drop$add_all_subjects_to_experiment(X)
+des_drop$assign_w_to_all_subjects(w_precomputed = trial$treated)
+des_drop$add_all_subject_responses(trial$score)
+colnames(des_drop$get_X())
+
+inf_drop = InferenceContinOLS$new(des_drop, verbose = FALSE)
+inf_drop$num_cores = 1L
+inf_drop$compute_estimate()
+```
+
+Missing *outcomes* are a different problem. `add_all_subject_responses()` needs a
+value for every subject, so subjects lost to follow-up have to be handled before
+the data reach EDI (or, for a time-to-event outcome, recorded as censored, as in the
+next section).
+
+## A survival outcome with censoring
+
+The `veteran` data in the survival package come from a randomized trial of two
+chemotherapy regimens for lung cancer: `trt` is the regimen (1 standard, 2 test),
+`time` is survival in days, and `status` is 0 for a censored patient.
+
+```{r veteran}
+vet = survival::veteran
+table(vet$trt)
+table(vet$status)
+```
+
+The data set's documentation says the trial was randomized but not how. Here we
+assume complete randomization with the observed number on the test regimen. In a
+real analysis this is the point to check the original report or the protocol. With
+`DesignFixediBCRD`, the number treated in every redraw is `round(n * prob_T)`, so
+setting `prob_T` to the observed fraction reproduces the observed count.
+
+Censored patients are recorded as the interval `(y_L, Inf)`: `ys` is `NA` for them,
+and `y_Ls`/`y_Rs` are `NA` for patients whose death time was observed.
+
+```{r veteran-design}
+w_vet = as.integer(vet$trt == 2)
+cens = vet$status == 0
+
+des_vet = DesignFixediBCRD$new(n = nrow(vet), response_type = "survival",
+                               prob_T = mean(w_vet), verbose = FALSE)
+des_vet$add_all_subjects_to_experiment(vet[, c("celltype", "karno", "diagtime", "age", "prior")])
+des_vet$assign_w_to_all_subjects(w_precomputed = w_vet)
+des_vet$add_all_subject_responses(
+  ys   = ifelse(cens, NA, vet$time),
+  y_Ls = ifelse(cens, vet$time, NA),
+  y_Rs = ifelse(cens, Inf, NA)
+)
+colSums(des_vet$draw_ws_according_to_design(3))   # each redraw treats sum(w_vet) patients
+```
+
+A Cox model adjusted for the baseline covariates gives the log hazard ratio of the
+test regimen, a likelihood-ratio interval and p-value, and a randomization test.
+
+```{r veteran-cox}
+inf_vet = InferenceSurvivalCoxPHRegr$new(des_vet, verbose = FALSE)
+inf_vet$num_cores = 1L
+log_hr = inf_vet$compute_estimate()
+ci_vet = inf_vet$compute_lik_ratio_confidence_interval(alpha = 0.05)
+log_hr; ci_vet
+inf_vet$compute_lik_ratio_two_sided_pval()
+
+inf_vet$set_seed(1)
+inf_vet$compute_rand_two_sided_pval(r = 500, show_progress = FALSE)
+```
+
+The estimated hazard ratio is `r round(exp(log_hr), 2)`, with a 95% interval from
+`r round(exp(ci_vet[1]), 2)` to `r round(exp(ci_vet[2]), 2)`: the data do not
+distinguish the two regimens. More classes and procedures for this response type
+are in `vignette("cookbook-survival")`.
+
+## Pitfalls
+
+### Declaring the wrong design
+
+The design you declare has to be the one that generated `w`. To see what goes
+wrong otherwise, analyze the multi-site trial a second time, declaring complete
+randomization over all 80 patients and ignoring the sites. The unadjusted
+difference in means (`InferenceAllSimpleAverageDiff`) shows the effect most
+clearly, because it does not adjust for site.
+
+```{r wrong-design}
+des_wrong = DesignFixediBCRD$new(n = n, response_type = "continuous", prob_T = 0.5,
+                                 verbose = FALSE)
+des_wrong$add_all_subjects_to_experiment(X)
+des_wrong$assign_w_to_all_subjects(w_precomputed = trial$treated)
+des_wrong$add_all_subject_responses(trial$score)
+
+rand_p = function(d) {
+  i = InferenceAllSimpleAverageDiff$new(d, verbose = FALSE)
+  i$num_cores = 1L
+  i$set_seed(1)
+  i$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
+}
+p_right = rand_p(des)
+p_wrong = rand_p(des_wrong)
+c(blocked_by_site = p_right, ignoring_sites = p_wrong)
+```
+
+Both analyses use the same data and the same statistic. Declared correctly, the
+randomization p-value is `r signif(p_right, 2)`; ignoring the sites, it is
+`r signif(p_wrong, 2)`. Draws that ignore the sites can put most of the treated
+patients in the high-scoring site C, so the reference distribution is far wider than
+the one the real randomization could produce, and the test loses power. A mismatch
+between the declared and the real design can also make a test reject too often;
+either way, its p-value no longer means what it says.
+
+Three related mistakes to check for:
+
+- **Complete randomization with the wrong `prob_T`.** `DesignFixediBCRD` always
+  treats `round(n * prob_T)` subjects in a redraw and does not compare that with the
+  `w` you supply. If 30 of 80 were treated and you leave `prob_T = 0.5`, every redraw
+  treats 40. Set `prob_T = mean(w)` and check `colSums()` of a few draws, as above.
+- **Bernoulli versus complete randomization.** If each subject's assignment was an
+  independent coin flip, use `DesignFixedBernoulli` with the coin's probability;
+  its redraws let the number treated vary, as it did in the real experiment.
+- **Data that were not randomized.** If treatment was chosen rather than
+  randomized, no design reproduces the assignment mechanism. `ObservationalDesign`
+  accepts the data and supports estimates and the plain nonparametric bootstrap, but
+  randomization inference refuses to run, and the estimate is causal only under
+  assumptions about confounding that EDI cannot check.
+
+### Stratified and blocked experiments
+
+- **Name the strata.** For `DesignFixedBlocking`, pass the stratum column(s) as
+  `strata_cols`. Character and factor columns form one block per level. A numeric
+  column may instead be cut into quantile bins, which almost certainly does not
+  match the real strata, so convert numeric stratum codes with `factor()` first
+  (`?DesignFixedBlocking` gives the exact rule). If the
+  strata are not columns of `X`, or you want full control, pass `m`, one block ID
+  per subject.
+- **Unequal block sizes.** `equal_block_sizes = TRUE` is the default. With strata of
+  different sizes the design then errors, not when the data are added but the first
+  time the blocks are used (a redraw, a randomization test or an inference fit). Real
+  trials rarely have equal strata; set `equal_block_sizes = FALSE`.
+- **Different allocation ratios across strata.** The design's redraws treat
+  `floor(N * prob_T)` or `ceiling(N * prob_T)` subjects in a block of size `N`. If
+  the real trial used a different ratio in different strata, the redraws do not
+  reproduce it. Check `draw_ws_according_to_design()` against the observed counts
+  per stratum before trusting a randomization test.
+- **Blocks and the regression model.** Randomization tests, the bootstrap and the
+  jackknife respect the blocks. Regression classes such as `InferenceContinOLS` do
+  not add block effects on their own; the blocks enter the model only if the
+  stratum column is one of the covariates, as `site` is here. If the proportion
+  treated differs across strata, adjusting for the strata is required for an
+  unbiased estimate; see `?DesignFixedBlocking`.
+
+## Where to go next
+
+- The four-step pattern and the main design and inference classes:
+  [Get started](EDI.html).
+- One complete analysis per response type:
+  [continuous](cookbook-continuous.html), [incidence](cookbook-incidence.html),
+  [count](cookbook-count.html), [proportion](cookbook-proportion.html),
+  [survival](cookbook-survival.html) and [ordinal](cookbook-ordinal.html).
+- Which procedures to trust at your sample size:
+  [Procedure trust](procedure-trust.html).
+- Seeds and reproducible randomization tests: [Reproducibility](reproducibility.html).

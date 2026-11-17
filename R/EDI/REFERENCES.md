@@ -203,7 +203,13 @@ files' `@references`) if/when it becomes available.
   experimental data: Reexamining Freedman's critique." *The Annals of
   Applied Statistics*, 7(1), 295-318. [doi:10.1214/12-AOAS583](https://doi.org/10.1214/12-AOAS583). — Used by:
   `InferenceContinLin` (the centered-covariate, treatment-interacted OLS
-  estimator this class fits).
+  estimator this class fits); `Design` (`missingness_method = "impute"`: why
+  adjusting for an outcome-free imputed covariate keeps coverage).
+- **[Freedman2008]** Freedman, D. A. (2008). "On regression adjustments to
+  experimental data." *Advances in Applied Mathematics*, 40(2), 180-193.
+  [doi:10.1016/j.aam.2006.12.003](https://doi.org/10.1016/j.aam.2006.12.003). — Used by:
+  `Design` (`missingness_method = "impute"`: regression adjustment for a
+  baseline covariate in a randomized experiment, the critique Lin 2013 answers).
 - **[Rosenbaum2002]** Rosenbaum, P. R. (2002). *Observational Studies* (2nd
   ed.). Springer. — Used by: `InferenceContinOLS` (design-based
   justification of the OLS mean-difference estimator under randomization).
