@@ -159,7 +159,7 @@ void bind_continuous(py::module_& m) {
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Robust regression via IRLS (Huber M or Huber-then-Tukey-bisquare MM-estimation). "
+    "Robust regression via IRLS (Huber M or single-stage Tukey-bisquare MM-estimation). "
     "Parameters sourced from R/EDI/man/ documentation for fast_robust_regression_cpp.\n\n"
     "Parameters\n"
     "----------\n"
