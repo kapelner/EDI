@@ -178,7 +178,7 @@ historical-result and cause gates remain open.
   estimators). The observed fixture did not show Quantile breaking or
   behaving worse than the controls, so this hypothesis is not supported by
   this pilot; that does not dismiss the historical finding.
-- [ ] If tie-sensitivity is confirmed: decide between (a) documenting BRT as
+- [x] If tie-sensitivity is confirmed: decide between (a) documenting BRT as *(ticked by the TODO audit 2026-11-17: R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_bootstrap_family_inflation.md:355; R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_bootstrap_family_inflation.md:362)*
   unsuitable for quantile-regression classes (a limitation, not a bug fix),
   or (b) a mitigation such as tie-breaking jitter before each bootstrap
   refit — and only write a proper `# Fix:` plan if (b) is chosen.

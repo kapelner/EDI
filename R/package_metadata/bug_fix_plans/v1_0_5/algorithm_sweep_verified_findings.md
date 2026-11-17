@@ -225,7 +225,7 @@ are fixed here because they are still exported and registered.
   contract evidence only; current-source candidate/result reconciliation and
   provenance-matched regeneration remain open. No result artifact changed.
 
-- [ ] TODO-8 (F14): **KK clogit+GLMM Bayesian bootstraps fit glmmTMB (Laplace)
+- [x] TODO-8 (F14): **KK clogit+GLMM Bayesian bootstraps fit glmmTMB (Laplace) *(ticked by the TODO audit 2026-11-17: R/EDI/src/fast_clogit_plus_glmm.cpp:63; R/EDI/src/fast_clogit_plus_glmm.cpp:225; R/EDI/src/fast_clogit_plus_glmm.cpp:185; R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:141; R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:172; R/EDI/R/inference_incidence_KK_cond_logit_glmm.R:...)*
   on all rows**, while the point estimate uses clogit + 20-node GH
   (`inference_incidence_KK_cond_logit_glmm_abstract.R:~103-151`). Reported
   1.256 / 0.002 vs near-unit-weight replicates 0.910 / 0.339 (two seeds), a ~0.35

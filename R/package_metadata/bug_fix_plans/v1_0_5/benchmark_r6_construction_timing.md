@@ -38,7 +38,7 @@ fixes part of the cost itself; this plan fixes the measurement.
 
 ## TODOs
 
-- [ ] TODO-1: **Time construction separately for every R6 row.** For each
+- [x] TODO-1: **Time construction separately for every R6 row.** For each *(ticked by the TODO audit 2026-11-17: R/benchmark/benchmark_model_fits.R:2156; R/benchmark/benchmark_model_fits.R:2266; R/benchmark/benchmark_model_fits.R:2345; R/package_metadata/benchmark_model_fits.md:275; R/package_metadata/benchmark_model_fits.md:292; R/package_metadata/benchmark_model_fits.md:8; R/benchmark/benchmark_model_fits...)*
   spec in `procedure_specs` and `design_specs`, add an `edi_setup_expr`
   that constructs the object (and for designs, ingests covariates) and
   time it in its own loop with the same adaptive batching. Report three
@@ -62,7 +62,7 @@ fixes part of the cost itself; this plan fixes the measurement.
   This design decision is complete independently of the still-open installed
   timing and report-regeneration gates.
 
-- [ ] TODO-3: **Methodology text.** Add a paragraph to both new tables
+- [x] TODO-3: **Methodology text.** Add a paragraph to both new tables *(ticked by the TODO audit 2026-11-17: R/package_metadata/benchmark_model_fits.md:265; R/package_metadata/benchmark_model_fits.md:298; R/benchmark/benchmark_model_fits.R:1175; R/package_metadata/benchmark_model_fits.md:69)*
   explaining the three columns and that the comparators have no
   equivalent construction step. Update the "Row Highlighting" note so
   slower-than-canonical rows get a visible background (today

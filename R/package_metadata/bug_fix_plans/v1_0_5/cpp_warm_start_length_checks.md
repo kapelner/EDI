@@ -121,7 +121,7 @@ lengths is part of TODO-1).
   otherwise-present guard could validate it. The contract test now covers
   this branch too. This source correction remains unexecuted.
 
-- [ ] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
+- [x] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`: *(ticked by the TODO audit 2026-11-17: R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R:127; R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R:157; R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R:230; .github/workflows/R-CMD-check.yaml:1146; .github/workflows/R-CMD-check.yaml:1185)*
   for every exported kernel that takes `warm_start_beta` (enumerate from
   `RcppExports.R`), call it with a too-short, a too-long and a length-1
   warm start on a small fixture and `expect_error(..., "must have
@@ -316,7 +316,7 @@ lengths is part of TODO-1).
   exhaustive warm-start source audit is complete, but TODO-3 runtime,
   sanitizer, and Valgrind evidence remains open pending an authorized rebuild.
 
-- [ ] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass
+- [x] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass *(ticked by the TODO audit 2026-11-17: python/tests/test_fast_logistic_regression.py:84; python/tests/test_fast_ordinal_clmm.py:92; python/tests/test_fast_dep_cens_transform_optim.py:80; R/package_metadata/bug_fix_plans/v1_0_5/cpp_warm_start_length_checks.md:376)*
   lengths through unchecked, the C++ fix covers them once the wheels are
   rebuilt; add a matching pytest that a wrong-length warm start raises a
   Python exception rather than crashing the interpreter. **Compile-free

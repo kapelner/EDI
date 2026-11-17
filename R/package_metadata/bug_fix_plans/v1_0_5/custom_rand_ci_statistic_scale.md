@@ -58,22 +58,22 @@ CI.
 
 ## Fix (v1.0.5)
 
-- [ ] TODO-1: For `InferenceRandCustom` (and any class whose `compute_estimate()`
+- [x] TODO-1: For `InferenceRandCustom` (and any class whose `compute_estimate()` *(ticked by the TODO audit 2026-11-17: R/EDI/R/inference_rand_custom.R:94; R/EDI/R/inference_all_abstract_rand_ci.R:618)*
   is not on the δ scale), seed the CI search from an estimate on the δ scale.
   The simplest correct seed is the observed difference in means (for
   continuous y), with `se_guess` from its Welch SE. Alternatively, find a
   point with p ≥ α first, e.g. the δ that maximizes p on a coarse grid
   around the mean difference.
-- [ ] TODO-2: In the shared CI search, check that the seed point is accepted
+- [x] TODO-2: In the shared CI search, check that the seed point is accepted *(ticked by the TODO audit 2026-11-17: R/EDI/R/inference_all_abstract_rand_ci.R:640; R/EDI/R/inference_all_abstract_rand_ci.R:661)*
   (p ≥ α). If no accepted δ is found within the search radius, error clearly
   instead of returning a band of rejected values. This protects every class,
   not just the custom one.
-- [ ] TODO-3: Regression test with the fixture above: the t-statistic CI must
+- [x] TODO-3: Regression test with the fixture above: the t-statistic CI must *(ticked by the TODO audit 2026-11-17: R/EDI/tests/testthat/test-rand-custom-delta-shift.R:119; R/EDI/tests/testthat/test-rand-custom-delta-shift.R:72; R/EDI/tests/testthat/test-rand-custom-delta-shift.R:133)*
   contain δ = 0 (p = 0.144) and match the mean-difference CI within MC
   tolerance. Also test a statistic with a different scale and sign, e.g.
   `-10 * (mean difference)`, so the test does not rely on t being close to
   the effect.
-- [ ] TODO-4: Document in `InferenceRandCustom`'s roxygen that the CI inverts
+- [x] TODO-4: Document in `InferenceRandCustom`'s roxygen that the CI inverts *(ticked by the TODO audit 2026-11-17: R/EDI/R/inference_rand_custom.R:20)*
   the test over an additive shift δ of y, so it is a CI for the additive
   effect, whatever the statistic's own units.
 

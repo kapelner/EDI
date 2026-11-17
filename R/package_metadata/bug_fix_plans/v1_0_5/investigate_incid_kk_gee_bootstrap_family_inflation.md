@@ -225,7 +225,7 @@ pending because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
   confirmed mechanism) rather than a generic bootstrap-correctness bug,
   given the code trace above already ruled out the resampling machinery
   itself.
-- [ ] If NOT reproduced even with the exact historical dataset/formula,
+- [x] If NOT reproduced even with the exact historical dataset/formula, *(ticked by the TODO audit 2026-11-17: R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md:407; R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md:394; R/package_metadata/future_release_plans/release_v1_0_5.md:4535; R/package_metadata/future_release...)*
   treat this as likely resolved/noise (per the historical CSV possibly
   predating a fix, or reflecting a since-corrected upstream issue) and
   close TODO-21 without a code change, documenting that conclusion in
