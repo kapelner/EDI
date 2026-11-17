@@ -9,7 +9,7 @@
 # Module: .github/scripts/audits/generated_drift.py.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-generated-drift
+name: audit · weekly · generated-drift
 
 on:
   schedule:

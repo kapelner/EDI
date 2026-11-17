@@ -12,7 +12,7 @@
 # Module: .github/scripts/audits/source_comment_rot.py; prompt: .github/prompts/audit_source_comment_rot.md.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-source-comment-rot
+name: audit · monthly · source-comment-rot
 
 on:
   schedule:

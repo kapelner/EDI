@@ -1013,9 +1013,49 @@ jobs:
           job-config: ${{ env.JOB_CONFIG }}
           extra-packages: ${{ matrix.config.tests && 'any::rcmdcheck, any::testthat' || 'any::rcmdcheck' }}
       - uses: r-hub/actions/run-check@v1
+        if: matrix.config.label != 'rchk'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           job-config: ${{ env.JOB_CONFIG }}
+      # rchk runs the image's own check script (what run-check does for this leg) and then
+      # our gate instead of run-check's. run-check fails on every bcheck report except two
+      # message forms, so it fails any Rcpp package on reports located inside Rcpp's own
+      # headers (Armor.h, Shield.h, Vector.h: protection-stack imbalances in Rcpp's
+      # PROTECT wrappers, which rchk cannot follow). Those are not this package's code and
+      # cannot be fixed here. This gate drops them and fails on everything else: a report
+      # in EDI's src/ still fails the job (first run 2026-11-17 caught
+      # optimal_blocks_distance.cpp:135, an unprotected object passed to Rf_isNumeric).
+      - name: rchk (image check script)
+        if: matrix.config.label == 'rchk'
+        shell: bash
+        run: |
+          test -n "${RHUB_ACTIONS_CHECK_SCRIPT:-}" || { echo "rchk image did not set RHUB_ACTIONS_CHECK_SCRIPT" >&2; exit 1; }
+          "$RHUB_ACTIONS_CHECK_SCRIPT"
+      - name: Fail for rchk reports in EDI's code
+        if: always() && matrix.config.label == 'rchk'
+        shell: Rscript {0}
+        run: |
+          pkg <- read.dcf("DESCRIPTION", "Package")[[1]]
+          bcheck <- file.path("/opt/R/devel-rchk/packages/lib", pkg, "libs", paste0(pkg, ".so.bcheck"))
+          if (!file.exists(bcheck)) stop("bcheck output file does not exist")
+          l <- readLines(bcheck)
+          writeLines(l)
+          # A report is a "  [XX] ..." line under a "Function ..." header.
+          fn <- cumsum(startsWith(l, "Function "))
+          is_report <- grepl("^  \\[[A-Z][A-Z]\\] ", l)
+          ignored <- c("unsupported form of unprotect", "has address taken, results will be incomplete")
+          keep <- is_report
+          for (ign in ignored) keep <- keep & !grepl(ign, l, fixed = TRUE)
+          # Reports located in Rcpp's installed headers, and every report in a function
+          # defined in namespace Rcpp (its header line names it), are Rcpp's, not ours.
+          rcpp_fn <- tapply(grepl("^Function (\\(anonymous namespace\\)::)?Rcpp::", l), fn, any)
+          keep <- keep & !grepl("/Rcpp/include/", l, fixed = TRUE) & !rcpp_fn[as.character(fn)]
+          errs <- l[keep]
+          if (length(errs)) {
+            cat("rchk reports in this package's code:\n"); writeLines(errs)
+            for (e in errs) cat(sprintf("::error::rchk: %s\n", trimws(e)))
+          } else cat("rchk: no reports outside Rcpp's headers.\n")
+          q(save = "no", status = if (length(errs)) 1 else 0)
 
   # ASAN/UBSAN sanitizer build. Catches C++ undefined behavior (out-of-bounds
   # access, sign/integer overflow, misaligned access, use-after-free, etc.)

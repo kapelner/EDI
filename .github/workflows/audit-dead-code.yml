@@ -12,7 +12,7 @@
 # Module: .github/scripts/audits/dead_code.py; prompt: .github/prompts/audit_dead_code.md.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-dead-code
+name: audit · monthly · dead-code
 
 on:
   schedule:

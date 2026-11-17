@@ -9,7 +9,7 @@
 # Prompt: .github/prompts/audit_privacy.md (+ .schema.json)
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-privacy
+name: audit · weekly · privacy
 
 on:
   schedule:

@@ -11,7 +11,7 @@
 # Module: .github/scripts/audits/thread_rng.py
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-thread-rng
+name: audit · monthly · thread-rng
 
 on:
   schedule:

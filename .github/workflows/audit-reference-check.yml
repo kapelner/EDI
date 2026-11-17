@@ -11,7 +11,7 @@
 # Runs on a weekly Monday cron; the gate keeps only the 3rd Monday of the month.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-reference-check
+name: audit · monthly · reference-check
 
 on:
   schedule:

@@ -1,0 +1,638 @@
+---
+title: "Learn Statistics Through EDI: Experiments with Known Truth"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      fig.align = "center")
+```
+
+```{r setup, message = FALSE}
+library(EDI)
+```
+
+## A note for instructors
+
+Most statistical ideas are statements about what happens *over many repetitions*
+of an experiment: an estimator is unbiased, a test rejects 5% of the time, an
+interval covers the truth 95% of the time. Students usually take these on faith,
+because in a real data set the truth is unknown and the experiment happens once.
+
+In a simulation the truth is known, because you plant it. EDI (Experimental Design
+and Inference) builds randomized experiments the way they are run in practice:
+a design object assigns treatment, you record the responses, and an inference
+object estimates the effect. If you generate the responses yourself, with a
+treatment effect `beta_T` that you chose, you can run the same experiment a few
+hundred times and watch an idea happen.
+
+The eight lessons below are standalone. Each one needs only `library(EDI)`, sets
+its own seed, and can be assigned on its own. Each has a short statement of the
+idea, code that runs as written, one figure, a takeaway and two or three
+exercises. The code uses plain `for` loops rather than a simulation framework so
+that every step of the repetition is visible.
+
+Every lesson uses the same four steps:
+
+```{r pattern, eval = FALSE}
+des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)  # 1. a design
+des$add_all_subjects_to_experiment(X)                                            # 2. the subjects
+des$assign_w_to_all_subjects()                                                   #    and their assignment
+w = des$get_w()                                                                  #    (0 = control, 1 = treatment)
+des$add_all_subject_responses(y)                                                 # 3. the responses
+inf = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)              # 4. an analysis
+inf$compute_estimate()
+```
+
+Students who do not want to install R can run every lesson in a browser tab: see
+[Try EDI in your browser](try-edi-in-your-browser.html). In the browser, divide the
+number of repetitions by about four; the figures get noisier but tell the same
+story.
+
+Simulation results are themselves estimates. A rejection rate estimated from
+`R` repetitions has a Monte Carlo standard error of about
+$\sqrt{p(1-p)/R}$, which for $p = 0.05$ and $R = 1000$ is about 0.007. The lessons
+quote this error where it matters.
+
+## Lesson 1: Why randomize?
+
+**The idea.** In an observational comparison, whoever chooses the treatment may
+choose it for reasons that also affect the outcome. Here older subjects are more
+likely to be treated, and age raises the outcome, so the treated group would have
+higher outcomes even with no treatment at all. The difference in means then
+mixes the treatment effect with the age difference. A randomized design breaks
+the link between age and treatment, so the same difference in means is centered
+on the truth.
+
+```{r lesson1}
+set.seed(101)
+n = 100
+beta_T = 1                         # the planted treatment effect
+R = 500                            # number of repeated experiments
+
+est_biased = numeric(R)
+est_random = numeric(R)
+for (i in 1:R) {
+  age = rnorm(n, mean = 50, sd = 10)
+  noise = rnorm(n, sd = 2)
+
+  # (a) a biased rule: the older the subject, the likelier they are treated
+  w_biased = rbinom(n, 1, plogis((age - 50) / 5))
+  y_biased = beta_T * w_biased + 0.2 * age + noise
+  est_biased[i] = mean(y_biased[w_biased == 1]) - mean(y_biased[w_biased == 0])
+
+  # (b) a randomized EDI design: half the subjects treated, chosen at random
+  des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(age = age))
+  des$assign_w_to_all_subjects()
+  w = des$get_w()
+  des$add_all_subject_responses(beta_T * w + 0.2 * age + noise)
+  inf = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+  est_random[i] = inf$compute_estimate()
+}
+c(biased_mean = mean(est_biased), randomized_mean = mean(est_random), truth = beta_T)
+```
+
+```{r lesson1-fig, echo = FALSE}
+brks = seq(min(est_biased, est_random) - 0.1, max(est_biased, est_random) + 0.1, length.out = 50)
+hist(est_random, breaks = brks, col = adjustcolor("steelblue", 0.6), border = "white",
+     main = "Difference in means over 500 repeated experiments",
+     xlab = "estimated treatment effect", ylim = c(0, 80))
+hist(est_biased, breaks = brks, col = adjustcolor("darkorange", 0.6), border = "white", add = TRUE)
+abline(v = beta_T, lwd = 3)
+legend("topright", bty = "n",
+       fill = adjustcolor(c("steelblue", "darkorange"), 0.6),
+       legend = c("randomized (EDI design)", "older subjects likelier treated"))
+text(beta_T, 78, "truth", pos = 4)
+```
+
+**Takeaway.** With the biased rule the estimates center on
+`r round(mean(est_biased), 2)` instead of the true `r beta_T`; under randomization
+they center on `r round(mean(est_random), 2)`. More data does not fix the biased
+rule: it only makes the wrong answer more precise.
+
+**Exercises.**
+
+1. Change `0.2 * age` to `0 * age`. Is the biased rule still biased? Why?
+2. Increase `n` to 1000. What happens to the center and to the spread of each
+   histogram?
+3. Make the biased rule stronger by changing `/ 5` to `/ 2`. Predict the direction
+   of the change in the bias before you run it.
+
+## Lesson 2: Sampling distributions
+
+**The idea.** An estimate is computed from random data, so it is a random variable.
+If you repeat the experiment, you get a different number each time. The
+collection of those numbers is the *sampling distribution*. Its center tells you
+whether the estimator is biased; its spread (the standard error) tells you how far
+one estimate is likely to be from the truth. For a difference in means the
+spread shrinks like $1/\sqrt{n}$, so quadrupling the sample size halves it.
+
+```{r lesson2}
+set.seed(102)
+beta_T = 2
+R = 500
+ns = c(20, 80, 320)
+
+est = matrix(NA, R, length(ns), dimnames = list(NULL, paste0("n=", ns)))
+for (j in seq_along(ns)) {
+  n = ns[j]
+  for (i in 1:R) {
+    X = data.frame(x = rnorm(n))
+    des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+    des$add_all_subjects_to_experiment(X)
+    des$assign_w_to_all_subjects()
+    w = des$get_w()
+    des$add_all_subject_responses(beta_T * w + rnorm(n, sd = 3))
+    est[i, j] = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)$compute_estimate()
+  }
+}
+round(rbind(mean = colMeans(est),
+            sd   = apply(est, 2, sd),
+            theory_sd = 3 * sqrt(4 / ns)), 3)   # sd of a difference in means, n/2 per arm
+```
+
+```{r lesson2-fig, echo = FALSE}
+cols = c("darkorange", "seagreen", "steelblue")
+dens = apply(est, 2, density)
+plot(NULL, xlim = range(est), ylim = c(0, max(sapply(dens, function(d) max(d$y)))),
+     xlab = "estimated treatment effect", ylab = "density",
+     main = "Sampling distribution of the estimate at three sample sizes")
+for (j in seq_along(ns)) lines(dens[[j]], col = cols[j], lwd = 3)
+abline(v = beta_T, lty = 2)
+legend("topright", bty = "n", col = cols, lwd = 3,
+       legend = sprintf("n = %d (sd %.2f)", ns, apply(est, 2, sd)))
+```
+
+**Takeaway.** All three distributions are centered on the true effect of
+`r beta_T`. Their standard deviations are `r paste(round(apply(est, 2, sd), 2), collapse = ", ")`:
+each quadrupling of `n` roughly halves the spread, as the formula
+$\sigma\sqrt{4/n}$ predicts.
+
+**Exercises.**
+
+1. How large must `n` be for the standard deviation of the estimate to fall below
+   0.25? Check your answer with the formula and then with a simulation.
+2. Replace `rnorm(n, sd = 3)` with a skewed error, such as `3 * (rexp(n) - 1)`.
+   Does the sampling distribution at `n = 20` still look normal? At `n = 320`?
+3. Compute `inf$compute_asymp_confidence_interval()` in each repetition and
+   compare its average half-width with `1.96` times the simulated standard
+   deviation.
+
+## Lesson 3: Type I error and power by simulation
+
+**The idea.** A test at level 5% should reject a true null hypothesis 5% of the
+time. You can check this directly: plant `beta_T = 0`, run many experiments, and
+count rejections. When the effect is real, the rejection rate is the *power*,
+which grows with the sample size. Plotting power against `n` gives a power curve,
+the tool used to choose a sample size before an experiment.
+
+```{r lesson3}
+set.seed(103)
+ns = c(10, 20, 40, 80, 160)
+effects = c(0, 0.5)               # null true, and a real effect of half a standard deviation
+R = 400
+
+reject = matrix(NA, length(ns), length(effects), dimnames = list(paste0("n=", ns), paste0("beta_T=", effects)))
+for (j in seq_along(ns)) {
+  n = ns[j]
+  for (k in seq_along(effects)) {
+    pvals = numeric(R)
+    for (i in 1:R) {
+      des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+      des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+      des$assign_w_to_all_subjects()
+      w = des$get_w()
+      des$add_all_subject_responses(effects[k] * w + rnorm(n))
+      pvals[i] = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)$compute_asymp_two_sided_pval()
+    }
+    reject[j, k] = mean(pvals < 0.05)
+  }
+}
+reject
+type1 = mean(reject[, 1])          # pooled over all five sample sizes: 2000 null experiments
+c(type_I_error = type1, monte_carlo_se = sqrt(0.05 * 0.95 / (R * length(ns))))
+```
+
+```{r lesson3-fig, echo = FALSE}
+n_grid = seq(10, 160, by = 2)
+theory = sapply(n_grid, function(n) power.t.test(n = n / 2, delta = 0.5, sd = 1)$power)
+plot(ns, reject[, 2], type = "b", pch = 19, lwd = 2, col = "steelblue", ylim = c(0, 1), log = "x",
+     xlab = "total sample size n (log scale)", ylab = "rejection rate at level 0.05",
+     main = "Power curve (beta_T = 0.5) and type I error (beta_T = 0)")
+lines(n_grid, theory, lty = 2, col = "steelblue")
+lines(ns, reject[, 1], type = "b", pch = 19, lwd = 2, col = "darkorange")
+abline(h = 0.05, lty = 3)
+mcse = 1.96 * sqrt(0.05 * 0.95 / R)
+arrows(ns, pmax(reject[, 1] - mcse, 0), ns, reject[, 1] + mcse, angle = 90, code = 3, length = 0.03, col = "darkorange")
+legend("topleft", bty = "n", lwd = c(2, 1, 2), lty = c(1, 2, 1), pch = c(19, NA, 19),
+       col = c("steelblue", "steelblue", "darkorange"),
+       legend = c("simulated power, beta_T = 0.5", "power.t.test() formula", "simulated type I error, beta_T = 0"))
+```
+
+**Takeaway.** With no effect the test rejected `r sprintf("%.1f%%", 100 * type1)` of
+the time over `r R * length(ns)` null experiments (Monte Carlo standard error
+about 0.5 percentage points), close to the nominal 5%. Each per-`n` rate comes from
+only `r R` experiments (Monte Carlo standard error about 1.1 points), so the five
+rates scatter around 5% by about that much. With a
+half-standard-deviation effect the power rose from
+`r sprintf("%.0f%%", 100 * reject[1, 2])` at `n = 10` to
+`r sprintf("%.0f%%", 100 * reject[length(ns), 2])` at `n = 160`, tracking the
+textbook formula.
+
+**Exercises.**
+
+1. Read the power curve: roughly what `n` gives 80% power for `beta_T = 0.5`?
+   Confirm with `power.t.test(power = 0.8, delta = 0.5)` (which reports the size
+   of one arm).
+2. Rerun with `effects = c(0, 0.25)`. How much larger must `n` be to reach the
+   same power, and why is the factor close to four?
+3. Change the test to the randomization test
+   (`inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)`) at `n = 10`.
+   Is its type I error still near 5%?
+
+## Lesson 4: Coverage, and when it fails
+
+**The idea.** "95% confidence" is a statement about the procedure, not about one
+interval. If you repeat the experiment many times and compute an interval each
+time, about 95% of the intervals should contain the true effect. You can count
+them. The guarantee is approximate for most intervals, though: it holds as the
+sample grows. The textbook Wald interval for a difference of two proportions,
+$\hat p_T - \hat p_C \pm 1.96\,\widehat{\mathrm{se}}$, is a known case where it fails at
+moderate sample sizes, especially when one arm is small. EDI's own documentation of
+`InferenceIncidWald` reports this failure with 20% of subjects treated at `n = 50`.
+
+```{r lesson4-continuous}
+set.seed(104)
+n = 50
+beta_T = 1
+R = 1000
+
+ci = matrix(NA, R, 2)
+for (i in 1:R) {
+  des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+  des$assign_w_to_all_subjects()
+  w = des$get_w()
+  des$add_all_subject_responses(beta_T * w + rnorm(n, sd = 2))
+  ci[i, ] = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)$compute_asymp_confidence_interval(alpha = 0.05)
+}
+covers = ci[, 1] <= beta_T & beta_T <= ci[, 2]
+n_cont = n
+mean(covers)
+```
+
+Now a binary outcome, with 20% of subjects treated and a 30% event rate in both
+arms, so the true risk difference is zero. The Wald interval
+(`InferenceIncidWald`) is compared with the Newcombe hybrid-score interval
+(`InferenceIncidNewcombeRiskDiff`) as `n` grows.
+
+```{r lesson4-binary}
+set.seed(1004)
+ns = c(25, 50, 100, 200)
+R_bin = 800
+coverage = matrix(NA, length(ns), 2, dimnames = list(paste0("n=", ns), c("Wald", "Newcombe")))
+for (j in seq_along(ns)) {
+  n = ns[j]
+  hit = matrix(NA, R_bin, 2)
+  for (i in 1:R_bin) {
+    des = DesignFixediBCRD$new(n = n, response_type = "incidence", prob_T = 0.2, verbose = FALSE)
+    des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+    des$assign_w_to_all_subjects()
+    des$add_all_subject_responses(rbinom(n, 1, 0.3))   # same event rate in both arms: truth is 0
+    ci_w = InferenceIncidWald$new(des, verbose = FALSE)$compute_asymp_confidence_interval()
+    ci_n = InferenceIncidNewcombeRiskDiff$new(des, verbose = FALSE)$compute_asymp_confidence_interval()
+    hit[i, ] = c(ci_w[1] <= 0 & 0 <= ci_w[2], ci_n[1] <= 0 & 0 <= ci_n[2])
+  }
+  coverage[j, ] = colMeans(hit, na.rm = TRUE)   # rare tables with no events give no interval
+}
+coverage
+```
+
+```{r lesson4-fig, echo = FALSE, fig.height = 5}
+par(mfrow = c(1, 2), mar = c(5.5, 4, 3, 1))
+k = 1:100
+plot(NULL, xlim = range(ci[k, ]), ylim = c(1, 100), yaxt = "n",
+     xlab = sprintf("95%% interval for beta_T\n(red: misses the truth, %d of 100)", sum(!covers[k])), ylab = "",
+     main = sprintf("(a) 100 of %d intervals\n(continuous, n = %d)", R, n_cont), cex.main = 1)
+segments(ci[k, 1], k, ci[k, 2], k, col = ifelse(covers[k], "grey55", "red"), lwd = ifelse(covers[k], 1, 2.5))
+abline(v = beta_T, lwd = 2)
+plot(ns, coverage[, "Wald"], type = "b", pch = 19, lwd = 2, col = "darkorange", log = "x", ylim = c(0.75, 1),
+     xaxt = "n", xlab = "total sample size n (log scale)", ylab = "coverage of the true risk difference",
+     main = "(b) binary outcome,\n20% treated, 30% event rate", cex.main = 1)
+axis(1, at = ns)
+lines(ns, coverage[, "Newcombe"], type = "b", pch = 19, lwd = 2, col = "steelblue")
+abline(h = 0.95, lty = 2)
+mcse = 1.96 * sqrt(0.05 * 0.95 / R_bin)
+polygon(c(ns, rev(ns)), c(rep(0.95 - mcse, length(ns)), rep(0.95 + mcse, length(ns))),
+        col = adjustcolor("grey", 0.3), border = NA)
+legend("bottomright", bty = "n", col = c("darkorange", "steelblue"), lwd = 2, pch = 19,
+       legend = c("Wald", "Newcombe"))
+```
+
+**Takeaway.** For the continuous outcome, `r sprintf("%.1f%%", 100 * mean(covers))`
+of `r R` intervals covered the truth (Monte Carlo standard error 0.7 points). For
+the binary outcome with a small treated arm, the Wald interval covered only
+`r sprintf("%.1f%%", 100 * coverage[1, "Wald"])` at `n = 25` and
+`r sprintf("%.1f%%", 100 * coverage[2, "Wald"])` at `n = 50`, then
+`r sprintf("%.1f%%", 100 * coverage[3, "Wald"])` at `n = 100` and
+`r sprintf("%.1f%%", 100 * coverage[4, "Wald"])` at `n = 200`. The
+Newcombe interval covered between `r sprintf("%.1f%%", 100 * min(coverage[, "Newcombe"]))`
+and `r sprintf("%.1f%%", 100 * max(coverage[, "Newcombe"]))` at every `n`. "95%" is a
+promise that some intervals keep only for large samples. The grey band in panel (b) is
+the range a correct 95% interval would fall in by chance over `r R_bin` repetitions.
+
+**Exercises.**
+
+1. In panel (a), about how many red intervals did you expect? Why is the count
+   not exactly 5?
+2. Rerun the binary simulation with `prob_T = 0.5`. Does the Wald interval
+   still undercover at `n = 25`? What does that say about the cause?
+3. Change the event rate from 0.3 to 0.1. Some Wald intervals now have zero
+   width. Find one and explain how it happens.
+
+## Lesson 5: Randomization inference
+
+**The idea.** A randomized experiment carries its own reference distribution.
+Under the *sharp null hypothesis* that treatment changes nobody's outcome, each
+subject's response would have been the same under any assignment. So you can
+re-draw the assignment from the same design many times, recompute the estimate
+each time with the responses held fixed, and see where the observed estimate
+falls among the re-drawn ones. The fraction at least as extreme is the
+randomization p-value. It needs no model for the outcome, only the design, and
+EDI's design objects know how to re-draw their own assignments.
+
+```{r lesson5}
+set.seed(105)
+n = 20
+X = data.frame(x = rnorm(n))
+des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+des$add_all_subject_responses(0.5 * w + rnorm(n))   # planted effect 0.5
+
+inf = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+inf$num_cores = 1L
+est_obs = inf$compute_estimate()
+
+inf$set_seed(1)
+null_draws = inf$approximate_randomization_distribution_beta_hat_T(r = 5000, show_progress = FALSE)
+inf$set_seed(1)
+p_rand = inf$compute_rand_two_sided_pval(r = 5000, show_progress = FALSE)
+p_model = inf$compute_asymp_two_sided_pval()
+c(estimate = est_obs, p_randomization = p_rand, p_t_test = p_model,
+  share_of_draws_as_extreme = mean(abs(null_draws) >= abs(est_obs)))
+choose(n, n / 2)   # number of possible assignments of 10 treated out of 20
+```
+
+```{r lesson5-fig, echo = FALSE}
+h = hist(null_draws, breaks = 50, plot = FALSE)
+hist(null_draws, breaks = 50, col = "grey80", border = "white", ylim = c(0, 1.35 * max(h$counts)),
+     main = "Randomization distribution under the sharp null (5000 re-draws)",
+     xlab = "difference in means under a re-drawn assignment", xlim = range(c(null_draws, est_obs, -est_obs)))
+abline(v = c(-1, 1) * est_obs, col = "red", lwd = 3, lty = c(2, 1))
+legend("top", bty = "n", col = "red", lwd = 3, lty = c(1, 2), horiz = TRUE,
+       legend = c(sprintf("observed estimate %.2f", est_obs), "its mirror image"))
+```
+
+**Takeaway.** The observed difference of `r round(est_obs, 2)` is far in the tail of
+the re-drawn differences: `r sum(abs(null_draws) >= abs(est_obs))` of the 5000 were as
+extreme. With 5000 re-draws the smallest two-sided p-value EDI reports is
+2/5000, so the randomization p-value is `r format(signif(p_rand, 2), scientific = FALSE)`
+and the t-test p-value is `r format(signif(p_model, 2), scientific = FALSE)`; both say the
+same thing here, because the errors were drawn from a normal distribution, as the
+t-test assumes. The randomization p-value would remain valid if they were not, since
+it uses only the coin flips the design actually made.
+
+**Exercises.**
+
+1. Set the planted effect to 0 and rerun. Where does the observed estimate fall
+   now?
+2. There are `choose(20, 10)` = 184,756 possible assignments, and 5000 re-draws
+   sample only some of them. Rerun with 500 and with 20000 re-draws (the `r` argument). How much does
+   the p-value change?
+3. Replace the noise with `rexp(n) ^ 3` (heavy right tail) and the effect with 0.
+   Repeat the whole experiment 200 times and compare how often each p-value
+   falls below 0.05.
+
+## Lesson 6: Design matters
+
+**The idea.** Randomization makes the treated and control groups comparable *on
+average*, but in any one experiment they can differ by chance on an important
+covariate. Better designs reduce that chance imbalance. *Blocking* randomizes
+separately within groups of similar subjects; *pair matching* forms pairs of
+similar subjects and treats one of each pair. When the covariate predicts the
+outcome, less imbalance means a less variable estimate and more power, with the
+same number of subjects. The analysis should follow the design: the
+randomization test re-draws assignments within the blocks or pairs, so it uses the
+design's extra precision.
+
+```{r lesson6}
+set.seed(106)
+n = 40
+beta_T = 1
+R = 300
+make_design = list(
+  "complete\nrandomization" = function() DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE),
+  "blocking\non x1" = function() DesignFixedBlocking$new(strata_cols = "x1", preferred_num_bins_for_continuous_covariate = 4,
+                                                        n = n, response_type = "continuous", verbose = FALSE),
+  "pair matching\non x1, x2" = function() DesignFixedBinaryMatch$new(n = n, response_type = "continuous", verbose = FALSE))
+
+res = list()
+for (d in names(make_design)) {
+  out = matrix(NA, R, 4, dimnames = list(NULL, c("imbalance_x1", "estimate", "p_rand", "p_t_test")))
+  for (i in 1:R) {
+    X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+    des = make_design[[d]]()
+    des$add_all_subjects_to_experiment(X)
+    des$assign_w_to_all_subjects()
+    w = des$get_w()
+    des$add_all_subject_responses(beta_T * w + 2 * X$x1 + X$x2 + rnorm(n))
+    inf = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+    inf$num_cores = 1L
+    inf$set_seed(i)
+    out[i, ] = c(mean(X$x1[w == 1]) - mean(X$x1[w == 0]),
+                 inf$compute_estimate(),
+                 inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE),
+                 inf$compute_asymp_two_sided_pval())
+  }
+  res[[d]] = out
+}
+summary_tab = t(sapply(res, function(o) c(sd_imbalance_x1 = sd(o[, 1]), mean_estimate = mean(o[, 2]),
+                                          sd_estimate = sd(o[, 2]), power_rand_test = mean(o[, 3] < 0.05),
+                                          power_t_test = mean(o[, 4] < 0.05))))
+rownames(summary_tab) = gsub("\n", " ", rownames(summary_tab))
+round(summary_tab, 3)
+```
+
+```{r lesson6-fig, echo = FALSE}
+boxplot(lapply(res, function(o) o[, "estimate"]), col = c("grey80", "seagreen3", "steelblue"),
+        ylab = "estimated treatment effect", main = sprintf("Same estimator, three designs (%d experiments each, n = %d)", R, n))
+abline(h = beta_T, lty = 2, lwd = 2)
+mtext(sprintf("power (randomization test): %s", paste(sprintf("%.0f%%", 100 * summary_tab[, "power_rand_test"]), collapse = "  |  ")),
+      side = 1, line = 3.5, cex = 0.85)
+```
+
+**Takeaway.** All three designs give an unbiased difference in means, but its
+standard deviation falls from `r round(summary_tab[1, "sd_estimate"], 2)` under
+complete randomization to `r round(summary_tab[2, "sd_estimate"], 2)` with blocking
+and `r round(summary_tab[3, "sd_estimate"], 2)` with pair matching, and the power of
+the randomization test rises from `r sprintf("%.0f%%", 100 * summary_tab[1, "power_rand_test"])`
+to `r sprintf("%.0f%%", 100 * summary_tab[2, "power_rand_test"])` and
+`r sprintf("%.0f%%", 100 * summary_tab[3, "power_rand_test"])` (Monte Carlo standard
+error up to about 3 points). The t-test, which ignores the design, does not share
+the gain: its power is `r paste(sprintf("%.0f%%", 100 * summary_tab[, "power_t_test"]), collapse = ", ")`,
+because its variance formula assumes complete randomization and so overstates the
+noise under blocking and matching.
+
+**Exercises.**
+
+1. Replace `2 * X$x1 + X$x2` with `0 * X$x1 + 0 * X$x2`, so the covariates do not
+   predict the outcome. Does blocking or matching still help?
+2. Compute the type I error of the t-test under pair matching by setting
+   `beta_T = 0`. Is it above or below 5%? Why is "conservative" not the same as
+   "good" here?
+3. Try `DesignFixedBernoulli` (an independent coin flip per subject) in place of
+   complete randomization. How does the number of treated subjects vary, and
+   does it change the standard deviation of the estimate?
+
+## Lesson 7: Covariate adjustment
+
+**The idea.** Lesson 6 removed covariate noise at the design stage. You can also
+remove it at the analysis stage, by regressing the outcome on treatment and the
+covariates. Randomization already makes the unadjusted difference in means
+unbiased; adjustment does not change what is estimated, but it explains part of
+the outcome variance, so the estimate is less variable. In EDI the unadjusted
+analysis is `InferenceAllSimpleMeanDiffPooledVar`. The adjusted analysis is
+`InferenceContinOLS`, which by default (`model_formula = NULL`) uses all the
+covariates the design was given; pass a one-sided formula such as
+`model_formula = ~ age` to choose a subset.
+
+```{r lesson7}
+set.seed(107)
+n = 50
+beta_T = 1
+R = 500
+est = matrix(NA, R, 2, dimnames = list(NULL, c("unadjusted", "adjusted_OLS")))
+width = est
+for (i in 1:R) {
+  X = data.frame(age = rnorm(n, 50, 10), bmi = rnorm(n, 27, 4))
+  des = DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+  des$add_all_subjects_to_experiment(X)
+  des$assign_w_to_all_subjects()
+  w = des$get_w()
+  des$add_all_subject_responses(beta_T * w + 0.15 * X$age + 0.2 * X$bmi + rnorm(n, sd = 1))
+  unadj = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+  adj = InferenceContinOLS$new(des, verbose = FALSE)        # adjusts for age and bmi
+  ci_u = unadj$compute_asymp_confidence_interval()
+  ci_a = adj$compute_asymp_confidence_interval()
+  est[i, ] = c(unadj$compute_estimate(), adj$compute_estimate())
+  width[i, ] = c(diff(ci_u), diff(ci_a))
+}
+round(rbind(mean = colMeans(est), sd = apply(est, 2, sd), mean_CI_width = colMeans(width)), 3)
+```
+
+```{r lesson7-fig, echo = FALSE, fig.width = 5.5, fig.height = 5.5}
+lim = range(est)
+plot(est[, 1], est[, 2], pch = 19, col = adjustcolor("steelblue", 0.4), xlim = lim, ylim = lim, asp = 1,
+     xlab = "unadjusted estimate (difference in means)", ylab = "adjusted estimate (OLS on age, bmi)",
+     main = sprintf("%d experiments analyzed both ways", R))
+abline(v = beta_T, h = beta_T, lty = 2)
+abline(0, 1, col = "grey50")
+```
+
+**Takeaway.** Both analyses center on the truth
+(`r round(mean(est[, 1]), 2)` and `r round(mean(est[, 2]), 2)` for a planted effect of
+`r beta_T`), but the adjusted estimate has standard deviation
+`r round(sd(est[, 2]), 2)` against `r round(sd(est[, 1]), 2)`, and its average 95%
+interval is `r round(mean(width[, 2]), 2)` wide instead of `r round(mean(width[, 1]), 2)`.
+In the figure the cloud is wider left to right than top to bottom: the adjusted
+estimates scatter less around the truth than the unadjusted ones from the same
+experiments.
+
+**Exercises.**
+
+1. Refit with `InferenceContinOLS$new(des, model_formula = ~ age)` and then with
+   `model_formula = ~ 1`. Which of the three adjusted analyses matches the
+   unadjusted estimate exactly, and why?
+2. Add a covariate `junk = rnorm(n)` that has no effect on the outcome. Does
+   adjusting for it hurt at `n = 50`? At `n = 12`?
+3. Choose the adjustment after looking at the data: in each repetition, use
+   whichever of the two estimates is farther from zero. What happens to the type I
+   error when `beta_T = 0`?
+
+## Lesson 8: When assumptions break
+
+**The idea.** Large-sample methods assume, among other things, that there is enough
+information in the data for a normal approximation. Rare events are a common way
+to break that: with few events, especially in a small arm, the estimated standard
+error is itself very noisy, and the Wald test can reject far too often. An exact
+test does not rely on the approximation. Fisher's exact test
+(`InferenceIncidExactFisher`) computes the p-value from the exact distribution of
+the 2x2 table given its margins, so its type I error cannot exceed the nominal level.
+
+```{r lesson8}
+set.seed(108)
+n = 40
+event_rates = c(0.05, 0.1, 0.2, 0.4)
+R = 400
+type1 = matrix(NA, length(event_rates), 2, dimnames = list(paste0("p=", event_rates), c("Wald", "Fisher_exact")))
+no_events = numeric(length(event_rates))
+for (j in seq_along(event_rates)) {
+  rej = matrix(NA, R, 2)
+  for (i in 1:R) {
+    des = DesignFixediBCRD$new(n = n, response_type = "incidence", prob_T = 0.25, verbose = FALSE)
+    des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+    des$assign_w_to_all_subjects()
+    y = rbinom(n, 1, event_rates[j])   # same event rate in both arms: the null is true
+    des$add_all_subject_responses(y)
+    p_wald = tryCatch(InferenceIncidWald$new(des, verbose = FALSE)$compute_asymp_two_sided_pval(),
+                      error = function(e) NA)
+    p_fisher = InferenceIncidExactFisher$new(des, verbose = FALSE)$compute_exact_two_sided_pval_for_treatment_effect()
+    rej[i, ] = c(p_wald, p_fisher) < 0.05
+  }
+  no_events[j] = mean(is.na(rej[, 1]))   # share of experiments where the Wald test could not be computed
+  rej[is.na(rej)] = FALSE   # a test that cannot be computed does not reject
+  type1[j, ] = colMeans(rej)
+}
+type1
+```
+
+```{r lesson8-fig, echo = FALSE}
+barplot(t(type1), beside = TRUE, col = c("darkorange", "steelblue"), ylim = c(0, max(type1) * 1.25),
+        names.arg = paste0(100 * event_rates, "%"), xlab = "event rate (same in both arms)",
+        ylab = "type I error at level 0.05",
+        main = sprintf("Rejecting a true null: n = %d, 25%% treated, %d experiments per bar", n, R))
+abline(h = 0.05, lty = 2, lwd = 2)
+legend("topright", bty = "n", fill = c("darkorange", "steelblue"), legend = c("Wald", "Fisher exact"))
+```
+
+**Takeaway.** With 10 treated and 30 control subjects, the Wald test rejected a true
+null `r sprintf("%.0f%%", 100 * type1[2, "Wald"])` of the time at a 10% event rate
+and `r sprintf("%.0f%%", 100 * type1[3, "Wald"])` at 20%, more than twice the
+nominal level, while Fisher's exact test stayed at or below 5% at every event rate
+(`r paste(sprintf("%.1f%%", 100 * type1[, "Fisher_exact"]), collapse = ", ")`). At
+the rarest rate the Wald test rejects less often, partly because in
+`r sprintf("%.0f%%", 100 * no_events[1])` of those experiments it could not be computed
+at all (no events, so a zero standard error); that is not a sign that it works. The exact test pays for its
+guarantee by being conservative: its actual size is below 5%, which costs power.
+
+**Exercises.**
+
+1. Increase `n` to 200 and rerun. At which event rates does the Wald test recover?
+2. Compute the power of both tests when the treated arm's event rate is 0.4 and
+   the control arm's is 0.1. Is the conservatism of the exact test costly here?
+3. Censoring is another way assumptions break. Build a survival experiment
+   (`response_type = "survival"`; see `vignette("cookbook-survival")`) at `n = 20`
+   with heavy censoring and compare the type I error of
+   `InferenceSurvivalCoxPHRegr`'s Wald test with its randomization test.
+
+## Where to go next
+
+- The full workflow on a single data set, step by step:
+  [Get started](EDI.html).
+- Which of EDI's procedures are exact at every sample size and which are only
+  asymptotic, and how fast their error shrinks:
+  [Which procedure can I trust at my sample size?](procedure-trust.html).
+- Run these lessons without installing anything:
+  [Try EDI in your browser](try-edi-in-your-browser.html).

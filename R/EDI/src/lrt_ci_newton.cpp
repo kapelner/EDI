@@ -41,7 +41,7 @@ static LrtEval eval_lrt(
 
 	double null_nll;
 	try {
-		SEXP nll_sexp = neg_loglik_fn(null_fit);
+		RObject nll_sexp = neg_loglik_fn(null_fit);
 		if (Rf_isNull(nll_sexp)) return res;
 		null_nll = as<double>(nll_sexp);
 	} catch (...) {
@@ -55,7 +55,7 @@ static LrtEval eval_lrt(
 
 	// Derivative via envelope theorem (optional — missing dp just forces bisection)
 	try {
-		SEXP sc_sexp = score_fn(null_fit);
+		RObject sc_sexp = score_fn(null_fit);
 		if (!Rf_isNull(sc_sexp)) {
 			NumericVector sc(sc_sexp);
 			if (j >= 1 && j <= (int)sc.size()) {
@@ -265,7 +265,7 @@ NumericVector pval_invert_ci_cpp(
 	// Evaluate p at the estimate once — used to guard degenerate cases
 	double p_est = R_NaReal;
 	try {
-		SEXP s = pval_fn(est);
+		RObject s = pval_fn(est);
 		if (!Rf_isNull(s)) p_est = as<double>(s);
 	} catch (...) {}
 	if (!R_finite(p_est)) return ci;
@@ -274,7 +274,7 @@ NumericVector pval_invert_ci_cpp(
 
 	auto eval_p = [&](double delta) -> double {
 		try {
-			SEXP s = pval_fn(delta);
+			RObject s = pval_fn(delta);
 			if (Rf_isNull(s)) return R_NaReal;
 			return as<double>(s);
 		} catch (...) {

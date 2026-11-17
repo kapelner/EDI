@@ -12,7 +12,9 @@ Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 
 import argparse
 import json
 import os
+import random
 import subprocess
+import time
 import sys
 from pathlib import Path
 
@@ -348,17 +350,21 @@ def cmd_save_notes(a):
         print("notes unchanged")
         return 0
     g("commit", "-qm", a.message)
-    for attempt in range(3):
+    # Many audits can finish together (a first run of all of them creates the branch at once),
+    # so retry with a random wait; each audit writes only its own folder, so rebases are clean.
+    attempts = 10
+    for attempt in range(attempts):
         if g("push", "-q", "origin", f"HEAD:{ac.NOTES_BRANCH}", check=False).returncode == 0:
             print("notes saved")
             return 0
+        time.sleep(random.uniform(2, 10))
         # Another audit saved its notes meanwhile; each audit writes only its own folder.
         g("fetch", "-q", "origin", ac.NOTES_BRANCH, check=False)
         if g("rebase", "-q", f"origin/{ac.NOTES_BRANCH}", check=False).returncode:
             g("rebase", "--abort", check=False)
             print("::warning::could not rebase the audit notes")
             return 1
-    print("::warning::could not save the audit notes after 3 attempts")
+    print(f"::warning::could not save the audit notes after {attempts} attempts")
     return 1
 
 

@@ -9,7 +9,7 @@
 # Prompt: .github/prompts/audit_dependency_license.md (+ .schema.json)
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-dependency-license
+name: audit · monthly · dependency-license
 
 on:
   schedule:

@@ -7,7 +7,7 @@
 # Module: .github/scripts/audits/ci_self_check.py
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-ci-self-check
+name: audit · weekly · ci-self-check
 
 on:
   schedule:

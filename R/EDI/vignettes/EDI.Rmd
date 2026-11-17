@@ -46,15 +46,17 @@ vignette that runs the full workflow for that type.
 | `response_type` | What each subject's response looks like | A typical inference class | Cookbook |
 |---|---|---|---|
 | `"continuous"` | A real number (blood pressure, test score) | `InferenceContinOLS` | `vignette("cookbook-continuous")` |
-| `"incidence"` | A 0/1 outcome (event happened or not) | `InferenceIncidLogRegr` | `vignette("cookbook-incidence")` |
-| `"count"` | A non-negative integer (number of visits, seizures) | `InferenceCountPoisson` | `vignette("cookbook-count")` |
-| `"proportion"` | A fraction in (0, 1) (adherence rate, fraction of tissue affected) | `InferencePropFractionalLogit` | `vignette("cookbook-proportion")` |
+| `"incidence"` | A 0/1 outcome (event happened or not) | `InferenceIncidExactFisher` | `vignette("cookbook-incidence")` |
+| `"count"` | A non-negative integer (number of visits, seizures) | `InferenceCountNegBin` | `vignette("cookbook-count")` |
+| `"proportion"` | A fraction in (0, 1) (adherence rate, fraction of tissue affected) | `InferencePropBetaRegr` | `vignette("cookbook-proportion")` |
 | `"survival"` | A time to event, either exact or censored | `InferenceSurvivalCoxPHRegr` | `vignette("cookbook-survival")` |
 | `"ordinal"` | An ordered level coded `1, 2, ..., K` (a Likert rating) | `InferenceOrdinalPropOddsRegr` | `vignette("cookbook-ordinal")` |
 
 Inference class names follow the response type: `InferenceContin*`,
 `InferenceIncid*`, `InferenceCount*`, `InferenceProp*`, `InferenceSurvival*` and
-`InferenceOrdinal*`. The `"incidence"` and `"proportion"` types are different: an
+`InferenceOrdinal*`. The classes in this table are the ones used in the tour
+[below](#the-same-pattern-for-every-response-type); each response type has
+several more, and the cookbooks show other choices. The `"incidence"` and `"proportion"` types are different: an
 incidence response is a single 0 or 1 per subject, while a proportion response is
 itself a fraction for each subject.
 
@@ -156,6 +158,96 @@ suite = InferenceSuite$new(des)
 res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
                               methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
 ```
+
+## The same pattern for every response type
+
+Only the response and the inference class change between response types. The
+helper below builds a complete-randomization design on the same covariates `X`,
+assigns treatment, and records whatever responses `make_y(w)` returns. A list
+return is passed on as the `ys`, `y_Ls` and `y_Rs` arguments, which is how
+censored survival responses are recorded.
+
+```{r helper}
+fixed_design = function(response_type, make_y) {
+  des = DesignFixediBCRD$new(n = n, response_type = response_type, verbose = FALSE)
+  des$add_all_subjects_to_experiment(X)
+  des$assign_w_to_all_subjects()
+  y = make_y(des$get_w())
+  if (is.list(y)) do.call(des$add_all_subject_responses, y) else des$add_all_subject_responses(y)
+  des
+}
+```
+
+Each chunk below uses a different inference class and a different kind of
+procedure.
+
+**Incidence, exact test.** Fisher's exact test gives an exact p-value and an
+exact confidence interval for the log odds ratio.
+
+```{r tour-incidence}
+des_inc = fixed_design("incidence", function(w) rbinom(n, 1, plogis(-0.5 + 1.2 * w)))
+inf_inc = InferenceIncidExactFisher$new(des_inc, verbose = FALSE)
+inf_inc$compute_exact_two_sided_pval_for_treatment_effect()
+inf_inc$compute_exact_confidence_interval(alpha = 0.05)
+```
+
+More in `vignette("cookbook-incidence")`.
+
+**Count, score interval.** A negative binomial regression; the score interval
+for the log rate ratio inverts the score test.
+
+```{r tour-count}
+des_cnt = fixed_design("count", function(w) rnbinom(n, size = 2, mu = exp(1 + 0.5 * w)))
+inf_cnt = InferenceCountNegBin$new(des_cnt, verbose = FALSE)
+inf_cnt$num_cores = 1L
+inf_cnt$compute_score_confidence_interval(alpha = 0.05)
+```
+
+More in `vignette("cookbook-count")`.
+
+**Proportion, bootstrap interval.** A beta regression; the nonparametric
+bootstrap resamples subjects. A real analysis would use a larger `B`.
+
+```{r tour-proportion}
+des_prp = fixed_design("proportion", function(w) {
+  mu = plogis(-0.3 + 0.6 * w)                    # mean proportion by arm
+  rbeta(n, 10 * mu, 10 * (1 - mu))
+})
+inf_prp = InferencePropBetaRegr$new(des_prp, verbose = FALSE)
+inf_prp$num_cores = 1L; inf_prp$set_seed(1)
+inf_prp$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+More in `vignette("cookbook-proportion")`.
+
+**Survival with censoring, likelihood ratio.** A Cox model; the likelihood-ratio
+interval and p-value for the log hazard ratio. Censored subjects are recorded as
+the interval `(y_L, Inf)`.
+
+```{r tour-survival}
+des_srv = fixed_design("survival", function(w) {
+  t_event = rexp(n, exp(-2 - 0.7 * w)); t_cens = rexp(n, 0.05); cens = t_cens < t_event
+  list(ys = ifelse(cens, NA, t_event), y_Ls = ifelse(cens, t_cens, NA), y_Rs = ifelse(cens, Inf, NA))
+})
+inf_srv = InferenceSurvivalCoxPHRegr$new(des_srv, verbose = FALSE)
+inf_srv$num_cores = 1L
+inf_srv$compute_lik_ratio_confidence_interval(alpha = 0.05)
+inf_srv$compute_lik_ratio_two_sided_pval()
+```
+
+More in `vignette("cookbook-survival")`.
+
+**Ordinal, randomization test.** A proportional-odds model; the randomization
+test redraws treatment from the design, as in the continuous example.
+
+```{r tour-ordinal}
+des_ord = fixed_design("ordinal", function(w) as.integer(cut(0.8 * w + rlogis(n), c(-Inf, -1, 0, 1, Inf))))
+inf_ord = InferenceOrdinalPropOddsRegr$new(des_ord, verbose = FALSE)
+inf_ord$num_cores = 1L; inf_ord$set_seed(1)
+inf_ord$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+More in `vignette("cookbook-ordinal")`.
 
 ## Where to go next
 

@@ -61,6 +61,14 @@ articles:
   contents:
   - articles/relation-to-other-packages
   - articles/try-edi-in-your-browser
+- title: Teaching
+  navbar: Teaching
+  desc: >
+    Standalone lessons for students and instructors: simulate experiments
+    with a planted, known treatment effect and watch randomization, sampling
+    distributions, power, coverage and randomization inference happen.
+  contents:
+  - articles/learn-statistics-through-edi
 
 reference:
 

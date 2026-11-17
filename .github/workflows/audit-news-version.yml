@@ -8,7 +8,7 @@
 # Module: .github/scripts/audits/news_version.py; prompt and schema: .github/prompts/audit_news_version.*
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-news-version
+name: audit · weekly · news-version
 
 on:
   schedule:

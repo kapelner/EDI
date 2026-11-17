@@ -6,7 +6,7 @@
 # Module: .github/scripts/audits/python_vulns.py
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-python-vulns
+name: audit · weekly · python-vulns
 
 on:
   schedule:

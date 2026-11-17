@@ -131,7 +131,9 @@ NumericMatrix distance_matrix_custom_cpp_impl(const NumericMatrix& X, const Func
         xi[k] = X(i, k);
         xj[k] = X(j, k);
       }
-      SEXP d_obj = dist_fn(xi, xj);
+      // RObject, not a bare SEXP: it keeps the callback result protected across
+      // Rf_isNumeric() and as<double>(), which can allocate (rchk, 2026-11-17).
+      RObject d_obj = dist_fn(xi, xj);
       if (!Rf_isNumeric(d_obj) || Rf_length(d_obj) != 1) {
         stop("Custom dist must return one finite nonnegative number per subject pair.");
       }

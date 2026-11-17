@@ -134,6 +134,10 @@ jobs:
           else
             mkdir -p "$RUNNER_TEMP/notes"; echo "No audit-notes branch yet: every unit is new."
           fi
+          # A first run has no notes yet; the placeholder (in the audit's own folder, so audits
+          # saving at once never touch the same file) keeps the notes artifact from being empty.
+          mkdir -p "$RUNNER_TEMP/notes/${{ inputs.audit }}"
+          touch "$RUNNER_TEMP/notes/${{ inputs.audit }}/.keep"
       - name: Mechanical checks, choose and batch the units
         id: prepare
         if: steps.gate.outputs.run == 'true'

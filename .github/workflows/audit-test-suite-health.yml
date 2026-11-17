@@ -9,7 +9,7 @@
 # Module: .github/scripts/audits/test_suite_health.py.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
-name: audit-test-suite-health
+name: audit · weekly · test-suite-health
 
 on:
   schedule:

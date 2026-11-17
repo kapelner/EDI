@@ -28,8 +28,8 @@ NumericVector randomization_loop_cpp(
 	{
 	// Each thread creates its own design and inference object copies
 	// This is done once per thread, not once per randomization iteration
-	SEXP thread_des_obj = duplicate_design_fn();
-	SEXP thread_inf_obj = duplicate_inference_fn();
+	RObject thread_des_obj = duplicate_design_fn();
+	RObject thread_inf_obj = duplicate_inference_fn();
 
 	// Create a list to pass both objects to the callback
 	List thread_objects = List::create(
