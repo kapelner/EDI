@@ -65,9 +65,15 @@ public:
             double max_log = log_unnorm[0];
             for (int k = 1; k < m_K; ++k) if (log_unnorm[k] > max_log) max_log = log_unnorm[k];
             double sum_exp = 0.0;
-            for (int k = 0; k < m_K; ++k) sum_exp += std::exp(log_unnorm[k] - max_log);
+            for (int k = 0; k < m_K; ++k) {
+                const double e = std::exp(log_unnorm[k] - max_log);
+                prob[k] = e;
+                sum_exp += e;
+            }
             const double log_total = max_log + std::log(sum_exp);
-            for (int k = 0; k < m_K; ++k) prob[k] = std::exp(log_unnorm[k] - log_total);
+            // prob[k] = exp(log_unnorm[k] - max_log) / sum_exp == exp(log_unnorm[k] - log_total);
+            // reusing the first pass's exp() values halves the per-row libm calls.
+            for (int k = 0; k < m_K; ++k) prob[k] /= sum_exp;
 
             const int y_i = m_y[i];
             neg_ll -= (log_unnorm[y_i - 1] - log_total);
