@@ -99,6 +99,13 @@ gaps" at the bottom).
   matching-on-the-fly design behind the matched pairs the sign test is
   computed on), `InferenceIncidKKModifiedPoisson` (KK matching-on-the-fly
   design behind the matched-pair-cluster sandwich covariance).
+- **[KK21]** Kapelner, A., and Krieger, A. M. (2023). "A matching procedure
+  for sequential experiments that iteratively learns which covariates improve
+  power." *Biometrics*, 79(1), 216-229 (published online 2021).
+  [doi:10.1111/biom.13561](https://doi.org/10.1111/biom.13561) (verified on
+  Crossref 2026-11-17). — Used by: `DesignSeqOneByOneKK21` and
+  `DesignSeqOneByOneKK21stepwise` (the outcome-weighted matching distance and
+  its bootstrapped acceptance threshold).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. [doi:10.1093/biostatistics/5.2.263](https://doi.org/10.1093/biostatistics/5.2.263). — Used
@@ -140,15 +147,12 @@ gaps" at the bottom).
 
 ### Cited by author-year only (full record not present in source)
 
-These two works are cited inline (`design_seq_one_by_one_KK21.R`,
-`design_seq_one_by_one_KK21_stepwise.R`) but the source does not carry a
-full title/journal/DOI for either — recorded here as-is rather than a
-fabricated citation. Fill in the full record here (and in the citing
-files' `@references`) if/when it becomes available.
+This work is cited inline (`design_seq_one_by_one_KK21.R`,
+`design_seq_one_by_one_KK21_stepwise.R`) without a journal or DOI because it is
+an arXiv preprint. (The Kapelner and Krieger outcome-weighted paper, formerly
+listed here, now has its full record in the designs section, verified on
+Crossref 2026-11-17.)
 
-- Kapelner, A., and Krieger, A. M. (2021) — the outcome-weighted
-  matching-on-the-fly extension `DesignSeqOneByOneKK21`/
-  `DesignSeqOneByOneKK21stepwise` implement.
 - Morrison, T. (2025). "Reservoir Designs for Online Paired Experiments."
   arXiv:2505.17247, sole author, arXiv-only as of 2026-08-31 (attribution
   corrected 2026-08-31; was wrongly listed as Morrison and Owen) — the

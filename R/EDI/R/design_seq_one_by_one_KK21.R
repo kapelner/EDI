@@ -11,10 +11,9 @@
 #' association means matching effort is spent preferentially on \emph{prognostic}
 #' covariates (those that actually explain outcome variance) rather than equally on
 #' every covariate, which is intended to improve estimator efficiency beyond what
-#' outcome-agnostic matching achieves. \code{morrison = TRUE} additionally switches to
-#' Morrison and Owen's (2025) alternative calibration of the matching-acceptance
-#' threshold (differing in the fixed- vs. variable-\eqn{n} settings) and removes KK14's
-#' burn-in wait before matching begins.
+#' outcome-agnostic matching achieves. The \code{morrison} argument is reserved for
+#' Morrison's (2025) alternative calibration of the matching-acceptance threshold; it is
+#' not implemented yet, and \code{morrison = TRUE} gives a warning and changes nothing.
 #'
 #' @details
 #' \strong{Weight estimation.} \code{compute_weights()} dispatches on
@@ -79,9 +78,12 @@
 #' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 #'   allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
 #'   \doi{10.1111/biom.12148}, for the base matching-on-the-fly algorithm this class
-#'   extends with outcome-weighted distances (Kapelner and Krieger, 2021); see also
-#'   Morrison, T., and Owen, A. B. (2025) for the alternative \code{morrison = TRUE}
-#'   threshold calibration referenced by the \code{morrison} argument.
+#'   extends with outcome-weighted distances; Kapelner, A., and Krieger, A. M. (2023). "A matching procedure for sequential
+#'   experiments that iteratively learns which covariates improve power."
+#'   \emph{Biometrics}, 79(1), 216-229 (published online 2021), \doi{10.1111/biom.13561}. See also
+#'   Morrison, T. (2025), "Reservoir Designs for Online Paired Experiments",
+#'   arXiv:2505.17247, for the alternative threshold calibration the (not yet
+#'   implemented) \code{morrison} argument is reserved for.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -97,8 +99,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 	public = list(
 		#'
 		#' @description Initialize a matching-on-the-fly sequential experimental design which matches based on
-		#' Kapelner and Krieger (2021) with
-		#' option to use matching parameters of Morrison and Owen (2025).
+		#' Kapelner and Krieger (2021).
 		#'   There is no \code{prob_T} argument: allocation is always 1:1
 		#'   (\code{prob_T = 0.5}) because each matched pair adds one treated and one control subject.
 		#'
@@ -107,7 +108,8 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#' 								"incidence",
 		#' 								"proportion",
 		#' 								"count",
-		#' 								"survival".
+		#' 								"survival",
+		#' 								"ordinal".
 		#'                                                                 This package will enforce
 		#' that all added responses via the \code{add_one_subject_response} method will be
 		#' 								of the appropriate type.
@@ -120,17 +122,15 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#' @param verbose A flag indicating whether messages should be
 		#'   displayed to the user. Default is \code{FALSE}.
 		#' @param lambda   The quantile cutoff of the subject distance distribution for determining
-		#'   matches. If unspecified and \code{morrison = FALSE}, default is 10\%.
-		#' @param t_0_pct  The percentage of total sample size n where matching begins. If unspecified
-		#'   and \code{morrison = FALSE}, default is 35\%.
-		#' @param morrison        Default is \code{FALSE} which implies matching via the KK14
-		#'   algorithm using \code{lambda} and \code{t_0_pct} matching.
-		#'                                                 If \code{TRUE}, we use Morrison and Owen
-		#' (2025)'s formula for \code{lambda} which differs in the fixed n versus variable n
-		#'                                                 settings and matching begins immediately
-		#' with no wait for a certain reservoir size like in KK14.
-		#' @param p                       The number of covariate features. Must be specified when
-		#'   \code{morrison = TRUE} otherwise do not specify this argument.
+		#'   matches. If unspecified, default is 10\%.
+		#' @param t_0_pct  The percentage of total sample size n where matching begins. If unspecified,
+		#'   default is 35\%.
+		#' @param morrison        Reserved for Morrison's (2025) alternative matching-threshold
+		#'   calibration, which is not implemented yet: the value is recorded but no code path
+		#'   reads it, and \code{morrison = TRUE} gives a warning and runs the standard
+		#'   \code{lambda} / \code{t_0_pct} schedule. Default is \code{FALSE}.
+		#' @param p                       Reserved for the Morrison calibration (the number of
+		#'   covariate features); recorded but not used.
 		#' @param num_boot the number of bootstrap samples taken to approximate the subject-distance
 		#'   distribution. Default is 500.
 		#' @param count_use_speedup               Should we speed up the estimation of the weights in

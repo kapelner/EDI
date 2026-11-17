@@ -18,11 +18,13 @@
 #' accumulated to estimate a stable covariate covariance structure.
 #'
 #' \strong{Matching test.} Once past burn-in, for new subject \eqn{t} with covariate
-#' vector \eqn{x_t}, the squared Mahalanobis distance (via
-#' \code{compute_proportional_mahal_distances_cpp()}, using the sample covariance of
-#' all prior subjects' covariates, ridge-regularized by \code{.Machine$double.eps}) to
-#' every subject currently in the reservoir is computed, and the closest one is a
-#' candidate match. The match is \strong{accepted} only if that squared distance falls
+#' vector \eqn{x_t}, the Hotelling statistic
+#' \eqn{T^2 = \frac{1}{2}(x_t - x_j)^\top S^{-1}(x_t - x_j)} (half the squared
+#' Mahalanobis distance, since the difference of two exchangeable subjects has
+#' covariance \eqn{2\Sigma}; \eqn{S} is the sample covariance of all prior subjects'
+#' covariates, lightly ridge-regularized) to every subject \eqn{j} currently in the
+#' reservoir is computed, and the closest one is a candidate match. The match is
+#' \strong{accepted} only if that \eqn{T^2} falls
 #' below a threshold \eqn{T^2_{\mathrm{cutoff}}} derived from an F critical value,
 #' \deqn{T^2_{\mathrm{cutoff}} = \frac{p(n-1)}{n-p} \, F_{p,\, t-p}(\lambda),}
 #' where \eqn{p} is the rank of the covariate matrix so far, \eqn{n} is the design's
@@ -115,6 +117,14 @@ DesignSeqOneByOneKK14 = define_design_class(
 			private$uses_covariates = TRUE
 			private$lambda = if (is.null(lambda)) 0.1 else lambda
 			private$t_0_pct = if (is.null(t_0_pct)) 0.35 else t_0_pct
+			# v1.0.6-TODO-46: morrison = TRUE was documented (on KK21/KK21stepwise) as switching to
+			# Morrison's (2025) threshold calibration, but no code path reads it. Say so instead of
+			# silently running the standard schedule.
+			if (isTRUE(morrison)) {
+				warning("morrison = TRUE is not implemented yet; the standard KK14 lambda / t_0_pct ",
+					"matching schedule is used. The argument is reserved for Morrison's (2025) calibration.",
+					call. = FALSE)
+			}
 			private$morrison = morrison
 			private$p = p
 		},

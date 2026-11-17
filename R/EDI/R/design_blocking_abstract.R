@@ -93,6 +93,12 @@ DESIGN_BLOCKING_STRUCTURE_PUBLIC = list(
 			if (!is.null(private$m) && length(private$m) == length(private$y)) {
 				return(private$m)
 			}
+			# A sequential design pre-allocates y to the full n but holds match ids only for the
+			# t subjects enrolled so far, so mid-trial the ids are sized to t, not n
+			# (v1.0.6-TODO-46: get_block_ids() errored "improperly sized" until the trial was full).
+			if (!is.null(private$m) && !is.null(private$t) && length(private$m) == private$t) {
+				return(private$m)
+			}
 			block_ids = private$m
 			Xraw = private$Xraw
 			if (is.null(block_ids) && private$has_private_method("get_or_compute_block_ids")) {

@@ -24,10 +24,15 @@ test_that("Different designs work with continuous response", {
 	}
 })
 
-test_that("KK14 with Morrison works", {
+# morrison = TRUE is reserved and not implemented (v1.0.6-TODO-46): it warns and runs the
+# standard KK14 schedule, so the design must still work end to end.
+test_that("KK14 with morrison = TRUE warns that it is not implemented and still works", {
 	n <- 20
 	p <- 2
-	des <- DesignSeqOneByOneKK14$new(response_type = "continuous", n = n, morrison = TRUE, p = p)
+	expect_warning(
+		des <- DesignSeqOneByOneKK14$new(response_type = "continuous", n = n, morrison = TRUE, p = p),
+		"morrison = TRUE is not implemented"
+	)
 	set.seed(1)
 	for (i in 1:n) {
 	des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
