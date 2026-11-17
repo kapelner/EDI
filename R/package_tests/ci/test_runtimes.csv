@@ -302,6 +302,7 @@ R/package_tests/testthat_bulk/test-drop-linearly-dependent-cols-and-create-model
 R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-edi-tuning-assert-diffs-respect-untunable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,correctness,2.3,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-efron-weighted-coin-prob-range-validation.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-estimate-annealing-initial-temp-exact-value-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,correctness,1.8,measured_with_30_percent_headroom
@@ -369,6 +370,7 @@ R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-onelik-randomiz
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-randomization-estimate-effective-time-dead-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-globals-small-helpers-control-conditions-assert-toggle-kk-weights-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-greedy-d-optimal-get-interest-returns-validated-interest.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-greedy-d-optimal-projection-rank-deficient-intercept-collinear.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-greedy-design-search-kernel-local-optimality-pair-mode-and-seed-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-greedy-pair-switching-matching-blocking-flags-and-jackknife-unit-dispatch-reference.R,correctness,1.2,measured_with_30_percent_headroom
@@ -1496,6 +1498,7 @@ R/EDI/tests/testthat/test-rcpp-fitting-real-data.R,coverage,1,measured_with_30_p
 R/EDI/tests/testthat/test-reference-parity.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-registry-component-drift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-regression-no-implicit-block-fixed-effects.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rerandomization-abs-sum-diff-standardized-and-objective-validation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-batched-fallback.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-objective-contiguous-indicts.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rerandomization-search-early-stop.R,coverage,1,measured_with_30_percent_headroom
@@ -1869,6 +1872,7 @@ R/package_tests/testthat_bulk/test-drop-linearly-dependent-cols-and-create-model
 R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-edi-tuning-assert-diffs-respect-untunable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-efron-weighted-coin-prob-range-validation.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-estimate-annealing-initial-temp-exact-value-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,coverage,240,bootstrap
@@ -1936,6 +1940,7 @@ R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-onelik-randomiz
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-randomization-estimate-effective-time-dead-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-globals-small-helpers-control-conditions-assert-toggle-kk-weights-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-greedy-d-optimal-get-interest-returns-validated-interest.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-greedy-d-optimal-projection-rank-deficient-intercept-collinear.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-greedy-design-search-kernel-local-optimality-pair-mode-and-seed-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-greedy-pair-switching-matching-blocking-flags-and-jackknife-unit-dispatch-reference.R,coverage,240,bootstrap
