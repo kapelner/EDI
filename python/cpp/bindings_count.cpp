@@ -204,7 +204,7 @@ void bind_count(py::module_& m) {
     "squares with the canonical-link (Fisher-scoring) working weights\n"
     "w_i = mu_i and working response z_i = eta_i + (y_i - mu_i)/mu_i: each\n"
     "iteration solves the weighted normal equations X^T W X delta = X^T W z.\n"
-    "Any optimization_alg other than \"lbfgs\" runs this IRLS path;\n"
+    "Only optimization_alg=\"irls\" runs this IRLS path (other values use the likelihood optimizer, or raise if unrecognized);\n"
     "optimization_alg=\"lbfgs\" instead minimizes the exact negative\n"
     "log-likelihood directly via L-BFGS. No R-side roxygen documents this raw\n"
     "kernel directly (fast_poisson_regression.cpp has none); parameters\n"

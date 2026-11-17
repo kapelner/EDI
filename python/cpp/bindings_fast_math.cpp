@@ -35,8 +35,8 @@ void bind_fast_math(py::module_& m) {
           "scipy.stats.chi2.sf(statistic, df) semantics and precision. Used throughout\n"
           "EDI's likelihood-ratio and score-test p-value computations.\n\n"
           "Parameters\n----------\n"
-          "statistic : float\n    The chi-squared test statistic (should be >= 0; not validated).\n"
-          "df : float\n    Degrees of freedom (should be > 0; not validated).\n\n"
+          "statistic : float\n    The chi-squared test statistic (statistic <= 0 returns 1.0; NaN if not finite).\n"
+          "df : float\n    Degrees of freedom (NaN is returned if df <= 0 or not finite).\n\n"
           "Returns\n-------\nfloat\n    The upper-tail probability P(X > statistic).");
 
     m.def("fast_pchisq_upper", [](const Eigen::Ref<const Eigen::VectorXd>& statistic,
@@ -54,13 +54,13 @@ void bind_fast_math(py::module_& m) {
         return vectorize1([](double v) { return fast_digamma(v); }, x);
     }, py::arg("x"),
     "Digamma function psi(x) = d/dx log(Gamma(x)), evaluated elementwise.\n\n"
-    "Computed via an asymptotic expansion with a recurrence (reflection) shift\n"
+    "Computed via an asymptotic expansion with a recurrence shift\n"
     "for small arguments, the standard technique for evaluating digamma to double\n"
     "precision without a lookup table. Matches scipy.special.digamma. Used\n"
     "internally inside EDI's negative-binomial, beta, zero-inflated/hurdle, and\n"
     "matched-pair count-response likelihood, score, and Hessian kernels.\n\n"
     "Parameters\n----------\n"
-    "x : array_like\n    Arguments; should not be a non-positive integer (a pole of psi);\n"
+    "x : array_like\n    Arguments; x <= 0 returns NaN here (scipy is finite off the poles);\n"
     "    not validated.\n\n"
     "Returns\n-------\nndarray\n    psi(x), same shape as x.");
 
@@ -76,7 +76,7 @@ void bind_fast_math(py::module_& m) {
     "information curvature term involving log(Gamma) (e.g. negative-binomial\n"
     "dispersion-parameter curvature).\n\n"
     "Parameters\n----------\n"
-    "x : array_like\n    Arguments; should not be a non-positive integer (a pole of psi');\n"
+    "x : array_like\n    Arguments; returns NaN for any x <= 0 (unlike scipy, even non-integers);\n"
     "    not validated.\n\n"
     "Returns\n-------\nndarray\n    psi'(x), same shape as x.");
 
@@ -90,7 +90,7 @@ void bind_fast_math(py::module_& m) {
     "based densities) wherever a log-factorial-like normalizing term is needed.\n\n"
     "Parameters\n----------\n"
     "x : array_like\n    Arguments; domain handling for non-positive values follows the\n"
-    "    underlying Lanczos kernel and is not separately validated here.\n\n"
+    "    libm lgamma (x <= 0 or non-finite x) and is not validated here.\n\n"
     "Returns\n-------\nndarray\n    log(Gamma(x)), same shape as x.");
 
     m.def("fast_lbeta", [](const Eigen::Ref<const Eigen::VectorXd>& a,
@@ -120,14 +120,14 @@ void bind_fast_math(py::module_& m) {
     "evaluated elementwise over x with a fixed (size, mu), where E[X] = mu and\n"
     "Var(X) = mu + mu^2/size (size is the dispersion/shape parameter; smaller\n"
     "size means more overdispersion relative to Poisson). Matches R's\n"
-    "dnbinom(x, size, mu=mu, log=...) exactly; equivalent to\n"
+    "dnbinom(x, size, mu=mu, log=...) to fast_lgamma accuracy; equivalent to\n"
     "scipy.stats.nbinom.logpmf(x, size, size/(size+mu)) when return_log=True\n"
     "(scipy uses the number-of-successes/probability parameterization, so\n"
     "convert p = size/(size+mu)). Used internally inside EDI's negative-\n"
     "binomial regression likelihood, score, and Hessian kernels.\n\n"
     "Parameters\n----------\n"
     "x : array_like\n    Non-negative integer counts; non-integer/negative values are not\n"
-    "    validated and will produce incorrect or non-finite results.\n"
+    "    validated; they return density 0 (log-density -inf).\n"
     "size : float\n    Dispersion (shape) parameter > 0, recycled against every element of x.\n"
     "mu : float\n    Mean parameter > 0, recycled against every element of x.\n"
     "return_log : bool, optional\n    If True, return the log-density instead of the density. Default False.\n\n"
@@ -155,7 +155,7 @@ void bind_fast_math(py::module_& m) {
     "complementary error function kernel fast_erfc\n"
     "(Phi(x) = 0.5*erfc(-x/sqrt(2))), in a form stable for large negative x\n"
     "(where Phi(x) underflows in ordinary arithmetic long before the true\n"
-    "log-probability does). Matches scipy.stats.norm.logcdf. Used internally\n"
+    "log-probability does). Matches scipy.stats.norm.logcdf only for |x| < 8 (clamped to -35.0496 for x <= -8 and -6.661e-16 for x >= 8). Used internally\n"
     "inside EDI's probit regression and other likelihood kernels that need a\n"
     "numerically stable normal log-CDF, e.g. for censored/truncated Gaussian\n"
     "contributions.\n\n"
