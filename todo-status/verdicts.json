@@ -1,0 +1,642 @@
+{
+ "R/package_metadata/bug_fix_plans/v1_0_5/algorithm_sweep_verified_findings.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "Done. fast_clogit_plus_glmm_cpp takes weights_disc/weights_conc. The class's Bayesian-bootstrap refit no longer calls glmmTMB: it uses the same weighted likelihood as the point estimate, and both incidence classes now go through the reservoir-logit path (uses_reservoir_logit() == TRUE). A class-dispatch regression checks OneLik, IVWC and the public Bayesian-bootstrap driver against an independe...",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "Done. The harness is in R/benchmark/ and covers what was asked: B in {1000, 5000}, 1 core vs. the requested core count, rows with and without the blocklist override, and the installed package only. Its child script has cases for OLS, logistic, Cox, Weibull, median regression, difference in means and beta regression. No benchmark results have been recorded yet (an earlier pilot was blocked becau...",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-10": {
+  "at": "2026-11-17",
+  "text": "Partly done. The non-reusable path now makes one copy of inf_template per worker chunk instead of one per draw, and the per-class audit of what each refit leaves behind is recorded. The bit-identity test only covers InferenceCountHurdleNegBin at one core, not the six inheriting classes or 2+ cores. No before/after measurement is recorded, and the plain-bootstrap/jackknife paths were audited but...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-11": {
+  "at": "2026-11-17",
+  "text": "Partly done. Items 1-6 are in the checkout: a statistics cache keyed by B/smooth/require_se on the plain bootstrap, a test file, and a NEWS entry. Item 7, checking whether the jackknife (BCa), m-out-of-n and subsampling paths have the same gap, is not recorded; the plan itself says it was not audited.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-2": {
+  "at": "2026-11-17",
+  "text": "Partly done. The reusable-worker driver now gives each task only its own slice of draws and groups logical chunks into one batch per worker, so each worker is set up once and the per-worker batching replaces the 4\u00d7n_cores chunking. The before/after measurement of serialized bytes per task is not recorded: a probe script exists, but no results appear in the plan, a report or NEWS.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Mostly not done. The parallel gate is still the old heuristic (t_warmup  B > overhead  cores, with a fixed overhead of 0.01 or 0.5). There is no separate timing of worker creation versus per-draw refit, no setup + transfer + B\u00b7t/cores model, and no use of tune_EDI_for_this_machine() constants. The only part that holds is that num_cores acts as a ceiling, which was already the existing behaviour...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "Partly done. All B draws now come from one rgamma call with one shared context, and a test checks bit-identity with the old nested loop. That test covers only one blocking design with the default weighting_unit_type, not the subject, cluster and matched-set cases under both weighting types that the TODO asks for. The eight-case matrix check was a /tmp script, not a test.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "Not done. The bootstrap blocklist still has all of its entries unchanged, with no per-entry hazard reason in the roxygen docs. The runtime reason string still reads \"forced serial by benchmark policy\", and no seeded serial-vs-3-core fork/mirai audit is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Partly done. The OLS-family weighted refits (OLS, Lin, risk difference, KK one-likelihood OLS) now dispatch to fast_ols_cpp on sqrt-weighted inputs, and the interim Cox fallback calls survival::coxph.fit directly for unstratified, unclustered fits. Neither fast_coxph_regression_cpp nor fast_weibull_regression_cpp takes observation weights, the Weibull surrogate still calls survreg, and no rq.fi...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "Partly done. The hardened-QR helper reuses a positive-weight rank certificate to try the all-column fit before falling back to the drop-column path. The reusable-worker dispatcher runs each chunk under one error guard and switches to per-draw catches after a failure. Nothing shows work on avoiding per-call closure creation, and the gc-share check is not recorded.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "Not done. There is no batched C++ replicate loop for the GLM families, and the decision this stretch item waits on (after TODO-7's numbers) is not recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md::TODO-9": {
+  "at": "2026-11-17",
+  "text": "Partly done. The benchmark was rerun with provenance on 2026-11-09 and the result is recorded in the release file. That run did not meet the acceptance criteria, which were moved to release_v1_1_0.md TODO-63. The Task View table and docs were not updated, and the holds were not lifted.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/benchmark_r6_construction_timing.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "Done. Every R6 procedure and design spec has an edi_setup_expr that is timed in its own loop, and Speedup and Timing Pval use the procedure column. The regenerated reports show the EDI Total, Construction and Procedure columns. The R/benchmark copies come from the 2026-11-08 run and the R/package_metadata copies from the 2026-11-09 quiet-host run; both have the three columns, and TODO-4 tracks...",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/benchmark_r6_construction_timing.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Done. Both new tables have methodology paragraphs that explain the three columns and say the comparators get their inputs prebuilt and have no R6 construction. The Row Highlighting note and row_bg_color() now give significantly slower rows a light-red background, which the regenerated reports show.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/benchmark_r6_construction_timing.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "Partly done. The --sections filter exists and is tested, and the reports were regenerated from the harness. The R/benchmark copies are not in sync with the canonical R/package_metadata reports: they come from the 2026-11-08 run, while the canonical copies come from the 2026-11-09 run (different Zhang row values).",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_dataframe_subsetting.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "Partly done. The per-draw harness with an Rprof breakdown for OLS, logistic and Cox is in R/benchmark/, and an n = 1000 current-state profile is recorded in the TODO text. The TODO asked for the harness 'before any change', but the worker changes came first, and the plan itself says the pre-change baseline was never recovered.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_dataframe_subsetting.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Done. The loader takes a direct row subset of the stored base_X and falls back to the rebuild path when the subset is rank-deficient. Tests compare the direct subset with the rebuild at 1e-10 on the OLS, logistic and Cox fixtures, plus rare-covariate and rare-factor-level fixtures. The plan's Proposal records this as its default change. The open items the text cites (speed, 1.0.2 parity) belong...",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_dataframe_subsetting.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "Partly done. The fit helper now uses a rank certificate to skip its own QR, falls back to the hardened QR fit when the fast fit fails, and the dispatcher has one chunk-level tryCatch. The loader still runs one R qr() on every new draw, so the per-draw QR is moved rather than removed; the text itself argues it cannot be removed. The shared bayesian_bootstrap_performance.md TODO-7 is still open,...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_dataframe_subsetting.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "Done. The non-parametric bootstrap dispatcher has a fast-path hook (compute_fast_non_param_bootstrap_distr). InferenceContinOLS implements it with compute_ols_bootstrap_parallel_cpp and declines rank-deficient or structured draws. A test compares the hook's whole fixed-draw distribution with per-draw lm.fit at 1e-10, and the OLS wiring plan documents the hook. The remaining validation the text...",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/bootstrap_worker_dataframe_subsetting.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Partly done. The procedure table in benchmark_model_fits.md has current R6 rows: logistic clears 1x (1.24x), but OLS (0.1x) and Cox (0.42x) still miss the >=1x acceptance. No fixed-seed bootstrap distributions from EDI 1.0.2 exist to compare against.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/clayton_loggamma_frailty_optimizer_stability.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Not done. The original outlier scenario was only probed on filtered draws that the text says do not reproduce the production RNG stream, and the ~. stall is unresolved. The plan's 2026-11-04 status calls the box superseded: the release item was closed by owner decision and the residual slow tail moved to release TODO-126. No fallback-cascade narrowing was decided or made.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "Not done. fast_ordinal_clmm.cpp has no tight L-BFGS polish, projected Newton step, active-set tau-score or new result fields. It still sets converged from the lenient best_fit.converged. The owner decision moves this C++ item out of 1.0.5 scope.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Partly done. Items 1, 2, 3 and 5 are in the checkout: the corrected golden note, NEWS entries, roxygen @details and the TODO-76 correction. Item 4, filing the upstream ordinal report, is only drafted, and the owner sends it. Nothing in the checkout shows it was filed.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/cpp_warm_start_length_checks.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Done. The contract test checks short, long and length-1 coefficient starts, weight starts and Fisher-information starts. The Fisher gap noted on 2026-10-17 is closed: by my count the test now calls all 63 exported wrappers that take warm_start_fisher_info. The file sits in R/EDI/tests/testthat with no skips, so the ASAN/UBSAN and valgrind jobs run it through RD CMD check.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/cpp_warm_start_length_checks.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "The NEWS release note is in place, and the plan records the contract test passing against an installed DLL that is byte-identical to the checkout EDI.so. But no targeted compile and relink of the touched .cpp files is recorded. No source/build provenance ties that DLL to the checkout. The kernel-equivalence tests are never reported as run.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/cpp_warm_start_length_checks.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "The pytest regressions that a wrong-length warm start raises a Python ValueError exist for the logistic, ordinal CLMM and dependent-censoring bindings. The TODO text records a run of the full suite against a CI-built extension (run 39110868916, at a commit whose R/EDI/src and python/ match HEAD). I could not view that CI run myself, but the result is recorded.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/custom_rand_ci_statistic_scale.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "InferenceRandCustom now provides a delta-scale seed: the observed mean difference with its Welch SE. The shared CI search uses that seed in place of compute_estimate() and drops the statistic-scale Wald and asymptotic seeds.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/custom_rand_ci_statistic_scale.md::TODO-2": {
+  "at": "2026-11-17",
+  "text": "The shared CI search checks the p-value at the centre. If that point is rejected, it scans a coarse grid for an accepted delta. When every finite p-value it tries is below alpha, it errors instead of bisecting inside a band of rejected deltas.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/custom_rand_ci_statistic_scale.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Regression tests cover the plan's rerandomization fixture: the Welch-t CI must contain 0 and match the mean-difference CI. They also cover a -10  mean-difference statistic, both as an R function and through custom_randomization_statistic_cpp.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/custom_rand_ci_statistic_scale.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "The InferenceRandCustom roxygen now says the CI inverts the test over an additive shift delta of the treated responses, so it is a CI for the additive effect, whatever the statistic's units.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/design_construction_overhead.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "benchmark_model_fits.md has been updated and its design table shows iBCRD at 0.83 ms and blocking at 1.45 ms, both inside the limits. The required check that fixed-seed w draws are bit-identical to EDI 1.0.2 is recorded nowhere: the TODO text says that parity is still unavailable.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/glmm_variance_component_sigma_collapse.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "A 160-fit sigma-by-n grid over the four kernels against clmm/glmer references is recorded in the TODO text, with per-kernel boundary-stop counts. But the TODO text says the grid does not close the item: the gradient-norm split between legitimate boundary fits and non-stationary stops is not reconciled with the Poisson non-boundary outliers. Later notes keep the broader four-kernel grid on curre...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/glmm_variance_component_sigma_collapse.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Not done. The plan's own notes, up to the latest (2026-10-21), say the provenance-stamped post-fix regeneration of the CountKKGLMM and OrdinalKKCLMM comprehensive rows, and the audit after it, have not happened. All the recorded evidence is focused regression tests, read-only CSV inventories and planning recipes. The canonical comprehensive result CSVs are not in the checkout, and no citing com...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "Not done. The TODO asks for the canonical comprehensive CSV rows of this IVWC class's rand-family methods to be regenerated after install. The plan records only isolated /tmp pilots, a key manifest and validator tooling, and its final 2026-10-21 notes say the full 8,640-key post-install run and reconciliation remain open. The harness selector that would emit the rows is still present at R/packa...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_beta_ols_kkglmm_low_coverage_orphans.md::cb-db4b97f7": {
+  "at": "2026-11-17",
+  "text": "Not done, and its trigger never happened. No concrete mechanism was confirmed for any of the six classes, and no # Fix: plan was split out. The owner closed v1.0.5-TODO-52 on 2026-10-22 and handed the classes to the post-G4 audit (R/package_metadata/future_release_plans/release_v1_0_5.md:5951). That decision says the release entry's unchecked sub-items are superseded, but this plan-file box was...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_bootstrap_family_inflation.md::cb-4d68301f": {
+  "at": "2026-11-17",
+  "text": "Not done. The cross-check against the KKGEE investigation was conditional on both findings being reproduced, and neither was. The owner closed both as not reproducible on 2026-10-21 (this file line 362; investigate_incid_kk_gee_bootstrap_family_inflation.md:407), and line 362 calls the remaining boxes moot. No cross-family synthesis was written, so the box should be closed as moot rather than t...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_contin_quantile_regr_bootstrap_family_inflation.md::cb-f73b760b": {
+  "at": "2026-11-17",
+  "text": "Done. Its premise was tested and rejected, and the decision is recorded. The 2026-10-21 300-rep null simulation found no difference between tied and jittered data and did not reproduce the inflation (lines 341-360). The owner then closed the item: no code change and no documentation of BRT as unsuitable, i.e. neither (a) nor (b), so no Fix plan is needed (line 362).",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md::cb-89911917": {
+  "at": "2026-11-17",
+  "text": "Partly done. A read-only check of the tracked audit baseline CSV for the three sibling KKGEE classes is recorded (lines 261-270): there are p-value miscalibration rows for InferenceCountPoissonKKGEE and none for the Ordinal or Prop classes. That note explicitly defers the class-specific-vs-shared determination, and the owner then closed the investigation as not reproducible (line 407). The dete...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md::cb-8a3e54a0": {
+  "at": "2026-11-17",
+  "text": "Not done. The exact historical dataset/design/model_formula rows could not be recovered: the stamped 561,975,056-byte raw incidence CSV is missing, and the recovered audit stamp holds only metadata (lines 106-119, 360-378). The reproductions used fresh Pima fixtures, which this TODO rules out. The owner closed the investigation as not reproducible on 2026-10-21 (line 407), so this box is moot r...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md::cb-910a3633": {
+  "at": "2026-11-17",
+  "text": "Not done, and its trigger never happened. No concrete, currently-broken mechanism for the historical inflation was confirmed, and no # Fix: plan was written for it. The owner closed the investigation as not reproducible (line 407). The separate scalar-resampling kernel defect (lines 142-158) is explicitly outside that closure and is not this item. The box is moot rather than done.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md::cb-c201bf0c": {
+  "at": "2026-11-17",
+  "text": "The inflation did not reproduce (the 300-rep Pima null study and earlier fixtures were all nominal), and the owner closed release TODO-21 on 2026-10-21 without a code change. The conclusion is documented in the release_v1_0_5.md TODO-21 entry. Caveat: the exact historical dataset was never recovered, so the precondition was met only on the best available evidence, which the owner accepted.",
+  "verdict": "done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/investigate_incid_kk_gee_bootstrap_family_inflation.md::cb-fc032f6e": {
+  "at": "2026-11-17",
+  "text": "This step applies only if the inflation was reproduced. It was not, and the owner closed release TODO-21 as not reproducible, calling the open boxes moot. The near-collinear ~. mechanism check was never performed, so nothing can be cited for it. Ticking it as moot is the owner's call.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/kk21_weibull_irls_wrong_fixed_point.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "The KK21 survival-weight comparison was redone as the owner-approved replacement protocol (R6). It passed on 2026-10-23 and again on 2026-11-12, and the runner script is in the repo. The affected package_tests / benchmark rows have not been regenerated: release TODO-67 split that into its own sub-box, which is still open.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/kk_weibull_marginal_jackknife_outliers.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "The affected rows were regenerated after the fix on an installed build with receipts: the 2026-10-30 survival grid replaced the earlier provenance-less /tmp matrix. Those rows have not been merged into the canonical comprehensive_tests survival CSV. The release entry says only the owner's canonical merge approval remains.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/mixed_kernel_warm_start_shape_guards.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "The affected-kernel equivalence and reference tests exist and are recorded as passing against installed and checkout DLLs. The G1 EDI_UNITY=0 build (2026-10-23) listed them. The TODO's own close rule is not met: it requires a provenance record tying the tested binary to an authorized current-HEAD build, and the release audit says no per-wrapper results were saved and a recheck at current HEAD i...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/mixed_kernel_warm_start_shape_guards.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "The malformed-start guards were moved into the shipped testthat file that the ASAN/UBSAN and Valgrind jobs run. CI run 41085170825 (e3e165fa) passed both memory jobs at a commit containing that file. Not recorded: confirmation from the job log that the file ran, with a test summary. The comprehensive-CSV regeneration and reconciliation is also not done.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/modified_poisson_naive_se_miscalibration.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "The class's raw-result slice (the G7 16-key InferenceIncidModifiedPoisson slice) was regenerated and merged on 2026-10-24, and release TODO-56 was closed on it. The derived size/coverage/mse/power aggregates were recorded on 2026-11-04 as still predating the fix, pending the next G4 pass. Nothing in the checkout shows them regenerated since: the size CSV was last committed 2026-11-15 by an unre...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/multimodal_log_liks.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "The post-fix 400-seed null rerun of both configurations was done (G4-C R2, 2026-10-25/26) and recorded in the class roxygen: 12.9% Type-I at n=100, K=5 and about 5-6% at n=50, K=3. The improvement the TODO asks to confirm did not hold at n=100. No n=50 non-global-optimum count near 0 is recorded. Only one extra (n, K) combination (n=200, K=4) was measured. The owner deferred the remaining gate...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/multimodal_log_liks.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "No post-fix all-function_run regeneration for InferenceOrdinalStereotypeLogitRegr exists, and no baseline re-run was done. The tracked audit baseline still has 18 InferenceOrdinalStereotypeLogitRegr entries. The item's own notes say it is still gated behind TODO-4/7 and that only stale, partial filtered CSVs remain.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/multimodal_log_liks.md::TODO-9": {
+  "at": "2026-11-17",
+  "text": "The possible post-fix coverage regression (wald/score/gradient/lik_ratio) has not been investigated. No larger post-fix run with per-family coverage outputs is recorded. The only note is a 2026-10-18 preflight saying the existing study.R runner cannot test these families.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/ordinal_cumulative_link_null_refit_multistart.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Only one bounded pilot is recorded (one class/dataset/design, one replicate). No full regeneration of parametric-bootstrap-family rows for the affected classes exists, and no re-audit was done. The baseline still carries the pre-fix InferenceOrdinalCloglogRegr low_coverage findings, e.g. compute_param_bootstrap_confidence_interval at 0.831.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/pocock_simon_per_arrival_rebuild.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "The n=1000 carat/Minirand comparison is recorded as context in benchmark_model_fits.md. The per-arrival timing acceptance is not done: the item's notes call the best run unprovenanced and say an isolated, provenance-pinned rerun is still required. Fixed-seed parity with EDI 1.0.2 on the TODO-1 fixtures was never done.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/prop_gcomp_sample_usable_gating.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Only isolated /tmp selector pilots exist: 1,740 of the 43,200 roster keys, with mixed package/DLL identities. No complete post-fix regeneration or reconciliation of InferencePropGCompMeanDiff rand-family rows exists, and the plan says this remains open.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "The mechanism boundary is confirmed and recorded: three R-hook call sites, C++ batch kernels using their own noise_mat, and the categorical support predicate. The cross-reference against the ~85 flagged cells is incomplete: only the 25 tracked baseline _smoothed keys are mapped, and the item says the other ~60 cannot be enumerated.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-2": {
+  "at": "2026-11-17",
+  "text": "The InferenceContinKKRobustRegrOneLik look is recorded: the 0.495 rate equals the unsmoothed percentile rate and is driven by the diamonds/FixedBinaryMatch cell, so smoothing alone did not cause it. Whether sd(y)/sqrt(n) is appropriate across response types and link scales is still undecided. The item itself says a predeclared calibration is still needed before any bandwidth decision.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "A paired repeated-trial true-null comparison of smoothed vs percentile on the same draws was run, but only for one historical class (KK robust OneLik), and it did not reproduce the reported miscalibration. The incidence KK cond-logit and ordinal GComp classes got dispatch/rejection checks only, not repeated-trial calibration. The TODO asks for 2-3 classes.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "No true-null calibration rerun of the smoothed rand-bootstrap variant is recorded anywhere. The plan's own 'Audit boundary and next criterion' section (line 563 onward) lays out the study still to be run: at least 500 cases, B=101, continuous and count outliers. Every later status note says TODO-6 calibration remains open.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "Deterministic guard and plumbing tests exist: the count round/floor checks, categorical/bounded rejection, and noise-matrix plumbing. The repeated-trial true-null calibration regression the TODO asks for does not exist. The text says it is blocked on the maintainer choosing an acceptance band, strata and replicate count.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_bootstrap_smoothed_noise_unclamped.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "No post-install regeneration of the smoothed comprehensive_tests rows is recorded. The 2026-10-16 artifact audit in the item itself says no artifact closes the gate and that a provenance-recorded post-install rerun is still required. No later note changes that.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_ci_high_precision_refinement_upper_bound.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "No end-to-end real-data reproduction exists. The existing regression stubs the p-values. The item itself records that it was dropped by owner decision G6 #23 option (a) on 2026-10-22 and was left unticked as superseded rather than done.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rand_ci_inverts_two_sided_pval_at_half_alpha.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "The canonical rand/rand_bootstrap CI rows have not been regenerated, and no rerun of coverage tables or docs is recorded. The notes in the item cover only the reconciliation audit, the eligibility-helper fix and isolated scratch slices, and each one says the TODO-4 gate remains open.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/rmst_mismatched_truncation_horizon.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "No post-fix regeneration of the RMST comprehensive rows exists. The named canonical survival CSV is not in the checkout. Every note through 2026-10-21 says the regeneration is blocked on choosing between 16 and 18 operations and on a fresh provenance-pinned run, and that TODO-7 remains open.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "No Wilcoxon-scoped remedy was designed or implemented. The maintainer decision record (lines 342-353) chose on 2026-10-21 to defer the remedy and keep the deterministic inclusive-tail contract. It leaves TODO-3 through TODO-7 unselected and inactive and tracks reopening in release_v1_5_0.md TODO-1.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "No fix exists because the remedy was deferred on 2026-10-21, so the post-fix parity comparison cannot have been run. Only a pre-fix baseline on installed EDI 1.0.3 is recorded (lines 361-396), and that section says TODO-4 remains open until a fix exists and the comparison is run.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "No fix exists to re-run against: the owner deferred the Wilcoxon remedy on 2026-10-21 and kept the deterministic inclusive-tail contract. The 2026-10-16 design evidence in the plan shows the candidate statistics have conditional count rejection near 0%, not about 5%, so the acceptance condition is not met.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "No regression test builds a heavily tied fixture that forces beta_hat_T == 0 and then checks that the resampling p-value is not pinned at 1 and that the CI is not degenerately narrow. The existing Wilcoxon test files cover other contracts: constant arms, HL bootstrap reference, Wald routing and migration goldens.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "This TODO only applies once a fix is installed, and the owner deferred the fix on 2026-10-21, so the InferenceAllSimpleWilcox resampling rows have not been regenerated after any fix. No commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::TODO-9": {
+  "at": "2026-11-17",
+  "text": "Nothing records an investigation of expand_subject_or_block_weights_to_row_weights() or a direct reproduction that explains the PooledVar Bayesian-bootstrap _basic undercoverage. The harness truth-scale fix for PooledVar (comprehensive_tests.R:4171-4180) is dated 2026-09-06, before this finding was raised on 2026-09-24, so it does not resolve it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/simple_wilcox_hl_degenerate_pval_boundary.md::cb-42dfeea3": {
+  "at": "2026-11-17",
+  "text": "This is the option the owner did not pick. On 2026-10-21 the owner chose \"Defer the remedy\" instead (plan lines 342 and 349-353), and no design specification for a randomized or conditional Wilcoxon procedure exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/stale_worker_cache_resampling.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "The pre-fix rows for the 7 affected classes are retired through stale_ok_row_rules.csv rules. The regenerated rows themselves live in gitignored CSVs, so this checkout cannot confirm them. The final step, an authoritative audit_comprehensive_results.R --write-baseline, has not run: both the TODO text and release_v1_0_5.md:1532-1604 say it stays blocked on 183 absent / 373 new findings that have...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_0_5/stale_worker_cache_resampling.md::TODO-9": {
+  "at": "2026-11-17",
+  "text": "The cached_mod reset gap is fixed. A shared helper clears cached_mod and the derived caches, and all five reused-worker loaders call it; tests check that reused draws match fresh ones. The release-wide pre/post bit-for-bit sweep with provenance-stamped snapshots has not been run: it was approved (G6 #28) but is still pending, and the old snapshots are gone.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "R/benchmark/ has no micro-benchmark that times a fresh object plus p-value, a repeat p-value and one randomization CI at n = r = 1000 for the mean difference and a regression class. The existing procedures section of benchmark_model_fits.R deliberately builds a fresh object outside each timed batch, so it does not time repeat calls. Outside the plan files, nothing references this plan.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-2": {
+  "at": "2026-11-17",
+  "text": "Not done. generate_permutations() still builds list(w_mat, m_mat) with no signature field, and every caller still hashes the full matrix with stable_signature(permutations) on each call.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-3": {
+  "at": "2026-11-17",
+  "text": "Not done. subset_permutations() still always copies w_mat[, indices], has no shortcut for the full index set, and derives no prefix signature. There is no test that different parents never share a prefix key.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-4": {
+  "at": "2026-11-17",
+  "text": "Not done. generate_permutations() still has storage.mode(w_mat) = \"numeric\", so the permutation set is still stored as doubles instead of integers. Nothing changed the NumericMatrix kernel's call site or the Map<MatrixXi> fast paths.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-5": {
+  "at": "2026-11-17",
+  "text": "Not done. No signature is stored, so there is no debug-mode re-hash against one. No recorded audit of in-place writes to permutations$w_mat or permutations_cache was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-6": {
+  "at": "2026-11-17",
+  "text": "Not done. permutations$signature does not exist yet (TODO-2 is open), so no copy path preserves it or deliberately drops it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/bug_fix_plans/v1_1_0/permutation_signature_once.md::TODO-7": {
+  "at": "2026-11-17",
+  "text": "Not done. TODOs 2-6 are not implemented, and no acceptance timings or bit-identity results are recorded. benchmark_model_fits.md has no entry for the permutation-signature procedure.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-10": {
+  "at": "2026-11-17",
+  "text": "Partly done. The harness fixes are in comprehensive_tests.R: the real-covariate MC truth helpers, KMDiff in COVERAGE_MC_SPEC, the K = 6 matched-Cox covariate cap, and empty UNAVAILABLE lists after R7. The cap test and the ionosphere roxygen notes also exist. The sub-item is still open: survival and ordinal comprehensive rows regenerated, reconciled and baseline re-audited. The TODO's own 2026-1...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-109": {
+  "at": "2026-11-17",
+  "text": "Partly done. The Turnbull fix is in the checkout: exact events folded in as [y, y], a warning on excluded rows, one shared tau integrated all the way to tau, both call sites passing y, regenerated Rd, and three new tests. The one remaining part is a CI (G5) run on the commit, and I cannot see CI results from the checkout.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-112": {
+  "at": "2026-11-17",
+  "text": "All the source, docs, Rd and test work is in the checkout: seeded draws, the seed in the cache key, clear_randomization_cache(), corrected docs, and both the in-process and two-session tests. The default change was decided (G6 #29). The only part left is the CI gate (G5), and its result is not visible from the checkout.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-119": {
+  "at": "2026-11-17",
+  "text": "The 'refuse' fix is in the checkout: the scale-mismatch and exact-0/1 refusals, response-type-aware capabilities, the Monte Carlo error doc, tests, NEWS and the capability matrix with its new column. Inversion and the Monte Carlo SE attribute were decided out to v1.1.0. What is left is the G4 step: regenerating the rand CI rows and pruning the 988 stale InferencePropGCompMeanDiff rows. The comp...",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-12": {
+  "at": "2026-11-17",
+  "text": "The cache-reset helper, the RobustRegr field preservation, the regressions and the sweep runner fixes (242-key constant, compare mode) are all in the checkout, and both sweep sub-boxes are ticked, with the release-wide sweep accepted by the owner on 2026-11-15. The TODO also keeps a separate 'native-build verification gate' open. It is unclear whether that gate is met: the 2026-11-14 sweep used...",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-120": {
+  "at": "2026-11-17",
+  "text": "All five defaults are B = 501, the tests exist, and the Rd/test rerun and the default change are both recorded as done or accepted. The only thing left is CI (G5), and its result cannot be seen from the checkout.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-125": {
+  "at": "2026-11-17",
+  "text": "Steps 1 to 4 are in the checkout: method_env is the stub's closure env, the rebind helper is now a no-op with its Rd updated, the clone-isolation test exists, and the helper removal is filed as v1.1.0 TODO-60. Step 5's full bulk suite run (G5) is not recorded, so its result cannot be checked.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-127": {
+  "at": "2026-11-17",
+  "text": "The harness fix is in comprehensive_tests.R: handle_success() stops the clock before any truth call. The contract test exists. What is left is regenerating the affected duration fields in the next G4 baseline run. The canonical comprehensive results CSVs are not in the checkout, and comprehensive_suite_slowest_cases.csv now holds only suite-level rows, so that step cannot be checked.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-128": {
+  "at": "2026-11-17",
+  "text": "Steps 1 to 5 are in the checkout: the cache key carries the operation, the feasible warm start and the boundary warning are in place, jack_distr_cache is reused again, the tests exist, and patch 14's KKT gate is in the C++. New since the 2026-11-04 audit note: the NEWS line for the C++ boundary fix is now present at R/EDI/NEWS.md:314. What is left are the G4 boundary-case rows, which cannot be...",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-129": {
+  "at": "2026-11-17",
+  "text": "The investigation is recorded, and every seed fix is in the checkout: KK pass-through, PropGComp, the calibrated CI, the quantile rand CI, the survreg jitter_seed and the seeded KKRankRegrIVWC aftsrr. Their tests and NEWS lines are present, and the 2026-11-04 audit note records G8/G9 as done. What is left are the G4 harness/benchmark rows and G5 CI, and neither can be checked from the checkout.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-13": {
+  "at": "2026-11-17",
+  "text": "Partly done. The class-specific randomization worker override, its regression test and the TODO-119 rand-CI exclusion are all in the checkout. The full regeneration of the proportion rand p-value rows (28,800 keys), the reconciliation, and the pruning of the stale rand-CI rows are recorded only as still open. All the pilot runs it cites live in /tmp.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-130": {
+  "at": "2026-11-17",
+  "text": "The fix, the regression test and the NEWS line are all in the checkout. The TODO's only remaining item is 'G5 CI', the result of a CI run that this audit cannot see. No G4 rows are needed.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-131": {
+  "at": "2026-11-17",
+  "text": "Partly done. The R fixes for every affected design, the robust-regression NA guards, C++ patch 15 (now in src), the OptimalBlocks Rd paragraph, the NEWS lines and the tests are all present. The remaining G4 regeneration of the BRT rows, the G5 CI run and the G1 recheck of R3 cell C1 have no recorded result.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-14": {
+  "at": "2026-11-17",
+  "text": "Partly done. The w_star NA fallback fix, the harness selector entry, the cache classifier and the approved_skips/accepted_checkout_shas validator support are all in the checkout. The 2026-11-04 audit note says the only thing left is the canonical merge into nc_1_survival.csv (which has no IVWC rows yet), and no evidence of that merge was found.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-16": {
+  "at": "2026-11-17",
+  "text": "Partly done. The cloglog sign fix, the multistart null refits, the native-sign test and the calibration summarizer are in the checkout. The note records that the ~1 calibration passed and the narrowed slice was merged. The --write-baseline step, the ContRatioRegr rows and the iris/abalone/beta 0.5 rows are recorded as left.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-165": {
+  "at": "2026-11-17",
+  "text": "Partly done. The percentile dispatch override, the mid-rank z0, the NEWS entry and the regenerated dispatch Rd are in the checkout. The regenerated rows were never merged (owner-gated), the KMDiff rows still need a rerun at SD 0.25, and no record shows the raw-beta KMDiff baseline rows were retired.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-169": {
+  "at": "2026-11-17",
+  "text": "Partly done. The vcov whitelist with the boundary-dispersion drop, the two-start fit_null and the NEWS entry are in the checkout. The canonical CSV rows (G4) for the zero-inflated classes have no recorded regeneration.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-172": {
+  "at": "2026-11-17",
+  "text": "Partly done. The best-iterate/accept-tolerance fix is in src/lrt_ci_newton.cpp, the NEWS entry is present, and the known-failures CSV is now header-only (the TODO-173 rows were deleted). The canonical CSV rows (G4) for the affected classes have no recorded regeneration, and the user's rebuild cannot be confirmed from the checkout.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-173": {
+  "at": "2026-11-17",
+  "text": "The 3 IncidKKCondLogitGLMMOneLik rows are gone from the known-failures CSV, and NEWS records the class change. The canonical CSV rows (G4) are still open by the TODO's own account. The \"delta = 0 LR p unchanged\" condition cannot be confirmed: NEWS says the class now fits a different model and all results change.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-174": {
+  "at": "2026-11-17",
+  "text": "The jump guard (fix a) is now in the shared C++ pval_invert_ci_cpp, and NEWS mentions it, even though the TODO text still calls it unapplied and an open owner decision. Fix (b), NA-midpoint halving, is not in the code (the bisection still breaks on an NA midpoint). No test covers the guard, and the canonical CSVs (G4) are not done.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-175": {
+  "at": "2026-11-17",
+  "text": "The deterministic multistart null refit, the class docs and the history-independence test are all in the checkout, and NEWS has an entry. The TODO's own remaining item, the canonical CSV rows (G4), is still open.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-176": {
+  "at": "2026-11-17",
+  "text": "Fix A+B and the owner's option (ii) for treatment-only fits are in the code, with docs, tests and NEWS. The canonical CSV rows (G4) are still pending.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-177": {
+  "at": "2026-11-17",
+  "text": "The shared warm-start guards and retry, plus the RiskDiff and LogBinomial fit_null fallbacks, are in the code, with a regression test and NEWS. The TODO itself leaves the canonical CSV rows (G4) pending.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-178": {
+  "at": "2026-11-17",
+  "text": "The hook no longer writes a warm start, the Stereotype fits are cold and multistart, and the estimator-consistency test and NEWS are in place. The Done-when result (null size 4/100) is recorded in the TODO text. The canonical CSV rows (G4) are still pending.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-179": {
+  "at": "2026-11-17",
+  "text": "Both cells were investigated, and the LogBinomial Wald-NA-at-boundary fix is in the code with a test and NEWS. The 8 LogBinomial wald accepted rows are deleted and the frailty rows reworded as honest. The note's own \"Left: G4\" (canonical CSV rows) is still open.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-18": {
+  "at": "2026-11-17",
+  "text": "The guards, the dispatch and bandwidth investigation, the R3 calibration results, the limitation docs and the pinned permanent test are all in place. Provenance-stamped regeneration of the _smoothed comprehensive rows (G4) is still not done, as the TODO itself says.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-180": {
+  "at": "2026-11-17",
+  "text": "The multistart fit_null for HurdleNegBin and DepCensTransform is in the source, the history-independence test exists, and there is a NEWS bullet. The G4 regeneration of canonical rows, which the TODO requires because p-values and CIs move, is still pending (status table row 180: 'Left: G4').",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-181": {
+  "at": "2026-11-17",
+  "text": "All three C++/R edge-case fixes are in the source, each with a reproducer test, and NEWS is written. Case (c) was later revised to a KKT score, with a rewritten test; the named NA-boundary test file was replaced by the KKT test. The G4 canonical-row regeneration is still pending (status table row 181: 'Left: G4').",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-184": {
+  "at": "2026-11-17",
+  "text": "The harness plumbing for prob_T = 0.2 is in the source: the comprehensive axis, the filter, per-case seeding and calibration plan entries. The KMDiff MOVER follow-up and its test exist, and survival batch 1 was merged. The full comprehensive and fast-tier runs at 0.2 (batches 2-3 still running) and the re-measured timings are recorded as not done, and the ordinal Wilcox recheck result is not re...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-188": {
+  "at": "2026-11-17",
+  "text": "The deterministic multistart in generate_mod() is in the source, with a new test and a NEWS bullet. The G4 regeneration of the DepCensTransform canonical rows, which the done-when requires, is still pending.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-19": {
+  "at": "2026-11-17",
+  "text": "The source fix is in place: InferenceIncidKKModifiedPoisson is Wald-only with likelihood_tier 'none', and a migration golden covers it. The required full provenance-pinned regeneration and exact-key reconciliation of the comprehensive rows (the nested unchecked sub-box) has not been done; only pilots exist.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-23": {
+  "at": "2026-11-17",
+  "text": "The shared-tau fix for RMST is in the source, and linked plan TODO-1..6 are ticked. Plan TODO-7 (regenerate and merge the comprehensive rows) is open: status row 23 says the merge still waits on survival batches 2-3.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-26": {
+  "at": "2026-11-17",
+  "text": "The arm-event identifiability guard and its regression tests are in the source, and linked plan TODO-1..7 are ticked. Plan TODO-8 (comprehensive row regeneration/merge) is open: status row 26 waits on survival batches 2-3.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-31": {
+  "at": "2026-11-17",
+  "text": "The sigma-start screening in the native GLMM/CLMM fitters, the CLMM link-swap handling and the stationarity check are in the source, and plan TODO-2..5 are ticked. Plan TODO-1 (characterization) is still unchecked in the plan, although the release entry says the R8 grid passed, and TODO-6 (G4 rows for the four KKCLMM classes and ten cloglog BB procedures) is open.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-38": {
+  "at": "2026-11-17",
+  "text": "The ZOIB native length and finite-value guards, their test, and the sibling-kernel guards plus the shipped contract test are all in the checkout. Still open: the EDI_UNITY=0 current-source build and equivalence check (linked plan TODO-5), and the comprehensive-row reconciliation. The sanitizer/Valgrind gate rests on a CI log this audit cannot see.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-50": {
+  "at": "2026-11-17",
+  "text": "The umbrella disposition, the four-kernel bound-grid runner and the Poisson n_gh=60 change from the ticked bound sub-item are in the checkout. The open sub-box, reconciling the provenance-stamped CountKKGLMM/OrdinalKKCLMM comprehensive rows (G4), has no recorded result.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-55": {
+  "at": "2026-11-17",
+  "text": "The noisy-marginal coverage truth, its focused oracle test and the 2026-10-22 stale-row cutoffs are all in the checkout. Still open: regenerating the four affected classes' proportion rows, then the baseline re-audit and pruning.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-63": {
+  "at": "2026-11-17",
+  "text": "The shared length-guard helper is called at the warm-start sites, and the CRAN contract test and the Python regression exist. Still open: an at-HEAD EDI_UNITY=0 build, a sanitizer/Valgrind rerun and saved per-wrapper results. The TODO's own 2026-11-04 note says src changed after the green CI commit.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-67": {
+  "at": "2026-11-17",
+  "text": "Both KK21 callers now use the shared WeibullAFTLikelihood with the 1e-6 tolerance. The survreg oracle test and the R6 matching-quality benchmark exist, and the R6 PASS is recorded. The split sub-box, regenerating the affected benchmark rows with current-build provenance (G2), is still open.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-68": {
+  "at": "2026-11-17",
+  "text": "Both inversion paths now compare p-values against alpha rather than alpha/2, and the duality regression tests exist. Still open: regenerating the rand and rand_bootstrap comprehensive rows, reconciling them, and updating the docs.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-76": {
+  "at": "2026-11-17",
+  "text": "With nonconstant weights, the Bayesian bootstrap now uses a weighted ordinal random-intercept refit, and the focused tests exist. Still open: the provenance-stamped rerun of all ten BB procedures over the KKGLMM/KKCLMM grid and the exact-key reconciliation. The TODO says 0/50 selected keys have retained results.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-77": {
+  "at": "2026-11-17",
+  "text": "Bootstrap draws now call the weighted joint clogit+GLMM kernel, not glmmTMB, and the class-data-assembly reference test exists. Still open: regenerating both affected classes across all ten BB procedures with provenance, and reconciling every key and status.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-8": {
+  "at": "2026-11-17",
+  "text": "The multi-start fix in generate_mod(), its regression tests, the 400-null rerun (12.9% at n=100) and the updated roxygen/Rd are all in the checkout. Linked plan TODO-8 is still open: no comprehensive_tests rows were regenerated for all function_runs and the baseline was not rewritten. The coverage lead in plan TODO-9 is also unanswered.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-9": {
+  "at": "2026-11-17",
+  "text": "The stale-worker-cache fix (denylist reset), the permanent non-degeneracy regression test and the new audit checks are all present. Linked plan TODO-7 is still open: the comprehensive CSVs were not regenerated, the baseline was not written, and the 183 absent / 373 new finding keys (341 new keys still unexplained) were not reconciled.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_5.md::TODO-99": {
+  "at": "2026-11-17",
+  "text": "The Zhang default dispatch was removed from InferenceRand, InferenceRandCI and the KK-GEE mixin, and a nonzero-delta guard was added; NEWS, the dispatch tests and the artifact validator are present. The remaining part, regenerating and reconciling the comprehensive incidence rand rows, has no evidence of being done.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-1": {
+  "at": "2026-11-17",
+  "text": "The Bayesian jackknife still refits on a plain self$duplicate() and does not seed from cached_mod or clear warm-start state. No recheck result is recorded, the history-independence test has no Bayesian jackknife case, and bayes_jack_distr_cache is still left out of REUSED_RESAMPLING_CACHES.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-10": {
+  "at": "2026-11-17",
+  "text": "The test tolerance is still the interim 0.03 and its comment says to tighten it once the fix lands. The kernel's converged is still isfinite(neg_ll) && fit.converged, with no gradient-norm gate or sigma=0 refit.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-11": {
+  "at": "2026-11-17",
+  "text": "The tuning fixture still sets the proportion response noiselessly with pmin(0.95, pmax(0.05, plogis(linpred))). There is no beta noise, no exact 0s or 1s, no separate tuning generator, and no re-measured ZOIB A/B.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-12": {
+  "at": "2026-11-17",
+  "text": "I found no minimum valid-replicate fraction guard for bootstrap p-values with na.rm = TRUE, and no recorded decision on the threshold.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-13": {
+  "at": "2026-11-17",
+  "text": "Each listed v1.1.0 TODO has only a dated placeholder ('Triage 2026-11-10: ... TODO-13 checks this first'), not a triage result. The TODO-170 multistart-on-rejecting-reps check is not recorded either: the 2026-11-11 re-run only shows n=1000 is nominal.",
+  "verdict": "not done"
+ }
+}
