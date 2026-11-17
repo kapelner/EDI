@@ -86,10 +86,11 @@
 #'
 #' \strong{Relation to \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}: the
 #' same draws at the defaults.} With \code{objective = "D"} (any \code{interest}) or
-#' \code{objective = "A", interest = "treatment"}, no \code{prior_precision}, and
-#' \code{prob_T = 0.5}, this class returns exactly the same allocations as
-#' \code{DesignFixedGreedy} with its defaults (\code{objective = "mahal_dist"},
-#' \code{n_iter = Inf}) for the same seed. This is a mathematical identity, not a
+#' \code{objective = "A", interest = "treatment"} and no \code{prior_precision}, this
+#' class returns exactly the same allocations as \code{DesignFixedGreedy} with its
+#' defaults (\code{objective = "mahal_dist"}, \code{n_iter = Inf}) for the same seed and
+#' the same \code{prob_T}, at any \code{prob_T} and for odd \eqn{n} too (both classes
+#' fix the treated count at \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}). This is a mathematical identity, not a
 #' coincidence. Write \eqn{X_c} for the centered covariates, \eqn{S} for their sample
 #' covariance, and \eqn{n_C = n - n_T}. Because the column space of \eqn{Z_0 = [1\ X]}
 #' splits orthogonally into the intercept and \eqn{X_c},
@@ -108,10 +109,6 @@
 #'
 #' The two classes give different draws when:
 #' \itemize{
-#'   \item \code{prob_T} is not 0.5 (or \eqn{n} is odd). \code{DesignFixedGreedy}
-#'     also accepts these (any prob_T in (0, 1)); the identity above holds for any fixed
-#'     \eqn{n_T}, so this class is then the Mahalanobis-balancing greedy search at an
-#'     unequal allocation.
 #'   \item \code{objective = "A"} with \code{interest = "all"} or a covariate subset.
 #'     The trace criterion \eqn{(w^\top H w + 1)/s(w)} also weighs the precision of
 #'     the covariate coefficients, so it is not a function of the Mahalanobis distance
@@ -286,7 +283,10 @@ DesignFixedGreedyDOptimal = define_design_class(
 		#' @return \code{"D"} or \code{"A"}.
 		get_objective = function() private$objective,
 		#' @description The parameter-interest setting this design was constructed with.
-		#' @return \code{"treatment"} or \code{"all"}.
+		#' @return The \code{interest} argument as validated at construction:
+		#'   \code{"treatment"}, \code{"all"}, a one-sided formula (a formula string
+		#'   is returned as the formula it was promoted to), or a character vector of
+		#'   model-matrix column names.
 		get_interest = function() private$interest,
 		#' @description The Bayesian prior precision this design was constructed with.
 		#' @return \code{NULL}, a positive scalar, or a symmetric matrix.

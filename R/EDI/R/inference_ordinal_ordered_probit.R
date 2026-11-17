@@ -285,7 +285,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 #'
 #' @references McCullagh, P. (1980). "Regression Models for Ordinal Data."
 #'   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
-#'   109-142, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the cumulative-link
+#'   109-127, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the cumulative-link
 #'   ordinal model family this class's probit link instantiates.
 #'
 #' @seealso \code{\link[EDI:InferenceOrdinalCauchitRegr]{InferenceOrdinalCauchitRegr}},

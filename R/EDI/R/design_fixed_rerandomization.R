@@ -31,19 +31,31 @@
 #' the sample covariance of all covariates (ridge-regularized by \eqn{10^{-6}I} if
 #' \eqn{|\det S| < 10^{-10}}), cached in \code{private$S_inv} and recomputed
 #' whenever the covariate matrix changes (e.g. on a bootstrap-randomization replay).
-#' \code{objective = "abs_sum_diff"} instead uses the sum of absolute mean differences,
-#' \eqn{M(w) = \sum_j |\bar X_{T,j} - \bar X_{C,j}|}, with no correlation adjustment.
-#' Only these two objectives are supported; any other value errors at draw time.
+#' \code{objective = "abs_sum_diff"} instead uses the sum of absolute
+#' \emph{standardized} mean differences,
+#' \eqn{M(w) = \sum_j |\bar X_{T,j} - \bar X_{C,j}| / s_j}, where \eqn{s_j} is the
+#' sample standard deviation of covariate \eqn{j} over all \eqn{n} subjects (a
+#' zero-variance covariate contributes nothing), with no correlation adjustment. Like
+#' \code{"mahal_dist"}, it is therefore scale-invariant: rescaling a covariate does not
+#' change which allocations are accepted. This is the same criterion as
+#' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}'s \code{"abs_sum_diff"}, and
+#' every draw path uses it. (Through EDI 1.0.5 the pure-R path, used for odd \eqn{n} or
+#' \code{prob_T != 0.5} with \code{obj_val_cutoff}, used unstandardized differences, so
+#' it accepted a different set of allocations than the other paths for the same cutoff.)
+#' Only these two objectives are supported; any other value errors in the constructor.
 #'
 #' \strong{Fast path (native C++).} When \code{prob_T = 0.5} and \eqn{n} is even,
 #' candidate generation and filtering run via a parallel C++ rejection sampler
 #' (\code{rerandomization_search_cpp()}), which internally works with a rescaled
 #' objective \eqn{f_{\mathrm{cpp}}}: \eqn{f_{\mathrm{cpp}} = M(w)/4} for
-#' \code{"mahal_dist"} and \eqn{f_{\mathrm{cpp}} = M(w)/2} (on a GED-standardized scale)
-#' for \code{"abs_sum_diff"}; the user-facing \code{obj_val_cutoff} is converted to this
-#' internal scale before being passed to C++, so the accepted-allocation semantics are
-#' unaffected, but this rescaling is a backend implementation detail worth knowing when
-#' comparing C++-path and pure-R-path acceptance rates for the same nominal cutoff. The
+#' \code{"mahal_dist"} and \eqn{f_{\mathrm{cpp}} = M(w)/2} for \code{"abs_sum_diff"};
+#' the user-facing \code{obj_val_cutoff} is converted to this internal scale before
+#' being passed to C++, so the accepted allocations are those with \eqn{M(w) \le a},
+#' exactly as on the other paths. One exception: if the Cholesky factorization of the
+#' covariate covariance fails (a covariance that is not numerically positive definite),
+#' the fast path's \code{"mahal_dist"} falls back to the standardized
+#' \code{"abs_sum_diff"} criterion (accepting \eqn{M_{\mathrm{abs}}(w) \le a/2}),
+#' whereas the other paths ridge-regularize \eqn{S}. The
 #' sampler draws up to \code{max(r * 1000, 100000)} candidates internally; if fewer than
 #' \code{r} allocations are accepted within that budget (an overly tight cutoff), this
 #' errors naming how many were actually found -- loosen \code{obj_val_cutoff} or use
@@ -106,8 +118,8 @@ DesignFixedRerandomization = define_design_class(
 		#'   e.g. \code{0.1}. Exactly one of this and obj_val_cutoff is required.
 		#' @param objective 	The covariate-imbalance objective \eqn{M(w)} to filter on:
 		#'   either \code{"mahal_dist"} (default, squared Mahalanobis distance) or
-		#'   \code{"abs_sum_diff"} (sum of absolute mean differences); see class
-		#'   documentation for the exact formulas.
+		#'   \code{"abs_sum_diff"} (sum of absolute standardized mean differences); see
+		#'   class documentation for the exact formulas. Any other value errors.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.
@@ -138,6 +150,9 @@ DesignFixedRerandomization = define_design_class(
 				stop("Specify an acceptance rule: obj_val_cutoff (accept a draw iff M(w) <= the cutoff) or prop_acceptable ",
 					"(keep the best fraction of draws, e.g. prop_acceptable = 0.1). prop_acceptable = 1 accepts every draw.", call. = FALSE)
 			}
+			# v1.0.6-TODO-70: the balanced C++ fast path treated any objective other than
+			# "mahal_dist" as abs_sum_diff, so a typo filtered silently on the wrong criterion.
+			private$assert_supported_objective(objective)
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$obj_val_cutoff = obj_val_cutoff
 			private$prop_acceptable = prop_acceptable
@@ -152,6 +167,24 @@ DesignFixedRerandomization = define_design_class(
 		objective = NULL,
 		S_inv = NULL,
 		S_inv_source_X = NULL,
+		assert_supported_objective = function(objective){
+			if (!is.character(objective) || length(objective) != 1L || is.na(objective) ||
+					!(objective %in% c("mahal_dist", "abs_sum_diff"))) {
+				stop('objective must be "mahal_dist" or "abs_sum_diff".', call. = FALSE)
+			}
+			invisible(NULL)
+		},
+		# abs_sum_diff is sum_j |mean_T,j - mean_C,j| / sd_j on every path (v1.0.6-TODO-70).
+		# Both C++ kernels (rerandomization_search_cpp, compute_objective_vals_cpp) and
+		# DesignFixedGreedy's abs_sum_diff standardize; the pure-R path and compute_obj
+		# used raw differences, so the same cutoff accepted different allocations at odd n
+		# or prob_T != 0.5. Same rule as rerandomization_search_cpp: SD over all n rows
+		# (n - 1 denominator), and a zero-variance column is left unscaled (it adds ~0).
+		abs_sum_diff_scaled_X = function(X){
+			v = apply(X, 2L, stats::var)
+			inv_sd = ifelse(is.finite(v) & v >= 1e-24, 1 / sqrt(v), 1)
+			sweep(X, 2L, inv_sd, "*")
+		},
 		draw_ws_raw = function(r = 100){
 			private$maybe_set_seed()
 			if (should_run_asserts()) {
@@ -169,6 +202,8 @@ DesignFixedRerandomization = define_design_class(
 			if (is.null(private$X) || ncol(private$X) == 0){
 				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
 			}
+			# Every path below must see a supported objective before any C++ call (v1.0.6-TODO-70).
+			private$assert_supported_objective(private$objective)
 			# prop_acceptable path: draw r/prop_acceptable randomizations, return r with lowest obj vals
 			if (!is.null(private$prop_acceptable)) {
 				private$ensure_S_inv_current(n)
@@ -254,6 +289,7 @@ DesignFixedRerandomization = define_design_class(
 		generate_rerandomized_w_batch = function(r){
 			n = self$get_n()
 			X = private$X[1:n, , drop = FALSE]
+			if (private$objective == "abs_sum_diff") X = private$abs_sum_diff_scaled_X(X)
 			p_T = private$prob_T
 			n_T_fixed = round(n * p_T)
 			cutoff = if (is.null(private$obj_val_cutoff)) Inf else private$obj_val_cutoff
@@ -318,7 +354,8 @@ DesignFixedRerandomization = define_design_class(
 				diff = colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
 				return(as.numeric(diff %*% private$S_inv %*% diff))
 			} else if (private$objective == "abs_sum_diff"){
-				diff = colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
+				Xs = private$abs_sum_diff_scaled_X(X)
+				diff = colMeans(Xs[w == 1, , drop = FALSE]) - colMeans(Xs[w == 0, , drop = FALSE])
 				return(sum(abs(diff)))
 			}
 			stop("Unsupported objective")

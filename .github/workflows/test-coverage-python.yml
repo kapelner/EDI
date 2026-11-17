@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -55,7 +55,7 @@ jobs:
         run: python3 R/package_tests/ci/check_coverage_floor.py python/coverage.xml R/package_tests/ci/coverage_baseline.json python
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: python/coverage.xml

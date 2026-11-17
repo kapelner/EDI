@@ -121,7 +121,7 @@ jobs:
         # report the merge commit's own SHA instead.
         run: Rscript -e 'r <- readRDS("pr-results/coverage.rds"); covr::to_cobertura(r$coverage, filename = "pr-results/coverage.xml"); cat("cobertura written\n")'
       - name: Upload PR coverage to Codecov (flag r)
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: pr-results/coverage.xml

@@ -21,7 +21,8 @@ ref_mahal <- function(X, w) {
 	d <- colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
 	as.numeric(t(d) %*% solve(var(X)) %*% d)
 }
-ref_abs <- function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])))
+# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-70).
+ref_abs <- function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])) / apply(X, 2, sd))
 
 test_that("compute_obj matches the Mahalanobis and absolute-sum-difference definitions", {
 	f <- rerand_design(prob_T = 0.4, obj_val_cutoff = 1e6)

@@ -315,7 +315,8 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #' \code{is_nonestimable()}.
 #'
 #' @references Robins, J. (1986). A new approach to causal inference in
-#'   mortality studies with a sustained exposure period. \emph{Mathematical
+#'   mortality studies with a sustained exposure period—application to control
+#'   of the healthy worker survivor effect. \emph{Mathematical
 #'   Modelling}, 7(9-12), 1393-1512. \doi{10.1016/0270-0255(86)90088-6}
 #' @seealso \code{\link[EDI:InferenceIncidKKGCompRiskRatio]{InferenceIncidKKGCompRiskRatio}}
 #'   for the risk-ratio analog on the same standardization machinery.
@@ -409,7 +410,8 @@ NULL
 #' non-estimable via \code{is_nonestimable()}.
 #'
 #' @references Robins, J. (1986). A new approach to causal inference in
-#'   mortality studies with a sustained exposure period. \emph{Mathematical
+#'   mortality studies with a sustained exposure period—application to control
+#'   of the healthy worker survivor effect. \emph{Mathematical
 #'   Modelling}, 7(9-12), 1393-1512. \doi{10.1016/0270-0255(86)90088-6}
 #'
 #' @examples

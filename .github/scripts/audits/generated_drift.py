@@ -90,9 +90,25 @@ def run_generators(ctx):
     }
 
 
+AUDIT_WORKFLOW = ".github/workflows/audit.yml"
+ROXYGEN2_REF_LINE = re.compile(r"^\s*ROXYGEN2_REF:\s*([\w.-]+/[\w.-]+@[0-9a-f]{40})\s*$", re.M)
+
+
+def pinned_roxygen2_ref(repo):
+    """The roxygen2 commit the audits install (ROXYGEN2_REF in audit.yml, the one record of the pin;
+    v1.0.6-TODO-66), or None if the workflow or the line is missing."""
+    try:
+        m = ROXYGEN2_REF_LINE.search((repo / AUDIT_WORKFLOW).read_text())
+    except OSError:
+        return None
+    return m.group(1) if m else None
+
+
 def roxygen_version(ctx):
-    r = subprocess.run(["Rscript", "-e", 'cat(as.character(packageVersion("roxygen2")))'], cwd=ctx.repo,
-                       capture_output=True, text=True)
+    """The runner's roxygen2 version and, when pak recorded it, the commit it was installed from."""
+    r = subprocess.run(["Rscript", "-e", 'd = packageDescription("roxygen2"); '
+                        'cat(d$Version, if (!is.null(d$RemoteSha)) paste0("(commit ", d$RemoteSha, ")"))'],
+                       cwd=ctx.repo, capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else "unknown"
 
 
@@ -190,7 +206,10 @@ def apply(ctx, results, mech):
         human.append(f"roxygen2 {roxygen_version(ctx)} on the runner changes {len(rd_changed)} of {rd_total} Rd "
                      "files, which looks like a different roxygen2 version from the one the committed files "
                      "were written with, not drift. Nothing under man/ or NAMESPACE was applied; regenerate "
-                     "locally with `Rscript fast_roxygenize.R` from R/ if the change is wanted.")
+                     "locally with `Rscript fast_roxygenize.R` from R/ if the change is wanted."
+                     + (f" The pinned build is {pin} (ROXYGEN2_REF in {AUDIT_WORKFLOW}); check that the "
+                        "runner installed that commit and that it is the one the committed Rd files were "
+                        "written with." if (pin := pinned_roxygen2_ref(repo)) else ""))
 
     for status, path in changes:
         gen = owner_of(path)

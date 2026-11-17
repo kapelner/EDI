@@ -1,3 +1,62 @@
+# EDI (development version)
+
+## Changes that alter results
+
+* `DesignSeqOneByOneKK14` now forms matches at the published rate
+  (v1.0.6-TODO-45). Its match test compared the full d'S^-1 d with the
+  Hotelling cutoff, but the statistic is half of that (the difference of two
+  exchangeable subjects has covariance 2 Sigma), as SeqExpMatch computed it. The
+  halving was lost in the C++ port, so KK14 was twice as strict as published and
+  sent too many subjects to the reservoir. With 4 covariates, the mean number of
+  pairs at n = 40 goes from 8.5 to 14.0 of 20, and at n = 100 from 31.5 to 42.0
+  of 50, close to KK21. Seeded KK14 allocations change, and so does everything
+  computed from them, including KK21 and KK21stepwise before they have enough
+  responses to leave their KK14 fallback. To reproduce an old allocation
+  approximately, pass `lambda = 0.1 * 2^(-p/2)` for p covariates.
+* `missingness_method = "impute"` no longer uses the outcome to impute missing
+  covariates (v1.0.6-TODO-44). missRanger/missForest were given the response as
+  a predictor. Treated subjects' responses are shifted, so the imputed covariate
+  carried part of the treatment effect, and adjusting for it biased the
+  estimate toward 0 (in one simulation, a true effect of 1 was estimated as 0.90
+  with 91% CI coverage; now 1.00 and 93%). Imputation now uses the covariates
+  only, and it is seeded (with the design's `seed`, else 1) without advancing
+  the caller's RNG, so the same data always give the same estimate. Imputed
+  values and covariate-adjusted estimates change for data with missing
+  covariates. Randomization tests under the sharp null were not affected.
+* `DesignFixedRerandomization` with `objective = "abs_sum_diff"` now
+  standardizes each covariate by its SD on every path (v1.0.6-TODO-70). The C++
+  paths always did, but the pure-R path (odd n, or `prob_T` other than 0.5) used
+  raw differences, so the same `obj_val_cutoff` accepted different allocations
+  depending on n. Draws change only for `abs_sum_diff` at odd n or unequal
+  arms. The default `mahal_dist` is unchanged.
+
+## Bug fixes
+
+* `DesignFixedRerandomization` now errors at construction on an `objective`
+  other than `"mahal_dist"` or `"abs_sum_diff"`. Before, an unknown value
+  silently ran as `abs_sum_diff` on the fast path (v1.0.6-TODO-70).
+* `DesignSeqOneByOneEfron` now requires `0.5 < weighted_coin_prob <= 1`
+  (1 is Efron's deterministic limit). Values above 1 used to give `NA`
+  assignments (v1.0.6-TODO-70).
+* The C++ robust-regression kernel (`fast_robust_regression_cpp()`, used when
+  `use_rcpp = TRUE`, the default) now computes the same estimator as
+  `MASS::rlm()`. Results change for `InferenceContinRobustRegr`,
+  `InferenceContinKKRobustRegrIVWC`, `InferenceContinKKRobustRegrOneLik` and the
+  robust randomization/bootstrap kernel:
+  * With `method = "M"`, the estimate changes. The kernel fixed the MAD scale
+    once, from the OLS residuals (which outliers pull), where `rlm()`
+    re-estimates it every iteration, and it stopped on the change in the
+    coefficients rather than in the residuals. The two paths differed by about
+    1% (up to 6%); they now agree to rounding error. The default
+    `method = "MM"` keeps its fixed scale, so its estimates do not change.
+  * With either method, the standard error now includes the small-sample
+    factor kappa that `summary.rlm()` applies, so standard errors are slightly
+    larger, and the KK IVWC classes' inverse-variance weights change with them.
+  * The KK robust classes' default `maxit` is 100 for every number of
+    covariates (it was 10 to 20, below what `rlm()` needs once the scale is
+    re-estimated). A fit that still does not converge now gives `NA`, as the
+    `use_rcpp = FALSE` path already did, instead of the unconverged iterate.
+
 # EDI 1.0.4
 
 Correctness release. Wrong results found by the algorithm audit and the

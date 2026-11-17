@@ -7,10 +7,13 @@
 # (fast_ols vs fast_ols_cpp), and bindings missing from the stub or the package imports. The PR
 # applies docstring-only fixes in python/ whose old text occurs exactly once; the rest is listed
 # under "Needs a human". Label `audit-rpy-parity`.
-# One job serves both triggers: the gate applies `nth` only to scheduled runs (audit_common.
+# One job serves every trigger: the gate applies `nth` only to scheduled runs (audit_common.
 # due_today), so a push run always proceeds, and on a push the module reads only new and changed
-# bindings (no rotation slice). The path list below must match python/CMakeLists.txt's kernel
-# sources; .github/scripts/test_audit_rpy_parity.py checks that.
+# bindings (no rotation slice).
+# Pushes arrive through `workflow_run`, not `push`: anthropics/claude-code-action rejects a push
+# event ("Unsupported event type: push", which emptied every batch of runs 44065338574 and
+# 44072918994). The push trigger and its path list live in rpy-parity-push.yml; this workflow
+# runs when that one completes successfully, and the module treats `workflow_run` as a push.
 # Module: .github/scripts/audits/rpy_parity.py
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 
@@ -19,52 +22,10 @@ name: audit · monthly · rpy-parity
 on:
   schedule:
     - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 3 keeps the third Saturday of the month
-  push:
+  workflow_run:             # a push to main that touches the bindings or a kernel file
+    workflows: ["rpy-parity · push trigger"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "python/cpp/**"
-      - "python/src/**"
-      - "python/CMakeLists.txt"
-      - "R/EDI/src/fast_adjacent_category_logit.cpp"
-      - "R/EDI/src/fast_beta_regression.cpp"
-      - "R/EDI/src/fast_clogit_plus_glmm.cpp"
-      - "R/EDI/src/fast_continuation_ratio_regression.cpp"
-      - "R/EDI/src/fast_coxph_regression.cpp"
-      - "R/EDI/src/fast_cpoisson_combined.cpp"
-      - "R/EDI/src/fast_gaussian_lmm.cpp"
-      - "R/EDI/src/fast_gee.cpp"
-      - "R/EDI/src/fast_gehan_wilcox.cpp"
-      - "R/EDI/src/fast_hurdle_negbin.cpp"
-      - "R/EDI/src/fast_hurdle_poisson_glmm.cpp"
-      - "R/EDI/src/fast_log_binomial_regression.cpp"
-      - "R/EDI/src/fast_logistic_glmm.cpp"
-      - "R/EDI/src/fast_logistic_regression.cpp"
-      - "R/EDI/src/fast_logrank.cpp"
-      - "R/EDI/src/fast_negbin_regression.cpp"
-      - "R/EDI/src/fast_ols.cpp"
-      - "R/EDI/src/fast_ordinal_cauchit_regression.cpp"
-      - "R/EDI/src/fast_ordinal_clmm.cpp"
-      - "R/EDI/src/fast_ordinal_cloglog_regression.cpp"
-      - "R/EDI/src/fast_ordinal_glmm.cpp"
-      - "R/EDI/src/fast_ordinal_probit_regression.cpp"
-      - "R/EDI/src/fast_ordinal_regression.cpp"
-      - "R/EDI/src/fast_poisson_glmm.cpp"
-      - "R/EDI/src/fast_poisson_regression.cpp"
-      - "R/EDI/src/fast_probit_regression.cpp"
-      - "R/EDI/src/fast_ridit_analysis.cpp"
-      - "R/EDI/src/fast_robust_regression.cpp"
-      - "R/EDI/src/fast_stereotype_logit.cpp"
-      - "R/EDI/src/fast_survival_models_optim.cpp"
-      - "R/EDI/src/fast_survival_stats.cpp"
-      - "R/EDI/src/fast_weibull_frailty.cpp"
-      - "R/EDI/src/fast_weibull_regression.cpp"
-      - "R/EDI/src/fast_wilcox_hl.cpp"
-      - "R/EDI/src/fast_zero_augmented_poisson.cpp"
-      - "R/EDI/src/fast_zero_one_inflated_beta.cpp"
-      - "R/EDI/src/fast_zinb.cpp"
-      - "R/EDI/src/miettinen_nurminen_speedups.cpp"
-      - "R/EDI/src/newcombe_speedups.cpp"
-      - "R/EDI/src/robust_post_fit_speedups.cpp"
   workflow_dispatch:
     inputs:
       scope:
@@ -88,6 +49,7 @@ jobs:
       pull-requests: write
       issues: write
       actions: read      # the reusable prepare job reads run data
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     uses: ./.github/workflows/audit.yml
     with:
       audit: rpy-parity

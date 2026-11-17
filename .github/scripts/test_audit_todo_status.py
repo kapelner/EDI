@@ -353,13 +353,39 @@ class Apply(unittest.TestCase):
         parts = self.run_apply([f1, f10], [u1, u10])
         self.assertEqual(self.f106.read_text(), before)
         self.assertEqual(len(parts["human"]), 2)
-        self.assertIn("partly done", parts["human"][0])
-        self.assertIn(self.sha, parts["human"][0])
+        self.assertIn("not done", parts["human"][0])       # short changed verdicts come first
+        self.assertIn("partly done", parts["human"][1])
+        self.assertIn(self.sha, parts["human"][1])
         # The same `not done` next week is not listed again; partly done still is.
         parts = self.run_apply([f1, f10], [u1, u10])
         self.assertEqual(len(parts["human"]), 1)
         saved = json.loads((self.ctx.notes.dir / "verdicts.json").read_text())
         self.assertEqual(saved[u10]["verdict"], "not done")
+
+    def test_report_over_the_body_limit_keeps_changed_verdicts(self):
+        # Run 44048336759 (2026-11-17): 69 `partly done` lines of ~1,000 characters plus 41 changed
+        # `not done` / `unclear` lines made a 94,359-character report, and `gh pr create` failed with
+        # "Body is too long (maximum is 65536 characters)". The body is now cut to fit, and the cut
+        # (from the end) must fall on the long `partly done` lines, not on the changed verdicts.
+        u1 = f"{REL}/release_v1_0_6.md::TODO-1"
+        u10 = f"{REL}/release_v1_0_6.md::TODO-10"
+        long_part = {"part": "p " + "y" * 150, "status": "not done",
+                     "evidence": [{"ref": "R/EDI/R/inference_jack.R:" + str(i), "what": "x"} for i in range(4)]}
+        partly = {"unit": u1, "kind": "partly done", "text": "Partly. " + "z" * 390, "searched": [], "gap": "",
+                  "parts": [long_part] * 4}
+        notdone = lambda i: {"unit": u10, "kind": "not done", "text": f"NOTDONE-{i} " + "w" * 300,
+                             "parts": [], "searched": [], "gap": ""}
+        findings = [partly] * 69 + [notdone(i) for i in range(41)]
+        parts = self.run_apply(findings, [u1, u10])
+        spec = {"title": "TODO-status audit"}
+        report = ac.render_report(spec, parts, {"units in scope": 2054}, "https://run")
+        self.assertGreater(len(report), 65536)                 # the failing size
+        body = ac.fit_body(report, "https://run")
+        self.assertLessEqual(len(body), 65536)
+        for i in range(41):
+            self.assertIn(f"NOTDONE-{i} ", body)
+        self.assertIn("more line(s) not shown", body)
+        self.assertIn("units in scope: 2054", body)
 
     def test_hash_ignores_the_tick(self):
         u = f"{REL}/release_v1_0_6.md::TODO-1"

@@ -102,7 +102,7 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 \references{
 McCullagh, P. (1980). "Regression Models for Ordinal Data."
   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
-  109-142, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the
+  109-127, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the
   proportional-odds cumulative-logit model fit here.
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.

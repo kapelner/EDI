@@ -140,8 +140,11 @@ class Repo(unittest.TestCase):
         self.assertEqual({v["cycle_weeks"] for v in rp.units(self.ctx()).values()}, {6})
 
     def test_push_reads_no_rotation_slice(self):
-        cycles = {v["cycle_weeks"] for v in rp.units(self.ctx("push")).values()}
-        self.assertEqual(cycles, {rot.NEVER})
+        for event in ("push", "workflow_run"):   # a push arrives as workflow_run in CI
+            cycles = {v["cycle_weeks"] for v in rp.units(self.ctx(event)).values()}
+            self.assertEqual(cycles, {rot.NEVER}, event)
+        cycles = {v["cycle_weeks"] for v in rp.units(self.ctx("workflow_dispatch")).values()}
+        self.assertEqual(cycles, {6})
 
     def test_mechanical(self):
         found = rp.mechanical(self.ctx())
@@ -195,15 +198,51 @@ class Repo(unittest.TestCase):
                          [("python/cpp/bindings_foo.cpp", "Maximum count of")])
 
 
+WF = REPO / ".github/workflows"
+# Events anthropics/claude-code-action@v1 accepts (src/github/context.ts parseGitHubContext);
+# any other event makes it fail with "Unsupported event type: <event>" before the agent starts.
+CLAUDE_ACTION_EVENTS = {"workflow_dispatch", "repository_dispatch", "schedule", "workflow_run",
+                        "issues", "issue_comment", "pull_request", "pull_request_target",
+                        "pull_request_review", "pull_request_review_comment"}
+
+
+def triggers(text):
+    """The event names under a workflow's top-level `on:` block."""
+    m = re.search(r"^on:[ \t]*\n((?:[ \t]+.*\n|[ \t]*\n)*)", text, re.M)
+    return set(re.findall(r"^  ([a-z_]+):", m.group(1), re.M)) if m else set()
+
+
 class Workflow(unittest.TestCase):
     def test_push_paths_match_cmake_kernel_sources(self):
-        wf = (REPO / ".github/workflows/audit-rpy-parity.yml").read_text()
+        wf = (WF / "rpy-parity-push.yml").read_text()
         listed = set(re.findall(r'"R/EDI/src/([A-Za-z0-9_]+\.cpp)"', wf))
         cmake = set(rp.kernel_sources((REPO / rp.CMAKE).read_text()))
         self.assertTrue(cmake)
-        self.assertEqual(listed, cmake, "update the push paths in audit-rpy-parity.yml")
+        self.assertEqual(listed, cmake, "update the push paths in rpy-parity-push.yml")
         for p in ("python/cpp/**", "python/src/**", "python/CMakeLists.txt"):
             self.assertIn(f'"{p}"', wf)
+
+    def test_push_reaches_the_audit_through_workflow_run(self):
+        relay = (WF / "rpy-parity-push.yml").read_text()
+        caller = (WF / "audit-rpy-parity.yml").read_text()
+        self.assertEqual(triggers(relay), {"push"})
+        self.assertIn("workflow_run", triggers(caller))
+        name = re.search(r"^name:\s*(.+)$", relay, re.M).group(1).strip()
+        self.assertIn(f'workflows: ["{name}"]', caller, "workflow_run must name the relay workflow")
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", caller)
+
+    def test_claude_audits_use_events_the_action_accepts(self):
+        # Runs 44065338574 and 44072918994: a `push` trigger on the rpy-parity caller made every
+        # Claude batch fail with "Unsupported event type: push" (reported as NOT RUN).
+        for p in sorted(WF.glob("audit-*.yml")):
+            text = p.read_text()
+            audit = re.search(r"^[ \t]+audit:[ \t]*([\w-]+)[ \t]*$", text, re.M)
+            if "uses: ./.github/workflows/audit.yml" not in text or not audit:
+                continue
+            if not ac.spec_of(ac.load_audit(audit.group(1))).get("claude"):
+                continue
+            bad = triggers(text) - CLAUDE_ACTION_EVENTS
+            self.assertFalse(bad, f"{p.name} triggers on {sorted(bad)}, which claude-code-action rejects")
 
 
 if __name__ == "__main__":

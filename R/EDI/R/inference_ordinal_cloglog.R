@@ -383,7 +383,7 @@ OrdinalCloglogLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #'
 #' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
 #'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).
-#'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
+#'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-127.
 #' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
 #'
 #' @eval rd_small_sample_section("InferenceOrdinalCloglogRegr")

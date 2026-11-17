@@ -88,7 +88,8 @@ inf$compute_estimate()
 }
 \references{
 Robins, J. (1986). A new approach to causal inference in
-  mortality studies with a sustained exposure period. \emph{Mathematical
+  mortality studies with a sustained exposure period—application to control
+  of the healthy worker survivor effect. \emph{Mathematical
   Modelling}, 7(9-12), 1393-1512. \doi{10.1016/0270-0255(86)90088-6}
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.

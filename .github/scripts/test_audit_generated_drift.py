@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks for the generated-file drift audit (audits/generated_drift.py). Stdlib only, no R, no network."""
 import datetime as dt
+import re
 import subprocess
 import sys
 import tempfile
@@ -120,6 +121,17 @@ class Repo(unittest.TestCase):
         self.assertTrue(any("roxygen2 9.9.9" in h and "8 of 20" in h for h in parts["human"]))
         self.assertNotIn("man/", self.git("status", "--porcelain"))
 
+    def test_mass_rd_change_names_the_pinned_build(self):
+        # v1.0.6-TODO-66: the report says which roxygen2 commit the runner was meant to install
+        sha = "c9203b7f504b8d01cf29411f6166efa584e377d8"
+        (self.repo / ".github/workflows").mkdir(parents=True)
+        (self.repo / gd.AUDIT_WORKFLOW).write_text(f"env:\n  ROXYGEN2_REF: someone/roxygen2@{sha}\n")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "pin")
+        self.generators({f"R/EDI/man/topic{i}.Rd": f"% roxygen 9\n\\name{{topic{i}}}\n" for i in range(8)})
+        parts = gd.apply(self.ctx, [], [])
+        self.assertTrue(any(f"someone/roxygen2@{sha}" in h for h in parts["human"]))
+
     def test_rejected_output_is_not_proposed_again(self):
         edit = {"R/EDI/man/topic1.Rd": "\\name{topic1}\n\\title{New}\n"}
         self.generators(edit)
@@ -166,6 +178,46 @@ class Helpers(unittest.TestCase):
         lines, more = gd.log_warnings("ok\n✖ a.Rd: x\nWarning message:\nfine\n", limit=1)
         self.assertEqual(lines, ["✖ a.Rd: x"])
         self.assertEqual(more, 1)
+
+
+    def test_pinned_roxygen2_ref(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.assertIsNone(gd.pinned_roxygen2_ref(tmp))                        # no audit.yml
+        (tmp / ".github/workflows").mkdir(parents=True)
+        wf = tmp / gd.AUDIT_WORKFLOW
+        wf.write_text("env:\n  ROXYGEN2_REF: r-lib/roxygen2@main\n")
+        self.assertIsNone(gd.pinned_roxygen2_ref(tmp))                        # a branch is not a pin
+        wf.write_text("env:\n  ROXYGEN2_REF: r-lib/roxygen2@" + "a" * 40 + "\n")
+        self.assertEqual(gd.pinned_roxygen2_ref(tmp), "r-lib/roxygen2@" + "a" * 40)
+
+
+class RoxygenPinInTheRealWorkflows(unittest.TestCase):
+    """v1.0.6-TODO-66: the runner's roxygen2 is pinned by full commit SHA in one place (ROXYGEN2_REF in
+    audit.yml), every roxygen2 install in the workflows goes through it, and the finish job checks the
+    installed commit against it."""
+    ROOT = Path(__file__).resolve().parents[2]
+
+    def test_pin_is_a_full_sha(self):
+        ref = gd.pinned_roxygen2_ref(self.ROOT)
+        self.assertIsNotNone(ref, "ROXYGEN2_REF in .github/workflows/audit.yml must be <owner>/<repo>@<40-hex SHA>")
+        self.assertRegex(ref, r"/roxygen2@[0-9a-f]{40}$")
+
+    def test_every_roxygen2_install_uses_the_pin(self):
+        text = (self.ROOT / gd.AUDIT_WORKFLOW).read_text()
+        self.assertIn("${{ env.ROXYGEN2_REF }}", text)
+        self.assertEqual(len(gd.ROXYGEN2_REF_LINE.findall(text)), 1)
+        for wf in sorted((self.ROOT / ".github/workflows").glob("*.y*ml")):
+            for n, line in enumerate(wf.read_text().splitlines(), 1):
+                code = line.split("#", 1)[0]
+                if re.search(r"roxygen2@|any::roxygen2|cran::roxygen2|install\.packages\([^)]*roxygen2", code) \
+                        and not gd.ROXYGEN2_REF_LINE.match(line):
+                    self.fail(f"{wf.name}:{n} installs roxygen2 without ROXYGEN2_REF: {line.strip()}")
+
+    def test_finish_job_checks_the_installed_commit(self):
+        text = (self.ROOT / gd.AUDIT_WORKFLOW).read_text()
+        step = text.split("name: Check the roxygen2 pin", 1)[1].split("- name:", 1)[0]
+        for needle in ("Config/roxygen2/version", "RemoteSha", "ROXYGEN2_REF"):
+            self.assertIn(needle, step)
 
 
 if __name__ == "__main__":

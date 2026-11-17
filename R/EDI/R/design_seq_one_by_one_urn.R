@@ -22,7 +22,7 @@
 #'
 #' @references Wei, L. J. (1977). "A class of designs for sequential clinical trials."
 #'   \emph{Journal of the American Statistical Association}, 72(358), 382-386,
-#'   \doi{10.1080/01621459.1977.10481006}; Wei, L. J. (1978). "The adaptive biased coin
+#'   \doi{10.1080/01621459.1977.10481005}; Wei, L. J. (1978). "The adaptive biased coin
 #'   design for sequential experiments." \emph{The Annals of Statistics}, 6(1), 92-100,
 #'   \doi{10.1214/aos/1176344068}. See also
 #'   \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment}

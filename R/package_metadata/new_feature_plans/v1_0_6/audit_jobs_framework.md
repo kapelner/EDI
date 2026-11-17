@@ -96,6 +96,11 @@ todo/
     them. The owner merges with the admin bypass.
   - The repository setting "Allow GitHub Actions to create and approve pull requests" must be on.
   - Schema files must stay free of single quotes (they are passed as `--json-schema '...'`).
+  - `anthropics/claude-code-action` fails on a `push` event ("Unsupported event type: push"; it accepts
+    schedule, workflow_dispatch, repository_dispatch, workflow_run and issue/PR events). A Claude audit
+    that should run after a push gets it through a relay workflow and `workflow_run`
+    (`rpy-parity-push.yml`), not through `on: push` or a `GITHUB_TOKEN` dispatch, which would run as
+    `github-actions[bot]` and fail the action's human-actor check (2026-11-17).
 - Each audit also checks its own result in the PR. The Rd audit, for example, re-runs `tools::checkRd` and the
   examples it changed on the PR branch, and puts that result in the body.
 

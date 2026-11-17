@@ -100,11 +100,15 @@ inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
 ```
 
 Bootstrap intervals resample subjects (the design's own resampling
-structure — rows here; matched pairs for matched designs):
+structure — rows here; matched pairs for matched designs). The default
+interval type is BCa, which needs about B = 501 draws or more: with fewer, its
+adjusted tails fall on the edge of the bootstrap sample and the interval is
+`NA` with a warning. B = 501 takes well under a second here; if you need a
+small B, pass `type = "percentile"` instead.
 
 ```{r ols-boot}
 inf$set_seed(1)
-inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 501, show_progress = FALSE)
 ```
 
 ## Everything at once: `InferenceSuite`

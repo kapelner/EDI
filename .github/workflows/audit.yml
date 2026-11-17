@@ -16,13 +16,18 @@
 
 name: audit (reusable)
 
-# roxygen2 is pinned to the build the committed Rd files come from (Config/roxygen2/version in
-# R/EDI/DESCRIPTION: 8.0.0.9000, the last r-lib/roxygen2 commit before the 8.1.0 bump). CRAN's
-# roxygen2 rewrites many Rd files, which would turn every doc fix into a mass diff. When you
-# upgrade roxygen2 locally and re-document, move this pin to the same version; the finish job
-# warns when the two disagree.
+# roxygen2 is pinned by commit SHA to the exact build the committed Rd files come from; this line
+# is the one record of it (the finish job and audits/generated_drift.py read it from here). The
+# owner's roxygen2 is kapelner/roxygen2@c9203b7f, the branch of r-lib/roxygen2 PR #1914 (open):
+# one commit on top of r-lib/roxygen2@9a82bf42 (the last commit before the 8.1.0 bump) that adds
+# the r6_inherited_documentation_display option, default "grouped" ("+ inherited public methods
+# from <Class>" per ancestor). Upstream 9a82bf42 reports the same version, 8.0.0.9000
+# (Config/roxygen2/version in R/EDI/DESCRIPTION), but writes one flat "Inherited methods" list
+# and rewrote 152 of 369 Rd files on the runner (v1.0.6-TODO-66, issue #21). When you upgrade
+# roxygen2 locally and re-document, move this pin to that exact commit; the finish job warns when
+# the installed version differs from DESCRIPTION or the installed RemoteSha from this SHA.
 env:
-  ROXYGEN2_REF: r-lib/roxygen2@9a82bf429353bd6463a30d404a80e57e648a048e
+  ROXYGEN2_REF: kapelner/roxygen2@c9203b7f504b8d01cf29411f6166efa584e377d8
 
 on:
   workflow_call:
@@ -119,7 +124,7 @@ jobs:
         run: R CMD INSTALL --no-test-load R/EDI
       # A setup-python interpreter, not the system one: pip refuses to install into the
       # runner's externally managed system Python.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         if: steps.gate.outputs.run == 'true' && inputs.python_packages != ''
         with:
           python-version: '3.12'
@@ -307,7 +312,11 @@ jobs:
       - name: Check the roxygen2 pin against DESCRIPTION
         if: inputs.finish_needs_r || inputs.finish_install_edi
         run: |
-          Rscript -e 'want = read.dcf("R/EDI/DESCRIPTION", fields = "Config/roxygen2/version")[1, 1]; have = as.character(packageVersion("roxygen2")); if (is.na(want) || want != have) cat(sprintf("::warning::roxygen2 on the runner is %s but R/EDI/DESCRIPTION says %s; move ROXYGEN2_REF in .github/workflows/audit.yml\n", have, want)) else cat("roxygen2", have, "matches DESCRIPTION\n")'
+          R --no-echo --no-save <<'EOF'
+          want = read.dcf("R/EDI/DESCRIPTION", fields = "Config/roxygen2/version")[1, 1]; have = as.character(packageVersion("roxygen2")); if (is.na(want) || want != have) cat(sprintf("::warning::roxygen2 on the runner is %s but R/EDI/DESCRIPTION says %s; move ROXYGEN2_REF in .github/workflows/audit.yml\n", have, want)) else cat("roxygen2", have, "matches DESCRIPTION\n")
+          ref = Sys.getenv("ROXYGEN2_REF"); pinned = sub("^.*@", "", ref); sha = packageDescription("roxygen2")$RemoteSha; sha = if (is.null(sha)) "unknown (no RemoteSha)" else sha
+          if (!identical(sha, pinned)) cat(sprintf("::warning::roxygen2 on the runner is commit %s but ROXYGEN2_REF pins %s\n", sha, ref)) else cat("roxygen2 commit", sha, "matches ROXYGEN2_REF\n")
+          EOF
       - name: Build and install EDI from this commit
         if: inputs.finish_install_edi
         run: R CMD INSTALL --no-test-load R/EDI

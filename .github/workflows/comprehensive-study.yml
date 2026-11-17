@@ -101,7 +101,7 @@ jobs:
         with:
           ref: ${{ needs.plan.outputs.sha }}
       - id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .edi-install-scratch
           key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
@@ -197,7 +197,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
-      - uses: actions/cache/restore@v5
+      - uses: actions/cache/restore@v6
         with:
           path: .edi-install-scratch
           key: comprehensive-study-edi-${{ runner.os }}-${{ needs.plan.outputs.sha }}
@@ -318,7 +318,7 @@ jobs:
             mkdir -p "campaign/rows/$rt"; cp "$f" "campaign/rows/$rt/$w.csv.xz"
           done
           ls campaign/rows/*
-      - uses: actions/cache/restore@v5
+      - uses: actions/cache/restore@v6
         if: steps.replan.outputs.complete == 'true'
         with:
           path: .edi-install-scratch

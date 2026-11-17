@@ -671,7 +671,7 @@ def apply(ctx, results, mech):
     ev = Evidence(ctx.repo)
     date = ctx.now.date().isoformat()
     prev = _previous_verdicts(ctx)
-    applied, human, proposed, changed_info = [], [], [], []
+    applied, human, proposed, changed_info, partly = [], [], [], [], []
     counts = {}
     verdicts = dict(prev)
     for r in results:
@@ -729,7 +729,7 @@ def apply(ctx, results, mech):
                                      for e in (p.get("evidence") or []))
                     parts.append(f"{p.get('status', '?')}: {_clean(p.get('part'), 160)}"
                                  + (f" ({refs})" if refs else ""))
-                human.append(f"{label}: partly done. {summary}" + ("<br>" + "<br>".join(parts) if parts else ""))
+                partly.append(f"{label}: partly done. {summary}" + ("<br>" + "<br>".join(parts) if parts else ""))
             else:   # not done, unclear
                 if old != verdict:
                     changed_info.append(f"{label}: `{verdict}`" + (f" (was `{old}`)" if old else "")
@@ -739,7 +739,11 @@ def apply(ctx, results, mech):
         (ctx.notes.dir / "verdicts.json").write_text(json.dumps(verdicts, indent=1, sort_keys=True) + "\n")
     except OSError:
         pass
-    human += changed_info
+    # Long `partly done` lines go last: a report over GitHub's body limit is cut from the end
+    # (audit_common.fit_body). The first run (2026-11-17) had 69 of them (~69K characters); cut from
+    # the end, they would have pushed all 41 changed `not done` / `unclear` verdicts out of the PR
+    # body. Short, actionable lines first.
+    human += changed_info + partly
     tally = ", ".join(f"{v} {k}" for k, v in sorted(counts.items())) or "no verdicts"
     split = ", ".join("v" + ".".join(map(str, v)) for v in sorted(st["opus"])) or "none"
     summary = (f"Verdicts this run: {tally}. Opus judged the TODOs of {split}; Sonnet the later releases. "

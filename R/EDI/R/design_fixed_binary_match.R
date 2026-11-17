@@ -41,11 +41,12 @@
 #' directly (each pair ID occurring in exactly 2 rows), bypassing the matching
 #' computation entirely while keeping the same within-pair randomization.
 #'
-#' \strong{No-covariate fallback.} If no covariates are available at draw time
-#' (\code{private$m} is \code{NULL}, e.g. matching hasn't run and no explicit \code{m} was
-#' supplied), \code{draw_ws_raw()} falls back to an unmatched balanced complete
-#' randomization (a uniformly random permutation of \eqn{n/2} ones and \eqn{n/2} zeros),
-#' since there is no covariate information to match on.
+#' \strong{No covariates.} Matching needs covariates or an explicit pairing. If the
+#' covariate matrix has no columns and no \code{m} was supplied, the first
+#' \code{assign_w_to_all_subjects()} or \code{draw_ws_according_to_design()} call errors
+#' with "no covariates provided to run the binary matching algorithm"; the design does
+#' not fall back to unmatched complete randomization. With an explicit \code{m}, no
+#' covariates are needed.
 #'
 #' \strong{Batch pregeneration.} \code{draw_binary_match_assignments_cpp()}'s output is
 #' trusted unvalidated -- it guarantees exactly \code{n x r} valid \eqn{\{0,1\}} columns

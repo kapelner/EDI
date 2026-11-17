@@ -196,7 +196,7 @@ def fast_continuation_ratio_regression(X: typing.Annotated[numpy.typing.NDArray[
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix.
     """
-def fast_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 20, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-09, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
+def fast_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-09, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
     Fast Cox proportional-hazards regression via Newton-Raphson (unstratified, no cluster-robust vcov). No R-side roxygen documents this raw kernel directly (fast_coxph_regression.cpp's roxygen documents a bootstrap helper, not this fit function); parameters follow the same conventions used throughout this module.
     
@@ -218,7 +218,7 @@ def fast_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
     estimate_only : bool, default False
         If True, skip variance-covariance computation and return only
         coefficients.
-    maxit : int, default 20
+    maxit : int, default 100
         Maximum number of Newton-Raphson iterations.
     tol : float, default 1e-9
         Convergence tolerance.
@@ -1171,7 +1171,7 @@ def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
         If True, skip variance-related computation and return only the point
         estimate.
     """
-def fast_stratified_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], strata: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 20, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-09, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
+def fast_stratified_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], strata: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-09, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
     Fast stratified Cox proportional-hazards regression via Newton-Raphson: one shared beta fit jointly across strata-specific baseline hazards. strata: integer group labels, any values (grouped internally, not required to be 0-based/contiguous). No R-side roxygen documents this raw kernel directly (fast_coxph_regression.cpp's roxygen documents a bootstrap helper, not this fit function); other parameters follow fast_coxph_regression's conventions (see its docstring).
     
@@ -1195,7 +1195,7 @@ def fast_stratified_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[nu
     estimate_only : bool, default False
         If True, skip variance-covariance computation and return only
         coefficients.
-    maxit : int, default 20
+    maxit : int, default 100
         Maximum number of Newton-Raphson iterations.
     tol : float, default 1e-9
         Convergence tolerance.

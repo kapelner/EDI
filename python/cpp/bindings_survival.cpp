@@ -153,7 +153,7 @@ void bind_survival(py::module_& m) {
     py::arg("warm_start_beta") = py::none(),
     py::arg("smart_cold_start") = true,
     py::arg("estimate_only") = false,
-    py::arg("maxit") = 20,
+    py::arg("maxit") = 100,
     py::arg("tol") = 1e-9,
     py::arg("fixed_idx") = py::none(),
     py::arg("fixed_values") = py::none(),
@@ -191,7 +191,7 @@ void bind_survival(py::module_& m) {
     "estimate_only : bool, default False\n"
     "    If True, skip variance-covariance computation and return only\n"
     "    coefficients.\n"
-    "maxit : int, default 20\n"
+    "maxit : int, default 100\n"
     "    Maximum number of Newton-Raphson iterations.\n"
     "tol : float, default 1e-9\n"
     "    Convergence tolerance.\n"
@@ -226,7 +226,7 @@ void bind_survival(py::module_& m) {
     py::arg("warm_start_beta") = py::none(),
     py::arg("smart_cold_start") = true,
     py::arg("estimate_only") = false,
-    py::arg("maxit") = 20,
+    py::arg("maxit") = 100,
     py::arg("tol") = 1e-9,
     py::arg("fixed_idx") = py::none(),
     py::arg("fixed_values") = py::none(),
@@ -269,7 +269,7 @@ void bind_survival(py::module_& m) {
     "estimate_only : bool, default False\n"
     "    If True, skip variance-covariance computation and return only\n"
     "    coefficients.\n"
-    "maxit : int, default 20\n"
+    "maxit : int, default 100\n"
     "    Maximum number of Newton-Raphson iterations.\n"
     "tol : float, default 1e-9\n"
     "    Convergence tolerance.\n"

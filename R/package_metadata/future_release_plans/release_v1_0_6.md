@@ -1154,3 +1154,177 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   their `use_rcpp = FALSE` fits) change in the low bits with `set_num_cores()`. Same fix as the previous TODO. The
   failing test is `R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R`
   (skipped, citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-65 (added 2026-11-17, agent, owner request; from GitHub issue #20, the CI self-check audit): **Bump
+  outdated GitHub Actions and fix the self-check's zero-median false positives.**
+  - Bump to the latest major: `actions/cache` v5 -> v6 (calibration-study, comprehensive-study, nightly,
+    test-coverage-R-advanced), `actions/checkout` v6 -> v7 (algorithm-research-bench, audit-compiled-code,
+    audit-status), `actions/download-artifact` v7 -> v8 (algorithm-audit-drift), `actions/setup-python` v6 -> v7
+    (audit, copilot-setup-steps, nightly, test-coverage-python), `codecov/codecov-action` v6 -> v7
+    (test-coverage-R-pr, test-coverage-python). Read each action's release notes for breaking inputs first.
+  - Done 2026-11-17 (uncommitted; tick the box once the owner has seen these workflows run green): every
+    older-major pin in `.github/workflows/` bumped, 24 `uses:` lines and no input changes. `actions/cache`,
+    `cache/restore` and `cache/save` @v5 -> @v6: calibration-study (152, 165, 264, 377, 389, 544),
+    comprehensive-study (104, 200, 321), nightly (191, 269, 499, 545, 816, 1029, 1052), test-coverage-R-advanced
+    (97). `actions/checkout` @v6 -> @v7: algorithm-research-bench (31, 46, 78, 115); audit-compiled-code and
+    audit-status were already on v7. `actions/download-artifact` @v7 -> @v8: algorithm-audit-drift (402).
+    `actions/setup-python` @v6 -> @v7: audit (122), copilot-setup-steps (49), nightly (688),
+    test-coverage-python (33). `codecov/codecov-action` @v6 -> @v7: test-coverage-R-pr (124),
+    test-coverage-python (58). Nothing was held back. No input these steps pass changed: cache v6 is an ESM
+    rebuild with the same inputs and the same cache-version salt, so existing caches still hit. checkout v7
+    refuses fork-PR code under `pull_request_target`/`workflow_run`, and algorithm-research-bench is dispatch-only.
+    download-artifact v8 fails on a digest mismatch by default and skips unzipping non-zip downloads, which
+    does not affect the zipped `research-*` artifacts from upload-artifact@v7. setup-python v7 removed
+    `pip-install`, which no step uses. codecov v7 only moves the uploader's PGP key to `codecovsecops`.
+    `upload-artifact` stays on v7, the latest major. YAML parse, actionlint, the 391 tests in
+    `.github/scripts/test_*.py` and the self-check's `check_actions` against live releases (no action behind)
+    all pass.
+  - Done 2026-11-17: `.github/scripts/audits/ci_self_check.py` flagged `test-coverage-R.yaml` (336x) and
+    `loc-badge.yml` (13x) against an 8-week median of 0 min made of gate-only runs. Commit a32ab62c (after the
+    run that opened issue #20) excludes earlier runs under `BASELINE_MIN_S` = 120 s from the median; replaying
+    #20's numbers flags neither now, while calibration-study (real 96-min baseline) is still flagged.
+    Regression test `test_zero_minute_median_is_never_the_baseline` added.
+  - `calibration-study.yml` at 3.6x its median is expected while campaign waves run long; decide whether to
+    exempt campaign workflows from the slow-run check.
+- [ ] TODO-66 (added 2026-11-17, agent, owner request; from GitHub issue #21, the generated-file drift audit):
+  **The audit runner's roxygen2 rewrites 152 of 369 Rd files.** `audit.yml` pins roxygen2 to the version in
+  `Config/roxygen2/version` (8.0.0.9000), and the local build reports the same string, yet the runner's
+  regeneration differs, so the pin does not reproduce the local build (a dev version string covers many
+  commits). Pin the runner to the exact roxygen2 commit the committed Rd files come from (install by SHA), check
+  that a fresh runner regeneration matches the committed `man/`, and record the SHA next to the version pin.
+  - Found (2026-11-17, agent): the runner already installed by SHA, but the wrong one. `ROXYGEN2_REF` was
+    upstream `r-lib/roxygen2@9a82bf42` (run 44048276794 ran at 4fc58cd0, which has that pin). The owner's
+    roxygen2 is `kapelner/roxygen2@c9203b7f`, the branch of r-lib/roxygen2 PR #1914 (open): one commit on top
+    of 9a82bf42 adding the `r6_inherited_documentation_display` option, default "grouped" (one
+    "+ inherited public methods from <Class>" block per ancestor instead of one flat "Inherited methods"
+    list). Both report 8.0.0.9000. The local install has no RemoteSha (installed from a working tree on
+    2026-08-02, 28 min before that commit); identified by matching its NEWS.md blob against r-lib history
+    (pins it to e4c23d06..9a82bf42) and by deparsing all 734 namespace objects: they differ from a scratch
+    install of 9a82bf42 in exactly the 5 functions that commit changes, and match a scratch install of
+    c9203b7f exactly. The 152 files are exactly the 152 Rd files with "+ inherited public methods from".
+    Scratch regeneration (copy of R/EDI, `R/fast_roxygenize.R`, scratch library): 9a82bf42 changes 152 Rd
+    files; c9203b7f changes none except `DesignFixedFactorial.Rd`, whose roxygen source has an uncommitted edit
+    (v1.0.6-TODO-70) in the working tree.
+  - Changed: `ROXYGEN2_REF` in `audit.yml` is now `kapelner/roxygen2@c9203b7f504b8d01cf29411f6166efa584e377d8`
+    and is the one record of the pin (header comment rewritten); the finish job's pin check also compares the
+    installed RemoteSha with it. `audits/generated_drift.py` names the pinned ref in its mass-change message.
+    Tests in `test_audit_generated_drift.py`: the pin is a full SHA, every workflow roxygen2 install uses it,
+    the check step reads RemoteSha. Not stored in DESCRIPTION (it would ship in the CRAN tarball, and
+    `Config/roxygen2/*` is roxygen2's own namespace).
+  - Risk: the committed docs depend on an unmerged fork commit. If PR #1914 is closed or the branch deleted,
+    the SHA may stop being fetchable; if it merges with a different default, set
+    `Config/roxygen2/r6_inherited_documentation_display: grouped` in DESCRIPTION and move the pin to upstream.
+  - Tick when the next dispatch of `audit-generated-drift.yml` logs "roxygen2 commit c9203b7f... matches
+    ROXYGEN2_REF" and reports no Rd mass change (issue #21 then closes itself).
+- [ ] TODO-67 (added 2026-11-17, agent, owner request; from GitHub issue #23, the results-freshness audit):
+  **Regenerate the stale result rows.** All four `R/package_tests/comprehensive_tests_{size,power,coverage,mse}.csv`,
+  `comprehensive_coverage_attempt_summary.csv` and the current calibration campaign's summary have row groups
+  generated before their class or family code last changed (49 groups at 2026-11-17). Today's v1.0.6-TODO-44
+  (imputation), -45 (KK14 threshold) and -50 (robust kernel) change more of them. Run the next comprehensive
+  campaign after those land (and the owner's rebuild for TODO-50), then confirm the freshness issue closes itself.
+- [ ] TODO-68 (added 2026-11-17, agent, owner request; from GitHub issue #25, the NEWS and version audit):
+  **Version numbers disagree across files.** `CITATION.cff` and `codemeta.json` say 1.0.2; `python/CITATION.cff`,
+  `python/README.md` and `python/README_PYPI.md` say 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4. Bring the R-side
+  files to the R version. Decide whether the Python package versions independently (it has its own `py-v*` tags
+  and `.postN` rule); if so, make `.github/scripts/audits/news_version.py` compare the Python files with the
+  latest `py-v*` tag instead of DESCRIPTION, with a unit test. The audit's other finding (no NEWS section newer
+  than 1.0.4) is fixed: `NEWS.md` now has `# EDI (development version)`.
+- [x] TODO-69 (added 2026-11-17, agent, owner request; from GitHub issue #27, the README and vignette drift
+  audit): **Three cookbooks warn about BCa at B = 200.** `cookbook-continuous.Rmd` (chunk `ols-boot`),
+  `cookbook-incidence.Rmd` and `cookbook-ordinal.Rmd` (chunk `fixed-resampling`) print EDI's own warning that
+  BCa at B = 200 has only about 5 order statistics in each tail. Use `type = "percentile"` there (keeps the
+  vignettes fast) or B >= 501 if the build time allows, so the rendered pages show no warning.
+  - DONE 2026-11-17 (agent, uncommitted). The warning also meant the printed interval was `NA, NA`. Chose BCa at
+    B = 501 (EDI's default type and B) in all three, since it costs under half a second more than percentile at
+    B = 200 (installed EDI, one chunk, seed 1): continuous 0.11 s vs 0.06 s, incidence 0.47 s vs 0.16 s, ordinal
+    0.72 s vs 0.33 s. Prose next to each chunk now says why B = 501 (continuous: BCa needs about 501 draws, else
+    `NA` with a warning; use `type = "percentile"` for a small B; incidence and ordinal: one line pointing to it).
+    Rendered with the installed EDI into `$TMPDIR`: continuous 3.6 s, incidence 3.2 s, ordinal 3.8 s; no warning
+    or error in any page; intervals [1.37, 4.74], [0.294, 2.48], [0.974, 2.56]. The other B = 200 bootstrap
+    chunks (`cookbook-count`, `-proportion`, `-survival`, `EDI.Rmd`, `articles/analyzing-an-existing-experiment`)
+    rendered without the warning, so they were left as they are (they still use BCa at B = 200, which can go `NA`
+    if their data change).
+- [x] TODO-70 (added 2026-11-17, agent, owner request; from GitHub issue #28, the docs-claims audit): **Design
+  docs that the code or tests contradict.** Fix the docs or the code for each (decide which side is right):
+  - `DesignFixedBinaryMatch` (`design_fixed_binary_match.R:44`): says it falls back to complete randomization
+    with no covariates; the code and a test error instead.
+  - `DesignFixedBlockedCluster` (`:21`): describes one `randomizr::block_and_cluster_ra` call per replicate; the
+    code uses `block_ra_batch`.
+  - `DesignFixedFactorial` (`:14`): documents a {-1,+1} public convention; the code and tests return {0,1}.
+  - `DesignFixedGreedyDOptimal` (`:111`): says `DesignFixedGreedy` refuses unequal allocation and odd n; it
+    accepts both now. `get_interest()` (`:289`) is documented as returning "treatment" or "all" but also
+    returns formulas and column names.
+  - `DesignFixedRerandomization` (`:34`): says `abs_sum_diff` is unstandardized, but the C++ fast path divides
+    each covariate by its SD (`rerandomization_helpers.cpp` ~L205-211), so which allocations are accepted
+    differs from the documented objective. Decide the intended objective; this one can change results.
+    Also (`:36`): other objective names are documented to error at draw time but reach the C++ search unchecked
+    on the fast path.
+  - `DesignSeqOneByOneEfron` (`:14`): documents `weighted_coin_prob > 0.5` and never deterministic, but the
+    constructor does not validate it and a test uses 1. Add validation (or document 1 as allowed).
+  - Already fixed today: the KK14 regularization wording and the two `morrison` claims (v1.0.6-TODO-45, -46).
+  - The same issue lists 33 untested and 45 partly tested claims, each with a test idea; adding those tests is
+    lower priority and can be batched later.
+  - **Resolved 2026-11-17 (agent).** No C++ changed, so no rebuild is needed; R and Rd changes only.
+    - BinaryMatch: doc fixed. The code is right: with no covariates and no `m` it errors ("no covariates
+      provided ..."), as `test-design-fixed-binary-match-no-covariates-guard-reference.R` pins. The BCRD branch
+      in `draw_ws_raw()` is kept as a defensive fallback but cannot be reached through the public API.
+    - BlockedCluster: already fixed in 25100e2f (docs now describe `block_ra_batch()`); covered by
+      `test-cluster-batched-draws.R`.
+    - Factorial: doc fixed to say `w` is {0,1} internally and publicly (`test-fixed-designs-greedy.R` checks it).
+    - GreedyDOptimal: the "different draws when prob_T != 0.5 / odd n" bullet removed and the identity stated
+      for any `prob_T` (`test-greedy-unequal-arms.R` shows identical draws at 0.3 and 0.7). `get_interest()`
+      `@return` now lists formulas and column-name vectors; new test
+      `test-greedy-d-optimal-get-interest-returns-validated-interest.R`.
+    - Rerandomization `abs_sum_diff` (**changes results, NEWS line needed**): the paths disagreed. Both C++
+      kernels (`rerandomization_search_cpp`, balanced fast path; `compute_objective_vals_cpp`, prop_acceptable
+      path) divide by each covariate's SD, and have done so since the initial commit (inherited from
+      GreedyExperimentalDesign). `DesignFixedGreedy`'s `abs_sum_diff` also standardizes, and the class's own
+      fast-path paragraph said "GED-standardized". Only the pure-R path (odd n, or prob_T != 0.5, with
+      obj_val_cutoff) and the private `compute_obj()` used raw differences. Those two paths now standardize
+      too (`abs_sum_diff_scaled_X()`), the docs say M(w) = sum_j |diff_j| / sd_j and that it is
+      scale-invariant. Draws change only for `objective = "abs_sum_diff"` with `obj_val_cutoff` at odd n or
+      prob_T != 0.5. New test `test-rerandomization-abs-sum-diff-standardized-and-objective-validation.R`
+      (every path meets the standardized cutoff; the C++ search keeps exactly the candidates the R objective
+      accepts; scale invariance); updated the raw-difference reference in
+      `test-rerandomization-batched-fallback.R`, `test-rerandomization-objective-and-draw-paths-reference.R`
+      and `test-sequential-design-branches.R`.
+    - Rerandomization objective validation (**NEWS line**): the constructor now errors on anything but
+      "mahal_dist"/"abs_sum_diff", and `draw_ws_raw()` re-checks before any C++ call. Same new test file.
+    - Efron (**NEWS line**): the constructor now requires 0.5 < `weighted_coin_prob` <= 1 (Efron's p > 1/2;
+      p = 1 is the deterministic limit, which existing tests use; no caller passes 0.5 or less). Docs say
+      p = 1 is deterministic when the counts differ. New test `test-efron-weighted-coin-prob-range-validation.R`.
+    - Found, not fixed: when the Cholesky factorization fails, the fast path's `mahal_dist` falls back to the
+      standardized abs criterion against cutoff/4 (accepting M_abs <= a/2), while the other paths
+      ridge-regularize S. Now documented; aligning it needs a C++ change and a rebuild (follow-up).
+    - Also fixed in passing: `test-rerandomization-batched-fallback.R` built the design with no acceptance rule,
+      which the constructor has rejected since earlier today; it now uses `obj_val_cutoff = Inf`.
+- [x] TODO-71 (added 2026-11-17, agent, owner request; from GitHub issue #30, the reference-check audit): **Four
+  citations disagree with Crossref.**
+  - `design_seq_one_by_one_urn.R`: the DOI 10.1080/01621459.1977.10481006 given for Wei (1977), "A class of
+    designs for sequential clinical trials", JASA 72(358), 382-386, resolves to a different paper ("Robust
+    Univariate Test of Symmetry ..."). Find the correct DOI.
+  - `inference_incidence_KK_marginal.R` (two entries, DOI 10.1016/0270-0255(86)90088-6): the Robins (1986) title
+    differs from Crossref's; use Crossref's exact title.
+  - `inference_ordinal_ordered_probit.R`: McCullagh (1980), JRSS B 42(2), pages are 109-127, not 109-142.
+  - Mirror each fix in `R/EDI/REFERENCES.md`.
+  - DONE 2026-11-17 (agent), each checked against the Crossref REST API: Wei (1977) is
+    10.1080/01621459.1977.10481005 ("A Class of Designs for Sequential Clinical Trials", Lee-Jen Wei, JASA 72(358),
+    382-386, June 1977); the Robins (1986) title now carries Crossref's subtitle ("...exposure period—application
+    to control of the healthy worker survivor effect"); McCullagh (1980) pages are 109-127 in all four ordinal
+    files that cite it (ordered probit, proportional odds, partial proportional odds, cloglog), not only the one
+    the issue names. REFERENCES.md and the 7 affected Rd files regenerated; `tools::checkRd()` clean.
+- [x] TODO-72 (added 2026-11-17, agent, owner request; from GitHub issue #33, the R/Python parity audit): **The
+  Python Cox bindings default to `maxit = 20`; R uses 100.** `fast_coxph_regression` and
+  `fast_stratified_coxph_regression` in `python/cpp/bindings_survival.cpp` (~L135, ~L207) default to 20, their
+  R twins in `R/EDI/src/fast_coxph_regression.cpp` to 100, so Python can stop early on fits R finishes. Align
+  the Python defaults to 100 (and the stub/docstrings), with a parity test. The audit's AI batches did not run
+  on that issue's run (being fixed separately), so more parity findings may follow.
+  - DONE 2026-11-17 (agent). The 20 was not deliberate: both Cox kernels were 20 on both sides when the bindings
+    were written (2026-08), and R raised them to 100 in v1.0.5 (commit 96b34122, "Survey 2: was 20 (cap exits
+    1-3 iterations short)") without the Python bindings following. R users get 100: `RcppExports.R` says
+    `maxit = 100L` for both exports, and no R wrapper or Cox inference class passes its own `maxit`. Changed:
+    `python/cpp/bindings_survival.cpp` (both `py::arg("maxit") = 100` and both docstrings' "default 100"),
+    `python/src/edi_kernels/_core.pyi` (both signatures and both docstrings), `python/CHANGELOG.md` (a line under
+    1.0.4 Unreleased, Changed). New pure-text test `python/tests/test_binding_defaults_match_r.py` checks every
+    binding's `py::arg` defaults against its `<name>_cpp` twin in `RcppExports.R` (no compiled module needed);
+    it fails on the old binding and passes now. The rpy-parity mechanical check now reports 0 findings (was these
+    2). No other default mismatch with a same-name twin. **Takes effect only when the wheel is rebuilt.**

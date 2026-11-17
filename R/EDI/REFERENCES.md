@@ -45,7 +45,7 @@ gaps" at the bottom).
   Used by: `DesignSeqOneByOneEfron`, `DesignSeqOneByOneRandomBlockSize`.
 - **[Wei1977]** Wei, L. J. (1977). "A class of designs for sequential
   clinical trials." *Journal of the American Statistical Association*,
-  72(358), 382-386. [doi:10.1080/01621459.1977.10481006](https://doi.org/10.1080/01621459.1977.10481006). — Used by:
+  72(358), 382-386. [doi:10.1080/01621459.1977.10481005](https://doi.org/10.1080/01621459.1977.10481005). — Used by:
   `DesignSeqOneByOneUrn`.
 - **[Wei1978]** Wei, L. J. (1978). "The adaptive biased coin design for
   sequential experiments." *The Annals of Statistics*, 6(1), 92-100.
@@ -315,7 +315,8 @@ Crossref 2026-11-17.)
   path, `InferenceIncidCMH`.
 
 - **[Robins1986]** Robins, J. (1986). "A New Approach to Causal Inference in
-  Mortality Studies with a Sustained Exposure Period." *Mathematical
+  Mortality Studies with a Sustained Exposure Period—Application to Control
+  of the Healthy Worker Survivor Effect." *Mathematical
   Modelling*, 7(9-12), 1393-1512. [doi:10.1016/0270-0255(86)90088-6](https://doi.org/10.1016/0270-0255%2886%2990088-6). — Used
   by: `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
   (g-computation/standardization estimand).
@@ -377,7 +378,7 @@ Crossref 2026-11-17.)
   `InferenceOrdinalRidit`, `fast_ridit_analysis`.
 - **[McCullagh1980]** McCullagh, P. (1980). "Regression Models for Ordinal
   Data." *Journal of the Royal Statistical Society, Series B*, 42(2),
-  109-142. [doi:10.1111/j.2517-6161.1980.tb01109.x](https://doi.org/10.1111/j.2517-6161.1980.tb01109.x). — Used by:
+  109-127. [doi:10.1111/j.2517-6161.1980.tb01109.x](https://doi.org/10.1111/j.2517-6161.1980.tb01109.x). — Used by:
   `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalPartialProportionalOddsRegr`
   (the full proportional-odds/cumulative-logit model both classes are built
   on), `InferenceOrdinalCloglogRegr` (cumulative-link model family),

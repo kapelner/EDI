@@ -430,5 +430,72 @@ class Apply(unittest.TestCase):
         self.assertIn("roxygen was NOT RUN", parts["summary"])
 
 
+class Publish(unittest.TestCase):
+    """Run 44048299100 (2026-11-17, the first full rd pass): 10 applied changes, 130 spelling
+    findings and 156 "Needs a human" lines made a 96,412-character report, and the publish step's
+    `gh pr create --body <report>` failed with "Body is too long (maximum is 65536 characters)".
+    This drives `audit_run.py publish` end to end (real git against a local bare remote, fake gh)
+    and checks that every body handed to gh fits."""
+
+    GH_MAX = 65536
+
+    def setUp(self):
+        import audit_run
+        self.ar = audit_run
+        self.ctx = make_repo()
+        repo = self.ctx.repo
+        remote = repo.parent / "remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True, capture_output=True)
+        subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=repo, check=True, capture_output=True)
+        (repo / "R/EDI/man/Foo.Rd").write_text(FOO_RD + "% changed\n")   # something to commit
+        spec = ac.spec_of(rd)
+        word = lambda i: "".join(chr(97 + int(c)) for c in str(i))
+        parts = {
+            "summary": "- roxygen ran once and regenerated 9 Rd file(s)",
+            "applied": [f"`R/EDI/R/f{i}.R` (`F{i}.Rd`): replaced the @examples block. " + "c" * 900
+                        for i in range(10)],
+            "mechanical": [f"unknown word `{word(i)}`: Page{i}.Rd:{i}" for i in range(130)],
+            "human": [f"`page{i}.Rd` (unclear): HUMAN-{i} " + "h" * 520 for i in range(156)],
+        }
+        coverage = {"units in scope": 369, "mechanical findings": 130}
+        self.report = ac.render_report(spec, parts, coverage, "https://run")
+        work = self.ctx.workdir
+        (work / "report.md").write_text(self.report)
+        (work / "proposed.json").write_text("[]")
+        self.calls = []
+
+    def fake_gh(self, *args, check=True, input=None):
+        self.calls.append(args)
+        if args[:2] == ("pr", "create"):
+            return "https://github.com/o/r/pull/7"
+        return ""   # label create; pr list / issue list: nothing open
+
+    def publish(self):
+        orig = self.ar.gh
+        self.ar.gh = self.fake_gh
+        try:
+            return self.ar.main(["publish", "--audit", "rd", "--repo", str(self.ctx.repo),
+                                 "--notes", str(self.ctx.notes.root), "--work", str(self.ctx.workdir),
+                                 "--changed", "true", "--findings", "true"])
+        finally:
+            self.ar.gh = orig
+
+    def test_oversized_report_is_cut_before_gh(self):
+        self.assertGreater(len(self.report), self.GH_MAX)     # the failing size
+        self.assertEqual(self.publish(), 0)
+        bodies = [c[c.index("--body") + 1] for c in self.calls if "--body" in c]
+        creates = [c for c in self.calls if c[:2] == ("pr", "create")]
+        self.assertEqual(len(creates), 1)
+        self.assertTrue(bodies)
+        for b in bodies:
+            self.assertLessEqual(len(b), self.GH_MAX)
+        body = creates[0][creates[0].index("--body") + 1]
+        self.assertTrue(body.startswith("## Rd audit"))
+        self.assertIn("### Applied changes (10)", body)
+        self.assertIn("more line(s) not shown", body)
+        self.assertIn("units in scope: 369", body)
+        self.assertEqual(self.ctx.notes.manifest().get("open_pr"), 7)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -136,7 +136,8 @@ test_that("rerandomization validates modes and computes both objectives", {
 	p$S_inv = diag(2)
 	expect_equal(p$compute_obj(X, w), sum((colMeans(X[w == 1, ]) - colMeans(X[w == 0, ]))^2))
 	p$objective = "abs_sum_diff"
-	expect_equal(p$compute_obj(X, w), sum(abs(colMeans(X[w == 1, ]) - colMeans(X[w == 0, ]))))
+	# standardized by each covariate's SD, as on the C++ paths (v1.0.6-TODO-70)
+	expect_equal(p$compute_obj(X, w), sum(abs(colMeans(X[w == 1, ]) - colMeans(X[w == 0, ])) / apply(X, 2, sd)))
 	p$objective = "unsupported"
 	expect_error(p$compute_obj(X, w), "Unsupported objective")
 })

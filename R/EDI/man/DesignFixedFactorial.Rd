@@ -15,8 +15,8 @@ across cells within each replicate draw.
 two arms), e.g. a single two-level factor — the product of levels across all
 \code{factors} entries must equal exactly 2; the constructor errors otherwise. In this
 two-arm regime, the design reduces to a balanced complete randomization between cell 1
-(\eqn{w = 0}) and cell 2 (\eqn{w = 1}), and \code{w} follows the same \{0,1\}
-internal / \{-1,+1\} public convention as every other \code{Design} subclass, so
+(\eqn{w = 0}) and cell 2 (\eqn{w = 1}), and \code{w} is coded \{0,1\} (1 = treated)
+both internally and in the public accessors, as in every other \code{Design} subclass, so
 \code{DesignFixedFactorial} inherits \code{assign_w_to_all_subjects()},
 \code{draw_ws_according_to_design()}, and \code{get_w()} unmodified from
 \code{\link[EDI:DesignFixed]{DesignFixed}}/\code{\link[EDI:Design]{Design}} and works
@@ -164,7 +164,7 @@ currently equal exactly 2 (two-arm only).}
   inverse of the encoding \code{draw_ws_raw()} produces, and is the only way
   to recover individual factor levels once support for more than two total
   combinations lands, since \code{get_w()} (inherited, see class
-  documentation) only ever returns the scalar 0/1 (or -1/+1) cell index.
+  documentation) only ever returns the scalar 0/1 cell index.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedFactorial$get_w_factorial()}

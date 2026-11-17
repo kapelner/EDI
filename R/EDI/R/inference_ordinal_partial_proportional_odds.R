@@ -25,7 +25,7 @@
 #'   \doi{10.2307/2347760}, for the partial (non-parallel-covariate)
 #'   proportional-odds model fit here. McCullagh, P. (1980). "Regression
 #'   Models for Ordinal Data." \emph{Journal of the Royal Statistical
-#'   Society, Series B}, 42(2), 109-142,
+#'   Society, Series B}, 42(2), 109-127,
 #'   \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the full proportional-odds
 #'   model this generalizes (see
 #'   \code{\link[EDI:InferenceOrdinalPropOddsRegr]{InferenceOrdinalPropOddsRegr}}).

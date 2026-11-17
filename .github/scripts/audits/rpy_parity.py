@@ -13,6 +13,8 @@ parity"; audit_jobs_framework.md TODO-16).
   Hash: the binding text and its stub. Deps: the export signatures and the R call lines.
 - Selection: new or changed bindings, open findings, and a 1/6 monthly rotation; on a push run
   only new and changed bindings (no rotation), so repeated pushes do not re-read the slice.
+  A push reaches this audit as a `workflow_run` event (rpy-parity-push.yml relays it, since
+  claude-code-action rejects `push`), so both events count as a push here (push_event()).
 - Mechanical (no Claude): a py::arg default that differs from the default of the same-named
   argument of the binding's R twin; a binding missing from the stub file or from the package's
   __init__.py imports.
@@ -34,8 +36,11 @@ SPEC = {
     "report": "pr",
     "claude": True,
     "model": ac.SONNET,
-    "batch_size": 8,
-    "max_batches": 4,
+    # Each binding means reading the m.def, the stub, the R export, its Rd page and the R
+    # callers, so batches are small (as in docs-claims): 4 units, 80 turns, 32 units a run.
+    "batch_size": 4,
+    "max_batches": 8,
+    "max_turns": 80,
     "period": "month",        # the rotation counts this job's monthly runs
     "cycle_weeks": 6,         # 1/6 rotation; push runs read no slice (see units())
     "tools": "Read,Glob,Grep",
@@ -45,6 +50,10 @@ STUB = "python/src/edi_kernels/_core.pyi"
 INIT = "python/src/edi_kernels/__init__.py"
 CMAKE = "python/CMakeLists.txt"
 TWIN_SUFFIXES = ("_cpp", "_with_var_cpp", "_weighted_cpp")
+# Events that mean "a push to main touched the bindings or a kernel". The workflow is started
+# by `workflow_run` (from rpy-parity-push.yml), because anthropics/claude-code-action fails on a
+# `push` event with "Unsupported event type: push"; `push` stays for local runs and tests.
+PUSH_EVENTS = ("push", "workflow_run")
 
 DEF_START = re.compile(r"\bm\.def\(\s*")
 PYARG = re.compile(r'py::arg\("(\w+)"\)(?:\s*=\s*(py::none\(\)|"(?:[^"\\]|\\.)*"|[^,)\s]+))?')
@@ -350,6 +359,11 @@ def exports_reaching(kernel, bodies, export_names, max_depth=3):
     return sorted(found)
 
 
+def push_event(event):
+    """The event name the rotation helpers should see: any push-like event becomes "push"."""
+    return "push" if event in PUSH_EVENTS else event
+
+
 def units(ctx):
     out = {}
     for s in _scan(ctx):
@@ -359,7 +373,7 @@ def units(ctx):
         out[s["id"]] = {
             "hash": ac.text_hash(b["text"], s["stub"]),
             "deps": deps,
-            "cycle_weeks": rot.unit_cycle(SPEC["cycle_weeks"], ctx.event),
+            "cycle_weeks": rot.unit_cycle(SPEC["cycle_weeks"], push_event(ctx.event)),
             "context": {
                 "binding_file": s["file"], "binding_lines": [b["start_line"], b["end_line"]],
                 "python_names": s["python_names"],

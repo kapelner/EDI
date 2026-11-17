@@ -1,0 +1,69 @@
+# Push trigger for the R / Python parity audit (audit-rpy-parity.yml). This workflow does nothing
+# itself; its completion starts audit-rpy-parity.yml through `workflow_run`.
+# Why: the audit's Claude stage runs anthropics/claude-code-action, which rejects a `push` event
+# ("Action failed with error: Unsupported event type: push"; runs 44065338574 and 44072918994
+# lost every batch to it). It accepts workflow_dispatch, repository_dispatch, schedule and
+# workflow_run. A dispatch sent with GITHUB_TOKEN would run as github-actions[bot], which the
+# action's human-actor check refuses; a workflow_run keeps the pusher as the actor.
+# The path list must match python/CMakeLists.txt's kernel sources;
+# .github/scripts/test_audit_rpy_parity.py checks that. The file name does not start with
+# `audit-`, so audit_status.py does not list it as an audit.
+
+name: rpy-parity · push trigger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "python/cpp/**"
+      - "python/src/**"
+      - "python/CMakeLists.txt"
+      - "R/EDI/src/fast_adjacent_category_logit.cpp"
+      - "R/EDI/src/fast_beta_regression.cpp"
+      - "R/EDI/src/fast_clogit_plus_glmm.cpp"
+      - "R/EDI/src/fast_continuation_ratio_regression.cpp"
+      - "R/EDI/src/fast_coxph_regression.cpp"
+      - "R/EDI/src/fast_cpoisson_combined.cpp"
+      - "R/EDI/src/fast_gaussian_lmm.cpp"
+      - "R/EDI/src/fast_gee.cpp"
+      - "R/EDI/src/fast_gehan_wilcox.cpp"
+      - "R/EDI/src/fast_hurdle_negbin.cpp"
+      - "R/EDI/src/fast_hurdle_poisson_glmm.cpp"
+      - "R/EDI/src/fast_log_binomial_regression.cpp"
+      - "R/EDI/src/fast_logistic_glmm.cpp"
+      - "R/EDI/src/fast_logistic_regression.cpp"
+      - "R/EDI/src/fast_logrank.cpp"
+      - "R/EDI/src/fast_negbin_regression.cpp"
+      - "R/EDI/src/fast_ols.cpp"
+      - "R/EDI/src/fast_ordinal_cauchit_regression.cpp"
+      - "R/EDI/src/fast_ordinal_clmm.cpp"
+      - "R/EDI/src/fast_ordinal_cloglog_regression.cpp"
+      - "R/EDI/src/fast_ordinal_glmm.cpp"
+      - "R/EDI/src/fast_ordinal_probit_regression.cpp"
+      - "R/EDI/src/fast_ordinal_regression.cpp"
+      - "R/EDI/src/fast_poisson_glmm.cpp"
+      - "R/EDI/src/fast_poisson_regression.cpp"
+      - "R/EDI/src/fast_probit_regression.cpp"
+      - "R/EDI/src/fast_ridit_analysis.cpp"
+      - "R/EDI/src/fast_robust_regression.cpp"
+      - "R/EDI/src/fast_stereotype_logit.cpp"
+      - "R/EDI/src/fast_survival_models_optim.cpp"
+      - "R/EDI/src/fast_survival_stats.cpp"
+      - "R/EDI/src/fast_weibull_frailty.cpp"
+      - "R/EDI/src/fast_weibull_regression.cpp"
+      - "R/EDI/src/fast_wilcox_hl.cpp"
+      - "R/EDI/src/fast_zero_augmented_poisson.cpp"
+      - "R/EDI/src/fast_zero_one_inflated_beta.cpp"
+      - "R/EDI/src/fast_zinb.cpp"
+      - "R/EDI/src/miettinen_nurminen_speedups.cpp"
+      - "R/EDI/src/newcombe_speedups.cpp"
+      - "R/EDI/src/robust_post_fit_speedups.cpp"
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "audit-rpy-parity.yml starts when this run completes (workflow_run)"

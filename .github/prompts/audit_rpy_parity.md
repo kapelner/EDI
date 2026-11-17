@@ -19,7 +19,8 @@ disagree. You have read-only tools (Read, Glob, Grep) and no shell.
     names its callers pass.
   - `py_args`: the parsed `py::arg` names and defaults.
   - `stub`: the function's block in `python/src/edi_kernels/_core.pyi` (generated from the
-    binding; it can be stale).
+    binding; it can be stale). It is one long JSON line that Read may cut short; when you need
+    all of it, Grep `_core.pyi` for `def <python name>(` and read the block there.
   - `kernel_functions`: the R/EDI/src function(s) the binding calls.
   - `r_exports`: Rcpp exports with their `signature` (and defaults), `rd` page and `relation`:
     `same name` is the R twin by naming convention (`fast_ols` and `fast_ols_cpp`);

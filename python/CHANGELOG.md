@@ -77,6 +77,11 @@ or permutation function is exposed in Python.
 - `fixed_idx` / `fixed_values` are validated up front (length mismatch and
   out-of-range indices raise) in the kernels that accept them. Indices are
   1-based, as the corrected docstrings now say.
+- `fast_coxph_regression` and `fast_stratified_coxph_regression`: the default
+  `maxit` is now 100 (was 20), matching the R kernels, which were raised from
+  20 to 100 because the cap stopped some fits one to three iterations short.
+  Fits that converged before still return the same result; fits that hit the
+  old cap now run on to convergence (v1.0.6-TODO-72, GitHub issue #33).
 
 ### Fixed
 

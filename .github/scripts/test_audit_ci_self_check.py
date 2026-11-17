@@ -139,6 +139,16 @@ class Workflows(unittest.TestCase):
         # with too few real runs to compare with, nothing is reported
         self.assertIsNone(cs.slow_run("x", quick + [run(1, 130, 99)]))
 
+    def test_zero_minute_median_is_never_the_baseline(self):
+        # Issue #20 (2026-11-17, before BASELINE_MIN_S): test-coverage-R.yaml's 132-min run was
+        # flagged 336.6x against a "0 min" median of 64 gate-only ~23 s runs. Only gated runs
+        # before it: nothing to compare with, so nothing is reported.
+        gated = [{**run(d, 0, d), "updated_at": iso(NOW - dt.timedelta(days=d) + dt.timedelta(seconds=23))}
+                 for d in range(55, 2, -1)]
+        self.assertIsNone(cs.slow_run("x", gated + [run(1, 132, 99)]))
+        # a workflow with a real baseline is still checked (calibration-study: 96 -> 341 min)
+        self.assertIsNotNone(cs.slow_run("y", [run(d, 96, d) for d in (40, 30, 20, 10)] + [run(1, 341, 99)]))
+
     def test_too_few_runs(self):
         self.assertIsNone(cs.slow_run("x", [run(10, 10), run(1, 100)]))
 

@@ -19,7 +19,8 @@ ref_mahal = function(X, w) {
 	d = colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
 	as.numeric(t(d) %*% solve(var(X)) %*% d)
 }
-ref_abs = function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])))
+# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-70).
+ref_abs = function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])) / apply(X, 2, sd))
 
 test_that("batched fallback meets the cutoff for unbalanced prob_T and odd n", {
 	skip_on_cran()
@@ -38,7 +39,7 @@ test_that("batched fallback meets the cutoff for unbalanced prob_T and odd n", {
 
 test_that("batched fallback keeps the Bernoulli(prob_T) law without a cutoff and errors on an impossible cutoff", {
 	skip_on_cran()
-	f = mk_rerand(20, 0.3, NULL)
+	f = mk_rerand(20, 0.3, Inf)  # no binding cutoff (NULL is rejected since 2026-11-17)
 	W = f$des$draw_ws_according_to_design(r = 3000)
 	expect_equal(mean(W), 0.3, tolerance = 0.02)
 	g = mk_rerand(20, 0.3, 1e-12)

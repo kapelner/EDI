@@ -100,7 +100,7 @@ Design-specific differences from the table:
 \references{
 Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).
-  "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
+  "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-127.
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
 

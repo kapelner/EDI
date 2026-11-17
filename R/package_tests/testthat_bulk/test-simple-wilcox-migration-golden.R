@@ -15,13 +15,18 @@ simple_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
 
-kk_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict), which changed this seed's
+# allocation. With two covariates the F(2, .) cutoff near 0 scales like lambda,
+# so lambda = 0.05 (default 0.1) reproduces the allocation the goldens below
+# were recorded on.
+kk_wilcox_golden_design = function(n = 12L, seed = 20260728L, lambda = 0.05) {
 	inference_migration_with_seed(seed, {
 		p = 2L
 		X = as.data.frame(matrix(rnorm(n * p), nrow = n, ncol = p))
 		names(X) = c("x1", "x2")
 		y = as.numeric(rnorm(n))
-		des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
+		des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE, lambda = lambda)
 		for (i in seq_len(n)) {
 			w_i = des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 			des$add_one_subject_response(i, y[i] + 0.35 * ((w_i + 1) / 2))
