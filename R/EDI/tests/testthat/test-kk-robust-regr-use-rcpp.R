@@ -9,6 +9,12 @@ make_kk_robust_design <- function(n_pairs = 40L, n_single = 20L, seed = 20260729
 	}
 	des$.__enclos_env__$private$m <- c(rep(seq_len(n_pairs), each = 2L), rep(0L, n_single))
 	priv <- des$.__enclos_env__$private
+	# A KK match is always one treated and one control subject. The forced m
+	# above ignores the assignments, so put each pair's second member in the
+	# opposite arm; a same-arm pair has no within-pair difference (NA), which
+	# made the OneLik fit nonestimable and the IVWC fit reservoir-only, so both
+	# use_rcpp comparisons tested less than they claimed (v1.0.6-TODO-50).
+	priv$w[seq(2L, 2L * n_pairs, 2L)] <- 1 - priv$w[seq(1L, 2L * n_pairs, 2L)]
 	w <- priv$w
 	X <- as.data.frame(priv$X)
 	eta <- 0.4 - 0.5 * w + 0.3 * X[[1]] - 0.2 * X[[2]]
@@ -28,6 +34,8 @@ test_that("InferenceContinKKRobustRegrOneLik: use_rcpp matches MASS::rlm fallbac
 
 	est_fast <- inf_fast$compute_estimate()
 	est_ref  <- inf_ref$compute_estimate()
+	expect_true(is.finite(est_fast))
+	expect_true(is.finite(est_ref))
 	expect_equal(est_fast, est_ref, tolerance = 1e-3)
 
 	se_fast <- inf_fast$.__enclos_env__$private$get_standard_error()

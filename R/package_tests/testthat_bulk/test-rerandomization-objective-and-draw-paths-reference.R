@@ -62,7 +62,7 @@ test_that("generate_one_rerandomized_w returns a balanced allocation for prob_T 
 		expect_lte(ref_mahal(f$X, w), cutoff + 1e-8)
 	}
 	# No cutoff: the first candidate is accepted.
-	g <- rerand_design(X = X)
+	g <- rerand_design(obj_val_cutoff = Inf, X = X)
 	g$des$get_X()
 	g$priv$S_inv <- solve(var(g$X))
 	expect_equal(sum(g$priv$generate_one_rerandomized_w()), 10)

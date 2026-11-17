@@ -6,11 +6,10 @@
 # Where: R/EDI/R/inference_continuous_KK_glmm.R:503 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `sigma_e_hat` < 1.6. Actual comparison: 3.3
 # >= 1.6 Difference: 1.7 >= 0
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-56; remove the skip() when that fix lands.
 
 test_that("LMM null simulation uses log_sigma_e for the residual SD and log_sigma_b for the random intercept", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-56")
 		set.seed(2)
 		np = 40L
 		ns = 10L

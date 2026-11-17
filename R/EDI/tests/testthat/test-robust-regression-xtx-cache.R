@@ -15,18 +15,20 @@ robust_ssq_reference <- function(X, y, fit, j, method = "MM", c = 1.345,
   if (method == "M") {
     abs_u <- abs(u)
     psi <- ifelse(abs_u <= c, r, c * scale * ifelse(u > 0, 1, -1))
-    sum_psi_prime <- sum(abs_u <= c)
+    psi_prime <- as.numeric(abs_u <= c)
   } else {
     c_b <- 4.685
     abs_u <- abs(u)
     u_scaled_sq <- (u / c_b)^2
     tmp <- 1 - u_scaled_sq
     psi <- ifelse(abs_u <= c_b, r * tmp^2, 0)
-    sum_psi_prime <- sum(ifelse(abs_u <= c_b, tmp * (1 - 5 * u_scaled_sq), 0))
+    psi_prime <- ifelse(abs_u <= c_b, tmp * (1 - 5 * u_scaled_sq), 0)
   }
 
-  m <- sum_psi_prime / n
-  factor <- (n / (n - length(free_idx))) * sum(psi^2) / (n * m^2)
+  m <- mean(psi_prime)
+  # Huber's small-sample correction, as in MASS:::summary.rlm (v1.0.6-TODO-50)
+  kappa <- 1 + length(free_idx) * var(psi_prime) / (n * m^2)
+  factor <- kappa^2 * (n / (n - length(free_idx))) * sum(psi^2) / (n * m^2)
   XtX <- crossprod(X[, free_idx, drop = FALSE])
   factor * solve(XtX)[free_j, free_j]
 }

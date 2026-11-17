@@ -166,7 +166,9 @@ outcome variable.  One of \code{"continuous"}, \code{"incidence"},
   Designs requiring \code{strata_cols}, \code{cluster_col}, or
   \code{factors} have sensible defaults auto-injected (first covariate
   column; second for \code{cluster_col}; \code{list(treatment=2)} for
-  \code{factors}) when not supplied in the parameter list.
+  \code{factors}) when not supplied in the parameter list, and
+  \code{DesignFixedRerandomization} gets \code{prop_acceptable = 0.1} when
+  neither acceptance rule is given.
   Example:
   \preformatted{design_classes_and_params = list(
   DesignSeqOneByOneKK21 = list(lambda = 0.5, t_0_pct = 0.1),

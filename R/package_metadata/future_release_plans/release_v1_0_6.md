@@ -904,3 +904,253 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     and numbers are in the `missingness_method` roxygen (`Design.Rd`); Freedman2008 added to `REFERENCES.md`.
   - Still to do: a NEWS line under the next release's heading (imputed values and covariate-adjusted estimates change
     for data with missing covariates, and are now reproducible).
+- [ ] TODO-45 (added 2026-11-17, agent, owner request; found by the matching-on-the-fly article agent): **KK14's
+  match test was twice as strict as published.** `DesignSeqOneByOneKK14$assign_wt()` compared the full
+  d'S^-1 d (`compute_proportional_mahal_distances_cpp`, stored as `sqd_distances_times_two`) with the Hotelling
+  cutoff p(n-1)/(n-p) F_{p,t-p}(lambda). The statistic is half of that (the difference of two exchangeable
+  subjects has covariance 2 Sigma); SeqExpMatch 0.1.0 (`R/design.R` ~L396, CRAN archive) used `1 / 2 * t(d) %*%
+  S_inv %*% d`. The halving was lost in the C++ port.
+  - Done 2026-11-17 (R only, no recompile): `T_sq = ... / 2`; roxygen and `DesignSeqOneByOneKK14.Rd` give the
+    formula. Effect (4 covariates, 2 prognostic, 400-600 null trials): mean pairs at n = 40 went 8.5 -> 14.0 of 20,
+    at n = 100 31.5 -> 42.0 of 50 (KK21: 14.8 and 43.1). `InferenceContinKKOLSOneLik` Wald size: n = 40 7.2% ->
+    6.3%, n = 100 5.0% -> 5.0% (MC SE about 1 point; KK21 5.8% and 4.7%).
+  - Re-pinned 2026-11-17 (agent; R/EDI/tests/testthat). A useful rule: with p covariates the F(p, .) cutoff near
+    0 scales like lambda^(p/2), so lambda = 0.1 * 2^(-p/2) (0.07 for p = 1, 0.05 for p = 2) brings back roughly the
+    old allocation; most re-pinned fixtures use it (checked: allocation identical to the pre-fix one unless noted).
+    `test-cross-platform-reproducibility-digests.R`: fixture regenerated with EDI_REPRO_WRITE_FIXTURE and
+    EDI_REPRO_OVERWRITE_FIXTURE; only the two DesignSeqOneByOneKK14 rows changed (KK21 unchanged: that case reveals
+    responses, so KK21 is past its KK14 fallback). `test-incid-kk-newcombe-migration-golden.R`: the legacy
+    score/gradient/LR CIs were still the Wald fallback but 1.4e-6 (relative) off the closed-form Wald CI, past the
+    test's 1e-10; that is `pval_invert_ci_cpp`'s root tolerance, and about half of seeds show it with or without the
+    fix, so the design seed moved to 20260820 (exact). `test-weibull-frailty-loggamma-null-boundary.R`: KK14 fixture
+    now `lambda = 0.07` (same 16 pairs, same goldens). `test-kk-ivwc-compound-focused-regression.R`: single-pair
+    fixture `lambda = 0.05` (same one pair).
+  - Bulk sweep 2026-11-17: all 264 files under `R/package_tests/testthat_bulk/` that name KK14/KK21 run against the
+    source (EDI_PREPUSH_NO_PARALLEL=true), and failures rerun on a copy with the `/ 2` reverted. 17 fail only with the
+    fix, none fail in both. Fixed (fixture lambda, comment cites this TODO): the three
+    `*-ivwc-shared-matched-reservoir-combination-branches-reference.R` files (quantile, Weibull-frailty-normal,
+    hurdle-Poisson; `lambda = 0.07`), `test-kk-ols-ivwc-weighted-passthrough-reference.R` and
+    `test-kk-rank-regr-ivwc-weighted-passthrough-reference.R` (0.05), `test-randomization-fast-path-wiring-reference.R`
+    (KKOLSIVWC case 0.05; 3 pairs again, not the same 3), `test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R`
+    (0.05), `test-kk-clogit-onelik-pairs-and-reservoir-only-branches-reference.R` (0.07; the new seed-2 reservoir was
+    perfectly separated, so the glm reference diverged).
+  - Still to do: 9 fix-dependent bulk files, not re-pinned because several look like real discrepancies the old
+    fixture hid rather than stale pins. Reference parity: `test-kk-gee-parity.R` (EDI GEE vs geepack, incidence
+    estimate 3.2e-3 relative apart vs 1e-3 tolerance; 2-4e-3 is typical across families and seeds),
+    `test-kk-gee-weighted-refit-reference.R` (weighted refit -0.616 vs geepack -0.581),
+    `test-ordinal-kk-clmm-matches-clmm-all-links-reference.R` (cloglog 0.815 vs ordinal::clmm 0.776 and 0.259 vs
+    0.280), `test-ordinal-kk-clmm-boundaries-coverage.R` (Cauchit weighted refit 3.8e-5 off),
+    `test-ordinal-kk-clmm-migration-golden.R` (Probit/Cloglog legacy vs migrated jackknife/randomization 1-3e-6 apart
+    vs 1e-7), `test-incid-kk-modified-poisson-weighted-refit-reference.R` (SE 1.2e-6 off). Premise is data
+    dependent: `test-contin-kk-quantreg-onelik-stacked-weighted-reference.R` (weights no longer move the estimate by
+    1e-4), `test-proportion-kk-classes-match-logit-stacked-quantile-and-quasibinomial-references.R` (expects GEE/GLMM
+    more than 0.1 from the Gaussian-logit fit; now 0.05). These two re-pinned 2026-11-17 (agent): the quantreg
+    divergence test moved to design seed 8 / weight seed 9 and also checks the independent rq() rebuild (median
+    regression is piecewise constant in the weights, so seed 4 moved only 1.1e-6); the GEE/GLMM test keeps seed and
+    0.1 but draws Beta responses with phi = 4 instead of 8 (the logit(E[y]) vs E[logit(y)] gap is a method property,
+    about 0.11 in population at phi = 8 and 0.22 at phi = 4; the old pass was seed luck). Possible bug: `test-design-inference-introspection-audit.R`
+    "no silently masked capability for KK/incidence" finds a status 'ok' row with a non-finite estimate (an exact
+    Fisher log-odds of Inf is reported as ok). Not yet run: the KK rows of the comprehensive/calibration
+    baselines, which change: `comprehensive_tests_{size,power,coverage,mse}.csv` (KK21stepwise rows, where KK21
+    falls back to KK14 before 2(p+2) responses), `calibration/calibration_study_accepted.csv` (18 KK14 and 36 KK21
+    accepted rows to re-review), and the timing files `calibration/calibration_study_costs.csv` and
+    `cloud/comprehensive_study_costs.csv`. NEWS line (KK14 forms more matches; seeded KK14 allocations change; the
+    digest fixture's header asks for one). `test-designs.R`'s "DesignSeqOneByOneiBCRD works" failure is unrelated
+    (fails with or without the fix).
+- [ ] TODO-46 (added 2026-11-17, agent, owner request): **KK21 / KK14 doc and API fixes from the matching-on-the-fly
+  article.**
+  - Done 2026-11-17: `morrison = TRUE` was documented on KK21/KK21stepwise as switching to Morrison's
+    calibration but nothing reads it; it now warns ("not implemented yet") and the docs say it is reserved.
+    The KK21 docs cited "Morrison and Owen (2025)"; now Morrison, T. (2025), arXiv:2505.17247, as in
+    REFERENCES.md. Full KK21 citation added (Kapelner and Krieger 2023, Biometrics 79(1) 216-229, online 2021,
+    doi:10.1111/biom.13561, verified on Crossref) to both classes and REFERENCES.md. `response_type` docs list
+    "ordinal" (checked: both classes run with ordinal responses). `get_block_ids()` errored "improperly sized"
+    mid-trial on sequential designs (y pre-allocated to n, ids sized to t); fixed in `design_blocking_abstract.R`.
+    `test-permutations.R`'s morrison test now expects the warning.
+  - Not reproduced: an R segfault under `Rprof` in a KK21 loop (5 profiled n = 100 runs at 2 ms were clean).
+  - Still to do: implementing Morrison's calibration itself, if wanted (the v1.2.0 KK14 incremental-covariance
+    note already mentions the argument); the power-simulation scripts in `R/package_tests/*bai_et_al.R` pass
+    `morrison = TRUE` and have been running the standard schedule all along.
+- [ ] TODO-47 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **KK GEE
+  weighted refit disagrees with its reference by 6%.** On the data the corrected KK14 threshold produces,
+  `R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R` gets -0.616 from EDI vs -0.581 from the
+  reference. Also `test-kk-gee-parity.R`: EDI's GEE vs geepack differ by 3.2e-3 relative against a 1e-3
+  tolerance, and 2-4e-3 is typical on other data, so that tolerance looks fitted to its old fixture. The old KK14
+  fixture hid both. Find which side is wrong (working correlation, weights, convergence tolerance, or the
+  reference call) before re-pinning either test; do not restore the old fixture with a smaller `lambda` to make
+  them pass. Done when the two agree to a justified tolerance on several seeds.
+- [ ] TODO-48 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **KK
+  ordinal CLMM cloglog link disagrees with `ordinal::clmm`.** On the new KK14 data,
+  `R/package_tests/testthat_bulk/test-ordinal-kk-clmm-matches-clmm-all-links-reference.R` gets 0.815 vs clmm's
+  0.776 (and 0.259 vs 0.280) for the cloglog link; the other links agree. Related small gaps on the same data:
+  `test-ordinal-kk-clmm-boundaries-coverage.R` (Cauchit weighted refit 3.8e-5 off) and
+  `test-ordinal-kk-clmm-migration-golden.R` (Probit and Cloglog legacy vs migrated 1-3e-6 off in jackknife and
+  randomization outputs, against 1e-7). Check the cloglog likelihood, gradient and the quadrature, and compare
+  log-likelihoods at both optima to see which fit is better. Done when cloglog matches clmm on several seeds or
+  the difference is explained (e.g. clmm stops at a worse optimum) and documented.
+- [ ] TODO-49 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **An
+  inference reported as status 'ok' with a non-finite estimate.**
+  `R/package_tests/testthat_bulk/test-design-inference-introspection-audit.R` ("no silently masked capability for
+  KK/incidence") finds a KK/incidence row with status 'ok' and a non-finite estimate, most likely the exact Fisher
+  log odds ratio = Inf on a separated 2x2 table. Find the row, then either report it with a non-ok status (and a
+  reason) or define the estimate on separated tables; an 'ok' row must never carry Inf/NaN. Done when the audit
+  test passes on the new data without changing the fixture.
+- [ ] TODO-50 (added 2026-11-17, agent; surfaced by the v1.0.6-TODO-45 pre-push run): **KK robust regression's
+  C++ path disagrees with `MASS::rlm`.** `R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R` ("InferenceContinKKRobustRegrIVWC:
+  use_rcpp matches MASS::rlm fallback") now fails: -0.864 (use_rcpp = TRUE) vs -0.854 (rlm), tolerance 1e-3. It is
+  not the fixture: over 21 seeds (`method = "M"`, 40 forced pairs + 20 reservoir, t(4) noise, 3 outliers) the
+  |gap| is 1e-4 to 6e-2, typically about 1e-2, both with the test's forced match vector and with every pair made
+  opposite-arm; two seeds give NA. The test's old seed passed by luck. Compare the two paths' psi, scale
+  estimate (rlm re-estimates the MAD scale each iteration), convergence criterion and iteration cap; find why some
+  seeds return NA. Do not re-pin the seed to make the test pass. Done when the paths agree to a justified
+  tolerance across seeds, or the documented difference is explained.
+  - **Root cause (2026-11-17, agent): the C++ kernel ran a different estimator, not a looser one.** Three
+    differences, found in order:
+    1. *Scale.* `fast_robust_regression_internal()` (`R/EDI/src/fast_robust_regression.cpp`) fixed the MAD scale
+       at the OLS residuals; `MASS:::rlm.default` (`scale.est = "MAD"`) re-estimates `median(|r|)/0.6745` at the
+       top of every IRLS iteration. Psi (Huber, k = 1.345), start (OLS) and weights were already the same.
+       Evidence: with both paths run to acc = 1e-10, maxit = 1000 the gap stayed (21 seeds, opposite-arm pairs:
+       IVWC median 1.1e-2, max 6.2e-2; OneLik median 4.6e-3, max 3.2e-2), so rlm's loose acc = 1e-4 is not the
+       cause. Re-estimating the scale each iteration in the kernel cut the tight-convergence gap to 1e-11 (IVWC
+       median 1.4e-11, OneLik 1.7e-11). rlm's side is right: it is the estimator the classes document and the
+       standard Huber M-estimator with concomitant MAD scale; the old kernel's scale came from the outlier-pulled
+       OLS fit.
+    2. *Stopping rule.* The kernel stopped on relative coefficient change, rlm on relative residual change
+       (`test.vec = "resid"`). At the classes' acc = 1e-4 that left gaps of ~1e-5 (max 1.4e-4). With rlm's rule
+       the two paths stop on the same iteration and agree to roundoff.
+    3. *SE.* For IVWC the component SEs set the inverse-variance weights. The kernel's `ssq_b_j` lacked the
+       Huber small-sample factor kappa = 1 + p Var(psi')/(n mean(psi')^2) that `MASS:::summary.rlm` applies, so
+       with identical component estimates the combined IVWC estimate still differed (median 1.9e-3, max 6.3e-2).
+  - **NA cause.** The classes' default `maxit` (10 / 15 / 20 by p with the OLS start) is below rlm's own default of
+    20. With the scale re-estimated each iteration, rlm needed up to 26 iterations on the 20-subject reservoir
+    (50 seeds; the matched-pair fit needed 4-9), so on 2 seeds it warned "failed to converge", the reservoir fit
+    returned NULL and, because the forced match vector leaves same-arm pairs with NA differences, the IVWC estimate
+    was NA. The C++ path returned its unconverged iterate on those seeds instead.
+  - **Fix.** C++ (`fast_robust_regression.cpp`): `method = "M"` re-estimates the MAD scale each iteration and stops on
+    rlm's relative-residual-change test (a zero MAD stops as converged, as rlm does); `ssq_b_j` gains kappa^2 for M
+    and MM; roxygen updated. `"MM"` keeps its fixed scale and coefficient test (it is not rlm's MM: it starts from
+    OLS, not an S-estimate). No Rcpp signature change. R (`inference_continuous_KK_robust_regr_ivwc.R`,
+    `inference_continuous_KK_robust_regr_one_lik.R`): default `maxit` is 100 for every p (a safety cap; fits stop
+    at `acc`), and the Rcpp branch returns NULL for an unconverged fit, as the rlm branch already did.
+  - **Evidence after the fix** (sourceCpp of the edited kernel assigned into the namespace under
+    `load_all(compile = FALSE)`; 51 seeds, `method = "M"`): IVWC |gap| max 4.4e-16 with opposite-arm pairs and
+    6.7e-16 with the test's forced match vector, no NA (was median 6.4e-3, max 9.8e-2, 2 NA); OneLik max 4.4e-16
+    (was median 4.4e-3, max 5.0e-2). The test's seed and 1e-3 tolerance are kept.
+  - **Tests.** `test-kk-robust-regr-use-rcpp.R`: the fixture now puts each forced pair's members in opposite arms
+    (same-arm pairs gave NA differences, so the OneLik comparison was NA vs NA and passed vacuously) and the
+    OneLik test checks finiteness. New seed sweep
+    `R/package_tests/testthat_bulk/test-kk-robust-regr-rcpp-matches-mass-rlm-across-seeds.R` (20 seeds, both
+    classes, estimates and SEs at 1e-6). Updated for the new behavior: `test-robust-regression-xtx-cache.R`
+    (reference SE gets kappa), `test-kk-robust-fallbacks.R` (an unconverged Rcpp fit is now NULL),
+    `test-robust-rand-bootstrap-kernel-mass-rlm-reference-...R` (kernel M now equals rlm; rlm tolerance 0.15 ->
+    1e-3; the investigation test asserts the new scale rule and same-iteration stopping) and
+    `test-kk-robust-regr-one-lik-rlm-control-resolution-...R` (maxit default 100).
+  - **Rebuild pending:** the installed EDI.so still has the old kernel; the owner must rebuild before the installed
+    package (and any CSV regeneration) picks the fix up.
+  - **NEWS entry needed:** user-visible estimates change for every `use_rcpp = TRUE` robust fit with `method = "M"`
+    (KK IVWC/OneLik, `InferenceContinRobustRegr`, the robust rand/bootstrap kernel) and all kernel robust SEs grow by
+    kappa (M and MM); KK robust classes may now return NA for an unconverged Rcpp fit instead of the unconverged value.
+- [ ] TODO-51 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **Breslow hazard floors tiny risk-set sums at an absolute 1e-10.** `.breslow_hazard()`
+  (`R/EDI/R/helper_survival_fits.R:596`) floors each rescaled risk-set sum at 1e-10, so when a late risk set holds
+  only subjects whose linear predictor is more than about 23 below the maximum the hazard increment is wrong by orders
+  of magnitude (1e10 vs 5.3e12), and Cox simulations that invert it draw wrong times. Use a relative floor, or keep
+  the sums on the log scale. The failing test is
+  `R/package_tests/testthat_bulk/test-breslow-hazard-low-relative-risk-risk-set.R` (skipped, citing this TODO); done
+  when the fix lands and the skip is removed.
+- [ ] TODO-52 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **Ratio annealing can return an infeasible allocation.** The A-optimal "ratio" annealing
+  kernel (`R/EDI/src/design_optimal_annealing_search.cpp:77`) scores a chain's random start as (w'Hw+1)/(n_T-w'Pw)
+  without checking the denominator is positive, so an infeasible start with a negative objective beats every feasible
+  allocation and `annealing_solve_A_ratio` returns it (its own `f_exact` scores it Inf). Score non-positive
+  denominators as Inf and redraw infeasible starts. The failing test is
+  `R/package_tests/testthat_bulk/test-annealing-ratio-infeasible-start-not-returned.R` (skipped, citing this TODO);
+  done when the fix lands and the skip is removed.
+- [ ] TODO-53 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+  failing test): **Smoothed bootstrap-randomization p-value depends on the core count.**
+  `compute_rand_bootstrap_two_sided_pval(type = "smoothed")` (`R/EDI/R/inference_all_abstract_rand_bootstrap.R:579`)
+  draws each draw's assignment lazily inside the worker from that process's RNG stream, so with an unseeded design the
+  draws and the seeded p-value change with `set_num_cores()`. The default percentile path does the same for classes
+  with no fast kernel and no reusable worker (line 279). Record a per-draw w seed (materialize) as the other paths do;
+  see v1.1.0-TODO-48. The failing test is
+  `R/package_tests/testthat_bulk/test-rand-bootstrap-smoothed-lazy-assignment-core-count-invariance.R` (skipped,
+  citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-54 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **Mahalanobis objective silently dropped for badly scaled covariates.**
+  `prepare_optimal_objective_matrices()` (`R/EDI/R/helper_optimal_milp_solvers.R:106`) declares Sigma singular when
+  `rcond(Sigma) < 1e-12`, which is not scale-invariant, so full-rank covariates on very different scales fall back to
+  the l1 objective (`mahal_fell_back = TRUE`). Test singularity on the correlation matrix (or standardized columns).
+  The failing test is `R/package_tests/testthat_bulk/test-optimal-mahal-objective-badly-scaled-covariates.R` (skipped,
+  citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-55 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **Sequential-MC randomization p-value is NA when `mc_batch_size` < 10.**
+  `compute_two_sided_pval_with_sequential_mc` (`R/EDI/R/inference_all_abstract_rand.R:938`) returns the NA from the
+  first batch's prefix (fewer than the 10 finite draws required) instead of drawing the next batch. Continue drawing
+  until 10 finite draws exist, or reject `mc_batch_size < 10` in `normalize_randomization_ci_search_control`. The
+  failing test is `R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R` (skipped, citing this
+  TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-56 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **KK GLMM null simulation swaps the two variance components.** `simulate_under_lik_null()`
+  (`R/EDI/R/inference_continuous_KK_glmm.R:503`) reads the null fit as c(beta, log_sigma_b, log_sigma_e), but
+  `fast_gaussian_lmm_cpp` returns c(beta, log_sigma_e, log_sigma_b) (`fast_gaussian_lmm.cpp:539-545`), so
+  parametric-bootstrap LR null replicates use swapped SDs. Fix the indexing (by name if possible) and re-check the
+  affected calibration rows. The failing test is
+  `R/package_tests/testthat_bulk/test-contin-kk-glmm-null-simulation-variance-component-order.R` (skipped, citing this
+  TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-57 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **D/A-optimal projection is wrong when a covariate is collinear with the intercept.**
+  `R/EDI/R/helper_optimal_shared.R:107` builds P = QQ' from `qr.Q(qr(cbind(1, X)))` without truncating to the QR rank,
+  so for X = [x1, x1 + 1] P projects onto an extra arbitrary direction (trace 3, not 2) and the search optimizes the
+  wrong criterion. Keep only the first `qr$rank` columns (pivoted). The failing test is
+  `R/package_tests/testthat_bulk/test-greedy-d-optimal-projection-rank-deficient-intercept-collinear.R` (skipped,
+  citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-58 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **CR2 cluster-robust variance is NULL for small-unit responses.**
+  `cluster_robust_cr2_variance()` (`R/EDI/R/helper_robust_sandwich.R:155`) returns NULL when the variance is below the
+  absolute `.Machine$double.eps`, so y * 1e-8 is called not estimable and OLS/Lin silently fall back to the
+  homoskedastic SE on a cluster design. Use a floor relative to the scale of y (or the residuals). The failing test is
+  `R/package_tests/testthat_bulk/test-cr2-cluster-robust-variance-small-scale-response.R` (skipped, citing this TODO);
+  done when the fix lands and the skip is removed.
+- [ ] TODO-59 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **Wilcoxon Hodges-Lehmann estimate is NA when each arm is constant.** `shared()`
+  (`R/EDI/R/inference_all_simple_wilcox.R:337`) turns `wilcox.test(conf.int = TRUE)`'s all-ties error into a
+  non-estimable NA estimate, although the HL estimate is defined (the estimate_only path returns it). Compute the
+  estimate without `conf.int` when the CI fails, and report the CI as unavailable. The failing test is
+  `R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-hl-estimate.R` (skipped, citing this TODO); done
+  when the fix lands and the skip is removed.
+- [ ] TODO-60 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **KK21 proportion speedup loses all weights when a response is 0 or 1.** `compute_weights`
+  (`R/EDI/R/design_seq_one_by_one_KK21.R:380`) takes `log(ys / (1 - ys))` unclamped, so one response of exactly 0 or 1
+  makes every t-statistic non-finite and matching silently becomes unweighted. Clamp as `KK21_stepwise.R:272-274`
+  does. The failing test is `R/package_tests/testthat_bulk/test-kk21-proportion-speedup-boundary-response-logit.R`
+  (skipped, citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-61 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+  failing test): **Randomization distribution of warm-started fits depends on the core count.** The reused-worker
+  randomization path (`R/EDI/R/inference_all_abstract_rand.R:672`) chains warm starts within each of `num_cores`
+  chunks, so each null fit's start, and so its converged iterate, depends on the core count; for loose-tolerance fits
+  (L-BFGS Weibull, ordinal) the drift exceeds ulps. Start every permutation's fit from a point that does not depend on
+  the chunking (e.g. the full-data MLE, or chunk boundaries fixed independently of cores); see v1.1.0-TODO-48. The
+  failing test is `R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R`
+  (skipped, citing this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-62 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+  failing test): **Hurdle negbin bootstrap-weighted fits depend on the core count.**
+  `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_count_hurdle.R:442`)
+  passes `glmmTMBControl(parallel = self$num_cores)`, so TMB's thread-split likelihood sums differ by thread count and
+  every Bayesian/nonparametric bootstrap replicate depends on `set_num_cores()`. Pass `parallel = 1` inside EDI's own
+  parallel loops; see v1.1.0-TODO-48 and the next TODO. The failing test is
+  `R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R` (skipped, citing this
+  TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-63 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  skipped failing test): **KK21 stepwise errors when every response so far is identical.** With constant responses so
+  far (e.g. all count responses 0) `kk21_stepwise_continuous_weights_cpp` returns all NA, `na0()` makes them 0, and
+  `assign_wt` (`R/EDI/R/design_seq_one_by_one_KK21.R:270`) normalizes 0/0 = NaN, so the next assignment errors in
+  `stats::quantile`. Fall back to equal weights when the raw weights sum to 0. The failing test is
+  `R/package_tests/testthat_bulk/test-kk21-stepwise-constant-response-zero-weight-normalisation.R` (skipped, citing
+  this TODO); done when the fix lands and the skip is removed.
+- [ ] TODO-64 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+  failing test): **Zero-augmented Poisson fits depend on the core count.** `fit_zero_augmented_model()`
+  (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1094`) passes `glmmTMBControl(parallel =
+  self$num_cores)`, so the coefficients of InferenceCountHurdlePoisson and the other zero-augmented subclasses (and
+  their `use_rcpp = FALSE` fits) change in the low bits with `set_num_cores()`. Same fix as the previous TODO. The
+  failing test is `R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R`
+  (skipped, citing this TODO); done when the fix lands and the skip is removed.

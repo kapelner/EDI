@@ -85,13 +85,15 @@ stopifnot(summarize_coverage(read_coverage_rows(expr))$coverage_percent == 100)
 saveRDS(structure(list(), class = "coverage"), file.path(work, "empty.rds"))
 stopifnot(nrow(read_coverage_rows(file.path(work, "empty.rds"))) == 0)
 # Exercise the actual covr object format, not just a data-frame report wrapper.
-# Two closures share line 1; the covered closure spans lines 1 and 2.
-sf = srcfilecopy("R/native.R", c("a", "b"))
+# Two closures share line 1; the covered closure spans lines 1 and 2. They sit
+# side by side on line 1 (not nested): covr >= 4.0.0 attributes a line only to
+# its innermost expression, so a nested fixture would test covr, not us.
+sf = srcfilecopy("R/native.R", c("a; bb", "c"))
 counter = function(span, value, name) structure(list(
 	srcref = srcref(sf, span), value = value, functions = name
 ), class = "line_coverage")
 coverage = structure(list(
-	counter(c(1L, 1L, 2L, 1L, 1L, 1L, 1L, 2L), 1, "covered"),
+	counter(c(1L, 4L, 2L, 1L, 4L, 1L, 1L, 2L), 1, "covered"),
 	counter(rep(1L, 8L), 0, "uncovered")
 ), class = "coverage")
 bare = file.path(work, "bare.rds")

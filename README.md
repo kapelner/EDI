@@ -153,7 +153,7 @@ library(EDI)
 n = 100
 X = data.frame(age = rnorm(n, 60, 8), weight = rnorm(n, 80, 12))
 
-des = DesignFixedRerandomization$new(n = n, response_type = "continuous")
+des = DesignFixedRerandomization$new(n = n, response_type = "continuous", prop_acceptable = 0.1)
 des$add_all_subjects_to_experiment(X)
 des$assign_w_to_all_subjects()             # the design randomizes treatment
 y = rnorm(n) + 0.5 * des$get_w()           # (your real outcomes go here)

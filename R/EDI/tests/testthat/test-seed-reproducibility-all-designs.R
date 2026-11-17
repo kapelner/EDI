@@ -45,7 +45,7 @@ design_seed_reproducibility_cases = list(
 	DesignFixedBernoulli = function(seed)
 		run_fixed_design_for_seed_test(DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = seed), X),
 	DesignFixedRerandomization = function(seed)
-		run_fixed_design_for_seed_test(DesignFixedRerandomization$new(n = n, response_type = "continuous", seed = seed), X),
+		run_fixed_design_for_seed_test(DesignFixedRerandomization$new(n = n, response_type = "continuous", obj_val_cutoff = Inf, seed = seed), X),
 	DesignFixedBlocking = function(seed)
 		run_fixed_design_for_seed_test(
 			DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = "strata",

@@ -4511,7 +4511,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		FixedBlockedCluster = DesignFixedBlockedCluster$new( prob_T = prob_T_curr, strata_cols = names(X_design)[2:min(2, ncol(X_design))], cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
 		FixedBinaryMatch = DesignFixedBinaryMatch$new( response_type = response_type, n = n, design_formula = design_formula),
 		FixedGreedy =    DesignFixedGreedy$new(    prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
-		FixedRerandomization = DesignFixedRerandomization$new( prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedRerandomization = DesignFixedRerandomization$new( prob_T = prob_T_curr, response_type = response_type, n = n, prop_acceptable = 0.1, design_formula = design_formula),
 		FixedMatchingGreedy = DesignFixedMatchingGreedyPairSwitching$new( response_type = response_type, n = n, design_formula = design_formula),
 		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
 		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),

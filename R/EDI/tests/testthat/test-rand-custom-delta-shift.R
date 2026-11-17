@@ -108,7 +108,7 @@ rerand_scale_fixture = function() {
 	set.seed(1)
 	n = 60L
 	X = data.frame(x1 = rnorm(n))
-	d = DesignFixedRerandomization$new(n = n, response_type = "continuous", verbose = FALSE)
+	d = DesignFixedRerandomization$new(n = n, response_type = "continuous", obj_val_cutoff = Inf, verbose = FALSE)
 	d$add_all_subjects_to_experiment(X)
 	d$assign_w_to_all_subjects()
 	w = d$get_w()

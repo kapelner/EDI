@@ -14,11 +14,10 @@
 # Differences: 120/120 mismatches (average diff: 0.181) [1] 0.3594 - -0.15705 == 0.5165 [2] 0.0355 -
 # 0.12276 == -0.0873 [3] 0.0208 - -0.06887 == 0.0896 [4] 0.0426 - -0.02693 == 0.0696 [5] -0.1281 -
 # -0.16200 == 0.0339 [6] 0.1538 - -0.00920 == 0.16
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-53; remove the skip() when that fix lands.
 
 test_that("seeded smoothed bootstrap-randomization p-value and lazily drawn assignments are identical with 1 and 2 cores", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-53")
 		child = function(cores) {
 			suppressPackageStartupMessages(library(EDI))
 			set_num_cores(cores)

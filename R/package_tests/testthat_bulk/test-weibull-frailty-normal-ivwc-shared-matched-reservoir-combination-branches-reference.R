@@ -17,9 +17,16 @@ library(EDI)
 # matched-only, reservoir-only, neither) via unlockBinding stubs on the two component-fitting private
 # methods, independent of the real frailty/Weibull-fitting machinery (already tested elsewhere).
 
-mk_fixture <- function(seed, n = 20L) {
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
+# seed 3 matched every treated subject (8 pairs, no treated subject left in the
+# reservoir) and the "both pieces" test never reached the reservoir fit.
+# With one covariate the F(1, .) cutoff near 0 scales like lambda^2, so
+# lambda = 0.07 (about 0.1 / sqrt(2)) reproduces the old allocations of seeds
+# 1-5 exactly; seed 3 is again 7 pairs with 1 T / 5 C in the reservoir.
+mk_fixture <- function(seed, n = 20L, lambda = 0.07) {
 	set.seed(seed)
-	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE, lambda = lambda)
 	X <- data.frame(x1 = rnorm(n))
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	w <- des$get_w()

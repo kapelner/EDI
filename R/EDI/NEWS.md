@@ -7,6 +7,14 @@ methods.
 
 ## Breaking changes
 
+* `DesignFixedRerandomization$new()` now requires an acceptance rule, exactly
+  one of `obj_val_cutoff` and `prop_acceptable`, and stops if neither is given.
+  Before, giving neither accepted every candidate draw, so the design was
+  complete randomization with a fixed number treated: no rerandomization at
+  all. Pass e.g. `prop_acceptable = 0.1` (keep the best 10% of draws by
+  Mahalanobis distance); `obj_val_cutoff = Inf` reproduces the old behaviour
+  exactly. `SimulationFramework` supplies `prop_acceptable = 0.1` when the
+  design is given without a rule.
 * The randomization bootstrap (`compute_rand_bootstrap_two_sided_pval()`,
   `compute_rand_bootstrap_confidence_interval()`,
   `approximate_rand_bootstrap_distribution_beta_hat_T()` and the

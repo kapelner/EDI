@@ -83,12 +83,23 @@ test_that("unit weights reproduce compute_estimate() via the effectively-constan
 	expect_equal(as.numeric(weighted_unit), unweighted, tolerance = 1e-8)
 })
 
+# v1.0.6-TODO-45 (KK14's match test was twice as strict as published; fixed 2026-11-17): this test used design
+# seed 4 / weight seed 5. After the fix that seed's allocation has 27 pairs + 6 reservoir subjects and the
+# weighted estimate moved by only 1.1e-6. That is the data, not the code: a median regression's solution is a
+# vertex of the LP (p = 3 interpolated rows), so it is piecewise constant in the weights. Here the weights swap
+# one reservoir row in the basis ({20, 30, 31} -> {20, 29, 30}), two nearly collinear rows, so trt__ barely moves;
+# an independent quantreg::rq() on the same stacked rows gives the same 1.1e-6. The stacked fit's structure
+# did not change (still pair rows + reservoir rows). Across design seeds 1-40 (weight seed = design seed + 1),
+# 7 of 40 move by < 1e-4 and the rest by 1.8e-4 to 0.14. The claim here is about the code path (the bootstrap
+# weights reach the stacked fit), so the fixture moved to design seed 8 / weight seed 9 (25 pairs + 10
+# reservoir, estimate moves by 0.088), and the weighted estimate is also checked against the independent
+# rebuild so the divergence is a genuine change of the weighted LP solution.
 test_that("genuinely varying weights diverge from the unweighted estimate", {
-	des <- make_contin_kk_qr_fixture(4L)
+	des <- make_contin_kk_qr_fixture(8L)
 	inf <- InferenceContinKKQuantileRegrOneLik$new(des, verbose = FALSE)
 	unweighted <- as.numeric(inf$compute_estimate(estimate_only = TRUE))
 
-	set.seed(5L)
+	set.seed(9L)
 	n <- des$get_t()
 	weights <- runif(n, 0.1, 5)
 	inf2 <- InferenceContinKKQuantileRegrOneLik$new(des, verbose = FALSE)
@@ -96,4 +107,5 @@ test_that("genuinely varying weights diverge from the unweighted estimate", {
 	weighted <- as.numeric(inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE))
 
 	expect_true(abs(weighted - unweighted) > 1e-4)
+	expect_equal(weighted, independent_stacked_rq_beta(inf2, weights), tolerance = 1e-6)
 })

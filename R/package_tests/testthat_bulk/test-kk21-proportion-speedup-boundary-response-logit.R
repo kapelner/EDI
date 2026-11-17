@@ -7,11 +7,10 @@
 # Where: R/EDI/R/design_seq_one_by_one_KK21.R:380 (kind: log_zero).
 # On commit 4fc58cd063bc this test failed with: Expected `max(w_out) > 1e-06` to be TRUE.
 # Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-60; remove the skip() when that fix lands.
 
 test_that("KK21 proportion speedup weights stay informative when a response is exactly 1", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-60")
 		set.seed(5)
 		des = DesignSeqOneByOneKK21$new(n = 30, response_type = "proportion", verbose = FALSE)
 		for (i in 1 : 25){

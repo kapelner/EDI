@@ -63,8 +63,8 @@ ContinKKRobustRegrIVWCSource = list(
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param method  		Robust-regression fitting method for `MASS::rlm`; one of `"M"` or `"MM"`.
-		#' @param maxit  		Maximum number of robust-regression iterations. If `NULL`, a
-		#'   data-adaptive default is chosen at fit time.
+		#' @param maxit  		Maximum number of robust-regression iterations. If `NULL`, 100
+		#'   (a safety cap: fits stop as soon as the `acc` convergence test passes).
 		#' @param acc  			Convergence tolerance for `MASS::rlm`. If `NULL`, a
 		#'   data-adaptive default is chosen at fit time.
 		#' @param start_with_ols  Whether to compute an OLS warm start and pass it to `MASS::rlm`
@@ -185,15 +185,15 @@ ContinKKRobustRegrIVWCSource = list(
 				
 		# reduce_design_matrix_once() is inherited from InferenceMixinKKPassThroughCompound.
 		resolve_rlm_control = function(X){
-			p = ncol(X)
+			# The iteration cap is only a safeguard: converged fits stop at `acc`
+			# (MASS::rlm's relative residual-change test, which the Rcpp kernel
+			# uses too for method = "M"). The old p-dependent caps of 10/15/20
+			# (start_with_ols) were below rlm's own default of 20, and M-estimation
+			# with the MAD scale re-estimated every iteration needed up to 26
+			# iterations on a 20-subject reservoir with outliers, so rlm stopped
+			# unconverged and the fit came back NA (v1.0.6-TODO-50).
 			maxit = private$rlm_maxit
-			if (is.null(maxit)) {
-				maxit = if (isTRUE(private$rlm_start_with_ols)) {
-					if (p <= 3L) 10L else if (p <= 10L) 15L else 20L
-				} else {
-					if (p <= 3L) 15L else if (p <= 10L) 20L else 25L
-				}
-			}
+			if (is.null(maxit)) maxit = 100L
 			acc = private$rlm_acc
 			if (is.null(acc)) {
 				acc = if (isTRUE(private$rlm_start_with_ols)) 1e-4 else 1e-3
@@ -277,6 +277,9 @@ ContinKKRobustRegrIVWCSource = list(
 					error = function(e) NULL
 				)
 				if (is.null(fit)) return(NULL)
+				# Same rule as the MASS::rlm path below: a fit that has not converged
+				# within maxit is nonestimable (v1.0.6-TODO-50).
+				if (!isTRUE(fit$converged)) return(NULL)
 				coef_vec = as.numeric(fit$coefficients)
 				if (length(coef_vec) < j_treat || !is.finite(coef_vec[j_treat])) return(NULL)
 				beta = coef_vec[j_treat]

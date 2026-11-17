@@ -29,7 +29,7 @@ test_that("DesignFixedRerandomization still produces valid, correctly-shaped dra
 	set.seed(20260817)
 	n = 20L
 	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
-	des = DesignFixedRerandomization$new(n = n, response_type = "continuous")
+	des = DesignFixedRerandomization$new(n = n, response_type = "continuous", obj_val_cutoff = Inf)
 	des$add_all_subjects_to_experiment(X)
 	des$assign_w_to_all_subjects()
 	w = des$get_w()

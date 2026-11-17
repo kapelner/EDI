@@ -84,6 +84,31 @@ class Static(unittest.TestCase):
         stop = [f for f in out if f["unit"] == f"{T} :: stop"][0]
         self.assertIn("stopifnot", stop["text"])
 
+    def test_skip_citing_a_todo(self):
+        tests = [{"line": i, "desc": f'"t{i}"', "calls": ["test_that", "skip"], "symbols": []} for i in (1, 2, 3)]
+        skips = [{"line": 1, "fn": "skip", "text": 'skip("known bug, v1.0.6-TODO-51")', "test_line": 1, "unconditional": True},
+                 {"line": 2, "fn": "skip", "text": 'skip("known bug, v1.0.6-TODO-7")', "test_line": 2, "unconditional": True},
+                 {"line": 3, "fn": "skip", "text": 'skip("known bug, v9.9.9-TODO-1")', "test_line": 3, "unconditional": True}]
+        todos = {("1.0.6", 51): True, ("1.0.6", 7): False}
+        out = tsh.static_findings([parsed_file(T, tests=tests, skips=skips)], {T}, todos)
+        by = {f["unit"]: f["text"] for f in out}
+        self.assertNotIn(f"{T} :: t1", by)                       # open TODO: tracked
+        self.assertIn("which is done", by[f"{T} :: t2"])
+        self.assertIn("which no release file has", by[f"{T} :: t3"])
+        self.assertEqual(len(out), 2)                             # skipped tests are not also "no expectation"
+        # without the release files every unconditional skip is reported, as before
+        self.assertEqual(len(tsh.static_findings([parsed_file(T, tests=tests, skips=skips)], {T})), 3)
+
+    def test_todo_states(self):
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            d = tmp / "R/package_metadata/future_release_plans"
+            d.mkdir(parents=True)
+            (d / "release_v1_0_6.md").write_text("- [ ] TODO-51 (added): x\n  - [x] sub\n- [x] TODO-7 done\n")
+            self.assertEqual(tsh.todo_states(tmp), {("1.0.6", 51): True, ("1.0.6", 7): False})
+        finally:
+            shutil.rmtree(tmp)
+
     def test_todo_names(self):
         files = ["d/test-strat-cox-todo110.R", "d/test-todo98-smoke.R", "d/test-x-todo-stub-guards-reference.R",
                  "d/test-plain.R", "d/test-TODO-7-upper.R"]

@@ -110,7 +110,7 @@ test_that("DesignFixedBernoulli get_w and draw_ws return {0,1}", {
 
 test_that("DesignFixedRerandomization get_w and draw_ws return {0,1}", {
   set.seed(1)
-  des = run_fixed_design(DesignFixedRerandomization$new(n = n, response_type = "continuous"), X)
+  des = run_fixed_design(DesignFixedRerandomization$new(n = n, response_type = "continuous", obj_val_cutoff = Inf), X)
   expect_w_encoding(des$get_w(), n)
   expect_ws_encoding(des$draw_ws_according_to_design(5L), n, 5L)
 })

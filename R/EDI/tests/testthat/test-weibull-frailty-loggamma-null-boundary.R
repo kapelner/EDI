@@ -10,7 +10,16 @@ library(EDI)
 # multi-start with log(theta) fixed at a documented floor (-12) when the plain
 # warm-started fit is non-finite / unconverged / below the floor.
 
-make_t121c = function(formula = ~ x1, kk14 = FALSE, n = 40L, seed = 2L, gsd = 0.3) {
+# kk14_lambda is the KK14 match-test level for the kk14 = TRUE fixture.
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1 this
+# seed then formed 19 pairs of 20 instead of 16, and both the full and the null
+# fit went to the no-frailty boundary (log theta -17.8), so the null refit took
+# the -12 floor fallback and the "well-behaved pairs + reservoir" case was lost
+# (p-values 0.519 -> 0.770). lambda = 0.07 gives back the same 16 pairs and 8
+# reservoir subjects, so the fits (log theta -8.92) and the goldens below are
+# unchanged.
+make_t121c = function(formula = ~ x1, kk14 = FALSE, n = 40L, seed = 2L, gsd = 0.3, kk14_lambda = 0.07) {
 	set.seed(seed)
 	x1 = rnorm(n)
 	if (!kk14) {
@@ -22,7 +31,8 @@ make_t121c = function(formula = ~ x1, kk14 = FALSE, n = 40L, seed = 2L, gsd = 0.
 		w = as.vector(replicate(n / 2L, sample(0:1)))
 		des$assign_w_to_all_subjects(w)
 	} else {
-		des = DesignSeqOneByOneKK14$new(response_type = "survival", n = n, design_formula = formula, verbose = FALSE)
+		des = DesignSeqOneByOneKK14$new(response_type = "survival", n = n, design_formula = formula, verbose = FALSE,
+			lambda = kk14_lambda)
 		for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i]))
 		w = des$get_w()
 	}

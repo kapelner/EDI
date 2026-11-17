@@ -80,7 +80,7 @@ it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
 \eqn{r} are acceptable.
 }
 \examples{
-des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')
+des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous', prop_acceptable = 0.1)
 }
 \references{
 Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
@@ -165,9 +165,10 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
 \if{latex}{\out{\hypertarget{method-DesignFixedRerandomization-initialize}{}}}
 \subsection{\code{DesignFixedRerandomization$new()}}{
   Initialize a rerandomization fixed experimental design.
-  Exactly one of \code{obj_val_cutoff}/\code{prop_acceptable} may be
-  specified (or neither, which accepts every candidate, i.e. no filtering);
-  supplying both raises an error. See class documentation for the exact
+  Exactly one of \code{obj_val_cutoff}/\code{prop_acceptable} must be
+  specified: supplying neither or both raises an error. (With neither, the design would accept every
+  candidate, i.e. be complete randomization with a fixed number treated; pass
+  \code{prop_acceptable = 1} to ask for that explicitly.) See class documentation for the exact
   acceptance semantics of each mode and the covariate-imbalance objective.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -194,8 +195,9 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
 exactly \code{round(n * prob_T)} treated subjects; drawing errors if that
 leaves no treated or no control subject.}
       \item{\code{obj_val_cutoff}}{The maximum allowable objective value \eqn{a}; a candidate
-allocation is accepted iff \eqn{M(w) \le a}. Cannot be specified together with prop_acceptable.}
-      \item{\code{prop_acceptable}}{The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest). Cannot be specified together with obj_val_cutoff.}
+allocation is accepted iff \eqn{M(w) \le a}. Exactly one of this and prop_acceptable is required.}
+      \item{\code{prop_acceptable}}{The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest),
+e.g. \code{0.1}. Exactly one of this and obj_val_cutoff is required.}
       \item{\code{objective}}{The covariate-imbalance objective \eqn{M(w)} to filter on:
 either \code{"mahal_dist"} (default, squared Mahalanobis distance) or
 \code{"abs_sum_diff"} (sum of absolute mean differences); see class

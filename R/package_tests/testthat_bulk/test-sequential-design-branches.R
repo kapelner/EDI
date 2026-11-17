@@ -131,7 +131,7 @@ test_that("rerandomization validates modes and computes both objectives", {
 
 	X = matrix(c(0, 0, 2, 4, 1, 3, 1, 3), nrow = 4L)
 	w = c(0, 0, 1, 1)
-	des = DesignFixedRerandomization$new(response_type = "continuous", n = 4L)
+	des = DesignFixedRerandomization$new(response_type = "continuous", n = 4L, obj_val_cutoff = Inf)
 	p = private_env(des)
 	p$S_inv = diag(2)
 	expect_equal(p$compute_obj(X, w), sum((colMeans(X[w == 1, ]) - colMeans(X[w == 0, ]))^2))

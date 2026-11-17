@@ -4,8 +4,20 @@ library(EDI)
 # KK (matched pairs + reservoir) proportion classes: InferencePropKKQuantileRegrOneLik equals median regression
 # (quantreg::rq) on the stacked logit-scale rows [pair differences of logit(y): (0, 1, x_T - x_C)] over
 # [reservoir rows (1, w, x) with logit(y)]; the KK GEE and KK GLMM classes estimate the logit-link (quasi-binomial-
-# type) treatment effect and are within 0.5% of the quasi-binomial glm on this fixture (the pair correlation is small),
-# far from the beta-regression / glmmTMB(beta) scale (0.70) and from a Gaussian model on logit(y) (0.80).
+# type) treatment effect and are within 1e-2 of the quasi-binomial glm on this fixture (the pair correlation is small),
+# away from the beta-regression fit (0.55) and far from a Gaussian model on logit(y) (0.79; GEE/GLMM 0.57).
+#
+# v1.0.6-TODO-45 (KK14's match test was twice as strict as published; fixed 2026-11-17): the fix changed this
+# seed's allocation (56 pairs; the old-threshold allocation had 54) and with it the data, and the GEE/GLMM-vs-
+# Gaussian-logit gap fell from 0.17 to 0.05, failing the > 0.1 check. That gap is a property of the method, not
+# of the seed: GEE/GLMM estimate the coefficient of logit(E[y]) (as quasi-binomial does), the Gaussian fit the
+# coefficient of E[logit(y)], and for Beta(mu * phi, (1 - mu) * phi) responses E[logit(y)] =
+# digamma(mu phi) - digamma((1 - mu) phi) is a stretched logit(mu), more so for smaller phi. With phi = 8 (the old
+# fixture) the population gap for this model is only about 0.11 (2e5-row check: quasi-binomial 0.47 vs
+# Gaussian-logit 0.59), so at n = 120 the observed gap (smaller of GEE, GLMM) fell below 0.1 in 20 of 30 seeds;
+# the old pass was luck. phi = 4 widens the population gap to about 0.22 (0.47 vs 0.68) and this seed shows 0.22,
+# so the 0.1 check now sits at half the expected separation. The 0.1 threshold and the seed are unchanged; only
+# the response precision phi went from 8 to 4.
 
 skip_if_not_installed("quantreg")
 skip_if_not_installed("betareg")
@@ -21,7 +33,8 @@ fx <- function() {
 	m <- des$.__enclos_env__$private$m[seq_len(n)]
 	u <- ifelse(m > 0, rnorm(max(m))[pmax(m, 1)], 0) * 0.5
 	mu <- plogis(-0.2 + 0.5 * w + 0.4 * X$x + u)
-	y <- rbeta(n, mu * 8, (1 - mu) * 8)
+	phi <- 4 # was 8; see the v1.0.6-TODO-45 note in the header
+	y <- rbeta(n, mu * phi, (1 - mu) * phi)
 	des$add_all_subject_responses(y)
 	list(des = des, d = data.frame(y = y, w = w, x = X$x, m = m))
 }

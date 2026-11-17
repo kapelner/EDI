@@ -41,9 +41,9 @@ library(EDI)
 # assertion (naming the actual problem) instead of silently degrading these
 # tests into exercising the wrong code path.
 
-kk_ivwc_design = function(n, seed, spread, drift = 0, collinear = FALSE) {
+kk_ivwc_design = function(n, seed, spread, drift = 0, collinear = FALSE, lambda = 0.1) {
 	set.seed(seed)
-	des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE, lambda = lambda)
 	for (i in seq_len(n)) {
 		x1 = rnorm(1L, sd = spread) + i * drift
 		x2 = if (collinear) 2 * x1 + 5 + rnorm(1L, sd = 1e-6) else rnorm(1L, sd = spread) + i * drift
@@ -77,7 +77,12 @@ test_that("IVWC combines matched-pair and reservoir estimates by inverse-varianc
 })
 
 test_that("a single matched pair (zero within-pair df) falls back to the reservoir estimate exactly", {
-	des = kk_ivwc_design(n = 20L, seed = 2L, spread = 100, drift = 300)
+	# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+	# T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default
+	# lambda = 0.1 this seed formed 5 pairs. lambda = 0.05 gives back the
+	# original allocation (one pair, subjects 14 and 15; 10 T / 8 C in the
+	# reservoir) and the same estimate.
+	des = kk_ivwc_design(n = 20L, seed = 2L, spread = 100, drift = 300, lambda = 0.05)
 	inf = InferenceContinKKOLSIVWC$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	est = inf$compute_estimate()
 	inf$compute_asymp_confidence_interval()

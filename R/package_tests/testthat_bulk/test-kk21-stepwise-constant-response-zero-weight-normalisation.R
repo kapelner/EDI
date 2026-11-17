@@ -7,11 +7,10 @@
 # Where: R/EDI/R/design_seq_one_by_one_KK21.R:270 (kind: near_zero_division).
 # On commit 4fc58cd063bc this test failed with: Expected `err` to be NULL. Differences: `actual` is a
 # character vector ('missing values and NaN\'s not allowed if \'na.rm\' is FALSE') `expected` is NULL
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-63; remove the skip() when that fix lands.
 
 test_that("KK21 stepwise design keeps assigning with finite weights when all count responses so far are zero", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-63")
 		set.seed(11)
 		des = DesignSeqOneByOneKK21stepwise$new(n = 30, response_type = "count", verbose = FALSE)
 		err = tryCatch({

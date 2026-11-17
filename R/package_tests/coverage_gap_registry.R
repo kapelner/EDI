@@ -39,6 +39,25 @@ empty_registry = function() {
 	out
 }
 
+# Expand covr expression-span CSV rows (first_line..last_line) to one row per
+# physical line, taking the min per (file, function, line) as covr 3.x did.
+# Done here rather than via covr::tally_coverage(): covr 4.0.0 rewrote line
+# tallying to need first_byte/last_byte, which expression CSVs may not carry
+# ("order(file, start, end): argument lengths differ").
+expand_expression_rows_to_lines = function(rows) {
+	if (!nrow(rows) || "line" %in% names(rows)) return(rows)
+	rows = rows[!is.na(rows$first_line) & !is.na(rows$last_line), , drop = FALSE]
+	if (!nrow(rows)) return(data.frame(filename = character(), functions = character(), line = integer(), value = numeric()))
+	n = pmax(0L, as.integer(rows$last_line) - as.integer(rows$first_line) + 1L)
+	idx = rep(seq_len(nrow(rows)), n)
+	out = data.frame(filename = as.character(rows$filename[idx]),
+		functions = as.character(rows$functions[idx]),
+		line = as.integer(rows$first_line[idx]) + sequence(n) - 1L,
+		value = suppressWarnings(as.numeric(rows$value[idx])), stringsAsFactors = FALSE)
+	out$functions[is.na(out$functions)] = ""
+	aggregate(value ~ filename + functions + line, out, min, na.action = na.pass)
+}
+
 read_coverage_rows = function(path) {
 	if (!file.exists(path)) stop("Coverage input does not exist: ", path, call. = FALSE)
 	provenance = list()
@@ -60,7 +79,7 @@ read_coverage_rows = function(path) {
 		if (nrow(rows) && !"line" %in% names(rows) && !all(c("first_line", "last_line", "functions") %in% names(rows))) {
 			stop("Coverage CSV needs line or covr expression source spans; counter rows are not source lines.", call. = FALSE)
 		}
-		rows = covr::tally_coverage(rows, by = "line")
+		rows = expand_expression_rows_to_lines(rows)
 	}
 	if (!nrow(rows)) {
 		out = data.frame(file = character(), line = integer(), value = numeric())

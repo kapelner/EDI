@@ -19,12 +19,20 @@ test_that("KK robust regression muffles MM non-convergence and falls back intern
 	fit_one = expect_no_warning(inf_one$.__enclos_env__$private$fit_rlm(X, y, j_treat = 2L, estimate_only = FALSE))
 	fit_ivwc = expect_no_warning(inf_ivwc$.__enclos_env__$private$fit_rlm_with_treatment(X, y, j_treat = 2L, estimate_only = FALSE))
 
-	expect_true(is.list(fit_one))
-	expect_true(is.finite(fit_one$beta))
-	expect_true(is.finite(fit_one$se))
-	expect_true(is.list(fit_ivwc))
-	expect_true(is.finite(fit_ivwc$beta))
-	expect_true(is.finite(fit_ivwc$ssq))
+	# The Rcpp kernel's MM (OLS start) cannot converge in maxit = 1 at
+	# acc = 1e-12. An unconverged robust fit is nonestimable (NULL), the rule
+	# the MASS::rlm path already applied; the Rcpp path used to return the
+	# unconverged iterate as if it were the estimate (v1.0.6-TODO-50). No
+	# warning escapes.
+	expect_null(fit_one)
+	expect_null(fit_ivwc)
+
+	# With an adequate iteration cap the same fit is estimable without a warning.
+	inf_ok = InferenceContinKKRobustRegrIVWC$new(des, method = "MM", verbose = FALSE)
+	fit_ok = expect_no_warning(inf_ok$.__enclos_env__$private$fit_rlm_with_treatment(X, y, j_treat = 2L, estimate_only = FALSE))
+	expect_true(is.list(fit_ok))
+	expect_true(is.finite(fit_ok$beta))
+	expect_true(is.finite(fit_ok$ssq))
 })
 
 test_that("KK hurdle-Poisson combined-likelihood warns once before bootstrap fallback", {

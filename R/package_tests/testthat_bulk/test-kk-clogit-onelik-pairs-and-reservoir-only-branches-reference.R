@@ -21,9 +21,17 @@ library(survival)                                                               
 #   2. Reservoir-only (m forced to 0): matches an independent glm(y ~ w + X, family = binomial())
 #      fit closely.
 
-clogit_onelik_fixture <- function(seed, n = 60L) {
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1
+# seed 2 matched most subjects, and its small reservoir was perfectly separated,
+# so the glm() reference diverged (w coefficient -18.9) and test 2 compared
+# against a meaningless value. With one covariate the F(1, .) cutoff near 0
+# scales like lambda^2, so lambda = 0.07 (about 0.1 / sqrt(2)) reproduces
+# seed 2's old allocation exactly (seed 1's differs in a few late match
+# decisions; test 1 needs only that pairs exist).
+clogit_onelik_fixture <- function(seed, n = 60L, lambda = 0.07) {
 	set.seed(seed)
-	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE, lambda = lambda)
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 	des$add_all_subject_responses(rbinom(n, 1, 0.5))
 	inf <- InferenceIncidKKCondLogitOneLik$new(des, verbose = FALSE)

@@ -16,10 +16,15 @@ library(EDI)
 # internals) and independently recomputing the weighted-combination formula
 # from scratch.
 
-survival_kk_rank_regr_ivwc_fixture <- function(n = 24L, seed = 20260817L) {
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
+# this seed formed 8 pairs, not the 4 pairs + 16 reservoir subjects (20 blocks)
+# the tests below are written for. With two covariates the F(2, .) cutoff near
+# 0 scales like lambda, so lambda = 0.05 reproduces the old allocation exactly.
+survival_kk_rank_regr_ivwc_fixture <- function(n = 24L, seed = 20260817L, lambda = 0.05) {
 	set.seed(seed)
 	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
-	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE, lambda = lambda)
 	for (i in seq_len(n)) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		y_lat <- exp(0.8 - 0.3 * ((w_i + 1) / 2) + 0.15 * X$x1[i]) * stats::rexp(1L)

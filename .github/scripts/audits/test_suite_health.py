@@ -5,7 +5,9 @@ Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 
 Static checks over R/EDI/tests/testthat and R/package_tests/testthat_bulk:
 
 - test_that() blocks that call no expectation, directly or through a helper that does;
-- skip() calls that nothing can stop from running (the test or the rest of the file never runs);
+- skip() calls that nothing can stop from running (the test or the rest of the file never runs),
+  except a skip whose message cites an open release TODO (`v1.0.6-TODO-51`): a known bug kept as a
+  failing test until that TODO is done;
 - skip_if() / skip_if_not() / skip_on_os() calls whose literal arguments mean they never lift;
 - test files whose names carry a TODO number (forbidden by CLAUDE.md);
 - test files whose status in the bulk runs (test-bulk-non-cran.yml, correctness shards' timings.csv)
@@ -138,8 +140,37 @@ def never_lifts(fn, text):
     return None
 
 
-def static_findings(parsed, test_set):
-    """Findings from the parsed R files. `test_set`: files whose test_that blocks are checked."""
+CITED_TODO = re.compile(r"v(\d+\.\d+\.\d+)-TODO-(\d+)\b")
+
+
+def todo_states(repo):
+    """{(version, n): True if open, False if done} from the release files."""
+    out = {}
+    for rel in sorted(Path(repo).glob("R/package_metadata/future_release_plans/release_v*.md")):
+        version = ".".join(re.findall(r"\d+", rel.stem))
+        for m in re.finditer(r"^- \[([ xX])\] TODO-(\d+)\b", rel.read_text(errors="replace"), re.M):
+            out[(version, int(m.group(2)))] = m.group(1) == " "
+    return out
+
+
+def tracked_skip(text, todos):
+    """For an unconditional skip: (True, None) when its message cites an open release TODO (a known
+    bug kept as a failing test), (False, why) when the TODO it cites is done or missing, (False, None)
+    when it cites none."""
+    m = CITED_TODO.search(text or "")
+    if not m or todos is None:
+        return False, None
+    state = todos.get((m.group(1), int(m.group(2))))
+    if state:
+        return True, None
+    cite = f"v{m.group(1)}-TODO-{m.group(2)}"
+    return False, (f"it cites {cite}, which is done: run the test and remove the skip" if state is False
+                   else f"it cites {cite}, which no release file has")
+
+
+def static_findings(parsed, test_set, todos=None):
+    """Findings from the parsed R files. `test_set`: files whose test_that blocks are checked.
+    `todos`: todo_states(); an unconditional skip that cites an open release TODO is not reported."""
     helpers = expectation_helpers(parsed)
     out = []
     for f in parsed:
@@ -161,9 +192,15 @@ def static_findings(parsed, test_set):
             if s["fn"] == "skip" and s.get("unconditional"):
                 if where:
                     always_skipped.add(where["line"])
+                tracked, why = tracked_skip(s.get("text"), todos)
+                if tracked:
+                    continue
+                if where:
                     text = f"`{s['text']}` runs unconditionally, so this test never runs"
                 else:
                     text = f"`{s['text']}` at file level runs unconditionally, so nothing after it runs"
+                if why:
+                    text += f"; {why}"
                 out.append({"unit": unit, "kind": "unconditional-skip", "text": text, "line": s["line"]})
                 continue
             why = never_lifts(s["fn"], s.get("text", ""))
@@ -293,7 +330,7 @@ def mechanical(ctx):
     out = todo_name_findings(tests)
     try:
         parsed = parse_r(ctx.repo, helpers, ctx.workdir / "test_suite_health_parse.json")
-        out += static_findings(parsed, set(tests))
+        out += static_findings(parsed, set(tests), todo_states(ctx.repo))
         info["parsed"] = f"{len(tests)} test files parsed, {len(helpers)} R files read for helpers"
     except (RuntimeError, OSError, ValueError) as e:
         info["parsed"] = f"NOT RUN: the R parser failed ({e})"

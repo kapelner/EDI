@@ -34,7 +34,7 @@ test_that("fixed blocking validates explicit blocks and balances within them", {
 test_that("rerandomization rejects ambiguous thresholds and falls back without covariates", {
   expect_error(DesignFixedRerandomization$new("continuous", obj_val_cutoff = 1,
                                               prop_acceptable = 0.1, n = 10), "both")
-  des <- DesignFixedRerandomization$new("continuous", prob_T = 0.3, n = 10,
+  des <- DesignFixedRerandomization$new("continuous", prob_T = 0.3, n = 10, obj_val_cutoff = Inf,
                                         design_formula = ~ 0, seed = 303)
   des$add_all_subjects_to_experiment(data.frame(x = 1:10))
   des$assign_w_to_all_subjects()

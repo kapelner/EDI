@@ -41,6 +41,13 @@ library(EDI)
 # announced change to seed-pinned draws: it needs a NEWS line and
 # EDI_REPRO_OVERWRITE_FIXTURE=true as well, or the write refuses.
 # EDI_REPRO_FIXTURE_PATH points the test at another fixture file.
+#
+# v1.0.6-TODO-45 (2026-11-17): both DesignSeqOneByOneKK14 rows (w_md5 and
+# w_seq_md5) were regenerated this way. KK14's match test now uses the
+# published T^2 = 1/2 d'S^-1 d (it was twice as strict), so the seeded KK14
+# allocation forms more pairs and its digests changed. No other row changed;
+# KK21's rows are unaffected because this case reveals responses, so KK21 is
+# past its KK14 fallback by the time it starts matching.
 
 repro_thread_counts = function() {
 	available = parallel::detectCores(logical = TRUE)
@@ -102,7 +109,7 @@ repro_design_cases = list(
 	DesignFixedBernoulli = list(build = function()
 		DesignFixedBernoulli$new(n = repro_n, response_type = "continuous")),
 	DesignFixedRerandomization = list(build = function()
-		DesignFixedRerandomization$new(n = repro_n, response_type = "continuous")),
+		DesignFixedRerandomization$new(n = repro_n, response_type = "continuous", obj_val_cutoff = Inf)),
 	DesignFixedGreedy = list(build = function()
 		DesignFixedGreedy$new(n = repro_n, response_type = "continuous")),
 	DesignFixedGreedyDOptimal = list(build = function()

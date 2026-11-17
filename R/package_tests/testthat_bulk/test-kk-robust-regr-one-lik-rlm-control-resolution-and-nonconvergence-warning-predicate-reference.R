@@ -1,8 +1,9 @@
 library(testthat)
 library(EDI)
 
-# InferenceContinKKRobustRegrOneLik private helpers: resolve_rlm_control(X) (maxit / acc defaults by column count and the
-# OLS-start flag, user overrides win, integer/double coercion) and is_rlm_nonconvergence_warning(w) (matches MASS::rlm's
+# InferenceContinKKRobustRegrOneLik private helpers: resolve_rlm_control(X) (maxit default 100 for any column count, acc
+# default by the OLS-start flag, user overrides win, integer/double coercion; the p-dependent maxit caps of 10-25 were
+# dropped in v1.0.6-TODO-50 because they stopped MASS::rlm before convergence) and is_rlm_nonconvergence_warning(w) (matches MASS::rlm's
 # non-convergence warning texts only). Hand-listed default table as the reference.
 
 mk <- function() {
@@ -18,17 +19,17 @@ mk <- function() {
 p <- mk()
 X <- function(k) matrix(0, 5, k)
 
-test_that("OLS-start defaults: maxit 10 / 15 / 20 for p <= 3 / <= 10 / larger, acc 1e-4", {
+test_that("OLS-start defaults: maxit 100 for every p, acc 1e-4", {
 	p$rlm_start_with_ols <- TRUE; p$rlm_maxit <- NULL; p$rlm_acc <- NULL
-	for (cs in list(c(1, 10L), c(3, 10L), c(4, 15L), c(10, 15L), c(11, 20L), c(30, 20L))) {
+	for (cs in list(c(1, 100L), c(3, 100L), c(4, 100L), c(10, 100L), c(11, 100L), c(30, 100L))) {
 		ctrl <- p$resolve_rlm_control(X(cs[1]))
 		expect_identical(ctrl$maxit, as.integer(cs[2]), info = paste("p =", cs[1])); expect_identical(ctrl$acc, 1e-4)
 	}
 })
 
-test_that("cold-start defaults (no OLS start): maxit 15 / 20 / 25, acc 1e-3", {
+test_that("cold-start defaults (no OLS start): maxit 100 for every p, acc 1e-3", {
 	p$rlm_start_with_ols <- FALSE; p$rlm_maxit <- NULL; p$rlm_acc <- NULL
-	for (cs in list(c(2, 15L), c(3, 15L), c(4, 20L), c(10, 20L), c(11, 25L))) {
+	for (cs in list(c(2, 100L), c(3, 100L), c(4, 100L), c(10, 100L), c(11, 100L))) {
 		ctrl <- p$resolve_rlm_control(X(cs[1]))
 		expect_identical(ctrl$maxit, as.integer(cs[2]), info = paste("p =", cs[1])); expect_identical(ctrl$acc, 1e-3)
 	}
@@ -39,7 +40,7 @@ test_that("user-supplied maxit and acc override the defaults independently and a
 	p$rlm_maxit <- 7; p$rlm_acc <- NULL
 	ctrl <- p$resolve_rlm_control(X(30)); expect_identical(ctrl$maxit, 7L); expect_identical(ctrl$acc, 1e-4)
 	p$rlm_maxit <- NULL; p$rlm_acc <- 5e-6
-	ctrl <- p$resolve_rlm_control(X(30)); expect_identical(ctrl$maxit, 20L); expect_identical(ctrl$acc, 5e-6)
+	ctrl <- p$resolve_rlm_control(X(30)); expect_identical(ctrl$maxit, 100L); expect_identical(ctrl$acc, 5e-6)
 	p$rlm_maxit <- 12L; p$rlm_acc <- 2L
 	ctrl <- p$resolve_rlm_control(X(1)); expect_identical(ctrl$maxit, 12L); expect_identical(ctrl$acc, 2)
 	expect_type(ctrl$maxit, "integer"); expect_type(ctrl$acc, "double")
@@ -48,7 +49,7 @@ test_that("user-supplied maxit and acc override the defaults independently and a
 
 test_that("a NULL start flag behaves as not OLS-start (isTRUE semantics)", {
 	p$rlm_start_with_ols <- NULL; p$rlm_maxit <- NULL; p$rlm_acc <- NULL
-	ctrl <- p$resolve_rlm_control(X(2)); expect_identical(ctrl$maxit, 15L); expect_identical(ctrl$acc, 1e-3)
+	ctrl <- p$resolve_rlm_control(X(2)); expect_identical(ctrl$maxit, 100L); expect_identical(ctrl$acc, 1e-3)
 	p$rlm_start_with_ols <- TRUE
 })
 

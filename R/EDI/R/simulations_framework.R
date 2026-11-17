@@ -317,7 +317,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   Designs requiring \code{strata_cols}, \code{cluster_col}, or
     #'   \code{factors} have sensible defaults auto-injected (first covariate
     #'   column; second for \code{cluster_col}; \code{list(treatment=2)} for
-    #'   \code{factors}) when not supplied in the parameter list.
+    #'   \code{factors}) when not supplied in the parameter list, and
+    #'   \code{DesignFixedRerandomization} gets \code{prop_acceptable = 0.1} when
+    #'   neither acceptance rule is given.
     #'   Example:
     #'   \preformatted{design_classes_and_params = list(
     #'   DesignSeqOneByOneKK21 = list(lambda = 0.5, t_0_pct = 0.1),
@@ -3078,6 +3080,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             design_extra$cluster_col = x_names_w[min(2L, length(x_names_w))]
           if ("factors"     %in% fn_formals_w && !"factors"     %in% names(design_extra))
             design_extra$factors = list(treatment = 2L)
+          if (identical(design_gen$classname, "DesignFixedRerandomization") &&
+              !any(c("obj_val_cutoff", "prop_acceptable") %in% names(design_extra)))
+            design_extra$prop_acceptable = 0.1
         }
         # Build design (extracted from .build_design)
         obs_out = NULL  # reset per-design; populated in Mode 3 branch below
@@ -4086,6 +4091,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           design_extra$cluster_col = x_names[min(2L, length(x_names))]
         if ("factors"     %in% fn_formals && !"factors"     %in% names(design_extra))
           design_extra$factors = list(treatment = 2L)
+        if (identical(design_gen$classname, "DesignFixedRerandomization") &&
+            !any(c("obj_val_cutoff", "prop_acceptable") %in% names(design_extra)))
+          design_extra$prop_acceptable = 0.1
       }
       des_obj = do.call(design_gen$new, c(
         list(response_type = private$current_response_type, n = n),

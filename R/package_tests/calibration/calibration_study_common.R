@@ -151,6 +151,9 @@ cal_study_design_extras <- function(design_name, prob_T = 0.5) {
 	unit <- if (isTRUE(prob_T == 0.5)) NULL else cal_study_block_unit(prob_T)
 	switch(design_name,
 		DesignFixedBlocking = list(strata_cols = CAL_STUDY_STRATA, equal_block_sizes = FALSE),
+		# Exactly one acceptance rule is required (owner, 2026-11-17); before, the campaign ran it with neither, i.e.
+		# as complete randomization. The best 10% of draws by Mahalanobis distance.
+		DesignFixedRerandomization = list(prop_acceptable = 0.1),
 		DesignSeqOneByOnePocockSimon = list(strata_cols = CAL_STUDY_STRATA),
 		DesignSeqOneByOneRandomBlockSize = c(list(strata_cols = CAL_STUDY_STRATA), if (!is.null(unit)) list(block_sizes = unit * c(1, 2, 3))),
 		DesignSeqOneByOneSPBR = c(list(strata_cols = CAL_STUDY_STRATA), if (!is.null(unit)) list(block_size = unit)),

@@ -25,13 +25,13 @@ ref_rlm <- function(method, delta = 0, X = Xc) vapply(seq_len(B), function(b) {
 }, numeric(1))
 
 test_that("method = 'M' agrees with MASS::rlm Huber, 'MM' with rlm MM; any other method name is rejected", {
-	# The kernel's scale is the MAD of the INITIAL OLS residuals, held fixed through the IRLS (single-fit scale 1.81 here); rlm
-	# re-estimates the MAD every iteration (1.70). The Huber coefficient therefore agrees with rlm only loosely; the exact checks are
-	# against the single-fit kernel on the assembled data and the fixed-scale reference IRLS in the next test.
+	# Kernel M re-estimates the MAD scale every IRLS iteration and stops on rlm's relative-residual-change test, like
+	# MASS::rlm(psi.huber) (v1.0.6-TODO-50; it used to hold the initial OLS-residual MAD fixed and agreed only to ~0.15). The two
+	# stop at different tolerances here (kernel 1e-7, rlm acc 1e-4), so they agree to about rlm's acc, not to roundoff.
 	oneM <- vapply(seq_len(B), function(b) { i <- i_mat[, b]; w <- w_mat[, b]
 		unname(fast1(cbind(1, w, Xc[i, ]), y0[i], method = "M")$coefficients[2]) }, numeric(1))
 	expect_equal(K(y0, Xc, i_mat, w_mat, 0, "M", NULL, 1L), oneM, tolerance = 1e-8)
-	expect_equal(K(y0, Xc, i_mat, w_mat, 0, "M", NULL, 1L), ref_rlm("M"), tolerance = 0.15, scale = 1)
+	expect_equal(K(y0, Xc, i_mat, w_mat, 0, "M", NULL, 1L), ref_rlm("M"), tolerance = 1e-3, scale = 1)
 	mm <- K(y0, Xc, i_mat, w_mat, 0, "MM", NULL, 1L)
 	expect_equal(mm, ref_rlm("MM"), tolerance = 5e-2)
 	for (bad in c("huber", "bisquare", "m", "", "OLS")) expect_error(K(y0, Xc, i_mat, w_mat, 0, bad, NULL, 1L), "method must be", info = bad)
@@ -52,7 +52,7 @@ test_that("delta shifts the treatment coefficient additively and exactly", {
 test_that("no-covariate design works and thread count does not change the result", {
 	X0 <- matrix(numeric(0), n, 0)
 	out <- K(y0, X0, i_mat, w_mat, 0, "M", NULL, 1L)
-	expect_equal(out, ref_rlm("M", X = matrix(numeric(0), n, 0)), tolerance = 0.15, scale = 1)
+	expect_equal(out, ref_rlm("M", X = matrix(numeric(0), n, 0)), tolerance = 1e-3, scale = 1)
 	expect_equal(K(y0, Xc, i_mat, w_mat, 0.2, "M", NULL, 2L), K(y0, Xc, i_mat, w_mat, 0.2, "M", NULL, 1L), tolerance = 1e-12)
 })
 
@@ -91,20 +91,26 @@ test_that("resamples with fewer than two treated or two control rows return NA",
 	expect_true(is.na(out[1])); expect_true(is.na(out[2])); expect_true(all(is.finite(out[-(1:2)])))
 })
 
-test_that("investigation: kernel M is Huber IRLS with the scale FIXED at the OLS-residual MAD; kernel MM is bisquare IRLS from the OLS start with that same fixed scale", {
+test_that("investigation: kernel M is Huber IRLS with the MAD scale re-estimated every iteration (= MASS::rlm); kernel MM is bisquare IRLS from the OLS start with the OLS-residual MAD held fixed", {
 	i <- i_mat[, 1]; w <- w_mat[, 1]; X <- cbind(1, w, Xc[i, ]); y <- y0[i]
 	b_ols <- qr.solve(X, y); s0 <- median(abs(y - X %*% b_ols)) / 0.6745
 	irls <- function(wfun, it = 1000) { b <- b_ols; for (k in seq_len(it)) { u <- abs(as.numeric(y - X %*% b)) / s0; wt <- wfun(u)
 		b <- solve(crossprod(X, X * wt), crossprod(X, y * wt)) }; as.numeric(b) }
-	kM <- fast1(X, y, method = "M", tol = 1e-12, maxit = 1000L)
-	expect_equal(kM$scale, s0, tolerance = 1e-12)
-	expect_equal(as.numeric(kM$coefficients), irls(function(u) ifelse(u <= 1.345, 1, 1.345 / u)), tolerance = 1e-7)
 	kMM <- fast1(X, y, method = "MM", tol = 1e-12, maxit = 1000L)
+	expect_equal(kMM$scale, s0, tolerance = 1e-12)
 	expect_equal(as.numeric(kMM$coefficients), irls(function(u) ifelse(u <= 4.685, (1 - (u / 4.685)^2)^2, 0)), tolerance = 1e-6)
-	# rlm re-estimates the scale each iteration; a reference that does so reproduces rlm exactly, so the loose agreement above is
-	# entirely the fixed-vs-re-estimated scale.
+	# Re-estimated-scale Huber IRLS reference; it reproduces rlm, and kernel M reproduces it (v1.0.6-TODO-50).
 	b <- b_ols; for (k in 1:1000) { r <- as.numeric(y - X %*% b); sc <- median(abs(r)) / 0.6745; u <- abs(r) / sc; wt <- ifelse(u <= 1.345, 1, 1.345 / u)
 		b <- solve(crossprod(X, X * wt), crossprod(X, y * wt)) }
+	kM <- fast1(X, y, method = "M", tol = 1e-12, maxit = 1000L)
+	expect_true(isTRUE(kM$converged))
+	expect_equal(as.numeric(kM$coefficients), as.numeric(b), tolerance = 1e-7)
+	expect_equal(kM$scale, median(abs(as.numeric(y - X %*% b))) / 0.6745, tolerance = 1e-7)
 	ref <- MASS::rlm(y ~ X - 1, psi = MASS::psi.huber, maxit = 500, acc = 1e-10)
 	expect_equal(as.numeric(b), unname(coef(ref)), tolerance = 1e-6)
+	# Same start, scale update and stopping rule at the same tolerance: kernel M and rlm stop on the same iteration.
+	ref4 <- MASS::rlm(X, y, psi = MASS::psi.huber, init = list(coef = unname(b_ols)), maxit = 100, acc = 1e-4)
+	k4 <- fast1(X, y, method = "M", warm_start_beta = b_ols, tol = 1e-4, maxit = 100L)
+	expect_equal(as.numeric(k4$coefficients), unname(coef(ref4)), tolerance = 1e-10)
+	expect_equal(k4$num_iter, length(ref4$conv))
 })

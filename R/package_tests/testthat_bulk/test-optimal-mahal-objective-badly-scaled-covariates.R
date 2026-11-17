@@ -8,11 +8,10 @@
 # Where: R/EDI/R/helper_optimal_milp_solvers.R:106 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `prep$kind` to be identical to "quadratic".
 # Differences: 1/1 mismatches x[1]: "l1" y[1]: "quadratic"
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-54; remove the skip() when that fix lands.
 
 test_that("mahal_dist objective is not dropped for a full-rank but badly scaled covariate matrix", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-54")
 		set.seed(1)
 		n = 12
 		X_raw = cbind(x1 = rnorm(n) * 1e-7, x2 = rnorm(n))

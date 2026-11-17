@@ -551,7 +551,7 @@ jobs:
           export R_LIBS="$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}"
           Rscript current/R/package_tests/calibration/balance_calibration_study.R \
             --plan "results/campaigns/$C/plan.csv" --common-dir pinned/R/package_tests/calibration \
-            --out balance/backfill.csv.gz --cores "$(nproc)"
+            --out balance/backfill.csv.gz --cores "$(nproc --all)"
       - uses: actions/upload-artifact@v7
         if: steps.need.outputs.run == 'true' && steps.edic.outputs.cache-hit == 'true'
         with:

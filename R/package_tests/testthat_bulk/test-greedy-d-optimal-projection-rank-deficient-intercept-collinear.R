@@ -7,11 +7,10 @@
 # Where: R/EDI/R/helper_optimal_shared.R:107 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `sum(diag(P))` to equal 2. Differences: 1/1
 # mismatches [1] 3 - 2 == 1
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-57; remove the skip() when that fix lands.
 
 test_that("D-optimal projection P is the hat matrix of [1, X] when a covariate is an affine shift of another", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-57")
 		set.seed(1)
 		n = 30L
 		x1 = rnorm(n)

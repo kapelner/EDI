@@ -6,11 +6,10 @@
 # Where: R/EDI/R/helper_robust_sandwich.R:155 (kind: na_where_defined).
 # On commit 4fc58cd063bc this test failed with: Expected `is.null(cr_small)` to be FALSE.
 # Differences: `actual`: TRUE `expected`: FALSE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-58; remove the skip() when that fix lands.
 
 test_that("CR2 cluster-robust variance is scale-equivariant for responses in small units", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-58")
 		set.seed(1)
 		n = 60
 		cluster = rep(1:6, each = 10)

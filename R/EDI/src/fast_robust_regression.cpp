@@ -145,10 +145,13 @@ RobustModelResult fast_robust_regression_internal(
 
     Eigen::VectorXd r = y - X * res.b;
     
-    // 2. Scale estimation (MAD of residuals)
-    if (scale_est < 0) {
+    // 2. Scale estimation (MAD of residuals, median(|r|) / 0.6745, as MASS::rlm).
+    // "M" re-estimates it from the current residuals at the top of every IRLS
+    // iteration, exactly like MASS::rlm(method = "M", scale.est = "MAD"); "MM"
+    // keeps it fixed at the start value (v1.0.6-TODO-50).
+    auto mad_scale = [n](const Eigen::VectorXd& resid) {
         std::vector<double> abs_r(n);
-        for (int i = 0; i < n; ++i) abs_r[i] = std::abs(r[i]);
+        for (int i = 0; i < n; ++i) abs_r[i] = std::abs(resid[i]);
         double median_abs_r;
         if (n < 512) {
             // Full sorting is faster for small vectors because selection has higher fixed overhead.
@@ -163,7 +166,11 @@ RobustModelResult fast_robust_regression_internal(
                 median_abs_r = (lower_mid + median_abs_r) / 2.0;
             }
         }
-        res.scale = median_abs_r / 0.6745;
+        return median_abs_r / 0.6745;
+    };
+    const bool update_scale_each_iter = (method == "M") && (scale_est < 0);
+    if (scale_est < 0) {
+        res.scale = mad_scale(r);
     } else {
         res.scale = scale_est;
     }
@@ -182,6 +189,16 @@ RobustModelResult fast_robust_regression_internal(
     for (int iter = 1; iter <= maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
         res.num_iter = iter;
+        if (update_scale_each_iter && iter > 1) {
+            res.scale = mad_scale(r);
+        }
+        if (update_scale_each_iter && res.scale <= 0.0) {
+            // Exact fit (MAD 0): MASS::rlm stops here and reports convergence.
+            res.scale = 1e-10;
+            res.converged = true;
+            if (!estimate_only && XtWX.rows() > 0) res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
+            break;
+        }
         
         // Update weights
         if (iter == 1 && warm_start_weights.has_value()) {
@@ -215,10 +232,19 @@ RobustModelResult fast_robust_regression_internal(
 
         b_free = ldlt.solve(XtWy);
         for (int j = 0; j < p_free; ++j) res.b[fixed_spec.free_idx[j]] = b_free[j];
+        Eigen::VectorXd r_old;
+        if (update_scale_each_iter) r_old = r;
         r = y - X * res.b;
 
-        // Check convergence
-        if ((b_free - b_old).norm() / (b_free.norm() + 1e-10) < tol) {
+        // Check convergence. "M" uses MASS::rlm's test.vec = "resid" criterion
+        // (relative change in the residual vector <= tol, rlm's `acc`), so that
+        // with the same start, scale update and tolerance it stops on the same
+        // iteration as rlm (v1.0.6-TODO-50); "MM" keeps the relative
+        // coefficient-change criterion.
+        const bool conv_now = update_scale_each_iter
+            ? std::sqrt((r_old - r).squaredNorm() / std::max(1e-20, r_old.squaredNorm())) <= tol
+            : (b_free - b_old).norm() / (b_free.norm() + 1e-10) < tol;
+        if (conv_now) {
             res.converged = true;
             if (!estimate_only) res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
             break;
@@ -251,21 +277,25 @@ RobustModelResult fast_robust_regression_internal(
 //'
 //' Fits a robust linear regression by iteratively reweighted least squares (IRLS),
 //' minimizing \eqn{\sum_i \rho(r_i / \hat\sigma)} for residuals \eqn{r_i = y_i -
-//' x_i^\top\beta} and a fixed robustness scale \eqn{\hat\sigma}, rather than
+//' x_i^\top\beta} and a robustness scale \eqn{\hat\sigma}, rather than
 //' ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
 //' weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
 //' otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
 //' any other value of \code{method} (including the default, \code{"MM"}) uses
 //' \strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
 //' and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
-//' this exported wrapper, though the internal fitter accepts it). The scale
-//' \eqn{\hat\sigma} is fixed once at the start as the normalized median absolute
-//' deviation of the OLS residuals, \eqn{\hat\sigma = \mathrm{median}(|r_i|) /
-//' 0.6745} (the internal fitter also accepts a caller-supplied fixed scale, but
-//' this wrapper always estimates it). Each IRLS iteration re-weights and re-solves
-//' the weighted normal equations \eqn{X^\top W X\, \beta = X^\top W y} via
-//' \code{Eigen::LDLT}; convergence is declared when the relative change in
-//' \eqn{\beta} falls below \code{tol}. Column 1 of a real design typically holds
+//' this exported wrapper, though the internal fitter accepts it). The scale is the
+//' normalized median absolute deviation of the current residuals,
+//' \eqn{\hat\sigma = \mathrm{median}(|r_i|) / 0.6745}. For \code{method = "M"} it is
+//' re-estimated at the start of every IRLS iteration and convergence is declared when
+//' the relative change in the residual vector, \eqn{\|r_{old} - r\| / \|r_{old}\|}, is at
+//' most \code{tol}: this is exactly \code{MASS::rlm(method = "M", scale.est = "MAD",
+//' test.vec = "resid")}, with \code{tol} playing the role of \code{acc}. For
+//' \code{"MM"} the scale is fixed once at the start value and convergence is declared
+//' when the relative change in \eqn{\beta} falls below \code{tol}. (The internal
+//' fitter also accepts a caller-supplied fixed scale, but this wrapper always
+//' estimates it.) Each IRLS iteration re-weights and re-solves the weighted normal
+//' equations \eqn{X^\top W X\, \beta = X^\top W y} via \code{Eigen::LDLT}. Column 1 of a real design typically holds
 //' the intercept, but no columns are treated specially except via \code{fixed_idx}.
 //'
 //' @section Fixed parameters, warm starts:
@@ -290,7 +320,8 @@ RobustModelResult fast_robust_regression_internal(
 //' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 //' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 //' @param maxit Maximum number of IRLS iterations.
-//' @param tol Relative parameter-change convergence tolerance.
+//' @param tol Convergence tolerance: relative residual change for \code{"M"} (as
+//'   \code{MASS::rlm}'s \code{acc}), relative coefficient change for \code{"MM"}.
 //' @param fixed_idx Optional indices of fixed parameters.
 //' @param fixed_values Optional values for fixed parameters.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
@@ -299,15 +330,16 @@ RobustModelResult fast_robust_regression_internal(
 //'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.
 //'
 //' @return If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
-//'   (the fixed MAD-based robustness scale \eqn{\hat\sigma}), \code{converged}, \code{iterations}.
+//'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{iterations}.
 //'   Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
 //'   \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
 //'   or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance
-//'   \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \left(\frac{n}{n-p}\right) \frac{\sum_i
+//'   \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \kappa^2 \left(\frac{n}{n-p}\right) \frac{\sum_i
 //'   \psi(r_i)^2}{n\,\bar\psi'^2} \, [(X^\top X)^{-1}]_{jj}}, where \eqn{\psi} is the
-//'   derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}) and \eqn{\bar\psi'} is
-//'   the mean of \eqn{\psi'} across observations, matching the classical Huber (1981)
-//'   sandwich-free M-estimator variance formula; \code{NA} if \code{j} indexes a fixed
+//'   derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}), \eqn{\bar\psi'} is
+//'   the mean of \eqn{\psi'} across observations and \eqn{\kappa = 1 + p\,\mathrm{Var}(\psi') /
+//'   (n\,\bar\psi'^2)} is Huber's (1981) small-sample correction, the same formula as
+//'   \code{summary(MASS::rlm(...))} (default \code{method = "XtX"}); \code{NA} if \code{j} indexes a fixed
 //'   coefficient or the fit neither converged nor exhausted \code{maxit}.
 //' @export
 //' @keywords internal
@@ -367,7 +399,7 @@ List fast_robust_regression_cpp(
     double ssq_j = NA_REAL;
     if (res.converged || res.num_iter == maxit) {
         Eigen::VectorXd psi_r(n);
-        double sum_psi_prime = 0;
+        Eigen::ArrayXd psi_prime(n);
         const Eigen::ArrayXd u = r.array() / res.scale;
         if (method == "M") {
             const Eigen::ArrayXd abs_u = u.abs();
@@ -376,19 +408,26 @@ List fast_robust_regression_cpp(
                 -Eigen::ArrayXd::Ones(n)
             );
             psi_r = (abs_u <= c).select(r.array(), c * res.scale * sign_u).matrix();
-            sum_psi_prime = (abs_u <= c).template cast<double>().sum();
+            psi_prime = (abs_u <= c).template cast<double>();
         } else {
             const double c_b = 4.685;
             const Eigen::ArrayXd abs_u = u.abs();
             const Eigen::ArrayXd u_scaled_sq = (u / c_b).square();
             const Eigen::ArrayXd tmp = 1.0 - u_scaled_sq;
             psi_r = (abs_u <= c_b).select(r.array() * tmp.square(), 0.0).matrix();
-            sum_psi_prime = (abs_u <= c_b).select(tmp * (1.0 - 5.0 * u_scaled_sq), 0.0).sum();
+            psi_prime = (abs_u <= c_b).select(tmp * (1.0 - 5.0 * u_scaled_sq), 0.0);
         }
         
-        double m = sum_psi_prime / n;
+        double m = psi_prime.sum() / n;
+        // Huber's (1981) small-sample correction kappa = 1 + p Var(psi') / (n mean(psi')^2),
+        // as MASS:::summary.rlm applies it (Var with denominator n - 1). Without it the
+        // SE was low by the factor 1 / kappa and the KK IVWC inverse-variance weights
+        // disagreed with the MASS::rlm path (v1.0.6-TODO-50).
+        const double p_free_d = double(fixed_spec.free_idx.size());
+        const double var_psi_prime = (n > 1) ? (psi_prime - m).square().sum() / double(n - 1) : 0.0;
+        const double kappa = 1.0 + p_free_d * var_psi_prime / (double(n) * m * m);
         double sum_psi_sq = psi_r.squaredNorm();
-        double factor = (n / (double(n - fixed_spec.free_idx.size()))) * sum_psi_sq / (n * m * m);
+        double factor = (n / (double(n - fixed_spec.free_idx.size()))) * sum_psi_sq / (n * m * m) * kappa * kappa;
 
         if (j > 0 && j <= p) {
             const int j0 = j - 1;

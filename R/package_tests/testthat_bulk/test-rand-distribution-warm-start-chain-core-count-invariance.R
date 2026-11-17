@@ -10,11 +10,10 @@
 # Where: R/EDI/R/inference_all_abstract_rand.R:672 (kind: core_count_dependence).
 # On commit 4fc58cd063bc this test failed with: Expected `r1$t0` to be identical to `r2$t0`.
 # Differences: Objects equal but not identical
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-61; remove the skip() when that fix lands.
 
 test_that("seeded randomization distribution of a warm-started GLM is identical with 1 and 2 cores", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-61")
 		child = function(cores) {
 			suppressPackageStartupMessages(library(EDI))
 			set_num_cores(cores)

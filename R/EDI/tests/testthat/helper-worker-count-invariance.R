@@ -294,7 +294,7 @@ worker_invariance_sweep = function(backend, core_counts = worker_invariance_core
 worker_invariance_design_draws = function(backend, core_counts = worker_invariance_core_counts()) {
 	builders = list(
 		DesignFixedBernoulli = function(n) DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE),
-		DesignFixedRerandomization = function(n) DesignFixedRerandomization$new(n = n, response_type = "continuous", verbose = FALSE),
+		DesignFixedRerandomization = function(n) DesignFixedRerandomization$new(n = n, response_type = "continuous", obj_val_cutoff = Inf, verbose = FALSE),
 		DesignFixedGreedy = function(n) DesignFixedGreedy$new(n = n, response_type = "continuous", verbose = FALSE),
 		DesignFixedGreedyDOptimal = function(n) DesignFixedGreedyDOptimal$new(n = n, response_type = "continuous", verbose = FALSE)
 	)

@@ -25,10 +25,10 @@ test_that("an obj_val_cutoff too tight to satisfy raises the documented search-f
 	)
 })
 
-test_that("an unconstrained cutoff (the default, Inf) never triggers the guard", {
+test_that("an unconstrained cutoff (obj_val_cutoff = Inf) never triggers the guard", {
 	set.seed(2)
 	n <- 10L
-	des <- DesignFixedRerandomization$new(response_type = "continuous", n = n, verbose = FALSE)
+	des <- DesignFixedRerandomization$new(response_type = "continuous", n = n, obj_val_cutoff = Inf, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
 	expect_no_error(des$assign_w_to_all_subjects())
 })

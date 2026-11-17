@@ -361,8 +361,9 @@ After each research PR is merged:
 - **A broken run must not look clean.** crandb 404 means "not on CRAN"
   (ignored); any other failure (after one retry) is a fetch error. More than 3
   fetch errors makes the report `FLAGGED` with "CHECK UNRELIABLE" at the top of
-  section 1. If the whole job fails or is cancelled, the `notify-failure` job
-  opens or comments on an issue labelled `algorithm-audit-drift-failure`.
+  section 1. If the whole job fails or is cancelled, the run shows red on the
+  Actions page; no issue is opened (owner, 2026-11-17: workflow failures do not
+  open issues; the `notify-failure` job was removed).
   `--snapshot` aborts rather than write a partial pin file.
 - **Max review age.** A row whose `reviewed` date is older than
   `max_age_days` (180, in the row map) is flagged even with zero drift, so a

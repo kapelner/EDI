@@ -1,10 +1,16 @@
 library(testthat)
 library(EDI)
 
+# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1 this
+# seed formed more pairs, so the matched set {2, 17} (fold 14), whose deletion
+# removes the treated arm's only event, no longer existed. With two covariates
+# the F(2, .) cutoff near 0 scales like lambda, so lambda = 0.05 reproduces the
+# old allocation, and with it the folds and event pattern pinned below.
 make_kk_weibull_jackknife_fixture <- function(censored = TRUE) {
 	set.seed(1L)
 	n <- 24L
-	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE, lambda = 0.05)
 	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	w <- des$get_w()

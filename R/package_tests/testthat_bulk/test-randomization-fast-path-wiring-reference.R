@@ -23,9 +23,9 @@ make_fixed <- function(type = "continuous", n = 40L) {
 	d
 }
 
-make_kk <- function(type = "continuous", n = 40L, seed = NULL) {
+make_kk <- function(type = "continuous", n = 40L, seed = NULL, lambda = 0.1) {
 	if (!is.null(seed)) set.seed(seed)
-	d <- DesignSeqOneByOneKK14$new(n = n, response_type = type, verbose = FALSE)
+	d <- DesignSeqOneByOneKK14$new(n = n, response_type = type, verbose = FALSE, lambda = lambda)
 	x <- data.frame(x1 = rnorm(n), x2 = runif(n))
 	for (i in seq_len(n)) d$add_one_subject_to_experiment_and_assign(x[i, , drop = FALSE])
 	w <- d$get_w()
@@ -123,7 +123,13 @@ cases <- list(
 	KKMeanDiffIVWC = list(InferenceAllKKMeanDiffIVWC, make_kk()),
 	KKWilcoxIVWC = list(InferenceAllKKWilcoxIVWC, make_kk()),
 	SimpleWilcox = list(InferenceAllSimpleWilcox, make_fixed()),
-	KKOLSIVWC = list(InferenceContinKKOLSIVWC, make_kk(n = 20L, seed = 1L)),
+	# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+	# T^2 = 1/2 d'S^-1 d (it was twice as strict), so at lambda = 0.1 this seed
+	# formed 6 pairs and the matched OLS fit left the n <= p fallback the
+	# reference below relies on. With two covariates the F(2, .) cutoff near 0
+	# scales like lambda, so lambda = 0.05 roughly undoes the change: this seed
+	# again forms 3 pairs (not the same 3 as before), which keeps the fallback.
+	KKOLSIVWC = list(InferenceContinKKOLSIVWC, make_kk(n = 20L, seed = 1L, lambda = 0.05)),
 	KKOLSOneLik = list(InferenceContinKKOLSOneLik, make_kk()),
 	KKRobustIVWC = list(InferenceContinKKRobustRegrIVWC, make_kk()),
 	KKRobustOneLik = list(InferenceContinKKRobustRegrOneLik, make_kk()),

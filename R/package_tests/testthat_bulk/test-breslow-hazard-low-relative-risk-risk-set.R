@@ -8,11 +8,10 @@
 # On commit 4fc58cd063bc this test failed with: Expected `bh$cumhaz` to equal `ref`. Differences: 2/3
 # mismatches (average diff: 1.07e+13) [2] 1e+10 - 5.34e+12 == -5.33e+12 [3] 2e+10 - 1.60e+13 ==
 # -1.60e+13
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked by v1.0.6-TODO-51; remove the skip() when that fix lands.
 
 test_that("Breslow cumulative hazard is exact when late risk sets have very low relative risk", {
-	skip("open a release TODO for this")
+	skip("known bug, v1.0.6-TODO-51")
 		y = c(1, 2, 3)
 		dead = c(1, 1, 1)
 		X = matrix(c(30, 0, 0), ncol = 1)
