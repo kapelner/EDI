@@ -1,0 +1,14 @@
+{
+ "finding_id": "grouping-and-level-coding#43925959437.1",
+ "kind": "r_rewrite",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "closed_form",
+ "tol": null,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 500L\n\tn_pairs = 200L\n\tm = c(rep(seq_len(n_pairs), each = 2L), rep(0L, n - 2L * n_pairs))\n\tm = m[sample.int(n)]\n\tlist(m = as.integer(m), row_weights = rexp(n))\n}",
+ "current": "bench_run = function(d) {\n\tr = EDI:::kk_pair_and_reservoir_bootstrap_weights(list(m = d$m), d$row_weights)\n\tlist(pair_ids = as.numeric(r$pair_ids), pair_weights = as.numeric(r$pair_weights),\n\t\treservoir_idx = as.numeric(r$reservoir_idx), reservoir_weights = as.numeric(r$reservoir_weights))\n}",
+ "candidate": "bench_run = function(d) {\n\tkk_pair_weights_rowsum = function(m_vec, row_weights) {\n\t\trow_weights = as.numeric(row_weights)\n\t\tn = length(row_weights)\n\t\tm_vec = if (is.null(m_vec)) rep(NA_integer_, n) else rep_len(as.integer(m_vec), n)\n\t\tin_pair = !is.na(m_vec) & m_vec > 0L\n\t\tpair_ids = sort(unique(m_vec[in_pair]))\n\t\tpair_weights = rep(NaN, length(pair_ids))\n\t\tok = in_pair & !is.na(row_weights)\n\t\tif (any(ok)) {\n\t\t\ts = rowsum(row_weights[ok], m_vec[ok], reorder = TRUE)\n\t\t\tcnt = rowsum(rep(1, sum(ok)), m_vec[ok], reorder = TRUE)\n\t\t\tpair_weights[match(as.integer(rownames(s)), pair_ids)] = s[, 1] / cnt[, 1]\n\t\t}\n\t\treservoir_idx = which(is.na(m_vec) | m_vec <= 0L)\n\t\tlist(pair_ids = as.numeric(pair_ids), pair_weights = as.numeric(pair_weights),\n\t\t\treservoir_idx = as.numeric(reservoir_idx), reservoir_weights = as.numeric(row_weights[reservoir_idx]))\n\t}\n\tkk_pair_weights_rowsum(d$m, d$row_weights)\n}",
+ "stands_in_for": "R/EDI/R/globals.R:262 (kk_pair_and_reservoir_bootstrap_weights), called per bootstrap replicate e.g. from R/EDI/R/inference_continuous_KK_ols_one_lik.R:488",
+ "notes": "Times one replicate's pair/reservoir weight split at n=500 (200 matched pairs, 100 reservoir rows, one rexp weight draw): the vapply/which loop against two rowsum() calls. closed_form tier because a pair mean of two values may differ in the last ulp (mean() vs sum/count). The build_combined_cpoisson_data caching half of the finding is not covered (it needs an edit inside EDI); the candidate call is well under 1 ms, so the harness's block timing applies."
+}

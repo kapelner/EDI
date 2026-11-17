@@ -1,0 +1,14 @@
+{
+ "finding_id": "weibull-aft-mle#43925959437.1",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "iterative",
+ "tol": 1e-06,
+ "setup": "bench_setup = function() {\n  set.seed(20261117)\n  n = 100L\n  x = rnorm(n)\n  t_event = exp(4 + 0.3 * x + 0.8 * rnorm(n))   # day-scale times, log mean ~ 4\n  t_cens = exp(4.5 + 0.8 * rnorm(n))\n  y = pmin(t_event, t_cens)\n  dead = as.numeric(t_event <= t_cens)\n  list(surv = survival::Surv(y, dead), x = x, dist = \"lognormal\")\n}",
+ "current": "bench_run = function(d) {\n  mod = EDI::robust_survreg_with_surv_object(d$surv, d$x, dist = d$dist)\n  as.numeric(c(mod$coefficients, log(mod$scale)))\n}",
+ "candidate": "robust_survreg_det_starts = function(surv_object, cov_matrix_or_vector, dist = \"lognormal\", num_max_iter = 50) {\n  surv_reg_formula = surv_object ~ .\n  X_mat = as.matrix(cov_matrix_or_vector)\n  X_mat = EDI:::drop_highly_correlated_cols(X_mat)$M\n  X_mat = EDI:::drop_linearly_dependent_cols(X_mat)$M\n  dat = data.frame(X_mat)\n  ctrl = survival::survreg.control(maxiter = 100, rel.tolerance = 1e-9, outer.max = 10)\n  try_fit = function(init) {\n    mod = tryCatch(suppressWarnings(\n      if (is.null(init)) survival::survreg(surv_reg_formula, data = dat, dist = dist, control = ctrl)\n      else survival::survreg(surv_reg_formula, data = dat, dist = dist, init = init, control = ctrl)\n    ), error = function(e) NULL)\n    if (!is.null(mod) && !any(is.na(mod$coefficients))) mod else NULL\n  }\n  mod = try_fit(NULL)                                  # survreg's own init(x, weights)\n  if (!is.null(mod)) return(mod)\n  lt = log(surv_object[, 1])\n  start = c(mean(lt), rep(0, ncol(dat)))                # moment start: intercept = mean log-time\n  mod = try_fit(start)\n  if (!is.null(mod)) return(mod)\n  sc = pmax(abs(start), 1) * 0.5\n  set.seed(20261022L)\n  for (i in seq_len(num_max_iter - 2L)) {\n    mod = try_fit(start + stats::rnorm(length(start)) * sc)\n    if (!is.null(mod)) return(mod)\n  }\n  NULL\n}\nbench_run = function(d) {\n  mod = robust_survreg_det_starts(d$surv, d$x, dist = d$dist)\n  as.numeric(c(mod$coefficients, log(mod$scale)))\n}",
+ "stands_in_for": "R/EDI/R/helper_robust_regression.R:153-201 (robust_survreg_with_surv_object, non-Weibull branch; called from R/EDI/R/design_seq_one_by_one_KK21.R:466)",
+ "notes": "Times one lognormal AFT fit at n = 100 with one covariate (the KK21 per-covariate weight call) on day-scale times (log mean ~ 4, ~30% censored): current starts survreg from init = 0, candidate from survreg's default init then a mean-log-time start. Both converge to the same MLE under rel.tolerance 1e-9 with Newton steps, so coefficients should agree to ~1e-8; tol 1e-6 leaves margin. Lognormal is reached in KK21 only after the Weibull branch fails, and if init = 0 already succeeds first try the gain is only fewer Newton iterations."
+}

@@ -1,0 +1,14 @@
+{
+ "finding_id": "design-matrix-preprocessing#43925959437.1",
+ "kind": "r_rewrite",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "exact",
+ "tol": null,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 300L\n\tZ = matrix(rnorm(n * 5L), n, 5L)\n\te = matrix(rnorm(n * 7L), n, 7L)\n\tM = cbind(Z,\n\t\tZ[, 1] + 0.2 * e[, 1], Z[, 2] + 0.4 * e[, 2], Z[, 3] + 0.6 * e[, 3],\n\t\tZ[, 4] + 0.9 * e[, 4], Z[, 5] + 1.3 * e[, 5], Z[, 1] + 2 * e[, 6],\n\t\tZ[, 2] + 3 * e[, 7], rep(1, n), rnorm(n), rnorm(n))\n\tcolnames(M) = paste0(\"x\", seq_len(ncol(M)))\n\tlist(M = M, thresholds = c(0.99, 0.95, 0.90, 0.85, 0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20, 0.10))\n}",
+ "current": "bench_run = function(d) {\n\tlapply(d$thresholds, function(t) as.numeric(EDI:::drop_highly_correlated_cols(d$M, threshold = t)$js))\n}",
+ "candidate": "bench_run = function(d) {\n\tdrop_highly_correlated_cols_ladder = function(M, thresholds) {\n\t\tM = as.matrix(M)\n\t\tjs = seq_len(ncol(M))\n\t\tif (ncol(M) <= 1) return(rep(list(as.numeric(js)), length(thresholds)))\n\t\tconst_cols = which(apply(M, 2, var) == 0)\n\t\tif (length(const_cols) > 0) {\n\t\t\tM = M[, -const_cols, drop = FALSE]\n\t\t\tjs = js[-const_cols]\n\t\t\tif (ncol(M) <= 1) return(rep(list(as.numeric(js)), length(thresholds)))\n\t\t}\n\t\tA = abs(suppressWarnings(stats::cor(M)))\n\t\tA[lower.tri(A, diag = TRUE)] = 0\n\t\tlapply(thresholds, function(t) {\n\t\t\tj_kill = which(colSums(A > t, na.rm = TRUE) > 0)\n\t\t\tas.numeric(if (length(j_kill)) js[-j_kill] else js)\n\t\t})\n\t}\n\tdrop_highly_correlated_cols_ladder(d$M, d$thresholds)\n}",
+ "stands_in_for": "R/EDI/R/helper_model_matrix.R:113 (drop_highly_correlated_cols), called once per rung of the 12-threshold ladder at R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R:180-183 (same ladder in KK strat Cox, KK rank-regr IVWC and inference_mixin_kk_gee_shared.R:338-340)",
+ "notes": "Times the per-rung kept column indices for the 12-threshold ladder on one n=300, 15-column covariate matrix (graded correlations 0.98 to 0.3, one constant column): 12 calls of the current function against one cor() and 12 thresholdings. Only the correlation filter is timed, not the QR/fit per candidate that follows it, so the end-to-end gain at the call sites is smaller; the comparison is exact because the kept sets are integer choices."
+}

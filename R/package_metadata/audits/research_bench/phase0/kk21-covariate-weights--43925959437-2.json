@@ -1,0 +1,14 @@
+{
+ "finding_id": "kk21-covariate-weights#43925959437.2",
+ "kind": "pkg",
+ "benchmarkable": false,
+ "why_not": "The candidate is a score-test entry rule implemented inside the C++ stepwise kernels (kk21_weights.cpp, as kk21_stepwise_logistic_weights_cpp does); no exported EDI function does score-based stepwise for beta/NB/ordinal, and an R-level stand-in (glm.fit + statmod::glm.scoretest per step) would time R loops against C++ refits, so its verdict would measure language, not algorithm. It is also an estimator change (score z vs Wald t changes the selected order and weights), so the two sides cannot agree under any tier; the speed claim needs the v1.2.0-TODO-23 code first.",
+ "packages": [],
+ "tier": "",
+ "tol": null,
+ "setup": "",
+ "current": "",
+ "candidate": "",
+ "stands_in_for": "R/EDI/src/kk21_weights.cpp (kk21_stepwise_beta_weights_cpp / kk21_stepwise_negbin_weights_cpp / kk21_stepwise_ordinal_weights_cpp)",
+ "notes": "needs_code: benchmark inside v1.2.0-TODO-23 once the score path exists in C++, with the existing KK21 weight-comparison A/B for the estimator change."
+}

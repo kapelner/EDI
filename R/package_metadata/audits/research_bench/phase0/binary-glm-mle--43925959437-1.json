@@ -1,0 +1,14 @@
+{
+ "finding_id": "binary-glm-mle#43925959437.1",
+ "kind": "existing",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "iterative",
+ "tol": 0.001,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 100L\n\txs = matrix(rnorm(n * 5L), n, 5L)\n\ty = as.numeric(rbinom(n, 1, stats::plogis(0.5 * xs[, 1] - 0.3 * xs[, 2])))\n\tlist(xs = xs, y = y, n_steps = c(40L, 60L, 80L, 100L))\n}",
+ "current": "bench_run = function(d) {\n\tout = numeric(0)\n\tfor (n_t in d$n_steps) for (j in seq_len(ncol(d$xs))) {\n\t\tmod = EDI:::fast_logistic_regression_with_var(as.matrix(cbind(1, d$xs[seq_len(n_t), j, drop = FALSE])), as.numeric(d$y[seq_len(n_t)]))\n\t\tout = c(out, mod$b[2], mod$ssq_b_2, abs(mod$b[2] / sqrt(mod$ssq_b_2)))\n\t}\n\tout\n}",
+ "candidate": "bench_run = function(d) {\n\tout = numeric(0)\n\tfor (n_t in d$n_steps) for (j in seq_len(ncol(d$xs))) {\n\t\tmod = EDI:::fast_logistic_regression_with_var(as.matrix(cbind(1, d$xs[seq_len(n_t), j, drop = FALSE])), as.numeric(d$y[seq_len(n_t)]), optimization_alg = \"irls\")\n\t\tout = c(out, mod$b[2], mod$ssq_b_2, abs(mod$b[2] / sqrt(mod$ssq_b_2)))\n\t}\n\tout\n}",
+ "stands_in_for": "R/EDI/R/design_seq_one_by_one_KK21.R:431 (compute_weight_KK21_incidence -> fast_logistic_regression_with_var, default optimization_alg=\"lbfgs\" at R/EDI/R/helper_glm_fit.R:923)",
+ "notes": "Times the KK21 incidence covariate-weight computation: 20 two-column logistic fits (5 covariates at n_t = 40, 60, 80, 100) through the exported wrapper, lbfgs default vs irls; compares slope, its variance and the weight. tol is 1e-3 rather than 10x 1e-8 because the lbfgs side stops on LBFGSpp's relative f-decrease (delta=1e-8) at |f|~50, leaving ~1e-4 parameter error. Data are drawn to avoid separation, so the covariate-drop retry path (where the two optimizers could drop different columns) is not exercised."
+}

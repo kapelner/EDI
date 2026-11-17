@@ -1,0 +1,20 @@
+{
+ "finding_id": "blocking-partition#43925959437.2",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "ompr",
+  "ompr.roi",
+  "ROI",
+  "ROI.plugin.glpk",
+  "nbpMatching"
+ ],
+ "tier": "exact",
+ "tol": null,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 8L\n\tX = cbind(x1 = rnorm(n), x2 = rnorm(n))\n\tD = EDI:::optimal_blocks_distance_matrix_cpp(X, dist_code = 3L)\n\tstorage.mode(D) = \"double\"\n\tdes = EDI::DesignFixedOptimalBlocks$new(B = 4L, method = \"ompr\", response_type = \"continuous\", n = n)\n\tlist(D = D, priv = des$.__enclos_env__$private)\n}",
+ "current": "bench_run = function(d) {\n\tlabels = d$priv$solve_optimal_blocks(d$D)\n\tn = nrow(d$D)\n\tas.integer(stats::ave(seq_len(n), as.integer(labels), FUN = min))\n}",
+ "candidate": "bench_run = function(d) {\n\tn = nrow(d$D)\n\tD = d$D\n\tdiag(D) = 0\n\tm = nbpMatching::nonbimatch(nbpMatching::distancematrix(D))$matches\n\tpartner = integer(n)\n\tpartner[m$Group1.Row] = as.integer(m$Group2.Row)\n\tas.integer(pmin(seq_len(n), partner))\n}",
+ "stands_in_for": "R/EDI/R/design_fixed_optimal_blocks.R:481-535 (private solve_optimal_blocks, called at :371 for method=\"ompr\")",
+ "notes": "Times the exact block solve for n=8, B=4 (pairs) on the Mahalanobis distance matrix EDI builds: the real private ompr/GLPK MILP method (reached through the R6 private env, untimed construction in setup) vs nbpMatching::nonbimatch as helper_matching.R:44 calls it. Both return each unit's block as the smallest unit index in it, so labels are compared exactly. Risks: ROI.plugin.glpk needs the system GLPK library on the runner, and nonbimatch's integer scaling could pick a different near-tied optimum (unlikely with continuous random X); n is kept at 8 because the MILP is exponential."
+}

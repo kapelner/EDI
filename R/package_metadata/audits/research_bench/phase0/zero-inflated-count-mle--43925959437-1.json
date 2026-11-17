@@ -1,0 +1,16 @@
+{
+ "finding_id": "zero-inflated-count-mle#43925959437.1",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "glmmTMB"
+ ],
+ "tier": "closed_form",
+ "tol": null,
+ "setup": "bench_setup = function() {\n  set.seed(20261117)\n  n = 200L\n  w = rbinom(n, 1, 0.5)\n  x1 = rnorm(n); x2 = rnorm(n)\n  pi0 = stats::plogis(-0.5 + 0.3 * x1)\n  mu = exp(0.8 + 0.4 * w + 0.3 * x1 - 0.2 * x2)\n  y = ifelse(runif(n) < pi0, 0, rpois(n, mu))\n  dat = data.frame(y = y, w = w, x1 = x1, x2 = x2)\n  list(dat = dat, weights = rexp(n))   # one Bayesian-bootstrap draw of row weights\n}",
+ "current": "bench_run = function(d) {\n  mod = suppressWarnings(suppressMessages(glmmTMB::glmmTMB(y ~ w + x1 + x2, ziformula = ~ w + x1 + x2,\n    family = stats::poisson(link = \"log\"), data = d$dat, weights = d$weights,\n    control = glmmTMB::glmmTMBControl(parallel = 1L))))\n  fe = glmmTMB::fixef(mod)\n  list(cond = as.numeric(fe$cond), zi = as.numeric(fe$zi))\n}",
+ "candidate": "bench_run = function(d) {\n  mod = suppressWarnings(suppressMessages(glmmTMB::glmmTMB(y ~ w + x1 + x2, ziformula = ~ w + x1 + x2,\n    family = stats::poisson(link = \"log\"), data = d$dat, weights = d$weights, se = FALSE,\n    control = glmmTMB::glmmTMBControl(parallel = 1L, conv_check = \"skip\", eigval_check = FALSE))))\n  fe = glmmTMB::fixef(mod)\n  list(cond = as.numeric(fe$cond), zi = as.numeric(fe$zi))\n}",
+ "stands_in_for": "R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1095-1104 (fit_zero_augmented_model, called from compute_estimate_with_bootstrap_weights at :153); the hurdle sibling is R/EDI/R/inference_count_hurdle.R:436-443",
+ "notes": "Times one estimate-only Bayesian-bootstrap replicate of the zero-inflated Poisson weighted glmmTMB fit at n = 200 (cond and zi formulas both w + x1 + x2, EDI's default model_formula_zero = model_formula), with parallel = 1 as num_cores = 1. Only sdreport and the post-fit checks are skipped, so the optimizer path and fixed effects should be bit-identical. glmmTMB is in EDI's Suggests, not Imports, hence listed; se, conv_check and eigval_check verified in the installed glmmTMB 1.1.14 help."
+}

@@ -1,0 +1,17 @@
+{
+ "finding_id": "logrank-family-tests#43925959437.2",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "interval",
+  "icenReg"
+ ],
+ "tier": "iterative",
+ "tol": 0.0001,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 100L\n\tw = rep(c(0, 1), each = n / 2L)\n\tT_ev = stats::rexp(n, rate = 0.1 * exp(-0.3 * w))\n\tL = numeric(n); R = numeric(n)\n\tfor (i in seq_len(n)) {\n\t\tvisits = cumsum(stats::runif(8L, 1, 4))\n\t\tbefore = visits[visits < T_ev[i]]\n\t\tafter = visits[visits >= T_ev[i]]\n\t\tL[i] = if (length(before)) max(before) else 0\n\t\tR[i] = if (length(after)) min(after) else Inf\n\t}\n\tw_draws = NULL\n\tlist(L = L, R = R, w = w, w_draws = w_draws)\n}",
+ "current": "bench_run = function(d) {\n\tfit = interval::icfit(d$L, d$R)\n\ttt = sort(unique(d$R[is.finite(d$R)]))\n\tvapply(tt, function(t) sum(fit$pf[fit$intmap[2L, ] <= t]), numeric(1L))\n}",
+ "candidate": "bench_run = function(d) {\n\tfit = icenReg::ic_np(cbind(d$L, d$R), B = c(0, 1))\n\ttt = sort(unique(d$R[is.finite(d$R)]))\n\tvapply(tt, function(t) sum(fit$p_hat[fit$T_bull_Intervals[2L, ] <= t]), numeric(1L))\n}",
+ "stands_in_for": "R/EDI/R/inference_survival_log_rank.R:261 (the pooled icfit that interval::ictest runs internally, ictest.R:104); same solve as R/EDI/R/helper_inference_survival_turnbull.R:71",
+ "notes": "Benchmarks part (2) only (part (1), solving once per randomization test, is spec'd under interval-censored-npmle#43925959437.3): one pooled Turnbull NPMLE at n=100 by interval::icfit (self-consistency EM, KKT error < 1e-6) vs icenReg::ic_np (EMICM in C++, internal stopping rule; its tol argument is not passed to the C code), compared as the NPMLE CDF at every finite right endpoint. Both use (L,R] intervals (icfit's Lin/Rin defaults, ic_np B=c(0,1)) and continuous visit times avoid cross-subject endpoint ties; tol 1e-4 absolute on F because the two stopping rules differ and EMICM's is not documented, so a 'not equivalent' verdict here may be a convergence-tolerance artifact rather than a different estimate."
+}

@@ -1,0 +1,14 @@
+{
+ "finding_id": "weibull-aft-mle#43925959437.2",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "closed_form",
+ "tol": null,
+ "setup": "bench_setup = function() {\n  set.seed(20261117)\n  n = 200L\n  w = rbinom(n, 1, 0.5)\n  Z = matrix(rnorm(n * 2L), n, 2L, dimnames = list(NULL, c(\"x1\", \"x2\")))\n  t_event = exp(3 + 0.4 * w + as.numeric(Z %*% c(0.3, -0.2)) + 0.7 * log(rexp(n)))\n  t_cens = rexp(n, 1 / 40)\n  time = pmin(t_event, t_cens)\n  dead = as.numeric(t_event <= t_cens)\n  X = cbind(treatment = w, Z)\n  row_weights = rexp(n)          # one Bayesian-bootstrap draw\n  list(time = time, dead = dead, X = X, row_weights = row_weights)\n}",
+ "current": "bench_run = function(d) {\n  fit = EDI:::weighted_weibull_bootstrap_surrogate_fit(d$time, d$dead, d$X, d$row_weights)\n  as.numeric(c(fit$beta_hat, fit$se))\n}",
+ "candidate": "bench_run = function(d) {\n  ok = is.finite(d$time) & is.finite(d$dead) & is.finite(d$row_weights) & d$row_weights > 0\n  Xf = cbind(\"(Intercept)\" = 1, d$X[ok, , drop = FALSE])\n  Y = cbind(time = log(d$time[ok]), status = d$dead[ok])   # survreg's weibull -> extreme-value on log time\n  fit = tryCatch(survival::survreg.fit(x = Xf, y = Y, weights = d$row_weights[ok], offset = NULL,\n    init = NULL, controlvals = survival::survreg.control(),\n    dist = survival::survreg.distributions$extreme, scale = 0, nstrat = 1),\n    error = function(e) NULL)\n  if (is.null(fit) || is.character(fit)) {\n    fit2 = EDI:::weighted_weibull_bootstrap_surrogate_fit(d$time, d$dead, d$X, d$row_weights)\n    return(as.numeric(c(fit2$beta_hat, fit2$se)))\n  }\n  as.numeric(c(fit$coefficients[[\"treatment\"]], sqrt(fit$var[\"treatment\", \"treatment\"])))\n}",
+ "stands_in_for": "R/EDI/R/globals.R:378 (weighted_weibull_bootstrap_surrogate_fit, unclustered branch, as called per draw from R/EDI/R/inference_survival_weibull.R:89)",
+ "notes": "Times one Bayesian-bootstrap draw's weighted Weibull fit at n = 200 (treatment + 2 covariates, ~30% censored), returning (beta_hat, se). Candidate calls the exported-but-internal survival::survreg.fit on the prebuilt matrix with the same transform (log time, extreme-value dist), default control and init = NULL that survreg() uses, so it runs the identical Newton-Raphson and should agree to rounding; checked against survival master's survreg.R/survreg.fit.R signature (x, y, weights, offset, init, controlvals, dist, scale, nstrat, strata, parms, assign). The cluster/robust branch and the warm-start (KK marginal) caller are not covered."
+}

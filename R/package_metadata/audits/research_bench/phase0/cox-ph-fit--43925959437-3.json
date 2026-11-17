@@ -1,0 +1,16 @@
+{
+ "finding_id": "cox-ph-fit#43925959437.3",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "coxdev"
+ ],
+ "tier": "iterative",
+ "tol": 1e-05,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 500L\n\tw = rbinom(n, 1, 0.5)\n\tZ = matrix(rnorm(n * 4L), n, 4L)\n\tX = cbind(treatment = as.numeric(w), Z)\n\tcolnames(X) = c(\"treatment\", paste0(\"x\", 1:4))\n\teta = drop(X %*% c(-0.5, 0.4, -0.3, 0.2, 0.1))\n\tt_ev = rexp(n, rate = 0.2 * exp(eta))\n\tt_cens = runif(n, 0, 15)\n\ttime = ceiling(pmin(t_ev, t_cens) * 2) / 2   # half-unit grid: many tied times\n\tdead = as.numeric(t_ev <= t_cens)\n\trow_weights = rexp(n)                        # one Bayesian-bootstrap draw\n\tlist(time = as.numeric(time), dead = dead, X = X, w = as.numeric(row_weights))\n}",
+ "current": "bench_run = function(d) {\n\tfit = EDI:::weighted_cox_bootstrap_surrogate_fit(d$time, d$dead, d$X, d$w)\n\tas.numeric(fit$coefficients)\n}",
+ "candidate": "bench_run = function(d) {\n\t# Weighted Efron Cox MLE by damped Newton on coxdev's C++ deviance, gradient and\n\t# matrix-free information (the operator is applied to X, giving X'IX in O(n p^2)).\n\tX = d$X\n\tw = d$w\n\tcox = coxdev::CoxDeviance$new(event = d$time, status = d$dead, sample_weight = w,\n\t\ttie_breaking = \"efron\")\n\tbeta = rep(0, ncol(X))\n\teta = drop(X %*% beta)\n\tres = cox$compute(eta, w)\n\tfor (it in 1:50) {\n\t\tscore = -drop(crossprod(X, res$gradient)) / 2\n\t\tinfo = cox$information(eta, w)\n\t\tH = crossprod(X, info$multiply(X))\n\t\tstep = drop(solve(H, score))\n\t\ts = 1\n\t\trepeat {\n\t\t\tbeta_new = beta + s * step\n\t\t\teta_new = drop(X %*% beta_new)\n\t\t\tres_new = cox$compute(eta_new, w)\n\t\t\tif (res_new$deviance <= res$deviance + 1e-12 * abs(res$deviance) || s < 1e-4) break\n\t\t\ts = s / 2\n\t\t}\n\t\tbeta = beta_new\n\t\teta = eta_new\n\t\tres = res_new\n\t\tif (max(abs(s * step)) < 1e-10) break\n\t}\n\tas.numeric(beta)\n}",
+ "stands_in_for": "R/EDI/R/globals.R:292 (weighted_cox_bootstrap_surrogate_fit; its unstratified fast path survival::coxph.fit at globals.R:346), called per Bayesian-bootstrap draw from R/EDI/R/inference_survival_coxph.R:445",
+ "notes": "Times one weighted Efron Cox fit (n=500, p=5, ~25% censoring, half-unit tied times, one rexp BB weight draw): EDI's coxph.fit path from a zero start against an R-level damped Newton on coxdev's C++ deviance/information; the CoxDeviance object is rebuilt inside bench_run, so the candidate pays its sort per draw (EDI could cache it across draws, which would favour it further). The candidate is an R loop over coxdev, not the native kernel v1.1.0-TODO-63 would build, so it measures coxdev's per-iteration cost plus R overhead; tol 1e-5 because coxph.fit stops on a 1e-9 relative log-likelihood change, which bounds the coefficients only to roughly the square root of that scale, while the candidate iterates to a 1e-10 step."
+}

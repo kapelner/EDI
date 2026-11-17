@@ -1,0 +1,14 @@
+{
+ "finding_id": "missing-covariate-imputation#43925959437.1",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "iterative",
+ "tol": 0.5,
+ "setup": "bench_setup = function() {\n  options(ranger.num.threads = 1L)\n  set.seed(20261117)\n  t0 = 60L; k = 5L; n = t0 + k\n  X = data.frame(x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n), x4 = rbinom(n, 1, 0.5))\n  X$x1 = X$x1 + 0.6 * X$x2\n  y = 1 + X$x1 - 0.5 * X$x3 + rnorm(n)\n  miss1 = sample.int(t0, 6L); miss2 = sample.int(t0, 6L)\n  X$x1[miss1] = NA; X$x2[miss2] = NA\n  X$x1[(t0 + 1L):n] = NA   # each arrival is missing x1\n  y[sample.int(t0, 3L)] = NA  # some earlier responses still pending, so y is itself imputed\n  y[(t0 + 1L):n] = NA      # arrivals have no response yet\n  dat = cbind(X, y = y)\n  list(dat = dat, t0 = t0, k = k)\n}",
+ "current": "bench_run = function(d) {\n  set.seed(1L)\n  out = numeric(d$k)\n  for (j in seq_len(d$k)) {\n    rows = seq_len(d$t0 + j)\n    imp = suppressWarnings(missRanger::missRanger(d$dat[rows, , drop = FALSE], verbose = 0, num.threads = 1L))\n    out[j] = as.numeric(imp$x1[d$t0 + j])\n  }\n  out\n}",
+ "candidate": "bench_run = function(d) {\n  set.seed(1L)\n  hist = d$dat[seq_len(d$t0), , drop = FALSE]\n  imp = suppressWarnings(missRanger::missRanger(hist, verbose = 0, num.threads = 1L, keep_forests = TRUE))\n  out = numeric(d$k)\n  for (j in seq_len(d$k)) {\n    nd = d$dat[d$t0 + j, , drop = FALSE]\n    out[j] = as.numeric(suppressWarnings(stats::predict(imp, nd))$x1)\n  }\n  out\n}",
+ "stands_in_for": "R/EDI/R/design_abstract.R:1115 (missRanger call in covariate_impute_if_necessary_and_then_create_model_matrix, reached per arrival from R/EDI/R/design_seq_one_by_one_abstract.R:83)",
+ "notes": "Times k = 5 arrivals after t = 60 subjects (p = 4 plus y, ~10% missing in x1/x2): current refits missRanger (500 trees, maxiter 10) on all rows at each arrival; candidate fits once with keep_forests = TRUE and predicts each arrival (refit every k). This is an estimator change (imputed values come from different forests), so the expected verdict is 'faster, not equivalent'; tol 0.5 (absolute-ish on N(0,1)-scale values) only screens out gross disagreement. The predict path needs missRanger >= 2.6.0 (CRAN current is 2.6.1); arrivals miss both x1 and y, i.e. missRanger's 'hard case', which uses RNG (seeded) and iter = 4 by default."
+}

@@ -1,0 +1,14 @@
+{
+ "finding_id": "jackknife-replicates#43925959437.1",
+ "kind": "r_rewrite",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "closed_form",
+ "tol": null,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 200L\n\tw = rep(c(0, 1), each = n / 2L)\n\tx1 = stats::rnorm(n); x2 = stats::rbinom(n, 1L, 0.4); x3 = stats::runif(n)\n\tX = cbind(1, w, x1, x2, x3)\n\ty = 1 + 0.5 * w + 0.8 * x1 - 0.4 * x2 + 0.3 * x3 + stats::rnorm(n)\n\tlist(X = X, y = y)\n}",
+ "current": "bench_run = function(d) {\n\tn = nrow(d$X)\n\tvapply(seq_len(n), function(i) {\n\t\tas.numeric(EDI::fast_ols_cpp(d$X[-i, , drop = FALSE], d$y[-i])$b[2L])\n\t}, numeric(1L))\n}",
+ "candidate": "bench_run = function(d) {\n\tX = d$X; y = d$y\n\tXtX = crossprod(X); Xty = as.numeric(crossprod(X, y))\n\tvapply(seq_len(nrow(X)), function(i) {\n\t\txi = X[i, ]\n\t\tas.numeric(solve(XtX - tcrossprod(xi), Xty - xi * y[i])[2L])\n\t}, numeric(1L))\n}",
+ "stands_in_for": "R/EDI/R/inference_all_abstract_non_param_boot.R:1896 (per-deletion refit, reaching fast_ols_cpp at R/EDI/R/inference_continuous_ols.R:413)",
+ "notes": "Delete-one jackknife of the OLS treatment coefficient at n=200, k=5 (all 200 replicates per call). The current side times only the fast_ols_cpp refit on X[-i,] per replicate and omits the R6 bootstrap_subset_inference/compute_estimate overhead, so it understates today's cost and is conservative for the candidate. Both are exact least squares; on this well-conditioned X the downdate should agree to ~1e-12."
+}

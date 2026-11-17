@@ -1,0 +1,16 @@
+{
+ "finding_id": "beta-regression-mle#43925959437.1",
+ "kind": "existing",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "betareg"
+ ],
+ "tier": "iterative",
+ "tol": 0.01,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 200L\n\tw = rbinom(n, 1, 0.5); x1 = rnorm(n); x2 = rnorm(n)\n\tX = cbind(\"(Intercept)\" = 1, treatment = w, x1 = x1, x2 = x2)\n\tmu = stats::plogis(-0.2 + 0.4 * w + 0.3 * x1 - 0.2 * x2)\n\ty = stats::rbeta(n, mu * 10, (1 - mu) * 10)\n\tu = runif(n)\n\ty[u < 0.08] = 0\n\ty[u > 0.95] = 1\n\trow_weights = stats::rexp(n)\n\tlist(X = X, y = y, row_weights = row_weights)\n}",
+ "current": "bench_run = function(d) {\n\tX = d$X; y = d$y; row_weights = d$row_weights\n\tis_zero = as.numeric(y == 0); is_one = as.numeric(y == 1); is_mid = y > 0 & y < 1\n\tzero_fit = tryCatch(EDI:::fast_logistic_regression_weighted_cpp(X = X, y = is_zero, weights = row_weights), error = function(e) NULL)\n\tone_fit = tryCatch(EDI:::fast_logistic_regression_weighted_cpp(X = X, y = is_one, weights = row_weights), error = function(e) NULL)\n\tX_mid = X[is_mid, , drop = FALSE]\n\ty_mid = EDI:::sanitize_beta_response(y[is_mid])\n\tw_mid = row_weights[is_mid]\n\tdf_mid = as.data.frame(X_mid[, -1, drop = FALSE])\n\tdf_mid$y = y_mid\n\tbeta_fit = suppressWarnings(betareg::betareg(y ~ ., data = df_mid, weights = w_mid,\n\t\tcontrol = betareg::betareg.control(start = list(phi = 10))))\n\tas.numeric(stats::coef(beta_fit)[colnames(X_mid)])\n}",
+ "candidate": "bench_run = function(d) {\n\tX = d$X; y = d$y; row_weights = d$row_weights\n\tis_mid = y > 0 & y < 1\n\tX_mid = X[is_mid, , drop = FALSE]\n\ty_mid = EDI:::sanitize_beta_response(y[is_mid])\n\tw_mid = row_weights[is_mid]\n\tres = EDI:::fast_beta_regression_weighted_cpp(X = X_mid, y = y_mid, weights = w_mid, start_phi = 10, estimate_only = TRUE)\n\tas.numeric(res$coefficients)\n}",
+ "stands_in_for": "R/EDI/R/inference_proportion_zero_one_inflated_beta.R:252-305 (compute_estimate_with_bootstrap_weights: weighted zero/one logits at :260-275, betareg::betareg at :286-296)",
+ "notes": "Times one Bayesian-bootstrap replicate of the conditional-estimand ZOIB refit (n=200, ~13% zeros/ones, rexp weights): today two weighted logits plus the formula betareg call, candidate the weighted C++ beta MLE only (the logits are skipped, which is valid only for the conditional estimand). Compares the 4 mean-model coefficients. Different optimizers: betareg finishes with Fisher scoring (fstol 1e-8) but EDI's kernel runs lbfgs at tol 1e-6 on relative f-decrease (fast_beta_regression.cpp:262), so agreement is only to about 1e-3; tol 1e-2 is the defensible bound, and a miss means the lbfgs stop rule, not a different estimator."
+}

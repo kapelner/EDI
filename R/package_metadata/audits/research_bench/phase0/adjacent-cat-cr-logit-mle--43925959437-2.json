@@ -1,0 +1,14 @@
+{
+ "finding_id": "adjacent-cat-cr-logit-mle#43925959437.2",
+ "kind": "existing",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "iterative",
+ "tol": 0.002,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 200L\n\tX = cbind(treatment = rbinom(n, 1, 0.5), x1 = rnorm(n), x2 = rnorm(n))\n\tlat = 0.5 * X[, 1] + 0.3 * X[, 2] - 0.2 * X[, 3] + rlogis(n)\n\ty = as.numeric(cut(lat, stats::quantile(lat, c(0, 0.3, 0.6, 0.85, 1)), include.lowest = TRUE, labels = FALSE))\n\tlist(X = X, y = y)\n}",
+ "current": "bench_run = function(d) {\n\tac = EDI:::fast_adjacent_category_logit_cpp(d$X, d$y, optimization_alg = \"lbfgs\")\n\tcr = EDI:::fast_continuation_ratio_regression_cpp(d$X, d$y, optimization_alg = \"lbfgs\")\n\tlist(ac = as.numeric(ac$params), cr = as.numeric(cr$params))\n}",
+ "candidate": "bench_run = function(d) {\n\tac = EDI:::fast_adjacent_category_logit_cpp(d$X, d$y, optimization_alg = \"newton_raphson\")\n\tcr = EDI:::fast_continuation_ratio_regression_cpp(d$X, d$y, optimization_alg = \"newton_raphson\")\n\tlist(ac = as.numeric(ac$params), cr = as.numeric(cr$params))\n}",
+ "stands_in_for": "R/EDI/R/inference_ordinal_adj_cat_logit.R:112 and R/EDI/R/inference_ordinal_stereotype_logit.R:1048 (ordinal_fit_scaled -> fast_adjacent_category_logit_cpp / fast_continuation_ratio_regression_cpp, default optimization_alg=\"lbfgs\" at fast_adjacent_category_logit.cpp:387, fast_continuation_ratio_regression.cpp:330)",
+ "notes": "Times one cold-start AC fit plus one CR fit (n=200, K=4, p=3, well-scaled covariates, so ordinal_fit_scaled passes X through unscaled) with lbfgs vs newton_raphson; returns the full c(alpha, beta) vectors. tol is not 10x the 1e-8 tol: the lbfgs side stops on LBFGSpp's relative f-decrease (delta=1e-8, past=1, _helper_functions_core.h:1343-1346), which at |f|~250 leaves parameter error of order 1e-4, so 2e-3 relative (floored at 1) is the defensible bound. Excludes the R6 warm-start plumbing; the first-fit cold start is what is timed."
+}

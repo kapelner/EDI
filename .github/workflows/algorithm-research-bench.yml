@@ -1,0 +1,132 @@
+# Benchmark stage for algorithm-research findings, Phase 0 (owner, 2026-11-17).
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/algorithm_research_bench_stage.md.
+#
+# Dispatched by hand. Each spec under `specs` (one JSON per finding, written by an agent that
+# could not run code) times EDI's current path against the candidate on ONE EDI build, with the
+# compiled-code audit's ABBA timing and D2 result comparison (algorithm_audit_bench.py imports
+# compiled_code_verify.py). No Claude runs here. The result table goes to the job summary and the
+# `algorithm-research-bench-report` artifact; nothing is committed and no PR is opened.
+name: algorithm-research-bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      specs:
+        description: "Folder of bench specs (one JSON per finding)"
+        default: R/package_metadata/audits/research_bench/phase0
+      blocks:
+        description: "ABBA blocks per finding (4 timed processes each)"
+        default: "20"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      has: ${{ steps.plan.outputs.has }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: python3 .github/scripts/algorithm_audit_bench.py plan --specs "$SPECS" --github-output "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.has == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NOT_CRAN: true
+      CI: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+      # The default build (unity, portable), as the compiled-code audit's verify-build job uses:
+      # both sides of every finding are timed on this one build.
+      - name: Build and install EDI
+        run: |
+          mkdir -p "$RUNNER_TEMP/lib"
+          R CMD INSTALL --no-test-load --library="$RUNNER_TEMP/lib" R/EDI
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/lib.tgz" lib
+      - uses: actions/upload-artifact@v7
+        with:
+          name: research-bench-lib
+          path: ${{ runner.temp }}/lib.tgz
+          retention-days: 3
+
+  bench:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        spec: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: bench (${{ matrix.spec.finding_id }})
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: research-bench-lib
+          path: ${{ runner.temp }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      # EDI's imports plus the packages this spec's candidate needs (from CRAN only).
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"hard"'
+          extra-packages: ${{ matrix.spec.packages }}
+      - name: Equal results, then ABBA timing
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+          BLOCKS: ${{ github.event.inputs.blocks }}
+          KEY: ${{ matrix.spec.key }}
+        run: |
+          tar -C "$RUNNER_TEMP" -xzf "$RUNNER_TEMP/lib.tgz"
+          python3 .github/scripts/algorithm_audit_bench.py bench \
+            --spec "$SPECS/$KEY.json" --lib "$RUNNER_TEMP/lib" \
+            --work "$RUNNER_TEMP/bench" --out "$RUNNER_TEMP/verdict-$KEY.json" --blocks "$BLOCKS"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: research-bench-verdict-${{ matrix.spec.key }}
+          path: ${{ runner.temp }}/verdict-${{ matrix.spec.key }}.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  report:
+    needs: [plan, bench]
+    if: ${{ !cancelled() && needs.plan.outputs.has == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: research-bench-verdict-*
+          path: ${{ runner.temp }}/verdicts
+      - name: Result table
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          python3 .github/scripts/algorithm_audit_bench.py report --specs "$SPECS" \
+            --verdicts "$RUNNER_TEMP/verdicts" --out "$RUNNER_TEMP/report.md" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: algorithm-research-bench-report
+          path: ${{ runner.temp }}/report.md

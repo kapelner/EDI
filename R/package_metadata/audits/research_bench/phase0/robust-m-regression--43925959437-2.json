@@ -1,0 +1,16 @@
+{
+ "finding_id": "robust-m-regression#43925959437.2",
+ "kind": "pkg",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [
+  "RobStatTM"
+ ],
+ "tier": "iterative",
+ "tol": 0.15,
+ "setup": "bench_setup = function() {\n  set.seed(20261117)\n  n = 200L\n  w = rbinom(n, 1, 0.5)\n  Z = matrix(rnorm(n * 3L), n, 3L, dimnames = list(NULL, c(\"x1\", \"x2\", \"x3\")))\n  y = 1 + 0.5 * w + as.numeric(Z %*% c(0.4, -0.3, 0.2)) + rnorm(n)\n  out_idx = sample.int(n, 10L)\n  y[out_idx] = y[out_idx] + 8   # 5% vertical outliers\n  X = cbind(\"(Intercept)\" = 1, w = w, Z)\n  df = data.frame(y = y, w = w, Z)\n  list(X = X, y = y, df = df)\n}",
+ "current": "bench_run = function(d) {\n  fit = EDI::fast_robust_regression_cpp(X = d$X, y = d$y, smart_cold_start = TRUE, method = \"MM\", j = 2L)\n  as.numeric(fit$coefficients)\n}",
+ "candidate": "bench_run = function(d) {\n  fit = RobStatTM::lmrobdetMM(y ~ w + x1 + x2 + x3, data = d$df,\n    control = RobStatTM::lmrobdet.control(family = \"bisquare\", efficiency = 0.95))\n  as.numeric(fit$coefficients)\n}",
+ "stands_in_for": "R/EDI/R/inference_continuous_robust_regr.R:286 (fit_rlm_model -> fast_robust_regression_cpp, R/EDI/src/fast_robust_regression.cpp:315)",
+ "notes": "Times one fit at n = 200, p = 5 (intercept, treatment, 3 covariates) with 5% vertical outliers: EDI's bisquare-M from an LS start vs RobStatTM's deterministic Pena-Yohai-start MM (bisquare, 95% efficiency, matching EDI's c = 4.685). This is an estimator change and the finding itself expects the candidate to be slower (it competes with FAST-S, not with today's path), so the useful output is the ratio; expected verdict 'not faster'. tol 0.15 allows the S-scale vs MAD-scale difference on clean-ish data; a larger gap means the two estimators genuinely disagree."
+}

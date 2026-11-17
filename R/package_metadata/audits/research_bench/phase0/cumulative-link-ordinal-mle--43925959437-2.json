@@ -1,0 +1,14 @@
+{
+ "finding_id": "cumulative-link-ordinal-mle#43925959437.2",
+ "kind": "existing",
+ "benchmarkable": true,
+ "why_not": "",
+ "packages": [],
+ "tier": "iterative",
+ "tol": 0.001,
+ "setup": "bench_setup = function() {\n\tset.seed(20261117)\n\tn = 300L\n\tn_sets = 20L\n\tsets = vector(\"list\", n_sets)\n\tfor (s in seq_len(n_sets)) {\n\t\tw = rbinom(n, 1, 0.5)\n\t\tZ = matrix(rnorm(n * 3L), n, 3L)\n\t\tX = cbind(as.numeric(w), Z)\n\t\tlatent = drop(X %*% c(0.6, 0.5, -0.4, 0.3)) + rlogis(n)\n\t\ty = as.numeric(cut(latent, breaks = c(-Inf, quantile(latent, c(0.2, 0.4, 0.6, 0.8)), Inf), labels = FALSE))\n\t\tsets[[s]] = list(X = X, y = y)\n\t}\n\tsets\n}",
+ "current": "bench_run = function(d) {\n\tfits = list(logit = EDI::fast_ordinal_regression_cpp, probit = EDI::fast_ordinal_probit_regression_cpp,\n\t\tcloglog = EDI::fast_ordinal_cloglog_regression_cpp)\n\tlapply(fits, function(f) {\n\t\tunlist(lapply(d, function(s) as.numeric(f(X = s$X, y = s$y, optimization_alg = \"lbfgs\", estimate_only = TRUE)$params)))\n\t})\n}",
+ "candidate": "bench_run = function(d) {\n\tfits = list(logit = EDI::fast_ordinal_regression_cpp, probit = EDI::fast_ordinal_probit_regression_cpp,\n\t\tcloglog = EDI::fast_ordinal_cloglog_regression_cpp)\n\tlapply(fits, function(f) {\n\t\tunlist(lapply(d, function(s) as.numeric(f(X = s$X, y = s$y, optimization_alg = \"newton_raphson\", estimate_only = TRUE)$params)))\n\t})\n}",
+ "stands_in_for": "R/EDI/src/fast_ordinal_regression.cpp:202 (optimize_fixed_likelihood with the default optimization_alg=\"lbfgs\"; same call in fast_ordinal_probit_regression.cpp and fast_ordinal_cloglog_regression.cpp), reached from R/EDI/R/inference_ordinal_proportional_odds.R:111 via the exported fast_ordinal_*_regression_cpp wrappers (estimate_only = TRUE, smart cold start, tol 1e-6)",
+ "notes": "Times 60 cold-start estimate-only fits (20 fixed-seed datasets of n=300, K=5 levels, p=4, for each of the logit, probit and cloglog links) with the default L-BFGS against optimization_alg=\"newton_raphson\" (Newton then L-BFGS fallback); both take the same smart cold start and tol=1e-6. tol is 1e-3, not 1e-5, because L-BFGS also stops on a 1e-6 relative decrease of the objective, which can leave parameter error above 10x tol while Newton stops on gradient norm; the result is the same MLE. The ordinal_fit_scaled centering wrapper is skipped (standard-normal covariates are not rescaled by it)."
+}
