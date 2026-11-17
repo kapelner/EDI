@@ -1,6 +1,6 @@
 {
- "issue_hash": "3805f675de7b7216",
- "last_run": "2026-11-17T19:38:09+00:00",
+ "issue_hash": "ca87f6eb75a02a57",
+ "last_run": "2026-11-17T22:47:41+00:00",
  "units": {
   "DesignFixedBernoulli": {
    "audited_at": "2026-11-17T10:28:57+00:00",
@@ -337,6 +337,174 @@
    "hash": "d7f083bb171d0d63",
    "open_findings": 0,
    "run": "44146437454"
+  },
+  "InferenceCountNegBin": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "97183422ed6e208a",
+   "hash": "8ae86a93655d3abf",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountPoisson": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "3e270d03cfc46d2a",
+   "hash": "5738dd704a634efa",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountPoissonKKGEE": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "53e3496a6d8424e7",
+   "hash": "a8d71f97c486eeea",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountQuasiPoisson": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "95e22ac91d0dc190",
+   "hash": "406c3a25d3fbbdcc",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountRobustPoisson": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "984771c3baa420a9",
+   "hash": "1bf8636a38abc4e3",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountZeroInflatedNegBin": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "67e9b14285a5b02d",
+   "hash": "4cc1c95e267679db",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceCountZeroInflatedPoisson": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "c93f1529f79a7765",
+   "hash": "8693952573b76584",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidBinomialIdentityRiskDiff": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "fb84acdd619c7ebc",
+   "hash": "67539fb41c7dd1af",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidCMH": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "5c19d8c6182cc0c0",
+   "hash": "ba82ff28f3c8ae68",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidExactBinomial": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "36812fb0df9b5507",
+   "hash": "a998448b818eb133",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidExactFisher": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "c9793e7a45533c70",
+   "hash": "16493dea09a6197e",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidExactZhang": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "53e2b949a4a30dd9",
+   "hash": "88b494119b36bcf9",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidExtendedRobins": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "0acd41c0f6a1781a",
+   "hash": "aac5b069e92a4108",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidGCompRiskDiff": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "39921c4f4216a461",
+   "hash": "712585f3a76b8530",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidGCompRiskRatio": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "b55bedf5c770a70b",
+   "hash": "57bd23c2db550493",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKCondLogitGLMMIVWC": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "25bf8f5b78fe3a17",
+   "hash": "8345297f77a446fb",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKCondLogitGLMMOneLik": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "55c0ca024fadf76d",
+   "hash": "7bf619af70eda13e",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKCondLogitIVWC": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "fe0adfec128352c4",
+   "hash": "30dffa948adeedb2",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKCondLogitOneLik": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "42a09968b61fefeb",
+   "hash": "f96fa44ae506424b",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKGCompRiskDiff": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "846b5f90d2d93bf4",
+   "hash": "de3164f17b96085f",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKGCompRiskRatio": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "15429c0eedce26d7",
+   "hash": "3fc3bc75a61b46e6",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKGEE": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "8f11ff6e4dfe6627",
+   "hash": "5b7350811a349821",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKModifiedPoisson": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "9e108d82ee08cde4",
+   "hash": "8f48b6f49c79e2de",
+   "open_findings": 0,
+   "run": "44173443674"
+  },
+  "InferenceIncidKKNewcombeRiskDiff": {
+   "audited_at": "2026-11-17T22:47:41+00:00",
+   "deps": "df2cd502d358893f",
+   "hash": "5ab6cef4a8c601bf",
+   "open_findings": 0,
+   "run": "44173443674"
   }
  }
 }
