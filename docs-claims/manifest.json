@@ -1,0 +1,174 @@
+{
+ "issue_hash": "d8af4b4cabfd9196",
+ "last_run": "2026-11-17T10:28:57+00:00",
+ "units": {
+  "DesignFixedBernoulli": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "2783c1a3a8e3bdc4",
+   "hash": "af3ac866687c0f9d",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedBinaryMatch": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "8043b5c590a2547f",
+   "hash": "e21ff081bc8e17ae",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedBlockedCluster": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "bb545947f761fc7d",
+   "hash": "7a3beb589595f58c",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedBlocking": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "ee2e1e0680aa45f7",
+   "hash": "c14f6300014548fc",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedCluster": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "e3d62feb3351fcfa",
+   "hash": "896e78c412079724",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedFactorial": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "a05dd28bcc1182ef",
+   "hash": "a6511fd29d0c7732",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedGreedy": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "aea7ec5677ff1162",
+   "hash": "0ce9a3ec9baf8e21",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedGreedyDOptimal": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "b930944dc818498b",
+   "hash": "0a8a9d8440e4c5ba",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedMatchingGreedyPairSwitching": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "3c40cdb246cbfd1e",
+   "hash": "61fc6ae06d97c7be",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedOptimal": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "a7da4477fd01729d",
+   "hash": "fdb660fb01cb0ed2",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedOptimalBlocks": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "2528d28dae9c5384",
+   "hash": "ebe838cdd563a786",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixedRerandomization": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "c81f83649fda0f10",
+   "hash": "a1451673e84afbcd",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignFixediBCRD": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "cf07ed9ee1c6f10f",
+   "hash": "bfffb3ff0c4bc480",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneAtkinson": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "e53204b433274663",
+   "hash": "1309939a45650a15",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneBernoulli": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "81ca43a527e686ac",
+   "hash": "829cb82cf3c7ce0c",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneEfron": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "6dd373485ee23c36",
+   "hash": "ca2d84114f1dc64c",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneKK14": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "672c1d6c7c911cc3",
+   "hash": "8d96911f7b9788ec",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneKK21": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "10ce5b0c86dd6355",
+   "hash": "2fdde004daf60dd7",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneKK21stepwise": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "5114aa8a6c7e3aea",
+   "hash": "23094b5267620812",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOnePocockSimon": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "54c9a5f0c34f70a9",
+   "hash": "7a19f685966a6459",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneRandomBlockSize": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "0936ff1c58806622",
+   "hash": "799cf2ea617841f7",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneSPBR": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "f80ed2b3e4d4e6f6",
+   "hash": "2a19057f90ee149c",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneUrn": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "b0936965abc31b23",
+   "hash": "5438554ea440278f",
+   "open_findings": 0,
+   "run": "44048272352"
+  },
+  "DesignSeqOneByOneiBCRD": {
+   "audited_at": "2026-11-17T10:28:57+00:00",
+   "deps": "300e8e706ce07d1d",
+   "hash": "35644e964f2e4e03",
+   "open_findings": 0,
+   "run": "44048272352"
+  }
+ }
+}
