@@ -316,10 +316,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param r  	Number of randomization vectors.
 		#' @param delta  				Null difference.
 		#' @param transform_responses  Transformation.
-		#' @param na.rm 				Kept for compatibility; must be a flag. Non-finite reference
-		#'   statistics (draws whose statistic is \code{NA}, \code{NaN} or infinite) are
-		#'   dropped silently whatever its value, and the p-value is computed over the
-		#'   finite draws only; see Details for the minimum number required.
+		#' @param na.rm 				Drop non-finite draws. Non-finite reference statistics
+		#'   (draws whose statistic is \code{NA}, \code{NaN} or infinite) are always dropped
+		#'   silently and the p-value is computed over the finite draws only;
+		#'   \code{na.rm = FALSE} does not change this (it must still be a flag). See
+		#'   Details for the minimum number of finite draws required.
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
