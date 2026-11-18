@@ -693,7 +693,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   method (Hall 1992; Davidson & MacKinnon 1999).
 		#'   \code{"bca"}: bias-corrected and accelerated p-value via closed-form CI
 		#'   inversion using the jackknife acceleration and bias-correction constants;
-		#'   second-order accurate (Efron 1987; Efron & Tibshirani 1993).
+		#'   second-order accurate (Efron 1987; Efron & Tibshirani 1993). When \code{delta}
+		#'   lies outside every BCa interval (outside the range of the bootstrap draws, or past
+		#'   the acceleration's turning point) the p-value is the floor \eqn{2/B} that the other
+		#'   types also report, not \code{NA}. It is \code{NA} only when the BCa adjustment
+		#'   itself is degenerate: on the order-statistic boundary (one
+		#'   \code{edi_bootstrap_bca_boundary_warning} per object) or with an unstable bias
+		#'   correction or acceleration (one \code{edi_bootstrap_bca_unstable_warning} per
+		#'   object); use \code{type = "percentile"} then. It is also \code{NA} when the jackknife
+		#'   behind the acceleration (automatic unit: blocks, clusters, matched sets or subjects)
+		#'   has fewer than 5 deletion units (reason
+		#'   \code{"bootstrap_bca_jackknife_too_few_deletion_units"}, the same minimum as
+		#'   \code{compute_jackknife_std_error()}) or fewer than 2 finite replicates (reason
+		#'   \code{"bootstrap_bca_jackknife_unavailable"}), with one
+		#'   \code{edi_procedure_na_warning}.
 		#' @param na.rm  				Remove non-finite bootstrap replicates. Default FALSE, in which case a
 		#'   single non-finite replicate makes the p-value \code{NA} (with a once-per-object warning of class
 		#'   \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
@@ -724,6 +737,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			est = est[1]
 			private$clear_nonestimable_state()
 			edi_clear_procedure_failure(private, "bootstrap")
+			# A studentized p-value that is NA for missing/unstable SEs warns like the CI does
+			# (v1.0.6-TODO-140); silent inside resampling (edi_warn_procedure_na()).
+			warn_studentized_na = function(reason) edi_warn_procedure_na(self, private,
+				procedure = "bootstrap p-value", reason = reason, detail = bootstrap_studentized_se_na_detail())
 			if (type %in% c("studentized", "bootstrap-t")) {
 				boot_stats = private$approximate_bootstrap_statistics_beta_hat_T(
 					B = B,
@@ -750,6 +767,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						edi_record_procedure_failure(self, private, "bootstrap_too_few_finite_estimates", "estimate")
 					}
 				}
+				if (!is.null(boot_stats)) warn_studentized_na("bootstrap_too_few_finite_standard_errors")
 				return(NA_real_)
 			}
 			if (length(boot_distr) == 0L) return(NA_real_)
@@ -790,6 +808,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				se_hat = tryCatch(private$infer_original_se(), error = private$resampling_error_to_na)
 				if (!is.finite(se_hat) || se_hat <= 0) {
 					if (isTRUE(private$harden)) private$cache_nonestimable_se("bootstrap_original_standard_error_unavailable")
+					warn_studentized_na("bootstrap_original_standard_error_unavailable")
 					return(NA_real_)
 				}
 				t_obs = abs(est - delta) / se_hat
@@ -807,6 +826,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				)
 					if (length(t_boot) < as.integer(min_number_usable_samples)) {
 						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_unstable_studentized_standard_errors", "se")
+						warn_studentized_na("bootstrap_unstable_studentized_standard_errors")
 						return(NA_real_)
 					}
 					if (private$studentized_interval_scale_unstable(
@@ -817,6 +837,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						alpha = 0.05
 					)) {
 						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_unstable_studentized_standard_errors", "se")
+						warn_studentized_na("bootstrap_unstable_studentized_standard_errors")
 						return(NA_real_)
 					}
 					min(1, max(2 / length(t_boot), mean(t_boot >= t_obs)))
@@ -870,7 +891,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   the interval is \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, with
 		#'   one \code{edi_bootstrap_bca_boundary_warning} per object). B of about 501 or more is
 		#'   recommended for \code{"bca"}; at B of about 100 it is NA for many datasets. Use
-		#'   \code{type = "percentile"} when a small B is needed.
+		#'   \code{type = "percentile"} when a small B is needed. The BCa interval is also
+		#'   \code{NA} when the bias correction or acceleration is unstable (\eqn{|z_0| > 2.5},
+		#'   i.e. the estimate lies in the far tail of the bootstrap draws, \eqn{|a| > 1}, either
+		#'   not finite, or a (near) zero BCa denominator; reason
+		#'   \code{"bootstrap_bca_unstable_bias_or_acceleration"}), with one
+		#'   \code{edi_bootstrap_bca_unstable_warning} per object; a larger B does not help there,
+		#'   use \code{type = "percentile"}. \strong{Minimum units for \code{"bca"}:} the
+		#'   acceleration comes from the jackknife on the design's automatic unit (blocks,
+		#'   clusters, matched sets or subjects); with fewer than 5 deletion units (the same
+		#'   minimum as \code{compute_jackknife_std_error()}) the interval is \code{NA} (reason
+		#'   \code{"bootstrap_bca_jackknife_too_few_deletion_units"}; with fewer than 2 finite
+		#'   replicates, \code{"bootstrap_bca_jackknife_unavailable"}) with one
+		#'   \code{edi_procedure_na_warning}. Each such \code{NA} raises only that one warning.
 		#' @param na.rm                                   Remove non-finite bootstrap replicates.
 		#'   Default TRUE. Non-finite replicates are always removed internally.
 		#' @param show_progress  		Show progress bar.
@@ -991,7 +1024,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					}
 					stop("Studentized bootstrap interval is numerically unstable.")
 				}
-				if (private$bootstrap_confidence_interval_extreme(ci, est = est)) {
+				if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
 					if (isTRUE(private$harden)) {
 						stage = if (type %in% c("studentized", "bootstrap-t", "symmetric-percentile-t")) "se" else "estimate"
 						return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_confidence_interval", stage = stage))
@@ -1097,7 +1130,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					"(leave-one-block-out)."))
 			TRUE
 		},
-		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se"), procedure = NULL){
+		# `warn = FALSE` records the reason without the generic edi_procedure_na_warning; the
+		# Bayesian BCa CI passes it when a specific BCa warning covers this NA (v1.0.6-TODO-116).
+		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se"), procedure = NULL, warn = TRUE){
 			stage = match.arg(stage)
 			# Keep-first (TODO-101): a specific reason already recorded during this CI call
 			# (e.g. BCa boundary) must not be overwritten by the generic fallback.
@@ -1108,11 +1143,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				else {
 					edi_record_procedure_failure(self, private, reason, stage, procedure = procedure)
 					# A recorded reason must not reach the user as a silent NA (v1.0.6-TODO-113).
-					edi_warn_procedure_na(self, private, procedure = "bootstrap confidence interval", reason = reason,
+					if (isTRUE(warn)) edi_warn_procedure_na(self, private, procedure = "bootstrap confidence interval", reason = reason,
 						detail = if (grepl("extreme_confidence_interval$", reason)) paste0(
 							"The interval was wider than EDI's stability cap, so it is treated as numerically ",
 							"unstable (typically a few resamples near separation, or too few independent units ",
-							"such as clusters). A randomization interval (compute_rand_confidence_interval()) may still be available."
+							"such as clusters).",
+							# Class-aware advice (v1.0.6-TODO-125): name the randomization CI only when this
+							# class offers it (e.g. RMST refuses it).
+							if (isTRUE(tryCatch(self$supports("randomization_ci")[[1L]], error = function(e) FALSE)))
+								" A randomization interval (compute_rand_confidence_interval()) may still be available."
 						))
 				}
 				if (is.character(cf)) private$cached_values$ci_call_failure_reason = reason
@@ -1157,7 +1196,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (!is.finite(s)) return(1)
 			max(1, s)
 		},
-		bootstrap_confidence_interval_extreme = function(ci, est = NA_real_, max_abs = private$bootstrap_extreme_estimate_threshold){
+		bootstrap_confidence_interval_extreme = function(ci, est = NA_real_, max_abs = private$bootstrap_extreme_estimate_threshold, theta = NULL){
 			ci = as.numeric(ci)
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) return(FALSE)
 			max_abs = as.numeric(max_abs)[1L]
@@ -1173,7 +1212,52 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (!is.finite(absolute_max_width) || absolute_max_width <= 0) absolute_max_width = Inf
 			max_width = min(scaled_max_width, absolute_max_width, na.rm = TRUE)
 			if (!is.finite(max_width) || max_width <= 0) max_width = scaled_max_width
-			is.finite(width) && width > max_width
+			if (!(is.finite(width) && width > max_width)) return(FALSE)
+			# v1.0.6-TODO-157: the outcome-SD cap above is on the wrong scale for a log-ratio /
+			# link-scale estimand (a 5.6-wide log-OR CI from 10 clusters was rejected). For those,
+			# an interval over the cap is kept when it is narrow relative to the replicates' own
+			# robust spread and stays out of separation territory; otherwise the cap stands.
+			!private$bootstrap_link_scale_ci_plausible(ci, width, theta)
+		},
+		# v1.0.6-TODO-157: TRUE when compute_estimate() is a log ratio (odds, rate, risk, hazard,
+		# time) or a link-scale coefficient (probit/cloglog/cauchit/stereotype/logit effect), read
+		# from EDI_INFERENCE_ESTIMAND_TAGS (nearest class in class(self)) or get_estimand_type().
+		# A marginal estimand (set_estimand(), e.g. a risk difference) is not on the link scale.
+		bootstrap_estimand_on_link_scale = function(){
+			tags = EDI_INFERENCE_ESTIMAND_TAGS[intersect(class(self), names(EDI_INFERENCE_ESTIMAND_TAGS))]
+			tag = if (length(tags) > 0L) as.character(tags[[1L]])[1L] else
+				tryCatch(as.character(private$get_estimand_type())[1L], error = function(e) NA_character_)
+			if (length(tag) != 1L || is.na(tag)) return(FALSE)
+			if (is.function(self$get_estimand)) {
+				estimand = tryCatch(as.character(self$get_estimand())[1L], error = function(e) NA_character_)
+				if (!identical(estimand, "conditional")) return(FALSE)
+			}
+			grepl("^log_(hazard|odds|rate|risk|time)_ratio|link_effect|^probit_effect|^logit_effect", tag)
+		},
+		# v1.0.6-TODO-157: whether a link-scale interval wider than the outcome-SD cap is still a
+		# plausible interval rather than a degenerate one. Both must hold:
+		# * width <= bootstrap_extreme_ci_width_spread_multiple robust SDs of the replicates
+		#   (MAD; a normal percentile interval is 3.92 SDs wide), so the interval is wide because
+		#   the estimator varies that much, not because a few replicates ran off; and
+		# * both bounds within +-bootstrap_extreme_link_scale_max_abs (10: a ratio of e^10, about
+		#   22,000). Separated / non-converged logistic, Poisson and Cox replicates stop at about
+		#   20-50 on this scale; when most replicates do, the MAD itself is inflated and the
+		#   spread rule alone would pass them, so the magnitude rule catches that mixture.
+		# Without replicates (theta = NULL) the cap stands, so callers that do not pass them
+		# keep the previous behavior.
+		bootstrap_extreme_ci_width_spread_multiple = 10,
+		bootstrap_extreme_link_scale_max_abs = 10,
+		bootstrap_link_scale_ci_plausible = function(ci, width, theta = NULL){
+			if (is.null(theta)) return(FALSE)
+			theta = suppressWarnings(as.numeric(theta))
+			theta = theta[is.finite(theta)]
+			if (length(theta) < 20L) return(FALSE)
+			if (!isTRUE(private$bootstrap_estimand_on_link_scale())) return(FALSE)
+			max_abs = as.numeric(private$bootstrap_extreme_link_scale_max_abs)[1L]
+			if (!is.finite(max_abs) || any(abs(ci[1:2]) > max_abs)) return(FALSE)
+			spread = stats::mad(theta)
+			if (!is.finite(spread) || spread <= 0) return(FALSE)
+			width <= as.numeric(private$bootstrap_extreme_ci_width_spread_multiple)[1L] * spread
 		},
 		supports_reusable_bootstrap_worker = function(){
 			FALSE
@@ -1228,6 +1312,24 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				x
 			}
 			worker_priv$X = private$get_X()
+			base_X = if (!is.null(private$X)) private$X else private$get_X()
+			# v1.0.6-TODO-130: base_X is the INFERENCE's matrix (model_formula). When that
+			# differs from the design's own design_formula matrix, keep the design's matrix
+			# separately so the worker design redraws on its own columns. NULL means the two
+			# coincide (the usual case) and the historical shared-matrix path is used.
+			base_des_X = NULL
+			if (!is.null(source_des_priv) && !is.null(base_X)) {
+				if (is.null(source_des_priv$X) || isTRUE(source_des_priv$model_matrix_stale)) {
+					source_des_priv$covariate_impute_if_necessary_and_then_create_model_matrix()
+				}
+				des_X = source_des_priv$X
+				same_matrix = is.null(des_X) || (
+					identical(dim(des_X), dim(base_X)) &&
+					identical(colnames(des_X), colnames(base_X)) &&
+					identical(as.vector(des_X), as.vector(base_X))
+				)
+				if (!same_matrix && NROW(des_X) == NROW(base_X)) base_des_X = des_X
+			}
 			list(
 				worker = worker,
 				worker_priv = worker_priv,
@@ -1237,7 +1339,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				base_fit_warm_start_fisher = private$fit_warm_start_fisher,
 				base_Xraw = if (!is.null(source_des_priv$Xraw)) bootstrap_subset_source(source_des_priv$Xraw) else NULL,
 				base_Ximp = if (!is.null(source_des_priv$Ximp)) bootstrap_subset_source(source_des_priv$Ximp) else NULL,
-				base_X = if (!is.null(private$X)) private$X else private$get_X(),
+				base_X = base_X,
+				base_des_X = base_des_X,
 				base_w = if (!is.null(source_des_priv$w)) as.numeric(source_des_priv$w) else NULL,
 				base_y = if (is.null(source_des_priv$y)) {
 					NULL
@@ -1309,6 +1412,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 			}
 			w_priv$X = if (isTRUE(use_direct_X_subset)) X_subset else NULL
+			# v1.0.6-TODO-130: with a model_formula that differs from the design_formula, a
+			# NULL inference X would fall back to the design's matrix (get_X()), fitting on
+			# the design's columns. Keep the model-formula subset, as the slow path does.
+			if (!is.null(worker_state[["base_des_X"]]) && is.null(w_priv$X)) w_priv$X = X_subset
 			w_priv$y = if (!is.null(worker_state$base_y)) as.numeric(worker_state$base_y[indices]) else NULL
 			w_priv$dead = if (!is.null(worker_state$base_dead)) as.numeric(worker_state$base_dead[indices]) else NULL
 			w_priv$y_L = if (!is.null(worker_state$base_y_L)) as.numeric(worker_state$base_y_L[indices]) else NULL
@@ -1350,6 +1457,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				# explicitly in both directions: otherwise a previous fallback leaves
 				# the reusable design permanently stale and defeats later direct draws.
 				des_priv$model_matrix_stale = !isTRUE(use_direct_X_subset)
+				# v1.0.6-TODO-130: the design redraws on its own design_formula matrix, not
+				# the inference's. Subset it directly when it stays full rank; otherwise
+				# rebuild it from the resampled Ximp, as the shared path does.
+				base_des_X = worker_state[["base_des_X"]]
+				if (!is.null(base_des_X)) {
+					des_X_subset = base_des_X[indices, , drop = FALSE]
+					des_X_ok = ncol(des_X_subset) == 0L || isTRUE(tryCatch(
+						qr(cbind(1, as.matrix(des_X_subset)))$rank == ncol(des_X_subset) + 1L,
+						error = function(e) FALSE
+					))
+					des_priv$X = if (des_X_ok) des_X_subset else NULL
+					des_priv$model_matrix_stale = !des_X_ok
+				}
 				des_priv$t = length(indices)
 				des_priv$n = length(indices)
 				des_priv$w = w_priv$w
@@ -1717,6 +1837,16 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (!is.null(orig_des_priv$X)) sub_des_priv$X = subset_field(orig_des_priv$X)
 			if (!is.null(orig_des_priv$w)) sub_des_priv$w = as.numeric(orig_des_priv$w[indices])
 			if (!is.null(orig_des_priv$y)) sub_des_priv$y = as.numeric(orig_des_priv$y[indices])
+			# v1.0.6-TODO-131: the design's y_L / y_R / y_original are per-subject too. Left at the
+			# parent's n rows, get_effective_time() paired the subset's y with the parent's y_L
+			# (wrong censoring times), the rand-bootstrap slow path copied them into the subset
+			# Inference on interval-censored data, and assert_all_responses_recorded() /
+			# duplicate() failed on the copy.
+			for (field in c("y_L", "y_R", "y_original")) {
+				if (!is.null(orig_des_priv[[field]]) && length(orig_des_priv[[field]]) >= max(indices)) {
+					sub_des_priv[[field]] = as.numeric(orig_des_priv[[field]][indices])
+				}
+			}
 			# Use Design-provided m_vec_b (pair-aware) if available; otherwise subset original m
 			if (!is.null(orig_des_priv$m)) {
 				sub_des_priv$m = if (!is.null(m_vec_b)) as.integer(m_vec_b) else as.integer(orig_des_priv$m[indices])
@@ -1743,6 +1873,18 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			sub_inf = self$duplicate(verbose = FALSE, make_fork_cluster = FALSE)
 			sub_inf_priv = sub_inf$.__enclos_env__$private
+			# v1.0.6-TODO-142: duplicate() applies the warm-start dispatch policy only while a
+			# resampling operation is active; a copy made outside one kept the parent's warm
+			# start whatever the policy says, so the same draw fitted differently by call path.
+			# Such a copy is a nonparametric-bootstrap subset, so it follows that operation's
+			# entry. Each copy is anchored on the parent's full-data fit and never chained to
+			# another replicate, so the randomization path's likelihood_concave chaining gate
+			# (which only decides chaining) has nothing to add here.
+			if (is.null(private$active_resampling_operation)) {
+				ws_val = edi_warm_start_dispatch_policy(class(self)[1], "non_param_boot", n = private$des_obj$get_t())
+				sub_inf_priv$fit_warm_start_enabled = ws_val
+				sub_inf_priv$null_fit_warm_start_enabled = ws_val
+			}
 			sub_inf_priv$des_obj = sub_des
 			sub_inf_priv$des_obj_priv_int = sub_des_priv
 			sub_inf_priv$X = if (!is.null(private$X)) subset_field(private$X) else NULL
@@ -1787,8 +1929,22 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			sub_inf_priv$cached_X_full_for_reduced = NULL
 			sub_inf_priv$cached_keep_for_reduced = NULL
 			sub_inf_priv$cached_j_treat_for_reduced = NULL
+			# v1.0.6-TODO-126: the zero-inflated / hurdle covariate caches are n-row
+			# matrices too. duplicate() copies the parent's full-data ones, which
+			# build_component_matrix() then cbind()s against the subset's w (silently
+			# recycled), so the subset refit fitted the wrong rows.
+			# Only where the field exists: a plain R6 subclass has a locked private env, and
+			# assigning a missing field there errors ("cannot add bindings to a locked environment").
+			for (za_field in c("za_X_cov_all", "za_Xzi_cov_all")) {
+				if (exists(za_field, envir = sub_inf_priv, inherits = FALSE)) assign(za_field, NULL, envir = sub_inf_priv)
+			}
 
 			if (!is.null(sub_des_priv$m)) sub_inf_priv$m = sub_des_priv$m
+			# v1.0.6-TODO-131: generic guard for every other per-subject cache. Every
+			# remaining private field still holding the parent's rows was copied by
+			# duplicate(), not rebuilt for this subset, so it is cleared and the class
+			# rebuilds it lazily (see clear_parent_row_private_caches()).
+			clear_parent_row_private_caches(sub_inf_priv, n_parent = NROW(private$w))
 			sub_inf
 		},
 		bootstrap_replication_stats = function(boot_draw, smooth = FALSE, require_se = FALSE){
@@ -1989,17 +2145,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			)
 		},
 		ci_bca = function(boot_distr, alpha, est){
-			jack = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
-			jack = jack[is.finite(jack)]
-			if (length(jack) < 2L) {
-				reason = if (private$jackknife_block_size_gt_one_unsupported(unit = "auto")) {
-					"jackknife_block_size_gt_one_not_supported"
-				} else {
-					"bootstrap_bca_jackknife_unavailable"
-				}
+			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
+			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
+			if (!is.null(reason)) {
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
-				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap confidence interval (type = \"bca\")")
+				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap confidence interval (type = \"bca\")",
+					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(c(NA_real_, NA_real_))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
@@ -2025,6 +2179,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			n_outer = max(25L, min(as.integer(B), 101L))
 			n_inner = max(25L, min(as.integer(B), 51L))
+			# v1.0.6-TODO-142: the outer resamples are nonparametric-bootstrap replicates, so
+			# their subset copies follow that operation's warm-start policy (the inner
+			# bootstrap's on.exit would otherwise leave no operation set). Restored on exit
+			# so a caller's own operation survives.
+			prev_resampling_operation = private$active_resampling_operation
+			private$active_resampling_operation = "non_param_boot"
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			alpha_grid = unique(pmin(0.49, pmax(.Machine$double.eps, c(alpha / 4, alpha / 2, alpha, min(0.25, alpha * 1.5), min(0.4, alpha * 2)))))
 			coverage = rep(NA_real_, length(alpha_grid))
 			for (j in seq_along(alpha_grid)) {
@@ -2094,16 +2255,14 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#   z_delta = Phi^{-1}(F_boot(delta_0)),   s = z_delta - z0,
 		#   adj_z   = s / (1 + a*s) - z0.
 		pval_bca = function(boot_distr, est, delta){
-			jack = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
-			jack = jack[is.finite(jack)]
-			if (length(jack) < 2L) {
-				reason = if (private$jackknife_block_size_gt_one_unsupported(unit = "auto")) {
-					"jackknife_block_size_gt_one_not_supported"
-				} else {
-					"bootstrap_bca_jackknife_unavailable"
-				}
+			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
+			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
+			if (!is.null(reason)) {
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
-				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap p-value (type = \"bca\")")
+				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap p-value (type = \"bca\")",
+					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
@@ -2116,14 +2275,49 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 	))
 )
 
-# BCa needs >= 2 finite jackknife replicates for its acceleration; with fewer, the BCa CI /
-# p-value is NA. Warn instead of returning it silently (v1.0.6-TODO-108, the v1.0.6-TODO-95
-# rule). Silent inside resampling (edi_warn_procedure_na()).
-edi_warn_bca_jackknife_unavailable = function(self, private, reason, what){
+# Detail for a studentized bootstrap p-value that is NA for missing/unstable SEs (v1.0.6-TODO-140).
+bootstrap_studentized_se_na_detail = function() {
+	paste0("The studentized (bootstrap-t) p-value needs finite, stable standard errors for the original fit ",
+		"and for enough bootstrap replicates, and this class did not supply them on this data. ",
+		"Use type = \"percentile\" (or another non-studentized type).")
+}
+
+# Why a BCa CI / p-value cannot use these jackknife replicates for its acceleration, or NULL
+# when it can. jack_all is one replicate per deletion unit (non-finite included), jack_finite
+# its finite subset. Fewer than 2 finite replicates: "<prefix>jackknife_unavailable"
+# (v1.0.6-TODO-108). Fewer than EDI_JACKKNIFE_MIN_DELETION_UNITS deletion units:
+# "<prefix>jackknife_too_few_deletion_units" (owner decision 2026-11-18, follow-up to
+# v1.0.6-TODO-135): the acceleration is a skewness estimated from G replicates (identically 0
+# at G = 2) and the bootstrap resamples only those G units, so BCa is as unreliable there as
+# the jackknife SE. The unit count is taken before dropping non-finite replicates, so results
+# with >= EDI_JACKKNIFE_MIN_DELETION_UNITS units are unchanged. block_check = FALSE skips the
+# plain-jackknife block-size check (the Bayesian path has its own weighting units).
+edi_bca_jackknife_gate_reason = function(private, jack_all, jack_finite, reason_prefix, block_check = TRUE){
+	if (length(jack_finite) >= 2L && length(jack_all) >= EDI_JACKKNIFE_MIN_DELETION_UNITS) return(NULL)
+	if (isTRUE(block_check) && length(jack_finite) < 2L && private$jackknife_block_size_gt_one_unsupported(unit = "auto")) {
+		return("jackknife_block_size_gt_one_not_supported")
+	}
+	if (length(jack_finite) < 2L) paste0(reason_prefix, "jackknife_unavailable")
+	else paste0(reason_prefix, "jackknife_too_few_deletion_units")
+}
+
+# BCa needs >= 2 finite jackknife replicates and >= EDI_JACKKNIFE_MIN_DELETION_UNITS deletion
+# units for its acceleration; with fewer, the BCa CI / p-value is NA. Warn instead of returning
+# it silently (v1.0.6-TODO-108, the v1.0.6-TODO-95 rule). Silent inside resampling
+# (edi_warn_procedure_na()). n_units / unit_label name the deletion units in the message.
+edi_warn_bca_jackknife_unavailable = function(self, private, reason, what, n_units = NA_integer_, unit_label = NULL){
 	detail = if (identical(reason, "jackknife_block_size_gt_one_not_supported")) {
 		paste0("The BCa acceleration uses the design's automatic jackknife unit (\"",
 			private$resolve_jackknife_unit("auto"), "\"), which this blocking design does not support. ",
 			"Use type = \"percentile\" (or another non-BCa type).")
+	} else if (grepl("jackknife_too_few_deletion_units$", reason)) {
+		paste0("The BCa acceleration is estimated from the jackknife replicates, and there are only ",
+			as.integer(n_units), " deletion units",
+			if (length(unit_label) && nzchar(unit_label[1L])) paste0(" (unit = \"", unit_label[1L], "\")") else "",
+			"; at least ", EDI_JACKKNIFE_MIN_DELETION_UNITS, " are needed. With so few units the ",
+			"acceleration is unreliable (identically 0 with 2) and the bootstrap itself resamples only those units. ",
+			"Use a randomization test or interval (compute_rand_two_sided_pval(), compute_rand_confidence_interval()); ",
+			"a non-BCa bootstrap type on so few units should also be read with care.")
 	} else {
 		paste0("The BCa acceleration needs at least two finite jackknife replicate estimates and fewer were ",
 			"available (see approximate_jackknife_distribution_beta_hat_T()). Use type = \"percentile\" ",

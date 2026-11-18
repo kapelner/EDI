@@ -518,9 +518,6 @@ list is documented here for orientation only -- the actual set
 consulted at runtime always comes from that class's own accessor
 (see the top of this section), so a class need not support every
 value listed.
-(\code{"likelihood_ratio"}/\code{"estimating_equation_likelihood_ratio"}
-are deliberately not separate sentinels -- both capabilities gate
-the exact same method pair \code{"lik_ratio"} above already covers.)
 For each class, only sentinels the class has \emph{any} CI or
 p-value capability for (among the requested \code{methods}) get a
 row; for a typed sentinel, one row per \code{type} that class

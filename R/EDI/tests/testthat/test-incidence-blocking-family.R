@@ -32,8 +32,11 @@ test_that("blocked incidence inference works for CMH and Extended Robins", {
 })
 
 test_that("jackknife for blocking designs uses leave-one-block-out resampling", {
+	# 5 blocks (was 3): since v1.0.6-TODO-135 a jackknife with fewer than 5 deletion units is NA
+	# with a warning (test-jackknife-too-few-deletion-units-na-warns.R); 5 is the smallest
+	# count for which the manual leave-one-block-out formula is still checked here.
 	des <- DesignFixedBlocking$new(
-		n = 12,
+		n = 20,
 		response_type = "incidence",
 		strata_cols = "x1",
 		equal_block_sizes = FALSE,
@@ -41,13 +44,15 @@ test_that("jackknife for blocking designs uses leave-one-block-out resampling", 
 	)
 
 	des$add_all_subjects_to_experiment(
-		data.frame(x1 = factor(rep(1:3, each = 4), levels = 1:3))
+		data.frame(x1 = factor(rep(1:5, each = 4), levels = 1:5))
 	)
-	des$overwrite_all_subject_assignments(rep(c(1, 0, 1, 0), 3))
+	des$overwrite_all_subject_assignments(rep(c(1, 0, 1, 0), 5))
 	des$add_all_subject_responses(c(
 		1, 0, 1, 0,
 		1, 1, 0, 0,
-		0, 1, 0, 1
+		0, 1, 0, 1,
+		1, 0, 1, 1,
+		0, 0, 1, 0
 	))
 
 	inf_cmh <- InferenceIncidCMH$new(des, verbose = FALSE)

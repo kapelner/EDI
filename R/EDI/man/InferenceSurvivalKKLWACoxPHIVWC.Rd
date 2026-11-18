@@ -64,7 +64,7 @@ inf$compute_estimate()
 }
 }
 \references{
-Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
+Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992). "Cox-Type
   Regression Analysis for Large Numbers of Small Groups of Correlated
   Failure Time Observations." In \emph{Survival Analysis: State of the Art},
   237-247. Springer. \doi{10.1007/978-94-015-7983-4_14}

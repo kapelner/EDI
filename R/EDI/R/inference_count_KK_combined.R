@@ -64,10 +64,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		"ParametricLikelihoodBootstrap",
 		"KKGLMM"
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache) this stretch.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as
 		# every other count KK migration this stretch.
@@ -252,7 +249,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			# drop rows with zero or non-finite weight
 			ok = is.finite(row_weights) & row_weights > 0 & is.finite(as.numeric(private$y))
 			if (!any(ok)) return(NA_real_)
-			if (ncol(as.matrix(private$X)) > 0) {
+			if (ncol(as.matrix(private$get_X())) > 0) {
 				X_fit = private$create_design_matrix()
 			} else {
 				X_fit = cbind(`(Intercept)` = 1, w = private$w)
@@ -320,7 +317,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			reservoir_idx = which(group_id == 0L)
 			if (length(reservoir_idx) > 0L)
 				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X_fit = private$create_design_matrix()
 			} else {
 				X_fit = cbind(`(Intercept)` = 1, w = private$w)
@@ -383,7 +380,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			reservoir_idx = which(group_id == 0L)
 			if (length(reservoir_idx) > 0L)
 				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
-			if (ncol(as.matrix(private$X)) > 0) {
+			if (ncol(as.matrix(private$get_X())) > 0) {
 				X_fit = private$create_design_matrix()
 			} else {
 				X_fit = cbind(`(Intercept)` = 1, w = private$w)

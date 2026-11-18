@@ -1,3 +1,26 @@
+# v1.0.6-TODO-141: one shared up-front refusal for left-/interval-censored data,
+# called at the top of every public Bayesian-bootstrap entry point. Every class
+# that accepts general censoring (KMDiff, RestrictedMeanDiff, GehanWilcox,
+# LogRank, WeibullRegr) fits that case with a routine that takes no case weights
+# (interval::icfit(), the interval-censored score tests, survreg's interval
+# path), so each Dirichlet-weighted draw errored inside the loop and the result
+# came back as an NA with a misleading "too few finite draws"/"non-finite
+# replicates" reason (or, for RestrictedMeanDiff's p-value, a silent NA). A
+# plain function rather than a private method or a supports_bayesian_bootstrap()
+# override: the component is lazily installed, and overriding its private gate
+# per class broke lazy component loading (v1.0.6-TODO-90 note). If a class ever
+# gains weighted general-censoring fits, give it an opt-out here.
+edi_stop_if_bayesian_bootstrap_under_general_censoring = function(self, private){
+	if (!isTRUE(private$has_general_censoring)) return(invisible(NULL))
+	stop(
+		class(self)[1L], ": the Bayesian bootstrap is not supported for left-/interval-censored survival data ",
+		"(this class's left-/interval-censored fit takes no case weights, so no Dirichlet-weighted draw can be ",
+		"computed). Use the nonparametric bootstrap instead: compute_bootstrap_confidence_interval() / ",
+		"compute_bootstrap_two_sided_pval().",
+		call. = FALSE
+	)
+}
+
 #' Bayesian Bootstrap-capable Inference
 #'
 #' Abstract class for Dirichlet-weight Bayesian bootstrap inference layered on
@@ -82,6 +105,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		approximate_bayesian_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, weighting_unit_type = NULL){
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
+			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
 			private$active_resampling_operation = "bayesian_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (should_run_asserts()) {
@@ -282,7 +306,17 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#'   \code{"studentized"} / \code{"bootstrap-t"} (pivots by replicate SE from
 		#'   \code{compute_estimate_with_bootstrap_weights(..., estimate_only = FALSE)}),
 		#'   and \code{"bca"} (bias-corrected and accelerated via leave-one-unit-out
-		#'   Bayesian jackknife).
+		#'   Bayesian jackknife). The \code{"bca"} p-value is the floor \eqn{2/B} when
+		#'   \code{delta} lies outside every BCa interval (for example outside the range of the
+		#'   draws), and \code{NA} only when the BCa adjustment is degenerate: on the
+		#'   order-statistic boundary (one \code{edi_bootstrap_bca_boundary_warning} per
+		#'   object) or with an unstable bias correction or acceleration (one
+		#'   \code{edi_bootstrap_bca_unstable_warning} per object). It is also \code{NA} when
+		#'   the Bayesian jackknife has fewer than 5 weighting units (e.g. 4 blocks with
+		#'   \code{weighting_unit_type = "resample_blocks"}; reason
+		#'   \code{"bayesian_bootstrap_bca_jackknife_too_few_deletion_units"}) or fewer than 2
+		#'   finite replicates (\code{"bayesian_bootstrap_bca_jackknife_unavailable"}), with one
+		#'   \code{edi_procedure_na_warning}.
 		#' @param na.rm If \code{TRUE}, discard non-finite bootstrap replicates before
 		#'   computing the p-value. Default \code{FALSE}, in which case any non-finite
 		#'   replicate returns \code{NA} (with a once-per-object warning of class
@@ -301,6 +335,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
+			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -322,6 +357,9 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(NA_real_)
 			}
 			if (type %in% c("studentized", "bootstrap-t")) {
+				# NA for missing/unstable SEs warns like the CI does (v1.0.6-TODO-140); silent inside resampling.
+				warn_studentized_na = function(reason) edi_warn_procedure_na(self, private,
+					procedure = "Bayesian bootstrap p-value", reason = reason, detail = bootstrap_studentized_se_na_detail())
 				boot_stats = private$approximate_bayesian_bootstrap_statistics_beta_hat_T(
 					B = B, show_progress = show_progress, na.rm = isTRUE(na.rm),
 					require_se = TRUE, weighting_unit_type = weighting_unit_type
@@ -329,6 +367,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				se_hat = tryCatch(private$infer_original_se(), error = function(e) NA_real_)
 				if (!is.finite(se_hat) || se_hat <= 0) {
 					if (isTRUE(private$harden)) private$cache_nonestimable_se("bayesian_bootstrap_original_standard_error_unavailable")
+					warn_studentized_na("bayesian_bootstrap_original_standard_error_unavailable")
 					return(NA_real_)
 				}
 				t_boot = tryCatch(
@@ -344,6 +383,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				)
 				if (length(t_boot) < as.integer(min_number_usable_samples)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_unstable_studentized_standard_errors", "se")
+					warn_studentized_na("bayesian_bootstrap_unstable_studentized_standard_errors")
 					return(NA_real_)
 				}
 				if (private$bootstrap_estimates_extreme(boot_stats$theta, est = est)) {
@@ -423,7 +463,16 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#'   distribution and the interval is \code{c(NA, NA)} (reason
 		#'   \code{"bayesian_bootstrap_bca_adjustment_on_boundary"}, one
 		#'   \code{edi_bootstrap_bca_boundary_warning} per object); use
-		#'   \code{type = "percentile"} for small B.
+		#'   \code{type = "percentile"} for small B. It is also \code{c(NA, NA)} when the
+		#'   bias correction or acceleration is unstable (reason
+		#'   \code{"bayesian_bootstrap_bca_unstable_bias_or_acceleration"}, one
+		#'   \code{edi_bootstrap_bca_unstable_warning} per object; a larger B does not help,
+		#'   use \code{type = "percentile"}). It is \code{c(NA, NA)} as well when the Bayesian
+		#'   jackknife has fewer than 5 weighting units (the same minimum as
+		#'   \code{compute_jackknife_std_error()}; reason
+		#'   \code{"bayesian_bootstrap_bca_jackknife_too_few_deletion_units"}) or fewer than 2
+		#'   finite replicates (\code{"bayesian_bootstrap_bca_jackknife_unavailable"}), with one
+		#'   \code{edi_procedure_na_warning}. Each such \code{NA} raises only that one warning.
 		#' @param na.rm If \code{TRUE} (default), discard non-finite bootstrap
 		#'   replicates before constructing the interval.
 		#' @param show_progress A flag indicating whether a progress bar should be displayed.
@@ -439,6 +488,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
+			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -479,7 +529,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				if (private$studentized_interval_scale_unstable(theta = boot_stats$theta, ci = ci, est = est, alpha = alpha)) {
 					return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_unstable_studentized_interval", stage = "se"))
 				}
-				if (private$bootstrap_confidence_interval_extreme(ci, est = est)) {
+				if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_stats$theta)) {
 					return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval", stage = "se"))
 				}
 				return(ci)
@@ -504,7 +554,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				}
 				z = stats::qnorm(1 - alpha / 2)
 				ci[] = c(est - z * se_boot, est + z * se_boot)
-				if (private$bootstrap_confidence_interval_extreme(ci, est = est)) {
+				if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
 					return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval", stage = "se"))
 				}
 				return(ci)
@@ -517,7 +567,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				if (length(ci) < 2L || !all(is.finite(ci[1:2]))) {
 					return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_bca_ci_unavailable", stage = "se"))
 				}
-				if (private$bootstrap_confidence_interval_extreme(ci, est = est)) {
+				if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
 					return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval", stage = "se"))
 				}
 				return(ci)
@@ -526,7 +576,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_ci_unavailable", stage = "estimate"))
 			}
-			if (private$bootstrap_confidence_interval_extreme(ci, est = est)) {
+			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval", stage = "estimate"))
 			}
 			ci
@@ -657,7 +707,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				stop("No Bayesian-bootstrap context is installed on this inference object.", call. = FALSE)
 			}
 			if (should_run_asserts()) {
-				assertNumeric(subject_or_block_weights, len = ctx$n_units, lower = 0, any.missing = FALSE)
+				assertNumeric(subject_or_block_weights, len = ctx$n_units, lower = 0, any.missing = FALSE, finite = TRUE)
 			}
 			as.numeric(subject_or_block_weights[ctx$row_to_unit])
 		},
@@ -795,24 +845,37 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			jack
 		},
 		ci_bayesian_bca = function(boot_distr, alpha, est, weighting_unit_type = NULL) {
-			jack = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
-			jack = jack[is.finite(jack)]
-			if (length(jack) < 2L) {
-				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_bca_jackknife_unavailable", stage = "se"))
+			jack_all = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
+			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bayesian_bootstrap_bca_", block_check = FALSE)
+			if (!is.null(reason)) {
+				too_few_units = grepl("jackknife_too_few_deletion_units$", reason)
+				# One warning per NA: the specific one for too few units, else missing_bootstrap_ci()'s.
+				if (too_few_units) edi_warn_bca_jackknife_unavailable(self, private, reason,
+					"Bayesian bootstrap confidence interval (type = \"bca\")", n_units = length(jack_all))
+				return(private$missing_bootstrap_ci(alpha, reason, stage = "se", warn = !too_few_units))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
-				ci_na = private$missing_bootstrap_ci(alpha, reason, stage = "se")
+				# v1.0.6-TODO-116: when the specific BCa boundary/unstable warning covers this NA, it is
+				# the only warning (as on the plain bootstrap path); the generic procedure-NA warning
+				# from missing_bootstrap_ci() is kept for every other reason.
 				ctx = private$cached_values$ci_call_ctx
-				if (!is.null(ctx) && isTRUE(ctx$all_finite)) edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
-				ci_na
+				bca_specific = !is.null(ctx) && isTRUE(ctx$all_finite) &&
+					grepl("(adjustment_on_boundary|unstable_bias_or_acceleration)$", reason)
+				if (bca_specific) edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
+				private$missing_bootstrap_ci(alpha, reason, stage = "se", warn = !bca_specific)
 			})
 		},
 		pval_bayesian_bca = function(boot_distr, est, delta, weighting_unit_type = NULL) {
-			jack = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
-			jack = jack[is.finite(jack)]
-			if (length(jack) < 2L) {
-				edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_jackknife_unavailable", "se")
-				edi_warn_bca_jackknife_unavailable(self, private, "bayesian_bootstrap_bca_jackknife_unavailable", "Bayesian bootstrap p-value (type = \"bca\")")
+			jack_all = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
+			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bayesian_bootstrap_bca_", block_check = FALSE)
+			if (!is.null(reason)) {
+				edi_record_procedure_failure(self, private, reason, "se")
+				edi_warn_bca_jackknife_unavailable(self, private, reason, "Bayesian bootstrap p-value (type = \"bca\")",
+					n_units = length(jack_all))
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){

@@ -335,9 +335,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
 		#'   \code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.
 		#' @details For survival outcomes with left- or interval-censoring, a nonzero
-		#'   \code{delta} is not supported and the call errors. The current null-shift
-		#'   implementation shifts exact/right-censored response times but not censoring
-		#'   bounds.
+		#'   \code{delta} shifts the censoring bounds \code{y_L} and \code{y_R} of the
+		#'   treated exactly as it shifts exact times: multiplicatively by
+		#'   \eqn{e^{\delta}}{exp(delta)} under the default \code{"log"} transform, so
+		#'   bounds of 0 and \code{Inf} stay where they are.
 		#'
 		#'   The p-value always comes from randomization draws of the assignment vector
 		#'   \eqn{w} from the design, for every response type including incidence on
@@ -346,7 +347,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   and was markedly more conservative; it is still available explicitly through
 		#'   the \code{type = "Zhang"} argument of classes that offer it.) Non-finite
 		#'   reference statistics are dropped (for any \code{na.rm}) and \eqn{B} above is
-		#'   the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)} finite
+		#'   the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite
 		#'   reference statistics are required (10\% of the draws, and never fewer than
 		#'   10), otherwise \code{NA} is returned.
 		#'   A nonzero \code{delta} is not supported for incidence responses.
@@ -418,14 +419,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
 					return(NA_real_)
 				}
-				na_t0s = !is.finite(t0s)
-				nsim_adj = sum(!na_t0s)
-				if (nsim_adj == 0L) {
-					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
-					return(NA_real_)
-				}
-				tails = rand_tail_counts(t0s, t)
-				return(rand_pval_from_tail_counts(tails[["ge"]], tails[["le"]], nsim_adj, alternative))
+				# v1.0.6-TODO-124: same max(10, floor(r/10)) finite-draw minimum (and
+				# the same recorded failure reason) as the uncached path; this path
+				# used to return NA only when no draw was finite.
+				return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative))
 			}
 			private$ensure_resampling_distribution_cache("rand")
 			t = private$compute_treatment_estimate_during_randomization_inference()
@@ -1097,13 +1094,44 @@ InferenceRand = R6::R6Class("InferenceRand",
 			y_shifted[idx_treated] = y_shifted[idx_treated] + signed_delta
 			y_shifted
 		},
-		setup_randomization_template_and_shifts = function(delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			# This is a correctness guard, not an input assertion: keep it active
-			# even when optional assertions are disabled, since censored response
-			# bounds are not shifted by the current implementation.
-			if (isTRUE(private$has_general_censoring) && isTRUE(delta != 0)) {
-				stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.", call. = FALSE)
+		# v1.0.6-TODO-143 (and its 2026-11-18 owner follow-up): under general (left-/
+		# interval-) censoring a censored subject's y is NA, so the sharp null at a
+		# nonzero delta must be imposed on its bounds too. Apply to y_L / y_R exactly
+		# the shift y gets: remove it from the observed treated (inverse, at the
+		# observed w), take rows i_b (all rows, in order, when NULL: the plain
+		# randomization test), and re-impose it on the draw's treated (w_new). For
+		# survival under the default "log" mapping the shift is multiplicative
+		# (exp(delta)), so 0 and Inf bounds stay 0 and Inf; NA bounds (exact rows)
+		# stay NA.
+		randomization_null_censoring_bounds = function(w_new, delta, transform_responses, response_type, i_b = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			shift = function(v, w, inverse) private$shift_randomization_responses(
+				y = v, w = w, delta = delta, transform_responses = transform_responses,
+				response_type = response_type, inverse = inverse, zero_one_logit_clamp = zero_one_logit_clamp
+			)
+			y_L0 = shift(as.numeric(private$y_L), private$w, TRUE)
+			y_R0 = shift(as.numeric(private$y_R), private$w, TRUE)
+			if (!is.null(i_b)) {
+				y_L0 = y_L0[i_b]
+				y_R0 = y_R0[i_b]
 			}
+			list(y_L = shift(y_L0, w_new, FALSE), y_R = shift(y_R0, w_new, FALSE))
+		},
+		setup_randomization_template_and_shifts = function(delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# Under general censoring a nonzero delta also shifts y_L / y_R (see
+			# randomization_null_censoring_bounds(); v1.0.6-TODO-143 follow-up): the
+			# template carries the delta-removed bounds, and each draw re-imposes the
+			# shift on its own treated units (load_randomization_perm_into_worker(),
+			# run_randomization_iteration()).
+			shift_bounds = isTRUE(private$has_general_censoring) && isTRUE(delta != 0)
+			bounds_delta = if (shift_bounds) {
+				# w_new = 0 everywhere: the inverse shift only (the null-template bounds).
+				private$randomization_null_censoring_bounds(
+					w_new = rep(0, length(private$w)), delta = delta,
+					transform_responses = transform_responses,
+					response_type = private$des_obj_priv_int$response_type,
+					zero_one_logit_clamp = zero_one_logit_clamp
+				)
+			} else NULL
 			# `y_delta` (and the plain `base_template_y`/`base_template_dead`
 			# vectors below) are all the reused-worker fast path -- the common
 			# case, hit on every sequential-MC batch -- actually reads off this
@@ -1136,6 +1164,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (is.null(template_cache)) {
 					template_cache <<- private$des_obj$duplicate()
 					template_cache$.__enclos_env__$private$y = y_delta
+					if (shift_bounds) {
+						template_cache$.__enclos_env__$private$y_L = bounds_delta$y_L
+						template_cache$.__enclos_env__$private$y_R = bounds_delta$y_R
+					}
 				}
 				template_cache
 			}
@@ -1178,6 +1210,25 @@ InferenceRand = R6::R6Class("InferenceRand",
 			inf_priv$y = y_sim
 			inf_priv$y_temp = y_sim
 			inf_priv$dead = if (!is.null(des_priv)) des_priv$dead else base_template_dead
+			# v1.0.6-TODO-143 follow-up: under general censoring the bounds carry the
+			# same null shift as y. Set them on every draw, also at delta = 0, so a
+			# worker reused across the deltas of a CI search never keeps the previous
+			# delta's bounds (at delta = 0 they are the observed bounds, as before).
+			if (isTRUE(private$has_general_censoring)) {
+				bounds = if (delta != 0) {
+					private$randomization_null_censoring_bounds(
+						w_new = perm_w, delta = delta, transform_responses = transform_responses,
+						response_type = if (!is.null(des_priv)) des_priv$response_type else private$des_obj_priv_int$response_type,
+						zero_one_logit_clamp = zero_one_logit_clamp
+					)
+				} else list(y_L = private$y_L, y_R = private$y_R)
+				if (!is.null(des_priv)) {
+					des_priv$y_L = bounds$y_L
+					des_priv$y_R = bounds$y_R
+				}
+				inf_priv$y_L = bounds$y_L
+				inf_priv$y_R = bounds$y_R
+			}
 			# Reset the whole per-class estimate cache rather than an allowlist of
 			# named keys. Each class guards its own `shared()` early-return on its
 			# own key -- `beta_hat_T`/`s_beta_hat_T` for most, but `md` for the
@@ -1274,6 +1325,24 @@ InferenceRand = R6::R6Class("InferenceRand",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
 				thread_des_obj$.__enclos_env__$private$y = y_sim
+				# v1.0.6-TODO-143 follow-up: the thread design is a fresh duplicate of
+				# the null template, whose y_L / y_R already have delta removed (and were
+				# resampled in lockstep with w above when no permutations were given);
+				# re-impose the shift on this draw's treated, as for y.
+				if (isTRUE(private$has_general_censoring)) {
+					thread_des_priv = thread_des_obj$.__enclos_env__$private
+					for (bound in c("y_L", "y_R")) {
+						thread_des_priv[[bound]] = private$shift_randomization_responses(
+							y = as.numeric(thread_des_priv[[bound]]),
+							w = thread_des_priv$w,
+							delta = delta,
+							transform_responses = transform_responses,
+							response_type = thread_des_priv$response_type,
+							inverse = FALSE,
+							zero_one_logit_clamp = zero_one_logit_clamp
+						)
+					}
+				}
 			}
 			private$sync_randomization_worker_state(thread_des_obj, thread_inf_obj)
 			iter_error = NULL

@@ -32,6 +32,8 @@ X[function_run == "compute_estimate", function_run := "est"]
 X[function_run == "compute_rand_two_sided_pval", function_run := "pval_rand"]
 X[function_run == "compute_rand_two_sided_pval(custom)", function_run := "pval_rand_custom"]
 X[function_run == "compute_rand_two_sided_pval(delta=0.5)", function_run := "pval_rand_shift"]
+# v1.0.6-TODO-81/110: incidence-only refusal row (expected status = "error").
+X[function_run == "compute_rand_two_sided_pval(custom)(delta=0.5)", function_run := "pval_rand_custom_shift"]
 table(X$function_run)
 
 #check duration time
@@ -41,8 +43,8 @@ D[1:50]
 table(D[1:50]$inference_class)
 
 #we kind of don't care as much about these results
-Xextra = X[function_run %in% c("pval_rand_custom", "pval_rand_shift")]
-X = X[!(function_run %in% c("pval_rand_custom", "pval_rand_shift"))]
+Xextra = X[function_run %in% c("pval_rand_custom", "pval_rand_shift", "pval_rand_custom_shift")]
+X = X[!(function_run %in% c("pval_rand_custom", "pval_rand_shift", "pval_rand_custom_shift"))]
 
 #create the actual beta being estimated
 table(X$inference_class)

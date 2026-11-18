@@ -84,10 +84,10 @@ validation.
   illustrative sketch, and `lock_objects = FALSE` is enforced. `components`
   lists only what the class adds (a component's declared dependencies are
   resolved for you; listing a dependency alongside the component that pulls
-  it in is an error); `metadata$likelihood_tier` (and
-  `metadata$capabilities` when a capability such as `"likelihood_ratio"` is
-  not provided by any composed component) feed the capability-table
-  validation; `overrides` must name every intentional public/private
+  it in is an error); `metadata` (`likelihood_tier`, and optionally
+  `response_types`, `capabilities`, `supports_additive_delta_shift`) feeds the
+  capability-table validation and is recorded on the generator as the
+  class's registry record (§1.2); `overrides` must name every intentional public/private
   collision. Raw component splicing outside the factory is forbidden, and a
   component's `owns_state` may never contain root-owned private fields
   (`m`, `X`, `w`, `y`, `dead`, `y_temp`, `any_censoring`, `optimization_alg`,
@@ -108,22 +108,33 @@ Exactly one metadata record per class lives in `EDI_INFERENCE_CLASS_REGISTRY`
 `EDI/R/inference_class_registry.R`). It is **not** registered by the factory
 call: `populate_inference_class_registry()` scans the package namespace at
 load time and builds the record from the generator plus a set of lookup
-tables in that file, so a new class must feed every one of them (the
-registry/manifest tests fail otherwise):
+tables in that file. Since 2026-11-18 the factory records what it was given
+(`generator$edi_declaration`: `metadata` and `components`), and the registry
+takes every declared field from there; the name rules below are the fallback
+for classes not built with the factory and for fields a declaration leaves
+out (`test-inference-registry-uses-declared-metadata.R` checks this). A new
+class must feed every lookup it does not declare (the registry/manifest tests
+fail otherwise):
 
-- `response_types` — inferred from the **class-name prefix**
+- `response_types` — declared in `metadata`, else inferred from the
+  **class-name prefix**
   (`InferenceContin*`/`InferenceBai*` → continuous, `InferenceCount*`,
   `InferenceIncid*`, `InferenceOrdinal*`, `InferenceProp*`,
   `InferenceSurvival*`, `InferenceAll*` → every type). A class named outside
   that convention gets no response types and is never discovered;
-- `likelihood_tier` — inferred from name tokens
-  (`infer_inference_likelihood_tier()`: `GEE|Quasi|Robust|Composite` →
-  quasi, `Cox|CondLogit|CondAdjCat|LWA` → partial, the GLM/AFT/GLMM/CLMM
-  token list → full, otherwise none). Name the class so the inferred tier
-  equals the `metadata$likelihood_tier` you pass to the factory; if no
-  existing token fits, add one to that function in the same change;
-- `direct_components` — add an entry to the `infer_inference_direct_components()`
-  switch that **mirrors the factory's `components =` vector exactly**;
+- `likelihood_tier` — the `metadata$likelihood_tier` you pass to the factory,
+  classified by the implemented objective. Only a class built without the
+  factory falls back to the name tokens of `infer_inference_likelihood_tier()`
+  (`GEE|Quasi|Robust|Composite` → quasi, `Cox|CondLogit|CondAdjCat|LWA` →
+  partial, the GLM/AFT/GLMM/CLMM token list → full, otherwise none);
+- `direct_components` — the factory's `components =` vector; the
+  `infer_inference_direct_components()` switch is only the fallback for a
+  class built without the factory;
+- `capabilities` — likelihood testing has one capability word,
+  `likelihood_tests`; whether those tests use a full, partial or quasi
+  likelihood is the tier. (The former `likelihood_ratio` and
+  `estimating_equation_likelihood_ratio` capabilities were removed on
+  2026-11-18.)
 - `abstract` — any name containing `Abstract` (or listed in
   `EDI_INFERENCE_ABSTRACT_CLASS_NAMES`) is abstract and excluded from
   discovery; concrete classes must not use that token;

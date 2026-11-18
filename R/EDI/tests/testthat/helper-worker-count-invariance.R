@@ -127,28 +127,18 @@ worker_invariance_representatives = list(
 		procedures = c("estimate", "asymp_ci", "bayesian_bootstrap_ci")),
 	list(class = "InferenceSurvivalWeibullRegr", response_type = "survival",
 		procedures = c("estimate", "asymp_ci", "rand_pval")),
-	# Known failure, pinned so it is noticed when fixed (see below).
+	# Was the known failure of v1.0.6-TODO-22 (resamples drawn inside the
+	# worker chunks); kept as the regression case for it.
 	list(class = "InferencePropGCompMeanDiff", response_type = "proportion",
-		procedures = c("bootstrap_ci"))
+		procedures = c("bootstrap_ci", "bootstrap_pval"))
 )
 
-# KNOWN INVARIANCE FAILURES (found 2026-11-14 by the exhaustive fork sweep, on
-# the installed EDI 1.0.4; not fixed here). Each key is class|response|procedure.
-# The sweep asserts these still DIFFER, so the test fails, and asks for the
-# entry to be removed, once the bug is fixed.
-#   InferencePropGCompMeanDiff$compute_bootstrap_confidence_interval: the same
-#   seed gives a different CI at 1, 2 and 4 workers on both fork and mirai
-#   (n = 40, B = 39: serial [-0.0104, 0.1352], fork-2 [0.0093, 0.1184],
-#   fork-4 [0.0031, 0.1459], mirai-2 [0.0006, 0.1494]); each core count is
-#   reproducible on its own. compute_bootstrap_two_sided_pval differs too
-#   (serial 0.0769, 2 and 4 fork workers 0.0513). Its Bayesian bootstrap is
-#   invariant. Likely the worker estimate draws from the RNG inside the
-#   workers (per-worker/per-chunk streams) instead of only from the
-#   pre-drawn indices. Tracked as v1.0.6 TODO-22 (release_v1_0_6.md).
-worker_invariance_known_failures = c(
-	"InferencePropGCompMeanDiff|proportion|bootstrap_ci",
-	"InferencePropGCompMeanDiff|proportion|bootstrap_pval"
-)
+# KNOWN INVARIANCE FAILURES: keys class|response|procedure that the sweep
+# reports instead of asserting. Empty since 2026-11-18: the one entry found by
+# the first exhaustive sweep (InferencePropGCompMeanDiff bootstrap_ci and
+# bootstrap_pval, whose worker chunks drew from their own RNG streams) was
+# fixed as v1.0.6-TODO-22, and the nightly sweep found no other.
+worker_invariance_known_failures = character(0)
 
 worker_invariance_registry_cases = function() {
 	registry = EDI:::inference_class_registry_as_list()

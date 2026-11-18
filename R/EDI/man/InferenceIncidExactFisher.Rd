@@ -25,7 +25,7 @@ case, \code{\link[stats]{mantelhaen.test}} (exact conditional test) is used
 instead, giving the common odds ratio across strata; stratified inference
 only supports testing/estimating against a null odds ratio of 1 (log odds
 ratio 0) — a non-zero null shift is rejected with an error. Strata with no
-cases or no noncases in either arm are dropped before analysis; if no
+treated or no control subjects are dropped before analysis; if no
 informative strata remain, this errors rather than returning a degenerate
 result.
 

@@ -339,7 +339,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			private$compute_fast_randomization_distr_via_reused_worker(y, permutations, delta, transform_responses, zero_one_logit_clamp = zero_one_logit_clamp)
 		},
 		build_model_matrix = function(){
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X = private$create_design_matrix()
 				full_names = c("(Intercept)", "w", if (ncol(X) > 2L) paste0("x", seq_len(ncol(X) - 2L)) else NULL)
 				colnames(X) = full_names[seq_len(ncol(X))]
@@ -967,7 +967,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			)
 		},
 		build_model_matrix = function(){
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X = private$create_design_matrix()
 				full_names = c("(Intercept)", "w", if (ncol(X) > 2L) paste0("x", seq_len(ncol(X) - 2L)) else NULL)
 				colnames(X) = full_names[seq_len(ncol(X))]
@@ -1573,11 +1573,7 @@ InferenceCountKKHurdlePoissonOneLik = define_inference_class(
 		# other survival/count/continuous KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache): no component spec in this
-	# codebase declares provides_capabilities = "likelihood_ratio" anywhere.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",
@@ -1875,7 +1871,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			)
 		},
 		build_model_matrix = function(){
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X = private$create_design_matrix()
 				full_names = c("(Intercept)", "w", if (ncol(X) > 2L) paste0("x", seq_len(ncol(X) - 2L)) else NULL)
 				colnames(X) = full_names[seq_len(ncol(X))]
@@ -2165,7 +2161,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			m = KKstats$m
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
-			p = if (is.null(private$X)) 0L else ncol(as.matrix(private$X))
+			p = if (is.null(private$get_X())) 0L else ncol(as.matrix(private$get_X()))
 			has_reservoir = nRT > 0 && nRC > 0
 			yT_v = numeric(0)
 			n_k_v = numeric(0)
@@ -2405,10 +2401,7 @@ InferenceCountKKCondPoissonOneLik = define_inference_class(
 		# other survival/count/continuous KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache).
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

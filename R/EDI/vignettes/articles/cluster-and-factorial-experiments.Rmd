@@ -40,7 +40,7 @@ shows how badly.
 
 ## A school trial
 
-Twenty-four schools take part, with 15 to 25 students each. Half the schools are
+Thirty-two schools take part, with 15 to 25 students each. Half the schools are
 randomized to a new curriculum. Each student has a pretest score; the outcome is an
 end-of-year test score. Schools differ from each other (a school effect with standard
 deviation 4 points) on top of student-level noise (standard deviation 6 points). The
@@ -48,7 +48,7 @@ true effect of the curriculum is 3 points.
 
 ```{r school-data}
 set.seed(20261117)
-G = 24
+G = 32
 school_size = sample(15:25, G, replace = TRUE)
 school = factor(rep(sprintf("S%02d", 1:G), times = school_size))
 n = length(school)
@@ -104,15 +104,22 @@ des$add_all_subject_responses(y)
 
 On a cluster design, EDI's procedures fall into two groups.
 
-**Cluster-aware on any inference class:**
+**Cluster-aware on every inference class that offers them:**
 
 * **Randomization test and interval** (`compute_rand_two_sided_pval()`,
   `compute_rand_confidence_interval()`). The reference distribution is built from
   `draw_ws_according_to_design()`, so it re-randomizes whole schools, exactly as the
-  trial did.
+  trial did. A few classes do not offer a randomization interval (for example
+  `InferenceSurvivalRestrictedMeanDiff` and the log-rank tests); check
+  `inf$supports("randomization_ci")`.
 * **Nonparametric bootstrap** (`compute_bootstrap_confidence_interval()`,
   `compute_bootstrap_two_sided_pval()`). The design resamples whole schools with
-  replacement, not students.
+  replacement, not students. A cluster bootstrap behaves like an asymptotic method
+  whose sample size is the number of clusters, not subjects, so it needs enough
+  clusters. With fewer than about 30 clusters its intervals tend to be too narrow and
+  its tests reject too often; with 10 clusters, an RMST percentile interval rejected
+  a true null about 11 to 13% of the time at a nominal 5%. With few clusters prefer
+  the randomization test.
 * **Jackknife** (`compute_jackknife_wald_confidence_interval()`,
   `compute_jackknife_wald_two_sided_pval()`, `compute_jackknife_std_error()`). On a
   cluster design the default `unit = "auto"` drops one cluster at a time; you can
@@ -150,7 +157,7 @@ inf$compute_asymp_two_sided_pval()
 ```
 
 The estimate is `r round(est, 2)` points against a true effect of `r true_effect`.
-With only 24 schools, an error of this size is not surprising: the interval is wide
+With only 32 schools, an error of this size is not surprising: the interval is wide
 because the school effects add noise that does not average away over students.
 
 The randomization test and its inverted interval re-randomize whole schools. Setting
@@ -179,7 +186,7 @@ inf$compute_jackknife_std_error(unit = "cluster")
 inf$compute_jackknife_wald_confidence_interval(alpha = 0.05, unit = "cluster")
 ```
 
-All four agree roughly, and all are about as wide as you would expect from 24
+All four agree roughly, and all are about as wide as you would expect from 32
 schools.
 
 A class without a cluster-robust Wald variance warns. The simple difference in means
@@ -280,17 +287,17 @@ clusters within each stratum keeps the arms balanced on the stratum.
 block, `prob_T` of the clusters are treated, and each cluster must lie within a single
 block (the design errors otherwise).
 
-Here 24 schools sit in four districts, six per district. One current restriction
+Here 32 schools sit in four districts, eight per district. One current restriction
 applies: **every block must have the same number of subjects**. The design has no
 `equal_block_sizes` argument, so with blocks of different sizes it errors the first
 time the blocks are used. This example gives every school 20 students so that each
-district has 120.
+district has 160.
 
 ```{r blocked-cluster}
 set.seed(20261118)
-G = 24
+G = 32
 school = factor(rep(sprintf("S%02d", 1:G), each = 20))
-district = factor(rep(rep(c("North", "South", "East", "West"), each = 6), each = 20))
+district = factor(rep(rep(c("North", "South", "East", "West"), each = 8), each = 20))
 n = length(school)
 Xb = data.frame(school = school, district = district, pretest = round(rnorm(n, 50, 10)))
 
@@ -303,7 +310,7 @@ wb = des_b$get_w()
 table(district = district[!duplicated(school)], treated = tapply(wb, school, unique))
 ```
 
-Each district has three treated and three control schools. The district column is
+Each district has four treated and four control schools. The district column is
 also a covariate (it is in `X` and is not the cluster column), so OLS adjusts for it.
 The randomization test re-randomizes schools within districts, and the bootstrap
 resamples schools within districts.
@@ -326,9 +333,10 @@ inf_b$compute_bootstrap_confidence_interval(B = 501, type = "percentile",
 
 The cluster jackknife is not available on this design: on a blocked design,
 `compute_jackknife_wald_confidence_interval()` returns `NA` with a warning for
-`unit = "auto"`, `"cluster"` and `"observation"`. `unit = "block"` works, but it drops
-a whole district at a time, and with four districts that is too few units to be
-useful. Use the randomization test or the bootstrap.
+`unit = "auto"`, `"cluster"` and `"observation"`. `unit = "block"` drops a whole
+district at a time, and with four districts that is too few deletion units: EDI
+returns `NA` with a warning for any jackknife with fewer than five. Use the
+randomization test or the bootstrap.
 
 ## Checklist for cluster trials
 
@@ -344,7 +352,8 @@ useful. Use the randomization test or the bootstrap.
   (`edi_cluster_col_in_model_formula_warning`).
 * Plan the number of clusters, not just the number of subjects. With few clusters
   (say, under 20) every procedure has limited precision, and the randomization test,
-  which is exact for the sharp null, is the safest choice.
+  which is exact for the sharp null, is the safest choice. Use the cluster bootstrap
+  only with about 30 or more clusters; below that it is anti-conservative.
 * If an existing cluster trial was randomized by someone else, declare
   `DesignFixedCluster` (or `DesignFixedBlockedCluster`) and pass the recorded
   assignment with `assign_w_to_all_subjects(w_precomputed = )`. Then check that

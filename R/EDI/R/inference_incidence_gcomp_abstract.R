@@ -38,6 +38,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				assertResponseType(des_obj$get_response_type(), "incidence")
 				assertFormula(model_formula, null.ok = TRUE)
 				assertNumber(prob_clip_eps, lower = 0, upper = 0.5)
+				if (prob_clip_eps >= 0.5) stop("prob_clip_eps must be in [0, 0.5): at 0.5 every fitted probability is clipped to 0.5.", call. = FALSE)
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (should_run_asserts()) {
@@ -88,6 +89,22 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				inference_ready = FALSE
 			)
 			private$cached_values$beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$rd else effects$rr
+			# v1.0.6-TODO-134: the Bayesian-bootstrap studentized path reads this draw's
+			# SE (last_weighted_refit$s_beta_hat_T), which was never set. Delta-method SE
+			# through the weighted HC0 sandwich; at unit weights it equals the unweighted SE.
+			private$cached_values$s_beta_hat_T = NA_real_
+			if (!isTRUE(estimate_only) && !is.null(effects$fit)) {
+				fit_w = effects$fit
+				fit_w$vcov = gcomp_weighted_logistic_sandwich_vcov(fit_w$X, private$y, fit_w$coefficients, row_weights,
+					clip_eps = private$prob_clip_eps)
+				if (!is.null(fit_w$vcov)) {
+					fit_w$estimate_only = FALSE
+					eff_w = tryCatch(private$compute_standardized_effects_r(fit_w), error = function(e) NULL)
+					se_w = if (is.null(eff_w)) NA_real_ else if (identical(private$get_estimand_type(), "RD")) eff_w$se_rd else effects$rr * eff_w$se_log_rr
+					se_w = suppressWarnings(as.numeric(se_w)[1L])
+					if (length(se_w) == 1L && is.finite(se_w) && se_w > 0) private$cached_values$s_beta_hat_T = se_w
+				}
+			}
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes a 1 - \code{alpha} confidence interval.
@@ -269,7 +286,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		prob_clip_eps = .Machine$double.eps,
 		max_abs_reasonable_coef = 25,
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {
@@ -600,6 +617,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			if (is.null(fit)) return(NULL)
 			effects = private$compute_standardized_effects_r(fit)
 			if (!private$effects_are_usable(effects, estimate_only = TRUE)) return(NULL)
+			effects$fit = fit
 			effects
 		},
 		coefficients_are_usable = function(coef_hat){
@@ -609,6 +627,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		},
 		fit_logistic_with_sandwich = function(X_full, estimate_only = FALSE){
 			X_curr = X_full
+			# v1.0.6-TODO-138: remember the QR-rank design and its first fit so the caller can name
+			# covariates the drop loop removed beyond collinearity.
+			rank_colnames = NULL
+			rank_coefs = NULL
 			repeat {
 				reduced = private$reduce_design_matrix_preserving_treatment(X_curr)
 				X_fit = reduced$X
@@ -632,6 +654,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 					return(NULL)
 				}
 				coef_hat = as.numeric(mod$b)
+				if (is.null(rank_colnames)) {
+					rank_colnames = colnames(X_fit)
+					rank_coefs = coef_hat
+				}
 				converged = private$coefficients_are_usable(coef_hat)
 				if (!converged){
 					if (ncol(X_curr) <= 2L) return(NULL)
@@ -647,7 +673,9 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 						X = X_fit,
 						j_treat = j_treat,
 						coefficients = coef_hat,
-						estimate_only = TRUE
+						estimate_only = TRUE,
+						qr_rank_colnames = rank_colnames,
+						qr_rank_coefficients = rank_coefs
 					))
 				}
 				mu_hat = inv_logit(X_fit %*% coef_hat)
@@ -691,7 +719,9 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 					vcov = vcov_robust,
 					mu_hat = mu_hat,
 					post_fit = post_fit,
-					estimate_only = FALSE
+					estimate_only = FALSE,
+					qr_rank_colnames = rank_colnames,
+					qr_rank_coefficients = rank_coefs
 				))
 			}
 		},
@@ -880,8 +910,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				private$best_X_colnames = setdiff(colnames(fit$X), c("(Intercept)", "treatment"))
 			}
 			effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
+			treatment_only_fallback = FALSE
 			if (private$harden && (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)) && ncol(X_full) > 2L){
 				fit = private$fit_logistic_with_sandwich(X_full[, 1:2, drop = FALSE], estimate_only = estimate_only)
+				treatment_only_fallback = TRUE
 				effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
 			}
 			if (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)){
@@ -890,6 +922,8 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			}
 			# v1.0.6-TODO-109: separation warning (once per object, silent in resampling; no numeric change).
 			edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
+			# v1.0.6-TODO-138: name covariates dropped beyond collinearity (same rules).
+			edi_warn_gcomp_covariate_drop(self, private, X_full, fit, treatment_only_fallback)
 			private$cached_values = gcomp_cache_standardized_effects(
 				private$cached_values,
 				effects,
@@ -897,6 +931,11 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			)
 			# Populate beta_hat_T for the base class methods
 			private$cached_values$beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$rd else effects$rr
+			# v1.0.6-TODO-134: the generic studentized bootstrap reads s_beta_hat_T (replicate
+			# and original SEs); mirror get_standard_error()'s value. Full fits only.
+			if (!estimate_only) {
+				private$cached_values$s_beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$se_rd else effects$rr * effects$se_log_rr
+			}
 		}
 	)
 )

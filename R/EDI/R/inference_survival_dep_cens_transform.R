@@ -109,7 +109,8 @@ SurvivalDepCensTransformSource = list(
 		#' @param r Number of randomization vectors. Default 501.
 		#' @param delta Null treatment-effect value. Default 0.
 		#' @param transform_responses Type of response transformation. Default \code{"none"}.
-		#' @param na.rm Whether to remove non-finite bootstrap replicates.
+		#' @param na.rm Unused (randomization inference is unavailable here); accepted for the
+		#'   shared signature, where it means drop non-finite draws.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param permutations Optional pre-computed permutations. Default NULL.
 		#' @param zero_one_logit_clamp Numerical clamp for logit transforms near 0/1.
@@ -732,7 +733,7 @@ SurvivalDepCensTransformSource = list(
 			)
 		},
 				build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {
@@ -823,7 +824,7 @@ InferenceSurvivalDepCensTransformRegr = define_inference_class(
 		"ParametricLikelihoodBootstrap",
 		"SurvivalDepCensTransform"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
+	metadata = list(likelihood_tier = "full", response_types = "survival"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",

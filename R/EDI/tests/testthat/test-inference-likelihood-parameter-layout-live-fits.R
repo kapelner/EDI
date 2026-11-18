@@ -46,7 +46,20 @@ test_that("declared parameter layouts match live likelihood specs", {
 		nm = r$name
 		set.seed(1)
 		des = lik_layout_make_design(r$response_types[1], grepl("KK|Frailty", nm))
-		inf = get(nm, envir = asNamespace("EDI"))$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+		# Classes backed by a Suggests package (e.g. quantreg for the KK quantile
+		# regressions) stop in their constructor when it is absent, as on the
+		# R-devel sanitizer runners (2026-11-18). The registry's required_packages
+		# is empty for inference classes, so detect EDI's own "Package 'X' is
+		# required" error and skip that class only when X really is missing.
+		inf = tryCatch(
+			get(nm, envir = asNamespace("EDI"))$new(des, model_formula = ~ x1 + x2, verbose = FALSE),
+			error = function(e) {
+				pkg = regmatches(conditionMessage(e), regexec("^Package '([^']+)' is required", conditionMessage(e)))[[1]][2]
+				if (!is.na(pkg) && !requireNamespace(pkg, quietly = TRUE)) return(NULL)
+				stop(e)
+			}
+		)
+		if (is.null(inf)) next
 		inf$compute_estimate()
 		pv = inf$.__enclos_env__$private
 		spec = if (is.function(pv$get_likelihood_test_spec)) pv$get_likelihood_test_spec() else NULL

@@ -140,7 +140,79 @@ inf_lr$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
 For these Weibull data with shape 1.5, a time ratio of $e^{0.4} \approx 1.49$ is the
 same as a hazard ratio of $e^{-0.4 \times 1.5} \approx 0.55$, so the two models agree.
 The randomization test needs nothing new: it redraws `w` from the design and
-recomputes the interval-censored statistic.
+recomputes the interval-censored statistic. A test of a nonzero null time ratio
+$e^{\delta}$ (`delta` in `compute_rand_two_sided_pval()`) rescales the treated
+subjects' interval bounds by $e^{\delta}$ as it rescales exact times (a bound of 0 or
+`Inf` stays put), so the Weibull class's randomization confidence interval for the
+time ratio, `inf_wb$compute_rand_confidence_interval()`, works on interval-censored
+data too.
+
+### Median and restricted mean survival differences
+
+A hazard ratio or time ratio leans on a model. Two classes compare the arms without
+one, on the time scale itself: the difference in median survival
+(`InferenceSurvivalKMDiff`) and the difference in restricted mean survival time, the
+area under each arm's survival curve up to a horizon $\tau$
+(`InferenceSurvivalRestrictedMeanDiff`). On interval-censored data both read the
+survival curves from the Turnbull NPMLE instead of Kaplan-Meier.
+
+```{r ic-km-rmst}
+inf_km = InferenceSurvivalKMDiff$new(des_ic, verbose = FALSE)
+inf_km$num_cores = 1L
+inf_km$set_seed(1)
+km_est = inf_km$compute_estimate()
+km_ci = inf_km$compute_asymp_confidence_interval(alpha = 0.05)
+inf_km$set_seed(1)
+km_p = inf_km$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+c(median_difference = km_est, km_ci, rand_pval = km_p)
+
+# tau = 24 months, the planned follow-up, fixed in the protocol before the data are seen
+inf_rmst = InferenceSurvivalRestrictedMeanDiff$new(des_ic, verbose = FALSE, tau = 24)
+inf_rmst$num_cores = 1L
+inf_rmst$set_seed(1)
+rmst_est = inf_rmst$compute_estimate()
+rmst_ci = inf_rmst$compute_asymp_confidence_interval(alpha = 0.05)
+inf_rmst$set_seed(1)
+rmst_p = inf_rmst$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+c(rmst_difference = rmst_est, rmst_ci, rand_pval = rmst_p)
+```
+
+The treated arm's median recurrence time is `r km_est` months later, and over the
+first 24 months treated patients are recurrence-free for `r round(rmst_est, 2)` months
+longer on average (95% interval `r round(rmst_ci[1], 2)` to `r round(rmst_ci[2], 2)`).
+The median difference is a multiple of three months: the Turnbull curve only drops
+between visits, so its median sits on the visit grid. That makes the median a coarse
+statistic, and its interval is wide; here it covers zero although the randomization
+test rejects at the 5% level. The restricted mean uses the whole curve and is more
+precise.
+
+Neither class has a closed-form standard error on interval-censored data, so
+`compute_asymp_confidence_interval()` is really a nonparametric bootstrap interval,
+at the bootstrap defaults: B = 501, a percentile interval for the median difference
+and a BCa interval for the restricted mean. It is reproducible after `set_seed()`,
+but each call refits the Turnbull NPMLE about a thousand times and takes seconds
+rather than milliseconds. BCa needs B of at least 501; if time matters more than the
+BCa correction, call `compute_bootstrap_confidence_interval(B = 199, type = "percentile")`
+yourself. Other differences from right-censored data:
+
+- **The Bayesian bootstrap is refused**, with an error, because the Turnbull fit
+  (`interval::icfit()`) takes no weights. Use the ordinary bootstrap.
+- **The jackknife of a median is unreliable**: `InferenceSurvivalKMDiff`'s
+  jackknife-Wald interval and p-value are usually `NA`, with a warning.
+- **Randomization confidence intervals are not available** for either class (their
+  units do not fit the randomization interval search); the randomization p-value is.
+- **A median may not be reached.** If an arm's survival curve never falls to 0.5,
+  for example at an early interim look, the median difference is `NA`. The restricted
+  mean is defined however short the follow-up, so use it then.
+
+Why prespecify `tau`? By default the horizon is the smaller of the two arms' last
+finite visit times, here also 24 months. That default depends on the data: a few
+missed final visits in one arm would shorten it and change what is being estimated.
+EDI fixes the horizon once, from the observed data or from your `tau`, and holds it
+fixed in every randomization and bootstrap draw. (Recomputing it in each draw would
+make the null draws compare restricted means over different horizons and can take
+away almost all the test's power.) Choosing `tau` in the protocol, typically the
+planned follow-up, makes the estimand known before the data are seen.
 
 ## Which classes accept interval censoring
 
@@ -171,7 +243,9 @@ In short:
   [`InferenceSurvivalRestrictedMeanDiff`](../reference/InferenceSurvivalRestrictedMeanDiff.html)
   and [`InferenceSurvivalKMDiff`](../reference/InferenceSurvivalKMDiff.html) (survival
   curves from the Turnbull NPMLE
-  [(Turnbull 1976, doi:10.1111/j.2517-6161.1976.tb01597.x)](https://doi.org/10.1111/j.2517-6161.1976.tb01597.x)).
+  [(Turnbull 1976, doi:10.1111/j.2517-6161.1976.tb01597.x)](https://doi.org/10.1111/j.2517-6161.1976.tb01597.x);
+  their intervals come from the bootstrap, see
+  [above](#median-and-restricted-mean-survival-differences)).
 - **Exact and right-censored data only:** the stratified Cox, dependent-censoring,
   frailty and KK matched-pair survival classes.
 

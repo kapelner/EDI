@@ -431,14 +431,13 @@ EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS = c(
 #' @keywords internal
 #' @noRd
 run_all_inference_check_sentinel_completeness = function() {
-	excluded_capabilities = c("likelihood_ratio", "estimating_equation_likelihood_ratio")
 	covered = union(
 		vapply(EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY, `[[`, character(1L), "method"),
 		vapply(EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY, `[[`, character(1L), "method")
 	)
 	covered = union(covered, EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS)
 	all_methods = character()
-	for (cap in setdiff(names(public_methods_for_capability), excluded_capabilities)) {
+	for (cap in names(public_methods_for_capability)) {
 		methods = public_methods_for_capability[[cap]]
 		all_methods = c(all_methods, grep("^compute_.*(_confidence_interval|_two_sided_pval|_pval)$", methods, value = TRUE))
 	}
@@ -4744,9 +4743,6 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   consulted at runtime always comes from that class's own accessor
 		#'   (see the top of this section), so a class need not support every
 		#'   value listed.
-		#'   (\code{"likelihood_ratio"}/\code{"estimating_equation_likelihood_ratio"}
-		#'   are deliberately not separate sentinels -- both capabilities gate
-		#'   the exact same method pair \code{"lik_ratio"} above already covers.)
 		#'   For each class, only sentinels the class has \emph{any} CI or
 		#'   p-value capability for (among the requested \code{methods}) get a
 		#'   row; for a typed sentinel, one row per \code{type} that class
@@ -4877,6 +4873,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertCharacter(exclude_classes, any.missing = FALSE)
 				# Inf allowed: same as NULL (no limit). 0 is not: setTimeLimit(elapsed = 0) means
 				# no limit while the fork dispatcher kills every task at once.
+				# checkmate-loose: Inf means no per-class time limit.
 				assertNumber(max_secs_per_class, lower = .Machine$double.xmin, null.ok = TRUE)
 				assertCount(num_cores, positive = TRUE)
 				if (!is.null(formulas)) {

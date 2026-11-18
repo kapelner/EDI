@@ -27,6 +27,15 @@ Bayesian-bootstrap inference is temporarily unavailable because
 weights needed to refit the same clustered estimator. It will remain
 disabled until the weighted ordinal-GEE implementation planned for v1.1.0
 is complete.
+
+Under (quasi-)complete separation (for example every treated subject in the
+top category), the fit has no finite solution and the sandwich standard error
+collapses. The class then warns once (\code{edi_logistic_separation_warning})
+and returns \code{NA} for the asymptotic p-value and confidence interval, and
+the jackknife methods return \code{NA} with an \code{edi_procedure_na_warning}
+(reason \code{jackknife_full_data_separation}); the point estimate is
+unchanged. Use the randomization test, merge sparse categories, or fit fewer
+covariates.
 }
 \section{Small-sample behaviour}{
 

@@ -179,7 +179,7 @@ ContinKKOLSIVWCSource = list(
 		ols_for_matched_pairs = function(estimate_only = FALSE){
 			yd = private$cached_values$KKstats$y_matched_diffs
 			m  = length(yd)
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				Xd = as.matrix(private$cached_values$KKstats$X_matched_diffs)
 				X = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				reduced = private$reduce_design_matrix_once(
@@ -207,7 +207,7 @@ ContinKKOLSIVWCSource = list(
 			w_r = private$cached_values$KKstats$w_reservoir
 			X_r = as.matrix(private$cached_values$KKstats$X_reservoir)
 			j_treat = 2L
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X_full = cbind(1, w_r, X_r)
 				reduced = private$reduce_design_matrix_once(
 					X_full,
@@ -249,9 +249,10 @@ ContinKKOLSIVWCSource = list(
 #' combination rule used by
 #' \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
 #' generalized here to allow covariate adjustment via \code{model_formula}.
-#' \code{likelihood_tier = "none"}: this is an estimating-equation (least
-#' squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
-#' inference is available (no likelihood-ratio or score test).
+#' \code{likelihood_tier = "quasi"}: each piece is a least-squares fit with an
+#' HC2 sandwich variance (an estimating-equation objective, not a fitted
+#' likelihood), so only Wald-type asymptotic inference is available (no
+#' likelihood-ratio or score test).
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'

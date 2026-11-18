@@ -281,6 +281,89 @@ inline BoundKktVerdict kkt_verdict_at_bounds(const Eigen::LDLT<Eigen::MatrixXd>&
   return out;
 }
 
+// v1.0.6-TODO-142: a start outside the mean support can never be repaired by
+// the loop below. Its log-likelihood is -Inf, the TODO-128 projection holds
+// every out-of-support row whose increment points further out, and the line
+// search only accepts a finite log-likelihood, so the first iteration rejects
+// every step and the fit returns converged = FALSE at its start. The smart
+// cold starts are often infeasible: OLS on y can put mu outside [0, 1]
+// (identity link) and OLS on log1p(y) puts eta > 0 for almost every row (log
+// link); a warm start from a different data set (a bootstrap parent's fit)
+// can be infeasible too. The R classes then dropped covariates until a fit
+// passed (InferenceIncidBinomialIdentityRiskDiff on a Blocking bootstrap draw:
+// 0.128 with x2 dropped vs the MLE 0.0034). Fix: pull the start along the
+// segment toward a feasible intercept-only point (constant column at mean(y),
+// or log(mean(y))) to 90% of the way to the first support boundary. The
+// likelihood is concave, so the end point is unchanged; feasible starts are
+// untouched (bit-identical). Returns false when no constant free column
+// exists (the start is then left as it was).
+inline bool pull_infeasible_start_into_support(Eigen::VectorXd& beta_free,
+                                               const Eigen::MatrixXd& X_free,
+                                               const Eigen::VectorXd& eta_fixed,
+                                               const Eigen::Ref<const Eigen::VectorXd>& y,
+                                               BinomialConstrainedLink link_type,
+                                               const Eigen::VectorXd* obs_weights = nullptr) {
+  const int n = (int)X_free.rows();
+  const int p_free = (int)X_free.cols();
+  const bool is_log = (link_type == BinomialConstrainedLink::kLog);
+  auto counts = [&](int i) { return obs_weights == nullptr || (*obs_weights)[i] > 0.0; };
+  auto outside = [&](double e) { return is_log ? (e >= kMaxEtaLog) : (e <= kMinMu || e >= kMaxMu); };
+  const Eigen::VectorXd eta_start = eta_fixed + X_free * beta_free;
+  bool infeasible = false;
+  for (int i = 0; i < n && !infeasible; ++i) if (counts(i) && outside(eta_start[i])) infeasible = true;
+  if (!infeasible) return false;
+  int first_row = -1;
+  for (int i = 0; i < n; ++i) if (counts(i)) { first_row = i; break; }
+  if (first_row < 0) return false;
+  int j_const = -1;
+  for (int j = 0; j < p_free && j_const < 0; ++j) {
+    const double c = X_free(first_row, j);
+    if (c == 0.0 || !std::isfinite(c)) continue;
+    bool constant = true;
+    for (int i = 0; i < n && constant; ++i) if (counts(i) && X_free(i, j) != c) constant = false;
+    if (constant) j_const = j;
+  }
+  if (j_const < 0) return false;
+  double sw = 0.0, swy = 0.0, eta_fixed_lo = std::numeric_limits<double>::infinity(), eta_fixed_hi = -eta_fixed_lo;
+  for (int i = 0; i < n; ++i) {
+    if (!counts(i)) continue;
+    const double wi = (obs_weights == nullptr) ? 1.0 : (*obs_weights)[i];
+    sw += wi;
+    swy += wi * y[i];
+    eta_fixed_lo = std::min(eta_fixed_lo, eta_fixed[i]);
+    eta_fixed_hi = std::max(eta_fixed_hi, eta_fixed[i]);
+  }
+  const double y_bar = std::min(std::max(swy / sw, 0.01), 0.99);
+  // Intercept-only target, moved into the support if fixed parameters
+  // (fixed_idx, e.g. a null fit's treatment) shift some rows.
+  double target = is_log ? std::log(y_bar) : y_bar;
+  if (is_log) {
+    if (target + eta_fixed_hi >= kMaxEtaLog) target = kMaxEtaLog - eta_fixed_hi - 0.1;
+  } else if (target + eta_fixed_lo <= kMinMu || target + eta_fixed_hi >= kMaxMu) {
+    target = 0.5 - 0.5 * (eta_fixed_lo + eta_fixed_hi);
+  }
+  Eigen::VectorXd beta_ref = Eigen::VectorXd::Zero(p_free);
+  beta_ref[j_const] = target / X_free(first_row, j_const);
+  const Eigen::VectorXd eta_ref = eta_fixed + X_free * beta_ref;
+  double t_max = 1.0;
+  for (int i = 0; i < n; ++i) {
+    if (!counts(i)) continue;
+    if (outside(eta_ref[i])) return false;  // the reference point itself is infeasible
+    const double e0 = eta_ref[i];
+    const double e1 = eta_start[i];
+    double t_i = 1.0;
+    if (e1 >= (is_log ? kMaxEtaLog : kMaxMu)) {
+      t_i = ((is_log ? kMaxEtaLog : kMaxMu) - e0) / (e1 - e0);
+    } else if (!is_log && e1 <= kMinMu) {
+      t_i = (kMinMu - e0) / (e1 - e0);
+    }
+    t_max = std::min(t_max, t_i);
+  }
+  const double t = 0.9 * std::max(0.0, t_max);
+  beta_free = beta_ref + t * (beta_free - beta_ref);
+  return true;
+}
+
 } // namespace
 
 // fit_constrained_binomial_cpp_impl / _weighted_cpp_impl / _with_var_cpp_impl
@@ -331,6 +414,10 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
   }
   beta = apply_fixed_values(beta, fixed_spec);
   Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
+  // v1.0.6-TODO-142: an infeasible start is pulled into the mean support; the
+  // warm Fisher information then belongs to another point and is not used.
+  const bool start_pulled_into_support = pull_infeasible_start_into_support(beta_free, X_free, eta_fixed, y, link_type);
+  if (start_pulled_into_support) beta = expand_free_params(beta_free, beta, fixed_spec);
 
   bool converged = false;
   bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
@@ -371,7 +458,7 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
 
     Eigen::MatrixXd XtWX;
     bool used_warm_fisher = false;
-    if (iter == 0 && warm_start_fisher_info.has_value()) {
+    if (iter == 0 && warm_start_fisher_info.has_value() && !start_pulled_into_support) {
       const Eigen::MatrixXd& info_full = *warm_start_fisher_info;
       if (info_full.rows() == p && info_full.cols() == p) {
         XtWX = subset_matrix(info_full, fixed_spec.free_idx, fixed_spec.free_idx);
@@ -571,6 +658,9 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
   }
   beta = apply_fixed_values(beta, fixed_spec);
   Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
+  // v1.0.6-TODO-142: see the unweighted fitter; zero-weight rows do not constrain.
+  const bool start_pulled_into_support = pull_infeasible_start_into_support(beta_free, X_free, eta_fixed, y, link_type, &obs_weights);
+  if (start_pulled_into_support) beta = expand_free_params(beta_free, beta, fixed_spec);
 
   bool converged = false;
   bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
@@ -595,7 +685,7 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
     const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;
-    const bool use_warm_weights = (iter == 0 && has_warm_start_weights);
+    const bool use_warm_weights = (iter == 0 && has_warm_start_weights && !start_pulled_into_support);
     for (int i = 0; i < n; ++i) {
       double ei = eta[i];
       if (link_type == BinomialConstrainedLink::kLog) {
@@ -617,7 +707,7 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
 
     Eigen::MatrixXd XtWX;
     bool used_warm_fisher_w = false;
-    if (iter == 0 && warm_start_fisher_info.has_value()) {
+    if (iter == 0 && warm_start_fisher_info.has_value() && !start_pulled_into_support) {
       const Eigen::MatrixXd& info_full = *warm_start_fisher_info;
       if (info_full.rows() == p && info_full.cols() == p) {
         XtWX = subset_matrix(info_full, fixed_spec.free_idx, fixed_spec.free_idx);

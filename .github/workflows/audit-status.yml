@@ -25,6 +25,8 @@ on:
       - "audit · monthly · thread-rng"
       - "audit · weekly · allowlist-hygiene"
       - "audit · weekly · ci-self-check"
+      - "audit · weekly · code-duplication"
+      - "audit · weekly · docs-scenarios"
       - "audit · weekly · generated-drift"
       - "audit · weekly · message-args"
       - "audit · weekly · news-version"

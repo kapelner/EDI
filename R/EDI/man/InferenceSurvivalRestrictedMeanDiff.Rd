@@ -10,7 +10,15 @@ between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
 where both arms use the same truncation horizon \eqn{\tau}. By default
 \eqn{\tau} is the smaller of the two arms' maximum follow-up times; it can
 be fixed by the user (e.g. \code{tau = 36} for "RMST at 36 months") via the
-\code{tau} constructor argument. Each RMST is the area under its
+\code{tau} constructor argument. The horizon is set once, from the observed
+data (or the user's \code{tau}), and then held fixed in every randomization,
+randomization-bootstrap, bootstrap and jackknife draw; it is not recomputed
+from each draw's arms. A horizon recomputed per draw would depend on the
+assignment, so the null distribution would compare RMSTs over different
+horizons than the observed statistic and the randomization test could lose
+almost all its power. Prespecifying \code{tau} in the trial protocol (for
+example the planned follow-up) is still recommended: the default horizon is
+itself data-dependent. Each RMST is the area under its
 Kaplan-Meier survival curve up to that horizon
 (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 computed by trapezoidal integration of the step-function KM curve. The
@@ -47,8 +55,13 @@ shared horizon \eqn{\tau}: the user's \code{tau}, or by default the smaller
 of the two arms' largest finite observed endpoints. Within a Turnbull
 interval the curve is not identified; it is taken to step down at the
 interval's left endpoint. An arm with no events before \eqn{\tau} has RMST
-equal to \eqn{\tau}. Bayesian-bootstrap re-estimation is not available on
-this path (\code{icfit()} has no weights argument).
+equal to \eqn{\tau}. The Bayesian bootstrap
+(\code{$compute_bayesian_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_two_sided_pval()} and
+\code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+with an error on left- or interval-censored data, because \code{icfit()} has no weights argument; use the
+nonparametric bootstrap there instead. On right-censored data it is
+unaffected.
 }
 \section{Small-sample behaviour}{
 
@@ -195,13 +208,17 @@ design's imputed covariates.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
       \item{\code{tau}}{Optional user-chosen restriction horizon \eqn{\tau} (a single finite
 positive number, on the response's time scale). If \code{NULL} (default) the
-shared horizon is the smaller of the two arms' maximum follow-up times, as before.
+shared horizon is the smaller of the two arms' maximum follow-up times in the
+observed data. Users may prespecify \code{tau} (recommended, e.g. the protocol's
+planned follow-up); a prespecified horizon does not depend on the data at all.
 If given, \eqn{\tau} must not exceed that smaller maximum (the KM curve is not
-identified past an arm's last observation); the point estimate, Greenwood
-standard error, Bayesian/nonparametric bootstrap and randomization paths all use
-this same \eqn{\tau}. In a resample whose smaller arm maximum falls below
-\code{tau}, the smaller maximum is used for that resample. For left-/interval-
-censored data the Turnbull step function is integrated exactly up to \code{tau}.}
+identified past an arm's last observation). Either way, the point estimate, Greenwood
+standard error, Bayesian/nonparametric bootstrap, jackknife, randomization and
+randomization-bootstrap paths all use this same \eqn{\tau}, fixed at construction
+and never recomputed from a draw's arms. In a resample whose smaller arm maximum
+falls below \eqn{\tau}, the smaller maximum is used for that resample. For
+left-/interval-censored data the Turnbull step function is integrated exactly up
+to \eqn{\tau}.}
     }
     \if{html}{\out{</div>}}
   }

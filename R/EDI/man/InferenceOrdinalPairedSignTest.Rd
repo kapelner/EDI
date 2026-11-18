@@ -185,7 +185,9 @@ design's imputed covariates.}
       \item{\code{r}}{Number of randomization draws.}
       \item{\code{delta}}{Null treatment effect.}
       \item{\code{transform_responses}}{Optional response transformation.}
-      \item{\code{na.rm}}{Whether to drop non-finite draws.}
+      \item{\code{na.rm}}{Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.}
       \item{\code{show_progress}}{Whether to show a progress bar.}
       \item{\code{permutations}}{Optional pre-computed permutations.}
       \item{\code{zero_one_logit_clamp}}{Clamp for logit transforms.}

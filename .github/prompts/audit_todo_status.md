@@ -17,7 +17,10 @@ The plan for this audit is `R/package_metadata/new_feature_plans/v1_0_6/audit_jo
   - `citing_commits`: commits whose message cites this TODO, each with `since_last_audit` and `diff`, a
     file holding that commit's message, file list and patch (cut at 1500 lines);
   - `named_files`: the files the TODO names in backticks, with `exists` and `last_commit`;
-  - `previous_verdict`: your predecessor's verdict last time, if any.
+  - `previous_verdict`: your predecessor's verdict last time, if any;
+  - `in_your_checkout` (only when this run's mechanical tidy moved or renumbered the entry): `lines`
+    and `todo` above are after the tidy, but your checkout is not tidied, so read the entry at
+    `checkout_line`, where it is still `checkout_todo`. Report the unit by its `id` as usual.
 - `.audit-work/decisions.md`: settled decisions and ticks the owner rejected. Do not return a `done`
   verdict on evidence a decision there has already rejected for the same TODO; say what is new instead,
   or return `partly done` / `not done`.

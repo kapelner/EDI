@@ -267,7 +267,7 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			# the hardened QR column-dropping can only remove covariates.
 			X_full = .weibull_frailty_design_matrix(
 				private$w[i_matched],
-				if (ncol(as.matrix(private$X)) == 0L) NULL else private$get_X()[i_matched, , drop = FALSE]
+				if (ncol(as.matrix(private$get_X())) == 0L) NULL else private$get_X()[i_matched, , drop = FALSE]
 			)
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
@@ -304,7 +304,7 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			split = split_kk_matched_reservoir_idx(private$m, private$n)
 			i_reservoir = split$reservoir_idx
 			if (length(i_reservoir) == 0L) return(invisible(NULL))
-			X_full = if (ncol(as.matrix(private$X)) == 0L){
+			X_full = if (ncol(as.matrix(private$get_X())) == 0L){
 				matrix(private$w[i_reservoir], ncol = 1L, dimnames = list(NULL, "w"))
 			} else {
 				cbind(w = private$w[i_reservoir], private$get_X()[i_reservoir, , drop = FALSE])
@@ -559,7 +559,7 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 			# required column so the hardened QR column-dropping can't remove it.
 			X_full = .weibull_frailty_design_matrix(
 				private$w,
-				if (ncol(as.matrix(private$X)) == 0L) NULL else private$get_X()
+				if (ncol(as.matrix(private$get_X())) == 0L) NULL else private$get_X()
 			)
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
@@ -922,10 +922,7 @@ InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = define_inference_class(
 		# other survival KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache).
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

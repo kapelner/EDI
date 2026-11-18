@@ -56,10 +56,7 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 		"ParametricLikelihoodBootstrap",
 		"KKGLMM"
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache) this stretch.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as
 		# every other continuous KK migration this stretch.

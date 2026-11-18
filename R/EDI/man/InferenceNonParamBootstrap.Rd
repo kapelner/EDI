@@ -813,7 +813,20 @@ standard error, giving O(n^\{-1\}) error versus O(n^\{-1/2\}) for the percentile
 method (Hall 1992; Davidson & MacKinnon 1999).
 \code{"bca"}: bias-corrected and accelerated p-value via closed-form CI
 inversion using the jackknife acceleration and bias-correction constants;
-second-order accurate (Efron 1987; Efron & Tibshirani 1993).}
+second-order accurate (Efron 1987; Efron & Tibshirani 1993). When \code{delta}
+lies outside every BCa interval (outside the range of the bootstrap draws, or past
+the acceleration's turning point) the p-value is the floor \eqn{2/B} that the other
+types also report, not \code{NA}. It is \code{NA} only when the BCa adjustment
+itself is degenerate: on the order-statistic boundary (one
+\code{edi_bootstrap_bca_boundary_warning} per object) or with an unstable bias
+correction or acceleration (one \code{edi_bootstrap_bca_unstable_warning} per
+object); use \code{type = "percentile"} then. It is also \code{NA} when the jackknife
+behind the acceleration (automatic unit: blocks, clusters, matched sets or subjects)
+has fewer than 5 deletion units (reason
+\code{"bootstrap_bca_jackknife_too_few_deletion_units"}, the same minimum as
+\code{compute_jackknife_std_error()}) or fewer than 2 finite replicates (reason
+\code{"bootstrap_bca_jackknife_unavailable"}), with one
+\code{edi_procedure_na_warning}.}
       \item{\code{na.rm}}{Remove non-finite bootstrap replicates. Default FALSE, in which case a
 single non-finite replicate makes the p-value \code{NA} (with a once-per-object warning of class
 \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
@@ -876,7 +889,19 @@ more than two order statistics (2/(B + 1)) inside the sample range, so at small 
 the interval is \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, with
 one \code{edi_bootstrap_bca_boundary_warning} per object). B of about 501 or more is
 recommended for \code{"bca"}; at B of about 100 it is NA for many datasets. Use
-\code{type = "percentile"} when a small B is needed.}
+\code{type = "percentile"} when a small B is needed. The BCa interval is also
+\code{NA} when the bias correction or acceleration is unstable (\eqn{|z_0| > 2.5},
+i.e. the estimate lies in the far tail of the bootstrap draws, \eqn{|a| > 1}, either
+not finite, or a (near) zero BCa denominator; reason
+\code{"bootstrap_bca_unstable_bias_or_acceleration"}), with one
+\code{edi_bootstrap_bca_unstable_warning} per object; a larger B does not help there,
+use \code{type = "percentile"}. \strong{Minimum units for \code{"bca"}:} the
+acceleration comes from the jackknife on the design's automatic unit (blocks,
+clusters, matched sets or subjects); with fewer than 5 deletion units (the same
+minimum as \code{compute_jackknife_std_error()}) the interval is \code{NA} (reason
+\code{"bootstrap_bca_jackknife_too_few_deletion_units"}; with fewer than 2 finite
+replicates, \code{"bootstrap_bca_jackknife_unavailable"}) with one
+\code{edi_procedure_na_warning}. Each such \code{NA} raises only that one warning.}
       \item{\code{na.rm}}{Remove non-finite bootstrap replicates.
 Default TRUE. Non-finite replicates are always removed internally.}
       \item{\code{show_progress}}{Show progress bar.}

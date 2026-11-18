@@ -177,6 +177,13 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		# duplicate copies here were removed 2026-10-22 so there is one path: the
 		# NonparametricBootstrap body re-raises EDI resampling control conditions
 		# (interrupts/timeouts) from get_block_ids() and swallows only other errors.
+		# v1.0.6-TODO-122: TRUE when the full-data fit is (quasi-)completely
+		# separated, so compute_jackknife_summary() returns NA (reason
+		# "jackknife_full_data_separation") instead of jackknifing a fit with no
+		# finite solution. Default FALSE; the KK GEE classes override it.
+		jackknife_full_fit_is_separated = function(){
+			FALSE
+		},
 		jackknife_cache_key = function(unit = "auto"){
 			private$resolve_jackknife_unit(unit)
 		},
@@ -202,11 +209,33 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
+			# v1.0.6-TODO-122: when the full-data fit is (quasi-)completely
+			# separated, every leave-one-unit-out fit stops wherever the fitter
+			# gave up too, so the jackknife bias, SE and bias-corrected estimate
+			# describe the fitter's stopping rule, not the data (KK incidence GEE
+			# repro: estimate 50.5, jackknife estimate -384, SE 434, p 0.38).
+			# Classes that can tell override jackknife_full_fit_is_separated().
+			if (isTRUE(private$jackknife_full_fit_is_separated())) {
+				private$cache_procedure_failure("jackknife", "jackknife_full_data_separation")
+				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = numeric(0))
+				private$cached_values$jackknife_summary[[cache_key]] = summary
+				return(summary)
+			}
 			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
 			n_units = length(jack)
 			if (n_units <= 1L) {
 				private$cache_procedure_failure("jackknife", "jackknife_too_few_replicate_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = numeric(0))
+				private$cached_values$jackknife_summary[[cache_key]] = summary
+				return(summary)
+			}
+			# v1.0.6-TODO-135: with G deletion units the delete-1 jackknife variance
+			# has G - 1 degrees of freedom, but the Wald p-value and CI below use
+			# the normal reference. See EDI_JACKKNIFE_MIN_DELETION_UNITS.
+			if (n_units < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
+				private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit))
+				private$cache_procedure_failure("jackknife", "jackknife_too_few_deletion_units")
+				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = jack)
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
@@ -243,6 +272,20 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 	)
 )
 
+# v1.0.6-TODO-135: fewest deletion units (blocks, clusters, pairs, matched sets
+# or observations) for which compute_jackknife_summary() reports a jackknife
+# estimate, bias and SE; below it they are NA with an edi_procedure_na_warning.
+# With G units the delete-1 jackknife variance behaves like a chi-square with
+# G - 1 df (Efron & Stein 1981; Shao & Tu 1995, ch. 2), so the SE's own
+# coefficient of variation is about sqrt(2 / (G - 1)): 1.41, 1.00, 0.82 at
+# G = 2, 3, 4. The jackknife-Wald p-value and CI use the normal reference
+# (qnorm / pnorm), not t_{G-1}, so even in the ideal case (studentized
+# estimate exactly t_{G-1}) a nominal 95% interval covers only 70%, 81% and
+# 86% at G = 2, 3, 4 (88% at 5, 92% at 10). The small-G cluster literature
+# (Cameron & Miller 2015; Bell & McCaffrey 2002) draws the line at about 5
+# units. Fewer than 5 is therefore NA; 5 or more is unchanged.
+EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
+
 # Warn when a public jackknife method hands back NA (v1.0.6-TODO-113, the
 # v1.0.6-TODO-95 rule). Names the specific reason compute_jackknife_summary()
 # recorded (the public methods overwrite it with the generic
@@ -266,8 +309,18 @@ edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackk
 			"estimate or standard error is extreme; this is typical when the full-data fit is at or near separation ",
 			"(e.g. one arm almost entirely in one outcome category), where no finite estimate is trustworthy."),
 		jackknife_extreme_finite_estimates = "Some leave-one-unit-out estimates are extreme (near separation).",
+		jackknife_full_data_separation = paste0("The full-data fit is (quasi-)completely separated (fitted ",
+			"probabilities numerically 0 or 1), so the estimate and every leave-one-unit-out estimate are where the ",
+			"fitter stopped, and the jackknife bias and standard error are not meaningful. Use a randomization test ",
+			"(compute_rand_two_sided_pval())."),
 		jackknife_nonfinite_replicate_estimates = "Some leave-one-unit-out fits failed.",
 		jackknife_too_few_replicate_estimates = "There are too few deletion units for a jackknife.",
+		jackknife_too_few_deletion_units = paste0("The jackknife has only ",
+			as.integer(private$cached_values$jackknife_n_deletion_units$n %||% NA_integer_), " deletion units (unit = \"",
+			private$cached_values$jackknife_n_deletion_units$unit %||% "auto", "\"); at least ",
+			EDI_JACKKNIFE_MIN_DELETION_UNITS, " are needed. With G units the jackknife variance has only G - 1 degrees ",
+			"of freedom, so the standard error is too unstable for a normal-reference Wald test or interval. ",
+			"Use a randomization test (compute_rand_two_sided_pval()) or the model-based standard error."),
 		jackknife_original_estimate_unavailable = "The full-data estimate is not available.",
 		NULL
 	)

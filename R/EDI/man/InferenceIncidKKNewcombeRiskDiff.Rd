@@ -8,15 +8,15 @@
 KKNewcombeRiskDiffIVWCSource
 }
 \description{
-Initialize KK Newcombe risk-difference IVWC inference and
+Initialize KK risk-difference IVWC inference and
   prepare matched/reservoir paired-binomial components used by
   \code{\link[EDI:InferenceIncidKKNewcombeRiskDiff]{InferenceIncidKKNewcombeRiskDiff}}.
 
-Computes the compound Newcombe risk-difference point estimate
+Computes the compound risk-difference point estimate
   \eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2} on the risk-difference
-  (probability) scale, where \eqn{\hat\theta_1} is the paired-Newcombe
-  discordant-pair estimate from matched pairs and \eqn{\hat\theta_2} is the
-  independent-Newcombe estimate from reservoir subjects, combined by
+  (probability) scale, where \eqn{\hat\theta_1} is the paired discordant-pair
+  estimate from matched pairs and \eqn{\hat\theta_2} is the two-sample
+  estimate from reservoir subjects (each with its Wald variance), combined by
   inverse-variance weighting \eqn{w_j \propto 1/\widehat{\mathrm{Var}}(\hat\theta_j)}
   (falls back to the single available component when one has zero subjects).
   Caches intermediate match/reservoir statistics for reuse by
@@ -24,25 +24,32 @@ Computes the compound Newcombe risk-difference point estimate
   \code{compute_asymp_two_sided_pval()}.
 }
 \details{
-Implements a compound Newcombe risk-difference estimator for KK designs.
-This class pools information from matched pairs (using the Paired Newcombe
-method) and the reservoir (using the Independent Newcombe method) via
-inverse-variance weighted combination (IVWC).
+Implements a compound risk-difference estimator for KK designs. It pools a
+matched-pair estimate and a reservoir estimate by inverse-variance weighted
+combination (IVWC). Despite the class name, the components use Wald
+(large-sample) variances, not Newcombe's Wilson-score intervals.
 
 
-The matched-pair component applies the paired Newcombe (Method-10-style
-Wilson-score) interval to the discordant pairs to estimate the treatment
-effect and its variance (Newcombe 1998). The reservoir component applies the
-independent-samples Newcombe interval, treating unmatched subjects as two
-independent binomial samples. The two component estimates
-\eqn{\hat\theta_1, \hat\theta_2} are combined by inverse-variance weighting,
-\eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2}, \eqn{w_j =
-(1/\hat V_j) / \sum_k (1/\hat V_k)}, the standard IVWC framework used
-throughout the package's KK inference classes. \code{likelihood_tier =
-"none"}: this is a closed-form Wilson-score-type estimator, not a fitted
+The matched-pair component is the paired risk difference
+\eqn{\hat\theta_1 = \hat p_{10} - \hat p_{01}} over the \eqn{m} matched pairs,
+where \eqn{\hat p_{10}} and \eqn{\hat p_{01}} are the proportions of discordant
+pairs of each kind, with the Wald variance
+\eqn{\hat V_1 = \{\hat p_{10} + \hat p_{01} - (\hat p_{10} - \hat p_{01})^2\} / m}.
+The reservoir component treats the unmatched subjects as two independent
+binomial samples: \eqn{\hat\theta_2 = \hat p_T - \hat p_C} with
+\eqn{\hat V_2 = \hat p_T(1 - \hat p_T)/n_T + \hat p_C(1 - \hat p_C)/n_C}. These
+are the simple asymptotic variances of Newcombe (1998), not his Wilson-score
+(Method 10) intervals. The two estimates are combined by inverse-variance
+weighting, \eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2}, \eqn{w_j =
+(1/\hat V_j) / \sum_k (1/\hat V_k)}, with variance
+\eqn{\hat V_1 \hat V_2 / (\hat V_1 + \hat V_2)}, the IVWC framework used
+throughout the package's KK inference classes; the asymptotic confidence
+interval and p-value are Wald z procedures from that combined variance.
+\code{likelihood_tier = "none"}: this is a closed-form estimator, not a fitted
 likelihood model, so no likelihood-ratio or parametric-bootstrap methods are
-exposed. If a design has no matched pairs or no reservoir subjects, the
-single available component is used directly rather than combined.
+exposed. If a design has no matched pairs or no reservoir subjects, or one
+component has a zero or non-finite variance, the single usable component is
+used directly rather than combined.
 }
 \examples{
 \donttest{

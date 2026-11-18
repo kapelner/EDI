@@ -14,11 +14,10 @@
 # mismatches (average diff: 0.0424) [1] 0.1026 - 0.1003 == 0.00231 [2] 0.1258 - 0.1073 == 0.01852 [3]
 # 0.1148 - 0.1188 == -0.00402 [4] 0.1119 - 0.1448 == -0.03290 [5] 0.1028 - 0.1229 == -0.02003 [6]
 # 0.0682 - 0.0638 == 0.00439 [7] 0.1287 - 0.0974 == 0.
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Fixed as v1.0.6-TODO-22 (2026-11-18): every replicate's first resample and its redraw seed are drawn
+# serially before the work is split, so the distribution is the same at any core count.
 
 test_that("seeded prop g-computation bootstrap distribution does not depend on the core count", {
-	skip("open a release TODO for this")
 		on.exit(unset_num_cores(), add = TRUE)
 		set.seed(1)
 		n = 60L
@@ -37,6 +36,8 @@ test_that("seeded prop g-computation bootstrap distribution does not depend on t
 		}
 		b1 = run(1L)
 		b2 = run(2L)
+		b4 = run(4L)
 		expect_true(sum(is.finite(b1)) >= 30L)
-		expect_equal(b2, b1)
+		expect_identical(b2, b1)
+		expect_identical(b4, b1)
 })

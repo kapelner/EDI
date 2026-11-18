@@ -1,4 +1,15 @@
+# v1.0.6-TODO-146: the smoothed BRT adds N(0, sd(y)/sqrt(n)) noise to each resampled
+# exact response. Under left-/interval-censoring a censored subject's y is NA, so the
+# noise reached exact times only, the bandwidth came from the exact times alone (1.0 in
+# raw time units when there are none), and additive noise on positive times breaks the
+# 0 lower bound of a left-censored interval. There is no smoothed-bootstrap theory for
+# interval-censored data to fall back on, so smoothing is refused there.
+rand_bootstrap_smoothing_has_general_censoring <- function(inf_obj){
+	isTRUE(inf_obj$.__enclos_env__$private$has_general_censoring)
+}
+
 rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
+	if (rand_bootstrap_smoothing_has_general_censoring(inf_obj)) return(FALSE)
 	if (!response_type %in% c("incidence", "ordinal", "proportion")) return(TRUE)
 	# Real-valued location statistics can smooth their statistic even when the
 	# recorded response is coded categorically. Categorical model refits cannot.
@@ -8,6 +19,11 @@ rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 
 assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 	if (!rand_bootstrap_smoothing_supported(inf_obj, response_type)) {
+		if (rand_bootstrap_smoothing_has_general_censoring(inf_obj)) {
+			stop("Smoothed randomization bootstrap is not supported for left- or interval-censored ",
+			     "survival responses in ", class(inf_obj)[1L], " (censored subjects have no exact ",
+			     "time to smooth); use type = 'percentile'.", call. = FALSE)
+		}
 		stop("Smoothed randomization bootstrap is not supported for ", response_type,
 		     " responses in ", class(inf_obj)[1L], "; use type = 'percentile'.", call. = FALSE)
 	}
@@ -419,6 +435,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \eqn{p = P(|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s})}; CI is symmetric.
 		#'   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
 		#'   \code{"percentile"} if the SE is unavailable.
+		#'   \code{"smoothed"} is refused (with an error) for left- or interval-censored survival
+		#'   responses: censored subjects have no exact time to smooth (v1.0.6-TODO-146); use
+		#'   \code{"percentile"} there.
 		#'   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 		#'   to each resampled draw before imposing the null shift, reducing discreteness in the
 		#'   null distribution. Supported for real-valued statistics on coded responses and
@@ -837,6 +856,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					if (!isTRUE(private$has_general_censoring)) {
 						des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
 						des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+					} else if (delta != 0) {
+						bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, response_type_sim, zero_one_logit_clamp)
+						des_priv$y_L = bounds$y_L
+						des_priv$y_R = bounds$y_R
 					}
 				}
 			}
@@ -1004,6 +1027,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				if (!isTRUE(private$has_general_censoring)) {
 					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
 					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+				} else if (delta != 0) {
+					bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, sub_des_priv$response_type, zero_one_logit_clamp)
+					sub_des_priv$y_L = bounds$y_L
+					sub_des_priv$y_R = bounds$y_R
 				}
 			}
 			private$sync_randomization_worker_state(sub_des, sub_inf)
@@ -1141,6 +1168,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				if (!isTRUE(private$has_general_censoring)) {
 					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
 					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+				} else if (delta != 0) {
+					bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, sub_des_priv$response_type, zero_one_logit_clamp)
+					sub_des_priv$y_L = bounds$y_L
+					sub_des_priv$y_R = bounds$y_R
 				}
 			}
 			private$sync_randomization_worker_state(sub_des, sub_inf)
@@ -1153,6 +1184,21 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			}
 			if (is.list(estimate) && "b" %in% names(estimate)) estimate = estimate$b[1]
 			as.numeric(estimate)[1L]
+		},
+		# v1.0.6-TODO-143: under general (left-/interval-) censoring the censored subjects'
+		# y is NA, so shifting y alone imposes the sharp null on exact times only and the
+		# bounds keep the observed treated/control effect. Apply the same shift to y_L / y_R
+		# that y gets: remove it from the observed treated (inverse, at the observed w), take
+		# the draw's rows, re-impose it on the freshly treated. The shift is the one
+		# shift_randomization_responses() uses for y (multiplicative exp(delta) on the "log"
+		# scale, the BRT default for survival), so 0 and Inf bounds stay 0 and Inf.
+		# The shift itself is RandomizationTest's randomization_null_censoring_bounds(),
+		# shared with the plain randomization test/CI (which use all rows, i_b = NULL).
+		rand_bootstrap_null_censoring_bounds = function(i_b, w_new, delta, transform_responses, response_type, zero_one_logit_clamp = .Machine$double.eps){
+			private$randomization_null_censoring_bounds(
+				w_new = w_new, delta = delta, transform_responses = transform_responses,
+				response_type = response_type, i_b = i_b, zero_one_logit_clamp = zero_one_logit_clamp
+			)
 		}
 	)
 )

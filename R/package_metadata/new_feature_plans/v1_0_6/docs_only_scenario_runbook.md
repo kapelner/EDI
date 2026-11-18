@@ -1,9 +1,9 @@
 # Runbook: Docs-Only Scenario Runs, One Per Feature Area
 
 > **Release:** v1.0.6-TODO-98 (`../../future_release_plans/release_v1_0_6.md`). Owner request 2026-11-18.
-> **Open decision (owner):** what triggers a run. Either a release-gate checklist item in
-> `../../future_release_plans/release.md`, or a step that every new-feature plan carries. Until that is decided,
-> this runbook is used by hand. Sections 1-6 apply under either trigger.
+> **Trigger (decided by the owner 2026-11-18):** every feature area runs as a weekly CI job, skipped for an area
+> when nothing relevant to it changed since its last run; see section 7. Sections 1-6 still apply: the job
+> follows them (section 4 is pasted into its prompt verbatim), and a run by hand is still possible.
 >
 > **Related:**
 > - v1.0.6-TODO-73..94: the 22 bugs the six v1.0.6 article agents found. They are the model for how findings are
@@ -210,3 +210,79 @@ Finding format:
    too.
 6. **Add the run-log row** in section 2 (date, area, task, build version and commit, TODO numbers, and "subagent,
    saw repo `CLAUDE.md`" when the run was not a clean `claude -p` run).
+
+## 7. The weekly CI job
+
+`.github/workflows/audit-docs-scenarios.yml` ("audit · weekly · docs-scenarios", Saturday 01:07 UTC, plus
+`workflow_dispatch` with `areas` = `changed`, `all` or a comma-separated list of area ids). It is listed on the
+audit status board (`audit-status.yml`).
+
+**Files.**
+- `.github/prompts/docs_scenario_areas.json`: the feature areas (id, title, task, the paths that make the area
+  due, the articles the agent gets) and the defaults (model, turns, dollar cap, minutes, areas per run). Add an
+  area there; never rename an id (its state would start over).
+- `.github/prompts/docs_scenario.md`: the prompt, section 5 above plus what CI needs. Section 4 of this runbook
+  is pasted into it at run time, so the rules have one source: edit them here.
+- `.github/scripts/docs_scenarios.py` (`plan`, `render`, `collect`, `report`) and its tests,
+  `.github/scripts/test_audit_docs_scenarios.py`.
+
+**Stages.** `prepare` decides which areas are due and writes one context kit per due area. When none is due
+the run ends there and EDI is not built. `build-r` builds EDI once per run as section 3.1 asks:
+`R CMD build` (vignettes rendered) and `R CMD INSTALL --html` of the tarball, then checks that `help/`,
+`html/` and `doc/` exist and the vignette list is not empty. `build-wheel` builds a regular (not editable)
+`edi_kernels` wheel, only when the Python area runs. `scenario` runs one agent per area (matrix, at most 4 at
+once), and `publish` writes the findings file, opens the PR and saves the state.
+
+**Skip rule.** An area is due when one of its paths changed between its last successful run and `HEAD`,
+measured with `scripts/significant_changes.py`: an R, C++ or Python file whose only edits are comments or
+whitespace does not count (owner ruling 2026-11-17), while every man page, vignette, article, README and
+`.pyi` change counts, because that script counts every non-source file git reports. Docs changes therefore
+count with no extra rule, which this job needs since the agent learns EDI only from the docs. A roxygen-only
+edit is dropped from the R file but reaches the area through the `man/*.Rd` file it regenerates; a Python
+docstring is a string token, so it counts as code. An area with no successful run, or whose last-run commit
+is gone from history, is due. A `changed` run takes at most `max_areas_per_run` areas (default 8), never-run
+areas first and then those waiting longest; the rest stay due and run the next week.
+
+**Isolation.** The agent runner has no checkout of the repository. It gets the installed EDI library (R code
+byte-compiled into a lazy-load database; no `R/` sources, no `src/`), EDI's dependencies installed from
+`DESCRIPTION` alone, the reference packages for cross-checks, and a kit with the prompt, the area's
+learnings, known findings, changed paths and articles (as `.Rmd` text, since the installed package carries
+the CRAN vignettes but not the pkgdown articles). The agent works in an empty folder under `RUNNER_TEMP`,
+started with `claude -p` there (`--setting-sources project,local`, no MCP servers), so no `CLAUDE.md` or hook
+reaches it. It needs Bash to run R, so Bash is allowed; network, install, `git` and `gh` commands, the web tools
+and subagents are denied, as are reads of credential paths and of the workspace. No GitHub token is in its
+environment and the job's token is read-only. The Python area installs the wheel into a venv: the installed
+package holds the compiled module, the `.pyi` stub and the thin Python layer (`__init__.py`, `_checks.py`),
+which the rules forbid reading as source, but not `python/cpp` or `R/EDI/src`. The rules in section 4 remain
+the main barrier against reading method bodies (printing an R6 generator would show them), as in a run by hand.
+The Claude Code CLI is used, not `anthropics/claude-code-action`, because the action runs in the checked-out
+workspace (and refuses some events); the secrets and the NOT RUN convention are the same as in the other
+Claude jobs.
+
+**State.** The `audit-notes` branch, folder `docs-scenarios/`, saved with `audit_run.py save-notes` (the
+audits' retrying push; each job writes only its own folder):
+- `state.json`: per area, the last successful run's commit, time and run id, and the last attempt's outcome.
+  An area's commit advances only when its agent finished (`summary.md` written); a run that timed out keeps
+  its findings but the area runs again next week.
+- `learnings/<area>.md`: each run's `learnings_update.md` (covered, not reached, workarounds, confusing docs)
+  appended under a dated heading. The next agent reads it first and is told to go where earlier runs did not.
+- `findings.jsonl`: every finding ever reported, with id `ds-<area>-<run id>-f<n>` and a status re-derived each
+  run: `filed` when an unticked TODO in a release file cites the id (`closed` when it is ticked), `dismissed`
+  when `R/package_metadata/audits/dismissed_decisions.md` lists it, otherwise `open`. The agent sees them in
+  `known_findings.md` and must not report them again.
+- `runs/<date>-run<id>/<area>/`: that run's summary, findings and learnings update.
+
+**Output.** One PR per run with new findings (label `audit-docs-scenarios`, branch
+`audit/docs-scenarios/<date>-run<id>`), adding `R/package_metadata/audits/docs_scenario_findings/<date>-run<id>.md`
+(date plus run id, so two runs on one day never overwrite each other). Each finding carries its repro; one
+without a runnable repro is listed but not registered. The job never writes to a release file: triage the PR
+by section 6, cite each finding's id in the TODO you file (that marks it `filed`), or dismiss it in
+`dismissed_decisions.md` with a reason. Merge the PR to keep the record. Transcripts (secrets redacted) are
+artifacts for 30 days.
+
+**Budget.** Per area: Opus 5.5 at its default effort, at most 250 turns, a `--max-budget-usd` cap of $15 and
+80 minutes for the agent (job limit 110). Estimate: $5-12 per area, so a full first pass of all 17 areas is about
+$100-200, spread over three weeks by the 8-area cap; a typical week with a few changed areas is about $15-50, and
+a week with no relevant change costs nothing beyond a 1-minute plan job. Wall time: about 45-60 minutes for
+the EDI build (two compiles plus the vignettes), then the agents in waves of 4 (8 areas: about 3 hours).
+

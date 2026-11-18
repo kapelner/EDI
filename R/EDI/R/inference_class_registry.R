@@ -513,6 +513,7 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = lapply(EDI_SIMPLE_ESTIMATOR_TARGETS, function(tar
 
 EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	"InferenceContinRobustRegr",
+	"InferenceContinKKOLSIVWC",
 	"InferenceContinKKRobustRegrIVWC",
 	"InferenceContinKKRobustRegrOneLik",
 	"InferenceCountPoissonKKGEE",
@@ -528,6 +529,11 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 		behavior = "m_estimator_variance",
 		estimator_family = "continuous_robust_regression",
 		notes = "Huber/Tukey M-estimator continuous regression path using its model-based asymptotic variance; no sandwich component or normalized likelihood-ratio surface should be implied by the quasi tier."
+	),
+	InferenceContinKKOLSIVWC = list(
+		behavior = c("robust_sandwich", "kk_passthrough", "kk_compound"),
+		estimator_family = "continuous_kk_ols_ivwc",
+		notes = "KK IVWC least-squares estimator: OLS on matched-pair differences and on the reservoir, each with an HC2 sandwich variance, pooled by inverse-variance weighting. Declared quasi (2026-11-18); the registry used to call it full from the OLS name token."
 	),
 	InferenceContinKKRobustRegrIVWC = list(
 		behavior = c("robust_sandwich", "kk_passthrough", "kk_compound"),
@@ -978,8 +984,9 @@ EDI_INFERENCE_CLASSES_CONCAVE_LIKELIHOOD = c(
 	# Gaussian linear model, one sigma (fast_ols_cpp / lm.fit).
 	"InferenceContinOLS", "InferenceContinLin",
 	"InferenceContinKKOLSIVWC", "InferenceContinKKOLSOneLik",
-	# quantreg::rq check-function loss: a linear program, convex.
-	"InferenceContinKKQuantileRegrOneLik", "InferencePropKKQuantileRegrOneLik",
+	# (The KK quantile-regression OneLik classes were listed here while the registry took
+	# their tier from the name; they declare likelihood_tier = "none", which wins since
+	# 2026-11-18, and a "none" class carries no likelihood_concave.)
 	# GLMs with canonical or log-concave links: logistic, probit, Poisson, and
 	# log/identity binomial (concave on their feasible region). The fractional
 	# logit and the Zou modified-Poisson working likelihood share these kernels.
@@ -1149,8 +1156,6 @@ EDI_INFERENCE_LIKELIHOOD_PROPERTIES = local({
 		InferenceContinLin = lik_props(parameter_layout = gaussian_layout, derivatives = exact),
 		InferenceContinKKOLSOneLik = lik_props(parameter_layout = gaussian_layout, derivatives = exact),
 		InferenceContinKKOLSIVWC = lik_props(),
-		InferenceContinKKQuantileRegrOneLik = lik_props(),
-		InferencePropKKQuantileRegrOneLik = lik_props(),
 		InferenceContinKKGLMM = lik_props(
 			boundary_parameters = re,
 			parameter_layout = lik_layout(b(), log1("log_sigma_e"), log1("log_sigma_b"), treatment_index = "2"),
@@ -3854,6 +3859,13 @@ clear_inference_class_registry = function() {
 	invisible(TRUE)
 }
 
+# The metadata and components a class was declared with by define_inference_class(), or
+# NULL for a class built another way (plain R6Class, or a generator from an older build).
+inference_class_declaration = function(generator) {
+	d = tryCatch(generator$edi_declaration, error = function(e) NULL)
+	if (is.list(d)) d else NULL
+}
+
 populate_inference_class_registry = function(ns = environment(populate_inference_class_registry)) {
 	clear_inference_class_registry()
 	all_names = sort(ls(ns))
@@ -3863,6 +3875,10 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 		if (!identical(obj$classname, name)) next
 		parent_gen = obj$get_inherit()
 		parent_name = if (is.null(parent_gen)) NULL else parent_gen$classname
+		# What define_inference_class() was given wins; the name rules below are the
+		# fallback for classes not built with the factory (see inference_class_declaration()).
+		declaration = inference_class_declaration(obj)
+		declared = declaration$metadata %||% list()
 		register_inference_class(
 			name = name,
 			parent = parent_name,
@@ -3872,12 +3888,12 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				# sourcing sequence (see get_inference_class_metadata()'s note); resolved
 				# lazily on read instead of computed here.
 				exported = NA,
-				response_types = infer_inference_response_types(name),
+				response_types = declared$response_types %||% infer_inference_response_types(name),
 				design_families = "all",
 				compatibility = always_compatible_inference_metadata,
-				likelihood_tier = infer_inference_likelihood_tier(name),
+				likelihood_tier = declared$likelihood_tier %||% infer_inference_likelihood_tier(name),
 				required_packages = character(),
-				capabilities = character(),
+				capabilities = as.character(declared$capabilities %||% character()),
 				excluded_capabilities = unique(c(
 					EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 					EDI_INFERENCE_EXCLUDED_CAPABILITIES[[name]] %||% character()
@@ -3886,7 +3902,8 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
 				requires_even_allocation = infer_inference_requires_even_allocation(obj),
 				requires_kk_matching_design = infer_inference_requires_kk_matching_design(name),
-				supports_additive_delta_shift = name %in% EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES,
+				supports_additive_delta_shift = declared$supports_additive_delta_shift %||%
+					(name %in% EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES),
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name),
@@ -3896,7 +3913,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				# nonregular_points (see EDI_INFERENCE_LIKELIHOOD_PROPERTIES).
 				infer_inference_likelihood_properties(name)
 			),
-			direct_components = infer_inference_direct_components(name)
+			direct_components = if (is.null(declaration)) infer_inference_direct_components(name) else declaration$components
 		)
 	}
 	validate_inference_class_registry()

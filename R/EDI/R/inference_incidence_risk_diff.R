@@ -60,9 +60,14 @@ InferenceIncidRiskDiff = define_inference_class(
 		#'   differs from the \code{InferenceAllSimpleAverageDiff}-family precedent of
 		#'   pinning \code{InferenceRand}'s version, which would have regressed the
 		#'   working Zhang dispatch this class had on the old ladder.
-		#' @param r Number of randomization vectors. @param delta Null difference.
-		#' @param transform_responses Transformation. @param na.rm Remove NAs.
-		#' @param show_progress Show progress. @param permutations Pre-computed permutations.
+		#' @param r Number of randomization vectors.
+		#' @param delta Null difference.
+		#' @param transform_responses Transformation.
+		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
+		#' @param show_progress Show progress.
+		#' @param permutations Pre-computed permutations.
 		#' @param type Optional exact-inference type for incidence dispatch.
 		#' @param args_for_type Optional arguments for \code{type}.
 		#' @param zero_one_logit_clamp Clamp for exact 0/1 values when logging.
@@ -285,7 +290,7 @@ InferenceIncidRiskDiff = define_inference_class(
 		},
 		best_X_colnames = NULL,
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {

@@ -3,6 +3,7 @@ library(EDI)
 
 quasi_robust_expected_classes = c(
 	"InferenceContinRobustRegr",
+	"InferenceContinKKOLSIVWC",
 	"InferenceContinKKRobustRegrIVWC",
 	"InferenceContinKKRobustRegrOneLik",
 	"InferenceCountPoissonKKGEE",
@@ -21,17 +22,18 @@ quasi_robust_expected_behaviors = list(
 		"InferenceOrdinalKKGEE",
 		"InferencePropKKGEE"
 	),
-	kk_compound = c("InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"),
+	kk_compound = c("InferenceContinKKOLSIVWC", "InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"),
 	kk_gee = c(
 		"InferenceCountPoissonKKGEE",
 		"InferenceIncidKKGEE",
 		"InferenceOrdinalKKGEE",
 		"InferencePropKKGEE"
 	),
-	kk_passthrough = c("InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"),
+	kk_passthrough = c("InferenceContinKKOLSIVWC", "InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"),
 	m_estimator_variance = "InferenceContinRobustRegr",
 	quasi_likelihood = "InferenceCountQuasiPoisson",
 	robust_sandwich = c(
+		"InferenceContinKKOLSIVWC",
 		"InferenceContinKKRobustRegrIVWC",
 		"InferenceContinKKRobustRegrOneLik",
 		"InferenceCountRobustPoisson"
@@ -114,8 +116,7 @@ test_that("composite likelihood targets do not need a distinct test component ye
 	for (record in manifest[composite_names]) {
 		expect_false(record$composite_likelihood_tests_component, info = record$name)
 		expect_identical(record$composite_likelihood_public_methods, character(), info = record$name)
-		expect_false("estimating_equation_likelihood_ratio" %in% record$current_effective_capabilities, info = record$name)
-		expect_false("likelihood_ratio" %in% record$current_effective_capabilities, info = record$name)
+		expect_false("parametric_likelihood_bootstrap" %in% record$current_effective_capabilities, info = record$name)
 	}
 })
 
@@ -135,8 +136,7 @@ test_that("current composite count classes advertise Wald-only testing", {
 			expect_false(isTRUE(private$supports_likelihood_tests()), info = class_name)
 			expect_false(isTRUE(private$supports_lik_ratio_param_bootstrap()), info = class_name)
 			expect_null(inf$compute_lik_ratio_two_sided_pval, info = class_name)
-			expect_false(inf$supports("likelihood_ratio"), info = class_name)
-			expect_false(inf$supports("estimating_equation_likelihood_ratio"), info = class_name)
+			expect_false(inf$supports("parametric_likelihood_bootstrap"), info = class_name)
 			expect_true(is.finite(inf$compute_estimate()), info = class_name)
 			expect_true(is.finite(private$get_standard_error()), info = class_name)
 			expect_true(all(is.finite(inf$compute_asymp_confidence_interval())), info = class_name)

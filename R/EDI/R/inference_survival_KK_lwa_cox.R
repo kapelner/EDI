@@ -16,7 +16,7 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
-#' @references Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
+#' @references Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992). "Cox-Type
 #'   Regression Analysis for Large Numbers of Small Groups of Correlated
 #'   Failure Time Observations." In \emph{Survival Analysis: State of the Art},
 #'   237-247. Springer. \doi{10.1007/978-94-015-7983-4_14}
@@ -152,14 +152,7 @@ InferenceSurvivalKKLWACoxPHOneLik = define_inference_class(
 		# other survival/count KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly: no component
-	# spec declares provides_capabilities = "likelihood_ratio" anywhere in
-	# this codebase (unlike "likelihood_tests"/"standard_model_cache"), so a
-	# class composing ParametricLikelihoodBootstrap directly (bypassing
-	# StandardModelCache, which this class does -- it never fits a summary-
-	# table model) must advertise it on the class itself, same as
-	# InferenceOrdinalCauchitRegr/InferenceOrdinalCloglogRegr.
-	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

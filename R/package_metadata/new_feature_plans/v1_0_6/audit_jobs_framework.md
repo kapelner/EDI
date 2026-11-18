@@ -207,6 +207,35 @@ Example timings are kept in the manifest, so the PR can also report an example t
 Today that is roughly 360 release-file TODOs plus about 1,280 plan-file checkboxes. Nearly all of them are
 in releases v1.1.0 and later, and work on those is rare.
 
+### Mechanical tidy (owner request, 2026-11-18)
+
+Before the gate and the Claude stage, `.github/scripts/audits/_todo_tidy.py` tidies the unreleased release
+files. No API cost; the result is the PR's first commit, the ticks are the second.
+
+1. **Duplicate TODO numbers.** Two top-level entries that lead with the same number collide (a struck
+   pointer for a split part, `~~TODO-5 (steps 5–8)~~ → moved ...`, shares its live entry's number on
+   purpose and does not). The entry added first keeps the number: its `(added YYYY-MM-DD` date, else the
+   git-blame date of its first line, else file order. Each later one gets the next number above every
+   number the file uses. A reference is rewritten only when it is provably about the renumbered entry:
+   inside its own block (lead id, `v<release>-TODO-<n>`, unqualified `TODO-<n>` that is not a nested
+   `- TODO-<n>:` lead quoting a plan), on a line anywhere that also carries the entry's bold title, or in
+   a file the entry introduced (named only by it, first committed on or after its added date). Every
+   other reference goes under "Decisions for you". Old-style references are listed, never rewritten.
+2. **Numeric order.** Each contiguous run of entries (separated only by blank lines, same indent, same
+   heading) is sorted by number (`TODO-4 < 4b < 5 < 17`); a block moves as a unit and headings, prose,
+   tables and gaps stay put. Sorting within runs, not globally, keeps the topic sections ("Bugs found by
+   the data-shape matrix (TODO-107..115)") intact. Not sorted: runs under a heading that declares a
+   deliberate order (`(dependency order)`, `strictly ordered`, ...) and releases closed to new TODOs. The
+   step is checked to be a permutation of lines and raises otherwise.
+
+The tidy edits the work tree, so `audit_run.py` runs it only on a runner (`GITHUB_ACTIONS=true`) or with
+`AUDIT_TIDY=1`. Dry run on copies: `python3 .github/scripts/audits/_todo_tidy.py --repo . --src <copies>
+--out <dir>`. The pre-push guard against new duplicates is separate (`scripts/check_todo_duplicates.py`).
+
+Decided (owner, 2026-11-18): sections whose heading declares a deliberate order ("dependency order",
+"strictly ordered", and the other phrases `ORDERED_HEADING` in `_todo_tidy.py` matches) stay exempt from
+reordering; only their duplicates are renumbered.
+
 ### When a TODO is re-checked
 
 - its text changed;
@@ -289,6 +318,7 @@ function and apply rules on top of `audit_common.py`.
 | Numerical-robustness review | monthly, 1st Saturday | kernels changed since the last run + 1/6 rotation | Opus | the bug patterns that have actually happened here: `converged = TRUE` set without checking the convergence criterion, unguarded `log(0)` / `exp` overflow / division by a near-zero information, NA returned where a value is defined, a null refit with a single cold start. A finding counts only if the agent writes a failing test for it; the job runs the test on the PR branch and keeps the finding only if it fails. The PR adds the failing tests (marked `skip("v<version>-TODO-<n>")` once the owner opens a TODO) |
 | Thread and random-number review | monthly, 3rd Sunday | parallel and resampling code changed since the last run + 1/6 rotation | Opus | random streams seeded per thread instead of per draw index, shared mutable state inside parallel loops, results that depend on the worker count. Same rule as above: a finding needs a test that shows the result changing with `set_num_cores()`. The existing worker-count invariance tests (v1.1.0 TODO-48) are the template |
 | Source comment rot | monthly, 4th Sunday | changed source files + 1/8 rotation | Sonnet | code comments that contradict the code beside them (a stated default, tolerance, formula or "never"/"always" that the code does not do); `TODO` / `FIXME` / `XXX` notes in `R/EDI/R` and `R/EDI/src` with no release TODO citing them. The PR fixes the comments; a contradiction where the code may be the wrong side goes under "Needs a human" |
+| Code duplication | weekly, Sun 07:07 UTC; plus a per-push check (no Claude) | candidates with no verdict yet, at most 96 a run | Sonnet | owner request 2026-11-18. jscpd 5.4.2 (`--min-tokens 50`, comments skipped) over `R/EDI/R`, `R/EDI/src`, `python/src`, `python/cpp`; runs merged across gaps ≤ 8 lines, extended 20 lines, diffed token by token; divergent near-clones ranked first (v1.0.6-TODO-117/-121, v1.0.6-TODO-103). Verdicts intentional / refactor / divergence_bug in `code-duplication/verdicts.json` on `audit-notes`; ids `dup-<hex>` survive line moves; decisions `code-duplication-d<hex>`. One issue. `code-duplication-push.yml`: new clones and edits to one copy of a known pair, job summary plus one updated PR comment, non-blocking (`FAIL_ON_DIVERGENCE`) |
 | Algorithm audit (exists) | monthly (unchanged) | — | — | stays as it is; may move onto `audit_common.py` later |
 
 All schedules avoid 02:30–05:00 UTC, when the nightly runs.
@@ -428,3 +458,5 @@ removes. Unverified ideas never appear as changes. Detector findings with no kep
 - [ ] TODO-18: numerical-robustness review and thread and random-number review (both keep a finding only when
   the agent's test fails on the PR branch).
 - [ ] TODO-19: source comment rot.
+- [ ] TODO-20: code duplication (built 2026-11-18, not yet run on GitHub): owner review of the first issue and the
+  first PR comment, then decide on `FAIL_ON_DIVERGENCE`.

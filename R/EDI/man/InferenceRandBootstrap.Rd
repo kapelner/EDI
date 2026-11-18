@@ -363,6 +363,9 @@ across \code{delta} values. Default \code{NULL}.}
   \eqn{p = P(|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s})}; CI is symmetric.
   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
   \code{"percentile"} if the SE is unavailable.
+  \code{"smoothed"} is refused (with an error) for left- or interval-censored survival
+  responses: censored subjects have no exact time to smooth (v1.0.6-TODO-146); use
+  \code{"percentile"} there.
   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
   to each resampled draw before imposing the null shift, reducing discreteness in the
   null distribution. Supported for real-valued statistics on coded responses and

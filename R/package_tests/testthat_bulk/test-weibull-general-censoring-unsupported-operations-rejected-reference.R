@@ -6,8 +6,8 @@ library(EDI)
 # compute_estimate_with_bootstrap_weights() (weighted_weibull_bootstrap_surrogate_fit() assumes right-censoring),
 # compute_bayesian_bootstrap_two_sided_pval() (same reason), compute_lik_ratio_bartlett_approx_two_sided_pval()
 # (its parametric-bootstrap null simulator only knows how to re-censor against a single right-censoring
-# threshold), and compute_rand_two_sided_pval() with a nonzero null shift (randomization under interval censoring
-# with delta != 0 is not yet supported). None of these four guards -- all reached only past a constant-weights
+# threshold), and (until the v1.0.6-TODO-143 follow-up lifted it) compute_rand_two_sided_pval() with a nonzero
+# null shift, which now runs and shifts y_L / y_R with y. None of these four guards -- all reached only past a constant-weights
 # short-circuit or other setup -- had a test calling them; existing general-censoring coverage for this class
 # only exercises the ordinary estimate/asymp CI dispatch.
 
@@ -102,19 +102,18 @@ test_that("general censoring rejects parametric-bootstrap LR p-values and confid
 	)
 })
 
-test_that("general censoring rejects compute_rand_two_sided_pval() only for a nonzero delta; delta = 0 still runs", {
+# v1.0.6-TODO-143 follow-up (owner decision 2026-11-18): the nonzero-delta refusal was lifted; the
+# null shift now moves y_L / y_R with y (test-rand-test-and-ci-shift-censoring-bounds-under-null.R).
+test_that("general censoring runs compute_rand_two_sided_pval() at a nonzero delta as well as at delta = 0", {
 	des <- ic_fx()
 	inf <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
-	expect_error(
-		inf$compute_rand_two_sided_pval(delta = 0.3, r = 15, show_progress = FALSE),
-		"Randomization tests with a nonzero null shift \\(delta != 0\\) are not yet supported for left-/interval-censored"
-	)
+	expect_true(is.finite(inf$compute_rand_two_sided_pval(delta = 0.3, r = 15, show_progress = FALSE)))
 	inf2 <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
 	pv0 <- inf2$compute_rand_two_sided_pval(delta = 0, r = 15, show_progress = FALSE)
 	expect_true(is.finite(pv0))
 })
 
-test_that("left/interval-censoring randomization guards stay active with assertions disabled", {
+test_that("left/interval-censoring randomization at a nonzero delta runs with assertions disabled", {
 	asserts_on_entry <- EDI:::should_run_asserts()
 	on.exit(EDI::toggle_asserts(asserts_on_entry), add = TRUE)
 	EDI::toggle_asserts(FALSE)
@@ -132,20 +131,17 @@ test_that("left/interval-censoring randomization guards stay active with asserti
 	for (method_name in names(generators)) {
 		generator <- generators[[method_name]]
 		inf <- generator$new(des, verbose = FALSE)
-		if (method_name %in% c("Cox", "LogRank", "Weibull")) {
-			expect_error(
-				inf$compute_rand_two_sided_pval(delta = 0.3, r = 3L, show_progress = FALSE),
-				"not yet supported for left-/interval-censored survival data"
-			)
-		} else {
-			expect_error(inf$compute_rand_two_sided_pval(delta = 0.3, r = 3L, show_progress = FALSE))
-		}
+		inf$num_cores <- 1L
+		inf$set_seed(1L)
+		pv <- inf$compute_rand_two_sided_pval(delta = 0.3, r = 15L, show_progress = FALSE)
+		expect_true(is.finite(pv) && pv >= 0 && pv <= 1, info = method_name)
 	}
 	weibull <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
-	expect_error(
-		weibull$compute_rand_confidence_interval(r = 3L, show_progress = FALSE),
-		"Randomization confidence intervals with nonzero null shifts are not yet supported"
-	)
+	weibull$num_cores <- 1L
+	weibull$set_seed(1L)
+	ci <- suppressMessages(weibull$compute_rand_confidence_interval(r = 15L, show_progress = FALSE))
+	expect_length(ci, 2L)
+	expect_true(all(is.finite(ci)) && ci[1L] < ci[2L])
 	right_censored <- InferenceSurvivalLogRank$new(rc_fx(seed = 12L, n = 18L), verbose = FALSE)
 	expect_true(is.finite(right_censored$compute_rand_two_sided_pval(delta = 0.3, r = 15L, show_progress = FALSE)))
 })

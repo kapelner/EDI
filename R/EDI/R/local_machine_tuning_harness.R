@@ -308,8 +308,8 @@ edi_tuning_blocked_ab = function(fn_a, fn_b, reps = 5L, a_first = TRUE, setup_a 
 #' @noRd
 edi_tuning_accept_candidate = function(baseline_times, candidate_times,
                                         min_rel_improvement = 0.05, iqr_multiplier = 2) {
-	checkmate::assertNumeric(baseline_times, min.len = 1L, any.missing = FALSE)
-	checkmate::assertNumeric(candidate_times, min.len = 1L, any.missing = FALSE)
+	checkmate::assertNumeric(baseline_times, min.len = 1L, any.missing = FALSE, finite = TRUE)
+	checkmate::assertNumeric(candidate_times, min.len = 1L, any.missing = FALSE, finite = TRUE)
 	checkmate::assertNumber(min_rel_improvement, lower = 0, finite = TRUE)
 	checkmate::assertNumber(iqr_multiplier, lower = 0, finite = TRUE)
 

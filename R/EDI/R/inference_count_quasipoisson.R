@@ -252,7 +252,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 			poisson_family_marginal_estimand_estimate(private, private$cached_mod, estimand, estimate_only, reason_prefix = "quasipoisson")
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {

@@ -194,7 +194,8 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 		reusable = zoib_generator$new(design, verbose = FALSE),
 		legacy = LegacyZOIB$new(design, verbose = FALSE)
 	)
-	jack <- rep(0.25, 4L)
+	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	jack <- rep(0.25, 5L)
 	for (route in names(instances)) {
 		inf <- instances[[route]]
 		unlockBinding("compute_estimate", inf)

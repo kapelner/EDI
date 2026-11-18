@@ -168,26 +168,20 @@ SurvivalWeibullLikelihoodSource = list(
 			private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta, B = B)
 		},
 		#' @description Randomization-test two-sided p-value; see
-		#'   \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
-		#'   (\code{delta != 0}) is blocked outright under left-/interval-censored
-		#'   data for the same reason as the other bootstrap guards in this class:
-		#'   the underlying shift-template guard in
-		#'   \code{setup_randomization_template_and_shifts()} would otherwise only
-		#'   surface as a silently all-\code{NA} randomization distribution.
+		#'   \code{\link[EDI:Inference]{Inference}}. Under left-/interval-censored
+		#'   data a nonzero null shift (\code{delta != 0}) rescales the treated
+		#'   subjects' censoring bounds \code{y_L} and \code{y_R} by
+		#'   \eqn{e^{\delta}}{exp(delta)}, as it rescales exact times.
 		#' @param r Number of randomization replicates.
 		#' @param delta Null treatment effect shift.
 		#' @param transform_responses Response transform used for the randomization statistic.
-		#' @param na.rm Whether to drop non-finite replicate statistics.
+		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
 		#' @param show_progress Whether to print a progress bar.
 		#' @param permutations Optional pre-generated permutation matrix.
 		#' @param zero_one_logit_clamp Clamp used for logit-transformed responses.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
-			if (isTRUE(private$has_general_censoring) && delta != 0) {
-				stop(
-					"Randomization tests with a nonzero null shift (delta != 0) are not yet supported for ",
-					"left-/interval-censored survival data."
-				)
-			}
 			# Pinned like compute_bayesian_bootstrap_two_sided_pval above --
 			# RandomizationTest's compute_rand_two_sided_pval is also a full
 			# self-contained implementation. Pinned from plain InferenceRand
@@ -454,7 +448,7 @@ SurvivalWeibullLikelihoodSource = list(
 			attempt$fit
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {
@@ -485,6 +479,14 @@ SurvivalWeibullLikelihoodSource = list(
 #' their appropriate survival/density contributions. Validity requires the
 #' Weibull shape assumption for the (log-)survival-time distribution and,
 #' when interpreted causally, the usual design-based/model-based assumptions.
+#' The Bayesian bootstrap
+#' (\code{$compute_bayesian_bootstrap_confidence_interval()},
+#' \code{$compute_bayesian_bootstrap_two_sided_pval()} and
+#' \code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+#' with an error on left- or interval-censored data, because its weighted re-fit
+#' (\code{weighted_weibull_bootstrap_surrogate_fit()}) assumes right-censoring; use the
+#' nonparametric bootstrap there instead. On right-censored data it is
+#' unaffected.
 #'
 #' \strong{Small samples.} The score test can reject a true null too often in
 #' small samples: up to about 9.5\% at a nominal 5\% level for a
@@ -564,7 +566,7 @@ InferenceSurvivalWeibullRegr = define_inference_class(
 			)
 		}
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
+	metadata = list(likelihood_tier = "full", response_types = "survival"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",

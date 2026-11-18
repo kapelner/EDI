@@ -7,17 +7,21 @@
 Abstract class for randomization-based inference.
 
 For survival outcomes with left- or interval-censoring, a nonzero
-  \code{delta} is not supported and the call errors. The current null-shift
-  implementation shifts exact/right-censored response times but not censoring
-  bounds.
+  \code{delta} shifts the censoring bounds \code{y_L} and \code{y_R} of the
+  treated exactly as it shifts exact times: multiplicatively by
+  \eqn{e^{\delta}}{exp(delta)} under the default \code{"log"} transform, so
+  bounds of 0 and \code{Inf} stay where they are.
 
   The p-value always comes from randomization draws of the assignment vector
   \eqn{w} from the design, for every response type including incidence on
   matched-pair and Bernoulli designs. (Before EDI 1.0.5 such incidence designs
   instead returned the Zhang exact combined test, which does not use the draws
   and was markedly more conservative; it is still available explicitly through
-  the \code{type = "Zhang"} argument of classes that offer it.) At least 10
-  finite reference statistics are required, otherwise \code{NA} is returned.
+  the \code{type = "Zhang"} argument of classes that offer it.) Non-finite
+  reference statistics are dropped (for any \code{na.rm}) and \eqn{B} above is
+  the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite
+  reference statistics are required (10\% of the draws, and never fewer than
+  10), otherwise \code{NA} is returned.
   A nonzero \code{delta} is not supported for incidence responses.
 }
 \keyword{internal}
@@ -159,7 +163,11 @@ values. Runs serially. Default \code{FALSE}.}
       \item{\code{r}}{Number of randomization vectors.}
       \item{\code{delta}}{Null difference.}
       \item{\code{transform_responses}}{Transformation.}
-      \item{\code{na.rm}}{Remove NAs.}
+      \item{\code{na.rm}}{Drop non-finite draws. Non-finite reference statistics
+(draws whose statistic is \code{NA}, \code{NaN} or infinite) are always dropped
+silently and the p-value is computed over the finite draws only;
+\code{na.rm = FALSE} does not change this (it must still be a flag). See
+Details for the minimum number of finite draws required.}
       \item{\code{show_progress}}{Show progress.}
       \item{\code{permutations}}{Pre-computed permutations.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}

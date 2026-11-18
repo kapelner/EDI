@@ -263,7 +263,7 @@ IncidenceLogisticLikelihoodSource = list(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(private$logit_X_full_cache) ||
 					!identical(private$w, private$logit_w_cache) ||
 					!identical(X_cov, private$logit_X_cov_cache)) {
@@ -396,7 +396,7 @@ IncidenceLogisticLikelihoodSource = list(
 			attempt$fit
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {
@@ -449,6 +449,15 @@ IncidenceLogisticLikelihoodSource = list(
 #' whenever the estimand is non-conditional (\code{set_testing_type()} errors
 #' otherwise). The underlying model fit is identical regardless of estimand —
 #' switching \code{estimand} is a pure post-fit transform, never a refit.
+#'
+#' \strong{Separation.} When fitted probabilities are numerically 0 or 1 (the
+#' data look (quasi-)completely separated) the maximum-likelihood estimate does
+#' not exist: the reported estimate is where the fitter stopped and its Wald
+#' standard error, p-value and confidence interval are not meaningful. The class
+#' raises one warning of class \code{edi_logistic_separation_warning} per object
+#' (silent inside resampling), as \code{glm()} does; the returned values are
+#' unchanged. Prefer a likelihood-ratio test (\code{set_testing_type("lik_ratio")}),
+#' a randomization test, an exact incidence method, or fewer covariates.
 #'
 #' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 #'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the logistic
@@ -503,7 +512,7 @@ InferenceIncidLogRegr = define_inference_class(
 		"IncidenceLogisticLikelihood",
 		"MarginalEstimand"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval", "compute_asymp_confidence_interval",

@@ -11,10 +11,8 @@ library(EDI)
 # the class is now `define_inference_class()` composing
 # `BayesianBootstrap`/`SurvivalKKStratCoxOneLikPartialLikelihood`. Real
 # full-likelihood-tier ("partial") class with score/gradient/LR test support
-# and parametric-bootstrap LR calibration, so `metadata$capabilities =
-# "likelihood_ratio"` is declared explicitly (same requirement as
-# InferenceSurvivalKKLWACoxPHOneLik/InferenceOrdinalCauchitRegr/
-# InferenceOrdinalCloglogRegr). The legacy generator below -- source spliced
+# and parametric-bootstrap LR calibration. (Until 2026-11-18 it also declared
+# `metadata$capabilities = "likelihood_ratio"`; that capability is gone.) The legacy generator below -- source spliced
 # straight onto `InferenceParamBootstrap` -- reproduces the pre-migration
 # class verbatim.
 # NOTE: `inherit = InferenceParamBootstrap` does NOT itself supply

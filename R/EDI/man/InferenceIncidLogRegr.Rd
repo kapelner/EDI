@@ -43,6 +43,15 @@ of freedom \code{Inf}); \code{testing_type} is restricted to \code{"wald"}
 whenever the estimand is non-conditional (\code{set_testing_type()} errors
 otherwise). The underlying model fit is identical regardless of estimand —
 switching \code{estimand} is a pure post-fit transform, never a refit.
+
+\strong{Separation.} When fitted probabilities are numerically 0 or 1 (the
+data look (quasi-)completely separated) the maximum-likelihood estimate does
+not exist: the reported estimate is where the fitter stopped and its Wald
+standard error, p-value and confidence interval are not meaningful. The class
+raises one warning of class \code{edi_logistic_separation_warning} per object
+(silent inside resampling), as \code{glm()} does; the returned values are
+unchanged. Prefer a likelihood-ratio test (\code{set_testing_type("lik_ratio")}),
+a randomization test, an exact incidence method, or fewer covariates.
 }
 \section{Small-sample behaviour}{
 

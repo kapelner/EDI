@@ -15,9 +15,11 @@ This is the "one-likelihood" counterpart to
 \code{\link[EDI:InferenceIncidKKCondLogitIVWC]{InferenceIncidKKCondLogitIVWC}},
 which instead fits the matched and reservoir pieces separately and
 pools them by inverse-variance weighting; here the treatment coefficient
-is a single joint MLE, and \code{likelihood_tier = "full"} exposes
-likelihood-ratio, score, and gradient inference plus a parametric
-likelihood bootstrap in addition to Wald.
+is a single joint MLE. \code{likelihood_tier = "partial"}: the matched-pair
+piece is a conditional likelihood (the pair intercepts are conditioned
+away, not modelled), so the joint objective is not a full model
+likelihood; it still exposes likelihood-ratio, score, and gradient
+inference plus a parametric likelihood bootstrap in addition to Wald.
 
 \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a
 logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid w,x)) = \beta_0 +
@@ -200,7 +202,9 @@ Analogous Python API for conditional logistic regression:
       \item{\code{delta}}{The null treatment effect. Default 0.}
       \item{\code{transform_responses}}{Optional response transform applied before
 the randomization statistic is computed. Default \code{"none"}.}
-      \item{\code{na.rm}}{Whether to remove non-finite permutation replicates.}
+      \item{\code{na.rm}}{Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.}
       \item{\code{show_progress}}{Whether to show a progress bar.}
       \item{\code{permutations}}{Optional pre-generated permutation matrix/list to
 reuse instead of drawing new permutations.}

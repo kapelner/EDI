@@ -219,6 +219,14 @@ incidence_gcomp_overrides = list(
 #' Carlo standard error about 0.007; measured at n = 50 only),
 #' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
+#' \strong{Separation.} When the logistic working model's fitted probabilities
+#' are numerically 0 or 1 (the data look (quasi-)completely separated) the
+#' working-model MLE does not exist and the fitted risks sit where the fitter
+#' stopped. The class then raises one warning of class
+#' \code{edi_logistic_separation_warning} per object (silent inside resampling);
+#' the returned values are unchanged. A randomization test or an exact incidence
+#' method is safer there.
+#'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
 #'   for the risk-ratio version of this same standardized logistic working model.
 #'
@@ -328,6 +336,14 @@ NULL
 #' randomization, and jackknife methods remain available.
 #' \code{likelihood_tier = "none"} means that this class does not provide
 #' likelihood-ratio or score tests; it does not preclude its Wald inference.
+#'
+#' \strong{Separation.} When the logistic working model's fitted probabilities
+#' are numerically 0 or 1 (the data look (quasi-)completely separated) the
+#' working-model MLE does not exist and the fitted risks sit where the fitter
+#' stopped. The class then raises one warning of class
+#' \code{edi_logistic_separation_warning} per object (silent inside resampling);
+#' the returned values are unchanged. A randomization test or an exact incidence
+#' method is safer there.
 #'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskDiff]{InferenceIncidGCompRiskDiff}}
 #'   for the risk-difference version of this same standardized logistic working model.

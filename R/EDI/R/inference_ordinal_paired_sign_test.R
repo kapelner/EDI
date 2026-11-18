@@ -86,7 +86,9 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 		#' @param r Number of randomization draws.
 		#' @param delta Null treatment effect.
 		#' @param transform_responses Optional response transformation.
-		#' @param na.rm Whether to drop non-finite draws.
+		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param permutations Optional pre-computed permutations.
 		#' @param zero_one_logit_clamp Clamp for logit transforms.

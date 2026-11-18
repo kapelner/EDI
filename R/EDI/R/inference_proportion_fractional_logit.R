@@ -87,9 +87,7 @@ InferencePropFractionalLogit = define_inference_class(
 		"Wald",
 		"StandardModelCache"
 	),
-	# No explicit `capabilities` needed: this class does not compose
-	# ParametricLikelihoodBootstrap (the only consumer requiring
-	# "likelihood_ratio" pre-declared), and its own
+	# This class does not compose ParametricLikelihoodBootstrap, and its own
 	# supports_likelihood_tests() override (below) is FALSE, matching
 	# pre-migration behavior exactly (verified: get_supported_testing_types()
 	# stays c("wald") for both legacy and migrated).

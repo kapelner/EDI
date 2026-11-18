@@ -2175,8 +2175,6 @@
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_bayesian_bootstrap_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_bootstrap_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_bootstrap_two_sided_pval","","registry target has no generated case in current case table"
-"registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_jackknife_wald_confidence_interval","","registry target has no generated case in current case table"
-"registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_jackknife_wald_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_rand_bootstrap_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_rand_bootstrap_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalKMDiff::compute_rand_two_sided_pval","","registry target has no generated case in current case table"

@@ -132,7 +132,9 @@ InferencePropGCompMeanDiff = define_inference_class(
 			}
 			if (should_run_asserts()) {
 				assertNumber(prob_clip_eps, lower = 0, upper = 0.5)
+				if (prob_clip_eps >= 0.5) stop("prob_clip_eps must be in [0, 0.5): at 0.5 every fitted probability is clipped to 0.5.", call. = FALSE)
 				assertNumber(prob_clip_strong_eps, lower = 0, upper = 0.5)
+				if (prob_clip_strong_eps >= 0.5) stop("prob_clip_strong_eps must be in [0, 0.5): at 0.5 every fitted probability is clipped to 0.5.", call. = FALSE)
 			}
 			if (should_run_asserts()) {
 				assertSubset(variance_fallback_methods, choices = c(
@@ -192,6 +194,11 @@ InferencePropGCompMeanDiff = define_inference_class(
 			private$cached_values$full_coefficients = effects$full_coefficients
 			private$cached_values$full_vcov = NULL
 			private$cached_values$beta_hat_T = effects$md
+			# v1.0.6-TODO-134: the Bayesian-bootstrap studentized path reads this
+			# draw's SE (via last_weighted_refit$s_beta_hat_T); it was never set,
+			# so every studentized Bayesian replicate was NA.
+			private$cached_values$s_beta_hat_T = if (isTRUE(estimate_only)) NA_real_ else
+				private$weighted_gcomp_se_md(effects$fit, row_weights)
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes a 1 - \code{alpha} confidence interval.
@@ -361,10 +368,20 @@ InferencePropGCompMeanDiff = define_inference_class(
 				)
 				set.seed(private$seed)
 			}
-			draw_one = function(worker_state){
+			# v1.0.6-TODO-22: every replicate's random numbers are fixed here,
+			# serially, before any work is split across workers, so replicate b
+			# sees the same resamples at any core count and chunking. Its first
+			# resample is drawn up front (as the base class does for all of
+			# them); a resample rejected by the screening is redrawn from b's own
+			# seed, drawn up front too. Before, each worker chunk drew from its
+			# own RNG stream, so the seeded distribution changed with
+			# set_num_cores(). With no redraws the draws equal the old serial ones.
+			first_draws = lapply(seq_len(B), function(b) private$bootstrap_sample_indices(private$n))
+			redraw_seeds = sample.int(.Machine$integer.max, B)
+			draw_one = function(worker_state, b){
+				boot_draw = first_draws[[b]]
 				attempt = 1L
 				repeat {
-					boot_draw = private$bootstrap_sample_indices(private$n)
 					load_res = private$load_bootstrap_sample_into_worker(worker_state, boot_draw$i_b)
 					if (isTRUE(load_res$sample_usable)) {
 						return(worker_state$worker_priv$bootstrap_effect_from_sample(
@@ -374,6 +391,18 @@ InferencePropGCompMeanDiff = define_inference_class(
 					}
 					attempt = attempt + 1L
 					if (attempt > max_resample_attempts) return(NA_real_)
+					if (attempt == 2L) {
+						# Switch to replicate b's own stream for its redraws,
+						# leaving the caller's (or worker's) stream as it was.
+						had_rng = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+						if (had_rng) saved_rng = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+						on.exit(
+							if (had_rng) assign(".Random.seed", saved_rng, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
+							add = TRUE
+						)
+						set.seed(redraw_seeds[[b]])
+					}
+					boot_draw = private$bootstrap_sample_indices(private$n)
 				}
 			}
 			if (isTRUE(debug)) {
@@ -382,7 +411,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 				for (b in seq_len(B)) {
 					iter_warns = character(0)
 					iter_val = withCallingHandlers(
-						tryCatch(draw_one(worker_state), error = function(e) list(val = NA_real_, error = conditionMessage(e))),
+						tryCatch(draw_one(worker_state, b), error = function(e) list(val = NA_real_, error = conditionMessage(e))),
 						warning = function(wrn) { iter_warns <<- c(iter_warns, conditionMessage(wrn)); invokeRestart("muffleWarning") }
 					)
 					debug_results[[b]] = list(
@@ -420,7 +449,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			run_chunk = function(idxs){
 				worker_state = private$create_bootstrap_worker_state()
 				out = numeric(length(idxs))
-				for (k in seq_along(idxs)) out[k] = draw_one(worker_state)
+				for (k in seq_along(idxs)) out[k] = draw_one(worker_state, idxs[[k]])
 				out
 			}
 			if (actual_cores <= 1L) {
@@ -459,7 +488,12 @@ InferencePropGCompMeanDiff = define_inference_class(
 		},
 		load_bootstrap_sample_into_worker = function(worker_state, indices){
 			private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
-			indices = as.integer(indices)
+			# Blocked/matched draws (jackknife leave-one-block-out, KK/blocking
+			# bootstraps) arrive as list(i_b = row indices, m_vec_b = multiplicities);
+			# as.integer() on that list is NA, so every such replicate was NA
+			# (v1.0.6-TODO-127). Unwrap the row indices the way the design-backed
+			# loader above does.
+			indices = if (is.list(indices)) as.integer(indices$i_b) else as.integer(indices)
 			w_b = worker_state$worker_priv$w
 			y_b = worker_state$worker_priv$y
 			ctrl = worker_state$screening
@@ -915,7 +949,29 @@ InferencePropGCompMeanDiff = define_inference_class(
 				if (is.null(fit)) return(NULL)
 				effects = private$compute_standardized_effects_r(fit)
 				if (!private$effects_are_usable(effects, estimate_only = TRUE)) return(NULL)
+				effects$fit = fit
 				effects
+			},
+			# Delta-method SE of the weighted mean difference: the weighted HC0
+			# sandwich of the working model through the same standardization
+			# gradient as the unweighted fit. Only the cascade's robust-sandwich
+			# entries apply (the model-based ones are unweighted), so at unit
+			# weights this equals the unweighted se_md (v1.0.6-TODO-134).
+			weighted_gcomp_se_md = function(fit, row_weights){
+				if (is.null(fit)) return(NA_real_)
+				vcov_w = gcomp_weighted_logistic_sandwich_vcov(fit$X, private$y, fit$coefficients, row_weights)
+				if (is.null(vcov_w)) return(NA_real_)
+				robust_methods = intersect(private$variance_fallback_methods,
+					c("robust", "stabilized_robust", "stabilized_robust_fd", "stabilized_robust_strong_clip"))
+				if (length(robust_methods) == 0L) return(NA_real_)
+				old_methods = private$variance_fallback_methods
+				private$variance_fallback_methods = robust_methods
+				on.exit(private$variance_fallback_methods <- old_methods, add = TRUE)
+				fit$vcov = vcov_w
+				fit$estimate_only = FALSE
+				se = tryCatch(private$compute_standardized_effects_r(fit)$se_md, error = function(e) NA_real_)
+				se = suppressWarnings(as.numeric(se)[1L])
+				if (length(se) == 1L && is.finite(se) && se > 0) se else NA_real_
 			},
 			bootstrap_fit_from_sample = function(X_b_full, y_b){
 				X_curr = X_b_full
@@ -1006,14 +1062,19 @@ InferencePropGCompMeanDiff = define_inference_class(
 				private$gcomp_design_j_treat = 2L
 			}
 			effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
+			treatment_only_fallback = FALSE
 			if (private$harden && (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)) && ncol(X_full) > 2L){
 				fit = private$fit_fractional_logit_with_sandwich(X_full[, 1:2, drop = FALSE], estimate_only = estimate_only)
+				treatment_only_fallback = TRUE
 				effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
 			}
 			if (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)){
 				private$set_failed_fit_cache()
 				return(invisible(NULL))
 			}
+			# v1.0.6-TODO-138: the treatment-only fallback drops every covariate; say so
+			# (drops inside the hardened QR fit warn from fit_with_hardened_qr_column_dropping()).
+			if (treatment_only_fallback) edi_warn_covariate_dropped_once(self, private, setdiff(colnames(X_full), colnames(fit$X)), "treatment_only_fallback")
 			private$cached_values$summary_table = effects$summary_table
 			private$cached_values$full_coefficients = effects$full_coefficients
 			private$cached_values$full_vcov = effects$full_vcov
@@ -1021,6 +1082,15 @@ InferencePropGCompMeanDiff = define_inference_class(
 			private$cached_values$mean0 = effects$mean0
 			private$cached_values$md = effects$md
 			private$cached_values$se_md = effects$se_md
+			# v1.0.6-TODO-134: the generic studentized bootstrap (replicate SEs and
+			# the original SE) reads s_beta_hat_T; mirror se_md into it as
+			# InferenceOrdinalGCompMeanDiff does. Full fits only: an estimate-only
+			# fit has no SE. beta_hat_T too: the studentized rand-bootstrap's reused
+			# worker reads the (t0, se0) pair from beta_hat_T/s_beta_hat_T.
+			if (!estimate_only) {
+				private$cached_values$beta_hat_T = effects$md
+				private$cached_values$s_beta_hat_T = effects$se_md
+			}
 		}
 	),
 	overrides = list(

@@ -15,10 +15,10 @@ capability_test_metadata = function(likelihood_tier = "none", capabilities = cha
 }
 
 likelihood_ratio_public = function() {
-	list(
-		compute_lik_ratio_two_sided_pval = function(delta = 0) NA_real_,
-		compute_lik_ratio_confidence_interval = function(alpha = 0.05) c(NA_real_, NA_real_)
-	)
+	# Stubs for every public method the likelihood_tests capability requires (since
+	# 2026-11-18 the one capability word for likelihood testing).
+	methods = EDI:::public_methods_for_capability$likelihood_tests
+	stats::setNames(lapply(methods, function(m) function(...) NA_real_), methods)
 }
 
 parametric_likelihood_bootstrap_public = function() {
@@ -53,19 +53,17 @@ test_that("capability tables declare requirements and public API methods", {
 		"exact_binomial_incidence",
 		"exact_fisher_incidence",
 		"exact_zhang_incidence",
-		"likelihood_ratio",
-		"estimating_equation_likelihood_ratio",
+		"likelihood_tests",
 		"parametric_likelihood_bootstrap"
 	) %in% names(EDI:::capability_requires)))
 	expect_true(all(c(
 		"exact_test",
-		"likelihood_ratio",
-		"estimating_equation_likelihood_ratio",
+		"likelihood_tests",
 		"parametric_likelihood_bootstrap"
 	) %in% names(EDI:::public_methods_for_capability)))
 	expect_identical(
 		EDI:::capability_requires$parametric_likelihood_bootstrap$capabilities,
-		"likelihood_ratio"
+		"likelihood_tests"
 	)
 	expect_true("simulate_under_lik_null" %in%
 		EDI:::capability_requires$parametric_likelihood_bootstrap$private_methods)
@@ -117,8 +115,7 @@ test_that("root supports and capabilities are metadata queries", {
 
 test_that("likelihood_tier none exposes no likelihood APIs on factory classes", {
 	likelihood_api = unique(unlist(EDI:::public_methods_for_capability[c(
-		"likelihood_ratio",
-		"estimating_equation_likelihood_ratio",
+		"likelihood_tests",
 		"parametric_likelihood_bootstrap"
 	)], use.names = FALSE))
 	gen = EDI:::define_inference_class(
@@ -134,33 +131,35 @@ test_that("likelihood_tier none exposes no likelihood APIs on factory classes", 
 			private = likelihood_ratio_private(),
 			metadata = list(
 				likelihood_tier = "none",
-				capabilities = "likelihood_ratio"
+				capabilities = "likelihood_tests"
 			)
 		),
 		"disallowed likelihood tier"
 	)
 })
 
-test_that("quasi likelihood tier requires estimating-equation likelihood-ratio capability", {
+test_that("quasi likelihood tier allows likelihood tests but not the parametric likelihood bootstrap", {
+	# 2026-11-18: one capability word (`likelihood_tests`) for likelihood testing; the
+	# true-likelihood vs estimating-equation distinction is the likelihood tier.
 	expect_error(
 		EDI:::define_inference_class(
-			classname = "InferenceTemporaryQuasiWithLikelihoodRatio",
+			classname = "InferenceTemporaryQuasiWithParamBootstrap",
 			public = likelihood_ratio_public(),
 			private = likelihood_ratio_private(),
 			metadata = list(
 				likelihood_tier = "quasi",
-				capabilities = "likelihood_ratio"
+				capabilities = "parametric_likelihood_bootstrap"
 			)
 		),
 		"disallowed likelihood tier"
 	)
 	expect_silent(EDI:::define_inference_class(
-		classname = "InferenceTemporaryQuasiEstimatingEquationLR",
+		classname = "InferenceTemporaryQuasiLikelihoodTests",
 		public = likelihood_ratio_public(),
 		private = likelihood_ratio_private(),
 		metadata = list(
 			likelihood_tier = "quasi",
-			capabilities = "estimating_equation_likelihood_ratio"
+			capabilities = "likelihood_tests"
 		)
 	))
 })
@@ -225,7 +224,7 @@ test_that("partial and full likelihood tiers do not imply parametric bootstrap",
 		private = likelihood_ratio_private(),
 		metadata = list(
 			likelihood_tier = "full",
-			capabilities = "likelihood_ratio"
+			capabilities = "likelihood_tests"
 		)
 	)
 
@@ -237,7 +236,7 @@ test_that("partial and full likelihood tiers do not imply parametric bootstrap",
 			private = likelihood_ratio_private(include_null_simulator = FALSE),
 			metadata = list(
 				likelihood_tier = "full",
-				capabilities = c("likelihood_ratio", "parametric_likelihood_bootstrap")
+				capabilities = c("likelihood_tests", "parametric_likelihood_bootstrap")
 			)
 		),
 		"simulate_under_lik_null"
@@ -248,7 +247,7 @@ test_that("partial and full likelihood tiers do not imply parametric bootstrap",
 		private = likelihood_ratio_private(include_null_simulator = TRUE),
 		metadata = list(
 			likelihood_tier = "full",
-			capabilities = c("likelihood_ratio", "parametric_likelihood_bootstrap")
+			capabilities = c("likelihood_tests", "parametric_likelihood_bootstrap")
 		)
 	))
 
@@ -258,7 +257,7 @@ test_that("partial and full likelihood tiers do not imply parametric bootstrap",
 		private = likelihood_ratio_private(),
 		metadata = list(
 			likelihood_tier = "partial",
-			capabilities = "likelihood_ratio"
+			capabilities = "likelihood_tests"
 		)
 	))
 })

@@ -10,6 +10,24 @@ kk_cox_fully_fixed_null_fit = function(X, y, dead, strata, delta){
 		converged = TRUE, fixed_all = TRUE)
 }
 
+# v1.0.6-TODO-128: columns of a stratified Cox design that are aliased once each
+# stratum's mean is removed (constant within every stratum, or a within-stratum
+# linear combination of earlier columns) are not identified by the partial
+# likelihood. Returns X unchanged when it has full within-strata rank; otherwise
+# keeps column 1 (treatment) and the identified columns, in their original order.
+# If treatment itself is aliased, X is returned unchanged and the fit fails.
+kk_strat_cox_drop_within_strata_aliased_cols = function(X, strata){
+	X = as.matrix(X)
+	if (ncol(X) <= 1L || nrow(X) == 0L) return(X)
+	strata = as.integer(strata)
+	Xc = X - apply(X, 2L, function(col) stats::ave(col, strata))
+	qr_c = qr(Xc, tol = 1e-7)
+	if (qr_c$rank == ncol(X)) return(X)
+	keep = sort(qr_c$pivot[seq_len(qr_c$rank)])
+	if (!(1L %in% keep)) return(X)
+	X[, keep, drop = FALSE]
+}
+
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on
 # `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
@@ -210,7 +228,16 @@ SurvivalKKStratCoxIVWCSource = list(
 				strata_m = KKstats$m_matched_long
 				X_cov_m = KKstats$X_matched_long
 				X_m = cbind(w = w_m, X_cov_m)
-				
+				# v1.0.6-TODO-128: a covariate constant within every pair (e.g. a rare
+				# binary whose carriers all sit in the reservoir, or a bootstrap draw
+				# that omits them) is aliased with the pair strata. The C++ fitter then
+				# returns a finite treatment coefficient but a NaN vcov, so the matched
+				# half was dropped whenever an SE was requested (compute_estimate())
+				# and kept when it was not (the reusable bootstrap worker). Drop the
+				# aliased columns, as survival::coxph(strata = ) does; full-rank
+				# matrices are returned unchanged.
+				if (isTRUE(private$harden)) X_m = kk_strat_cox_drop_within_strata_aliased_cols(X_m, strata_m)
+
 				res = tryCatch(
 					fast_stratified_coxph_regression_cpp(X_m, y_m, dead_m, as.integer(strata_m), estimate_only = estimate_only),
 					error = function(e) NULL
@@ -239,14 +266,21 @@ SurvivalKKStratCoxIVWCSource = list(
 						break
 					}
 				}
-			}
-			if (is.null(res)){
-				X_mat = matrix(private$w[private$m == 0], ncol = 1L)
-				colnames(X_mat) = "w"
-				res = tryCatch(
-					fast_coxph_regression_cpp(X_mat, y_r, dead_r, estimate_only = estimate_only),
-					error = function(e) NULL
-				)
+				# v1.0.6-TODO-133: the treatment-only fallback used to be accepted
+				# unchecked, so a separated reservoir (e.g. one treated subject)
+				# passed an infinite-coefficient fit (|beta| ~ 22, huge SE) into the
+				# combination. It also ran when an arm was empty, where y_r/dead_r
+				# were undefined (the error was swallowed by tryCatch). Now it runs
+				# only with both arms present and must pass the same usability check.
+				if (is.null(res)){
+					X_mat = matrix(w_r, ncol = 1L)
+					colnames(X_mat) = "w"
+					res_try = tryCatch(
+						fast_coxph_regression_cpp(X_mat, y_r, dead_r, estimate_only = estimate_only),
+						error = function(e) NULL
+					)
+					if (private$rcpp_cox_fit_is_usable(res_try, estimate_only = estimate_only)) res = res_try
+				}
 			}
 			if (!is.null(res)){
 				beta_r = res$coefficients[1L]
@@ -268,11 +302,45 @@ SurvivalKKStratCoxIVWCSource = list(
 			} else if (m_ok){
 				private$cached_values$beta_hat_T = beta_m
 				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_m)
+				# v1.0.6-TODO-133: say so whenever a non-empty reservoir is dropped
+				# (warn on direct calls only, never inside resampling). Owner decision
+				# 2026-11-18: an empty reservoir arm warns too; it carries no treatment
+				# contrast, so the reservoir subjects do not contribute to the estimate.
+				if (nRT + nRC > 0L && is.null(private$active_resampling_operation)) {
+					why = if (nRT == 0L || nRC == 0L) {
+						paste0(" has an empty ", if (nRT == 0L) "treated" else "control",
+							" arm, so it carries no treatment contrast")
+					} else {
+						paste0(" has no usable Cox fit", if (estimate_only) "" else " with a finite standard error")
+					}
+					warning(structure(
+						class = c("edi_kk_strat_cox_ivwc_reservoir_dropped_warning", "warning", "condition"),
+						list(
+							message = paste0(class(self)[1L], ": the reservoir (treated/control: ", nRT, "/", nRC,
+								")", why, "; using the matched-pair stratified Cox estimate alone."),
+							call = NULL
+						)
+					))
+				}
 			} else if (r_ok){
 				private$cached_values$beta_hat_T = beta_r
 				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else {
 				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_both_failed")
+				# v1.0.6-TODO-128: do not hand back NA silently. Resampling replicates
+				# are summarised by the resampling layer, so warn only on direct calls.
+				if (is.null(private$active_resampling_operation)) {
+					warning(structure(
+						class = c("edi_kk_strat_cox_ivwc_nonestimable_warning", "warning", "condition"),
+						list(
+							message = paste0(class(self)[1L], ": neither the matched-pair stratified Cox fit nor ",
+								"the reservoir Cox fit is usable", if (estimate_only) "" else " with a finite standard error",
+								" (matched pairs: ", m, ", reservoir treated/control: ", nRT, "/", nRC,
+								"); returning NA."),
+							call = NULL
+						)
+					))
+				}
 			}
 		}
 	)
@@ -304,7 +372,7 @@ SurvivalKKStratCoxIVWCSource = list(
 #' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
 #' Royal Statistical Society, Series B, 34(2), 187-220.
 #'
-#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+#' Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992). "Cox-Type Regression
 #' Analysis for Large Numbers of Small Groups of Correlated Failure Time
 #' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
 #' \doi{10.1007/978-94-015-7983-4_14}
@@ -694,7 +762,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 #' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
 #' Royal Statistical Society, Series B, 34(2), 187-220.
 #'
-#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+#' Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992). "Cox-Type Regression
 #' Analysis for Large Numbers of Small Groups of Correlated Failure Time
 #' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
 #' \doi{10.1007/978-94-015-7983-4_14}
@@ -718,12 +786,7 @@ InferenceSurvivalKKStratCoxPHOneLik = define_inference_class(
 		# other survival/count KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as InferenceSurvivalKKLWACoxPHOneLik: no component spec
-	# declares provides_capabilities = "likelihood_ratio" anywhere, so a
-	# class composing ParametricLikelihoodBootstrap directly (bypassing
-	# StandardModelCache) must advertise it on the class itself.
-	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

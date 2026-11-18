@@ -422,6 +422,49 @@ def todo_lookup(state):
 # ---------------------------------------------------------------- audit stages
 
 _CACHE = {}
+_TIDY = {}      # repo -> {unit id: {"checkout_line", "checkout_todo"}} after this run's tidy
+
+
+def tidy(ctx):
+    """Mechanical tidy of the unreleased release files (audits/_todo_tidy.py): renumber duplicate
+    TODO numbers, then put each section's entries in numeric order. Edits the work tree; audit_run
+    calls it before `mechanical` in prepare and again (same commit, same result) in finish, where
+    the change becomes its own commit, ahead of the Claude stage's ticks.
+
+    Returns {"files", "applied", "human" (decision dicts), "info", "message"}."""
+    from audits import _todo_tidy as tt
+    repo = Path(ctx.repo)
+    files, closed = tt.unreleased_release_files(repo)
+    originals = {f: (repo / f).read_text(errors="replace") for f in files}
+    res = tt.tidy_files(repo, files, no_reorder=closed)
+    tt.write_files(repo, res["files"])
+    _CACHE.pop(str(ctx.repo), None)
+    # Where each moved or renumbered entry sits in the agents' checkout (which is not tidied).
+    where = {}
+    for f in files:
+        if f not in res["files"]:
+            continue
+        before = parse_checkboxes(originals[f], f)
+        after = parse_checkboxes(res["files"][f], f)
+        renum = {e["line"]: e["new"] for r in res["report"] if r["file"] == f for e in r["renumbered"]}
+        pool = {}
+        for it in before:
+            key = it["todo"] and ("TODO-" + renum[it["line"]] if it["line"] in renum else it["todo"])
+            pool.setdefault((key, len(it["text"].splitlines())), []).append(it)
+        for it in after:
+            cands = pool.get((it["todo"], len(it["text"].splitlines()))) or []
+            if not cands:
+                continue
+            old = cands.pop(0)
+            if old["line"] != it["line"] or old["todo"] != it["todo"]:
+                where[it["id"]] = {"checkout_line": old["line"], "checkout_todo": old["todo"]}
+    _TIDY[str(ctx.repo)] = where
+    applied, human, info = tt.summarise(res)
+    msg = ("TODO-status audit: mechanical tidy of the release files\n\n"
+           "Renumber duplicate TODO numbers and put each section's entries in numeric order "
+           "(.github/scripts/audits/_todo_tidy.py). No entry text changes apart from renumbered ids.")
+    return {"files": sorted(res["files"]), "applied": applied, "info": info, "message": msg,
+            "human": [ac.decision(h["text"], unit=h["unit"], key="tidy-ambiguous-ref") for h in human]}
 
 
 def _state(ctx):
@@ -503,6 +546,7 @@ def units(ctx):
     classes = class_files(repo)
     seen = ctx.manifest.get("units", {})
     prev = _previous_verdicts(ctx)
+    tidied = _TIDY.get(str(repo), {})
     commits_dir = Path(ctx.workdir) / "commits"
     written = set()
     out = {}
@@ -553,6 +597,10 @@ def units(ctx):
                     "checked": checked, "owner_closed": it["owner_closed"], "todo": it["todo"],
                     "text": text, "citing_commits": cite_rows, "named_files": named,
                     "previous_verdict": prev.get(uid, {}).get("verdict"),
+                    **({"in_your_checkout": {**tidied[uid], "note": (
+                        "This run's mechanical tidy moved or renumbered this entry; `lines` and `todo` "
+                        "are after the tidy. The checked-out file still has it at checkout_line as "
+                        "checkout_todo.")}} if uid in tidied else {}),
                 },
             }
     return out

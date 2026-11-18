@@ -6,7 +6,15 @@
 #' where both arms use the same truncation horizon \eqn{\tau}. By default
 #' \eqn{\tau} is the smaller of the two arms' maximum follow-up times; it can
 #' be fixed by the user (e.g. \code{tau = 36} for "RMST at 36 months") via the
-#' \code{tau} constructor argument. Each RMST is the area under its
+#' \code{tau} constructor argument. The horizon is set once, from the observed
+#' data (or the user's \code{tau}), and then held fixed in every randomization,
+#' randomization-bootstrap, bootstrap and jackknife draw; it is not recomputed
+#' from each draw's arms. A horizon recomputed per draw would depend on the
+#' assignment, so the null distribution would compare RMSTs over different
+#' horizons than the observed statistic and the randomization test could lose
+#' almost all its power. Prespecifying \code{tau} in the trial protocol (for
+#' example the planned follow-up) is still recommended: the default horizon is
+#' itself data-dependent. Each RMST is the area under its
 #' Kaplan-Meier survival curve up to that horizon
 #' (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 #' computed by trapezoidal integration of the step-function KM curve. The
@@ -43,8 +51,13 @@
 #' of the two arms' largest finite observed endpoints. Within a Turnbull
 #' interval the curve is not identified; it is taken to step down at the
 #' interval's left endpoint. An arm with no events before \eqn{\tau} has RMST
-#' equal to \eqn{\tau}. Bayesian-bootstrap re-estimation is not available on
-#' this path (\code{icfit()} has no weights argument).
+#' equal to \eqn{\tau}. The Bayesian bootstrap
+#' (\code{$compute_bayesian_bootstrap_confidence_interval()},
+#' \code{$compute_bayesian_bootstrap_two_sided_pval()} and
+#' \code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+#' with an error on left- or interval-censored data, because \code{icfit()} has no weights argument; use the
+#' nonparametric bootstrap there instead. On right-censored data it is
+#' unaffected.
 #'
 #' @references Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
 #'   survival time: an alternative to the hazard ratio for the design and
@@ -96,13 +109,17 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#' @param smart_cold_start_default Whether to use smart cold start values by default.
 		#' @param tau Optional user-chosen restriction horizon \eqn{\tau} (a single finite
 		#'   positive number, on the response's time scale). If \code{NULL} (default) the
-		#'   shared horizon is the smaller of the two arms' maximum follow-up times, as before.
+		#'   shared horizon is the smaller of the two arms' maximum follow-up times in the
+		#'   observed data. Users may prespecify \code{tau} (recommended, e.g. the protocol's
+		#'   planned follow-up); a prespecified horizon does not depend on the data at all.
 		#'   If given, \eqn{\tau} must not exceed that smaller maximum (the KM curve is not
-		#'   identified past an arm's last observation); the point estimate, Greenwood
-		#'   standard error, Bayesian/nonparametric bootstrap and randomization paths all use
-		#'   this same \eqn{\tau}. In a resample whose smaller arm maximum falls below
-		#'   \code{tau}, the smaller maximum is used for that resample. For left-/interval-
-		#'   censored data the Turnbull step function is integrated exactly up to \code{tau}.
+		#'   identified past an arm's last observation). Either way, the point estimate, Greenwood
+		#'   standard error, Bayesian/nonparametric bootstrap, jackknife, randomization and
+		#'   randomization-bootstrap paths all use this same \eqn{\tau}, fixed at construction
+		#'   and never recomputed from a draw's arms. In a resample whose smaller arm maximum
+		#'   falls below \eqn{\tau}, the smaller maximum is used for that resample. For
+		#'   left-/interval-censored data the Turnbull step function is integrated exactly up
+		#'   to \eqn{\tau}.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL, tau = NULL) {
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")
@@ -112,10 +129,11 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				if (!is.numeric(tau) || length(tau) != 1L || !is.finite(tau) || tau <= 0) {
 					stop("`tau` must be NULL or a single finite positive number.", call. = FALSE)
 				}
-				max_t = private$rmst_arm_max_time(private$w == 1)
-				max_c = private$rmst_arm_max_time(private$w == 0)
-				arm_max = min(max_t, max_c)
-				if (is.finite(arm_max) && tau > arm_max) {
+				# v1.0.6-TODO-125: the same rule as the default horizon, so under general
+				# censoring exact-event y values (folded in as [y, y]) count toward an
+				# arm's largest observed time.
+				arm_max = private$rmst_default_horizon()
+				if (!is.null(arm_max) && tau > arm_max) {
 					stop(
 						"`tau` (", format(tau), ") exceeds the smaller of the two arms' maximum follow-up times (",
 						format(arm_max), "); the RMST difference is not identified beyond it.",
@@ -124,6 +142,12 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				}
 				private$rmst_tau = as.numeric(tau)
 			}
+			# v1.0.6-TODO-115: with no user tau, fix the default horizon from the
+			# observed assignment now. Workers are clones of this object, so every
+			# randomization / bootstrap / jackknife draw integrates to this same tau
+			# instead of recomputing min(arm maxima) from the draw's arms (which made
+			# the null draws' horizon assignment-dependent: observed 39 vs 162-180).
+			if (is.null(private$rmst_tau)) private$rmst_observed_tau = private$rmst_default_horizon()
 		},
 		#' @description Computes the class-specific mean or survival contrast; see
 		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}.
@@ -140,7 +164,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					# interval-identifiability convention.
 					assert_interval_installed(class(self)[1L])
 					private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(
-						private$y_L, private$y_R, private$w, "restricted_mean", y = private$y, tau = private$rmst_tau
+						private$y_L, private$y_R, private$w, "restricted_mean", y = private$y, tau = private$rmst_horizon()
 					)
 				} else {
 					trunc = private$truncate_at_horizon(private$y, private$dead)
@@ -281,18 +305,47 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			# A user-set tau (TODO-108): the native kernel takes a trailing `rmst_tau`
 			# argument only once cpp patch 05 is built. An older installed binary has
 			# no such formal, so a user tau keeps the generic loop (NULL = no fast path).
+			# v1.0.6-TODO-115: the default horizon is also fixed (observed-data tau), so
+			# without the formal the kernel would recompute it per draw; use the loop.
 			kernel_has_tau = "rmst_tau" %in% names(formals(compute_survival_stat_diff_rand_bootstrap_parallel_cpp))
-			if (!is.null(private$rmst_tau) && !kernel_has_tau) return(NULL)
+			tau_fixed = private$rmst_horizon()
+			if (!is.null(tau_fixed) && !kernel_has_tau) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)
 			args = list(
 				as.numeric(y0_full), as.integer(private$dead), mats$i_mat, mats$w_mat,
 				as.numeric(delta), TRUE, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
-			if (kernel_has_tau) args$rmst_tau = if (is.null(private$rmst_tau)) NA_real_ else as.numeric(private$rmst_tau)
+			if (kernel_has_tau) args$rmst_tau = if (is.null(tau_fixed)) NA_real_ else as.numeric(tau_fixed)
 			do.call(compute_survival_stat_diff_rand_bootstrap_parallel_cpp, args)
 		},
 		rmst_tau = NULL,
+		# v1.0.6-TODO-115: default horizon from the observed assignment, set once in
+		# initialize() when the user gave no tau; carried into every resampling worker
+		# (workers are clones), never recomputed per draw.
+		rmst_observed_tau = NULL,
+		# The horizon every estimate on this object uses: the user's tau, else the
+		# observed-data default. NULL only when the default is not computable.
+		rmst_horizon = function(){
+			if (!is.null(private$rmst_tau)) private$rmst_tau else private$rmst_observed_tau
+		},
+		# Same rule compute_estimate() applies when no tau is passed: the smaller of the
+		# two arms' largest observed times (right-censoring: get_survival_stat_diff()'s
+		# shared tau; general censoring: turnbull_npmle_stat_diff()'s, on the effective
+		# intervals with exact events folded in). Computed on the observed assignment.
+		rmst_default_horizon = function(){
+			idx_t = private$w == 1
+			idx_c = private$w == 0
+			if (!any(idx_t) || !any(idx_c)) return(NULL)
+			if (isTRUE(private$has_general_censoring)) {
+				iv = turnbull_effective_interval(private$y_L, private$y_R, private$y)
+				tau = min(turnbull_arm_horizon(iv$y_L[idx_t], iv$y_R[idx_t]),
+					turnbull_arm_horizon(iv$y_L[idx_c], iv$y_R[idx_c]))
+			} else {
+				tau = min(private$rmst_arm_max_time(idx_t), private$rmst_arm_max_time(idx_c))
+			}
+			if (is.finite(tau) && tau > 0) as.numeric(tau) else NULL
+		},
 		rmst_arm_max_time = function(idx){
 			if (isTRUE(private$has_general_censoring)) {
 				v = c(private$y_L[idx], private$y_R[idx])
@@ -303,7 +356,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			if (length(v)) max(v) else NA_real_
 		},
 		truncate_at_horizon = function(y, dead){
-			tau = private$rmst_tau
+			tau = private$rmst_horizon()
 			if (is.null(tau)) return(list(y = y, dead = dead))
 			over = y > tau
 			list(y = pmin(y, tau), dead = ifelse(over, 0L, dead))
@@ -354,7 +407,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					max(private$y[valid & idx_t]),
 					max(private$y[valid & idx_c])
 				)
-				if (!is.null(private$rmst_tau)) shared_tau = min(shared_tau, private$rmst_tau)
+				if (!is.null(private$rmst_horizon())) shared_tau = min(shared_tau, private$rmst_horizon())
 			}
 			stat_t = private$weighted_survival_stat_for_group(
 				private$y[idx_t], private$dead[idx_t], row_weights[idx_t],
@@ -379,7 +432,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				is.finite(row_weights) & row_weights > 0
 			if (!any(valid & idx_t) || !any(valid & idx_c)) return(NA_real_)
 			tau = min(max(private$y[valid & idx_t]), max(private$y[valid & idx_c]))
-			if (!is.null(private$rmst_tau)) tau = min(tau, private$rmst_tau)
+			if (!is.null(private$rmst_horizon())) tau = min(tau, private$rmst_horizon())
 			arm_var = function(sel){
 				y = private$y[sel]; d = as.numeric(private$dead[sel]); wt = as.numeric(row_weights[sel])
 				ut = sort(unique(y))

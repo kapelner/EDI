@@ -253,7 +253,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 			}
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = matrix(private$w, ncol = 1L)
 				colnames(X) = "treatment"
@@ -320,7 +320,7 @@ InferenceOrdinalOrderedProbitRegr = define_inference_class(
 		"ParametricLikelihoodBootstrap",
 		"OrdinalOrderedProbitLikelihood"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
+	metadata = list(likelihood_tier = "full", response_types = "ordinal"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_rand_two_sided_pval",

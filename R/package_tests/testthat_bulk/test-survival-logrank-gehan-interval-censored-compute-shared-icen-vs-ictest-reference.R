@@ -25,9 +25,13 @@ ic_fx <- function(seed, n = 40L, class = InferenceSurvivalLogRank) {
 	list(inf = class$new(des, verbose = FALSE), w = w, yL = yL, yR = yR)
 }
 
+# ictest()'s estimate is "row-1 arm minus the other"; EDI reports treatment minus control
+# (v1.0.6-TODO-117/-121), so orient the reference the same way.
+ref_est <- function(ref) EDI:::ictest_treatment_minus_control_sign(ref) * as.numeric(ref$estimate)
+
 ref_wald_ci <- function(ref, alpha = 0.05) {
 	se <- abs(as.numeric(ref$estimate) / as.numeric(ref$statistic))
-	as.numeric(ref$estimate) + c(-1, 1) * qnorm(1 - alpha / 2) * se
+	ref_est(ref) + c(-1, 1) * qnorm(1 - alpha / 2) * se
 }
 
 test_that("log-rank under interval censoring: estimate, Wald CI and p-value match interval::ictest(scores = 'logrank1')", {
@@ -36,7 +40,7 @@ test_that("log-rank under interval censoring: estimate, Wald CI and p-value matc
 	expect_true(p$has_general_censoring)
 	ref <- suppressWarnings(interval::ictest(f$yL, f$yR, f$w, scores = "logrank1"))
 	est <- suppressWarnings(f$inf$compute_estimate())
-	expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
+	expect_equal(est, ref_est(ref), tolerance = 1e-6)
 	ci <- suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05))
 	expect_equal(as.numeric(ci), ref_wald_ci(ref), tolerance = 1e-6)
 	pv <- suppressWarnings(f$inf$compute_asymp_two_sided_pval())
@@ -50,7 +54,7 @@ test_that("Gehan-Wilcox under interval censoring: estimate, Wald CI and p-value 
 	f <- ic_fx(3L, class = InferenceSurvivalGehanWilcox)
 	ref <- suppressWarnings(interval::ictest(f$yL, f$yR, f$w, scores = "wmw"))
 	est <- suppressWarnings(f$inf$compute_estimate())
-	expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
+	expect_equal(est, ref_est(ref), tolerance = 1e-6)
 	ci <- suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05))
 	expect_equal(as.numeric(ci), ref_wald_ci(ref), tolerance = 1e-6)
 	pv <- suppressWarnings(f$inf$compute_asymp_two_sided_pval())
@@ -73,7 +77,7 @@ test_that("a mix of left-, right- and interval-censored rows within one design s
 	inf <- InferenceSurvivalLogRank$new(des, verbose = FALSE)
 	ref <- suppressWarnings(interval::ictest(yL, yR, w, scores = "logrank1"))
 	est <- suppressWarnings(inf$compute_estimate())
-	expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
+	expect_equal(est, ref_est(ref), tolerance = 1e-6)
 })
 
 test_that("an estimate-only interval-censored call can be followed by a full call in both score classes", {
@@ -83,7 +87,7 @@ test_that("an estimate-only interval-censored call can be followed by a full cal
 		scores <- if (identical(class, InferenceSurvivalLogRank)) "logrank1" else "wmw"
 		ref <- suppressWarnings(interval::ictest(f$yL, f$yR, f$w, scores = scores))
 		est <- suppressWarnings(f$inf$compute_estimate(estimate_only = TRUE))
-		expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
+		expect_equal(est, ref_est(ref), tolerance = 1e-6)
 		expect_null(p$cached_values$s_beta_hat_T)
 		ci <- suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05))
 		expect_equal(p$cached_values$s_beta_hat_T,

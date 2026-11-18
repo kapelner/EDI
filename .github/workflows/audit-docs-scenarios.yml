@@ -1,0 +1,390 @@
+# Docs-only scenario runs (v1.0.6-TODO-98; owner decision 2026-11-18): weekly, Sat 01:07 UTC.
+# One Claude agent per feature area must finish a realistic task end to end with EDI learned only from
+# the installed help pages, vignettes and articles, and reports what it trips over.
+# Runbook (rules, prompt, triage): R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md
+#   section 7 describes this job.
+# Areas: .github/prompts/docs_scenario_areas.json; prompt: .github/prompts/docs_scenario.md;
+# driver: .github/scripts/docs_scenarios.py (tests: test_audit_docs_scenarios.py).
+#
+# Stages: prepare (which areas are due; one context kit per area) -> build-r (EDI with help + vignettes,
+# once per run) and build-wheel (edi_kernels, only when the Python area runs) -> scenario (one agent per
+# area, matrix, no repo checkout) -> publish (findings file + PR, state saved to audit-notes).
+# Skip rule: an area runs only when its paths changed since its last successful run (comment- and
+# whitespace-only R/C++/Python edits do not count; any man/, vignette or article change does). When no
+# area is due, prepare ends the run and EDI is not built.
+# State: the `audit-notes` branch, folder docs-scenarios/ (state.json, learnings/<area>.md,
+# findings.jsonl, runs/). Each agent reads its area's learnings and known findings first.
+# Findings: one PR per run with R/package_metadata/audits/docs_scenario_findings/<date>-run<id>.md
+# (label `audit-docs-scenarios`); no PR when nothing new. Nothing is ever written to a release file.
+# Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one, every area is reported
+# NOT RUN (never as clean) and its state is not advanced. PRs opened with GITHUB_TOKEN trigger no other
+# workflows; the owner merges them with the admin bypass, as for the algorithm research PRs.
+#
+# Why the Claude Code CLI and not anthropics/claude-code-action: the agent must run in an empty folder
+# with no repository checkout (docs-only isolation), and it needs Bash to run R. The action works in
+# the checked-out workspace, and it refuses some events (rpy-parity-push.yml). Same secrets, same
+# NOT RUN convention, same deny list for credential paths as the other Claude jobs.
+
+name: audit · weekly · docs-scenarios
+
+on:
+  schedule:
+    - cron: "7 1 * * 6"
+  workflow_dispatch:
+    inputs:
+      areas:
+        description: "'changed' (areas whose paths changed since their last run, capped per run), 'all', or comma-separated area ids"
+        default: changed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-scenarios
+  cancel-in-progress: false
+
+env:
+  EDI_PORTABLE: 1
+  # Pinned CLI for the agents; bump deliberately.
+  CLAUDE_CODE_VERSION: "2.1.325"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      has: ${{ steps.plan.outputs.has }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      python: ${{ steps.plan.outputs.python }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the skip rule diffs each area's last-run commit against HEAD
+      - name: Self-test the driver
+        run: python3 .github/scripts/test_audit_docs_scenarios.py
+      - name: Read the state
+        run: |
+          if git clone -q --branch audit-notes "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/notes" 2>/dev/null; then
+            echo "Read the state from audit-notes."
+          else
+            mkdir -p "$RUNNER_TEMP/notes"; echo "No audit-notes branch yet: every area is new."
+          fi
+      - name: Which areas are due
+        id: plan
+        env:
+          REQUESTED: ${{ github.event.inputs.areas || 'changed' }}
+        run: |
+          python3 .github/scripts/docs_scenarios.py plan --notes "$RUNNER_TEMP/notes" \
+            --work "$RUNNER_TEMP/ds" --requested "$REQUESTED"
+          cat "$RUNNER_TEMP/ds/plan.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: steps.plan.outputs.has == 'true'
+        with:
+          name: docs-scenarios-plan
+          path: ${{ runner.temp }}/ds/
+          retention-days: 30
+
+  build-r:
+    needs: prepare
+    if: needs.prepare.outputs.has == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NOT_CRAN: true
+      MAKEFLAGS: -j4
+    steps:
+      - uses: actions/checkout@v7
+      - name: Switch to OpenBLAS (see R-CMD-check's identical step for why)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-pthread
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: |
+            any::knitr
+            any::rmarkdown
+      # The runbook's build: R CMD build renders the vignettes into the tarball, and installing the
+      # tarball with --html gives the help/, html/ and doc/ directories the agents read.
+      - name: Build EDI with its vignettes and install it with HTML help
+        run: |
+          mkdir -p "$RUNNER_TEMP/build" "$RUNNER_TEMP/lib"
+          cd "$RUNNER_TEMP/build"
+          R CMD build --no-manual "$GITHUB_WORKSPACE/R/EDI"
+          R CMD INSTALL --html --library="$RUNNER_TEMP/lib" EDI_*.tar.gz
+      - name: The build must carry its docs (runbook section 3.1)
+        run: |
+          R --no-echo --no-save <<'EOF'
+          lib = file.path(Sys.getenv("RUNNER_TEMP"), "lib")
+          p = find.package("EDI", lib.loc = lib)
+          have = dir.exists(file.path(p, c("help", "html", "doc")))
+          v = vignette(package = "EDI", lib.loc = lib)$results
+          cat("EDI", format(packageVersion("EDI", lib.loc = lib)), "help/html/doc:", have, "vignettes:", nrow(v), "\n")
+          if (!all(have) || nrow(v) == 0) stop("the EDI build has no help, HTML help or vignettes")
+          EOF
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/edi-lib.tgz" lib
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docs-scenarios-edi-lib
+          path: ${{ runner.temp }}/edi-lib.tgz
+          retention-days: 3
+
+  build-wheel:
+    needs: prepare
+    if: needs.prepare.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install system BLAS
+        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
+      # A regular (not editable) wheel, so the agent's venv holds only the installed package, not a
+      # link back to python/ and R/EDI/src.
+      - name: Build the edi_kernels wheel from this commit
+        run: python -m pip wheel ./python --no-deps -w "$RUNNER_TEMP/wheel"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docs-scenarios-wheel
+          path: ${{ runner.temp }}/wheel/
+          retention-days: 3
+
+  scenario:
+    needs: [prepare, build-r, build-wheel]
+    if: ${{ !cancelled() && needs.prepare.outputs.has == 'true' && needs.build-r.result == 'success' }}
+    name: scenario (${{ matrix.area }})
+    runs-on: ubuntu-latest
+    # The agent gets the area's `minutes` (default 80, the runbook's ~90-minute budget less setup);
+    # job_minutes adds 30 for setup and collection.
+    timeout-minutes: ${{ matrix.job_minutes }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      AREA: ${{ matrix.area }}
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+      OMP_NUM_THREADS: 2
+    # No actions/checkout in this job: the repository source is never on this runner. The workspace
+    # holds only the kits (prompt, learnings, known findings, articles as text, DESCRIPTION for the
+    # dependency install, the driver script) and the agent works in an empty folder under RUNNER_TEMP.
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: docs-scenarios-plan
+          path: plan
+      - uses: actions/download-artifact@v8
+        with:
+          name: docs-scenarios-edi-lib
+          path: ${{ runner.temp }}
+      - name: Switch to OpenBLAS
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-pthread
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      # EDI's dependencies (from DESCRIPTION alone) plus the reference packages the agents cross-check
+      # against (runbook section 4, "check every number").
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: plan/kits/${{ matrix.area }}/pkg
+          extra-packages: |
+            any::survival
+            any::MASS
+            any::coin
+            any::quantreg
+            any::sandwich
+            any::lme4
+            any::ordinal
+            any::betareg
+            any::pscl
+            any::exact2x2
+            any::jsonlite
+      - name: Unpack EDI
+        run: tar -C "$RUNNER_TEMP" -xzf "$RUNNER_TEMP/edi-lib.tgz"
+      - uses: actions/setup-python@v7
+        if: matrix.python
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        if: matrix.python
+        continue-on-error: true
+        with:
+          name: docs-scenarios-wheel
+          path: ${{ runner.temp }}/wheel
+      - name: Python venv with the edi_kernels wheel
+        if: matrix.python
+        run: |
+          sudo apt-get install -y libopenblas0-pthread
+          python -m venv "$RUNNER_TEMP/venv"
+          if ls "$RUNNER_TEMP"/wheel/*.whl >/dev/null 2>&1; then
+            "$RUNNER_TEMP/venv/bin/pip" install --quiet "$RUNNER_TEMP"/wheel/*.whl numpy scipy pandas statsmodels lifelines
+          else
+            echo "the edi_kernels wheel was not built" > "$RUNNER_TEMP/notrun.txt"
+          fi
+      - name: Install the Claude Code CLI
+        if: env.HAS_KEY == 'true'
+        run: npm install -g --silent "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Write the prompt and the agent's context folder
+        id: render
+        run: |
+          venv=""
+          if [ "${{ matrix.python }}" = "true" ]; then venv="$RUNNER_TEMP/venv"; fi
+          python3 "plan/kits/$AREA/tool/docs_scenarios.py" render --kit "plan/kits/$AREA" \
+            --lib "$RUNNER_TEMP/lib" --run-dir "$RUNNER_TEMP/scenario/$AREA" --venv "$venv"
+          [ "$HAS_KEY" = true ] || echo "neither the ANTHROPIC_API_KEY nor the CLAUDE_CODE_OAUTH_TOKEN repository secret is set" > "$RUNNER_TEMP/notrun.txt"
+          [ -f "$RUNNER_TEMP/notrun.txt" ] && echo "notrun=$(cat "$RUNNER_TEMP/notrun.txt")" >> "$GITHUB_OUTPUT" || true
+
+      # Tool policy. The agent needs Bash to run R (and Python), so Bash is allowed, unlike the read-only
+      # audit agents; isolation comes from the runner holding no source (no checkout, an installed EDI
+      # whose R code is byte-compiled into a lazy-load database, no src/), from the runbook's rules in
+      # the prompt, and from denying network and install commands and the web tools. Credential paths
+      # are denied to Read as in the other Claude jobs. No GitHub token is in this step's environment,
+      # and the job's token is read-only. Edits outside the run folder are refused in -p mode.
+      - name: Run the docs-only agent
+        id: agent
+        if: steps.render.outputs.notrun == ''
+        continue-on-error: true
+        timeout-minutes: ${{ matrix.job_minutes }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          MODEL: ${{ steps.render.outputs.model }}
+          TURNS: ${{ steps.render.outputs.max_turns }}
+          BUDGET: ${{ steps.render.outputs.budget }}
+          EFFORT: ${{ steps.render.outputs.effort }}
+          MINUTES: ${{ steps.render.outputs.minutes }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/transcript"
+          [ -n "$ANTHROPIC_API_KEY" ] || unset ANTHROPIC_API_KEY
+          [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || unset CLAUDE_CODE_OAUTH_TOKEN
+          cd "$RUNNER_TEMP/scenario/$AREA"
+          deny="WebFetch,WebSearch,Agent,Task,NotebookEdit"
+          deny="$deny,Bash(curl:*),Bash(wget:*),Bash(git:*),Bash(gh:*),Bash(pip:*),Bash(pip3:*),Bash(npm:*),Bash(sudo:*),Bash(apt-get:*),Bash(env:*),Bash(printenv:*)"
+          deny="$deny,Read(//proc/**),Read(//sys/**),Read(//etc/**),Read(~/.config/**),Read(~/.ssh/**),Read(~/.claude/.credentials.json),Read(/${GITHUB_WORKSPACE}/**)"
+          # shellcheck disable=SC2086  # EFFORT is empty or "--effort <level>"
+          timeout --signal=INT --kill-after=120 "${MINUTES}m" claude -p "$(cat prompt.md)" \
+            --model "$MODEL" $EFFORT --max-turns "$TURNS" --max-budget-usd "$BUDGET" \
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep" --disallowedTools "$deny" \
+            --setting-sources "project,local" --strict-mcp-config --no-session-persistence \
+            --output-format stream-json --verbose \
+            > "$RUNNER_TEMP/transcript/$AREA.jsonl" 2> "$RUNNER_TEMP/transcript/$AREA.stderr"
+
+      - name: Collect the agent's files
+        if: always()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NOTRUN: ${{ steps.render.outputs.notrun }}
+          OUTCOME: ${{ steps.agent.outcome }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/scenario/$AREA" "$RUNNER_TEMP/transcript"
+          python3 "plan/kits/$AREA/tool/docs_scenarios.py" collect --kit "plan/kits/$AREA" \
+            --run-dir "$RUNNER_TEMP/scenario/$AREA" --out "$RUNNER_TEMP/result/$AREA" \
+            --outcome "$OUTCOME" --notrun "$NOTRUN" --redact-env ANTHROPIC_API_KEY,CLAUDE_CODE_OAUTH_TOKEN \
+            --transcripts "$RUNNER_TEMP/transcript/$AREA.jsonl" "$RUNNER_TEMP/transcript/$AREA.stderr"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: docs-scenarios-result-${{ matrix.area }}
+          path: ${{ runner.temp }}/result/
+          retention-days: 30
+      # The full transcript (every tool call and result), secrets redacted: an artifact, not the log.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: docs-scenarios-transcript-${{ matrix.area }}
+          path: ${{ runner.temp }}/transcript/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  publish:
+    needs: [prepare, scenario]
+    if: ${{ !cancelled() && needs.prepare.outputs.has == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write   # creating the PR label
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LABEL: audit-docs-scenarios
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the PR step rebases onto the latest main
+      - uses: actions/download-artifact@v8
+        with:
+          name: docs-scenarios-plan
+          path: ${{ runner.temp }}/plan
+      - uses: actions/download-artifact@v8
+        continue-on-error: true   # every scenario job may have failed before uploading
+        with:
+          pattern: docs-scenarios-result-*
+          path: ${{ runner.temp }}/results
+          merge-multiple: true
+      - name: Read the state
+        run: |
+          if git clone -q --branch audit-notes "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/notes" 2>/dev/null; then
+            echo "Read the state from audit-notes."
+          else
+            mkdir -p "$RUNNER_TEMP/notes"; echo "No audit-notes branch yet."
+          fi
+      - name: Update the state and write the findings file
+        id: report
+        run: |
+          mkdir -p "$RUNNER_TEMP/results"
+          python3 .github/scripts/docs_scenarios.py report --notes "$RUNNER_TEMP/notes" \
+            --plan "$RUNNER_TEMP/plan/plan.json" --results "$RUNNER_TEMP/results" \
+            --run-id "$GITHUB_RUN_ID" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --report "$RUNNER_TEMP/report.md"
+          head -c 900000 "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open the pull request
+        if: steps.report.outputs.status == 'FINDINGS' && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+        env:
+          DATE: ${{ steps.report.outputs.date }}
+          NEW: ${{ steps.report.outputs.new }}
+        run: |
+          branch="audit/docs-scenarios/$DATE-run$GITHUB_RUN_ID"
+          file="R/package_metadata/audits/docs_scenario_findings/$DATE-run$GITHUB_RUN_ID.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add "$file"
+          git commit -m "Docs-only scenario findings $DATE ($NEW new)" \
+            -m "Generated by audit-docs-scenarios.yml (run $GITHUB_RUN_ID). v1.0.6-TODO-98."
+          # As in the algorithm research job: rebase onto the latest main so a workflow change merged
+          # while the agents ran does not make GitHub refuse the GITHUB_TOKEN push.
+          git fetch --quiet origin main
+          git rebase origin/main || { git rebase --abort; echo "::error::rebase onto main failed; the findings are in the artifacts"; exit 1; }
+          git push origin "$branch"
+          gh label create "$LABEL" --color 5319E7 \
+            --description "Docs-only scenario findings (weekly)" 2>/dev/null || true
+          {
+            echo "Findings file: \`$file\` ($NEW new). Verify each finding, then file it as a release-prefixed TODO citing its id, or dismiss it in \`R/package_metadata/audits/dismissed_decisions.md\` (runbook section 6). Merge this PR to keep the record."
+            echo
+            head -c 58000 "$RUNNER_TEMP/report.md"
+          } > "$RUNNER_TEMP/pr_body.md"
+          gh pr create --base main --head "$branch" --label "$LABEL" \
+            --title "Docs-only scenario findings $DATE" --body-file "$RUNNER_TEMP/pr_body.md"
+      - name: Save the state
+        # Not after a failed PR step: the findings would be registered as known without a PR to triage.
+        if: steps.report.outcome == 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+        run: |
+          python3 .github/scripts/audit_run.py save-notes --notes "$RUNNER_TEMP/notes" \
+            --message "docs-scenarios: run ${GITHUB_RUN_ID} at ${GITHUB_SHA::8}"

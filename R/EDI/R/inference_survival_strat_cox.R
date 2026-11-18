@@ -595,10 +595,10 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				!identical(private$y, private$strat_cox_y_full_cache) ||
 				!identical(private$dead, private$strat_cox_dead_full_cache) ||
 				!identical(X_cov, private$strat_cox_X_cov_cache)) {
-				X_full      = private$X
+				X_full      = private$get_X()
 				private$strat_cox_strata_info_cache = private$compute_strata_info(X_full)
 				private$strat_cox_X_linear_cache = matrix(numeric(0), nrow = length(private$y), ncol = 0)
-				if (ncol(as.matrix(private$X)) > 0 && !is.null(X_full) && ncol(X_full) > 0){
+				if (ncol(as.matrix(private$get_X())) > 0 && !is.null(X_full) && ncol(X_full) > 0){
 					keep_cols = setdiff(seq_len(ncol(X_full)), private$strat_cox_strata_info_cache$selected_cols)
 					if (length(keep_cols) > 0){
 						private$strat_cox_X_linear_cache = private$reduce_covariates_preserving_treatment(X_full[, keep_cols, drop = FALSE])
@@ -875,9 +875,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			list(b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = NA_real_)
 		}
 	),
-	# capabilities = "likelihood_ratio" added 2026-09-19: see the identical
-	# addition and its comment in InferenceSurvivalCoxPHRegr.
-	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	overrides = list(
 		public = c(
 			"compute_estimate",

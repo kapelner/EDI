@@ -205,12 +205,24 @@ edi_warn_cluster_independence_once = function(self, private, family = c("wald", 
 	} else {
 		"likelihood-based (score, gradient, likelihood-ratio, Bartlett, parametric-bootstrap) tests and intervals"
 	}
+	# Suggest only the procedures this class supports (v1.0.6-TODO-125: RMST, LogRank etc.
+	# refuse compute_rand_confidence_interval()).
+	has = function(cap) isTRUE(tryCatch(self$supports(cap)[[1L]], error = function(e) FALSE))
+	alternatives = c(
+		if (has("randomization_test") && has("randomization_ci")) "compute_rand_two_sided_pval() / compute_rand_confidence_interval()"
+		else if (has("randomization_test")) "compute_rand_two_sided_pval()",
+		if (has("nonparametric_bootstrap")) paste0("compute_bootstrap_two_sided_pval() / ",
+			"compute_bootstrap_confidence_interval() (these resample whole clusters)"),
+		if (has("jackknife")) paste0("compute_jackknife_wald_two_sided_pval() / ",
+			"compute_jackknife_wald_confidence_interval() with unit = \"cluster\"")
+	)
+	alt_text = if (length(alternatives) == 0L) "" else paste0("Cluster-aware alternatives: ",
+		if (length(alternatives) == 1L) alternatives else paste0(
+			paste(alternatives[-length(alternatives)], collapse = ", "), ", or ", alternatives[length(alternatives)]), ". ")
 	msg = paste0(
 		class(self)[1L], " on a cluster design: the ", what, " treat subjects as independent, ",
 		"ignoring within-cluster correlation, so they may be too narrow (p-values too small). ",
-		"Cluster-aware alternatives: compute_rand_two_sided_pval() / compute_rand_confidence_interval(), ",
-		"compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval() (these resample whole clusters), ",
-		"or compute_jackknife_wald_two_sided_pval() / compute_jackknife_wald_confidence_interval() with unit = \"cluster\". ",
+		alt_text,
 		"Suppress with suppressWarnings(expr, classes = \"edi_cluster_independence_warning\")."
 	)
 	warning(structure(
@@ -674,6 +686,119 @@ edi_warn_logistic_separation_once = function(self, private, X_fit, b, eps = 1e-8
 		list(message = msg, call = NULL, n_extreme = n_extreme, n = n, link = link)
 	))
 	invisible(TRUE)
+}
+
+#' Warn once per object when the hardened refit drops a covariate
+#' (v1.0.6-TODO-138)
+#'
+#' The hardened fitting paths (\code{fit_with_hardened_qr_column_dropping()}
+#' and the g-computation drop loops) first drop columns that are linearly
+#' dependent (QR rank) and then, if the fit on the remaining full-rank design
+#' is still unusable, drop further covariates one at a time and refit. Only
+#' that second kind of drop changes the model the user asked for, so only it
+#' warns: \code{dropped} are the covariate columns removed beyond the QR rank
+#' set. Plain collinearity drops do not warn (they are routine with factor
+#' dummies or a strata column already in the design, and the dropped column
+#' carries no information the kept ones lack).
+#'
+#' \code{reason} is \code{"coefficient_diverged"} (some coefficient of the
+#' full-rank fit was non-finite or beyond \code{max_abs_reasonable_coef}, as
+#' under (quasi-)complete separation; \code{diverged} names those columns,
+#' which need not be the dropped ones: the loop drops covariates from the end
+#' of the QR pivot until the fit is usable),
+#' \code{"full_fit_unusable"} (the full-rank fit failed or was rejected by the
+#' class's fit checks for another reason, e.g. no usable standard error), or
+#' \code{"treatment_only_fallback"} (every covariate was dropped after the
+#' covariate-adjusted fit failed). Emits one classed warning
+#' \code{edi_covariate_dropped_warning} (fields \code{dropped}, \code{reason},
+#' \code{diverged}) at most once per inference object, never inside a
+#' resampling operation, and never changes any returned value.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_covariate_dropped_once = function(self, private, dropped, reason = c("coefficient_diverged", "full_fit_unusable", "treatment_only_fallback"), diverged = character()) {
+	reason = match.arg(reason)
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (isTRUE(private$cached_values$covariate_dropped_warned)) return(invisible(FALSE))
+	dropped = setdiff(as.character(dropped), c("(Intercept)", "treatment", ""))
+	if (!length(dropped)) return(invisible(FALSE))
+	diverged = as.character(diverged)
+	private$cached_values$covariate_dropped_warned = TRUE
+	cap = suppressWarnings(as.numeric(private$max_abs_reasonable_coef))
+	cap_txt = if (length(cap) == 1L && is.finite(cap)) paste0(" (max_abs_reasonable_coef = ", format(cap), ")") else ""
+	why = switch(reason,
+		coefficient_diverged = paste0(
+			"the fit with all covariates had non-finite or implausibly large coefficients", cap_txt,
+			if (length(diverged)) paste0(" for ", paste(diverged, collapse = ", ")) else "",
+			", which usually means (quasi-)complete separation"
+		),
+		full_fit_unusable = "the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error)",
+		treatment_only_fallback = "the covariate-adjusted fit failed, so the treatment-only model was fit instead"
+	)
+	msg = paste0(
+		class(self)[1L], ": dropped covariate(s) ", paste(dropped, collapse = ", "),
+		" and refit because ", why, ". The reported results are for the reduced model. ",
+		"Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\")."
+	)
+	warning(structure(
+		class = c("edi_covariate_dropped_warning", "warning", "condition"),
+		list(message = msg, call = NULL, dropped = dropped, reason = reason, diverged = diverged)
+	))
+	invisible(TRUE)
+}
+
+#' Covariate-drop warning for the g-computation drop loops (v1.0.6-TODO-138)
+#'
+#' \code{fit} is the accepted fit from a g-computation
+#' \code{fit_*_with_sandwich()} loop, which records the QR-rank column names
+#' and coefficients of its first fit (\code{qr_rank_colnames},
+#' \code{qr_rank_coefficients}). Covariates in that rank set but not in
+#' \code{colnames(fit$X)} were dropped by the loop; with
+#' \code{treatment_only_fallback = TRUE} every covariate of \code{X_full} was.
+#' Calls \code{edi_warn_covariate_dropped_once()}.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_gcomp_covariate_drop = function(self, private, X_full, fit, treatment_only_fallback = FALSE) {
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (isTRUE(private$cached_values$covariate_dropped_warned)) return(invisible(FALSE))
+	if (is.null(fit) || is.null(fit$X)) return(invisible(FALSE))
+	if (isTRUE(treatment_only_fallback)) {
+		return(edi_warn_covariate_dropped_once(self, private, setdiff(colnames(X_full), colnames(fit$X)), "treatment_only_fallback"))
+	}
+	rank_cols = fit$qr_rank_colnames
+	if (is.null(rank_cols)) return(invisible(FALSE))
+	dropped = setdiff(rank_cols, colnames(fit$X))
+	if (!length(dropped)) return(invisible(FALSE))
+	cls = edi_classify_hardened_drop(list(b = fit$qr_rank_coefficients), rank_cols, private$max_abs_reasonable_coef)
+	edi_warn_covariate_dropped_once(self, private, dropped, cls$reason, cls$diverged)
+}
+
+#' Reason and diverged columns for a hardened drop (v1.0.6-TODO-138)
+#'
+#' Reads the coefficients of the rejected full-rank fit (\code{b},
+#' \code{coefficients}, \code{beta} or \code{coef}) and reports
+#' \code{"coefficient_diverged"} with the offending column names when any is
+#' non-finite or beyond \code{max_abs} (when \code{max_abs} is a finite
+#' number), else \code{"full_fit_unusable"}.
+#'
+#' @keywords internal
+#' @noRd
+edi_classify_hardened_drop = function(fit, col_names, max_abs = NULL) {
+	coefs = NULL
+	if (is.list(fit)) {
+		for (nm in c("b", "coefficients", "beta", "coef")) {
+			v = tryCatch(fit[[nm]], error = function(e) NULL)
+			if (is.numeric(v) && length(v)) { coefs = as.numeric(v); break }
+		}
+	}
+	if (is.null(coefs)) return(list(reason = "full_fit_unusable", diverged = character()))
+	cap = suppressWarnings(as.numeric(max_abs))
+	has_cap = length(cap) == 1L && is.finite(cap)
+	bad = !is.finite(coefs) | (if (has_cap) abs(coefs) > cap else FALSE)
+	if (!any(bad)) return(list(reason = "full_fit_unusable", diverged = character()))
+	nms = if (length(col_names) == length(coefs)) as.character(col_names)[bad] else character()
+	list(reason = "coefficient_diverged", diverged = nms)
 }
 
 #' Resampling procedure that owns a failure reason (TODO-116)

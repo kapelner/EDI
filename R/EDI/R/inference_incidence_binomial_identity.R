@@ -455,6 +455,14 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
 #' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
+#' \strong{Dropped covariates.} When the fit with all covariates fails or does not
+#' pass the fit checks and the hardened refit drops covariates to get a usable
+#' fit, the class raises one warning of class
+#' \code{edi_covariate_dropped_warning} per object (silent inside resampling)
+#' naming the dropped columns and the reason; the reported results are for the
+#' reduced model. Columns dropped only for linear dependence are not warned
+#' about.
+#'
 #' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 #'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
 #'   family and identity-link risk-difference parameterization.
@@ -494,7 +502,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		"IncidenceBinomialIdentityLikelihood",
 		"MarginalEstimand"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_rand_two_sided_pval",

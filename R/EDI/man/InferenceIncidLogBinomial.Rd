@@ -89,6 +89,14 @@ a larger or more balanced sample, or a randomization test. Source: the first
 calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
 replicates per cell, Monte Carlo standard error about 0.007; measured at n =
 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
+
+\strong{Dropped covariates.} When the fit with all covariates fails or does not
+pass the fit checks and the hardened refit drops covariates to get a usable
+fit, the class raises one warning of class
+\code{edi_covariate_dropped_warning} per object (silent inside resampling)
+naming the dropped columns and the reason; the reported results are for the
+reduced model. Columns dropped only for linear dependence are not warned
+about.
 }
 \section{Small-sample behaviour}{
 

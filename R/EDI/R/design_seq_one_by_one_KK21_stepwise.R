@@ -209,6 +209,12 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 			if (isTRUE(private$condition_on_ws_for_rand_tests)) {
 				return(super$draw_ws_raw(r))
 			}
+			# v1.0.6-TODO-129: a reusable bootstrap worker clears private$X (and marks it
+			# stale) on a rank-deficient resample. assign_wt() reads private$X directly
+			# (too_early_to_match(), KK21's is.null(X) check), so without this rebuild the
+			# whole replay saw "no covariates" and randomized every subject. A no-op on a
+			# completed design, whose matrix is already current.
+			private$ensure_model_matrix_current()
 			n_completed = private$t
 			state = list(
 				t = private$t,

@@ -5,6 +5,16 @@
 # the current and next release (worked out from the release files), Sonnet for later releases.
 # Opens ONE pull request (label `audit-todo-status`) that ticks `done` items and unticks `undone`
 # ones, each with a dated note; everything else is listed under "Needs a human".
+# Before the Claude stage, a mechanical tidy (.github/scripts/audits/_todo_tidy.py, no API cost) works
+# on the unreleased release files: duplicate TODO numbers get the next free number (the earliest-added
+# entry keeps its number; only provable references are rewritten, the rest are listed under "Decisions
+# for you"), then each section's run of entries is put in numeric order (sections under a heading that
+# declares a deliberate order, e.g. "(dependency order)", and releases closed to new TODOs are left as
+# they are). The tidy is the PR's first commit; the ticks follow in a second one, so the owner can
+# review them apart. It runs in prepare too (same commit, same result), so the agents judge the tidied
+# units. The PR is opened with GITHUB_TOKEN, so main's required checks do not run on it: the owner
+# merges with the admin bypass (audit.yml header). A release file edited on main after the run makes
+# the PR conflict; the next weekly run rebuilds the branch from main.
 # Module: .github/scripts/audits/todo_status.py; prompt and schema: .github/prompts/audit_todo_status.*
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 3).
 

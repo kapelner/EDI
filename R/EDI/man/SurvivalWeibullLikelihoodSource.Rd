@@ -53,12 +53,10 @@ Bartlett-corrected likelihood-ratio two-sided p-value; see
   silently all-\code{NA} calibration distribution.
 
 Randomization-test two-sided p-value; see
-  \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
-  (\code{delta != 0}) is blocked outright under left-/interval-censored
-  data for the same reason as the other bootstrap guards in this class:
-  the underlying shift-template guard in
-  \code{setup_randomization_template_and_shifts()} would otherwise only
-  surface as a silently all-\code{NA} randomization distribution.
+  \code{\link[EDI:Inference]{Inference}}. Under left-/interval-censored
+  data a nonzero null shift (\code{delta != 0}) rescales the treated
+  subjects' censoring bounds \code{y_L} and \code{y_R} by
+  \eqn{e^{\delta}}{exp(delta)}, as it rescales exact times.
 }
 \details{
 Source list for the \code{SurvivalWeibullLikelihood} component composed by \code{InferenceSurvivalWeibullRegr}.

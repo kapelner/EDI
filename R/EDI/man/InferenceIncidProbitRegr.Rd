@@ -26,9 +26,11 @@ the treatment's additive effect on the latent standard-normal index
 underlying the binary outcome. \code{likelihood_tier = "full"}: Wald,
 score, gradient, and likelihood-ratio tests are all available when the
 model converges, plus parametric-likelihood-bootstrap calibration of the
-likelihood-ratio test. A fit whose coefficients exceed
+likelihood-ratio test. When a fit's coefficients exceed
 \code{max_abs_reasonable_coef} in magnitude (a proxy for near-perfect
-separation) is cached as nonestimable rather than returned. Validity
+separation), covariates are dropped one at a time (treatment is always
+kept) and the model is refit; if no reduced fit is reasonable the result is
+cached as nonestimable. Validity
 requires the usual probit assumptions: correctly specified linear
 predictor on the latent-normal scale, independence across subjects
 conditional on covariates, and no perfect/quasi-complete separation.
@@ -49,6 +51,24 @@ Whether \code{compute_rand_two_sided_pval()} is actually
   "ok" row -- the single source of truth for both this check and
   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
   never drift apart.
+}
+\details{
+\strong{Separation.} When fitted probabilities \eqn{\Phi(x_i^\top\hat\beta)}
+are numerically 0 or 1 the class raises one warning of class
+\code{edi_logistic_separation_warning} per object (the same class as the
+logit models, with \code{link = "probit"} in its fields; silent inside
+resampling): the reported estimate is where the fitter stopped and its Wald
+results are not meaningful. The returned values are unchanged.
+
+\strong{Dropped covariates.} When the fit with all covariates is unusable
+(for example a coefficient beyond \code{max_abs_reasonable_coef} under
+separation) and the hardened refit drops covariates to get a usable fit,
+the class raises one warning of class \code{edi_covariate_dropped_warning}
+per object (silent inside resampling) naming the dropped columns and the
+reason (fields \code{dropped}, \code{reason}, \code{diverged}); the reported
+results are for the reduced model. Columns dropped only because they are
+linearly dependent on others (e.g. redundant factor dummies) are not
+warned about.
 }
 \section{Small-sample behaviour}{
 

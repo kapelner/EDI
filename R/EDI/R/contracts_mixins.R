@@ -149,17 +149,14 @@ capability_requires = list(
 		likelihood_tier = c("quasi", "partial", "full"),
 		private_methods = "get_likelihood_test_spec"
 	),
-	likelihood_ratio = list(
-		likelihood_tier = c("partial", "full"),
-		private_methods = "get_likelihood_test_spec"
-	),
-	estimating_equation_likelihood_ratio = list(
-		likelihood_tier = "quasi",
-		private_methods = "get_likelihood_test_spec"
-	),
+	# 2026-11-18: one word for likelihood testing. The former `likelihood_ratio`
+	# (partial/full) and `estimating_equation_likelihood_ratio` (quasi) capabilities were
+	# declared by hand on classes but never reached the registry (whose word is
+	# `likelihood_tests`) and gated the same two methods; which kind of likelihood a
+	# class's tests use is what `likelihood_tier` records.
 	parametric_likelihood_bootstrap = list(
 		likelihood_tier = c("partial", "full"),
-		capabilities = "likelihood_ratio",
+		capabilities = "likelihood_tests",
 		private_methods = c("get_likelihood_test_spec", "simulate_under_lik_null")
 	),
 	bayesian_bootstrap = list(
@@ -255,14 +252,6 @@ public_methods_for_capability = list(
 		"compute_lik_ratio_bartlett_exact_two_sided_pval",
 		"compute_lik_ratio_bartlett_exact_confidence_interval"
 	),
-	likelihood_ratio = c(
-		"compute_lik_ratio_two_sided_pval",
-		"compute_lik_ratio_confidence_interval"
-	),
-	estimating_equation_likelihood_ratio = c(
-		"compute_lik_ratio_two_sided_pval",
-		"compute_lik_ratio_confidence_interval"
-	),
 	parametric_likelihood_bootstrap = c(
 		"compute_lik_ratio_bootstrap_two_sided_pval",
 		"compute_lik_ratio_bootstrap_confidence_interval",
@@ -350,6 +339,7 @@ EDI_COMPONENT_SPECS = list(
 		owns_state = c(
 			"boot_distr_cache", "jack_distr_cache",
 			"bootstrap_extreme_ci_width_threshold",
+			"bootstrap_extreme_ci_width_spread_multiple", "bootstrap_extreme_link_scale_max_abs",
 			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
 		provides_public_methods = c(
@@ -401,6 +391,7 @@ EDI_COMPONENT_SPECS = list(
 			"missing_bootstrap_ci", "check_bootstrap_replicate_deadline",
 			"is_resampling_control_condition", "resampling_error_to_na",
 			"bootstrap_outcome_scale", "bootstrap_confidence_interval_extreme",
+			"bootstrap_estimand_on_link_scale", "bootstrap_link_scale_ci_plausible",
 			"supports_reusable_bootstrap_worker",
 			"validate_bootstrap_worker_state", "create_reusable_bootstrap_worker",
 			"load_bootstrap_draw_into_worker", "load_non_param_bootstrap_draw_into_worker",
@@ -424,6 +415,7 @@ EDI_COMPONENT_SPECS = list(
 			"ci_smoothed_bootstrap", "infer_original_se", "pval_bca",
 			"boot_distr_cache", "jack_distr_cache",
 			"bootstrap_extreme_ci_width_threshold",
+			"bootstrap_extreme_ci_width_spread_multiple", "bootstrap_extreme_link_scale_max_abs",
 			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
 		provides_capabilities = "nonparametric_bootstrap",
@@ -455,7 +447,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_brt_null_statistics_with_reused_workers",
 			"compute_brt_null_statistics_with_se", "compute_two_sided_brt_pval_studentized",
 			"run_rand_bootstrap_iteration", "rand_boot_draws_counter", "brt_mc_control",
-			"rand_bootstrap_pval_types"
+			"rand_bootstrap_pval_types", "rand_bootstrap_null_censoring_bounds"
 		),
 		provides_capabilities = "randomization_bootstrap",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -1270,7 +1262,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_weighted_combined_estimate", "simulate_under_lik_null"
 		),
 		provides_capabilities = character(),
-		allowed_likelihood_tiers = "full",
+		allowed_likelihood_tiers = "partial",   # conditional likelihood for the matched pairs (2026-11-18)
 		declare_body_references_optional = TRUE
 	),
 	SurvivalKKStratCoxOneLikPartialLikelihood = list(
@@ -3764,7 +3756,7 @@ define_inference_class = function(
 		public_methods_for_capability = public_methods_for_capability,
 		resolve_components = FALSE
 	)
-	R6::R6Class(
+	generator = R6::R6Class(
 		classname = classname,
 		lock_objects = FALSE,
 		inherit = inherit,
@@ -3773,6 +3765,12 @@ define_inference_class = function(
 		active = active,
 		...
 	)
+	# The declaration is the single source of truth for the registry (2026-11-18):
+	# populate_inference_class_registry() reads `metadata` and `components` from here and
+	# falls back to the name rules (infer_inference_likelihood_tier() and friends) only
+	# for classes not built with this factory.
+	generator$edi_declaration = list(metadata = metadata, components = as.character(components))
+	generator
 }
 
 assert_valid_mixin_composition = function(target_name, mixin_names, public_overrides = character(), private_overrides = character()) {

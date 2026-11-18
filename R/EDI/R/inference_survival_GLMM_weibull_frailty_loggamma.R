@@ -291,7 +291,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			}
 			NA_real_
 		},
-		filtered_covariate_candidates = function(X = as.matrix(private$X)){
+		filtered_covariate_candidates = function(X = as.matrix(private$get_X())){
 			if (ncol(X) == 0L) return(list(matrix(nrow = nrow(X), ncol = 0L)))
 			
 			# Ensure no linearly dependent columns first
@@ -322,7 +322,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			}
 			candidates = list()
 			# Case 1: no covariates
-			if (ncol(as.matrix(private$X)) == 0L){
+			if (ncol(as.matrix(private$get_X())) == 0L){
 				Xcand = matrix(private$w, ncol = 1)
 				colnames(Xcand) = "w"
 				candidates = list(Xcand)
@@ -853,7 +853,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 			)
 		},
 		filtered_covariate_candidates = function(){
-			X = as.matrix(private$X)
+			X = as.matrix(private$get_X())
 			if (ncol(X) == 0L) return(list(matrix(nrow = private$n, ncol = 0L)))
 			
 			# Ensure no linearly dependent columns first
@@ -894,7 +894,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 			m_vec[is.na(m_vec)] = 0L
 			# Optimization candidates
 			w_only = matrix(private$w, ncol = 1); colnames(w_only) = "w"
-			if (ncol(as.matrix(private$X)) == 0L){
+			if (ncol(as.matrix(private$get_X())) == 0L){
 				candidates = list(w_only)
 			} else {
 				cov_candidates = private$filtered_covariate_candidates()
@@ -1137,10 +1137,7 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
 		# other survival KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache).
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

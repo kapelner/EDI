@@ -93,7 +93,8 @@ test_that("prob_clip_eps is validated to [0, 0.5) at construction", {
 	des$overwrite_all_subject_assignments(rep(0:1, n / 2))
 	des$add_all_subject_responses(rbinom(n, 1, 0.5))
 	expect_error(InferenceIncidGCompRiskDiff$new(des, prob_clip_eps = 0.5000001), "not <= 0.5")
-	expect_silent(InferenceIncidGCompRiskDiff$new(des, prob_clip_eps = 0.5, verbose = FALSE))
+	# 0.5 clips every fitted probability to 0.5, so it is rejected (half-open [0, 0.5), as the test name says).
+	expect_error(InferenceIncidGCompRiskDiff$new(des, prob_clip_eps = 0.5, verbose = FALSE), "prob_clip_eps must be in")
 	expect_error(InferenceIncidGCompRiskDiff$new(des, prob_clip_eps = -0.1), "not >= 0")
 	expect_silent(InferenceIncidGCompRiskDiff$new(des, prob_clip_eps = 0.499, verbose = FALSE))
 })

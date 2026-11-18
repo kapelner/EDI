@@ -30,28 +30,50 @@ test_that("incidence rand expected keys distinguish rejected from skipped delta 
 	# attempted call with runtime status left open; nonzero delta is an expected
 	# safe_call error for the standard statistic, but is absent entirely when
 	# the runner's delta slow-path flag skips the call. Custom statistics hit
-	# the same guard (v1.0.6-TODO-81/110).
+	# the same guard (v1.0.6-TODO-81/110). The rand_custom family (standalone
+	# InferenceRandCustom) adds its delta = 0 p-value (status open) and its
+	# delta = 0.5 p-value (expected error) for every case it runs on; it does
+	# not depend on the plain-rand skip flags (case 3), only on the family
+	# filter (case 4) and skip_slow.
+	custom <- c("compute_rand_two_sided_pval(custom)", "compute_rand_two_sided_pval(custom)(delta=0.5)")
 	expected <- data.frame(
-		rep = c(1L, 1L, 2L, 5L, 5L),
-		beta_T = c(0, 0, 0.5, 0.5, 0.5),
-		dataset = rep("pima", 5L),
-		response_type = rep("incidence", 5L),
-		design = c("Bernoulli", "Bernoulli", "KK21stepwise", "Bernoulli", "Bernoulli"),
-		inference_class = c("fixture-class-1", "fixture-class-1", "fixture-class-2",
-			"fixture-class-5", "fixture-class-5"),
+		rep = c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 3L, 3L, 5L, 5L, 5L, 5L),
+		beta_T = c(0, 0, 0, 0, 0.5, 0.5, 0.5, 0, 0, 0.5, 0.5, 0.5, 0.5),
+		dataset = rep("pima", 13L),
+		response_type = rep("incidence", 13L),
+		design = c(rep("Bernoulli", 4L), rep("KK21stepwise", 3L), rep("Bernoulli", 6L)),
+		inference_class = c(rep("fixture-class-1", 4L), rep("fixture-class-2", 3L),
+			rep("fixture-class-3", 2L), rep("fixture-class-5", 4L)),
 		function_run = c(
 			"compute_rand_two_sided_pval",
 			"compute_rand_two_sided_pval(delta=0.5)",
+			custom,
 			"compute_rand_two_sided_pval",
+			custom,
+			custom,
 			"compute_rand_two_sided_pval",
-			"compute_rand_two_sided_pval(delta=0.5)"
+			"compute_rand_two_sided_pval(delta=0.5)",
+			custom
 		),
-		expected_status = c(NA_character_, "error", NA_character_, NA_character_, "error"),
-		expected_skip_reason = c(NA_character_, "error", NA_character_, NA_character_, "error"),
+		expected_status = c(NA_character_, "error", NA_character_, "error",
+			NA_character_, NA_character_, "error",
+			NA_character_, "error",
+			NA_character_, "error", NA_character_, "error"),
+		expected_skip_reason = c(NA_character_, "error", NA_character_, "error",
+			NA_character_, NA_character_, "error",
+			NA_character_, "error",
+			NA_character_, "error", NA_character_, "error"),
 		stringsAsFactors = FALSE
 	)
 	expect_identical(manifest, expected)
 	expect_true(comprehensive_incidence_rand_pvalue_source_guard(runner))
+
+	# A rand_custom-only shard emits just the two custom rows.
+	custom_only <- cases[1L, ]
+	custom_only$test_family_filter <- "rand_custom"
+	custom_manifest <- comprehensive_incidence_rand_pvalue_attempt_manifest(custom_only, runner)
+	expect_identical(custom_manifest$function_run, custom)
+	expect_identical(custom_manifest$expected_status, c(NA_character_, "error"))
 })
 
 test_that("the incidence manifest rejects wrong response types and duplicate natural keys", {

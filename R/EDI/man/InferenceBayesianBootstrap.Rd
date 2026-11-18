@@ -247,7 +247,17 @@ family.}
 \code{"studentized"} / \code{"bootstrap-t"} (pivots by replicate SE from
 \code{compute_estimate_with_bootstrap_weights(..., estimate_only = FALSE)}),
 and \code{"bca"} (bias-corrected and accelerated via leave-one-unit-out
-Bayesian jackknife).}
+Bayesian jackknife). The \code{"bca"} p-value is the floor \eqn{2/B} when
+\code{delta} lies outside every BCa interval (for example outside the range of the
+draws), and \code{NA} only when the BCa adjustment is degenerate: on the
+order-statistic boundary (one \code{edi_bootstrap_bca_boundary_warning} per
+object) or with an unstable bias correction or acceleration (one
+\code{edi_bootstrap_bca_unstable_warning} per object). It is also \code{NA} when
+the Bayesian jackknife has fewer than 5 weighting units (e.g. 4 blocks with
+\code{weighting_unit_type = "resample_blocks"}; reason
+\code{"bayesian_bootstrap_bca_jackknife_too_few_deletion_units"}) or fewer than 2
+finite replicates (\code{"bayesian_bootstrap_bca_jackknife_unavailable"}), with one
+\code{edi_procedure_na_warning}.}
       \item{\code{na.rm}}{If \code{TRUE}, discard non-finite bootstrap replicates before
 computing the p-value. Default \code{FALSE}, in which case any non-finite
 replicate returns \code{NA} (with a once-per-object warning of class
@@ -304,7 +314,16 @@ fall within two order statistics of the ends of the bootstrap
 distribution and the interval is \code{c(NA, NA)} (reason
 \code{"bayesian_bootstrap_bca_adjustment_on_boundary"}, one
 \code{edi_bootstrap_bca_boundary_warning} per object); use
-\code{type = "percentile"} for small B.}
+\code{type = "percentile"} for small B. It is also \code{c(NA, NA)} when the
+bias correction or acceleration is unstable (reason
+\code{"bayesian_bootstrap_bca_unstable_bias_or_acceleration"}, one
+\code{edi_bootstrap_bca_unstable_warning} per object; a larger B does not help,
+use \code{type = "percentile"}). It is \code{c(NA, NA)} as well when the Bayesian
+jackknife has fewer than 5 weighting units (the same minimum as
+\code{compute_jackknife_std_error()}; reason
+\code{"bayesian_bootstrap_bca_jackknife_too_few_deletion_units"}) or fewer than 2
+finite replicates (\code{"bayesian_bootstrap_bca_jackknife_unavailable"}), with one
+\code{edi_procedure_na_warning}. Each such \code{NA} raises only that one warning.}
       \item{\code{na.rm}}{If \code{TRUE} (default), discard non-finite bootstrap
 replicates before constructing the interval.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}

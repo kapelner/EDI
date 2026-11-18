@@ -60,6 +60,14 @@ or a randomization or bootstrap test. Source: the first calibration campaign
 (2026-11-09-8c32d060; provisional, 1000 screening replicates per cell, Monte
 Carlo standard error about 0.007; measured at n = 50 only),
 \url{https://github.com/kapelner/EDI/tree/calibration-results}.
+
+\strong{Separation.} When the logistic working model's fitted probabilities
+are numerically 0 or 1 (the data look (quasi-)completely separated) the
+working-model MLE does not exist and the fitted risks sit where the fitter
+stopped. The class then raises one warning of class
+\code{edi_logistic_separation_warning} per object (silent inside resampling);
+the returned values are unchanged. A randomization test or an exact incidence
+method is safer there.
 }
 \section{Small-sample behaviour}{
 

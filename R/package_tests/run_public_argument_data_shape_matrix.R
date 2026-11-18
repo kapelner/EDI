@@ -43,7 +43,6 @@ data_shape_known_issues = function() {
 		list(todo = "v1.0.6-TODO-74", fixture_id = "^data_shape__fixed_blocked_cluster__", target = "::compute_jackknife_wald_confidence_interval$"),
 		list(todo = "v1.0.6-TODO-76", fixture_id = "^data_shape__seq_kk21__[a-z]+__null_", error_message = "missing value where TRUE/FALSE needed|invalid 'x' type"),
 		list(todo = "v1.0.6-TODO-77", fixture_id = "__null_(mid|end)__", error_message = "argument is of length zero"),
-		list(todo = "v1.0.6-TODO-90", fixture_id = "__interval__", target = "^InferenceSurvivalKMDiff::"),
 		list(todo = "v1.0.6-TODO-82", target = "^InferenceRandCustom::", argument_signature = "na\\.rm=FALSE", receiver_args = "sometimes_na"),
 		list(todo = "v1.0.6-TODO-83", target = "^InferenceRandCustom::", receiver_args = "custom_stat_(r|cpp)_vector")
 	)

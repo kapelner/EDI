@@ -99,7 +99,7 @@ InferencePropBetaRegr = define_inference_class(
 		"StandardModelCache",
 		"MarginalEstimand"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_rand_two_sided_pval",
@@ -708,7 +708,7 @@ InferencePropBetaRegr = define_inference_class(
 			attempt$fit
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {

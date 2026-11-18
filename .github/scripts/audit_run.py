@@ -99,6 +99,34 @@ def harvest(spec, notes):
     return lines
 
 
+# ---------------------------------------------------------------- mechanical tidy
+
+def tidy_enabled():
+    """A module's `tidy(ctx)` edits the work tree, so it runs only on a CI runner (or with
+    AUDIT_TIDY=1), never in someone's checkout by accident. AUDIT_TIDY=0 turns it off."""
+    flag = os.environ.get("AUDIT_TIDY", "")
+    if flag in ("0", "1"):
+        return flag == "1"
+    return os.environ.get("GITHUB_ACTIONS") == "true"
+
+
+def run_tidy(module, ctx, commit):
+    """Run the module's mechanical tidy (if any). With `commit`, the tidied files become their own
+    commit (bot identity) so the PR shows them apart from, and before, the applied findings.
+    Returns the tidy's report parts, or {}."""
+    if not hasattr(module, "tidy") or not tidy_enabled():
+        return {}
+    t = module.tidy(ctx) or {}
+    files = t.get("files") or []
+    if commit and files:
+        g = lambda *x: subprocess.run(["git", *x], cwd=ctx.repo, check=True, capture_output=True, text=True)
+        g("add", "--", *files)
+        g("-c", f"user.name={BOT_NAME}", "-c", f"user.email={BOT_EMAIL}", "commit", "-q",
+          "-m", t.get("message") or "mechanical tidy", "--", *files)
+        t["committed"] = True
+    return t
+
+
 # ---------------------------------------------------------------- prepare
 
 def cmd_prepare(a):
@@ -110,6 +138,8 @@ def cmd_prepare(a):
         ctx.manifest = notes.manifest()
     history = notes.findings()
 
+    # Same tidy as finish will commit, so the units the agents judge are the tidied ones.
+    run_tidy(module, ctx, commit=False)
     mech = []
     if hasattr(module, "mechanical"):
         raw = module.mechanical(ctx) or []
@@ -170,11 +200,15 @@ def cmd_finish(a):
     mech = json.loads((work / "mechanical.json").read_text())
     results, notrun = load_results(a.results, plan)
     history = notes.findings()
+    tidy = run_tidy(module, ctx, commit=True)
 
     parts = module.apply(ctx, results, mech) if hasattr(module, "apply") else {}
     parts = parts or {}
     if not hasattr(module, "apply"):
         parts = {"mechanical": [f.get("text", "") for f in mech]}
+    for key in ("applied", "human", "info"):
+        if tidy.get(key):
+            parts[key] = list(tidy[key]) + list(parts.get(key) or [])
 
     # Findings this run proposes or reports: keep for the history.
     proposed = [ac.normalise_finding(spec["name"], f, f.get("source", "claude"))
@@ -238,8 +272,8 @@ def cmd_finish(a):
     report = ac.render_report(spec, parts, coverage, ctx.run_url)
     (work / "report.md").write_text(report)
     (work / "proposed.json").write_text(json.dumps([f["id"] for f in proposed if f.get("applied_file")]))
-    changed = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True,
-                             cwd=a.repo).stdout.strip() != ""
+    changed = tidy.get("committed", False) or subprocess.run(
+        ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=a.repo).stdout.strip() != ""
     findings = ac.has_findings(parts)
     out(a.github_output, changed="true" if changed else "false", findings="true" if findings else "false")
     print(report)
@@ -325,7 +359,9 @@ def publish_pr(spec, notes, m, report, label, changed, work, repo, findings=Fals
     g("config", "user.email", BOT_EMAIL)
     g("switch", "-C", branch)
     g("add", "-A")
-    g("commit", "-qm", f"{spec['title']}: proposed changes\n\n{run_url()}")
+    # Nothing staged when the only change is a tidy commit finish already made.
+    if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repo).returncode:
+        g("commit", "-qm", f"{spec['title']}: proposed changes\n\n{run_url()}")
     g("push", "--force", "origin", f"{branch}:{branch}")
     title = f"{spec['title']}: proposed changes"
     draft = ["--draft"] if spec.get("pr_draft") else []

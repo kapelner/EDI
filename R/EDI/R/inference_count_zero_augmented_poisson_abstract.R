@@ -1072,7 +1072,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			)
 		},
 		predictors_df = function(){
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				full_X = private$create_design_matrix()
 				X_model = full_X[, -1, drop = FALSE]
 				colnames(X_model)[1] = "w"
@@ -1116,6 +1116,16 @@ ZeroAugmentedCountLikelihoodSource = list(
 					private$cache_nonestimable_estimate("zero_augmented_poisson_design_unusable")
 					return(NULL)
 				}
+				# v1.0.6-TODO-126: best_X_colnames is reduced once on the full data, and the
+				# reusable bootstrap/jackknife worker restores it on every draw. On a draw
+				# where a cached column is constant or collinear (e.g. a stratum dummy on a
+				# leave-one-block-out draw), the hardened X_full above has already dropped
+				# it, so the cached set no longer fits this sample: reduce afresh, as a
+				# refit on the same rows does. X_full is full rank after hardening, so a
+				# cached set it still contains is a valid reduction.
+				if (!is.null(private$best_X_colnames) && !all(private$best_X_colnames %in% colnames(X_full))) {
+					private$best_X_colnames = NULL
+				}
 				if (is.null(private$best_X_colnames)) {
 					res_reduced = private$reduce_design_matrix_preserving_treatment(X_full)
 					X_fit = res_reduced$X
@@ -1132,6 +1142,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 				if (is.null(Xzi_full)){
 					private$cache_nonestimable_estimate("zero_augmented_poisson_aux_design_unusable")
 					return(NULL)
+				}
+				if (!is.null(private$best_Xzi_colnames) && !all(private$best_Xzi_colnames %in% colnames(Xzi_full))) {
+					private$best_Xzi_colnames = NULL
 				}
 				if (is.null(private$best_Xzi_colnames)) {
 					res_zi = private$reduce_design_matrix_preserving_treatment(Xzi_full)
@@ -1506,7 +1519,7 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 		"ParametricLikelihoodBootstrap",
 		"ZeroAugmentedCountLikelihood"
 	),
-	metadata = list(abstract = TRUE, likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	metadata = list(abstract = TRUE, likelihood_tier = "full", response_types = "count"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",

@@ -71,7 +71,7 @@ InferenceContinOLS = define_inference_class(
 		"Jackknife",
 		"ParametricLikelihoodBootstrap"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous", supports_additive_delta_shift = TRUE),
+	metadata = list(likelihood_tier = "full", response_types = "continuous", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",

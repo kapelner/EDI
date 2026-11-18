@@ -28,18 +28,42 @@ blocking_strata_formula_specs = list(
 for (cls in names(blocking_strata_formula_specs)) local({
 	cls = cls
 	spec = blocking_strata_formula_specs[[cls]]
-	test_that(paste0(cls, ": leave-one-block-out jackknife and BCa bootstrap are finite when design_formula names the strata"), {
+	test_that(paste0(cls, ": leave-one-block-out jackknife replicates are finite when design_formula names the strata"), {
 		des = fx_blocking_strata_formula(spec[[1L]], spec[[2L]])
 		inf = get(cls)$new(des, verbose = FALSE)
 		inf$num_cores = 1L
 		jack = inf$approximate_jackknife_distribution_beta_hat_T()
 		expect_length(jack, 2L)
 		expect_true(all(is.finite(jack)))
-		jci = inf$compute_jackknife_wald_confidence_interval()
-		expect_true(all(is.finite(jci)))
-		bci = inf$compute_bootstrap_confidence_interval(B = 201, type = "bca", show_progress = FALSE)
-		expect_true(all(is.finite(bci)))
-		expect_null(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$bootstrap)
+		# v1.0.6-TODO-135: 2 blocks are too few deletion units for a jackknife variance, so the
+		# jackknife-Wald CI is NA with a warning; the replicates above (the v1.0.6-TODO-108 fix)
+		# stay finite.
+		expect_warning(jci <- inf$compute_jackknife_wald_confidence_interval(),
+			"jackknife_too_few_deletion_units", class = "edi_procedure_na_warning")
+		expect_true(all(is.na(jci)))
+		# Owner decision 2026-11-18 (follow-up to v1.0.6-TODO-135): BCa is gated at the same
+		# minimum, so on 2 blocks it is NA with one warning, not the v1.0.6-TODO-108 silent NA.
+		expect_warning(bci <- inf$compute_bootstrap_confidence_interval(B = 201, type = "bca", show_progress = FALSE),
+			"bootstrap_bca_jackknife_too_few_deletion_units", class = "edi_procedure_na_warning")
+		expect_true(all(is.na(bci)))
+		expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$bootstrap,
+			"bootstrap_bca_jackknife_too_few_deletion_units")
+		# The v1.0.6-TODO-108 fix itself: with the minimum lowered to 2 (the pre-gate rule) the BCa
+		# interval built from these replicates is finite.
+		ns = asNamespace("EDI")
+		old_min = get("EDI_JACKKNIFE_MIN_DELETION_UNITS", envir = ns)
+		locked = bindingIsLocked("EDI_JACKKNIFE_MIN_DELETION_UNITS", ns)
+		if (locked) unlockBinding("EDI_JACKKNIFE_MIN_DELETION_UNITS", ns)
+		assign("EDI_JACKKNIFE_MIN_DELETION_UNITS", 2L, envir = ns)
+		on.exit({
+			assign("EDI_JACKKNIFE_MIN_DELETION_UNITS", old_min, envir = ns)
+			if (locked) lockBinding("EDI_JACKKNIFE_MIN_DELETION_UNITS", ns)
+		}, add = TRUE)
+		inf2 = get(cls)$new(des, verbose = FALSE)
+		inf2$num_cores = 1L
+		bci2 = inf2$compute_bootstrap_confidence_interval(B = 201, type = "bca", show_progress = FALSE)
+		expect_true(all(is.finite(bci2)))
+		expect_null(inf2$.__enclos_env__$private$cached_values$procedure_failure_reason$bootstrap)
 	})
 })
 
@@ -81,5 +105,8 @@ test_that("a jackknife deletion unit the blocking design does not support warns 
 		"unit = \"block\"", class = "edi_procedure_na_warning"
 	)
 	expect_true(all(is.na(ci)))
-	expect_true(all(is.finite(inf$compute_jackknife_wald_confidence_interval(unit = "block"))))
+	# With unit = "block" the unit is supported, but 2 blocks are too few (v1.0.6-TODO-135).
+	expect_warning(ci_block <- inf$compute_jackknife_wald_confidence_interval(unit = "block"),
+		"jackknife_too_few_deletion_units", class = "edi_procedure_na_warning")
+	expect_true(all(is.na(ci_block)))
 })

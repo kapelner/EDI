@@ -83,7 +83,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		"StandardModelCache",
 		"MarginalEstimand"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_rand_two_sided_pval",

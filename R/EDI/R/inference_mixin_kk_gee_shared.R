@@ -78,6 +78,9 @@ InferenceMixinKKGEEShared = list(
 		#'   jackknife-based Wald calibration is in effect for this class (see
 		#'   \code{private$use_kk_gee_jackknife_wald_calibration()}), in which case
 		#'   the interval is computed from the jackknife variance estimate instead.
+		#'   For the binomial/logit classes (\code{InferenceIncidKKGEE},
+		#'   \code{InferencePropKKGEE}) the interval is \code{c(NA, NA)} under
+		#'   (quasi-)complete separation, with an \code{edi_logistic_separation_warning}.
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -96,7 +99,9 @@ InferenceMixinKKGEEShared = list(
 		#'   calibration, if in effect for this class — see that method's
 		#'   documentation). \strong{Only \code{delta = 0} is currently supported}:
 		#'   a non-zero null shift is not yet implemented and raises an error (when
-		#'   assertions are enabled) rather than testing it.
+		#'   assertions are enabled) rather than testing it. For the binomial/logit
+		#'   classes the p-value is \code{NA} under (quasi-)complete separation, with an
+		#'   \code{edi_logistic_separation_warning} (the sandwich SE is degenerate there).
 		#' @param delta The null difference to test against. For any treatment
 		#'   effect at all this is set to zero (the default); non-zero values are
 		#'   not yet supported.
@@ -471,6 +476,8 @@ InferenceMixinKKGEEShared = list(
 
 				private$set_fit_warm_start(mod$beta, "beta", fisher = mod$fisher_information)
 			}
+			# v1.0.6-TODO-122: recorded for jackknife_full_fit_is_separated().
+			private$cached_values$gee_full_fit_separated = FALSE
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
 				private$cache_nonestimable_se("kk_gee_standard_error_unavailable")
 				return(invisible(NULL))
@@ -491,11 +498,28 @@ InferenceMixinKKGEEShared = list(
 						"returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence ",
 						"method, or fewer covariates."
 					))
+					private$cached_values$gee_full_fit_separated = TRUE
 					private$cache_nonestimable_se("kk_gee_logistic_separation")
 					return(invisible(NULL))
 				}
 			}
 			private$clear_nonestimable_state()
+		},
+		# v1.0.6-TODO-122: the jackknife driver's separation hook (see
+		# InferenceJackknife). The jackknife only asks for the estimate, so run
+		# the full fit (with SE) once to get the separation check of
+		# shared_gee_default() / the ordinal shared_gee_dispatch(); that call
+		# also emits the once-per-object separation warning. FALSE inside
+		# resampling and for families the check does not cover (Poisson).
+		jackknife_full_fit_is_separated = function(){
+			if (!is.null(private$active_resampling_operation)) return(FALSE)
+			if (is.null(private$cached_values$gee_full_fit_separated)) {
+				tryCatch(private$shared(estimate_only = FALSE), error = function(e) {
+					if (is_edi_control_condition(e)) stop(e)
+					NULL
+				})
+			}
+			isTRUE(private$cached_values$gee_full_fit_separated)
 		},
 		# v1.0.6-TODO-118: TRUE when the GEE family uses the logit link (incidence
 		# and proportion KK GEE), the only link the separation check covers.

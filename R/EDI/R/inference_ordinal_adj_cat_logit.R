@@ -292,7 +292,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 			)
 		},
 				build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = matrix(private$w, ncol = 1L)
 				colnames(X) = "treatment"
@@ -350,8 +350,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		),
 		metadata = list(
 			response_types = "ordinal",
-			likelihood_tier = "full",
-			capabilities = "likelihood_ratio"
+			likelihood_tier = "full"
 		),
 		overrides = list(
 			public = c(

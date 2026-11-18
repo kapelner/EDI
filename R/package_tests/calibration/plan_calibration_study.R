@@ -223,6 +223,11 @@ dead_of <- function(k) dead_n[[k]] %||% 0L
 # so it is taken per class: (shard secs_per_rep - its class costs) / its number of classes, the median per (response type,
 # design, n), else per (design, n), else per (response type, n), else per n, else 0, and charged once per class of a pack.
 # (Charged once per pack, a median over packs of ~10 classes made a one-class confirmation shard ~6x too expensive.)
+# Only shards that completed --min-measured-reps replicates count, and the median is taken before flooring at 0: a shard's
+# overhead is a residual, so a few-replicate shard of a slow class (CountKKGLMM, 4 replicates at ~1,500 s each) puts the
+# whole sampling noise of its time (+-500 s) into it. Floored per shard, that noise only pushed the median up: 73 s per class
+# on count KK21 n = 1000 (true 4-7 s), so CountHurdlePoisson (3.5 s) was cut into 77-replicate shards (campaign 2026-11-15,
+# wave 11: 144 shards under 5 min).
 costs <- read_csv_fast(file.path(script_dir, "calibration_study_costs.csv"), stringsAsFactors = FALSE)
 cost_rest <- function(rt, fam, n) {
 	cf <- costs[costs$response_type == rt & costs$family == fam & costs$group == "rest", ]
@@ -343,20 +348,20 @@ if ("--verbose" %in% args) message("calibration planner: unit costs from ", past
 overhead_fn <- function() {
 	none <- function(rt, d, n) 0
 	if (is.null(ledger) || is.null(meas)) return(none)
-	l <- ledger[is.finite(ledger$secs_per_rep) & ledger$n_done > 0 & !is.na(ledger$only) & nzchar(ledger$only), , drop = FALSE]
+	l <- ledger[is.finite(ledger$secs_per_rep) & ledger$n_done >= min_measured_reps & !is.na(ledger$only) & nzchar(ledger$only), , drop = FALSE]
 	rows <- list()
 	for (i in seq_len(nrow(l))) {
 		cl <- split_classes(l$only[[i]])[[1L]]
 		m <- meas_cost[mkey(l$response_type[[i]], l$design[[i]], l$n[[i]], cl)]
 		if (!length(m) || anyNA(m)) next
 		rows[[length(rows) + 1L]] <- data.frame(rt = l$response_type[[i]], d = l$design[[i]], n = as.integer(l$n[[i]]),
-			ov = max(0, l$secs_per_rep[[i]] - sum(m)) / length(cl), stringsAsFactors = FALSE)
+			ov = (l$secs_per_rep[[i]] - sum(m)) / length(cl), stringsAsFactors = FALSE)
 	}
 	if (!length(rows)) return(none)
 	o <- do.call(rbind, rows)
 	function(rt, d, n) {
 		for (sel in list(o$rt == rt & o$d == d & o$n == n, o$d == d & o$n == n, o$rt == rt & o$n == n, o$n == n))
-			if (any(sel)) return(stats::median(o$ov[sel]))
+			if (any(sel)) return(max(0, stats::median(o$ov[sel])))
 		0
 	}
 }

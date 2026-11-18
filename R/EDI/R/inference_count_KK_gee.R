@@ -76,6 +76,7 @@ InferenceCountPoissonKKGEE = define_inference_class(
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
+			"jackknife_full_fit_is_separated",
 			"supports_reusable_bootstrap_worker",
 			"create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker",

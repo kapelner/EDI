@@ -1,0 +1,53 @@
+{
+  "type": "object",
+  "required": [
+    "units_checked",
+    "findings"
+  ],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ids of every candidate you reached a verdict on"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "unit",
+          "verdict",
+          "text",
+          "evidence"
+        ],
+        "properties": {
+          "unit": {
+            "type": "string",
+            "description": "the candidate id from the batch file"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "intentional",
+              "refactor",
+              "divergence_bug"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "the reason, the helper to extract, or the bug and how to see it"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "file:line references"
+          }
+        }
+      }
+    }
+  }
+}

@@ -444,10 +444,11 @@ Crossref 2026-11-17.)
   `compute_coxph_rand_bootstrap_parallel_cpp` (modern estimation and
   inference machinery for the AFT model on the same residuals). Added
   2026-09-04.
-- **[LeeWeiAmato1992]** Lee, E. W., Wei, L. J., and Amato, D. A. (1992).
+- **[LeeWeiAmato1992]** Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992).
   "Cox-Type Regression Analysis for Large Numbers of Small Groups of
-  Correlated Failure Time Observations." In *Survival Analysis: State of
-  the Art*, 237-247. Springer. [doi:10.1007/978-94-015-7983-4_14](https://doi.org/10.1007/978-94-015-7983-4_14). — Used by:
+  Correlated Failure Time Observations." In J. P. Klein and P. K. Goel (eds.),
+  *Survival Analysis: State of the Art*, NATO Science Series E vol. 211, 237-247.
+  Springer (Kluwer), Dordrecht. [doi:10.1007/978-94-015-7983-4_14](https://doi.org/10.1007/978-94-015-7983-4_14). — Used by:
   `InferenceSurvivalKKLWACoxPHIVWC` (cluster-robust sandwich variance for
   matched-pair Cox regression); `InferenceSurvivalKKStratCoxPHIVWC` and
   `InferenceSurvivalKKStratCoxPHOneLik` (the pair-as-stratum matched-pair

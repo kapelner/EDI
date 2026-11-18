@@ -1,0 +1,48 @@
+# Code-duplication audit (weekly, Sunday 07:07 UTC; owner request 2026-11-18).
+# Mechanical (no Claude, about 10 s): jscpd (pinned in the module, run through npx) over R/EDI/R,
+# R/EDI/src, python/src and python/cpp, comments skipped; runs of one file pair merged across short
+# gaps, extended and diffed token by token, and ranked so DIVERGENT near-clones come first: long
+# shared code with a few structural differences, the shape of v1.0.6-TODO-117/-121 (LogRank fixed,
+# Gehan-Wilcoxon not) and v1.0.6-TODO-103 (GEE family parse in R/EDI/src and python/cpp).
+# Claude (Sonnet, batches of 8, at most 12 batches): only candidates with no verdict yet and not
+# dismissed, highest score first; the rest wait for the next run. Each gets one verdict:
+# intentional, refactor or divergence_bug (with file:line evidence). Skipped when no R/C++/Python
+# code changed since the last run (scripts/significant_changes.py) and nothing is waiting.
+# Reports in ONE issue (label `audit-code-duplication`); refactor and divergence verdicts are
+# decisions with `code-duplication-d<hex>` ids, dismissed in
+# R/package_metadata/audits/dismissed_decisions.md. Nothing is edited.
+# State: code-duplication/ on the audit-notes branch (verdicts.json, manifest.json).
+# The per-push companion (no Claude) is code-duplication-push.yml.
+# Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one, every batch is
+# reported NOT RUN and the candidates stay waiting.
+# Module: .github/scripts/audits/code_duplication.py; prompt: .github/prompts/audit_code_duplication.md.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit · weekly · code-duplication
+
+on:
+  schedule:
+    - cron: "7 7 * * 0"     # weekly, Sunday 07:07 UTC
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "auto (candidates waiting for a verdict), all (same, even with no code change), none (detection only)"
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read      # the reusable prepare job reads run data
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: code-duplication
+      scope: ${{ inputs.scope || 'auto' }}
+    secrets: inherit

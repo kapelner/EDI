@@ -56,7 +56,7 @@ InferenceCountNegBin = define_inference_class(
 		"ParametricLikelihoodBootstrap",
 		"CountLikelihoodPlumbing"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	metadata = list(likelihood_tier = "full", response_types = "count"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights", "compute_rand_two_sided_pval",

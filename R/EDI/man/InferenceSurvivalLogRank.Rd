@@ -12,6 +12,13 @@ log-rank score statistic with its hypergeometric tie-adjusted variance. For
 left- or interval-censored data, this class dispatches instead to
 \code{interval::ictest(..., scores = "logrank1")} (Sun's-scores interval-censored
 generalization of the log-rank test) for both the point estimate and testing.
+The Bayesian bootstrap
+(\code{$compute_bayesian_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_two_sided_pval()} and
+\code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+with an error on left- or interval-censored data, because \code{interval::ictest()} takes no case weights; use the
+nonparametric bootstrap there instead. On right-censored data it is
+unaffected.
 
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 10 treated subjects at n = 50), the Wald test and interval for the

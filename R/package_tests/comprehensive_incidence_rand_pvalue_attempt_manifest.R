@@ -3,6 +3,11 @@
 # call is deliberately retained as an attempted row, and current public R
 # methods reject it for every statistic form, custom R/C++ included
 # (v1.0.6-TODO-81/110).
+# Two runner branches feed it: the plain rand family
+# (compute_rand_two_sided_pval and its delta=0.5 variant) and, since
+# v1.0.6-TODO-81/110, the rand_custom family on a standalone
+# InferenceRandCustom (compute_rand_two_sided_pval(custom) at delta = 0, open
+# status, and compute_rand_two_sided_pval(custom)(delta=0.5), expected error).
 
 # read.csv() calls in this file go through read_csv_fast(): fread-backed, same
 # result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
@@ -91,6 +96,52 @@ comprehensive_incidence_rand_pvalue_source_guard <- function(runner_path) {
 	})
 	if (length(branches) != 1L) {
 		stop("unrecognized incidence plain-rand p-value runner guards or labels", call. = FALSE)
+	}
+
+	# rand_custom branch (v1.0.6-TODO-81/110): the delta = 0 custom p-value runs
+	# under `!skip_slow` alone (no incidence exclusion), and the delta = 0.5
+	# custom p-value runs inside it only for incidence.
+	custom_condition <- c("supports_randomization_test", "should_run_test_family(\"rand_custom\")")
+	custom_branches <- list()
+	walk(impl[[3L]], function(expr) {
+		if (!identical(expr[[1L]], as.name("if")) || length(expr) < 3L) return(invisible(NULL))
+		atoms <- condition_atoms(expr[[2L]])
+		if (!setequal(atoms, custom_condition) || length(atoms) != length(custom_condition)) return(invisible(NULL))
+		slow_guards <- list()
+		walk(expr[[3L]], function(inner) {
+			if (!identical(inner[[1L]], as.name("if")) || length(inner) < 3L ||
+					!identical(paste(deparse(inner[[2L]], width.cutoff = 500L), collapse = " "), "!skip_slow")) {
+				return(invisible(NULL))
+			}
+			if (count_safe_call(inner[[3L]], "compute_rand_two_sided_pval(custom)") != 1L ||
+					count_safe_call(inner[[3L]], "compute_rand_two_sided_pval(custom)(delta=0.5)") != 1L) {
+				return(invisible(NULL))
+			}
+			incidence_guards <- 0L
+			walk(inner[[3L]], function(leaf) {
+				if (identical(leaf[[1L]], as.name("if")) && length(leaf) >= 3L &&
+						identical(paste(deparse(leaf[[2L]], width.cutoff = 500L), collapse = " "),
+							"response_type == \"incidence\"") &&
+						count_safe_call(leaf[[3L]], "compute_rand_two_sided_pval(custom)(delta=0.5)") == 1L &&
+						count_safe_call(leaf[[3L]], "compute_rand_two_sided_pval(custom)") == 0L) {
+					incidence_guards <<- incidence_guards + 1L
+				}
+			})
+			if (incidence_guards == 1L) slow_guards[[length(slow_guards) + 1L]] <<- inner
+		})
+		if (length(slow_guards) == 1L) custom_branches[[length(custom_branches) + 1L]] <<- expr
+	})
+	if (length(custom_branches) != 1L) {
+		stop("unrecognized incidence custom-rand p-value runner guards or labels", call. = FALSE)
+	}
+	custom_skip_flag <- FALSE
+	walk(impl[[3L]], function(expr) {
+		if (any(vapply(as.list(expr), function(x) identical(x, as.name("skip_custom_rand_pval")), logical(1)))) {
+			custom_skip_flag <<- TRUE
+		}
+	})
+	if (custom_skip_flag) {
+		stop("runner still gates the custom rand p-value with skip_custom_rand_pval", call. = FALSE)
 	}
 
 	# The public entry points have a correctness guard, not merely an optional
@@ -189,16 +240,32 @@ comprehensive_incidence_rand_pvalue_attempt_manifest <- function(cases, runner_p
 			(is.na(cases$test_family_filter[i]) || cases$test_family_filter[i] == "rand") &&
 			!isTRUE(cases$skip_slow[i]) && !isTRUE(cases$skip_rand[i]) &&
 			!isTRUE(cases$skip_regular_rand_pval[i]) && !isTRUE(cases$skip_rand_slow[i])
-		if (!eligible) next
-		functions <- "compute_rand_two_sided_pval"
-		statuses <- NA_character_
-		skip_reasons <- NA_character_
-		if (!isTRUE(cases$skip_rand_delta_pval_slow[i])) {
-			functions <- c(functions, "compute_rand_two_sided_pval(delta=0.5)")
-			# v1.0.6-TODO-81/110: custom statistics are no longer exempt from the
-			# nonzero-delta incidence guard, so every form expects an error.
-			statuses <- c(statuses, "error")
-			skip_reasons <- c(skip_reasons, "error")
+		custom_eligible <- isTRUE(cases$supports_randomization_test[i]) &&
+			(is.na(cases$test_family_filter[i]) || cases$test_family_filter[i] == "rand_custom") &&
+			!isTRUE(cases$skip_slow[i])
+		if (!eligible && !custom_eligible) next
+		functions <- character()
+		statuses <- character()
+		skip_reasons <- character()
+		if (eligible) {
+			functions <- "compute_rand_two_sided_pval"
+			statuses <- NA_character_
+			skip_reasons <- NA_character_
+			if (!isTRUE(cases$skip_rand_delta_pval_slow[i])) {
+				functions <- c(functions, "compute_rand_two_sided_pval(delta=0.5)")
+				# v1.0.6-TODO-81/110: custom statistics are no longer exempt from the
+				# nonzero-delta incidence guard, so every form expects an error.
+				statuses <- c(statuses, "error")
+				skip_reasons <- c(skip_reasons, "error")
+			}
+		}
+		if (custom_eligible) {
+			# v1.0.6-TODO-81/110: the standalone InferenceRandCustom runs at
+			# delta = 0 on incidence (status open) and refuses delta = 0.5.
+			functions <- c(functions, "compute_rand_two_sided_pval(custom)",
+				"compute_rand_two_sided_pval(custom)(delta=0.5)")
+			statuses <- c(statuses, NA_character_, "error")
+			skip_reasons <- c(skip_reasons, NA_character_, "error")
 		}
 		base <- cases[rep(i, length(functions)), key_columns, drop = FALSE]
 		base$function_run <- functions

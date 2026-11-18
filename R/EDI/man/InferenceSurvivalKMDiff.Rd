@@ -15,13 +15,20 @@ separately because a median's interval is often lopsided (a flat
 Kaplan-Meier curve near 0.5 with few events gives a long upper tail):
 \deqn{\left[d - \sqrt{(\hat m_T - l_T)^2 + (u_C - \hat m_C)^2},
 d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}\right].}
-The two arms are independent by design. When either arm's median is
-inestimable (its Kaplan-Meier curve never reaches 0.5) or a bound is
-non-finite, the
-Wald-style confidence interval and p-value methods
+The two arms are independent by design. When either arm's median is not
+reached (its Kaplan-Meier curve never falls to 0.5) the estimate itself is
+\code{NA}, and so is every result on the object (asymptotic, bootstrap,
+jackknife and randomization); one warning of class
+\code{edi_km_median_not_reached_warning} names the arm(s) and their lowest
+survival and suggests \code{InferenceSurvivalRestrictedMeanDiff} (silent
+inside resampling, where a draw that loses its median just counts as
+unusable). When both medians are reached but a Brookmeyer-Crowley bound is
+non-finite, the Wald-style confidence interval and p-value methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
-silently fall back to a nonparametric bootstrap instead of returning
-\code{NA}. A convenience method,
+fall back to a nonparametric bootstrap instead of returning \code{NA}. The
+jackknife-Wald methods are unreliable for a median and are often \code{NA},
+with an \code{edi_km_jackknife_na_warning} giving the reason; prefer the
+bootstrap. A convenience method,
 \code{$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()}, is also
 provided for the log-rank p-value on the same fitted survival curves. For
 \strong{left- or interval-censored} data, the point estimate instead comes
@@ -30,7 +37,14 @@ from a Turnbull NPMLE median contrast (\code{interval::icfit()}, via
 intervals \eqn{[y, y]} rather than dropped, and unusable rows are excluded
 with a warning), which has no closed-form standard error —
 inference on that path relies entirely on the bootstrap fallback described
-above. Randomization confidence intervals are not supported (the median
+above. The Bayesian bootstrap
+(\code{$compute_bayesian_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_two_sided_pval()} and
+\code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+with an error on left- or interval-censored data, because \code{interval::icfit()} has no weights argument; use the
+nonparametric bootstrap there instead. On right-censored data it is
+unaffected.
+Randomization confidence intervals are not supported (the median
 difference's units are not commensurate with the randomization CI bisection
 algorithm's transformed-scale null search).
 }
@@ -147,6 +161,8 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_two_sided_pval}{\code{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_log_rank_two_sided_pval_for_treatment_effect}{\code{InferenceSurvivalKMDiff$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_rand_confidence_interval}{\code{InferenceSurvivalKMDiff$compute_rand_confidence_interval()}}
+    \item \href{#method-InferenceSurvivalKMDiff-compute_jackknife_wald_confidence_interval}{\code{InferenceSurvivalKMDiff$compute_jackknife_wald_confidence_interval()}}
+    \item \href{#method-InferenceSurvivalKMDiff-compute_jackknife_wald_two_sided_pval}{\code{InferenceSurvivalKMDiff$compute_jackknife_wald_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKMDiff-clone}{\code{InferenceSurvivalKMDiff$clone()}}
   }
 }
@@ -344,9 +360,11 @@ forcing a symmetric interval:
 d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}]} with
 \eqn{d = \hat m_T - \hat m_C}.
 
-Falls back to \code{compute_bootstrap_confidence_interval} when either group's
-median is not estimable (i.e., the Kaplan-Meier curve does not reach 0.5) or
-when the Brookmeyer-Crowley CI bounds are \code{NA}.
+When either group's median is not reached (its Kaplan-Meier curve does not
+fall to 0.5) the estimate is \code{NA} and so is this interval, with an
+\code{edi_km_median_not_reached_warning} (see the class description). When
+both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, falls
+back to \code{compute_bootstrap_confidence_interval}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalKMDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -376,8 +394,9 @@ half-width on the side of the estimate that \code{delta} lies on, divided by
 \eqn{z_{0.975}}. The test therefore agrees exactly with
 \code{$compute_asymp_confidence_interval(alpha = 0.05)} (its p-value is 0.05
 at either bound); at other levels the two are close but not exact inverses,
-because each arm's interval changes shape with its level. Falls back to the
-bootstrap under the same conditions as the confidence interval.
+because each arm's interval changes shape with its level. \code{NA} (with an
+\code{edi_km_median_not_reached_warning}) when a median is not reached, and
+falls back to the bootstrap under the same conditions as the confidence interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval(delta = 0)}
@@ -451,6 +470,80 @@ interval is 1 - \code{alpha}. The default is 0.05.}
   }
   \subsection{Returns}{
     A 1 - alpha sized frequentist confidence interval
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKMDiff-compute_jackknife_wald_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-compute_jackknife_wald_confidence_interval}{}}}
+\subsection{\code{InferenceSurvivalKMDiff$compute_jackknife_wald_confidence_interval()}}{
+  Jackknife-Wald confidence interval; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. The jackknife is
+  unreliable for a median (leave-one-out medians take only a few distinct
+  values, and the jackknife variance of a sample median is inconsistent), so
+  it often returns \code{NA}; when it does, a warning of class
+  \code{edi_km_jackknife_na_warning} (also an \code{edi_procedure_na_warning})
+  gives the reason: the jackknife bias exceeds twice its standard error, or
+  some leave-one-out estimates are \code{NA} because deleting a unit leaves an
+  arm whose median is not reached. When the full-data median is itself not
+  reached only the \code{edi_km_median_not_reached_warning} is raised.
+  The bootstrap interval is the better choice for this estimator.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKMDiff$compute_jackknife_wald_confidence_interval(
+  alpha = 0.05,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level; the confidence level is \code{1 - alpha}.
+Default 0.05.}
+      \item{\code{unit}}{Deletion unit passed to the shared jackknife. Default
+\code{"auto"}, which chooses a design-aware unit automatically; see
+\code{InferenceJackknife}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric jackknife-Wald confidence interval, or
+  \code{c(NA, NA)} (with the warning above).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKMDiff-compute_jackknife_wald_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-compute_jackknife_wald_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalKMDiff$compute_jackknife_wald_two_sided_pval()}}{
+  Jackknife-Wald two-sided p-value; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. Unreliable for a
+  median for the same reasons as the interval; when the result is \code{NA}
+  an \code{edi_km_jackknife_na_warning} gives the reason (see
+  \code{$compute_jackknife_wald_confidence_interval()}). Prefer
+  \code{$compute_bootstrap_two_sided_pval()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKMDiff$compute_jackknife_wald_two_sided_pval(
+  delta = 0,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment-effect value (difference in medians). Default 0.}
+      \item{\code{unit}}{Deletion unit passed to the shared jackknife. Default
+\code{"auto"}, which chooses a design-aware unit automatically; see
+\code{InferenceJackknife}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided jackknife-Wald p-value, or \code{NA} (with the warning
+  above).
   }
 }
 

@@ -73,10 +73,7 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		"ParametricLikelihoodBootstrap",
 		"KKPassThrough"
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache) this stretch.
-	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	public = list(
 		# Pinned from InferenceRandCI (NOT InferenceRand, unlike every other
 		# KK GLMM migration this stretch): this abstract base serves both

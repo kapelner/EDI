@@ -1574,16 +1574,22 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
     if (isTRUE(r$skip_rci) || isTRUE(r$skip_rand_ci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
-  # Custom-statistic pval is permanently unsupported for incidence,
-  # independent of rand_resp (which is non-empty ("i") for incidence classes
-  # since the PLAIN rand pval works there via Zhang dispatch -- reusing that
-  # field here would wrongly imply custom shares that support). Confirmed
-  # live 2026-09-14: InferenceRandCustom$compute_rand_two_sided_pval() on an
-  # incidence design errors "Randomization tests are not supported for
-  # incidence. Use Zhang method." -- matching comprehensive_tests.R's own
-  # unconditional skip_custom_rand_pval = response_type == "incidence".
+  # Custom-statistic pval (delta = 0). Incidence is attempted like every other
+  # response type since v1.0.6-TODO-81/-110: InferenceRandCustom's
+  # compute_rand_two_sided_pval() runs on incidence at delta = 0 for both the
+  # R-function and the C++ statistic, and refuses a nonzero delta for every
+  # form ("randomization tests with delta nonzero not supported for
+  # incidence"). comprehensive_tests.R runs the delta = 0 call on incidence
+  # (this cell) and a delta = 0.5 call there that is expected to record that
+  # refusal as status = "error" (label
+  # "compute_rand_two_sided_pval(custom)(delta=0.5)"; no column here, since
+  # the other response types do not run a custom nonzero-delta call). Before
+  # that fix the incidence cell was hard-coded NTS: the C++ form errored
+  # "Randomization tests are not supported for incidence. Use Zhang method."
+  # even at delta = 0. rand_resp
+  # stays the gate: it is empty exactly for the classes without randomization
+  # capability, whose custom block comprehensive_tests.R does not run.
   cell_rand_custom_p = function(r, method_id) {
-    if (identical(r$resp, "incid")) return(method_cell(r, method_id, "unsupported"))
     if (!nchar(r$rand_resp)) return(method_cell(r, method_id, "unsupported"))
     if (isTRUE(r$skip_rand) || isTRUE(r$skip_rpv)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")

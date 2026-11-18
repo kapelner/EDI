@@ -129,3 +129,45 @@ gcomp_cache_failed_standardized_effects = function(cached_values, inference_read
 		inference_ready = inference_ready
 	)
 }
+
+#' Weighted Huber-White (HC0) sandwich covariance of a logistic / fractional-logit
+#' working model fitted with bootstrap row weights.
+#'
+#' Treats the weights as frequency weights, as a nonparametric bootstrap resample's
+#' multiplicities would be: bread \eqn{\sum_i w_i \mu_i(1-\mu_i) x_i x_i^\top}, meat
+#' \eqn{\sum_i w_i (y_i - \mu_i)^2 x_i x_i^\top}. The weights are first rescaled to
+#' mean one over all rows, so the result does not depend on their overall scale and
+#' unit weights reproduce the unweighted HC0 sandwich that
+#' \code{gcomp_logistic_post_fit_cpp()} / \code{gcomp_fractional_logit_post_fit_cpp()}
+#' compute (v1.0.6-TODO-134: the Bayesian-bootstrap studentized path needs a per-draw
+#' standard error).
+#'
+#' @return The \eqn{p \times p} covariance matrix (named like \code{coef_hat}), or
+#'   \code{NULL} when it cannot be formed.
+#' @keywords internal
+#' @noRd
+gcomp_weighted_logistic_sandwich_vcov = function(X_fit, y, coef_hat, row_weights, clip_eps = .Machine$double.eps){
+	w = as.numeric(row_weights)
+	y = as.numeric(y)
+	if (length(w) != nrow(X_fit) || length(y) != nrow(X_fit) || length(coef_hat) != ncol(X_fit)) return(NULL)
+	w[!is.finite(w) | w < 0] = 0
+	w_mean = mean(w)
+	if (!is.finite(w_mean) || w_mean <= 0) return(NULL)
+	w = w / w_mean
+	ok = w > 0 & is.finite(y)
+	if (sum(ok) <= ncol(X_fit)) return(NULL)
+	X = X_fit[ok, , drop = FALSE]
+	w = w[ok]
+	y = y[ok]
+	mu = stats::plogis(as.numeric(X %*% as.numeric(coef_hat)))
+	mu = pmin(pmax(mu, clip_eps), 1 - clip_eps)
+	info = crossprod(X, X * (w * mu * (1 - mu)))
+	meat = crossprod(X, X * (w * (y - mu)^2))
+	bread = tryCatch(solve(info), error = function(e) NULL)
+	if (is.null(bread) || any(!is.finite(bread))) return(NULL)
+	vcov_mat = bread %*% meat %*% bread
+	vcov_mat = (vcov_mat + t(vcov_mat)) / 2
+	if (any(!is.finite(vcov_mat))) return(NULL)
+	dimnames(vcov_mat) = list(names(coef_hat), names(coef_hat))
+	vcov_mat
+}

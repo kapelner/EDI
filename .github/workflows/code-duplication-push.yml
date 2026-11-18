@@ -1,0 +1,125 @@
+# Code-duplication check on every push to main and every pull request (owner decision 2026-11-18).
+# No Claude; about 20 s. Scans the base and the head with jscpd (the same detector and the same
+# stable clone ids as the weekly audit, audit-code-duplication.yml) and reports only what this
+# change introduces:
+#   1. new clones: code the change adds that repeats code already in the tree;
+#   2. new divergences: the change edits one region of a known clone pair and leaves the other
+#      untouched (the LogRank-fixed / Gehan-Wilcoxon-not pattern of v1.0.6-TODO-117/-121).
+# Base: the push's `before` commit; for a PR, the merge base with the target branch. Only R/C++/Python
+# files that changed in more than comments and whitespace count (scripts/significant_changes.py).
+# Report: the job summary, and for a PR one comment, updated in place on later pushes.
+# Non-blocking. To make a new divergence fail the job, set FAIL_ON_DIVERGENCE to "true" below.
+# An item is silenced for good by listing its `code-duplication-d<hex>` id in
+# R/package_metadata/audits/dismissed_decisions.md. Not in scripts/pre-push, which stays lean.
+# Module: .github/scripts/audits/code_duplication.py (`push`); tests: test_audit_code_duplication.py.
+
+name: code duplication check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "R/EDI/R/**"
+      - "R/EDI/src/**"
+      - "python/src/**"
+      - "python/cpp/**"
+  pull_request:
+    paths:
+      - "R/EDI/R/**"
+      - "R/EDI/src/**"
+      - "python/src/**"
+      - "python/cpp/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-duplication-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FAIL_ON_DIVERGENCE: "false"   # the one-line switch: "true" fails the job on a new divergence
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write   # the PR comment (a fork PR's token is read-only: the comment step is skipped)
+      issues: write          # PR comments are edited through the issues API
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Base commit
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then base="$(git merge-base "$PR_BASE" HEAD || true)"; else base="$PUSH_BEFORE"; fi
+          if [ -z "$base" ] || [ "$base" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "No usable base commit (${base:-none}); nothing to compare." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"; echo "sha=$base" >> "$GITHUB_OUTPUT"
+          fi
+          echo "jscpd=$(python3 -c 'import sys; sys.path.insert(0, ".github/scripts"); from audits import code_duplication as c; print(c.JSCPD_VERSION)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        if: steps.base.outputs.ok == 'true'
+        id: cache
+        with:
+          path: ~/.jscpd
+          key: jscpd-${{ runner.os }}-${{ steps.base.outputs.jscpd }}
+      - name: Install jscpd
+        if: steps.base.outputs.ok == 'true' && steps.cache.outputs.cache-hit != 'true'
+        run: npm install --prefix ~/.jscpd --no-save --no-audit --no-fund "jscpd@${{ steps.base.outputs.jscpd }}"
+      - name: New clones and divergences
+        id: check
+        if: steps.base.outputs.ok == 'true'
+        run: |
+          export JSCPD="$HOME/.jscpd/node_modules/.bin/jscpd"
+          flag=""; [ "$FAIL_ON_DIVERGENCE" = true ] && flag="--fail-on-divergence"
+          set +e
+          python3 .github/scripts/audits/code_duplication.py push --base "${{ steps.base.outputs.sha }}" --head HEAD \
+            --out "$RUNNER_TEMP/dup.md" $flag
+          rc=$?
+          set -e
+          [ -f "$RUNNER_TEMP/dup.md" ] && cat "$RUNNER_TEMP/dup.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      # One comment per PR, edited in place. Posted only when there is something to say, or to
+      # update an earlier comment (so a PR that fixed its divergence says so).
+      - name: PR comment
+        if: >-
+          always() && github.event_name == 'pull_request' && steps.check.outcome != 'skipped' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          NEW_CLONES: ${{ steps.check.outputs.new_clones }}
+          NEW_DIVERGENCES: ${{ steps.check.outputs.new_divergences }}
+        run: |
+          [ -f "$RUNNER_TEMP/dup.md" ] || exit 0
+          id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+                --jq '.[] | select(.body | startswith("<!-- code-duplication-check -->")) | .id' | head -1)"
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@"$RUNNER_TEMP/dup.md" > /dev/null
+            echo "updated comment $id"
+          elif [ "${NEW_CLONES:-0}" != 0 ] || [ "${NEW_DIVERGENCES:-0}" != 0 ]; then
+            gh pr comment "$PR" --body-file "$RUNNER_TEMP/dup.md"
+          fi
+      # Exit 3 = a new divergence with FAIL_ON_DIVERGENCE on. Any other failure of the check itself
+      # (jscpd missing, git error) is a warning, never a red job, while the check is non-blocking.
+      - name: Result
+        if: steps.check.outputs.rc != '' && steps.check.outputs.rc != '0'
+        env:
+          RC: ${{ steps.check.outputs.rc }}
+        run: |
+          if [ "$RC" = 3 ]; then
+            echo "::error::This change edits one copy of a duplicated region and not the other (FAIL_ON_DIVERGENCE is on); see the summary."
+            exit 1
+          fi
+          echo "::warning::The duplication check itself failed (exit $RC); see the log. Not blocking."

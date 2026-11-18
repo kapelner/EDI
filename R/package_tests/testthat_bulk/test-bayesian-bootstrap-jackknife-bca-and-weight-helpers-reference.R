@@ -102,10 +102,13 @@ ref_bca_pval <- function(boot, est, delta, jack) {
 	z0 <- qnorm(min(1 - .Machine$double.eps, max(.Machine$double.eps, mean(boot < est))))
 	jb <- mean(jack)
 	a <- sum((jb - jack)^3) / (6 * sum((jb - jack)^2)^1.5)
-	zd <- qnorm(min(1 - .Machine$double.eps, max(.Machine$double.eps, mean(boot < delta))))
-	s <- zd - z0
+	# v1.0.6-TODO-75: a delta outside the bootstrap support (or past the acceleration's
+	# pole) is excluded by every BCa interval, so the p-value is the 2/B floor, not NA.
+	F_delta <- mean(boot < delta) + 0.5 * mean(boot == delta)
+	if (F_delta <= 0 || F_delta >= 1) return(2 / length(boot))
+	s <- qnorm(F_delta) - z0
+	if (1 + a * s <= sqrt(.Machine$double.eps)) return(2 / length(boot))
 	adj_z <- s / (1 + a * s) - z0
-	if (!is.finite(adj_z) || abs(adj_z) > 8) return(NA_real_)
 	min(1, max(2 / length(boot), min(1, 2 * min(pnorm(adj_z), 1 - pnorm(adj_z)))))
 }
 
@@ -123,10 +126,9 @@ test_that("ci_bayesian_bca and pval_bayesian_bca match textbook BCa references",
 	expect_equal(as.numeric(ci), ref_bca_ci(boot, 0.05, est, jack), tolerance = 1e-8)
 	expect_true(ci[1] < ci[2])
 
-	# A null value far outside the bootstrap distribution makes the adjustment
-	# blow up (|adj_z| > 8), so the source reports NA there and the reference
-	# mirrors that guard.
-	expect_true(is.na(ref_bca_pval(boot, est, 0.5, jack)))
+	# A null value far outside the bootstrap distribution gets the 2/B floor
+	# (v1.0.6-TODO-75; it used to be NA).
+	expect_equal(ref_bca_pval(boot, est, 0.5, jack), 2 / length(boot))
 	for (delta in c(est, 0.5, 1.5, quantile(boot, 0.1))) {
 		expect_equal(f$priv$pval_bayesian_bca(boot, est, delta), ref_bca_pval(boot, est, delta, jack),
 			tolerance = 1e-8, info = as.character(delta))

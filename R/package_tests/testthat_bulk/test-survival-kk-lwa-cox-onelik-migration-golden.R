@@ -15,13 +15,10 @@ library(EDI)
 # leaf migrated earlier this stretch, this is a REAL full-likelihood-tier
 # ("partial") class with score/gradient/LR test support and parametric-
 # bootstrap LR calibration (`get_likelihood_test_spec()`/
-# `simulate_under_lik_null()`), so `metadata$capabilities =
-# "likelihood_ratio"` had to be declared explicitly (no component spec in
-# this codebase declares `provides_capabilities = "likelihood_ratio"`
-# anywhere; every class composing `ParametricLikelihoodBootstrap` directly
-# rather than through `StandardModelCache` needs this, matching
-# `InferenceOrdinalCauchitRegr`/`InferenceOrdinalCloglogRegr`'s identical
-# requirement). The legacy generator below -- source spliced straight onto
+# `simulate_under_lik_null()`). (Until 2026-11-18 it also had to declare
+# `metadata$capabilities = "likelihood_ratio"`; that capability is gone and
+# `ParametricLikelihoodBootstrap` now requires `likelihood_tests`, which its
+# `LikelihoodTests` dependency provides.) The legacy generator below -- source spliced straight onto
 # `InferenceParamBootstrap` -- reproduces the pre-migration class verbatim.
 # Real classname on the fixture (see the count-KK golden for why
 # "...Legacy" suffixes break dispatch).

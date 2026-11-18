@@ -31,7 +31,8 @@ collect_unstable = function(expr_fn){
 	val = withCallingHandlers(expr_fn(),
 		edi_bootstrap_bca_unstable_warning = function(w){ got[[length(got) + 1L]] <<- w; invokeRestart("muffleWarning") },
 		edi_bootstrap_bca_boundary_warning = function(w) stop("unexpected boundary warning"),
-		# the Bayesian CI path also raises the generic v1.0.6-TODO-113 procedure-NA warning
+		# the Bayesian CI path no longer adds the generic procedure-NA warning (checked in
+		# test-bootstrap-bca-na-warns-exactly-once.R); muffled here in case another path does
 		edi_procedure_na_warning = function(w) invokeRestart("muffleWarning"))
 	list(value = val, warnings = got)
 }

@@ -24,6 +24,15 @@
 #' disabled until the weighted ordinal-GEE implementation planned for v1.1.0
 #' is complete.
 #'
+#' Under (quasi-)complete separation (for example every treated subject in the
+#' top category), the fit has no finite solution and the sandwich standard error
+#' collapses. The class then warns once (\code{edi_logistic_separation_warning})
+#' and returns \code{NA} for the asymptotic p-value and confidence interval, and
+#' the jackknife methods return \code{NA} with an \code{edi_procedure_na_warning}
+#' (reason \code{jackknife_full_data_separation}); the point estimate is
+#' unchanged. Use the randomization test, merge sparse categories, or fit fewer
+#' covariates.
+#'
 #' @references Touloumis, A. (2015). "R Package multgee: A Generalized
 #'   Estimating Equations Solver for Multinomial Responses." \emph{Journal of
 #'   Statistical Software}, 64(8), 1-14, \doi{10.18637/jss.v064.i08}, for the
@@ -238,6 +247,11 @@ InferenceOrdinalKKGEE = define_inference_class(
 			n_beta = ncol(private$gee_predictors_df()) + length(unique(private$y)) - 1L
 			bstart = private$get_fit_warm_start_for_length("beta", n_beta)
 			mod = private$fit_ordinal_gee_mod_with_fallback(bstart = bstart)
+			# v1.0.6-TODO-122: a warm start taken from a diverged (separated)
+			# earlier fit can make ordLORgee fail outright, which used to turn
+			# compute_estimate(estimate_only = TRUE) followed by any SE-based call
+			# into a silent NA fit. Retry from a cold start before giving up.
+			if (is.null(mod) && !is.null(bstart)) mod = private$fit_ordinal_gee_mod_with_fallback(bstart = NULL)
 			if (is.null(mod)){
 				private$cache_nonestimable_estimate("ordinal_kk_gee_fit_unavailable")
 				return(invisible(NULL))
@@ -258,6 +272,40 @@ InferenceOrdinalKKGEE = define_inference_class(
 			}
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = summary(mod)$coefficients
+			# v1.0.6-TODO-122: the ordinal analogue of the v1.0.6-TODO-118 check in
+			# shared_gee_default(). Under (quasi-)complete separation (e.g. every
+			# treated subject in the top category) the cumulative-logit GEE has no
+			# finite solution: ordLORgee stops at a huge beta_hat_T with a sandwich
+			# SE that is not an estimate of anything (repro: estimate 23.6, CI
+			# (21.33, 25.80), p ~ 1e-95). When a subject's fitted cumulative
+			# probabilities are numerically 0 or 1, warn once per object (silent
+			# inside resampling) and make the SE, hence the asymptotic p-value and
+			# CI, NA. The estimate is left as is.
+			private$cached_values$gee_full_fit_separated = FALSE
+			s = private$cached_values$s_beta_hat_T
+			if (is.finite(s) && s > 0) {
+				eta = private$ordinal_gee_max_abs_cumulative_logit(mod)
+				n_extreme = if (length(eta)) edi_logistic_n_fitted_extreme(matrix(eta, ncol = 1L), 1) else NA_integer_
+				if (!is.na(n_extreme) && n_extreme > 0L) {
+					edi_warn_logistic_separation_once(self, private, matrix(eta, ncol = 1L), 1, advice = paste0(
+						"The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are ",
+						"returned as NA. Use a randomization test (compute_rand_two_sided_pval()), merge sparse ",
+						"categories, or use fewer covariates."
+					))
+					private$cached_values$gee_full_fit_separated = TRUE
+					private$cache_nonestimable_se("ordinal_kk_gee_separation")
+				}
+			}
+			invisible(NULL)
+		},
+		# v1.0.6-TODO-122: per subject, the largest |cumulative logit| of an
+		# ordLORgee fit (its linear.predictors, one column per cutpoint). A value
+		# beyond qlogis(1 - eps) means some fitted cumulative probability, hence
+		# some category probability, is numerically 0 or 1. NULL if unavailable.
+		ordinal_gee_max_abs_cumulative_logit = function(mod){
+			lp = tryCatch(as.matrix(mod$linear.predictors), error = function(e) NULL)
+			if (is.null(lp) || !length(lp) || anyNA(lp)) return(NULL)
+			as.numeric(apply(abs(lp), 1L, max))
 		}
 	),
 	metadata = list(likelihood_tier = "quasi"),
@@ -276,6 +324,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
+			"jackknife_full_fit_is_separated",
 			"supports_reusable_bootstrap_worker",
 			"create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker",
@@ -370,10 +419,7 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 		"ParametricLikelihoodBootstrap",
 		"KKGLMM"
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache) this stretch.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as
 		# every other KK GLMM migration this stretch.
@@ -536,7 +582,7 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 			if (length(reservoir_idx) > 0L)
 				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
 			# X WITHOUT intercept (cutpoints serve as intercepts)
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X_fit = as.matrix(private$glmm_predictors_df())  # [w, cov1, ...]
 			} else {
 				X_fit = matrix(private$w, ncol = 1L, dimnames = list(NULL, "w"))

@@ -14,6 +14,16 @@
 #' (\code{likelihood_tier = "quasi"}): standard errors are GEE sandwich (robust)
 #' standard errors, not model-likelihood-based.
 #'
+#' Under (quasi-)complete separation (fitted means numerically 0 or
+#' 1) the logit GEE has no finite solution: the fitter stops at a huge estimate and
+#' the sandwich standard error collapses with it. The standard error is then treated
+#' as unavailable, so the asymptotic p-value and confidence interval are \code{NA}
+#' (not a spurious \eqn{p \approx 0}), with one warning of class
+#' \code{edi_logistic_separation_warning} per object (silent inside resampling).
+#' The point estimate is returned unchanged. Use a randomization test
+#' (\code{$compute_rand_two_sided_pval()}) or fewer
+#' covariates instead.
+#'
 #' @references Liang, K.-Y., and Zeger, S. L. (1986). "Longitudinal Data
 #'   Analysis Using Generalized Linear Models." \emph{Biometrika}, 73(1),
 #'   13-22, \doi{10.1093/biomet/73.1.13}, for the GEE estimating-equation
@@ -82,6 +92,7 @@ InferencePropKKGEE = define_inference_class(
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
+			"jackknife_full_fit_is_separated",
 			"supports_reusable_bootstrap_worker",
 			"create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker",

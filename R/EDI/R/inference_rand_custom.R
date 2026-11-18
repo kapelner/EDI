@@ -26,6 +26,13 @@
 #' to the shift (be monotone in \eqn{\delta}); if the test rejects every
 #' \eqn{\delta} tried the CI errors instead of returning a rejected band.
 #'
+#' Draws on which the statistic returns \code{NA}, \code{NaN} or an infinite
+#' value are dropped silently (whatever \code{na.rm} is) and the p-value is
+#' computed over the finite draws; at least
+#' \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+#' required, otherwise the p-value is \code{NA}. See
+#' \code{InferenceRand$compute_rand_two_sided_pval()}.
+#'
 #' @param des_obj A Design object whose subjects are assigned and responses
 #'   recorded.
 #' @param custom_randomization_statistic_function A function of

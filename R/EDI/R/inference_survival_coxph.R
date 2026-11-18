@@ -806,18 +806,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			)
 		}
 	),
-	# capabilities = "likelihood_ratio" added 2026-09-19 alongside the
-	# ParametricLikelihoodBootstrap component above: that component's own
-	# registered requirement (EDI_CAPABILITY_REQUIREMENTS' parametric_likelihood_
-	# bootstrap entry, contracts_mixins.R) is capabilities = "likelihood_ratio",
-	# which this class was never explicitly declaring even though
-	# compute_lik_ratio_two_sided_pval()/compute_lik_ratio_confidence_interval()
-	# already work today (private$get_likelihood_test_spec() override present,
-	# likelihood_tier = "partial" satisfies that capability's own tier
-	# requirement) -- this makes an already-real capability explicit, matching
-	# the working InferenceSurvivalWeibullRegr template
-	# (inference_survival_weibull.R), not a new behavior.
-	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	overrides = list(
 		public = c(
 			"compute_estimate",

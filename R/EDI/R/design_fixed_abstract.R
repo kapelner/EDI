@@ -117,10 +117,13 @@ DesignFixed = R6::R6Class("DesignFixed",
 				} else {
 					# NA allowed: an NA in ys marks a censored subject entered through y_Ls/y_Rs;
 					# non-survival NAs are rejected below, always on (v1.0.6-TODO-93).
+					# checkmate-loose: NA in ys marks a censored row whose response is in y_Ls/y_Rs.
 					assertNumeric(ys, len = private$t)
 				}
 				# NA allowed in y_Ls/y_Rs: NA marks a subject with an exact response in ys.
+				# checkmate-loose: NA marks a row with an exact response in ys.
 				assertNumeric(y_Ls, len = private$t)
+				# checkmate-loose: NA marks an exact row; y_Rs = Inf is right-censored.
 				assertNumeric(y_Rs, len = private$t)
 			}
 			has_y = if (is.factor(ys)) !is.na(as.integer(ys)) else !is.na(ys)

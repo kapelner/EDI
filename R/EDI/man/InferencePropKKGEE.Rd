@@ -17,6 +17,16 @@ contract (internal Rcpp solver vs. \pkg{geepack} fallback, hardening/retry
 behavior). Inference is quasi-likelihood/estimating-equation based
 (\code{likelihood_tier = "quasi"}): standard errors are GEE sandwich (robust)
 standard errors, not model-likelihood-based.
+
+Under (quasi-)complete separation (fitted means numerically 0 or
+1) the logit GEE has no finite solution: the fitter stops at a huge estimate and
+the sandwich standard error collapses with it. The standard error is then treated
+as unavailable, so the asymptotic p-value and confidence interval are \code{NA}
+(not a spurious \eqn{p \approx 0}), with one warning of class
+\code{edi_logistic_separation_warning} per object (silent inside resampling).
+The point estimate is returned unchanged. Use a randomization test
+(\code{$compute_rand_two_sided_pval()}) or fewer
+covariates instead.
 }
 \section{Small-sample behaviour}{
 

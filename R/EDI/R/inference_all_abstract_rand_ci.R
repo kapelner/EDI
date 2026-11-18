@@ -40,7 +40,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   censoring times alike, with censoring indicators unchanged -- the rank-based
 		#'   AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
 		#'   and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.
-		#' @param na.rm Whether to remove non-finite simulated statistics.
+		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
 		#' @param show_progress Whether to show progress.
 		#' @param permutations Optional pre-generated assignment draws.
 		#' @param type Optional incidence-specific exact randomization type.
@@ -218,9 +220,10 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   rationale and \code{R/package_metadata/new_feature_plans/} for the deeper,
 		#'   not-yet-implemented redesign (anytime-valid confidence sequences) this pass is
 		#'   a pragmatic stopgap for.
-		#'   A randomization CI is not available for left- or interval-censored survival
-		#'   data: the nonzero-\eqn{\delta} null shifts required by inversion are not
-		#'   implemented for censoring bounds.
+		#'   For left- or interval-censored survival data, each null shift moves the
+		#'   treated subjects' censoring bounds \code{y_L} and \code{y_R} as it moves
+		#'   exact times (multiplicatively on the default \code{"log"} scale; bounds of 0
+		#'   and \code{Inf} stay put).
 		#'   A randomization CI is refused for proportion responses that contain exact 0 or 1
 		#'   values when the sharp null is imposed on the logit scale (exact 0/1 cannot be
 		#'   shifted there); use a likelihood-based, asymptotic or bootstrap CI instead.
@@ -228,13 +231,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   p-value inversion cannot be completed within the search radius; see
 		#'   \code{ci_search_control} for details.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, type = NULL, args_for_type = NULL, ci_search_control = NULL){
-			if (isTRUE(private$has_general_censoring)) {
-				stop(
-					"Randomization confidence intervals with nonzero null shifts are not yet supported for ",
-					"left-/interval-censored survival data.",
-					call. = FALSE
-				)
-			}
+			# Under general censoring the nonzero-delta nulls the inversion needs shift
+			# y_L / y_R along with y (v1.0.6-TODO-143 follow-up, owner decision
+			# 2026-11-18), so the CI is no longer refused there.
 			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
 				stop(
 					"Randomization confidence intervals are not implemented for ordinal model-coefficient estimands.",

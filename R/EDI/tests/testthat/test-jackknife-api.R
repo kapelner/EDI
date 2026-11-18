@@ -22,24 +22,26 @@ test_that("jackknife public distribution API is coherent", {
 })
 
 test_that("clustered designs support cluster jackknife deletion", {
+	# 6 clusters (was 4): since v1.0.6-TODO-135 a jackknife with fewer than 5 deletion units is
+	# NA with a warning (test-jackknife-too-few-deletion-units-na-warns.R checks 4 vs 5 clusters).
 	des <- DesignFixedCluster$new(
-		n = 8,
+		n = 12,
 		response_type = "continuous",
 		cluster_col = "cl",
 		verbose = FALSE
 	)
 	des$add_all_subjects_to_experiment(
 		data.frame(
-			x1 = seq_len(8),
-			cl = factor(rep(1:4, each = 2), levels = 1:4)
+			x1 = seq_len(12),
+			cl = factor(rep(1:6, each = 2), levels = 1:6)
 		)
 	)
-	des$overwrite_all_subject_assignments(rep(c(1, 1, 0, 0), each = 2))
-	des$add_all_subject_responses(c(8, 10, 1, 3, 9, 11, 2, 4))
+	des$overwrite_all_subject_assignments(rep(c(1, 1, 0, 0, 1, 0), each = 2))
+	des$add_all_subject_responses(c(8, 10, 1, 3, 9, 11, 2, 4, 12, 7, 0, 5))
 
 	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	cluster_jack <- inf$approximate_jackknife_distribution_beta_hat_T(unit = "cluster")
-	expect_length(cluster_jack, 4L)
+	expect_length(cluster_jack, 6L)
 
 	cluster_ids <- as.character(des$get_X_raw()$cl)
 	full_est <- inf$compute_estimate()

@@ -3,9 +3,11 @@ library(EDI)
 
 # infer_inference_response_types(name) and infer_inference_likelihood_tier(name): name-pattern classifiers used to
 # populate the inference class registry. Hand-listed names pin each branch (including precedence quasi > partial >
-# full > none and the per-class response-type exclusions); every live registry record must agree with the classifier.
+# full > none and the per-class response-type exclusions). The registry takes a class's declared metadata first and
+# uses these classifiers only where nothing is declared.
 
 Z <- function(x) get(x, envir = asNamespace("EDI"))
+`%||%` <- function(a, b) if (is.null(a)) b else a
 rt <- Z("infer_inference_response_types"); lt <- Z("infer_inference_likelihood_tier")
 all_types <- c("continuous", "incidence", "count", "proportion", "survival", "ordinal")
 
@@ -61,12 +63,17 @@ test_that("Robust/Quasi shadow Cox and full-likelihood tokens (quasi wins even i
 	expect_identical(lt("InferenceCountRobustPoisson"), "quasi")
 })
 
-test_that("every live registry record agrees with the classifiers", {
+test_that("every live registry record agrees with its declaration, else with the classifiers", {
+	# Since 2026-11-18 the metadata a class declares to define_inference_class() wins; the name
+	# classifiers are the fallback for classes built without the factory (and for fields a
+	# declaration leaves out).
 	reg <- Z("inference_class_registry_as_list")()
+	decl_of <- Z("inference_class_declaration")
 	expect_gt(length(reg), 100L)
 	for (nm in names(reg)) {
-		expect_setequal(rt(nm), reg[[nm]]$response_types)
-		expect_identical(lt(nm), reg[[nm]]$likelihood_tier, info = nm)
+		declared <- decl_of(get0(nm, envir = asNamespace("EDI")))$metadata %||% list()
+		expect_setequal(declared$response_types %||% rt(nm), reg[[nm]]$response_types)
+		expect_identical(declared$likelihood_tier %||% lt(nm), reg[[nm]]$likelihood_tier, info = nm)
 	}
 	expect_true(all(vapply(reg, function(r) r$likelihood_tier %in% Z("EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS"), NA)))
 })

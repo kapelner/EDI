@@ -384,7 +384,7 @@ ContinKKRobustRegrOneLikSource = list(
 			nRC = KKstats$nRC
 			nR  = nRT + nRC
 			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$X)) > 0){
+				if (ncol(as.matrix(private$get_X())) > 0){
 					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
 					p = ncol(Xd_full)
 				} else {
@@ -398,12 +398,12 @@ ContinKKRobustRegrOneLikSource = list(
 				y_comb = c(KKstats$y_matched_diffs, KKstats$y_reservoir)
 				j_treat = 2L
 			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
+				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
 				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				y_comb = KKstats$y_matched_diffs
 				j_treat = 1L
 			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
+				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
 				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
 				y_comb = KKstats$y_reservoir
 				j_treat = 2L
@@ -446,7 +446,7 @@ ContinKKRobustRegrOneLikSource = list(
 			nR  = nRT + nRC
 			kk_w = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
 			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$X)) > 0){
+				if (ncol(as.matrix(private$get_X())) > 0){
 					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
 					p = ncol(Xd_full)
 				} else {
@@ -461,13 +461,13 @@ ContinKKRobustRegrOneLikSource = list(
 				w_comb = c(kk_w$pair_weights, kk_w$reservoir_weights)
 				j_treat = 2L
 			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
+				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
 				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				y_comb = KKstats$y_matched_diffs
 				w_comb = kk_w$pair_weights
 				j_treat = 1L
 			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
+				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
 				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
 				y_comb = KKstats$y_reservoir
 				w_comb = kk_w$reservoir_weights

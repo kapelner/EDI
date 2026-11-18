@@ -539,6 +539,10 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		},
 		fit_logistic_with_sandwich = function(X_full, estimate_only = FALSE){
 			X_curr = X_full
+			# v1.0.6-TODO-138: remember the QR-rank design and its first fit so the caller can name
+			# covariates the drop loop removed beyond collinearity.
+			rank_colnames = NULL
+			rank_coefs = NULL
 			repeat {
 				reduced = private$reduce_design_matrix_preserving_treatment(X_curr)
 				X_fit = reduced$X
@@ -562,6 +566,10 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 					return(NULL)
 				}
 				coef_hat = as.numeric(mod$b)
+				if (is.null(rank_colnames)) {
+					rank_colnames = colnames(X_fit)
+					rank_coefs = coef_hat
+				}
 				converged = private$coefficients_are_usable(coef_hat)
 				if (!converged){
 					if (ncol(X_curr) <= 2L) return(NULL)
@@ -577,7 +585,9 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 						X = X_fit,
 						j_treat = j_treat,
 						coefficients = coef_hat,
-						estimate_only = TRUE
+						estimate_only = TRUE,
+						qr_rank_colnames = rank_colnames,
+						qr_rank_coefficients = rank_coefs
 					))
 				}
 				mu_hat = inv_logit(X_fit %*% coef_hat)
@@ -622,7 +632,9 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 					vcov = vcov_robust,
 					mu_hat = mu_hat,
 					post_fit = post_fit,
-					estimate_only = FALSE
+					estimate_only = FALSE,
+					qr_rank_colnames = rank_colnames,
+					qr_rank_coefficients = rank_coefs
 				))
 			}
 		},
@@ -788,8 +800,10 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				private$best_X_colnames = setdiff(colnames(fit$X), c("(Intercept)", "treatment"))
 			}
 			effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
+			treatment_only_fallback = FALSE
 			if (private$harden && (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)) && ncol(X_full) > 2L){
 				fit = private$fit_logistic_with_sandwich(X_full[, 1:2, drop = FALSE], estimate_only = estimate_only)
+				treatment_only_fallback = TRUE
 				effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
 			}
 			if (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)){
@@ -798,6 +812,8 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			}
 			# v1.0.6-TODO-109: separation warning (once per object, silent in resampling; no numeric change).
 			edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
+			# v1.0.6-TODO-138: name covariates dropped beyond collinearity (same rules).
+			edi_warn_gcomp_covariate_drop(self, private, X_full, fit, treatment_only_fallback)
 			private$cached_values = gcomp_cache_standardized_effects(
 				private$cached_values,
 				effects,

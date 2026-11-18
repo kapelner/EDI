@@ -83,7 +83,8 @@ test_that("prob_clip_eps and prob_clip_strong_eps are validated to [0, 0.5) at c
 	des$overwrite_all_subject_assignments(rep(0:1, n / 2))
 	des$add_all_subject_responses(plogis(rnorm(n)))
 	expect_error(InferencePropGCompMeanDiff$new(des, prob_clip_eps = 0.5000001), "not <= 0.5")
-	expect_silent(InferencePropGCompMeanDiff$new(des, prob_clip_eps = 0.5, verbose = FALSE))
+	# 0.5 clips every fitted probability to 0.5, so it is rejected.
+	expect_error(InferencePropGCompMeanDiff$new(des, prob_clip_eps = 0.5, verbose = FALSE), "prob_clip_eps must be in")
 	expect_error(InferencePropGCompMeanDiff$new(des, prob_clip_strong_eps = -0.1), "not >= 0")
 	expect_silent(InferencePropGCompMeanDiff$new(des, prob_clip_strong_eps = 0.499, verbose = FALSE))
 })

@@ -29,6 +29,13 @@ interval). The search is centred on the observed difference in mean
 response, not on the statistic's observed value. The statistic must respond
 to the shift (be monotone in \eqn{\delta}); if the test rejects every
 \eqn{\delta} tried the CI errors instead of returning a rejected band.
+
+Draws on which the statistic returns \code{NA}, \code{NaN} or an infinite
+value are dropped silently (whatever \code{na.rm} is) and the p-value is
+computed over the finite draws; at least
+\eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+required, otherwise the p-value is \code{NA}. See
+\code{InferenceRand$compute_rand_two_sided_pval()}.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} -> \code{InferenceRandCustom}

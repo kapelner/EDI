@@ -18,6 +18,16 @@ more heavily via their larger rank denominator).
 The p-value uses \code{survival::survdiff(rho = 1)} (Peto-Prentice / Fleming-Harrington
 p=1, q=0), which is distinct from the log-rank test (\code{rho = 0}) used in
 \code{InferenceSurvivalKMDiff}.
+
+The Bayesian bootstrap
+(\code{$compute_bayesian_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_two_sided_pval()} and
+\code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+with an error on left- or interval-censored data, because the weighted Peto-Prentice re-estimate assumes
+right-censoring (\code{coxph()}/\code{survfit()}) and the interval-censored
+fit takes no case weights; use the
+nonparametric bootstrap there instead. On right-censored data it is
+unaffected.
 }
 \section{Small-sample behaviour}{
 

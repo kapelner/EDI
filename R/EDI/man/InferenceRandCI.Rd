@@ -95,7 +95,9 @@ units treated under each reference allocation by \eqn{e^\delta}, event and
 censoring times alike, with censoring indicators unchanged -- the rank-based
 AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
 and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
-      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{na.rm}}{Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.}
       \item{\code{show_progress}}{Whether to show progress.}
       \item{\code{permutations}}{Optional pre-generated assignment draws.}
       \item{\code{type}}{Optional incidence-specific exact randomization type.}
@@ -233,9 +235,10 @@ way to notice on its own; see
 rationale and \code{R/package_metadata/new_feature_plans/} for the deeper,
 not-yet-implemented redesign (anytime-valid confidence sequences) this pass is
 a pragmatic stopgap for.
-A randomization CI is not available for left- or interval-censored survival
-data: the nonzero-\eqn{\delta} null shifts required by inversion are not
-implemented for censoring bounds.
+For left- or interval-censored survival data, each null shift moves the
+treated subjects' censoring bounds \code{y_L} and \code{y_R} as it moves
+exact times (multiplicatively on the default \code{"log"} scale; bounds of 0
+and \code{Inf} stay put).
 A randomization CI is refused for proportion responses that contain exact 0 or 1
 values when the sharp null is imposed on the logit scale (exact 0/1 cannot be
 shifted there); use a likelihood-based, asymptotic or bootstrap CI instead.}

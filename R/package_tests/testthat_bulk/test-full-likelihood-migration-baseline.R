@@ -3,9 +3,7 @@ library(EDI)
 
 full_likelihood_expected_classes = c(
 	"InferenceContinKKGLMM",
-	"InferenceContinKKOLSIVWC",
 	"InferenceContinKKOLSOneLik",
-	"InferenceContinKKQuantileRegrOneLik",
 	"InferenceContinLin",
 	"InferenceContinOLS",
 	"InferenceCountHurdleNegBin",
@@ -38,7 +36,6 @@ full_likelihood_expected_classes = c(
 	"InferencePropBetaRegr",
 	"InferencePropFractionalLogit",
 	"InferencePropKKGLMM",
-	"InferencePropKKQuantileRegrOneLik",
 	"InferencePropZeroOneInflatedBetaRegr",
 	"InferenceSurvivalDepCensTransformRegr",
 	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
@@ -52,9 +49,7 @@ full_likelihood_expected_classes = c(
 full_likelihood_expected_groups = list(
 	glm = c(
 		"InferenceContinKKGLMM",
-		"InferenceContinKKOLSIVWC",
 		"InferenceContinKKOLSOneLik",
-		"InferenceContinKKQuantileRegrOneLik",
 		"InferenceContinLin",
 		"InferenceContinOLS"
 	),
@@ -95,7 +90,6 @@ full_likelihood_expected_groups = list(
 		"InferencePropBetaRegr",
 		"InferencePropFractionalLogit",
 		"InferencePropKKGLMM",
-		"InferencePropKKQuantileRegrOneLik",
 		"InferencePropZeroOneInflatedBetaRegr"
 	),
 	survival = c(
@@ -109,9 +103,7 @@ full_likelihood_expected_groups = list(
 	),
 	kk_or_ivwc = c(
 		"InferenceContinKKGLMM",
-		"InferenceContinKKOLSIVWC",
 		"InferenceContinKKOLSOneLik",
-		"InferenceContinKKQuantileRegrOneLik",
 		"InferenceCountKKCondPoissonOneLik",
 		"InferenceCountKKGLMM",
 		"InferenceCountKKHurdlePoissonIVWC",
@@ -122,7 +114,6 @@ full_likelihood_expected_groups = list(
 		"InferenceOrdinalKKCLMMProbit",
 		"InferenceOrdinalKKGLMM",
 		"InferencePropKKGLMM",
-		"InferencePropKKQuantileRegrOneLik",
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
@@ -266,8 +257,8 @@ test_that("full-likelihood migration baseline identifies and groups concrete cla
 	expect_setequal(names(manifest), full_likelihood_expected_classes)
 	expect_identical(EDI:::full_likelihood_concrete_class_names(), sort(full_likelihood_expected_classes))
 	expect_identical(groups, lapply(full_likelihood_expected_groups, sort))
-	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 45L)
-	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 45L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 42L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 42L)
 
 	for (record in manifest) {
 		expect_identical(record$current_likelihood_tier, "full")

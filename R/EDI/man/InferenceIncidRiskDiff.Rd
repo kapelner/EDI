@@ -185,9 +185,14 @@ reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
-      \item{\code{r}}{Number of randomization vectors. @param delta Null difference.}
-      \item{\code{transform_responses}}{Transformation. @param na.rm Remove NAs.}
-      \item{\code{show_progress}}{Show progress. @param permutations Pre-computed permutations.}
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null difference.}
+      \item{\code{transform_responses}}{Transformation.}
+      \item{\code{na.rm}}{Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed permutations.}
       \item{\code{type}}{Optional exact-inference type for incidence dispatch.}
       \item{\code{args_for_type}}{Optional arguments for \code{type}.}
       \item{\code{zero_one_logit_clamp}}{Clamp for exact 0/1 values when logging.}

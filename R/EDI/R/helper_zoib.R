@@ -2,7 +2,7 @@
 
 .sanitize_proportion_response = function(y, interior = FALSE){
 	if (should_run_asserts()) {
-		assertNumeric(y, any.missing = FALSE)
+		assertNumeric(y, any.missing = FALSE, finite = TRUE)
 	}
 	y = as.numeric(y)
 	if (length(y) == 0L) return(y)

@@ -1,0 +1,191 @@
+{
+  "_comment": [
+    "Feature areas for the weekly docs-only scenario job (.github/workflows/audit-docs-scenarios.yml, v1.0.6-TODO-98).",
+    "Runbook: R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md (section 7: the CI job).",
+    "Add an area by adding an object to `areas`. Fields:",
+    "  id        short kebab-case name; folder and file names use it, so never rename one (its state would restart).",
+    "  title     the feature area, as the agent is told it.",
+    "  task      one concrete paragraph: the realistic end-to-end task (runbook section 5).",
+    "  paths     git globs (relative to the repo root) whose change makes the area due again: its R files, C++",
+    "            kernels, man pages, vignettes and articles. '@python_kernels' expands to the R/EDI/src files",
+    "            python/CMakeLists.txt compiles. `common_paths` below are added to every area.",
+    "  articles  vignettes/articles/*.Rmd files copied (as text) into the agent's context folder; the installed",
+    "            package has the CRAN vignettes but not the pkgdown articles.",
+    "  python    true: the agent gets a venv with the edi_kernels wheel built from this commit (and R too).",
+    "  model, effort, max_turns, max_budget_usd, minutes: optional per-area overrides of `defaults`.",
+    "Skip rule (owner, 2026-11-18): an area runs when any of its paths changed since its last successful run, after",
+    "dropping R/C++/Python files whose only edits are comments or whitespace (scripts/significant_changes.py); man/,",
+    "vignettes and other docs always count. See docs_scenarios.py's module docstring for why that combination."
+  ],
+  "defaults": {
+    "model": "claude-opus-5-5",
+    "effort": null,
+    "max_turns": 250,
+    "max_budget_usd": 15,
+    "minutes": 80,
+    "max_areas_per_run": 8
+  },
+  "common_paths": [
+    "R/EDI/vignettes/EDI.Rmd",
+    "R/EDI/man/Design.Rd",
+    "R/EDI/man/Inference.Rd"
+  ],
+  "areas": [
+    {
+      "id": "sequential-designs",
+      "title": "Sequential one-by-one designs, including n = NULL (open-ended enrollment) and KK matching on the fly",
+      "task": "A clinic enrolls patients one at a time over a year and does not know in advance how many will come (n = NULL). Two baseline covariates are known at arrival. Choose and run a sequential design that balances on them (try at least an Efron or Atkinson design and a KK matching design), enroll and assign about 60 patients as they arrive, record a continuous outcome for each, add a few responses late and out of order, and analyze the trial at an interim look and at the end. Report the estimate, CI and p-value each time, and check what the docs promise about matching, reproducibility and the interim analysis.",
+      "paths": ["R/EDI/R/design_seq_one_by_one_*.R", "R/EDI/R/design_abstract.R", "R/EDI/R/design_matching_abstract.R",
+                "R/EDI/R/helper_matching.R", "R/EDI/src/atkinson_assign.cpp", "R/EDI/src/kk21_weights.cpp",
+                "R/EDI/src/pocock_simon_assign.cpp", "R/EDI/src/match_data_compute_speedup.cpp",
+                "R/EDI/src/random_block_size_speedups.cpp", "R/EDI/src/kk_lin_match_data.cpp",
+                "R/EDI/man/DesignSeqOneByOne*.Rd", "R/EDI/man/DesignCustomSequential.Rd",
+                "R/EDI/vignettes/articles/running-a-sequential-trial.Rmd", "R/EDI/vignettes/articles/matching-on-the-fly.Rmd"],
+      "articles": ["running-a-sequential-trial.Rmd", "matching-on-the-fly.Rmd"]
+    },
+    {
+      "id": "fixed-designs",
+      "title": "Fixed (all-at-once) designs: Bernoulli, iBCRD, blocking, rerandomization, greedy, optimal and pair-switching",
+      "task": "A lab has 40 mice with weight and age measured before the study and wants the best-balanced assignment it can get to two diets. Compare at least three fixed designs the package offers (for example complete randomization, rerandomization and an optimal or greedy design), using each one's documented options (balance criterion, number of draws, unequal allocation where offered). Simulate a continuous outcome with a real diet effect, analyze it with an inference method that respects the design, and report how the designs differ in balance and in the width of the CI.",
+      "paths": ["R/EDI/R/design_fixed_*.R", "R/EDI/R/design_blocking_abstract.R", "R/EDI/R/helper_optimal_*.R",
+                "R/EDI/R/design_abstract.R", "R/EDI/src/design_fixed_greedy.cpp", "R/EDI/src/design_optimal_annealing_search.cpp",
+                "R/EDI/src/optimal_design_search.cpp", "R/EDI/src/optimal_blocks_distance.cpp",
+                "R/EDI/src/rerandomization_helpers.cpp", "R/EDI/src/binary_match_search.cpp",
+                "R/EDI/man/DesignFixed*.Rd", "R/EDI/vignettes/articles/planning-a-study.Rmd"],
+      "articles": ["planning-a-study.Rmd"]
+    },
+    {
+      "id": "clusters-blocking",
+      "title": "Cluster and blocked-cluster designs, unequal block and cluster sizes, cluster-level resampling",
+      "task": "A school district randomizes 24 schools of different sizes, blocked by district, to a reading program; pupils are the units of observation. Design the assignment (cluster and blocked-cluster designs, unequal cluster and block sizes), simulate a plausible test-score outcome with a school-level random effect, analyze it the way you would report it to a journal, and check that every estimate, CI and p-value respects the clustering (including resampling by cluster where the docs offer it).",
+      "paths": ["R/EDI/R/design_fixed_cluster.R", "R/EDI/R/design_fixed_blocked_cluster.R", "R/EDI/R/design_fixed_blocking.R",
+                "R/EDI/R/design_blocking_abstract.R", "R/EDI/R/inference_ext_exchangeable_resampling_units.R",
+                "R/EDI/R/inference_all_abstract_jackknife.R", "R/EDI/src/kk_cluster_ids.cpp",
+                "R/EDI/man/DesignFixedCluster.Rd", "R/EDI/man/DesignFixedBlockedCluster.Rd", "R/EDI/man/DesignFixedBlocking.Rd",
+                "R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd"],
+      "articles": ["cluster-and-factorial-experiments.Rmd"]
+    },
+    {
+      "id": "factorial",
+      "title": "Factorial designs",
+      "task": "A marketing team tests two factors at once, email subject line (2 levels) and send time (2 levels), on 200 customers with a binary purchase outcome. Set up the factorial design, assign, simulate a purchase outcome with a main effect for one factor and a small interaction, and estimate each main effect and the interaction with CIs and p-values, as the docs describe. Check what the docs say about which effect each inference object targets.",
+      "paths": ["R/EDI/R/design_fixed_factorial.R", "R/EDI/man/DesignFixedFactorial.Rd",
+                "R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd"],
+      "articles": ["cluster-and-factorial-experiments.Rmd"]
+    },
+    {
+      "id": "survival-censoring",
+      "title": "Survival outcomes and censoring (right, left and interval censoring; Cox, Weibull, KM, RMST, log-rank)",
+      "task": "An oncology trial randomizes 80 patients and follows time to progression; some patients are right-censored at study end, a few are interval-censored between visits, and one or two are left-censored. Enter the outcomes in the layouts the docs describe (y, y_L / y_R, dead), analyze with at least three survival inference classes (a Cox model, a Weibull model, and a nonparametric one such as KM difference, RMST or log-rank), report each estimand with CI and p-value, and cross-check against the survival package to 3 digits.",
+      "paths": ["R/EDI/R/inference_survival_*.R", "R/EDI/R/helper_survival_fits.R", "R/EDI/R/helper_inference_survival_turnbull.R",
+                "R/EDI/src/fast_coxph_regression.cpp", "R/EDI/src/fast_weibull_regression.cpp", "R/EDI/src/fast_weibull_frailty.cpp",
+                "R/EDI/src/fast_survival_stats.cpp", "R/EDI/src/fast_survival_models_optim.cpp", "R/EDI/src/fast_logrank.cpp",
+                "R/EDI/src/fast_gehan_wilcox.cpp", "R/EDI/src/kk21_stepwise_survival.cpp", "R/EDI/src/survival_strata_ids.cpp",
+                "R/EDI/man/InferenceSurvival*.Rd", "R/EDI/vignettes/cookbook-survival.Rmd",
+                "R/EDI/vignettes/articles/censored-survival-outcomes.Rmd"],
+      "articles": ["censored-survival-outcomes.Rmd"]
+    },
+    {
+      "id": "missing-data",
+      "title": "Missing covariates and missing responses",
+      "task": "A field trial of 60 farms records three baseline covariates, and about 15% of covariate values are missing (some farms miss one, a few miss two); two farms never report an outcome. Run a design that uses the covariates, enter the data with its missing values exactly as the docs say, analyze it with covariate-adjusted and unadjusted inference, and check what the package does with each kind of missingness (refuses, imputes, drops, warns) against what the docs say it does.",
+      "paths": ["R/EDI/R/helper_model_matrix.R", "R/EDI/R/helper_response_asserts.R", "R/EDI/R/design_abstract.R",
+                "R/EDI/R/design_fixed_abstract.R", "R/EDI/R/design_seq_one_by_one_abstract.R",
+                "R/EDI/vignettes/articles/missing-covariates.Rmd"],
+      "articles": ["missing-covariates.Rmd"]
+    },
+    {
+      "id": "custom-statistic",
+      "title": "Custom randomization statistics and custom inference (InferenceRandCustom, InferenceCustom*)",
+      "task": "A researcher wants a randomization test and CI for a statistic the package does not ship: the difference in trimmed means (20% trimming) between arms. Write it as a custom statistic in R (and, if the docs offer it, as compiled code), run the randomization test and the randomization CI with the documented options (number of draws, delta, the hypothesis scale), and check every promise the docs make about how the statistic is called, what it may return, reproducibility, and minimum draw counts.",
+      "paths": ["R/EDI/R/inference_rand_custom.R", "R/EDI/R/inference_custom_extensions.R", "R/EDI/R/design_custom_extensions.R",
+                "R/EDI/R/helper_user_compiled_fn.R", "R/EDI/R/inference_all_abstract_rand*.R",
+                "R/EDI/src/randomization_loop.cpp", "R/EDI/man/InferenceRand*.Rd", "R/EDI/man/InferenceCustom*.Rd",
+                "R/EDI/vignettes/extending-edi.Rmd", "R/EDI/vignettes/articles/custom-randomization-statistic.Rmd"],
+      "articles": ["custom-randomization-statistic.Rmd"]
+    },
+    {
+      "id": "python-kernels",
+      "title": "The Python package edi_kernels (fast model-fitting kernels)",
+      "task": "A Python user wants EDI's fitting kernels without R. Using only the installed edi_kernels package (help(), docstrings, the .pyi stub, the README in your context folder), fit an OLS, a logistic and a Cox-type or count model on simulated data with a binary treatment vector w, read off the treatment estimate and its standard error, and cross-check each against statsmodels / scipy / lifelines to 3 digits. Try the documented input layouts and options (intercept column or not, weights, w coding), and check how the kernels behave on edge cases the docs mention.",
+      "paths": ["python/src/**", "python/cpp/**", "python/CMakeLists.txt", "python/pyproject.toml", "python/README_PYPI.md",
+                "@python_kernels", "R/EDI/vignettes/articles/edi-from-python.Rmd"],
+      "articles": ["edi-from-python.Rmd"],
+      "python": true
+    },
+    {
+      "id": "inference-suite",
+      "title": "InferenceSuite and reporting an analysis",
+      "task": "An analyst has a finished two-arm trial (simulate 120 subjects, a count outcome and two covariates) and wants a full report: every applicable inference method the package can run on it, with estimates, CIs and p-values side by side. Use InferenceSuite as the docs describe (choosing which methods to run, its summary and print methods), then pick the method you would report and justify it from what the docs say about validity and trust. Check that the suite's listing of methods and their results agrees with running the same classes one by one.",
+      "paths": ["R/EDI/R/inference_suite.R", "R/EDI/R/inference_class_registry.R", "R/EDI/R/inference_validity_*.R",
+                "R/EDI/R/inference_procedure_regime.R", "R/EDI/man/InferenceSuite.Rd", "R/EDI/man/*EDIInferenceSuiteResults.Rd",
+                "R/EDI/vignettes/procedure-trust.Rmd", "R/EDI/vignettes/articles/reporting-an-analysis.Rmd"],
+      "articles": ["reporting-an-analysis.Rmd"]
+    },
+    {
+      "id": "save-load",
+      "title": "Saving and restoring designs and inference objects (saveRDS / readRDS) mid-trial",
+      "task": "A sequential trial runs over several months on different machines. Enroll and assign 30 subjects, save the design as the docs say, restore it in a fresh R session (Rscript), continue enrolling to 50, add responses, and analyze. Check that the restored design continues exactly as an unsaved one would (same assignments with the same seed, as far as the docs promise that), and what happens when you save and restore an inference object or a design after responses are added.",
+      "paths": ["R/EDI/R/design_abstract.R", "R/EDI/R/design_seq_one_by_one_abstract.R", "R/EDI/R/inference_all_abstract.R",
+                "R/EDI/R/zzz.R", "R/EDI/man/Design.Rd", "R/EDI/vignettes/reproducibility.Rmd",
+                "R/EDI/vignettes/articles/running-a-sequential-trial.Rmd"],
+      "articles": ["running-a-sequential-trial.Rmd"]
+    },
+    {
+      "id": "simulation-framework",
+      "title": "SimulationFramework: planning a study by simulation (power, coverage, design comparison)",
+      "task": "A trialist planning a 50-subject study wants to compare two designs and two inference methods by simulation: power at a realistic effect, type-I error under the null, and CI coverage. Set it up with SimulationFramework as the docs describe, keep it small enough to finish in a few minutes on 2 cores, produce its report, and check that the reported power, size and coverage are plausible (for example size near alpha under the null) and agree with a hand-rolled base-R simulation of one cell.",
+      "paths": ["R/EDI/R/simulations_framework.R", "R/EDI/R/simulation_framework_report.R",
+                "R/EDI/man/SimulationFramework*.Rd", "R/EDI/vignettes/articles/planning-a-study.Rmd"],
+      "articles": ["planning-a-study.Rmd"]
+    },
+    {
+      "id": "observational",
+      "title": "Observational designs: analyzing an existing experiment or observational data",
+      "task": "An analyst receives a data set from a finished experiment run by someone else (assignments already made, covariates and outcomes known; simulate it, or use a public data set from another package). Load it into the package the way the docs describe for existing data (observational designs, with blocks or matching where offered), analyze it, and check what the docs say about which inference methods are valid when EDI did not make the assignments.",
+      "paths": ["R/EDI/R/design_observational*.R", "R/EDI/man/ObservationalDesign*.Rd",
+                "R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd"],
+      "articles": ["analyzing-an-existing-experiment.Rmd"]
+    },
+    {
+      "id": "incidence",
+      "title": "Binary (incidence) outcomes: risk difference, odds ratio, relative risk, exact and asymptotic methods",
+      "task": "A vaccine trial randomizes 150 people and records infection (yes/no); infections are rare in one arm (include a zero cell in one scenario). Estimate the risk difference, the odds ratio and the relative risk with the inference classes the docs offer, use exact methods where offered, and cross-check against glm, fisher.test or exact2x2-style references to 3 digits. Check what each class reports on the zero-cell data.",
+      "paths": ["R/EDI/R/inference_incidence_*.R", "R/EDI/R/inference_indicidence_exact_fisher.R", "R/EDI/R/inference_incid_wald.R",
+                "R/EDI/R/helper_gcomp.R", "R/EDI/man/InferenceIncid*.Rd", "R/EDI/vignettes/cookbook-incidence.Rmd"],
+      "articles": []
+    },
+    {
+      "id": "count",
+      "title": "Count outcomes: Poisson, negative binomial, zero-inflated and hurdle models",
+      "task": "A trial of an asthma program counts each child's emergency visits over a year (many zeros, some large counts, unequal follow-up). Analyze the rate ratio with the count inference classes the docs offer (Poisson, negative binomial, zero-inflated or hurdle, robust variants), use an exposure or offset if the docs offer one, and cross-check against glm / MASS::glm.nb / pscl to 3 digits.",
+      "paths": ["R/EDI/R/inference_count_*.R", "R/EDI/R/inference_all_abstract_count_likelihood.R",
+                "R/EDI/man/InferenceCount*.Rd", "R/EDI/vignettes/cookbook-count.Rmd"],
+      "articles": []
+    },
+    {
+      "id": "ordinal",
+      "title": "Ordinal outcomes: proportional odds and its relatives",
+      "task": "A pain trial records a 5-level ordinal outcome (none to severe) on 90 patients, with one level unused in one arm. Analyze it with the ordinal inference classes the docs offer (proportional odds, partial proportional odds, adjacent-category, cloglog or probit links, nonparametric ones), report each estimand with CI and p-value, and cross-check the proportional-odds fit against MASS::polr or ordinal::clm to 3 digits.",
+      "paths": ["R/EDI/R/inference_ordinal_*.R", "R/EDI/man/InferenceOrdinal*.Rd", "R/EDI/vignettes/cookbook-ordinal.Rmd"],
+      "articles": []
+    },
+    {
+      "id": "proportion",
+      "title": "Proportion outcomes in [0, 1], including exact zeros and ones",
+      "task": "A study measures the share of each participant's day spent active (a proportion in [0, 1]; a few participants are exactly 0 or exactly 1). Analyze the treatment effect with the proportion inference classes the docs offer (beta regression, zero-one-inflated beta, fractional logit, quantile regression, g-computation), and cross-check where a standard package fits the same model (betareg, glm quasibinomial, quantreg) to 3 digits. Check what each class does with the exact 0s and 1s.",
+      "paths": ["R/EDI/R/inference_proportion_*.R", "R/EDI/R/helper_zoib.R", "R/EDI/man/InferenceProp*.Rd",
+                "R/EDI/vignettes/cookbook-proportion.Rmd"],
+      "articles": []
+    },
+    {
+      "id": "continuous",
+      "title": "Continuous outcomes: OLS, Lin, robust and quantile regression, KK matched-pair estimators",
+      "task": "A two-arm trial of 70 subjects with three covariates measures a continuous outcome with a few outliers. Analyze it with the continuous inference classes the docs offer (simple mean difference, OLS, Lin's estimator, robust and quantile regression, a KK matched-pair estimator after a KK design), using their documented CI and test options (asymptotic, bootstrap, randomization), and cross-check OLS / Lin / quantile fits against lm + sandwich and quantreg to 3 digits.",
+      "paths": ["R/EDI/R/inference_continuous_*.R", "R/EDI/R/inference_all_simple_*.R", "R/EDI/R/inference_all_average_diff.R",
+                "R/EDI/R/helper_robust_*.R", "R/EDI/man/InferenceContin*.Rd", "R/EDI/man/InferenceAllSimple*.Rd",
+                "R/EDI/vignettes/cookbook-continuous.Rmd"],
+      "articles": []
+    }
+  ]
+}

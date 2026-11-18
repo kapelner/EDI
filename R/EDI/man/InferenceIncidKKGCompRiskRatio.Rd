@@ -49,6 +49,14 @@ This estimator has \code{likelihood_tier = "none"}. If the working model
 fails to converge, has no treatment-arm variation, or the all-control
 standardized risk is zero (undefined ratio), the estimate is marked
 non-estimable via \code{is_nonestimable()}.
+
+\strong{Separation.} When the logistic working model's fitted probabilities
+are numerically 0 or 1 (the data look (quasi-)completely separated) the
+working-model MLE does not exist and the fitted risks sit where the fitter
+stopped. The class then raises one warning of class
+\code{edi_logistic_separation_warning} per object (silent inside resampling);
+the returned values are unchanged. A randomization test or an exact incidence
+method is safer there.
 }
 \section{Small-sample behaviour}{
 

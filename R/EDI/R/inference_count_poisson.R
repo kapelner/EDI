@@ -111,7 +111,7 @@ InferenceCountPoisson = define_inference_class(
 		"CountLikelihoodPlumbing",
 		"MarginalEstimand"
 	),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	metadata = list(likelihood_tier = "full", response_types = "count"),
 	overrides = list(
 		public = c(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",

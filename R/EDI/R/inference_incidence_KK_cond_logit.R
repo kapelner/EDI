@@ -11,7 +11,7 @@ conditional_logit_prepare_combined_design = function(private_env, KKstats) {
 	m = KKstats$m
 	nRT = KKstats$nRT
 	nRC = KKstats$nRC
-	p = ncol(as.matrix(private_env$X))
+	p = ncol(as.matrix(private_env$get_X()))
 	has_reservoir = nRT > 0 && nRC > 0
 	X_comb = NULL
 	y_comb = NULL
@@ -619,9 +619,11 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #' \code{\link[EDI:InferenceIncidKKCondLogitIVWC]{InferenceIncidKKCondLogitIVWC}},
 #' which instead fits the matched and reservoir pieces separately and
 #' pools them by inverse-variance weighting; here the treatment coefficient
-#' is a single joint MLE, and \code{likelihood_tier = "full"} exposes
-#' likelihood-ratio, score, and gradient inference plus a parametric
-#' likelihood bootstrap in addition to Wald.
+#' is a single joint MLE. \code{likelihood_tier = "partial"}: the matched-pair
+#' piece is a conditional likelihood (the pair intercepts are conditioned
+#' away, not modelled), so the joint objective is not a full model
+#' likelihood; it still exposes likelihood-ratio, score, and gradient
+#' inference plus a parametric likelihood bootstrap in addition to Wald.
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a
 #' logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid w,x)) = \beta_0 +
@@ -699,7 +701,9 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 		#' @param delta The null treatment effect. Default 0.
 		#' @param transform_responses Optional response transform applied before
 		#'   the randomization statistic is computed. Default \code{"none"}.
-		#' @param na.rm Whether to remove non-finite permutation replicates.
+		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
+		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
+		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param permutations Optional pre-generated permutation matrix/list to
 		#'   reuse instead of drawing new permutations.
@@ -731,10 +735,7 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 			)
 		}
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache).
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "partial"),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",
@@ -855,7 +856,7 @@ IncidKKCondLogitIVWCSource = list(
 			private$compute_basic_match_data()
 			KKstats = private$cached_values$KKstats
 			if (is.null(KKstats)) return(invisible(NULL))
-			X_covars = private$X
+			X_covars = private$get_X()
 			
 			# --- Matched pairs: Conditional Logistic ---
 			if (KKstats$m > 0){

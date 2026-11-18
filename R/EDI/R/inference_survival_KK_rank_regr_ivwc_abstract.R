@@ -109,7 +109,7 @@ SurvivalKKRankRegrIVWCSource = list(
 		# fits build their design matrices via aft_design_candidates() -- but it
 		# is preserved for byte-identical surface with the legacy class.
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {
@@ -281,7 +281,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			se_method = if (need_variance) "ISMB" else "NULL"
 			bootstrap_reps = if (need_variance) 100L else 0L
 			mod = NULL
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X_m = as.matrix(private$get_X()[i_matched, , drop = FALSE])
 				for (X_candidate in private$aft_design_candidates(w_m, X_m, cache_key = "matched")){
 					dat_try = dat
@@ -329,7 +329,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			se_method = if (need_variance) "ISMB" else "NULL"
 			bootstrap_reps = if (need_variance) 100L else 0L
 			mod = NULL
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				for (X_candidate in private$aft_design_candidates(w_r, X_r, cache_key = "reservoir")){
 					dat_try = dat
 					formula_try = formula_str

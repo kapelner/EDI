@@ -311,7 +311,7 @@ Design = R6::R6Class("Design",
 				stop(missing_response_error_message(private$response_type, t), call. = FALSE)
 			}
 			if (should_run_asserts()) {
-				assertNumeric(t, len = 1, any.missing = FALSE)
+				assertNumeric(t, len = 1, any.missing = FALSE, finite = TRUE)
 				assertCount(t, positive = TRUE)
 				if (t > private$t){
 					stop(paste("You cannot add response for subject", t, "when the most recent subjects' record added is", private$t))
@@ -319,10 +319,12 @@ Design = R6::R6Class("Design",
 				if (private$response_type == "ordinal" && is.factor(y)) {
 					assertFactor(y, len = 1, ordered = TRUE, any.missing = FALSE)
 				} else {
+					# checkmate-loose: finiteness of an exact y is checked by assert_y() for every response type.
 					assertNumeric(y, len = 1, null.ok = TRUE, any.missing = FALSE)
 				}
+				# checkmate-loose: y_L finiteness is checked below, always on (not only when asserts run).
 				assertNumeric(y_L, len = 1, null.ok = TRUE, any.missing = FALSE)
-				# Not finite: y_R = Inf is a right-censored response (y_L finiteness is checked below, always on).
+				# checkmate-loose: y_R = Inf is a right-censored response (y_L finiteness is checked below, always on).
 				assertNumeric(y_R, len = 1, null.ok = TRUE, any.missing = FALSE)
 			}
 			has_y = !is.null(y)
@@ -430,10 +432,13 @@ Design = R6::R6Class("Design",
 				} else {
 					# NA allowed: an NA in ys marks a censored subject entered through y_Ls/y_Rs;
 					# non-survival NAs are rejected below, always on (v1.0.6-TODO-93).
+					# checkmate-loose: NA in ys marks a censored row whose response is in y_Ls/y_Rs.
 					assertNumeric(ys, len = private$t)
 				}
 				# NA allowed in y_Ls/y_Rs: NA marks a subject with an exact response in ys.
+				# checkmate-loose: NA marks a row with an exact response in ys.
 				assertNumeric(y_Ls, len = private$t)
+				# checkmate-loose: NA marks an exact row; y_Rs = Inf is right-censored.
 				assertNumeric(y_Rs, len = private$t)
 			}
 			has_y = if (is.factor(ys)) !is.na(as.integer(ys)) else !is.na(ys)
@@ -967,6 +972,7 @@ Design = R6::R6Class("Design",
 				# y_L/y_R) and for subjects with no response yet; assert_y() checks the rows
 				# whose y_original is not NA (it used to get them all and so rejected every
 				# design with a censored or not-yet-responded subject).
+				# checkmate-loose: NA for censored or not-yet-responded rows; observed rows are checked by assert_y().
 				assertNumeric(y_temp, len = length(private$y_original))
 				private$assert_y(y_temp[!is.na(private$y_original)], transformed_response_type)
 			}

@@ -375,3 +375,15 @@ Done 2026-11-16 (uncommitted), `plan_calibration_study.R` and `build_calibration
   with 9,402 units held, most of them ordinal, proportion and survival. Shards predicted under 8.3 min went from 9 to 34;
   most of the new ones are count n = 1000 AllSimpleWilcox shards whose cell-mates are held. That is the transition cost
   above, not an estimate error.
+* **Fix, 2026-11-18: overhead polluted by few-replicate shards.** Campaign 2026-11-15, wave 11: 144 of 256 shards were
+  `CountHurdlePoisson` shards that took under 5 min each, with 2-92 replicates.
+  - Cause: the planner priced it at ~78 s per replicate on count KK21 / KK14, n = 1000; it costs ~3.5 s. The cell overhead
+    was 73 / 66 s per class (true 4-7 s), because `CountKKGLMM` shards of 4 replicates at ~1,500 s each put their timing
+    noise (±500 s) into the overhead residual. Flooring each shard's residual at 0 let that noise push the median only
+    upwards. The rule predates the per-class change: these were one-class shards either way.
+  - Fix:
+    - Only shards with at least `--min-measured-reps` completed replicates count toward the overhead.
+    - The median is floored at 0 after it is taken, not per shard.
+  - On the ledger after wave 10, the three inflated cells (also count `DesignFixedBinaryMatch` n = 1000, 43 s) drop to
+    0.8-7 s. No other cell moves by more than 0.6 s.
+  - Regression test: few-replicate slow shards beside a cheap class. It fails without the fix.

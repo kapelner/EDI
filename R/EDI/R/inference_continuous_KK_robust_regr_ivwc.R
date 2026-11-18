@@ -375,7 +375,7 @@ ContinKKRobustRegrIVWCSource = list(
 		robust_for_matched_pairs = function(estimate_only = FALSE){
 			yd = private$cached_values$KKstats$y_matched_diffs
 			m  = length(yd)
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				Xd = as.matrix(private$cached_values$KKstats$X_matched_diffs)
 				X = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				reduced = private$reduce_design_matrix_once(
@@ -401,7 +401,7 @@ ContinKKRobustRegrIVWCSource = list(
 			w_r = private$cached_values$KKstats$w_reservoir
 			X_r = as.matrix(private$cached_values$KKstats$X_reservoir)
 			j_treat = 2L
-			if (ncol(as.matrix(private$X)) > 0){
+			if (ncol(as.matrix(private$get_X())) > 0){
 				X_full = cbind(1, w_r, X_r)
 				reduced = private$reduce_design_matrix_once(
 					X_full,

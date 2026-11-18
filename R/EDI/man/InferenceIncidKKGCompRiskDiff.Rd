@@ -58,6 +58,14 @@ Jackknife deletes one cluster (matched pair or singleton reservoir subject) at
 a time. If the working model fails to converge or the design has no
 treatment-arm variation, the estimate is marked non-estimable via
 \code{is_nonestimable()}.
+
+\strong{Separation.} When the logistic working model's fitted probabilities
+are numerically 0 or 1 (the data look (quasi-)completely separated) the
+working-model MLE does not exist and the fitted risks sit where the fitter
+stopped. The class then raises one warning of class
+\code{edi_logistic_separation_warning} per object (silent inside resampling);
+the returned values are unchanged. A randomization test or an exact incidence
+method is safer there.
 }
 \section{Small-sample behaviour}{
 

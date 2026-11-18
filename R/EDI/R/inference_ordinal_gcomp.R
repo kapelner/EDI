@@ -243,7 +243,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			as.numeric(res$md)
 		},
 		build_design_matrix = function(){
-			X_cov = private$X
+			X_cov = private$get_X()
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
 				X = cbind(`(Intercept)` = 1, treatment = private$w)
 			} else {

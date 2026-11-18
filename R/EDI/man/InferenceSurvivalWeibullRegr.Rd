@@ -32,6 +32,14 @@ Right-censored and interval-censored observations enter the likelihood via
 their appropriate survival/density contributions. Validity requires the
 Weibull shape assumption for the (log-)survival-time distribution and,
 when interpreted causally, the usual design-based/model-based assumptions.
+The Bayesian bootstrap
+(\code{$compute_bayesian_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_two_sided_pval()} and
+\code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
+with an error on left- or interval-censored data, because its weighted re-fit
+(\code{weighted_weibull_bootstrap_surrogate_fit()}) assumes right-censoring; use the
+nonparametric bootstrap there instead. On right-censored data it is
+unaffected.
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 

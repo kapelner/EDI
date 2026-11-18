@@ -61,7 +61,7 @@ inverse-variance weighting, the same rule used throughout the KK IVWC family.
 Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
 Royal Statistical Society, Series B, 34(2), 187-220.
 
-Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+Lee, E. W., Wei, L. J., Amato, D. A., and Leurgans, S. (1992). "Cox-Type Regression
 Analysis for Large Numbers of Small Groups of Correlated Failure Time
 Observations." In Survival Analysis: State of the Art, 237-247. Springer.
 \doi{10.1007/978-94-015-7983-4_14}

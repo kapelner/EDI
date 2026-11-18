@@ -583,8 +583,8 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# that class), so its cost no longer depends at all on seq_des_inf's
 	# class; a spot check at n=100, r=151 (comparable to this file's usual
 	# scale) timed the p-value at ~0.09s and the CI at ~0.35s, nowhere near
-	# either exclusion's threshold. See skip_custom_rand_pval/skip_ci_rand_
-	# custom below, which no longer reference either list.
+	# either exclusion's threshold. See the rand_custom block in
+	# run_inference_checks_impl(), which no longer references either list.
 	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
 	# via is_any_inference_class_for_formula() (optional `||~formula`
 	# suffix). Populated 2026-09-09, same production-run audit as bootstrap
@@ -2189,14 +2189,16 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_rand      = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand)
 	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
-	# Decoupled from skip_regular_rand_pval 2026-09-13
-	# (fix_custom_randomization_statistic.md TODO-10): the custom statistic
-	# now runs on a standalone InferenceRandCustom (its own dedicated fast
-	# kernel), not as a method call on seq_des_inf, so seq_des_inf's own
-	# slow-path status is no longer relevant to this path's cost. Incidence
-	# stays excluded -- that limitation is InferenceRandCustom-independent
-	# (see its roxygen and compute_rand_two_sided_pval()'s incidence guard).
-	skip_custom_rand_pval = response_type == "incidence"
+	# The custom-statistic p-value is decoupled from skip_regular_rand_pval
+	# (2026-09-13, fix_custom_randomization_statistic.md TODO-10): it runs on a
+	# standalone InferenceRandCustom (its own dedicated fast kernel), not as a
+	# method call on seq_des_inf, so seq_des_inf's own slow-path status is not
+	# relevant to its cost. Since v1.0.6-TODO-81/-110 it also runs on incidence:
+	# compute_rand_two_sided_pval() accepts delta = 0 on incidence for every
+	# statistic form (built-in, custom R function, custom C++) and refuses a
+	# nonzero delta for every form, so the incidence-only exclusion that used to
+	# live here (skip_custom_rand_pval) is gone. See the rand_custom block in
+	# run_inference_checks_impl() for the delta = 0.5 refusal call.
 	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
 		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
 		(response_type != "continuous" && inherits(seq_des_inf, "InferenceAllSimpleAverageDiff"))
@@ -2291,6 +2293,12 @@ supports_direct_testing_type = function(testing_type){
 }
 
 	should_record_nonestimable_as_missing = function(obj, label, result = NULL){
+		# "(custom)" calls run on a standalone InferenceRandCustom, not on obj
+		# (= seq_des_inf), so obj's non-estimable state says nothing about them.
+		# Found 2026-11-18 (v1.0.6-TODO-81/110 harness widening): the incidence
+		# custom delta = 0.5 refusal on KKCondLogitGLMMOneLik (~., FixedBinaryMatch)
+		# was recorded as "Explicitly non-estimable ... ok" instead of the error.
+		if (grepl("(custom)", label, fixed = TRUE)) return(FALSE)
 		if (!is_explicitly_nonestimable(obj)) return(FALSE)
 		# If the method returned a valid (finite) result despite non-estimable state, record it normally
 		if (!is.null(result) && !has_invalid_numeric(result)) return(FALSE)
@@ -3413,10 +3421,19 @@ call_direct_asymp = function(method_name, testing_type, ...){
 			custom_randomization_statistic_cpp = welch_t_stat_cpp,
 			verbose = FALSE
 		)
-		if (!skip_slow && !skip_custom_rand_pval){
+		if (!skip_slow){
 			safe_call("compute_rand_two_sided_pval(custom)", custom_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
-		} else if (response_type == "incidence") {
-			message("    Skipping compute_rand_two_sided_pval(custom) (custom randomization statistic unsupported for incidence)")
+			# v1.0.6-TODO-81/-110: on incidence a nonzero delta is refused for every
+			# statistic form ("randomization tests with delta nonzero not supported
+			# for incidence"). This call pins that refusal: it is expected to be
+			# recorded as status = "error", like the plain
+			# compute_rand_two_sided_pval(delta=0.5) row on incidence (see
+			# comprehensive_incidence_rand_pvalue_attempt_manifest.R). Other
+			# response types do not run a custom nonzero-delta call.
+			if (response_type == "incidence") {
+				safe_call("compute_rand_two_sided_pval(custom)(delta=0.5)",
+					custom_inf$compute_rand_two_sided_pval(r = r, delta = 0.5, show_progress = FALSE))
+			}
 		}
 		# response_type set matches the plain/BRT rand-CI set (continuous,
 		# proportion, count, survival) as of 2026-09-13 -- count was previously
@@ -4994,6 +5011,20 @@ write_comprehensive_run_provenance(
 		after = run_provenance_after
 	)
 )
+
+# Refresh the committed NA-gate digest (comprehensive_suite_na_audit.csv,
+# v1.0.6-TODO-95) from the per-response results this run just wrote, as the
+# other committed comprehensive_suite_*.csv files are refreshed with a
+# regeneration. Only unfiltered runs: a filtered run writes its own
+# _filtered_ file, which the digest does not read. A failure here is reported
+# but does not fail the run.
+if (!nzchar(filtered_results_suffix)) {
+	tryCatch(
+		system2(file.path(R.home("bin"), "Rscript"),
+			c(shQuote(repo_path("package_tests", "na_audit_gate.R")), "digest", shQuote(repo_path("package_tests")))),
+		error = function(e) message("NA digest refresh failed: ", conditionMessage(e), "; run Rscript R/package_tests/na_audit_gate.R digest")
+	)
+}
 
 unset_num_cores()
 rm(list=ls())

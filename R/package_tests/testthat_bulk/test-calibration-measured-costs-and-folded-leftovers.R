@@ -26,7 +26,7 @@ sys.source(file.path(cal_dir, "calibration_study_synthetic_fixture.R"), envir = 
 # A campaign dir with the synthetic roster (continuous: ContinLin 0.1 s, ContinOLS 0.2 s; incidence: IncidLogit 0.3 s, roster
 # secs_n50) and, optionally, finished shards: `done` is a list of list(cls, design, n, reps_done, reps_stat, fit) giving one
 # ledger row and the class's statistics rows (wald and rand, `fit` seconds per replicate in all); reps_stat is the number of
-# replicates the statistics hold (the ones actually done).
+# replicates the statistics hold (the ones actually done). An entry's `spr` overrides its ledger secs_per_rep.
 amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, roster = env$cal_synth_roster()) {
 	root = tempfile("calamende"); dir.create(file.path(root, "c", "stats"), recursive = TRUE)
 	roster_path = file.path(root, "roster.csv")
@@ -45,7 +45,7 @@ amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, ros
 		}
 		nd = d$reps_stat
 		led[[i]] = data.frame(response_type = "continuous", design = d$design, n = d$n, effect = "null", only = if (is.null(d$only)) d$cls else d$only, exclude = "", reps_done = d$reps_done,
-			n_done = nd, n_failed = 0L, n_skipped = 0L, cores = 4L, elapsed_sec = 10, secs_per_rep = if (is.null(ledger_spr)) d$fit else ledger_spr,
+			n_done = nd, n_failed = 0L, n_skipped = 0L, cores = 4L, elapsed_sec = 10, secs_per_rep = if (!is.null(d$spr)) d$spr else if (is.null(ledger_spr)) d$fit else ledger_spr,
 			id = paste0("s", i), stringsAsFactors = FALSE)
 	}
 	if (length(tests)) {
@@ -259,4 +259,17 @@ test_that("a class with no cost at all runs one probe shard per n, alone; its ot
 	o2 = w2[grepl("InferenceContinOLS", w2$only, fixed = TRUE), ]
 	expect_true(any(o2$design == ibcrd))
 	expect_true(any(grepl(",", o2$only, fixed = TRUE)))
+})
+
+test_that("few-replicate shards of a slow class do not set the overhead of a cheap class's cell", {
+	# campaign 2026-11-15, wave 11: CountKKGLMM shards of 4 replicates at ~1,500 s each put +-500 s of timing noise into the cell's
+	# overhead (floored at 0 per shard, so only upwards): 73 s per class, and CountHurdlePoisson (3.5 s) was cut into tiny shards.
+	bern = "DesignFixedBernoulli"
+	slow = lapply(1:6, function(i) list(cls = "InferenceContinOLS", design = bern, n = 50L, reps_done = sprintf("%d:%d", 4L * i - 3L, 4L * i),
+		reps_stat = 4L, fit = 100, spr = if (i <= 4L) 600 else 50))   # residuals +500 (x4) and -50 (x2) on a 100 s class
+	cheap = list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5, spr = 0.6)
+	w = amend_e_plan(amend_e_campaign(c(slow, list(cheap))), "--pack-minutes", 0, null_reps = 150)
+	# Only the cheap class's 100-replicate shard counts: overhead 0.1, not the slow shards' median of ~500.
+	expect_equal(find_shard(w, bern, 50L, "InferenceContinLin", 101)$secs_per_rep, 0.6)
+	expect_equal(find_shard(w, bern, 50L, "InferenceContinOLS", 25)$secs_per_rep[[1L]], 100.1)
 })

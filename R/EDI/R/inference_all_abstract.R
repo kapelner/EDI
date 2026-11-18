@@ -1343,6 +1343,15 @@ Inference = R6::R6Class("Inference",
 		reduce_design_matrix_preserving_treatment_matrix = function(X_full){
 			private$reduce_design_matrix_preserving_treatment(X_full)$X
 		},
+		warn_hardened_column_drop = function(X_mat, rank_attempt, dropped_idx){
+			if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+			if (isTRUE(private$cached_values$covariate_dropped_warned)) return(invisible(FALSE))
+			col_names = colnames(X_mat)
+			if (is.null(col_names)) col_names = paste0("column ", seq_len(ncol(X_mat)))
+			col_names[!nzchar(col_names)] = paste0("column ", which(!nzchar(col_names)))
+			cls = edi_classify_hardened_drop(rank_attempt$fit, col_names[rank_attempt$keep], private$max_abs_reasonable_coef)
+			edi_warn_covariate_dropped_once(self, private, col_names[sort(dropped_idx)], cls$reason, cls$diverged)
+		},
 		fit_with_hardened_qr_column_dropping = function(X_full, fit_fun, fit_ok, required_cols = 1L, implicit_intercept = FALSE){
 			X_mat = as.matrix(X_full)
 			if (is.null(dim(X_mat))){
@@ -1447,6 +1456,7 @@ Inference = R6::R6Class("Inference",
 			if (!length(keep)) keep = seq_len(ncol(X_mat))
 			removable = rev(setdiff(pivot[pivot %in% keep], required_cols))
 			best_attempt = attempt_fit(keep)
+			rank_attempt = best_attempt
 			if (isTRUE(fit_ok(best_attempt$fit, best_attempt$X, best_attempt$keep))){
 				return(best_attempt)
 			}
@@ -1457,10 +1467,14 @@ Inference = R6::R6Class("Inference",
 				keep_try = sort(setdiff(keep, removable[seq_len(k)]))
 				if (!all(required_cols %in% keep_try)) next
 				attempt = attempt_fit(keep_try)
-				best_attempt = attempt
 				if (isTRUE(fit_ok(attempt$fit, attempt$X, attempt$keep))){
+					# v1.0.6-TODO-138: a covariate dropped beyond the QR rank set
+					# changes the model; say so (once per object, silent inside
+					# resampling, no numeric change). Collinear drops stay silent.
+					if (is.function(private$warn_hardened_column_drop)) private$warn_hardened_column_drop(X_mat, rank_attempt, setdiff(keep, keep_try))
 					return(attempt)
 				}
+				best_attempt = attempt
 			}
 			best_attempt
 		}

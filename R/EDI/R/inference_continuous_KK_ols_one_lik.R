@@ -417,7 +417,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			nRC = KKstats$nRC
 			nR  = nRT + nRC
 			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$X)) > 0){
+				if (ncol(as.matrix(private$get_X())) > 0){
 					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
 					p = ncol(Xd_full)
 				} else {
@@ -431,12 +431,12 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				y_comb = c(KKstats$y_matched_diffs, KKstats$y_reservoir)
 				j_treat = 2L
 			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
+				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
 				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				y_comb = KKstats$y_matched_diffs
 				j_treat = 1L
 			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
+				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
 				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
 				y_comb = KKstats$y_reservoir
 				j_treat = 2L
@@ -487,7 +487,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			nR  = nRT + nRC
 			kk_w = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
 			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$X)) > 0){
+				if (ncol(as.matrix(private$get_X())) > 0){
 					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
 					p = ncol(Xd_full)
 				} else {
@@ -502,13 +502,13 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				w_comb = c(kk_w$pair_weights, kk_w$reservoir_weights)
 				j_treat = 2L
 			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
+				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
 				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
 				y_comb = KKstats$y_matched_diffs
 				w_comb = kk_w$pair_weights
 				j_treat = 1L
 			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$X)) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
+				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
 				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
 				y_comb = KKstats$y_reservoir
 				w_comb = kk_w$reservoir_weights
@@ -650,11 +650,7 @@ InferenceContinKKOLSOneLik = define_inference_class(
 		# other survival/count/continuous KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache): no component spec in this
-	# codebase declares provides_capabilities = "likelihood_ratio" anywhere.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", supports_additive_delta_shift = TRUE),
+	metadata = list(likelihood_tier = "full", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",
