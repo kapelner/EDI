@@ -8,8 +8,8 @@
 
 | Layer | Trigger | Who/what | Output |
 |---|---|---|---|
-| Drift check | Monthly, 21st, 06:00 UTC (`workflow_dispatch` also works) | `.github/workflows/algorithm-audit-drift.yml` → `.github/scripts/algorithm_audit_drift.py` | One issue labelled `algorithm-audit-drift` (updated in place; closed when clean). Report also uploaded as the `drift-report` artifact. |
-| Research (added 2026-11-16) | Monthly, first Thursday of the month at 23:59 Asia/Jerusalem, from 2026-12-03 (owner, 2026-11-16; was every 8 weeks for an hour); first full run dispatched by hand 2026-11-16; `workflow_dispatch` input `research_tasks` picks a subset (a problem id, an audit row letter for all its problems, `inventory`) or `none` | One Claude agent per **problem** of `audits/algorithm_taxonomy.json` (all methods EDI uses for it) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>-run<id>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
+| Drift check | Monthly, 21st, 06:07 UTC (`workflow_dispatch` also works) | `.github/workflows/algorithm-audit-drift.yml` → `.github/scripts/algorithm_audit_drift.py` | One issue labelled `algorithm-audit-drift` (updated in place; closed when clean). Report also uploaded as the `drift-report` artifact. |
+| Research (added 2026-11-16) | Monthly, first Thursday of the month at 23:07 Asia/Jerusalem (23:59 until 2026-11-18, moved off the busy :00/:30 minutes), from 2026-12-03 (owner, 2026-11-16; was every 8 weeks for an hour); first full run dispatched by hand 2026-11-16; `workflow_dispatch` input `research_tasks` picks a subset (a problem id, an audit row letter for all its problems, `inventory`) or `none` | One Claude agent per **problem** of `audits/algorithm_taxonomy.json` (all methods EDI uses for it) plus one `inventory` agent, via `anthropics/claude-code-action`; prompts and JSON schemas in `.github/prompts/`; merged by `.github/scripts/algorithm_audit_research_report.py` | One pull request per run (label `algorithm-audit-research`, branch `algorithm-research/<date>-<run>`): `audits/research_findings/<date>-run<id>.md` plus inventory updates; no PR when there is nothing to report. Per-task JSON uploaded as `research-<task>` artifacts. |
 | Full pass | Release close; new kernel family ships; a Prototype item resolves through the A/B harness | A human or a Claude session, following "Re-review procedure" below | Updated audit rows, summary table, exposure column; bumped `reviewed` dates; re-pinned versions |
 
 The drift check never edits a file or commits. It answers only "did anything
@@ -250,9 +250,9 @@ fastest acceptable one for its job?**
   nothing is cancelled, and only earlier run ids are waited on (no deadlock). Separately,
   an unmerged research PR still conflicts with the next one: merge each before the next run.
 - **Schedule mechanics.** Cron is UTC with no DST, and a cron that restricts both
-  day-of-month and day-of-week matches either one, so `59 20 * * 4` and `59 21 * * 4` both
-  fire every Thursday; the plan job keeps the one that is 23:59 in Jerusalem (20:59 UTC in
-  summer, 21:59 in winter) on a first Thursday (day ≤ 7) on or after `RESEARCH_START`
+  day-of-month and day-of-week matches either one, so `7 20 * * 4` and `7 21 * * 4` both
+  fire every Thursday; the plan job keeps the one that is 23:07 in Jerusalem (20:07 UTC in
+  summer, 21:07 in winter) on a first Thursday (day ≤ 7) on or after `RESEARCH_START`
   (2026-12-03). Drift runs only on its monthly cron (and on manual dispatch); a `skipped`
   job never triggers the failure notice. Each run costs roughly $75-80 of Opus usage
   (68 batches at about $1.09 each in the 2026-11-16 trial).

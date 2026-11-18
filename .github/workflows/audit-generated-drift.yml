@@ -1,4 +1,4 @@
-# Generated-file drift audit: weekly, Tuesday 07:00 UTC. Mechanical only (no Claude).
+# Generated-file drift audit: weekly, Tuesday 07:07 UTC. Mechanical only (no Claude).
 # In the finish stage it runs the generators that need neither a compiled EDI nor a timing run:
 # R/fast_roxygenize.R (Rcpp::compileAttributes, which writes RcppExports.R/.cpp and compiles
 # nothing, then roxygen2 with the R code sourced: man/*.Rd, NAMESPACE) and the registry block of
@@ -13,7 +13,7 @@ name: audit · weekly · generated-drift
 
 on:
   schedule:
-    - cron: "0 7 * * 2"
+    - cron: "7 7 * * 2"
   workflow_dispatch:
     inputs:
       scope:

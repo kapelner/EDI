@@ -13,7 +13,7 @@ name: audit · weekly · privacy
 
 on:
   schedule:
-    - cron: "0 6 * * 1"     # Mondays 06:00 UTC
+    - cron: "7 6 * * 1"     # Mondays 06:07 UTC
   workflow_dispatch:
     inputs:
       scope:

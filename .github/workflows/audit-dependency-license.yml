@@ -13,7 +13,7 @@ name: audit · monthly · dependency-license
 
 on:
   schedule:
-    - cron: "0 6 * * 1"     # Mondays 06:00 UTC; the gate keeps the first Monday of the month (nth: 1)
+    - cron: "7 6 * * 1"     # Mondays 06:07 UTC; the gate keeps the first Monday of the month (nth: 1)
   workflow_dispatch:
     inputs:
       scope:

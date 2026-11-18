@@ -29,13 +29,13 @@ on:
     branches: [main, master]
   # Weekly run (owner ruling 2026-11-14): the full matrix plus the jobs that no
   # longer run on push (openmp and native legs, repro comparison, no-Suggests,
-  # ASAN/UBSAN, valgrind). Saturday 04:00 UTC, away from the calibration start
-  # (1st, 03:17) and the weekly benchmark. Manual dispatch runs the same set.
+  # ASAN/UBSAN, valgrind). Saturday 04:07 UTC, away from the calibration start
+  # (1st, 03:07) and the weekly benchmark. Manual dispatch runs the same set.
   # RELEASE GATE: no release ships until a full run (schedule or dispatch) is
   # green at the exact release commit; see
   # R/package_metadata/future_release_plans/release.md.
   schedule:
-    - cron: '0 4 * * 6'
+    - cron: '7 4 * * 6'
   workflow_dispatch:
 
 name: R-CMD-check

@@ -1,4 +1,4 @@
-# Docs claims audit (monthly, 2nd Saturday 06:00 UTC): is each testable claim in an exported
+# Docs claims audit (monthly, 2nd Saturday 06:07 UTC): is each testable claim in an exported
 # class's documentation backed by a test?
 #  - No mechanical checks. Units: every exported R6 class (R/EDI/NAMESPACE), with its roxygen text
 #    and the test files that mention it (R/EDI/tests, R/package_tests/testthat_bulk).
@@ -14,7 +14,7 @@ name: audit · monthly · docs-claims
 
 on:
   schedule:
-    - cron: "0 6 * * 6"
+    - cron: "7 6 * * 6"
   workflow_dispatch:
     inputs:
       scope:

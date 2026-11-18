@@ -19,16 +19,16 @@ name: algorithm-audit-drift
 
 on:
   schedule:
-    # Drift check: monthly, 06:00 UTC on the 21st (research does not run on this trigger).
-    - cron: "0 6 21 * *"
-    # Research: monthly, on the first Thursday of the month at 23:59 Asia/Jerusalem, starting
+    # Drift check: monthly, 06:07 UTC on the 21st (research does not run on this trigger).
+    - cron: "7 6 21 * *"
+    # Research: monthly, on the first Thursday of the month at 23:07 Asia/Jerusalem, starting
     # RESEARCH_START (owner, 2026-11-16: first run Thu 2026-12-03). Cron is UTC with no DST,
     # and a cron with both day-of-month and day-of-week matches EITHER, so both candidate UTC
-    # times fire every Thursday and the plan job keeps only the one that is 23:59 in Jerusalem
-    # (20:59 UTC in summer, 21:59 UTC in winter) on a first Thursday (day <= 7) on or after
+    # times fire every Thursday and the plan job keeps only the one that is 23:07 in Jerusalem
+    # (20:07 UTC in summer, 21:07 UTC in winter) on a first Thursday (day <= 7) on or after
     # RESEARCH_START. Drift does not run on these.
-    - cron: "59 20 * * 4"
-    - cron: "59 21 * * 4"
+    - cron: "7 20 * * 4"
+    - cron: "7 21 * * 4"
   workflow_dispatch:
     inputs:
       research_tasks:
@@ -36,7 +36,7 @@ on:
         default: all
 
 env:
-  MONTHLY_CRON: "0 6 21 * *"
+  MONTHLY_CRON: "7 6 21 * *"
   RESEARCH_START: "2026-12-03"   # first scheduled research run (Jerusalem date)
 
 permissions:
@@ -45,7 +45,7 @@ permissions:
 
 jobs:
   drift:
-    if: ${{ github.event_name != 'schedule' || github.event.schedule == '0 6 21 * *' }}
+    if: ${{ github.event_name != 'schedule' || github.event.schedule == '7 6 21 * *' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -129,8 +129,8 @@ jobs:
                   local = datetime.datetime.combine(day, datetime.time(hour, minute), datetime.timezone.utc)
                   local = local.astimezone(zoneinfo.ZoneInfo("Asia/Jerusalem"))
                   start = datetime.date.fromisoformat(os.environ["RESEARCH_START"])
-                  if (local.hour, local.minute) != (23, 59):
-                      log(f"{sched}: not 23:59 in Jerusalem this week ({local:%H:%M %Z}); skipping")
+                  if (local.hour, local.minute) != (23, 7):
+                      log(f"{sched}: not 23:07 in Jerusalem this week ({local:%H:%M %Z}); skipping")
                   elif local.date() < start:
                       log(f"{local.date()}: before RESEARCH_START {start}; skipping")
                   elif local.day > 7:

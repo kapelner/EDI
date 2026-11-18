@@ -1,4 +1,4 @@
-# Allowlist and baseline hygiene (weekly, Monday 07:00 UTC). No Claude, no R.
+# Allowlist and baseline hygiene (weekly, Monday 07:07 UTC). No Claude, no R.
 # Finds allowlist and accepted-row entries whose cited TODO is ticked, missing or moved, reading
 # the TODO state from the release and plan files (the TODO-status audit's parser): the calibration
 # acceptances (calibration_study_accepted.csv, calibration_fast_tier_accepted.csv), the path-audit
@@ -13,7 +13,7 @@ name: audit · weekly · allowlist-hygiene
 
 on:
   schedule:
-    - cron: "0 7 * * 1"     # weekly, Monday 07:00 UTC
+    - cron: "7 7 * * 1"     # weekly, Monday 07:07 UTC
   workflow_dispatch:
     inputs:
       scope:

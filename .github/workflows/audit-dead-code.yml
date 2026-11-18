@@ -1,4 +1,4 @@
-# Dead-code audit: monthly, 2nd Monday 06:00 UTC (a weekly Monday cron; the gate keeps the 2nd).
+# Dead-code audit: monthly, 2nd Monday 06:07 UTC (a weekly Monday cron; the gate keeps the 2nd).
 # Mechanical: a regex cross-reference over the sources (no compile, no R) finds exported R
 # functions and classes with no caller, test, example or vignette use, Rcpp exports whose R
 # wrapper nothing calls, and file-scope C++ functions in R/EDI/src with no call site.
@@ -16,7 +16,7 @@ name: audit · monthly · dead-code
 
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "7 6 * * 1"
   workflow_dispatch:
     inputs:
       scope:

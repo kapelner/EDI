@@ -1,4 +1,4 @@
-# Rd audit (weekly, Saturday 06:00 UTC): the help pages in R/EDI/man and their roxygen source.
+# Rd audit (weekly, Saturday 06:07 UTC): the help pages in R/EDI/man and their roxygen source.
 #  - Mechanical, on every page: tools::checkRd, topic links, tools::codoc, spelling with
 #    R/EDI/inst/WORDLIST (seeded on the first run), and every \examples block run in a fresh
 #    Rscript against the EDI built from this commit: the part CRAN runs by default once (CRAN's
@@ -24,7 +24,7 @@ name: audit · weekly · rd
 
 on:
   schedule:
-    - cron: "0 6 * * 6"
+    - cron: "7 6 * * 6"
   workflow_dispatch:
     inputs:
       scope:

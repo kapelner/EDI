@@ -1,4 +1,4 @@
-# Reference check (monthly, 3rd Monday 06:00 UTC): does each DOI the package cites lead to the work
+# Reference check (monthly, 3rd Monday 06:07 UTC): does each DOI the package cites lead to the work
 # the text names (title, authors, year)? The nightly link job only checks that DOIs resolve.
 #  - Mechanical: every DOI in R/EDI/REFERENCES.md and in roxygen @references (R/EDI/R/*.R) is
 #    looked up on Crossref (generic User-Agent, about one request a second, 60-day cache on the
@@ -15,7 +15,7 @@ name: audit · monthly · reference-check
 
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "7 6 * * 1"
   workflow_dispatch:
     inputs:
       scope:

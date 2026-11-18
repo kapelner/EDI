@@ -1,4 +1,4 @@
-# Numerical-robustness review (monthly, first Saturday 06:00 UTC). Claude (Opus) reads the C++
+# Numerical-robustness review (monthly, first Saturday 06:07 UTC). Claude (Opus) reads the C++
 # kernels in R/EDI/src and the R fitting files in R/EDI/R that are new or changed since the last
 # run, plus a 1/6 monthly rotation, for the bug patterns that have happened here: converged set
 # without checking the criterion, unguarded log(0) / exp overflow / division by a near-zero
@@ -14,7 +14,7 @@ name: audit · monthly · numerical-robustness
 
 on:
   schedule:
-    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 1 keeps the first Saturday of the month
+    - cron: "7 6 * * 6"     # Saturdays 06:07 UTC; nth: 1 keeps the first Saturday of the month
   workflow_dispatch:
     inputs:
       scope:

@@ -795,7 +795,7 @@ none of these numbers should be quoted as a measured result.
   - *Full pass* (re-run the method on every flagged row): at each release
     close (the original trigger), when a new kernel family ships, and after
     each Prototype item resolves through the harness (TODO-1).
-  - *Drift check* (mechanical, read-only): **monthly, the 21st at 06:00 UTC**,
+  - *Drift check* (mechanical, read-only): **monthly, the 21st at 06:07 UTC**,
     `.github/workflows/algorithm-audit-drift.yml`. It runs four checks and
     opens or updates one issue labelled `algorithm-audit-drift`; it commits
     nothing and closes the issue when clean:
@@ -808,7 +808,7 @@ none of these numbers should be quoted as a measured result.
     4. algorithm inventory (added 2026-11-16): every `R/EDI/src` and `R/EDI/R`
        file is inventoried or exempt, every entry's file and symbol still exist,
        and every entry's reference URLs are listed and still resolve.
-  - *Research* (monthly, first Thursday 23:59 Jerusalem, added 2026-11-16): one Claude agent per batch of
+  - *Research* (monthly, first Thursday 23:07 Jerusalem, added 2026-11-16): one Claude agent per batch of
     ≤ 8 algorithms searches the web for a faster acceptable algorithm, and one
     `inventory` agent judges new and changed functions against the inventory.
     Results arrive as a pull request: `../../audits/research_findings/<date>.md`

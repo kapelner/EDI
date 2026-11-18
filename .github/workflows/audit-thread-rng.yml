@@ -1,4 +1,4 @@
-# Thread and random-number review (monthly, third Sunday 06:00 UTC). Claude (Opus) reads the C++
+# Thread and random-number review (monthly, third Sunday 06:07 UTC). Claude (Opus) reads the C++
 # and R files with parallel loops or RNG use (OpenMP, threads, R's RNG, RRng, mirai / fork
 # clusters, set_num_cores, set.seed) that are new or changed since the last run, plus a 1/6
 # monthly rotation, for streams seeded per thread instead of per draw index, shared mutable state
@@ -15,7 +15,7 @@ name: audit · monthly · thread-rng
 
 on:
   schedule:
-    - cron: "0 6 * * 0"     # Sundays 06:00 UTC; nth: 3 keeps the third Sunday of the month
+    - cron: "7 6 * * 0"     # Sundays 06:07 UTC; nth: 3 keeps the third Sunday of the month
   workflow_dispatch:
     inputs:
       scope:

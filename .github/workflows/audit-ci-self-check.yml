@@ -11,7 +11,7 @@ name: audit · weekly · ci-self-check
 
 on:
   schedule:
-    - cron: "0 6 * * 5"     # Fridays 06:00 UTC
+    - cron: "7 6 * * 5"     # Fridays 06:07 UTC
   workflow_dispatch:
     inputs:
       scope:

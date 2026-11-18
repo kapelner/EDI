@@ -1,4 +1,4 @@
-# R / Python parity (monthly, third Saturday 06:00 UTC, and after a push to main that touches
+# R / Python parity (monthly, third Saturday 06:07 UTC, and after a push to main that touches
 # the bindings (python/cpp, python/src, python/CMakeLists.txt) or one of the R/EDI/src kernel
 # files python/CMakeLists.txt compiles). Claude (Sonnet) compares each pybind11 binding in
 # python/cpp/ that is new or changed (plus, on the monthly run, a 1/6 rotation) with the R side
@@ -21,7 +21,7 @@ name: audit · monthly · rpy-parity
 
 on:
   schedule:
-    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 3 keeps the third Saturday of the month
+    - cron: "7 6 * * 6"     # Saturdays 06:07 UTC; nth: 3 keeps the third Saturday of the month
   workflow_run:             # a push to main that touches the bindings or a kernel file
     workflows: ["rpy-parity · push trigger"]
     types: [completed]

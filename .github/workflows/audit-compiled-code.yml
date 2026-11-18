@@ -1,4 +1,4 @@
-# Compiled-code audit (monthly, fourth Saturday 06:00 UTC). Stage 1 builds EDI from this commit
+# Compiled-code audit (monthly, fourth Saturday 06:07 UTC). Stage 1 builds EDI from this commit
 # (EDI_UNITY=0, portable, -g -O2, into a temp library) and profiles short runs of the benchmark
 # sections under `perf record`; the functions that make up the top 90% of the EDI.so samples are
 # the hot functions. Stage 2 runs detectors on them: GCC missed-vectorization and missed-inlining
@@ -17,7 +17,7 @@ name: audit · monthly · compiled-code
 
 on:
   schedule:
-    - cron: "0 6 * * 6"     # Saturdays 06:00 UTC; nth: 4 keeps the fourth Saturday of the month
+    - cron: "7 6 * * 6"     # Saturdays 06:07 UTC; nth: 4 keeps the fourth Saturday of the month
   workflow_dispatch:
     inputs:
       scope:

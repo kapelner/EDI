@@ -1,4 +1,4 @@
-# Results freshness (weekly, Sunday 06:00 UTC). No Claude, no R.
+# Results freshness (weekly, Sunday 06:07 UTC). No Claude, no R.
 # Finds comprehensive-test aggregate rows (R/package_tests/comprehensive_tests_*.csv,
 # comprehensive_coverage_attempt_summary.csv) and the latest calibration campaign's summary rows
 # (calibration-results branch) generated before the class, a class it inherits from, or the
@@ -14,7 +14,7 @@ name: audit · weekly · results-freshness
 
 on:
   schedule:
-    - cron: "0 6 * * 0"     # weekly, Sunday 06:00 UTC
+    - cron: "7 6 * * 0"     # weekly, Sunday 06:07 UTC
   workflow_dispatch:
     inputs:
       scope:

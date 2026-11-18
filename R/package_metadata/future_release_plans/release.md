@@ -12,7 +12,7 @@
 ## Release gate: the full R-CMD-check run at the release commit
 
 Owner ruling 2026-11-14. Push and PR run only the lean set below; the rest of
-`.github/workflows/R-CMD-check.yaml` runs weekly (Saturday 04:00 UTC) and on
+`.github/workflows/R-CMD-check.yaml` runs weekly (Saturday 04:07 UTC) and on
 manual dispatch. **No release ships until a full run is green at the exact
 release commit**:
 

@@ -1,4 +1,4 @@
-# NEWS and version consistency (weekly, Thursday 07:00 UTC).
+# NEWS and version consistency (weekly, Thursday 07:07 UTC).
 # Mechanical: the version in R/EDI/DESCRIPTION against python/pyproject.toml, the Python CHANGELOG,
 # CITATION.cff, python/CITATION.cff, codemeta.json, R/EDI/inst/CITATION and the READMEs' BibTeX,
 # and against the last release tag. Claude (Sonnet): one agent per 8 commits since the last release
@@ -12,7 +12,7 @@ name: audit · weekly · news-version
 
 on:
   schedule:
-    - cron: "0 7 * * 4"     # weekly, Thursday 07:00 UTC
+    - cron: "7 7 * * 4"     # weekly, Thursday 07:07 UTC
   workflow_dispatch:
     inputs:
       scope:

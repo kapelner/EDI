@@ -1,4 +1,4 @@
-# README / vignette / article drift audit (weekly, Thursday 06:00 UTC).
+# README / vignette / article drift audit (weekly, Thursday 06:07 UTC).
 #  - Mechanical: every R chunk of R/EDI/README.md (README.Rmd if present), R/EDI/vignettes/*.Rmd and
 #    R/EDI/vignettes/articles/*.Rmd runs in order in a fresh R session per document (15 min limit),
 #    against the EDI built from this commit; output, messages, warnings and errors are recorded.
@@ -15,7 +15,7 @@ name: audit · weekly · readme-drift
 
 on:
   schedule:
-    - cron: "0 6 * * 4"
+    - cron: "7 6 * * 4"
   workflow_dispatch:
     inputs:
       scope:

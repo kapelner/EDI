@@ -35,7 +35,7 @@ the Python benchmark, or comparing against other packages.
 ### 1. Trigger and baseline
 
 `.github/workflows/benchmark-weekly.yml`: `schedule` once a week (Sunday 05:00 UTC, away from the calibration
-start on the 1st at 03:17), plus `workflow_dispatch` with optional `base` and `head` SHAs for a manual check.
+start on the 1st at 03:07), plus `workflow_dispatch` with optional `base` and `head` SHAs for a manual check.
 
 - **head** = `main` at run time.
 - **base** = the head SHA of the most recent run of this workflow that **succeeded** (benchmarked or skipped),

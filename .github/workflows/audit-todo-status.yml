@@ -1,4 +1,4 @@
-# TODO-status audit (weekly, Wednesday 06:00 UTC, after the 02:07 nightly).
+# TODO-status audit (weekly, Wednesday 06:07 UTC, after the 02:07 nightly).
 # Checks every checkbox TODO of the unreleased release files and of the plan files they link to:
 # mechanical checks on moved pointers (target exists; target ticked), then one Claude agent per 8
 # TODOs judges done / partly done / not done / undone / unclear with evidence per part. Opus for
@@ -12,7 +12,7 @@ name: audit · weekly · todo-status
 
 on:
   schedule:
-    - cron: "0 6 * * 3"     # weekly, Wednesday 06:00 UTC
+    - cron: "7 6 * * 3"     # weekly, Wednesday 06:07 UTC
   workflow_dispatch:
     inputs:
       scope:

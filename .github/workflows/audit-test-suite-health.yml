@@ -1,4 +1,4 @@
-# Test-suite health audit: weekly, Tuesday 06:00 UTC. Mechanical only (no Claude).
+# Test-suite health audit: weekly, Tuesday 06:07 UTC. Mechanical only (no Claude).
 # Checks R/EDI/tests/testthat and R/package_tests/testthat_bulk for test_that() blocks with no
 # expectation, skip() calls that always run, skip_if()/skip_on_os() calls whose literal arguments
 # never lift, test files named for a TODO number, and test files that flip between pass and fail
@@ -13,7 +13,7 @@ name: audit · weekly · test-suite-health
 
 on:
   schedule:
-    - cron: "0 6 * * 2"
+    - cron: "7 6 * * 2"
   workflow_dispatch:
     inputs:
       scope:

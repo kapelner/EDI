@@ -32,7 +32,7 @@ name: calibration-study
 # neighbouring cheap classes of one cell.
 on:
   schedule:
-    - cron: '17 3 1 * *'   # 1st of every month, 03:17 UTC: start a campaign
+    - cron: '7 3 1 * *'    # 1st of every month, 03:07 UTC: start a campaign
   workflow_dispatch:
     inputs:
       campaign:
