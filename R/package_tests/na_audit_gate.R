@@ -35,7 +35,7 @@
 `%||%` = function(x, y) if (is.null(x)) y else x
 
 na_audit_allowlist_cols = c("scope", "class_pattern", "function_pattern", "context_pattern", "kind", "todo", "warning_class", "reason")
-na_audit_digest_cols = c("response_type", "design", "beta_T", "class_name", "function_run", "inference_labels", "n_rows", "n_na_silent", "n_na_warned", "n_na_unknown", "n_na_declared", "warning_classes", "example")
+na_audit_digest_cols = c("response_type", "design", "beta_T", "class_name", "function_run", "n_rows", "n_na_silent", "n_na_warned", "n_na_unknown", "n_na_declared", "warning_classes", "example")
 na_audit_estimand_function_regex = "estimate|confidence_interval|pval"
 
 na_audit_chr = function(x) {
@@ -170,7 +170,9 @@ na_audit_warning_classes = function(error_message) {
 }
 
 # Folds comprehensive_tests_results_nc_*.csv into one row per
-# (response_type, design, beta_T, class, function_run) that has any NA row.
+# (response_type, design, class, function_run) that has any NA row. beta_T is folded
+# in (the values seen, ";"-joined) to keep the committed digest small (~0.8 MB, was
+# ~2 MB with one row per beta_T and an inference_labels column nothing read).
 build_comprehensive_na_digest = function(results_files) {
 	if (!requireNamespace("data.table", quietly = TRUE)) stop("data.table is needed to build the NA digest.", call. = FALSE)
 	cols = c("function_run", "rep", "beta_T", "dataset", "response_type", "design", "inference_class", "status", "error_message", "result")
@@ -183,10 +185,9 @@ build_comprehensive_na_digest = function(results_files) {
 		x = x[na_kind != ""]
 		if (!nrow(x)) next
 		x[, class_name := sub(" .*$", "", inference_class)]
-		x[, inference_label := sub(" \\[design_formula=[^]]*\\]$", "", inference_class)]
 		x[, warning_class := na_audit_warning_classes(error_message)]
 		parts[[length(parts) + 1L]] = x[, list(
-			inference_labels = paste(sort(unique(inference_label)), collapse = " | "),
+			beta_T = paste(sort(unique(beta_T)), collapse = ";"),
 			n_rows = .N,
 			n_na_silent = sum(na_kind == "silent"),
 			n_na_warned = sum(na_kind == "warned"),
@@ -198,7 +199,7 @@ build_comprehensive_na_digest = function(results_files) {
 				if (is.na(ix)) ix = 1L
 				paste0("dataset=", dataset[ix], ";rep=", rep[ix])
 			}
-		), by = list(response_type, design, beta_T, class_name, function_run)]
+		), by = list(response_type, design, class_name, function_run)]
 		rm(x)
 		gc(verbose = FALSE)
 	}
@@ -206,7 +207,7 @@ build_comprehensive_na_digest = function(results_files) {
 		return(as.data.frame(setNames(replicate(length(na_audit_digest_cols), character(), simplify = FALSE), na_audit_digest_cols), stringsAsFactors = FALSE))
 	}
 	out = as.data.frame(data.table::rbindlist(parts))
-	out = out[order(out$response_type, out$class_name, out$function_run, out$design, out$beta_T), na_audit_digest_cols, drop = FALSE]
+	out = out[order(out$response_type, out$class_name, out$function_run, out$design), na_audit_digest_cols, drop = FALSE]
 	row.names(out) = NULL
 	out
 }
@@ -384,7 +385,7 @@ na_audit_main = function() {
 	library(data.table)
 	digest = build_comprehensive_na_digest(files)
 	out = file.path(here, "comprehensive_suite_na_audit.csv")
-	utils::write.csv(digest, out, row.names = FALSE)
+	data.table::fwrite(digest, out)  # quotes only where needed
 	message("Wrote ", nrow(digest), " NA digest rows from ", length(files), " result file(s) to ", out)
 }
 
