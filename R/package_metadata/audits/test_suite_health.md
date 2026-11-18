@@ -2,8 +2,19 @@
 
 Written by the test-suite-health audit (`.github/workflows/audit-test-suite-health.yml`) and rewritten on each run. To reject a finding, delete its line in the audit PR: the audit will not raise it again. Fix a finding in the test itself; the line goes away on the next run.
 
-## Skips that always run (3)
+## Skips that always run (14)
 
-- `R/package_tests/testthat_bulk/test-prop-gcomp-bootstrap-core-count-invariance.R :: seeded prop g-computation bootstrap distribution does not depend on the core count`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-binomial-identity-randomization-refit-nonconverged-start.R :: identity-binomial randomization refit does not return a non-converged warm start as the estimate`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-cpoisson-combined-fixed-parameter-convergence-flag.R :: combined cond-Poisson restricted fit reports convergence at the restricted optimum`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-incidence-risk-diff-perfect-fit-estimate-not-na.R :: risk-difference estimate is returned for a perfect fit even though the HC0 SE is not estimable`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-kk-cond-logit-ivwc-se-after-estimate-only-call.R :: KK cond-logit IVWC Wald CI after an estimate-only call matches a fresh object`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-newcombe-pval-boundary-estimate-equals-delta.R :: Newcombe p-value is one when delta equals a boundary estimate of one`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-off-optimum-penalized-loglik-indefinite-information.R :: penalized neg-loglik is infeasible (Inf) when the information matrix is indefinite`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-poisson-large-counts-zero-start-step-halving.R :: Poisson estimate matches glm for large counts under the default zero cold start`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-quasipoisson-large-counts-zero-start-step-halving.R :: quasi-Poisson estimate matches glm for large counts under the default zero cold start`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-robust-poisson-large-counts-zero-start-step-halving.R :: robust Poisson estimate matches glm for large counts under the default zero cold start`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
 - `R/package_tests/testthat_bulk/test-run-all-inference-fork-workers-seed-core-count-invariance.R :: run_all_inference rand p-values after set.seed() do not depend on num_cores`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
 - `R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R :: SimulationFramework seeded estimates do not depend on num_cores`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R :: ZIP marginal CI is finite and invariant to shifting an uncentered covariate`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R :: Zhang combined p-value does not drop an underflowed matched-pairs p-value and the exact CI stays finite`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
+- `R/package_tests/testthat_bulk/test-zhang-stouffer-min-p-combination-tail-accuracy.R :: Zhang Stouffer and min-p combinations keep tiny p-values positive and accurate`: `skip("open a release TODO for this")` runs unconditionally, so this test never runs
