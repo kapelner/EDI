@@ -2356,21 +2356,6 @@ docs-claims audit.
   randomization CI search (which calls the p-value many times; check whether `active_resampling_operation` is set
   there) — warn once per user-facing call.
 
-- [ ] TODO-147 (added 2026-11-18, agent, owner decision; from the docs-claims audit): **`InferenceIncidExactZhang`'s
-  point estimate ignores the matched pairs on KK designs.** `compute_estimate()`
-  (`R/EDI/R/inference_incidence_exact_zhang.R` ~L24) is `zhang_incid_treatment_estimate()`
-  (`R/EDI/R/inference_helpers_zhang.R` ~L96): the Haldane-Anscombe log odds ratio of `n11`, `n10`, `n01`, `n00`.
-  With a match structure, `zhang_get_exact_stats()` fills those from `compute_zhang_match_data_cpp()`, which counts
-  the reservoir only, so the estimate is always 0 when every subject is matched. The docs
-  (`inference_incidence_exact_zhang.R` ~L120, `man-roxygen/exact-zhang-compute-estimate.R`) say it uses the pooled
-  2x2 table across all subjects. Owner decision (2026-11-18): the estimate must use all subjects, as documented.
-  Build the pooled table (each matched subject's own treatment and outcome, plus the reservoir) and use it in
-  `compute_estimate()`; check whether `zhang_incid_mle_ci()` (the CI search bracket) and
-  `zhang_ci_inside_point()` (`est_R`) should use the pooled or the reservoir table, since the exact p-value still
-  combines the matched and reservoir parts separately. Test: on a KK design with every subject matched the estimate is
-  not identically 0 and equals the pooled-table formula; with no matching it is unchanged. Add a NEWS entry under
-  "Changes that alter results". (audit decision `docs-claims-d42892ef3`)
-
 - [ ] TODO-137 (added 2026-11-18, agent; found by the v1.0.6-TODO-135 agent): **The g-computation risk-ratio jackknife
   path bypasses the jackknife guards.** `inference_incidence_gcomp_abstract.R` and
   `inference_incidence_KK_gcomp_abstract.R` build their own log-scale SE from the replicates, rejecting only
@@ -2391,6 +2376,7 @@ docs-claims audit.
   collinearity drops stay silent. 0 of 130 class x fixture estimates/p-values changed. Test
   `test-covariate-dropped-warning.R` (34); 133 related files pass (one bulk test updated to expect the warning).
   Roxygen "Dropped covariates" paragraph added to probit, log-binomial, binomial-identity. NEWS added.
+
 - [ ] TODO-139 (added 2026-11-18, agent; found by the v1.0.6-TODO-133 agent): **The C++ stratified Cox fit with zero
   events reports `converged = TRUE` at a nonzero coefficient.** Repro: KK14 survival design, seed 2, n = 40, every
   matched subject censored (`y_L = 5 + i/100, y_R = Inf`): `fast_stratified_coxph_regression_cpp(..., estimate_only =
@@ -2398,7 +2384,6 @@ docs-claims audit.
   `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate(estimate_only = TRUE)` returns -1.642 while the SE path returns
   NA. Fix: in `R/EDI/src` (zero events -> not converged; needs the owner's targeted compile) and/or an R-side
   zero-events guard on the matched half.
-
 - [ ] TODO-140 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **The studentized bootstrap p-value is a
   silent NA when standard errors are missing.** In `compute_bootstrap_two_sided_pval()`
   (`inference_all_abstract_non_param_boot.R` ~L752-756) the too-few-usable-draws branch only records
@@ -2410,6 +2395,7 @@ docs-claims audit.
   `bootstrap_too_few_finite_estimates` (na.rm = TRUE), `bootstrap_extreme_finite_estimates`,
   `bootstrap_pvalue_unavailable`, and the Bayesian `..._extreme_finite_estimates` / `..._too_few_finite_estimates`
   p-value returns: v1.0.6-TODO-145.
+
 - [ ] TODO-141 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **Bayesian bootstrap under general
   censoring fails inside every draw for RestrictedMeanDiff, GehanWilcox, LogRank and Weibull** (their interval-
   censored fits take no weights), returning NA with `edi_bootstrap_nonfinite_na_warning`: warned but misleading.
@@ -2482,7 +2468,6 @@ docs-claims audit.
   ifelse(y_R > 9, 9, y_L), y_Rs = ifelse(y_R > 9, Inf, y_R)`), `InferenceSurvivalKMDiff$new(des_9)$compute_estimate()`.
   Also: on interval data the KMDiff jackknife-Wald NA gives the generic `edi_procedure_na_warning` rather than the
   median-specific `edi_km_jackknife_na_warning`.
-
 - [ ] TODO-145 (added 2026-11-18, agent; found by the v1.0.6-TODO-140 agent): **Remaining silent-NA returns in the
   bootstrap p-values:** non-studentized `bootstrap_too_few_finite_estimates` (with `na.rm = TRUE`),
   `bootstrap_extreme_finite_estimates`, `bootstrap_pvalue_unavailable`, and the Bayesian p-value's
@@ -2501,6 +2486,21 @@ docs-claims audit.
   censoring (covers p-value, CI, type listings, pre-noised draws). Right-censored and continuous results identical.
   Test `test-rand-bootstrap-smoothing-refused-under-general-censoring.R` (60). Roxygen sentence and NEWS added by the
   coordinator. Found: v1.0.6-TODO-148.
+
+- [ ] TODO-147 (added 2026-11-18, agent, owner decision; from the docs-claims audit): **`InferenceIncidExactZhang`'s
+  point estimate ignores the matched pairs on KK designs.** `compute_estimate()`
+  (`R/EDI/R/inference_incidence_exact_zhang.R` ~L24) is `zhang_incid_treatment_estimate()`
+  (`R/EDI/R/inference_helpers_zhang.R` ~L96): the Haldane-Anscombe log odds ratio of `n11`, `n10`, `n01`, `n00`.
+  With a match structure, `zhang_get_exact_stats()` fills those from `compute_zhang_match_data_cpp()`, which counts
+  the reservoir only, so the estimate is always 0 when every subject is matched. The docs
+  (`inference_incidence_exact_zhang.R` ~L120, `man-roxygen/exact-zhang-compute-estimate.R`) say it uses the pooled
+  2x2 table across all subjects. Owner decision (2026-11-18): the estimate must use all subjects, as documented.
+  Build the pooled table (each matched subject's own treatment and outcome, plus the reservoir) and use it in
+  `compute_estimate()`; check whether `zhang_incid_mle_ci()` (the CI search bracket) and
+  `zhang_ci_inside_point()` (`est_R`) should use the pooled or the reservoir table, since the exact p-value still
+  combines the matched and reservoir parts separately. Test: on a KK design with every subject matched the estimate is
+  not identically 0 and equals the pooled-table formula; with no matching it is unchanged. Add a NEWS entry under
+  "Changes that alter results". (audit decision `docs-claims-d42892ef3`)
 
 - [ ] TODO-148 (added 2026-11-18, agent; found by the v1.0.6-TODO-146 agent): **`InferenceSurvivalWeibullRegr` smoothed
   bootstrap randomization test on plain right-censored data returns NA** (30 of 31 null draws NA at delta = 0 and
