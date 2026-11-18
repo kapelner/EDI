@@ -787,7 +787,7 @@ none of these numbers should be quoted as a measured result.
   `release_v1_1_0.md → TODO-61` / audit TODO-39. Follow-ups (b) and (c) were completed
   under v1.0.5 TODO-69: the equivalence references and both R fallbacks now
   explicitly select Breslow.
-- [ ] TODO-7 (scheduled in `../../future_release_plans/release_v1_1_0.md → TODO-52`, as a per-release pass): Re-run this audit's method (not its conclusions) whenever a
+- [x] TODO-7 (scheduled in `../../future_release_plans/release_v1_1_0.md → TODO-52`, as a per-release pass): Re-run this audit's method (not its conclusions) whenever a *(ticked by the TODO audit 2026-11-18: R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:1202; .github/workflows/algorithm-audit-drift.yml:23; .github/scripts/algorithm_audit_drift.py:292; .github/workflows/algorithm-audit-drift.yml:30; R/package_metadata/audits/research_findings/2026-11-16-run43896063512.md; R/pac...)*
   new kernel family ships, and after each Prototype item resolves through
   the harness, to keep the summary table current.
   **Cadence and triggers (amended 2026-10-22, owner decision).** Two layers;
@@ -976,7 +976,7 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
 - [ ] TODO-35 (scheduled in `../../future_release_plans/release_v1_2_0.md → TODO-23`; needs a policy decision first): **Exact randomization distribution when the support is ≤ r**
   (complete randomization, pairs, clusters). This needs a policy decision first (§7 TODO-6).
   Also exact all-pairs enumeration for KK21's λ (§7 TODO-7).
-- [ ] TODO-36 (covered by `../../future_release_plans/release_v1_0_5.md → TODO-82` (`aftsrr`, F22) and `→ TODO-88` (g-comp SE, F25); the √w convention was refuted (F24)): Investigate the row AB items: the √w sandwich convention,
+- [x] TODO-36 (covered by `../../future_release_plans/release_v1_0_5.md → TODO-82` (`aftsrr`, F22) and `→ TODO-88` (g-comp SE, F25); the √w convention was refuted (F24)): Investigate the row AB items: the √w sandwich convention, *(ticked by the TODO audit 2026-11-18: R/package_metadata/bug_fix_plans/v1_0_5/algorithm_sweep_verified_findings.md:18; R/EDI/R/inference_incidence_gcomp.R:326; R/package_metadata/future_release_plans/release_v1_0_5.md:10241; R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R:178; R/EDI/R/inference_survival_KK_rank_regr_ivwc_abst...)*
   the g-comp SE target, and `aftsrr` with B = 0.
 
 ---
