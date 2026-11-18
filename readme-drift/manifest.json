@@ -1,6 +1,6 @@
 {
- "issue_hash": "d156f1d520b71421",
- "last_run": "2026-11-17T22:43:35+00:00",
+ "issue_hash": "d677d9e96b2474dd",
+ "last_run": "2026-11-18T19:55:27+00:00",
  "units": {
   "R/EDI/README.md": {
    "audited_at": "2026-11-17T10:27:51+00:00",
@@ -10,11 +10,11 @@
    "run": "44048303784"
   },
   "R/EDI/vignettes/EDI.Rmd": {
-   "audited_at": "2026-11-17T22:43:35+00:00",
-   "deps": "1ebf61b8f743d664",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "ef537a215ac70d90",
    "hash": "0db805e27bb69578",
    "open_findings": 0,
-   "run": "44173484561"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd": {
    "audited_at": "2026-11-17T22:43:35+00:00",
@@ -45,18 +45,18 @@
    "run": "44173484561"
   },
   "R/EDI/vignettes/articles/custom-randomization-statistic.Rmd": {
-   "audited_at": "2026-11-17T22:43:35+00:00",
-   "deps": "31dac9d377ab0e2d",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "fe7377a8374c9b71",
    "hash": "472dc27763d7aa3a",
    "open_findings": 0,
-   "run": "44173484561"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/articles/edi-from-python.Rmd": {
-   "audited_at": "2026-11-17T22:43:35+00:00",
-   "deps": "201c4770fad4c3eb",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "2aa30fc81368e695",
    "hash": "1718496405f5e38b",
    "open_findings": 0,
-   "run": "44173484561"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/articles/learn-statistics-through-edi.Rmd": {
    "audited_at": "2026-11-17T10:27:51+00:00",
@@ -66,18 +66,18 @@
    "run": "44048303784"
   },
   "R/EDI/vignettes/articles/matching-on-the-fly.Rmd": {
-   "audited_at": "2026-11-17T22:43:35+00:00",
-   "deps": "fabcb112a1fd958e",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "4ce737a374d4d668",
    "hash": "ae3996a7b79ac881",
    "open_findings": 0,
-   "run": "44173484561"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/articles/missing-covariates.Rmd": {
-   "audited_at": "2026-11-17T22:43:35+00:00",
-   "deps": "42ef2f4a0742eade",
-   "hash": "1acadc4c0c6f4705",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "a9f064b21438a266",
+   "hash": "0cfc83209989105a",
    "open_findings": 0,
-   "run": "44173484561"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/articles/planning-a-study.Rmd": {
    "audited_at": "2026-11-17T22:43:35+00:00",
@@ -108,11 +108,11 @@
    "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-continuous.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "a0c95f8d83e70cae",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "99e821d61c24acf8",
    "hash": "1df4e3df1dfff34d",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/cookbook-count.Rmd": {
    "audited_at": "2026-11-17T22:43:35+00:00",
@@ -136,18 +136,18 @@
    "run": "44173484561"
   },
   "R/EDI/vignettes/cookbook-proportion.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "e17d287282998b49",
-   "hash": "65591b9fa26402c9",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "67ae1a92f05f7bf2",
+   "hash": "b4638ce5326ec13c",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/cookbook-survival.Rmd": {
-   "audited_at": "2026-11-17T19:35:57+00:00",
-   "deps": "121c7655177a25a0",
-   "hash": "350910ed59e8ba68",
+   "audited_at": "2026-11-18T19:55:27+00:00",
+   "deps": "8a51caf8f70845aa",
+   "hash": "c2c51177071baa7f",
    "open_findings": 0,
-   "run": "44146476275"
+   "run": "44358325339"
   },
   "R/EDI/vignettes/extending-edi.Rmd": {
    "audited_at": "2026-11-17T10:27:51+00:00",
