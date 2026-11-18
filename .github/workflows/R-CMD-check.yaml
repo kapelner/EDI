@@ -92,6 +92,16 @@ name: R-CMD-check
 #     catch memory bugs (uninitialized reads, invalid frees) ASAN/UBSAN can
 #     miss.
 
+# A newer push to the same branch (each PR merge is one), or a newer commit on the same PR, cancels
+# this workflow's run for the older one (owner, 2026-11-18): merging several PRs in a row queued one
+# full run per merge, holding the 20 free runners for hours. Push and pull_request runs share a group
+# per ref; schedule and workflow_dispatch runs get their own (the run id), so they never cancel or get
+# cancelled, and each tag push is its own ref. A job gated with `always()` keeps running after a
+# cancel, so only short report jobs may use it; long jobs use `!cancelled()`.
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'pull_request') && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+
 jobs:
   # Decides whether the check jobs run (owner rulings 2026-11-14), using the
   # same paths as the push filter above:
