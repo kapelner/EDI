@@ -1095,7 +1095,7 @@ def fast_ridit_analysis(w: typing.Annotated[numpy.typing.NDArray[numpy.int32], "
     """
 def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, method: str = 'MM', j: typing.SupportsInt | typing.SupportsIndex = 2, c: typing.SupportsFloat | typing.SupportsIndex = 1.345, maxit: typing.SupportsInt | typing.SupportsIndex = 50, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-07, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
-    Robust regression via IRLS (Huber M or Huber-then-Tukey-bisquare MM-estimation). Parameters sourced from R/EDI/man/ documentation for fast_robust_regression_cpp.
+    Robust regression via IRLS (Huber M or single-stage Tukey-bisquare MM-estimation). Parameters sourced from R/EDI/man/ documentation for fast_robust_regression_cpp.
     
     Parameters
     ----------

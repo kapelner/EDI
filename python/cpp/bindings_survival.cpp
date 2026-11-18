@@ -165,7 +165,7 @@ void bind_survival(py::module_& m) {
     "event times: PL(beta) = prod_{i: dead_i=1} exp(x_i^T beta) /\n"
     "(sum_{j in R(t_i)} exp(x_j^T beta))^{d_i}, where R(t_i) is the risk set\n"
     "at event time t_i (all subjects still under observation) and d_i is the\n"
-    "number of tied events at t_i. Fit via Newton-Raphson on the log partial\n"
+    "number of tied events at t_i. Fit via Newton-Raphson (default; optimization_alg='lbfgs' selects L-BFGS) on the log partial\n"
     "likelihood's score and (observed) information; unstratified, no\n"
     "cluster-robust sandwich vcov (the plain inverse-information covariance is\n"
     "returned). No R-side roxygen documents this raw kernel directly\n"
