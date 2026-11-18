@@ -1278,5 +1278,645 @@
   "at": "2026-11-17",
   "text": "There is no column-selection cache policy API (set_column_selection_cache_policy and similar) anywhere in the checkout, and no step 1 counts of drop-loop refits are recorded. Nothing in this TODO has been built.",
   "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-193": {
+  "at": "2026-11-18",
+  "text": "Not done. There is no cpp_tests/ directory in the checkout, so no v1.1.0 core addition has a native test target. All three TODOs in the plan (native_cpp_tests_v1_1_0.md TODO-1..3) are unticked. The nightly.yml header also says the fuzz job \"succeeds while cpp_tests/ does not exist yet\".",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-195": {
+  "at": "2026-11-18",
+  "text": "Partly done. The regression check runs nightly: bench-build/bench jobs, ABBA timing, a verdict that needs a regression in both comparisons, an allowlist, and a standing canary. The Done-when condition is not met: Phase 4 in weekly_benchmark_regression_check.md is unticked (all Phases 0-4 are unticked), and no recorded validation run is visible. The 'no published results' rule is also contradict...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-196": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_adjacent_category_logit.cpp has no grouped or pattern-count path. fast_continuation_ratio_regression_weighted_cpp is called only from the stereotype-logit class, not from a pattern-compressed CR route. No benchmark numbers are recorded. The only citing commit (ffdaa96e) just renames TODO references.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-197": {
+  "at": "2026-11-18",
+  "text": "Not done. compute_estimate_with_bootstrap_weights still fits the interior rows with betareg::betareg (lm.wfit as fallback). It does not use fast_beta_regression_weighted_cpp, and no benchmark is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-198": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_logistic_regression and fast_logistic_regression_with_var still default to optimization_alg = \"lbfgs\". No intent decision, A/B or KK21 equality check is recorded. The research findings file only records the triage observation.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-199": {
+  "at": "2026-11-18",
+  "text": "Not done. solve_optimal_blocks always builds and solves the ompr MILP. It has no n == 2B dispatch to nbpMatching::nonbimatch, and no comparison numbers are recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-20": {
+  "at": "2026-11-18",
+  "text": "Not done. EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES still exists with its three entries and is still merged in populate_inference_class_registry. The test still reads that constant, and there is no drift-detection test. harden_registry.md TODO-1..4 are all unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-200": {
+  "at": "2026-11-18",
+  "text": "Not done. fit_clogit_reservoir_logit still fits with stats::glm.fit plus an offset. It does not use fast_logistic_regression_weighted_cpp with fixed_idx/fixed_values, and no benchmark is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-201": {
+  "at": "2026-11-18",
+  "text": "Not done. cox_design_candidates still builds all 12 threshold rungs (drop_highly_correlated_cols plus the hardened QR) before any fit. No profile of shared() is recorded anywhere, and no commit cites the TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-202": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_ordinal_probit/cloglog_regression_cpp still take no weights argument. weighted_ordinal_bootstrap_surrogate_fit still fits through polr, and no benchmark is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-203": {
+  "at": "2026-11-18",
+  "text": "Not done. .cloglog_full_data_multistart still always runs its four restarts with no convergence-certificate gate, and its callers at inference_ordinal_cloglog.R:304 and :314 call it unconditionally. No A/B or timing is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-204": {
+  "at": "2026-11-18",
+  "text": "Not done. The package has no ladder helper, and the call sites still call drop_highly_correlated_cols once per threshold, for example inference_survival_KK_strat_cox.R:162. The only artifact is a phase0 bench spec that times a candidate outside the package; it is not an implementation and records no result.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-205": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_poisson_glmm.cpp still computes per-row, per-node mu (an n x K matrix, eta+b clamped at 700) rather than per-group sufficient statistics. No A/B or timing is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-206": {
+  "at": "2026-11-18",
+  "text": "Not done. kk_pair_and_reservoir_bootstrap_weights still uses the vapply/which loop per pair. No pair-row cache, equality test or recorded benchmark exists; only a phase0 bench spec is present, and it notes that it does not cover the cpoisson caching half.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-207": {
+  "at": "2026-11-18",
+  "text": "Not done. The R code has no closed-form or downdating jackknife fast path; jackknife replicates still refit through the generic path. Only a phase0 bench spec exists, with no result recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-208": {
+  "at": "2026-11-18",
+  "text": "Not done. Both fit_null closures in inference_ordinal_cloglog.R still always run fit_from(full_start) next to the first start (:222, :261-263) with no certificate gate. No counts or benchmarks are recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-209": {
+  "at": "2026-11-18",
+  "text": "Not done. Neither inference_survival_log_rank.R nor inference_survival_gehan_wilcox.R defines compute_fast_randomization_distr. No benchmark or tolerance-gate test exists either.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-21": {
+  "at": "2026-11-18",
+  "text": "Not done. The plan's TODO-1..7 are all unticked in design_inference_dependence_guard.md, and the package contains no dependence_naive_on_design, dependence_note, estimand_linearity, splits_arms/shares_arm, dependence_structure or acknowledge_design_dependence_naive. The Cauchy weighting fix (TODO-4c) is also absent: run_all_inference_estimand_grouped_weights still counts rows per estimand via t...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-210": {
+  "at": "2026-11-18",
+  "text": "Not done. local_machine_tuning_harness.R still uses the median + IQR acceptance rule in edi_tuning_accept_candidate. It has no paired-difference bootstrap/Wilcoxon CI, no adaptive stopping, and no recorded synthetic self-check.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-211": {
+  "at": "2026-11-18",
+  "text": "Not done. zhang_combine_exact_pvals still computes Stouffer with qnorm(1 - p/2) and min-p as 1 - (1 - min)^2 (R/EDI/R/inference_helpers_zhang.R:29-37), and cct_combine_pvalues_full still uses plain tan/atan with no small-p branch (R/EDI/R/inference_suite.R:4062-4063). The only related test, test-zhang-stouffer-min-p-combination-tail-accuracy.R, is skipped and covers only part of the requested t...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-212": {
+  "at": "2026-11-18",
+  "text": "Not done. seed_for_index still returns a 32-bit seed (R/EDI/src/RNG.h:302-307), and every index-seeded kernel still constructs RRng from it. No setup-share benchmark, counter-based stream prototype or recorded numbers exist. The batch flags owner_closed, but the item's text has no closing note.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-213": {
+  "at": "2026-11-18",
+  "text": "Not done. robust_survreg_with_surv_object still starts from init = rep(0, p+1) and retries with unscaled rnorm jitter (R/EDI/R/helper_robust_regression.R:153, :201). No data-driven start and no attempt-count or timing comparison is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-214": {
+  "at": "2026-11-18",
+  "text": "Not done. The two weighted glmmTMB call sites (R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1097 and R/EDI/R/inference_count_hurdle.R:436) still pass no se argument. They also still use glmmTMBControl(parallel = self$num_cores) inside the replicate loop. No timing is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-215": {
+  "at": "2026-11-18",
+  "text": "Partly done. Commit 16270f74 re-cited the 24 Extended Robins rows to v1.1.0-TODO-215, and they are present in calibration_study_accepted.csv. The TODO's done-when needs an owner ruling to keep or change the estimator, and none is recorded in the item text.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-3": {
+  "at": "2026-11-18",
+  "text": "Partly done. The first step of the chain, optimizer_diagnostics_report.md TODO-1 (free diagnostics), is ticked with a dated Done note, and its fields (hit_iteration_cap, gradient_norm) are in the core header. Nothing else in the chain has started: there is no SolverDiagnostics component, and no get_last_fit_diagnostics, EDIInferenceDebugResult or compute_pval_debug in R/EDI/R.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-3a": {
+  "at": "2026-11-18",
+  "text": "Not done. The ZI score path still goes through score_test_with_ridge_fallback, which uses an escalating diagonal ridge, not an eigen-truncated pseudo-inverse. inference_count_zero_inflated.R has no rule for saturated zi coefficients. The collapse is not reported through diagnostics, because TODO-3's diagnostics do not exist yet.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-47": {
+  "at": "2026-11-18",
+  "text": "Not done. All of covariate_coefficient_table.md TODO-1..9 are unticked, and R/EDI/R has no coefficient-table code.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-48": {
+  "at": "2026-11-18",
+  "text": "Partly done. Plan items (3) tie tolerance and (4) CI enforcement are ticked, and their tests and helper are in the checkout. Decision D1 (portable build by default) is in NEWS. Items (1), (2), (5) and (7) are open. (6) has been measured, but the tie-tolerant fix it calls for has not landed; it is scheduled as v1.0.6-TODO-33.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-4b": {
+  "at": "2026-11-18",
+  "text": "Not done. performance_profiling_and_upgrades.md TODO-132, -133, -134, -135 and -175 are all unticked. Nothing they deliver is in the checkout: no inclusive-frame tables, no callgrind counts, no TMA buckets, no noise floor or regression gate, and no benchmark/_machine_state.sh. The perf-tool install and verify scripts exist, but the TODO calls them pre-existing tooling.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "Not done. Every listed plan TODO is unticked: expanded_estimate TODO-2..5, Cox-Snell TODO-2..5, Cordeiro-McCullagh TODO-2..4, the Cordeiro-Ferrari and Lemonte phases, Bartlett exact-rollout TODO-2, and Firth TODO-2..5. The Cordeiro-Ferrari and Lemonte mixins in the code are stubs; the one for Cordeiro-Ferrari says itself that it is not spliced into any class. There are no score-modified tests.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-50": {
+  "at": "2026-11-18",
+  "text": "Not done. algorithm_choice_audit.md TODO-14, -15, -16, -17, -22, -24, -25 and -28 are all unticked with no progress notes. Spot checks found no JT polynomial DP in fast_jonckheere_terpstra.cpp, no EMICM or ic_np use, and no Brent profile for \u03c6.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-52": {
+  "at": "2026-11-18",
+  "text": "Partly done. The monthly drift workflow, its scripts and the runbook are in the checkout, which covers the 'ships the workflow and runbook' half of the audit's TODO-7. TODO-41 (a parity test per toggle, toggles documented as developer options) is not done; the only related test is a use_rcpp wiring test for KK robust regression. The release-close audit re-run, the first drift-workflow run and i...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-55": {
+  "at": "2026-11-18",
+  "text": "Not done. CR2 variance is still only applied by OLS and Lin. They are the only classes that set cluster_robust_se_applied, and the interim edi_cluster_independence_warning still fires for every other class. No GLM, Cox or ordinal clustered sandwich exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-56": {
+  "at": "2026-11-18",
+  "text": "Not done. edi_build_summary_table() still works as the background describes. It builds the full table only when the coefficients are named and include treatment, and otherwise falls back to a one-row table. There is no method attribute and no classed print object.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-57": {
+  "at": "2026-11-18",
+  "text": "Not done. InferenceContinLin$compute_fast_randomization_distr() still delegates to the R reused-worker loop. There is no compute_lin_distr_parallel_cpp anywhere in the package.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-58": {
+  "at": "2026-11-18",
+  "text": "Not done. invert_test_pval_confidence_interval() still calls pval_invert_ci_cpp with the same step and seeds for every testing type. There is no Monte-Carlo-aware tolerance and no LR-endpoint seeding for the Bartlett-approx case. The harness's REUSED_RESAMPLING_CACHES does not keep the likelihood-test memo either, and no duplicate-skip exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-59": {
+  "at": "2026-11-18",
+  "text": "Partly done. Under v1.0.5 TODO-126, the MC truth was switched to request asymp_pval, with a same-seed replay under rand_pval when that yields no row. It does not pass a tiny r, and it returns NA when neither type works. The identity check covered 5 classes, not every COVERAGE_MC_SPEC class. Step 3 moved to v1.0.5 TODO-127, and the optional disk persistence (step 4) is not implemented.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-60": {
+  "at": "2026-11-18",
+  "text": "Not done. edi_rebind_lazy_components_after_clone() is still defined, is still called from Inference$duplicate(), and still has its Rd page and reference test.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-61": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_coxph_regression.cpp has no Efron tie handling and no ties argument. Grepping the package for 'efron' finds only the Efron biased-coin design.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-62": {
+  "at": "2026-11-18",
+  "text": "Not done. The owning plan's TODO-8 is still unticked (randomization_ci_affine_shift_reuse.md:461), and the proposed compute_rand_confidence_interval_direct() does not exist.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-63": {
+  "at": "2026-11-18",
+  "text": "Not done. Plan TODO-2, -3, -5, -6, -7, -8 and -9 are all still unticked in bayesian_bootstrap_performance.md, and no commit cites v1.1.0-TODO-63. Only plan TODO-1 (the harness) is ticked, and this TODO explicitly leaves that out of its scope.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-64": {
+  "at": "2026-11-18",
+  "text": "Not done. The only place add_block_fixed_effects appears in R/EDI is a comment in a test that pins the current behavior, which adds no block dummies. No regression class has the option.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-65": {
+  "at": "2026-11-18",
+  "text": "Not done. All five classes are still in EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES and are still excluded from randomization_ci, and a test still asserts that refusal. Neither a sharp-null family on the estimand's own scale nor a sweep test exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-66": {
+  "at": "2026-11-18",
+  "text": "Not done. No MC-SE or r attribute on randomization CI endpoints was found in R/EDI/R, and no commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-67": {
+  "at": "2026-11-18",
+  "text": "Not done. The five NegBin jackknife methods still call signal_unsupported_procedure. The hurdle, ZAP and helper_glm_fit NB fits pass no tightened eps_g; only InferenceCountNegBin uses NEGBIN_FIT_EPS_G, which was v1.0.5 work.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-68": {
+  "at": "2026-11-18",
+  "text": "Not done. Nothing cites this TODO, and no profiling result or final workload-specific target for the bootstrap or Zhang paths is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-69": {
+  "at": "2026-11-18",
+  "text": "Not done. No KK-matched Cox source file mentions Firth, and no commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-70": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_clayton_weibull_aft_optim_cpp still defaults to maxit = 2000L, and no large-n maxit change or warm-started R BFGS fallback was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-73": {
+  "at": "2026-11-18",
+  "text": "The legacy ladder is still one long inherit chain, exactly as the TODO describes. For example, InferenceNonParamBootstrap still inherits InferenceRandCI and InferenceJackknife still inherits InferenceBayesianBootstrap. No ladder generator has been re-parented, and no commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-1": {
+  "at": "2026-11-18",
+  "text": "The A/B harness has not been built. Its planned functions, run_algorithm_ab() and render_algorithm_ab_report(), appear only in plan markdown files, and the steps in algorithm_ab_testing_framework.md are all unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-10": {
+  "at": "2026-11-18",
+  "text": "The Atkinson null-draw kernel already caches the per-t QR and the covariate submatrix (generate_permutations.cpp:226-249). But each draw at each t still forms the full X'X crossproduct and runs FullPivLU plus an inverse (generate_permutations.cpp:101-107), so the cost is still O(B\u00b7n\u00b2\u00b7p\u00b2). There is no Schur-complement or rank-one update, and the singular fallbacks still rely on lu.isInvertible()...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-11": {
+  "at": "2026-11-18",
+  "text": "Under general censoring, both classes still return NULL from the fast path and fall back to the generic loop, which calls interval::ictest() again for every replicate (inference_survival_log_rank.R:202, 254-263; inference_survival_gehan_wilcox.R:265, 291-292). Nothing computes the pooled-NPMLE scores once.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-12": {
+  "at": "2026-11-18",
+  "text": "None of the named classes uses Newton by default. Ordinal logit/probit/cloglog, adjacent-category, continuation-ratio, the logistic/Poisson/clogit GLMMs, the Gaussian LMM and Weibull all still default to optimization_alg = \"lbfgs\" in R/EDI/R/RcppExports.R. No warm-started Weibull AFT BRT work or A/B report was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-13": {
+  "at": "2026-11-18",
+  "text": "No separable or structured fitting code exists for ZOIB, hurdle-Poisson or continuation-ratio. em_algorithm_zero_inflated_mixtures.md still lists ZOIB in its title and keeps its TODO-6 ZOIB instantiation.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-14": {
+  "at": "2026-11-18",
+  "text": "The log/identity-binomial score and Hessian are still central finite differences (fast_log_binomial_regression.cpp:865-929). Ordinal g-comp and the marginal-estimand delta method still use central-difference gradients (inference_ordinal_gcomp.R:9, helper_marginal_estimand.R:4). No analytic Louis information was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-15": {
+  "at": "2026-11-18",
+  "text": "The size guard and checkUserInterrupt are in place (shipped under release_v1_0_5.md TODO-90). But the exact null is still computed by recursively enumerating compositions (recurse_jt_distribution), not by a polynomial DP, and there is no brute-force gate test for the DP.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-16": {
+  "at": "2026-11-18",
+  "text": "Partly done. The exact F(1, n-p) LR null is in the code for the KK OLS one-likelihood class only: get_bartlett_factor_exact maps the LR statistic to the exact F tail, and test-bartlett-lr-ols-exact.R covers it. Lin and plain OLS have no exact F null, and none of the three classes has closed-form score/gradient/LR CIs; they still go through the generic likelihood-test inversion with refits.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-17": {
+  "at": "2026-11-18",
+  "text": "Partly done. Blocked designs already use a closed-form CMH SE (compute_cmh_block_se_cpp). Complete and Bernoulli designs still take the non-blocking path, which estimates the SE by Monte Carlo over se_est_num_vectors design draws.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-18": {
+  "at": "2026-11-18",
+  "text": "Not done. The KM/RMST group stats in fast_survival_stats.cpp still sort inside each call, with no presort shared across BRT draws. I found none of the other presort/merge, reverse-cumsum Breslow or O(n+K) JT weighted-superiority rewrites.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-19": {
+  "at": "2026-11-18",
+  "text": "Not done. The KK quantile IVWC randomization helpers still call formula quantreg::rq(), and the KK conditional-Poisson combined fit still uses R stats::optim BFGS. I found no memoized param-bootstrap batch shared across estimate/CI/p, no Lin/KK OLS batch randomization kernel, and no parallel BRT draw materialization tied to this item.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-2": {
+  "at": "2026-11-18",
+  "text": "Not done. Every step of garthwaite_buckland_ci_search.md TODO-1..4 is still unchecked, and no R source mentions Garthwaite/Buckland or a Robbins-Monro CI driver.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-20": {
+  "at": "2026-11-18",
+  "text": "Not done. DesignFixedOptimal has no exact enumeration solver (revolving door / Gray code). I also found no MILP tightening: RLT rows, symmetry cut or optimal-blocks reformulation.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-21": {
+  "at": "2026-11-18",
+  "text": "Partly done. Blocking and cluster designs no longer use replicate(randomizr::...): v1.0.5 TODO-118 replaced it with block_ra_batch. That batch drawer is vectorized R, though, not the existing C++ block/cluster kernels the TODO names. There is no C++ urn kernel; DesignSeqOneByOneUrn still draws with R rbinom.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-22": {
+  "at": "2026-11-18",
+  "text": "Not done. pnorm_fast and fast_log_pnorm still clamp at |x| >= 8 (log-CDF fixed at -35.05) with no tail branch. fast_dnbinom_mu is still the plain lgamma/log difference, and Newcombe still uses the Acklam fast_qnorm approximation. I found no shifted one-pass variance change.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-24": {
+  "at": "2026-11-18",
+  "text": "Not done. The log-binomial cold start is still an OLS fit on log1p(y), with no max \u03b7 < 0 enforcement. The only \u03b7-feasibility handling is a warm-start drop (v1.0.5 TODO-128) and a last-resort LR-CI retry (v1.0.5 TODO-179), and neither one is the start change this TODO asks for. Logistic regression uses an L-BFGS line search, not glm2-style step-halving. The parent release item, release_v1_1_0.md...",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-25": {
+  "at": "2026-11-18",
+  "text": "Not done. KK21 still finds \u03c6 with the grid search (kk21_weights.cpp:457 and :935) rather than 1-D Brent. There is no score-test stepwise for beta, NB or ordinal, and no re-run of the KK21 weight comparison is recorded. Both release targets (v1.1.0-TODO-50 and v1.2.0-TODO-23) are unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-26": {
+  "at": "2026-11-18",
+  "text": "Not done. This TODO is gated on the A/B harness (v1.2.0-TODO-21), which has not been built, and its release slot v1.2.0-TODO-23 is unticked. I found none of the six CI-search refit economies in the R sources: one-time Bartlett MC factor, single double-bootstrap set, tangent warm start, fixed-critical-value LR CI, SMC early stopping, or influence-function BCa.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-27": {
+  "at": "2026-11-18",
+  "text": "Not done. Its release slot, v1.2.0-TODO-23, is unticked and depends on the A/B harness, which does not exist yet. I found no weighted C++ Bayesian-bootstrap kernel for the zero-inflated, hurdle or KK clogit+GLMM classes; these replicates still go through glmmTMB.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-28": {
+  "at": "2026-11-18",
+  "text": "Not done. Neither initEMICM nor icenReg::ic_np/EMICM appears anywhere in R/EDI, so the Turnbull NPMLE has not been switched to EMICM. The parent item, v1.1.0-TODO-50, is unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-29": {
+  "at": "2026-11-18",
+  "text": "Not done. Its release slot, v1.2.0-TODO-22 (speed-only drop-ins), is unticked, and no commit cites this TODO. Nothing in the checkout records that any of the seven linear-algebra items landed. LDLT and selfadjointView/rankUpdate appear in many kernels, but none of those uses is tied to the Atkinson LDLT or the Cox SYRK change this TODO asks for.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-3": {
+  "at": "2026-11-18",
+  "text": "Not done. The EM plan em_algorithm_zero_inflated_mixtures.md has no ticked TODOs, and its dependency (audit TODO-1, the A/B harness under v1.2.0-TODO-21) is unticked. I found no EM start code for ZIP/ZINB in R/EDI.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-30": {
+  "at": "2026-11-18",
+  "text": "Not done. Sequential designs still re-impute and rebuild the full model matrix on every arrival (design_seq_one_by_one_abstract.R:213-214). The release slot, v1.2.0-TODO-23, is unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-31": {
+  "at": "2026-11-18",
+  "text": "Not done. The Rcpp kernel is still called \"MM\". Its page describes the mechanics (bisquare weights, OLS start, fixed scale) but never says it is bisquare-M rather than a true MM. The user-facing InferenceContinRobustRegr page still says \"MM\" has a higher breakdown point. No FAST-S true-MM prototype exists either.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-32": {
+  "at": "2026-11-18",
+  "text": "Not done. None of the seven solver items (truncated-count ZINB start, NB alpha parametrization, constrained log-binomial solver, NB2 Fisher scoring, modified-Newton safeguard, profiled LMM/REML, closed-form probit CLMM) shows up in code or harness reports. The item is scheduled under release_v1_2_0.md TODO-23, which is gated on the A/B harness.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-33": {
+  "at": "2026-11-18",
+  "text": "Partly done. The DesignFixedOptimal BRT solver-mismatch fix shipped as release_v1_0_5.md TODO-81, and the brt_solver override plus default profile parity are in design_fixed_optimal.R. The stereotype and annealing items have not been started.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-34": {
+  "at": "2026-11-18",
+  "text": "Not done. Nothing in the R sources implements longest-first (LPT) scheduling or a runtime manifest for run_all_inference. The parent item release_v1_2_0.md TODO-22 is still unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-35": {
+  "at": "2026-11-18",
+  "text": "Not done. No policy decision on exact randomization distributions is recorded, and there is no exact-support enumeration for complete/pair/cluster designs or exact all-pairs enumeration for KK21's lambda. The parent item release_v1_2_0.md TODO-23 says it still needs a policy decision.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-36": {
+  "at": "2026-11-18",
+  "text": "Done. All three row-AB items were investigated and resolved. The sqrt(w) sandwich convention was refuted as correct (F24). The g-comp SE target is now documented as sample-conditional (TODO-88). aftsrr with B = 0 was fixed to request ISMB and use covmat$ISMB (TODO-82).",
+  "verdict": "done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-37": {
+  "at": "2026-11-18",
+  "text": "Not done. Neither algorithm_choice_audit_catalog.md nor the audit's summary table has an exposure (auto/expose/dial) column.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-38": {
+  "at": "2026-11-18",
+  "text": "Not done. The inference base classes do not record algorithm provenance (which algorithm, \"auto\" choice and fallback actually ran). The only related code is a per-class fallback_used flag in the KK hurdle-Poisson class, not a base-class design. release_v1_1_0.md TODO-48 is still unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-39": {
+  "at": "2026-11-18",
+  "text": "The Cox family still uses only Breslow ties: there is no Efron code in the kernel, no ties argument is exposed, and both R fallbacks are hard-coded to ties = \"breslow\". The prerequisite (v1.0.5-TODO-69, pinning the fallbacks to Breslow) is in place, and the work is scheduled as v1.1.0-TODO-61, which is unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-4": {
+  "at": "2026-11-18",
+  "text": "No balanced-bootstrap generator exists and no CI-width measurement is recorded. The 2026-11-16 re-review log (row J) confirms that bootstrap index generation is still plain i.i.d. multinomial resampling.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-40": {
+  "at": "2026-11-18",
+  "text": "There is no quadrature dial and no adaptive Gauss-Hermite for the EDI GLMM/LMM/frailty kernels. The re-review log (row C, 2026-11-16) still names adaptive GH (TODO-153) as the open gap, and the Poisson kernel uses 60 fixed GH nodes.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-41": {
+  "at": "2026-11-18",
+  "text": "Parity tests exist for both toggles, but only for some classes: use_rcpp for the KK robust-regression classes, and smart_cold_start_default = FALSE against TRUE for logistic regression. No recorded audit shows that every reachable path of every toggle was checked, and the toggles are not documented as developer options. The parent v1.1.0-TODO-52 is unticked.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-42": {
+  "at": "2026-11-18",
+  "text": "There is no survey of recomputed pure-function results, no plan, and no cross-run cache. The scheduled target v1.2.0-TODO-33 is unticked and its own text says nothing survives across calls or sessions; the only memo is the per-process cached_cpp_compile().",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-43": {
+  "at": "2026-11-18",
+  "text": "No anytime-valid confidence sequences exist in the randomization-CI search. The roxygen in inference_all_abstract_rand_ci.R calls them a 'not-yet-implemented redesign'.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "No saddlepoint screening exists and there is no plan for it. The re-review log (row E, 2026-11-16) confirms the p-value is still direct Monte Carlo with no early stopping for the plain p-value.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-7": {
+  "at": "2026-11-18",
+  "text": "Done: the drift workflow is on main, it has run, and its issue was triaged. The workflow has a monthly cron and workflow_dispatch, plus the research schedule. The drift script implements the four checks (versions, kernels, plan state, inventory with URLs). Drift issue #8 and research issue #9 were triaged on 2026-11-16 in a full re-review pass, recorded in the audit's re-review log with reviewe...",
+  "verdict": "done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-8": {
+  "at": "2026-11-18",
+  "text": "The interim requirement is met: the \"Estimated speedup multiples\" section is still clearly labelled theoretical and unmeasured. The main deliverable is not done: no Prototype A/B report has landed (TODO-1..5 are all unticked), so none of the theoretical figures has been replaced with a measured one.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-9": {
+  "at": "2026-11-18",
+  "text": "Brent has not been implemented. pval_invert_ci_cpp in lrt_ci_newton.cpp still runs pure bisection in Phase 2, and it has no method argument and no n_evals attribute. The planned test file and baseline fixture do not exist, and no steps of brent_ci_inversion.md TODO-1..3 are ticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::cb-0d0ad755": {
+  "at": "2026-11-18",
+  "text": "TODO-B2 delegates to rand_ci_inverts_two_sided_pval_at_half_alpha.md TODO-1..4. The fix (TODO-1), the audit of the other inverters (TODO-2) and the duality tests (TODO-3) are all in the checkout. TODO-4 is still open: the rand / rand_bootstrap CI rows of the comprehensive_tests CSVs and the coverage tables built from them have not been regenerated. Release v1.0.5 TODO-68 is likewise still untic...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::cb-6ed3ee55": {
+  "at": "2026-11-18",
+  "text": "TODO-B1 delegates to kk21_weibull_irls_wrong_fixed_point.md TODO-1..5. TODO-1..4 are in the checkout: both loops now use the shared WeibullAFTLikelihood, there is a survreg oracle test and a reduced-fit parity test, and the start constant is Euler's gamma. TODO-5 is still open and waiting on an owner decision: the old-vs-corrected KK21 survival weight / matching-quality comparison and the CSV r...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/inference_component_dependency_cleanup.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "The legacy ladder is still one inherit chain. For example, InferenceNonParamBootstrap still inherits InferenceRandCI, although its component depends only on ResamplingCore. The item was deferred to release v1.1.0 TODO-73, which is unticked.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_affine_shift_reuse.md::TODO-8": {
+  "at": "2026-11-18",
+  "text": "Direct order-statistic inversion was not implemented. No compute_rand_confidence_interval_direct exists anywhere in R/EDI. The owner deferred it on 2026-10-22 (G6 #31) to release v1.1.0 TODO-62.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-2": {
+  "at": "2026-11-18",
+  "text": "There is no cpp_tests/ directory, no CMake scaffold and no trivial test. There is also no shared core source list: python/CMakeLists.txt still lists its EDI_SRC_DIR sources inline, and the repo has no .cmake include file.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-3": {
+  "at": "2026-11-18",
+  "text": "Target A (optimizer edge-case tests) does not exist: there is no cpp_tests/ directory at all, so there is no cpp_tests/optimizer/.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-4": {
+  "at": "2026-11-18",
+  "text": "Not done. The checkout has no cpp_tests/ directory, so there is no cpp_tests/cox/ target. No commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "Not done. The checkout has no cpp_tests/, so there are no fuzz harnesses, no corpus and no sanitizer build. .github/workflows/nightly.yml has fuzz-discover/fuzz jobs that wait for cpp_tests/fuzz/, and they report that it does not exist yet (nightly.yml:999-1001).",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-6": {
+  "at": "2026-11-18",
+  "text": "Not done. No workflow runs CMake configure/build/ctest for cpp_tests/, which does not exist. The nightly fuzz jobs were written ahead of the suite; they are not this TODO's CI job and are not a required check.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-1": {
+  "at": "2026-11-18",
+  "text": "Not done. The plan's Decisions section (repository_layout_cleanup.md:155-159) still lists both items as open, and the target layout says the name is \"still open\" (line 34). No decision is recorded in release_v1_0_6.md TODO-14 either.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-2": {
+  "at": "2026-11-18",
+  "text": "Not done. R/package_metadata/ is still in place: this plan and the release files live there. Neither a root metadata/ nor R/metadata/ exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-3": {
+  "at": "2026-11-18",
+  "text": "Not done. The coverage-floor gate is still at R/package_tests/ci/check_coverage_floor.{py,R}. benchmark_model_fits_python.py is still at R/benchmark/. Neither R/dev_tests nor R/extended_tests exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-4": {
+  "at": "2026-11-18",
+  "text": "Not done. The move (TODO-2/3) has not happened, so no docs have been updated to new paths.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "Not done. The plan file records no verification results, and the move it would verify has not been made.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-6": {
+  "at": "2026-11-18",
+  "text": "The header comments still carry the old stale paths. na_real_core.h L19 still says package_metadata/finished_features/unity_build_collision_audit.md, and RNG.h L17-18 still says package_metadata/new_feature_plans/sexp_removal_rcppeigen_conversion_spec.md. The root metadata/ move (TODO-2) has not happened either, so the target paths do not exist yet.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-1": {
+  "at": "2026-11-18",
+  "text": "No decision on whether to implement Cox-Snell bias correction is recorded in the plan. The only decision-related lines are the TODO itself and the Depends-on header.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-2": {
+  "at": "2026-11-18",
+  "text": "There is no CoxSnellBiasCorrection component and no shared X'WX Cox-Snell helper. In R/EDI/R, Cox-Snell is only mentioned in roxygen prose and in a CoxSnell1968 reference key.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-3": {
+  "at": "2026-11-18",
+  "text": "No Cox-Snell correction exists for any family, so none of the rollout stages (canonical GLMs, then log/identity-binomial, then NB/Cox PH) has started.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-4": {
+  "at": "2026-11-18",
+  "text": "The estimate_type decision this TODO depends on has not been made. expanded_estimate_report.md L141 says estimate_type does not exist yet, and its own TODOs are unticked. No Cox-Snell API exists in any form.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-5": {
+  "at": "2026-11-18",
+  "text": "This is a scope constraint on a rollout that has not started. Because there is no Cox-Snell implementation at all, there is nothing yet to check for GLMM/frailty/copula/GEE exclusion.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-11b4d4c6": {
+  "at": "2026-11-18",
+  "text": "test-brent-ci-inversion.R does not exist and lrt_ci_newton.cpp has no Brent method or n_evals attribute. No test run results are recorded and no golden tolerances were changed citing this plan.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-33482847": {
+  "at": "2026-11-18",
+  "text": "Neither the tests nor the baseline fixture this commit step covers exist in the checkout: there is no test-brent-ci-inversion.R and no brent_ci_inversion_baseline.rds.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-33cbfce3": {
+  "at": "2026-11-18",
+  "text": "Not done. pval_invert_ci_cpp in R/EDI/src/lrt_ci_newton.cpp:252-262 has no method argument, there is no if (method == \"bisection\") branch and there is no Brent\u2013Dekker else-branch. Phase 2 is still pure bisection.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-38e794ec": {
+  "at": "2026-11-18",
+  "text": "Not done. The baseline fixture R/EDI/tests/testthat/fixtures/brent_ci_inversion_baseline.rds does not exist, and no brent-named file exists anywhere under R/EDI/tests.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-464542e0": {
+  "at": "2026-11-18",
+  "text": "Not done. The test file R/EDI/tests/testthat/test-brent-ci-inversion.R does not exist, and no test anywhere references Brent or the method argument of pval_invert_ci_cpp.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-725b8d2f": {
+  "at": "2026-11-18",
+  "text": "Not done. R/EDI/NEWS.md does not mention Brent or the change to the score/gradient/Bartlett CI inversion, and the implementation it would announce does not exist yet.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-7384df68": {
+  "at": "2026-11-18",
+  "text": "Not done. brent_ci_inversion.md has no \"Results\" section and no evaluation-count table. The n_evals attribute and Brent method it would measure are absent from the code.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-953e8dbd": {
+  "at": "2026-11-18",
+  "text": "Not done. pval_invert_ci_cpp sets no n_evals attribute. Its roxygen (R/EDI/src/lrt_ci_newton.cpp:230-249) still has the title \"bracket search + bisection\" and documents no method parameter.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-a0511566": {
+  "at": "2026-11-18",
+  "text": "Not done. No commit cites this work (citing_commits is empty), and the docs it would commit do not exist: there is no Results table and no NEWS line. Row M of R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:722 still gives the '~3\u20135\u00d7' estimate.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-b1ff4a3b": {
+  "at": "2026-11-18",
+  "text": "Not done. There is no sign of a recompile carrying a new method argument: the pval_invert_ci_cpp signature at R/EDI/src/lrt_ci_newton.cpp:252-262 is unchanged. The code change this compile step would follow has not been made.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-c77a0c2f": {
+  "at": "2026-11-18",
+  "text": "This step asks for the Brent commit. That commit does not exist. pval_invert_ci_cpp in R/EDI/src/lrt_ci_newton.cpp has no method argument, no Brent code and no n_evals, and no commit cites the plan.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-eac6267a": {
+  "at": "2026-11-18",
+  "text": "Row M of algorithm_choice_audit.md still gives the estimate '~3\u20135\u00d7 fewer constrained refits per bound (~20 \u2192 ~5\u20138)' (line 722 and the text at line 491), not a measured ratio. Brent has not been implemented, so there is nothing to measure yet.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f378b6da": {
+  "at": "2026-11-18",
+  "text": "If run today, the check would pass: a grep for 'pval_invert_ci|lrt_ci_newton' over all of python/ (src/ and cpp/) finds nothing. But no record shows the step was carried out as part of TODO-1, the plan's box is unticked, and the rest of TODO-1 (test file, fixture) does not exist. So it is not counted as done.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f6cc3a99": {
+  "at": "2026-11-18",
+  "text": "The tests this step should run and see fail were never written: R/EDI/tests/testthat/test-brent-ci-inversion.R does not exist, so the run has not happened.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f800248c": {
+  "at": "2026-11-18",
+  "text": "pval_invert_ci_cpp (R/EDI/src/lrt_ci_newton.cpp:252) has neither a method argument nor an n_evals counter.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-0027b5f2": {
+  "at": "2026-11-18",
+  "text": "Some local measurements are recorded: a per-piece cost table for all six response types, the tail of units over 25 minutes, and the workflow dependency list. Two parts are missing. No hosted-runner speed ratio exists: the plan says the workflow is 'Not yet run on GitHub'. Compressed sizes are recorded only for a 100 MB ordinal sample, not per (response type, dataset).",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-064f20ed": {
+  "at": "2026-11-18",
+  "text": "Two parts are done: calibration-study.yml's publish job now dispatches the comprehensive study, and comprehensive-study.yml has a gate verdict step. Three are not: study-sweeper.yml does not exist, fetch_comprehensive_cloud_results.R does not exist, and the release runbook (R/package_metadata/future_release_plans/release.md) does not mention cloud-or-local for the path-audit gate. nightly.yml's...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-08da31d0": {
+  "at": "2026-11-18",
+  "text": "The analyze and publish jobs of comprehensive-study.yml do every step this phase asks for. They merge the shard rows into the ledger and run the results audit. On the final wave they regenerate and compare the path audits. They write the README, publish to the prerelease and the results branch, and dispatch the next wave. The workflow has not run on GitHub yet, but this phase asks only for the...",
+  "verdict": "done"
  }
 }

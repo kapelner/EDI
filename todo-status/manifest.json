@@ -1,6 +1,6 @@
 {
- "last_run": "2026-11-17T23:15:08+00:00",
- "open_pr": 50,
+ "last_run": "2026-11-18T15:36:10+00:00",
+ "open_pr": 54,
  "units": {
   "R/package_metadata/bug_fix_plans/v1_0_5/algorithm_sweep_verified_findings.md::TODO-8": {
    "audited_at": "2026-11-17T19:55:48+00:00",
@@ -1133,7 +1133,7 @@
    "audited_at": "2026-11-17T23:15:08+00:00",
    "deps": "9fd337474cfcc487",
    "hash": "a318d90b61d633e8",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173523071"
   },
   "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-45": {
@@ -1182,7 +1182,7 @@
    "audited_at": "2026-11-17T23:15:08+00:00",
    "deps": "b29cf15c45afba49",
    "hash": "c0a2224399922750",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173523071"
   },
   "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-51": {
@@ -1686,7 +1686,7 @@
    "audited_at": "2026-11-17T23:15:08+00:00",
    "deps": "8fa2bef7bbff4b5a",
    "hash": "e0a9ed075be3cfa1",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173523071"
   },
   "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17w": {
@@ -1793,6 +1793,902 @@
    "hash": "e456fdd5c1c74117",
    "open_findings": 0,
    "run": "44173523071"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-193": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "fe7bfd021b322ba0",
+   "hash": "a48f37c4b17f3e5c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-195": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5104f20f02bb0584",
+   "hash": "5ed99806ddc42a55",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-196": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5bcd6b3bb0de8ed1",
+   "hash": "744bec8b663ecc2e",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-197": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "000bace75e0f7856",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-198": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "360e3a8f1c165352",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-199": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "9330dfed7a390af3",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-20": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "f3ecbc83dab1a853",
+   "hash": "42fea5d9fda226ff",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-200": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "e4d4f99544b8f87b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-201": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "631eb4ee05bc2462",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-202": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "b807a401014179e0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-203": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "74ca84d30f7f0674",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-204": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "0ba2ba9eda0d723c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-205": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "995142522404530f",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-206": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "044593d3b44cbb87",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-207": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "ac638f0d868d9ab6",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-208": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "bf42427fbe3f4ba9",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-209": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "0588c5434347d12e",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-21": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "f37cfe057276e99a",
+   "hash": "4d157c3177c81e87",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-210": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "6728175fd0da33ab",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-211": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "2d8368a718bd9614",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-212": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "0c7a03c8af6cadcb",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-213": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "6299e6c44a182328",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-214": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5b5c51a3f103c4c8",
+   "hash": "231debab0502e36c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-215": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "72daa840ce7a61af",
+   "hash": "b7ee6f5d8834bbca",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "31b9bb8aaefedad0",
+   "hash": "f0f5030aa3d5cac1",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-3a": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "825f4643d30777c2",
+   "hash": "35f7c04540162978",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-47": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "e19d8e9f856e58c2",
+   "hash": "4e6ed162255c6f06",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-48": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3800d234bac2efe6",
+   "hash": "f3a988a924c7c9d6",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-4b": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "19658da49189067a",
+   "hash": "b9fb8067aa3fdafd",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "33ceb2177a091182",
+   "hash": "87e1c7c3a6350da9",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-50": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "c107c6967279dc2b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-52": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "d4bac825fb5bbe9e",
+   "hash": "85866bade9457a82",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-55": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "f18e7244b3ba3853",
+   "hash": "9164678c3e6d25d1",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-56": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "d33a5f147f725096",
+   "hash": "845a95552fd2741e",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-57": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "96fc2b0bdfee4101",
+   "hash": "5608338e12a59ffe",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-58": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "22645af3763dad8a",
+   "hash": "93a9e0279c91d54b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-59": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5e7f54347198a610",
+   "hash": "3c79397d8056b430",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-60": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "580263abb737e1d4",
+   "hash": "4a36d635bc1e8141",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-61": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3b780e23967506bc",
+   "hash": "1132719d72e3127c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-62": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "75db1091bcdcc077",
+   "hash": "c370fc5bad0462dd",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-63": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c3f0c97f1d228b02",
+   "hash": "285411c6d6e98bd7",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-64": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "f4b5bddf850e960d",
+   "hash": "d9603940b4870b52",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-65": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62844863bc3d2e47",
+   "hash": "5a079da02ae99e50",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-66": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62844863bc3d2e47",
+   "hash": "0423840f5bf3b981",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-67": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c8f52a454d916a1f",
+   "hash": "0f68c849a3e285e1",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-68": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62844863bc3d2e47",
+   "hash": "7e1de4aa64799acd",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-69": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "15f0c97f11de9686",
+   "hash": "b746453704e9e677",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-70": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62844863bc3d2e47",
+   "hash": "35841d2453a221a8",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-73": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "d6aba99c8a47ab0c",
+   "hash": "e6fc7aa2927d2aef",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-1": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "1dfd92e77fb51718",
+   "hash": "4ffdad76e32cc9fc",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-10": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "699b9f1a56d9b7de",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-11": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "6a8f874a4aa9c8f9",
+   "hash": "07ab486e66e6f037",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-12": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "bc5db151375387b9",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-13": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "4d0ba6058f249381",
+   "hash": "1f5a319264ce0799",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-14": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "da758ae1862f5ba0",
+   "hash": "e959f1b467e129ab",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-15": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "65d6bd5d8e6595a8",
+   "hash": "9bac1da119452f06",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-16": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "9a375d24327c595a",
+   "hash": "c1aef595da5c9b6d",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-17": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "47a8fe587458ffd4",
+   "hash": "af8308c19058f5e0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-18": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "bf90f7a88d854280",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-19": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "6298339fa450d021",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-2": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "0a97af65920d118f",
+   "hash": "d092792dfcb472c3",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-20": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3b1934994f2ef06d",
+   "hash": "04f6774d035beccb",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-21": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "0c61107481f16cfc",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-22": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "871dd91a5ba35836",
+   "hash": "1b592eeb417e2506",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-24": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "871dd91a5ba35836",
+   "hash": "2148525c9ed2b4fc",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-25": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "573788dab04846d5",
+   "hash": "366bea062c8ddece",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-26": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "abbabdb469f60f8b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-27": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "3dafefc40127b90b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-28": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "871dd91a5ba35836",
+   "hash": "c04ace6045c47af8",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-29": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "f09c12b9672b0f8b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "4d0ba6058f249381",
+   "hash": "d4c13ce7da049854",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-30": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "31d134a6a8ab1f1d",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-31": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "7136b42964ef427f",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-32": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "c7a6ff30f9bf62f0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-33": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3895a218538ce910",
+   "hash": "3ff6b4608cf74c22",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-34": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "2cada55224e17f0c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-35": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "4f65022b5982bca6",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-36": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62844863bc3d2e47",
+   "hash": "0f7108140b846e04",
+   "open_findings": 1,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-37": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "395c15f993588dd4",
+   "hash": "bab884aa10390095",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-38": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "871dd91a5ba35836",
+   "hash": "053d292c48380e46",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-39": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "9a657acb88d2effc",
+   "hash": "bb0df7a282c2d764",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-4": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "e438d54fec46134b",
+   "hash": "2b46d6433fab896c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-40": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "142fd919f67076d2",
+   "hash": "a9a1bd4f9a99889a",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-41": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "871dd91a5ba35836",
+   "hash": "43bf7307aa1eab76",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-42": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "cfef41975b070eb7",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-43": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "826605898599d74c",
+   "hash": "74dfa1442c239f72",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "07fc53541a3058d9",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-7": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "173a30fa8c96c9c8",
+   "hash": "acd2507d9b828087",
+   "open_findings": 1,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-8": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "5ecab5f949ad6237",
+   "hash": "0843674c6f663299",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::TODO-9": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "663b019478c6dbea",
+   "hash": "671cca0f32aa97f1",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::cb-0d0ad755": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "035ea6f7c3a07588",
+   "hash": "d1f7e681abd2288a",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md::cb-6ed3ee55": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "0d8025c6937ff7b0",
+   "hash": "8aea921bb4f18836",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/inference_component_dependency_cleanup.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "ab223433e932b6ca",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_affine_shift_reuse.md::TODO-8": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "991576506106724b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-2": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "a5a9e38288e1bb9b",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "979d10531d827df0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-4": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "37d26c3591922aa0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "461575165a63767c",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/native_cpp_test_suite.md::TODO-6": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "d1ea9a97ac9f0bdf",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-1": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "4ffb7e4307d8e1bb",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-2": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "427f4857d8fc36a1",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "44f78221efdaaf62",
+   "hash": "ee30b4b8fc021078",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-4": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "cb27fd0310d26ec7",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "2ff35a1f408bd407",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_0_6/repository_layout_cleanup.md::TODO-6": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "ecc60f3a2c7774b9",
+   "hash": "da8d175ae74ef7b0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-1": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "fa4ad841360ebf73",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-2": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "2d5178f0e20c7fdf",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "4def35f887fbc208",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-4": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "62d2246595d7080a",
+   "hash": "58ed549bca902827",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/bias_correction_cox_snell.md::TODO-5": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "a7fd0d9b20f1951f",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-11b4d4c6": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "10e25ca0e632f73e",
+   "hash": "cf7f5a273d958a3a",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-33482847": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "8522d202854c67f5",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-33cbfce3": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "e9f035d7b35322ff",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-38e794ec": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3c9654dc55ed074d",
+   "hash": "8f955cdb591a400f",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-464542e0": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "2c68b9e76dde6159",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-725b8d2f": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "ccea70bf5b2f7e55",
+   "hash": "b1ba04a6109037df",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-7384df68": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "19fc455463be0d32",
+   "hash": "219c55b92df6d987",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-953e8dbd": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "ec16fa190af03998",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-a0511566": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "9827f8639eaf556d",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-b1ff4a3b": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "e804d0bebbc043f2",
+   "hash": "100145da1babcd57",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-c77a0c2f": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "8e7192dad35be69d",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-eac6267a": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "3767df9f98710381",
+   "hash": "188a683b292d4bf4",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f378b6da": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "bf4b37acbebe2eea",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f6cc3a99": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "2a41d88442603b54",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/brent_ci_inversion.md::cb-f800248c": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "75af183a32279de7",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-0027b5f2": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "66876e8e996b5934",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-064f20ed": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "d717bd3afe072c64",
+   "hash": "f1c021ab641f7ad0",
+   "open_findings": 0,
+   "run": "44335875986"
+  },
+  "R/package_metadata/new_feature_plans/v1_1_0/comprehensive_tests_cloud_campaign.md::cb-08da31d0": {
+   "audited_at": "2026-11-18T15:36:10+00:00",
+   "deps": "c68c468a1d54bff9",
+   "hash": "6ba79d9826d36c7d",
+   "open_findings": 1,
+   "run": "44335875986"
   }
  }
 }
