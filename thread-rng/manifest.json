@@ -1,34 +1,34 @@
 {
- "last_run": "2026-11-17T23:07:05+00:00",
+ "last_run": "2026-11-18T20:26:55+00:00",
  "open_pr": null,
  "units": {
   "R/EDI/R/contracts_mixins.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "87d2bf7a2ce8a130",
+   "hash": "a88595f8f64d0309",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/design_abstract.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "6cf87ce9d76ca4d3",
+   "hash": "e459b7b93992e23f",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/design_fixed_binary_match.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "8281e7a02b175f25",
+   "hash": "5f4180bdf263e7e4",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/globals.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "05fe993d85281968",
+   "hash": "17cf976a70079628",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/helper_optimal_annealing.R": {
    "audited_at": "2026-11-17T10:54:48+00:00",
@@ -38,32 +38,32 @@
    "run": "44048330115"
   },
   "R/EDI/R/helper_robust_regression.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "42080ba6d210e74d",
+   "hash": "db864e5ee698418a",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/inference_all_abstract.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "f2ac842093db4dc7",
-   "open_findings": 1,
-   "run": "44048330115"
+   "hash": "8115c731577ede5c",
+   "open_findings": 0,
+   "run": "44358381692"
   },
   "R/EDI/R/inference_all_abstract_bayesian_bootstrap.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "abf03f3d55e7aea4",
+   "hash": "46fb5d7dc3e7756c",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/inference_all_abstract_non_param_boot.R": {
-   "audited_at": "2026-11-17T10:54:48+00:00",
+   "audited_at": "2026-11-18T20:26:55+00:00",
    "deps": null,
-   "hash": "3e5faeb500a699ff",
+   "hash": "bf9ee1e377626584",
    "open_findings": 0,
-   "run": "44048330115"
+   "run": "44358381692"
   },
   "R/EDI/R/inference_all_abstract_param_boot.R": {
    "audited_at": "2026-11-17T10:54:48+00:00",
@@ -505,6 +505,34 @@
    "hash": "66683b3b2799fb4e",
    "open_findings": 0,
    "run": "44173517884"
+  },
+  "R/EDI/src/sample_bootstrap_distr_weighted_distances.cpp": {
+   "audited_at": "2026-11-18T20:26:55+00:00",
+   "deps": null,
+   "hash": "9188b2f1736cc63d",
+   "open_findings": 0,
+   "run": "44358381692"
+  },
+  "R/EDI/src/simple_mean_diff_parallel.cpp": {
+   "audited_at": "2026-11-18T20:26:55+00:00",
+   "deps": null,
+   "hash": "34776b2ba30f10c3",
+   "open_findings": 0,
+   "run": "44358381692"
+  },
+  "R/EDI/src/simulation_dgp.cpp": {
+   "audited_at": "2026-11-18T20:26:55+00:00",
+   "deps": null,
+   "hash": "2c5b3689cd7c2f54",
+   "open_findings": 0,
+   "run": "44358381692"
+  },
+  "R/EDI/src/spbr_speedups.cpp": {
+   "audited_at": "2026-11-18T20:26:55+00:00",
+   "deps": null,
+   "hash": "f715f893cbec6e1a",
+   "open_findings": 0,
+   "run": "44358381692"
   }
  }
 }
