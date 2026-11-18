@@ -13,6 +13,13 @@
   "text": "`R/EDI/R/inference_incidence_cmh.R:109`: The @param documents the default of se_est_num_vectors as 1000L, but the initialize() signature defaults it to 5000L. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `#'   drawn from the design to estimate the standard error. Default \\code{1000L}.` -> `#'   drawn from the design to estimate the standard error. Default \\code{5000L}.`",
   "unit": "R/EDI/R/inference_incidence_cmh.R"
  },
+ "source-comment-rot-d28ea4f40": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:707`: the code may be the wrong side: The comment says this class already splices `InferenceMixinKKPassThrough$public` via `as.list(modifyList(...))` \"below\". `SurvivalGLMMWeibullFrailtyLoggammaOneLikSource` is a plain public/private list with no such splice. The header at 616-629 says the raw `modifyList` splice was removed on 2026-08-23. The explanation (spanning lines 707-713) describes code that no longer exists. Comment: `# every other KK leaf this stretch: this class already splices`",
+  "unit": "R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R"
+ },
  "source-comment-rot-d4adc9b4d": {
   "first_seen": "2026-11-17T22:56:57+00:00",
   "key": "contradiction",
@@ -27,12 +34,68 @@
   "text": "`R/EDI/R/inference_ordinal_paired_sign_test.R:143`: The doc says pairs with no discordant weighted votes are cached as nonestimable. When n_eff <= 0 the code instead caches beta_hat_T = 0 with s_beta_hat_T = NA and calls neither cache_nonestimable_estimate() nor cache_nonestimable_se() (lines 181-186). Only the no-pairs case (line 163) uses cache_nonestimable_estimate(). Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `#'   discordant (untied) weighted votes are cached as nonestimable.` -> `#'   discordant (untied) weighted votes get an estimate of \\code{0} and an \\code{NA} standard error.`",
   "unit": "R/EDI/R/inference_ordinal_paired_sign_test.R"
  },
+ "source-comment-rot-d8959b19b": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_proportion_quantile_regr.R:11`: the code may be the wrong side: The roxygen description (lines 11-13) says the point estimate uses method \"br\" (Barrodale-Roberts simplex) and the variance fit uses a different interior-point default. The code uses method = \"fn\" for both: the estimate_only path calls quantreg's rq.fit(..., method = \"fn\") at line 246, and the variance path calls quantreg::rq(..., method = \"fn\") at line 259. The only rq call that leaves the method at its default, \"br\", is the bootstrap-weights path at line 139. The comment spans three lines, so it needs a human to reword it (or to change the code if \"br\" was intended). Comment: `#' Fitting is via \\code{\\link[quantreg]{rq}} (method \\code{\"br\"}, the Barrodale-Roberts`",
+  "unit": "R/EDI/R/inference_proportion_quantile_regr.R"
+ },
+ "source-comment-rot-d89f053f3": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_survival_KK_strat_cox.R:158`: The comment says this is an abstract method whose subclasses return TRUE/FALSE. The code below is a concrete cox_design_candidates(w, X) that returns a list of design matrices. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).` -> `# Ladder of design-matrix candidates (w first): hardened-QR matrix, then increasingly aggressive correlated-column dropping.`",
+  "unit": "R/EDI/R/inference_survival_KK_strat_cox.R"
+ },
  "source-comment-rot-dabed9e81": {
   "first_seen": "2026-11-17T22:56:57+00:00",
   "key": "contradiction",
   "last_seen": "2026-11-17T22:56:57+00:00",
   "text": "`R/EDI/R/inference_incidence_log_binomial.R:273`: The comment says compute_estimate_with_bootstrap_weights() is defined 'below' this helper. It is defined earlier in the file, in the public list at line 44, above is_log_binomial_fit_reasonable at line 262. The call with check_probability_boundary = FALSE is at lines 83 and 89. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# weights() below), never for the primary fit. Under Dirichlet` -> `# weights() above), never for the primary fit. Under Dirichlet`",
   "unit": "R/EDI/R/inference_incidence_log_binomial.R"
+ },
+ "source-comment-rot-dbeed6823": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_suite.R:3542`: The comment says the word \"Mean\" is rewritten to \"Average\". The `word_abbrev` table maps `Mean = \"Avg\"` (and also `Average = \"Avg\"`), so the displayed label is \"Avg\". The comment's quoted replacement is wrong, and the text at 3548 repeats it. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# \"Mean\" -> \"Average\" (per user request, 2026-08-24): the class-name` -> `# \"Mean\" -> \"Avg\" (per user request, 2026-08-24): the class-name`",
+  "unit": "R/EDI/R/inference_suite.R"
+ },
+ "source-comment-rot-dbeed6823-2": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_suite.R:3448`: the code may be the wrong side: The roxygen says `inference_class_short_label()` collapses a trailing KK14/KK21 suffix to a bare KK, and the next two lines justify it as safe. The function does not do this. The comment at 3525-3534 says it is deliberately NOT collapsed (reverted 2026-08-19), and no code performs the collapse. The doc spans lines 3448-3451, so a human should rewrite it. Comment: `#' collapses a trailing `KK14`/`KK21` design-variant suffix to a bare `KK``",
+  "unit": "R/EDI/R/inference_suite.R"
+ },
+ "source-comment-rot-dbeed6823-3": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_suite.R:3053`: the code may be the wrong side: The doc says the forest panel gets `n_rows` \"null\" height units against a fixed 2 for the box panel, so row spacing scales with row count. The code sets absolute heights in inches. The forest panel is `(max(n_rows, 1) + 1) * EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN` (line 3099). The box panel is 1.3 in, or 0.7 in when dots-only (line 3116). No \"null\" units are used (see also 3121-3124). The claim spans lines 3052-3055, so a human should rewrite it. Comment: `#' `patchwork`/`cowplot`. The forest panel gets `n_rows` \"null\" height`",
+  "unit": "R/EDI/R/inference_suite.R"
+ },
+ "source-comment-rot-dbeed6823-4": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_suite.R:4286`: the code may be the wrong side: The doc says the KK-name-pattern rule is still hardcoded in this class rather than looked up from a central registry. The compatibility check reads `requires_kk_matching_design` from the registry metadata (`inference_class_compatibility_metadata()` and `is_inference_class_compatible_with_design_metadata()`). The suite itself contains no name pattern. The doc at 4270-4273 (\"if its name contains KK\") is similarly stale, and the IVWC exclusion at line 73 is not mentioned. The text spans lines 4286-4287. Comment: `#'   excludes a class. The KK-name-pattern rule is still hardcoded in this`",
+  "unit": "R/EDI/R/inference_suite.R"
+ },
+ "source-comment-rot-dc5a53f8c": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:526`: the code may be the wrong side: The comment says this class already splices `InferenceMixinKKPassThrough$public` via `as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(...)))` \"below\". The source list below (`SurvivalGLMMWeibullFrailtyNormalOneLikSource`, line 439) is a plain public/private list. No `modifyList` splice exists in this file, and the header comment at 421-431 says raw splicing was banned and removed. The explanation (spanning lines 526-530) describes code that is gone. Comment: `# inference_survival_GLMM_weibull_frailty_loggamma.R: this class already splices`",
+  "unit": "R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R"
+ },
+ "source-comment-rot-dd2c2e26b": {
+  "first_seen": "2026-11-18T20:16:32+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-18T20:16:32+00:00",
+  "text": "`R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R:167`: The comment says this is an abstract method whose subclasses return TRUE/FALSE. The code below is a concrete extract_term_estimate() that returns a coefficient or NA_real_, and it takes no part in any multivariate/univariate flag. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).` -> `# Extracts the term's coefficient from a fitted aftsrr model; NA_real_ if absent.`",
+  "unit": "R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R"
  },
  "source-comment-rot-df6e615ac": {
   "first_seen": "2026-11-17T22:56:57+00:00",
