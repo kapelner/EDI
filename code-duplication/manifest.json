@@ -1,0 +1,241 @@
+{
+ "backlog": 365,
+ "code_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
+ "issue_hash": "0ed28afd97ebdc97",
+ "last_run": "2026-11-18T20:13:46+00:00",
+ "stats": {
+  "analysis_seconds": 3.91,
+  "candidates": 397,
+  "divergent": 350,
+  "families": 1525,
+  "jscpd_clones": 1929,
+  "jscpd_seconds": 2.15,
+  "min_tokens": 50
+ },
+ "units": {
+  "dup-01bff78827f5": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-01bff78827f5",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-01e154dfbad0": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-01e154dfbad0",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-0ac944c6329c": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-0ac944c6329c",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-1adb37d8ab20": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-1adb37d8ab20",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-2306683d8a8b": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-2306683d8a8b",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-3827826f0681": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-3827826f0681",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-440466dd6dc0": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-440466dd6dc0",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-47b3c5848e6a": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-47b3c5848e6a",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-4ca7ca9c9237": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-4ca7ca9c9237",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-51b70d0e54ad": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-51b70d0e54ad",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-53e9eeb69c5d": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-53e9eeb69c5d",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-5997356561a2": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-5997356561a2",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-61167138aacc": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-61167138aacc",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-6af874290f8f": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-6af874290f8f",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-7640a4a65caa": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-7640a4a65caa",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-7bbada5cb607": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-7bbada5cb607",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-847f2d57f083": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-847f2d57f083",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-86f70c0a1fbe": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-86f70c0a1fbe",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-8fdf724fbd87": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-8fdf724fbd87",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-a82df7b209aa": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-a82df7b209aa",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-ad7cd741e56d": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-ad7cd741e56d",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-b4945bb7ace9": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-b4945bb7ace9",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-b82ef667e0cb": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-b82ef667e0cb",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-b84f50f38a71": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-b84f50f38a71",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-be7f39dede8f": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-be7f39dede8f",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-c807e54c2a3f": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-c807e54c2a3f",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-e88368769f0c": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-e88368769f0c",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-eaa9343f12a8": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-eaa9343f12a8",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-eb6b7d1883cd": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-eb6b7d1883cd",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-eb9320e6bb57": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-eb9320e6bb57",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-f933d34f4e9d": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-f933d34f4e9d",
+   "open_findings": 0,
+   "run": "44358232233"
+  },
+  "dup-fb4cd2ec3279": {
+   "audited_at": "2026-11-18T20:13:46+00:00",
+   "deps": null,
+   "hash": "dup-fb4cd2ec3279",
+   "open_findings": 0,
+   "run": "44358232233"
+  }
+ }
+}

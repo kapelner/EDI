@@ -1,0 +1,163 @@
+{
+ "code-duplication-d1a5a5abe": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:100-387` vs `R/EDI/src/fast_ordinal_cloglog_regression.cpp:108-386`. The cauchit and cloglog `_internal` functions are the same fit + vcov/ssq_b_j pipeline. The differences are the link enum, the model class and the legacy-start formula, which are all by design. One unintended drift: cloglog calls require_square_matrix() before the K<2 early return (so a wrong-sized warm_start_fisher_info throws on a degenerate y), while cauchit returns an empty ResultMap first. Extract a templated `fast_ordinal_link_internal<Model>(link, legacy_start_fn, ...)` into a shared ordinal header, so the K<2 and validation order and the ResultMap keys live in one place. Evidence: R/EDI/src/fast_ordinal_cauchit_regression.cpp:127-132; R/EDI/src/fast_ordinal_cloglog_regression.cpp:133-137; R/EDI/src/fast_ordinal_cauchit_regression.cpp:143-144; R/EDI/src/fast_ordinal_cloglog_regression.cpp:148.",
+  "unit": "dup-5997356561a2"
+ },
+ "code-duplication-d1b25b18a": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_continuous_quantile_regr.R:50-261` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-262`. The proportion quantile class is the continuous class with y replaced by logit(y) and the solver method changed from br to fn. Both classes also repeat compute_estimate_with_bootstrap_weights, reduce_design_matrix_for_quantile and the shared() machinery. Extract an abstract quantile base class with a `transform_response()` and `solver_method()` hook, which would also settle why the weighted rq call in the proportion class keeps the default method while its main fit uses fn. Evidence: R/EDI/R/inference_continuous_quantile_regr.R:127-131; R/EDI/R/inference_proportion_quantile_regr.R:136-140; R/EDI/R/inference_continuous_quantile_regr.R:242-260; R/EDI/R/inference_proportion_quantile_regr.R:242-261.",
+  "unit": "dup-a82df7b209aa"
+ },
+ "code-duplication-d23a10708": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_ordinal_ordered_probit.R:100-186` vs `R/EDI/R/inference_ordinal_proportional_odds.R:134-217`. The ordered-probit and proportional-odds classes copy simulate_under_lik_null and get_likelihood_test_spec, and they differ only in the fitter, score and Hessian cpp functions and in the CDF. One real drift: InferenceOrdinalPropOddsRegr never overrides supports_fisher_information(), though its spec defines fisher_information and every sibling ordinal link class (probit, cauchit, cloglog) returns TRUE. Its default information source therefore becomes \"observed\" and its \"fisher\" preference is not offered. The values are numerically identical, because fisher falls back to the Hessian, so it is not wrong today. Extract a shared ordinal cumulative-link likelihood-spec builder, parameterized by the fit, score and Hessian functions and the CDF, into the ordinal base or mixin. It would also hold the capability flags. Evidence: R/EDI/R/inference_ordinal_ordered_probit.R:104-109; R/EDI/R/inference_ordinal_proportional_odds.R:138-140; R/EDI/R/inference_all_abstract_asymp_lik.R:425-427; R/EDI/R/inference_all_abstract_asymp_lik.R:499-511.",
+  "unit": "dup-4ca7ca9c9237"
+ },
+ "code-duplication-d24d11c40": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/simulations_framework.R:2110-2146` vs `R/EDI/R/simulations_framework.R:2157-2194`. `.parse_design_classes_and_params` and `.parse_inference_classes_and_params` are the same parser with different labels and resolver. Extract one `.parse_class_spec(kind, spec, eval_env, defaults_fn, resolver, validate)` and a single resolver in `simulations_framework.R`. The only structural difference is that the inference side calls `.validate_r6_init_args` and the design side does not, so a misspelled design-constructor argument is not caught at parse time. Design params are later combined with `response_type` and `n`, which may be why. It is still worth confirming that this is deliberate. Evidence: R/EDI/R/simulations_framework.R:2110-2146; R/EDI/R/simulations_framework.R:2157-2194; R/EDI/R/simulations_framework.R:2190; R/EDI/R/simulations_framework.R:2566.",
+  "unit": "dup-8fdf724fbd87"
+ },
+ "code-duplication-d3fc63ea7": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Divergence-bug suspect**: `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:144-172` vs `R/EDI/R/inference_ext_prw_subsampling.R:136-163`. Same drift as the CI pair, on the p-value path. m-out-of-n starts compute_m_out_of_n_bootstrap_two_sided_pval_impl with check_bootstrap_replicate_deadline(). compute_subsampling_two_sided_pval_impl has no check. Its pivot also swallows control conditions via function(e) NA_real_ where the sibling uses private$resampling_error_to_na. Evidence: R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:145; R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:319; R/EDI/R/inference_ext_prw_subsampling.R:136; R/EDI/R/inference_ext_prw_subsampling.R:350; R/EDI/R/inference_all_abstract_non_param_boot.R:1177.",
+  "unit": "dup-eb9320e6bb57"
+ },
+ "code-duplication-d4d992420": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/fast_gaussian_lmm.cpp:636-663` vs `R/EDI/src/fast_gaussian_lmm.cpp:683-710`. `get_gaussian_lmm_score_cpp` and `get_gaussian_lmm_fisher_cpp` repeat the dimension check, the y coercion, the group-id remapping and the `LMMData` construction. Extract a static helper such as `build_lmm_data(X, y, group_id)` in `fast_gaussian_lmm.cpp`. The only difference is the extra `h_rel` argument, so nothing has drifted. Evidence: R/EDI/src/fast_gaussian_lmm.cpp:636-663; R/EDI/src/fast_gaussian_lmm.cpp:683-710.",
+  "unit": "dup-b4945bb7ace9"
+ },
+ "code-duplication-d4e38d855": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317`. compute_shared_icen, compute_shared and the weighted mean-difference routine are the same code in the Gehan-Wilcox and log-rank classes, apart from the score name (wmw vs logrank1), the C++ kernel and the Peto weights. These are the same copies that drifted in v1.0.6-TODO-117 and v1.0.6-TODO-121. Both sign fixes are present today. Extract one shared icen helper (for example `survival_ictest_cache(scores, stat_prefix)`) and one martingale-residual helper, so the next fix applies to both. Evidence: R/EDI/R/inference_survival_gehan_wilcox.R:268-300; R/EDI/R/inference_survival_log_rank.R:261-292; R/EDI/R/inference_survival_gehan_wilcox.R:291-292; R/EDI/R/inference_survival_log_rank.R:283-284; R/EDI/R/inference_survival_gehan_wilcox.R:222-261; R/EDI/R/inference_survival_log_rank.R:219-251.",
+  "unit": "dup-47b3c5848e6a"
+ },
+ "code-duplication-d593b90a9": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:400-427` vs `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:439-462`. The subsampling and m-out-of-n RR p-value/CI methods are the same bodies, differing only in the size name, the distribution function and the procedure label. Nothing has drifted. I would extract one parameterized helper next to compute_rr_resampling_pivot() in this class, taking a procedure prefix and the approximate_*_distribution function, with four thin wrappers. Evidence: R/EDI/R/inference_incidence_KK_gcomp_abstract.R:393; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:409; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:428; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:444.",
+  "unit": "dup-e88368769f0c"
+ },
+ "code-duplication-d61e30e3a": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Divergence-bug suspect**: `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:212-239` vs `R/EDI/R/inference_ext_prw_subsampling.R:204-230`. The m-out-of-n CI/p-value/pivot paths call private$check_bootstrap_replicate_deadline() at setup, and the pivot reads the original estimate with error = private$resampling_error_to_na, which re-throws control conditions. The PRW subsampling copies have no deadline check, and subsampling_centered_pivot() uses error = function(e) NA_real_. A timeout/control condition raised while computing the original estimate is therefore swallowed and reported as 'subsampling_original_estimate_unavailable' instead of aborting. Impact is limited because the shared compute_resampling_draw_distribution() still checks the deadline per replicate. To see it, set options(EDI.ci_timeout_deadline) in the past and compare the two CI calls. Evidence: R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:213; R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:315; R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:319; R/EDI/R/inference_ext_prw_subsampling.R:204; R/EDI/R/inference_ext_prw_subsampling.R:347; R/EDI/R/inference_ext_prw_subsampling.R:350; R/EDI/R/inference_all_abstract_non_param_boot.R:1163; R/EDI/R/inference_all_abstract_non_param_boot.R:1177.",
+  "unit": "dup-7bbada5cb607"
+ },
+ "code-duplication-d6b10061f": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187`. DesignFixed's add_all_subject_responses() and overwrite_all_subject_assignments() are near-verbatim copies of the Design versions. The only additions are self$assert_fixed_sample() and a redundant 0/1 check, which assertIntegerish + assert_overwritten_w_always already cover. The next validation fix to one copy will be missed in the other. Have the fixed class call the parent method, or add the assert_fixed_sample() hook to design_abstract.R and delete the override. Moving the shared censored-bounds validation into a private helper in design_abstract.R would also do it. Evidence: R/EDI/R/design_abstract.R:425-488; R/EDI/R/design_fixed_abstract.R:109-174; R/EDI/R/design_abstract.R:492-498; R/EDI/R/design_fixed_abstract.R:178-187.",
+  "unit": "dup-440466dd6dc0"
+ },
+ "code-duplication-d730a0bdd": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381`. The cauchit and probit `*_internal` functions, Rcpp exports and `_with_var` wrappers are near-identical and could share a template over the model class in `ordinal_fixed_link_helpers.h`. They have already drifted. Probit sets `ssq_b_2` to NaN when it is non-finite or <= 0 (probit.cpp:197); cauchit has no such guard (cauchit.cpp:193), so a negative or infinite `ssq_b_j` passes through. The `_with_var` degenerate case differs too: cauchit returns `list(b=NA, ssq_b_2=NA)` for fewer than 2 levels, and probit returns an empty list. Cauchit's R caller rejects a non-positive `ssq` in `fit_ok` (cauchit.R:229), so I could not show wrong output today. The Python binding and other callers do not have that check. Evidence: R/EDI/src/fast_ordinal_probit_regression.cpp:195-198; R/EDI/src/fast_ordinal_cauchit_regression.cpp:193; R/EDI/src/fast_ordinal_cauchit_regression.cpp:384; R/EDI/src/fast_ordinal_probit_regression.cpp:371-379; R/EDI/R/inference_ordinal_cauchit.R:228-229.",
+  "unit": "dup-b84f50f38a71"
+ },
+ "code-duplication-d7e6ac7c3": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_ordinal_cauchit.R:8-80` vs `R/EDI/R/inference_ordinal_ordered_probit.R:2-76`. The cauchit and ordered-probit inference classes repeat initialize(), the bootstrap-weights surrogate fit and the randomization-inference estimate, differing only in link name and backend function. Extract a shared ordinal fixed-link mixin or helper (e.g. in `inference_ordinal_*` common code) parameterised by link and backend function. The two sides already differ: probit sets `get_complexity_tier()` to \"heavy\" and takes its warm start via `get_backend_warm_start_args()`, while cauchit inherits the \"light\" default and calls `get_fit_warm_start_for_length()` directly. Cauchit's own path never reads the tier, so I found no wrong result today. Evidence: R/EDI/R/inference_ordinal_cauchit.R:40-60; R/EDI/R/inference_ordinal_ordered_probit.R:35-55; R/EDI/R/inference_ordinal_ordered_probit.R:59; R/EDI/R/inference_ordinal_ordered_probit.R:77-78; R/EDI/R/inference_ordinal_cauchit.R:81-85; R/EDI/R/inference_all_abstract_asymp.R:253.",
+  "unit": "dup-86f70c0a1fbe"
+ },
+ "code-duplication-da35f9c8f": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:534-614` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:622-701`. fit_logistic_with_sandwich() and coefficients_are_usable() are copied line for line between the KK (clustered) and non-KK g-comp classes. The only differences are the clip epsilon and the cluster_id passed to the post-fit kernel. The KK class has no prob_clip_eps field and hardcodes .Machine$double.eps, which equals the non-KK default, so there is no bug today. A fix to the drop loop (such as v1.0.6-TODO-138) has to be made twice. I would extract the drop/refit loop into a shared helper in the gcomp helper file, taking the clip eps and a post-fit callback. Evidence: R/EDI/R/inference_incidence_KK_gcomp_abstract.R:540; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:594; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:603; R/EDI/R/inference_incidence_gcomp_abstract.R:628; R/EDI/R/inference_incidence_gcomp_abstract.R:682; R/EDI/R/inference_incidence_gcomp_abstract.R:691; R/EDI/R/inference_incidence_gcomp_abstract.R:36.",
+  "unit": "dup-1adb37d8ab20"
+ },
+ "code-duplication-da540c45e": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82`. The Gauss-Hermite rule struct and function, and the three soft_barrier functions (value, grad, hessian), are copied byte for byte into anonymous namespaces with per-file suffixes (_hp, _p). A shared gauss_hermite_rule() already exists in _glmm_engine.h:32. I would move the soft_barrier* trio there, drop the duplicate GH rule copies, and keep log_sum_exp_p local. This also avoids drift in the barrier constants (center 5, scale 10). Evidence: R/EDI/src/fast_hurdle_poisson_glmm.cpp:38; R/EDI/src/fast_hurdle_poisson_glmm.cpp:58; R/EDI/src/fast_poisson_glmm.cpp:42; R/EDI/src/fast_poisson_glmm.cpp:68; R/EDI/src/_glmm_engine.h:32.",
+  "unit": "dup-7640a4a65caa"
+ },
+ "code-duplication-db001874c": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:259-462` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:296-515`. About 200 lines of RR-only log-scale methods are identical in both abstracts: the bootstrap-basic and BBT log CIs, the jackknife log-SE, Wald p-value and CI, and compute_rr_resampling_pivot with its subsampling and m-out-of-n pval/CI wrappers. I found no drift today. Extract them into one shared private-method list (for example `incidence_gcomp_rr_private_methods` in inference_incidence_gcomp.R, composed by both abstracts), so a fix to one copy cannot be missed in the other. Only get_covariate_names differs, and it is simply absent from the KK region. Evidence: R/EDI/R/inference_incidence_KK_gcomp_abstract.R:312-462; R/EDI/R/inference_incidence_gcomp_abstract.R:358-515; R/EDI/R/inference_incidence_gcomp_abstract.R:298-306.",
+  "unit": "dup-847f2d57f083"
+ },
+ "code-duplication-dc1588975": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/gcomp_speedups.cpp:175-276` vs `R/EDI/src/gcomp_speedups.cpp:384-490`. `gcomp_logistic_cluster_post_fit_cpp` is a full copy of `compute_gcomp_logistic_post_fit`, except that the meat is `cluster_meat_gcomp` instead of the HC0 `weighted_crossprod(X, resid^2)`. Extract a shared helper that takes the meat matrix or a meat functor, in `gcomp_speedups.cpp`. The guards (bounds, dimension, boundary mu, factorization, non-finite vcov, non-positive treatment variance) currently match, but a future fix to one side would likely miss the other. Evidence: R/EDI/src/gcomp_speedups.cpp:187-226; R/EDI/src/gcomp_speedups.cpp:402-441; R/EDI/src/gcomp_speedups.cpp:210-212; R/EDI/src/gcomp_speedups.cpp:425-426.",
+  "unit": "dup-01e154dfbad0"
+ },
+ "code-duplication-dc93f6357": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:183-232` vs `R/EDI/R/inference_incidence_risk_diff.R:217-273`. The risk-diff `shared()` is a copy of the StandardModelCache `shared()` state machine, and the code comment says it was absorbed verbatim because the class cannot compose that component. The only difference is `generate_mod_nonestimable_reason`. Only the stereotype-logit class ever sets that field, so it is not a bug today. Move `shared()` into a likelihood-free base helper that both files use, so future fixes land in both. Evidence: R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:184-232; R/EDI/R/inference_incidence_risk_diff.R:218-273; R/EDI/R/inference_incidence_risk_diff.R:243; R/EDI/R/inference_ordinal_stereotype_logit.R:516.",
+  "unit": "dup-fb4cd2ec3279"
+ },
+ "code-duplication-dcdb7e599": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:367-427` vs `R/EDI/R/inference_proportion_KK_combined.R:164-224`. The get_likelihood_test_spec bodies (fit_null, score, observed/fisher/information, neg_loglik) are identical except for the reservoir-logit branch and an extra `d = d` field the proportion class needs for its simulate_under_lik_null. The same four-fold Hessian closure is repeated within each file. Extract a shared `clogit_plus_glmm_likelihood_spec(ctx, d)` helper for both classes, and define the Hessian wrapper once per spec. Evidence: R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:368-427; R/EDI/R/inference_proportion_KK_combined.R:165-224.",
+  "unit": "dup-51b70d0e54ad"
+ },
+ "code-duplication-dd690bfdc": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211`. The two exported kernels have identical bodies: the matched-pair and reservoir pass, the variance-weighted combine, and the NA handling. They differ only in where y comes from, a single shared vector versus a per-replicate column of y_mat. Extract a static inline `compound_beta_hat(const double* y, const int* w, const int* m, int n, scratch...)` in this file or _helper_functions.h, and have both OpenMP loops call it. Evidence: R/EDI/src/kk_compound_distr_parallel.cpp:38-108; R/EDI/src/kk_compound_distr_parallel.cpp:140-207.",
+  "unit": "dup-b82ef667e0cb"
+ },
+ "code-duplication-de10bd6b1": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/simulations_framework.R:3393-3441` vs `R/EDI/R/simulations_framework.R:3446-3494`. The tryCatch + handle_error + make_error + local_record block is pasted once per inference type (asymp, exact, boot, and so on). Only the type key, method name, args and NA fallback differ. Extract a local `call_inference(type, method, args, na_value)` helper inside the simulation worker, so the error metadata and fatal-return handling live in one place. Evidence: R/EDI/R/simulations_framework.R:3393-3441; R/EDI/R/simulations_framework.R:3446-3494.",
+  "unit": "dup-6af874290f8f"
+ },
+ "code-duplication-dee72312b": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/src/fast_cpoisson_combined.cpp:87-124` vs `R/EDI/src/fast_cpoisson_combined.cpp:346-395`. The score/info function and the optimizer loop's warm-start and else branches in fast_cpoisson_combined.cpp compute the same pair and reservoir score and information. The loop uses grad = -score (resid sign flipped), which is consistent, so nothing is wrong today. Have the loop call the score/info helper and negate the score, so a fix to one is not missed in the other. The loop inlines it for speed, which is possible only if the helper is not reused. Evidence: R/EDI/src/fast_cpoisson_combined.cpp:87-126; R/EDI/src/fast_cpoisson_combined.cpp:329-342; R/EDI/src/fast_cpoisson_combined.cpp:346-397.",
+  "unit": "dup-be7f39dede8f"
+ },
+ "code-duplication-df63f231e": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Divergence-bug suspect**: `R/EDI/R/inference_count_hurdle.R:80-236` vs `R/EDI/R/inference_count_zero_inflated.R:85-255`. The Hurdle initialize exposes `smart_cold_start_default` and forwards it. The ZeroInflatedPoisson initialize omits it (the ZINB initialize at line 344 omits it too), so ZI users cannot set smart cold start, even though the shared abstract accepts it and the other count classes expose it. Compare `InferenceCountHurdlePoisson$new(..., smart_cold_start_default = TRUE)` with the same call on `InferenceCountZeroInflatedPoisson`, which errors on an unused argument. This looks like the parameter was added to one side only. The bodies of the two classes are otherwise copies and could share a generic marginal-estimand override list. Evidence: R/EDI/R/inference_count_hurdle.R:110-111; R/EDI/R/inference_count_zero_inflated.R:123-124; R/EDI/R/inference_count_zero_inflated.R:344; R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:35-43.",
+  "unit": "dup-eaa9343f12a8"
+ },
+ "code-duplication-dfe6e2293": {
+  "first_seen": "2026-11-18T20:13:46+00:00",
+  "key": "dup",
+  "last_seen": "2026-11-18T20:13:46+00:00",
+  "text": "**Refactor candidate**: `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:863-970` vs `R/EDI/R/inference_incidence_gcomp.R:16-151`. The KK list `incidence_kk_gcomp_worker_overrides` and its generic-alias list copy the non-KK `incidence_gcomp_generic_alias_overrides` and `incidence_gcomp_worker_overrides` almost line for line. The only deliberate difference is compute_rand_two_sided_pval, which is documented at the KK file's lines 855-862. Build both from one shared base list and override only that method for KK, so a new method added to one list is not missed in the other. Evidence: R/EDI/R/inference_incidence_KK_gcomp_abstract.R:863-949; R/EDI/R/inference_incidence_gcomp.R:13-131; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:952-967; R/EDI/R/inference_incidence_gcomp.R:148.",
+  "unit": "dup-53e9eeb69c5d"
+ }
+}
