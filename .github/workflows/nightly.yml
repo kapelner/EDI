@@ -45,7 +45,7 @@ name: nightly
 
 on:
   schedule:
-    - cron: '30 2 * * *'   # 02:30 UTC daily
+    - cron: '7 2 * * *'    # 02:07 UTC daily (an odd minute: GitHub delays crons at :00/:30 most; owner 2026-11-18)
   workflow_dispatch:
     inputs:
       argument_targets:
