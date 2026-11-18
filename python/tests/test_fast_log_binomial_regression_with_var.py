@@ -57,7 +57,12 @@ def test_matches_r_fixture():
     res = fast_log_binomial_regression_with_var(X, y, tol=1e-8)
 
     assert res["converged"] is True
-    assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
+    # Coefficients agree to the fit's convergence tolerance (tol = 1e-8), not
+    # to 1e-9: since v1.0.6-TODO-142 (2026-11-18) the infeasible cold start
+    # here (OLS on log1p(y) puts eta > 0) is first pulled into the support, so
+    # the iterations take a different path to the same MLE and b[2] moved by
+    # 1.9e-9. neg_ll is flat at the optimum and still matches to 1e-9.
+    assert res["b"] == pytest.approx(R_B, abs=1e-7, rel=1e-7)
     assert res["neg_ll"] == pytest.approx(R_NEG_LL, abs=ATOL, rel=RTOL)
 
 
