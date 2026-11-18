@@ -24,7 +24,7 @@ on:
       - 'R/package_tests/**'
       - '.github/workflows/test-coverage-R.yaml'
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '7 2 * * *'
   workflow_dispatch: {}
 
 # A newer push cancels the coverage run of the push before it (owner, 2026-11-17): each run is ~98

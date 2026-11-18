@@ -1,4 +1,4 @@
-# Audit status (after every audit run, and daily 08:00 UTC): one table of the scheduled audits,
+# Audit status (after every audit run, and daily 08:07 UTC): one table of the scheduled audits,
 # grouped daily / weekly / monthly like their names in the Actions sidebar, with each audit's
 # schedule, last run, result and open PR or issue. It is the body of one pinned issue labelled
 # `audit-status`, edited in place, and the job summary. No Claude.
@@ -35,7 +35,7 @@ on:
       - "audit · weekly · todo-status"
     types: [completed]
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "7 8 * * *"
   workflow_dispatch:
 
 permissions:
