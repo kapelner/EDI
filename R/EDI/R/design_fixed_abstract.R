@@ -44,8 +44,8 @@ DesignFixed = R6::R6Class("DesignFixed",
 		#' @description Assign treatment to all subjects in the fixed experiment.
 		#' @param w_precomputed Optional \{0,1\} numeric vector of length n. If supplied the
 		#'   allocation is used directly and
-		#'   \code{draw_ws_according_to_design} is not called (avoids e.g. the Java
-		#'   round-trip for \code{DesignFixedGreedy}).
+		#'   \code{draw_ws_according_to_design} is not called (avoids re-running a
+		#'   costly allocation search, e.g. for \code{DesignFixedGreedy}).
 		assign_w_to_all_subjects = function(w_precomputed = NULL){
 			if (!is.null(w_precomputed)) {
 				private$w[1:self$get_n()] = as.numeric(w_precomputed)

@@ -96,7 +96,10 @@ For survival outcomes with left- or interval-censoring, a nonzero
 per-iteration diagnostics including error messages, warning messages, counts of each,
 and summary proportions for iterations with errors, warnings, and illegal (non-finite)
 values. Runs serially. Default \code{FALSE}.}
-      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
+\code{"logit"} response transform: responses are clamped to
+\code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -170,7 +173,10 @@ silently and the p-value is computed over the finite draws only;
 Details for the minimum number of finite draws required.}
       \item{\code{show_progress}}{Show progress.}
       \item{\code{permutations}}{Pre-computed permutations.}
-      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
+\code{"logit"} response transform: responses are clamped to
+\code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
       \item{\code{alternative}}{One of \code{"two.sided"} (default), \code{"greater"} or
 \code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
 P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}

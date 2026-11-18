@@ -10,8 +10,8 @@
 #' gradient test is available here; this is a plain Wald test, not a
 #' likelihood-backed one.
 #'
-#' @param delta   The null difference to test against. For any treatment effect at all this is
-#'   set to zero (the default).
+#' @param delta   The null difference to test against. To test for any treatment effect at all,
+#'   set this to zero (the default).
 #'
 #' @return  The approximate frequentist p-value
 #'

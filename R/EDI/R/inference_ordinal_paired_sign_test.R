@@ -141,8 +141,10 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 		#'   the higher response, using the mean bootstrap weight of the pair's two
 		#'   rows; \eqn{\hat\beta_T^{(w)}} is the weighted proportion of
 		#'   treatment-favoring pairs minus \code{0.5}. No standard error is
-		#'   computed (\code{s_beta_hat_T} is always \code{NA}). Pairs with no
-		#'   discordant (untied) weighted votes are cached as nonestimable.
+		#'   computed (\code{s_beta_hat_T} is always \code{NA}). With no matched
+		#'   pairs the estimate is cached as nonestimable; when no pair casts a
+		#'   discordant (untied) weighted vote the estimate is \code{0} with an
+		#'   \code{NA} standard error.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point

@@ -90,7 +90,8 @@ Tsiatis, A. A. (1990). Estimating regression parameters using linear
       \item{\code{r}}{Number of randomization vectors.}
       \item{\code{delta}}{Null treatment effect value.}
       \item{\code{transform_responses}}{Response transformation to apply during the test. For
-survival responses the default \code{"log"} multiplies the recorded times of the
+survival responses the default \code{"none"} resolves to \code{"log"}, which
+multiplies the recorded times of the
 units treated under each reference allocation by \eqn{e^\delta}, event and
 censoring times alike, with censoring indicators unchanged -- the rank-based
 AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei

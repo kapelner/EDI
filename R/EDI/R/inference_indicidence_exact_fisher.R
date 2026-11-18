@@ -256,8 +256,10 @@ ExactFisherIncidenceSource = list(
 #'
 #' Performs exact conditional inference for binary (incidence) outcomes via
 #' Fisher's exact test on one or more 2x2 (treated/control by case/noncase)
-#' tables. When the design provides no stratification structure (e.g. an
-#' unstructured or iBCRD design), a single overall 2x2 table is built and
+#' tables. Only iBCRD (complete-randomization), blocking and KK matching
+#' designs are accepted; other designs (e.g. \code{DesignFixedBernoulli}) are
+#' refused at construction. For an iBCRD design, which has no stratification
+#' structure, a single overall 2x2 table is built and
 #' \code{\link[stats]{fisher.test}} is used directly, giving the conditional
 #' MLE odds ratio and its exact confidence interval/p-value. When the design
 #' has \strong{blocking structure} (\code{DesignFixedBlocking},

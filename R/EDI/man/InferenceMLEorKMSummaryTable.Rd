@@ -143,7 +143,10 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceMLEorKMSummaryTable-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceMLEorKMSummaryTable-compute_estimate}{}}}
 \subsection{\code{InferenceMLEorKMSummaryTable$compute_estimate()}}{
-  Computes the appropriate estimate for mean difference
+  Computes the treatment-effect estimate (the treatment
+  coefficient) from the fitted model or Kaplan-Meier summary. Its scale
+  depends on the model (e.g. a mean difference, or a log-scale effect for
+  survival and log-link models).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceMLEorKMSummaryTable$compute_estimate(estimate_only = FALSE)}
@@ -157,7 +160,8 @@ seq_des_inf$compute_estimate()
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The setting-appropriate (see description) numeric estimate of the treatment effect
+    The cached treatment coefficient, or \code{NA_real_} if it is
+  unavailable.
   }
   \subsection{Examples}{
     \if{html}{\out{<div class="r example copy">}}
@@ -217,8 +221,10 @@ confidence interval is 1 - \code{alpha}. The default is 0.05.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{The null difference to test against. For
-any treatment effect at all this is set to zero (the default).}
+      \item{\code{delta}}{The null difference to test against. The
+default of zero tests for any treatment effect at all; only zero is currently
+supported (any other value returns \code{NA_real_}, or errors when
+package assertions are on).}
     }
     \if{html}{\out{</div>}}
   }

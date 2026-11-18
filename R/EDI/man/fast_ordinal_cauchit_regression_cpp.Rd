@@ -19,7 +19,7 @@ fast_ordinal_cauchit_regression_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors (no intercept column needed; see Details).}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see the description).}
 
 \item{y}{A numeric vector of ordinal responses; only the rank order of distinct
 values matters, not their numeric coding.}
@@ -30,7 +30,7 @@ values matters, not their numeric coding.}
 
 \item{maxit}{Maximum number of optimizer iterations.}
 
-\item{tol}{Convergence tolerance.}
+\item{tol}{Convergence tolerance on the gradient norm.}
 
 \item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
@@ -49,15 +49,17 @@ variance-covariance matrix (identical to what
 \value{
 A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
-  when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+  \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+  when \code{estimate_only = FALSE} (the default), additionally
   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
   (all the same observed-information matrix), \code{information_type} (always
-  \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
-  (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
-  conventionally the treatment effect, since \code{X} carries no separate intercept
-  column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
-  fewer than 2 distinct levels.
+  \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
+  on \code{X}'s first column — conventionally the treatment effect, since \code{X}
+  carries no separate intercept column here; the thresholds \code{alpha} play that
+  role) and \code{vcov} (the parameter covariance matrix). Only these last two depend
+  on convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+  \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2 distinct levels.
 }
 \description{
 Fits a cumulative-link ordinal regression model with the \strong{cauchit} link
@@ -94,7 +96,7 @@ OLS-based heuristic, and when \code{FALSE}, thresholds start at
 \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
 marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
-iterations or until the parameter/gradient change falls below \code{tol};
+iterations or until the gradient norm falls below \code{tol};
 \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 curvature estimate.
 }
@@ -102,7 +104,7 @@ curvature estimate.
 \seealso{
 \code{\link{fast_ordinal_cauchit_regression_with_var_cpp}}, which always computes
   the variance quantities (equivalent to calling this function with
-  \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
+  \code{estimate_only = FALSE}) and additionally guards against the degenerate
   case by returning \code{NA} placeholders instead of an empty list.
 }
 \keyword{internal}

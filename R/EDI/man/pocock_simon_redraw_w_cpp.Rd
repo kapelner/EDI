@@ -43,10 +43,11 @@ call, starting from empty covariate-by-arm counts (all zero) and updating
 them internally after each subject, rather than being called once per
 subject with externally-maintained \code{counts}. This is used to
 \strong{re-derive} (\dQuote{redraw}) a full sequence of assignments in a
-single vectorized pass — e.g. for simulation, or for reconstructing what a
-one-at-a-time run would have produced — while consuming R's uniform random
-stream in exactly the same order a subject-by-subject loop calling
-\code{\link{pocock_simon_assign_cpp}} would have.
+single vectorized pass — e.g. for simulation. Unlike
+\code{\link{pocock_simon_assign_cpp}}, which seeds its own generator from one
+R draw per call, this function continues R's live uniform random stream (see
+the note), so it does not reproduce the draws of a subject-by-subject loop
+over \code{\link{pocock_simon_assign_cpp}} for the same R seed.
 }
 \note{
 Continues R's actual live .Random.seed stream via edi_rng::RRng

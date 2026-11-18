@@ -12,4 +12,4 @@
 #'   and interval are \code{NA}. See
 #'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 #'   asymptotic confidence-interval contract this delegates to.
-#' @param alpha Confidence level.
+#' @param alpha Significance level; the interval has confidence level 1 - alpha. Default 0.05.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/inference_continuous_KK_bai_abstract.R
 \name{BaiAdjustedTSource}
 \alias{BaiAdjustedTSource}
-\title{Inference based on Maximum Likelihood for KK designs}
+\title{Bai adjusted t-test inference for KK designs}
 \usage{
 BaiAdjustedTSource
 }
@@ -22,12 +22,9 @@ Computes the appropriate estimate for compound mean difference across pairs and 
 
 Computes a 1-alpha level frequentist confidence interval
 
-Here we use the theory that MLE's computed for GLM's are asymptotically normal
-(except in the case
-of estimat_type "median difference" where a nonparametric bootstrap confidence
-interval (see the \code{controlTest::quantileControlTest} method)
-is employed. Hence these confidence intervals are asymptotically valid and thus
-approximate for any sample size.
+The interval is a z or t interval built from the closed-form Bai adjusted
+variance of the matched-pair / reservoir estimate. It is asymptotically
+valid and thus approximate for any finite sample size.
 
 Compute the Bai-adjusted two-sided p-value for the treatment
   effect using the matched-design adjusted statistic. See related

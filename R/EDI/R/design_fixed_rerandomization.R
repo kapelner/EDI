@@ -95,6 +95,8 @@
 #'   the default objective.
 #' @examples
 #' des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous', prop_acceptable = 0.1)
+#' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10), x2 = rnorm(10)))
+#' des$assign_w_to_all_subjects()
 #' @export
 DesignFixedRerandomization = define_design_class(
 	classname = "DesignFixedRerandomization",

@@ -295,7 +295,7 @@ Must be a positive integer. Default \code{50L}.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{Significance level; the interval has confidence level 1 - alpha. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }

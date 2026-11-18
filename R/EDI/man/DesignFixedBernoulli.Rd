@@ -163,7 +163,7 @@ Neyman, J. (1923, transl. 1990). "On the Application of Probability
 "ordinal".}
       \item{\code{prob_T}}{Per-subject probability \eqn{p} that a given subject is
 assigned to treatment; need not be \code{0.5} (unlike
-\code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}).}
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

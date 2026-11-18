@@ -199,8 +199,7 @@ CountKKHurdlePoissonIVWCSource = list(
 		#'   from the combined treatment estimate and standard error; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
 		#'   interval semantics.
-		#' @param alpha Confidence level.
-		#' @param alpha The significance level (default 0.05).
+		#' @param alpha The significance level (default 0.05); the interval has level 1 - alpha.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
@@ -732,7 +731,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
 		#'   score, likelihood-ratio, or gradient paths as documented in
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level; the interval has confidence level 1 - alpha.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			switch(
 				self$get_testing_type(),
@@ -880,7 +879,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		#'   hurdle-Poisson treatment coefficient, falling back to bootstrap when the
 		#'   model standard error is unavailable. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level; the interval has confidence level 1 - alpha.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
@@ -899,8 +898,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the Wald two-sided p-value for the one-likelihood
-		#'   hurdle-Poisson treatment coefficient, falling back to the Bayesian-bootstrap
-		#'   p-value when the model standard error is unavailable. See
+		#'   hurdle-Poisson treatment coefficient, falling back to the nonparametric
+		#'   bootstrap p-value when the model standard error is unavailable (or
+		#'   \code{NA_real_} when the design does not support the nonparametric
+		#'   bootstrap). See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Null treatment effect value.
 		compute_wald_two_sided_pval = function(delta = 0){
@@ -1531,8 +1532,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
 #' so the model-based test is never anti-conservative relative to the design.
 #' The Wald confidence interval and p-value fall back to the
-#' nonparametric-bootstrap
-#' bootstrap distribution when the model-based standard error is unavailable
+#' nonparametric-bootstrap distribution when the model-based standard error is unavailable
 #' or non-finite (e.g. a boundary/separation fit).
 #'
 #' \strong{Assumptions.} Independence across matched pairs and reservoir
@@ -2372,9 +2372,9 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #' at construction via \code{assertNoCensoring()}).
 #'
 #' @references
-#' Kapelner, A. and Krieger, A. (2014). "Matching on-the-fly: A group
-#' sequential covariate balanced randomization procedure." \emph{arXiv
-#' preprint} arXiv:1305.6259. (KK14 in \code{REFERENCES.md}.)
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
 #'
 #' @seealso Analogous Python API for count models:
 #'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels

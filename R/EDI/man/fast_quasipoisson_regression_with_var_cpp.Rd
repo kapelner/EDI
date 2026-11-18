@@ -43,7 +43,8 @@ supplied, use a Poisson-specific heuristic initial guess rather than a zero cold
 
 \item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.}
 
-\item{warm_start_weights}{Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.}
+\item{warm_start_weights}{Accepted but unused; see the "Fixed parameters, warm starts"
+section of \code{\link{fast_poisson_regression_cpp}}.}
 
 \item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
 }
@@ -61,7 +62,10 @@ A list containing the following components:
   \code{NA} if the residual degrees of freedom are not positive.}
 \item{mu}{The fitted means \eqn{\hat\mu_i}.}
 \item{converged}{A logical value indicating whether the algorithm converged.}
-\item{iterations}{The number of iterations performed.}
+\item{num_iter}{The number of iterations performed.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
 \item{gradient_norm}{The norm of the score vector at convergence.}
 }
 }

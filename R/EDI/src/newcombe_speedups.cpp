@@ -108,6 +108,22 @@ NumericVector newcombe_independent_ci_cpp(double x1, double n1, double x2, doubl
 
 #ifndef EDI_CORE_ONLY
 //' Newcombe Hybrid Score Interval for Paired Proportions
+//'
+//' Computes Newcombe's (1998) hybrid score interval (his method 10) for the
+//' difference \eqn{p_1 - p_2} of two paired proportions, from the 2x2 table of
+//' matched pairs, with \eqn{p_1 = (n_{11} + n_{10})/n} and
+//' \eqn{p_2 = (n_{11} + n_{01})/n}. Wilson score intervals for \eqn{p_1} and
+//' \eqn{p_2} are combined with a correction for the phi correlation of the
+//' paired table (taken as 0 when a margin is empty).
+//'
+//' @param n11 Number of pairs where both members have the event.
+//' @param n10 Number of pairs where only the first member has the event.
+//' @param n01 Number of pairs where only the second member has the event.
+//' @param n00 Number of pairs where neither member has the event.
+//' @param alpha The confidence level is \eqn{1-\alpha}.
+//' @return A length-2 numeric vector: the lower and upper bounds for \eqn{p_1 - p_2},
+//'   clamped to \eqn{[-1, 1]}; \code{c(NA, NA)} if the total count is 0.
+//' @seealso \code{\link{newcombe_independent_ci_cpp}} for independent samples.
 //' @keywords internal
 // [[Rcpp::export]]
 NumericVector newcombe_paired_ci_cpp(double n11, double n10, double n01, double n00, double alpha) {

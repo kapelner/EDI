@@ -155,7 +155,7 @@ InferenceCountRobustPoisson = define_inference_class(
 		#'   Huber-White sandwich standard error (see class documentation). See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   asymptotic confidence-interval contract this delegates to.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)

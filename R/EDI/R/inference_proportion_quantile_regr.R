@@ -72,8 +72,8 @@ InferencePropQuantileRegr = define_inference_class(
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
-		#' @param tau The quantile to estimate (default 0.5).. Default 0.5.
-		#' @param verbose Whether to print progress messages.. Default FALSE.
+		#' @param tau The quantile to estimate. Default 0.5.
+		#' @param verbose Whether to print progress messages. Default FALSE.
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5,  verbose = FALSE){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "proportion")

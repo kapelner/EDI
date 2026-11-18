@@ -31,8 +31,8 @@ two groups (\code{w} in \code{{0, 1}}), coincides with the Wilcoxon-Mann-Whitney
 \deqn{U = \sum_{k} t_k \big(2 L_k + (n_k - t_k)\big) / 2,}
 summed over the \eqn{K} distinct observed levels of \code{y} (in increasing order),
 where \eqn{n_k} is the total count at level \eqn{k}, \eqn{t_k} is the observed count
-of \code{w == 1} subjects at level \eqn{k}, and \eqn{L_k} is the number of subjects
-at strictly lower levels (this is the standard "number of favorable comparisons"
+of \code{w == 1} subjects at level \eqn{k}, and \eqn{L_k} is the number of control
+(\code{w == 0}) subjects at strictly lower levels (this is the standard "number of favorable comparisons"
 Mann-Whitney statistic, adapted for tied/grouped ordinal data — a tie at the same
 level contributes \eqn{1/2} rather than 0 or 1). The exact (not asymptotic,
 not Monte Carlo) null/reference distribution of this statistic under the sharp null
@@ -71,13 +71,16 @@ values with both groups non-empty. \code{NA} in either \code{y} or \code{w} is n
 permitted and raises an error, as does a non-\code{{0,1}} value in \code{w} or an
 empty input.
 
-\strong{Complexity.} The recursion's state space scales with the number of distinct
-possible statistic values (\eqn{O(n_{\mathrm{treat}} \cdot n_{\mathrm{control}})}
-many), and thread-local buffers are reused (not reallocated) across repeated calls
-within the same thread for the same or smaller problem sizes; this exact enumeration
-is exponential in the number of distinct levels/group sizes in the worst case
-(unlike an asymptotic normal-approximation JT test), so it is intended for small-to-
-moderate \eqn{n} where exactness matters more than raw speed.
+\strong{Complexity.} Memory is governed by the table of possible statistic values,
+which has \eqn{2 n_{\mathrm{treat}} n_{\mathrm{control}} + 1} entries; thread-local
+buffers for it are reused (not reallocated) across repeated calls within the same
+thread for the same or smaller problem sizes. Run time is governed by the recursion,
+which visits every allocation of the \code{n_treat} treated labels across the
+\eqn{K} levels (no memoization), a count that grows combinatorially with \eqn{K}
+and \code{n_treat} (unlike an asymptotic normal-approximation JT test). If that
+count exceeds 1,000,000 the function stops with an error recommending asymptotic
+inference, so it is intended for small-to-moderate \eqn{n} where exactness matters
+more than raw speed.
 }
 \seealso{
 \href{https://en.wikipedia.org/wiki/Mann\%E2\%80\%93Whitney_U_test}{Mann-Whitney

@@ -85,8 +85,10 @@ SurvivalKKRankRegrIVWCSource = list(
 		#' @description Compute the survival rank-regression asymptotic p-value for
 		#'   the treatment effect using the fitted rank-regression estimate and
 		#'   standard error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta                                   The null difference to test against. For
-		#'   any treatment effect at all this is set to zero (the default).
+		#' @param delta                                   The null difference to test against.
+		#'   Only zero (the default, testing for any treatment effect at all) is currently
+		#'   supported; a non-zero value raises an error, or returns \code{NA} when
+		#'   assertions are disabled.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)

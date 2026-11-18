@@ -19,9 +19,9 @@ coming from the count process, not the excess-zero-inflation mechanism}:
 it is not the effect on the unconditional mean \eqn{E[Y]}, which also
 depends on how treatment shifts the excess-zero probability, under the
 default \code{estimand = "conditional"}. \code{likelihood_tier = "full"}:
-Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
-available for the count submodel's treatment coefficient under that
-estimand; a plain score test is not exposed. \strong{Jackknife inference
+Wald, score, gradient, and (bootstrap-calibrated) likelihood-ratio tests
+are available for the count submodel's treatment coefficient under that
+estimand. \strong{Jackknife inference
 is not supported}: delete-one refits of this two-part mixture model are
 numerically unstable, so \code{compute_jackknife_estimate()} and related
 methods report explicit non-estimability rather than attempting

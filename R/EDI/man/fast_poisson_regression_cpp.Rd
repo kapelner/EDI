@@ -41,7 +41,7 @@ supplied, use a Poisson-specific heuristic initial guess rather than a zero cold
 
 \item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.}
 
-\item{warm_start_weights}{Accepted but unused; see Details.}
+\item{warm_start_weights}{Accepted but unused; see the "Fixed parameters, warm starts" section.}
 
 \item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
 

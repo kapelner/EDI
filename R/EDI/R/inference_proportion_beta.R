@@ -157,8 +157,8 @@ InferencePropBetaRegr = define_inference_class(
 		#'   returns the log-odds-ratio estimate \eqn{\hat\beta_T} on the
 		#'   conditional-mean scale. Under \code{estimand = "marginal_mean_diff"}
 		#'   (set via \code{set_estimand()}), returns the g-computation
-		#'   marginal mean difference instead — see the class-level
-		#'   \code{@details} for the formula. The underlying model fit is
+		#'   marginal mean difference instead — see the "Estimand" paragraph
+		#'   of the class description for the formula. The underlying model fit is
 		#'   identical either way (a pure post-fit transform of the same
 		#'   cached fit, no refit).
 		#' @param estimate_only If TRUE, skip standard-error computation and cache

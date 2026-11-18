@@ -22,8 +22,9 @@
 #' \eqn{T^2 = \frac{1}{2}(x_t - x_j)^\top S^{-1}(x_t - x_j)} (half the squared
 #' Mahalanobis distance, since the difference of two exchangeable subjects has
 #' covariance \eqn{2\Sigma}; \eqn{S} is the sample covariance of all prior subjects'
-#' covariates, lightly ridge-regularized) to every subject \eqn{j} currently in the
-#' reservoir is computed, and the closest one is a candidate match. The match is
+#' covariates, lightly ridge-regularized) is computed between the new subject and
+#' every subject \eqn{j} currently in the reservoir, and the closest one is a
+#' candidate match. The match is
 #' \strong{accepted} only if that \eqn{T^2} falls
 #' below a threshold \eqn{T^2_{\mathrm{cutoff}}} derived from an F critical value,
 #' \deqn{T^2_{\mathrm{cutoff}} = \frac{p(n-1)}{n-p} \, F_{p,\, t-p}(\lambda),}

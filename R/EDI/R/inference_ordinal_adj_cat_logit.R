@@ -87,7 +87,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		# Confirmed reachable via tune_EDI_for_this_machine()'s synthetic
 		# n = 1000 ordinal benchmark data; only jackknife's own separate
 		# extreme-summary heuristic caught it downstream, not the estimate
-		# itself. Same threshold/pattern as every other class's
+		# itself. Same pattern (threshold value varies by class) as every other class's
 		# max_abs_reasonable_coef-gated extreme-coefficient check (see e.g.
 		# InferenceIncidKKCondLogitOneLik's assess_combined_fit()).
 		max_abs_reasonable_coef = 1e4,

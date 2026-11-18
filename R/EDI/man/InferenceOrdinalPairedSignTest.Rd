@@ -234,8 +234,10 @@ cache only the point estimate.}
   the higher response, using the mean bootstrap weight of the pair's two
   rows; \eqn{\hat\beta_T^{(w)}} is the weighted proportion of
   treatment-favoring pairs minus \code{0.5}. No standard error is
-  computed (\code{s_beta_hat_T} is always \code{NA}). Pairs with no
-  discordant (untied) weighted votes are cached as nonestimable.
+  computed (\code{s_beta_hat_T} is always \code{NA}). With no matched
+  pairs the estimate is cached as nonestimable; when no pair casts a
+  discordant (untied) weighted vote the estimate is \code{0} with an
+  \code{NA} standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights(

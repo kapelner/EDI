@@ -11,10 +11,10 @@ assignment would most improve the current design's efficiency for estimating the
 treatment effect \eqn{D_A}-optimally, given the covariates observed so far. Compared
 to a fixed-probability coin (e.g.
 \code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}}), this
-improves covariate balance/estimation efficiency online without ever fully
-determinizing the assignment (the coin is always strictly between 0 and 1, so
-randomization-based inference remains valid), at the cost of requiring a numerically
-well-conditioned design matrix to compute the bias.
+improves covariate balance/estimation efficiency online while essentially never
+determinizing the assignment (the coin's probability lies in \eqn{[0, 1)} and is 0
+only in the degenerate case \eqn{M_{11}/A = -1} described below), at the cost of
+requiring a numerically well-conditioned design matrix to compute the bias.
 
 
 \strong{Assignment rule.} For subject \eqn{t}, let \eqn{Z_{t-1} = [w_{1:t-1}, 1,
@@ -24,13 +24,14 @@ Writing \eqn{x_t} for the new subject's covariate vector (with a leading 1 for t
 intercept) and \eqn{A = M_{[1, 2:]} \cdot x_t} (the treatment row of \eqn{M},
 projected onto \eqn{x_t}), the treatment probability is
 \deqn{\pi_t = \frac{\big(M_{11}/A + 1\big)^2}{\big(M_{11}/A + 1\big)^2 + 1},}
-clamped to \eqn{[0, 1]}, and subject \eqn{t} is assigned to treatment with
-probability \eqn{\pi_t}. This is Atkinson's biased-coin formula for
+clamped to \eqn{[0, 1]} as a numerical safeguard (the formula itself lies in
+\eqn{[0, 1)}, reaching 0 only when \eqn{M_{11}/A = -1}), and subject \eqn{t} is
+assigned to treatment with probability \eqn{\pi_t}. This is Atkinson's biased-coin formula for
 \eqn{D_A}-optimal sequential design: the coin biases toward the assignment that
 would most reduce the variance of the treatment-effect estimate under the linear
-model implied by \eqn{Z_t}, converging toward more extreme (but never
-fully deterministic) probabilities as the current covariate imbalance grows in
-directions that matter for that estimate.
+model implied by \eqn{Z_t}, converging toward more extreme (but, outside that
+degenerate case, never fully deterministic) probabilities as the current covariate
+imbalance grows in directions that matter for that estimate.
 
 \strong{Fallback to a fair(-ish) coin.} For the first
 \code{ncol(private$Xraw) + 3} subjects (too few observations for
@@ -45,7 +46,9 @@ reproducibility of the resulting assignment sequence in the usual way.
 }
 \examples{
 seq_des = DesignSeqOneByOneAtkinson$new(n = 6, response_type = 'continuous')
-seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+for (i in 1:6) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
 }
 \references{
 Atkinson, A. C. (1982). "Optimum biased coin designs for sequential

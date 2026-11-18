@@ -23,12 +23,23 @@ to be considered a stratification candidate.}
 candidate column.}
 }
 \value{
-A list with `strata_id`, `selected_cols`, and `num_strata`.
+A list with \code{strata_id} (integer vector of length \code{nrow(X)}, ids
+  numbered \code{1, 2, ...} in order of first appearance; all \code{1} when no column
+  qualifies), \code{selected_cols} (1-based integer indices of the selected columns,
+  empty if none), and \code{num_strata} (number of distinct strata; 1 if none selected).
 }
 \description{
 Selects numeric covariate columns with a small number of observed levels and
-combines them into a single all-subject stratum identifier. This is used to
+combines them into one stratum identifier per subject (row of \code{X}): each
+distinct combination of the selected columns' values is one stratum. This is used to
 support automatic stratified Cox models when the design object stores observed
 covariates but no explicit stratum variable.
+}
+\details{
+A column is a candidate only if all its values are finite, it has at least 2 and at
+most \code{max_unique_per_col} distinct values, and every value occurs at least
+\code{min_count_per_level} times. Candidates are ordered by number of levels
+(fewest first, ties broken by column position) and the first
+\code{max_strata_cols} are kept.
 }
 \keyword{internal}

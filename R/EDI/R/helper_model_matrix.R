@@ -12,8 +12,8 @@
 #' consume.
 #'
 #' @details
-#' \strong{What it does.} (1) If \code{data} has zero columns, returns a numeric
-#' \code{nrow(data) x 0} matrix (logical storage) immediately (no covariates to expand). (2) Otherwise calls
+#' \strong{What it does.} (1) If \code{data} has zero columns, returns a logical-storage
+#' \code{nrow(data) x 0} matrix immediately (no covariates to expand). (2) Otherwise calls
 #' \code{\link[stats]{model.matrix}(formula, data = data)}, which performs standard
 #' formula expansion: factor variables are dummy-coded against their reference level (the
 #' first level of \code{\link[base]{levels}}, or the level ordering already present in
@@ -55,8 +55,10 @@
 #' @param data A data frame or data table supplying the variables referenced in
 #'   \code{formula}, with one row per subject.
 #' @return A numeric matrix with \code{nrow(data)} rows and one column per retained,
-#'   full-rank expanded covariate term (no intercept column). Has zero columns if
-#'   \code{data} has zero columns.
+#'   full-rank expanded covariate term (no intercept column). If \code{data} has zero
+#'   columns, a logical-storage \code{nrow(data) x 0} matrix instead. If \code{data}
+#'   still contains \code{NA}s, \code{model.matrix} may drop those rows, so fewer than
+#'   \code{nrow(data)} rows can be returned.
 #' @seealso \code{\link[stats]{model.matrix}}, which performs the formula expansion this
 #'   function wraps; \code{drop_linearly_dependent_cols} (internal, same file) for the
 #'   rank-deficiency cleanup step. Analogous Python API:

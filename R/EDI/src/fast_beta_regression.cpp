@@ -307,9 +307,9 @@ Eigen::VectorXd get_beta_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>&
 //' at arbitrary caller-supplied parameters \code{params} (not necessarily the
 //' MLE). Exported standalone — independent of any optimizer run — for direct
 //' numerical diagnostics (e.g. checking curvature or building a custom variance
-//' estimate at a specific parameter value) and for use by
-//' \code{\link{get_beta_regression_score_cpp}}'s sibling relationship in
-//' optimizer/inference code that needs both quantities at the same point.
+//' estimate at a specific parameter value), and for optimizer/inference code
+//' that pairs it with \code{\link{get_beta_regression_score_cpp}} to get the
+//' gradient and Hessian at the same point.
 //'
 //' @param X A numeric matrix of predictors, as used to fit the model.
 //' @param y A numeric vector of responses in \verb{(0, 1)}.
@@ -399,9 +399,9 @@ Eigen::MatrixXd get_beta_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
 //'   \code{c(beta, log(phi))}) to warm-start curvature information for the first
 //'   optimizer iteration.
-//' @param estimate_only Logical; if \code{TRUE}, may skip work not needed to produce
-//'   point estimates (kept in sync with the package's other \code{fast_*} estimate-
-//'   vs-inference split).
+//' @param estimate_only Logical; if \code{TRUE}, the Hessian is not evaluated at the
+//'   fit and the returned \code{fisher_information} is a \code{(p + 1) x (p + 1)}
+//'   matrix of zeros (all other components are computed as usual).
 //' @return A list with components \code{coefficients} (\eqn{\hat\beta}, length
 //'   \code{p}), \code{phi} (\eqn{\hat\phi}, on its natural scale), \code{neg_loglik}
 //'   (the exact beta negative log-likelihood at the fitted parameters),
@@ -421,8 +421,9 @@ Eigen::MatrixXd get_beta_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd
 //' @export
 //' @keywords internal
 //' @examples
-//' X = matrix(rnorm(100), 10, 10)
-//' y = runif(10)
+//' set.seed(1)
+//' X = cbind(1, matrix(rnorm(200), 100, 2))
+//' y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 //' fast_beta_regression_cpp(X, y)
 // [[Rcpp::export]]
 List fast_beta_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = true, double start_phi = 10.0, bool compute_std_errs = false, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
@@ -504,7 +505,9 @@ List fast_beta_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Null
 //'   \code{\link{fast_beta_regression_cpp}}.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 //'   warm-start curvature information.
-//' @param estimate_only If TRUE, skip Fisher information calculation.
+//' @param estimate_only Logical; if \code{TRUE}, skip the Fisher information
+//'   calculation: the returned \code{fisher_information} is then a
+//'   \code{(p + 1) x (p + 1)} matrix of zeros.
 //' @return A list with the same components as
 //'   \code{\link{fast_beta_regression_cpp}}: \code{coefficients}, \code{phi},
 //'   \code{neg_loglik} (the weighted negative log-likelihood), \code{converged}, and
@@ -593,6 +596,9 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //'   \code{fixed_idx} at.
 //' @param optimization_alg Optimization algorithm; see
 //'   \code{\link{fast_beta_regression_cpp}}.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+//'   \code{c(beta, log(phi))}) to warm-start curvature information for the first
+//'   optimizer iteration.
 //' @return A list with components \code{coefficients} (\eqn{\hat\beta}),
 //'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
 //'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
@@ -608,8 +614,9 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //' @export
 //' @keywords internal
 //' @examples
-//' X = matrix(rnorm(100), 10, 10)
-//' y = runif(10)
+//' set.seed(1)
+//' X = cbind(1, matrix(rnorm(200), 100, 2))
+//' y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 //' fast_beta_regression_with_var_cpp(X, y)
 // [[Rcpp::export]]
 List fast_beta_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = true, double start_phi = 10.0, bool compute_std_errs = true, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {

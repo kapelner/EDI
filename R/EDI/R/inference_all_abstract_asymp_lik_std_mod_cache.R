@@ -12,7 +12,7 @@ StandardModelCacheSource = list(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes an asymptotic confidence interval using the configured test.
-		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
+		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (private$testing_type == "wald") {

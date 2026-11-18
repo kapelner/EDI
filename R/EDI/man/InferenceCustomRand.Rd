@@ -130,9 +130,9 @@ use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
 \if{latex}{\out{\hypertarget{method-InferenceCustomRand-compute_estimate}{}}}
 \subsection{\code{InferenceCustomRand$compute_estimate()}}{
   Compute the treatment-effect estimate by delegating to the
-  user-supplied custom bootstrap estimator. See
-  \code{\link[EDI:InferenceCustomBoot]{InferenceCustomBoot}} and
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+  user-supplied custom estimator (the \code{$fit()} callback). See
+  \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} and
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCustomRand$compute_estimate(estimate_only = FALSE)}

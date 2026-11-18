@@ -53,9 +53,10 @@
 #'     \code{norm_sq_beta_vec} once the \eqn{\sin} term's own variance is accounted
 #'     for — \code{norm_sq_beta_vec} calibrates the linear-in-covariate part of the
 #'     scale, not the full response variance). This function assumes each covariate
-#'     lies roughly in \eqn{[-1, 1]}, matching Friedman's original specification;
-#'     covariates drawn or supplied on a very different scale will not reproduce the
-#'     intended signal shape.}
+#'     lies roughly in \eqn{[0, 1]}, matching Friedman's original specification
+#'     (uniform covariates on \eqn{[0, 1]}); covariates drawn or supplied on a very
+#'     different scale, including the default \code{stats::rnorm} draws, will not
+#'     reproduce the intended signal shape.}
 #'   }
 #'
 #' @param n Integer. Sample size (number of rows).
@@ -121,7 +122,7 @@ generate_covariate_dataset = function(n, p,
     y_cont = as.numeric(X_mat %*% beta_x)
   } else {
     if (p < 5L) stop("Friedman nonlinear cond_exp_func_model requires p >= 5.")
-    # Friedman (1991) function — first five covariates, x in [-1,1]
+    # Friedman (1991) function — first five covariates, x in [0,1]
     beta_friedman = c(10, 20, 10, 5)
     scale_factor  = sqrt(norm_sq_beta_vec / sum(beta_friedman^2))
     y_cont = scale_factor * (
@@ -136,8 +137,8 @@ generate_covariate_dataset = function(n, p,
 #' Transform continuous latent signal to the response type scale
 #'
 #' @description A helper function to transform a latent continuous signal to the scale
-#' appropriate for a given \code{response_type}, identical to the logic used
-#' within \code{SimulationFramework} but not used within \code{SimulationFramework}. 
+#' appropriate for a given \code{response_type}; it duplicates the logic used
+#' within \code{SimulationFramework}, but \code{SimulationFramework} does not call it.
 #'
 #' @param y_cont Numeric vector. The latent continuous response signal.
 #' @param response_type Character scalar. One of \code{"continuous"}, \code{"incidence"},
@@ -147,7 +148,7 @@ generate_covariate_dataset = function(n, p,
 #' @param proportion_epsilon Numeric scalar. Small value added to proportion to avoid 0 and 1. Default \code{1e-6}.
 #' @param survival_min_time Numeric scalar. Minimum survival time and shift. Default \code{0.1}.
 #' @param count_min_rate Integer scalar. Minimum baseline rate for count response. Default \code{0L}.
-#' @param count_shift Numeric scalar. Constant added to counts after zero-centering. Default \code{0}.
+#' @param count_shift Numeric scalar. Constant added to counts after shifting the minimum to zero. Default \code{0}.
 #'
 #' @examples
 #' transform_cont_y_based_on_response_type(rnorm(10), 'incidence')

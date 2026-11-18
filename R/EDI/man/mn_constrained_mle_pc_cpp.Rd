@@ -6,6 +6,22 @@
 \usage{
 mn_constrained_mle_pc_cpp(x_t, n_t, x_c, n_c, delta)
 }
+\arguments{
+\item{x_t}{Number of events in treatment.}
+
+\item{n_t}{Number of subjects in treatment.}
+
+\item{x_c}{Number of events in control.}
+
+\item{n_c}{Number of subjects in control.}
+
+\item{delta}{Null risk difference \code{p_T - p_C}.}
+}
+\value{
+The constrained MLE of \code{p_C}, a single number. The bisection runs on
+  \eqn{[\max(0, -\delta), \min(1, 1 - \delta)]} for at most 60 iterations; if that
+  range is empty (\eqn{|\delta| \ge 1}), its midpoint is returned.
+}
 \description{
 Solves the likelihood equations for p_C subject to p_T - p_C = delta.
 Uses bisection on the score function (derivative of log-likelihood)

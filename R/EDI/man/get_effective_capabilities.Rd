@@ -38,6 +38,10 @@ would silently look up the wrong (unregistered) key. Ignored if
 \code{name} is itself a non-character object (that overload already
 derives its own live_obj).}
 }
+\value{
+A character vector of capability names (unique, unordered), after
+  the design, response-type and live-gate refinements described above.
+}
 \description{
 Effective capabilities for an inference class or instance
 }

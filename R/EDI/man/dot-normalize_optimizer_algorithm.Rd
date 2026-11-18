@@ -15,7 +15,7 @@
 optimizer, \code{NULL}, or missing entirely; see Details for resolution order.}
 
 \item{allow_irls}{Logical. Whether \code{"irls"} is a valid choice (and the default
-default) for this model; \code{FALSE} restricts the allowed set to
+optimizer) for this model; \code{FALSE} restricts the allowed set to
 \code{c("lbfgs", "newton_raphson")}.}
 
 \item{default}{Character string used when \code{optimization_alg} is missing or

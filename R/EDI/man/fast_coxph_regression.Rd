@@ -35,7 +35,7 @@ the \pkg{glmnet} fallback path does not compute a variance-covariance matrix
 at all (\code{vcov} is never populated when \code{use_rcpp = FALSE}, regardless
 of \code{estimate_only}).}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 Only affects the \code{use_rcpp = TRUE} path; unused when
 \code{use_rcpp = FALSE}.}
 

@@ -15,8 +15,9 @@ using namespace Rcpp;
 //' Fast Digamma Function, Vectorized (C++ Backend)
 //'
 //' Computes the digamma function \eqn{\psi(x) = d/dx \log \Gamma(x)} elementwise
-//' over \code{x}, via an asymptotic expansion with a recurrence (reflection)
-//' shift for small arguments to keep the expansion accurate — the standard
+//' over \code{x}, via an asymptotic expansion with an upward recurrence shift
+//' (\eqn{\psi(x) = \psi(x + 1) - 1/x}, no reflection formula) for small
+//' positive arguments to keep the expansion accurate — the standard
 //' technique for evaluating digamma/trigamma to double precision without a
 //' lookup table. Used internally inside the package's negative-binomial, beta,
 //' zero-inflated/hurdle, and KK21 count-response likelihood, score, and Hessian
@@ -28,9 +29,10 @@ using namespace Rcpp;
 //' / Math Kernel Performance" benchmark report} for the full methodology and
 //' per-kernel results).
 //'
-//' @param x Numeric vector of arguments (should be finite and, per the digamma
-//'   function's domain, not a non-positive integer, where \eqn{\psi} has poles;
-//'   no domain validation is performed by this function).
+//' @param x Numeric vector of arguments (should be finite). The fast kernel
+//'   handles \eqn{x > 0}; any element \eqn{x \le 0} is passed to R's own
+//'   digamma routine instead (not accelerated; \code{NaN} at the poles, the
+//'   non-positive integers). No other domain validation is performed.
 //' @return A numeric vector of \eqn{\psi(x)} values, the same length as \code{x}.
 //' @references Abramowitz, M., and Stegun, I. A. (1972). \emph{Handbook of
 //'   Mathematical Functions}, Section 6.3, for the asymptotic expansion and
@@ -148,7 +150,7 @@ NumericVector fast_lgamma_vec_cpp(NumericVector x) {
 //' @param a Numeric vector of first shape arguments (should be positive; not
 //'   validated by this function).
 //' @param b Numeric vector of second shape arguments (should be positive; not
-//'   validated), recycled against \code{a} elementwise — \strong{must be the
+//'   validated), paired with \code{a} elementwise — \strong{must be the
 //'   same length as \code{a}}; unlike R's own vectorized arithmetic, this
 //'   function does not perform R-style shorter-vector recycling.
 //' @return A numeric vector of \eqn{\log B(a, b)} values, the same length as

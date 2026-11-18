@@ -24,9 +24,16 @@ inline bool candidate_less(const CandidateColumn& a, const CandidateColumn& b) {
 //' Compute automatic survival strata IDs from low-cardinality covariates
 //'
 //' Selects numeric covariate columns with a small number of observed levels and
-//' combines them into a single all-subject stratum identifier. This is used to
+//' combines them into one stratum identifier per subject (row of \code{X}): each
+//' distinct combination of the selected columns' values is one stratum. This is used to
 //' support automatic stratified Cox models when the design object stores observed
 //' covariates but no explicit stratum variable.
+//'
+//' A column is a candidate only if all its values are finite, it has at least 2 and at
+//' most \code{max_unique_per_col} distinct values, and every value occurs at least
+//' \code{min_count_per_level} times. Candidates are ordered by number of levels
+//' (fewest first, ties broken by column position) and the first
+//' \code{max_strata_cols} are kept.
 //'
 //' @param X Numeric covariate matrix.
 //' @param max_unique_per_col Maximum number of unique values allowed for a column
@@ -34,7 +41,10 @@ inline bool candidate_less(const CandidateColumn& a, const CandidateColumn& b) {
 //' @param max_strata_cols Maximum number of candidate columns to combine.
 //' @param min_count_per_level Minimum frequency required for every level in a
 //'   candidate column.
-//' @return A list with `strata_id`, `selected_cols`, and `num_strata`.
+//' @return A list with \code{strata_id} (integer vector of length \code{nrow(X)}, ids
+//'   numbered \code{1, 2, ...} in order of first appearance; all \code{1} when no column
+//'   qualifies), \code{selected_cols} (1-based integer indices of the selected columns,
+//'   empty if none), and \code{num_strata} (number of distinct strata; 1 if none selected).
 //' @keywords internal
 // [[Rcpp::export]]
 List compute_survival_strata_ids_cpp( const Eigen::Map<Eigen::MatrixXd>& X,

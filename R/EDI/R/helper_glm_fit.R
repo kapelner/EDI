@@ -120,7 +120,7 @@ NULL
 #' @param optimization_alg Character string (possibly abbreviated) naming the desired
 #'   optimizer, \code{NULL}, or missing entirely; see Details for resolution order.
 #' @param allow_irls Logical. Whether \code{"irls"} is a valid choice (and the default
-#'   default) for this model; \code{FALSE} restricts the allowed set to
+#'   optimizer) for this model; \code{FALSE} restricts the allowed set to
 #'   \code{c("lbfgs", "newton_raphson")}.
 #' @param default Character string used when \code{optimization_alg} is missing or
 #'   \code{NULL}. Defaults to \code{"irls"} when \code{allow_irls = TRUE}, else
@@ -148,8 +148,8 @@ NULL
 #' \code{\link{fast_coxph_regression_prebuilt_cpp}} instead when fitting the same
 #' \code{(X, y, dead)} repeatedly (e.g. across bootstrap/randomization replicates),
 #' to avoid rebuilding the risk-set cache on every call. \code{\link{fast_coxph_regression}}
-#' is the R-level wrapper around this backend (with an \pkg{survival}-free-of-Rcpp
-#' fallback path via \pkg{glmnet}).
+#' is the R-level wrapper around this backend (with a non-Rcpp fallback path via
+#' \pkg{glmnet}, used when \code{use_rcpp = FALSE}).
 #'
 #' @param  X A numeric matrix of predictor variables (no intercept column; see
 #'   \code{\link{build_cox_data_cache_cpp}}).
@@ -218,54 +218,17 @@ NULL
 
 #' Fast Weibull Regression with General Censoring (C++ Backend)
 #'
-#' @param estimate_only Logical. If \code{TRUE}, skip variance-covariance
-#'   matrix calculation for speed.
-#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
-#'
-#' @return  A list containing the following components:
-#' \describe{
-#' \item{coefficients}{A numeric vector of the estimated Weibull regression coefficients,
-#' including the intercept.}
-#' \item{log_sigma}{The logarithm of the scale parameter from the Weibull distribution.}
-#' \item{vcov}{The variance-covariance matrix of the estimated coefficients.}
-#' \item{neg_ll}{The negative log-likelihood at the final iteration.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' }
-#'
 #' @export
 #' @name fast_weibull_regression_general_cpp
 NULL
 
 #' Fast Beta Regression (C++ Backend)
 #'
-#' @param  start_phi A numeric value, the starting value for the precision parameter phi.
-#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
-#'
-#' @return  A list containing the following components:
-#' \describe{
-#' \item{coefficients}{A numeric vector of the estimated beta regression coefficients.}
-#' \item{phi}{The estimated precision parameter phi.}
-#' \item{neg_ll}{The negative log-likelihood at the final iteration.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' }
-#'
 #' @export
 #' @name fast_beta_regression_cpp
 NULL
 
 #' Fast Beta Regression with Variance Calculation (C++ Backend)
-#'
-#' @param  start_phi A numeric value, the starting value for the precision parameter phi.
-#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
-#'
-#' @return  A list containing the following components:
-#' \describe{
-#' \item{coefficients}{A numeric vector of the obtained Poisson regression coefficients.}
-#' \item{phi}{The estimated precision parameter phi.}
-#' \item{vcov}{The variance-covariance matrix.}
-#' \item{neg_ll}{The negative log-likelihood at the final iteration.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' }
 #'
 #' @export
 #' @name fast_beta_regression_with_var_cpp
@@ -291,7 +254,8 @@ NULL
 #' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 #' @param maxit Maximum number of optimizer iterations.
-#' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+#' @param eps_f Currently unused (accepted for interface compatibility); only
+#'   \code{eps_g} is passed to the optimizer.
 #' @param eps_g Convergence tolerance on the gradient norm (the tolerance
 #'   actually passed through to the optimizer as its primary stopping
 #'   criterion).
@@ -302,9 +266,8 @@ NULL
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 #'   warm-start curvature information for the optimizer.
-#' @param estimate_only Logical; if \code{TRUE}, may skip work not needed to
-#'   produce point estimates (kept in sync with the package's other
-#'   \code{fast_*} estimate-vs-inference split).
+#' @param estimate_only Logical; if \code{TRUE}, the curvature matrix is not
+#'   computed and the returned \code{fisher_information} is a matrix of zeros.
 #'
 #' @return  A list containing the following components:
 #' \describe{
@@ -312,15 +275,19 @@ NULL
 #' \item{theta_hat}{The estimated dispersion parameter \eqn{\hat\theta} (natural scale).}
 #' \item{logLik}{The model's log-likelihood at the fitted parameters.}
 #' \item{converged}{A logical value indicating whether the final gradient norm
-#'   was below the convergence tolerance (\code{gradient_norm < tol}); uniform
+#'   was below the convergence tolerance (\code{gradient_norm < eps_g}); uniform
 #'   across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
 #' \item{num_iter}{The number of optimizer iterations performed.}
 #' \item{hit_iteration_cap}{A logical value, mutually exclusive with
 #'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
 #'   iterations without meeting the gradient-norm convergence criterion.}
 #' \item{gradient_norm}{The norm of the gradient at the returned parameters.}
+#' \item{min_eigenvalue_information}{The smallest eigenvalue of the information
+#'   matrix at the returned parameters, as reported by the optimizer.}
+#' \item{dispersion_at_poisson_boundary}{A logical value: \code{TRUE} when
+#'   \eqn{\hat\theta} sits at the Poisson (no-overdispersion) boundary.}
 #' \item{fisher_information}{The working-weights curvature matrix used during
-#'   fitting.}
+#'   fitting (all zeros when \code{estimate_only = TRUE}).}
 #' }
 #' @seealso \code{\link{fast_dnbinom_mu_vec_cpp}} for the mean/dispersion
 #'   density parameterization used here; \code{\link{fast_neg_bin_with_var_cpp}}
@@ -330,23 +297,6 @@ NULL
 NULL
 
 #' Fast Negative Binomial Regression with Variance Calculation (C++ Backend)
-#'
-#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
-#'
-#' @return  A list containing the following components:
-#' \describe{
-#' \item{b}{A numeric vector of the obtained Poisson regression coefficients.}
-#' \item{hess_fisher_info_matrix}{The Fisher information matrix.}
-#' \item{neg_ll}{The negative log-likelihood at the final iteration.}
-#' \item{converged}{A logical value indicating whether the final gradient norm
-#'   was below the convergence tolerance (\code{gradient_norm < tol}); uniform
-#'   across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
-#' \item{num_iter}{The number of optimizer iterations performed.}
-#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
-#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
-#'   iterations without meeting the gradient-norm convergence criterion.}
-#' \item{gradient_norm}{The norm of the gradient at the returned parameters.}
-#' }
 #'
 #' @export
 #' @name fast_neg_bin_with_var_cpp
@@ -421,7 +371,7 @@ NULL
 #' @param fixed_values Optional numeric vector, parallel to \code{fixed_idx}, of the
 #'   fixed coefficient values.
 #'
-#' @return  A list containing the following components (the last four only present
+#' @return  A list containing the following components (the last three only present
 #'   when the \code{LDLT} solve succeeds):
 #' \describe{
 #' \item{b}{A numeric vector of the estimated regression coefficients \eqn{\hat\beta}.}
@@ -487,7 +437,7 @@ NULL
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by \code{fixed_idx} at.
 #' @param optimization_alg Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.
-#' @param warm_start_weights Accepted but unused; see Details.
+#' @param warm_start_weights Accepted but unused; see the "Fixed parameters, warm starts" section.
 #' @param warm_start_fisher_info Optional initial curvature (information) matrix to warm-start the first iteration.
 #' @param estimate_only If \code{TRUE}, skip computing \code{mu}, \code{XtWX}/\code{fisher_information},
 #'   and \code{score}, returning only \code{b}, \code{converged},
@@ -559,7 +509,8 @@ NULL
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by \code{fixed_idx} at.
 #' @param optimization_alg Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.
-#' @param warm_start_weights Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.
+#' @param warm_start_weights Accepted but unused; see the "Fixed parameters, warm starts"
+#'   section of \code{\link{fast_poisson_regression_cpp}}.
 #' @param warm_start_fisher_info Optional initial curvature (information) matrix to warm-start the first iteration.
 #'
 #' @return  A list containing the following components:
@@ -641,7 +592,8 @@ NULL
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by \code{fixed_idx} at.
 #' @param optimization_alg Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.
-#' @param warm_start_weights Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.
+#' @param warm_start_weights Accepted but unused; see the "Fixed parameters, warm starts"
+#'   section of \code{\link{fast_poisson_regression_cpp}}.
 #' @param warm_start_fisher_info Optional initial curvature (information) matrix to warm-start the first iteration.
 #'
 #' @return  A list containing the following components:
@@ -657,7 +609,10 @@ NULL
 #'   \code{NA} if the residual degrees of freedom are not positive.}
 #' \item{mu}{The fitted means \eqn{\hat\mu_i}.}
 #' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of iterations performed.}
+#' \item{num_iter}{The number of iterations performed.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
 #' \item{gradient_norm}{The norm of the score vector at convergence.}
 #' }
 #' @seealso \code{\link{fast_poisson_regression_with_var_cpp}} for the plain
@@ -776,7 +731,8 @@ NULL
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by \code{fixed_idx} at.
 #' @param optimization_alg Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.
-#' @param warm_start_weights Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.
+#' @param warm_start_weights Accepted but unused; see the "Fixed parameters, warm starts"
+#'   section of \code{\link{fast_poisson_regression_cpp}}.
 #' @param warm_start_fisher_info Optional initial curvature (information) matrix to warm-start the first iteration.
 #'
 #' @return  A list containing the following components:
@@ -789,7 +745,10 @@ NULL
 #' \item{score}{The weighted score vector at the fitted coefficients.}
 #' \item{neg_ll}{The weighted negative log-likelihood at the fitted coefficients.}
 #' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of iterations performed.}
+#' \item{num_iter}{The number of iterations performed.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
 #' \item{gradient_norm}{The norm of the score vector at convergence.}
 #' }
 #' @seealso \code{\link{fast_poisson_regression_cpp}} for the unweighted variant and full
@@ -986,8 +945,8 @@ fast_logistic_regression_with_var = function(X, y, j = 2, optimization_alg = "lb
 #' @param  y Observed survival/censoring times (must be positive).
 #' @param  dead Event indicator: 1 for an exactly observed event, 0 for
 #'   right-censored (survival known only to exceed \code{y[i]}).
-#' @param  X A numeric matrix of predictor variables. It is assumed that an intercept column
-#'   (e.g., a column of ones) is already included in \code{X} if desired.
+#' @param  X A numeric matrix of predictor variables. No intercept column is needed: one is
+#'   always fitted, and a leading column of all 1s is treated as that intercept (see Details).
 #' @param use_rcpp Logical. If \code{TRUE} (default), use the optimized Rcpp
 #'   implementation. If \code{FALSE}, use \code{\link[survival]{survreg}}.
 #' @param estimate_only Logical. If \code{TRUE}, skip variance-covariance
@@ -1193,7 +1152,7 @@ sanitize_beta_response = function(y){
 #'
 #' @details
 #' \strong{Fallback chain.} The primary implementation uses the C++ backend
-#' (\code{\link{fast_beta_regression_cpp}}). If that fails to converge or errors, the
+#' (\code{\link{fast_beta_regression_cpp}}). If that errors, the
 #' function falls back to \pkg{betareg}, which is listed in Suggests and is not
 #' installed automatically with \pkg{EDI}. If \pkg{betareg} is also unavailable (or
 #' itself fails), a final fallback of OLS on \code{logit(y)} is used — this last
@@ -1206,9 +1165,11 @@ sanitize_beta_response = function(y){
 #' when the primary fit failed even though a result was still returned.
 #'
 #' @examples
-#' X = matrix(rnorm(500), 100, 5)
+#' X = cbind(1, matrix(rnorm(400), 100, 4)) # first column is the intercept
 #' y = runif(100)
-#' fast_beta_regression(X, y)
+#' fit = fast_beta_regression(X, y)
+#' fit$b   # logit-of-mean coefficients
+#' fit$phi # precision
 #' @export
 fast_beta_regression = function(X, y, start_phi = 10, optimization_alg = "lbfgs", warm_start_beta = NULL, warm_start_fisher_info = NULL){
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")
@@ -1269,10 +1230,13 @@ fast_beta_regression = function(X, y, start_phi = 10, optimization_alg = "lbfgs"
 #' @return  A list containing the following components:
 #' \item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
 #'   (logit-of-mean scale).}
+#' \item{phi}{The estimated precision parameter \eqn{\hat\phi} (natural scale);
+#'   \code{NA} when the final OLS-on-\code{logit(y)} fallback was used (see Details).}
 #' \item{ssq_b_j}{The estimated variance (squared standard error) of the \code{j}-th
 #'   coefficient, \eqn{\widehat{\mathrm{Var}}(\hat\beta_j)}, i.e. the \code{j}-th
-#'   diagonal entry of \code{vcov}. \code{NA} if the primary C++ fit failed and a
-#'   fallback stage without a variance estimate was used (see Details).}
+#'   diagonal entry of the fitted variance-covariance matrix. In the fallbacks (see
+#'   Details) it comes from \code{vcov()} of the \pkg{betareg} fit or from the OLS
+#'   variance of \code{\link{fast_ols_with_var_cpp}}, respectively.}
 #' \item{ssq_b_2}{The estimated variance of the second coefficient specifically
 #'   (\eqn{\widehat{\mathrm{Var}}(\hat\beta_2)}), regardless of the \code{j} argument
 #'   — provided as a convenience since column 2 is the package's usual
@@ -1287,8 +1251,9 @@ fast_beta_regression = function(X, y, start_phi = 10, optimization_alg = "lbfgs"
 #'
 #' @importFrom	stats vcov
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = runif(10)
+#' set.seed(1)
+#' X = cbind(1, matrix(rnorm(200), 100, 2))
+#' y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 #' fast_beta_regression_with_var(X, y)
 #' @export
 fast_beta_regression_with_var = function(X, y, start_phi = 10, j = 2, optimization_alg = "lbfgs", warm_start_beta = NULL, warm_start_fisher_info = NULL){
@@ -1354,7 +1319,7 @@ fast_beta_regression_with_var = function(X, y, start_phi = 10, j = 2, optimizati
 #'   the \pkg{glmnet} fallback path does not compute a variance-covariance matrix
 #'   at all (\code{vcov} is never populated when \code{use_rcpp = FALSE}, regardless
 #'   of \code{estimate_only}).
-#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
+#' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #'   Only affects the \code{use_rcpp = TRUE} path; unused when
 #'   \code{use_rcpp = FALSE}.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
@@ -1464,15 +1429,16 @@ fast_coxph_regression = function(X, y, dead, use_rcpp = TRUE, estimate_only = FA
 #' @param  y A numeric vector of the response variable, representing count data.
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_params Optional starting values for coefficients and \code{log_theta}, passed
-#'   straight through to the C++ backend for a single warm-started fit attempt (bypassing the
-#'   QR-dropping retry sequence).
+#'   straight through to the C++ backend for a single warm-started fit attempt on the full
+#'   \code{X}; if that fit succeeds its result is returned without the QR-dropping retry
+#'   sequence, and if it errors the retry sequence runs as usual (without the warm start).
 #' @param warm_start_fisher_info Optional initial Fisher information matrix, used only together
 #'   with \code{warm_start_params}.
 #'
 #' @return  A list containing the following components:
 #' \item{b}{A numeric vector of the estimated negative binomial regression coefficients
-#'   \eqn{\hat\beta} (and \code{log_theta}), from whichever (possibly covariate-reduced)
-#'   fit in the retry sequence ultimately succeeded.}
+#'   \eqn{\hat\beta} (the dispersion is not included), from whichever (possibly
+#'   covariate-reduced) fit in the retry sequence ultimately succeeded.}
 #' \item{fisher_information}{The C++ backend's returned Fisher information matrix for the
 #'   successful fit.}
 #'
@@ -2420,8 +2386,8 @@ NULL
 #' \deqn{U = \sum_{k} t_k \big(2 L_k + (n_k - t_k)\big) / 2,}
 #' summed over the \eqn{K} distinct observed levels of \code{y} (in increasing order),
 #' where \eqn{n_k} is the total count at level \eqn{k}, \eqn{t_k} is the observed count
-#' of \code{w == 1} subjects at level \eqn{k}, and \eqn{L_k} is the number of subjects
-#' at strictly lower levels (this is the standard "number of favorable comparisons"
+#' of \code{w == 1} subjects at level \eqn{k}, and \eqn{L_k} is the number of control
+#' (\code{w == 0}) subjects at strictly lower levels (this is the standard "number of favorable comparisons"
 #' Mann-Whitney statistic, adapted for tied/grouped ordinal data — a tie at the same
 #' level contributes \eqn{1/2} rather than 0 or 1). The exact (not asymptotic,
 #' not Monte Carlo) null/reference distribution of this statistic under the sharp null
@@ -2460,13 +2426,16 @@ NULL
 #' permitted and raises an error, as does a non-\code{{0,1}} value in \code{w} or an
 #' empty input.
 #'
-#' \strong{Complexity.} The recursion's state space scales with the number of distinct
-#' possible statistic values (\eqn{O(n_{\mathrm{treat}} \cdot n_{\mathrm{control}})}
-#' many), and thread-local buffers are reused (not reallocated) across repeated calls
-#' within the same thread for the same or smaller problem sizes; this exact enumeration
-#' is exponential in the number of distinct levels/group sizes in the worst case
-#' (unlike an asymptotic normal-approximation JT test), so it is intended for small-to-
-#' moderate \eqn{n} where exactness matters more than raw speed.
+#' \strong{Complexity.} Memory is governed by the table of possible statistic values,
+#' which has \eqn{2 n_{\mathrm{treat}} n_{\mathrm{control}} + 1} entries; thread-local
+#' buffers for it are reused (not reallocated) across repeated calls within the same
+#' thread for the same or smaller problem sizes. Run time is governed by the recursion,
+#' which visits every allocation of the \code{n_treat} treated labels across the
+#' \eqn{K} levels (no memoization), a count that grows combinatorially with \eqn{K}
+#' and \code{n_treat} (unlike an asymptotic normal-approximation JT test). If that
+#' count exceeds 1,000,000 the function stops with an error recommending asymptotic
+#' inference, so it is intended for small-to-moderate \eqn{n} where exactness matters
+#' more than raw speed.
 #'
 #' @param y Integer (or integer-coercible) vector of length \eqn{n} giving each
 #'   subject's ordinal response value; ties (repeated values) are handled via the

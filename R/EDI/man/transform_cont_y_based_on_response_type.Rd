@@ -29,15 +29,15 @@ transform_cont_y_based_on_response_type(
 
 \item{count_min_rate}{Integer scalar. Minimum baseline rate for count response. Default \code{0L}.}
 
-\item{count_shift}{Numeric scalar. Constant added to counts after zero-centering. Default \code{0}.}
+\item{count_shift}{Numeric scalar. Constant added to counts after shifting the minimum to zero. Default \code{0}.}
 }
 \value{
 A numeric vector of transformed responses on the appropriate scale.
 }
 \description{
 A helper function to transform a latent continuous signal to the scale
-appropriate for a given \code{response_type}, identical to the logic used
-within \code{SimulationFramework} but not used within \code{SimulationFramework}.
+appropriate for a given \code{response_type}; it duplicates the logic used
+within \code{SimulationFramework}, but \code{SimulationFramework} does not call it.
 }
 \examples{
 transform_cont_y_based_on_response_type(rnorm(10), 'incidence')

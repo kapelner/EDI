@@ -14,14 +14,31 @@ using namespace Rcpp;
 
 //' Fast Bai Adjusted T Statistic for Multiple Permutations
 //'
+//' For each column (draw) of \code{w_mat}/\code{m_mat}, computes the KK matched-pair
+//' treatment estimate used by the Bai (pairs-of-pairs) classes: the mean of the
+//' within-pair treated-minus-control differences \eqn{\bar d}, the reservoir
+//' treated-minus-control mean difference \eqn{\bar r}, or (with \code{convex_flag})
+//' their inverse-variance convex combination, where the variance of \eqn{\bar d}
+//' uses Bai's pairs-of-pairs adjustment.
+//'
 //' @param w_mat Integer matrix of permuted treatment assignments (n x r).
-//' @param m_mat Integer matrix of match indicators (n x r).
+//' @param m_mat Integer matrix of match indicators (n x r): \code{0} marks a
+//'   reservoir subject, \code{k > 0} the 1-based id of the subject's matched pair.
 //' @param y Numeric response vector.
-//' @param delta Null treatment effect shift.
-//' @param halves_idx Integer matrix of half-sample indices.
-//' @param convex_flag Logical flag for convex combination.
+//' @param delta Null treatment effect shift, added to the response of treated
+//'   subjects inside the function (pass the unshifted \code{y}).
+//' @param halves_idx Two-column integer matrix: each row holds the 1-based ids of two
+//'   matched pairs that are paired with each other in the pairs-of-pairs construction
+//'   (used to estimate \eqn{\lambda^2}). Rows with an id outside the observed pairs, or
+//'   whose pairs are incomplete in a draw, are skipped. May have zero rows.
+//' @param convex_flag Logical. If \code{TRUE} and the draw has matched pairs and at
+//'   least two treated and two control reservoir subjects, return
+//'   \eqn{w^* \bar d + (1 - w^*) \bar r} with
+//'   \eqn{w^* = \widehat{Var}(\bar r) / (\widehat{Var}(\bar r) + \widehat{Var}_{Bai}(\bar d))};
+//'   otherwise return \eqn{\bar d} when pairs exist, else \eqn{\bar r}.
 //' @param num_cores Number of OpenMP threads.
-//' @return Numeric vector of Bai adjusted T statistics.
+//' @return Numeric vector of length \code{ncol(w_mat)}, one statistic per draw
+//'   (\code{NA} for a draw with no complete pair and no reservoir subjects).
 //' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_bai_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, SEXP y, double delta, const Eigen::Map<Eigen::MatrixXi>& halves_idx, bool convex_flag, int num_cores) {

@@ -376,7 +376,9 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
 //' binary row for subject \eqn{i} by that subject's nonnegative weight
 //' \eqn{w_i}. This entry point is intended for bootstrap and other weighted
 //' refits whose estimates must retain the continuation-ratio coefficient
-//' convention.
+//' convention. The category coding of \code{y}, the parameter layout and the
+//' \code{optimization_alg} options are described in the Details of
+//' \code{\link{fast_continuation_ratio_regression_cpp}}.
 //'
 //' @inheritParams fast_continuation_ratio_regression_cpp
 //' @param weights A finite, nonnegative subject-level weight vector of length
@@ -447,6 +449,9 @@ List fast_continuation_ratio_regression_weighted_cpp(
 //' information Hessian.
 //'
 //' @details
+//' The category coding of \code{y} and the \code{optimization_alg} options are
+//' described in the Details of \code{\link{fast_continuation_ratio_regression_cpp}}.
+//'
 //' \strong{Variance computation.} The observed information (Hessian of the
 //' augmented-data logistic negative log-likelihood, evaluated at the fitted
 //' parameters over all \code{n_alpha + p} parameters) is restricted to the free

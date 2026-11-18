@@ -9,9 +9,13 @@ InferenceMLEorKMSummaryTable = R6::R6Class("InferenceMLEorKMSummaryTable",
 	lock_objects = FALSE,
 	inherit = InferenceAsymp,
 	public = list(
-		#' @description Computes the appropriate estimate for mean difference
+		#' @description Computes the treatment-effect estimate (the treatment
+		#'   coefficient) from the fitted model or Kaplan-Meier summary. Its scale
+		#'   depends on the model (e.g. a mean difference, or a log-scale effect for
+		#'   survival and log-link models).
 		#'
-		#' @return 	The setting-appropriate (see description) numeric estimate of the treatment effect
+		#' @return 	The cached treatment coefficient, or \code{NA_real_} if it is
+		#'   unavailable.
 		#'
 		#' @examples
 		#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
@@ -51,8 +55,10 @@ InferenceMLEorKMSummaryTable = R6::R6Class("InferenceMLEorKMSummaryTable",
 		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
 		#'   and \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#'
-		#' @param delta                                   The null difference to test against. For
-		#'   any treatment effect at all this is set to zero (the default).
+		#' @param delta                                   The null difference to test against. The
+		#'   default of zero tests for any treatment effect at all; only zero is currently
+		#'   supported (any other value returns \code{NA_real_}, or errors when
+		#'   package assertions are on).
 		#'
 		#' @return 	The approximate frequentist p-value
 		compute_asymp_two_sided_pval = function(delta = 0){

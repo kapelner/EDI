@@ -55,7 +55,14 @@ additional divisible-by-4 requirement is enforced by this class specifically (un
 even \code{n}).
 }
 \examples{
-des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
+des = DesignFixedMatchingGreedyPairSwitching$new(n = 12, response_type = 'continuous')
+\donttest{
+# (the pairing step loads the nbpMatching package, which takes a few seconds)
+if (requireNamespace("nbpMatching", quietly = TRUE)) {
+  des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(12), x2 = rnorm(12)))
+  des$assign_w_to_all_subjects()
+}
+}
 }
 \references{
 Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random

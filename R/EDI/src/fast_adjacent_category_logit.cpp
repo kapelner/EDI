@@ -426,11 +426,6 @@ List fast_adjacent_category_logit_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP
         .set("min_eigenvalue_information", fit.min_eigenvalue_information));
 }
 
-//' @title Fast Adjacent-Category Logit with Variance (C++)
-//' @description Adjacent-category logit model fitting with full variance-covariance matrix.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (categorical).
-//' @param maxit Maximum number of iterations.
 //' Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)
 //'
 //' Fits the same adjacent-category logit model as

@@ -200,7 +200,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 		#'   with its delta-method standard error. Both use a normal reference. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   asymptotic confidence-interval contract this delegates to.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			self$compute_estimate(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)

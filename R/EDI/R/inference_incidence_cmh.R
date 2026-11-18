@@ -62,9 +62,11 @@ InferenceIncidCMH = define_inference_class(
 	public = list(
 		#' @description Uses the randomization-CI layer's two-sided p-value contract
 		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-		#'   incidence responses this dispatches to the Zhang exact randomization
-		#'   test where applicable rather than refusing outright, matching this
-		#'   class's pre-migration old-ladder behavior (it inherited from
+		#'   incidence responses it does not refuse outright; the default p-value
+		#'   comes from the randomization draws, and the Zhang exact randomization
+		#'   test is used only when \code{type = "Zhang"} is passed explicitly
+		#'   (where applicable). This matches this class's pre-migration
+		#'   old-ladder behavior of not refusing (it inherited from
 		#'   \code{InferenceAllSimpleAverageDiff}, whose own pin was already
 		#'   corrected to \code{InferenceRandCI} -- see that file's identical
 		#'   rationale). This class independently composes the same components
@@ -106,7 +108,7 @@ InferenceIncidCMH = define_inference_class(
 		#' @param des_obj A completed design object.
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param se_est_num_vectors For non-block designs, the number of randomization vectors
-		#'   drawn from the design to estimate the standard error. Default \code{1000L}.
+		#'   drawn from the design to estimate the standard error. Default \code{5000L}.
 		#' @param verbose Logical. Whether to print progress messages.
 		#' @return A new \code{InferenceIncidCMH} object.
 		initialize = function(des_obj, model_formula = NULL, se_est_num_vectors = 5000L, verbose = FALSE){

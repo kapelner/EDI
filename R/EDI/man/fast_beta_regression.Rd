@@ -56,7 +56,7 @@ conventions.
 }
 \details{
 \strong{Fallback chain.} The primary implementation uses the C++ backend
-(\code{\link{fast_beta_regression_cpp}}). If that fails to converge or errors, the
+(\code{\link{fast_beta_regression_cpp}}). If that errors, the
 function falls back to \pkg{betareg}, which is listed in Suggests and is not
 installed automatically with \pkg{EDI}. If \pkg{betareg} is also unavailable (or
 itself fails), a final fallback of OLS on \code{logit(y)} is used — this last
@@ -69,7 +69,9 @@ stage is used, naming which stage and the triggering error, so callers can detec
 when the primary fit failed even though a result was still returned.
 }
 \examples{
-X = matrix(rnorm(500), 100, 5)
+X = cbind(1, matrix(rnorm(400), 100, 4)) # first column is the intercept
 y = runif(100)
-fast_beta_regression(X, y)
+fit = fast_beta_regression(X, y)
+fit$b   # logit-of-mean coefficients
+fit$phi # precision
 }

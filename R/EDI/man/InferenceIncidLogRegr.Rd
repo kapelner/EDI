@@ -218,9 +218,9 @@ Comparable Python API:
   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"}
   (set via \code{set_estimand()}), returns the g-computation
   marginal risk difference/log-risk-ratio instead — see the
-  class-level \code{@details} for the formula. The underlying
-  model fit is identical either way (a pure post-fit transform of
-  the same cached fit, no refit).
+  Estimand paragraph of the class description for the formula. The
+  underlying model fit is identical either way (a pure post-fit
+  transform of the same cached fit, no refit).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidLogRegr$compute_estimate(estimate_only = FALSE)}

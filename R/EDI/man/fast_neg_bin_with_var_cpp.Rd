@@ -31,7 +31,8 @@ counts, length \eqn{n}.}
 
 \item{maxit}{Maximum number of optimizer iterations.}
 
-\item{eps_f}{Convergence tolerance on the objective (log-likelihood) value.}
+\item{eps_f}{Currently unused (accepted for interface compatibility); only
+\code{eps_g} is passed to the optimizer.}
 
 \item{eps_g}{Convergence tolerance on the gradient norm.}
 
@@ -45,30 +46,22 @@ parameter layout) of parameters to hold fixed rather than estimate.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
 warm-start curvature information.}
+
+\item{estimate_only}{Logical; leave at \code{FALSE} here. If \code{TRUE}, the
+curvature matrix is not computed (\code{hess_fisher_info_matrix} is all zeros),
+so \code{vcov} is not a usable variance estimate.}
 }
 \value{
-A list containing the following components:
-\describe{
-\item{b}{A numeric vector of the obtained Poisson regression coefficients.}
-\item{hess_fisher_info_matrix}{The Fisher information matrix.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
-\item{converged}{A logical value indicating whether the final gradient norm
-  was below the convergence tolerance (\code{gradient_norm < tol}); uniform
-  across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
-\item{num_iter}{The number of optimizer iterations performed.}
-\item{hit_iteration_cap}{A logical value, mutually exclusive with
-  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
-  iterations without meeting the gradient-norm convergence criterion.}
-\item{gradient_norm}{The norm of the gradient at the returned parameters.}
-}
-
 A list with components \code{b} (\eqn{\hat\beta}),
-  \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
-  \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
-  \code{information_invertible} (whether its free information block passed
-  the invertibility check),
-  \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
-  (the working-weights curvature matrix \code{vcov} was inverted from).
+  \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{converged},
+  \code{num_iter} (optimizer iterations), \code{hit_iteration_cap},
+  \code{gradient_norm}, \code{min_eigenvalue_information},
+  \code{dispersion_at_poisson_boundary} (whether \eqn{\hat\theta} sits at the
+  Poisson boundary), \code{information_invertible} (whether the free
+  information block passed the invertibility check),
+  \code{hess_fisher_info_matrix} (the working-weights curvature matrix
+  \code{vcov} was inverted from), and \code{vcov} (the full
+  \code{(p + 1) x (p + 1)} parameter variance-covariance matrix).
 }
 \description{
 Fits the same mean/dispersion-parameterized negative-binomial regression as

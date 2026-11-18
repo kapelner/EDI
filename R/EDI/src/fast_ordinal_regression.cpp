@@ -292,7 +292,7 @@ edi::ResultMap fast_ordinal_regression_internal(
 //' (default \code{"lbfgs"}) for up to \code{maxit} iterations or until the
 //' parameter/gradient change falls below \code{tol}.
 //'
-//' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+//' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 //' @param y A numeric vector of ordinal responses; only the rank order of distinct
 //'   values matters, not their numeric coding.
 //' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
@@ -310,7 +310,7 @@ edi::ResultMap fast_ordinal_regression_internal(
 //'
 //' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 //'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 //'   when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (always \code{"observed"}),
@@ -374,7 +374,7 @@ List fast_ordinal_regression_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numer
 //' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-//'   \code{converged}, \code{iterations}, \code{neg_loglik},
+//'   \code{converged}, \code{num_iter}, \code{neg_loglik},
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (\code{"observed"}),
 //'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
@@ -436,7 +436,7 @@ List fast_ordinal_regression_weighted_cpp(const Rcpp::NumericMatrix& X, const Rc
 //' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-//'   \code{converged}, \code{iterations}, \code{neg_loglik},
+//'   \code{converged}, \code{num_iter}, \code{neg_loglik},
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (\code{"observed"}),
 //'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
@@ -860,8 +860,9 @@ List expand_continuation_ratio_data_cpp(const Rcpp::IntegerVector& y, const Rcpp
 //' @return A list with components \code{y} (stacked 0/1 binary outcome), \code{w}
 //'   (stacked covariate, passed through unchanged), and \code{strata} (stacked
 //'   combined stratum-by-cut ID); all three are integer vectors of the same,
-//'   generally-longer-than-\eqn{n} length (each subject contributes 0, 1, or 2
-//'   stacked rows depending on their observed category).
+//'   generally-longer-than-\eqn{n} length (for \code{K >= 2}, each subject with
+//'   \code{y} in \code{1:K} contributes 1 stacked row at an extreme level and 2
+//'   otherwise; an out-of-range \code{y} contributes none).
 //' @seealso \code{expand_continuation_ratio_data_cpp()} for the analogous expansion
 //'   used by continuation-ratio ordinal models.
 //'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for

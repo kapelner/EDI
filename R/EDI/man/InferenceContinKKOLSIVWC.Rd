@@ -50,10 +50,16 @@ whichever sub-fit is usable if the other is not — the same compound
 combination rule used by
 \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
 generalized here to allow covariate adjustment via \code{model_formula}.
+<<<<<<< HEAD
 \code{likelihood_tier = "quasi"}: each piece is a least-squares fit with an
 HC2 sandwich variance (an estimating-equation objective, not a fitted
 likelihood), so only Wald-type asymptotic inference is available (no
 likelihood-ratio or score test).
+=======
+\code{likelihood_tier = "quasi"}: this is an estimating-equation (least
+squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
+inference is available (no likelihood-ratio or score test).
+>>>>>>> 414dbd7c077750e1680580863e120500a2722d5a
 
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }

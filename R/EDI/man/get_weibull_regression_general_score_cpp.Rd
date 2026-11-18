@@ -25,8 +25,8 @@ A numeric vector representing the score.
 \description{
 Score vector for the Weibull AFT log-likelihood extended to
   left-, right-, and interval-censored responses (see TODO-3 in
-  interval_censored_survival_response.md). Exactly one of \code{y[i]} or
-  (\code{y_L[i]}, \code{y_R[i]}) must be finite per subject: \code{NA} in
-  the unused slot(s).
+  interval_censored_survival_response.md). Each subject is either exact
+  (\code{y[i]} finite, \code{y_L[i]} and \code{y_R[i]} \code{NA}) or censored
+  (\code{y[i]} \code{NA}, \code{y_L[i]} finite, \code{y_R[i]} finite or \code{Inf}).
 }
 \keyword{internal}

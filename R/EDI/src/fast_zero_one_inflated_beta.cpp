@@ -567,7 +567,8 @@ Eigen::MatrixXd get_zero_one_inflated_beta_hessian_cpp(const Eigen::Map<Eigen::M
 //' @param warm_start_params Optional starting values for the joint \eqn{[\beta,
 //'   \log\phi, \gamma_0, \gamma_1]} vector. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
-//'   \code{warm_start_params} is supplied, use an OLS-based initial guess; see Details.
+//'   \code{warm_start_params} is supplied, use an OLS-based initial guess; see the
+//'   "Fixed parameters, warm starts" section.
 //' @param fixed_idx Optional 1-indexed positions of parameters to hold fixed.
 //' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
 //' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).

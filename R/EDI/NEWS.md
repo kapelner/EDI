@@ -44,6 +44,14 @@
   raw differences, so the same `obj_val_cutoff` accepted different allocations
   depending on n. Draws change only for `abs_sum_diff` at odd n or unequal
   arms. The default `mahal_dist` is unchanged.
+* Randomization p-values and intervals (`compute_rand_two_sided_pval()`,
+  `compute_rand_confidence_interval()`) for inference classes whose likelihood
+  is not concave (registry `likelihood_concave = FALSE`) now start every
+  permutation's fit from the full-data MLE instead of chaining each fit's
+  solution into the next, so one replicate that lands on a wrong local optimum
+  no longer seeds the following ones. Seeded randomization results for those
+  classes can change; concave-likelihood classes still chain warm starts and
+  are unchanged.
 
 * The default BCa bootstrap p-value (`compute_bootstrap_two_sided_pval()` and
   `compute_bayesian_bootstrap_two_sided_pval()`, `type = "bca"`) now returns the
@@ -187,6 +195,7 @@
 
 ## Bug fixes
 
+<<<<<<< HEAD
 * `InferenceIncidGCompRiskDiff`, `InferenceIncidGCompRiskRatio` and `InferencePropGCompMeanDiff` now reject
   `prob_clip_eps = 0.5` (and `prob_clip_strong_eps = 0.5`), as documented: the clamps must be in `[0, 0.5)`.
   At 0.5 every fitted probability was clipped to 0.5.
@@ -231,6 +240,16 @@
   per object with `edi_bootstrap_bca_unstable_warning` (suggesting
   `type = "percentile"`) when they are `NA` because the BCa bias correction or
   acceleration is unstable; that `NA` used to be silent (v1.0.6-TODO-116).
+=======
+* `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and
+  `DesignSeqOneByOneKK21stepwise` now warn when `morrison = TRUE` is passed
+  (v1.0.6-TODO-46). The Morrison threshold calibration is not implemented, so
+  the argument was silently ignored and the standard `lambda`/`t_0_pct`
+  schedule ran; the documentation now says the argument is reserved.
+* `get_block_ids()` on a sequential matching design no longer errors with
+  "improperly sized" before the trial is full; it returns the match ids of the
+  subjects enrolled so far (v1.0.6-TODO-46).
+>>>>>>> 414dbd7c077750e1680580863e120500a2722d5a
 
 * `DesignFixedRerandomization` now errors at construction on an `objective`
   other than `"mahal_dist"` or `"abs_sum_diff"`. Before, an unknown value
