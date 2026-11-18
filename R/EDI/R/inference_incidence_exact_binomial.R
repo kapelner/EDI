@@ -200,8 +200,10 @@ ExactBinomialIncidenceSource = list(
 #' and test invert one another for every null value. This class is available for
 #' \code{DesignFixedBinaryMatch} and KK matching-on-the-fly designs. For KK
 #' designs, only the matched-pair data are used and the reservoir is ignored.
-#' If there are no matched pairs, or no discordant pairs, the relevant
-#' quantities are reported as non-estimable rather than as \code{NaN}/\code{Inf}.
+#' If there are no matched pairs, \code{compute_estimate()} returns \code{NA}
+#' and marks the estimate non-estimable. The exact confidence interval and
+#' p-value methods stop with an error when there are no matched pairs or no
+#' discordant pairs.
 #'
 #' @examples
 #' \donttest{

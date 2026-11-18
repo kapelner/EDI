@@ -39,6 +39,9 @@
 #' infer <- InferenceOrdinalJonckheereTerpstraTest$
 #'   new(seq_des, verbose = FALSE)
 #' infer
+#' infer$compute_estimate()
+#' infer$compute_asymp_two_sided_pval()
+#' infer$compute_exact_two_sided_pval_for_treatment_effect()
 #'
 InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 	classname = "InferenceOrdinalJonckheereTerpstraTest",

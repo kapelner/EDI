@@ -57,7 +57,14 @@
 #'   \emph{Biostatistics}, 5(2), 263-275, \doi{10.1093/biostatistics/5.2.263}, for the
 #'   matched-pair design this class refines.
 #' @examples
-#' des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
+#' des = DesignFixedMatchingGreedyPairSwitching$new(n = 12, response_type = 'continuous')
+#' \donttest{
+#' # (the pairing step loads the nbpMatching package, which takes a few seconds)
+#' if (requireNamespace("nbpMatching", quietly = TRUE)) {
+#'   des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(12), x2 = rnorm(12)))
+#'   des$assign_w_to_all_subjects()
+#' }
+#' }
 #' @export
 DesignFixedMatchingGreedyPairSwitching = define_design_class(
 	classname = "DesignFixedMatchingGreedyPairSwitching",

@@ -60,7 +60,7 @@ DesignFixedBernoulli = define_design_class(
 		#'   "ordinal".
 		#' @param  prob_T  Per-subject probability \eqn{p} that a given subject is
 		#'   assigned to treatment; need not be \code{0.5} (unlike
-		#'   \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}).
+		#'   \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.

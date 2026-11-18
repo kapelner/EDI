@@ -93,6 +93,8 @@ it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
 }
 \examples{
 des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous', prop_acceptable = 0.1)
+des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10), x2 = rnorm(10)))
+des$assign_w_to_all_subjects()
 }
 \references{
 Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve

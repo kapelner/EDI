@@ -14,10 +14,11 @@ internal Rcpp/L-BFGS routine that requires no external packages. Set
 
 The treatment coefficient \eqn{\beta_T} is on the response's natural
 (untransformed) scale — a mean difference, not a ratio or log-scale
-effect. \code{likelihood_tier = "full"}: likelihood-ratio, score, and
-Wald tests are all available when the model converges (see
-\code{$get_likelihood_test_spec()} inherited from the shared count/GLMM
-likelihood plumbing). Validity requires the random-intercept-per-pair
+effect. \code{likelihood_tier = "full"}: with \code{use_rcpp = TRUE},
+likelihood-ratio, score, and Wald tests are all available when the model
+converges (this class overrides \code{$get_likelihood_test_spec()} to
+supply the Rcpp likelihood); with the \pkg{glmmTMB} fallback
+(\code{use_rcpp = FALSE}) only the Wald test is available. Validity requires the random-intercept-per-pair
 structure to correctly capture the design's matching dependence and the
 usual linear mixed model assumptions (conditional normality of responses
 and pair effects, correctly specified fixed-effects formula).

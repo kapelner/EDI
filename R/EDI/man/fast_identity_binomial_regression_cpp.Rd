@@ -47,11 +47,15 @@ rather than estimate.}
 A list with components \code{b} (estimated coefficients
   \eqn{\hat\beta}, on the risk-difference/identity scale), \code{mu_hat}
   (fitted probabilities \eqn{\hat\mu_i}, length \eqn{n}), \code{working_weights}
-  (the final IRLS weights \eqn{w_i}), \code{iterations} (number of Fisher-
+  (the final IRLS weights \eqn{w_i}), \code{num_iter} (number of Fisher-
   scoring iterations performed), \code{converged} (logical; also requires all
   of \code{b}, \code{mu_hat}, \code{working_weights} to be finite), and
   \code{fisher_information} (the working-weights curvature matrix
   \eqn{X^\top W X}).
+  Every fit also returns \code{hit_iteration_cap} (logical),
+  \code{kkt_converged} (same value as \code{converged}; marks that the fit
+  passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+  fitted probability sits at a bound).
 }
 \description{
 Fits a binary-response GLM with the \strong{identity} link (a linear
@@ -94,7 +98,7 @@ rather than a silently invalid (out-of-range) fitted probability.
 \seealso{
 \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
   variance-augmented variant; \code{\link{fast_identity_binomial_regression_weighted_cpp}}
-  for the row-weighted variant; \code{fast_log_binomial_regression_cpp} for
+  for the row-weighted variant; \code{\link{fast_log_binomial_regression_cpp}} for
   the log-link (relative-risk) analog of this model.
   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
   linear model} for orientation. Analogous Python API:

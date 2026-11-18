@@ -499,7 +499,7 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes an asymptotic confidence interval for the treatment effect.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (!identical(self$get_testing_type(), "wald")) {
 				return(self$compute_asymp_confidence_interval_generic(alpha = alpha))

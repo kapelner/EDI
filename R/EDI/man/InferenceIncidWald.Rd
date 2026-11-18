@@ -14,7 +14,7 @@ is the classical two-proportion Wald interval (e.g. Wald 1943; see
 \code{\link[EDI:InferenceIncidNewcombeRiskDiff]{InferenceIncidNewcombeRiskDiff}}
 for a small-sample-robust alternative). \code{likelihood_tier = "none"}: no
 likelihood is fit, so no likelihood-ratio or parametric-bootstrap methods are
-exposed; the reservoir/covariate structure is ignored, unlike
+exposed; covariates and any matching structure are ignored, unlike
 \code{\link[EDI:InferenceIncidRiskDiff]{InferenceIncidRiskDiff}}'s covariate-
 adjusted linear-probability model. Non-estimable if either arm has zero
 subjects.

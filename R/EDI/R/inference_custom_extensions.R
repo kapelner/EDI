@@ -186,9 +186,9 @@ InferenceCustomRand = define_inference_class(
 			stop("Custom inference subclasses must implement public$fit(estimate_only = FALSE).")
 		},
 		#' @description Compute the treatment-effect estimate by delegating to the
-		#'   user-supplied custom bootstrap estimator. See
-		#'   \code{\link[EDI:InferenceCustomBoot]{InferenceCustomBoot}} and
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#'   user-supplied custom estimator (the \code{$fit()} callback). See
+		#'   \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} and
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		#' @return The treatment estimate.
 		compute_estimate = function(estimate_only = FALSE){
@@ -251,9 +251,9 @@ InferenceCustomBoot = define_inference_class(
 			stop("Custom inference subclasses must implement public$fit(estimate_only = FALSE).")
 		},
 		#' @description Compute the treatment-effect estimate by delegating to the
-		#'   user-supplied custom asymptotic estimator. See
-		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}} and
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#'   user-supplied custom estimator (the \code{$fit()} callback). See
+		#'   \code{\link[EDI:InferenceCustomBoot]{InferenceCustomBoot}} and
+		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		#' @return The treatment estimate.
 		compute_estimate = function(estimate_only = FALSE){

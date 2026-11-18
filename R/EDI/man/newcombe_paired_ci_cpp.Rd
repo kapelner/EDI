@@ -6,7 +6,30 @@
 \usage{
 newcombe_paired_ci_cpp(n11, n10, n01, n00, alpha)
 }
+\arguments{
+\item{n11}{Number of pairs where both members have the event.}
+
+\item{n10}{Number of pairs where only the first member has the event.}
+
+\item{n01}{Number of pairs where only the second member has the event.}
+
+\item{n00}{Number of pairs where neither member has the event.}
+
+\item{alpha}{The confidence level is \eqn{1-\alpha}.}
+}
+\value{
+A length-2 numeric vector: the lower and upper bounds for \eqn{p_1 - p_2},
+  clamped to \eqn{[-1, 1]}; \code{c(NA, NA)} if the total count is 0.
+}
 \description{
-Newcombe Hybrid Score Interval for Paired Proportions
+Computes Newcombe's (1998) hybrid score interval (his method 10) for the
+difference \eqn{p_1 - p_2} of two paired proportions, from the 2x2 table of
+matched pairs, with \eqn{p_1 = (n_{11} + n_{10})/n} and
+\eqn{p_2 = (n_{11} + n_{01})/n}. Wilson score intervals for \eqn{p_1} and
+\eqn{p_2} are combined with a correction for the phi correlation of the
+paired table (taken as 0 when a margin is empty).
+}
+\seealso{
+\code{\link{newcombe_independent_ci_cpp}} for independent samples.
 }
 \keyword{internal}

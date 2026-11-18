@@ -17,7 +17,8 @@ NULL
 #' Calculates the variance of a numeric vector using Rcpp for speed.
 #'
 #' @param  x A numeric vector.
-#' @return  The variance of the vector.
+#' @return  The sample variance (denominator \eqn{n - 1}) of the vector, or \code{NA}
+#'   if it has length 1 or less.
 #' @usage var_cpp(x)
 #' @keywords internal
 #' @name var_cpp

@@ -236,8 +236,8 @@ interval is 1 - \code{alpha}. The default is 0.05.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{The null difference to test against. For any treatment effect at all this is
-set to zero (the default).}
+      \item{\code{delta}}{The null difference to test against. To test for any treatment effect at all,
+set this to zero (the default).}
     }
     \if{html}{\out{</div>}}
   }

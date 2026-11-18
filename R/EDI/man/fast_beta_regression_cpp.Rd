@@ -49,19 +49,11 @@ parameter layout) of parameters to hold fixed rather than estimate.}
 \code{c(beta, log(phi))}) to warm-start curvature information for the first
 optimizer iteration.}
 
-\item{estimate_only}{Logical; if \code{TRUE}, may skip work not needed to produce
-point estimates (kept in sync with the package's other \code{fast_*} estimate-
-vs-inference split).}
+\item{estimate_only}{Logical; if \code{TRUE}, the Hessian is not evaluated at the
+fit and the returned \code{fisher_information} is a \code{(p + 1) x (p + 1)}
+matrix of zeros (all other components are computed as usual).}
 }
 \value{
-A list containing the following components:
-\describe{
-\item{coefficients}{A numeric vector of the estimated beta regression coefficients.}
-\item{phi}{The estimated precision parameter phi.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-}
-
 A list with components \code{coefficients} (\eqn{\hat\beta}, length
   \code{p}), \code{phi} (\eqn{\hat\phi}, on its natural scale), \code{neg_loglik}
   (the exact beta negative log-likelihood at the fitted parameters),
@@ -110,8 +102,9 @@ rather than a fresh evaluation of the exact observed-information Hessian from
 warm-starting a subsequent fit via \code{warm_start_fisher_info}.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = runif(10)
+set.seed(1)
+X = cbind(1, matrix(rnorm(200), 100, 2))
+y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 fast_beta_regression_cpp(X, y)
 }
 \references{

@@ -70,7 +70,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   iteration), \code{num_errors}, \code{num_warnings},
 		#'   \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
 		#'   \code{prop_illegal_values}.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		approximate_randomization_distribution_beta_hat_T = function(r = 501, delta = 0, transform_responses = "none", show_progress = TRUE, permutations = NULL, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
 			private$active_resampling_operation = "rand"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
@@ -315,7 +318,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param na.rm 				Remove NAs.
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param alternative One of \code{"two.sided"} (default), \code{"greater"} or
 		#'   \code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
 		#'   P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}

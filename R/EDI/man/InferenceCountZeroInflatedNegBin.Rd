@@ -22,9 +22,8 @@ treatment shifts the excess-zero probability. A marginal
 (unconditional-mean) estimand is not yet implemented for this class (see
 \code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
 Wald, gradient, score, and (bootstrap-calibrated) likelihood-ratio tests
-are all available for the count submodel's treatment coefficient (unlike
-the Poisson variant, this class's private
-\code{get_supported_testing_types_impl()} includes \code{"score"}).
+are all available for the count submodel's treatment coefficient, as for
+the Poisson variant.
 \strong{Jackknife inference is not supported}: delete-one refits of this
 two-part mixture model with a jointly-estimated dispersion parameter are
 numerically unstable, so \code{compute_jackknife_estimate()} and related
@@ -298,14 +297,11 @@ implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
 \if{html}{\out{<a id="method-InferenceCountZeroInflatedNegBin-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedNegBin-compute_estimate}{}}}
 \subsection{\code{InferenceCountZeroInflatedNegBin$compute_estimate()}}{
-  Fits the zero-inflated negative binomial model. Under the
-  default \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
-  treatment log-rate coefficient from the conditional count submodel.
-  Under \code{estimand = "marginal_mean_diff"} or
-  \code{"marginal_ratio"} (set via \code{set_estimand()}), returns the
-  g-computation marginal mean difference or log-scale marginal ratio
-  of the unconditional mean instead -- a post-fit transform of the same
-  cached fit, no refit.
+  Fits the zero-inflated negative binomial model and returns
+  \eqn{\hat\beta_T}, the treatment log-rate coefficient from the
+  conditional count submodel. This class supports only the
+  \code{"conditional"} estimand; a marginal (unconditional-mean)
+  estimand is not yet implemented.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountZeroInflatedNegBin$compute_estimate(estimate_only = FALSE)}

@@ -262,7 +262,7 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
 //' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 //' curvature estimate.
 //'
-//' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+//' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 //' @param y A numeric vector of ordinal responses; only the rank order of distinct
 //'   values matters, not their numeric coding.
 //' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
@@ -281,7 +281,7 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
 //'
 //' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 //'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 //'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
 //'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
 //'   (all the same observed-information matrix), \code{information_type} (always
@@ -328,10 +328,7 @@ List fast_ordinal_probit_regression_cpp(const Rcpp::NumericMatrix& X,
 //' cumulative probit-link model, \eqn{\Pr(Y_i \le k \mid x_i) = \Phi(\alpha_k -
 //' x_i^\top\beta)}), but always fits with \code{estimate_only = FALSE} (equivalent
 //' to calling that function with its default), so the observed information matrix
-//' and variance-covariance matrix are always computed. It additionally guards the
-//' degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
-//' fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
-//' an empty list.
+//' and variance-covariance matrix are always computed.
 //'
 //' @inheritSection fast_ordinal_probit_regression_cpp Fixed parameters, warm starts, and optimization
 //'
@@ -347,13 +344,14 @@ List fast_ordinal_probit_regression_cpp(const Rcpp::NumericMatrix& X,
 //' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-//'   \code{neg_loglik}, \code{converged}, \code{iterations},
+//'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+//'   \code{gradient_norm}, \code{min_eigenvalue_information},
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-//'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-//'   — conventionally the treatment effect; \code{NA} if it comes out non-finite or
-//'   non-positive). \code{vcov} is omitted (and \code{ssq_b_2} is \code{NA}) if the fit did
-//'   not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has fewer than 2 distinct levels.
+//'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+//'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+//'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
+//'   not converge.
 //' @seealso \code{\link{fast_ordinal_probit_regression_cpp}} for the estimate-only-capable
 //'   variant and the full model documentation.
 //' @export

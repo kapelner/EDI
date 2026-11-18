@@ -21,8 +21,9 @@ fast_negbin_regression(
 \item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
 \item{warm_start_params}{Optional starting values for coefficients and \code{log_theta}, passed
-straight through to the C++ backend for a single warm-started fit attempt (bypassing the
-QR-dropping retry sequence).}
+straight through to the C++ backend for a single warm-started fit attempt on the full
+\code{X}; if that fit succeeds its result is returned without the QR-dropping retry
+sequence, and if it errors the retry sequence runs as usual (without the warm start).}
 
 \item{warm_start_fisher_info}{Optional initial Fisher information matrix, used only together
 with \code{warm_start_params}.}
@@ -30,8 +31,8 @@ with \code{warm_start_params}.}
 \value{
 A list containing the following components:
 \item{b}{A numeric vector of the estimated negative binomial regression coefficients
-  \eqn{\hat\beta} (and \code{log_theta}), from whichever (possibly covariate-reduced)
-  fit in the retry sequence ultimately succeeded.}
+  \eqn{\hat\beta} (the dispersion is not included), from whichever (possibly
+  covariate-reduced) fit in the retry sequence ultimately succeeded.}
 \item{fisher_information}{The C++ backend's returned Fisher information matrix for the
   successful fit.}
 }

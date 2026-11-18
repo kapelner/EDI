@@ -256,17 +256,17 @@ edi::ResultMap fast_ordinal_cauchit_regression_internal(
 //' \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
 //' marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 //' via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
-//' iterations or until the parameter/gradient change falls below \code{tol};
+//' iterations or until the gradient norm falls below \code{tol};
 //' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 //' curvature estimate.
 //'
-//' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+//' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 //' @param y A numeric vector of ordinal responses; only the rank order of distinct
 //'   values matters, not their numeric coding.
 //' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param maxit Maximum number of optimizer iterations.
-//' @param tol Convergence tolerance.
+//' @param tol Convergence tolerance on the gradient norm.
 //' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
 //' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
 //' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
@@ -279,18 +279,20 @@ edi::ResultMap fast_ordinal_cauchit_regression_internal(
 //'
 //' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 //'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
-//'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+//'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+//'   when \code{estimate_only = FALSE} (the default), additionally
 //'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
 //'   (all the same observed-information matrix), \code{information_type} (always
-//'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
-//'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
-//'   conventionally the treatment effect, since \code{X} carries no separate intercept
-//'   column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
-//'   fewer than 2 distinct levels.
+//'   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
+//'   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
+//'   carries no separate intercept column here; the thresholds \code{alpha} play that
+//'   role) and \code{vcov} (the parameter covariance matrix). Only these last two depend
+//'   on convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+//'   \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2 distinct levels.
 //' @seealso \code{\link{fast_ordinal_cauchit_regression_with_var_cpp}}, which always computes
 //'   the variance quantities (equivalent to calling this function with
-//'   \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
+//'   \code{estimate_only = FALSE}) and additionally guards against the degenerate
 //'   case by returning \code{NA} placeholders instead of an empty list.
 //' @export
 //' @keywords internal
@@ -344,14 +346,17 @@ List fast_ordinal_cauchit_regression_cpp(const Rcpp::NumericMatrix& X,
 //' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
 //' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 //'
-//' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-//'   \code{neg_loglik}, \code{converged}, \code{iterations},
+//' @return The same list as \code{\link{fast_ordinal_cauchit_regression_cpp}} with
+//'   \code{estimate_only = FALSE}: \code{b}, \code{alpha}, \code{params}, \code{n_params},
+//'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+//'   \code{gradient_norm}, \code{min_eigenvalue_information},
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-//'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-//'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_2} is
-//'   \code{NA}) if the fit did not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has
-//'   fewer than 2 distinct levels.
+//'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+//'   — conventionally the treatment effect). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
+//'   \code{NaN}) if the fit did not converge. Note the different variance name in the
+//'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
+//'   \code{list(b = NA, ssq_b_2 = NA)}.
 //' @seealso \code{\link{fast_ordinal_cauchit_regression_cpp}} for the estimate-only-capable
 //'   variant and the full model documentation.
 //' @export

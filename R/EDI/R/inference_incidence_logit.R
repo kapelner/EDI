@@ -539,9 +539,9 @@ InferenceIncidLogRegr = define_inference_class(
 		#'   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"}
 		#'   (set via \code{set_estimand()}), returns the g-computation
 		#'   marginal risk difference/log-risk-ratio instead — see the
-		#'   class-level \code{@details} for the formula. The underlying
-		#'   model fit is identical either way (a pure post-fit transform of
-		#'   the same cached fit, no refit).
+		#'   Estimand paragraph of the class description for the formula. The
+		#'   underlying model fit is identical either way (a pure post-fit
+		#'   transform of the same cached fit, no refit).
 		#' @param estimate_only If TRUE, skip standard-error computation and
 		#'   cache only the point estimate; used by randomization and
 		#'   bootstrap resampling paths.

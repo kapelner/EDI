@@ -1047,7 +1047,6 @@ Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(const Eigen::Map<
 //'   \code{\link{get_log_binomial_regression_hessian_cpp}} for the unweighted
 //'   version; \code{\link{fast_log_binomial_regression_cpp}} for the full model
 //'   documentation.
-//' @return A numeric matrix representing the weighted Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -1225,14 +1224,26 @@ Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(const Eige
 //' @param fixed_values Optional values to fix the parameters named by
 //'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+//' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+//'   and convergence fields (see Value), skipping \code{mu_hat},
+//'   \code{working_weights} and \code{fisher_information}.
 //' @return A list with components \code{b} (estimated coefficients
 //'   \eqn{\hat\beta}, on the log-relative-risk scale), \code{mu_hat} (fitted
 //'   probabilities, length \eqn{n}), \code{working_weights} (final IRLS
-//'   weights), \code{iterations}, \code{converged} (logical), and
-//'   \code{fisher_information} (the working-weights curvature matrix
-//'   \eqn{X^\top W X}).
+//'   weights), \code{num_iter} (number of Fisher-scoring iterations),
+//'   \code{converged} (logical), and \code{fisher_information} (the
+//'   working-weights curvature matrix \eqn{X^\top W X}).
+//'   Every fit also returns \code{hit_iteration_cap} (logical),
+//'   \code{kkt_converged} (same value as \code{converged}; marks that the fit
+//'   passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+//'   fitted probability sits at a bound).
+//'   With \code{estimate_only = TRUE} the list holds only \code{b},
+//'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+//'   \code{kkt_converged} and \code{n_active_bounds}.
 //' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
 //'   identity-link (risk-difference) analog and the full IRLS/line-search
 //'   mechanics; \code{\link{fast_log_binomial_regression_with_var_cpp}} for the
@@ -1290,6 +1301,8 @@ List fast_log_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 //'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
 //' @return A list with components \code{b}, \code{ssq_b_j}, \code{converged},
 //'   \code{fisher_information}, \code{neg_ll}/\code{logLik} (present only on
@@ -1339,12 +1352,21 @@ List fast_log_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>
 //' @param fixed_values Optional values to fix the parameters named by
 //'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+//' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+//'   and convergence fields (see Value), skipping \code{mu_hat},
+//'   \code{working_weights} and \code{fisher_information}.
 //' @return A list with the same components as
 //'   \code{\link{fast_log_binomial_regression_cpp}}: \code{b}, \code{mu_hat},
-//'   \code{working_weights}, \code{iterations}, \code{converged}, and
-//'   \code{fisher_information} (all reflecting the weighted log-likelihood).
+//'   \code{working_weights}, \code{num_iter}, \code{hit_iteration_cap},
+//'   \code{converged}, \code{fisher_information}, \code{kkt_converged} and
+//'   \code{n_active_bounds} (all reflecting the weighted log-likelihood).
+//'   With \code{estimate_only = TRUE} the list holds only \code{b},
+//'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+//'   \code{kkt_converged} and \code{n_active_bounds}.
 //' @seealso \code{\link{fast_log_binomial_regression_cpp}} for the unweighted
 //'   model and full documentation.
 //' @export
@@ -1426,14 +1448,18 @@ List fast_log_binomial_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>
 //' @return A list with components \code{b} (estimated coefficients
 //'   \eqn{\hat\beta}, on the risk-difference/identity scale), \code{mu_hat}
 //'   (fitted probabilities \eqn{\hat\mu_i}, length \eqn{n}), \code{working_weights}
-//'   (the final IRLS weights \eqn{w_i}), \code{iterations} (number of Fisher-
+//'   (the final IRLS weights \eqn{w_i}), \code{num_iter} (number of Fisher-
 //'   scoring iterations performed), \code{converged} (logical; also requires all
 //'   of \code{b}, \code{mu_hat}, \code{working_weights} to be finite), and
 //'   \code{fisher_information} (the working-weights curvature matrix
 //'   \eqn{X^\top W X}).
+//'   Every fit also returns \code{hit_iteration_cap} (logical),
+//'   \code{kkt_converged} (same value as \code{converged}; marks that the fit
+//'   passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+//'   fitted probability sits at a bound).
 //' @seealso \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
 //'   variance-augmented variant; \code{\link{fast_identity_binomial_regression_weighted_cpp}}
-//'   for the row-weighted variant; \code{fast_log_binomial_regression_cpp} for
+//'   for the row-weighted variant; \code{\link{fast_log_binomial_regression_cpp}} for
 //'   the log-link (relative-risk) analog of this model.
 //'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
 //'   linear model} for orientation. Analogous Python API:
@@ -1497,6 +1523,8 @@ List fast_identity_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 //'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
 //' @return A list with components \code{b} (estimated coefficients
 //'   \eqn{\hat\beta}), \code{ssq_b_j} (the variance of \eqn{\hat\beta_j}, or
@@ -1549,12 +1577,22 @@ List fast_identity_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::Matr
 //' @param fixed_values Optional values to fix the parameters named by
 //'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+//' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+//'   and convergence fields (see Value), skipping \code{mu_hat},
+//'   \code{working_weights} and \code{fisher_information}.
 //' @return A list with the same components as
 //'   \code{\link{fast_identity_binomial_regression_cpp}}: \code{b},
-//'   \code{mu_hat}, \code{working_weights}, \code{iterations}, \code{converged},
-//'   and \code{fisher_information} (all reflecting the weighted log-likelihood).
+//'   \code{mu_hat}, \code{working_weights}, \code{num_iter},
+//'   \code{hit_iteration_cap}, \code{converged}, \code{fisher_information},
+//'   \code{kkt_converged} and \code{n_active_bounds} (all reflecting the
+//'   weighted log-likelihood).
+//'   With \code{estimate_only = TRUE} the list holds only \code{b},
+//'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+//'   \code{kkt_converged} and \code{n_active_bounds}.
 //' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
 //'   unweighted model and full documentation;
 //'   \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the

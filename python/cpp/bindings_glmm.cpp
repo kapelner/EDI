@@ -374,12 +374,12 @@ void bind_glmm(py::module_& m) {
     py::arg("fixed_idx") = py::none(),
     py::arg("fixed_values") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
-    "Fits a two-part hurdle-Poisson mixed model with a single Gaussian random\n"
-    "intercept on the count part: a hurdle part (logistic regression of\n"
-    "I(Y_ij>0), no random effect) determines whether any count occurs, and a\n"
-    "zero-truncated Poisson count part with mean mu_ij = exp(x_ij^T beta+u_i),\n"
-    "u_i ~ Normal(0, sigma^2), models the count given the hurdle is crossed\n"
-    "(see fast_hurdle_negbin's docstring in bindings_count.cpp for the general\n"
+    "Fits only the count part of a hurdle-Poisson mixed model: a\n"
+    "zero-truncated Poisson count model with mean mu_ij = exp(x_ij^T beta+u_i),\n"
+    "u_i ~ Normal(0, sigma^2), fitted on the rows with y > 0 (rows with y = 0\n"
+    "are dropped). The logistic hurdle part (whether any count occurs) is not\n"
+    "estimated by this kernel and no hurdle coefficients are returned (see\n"
+    "fast_hurdle_negbin's docstring in bindings_count.cpp for the general\n"
     "hurdle-vs-zero-inflated distinction, here with a Poisson rather than\n"
     "negative-binomial count part). The random intercept's marginal\n"
     "likelihood is integrated out via n_gh-point Gauss-Hermite quadrature,\n"
@@ -402,7 +402,8 @@ void bind_glmm(py::module_& m) {
     "j_T : int\n"
     "    0-based index of the treatment effect in the beta vector.\n"
     "warm_start_params : ndarray, optional\n"
-    "    Optional starting values for all parameters. If provided,\n"
+    "    Optional starting values for all parameters, length ncol(X) + 1, laid\n"
+    "    out as [beta (ncol(X) entries), log_sigma]. If provided,\n"
     "    smart_cold_start is ignored.\n"
     "smart_cold_start : bool, default True\n"
     "    If True, use an initial OLS-based guess when starting from scratch. Ignored\n"
@@ -419,11 +420,13 @@ void bind_glmm(py::module_& m) {
     "optimization_alg : str, default \"lbfgs\"\n"
     "    Optimization algorithm.\n"
     "fixed_idx : ndarray of int, optional\n"
-    "    Optional indices of fixed parameters.\n"
+    "    Optional 1-based indices of fixed parameters into the ncol(X) + 1\n"
+    "    vector [beta, log_sigma].\n"
     "fixed_values : ndarray, optional\n"
     "    Optional values for fixed parameters.\n"
     "warm_start_fisher_info : ndarray, optional\n"
-    "    Optional initial Fisher information matrix for the first iteration.");
+    "    Optional initial Fisher information matrix for the first iteration;\n"
+    "    must be (ncol(X) + 1) x (ncol(X) + 1), ordered as [beta, log_sigma].");
 
     m.def("fast_clogit_plus_glmm", [](const Eigen::Ref<const Eigen::MatrixXd>& X_disc,
                                        const Eigen::Ref<const Eigen::VectorXd>& y_disc,
@@ -499,6 +502,9 @@ void bind_glmm(py::module_& m) {
     "    Response vector for the concordant subjects.\n"
     "group_conc : ndarray of int\n"
     "    Group (random-intercept cluster) identifiers for the concordant subjects.\n"
+    "    Groups are built from runs of equal adjacent values (no sorting), so\n"
+    "    X_conc/y_conc/group_conc rows must be ordered so each group is\n"
+    "    contiguous; otherwise each run becomes its own group.\n"
     "has_discordant : bool\n"
     "    Whether any discordant pairs are present (enables the conditional-logit\n"
     "    component).\n"
@@ -506,8 +512,7 @@ void bind_glmm(py::module_& m) {
     "    Whether any concordant/reservoir subjects are present (enables the\n"
     "    random-intercept-GLMM component).\n"
     "warm_start_params : ndarray, optional\n"
-    "    Optional starting values for all parameters. If provided,\n"
-    "    smart_cold_start is ignored.\n"
+    "    Optional starting values for all parameters.\n"
     "warm_start_beta : ndarray, optional\n"
     "    Optional starting values for the coefficients only.\n"
     "estimate_only : bool, default False\n"

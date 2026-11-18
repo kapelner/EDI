@@ -69,8 +69,8 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		},
 		#' @description Returns the mean difference in Peto-Prentice weighted martingale residuals
 		#' between the treatment and control groups. Positive values indicate that treatment
-		#' subjects experienced fewer early events than expected. For left- or
-		#' interval-censored data, dispatches instead to \code{interval::ictest(...,
+		#' subjects experienced more early events than expected (worse early survival).
+		#' For left- or interval-censored data, dispatches instead to \code{interval::ictest(...,
 		#' scores = "wmw")} (the Wilcoxon-Mann-Whitney interval-censored
 		#' generalization of the Peto-Prentice test) and returns its estimate.
 		#'

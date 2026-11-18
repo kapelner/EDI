@@ -22,7 +22,9 @@ mn_z_statistic_cpp(x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs)
 \item{p_c_obs}{Observed control-arm risk.}
 }
 \value{
-The asymptotic z statistic.
+The asymptotic z statistic, or \code{NA} when \code{n_t} or \code{n_c} is 0,
+  when \code{delta} is outside \eqn{(-1, 1)}, or when the constrained variance is not
+  positive.
 }
 \description{
 Computes the score-style z statistic for testing the null risk difference

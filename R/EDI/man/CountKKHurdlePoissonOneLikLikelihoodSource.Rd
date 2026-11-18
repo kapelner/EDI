@@ -48,8 +48,10 @@ Compute the Wald confidence interval for the one-likelihood
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 
 Compute the Wald two-sided p-value for the one-likelihood
-  hurdle-Poisson treatment coefficient, falling back to the Bayesian-bootstrap
-  p-value when the model standard error is unavailable. See
+  hurdle-Poisson treatment coefficient, falling back to the nonparametric
+  bootstrap p-value when the model standard error is unavailable (or
+  \code{NA_real_} when the design does not support the nonparametric
+  bootstrap). See
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 }
 \keyword{internal}

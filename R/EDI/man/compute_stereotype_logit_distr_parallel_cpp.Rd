@@ -9,11 +9,12 @@ compute_stereotype_logit_distr_parallel_cpp(X, y, w_mat, delta, num_cores)
 \arguments{
 \item{X}{Matrix of covariates (without intercept or treatment).}
 
-\item{y}{Numeric vector of response values (pre-null-shifted for treated).}
+\item{y}{Numeric vector of unshifted response values; \code{delta} is added to
+the treated subjects inside the function, separately for each draw.}
 
 \item{w_mat}{Integer matrix of permuted treatment assignments (n x nsim).}
 
-\item{delta}{Null treatment effect (additive shift).}
+\item{delta}{Null treatment effect (additive shift applied to treated responses).}
 
 \item{num_cores}{Number of OpenMP threads.}
 }

@@ -31,7 +31,8 @@ fast_weibull_regression_general_cpp(
 \item{y_R}{Censored-interval upper bounds, \code{NA} for exact subjects;
 \code{Inf} for right-censored.}
 
-\item{warm_start_params}{Optional starting values for coefficients.}
+\item{warm_start_params}{Optional starting values for the full
+\eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess.}
 
@@ -45,22 +46,20 @@ fast_weibull_regression_general_cpp(
 
 \item{fixed_values}{Optional values for fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
 }
 \value{
-A list containing the following components:
-\describe{
-\item{coefficients}{A numeric vector of the estimated Weibull regression coefficients,
-including the intercept.}
-\item{log_sigma}{The logarithm of the scale parameter from the Weibull distribution.}
-\item{vcov}{The variance-covariance matrix of the estimated coefficients.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-}
-
-A list containing coefficients, log_sigma, and convergence status.
+A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+  \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+  \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+  \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+  \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+  aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+  \code{score}, \code{observed_information}/\code{information} (the observed
+  information matrix), \code{hessian} (its negative), \code{information_type}
+  (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 }
 \description{
 Weibull Accelerated Failure Time model fitting extended to

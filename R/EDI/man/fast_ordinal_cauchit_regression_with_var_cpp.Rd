@@ -35,14 +35,17 @@ values matters, not their numeric coding.}
 \item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
 }
 \value{
-A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-  \code{neg_loglik}, \code{converged}, \code{iterations},
+The same list as \code{\link{fast_ordinal_cauchit_regression_cpp}} with
+  \code{estimate_only = FALSE}: \code{b}, \code{alpha}, \code{params}, \code{n_params},
+  \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+  \code{gradient_norm}, \code{min_eigenvalue_information},
   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-  and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-  — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_2} is
-  \code{NA}) if the fit did not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has
-  fewer than 2 distinct levels.
+  and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+  — conventionally the treatment effect). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
+  \code{NaN}) if the fit did not converge. Note the different variance name in the
+  degenerate case: if \code{y} has fewer than 2 distinct levels the result is
+  \code{list(b = NA, ssq_b_2 = NA)}.
 }
 \description{
 As \code{\link{fast_ordinal_cauchit_regression_cpp}} (see that page for the full
@@ -66,7 +69,7 @@ OLS-based heuristic, and when \code{FALSE}, thresholds start at
 \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
 marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
-iterations or until the parameter/gradient change falls below \code{tol};
+iterations or until the gradient norm falls below \code{tol};
 \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 curvature estimate.
 }

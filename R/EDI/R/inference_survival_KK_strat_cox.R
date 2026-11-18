@@ -64,8 +64,10 @@ SurvivalKKStratCoxIVWCSource = list(
 		#' @description Compute the stratified-Cox asymptotic p-value for the
 		#'   treatment log-hazard ratio using the fitted partial-likelihood standard
 		#'   error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta                                   The null difference to test against. For
-		#'   any treatment effect at all this is set to zero (the default).
+		#' @param delta                                   The null difference to test against.
+		#'   Only zero (the default, testing for any treatment effect at all) is currently
+		#'   supported; a non-zero value raises an error, or returns \code{NA} when
+		#'   assertions are disabled.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -460,7 +462,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes an asymptotic confidence interval for the treatment effect.
-		#' @param alpha Confidence level.
+		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

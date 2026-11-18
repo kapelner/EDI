@@ -444,13 +444,13 @@ Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(const Eigen::Map<Eigen::M
 //' @param y Vector of nonnegative-integer count responses.
 //' @param Xzi Matrix of predictors for the zero-inflation/hurdle (logistic) component.
 //' @param is_hurdle If \code{TRUE}, fit a hurdle model; if \code{FALSE}, fit a
-//'   zero-inflated model. See Details for the distinction.
+//'   zero-inflated model. See the description for the distinction.
 //' @param warm_start_params Optional starting values for the joint
 //'   \eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} vector. If provided,
 //'   \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
 //'   \code{warm_start_params} is supplied, use a model-specific heuristic initial guess;
-//'   see Details.
+//'   see the "Fixed parameters, warm starts" section.
 //' @param estimate_only If \code{TRUE}, skip the post-fit Hessian/variance computation
 //'   and return only \code{params}, \code{converged}, \code{neg_ll}/\code{neg_loglik}, and
 //'   \code{gradient_norm}.

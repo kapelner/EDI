@@ -1478,8 +1478,18 @@ infer_inference_design_compatibility_reason_fn = function(generator) {
 # and InferenceSurvivalDepCensTransformRegr (bivariate transformation model
 # whose treatment-coefficient scale was not confidently identified without a
 # deeper model derivation than this audit's time budget covered).
-#' Split from a single "RR" tag into "RR" (raw risk ratio) vs.
-#' "log_risk_ratio" -- per user decision, 2026-08-23: `InferenceIncidGCompRiskRatio`/
+# History: split from a single "RR" tag into "RR" (raw risk ratio) vs.
+# "log_risk_ratio" per user decision, 2026-08-23. Both groups below previously
+# shared one "RR" tag.
+#' Estimand-type tag for each inference class
+#'
+#' A named list mapping each inference class name to a tag naming the scale of
+#' the treatment effect it estimates (e.g. \code{"mean_difference"} or
+#' \code{"hodges_lehmann_shift"}).
+#'
+#' @details
+#' \strong{The "RR" and "log_risk_ratio" tags.}
+#' `InferenceIncidGCompRiskRatio`/
 #' `InferenceIncidKKGCompRiskRatio` compute the raw ratio `risk1/risk0`
 #' directly (a nonlinear function of an underlying logistic model's
 #' coefficients) and only touch log space as a delta-method device to get a
@@ -1490,10 +1500,10 @@ infer_inference_design_compatibility_reason_fn = function(generator) {
 #' likelihood, or a log-link binomial GLM) whose own coefficient *is*
 #' log(RR) by construction, with a directly-computed (non-delta-method)
 #' coefficient SE -- log(RR) is their natural scale, and "RR" is the derived
-#' quantity (`exp(coefficient)`). Both groups previously shared one "RR" tag,
-#' which put a log10 x-axis and null-reference line at 1 on what were
-#' actually already-log-scale estimates/CIs for the second group -- a
-#' genuine scale mismatch, not just a display nicety.
+#' quantity (`exp(coefficient)`). Giving both groups one "RR" tag would put a
+#' log10 x-axis and null-reference line at 1 on what are actually
+#' already-log-scale estimates/CIs for the second group -- a genuine scale
+#' mismatch, not just a display nicety.
 #' @keywords internal
 EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceAllKKMeanDiffIVWC = "mean_difference",
@@ -2833,6 +2843,8 @@ apply_inference_design_restrictions = function(self, des_obj) {
 #'   would silently look up the wrong (unregistered) key. Ignored if
 #'   \code{name} is itself a non-character object (that overload already
 #'   derives its own live_obj).
+#' @return A character vector of capability names (unique, unordered), after
+#'   the design, response-type and live-gate refinements described above.
 #' @keywords internal
 get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
 	if (!is.character(name)) {

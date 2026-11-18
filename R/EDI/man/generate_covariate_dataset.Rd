@@ -75,9 +75,10 @@ Two conditional-expectation models are supported, both rescaled so that
     \code{norm_sq_beta_vec} once the \eqn{\sin} term's own variance is accounted
     for — \code{norm_sq_beta_vec} calibrates the linear-in-covariate part of the
     scale, not the full response variance). This function assumes each covariate
-    lies roughly in \eqn{[-1, 1]}, matching Friedman's original specification;
-    covariates drawn or supplied on a very different scale will not reproduce the
-    intended signal shape.}
+    lies roughly in \eqn{[0, 1]}, matching Friedman's original specification
+    (uniform covariates on \eqn{[0, 1]}); covariates drawn or supplied on a very
+    different scale, including the default \code{stats::rnorm} draws, will not
+    reproduce the intended signal shape.}
   }
 }
 \examples{

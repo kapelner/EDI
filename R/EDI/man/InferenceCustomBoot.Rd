@@ -128,9 +128,9 @@ use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
 \if{latex}{\out{\hypertarget{method-InferenceCustomBoot-compute_estimate}{}}}
 \subsection{\code{InferenceCustomBoot$compute_estimate()}}{
   Compute the treatment-effect estimate by delegating to the
-  user-supplied custom asymptotic estimator. See
-  \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}} and
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  user-supplied custom estimator (the \code{$fit()} callback). See
+  \code{\link[EDI:InferenceCustomBoot]{InferenceCustomBoot}} and
+  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCustomBoot$compute_estimate(estimate_only = FALSE)}

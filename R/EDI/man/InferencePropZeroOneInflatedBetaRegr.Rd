@@ -16,10 +16,11 @@ the point masses and the interior, with no shift in the interior beta mean,
 will report a null treatment coefficient here even though \eqn{E[Y]} changed.
 
 
-The beta mean submodel uses treatment alone in the univariate class and
-treatment plus covariates in the multivariate class. The zero/one inflation
-submodels use \code{model_formula_zero_one}, which defaults to \code{~ .}
-so that treatment plus all available covariates enter those auxiliary pieces.
+The beta mean submodel uses treatment plus the covariates given by
+\code{model_formula}. The zero/one inflation submodels use
+\code{model_formula_zero_one}; if that is \code{NULL} (default), they use
+\code{model_formula} when it is supplied and otherwise \code{~ .}, so that
+treatment plus all available covariates enter those auxiliary pieces.
 See the class-level description above for what the reported coefficient does
 and does not represent.
 
@@ -219,7 +220,8 @@ Ospina, R., and Ferrari, S. L. P. (2010). "Inflated beta
 design matrix is reused. If a formula is provided, a new design matrix is
 constructed from the design's imputed covariates.}
       \item{\code{model_formula_zero_one}}{Formula for the zero/one inflation submodels.
-Defaults to \code{~ .}, meaning treatment plus all available covariates.}
+If \code{NULL} (default), uses \code{model_formula} when it is supplied and
+otherwise \code{~ .}, meaning treatment plus all available covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }

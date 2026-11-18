@@ -18,7 +18,7 @@ variance-covariance matrix, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}}) =
 standard error is unavailable or non-finite, the Wald-style methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()},
 \code{$compute_wald_confidence_interval()}, \code{$compute_wald_two_sided_pval()})
-all silently fall back to a nonparametric bootstrap interval/p-value instead
+all fall back to a nonparametric bootstrap interval/p-value instead
 (with a warning), rather than returning \code{NA}.
 
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about

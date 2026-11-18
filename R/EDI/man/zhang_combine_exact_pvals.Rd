@@ -2,7 +2,7 @@
 % Please edit documentation in R/inference_helpers_zhang.R
 \name{zhang_combine_exact_pvals}
 \alias{zhang_combine_exact_pvals}
-\title{Zhang Exact Inference Helpers}
+\title{Combine Zhang Exact Component P-Values}
 \usage{
 zhang_combine_exact_pvals(p_M, p_R, m, nRT, nRC, method)
 }
@@ -17,12 +17,18 @@ zhang_combine_exact_pvals(p_M, p_R, m, nRT, nRC, method)
 
 \item{nRC}{Number of control in reservoir.}
 
-\item{method}{Combination method (Fisher or Stouffer).}
+\item{method}{Combination method: \code{"Fisher"}, \code{"Stouffer"} or \code{"min_p"}
+(\eqn{1 - (1 - \min(p_M, p_R))^2}).}
+}
+\value{
+A single p-value. A component is usable when its sample is non-empty
+  (\code{m > 0}, or \code{nRT > 0} and \code{nRC > 0}) and its p-value is finite
+  and positive. If both are usable they are combined by \code{method}; if only
+  one is, its p-value is returned unchanged; if neither is, \code{NA_real_}.
 }
 \description{
 Internal method.
-Standalone functions to support Zhang (2026) exact test-inversion inference.
-These functions handle the bisection solver, p-value combination rules,
-and component-wise p-value logic.
+Combines the matched-pairs and reservoir component p-values used by Zhang
+(2026) exact test-inversion inference into one p-value.
 }
 \keyword{internal}

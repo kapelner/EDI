@@ -1,4 +1,4 @@
-#' Inference based on Maximum Likelihood for KK designs
+#' Bai adjusted t-test inference for KK designs
 #'
 #' Inference for mean difference. Note that warm starts are disabled for this class
 #' as the Bai adjusted t-test is a closed-form estimator and does not benefit from initialization.
@@ -109,12 +109,9 @@ BaiAdjustedTSource = list(
 		},
 		#' @description Computes a 1-alpha level frequentist confidence interval
 		#'
-		#' Here we use the theory that MLE's computed for GLM's are asymptotically normal
-		#' (except in the case
-		#' of estimat_type "median difference" where a nonparametric bootstrap confidence
-		#' interval (see the \code{controlTest::quantileControlTest} method)
-		#' is employed. Hence these confidence intervals are asymptotically valid and thus
-		#' approximate for any sample size.
+		#' The interval is a z or t interval built from the closed-form Bai adjusted
+		#' variance of the matched-pair / reservoir estimate. It is asymptotically
+		#' valid and thus approximate for any finite sample size.
 		#'
 		#' @param alpha                                   The confidence level in the computed
 		#'   confidence interval is 1 - \code{alpha}. The default is 0.05.

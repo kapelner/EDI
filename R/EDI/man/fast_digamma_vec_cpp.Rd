@@ -7,17 +7,19 @@
 fast_digamma_vec_cpp(x)
 }
 \arguments{
-\item{x}{Numeric vector of arguments (should be finite and, per the digamma
-function's domain, not a non-positive integer, where \eqn{\psi} has poles;
-no domain validation is performed by this function).}
+\item{x}{Numeric vector of arguments (should be finite). The fast kernel
+handles \eqn{x > 0}; any element \eqn{x \le 0} is passed to R's own
+digamma routine instead (not accelerated; \code{NaN} at the poles, the
+non-positive integers). No other domain validation is performed.}
 }
 \value{
 A numeric vector of \eqn{\psi(x)} values, the same length as \code{x}.
 }
 \description{
 Computes the digamma function \eqn{\psi(x) = d/dx \log \Gamma(x)} elementwise
-over \code{x}, via an asymptotic expansion with a recurrence (reflection)
-shift for small arguments to keep the expansion accurate — the standard
+over \code{x}, via an asymptotic expansion with an upward recurrence shift
+(\eqn{\psi(x) = \psi(x + 1) - 1/x}, no reflection formula) for small
+positive arguments to keep the expansion accurate — the standard
 technique for evaluating digamma/trigamma to double precision without a
 lookup table. Used internally inside the package's negative-binomial, beta,
 zero-inflated/hurdle, and KK21 count-response likelihood, score, and Hessian

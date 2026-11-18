@@ -86,8 +86,8 @@ afterward. Use this entry point for a one-off fit; use
 \code{\link{fast_coxph_regression_prebuilt_cpp}} instead when fitting the same
 \code{(X, y, dead)} repeatedly (e.g. across bootstrap/randomization replicates),
 to avoid rebuilding the risk-set cache on every call. \code{\link{fast_coxph_regression}}
-is the R-level wrapper around this backend (with an \pkg{survival}-free-of-Rcpp
-fallback path via \pkg{glmnet}).
+is the R-level wrapper around this backend (with a non-Rcpp fallback path via
+\pkg{glmnet}, used when \code{use_rcpp = FALSE}).
 }
 \seealso{
 \code{\link{build_cox_data_cache_cpp}} for the full Cox partial-likelihood

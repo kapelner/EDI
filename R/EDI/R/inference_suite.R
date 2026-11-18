@@ -4292,8 +4292,7 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #'   \code{applicable_design_classes} and reported separately, by class name,
 #'   in \code{unavailable_due_to_missing_packages} -- so callers can tell "not
 #'   applicable to this design" apart from "applicable, but an optional
-#'   dependency isn't installed" (see the \code{Discovery} section of
-#'   \code{fix_inference_hierarchy.md}). Package availability is never a
+#'   dependency isn't installed". Package availability is never a
 #'   reason a class is treated as design-incompatible.
 #'
 #'   Construction itself does not compute any estimates, p-values, or
@@ -4421,8 +4420,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   are not all installed: names are class names, values are the character
 		#'   vector of missing package names. These classes are excluded from
 		#'   \code{applicable_design_classes} but are reported here separately from
-		#'   plain design/response-type incompatibility (see the class-level docs'
-		#'   "Discovery" rules), so callers can distinguish "not applicable to this
+		#'   plain design/response-type incompatibility (see the class-level
+		#'   "Compatibility rules"), so callers can distinguish "not applicable to this
 		#'   design" from "applicable, but an optional dependency isn't installed."
 		#'   Empty named list if every design-compatible class has all required
 		#'   packages available.
@@ -4500,15 +4499,13 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		},
 		#' @description Construct and fit every class in \code{applicable_design_classes},
 		#'   and report one uniform comparison row per class -- estimate, SE, CI, p-value
-		#'   (each via the highest-priority available method; see
-		#'   \code{inference_suite_inspect.md}'s "Method Selection Policy"), likelihood
+		#'   (each via the highest-priority available method), likelihood
 		#'   tier, estimand (where declared), fit time, captured warnings, and status.
 		#'   Unlike the constructor, this method fits models and is not free; call it
 		#'   explicitly when you want the comparison, not automatically.
 		#'
 		#'   A single class's construction or fit failure never aborts the report -- it
-		#'   is caught and recorded as that class's \code{status}/\code{message} (see
-		#'   "Per-Class Failure Isolation" in the design doc).
+		#'   is caught and recorded as that class's \code{status}/\code{message}.
 		#'
 		#'   \strong{Side effects (v1.0.0 slice):} \code{screen} prints each row as its
 		#'   class finishes fitting (computation order), not buffered to the end, with a
@@ -4518,10 +4515,10 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{html = TRUE} writes a self-contained, timestamped HTML report (the
 		#'   same table plus the same footer) to \code{output_dir}
 		#'   and opens it via \code{\link[utils]{browseURL}}; it requires the
-		#'   \pkg{knitr} package. The \code{plots} ggplot2 visualizations, and their
-		#'   embedding into this HTML report, are not yet implemented
-		#'   (\code{inference_suite_inspect.md} TODO-7); \code{pdf} output is not yet a
-		#'   parameter of this method.
+		#'   \pkg{knitr} package. When the optional \pkg{ggplot2} package is installed,
+		#'   the HTML report also embeds the \code{plots} visualizations as inline PNGs;
+		#'   \code{pdf = TRUE} saves them to a PDF file (see \code{plots} and
+		#'   \code{pdf} below).
 		#' @param screen Print results to the console as each class finishes. At least
 		#'   one of \code{screen}/\code{html} must be \code{TRUE}.
 		#' @param html Render, save (\code{output_dir}, timestamped filename),
@@ -4582,8 +4579,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   meaningful per-class ETA to show while running -- \code{screen = TRUE}
 		#'   instead prints a "fitting N classes across K workers" message up front,
 		#'   then every result row together once complete, then a total-elapsed-time
-		#'   summary line (a deliberate design choice, not a degraded default -- see
-		#'   \code{inference_suite_inspect.md}'s TODO-13). Default \code{1L}
+		#'   summary line (a deliberate design choice, not a degraded default).
+		#'   Default \code{1L}
 		#'   (sequential, with the normal incremental streaming/progress bar).
 		#' @param formulas \code{NULL} (default), a single formula (\code{~ .}), a
 		#'   single formula string (\code{"~ ."}), or a collection of either --
@@ -4603,11 +4600,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   once, ignoring \code{formulas}. Note this is a syntactic check
 		#'   (does the constructor accept one), not a semantic one (does the fit
 		#'   actually use it) -- some classes accept-and-ignore \code{model_formula}
-		#'   (e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test);
-		#'   see \code{fix_inference_hierarchy.md}'s
-		#'   \code{adjusts_for_covariates} registry-metadata audit, which makes
-		#'   the \code{cov_model} column semantics-aware wherever that audit has
-		#'   landed.
+		#'   (e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test).
 		#' @param methods \code{NULL} (default), a character vector of method
 		#'   sentinel strings, or (TODO-22) a named list, \code{sentinel} to a
 		#'   character vector of requested \code{type} values, or \code{NULL},
@@ -4809,8 +4802,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#' @param combined_evidence_weighting One of \code{"estimand_grouped"}
 		#'   (default -- \code{w_i = 1 / (G * m_i)}), \code{"equal"} (flat
 		#'   \code{w_i = 1/k}), or \code{"custom"} (caller supplies
-		#'   \code{combined_evidence_weights}). See
-		#'   \code{inference_suite_inspect.md}'s TODO-15.
+		#'   \code{combined_evidence_weights}).
 		#' @param combined_evidence_weights Named numeric vector
 		#'   (\code{inference_class} name -> weight), required when and only
 		#'   when \code{combined_evidence_weighting = "custom"}. Names must be a
@@ -5292,6 +5284,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 	)
 )
 
+#' Print an InferenceSuite results table
+#'
 #' Prints the results table from an \code{\link[EDI:InferenceSuite]{InferenceSuite}}
 #' \code{run_all_inference()} call -- the same table \code{screen = TRUE} prints during
 #' the call itself, so a user who assigned the return value and later types its name

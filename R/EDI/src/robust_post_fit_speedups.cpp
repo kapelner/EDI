@@ -245,12 +245,11 @@ List ols_hc2_post_fit_precomputed_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, 
 //' X^\top \mathrm{diag}(\omega_i) X}, where \eqn{\omega_i = r_i^2 / (1 - h_{ii})}
 //' — the squared OLS residual \eqn{r_i} \strong{leverage-corrected} by dividing
 //' by \eqn{1 - h_{ii}} (\eqn{h_{ii}} the \eqn{i}-th diagonal of the OLS hat
-//' matrix \eqn{X(X^\top X)^{-1}X^\top}), unlike the plain HC0 sandwich
-//' (\code{\link{gcomp_logistic_post_fit_cpp}}'s logistic analogue, or this
-//' function's own uncorrected \eqn{r_i^2} meat) which does not correct for
-//' leverage. HC2 is unbiased under homoskedasticity for balanced designs and
-//' generally has better small-sample properties than HC0/HC1 when leverage is
-//' uneven. Internally, this function first computes the (design-only) "setup"
+//' matrix \eqn{X(X^\top X)^{-1}X^\top}); the plain HC0 sandwich instead uses
+//' \eqn{\omega_i = r_i^2} with no leverage correction. Because
+//' \eqn{E[r_i^2] = \sigma^2 (1 - h_{ii})} under homoskedasticity, HC2 is unbiased
+//' under homoskedasticity for any design, and it generally has better small-sample
+//' properties than HC0/HC1 when leverage is uneven. Internally, this function first computes the (design-only) "setup"
 //' quantities \code{bread}/\code{hat} via \code{ols_hc2_setup_cpp}, then calls
 //' \code{ols_hc2_post_fit_precomputed_cpp}; callers who already have those
 //' precomputed (e.g. across repeated resampling on the same fixed design) can

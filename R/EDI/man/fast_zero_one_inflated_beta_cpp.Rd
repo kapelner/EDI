@@ -29,7 +29,8 @@ fast_zero_one_inflated_beta_cpp(
 \log\phi, \gamma_0, \gamma_1]} vector. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no
-\code{warm_start_params} is supplied, use an OLS-based initial guess; see Details.}
+\code{warm_start_params} is supplied, use an OLS-based initial guess; see the
+"Fixed parameters, warm starts" section.}
 
 \item{fixed_idx}{Optional 1-indexed positions of parameters to hold fixed.}
 

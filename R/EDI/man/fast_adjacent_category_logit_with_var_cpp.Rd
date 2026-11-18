@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_adjacent_category_logit_with_var_cpp}
 \alias{fast_adjacent_category_logit_with_var_cpp}
-\title{Fast Adjacent-Category Logit with Variance (C++)}
+\title{Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)}
 \usage{
 fast_adjacent_category_logit_with_var_cpp(
   X,
@@ -19,18 +19,15 @@ fast_adjacent_category_logit_with_var_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}, with \strong{no}
+intercept column (the model's cut-specific intercepts \eqn{\alpha_k} serve that
+role).}
 
-\item{y}{A numeric vector of responses (categorical).}
+\item{y}{A numeric vector of length \eqn{n} giving each subject's ordinal
+category; need not be pre-coded \code{1:K} (see Details for the rank-based
+remapping).}
 
-\item{maxit}{Maximum number of iterations.
-Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)
-
-Fits the same adjacent-category logit model as
-\code{\link{fast_adjacent_category_logit_cpp}} (see that page for the model,
-category-coding/remapping, parameter layout, and optimizer contract, all shared
-unchanged here) and additionally computes the observed-information-based
-variance-covariance matrix of the fitted parameters.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
@@ -67,7 +64,11 @@ A list with all the components of
   \code{fixed_idx}).
 }
 \description{
-Adjacent-category logit model fitting with full variance-covariance matrix.
+Fits the same adjacent-category logit model as
+\code{\link{fast_adjacent_category_logit_cpp}} (see that page for the model,
+category-coding/remapping, parameter layout, and optimizer contract, all shared
+unchanged here) and additionally computes the observed-information-based
+variance-covariance matrix of the fitted parameters.
 }
 \details{
 \strong{Variance computation.} The observed Fisher information (the Hessian of the

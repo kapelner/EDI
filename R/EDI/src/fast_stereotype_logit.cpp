@@ -1205,9 +1205,10 @@ double fast_stereotype_profile_loglik_cpp(
 //' Parallel Stereotype Logit Randomization Distribution
 //'
 //' @param X Matrix of covariates (without intercept or treatment).
-//' @param y Numeric vector of response values (pre-null-shifted for treated).
+//' @param y Numeric vector of unshifted response values; \code{delta} is added to
+//'   the treated subjects inside the function, separately for each draw.
 //' @param w_mat Integer matrix of permuted treatment assignments (n x nsim).
-//' @param delta Null treatment effect (additive shift).
+//' @param delta Null treatment effect (additive shift applied to treated responses).
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of length nsim with treatment coefficients.
 //' @keywords internal

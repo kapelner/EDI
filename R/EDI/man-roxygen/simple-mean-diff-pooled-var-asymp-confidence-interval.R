@@ -15,4 +15,4 @@
 #'   observations per arm; otherwise returns \code{c(NA, NA)}. See
 #'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 #'   asymptotic confidence-interval contract this participates in.
-#' @param alpha Confidence level.
+#' @param alpha Significance level; the interval has confidence level 1 - alpha. Default 0.05.

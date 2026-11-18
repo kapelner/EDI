@@ -137,8 +137,8 @@ des$assign_w_to_all_subjects()
     \describe{
       \item{\code{w_precomputed}}{Optional \{0,1\} numeric vector of length n. If supplied the
 allocation is used directly and
-\code{draw_ws_according_to_design} is not called (avoids e.g. the Java
-round-trip for \code{DesignFixedGreedy}).}
+\code{draw_ws_according_to_design} is not called (avoids re-running a
+costly allocation search, e.g. for \code{DesignFixedGreedy}).}
     }
     \if{html}{\out{</div>}}
   }

@@ -37,17 +37,31 @@ rather than estimate.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
+\item{smart_cold_start}{Logical. If \code{TRUE} (default) and no
+\code{warm_start_beta} is supplied, use an OLS-based initial guess.}
+
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{estimate_only}{Logical; if \code{TRUE}, return only the point estimate
+and convergence fields (see Value), skipping \code{mu_hat},
+\code{working_weights} and \code{fisher_information}.}
 }
 \value{
 A list with components \code{b} (estimated coefficients
   \eqn{\hat\beta}, on the log-relative-risk scale), \code{mu_hat} (fitted
   probabilities, length \eqn{n}), \code{working_weights} (final IRLS
-  weights), \code{iterations}, \code{converged} (logical), and
-  \code{fisher_information} (the working-weights curvature matrix
-  \eqn{X^\top W X}).
+  weights), \code{num_iter} (number of Fisher-scoring iterations),
+  \code{converged} (logical), and \code{fisher_information} (the
+  working-weights curvature matrix \eqn{X^\top W X}).
+  Every fit also returns \code{hit_iteration_cap} (logical),
+  \code{kkt_converged} (same value as \code{converged}; marks that the fit
+  passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+  fitted probability sits at a bound).
+  With \code{estimate_only = TRUE} the list holds only \code{b},
+  \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+  \code{kkt_converged} and \code{n_active_bounds}.
 }
 \description{
 Fits a binary-response GLM with the \strong{log} link (a relative-risk
