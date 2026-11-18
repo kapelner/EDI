@@ -39,17 +39,12 @@ parameter layout) of parameters to hold fixed rather than estimate.}
 
 \item{optimization_alg}{Optimization algorithm; see
 \code{\link{fast_beta_regression_cpp}}.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix (over
+\code{c(beta, log(phi))}) to warm-start curvature information for the first
+optimizer iteration.}
 }
 \value{
-A list containing the following components:
-\describe{
-\item{coefficients}{A numeric vector of the obtained Poisson regression coefficients.}
-\item{phi}{The estimated precision parameter phi.}
-\item{vcov}{The variance-covariance matrix.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-}
-
 A list with components \code{coefficients} (\eqn{\hat\beta}),
   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
@@ -76,8 +71,9 @@ non-finite free block returns a \code{NaN} covariance and standard errors;
 callers should check \code{is.finite(vcov)} before using its entries.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = runif(10)
+set.seed(1)
+X = cbind(1, matrix(rnorm(200), 100, 2))
+y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 fast_beta_regression_with_var_cpp(X, y)
 }
 \seealso{

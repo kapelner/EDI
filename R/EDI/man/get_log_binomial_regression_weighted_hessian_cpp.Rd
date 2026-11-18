@@ -17,8 +17,6 @@ get_log_binomial_regression_weighted_hessian_cpp(X, y_r, weights_r, beta)
 }
 \value{
 The finite-difference-approximated weighted Hessian matrix at \code{beta}.
-
-A numeric matrix representing the weighted Hessian.
 }
 \description{
 Computes the observation-weighted Hessian matrix of the weighted log-likelihood

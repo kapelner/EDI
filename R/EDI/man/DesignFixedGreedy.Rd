@@ -79,6 +79,8 @@ column by construction (see fix_design_hierarchy.md, "AllocationMatrixValidation
 }
 \examples{
 des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
+des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10), x2 = rnorm(10)))
+des$assign_w_to_all_subjects()
 }
 \references{
 Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random

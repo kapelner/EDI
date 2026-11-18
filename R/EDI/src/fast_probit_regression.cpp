@@ -406,9 +406,9 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp( const Eigen::Map<Eigen::Matri
 //' @param warm_start_fisher_info Optional initial curvature matrix for the first
 //'   IRLS iteration (IRLS path only).
 //' @param estimate_only If \code{TRUE}, skip the post-fit weight/curvature computation
-//'   and return only \code{b}, \code{converged}, and \code{iterations}.
+//'   and return only \code{b}, \code{converged}, and \code{num_iter}.
 //' @return If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
-//'   \code{iterations}. Otherwise: a list additionally containing \code{w} (the final
+//'   \code{num_iter}. Otherwise: a list additionally containing \code{w} (the final
 //'   probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
 //'   which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
 //'   at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).
@@ -538,7 +538,7 @@ List fast_probit_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
 //'   W X} curvature matrix; \code{information_type} is always \code{"fisher"}),
 //'   \code{hessian} (the negative of that same matrix), \code{neg_loglik}/\code{neg_ll}
 //'   (two aliases for the negative log-likelihood), \code{loglik} (\code{-neg_ll}, or
-//'   \code{NA} if non-finite), \code{converged}, and \code{iterations}.
+//'   \code{NA} if non-finite), \code{converged}, and \code{num_iter}.
 //' @seealso \code{\link{fast_probit_regression_cpp}} for the estimate-only-capable variant
 //'   and full model documentation.
 //' @export

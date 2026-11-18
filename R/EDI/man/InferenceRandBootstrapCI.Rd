@@ -10,7 +10,8 @@ of pre-generated draws (resampled row indices and fresh design assignments) — 
 random numbers — so the p-value is a deterministic, near-monotone function of
 \code{delta} and the bound search is stable. See \code{\link{InferenceRandBootstrap}}
 for the statistical justification of the test being inverted; the resulting interval
-inherits its unconditional, superpopulation interpretation and asymptotic validity.
+inherits its unconditional, superpopulation interpretation and its (as yet unproven)
+asymptotic validity.
 
 Users do not instantiate this class directly: every concrete inference class in the
 package inherits from it, so \code{compute_rand_bootstrap_confidence_interval} is

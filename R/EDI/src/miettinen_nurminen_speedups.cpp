@@ -13,6 +13,15 @@ using namespace Rcpp;
 //' Solves the likelihood equations for p_C subject to p_T - p_C = delta.
 //' Uses bisection on the score function (derivative of log-likelihood)
 //' which is monotonic and well-behaved.
+//'
+//' @param x_t Number of events in treatment.
+//' @param n_t Number of subjects in treatment.
+//' @param x_c Number of events in control.
+//' @param n_c Number of subjects in control.
+//' @param delta Null risk difference \code{p_T - p_C}.
+//' @return The constrained MLE of \code{p_C}, a single number. The bisection runs on
+//'   \eqn{[\max(0, -\delta), \min(1, 1 - \delta)]} for at most 60 iterations; if that
+//'   range is empty (\eqn{|\delta| \ge 1}), its midpoint is returned.
 //' @keywords internal
 // [[Rcpp::export]]
 double mn_constrained_mle_pc_cpp(double x_t, double n_t, double x_c, double n_c, double delta) {
@@ -74,7 +83,9 @@ double mn_constrained_mle_pc_cpp(double x_t, double n_t, double x_c, double n_c,
 //' @param delta Null risk difference.
 //' @param p_t_obs Observed treatment-arm risk.
 //' @param p_c_obs Observed control-arm risk.
-//' @return The asymptotic z statistic.
+//' @return The asymptotic z statistic, or \code{NA} when \code{n_t} or \code{n_c} is 0,
+//'   when \code{delta} is outside \eqn{(-1, 1)}, or when the constrained variance is not
+//'   positive.
 //' @keywords internal
 // [[Rcpp::export]]
 double mn_z_statistic_cpp(double x_t, double n_t, double x_c, double n_c, double delta, double p_t_obs, double p_c_obs) {

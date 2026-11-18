@@ -48,11 +48,11 @@ likelihood minimization.}
 IRLS iteration (IRLS path only).}
 
 \item{estimate_only}{If \code{TRUE}, skip the post-fit weight/curvature computation
-and return only \code{b}, \code{converged}, and \code{iterations}.}
+and return only \code{b}, \code{converged}, and \code{num_iter}.}
 }
 \value{
 If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
-  \code{iterations}. Otherwise: a list additionally containing \code{w} (the final
+  \code{num_iter}. Otherwise: a list additionally containing \code{w} (the final
   probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
   which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
   at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).

@@ -281,7 +281,7 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }

@@ -66,6 +66,9 @@ converged) the full parameter variance-covariance matrix, from the same observed
 information Hessian.
 }
 \details{
+The category coding of \code{y} and the \code{optimization_alg} options are
+described in the Details of \code{\link{fast_continuation_ratio_regression_cpp}}.
+
 \strong{Variance computation.} The observed information (Hessian of the
 augmented-data logistic negative log-likelihood, evaluated at the fitted
 parameters over all \code{n_alpha + p} parameters) is restricted to the free

@@ -270,7 +270,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 			# check_probability_boundary = FALSE: skip the fitted-probability-
 			# exceeds-1 boundary check. Used only for the Dirichlet-weighted
 			# Bayesian-bootstrap refit (compute_estimate_with_bootstrap_
-			# weights() below), never for the primary fit. Under Dirichlet
+			# weights() above), never for the primary fit. Under Dirichlet
 			# reweighting, replicates that push a high-p0 subject's fitted
 			# probability over 1 are disproportionately the EXTREME TAIL of
 			# the resampling distribution -- exactly the replicates needed to

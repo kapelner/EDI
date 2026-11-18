@@ -24,8 +24,8 @@ allocations is equally likely.
 \code{generate_permutations_ibcrd_cpp()}, which builds one base allocation vector
 (\eqn{n_T} ones followed by \eqn{n - n_T} zeros) and independently
 shuffles (portable Fisher-Yates) a fresh copy of it
-per replicate column, seeded from R's own RNG stream (so \code{seed} does govern
-reproducibility here, unlike the A-/D-optimal exchange searches).
+per replicate column, seeded from R's own RNG stream (so \code{seed} governs
+reproducibility here).
 \code{assign_w_to_all_subjects()} draws one such allocation (\code{r = 1}) and applies
 it to all subjects.
 

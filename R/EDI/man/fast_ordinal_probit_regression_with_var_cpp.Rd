@@ -36,23 +36,21 @@ values matters, not their numeric coding.}
 }
 \value{
 A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-  \code{neg_loglik}, \code{converged}, \code{iterations},
+  \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+  \code{gradient_norm}, \code{min_eigenvalue_information},
   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-  and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-  — conventionally the treatment effect; \code{NA} if it comes out non-finite or
-  non-positive). \code{vcov} is omitted (and \code{ssq_b_2} is \code{NA}) if the fit did
-  not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has fewer than 2 distinct levels.
+  and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+  — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+  non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
+  not converge.
 }
 \description{
 As \code{\link{fast_ordinal_probit_regression_cpp}} (see that page for the full
 cumulative probit-link model, \eqn{\Pr(Y_i \le k \mid x_i) = \Phi(\alpha_k -
 x_i^\top\beta)}), but always fits with \code{estimate_only = FALSE} (equivalent
 to calling that function with its default), so the observed information matrix
-and variance-covariance matrix are always computed. It additionally guards the
-degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
-fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
-an empty list.
+and variance-covariance matrix are always computed.
 }
 \section{Fixed parameters, warm starts, and optimization}{
 

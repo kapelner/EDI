@@ -21,8 +21,8 @@ fast_weibull_regression(
 \item{dead}{Event indicator: 1 for an exactly observed event, 0 for
 right-censored (survival known only to exceed \code{y[i]}).}
 
-\item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
-(e.g., a column of ones) is already included in \code{X} if desired.}
+\item{X}{A numeric matrix of predictor variables. No intercept column is needed: one is
+always fitted, and a leading column of all 1s is treated as that intercept (see Details).}
 
 \item{use_rcpp}{Logical. If \code{TRUE} (default), use the optimized Rcpp
 implementation. If \code{FALSE}, use \code{\link[survival]{survreg}}.}

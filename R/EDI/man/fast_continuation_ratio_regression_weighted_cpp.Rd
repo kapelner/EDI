@@ -59,6 +59,8 @@ Fits the same continuation-ratio likelihood as
 binary row for subject \eqn{i} by that subject's nonnegative weight
 \eqn{w_i}. This entry point is intended for bootstrap and other weighted
 refits whose estimates must retain the continuation-ratio coefficient
-convention.
+convention. The category coding of \code{y}, the parameter layout and the
+\code{optimization_alg} options are described in the Details of
+\code{\link{fast_continuation_ratio_regression_cpp}}.
 }
 \keyword{internal}

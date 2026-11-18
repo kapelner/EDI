@@ -11,7 +11,7 @@ fast_lbeta_vec_cpp(a, b)
 validated by this function).}
 
 \item{b}{Numeric vector of second shape arguments (should be positive; not
-validated), recycled against \code{a} elementwise — \strong{must be the
+validated), paired with \code{a} elementwise — \strong{must be the
 same length as \code{a}}; unlike R's own vectorized arithmetic, this
 function does not perform R-style shorter-vector recycling.}
 }

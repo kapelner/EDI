@@ -19,7 +19,7 @@ fast_ordinal_cloglog_regression_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors (no intercept column needed; see Details).}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see the description).}
 
 \item{y}{A numeric vector of ordinal responses; only the rank order of distinct
 values matters, not their numeric coding.}
@@ -49,7 +49,7 @@ variance-covariance matrix (identical to what
 \value{
 A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
   (all the same observed-information matrix), \code{information_type} (always
@@ -75,9 +75,9 @@ probability is the corresponding CDF difference,
 (with \eqn{F(\alpha_{-1} + \cdot) := 0} and \eqn{F(\alpha_{K-1} + \cdot) := 1} at the
 boundaries), each clamped below at \eqn{10^{-12}} before taking logs for numerical
 safety. Unlike the symmetric logit/probit/cauchit links, cloglog is
-\strong{asymmetric}: it is the natural link for a grouped/discretized
-proportional-hazards (continuation-ratio-free) survival model, appropriate when
-category probabilities are skewed toward the lower categories. If \code{y} has
+\strong{asymmetric}: the cumulative cloglog model is equivalent to a grouped
+(discretized) proportional-hazards model for a latent continuous survival time,
+with the categories as consecutive time intervals. If \code{y} has
 fewer than 2 distinct levels, an empty result list is returned (the model is
 degenerate).
 }

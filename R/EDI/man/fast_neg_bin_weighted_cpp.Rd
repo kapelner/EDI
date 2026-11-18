@@ -35,7 +35,8 @@ row's weight.}
 
 \item{maxit}{Maximum number of optimizer iterations.}
 
-\item{eps_f}{Convergence tolerance on the objective (log-likelihood) value.}
+\item{eps_f}{Currently unused (accepted for interface compatibility); only
+\code{eps_g} is passed to the optimizer.}
 
 \item{eps_g}{Convergence tolerance on the gradient norm.}
 
@@ -50,13 +51,15 @@ parameter layout) of parameters to hold fixed rather than estimate.}
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
 warm-start curvature information.}
 
-\item{estimate_only}{If TRUE, skip Fisher information calculation.}
+\item{estimate_only}{Logical; if \code{TRUE}, skip the Fisher information
+calculation: the returned \code{fisher_information} is then a matrix of zeros.}
 }
 \value{
 A list with the same components as \code{\link{fast_neg_bin_cpp}}:
   \code{b}, \code{theta_hat}, \code{logLik}, \code{converged},
-  \code{iterations}, and \code{fisher_information} (all reflecting the
-  weighted log-likelihood).
+  \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm},
+  \code{min_eigenvalue_information}, \code{dispersion_at_poisson_boundary},
+  and \code{fisher_information} (all reflecting the weighted log-likelihood).
 }
 \description{
 Fits the same mean/dispersion-parameterized negative-binomial regression as

@@ -15,8 +15,6 @@
 #' using the same variance-weighted combination logic as the OLS compound estimator.
 #'
 #' The estimated treatment effect is a \strong{log-odds-ratio shift} at quantile \code{tau}.
-#' At \code{beta_T = 1} (one log-odds-ratio unit of treatment effect), the population
-#' treatment effect on the logit scale is exactly 1, so no \code{skip_ci} is needed.
 #'
 #' \strong{Default quantile: \code{tau = 0.5} (median regression).}
 #' To target a different quantile --- for example the 25th or 75th percentile --- pass

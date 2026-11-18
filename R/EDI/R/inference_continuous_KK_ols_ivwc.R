@@ -249,7 +249,7 @@ ContinKKOLSIVWCSource = list(
 #' combination rule used by
 #' \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
 #' generalized here to allow covariate adjustment via \code{model_formula}.
-#' \code{likelihood_tier = "none"}: this is an estimating-equation (least
+#' \code{likelihood_tier = "quasi"}: this is an estimating-equation (least
 #' squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
 #' inference is available (no likelihood-ratio or score test).
 #'

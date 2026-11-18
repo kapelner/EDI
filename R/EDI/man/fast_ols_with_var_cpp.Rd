@@ -22,7 +22,7 @@ coefficients should be held fixed at \code{fixed_values} rather than estimated.}
 fixed coefficient values.}
 }
 \value{
-A list containing the following components (the last four only present
+A list containing the following components (the last three only present
   when the \code{LDLT} solve succeeds):
 \describe{
 \item{b}{A numeric vector of the estimated regression coefficients \eqn{\hat\beta}.}

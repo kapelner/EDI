@@ -10,7 +10,8 @@ var_cpp(x)
 \item{x}{A numeric vector.}
 }
 \value{
-The variance of the vector.
+The sample variance (denominator \eqn{n - 1}) of the vector, or \code{NA}
+  if it has length 1 or less.
 }
 \description{
 Calculates the variance of a numeric vector using Rcpp for speed.

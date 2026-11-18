@@ -25,9 +25,9 @@ regression model documented in full at \code{\link{fast_beta_regression_cpp}},
 at arbitrary caller-supplied parameters \code{params} (not necessarily the
 MLE). Exported standalone — independent of any optimizer run — for direct
 numerical diagnostics (e.g. checking curvature or building a custom variance
-estimate at a specific parameter value) and for use by
-\code{\link{get_beta_regression_score_cpp}}'s sibling relationship in
-optimizer/inference code that needs both quantities at the same point.
+estimate at a specific parameter value), and for optimizer/inference code
+that pairs it with \code{\link{get_beta_regression_score_cpp}} to get the
+gradient and Hessian at the same point.
 }
 \seealso{
 \code{\link{get_beta_regression_score_cpp}} for the corresponding

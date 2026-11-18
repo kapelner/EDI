@@ -117,8 +117,8 @@ InferenceCountHurdlePoisson = define_inference_class(
 		#'   \code{estimand = "marginal_mean_diff"} or \code{"marginal_ratio"}
 		#'   (set via \code{set_estimand()}), returns the g-computation
 		#'   marginal mean difference or log-scale marginal ratio of the
-		#'   unconditional mean instead — see the class-level \code{@details}
-		#'   for the formula. A pure post-fit transform of the same cached
+		#'   unconditional mean instead — see the class description's
+		#'   "Marginal (unconditional-mean) estimand" paragraph for the formula. A pure post-fit transform of the same cached
 		#'   fit, no refit.
 		#' @param estimate_only If TRUE, skip standard-error computation and cache
 		#'   only the point estimate; used by randomization and bootstrap

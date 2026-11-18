@@ -26,7 +26,8 @@ fast_weibull_regression_cpp(
 
 \item{dead}{A numeric vector of event indicators (1=event, 0=censored).}
 
-\item{warm_start_params}{Optional starting values for coefficients.}
+\item{warm_start_params}{Optional starting values for the full
+\eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess.}
 
@@ -40,12 +41,20 @@ fast_weibull_regression_cpp(
 
 \item{fixed_values}{Optional values for fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
 }
 \value{
-A list containing coefficients, log_sigma, and convergence status.
+A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+  \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+  \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+  \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+  \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+  aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+  \code{score}, \code{observed_information}/\code{information} (the observed
+  information matrix), \code{hessian} (its negative), \code{information_type}
+  (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 }
 \description{
 Weibull Accelerated Failure Time model fitting, exact/

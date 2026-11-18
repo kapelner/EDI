@@ -25,8 +25,9 @@ adjacent-category cuts).}
 A list with components \code{y} (stacked 0/1 binary outcome), \code{w}
   (stacked covariate, passed through unchanged), and \code{strata} (stacked
   combined stratum-by-cut ID); all three are integer vectors of the same,
-  generally-longer-than-\eqn{n} length (each subject contributes 0, 1, or 2
-  stacked rows depending on their observed category).
+  generally-longer-than-\eqn{n} length (for \code{K >= 2}, each subject with
+  \code{y} in \code{1:K} contributes 1 stacked row at an extreme level and 2
+  otherwise; an out-of-range \code{y} contributes none).
 }
 \description{
 Reshapes an ordinal response \code{y} (levels \eqn{1, \dots, K}) into the stacked

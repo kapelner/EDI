@@ -385,16 +385,25 @@ Eigen::MatrixXd get_weibull_regression_hessian_cpp(SEXP X,
 //' @param X A numeric matrix of predictors.
 //' @param y A numeric vector of survival times.
 //' @param dead A numeric vector of event indicators (1=event, 0=censored).
-//' @param warm_start_params Optional starting values for coefficients.
+//' @param warm_start_params Optional starting values for the full
+//'   \eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
 //' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
 //' @param maxit Maximum number of iterations.
 //' @param tol Convergence tolerance.
 //' @param fixed_idx Optional indices of fixed parameters.
 //' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
+//' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @return A list containing coefficients, log_sigma, and convergence status.
+//' @return A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+//'   \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+//'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+//'   \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+//'   \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+//'   aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+//'   \code{score}, \code{observed_information}/\code{information} (the observed
+//'   information matrix), \code{hessian} (its negative), \code{information_type}
+//'   (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -520,9 +529,9 @@ edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
 //' @title Compute Weibull Regression Score (General Censoring)
 //' @description Score vector for the Weibull AFT log-likelihood extended to
 //'   left-, right-, and interval-censored responses (see TODO-3 in
-//'   interval_censored_survival_response.md). Exactly one of \code{y[i]} or
-//'   (\code{y_L[i]}, \code{y_R[i]}) must be finite per subject: \code{NA} in
-//'   the unused slot(s).
+//'   interval_censored_survival_response.md). Each subject is either exact
+//'   (\code{y[i]} finite, \code{y_L[i]} and \code{y_R[i]} \code{NA}) or censored
+//'   (\code{y[i]} \code{NA}, \code{y_L[i]} finite, \code{y_R[i]} finite or \code{Inf}).
 //' @param X A numeric matrix of predictors.
 //' @param y Exact survival times, \code{NA} for censored subjects.
 //' @param y_L Censored-interval lower bounds, \code{NA} for exact subjects;
@@ -596,16 +605,25 @@ Eigen::MatrixXd get_weibull_regression_general_hessian_cpp(const Eigen::Map<Eige
 //'   \code{0} for left-censored.
 //' @param y_R Censored-interval upper bounds, \code{NA} for exact subjects;
 //'   \code{Inf} for right-censored.
-//' @param warm_start_params Optional starting values for coefficients.
+//' @param warm_start_params Optional starting values for the full
+//'   \eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
 //' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
 //' @param maxit Maximum number of iterations.
 //' @param tol Convergence tolerance.
 //' @param fixed_idx Optional indices of fixed parameters.
 //' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
+//' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @return A list containing coefficients, log_sigma, and convergence status.
+//' @return A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+//'   \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+//'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+//'   \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+//'   \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+//'   aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+//'   \code{score}, \code{observed_information}/\code{information} (the observed
+//'   information matrix), \code{hessian} (its negative), \code{information_type}
+//'   (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

@@ -15,9 +15,9 @@
 #' it is not the effect on the unconditional mean \eqn{E[Y]}, which also
 #' depends on how treatment shifts the excess-zero probability, under the
 #' default \code{estimand = "conditional"}. \code{likelihood_tier = "full"}:
-#' Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
-#' available for the count submodel's treatment coefficient under that
-#' estimand; a plain score test is not exposed. \strong{Jackknife inference
+#' Wald, score, gradient, and (bootstrap-calibrated) likelihood-ratio tests
+#' are available for the count submodel's treatment coefficient under that
+#' estimand. \strong{Jackknife inference
 #' is not supported}: delete-one refits of this two-part mixture model are
 #' numerically unstable, so \code{compute_jackknife_estimate()} and related
 #' methods report explicit non-estimability rather than attempting
@@ -273,9 +273,8 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' (unconditional-mean) estimand is not yet implemented for this class (see
 #' \code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
 #' Wald, gradient, score, and (bootstrap-calibrated) likelihood-ratio tests
-#' are all available for the count submodel's treatment coefficient (unlike
-#' the Poisson variant, this class's private
-#' \code{get_supported_testing_types_impl()} includes \code{"score"}).
+#' are all available for the count submodel's treatment coefficient, as for
+#' the Poisson variant.
 #' \strong{Jackknife inference is not supported}: delete-one refits of this
 #' two-part mixture model with a jointly-estimated dispersion parameter are
 #' numerically unstable, so \code{compute_jackknife_estimate()} and related
@@ -345,14 +344,11 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, optimization_alg = NULL){
 			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, optimization_alg = optimization_alg)
 		},
-		#' @description Fits the zero-inflated negative binomial model. Under the
-		#'   default \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
-		#'   treatment log-rate coefficient from the conditional count submodel.
-		#'   Under \code{estimand = "marginal_mean_diff"} or
-		#'   \code{"marginal_ratio"} (set via \code{set_estimand()}), returns the
-		#'   g-computation marginal mean difference or log-scale marginal ratio
-		#'   of the unconditional mean instead -- a post-fit transform of the same
-		#'   cached fit, no refit.
+		#' @description Fits the zero-inflated negative binomial model and returns
+		#'   \eqn{\hat\beta_T}, the treatment log-rate coefficient from the
+		#'   conditional count submodel. This class supports only the
+		#'   \code{"conditional"} estimand; a marginal (unconditional-mean)
+		#'   estimand is not yet implemented.
 		#' @param estimate_only If TRUE, skip standard-error computation and cache
 		#'   only the point estimate; used by randomization and bootstrap
 		#'   resampling paths.

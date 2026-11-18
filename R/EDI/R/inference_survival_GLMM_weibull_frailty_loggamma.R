@@ -530,6 +530,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 #' prefer the Weibull-frailty class for a Gaussian-random-intercept / GLMM-style
 #' dependence structure.
 #'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
 #' @references
 #' Clayton DG (1978). "A Model for Association in Bivariate Life Tables and
 #' Its Application in Epidemiological Studies of Familial Tendency in Chronic
@@ -538,8 +540,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 #' Oakes D (1989). "Bivariate Survival Models Induced by Frailties." Journal
 #' of the American Statistical Association, 84(406), 487-493.
 #' \doi{10.2307/2289934}
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @seealso \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}}
 #'   for the corresponding log-normal-frailty IVWC estimator.
 #' @export

@@ -1,7 +1,7 @@
 #' Randomization test/CI on a user-supplied statistic
 #'
-#' Runs a randomization test (and, via \code{compute_rand_confidence_
-#' interval()}, a randomization confidence interval) for an arbitrary
+#' Runs a randomization test (and, via
+#' \code{compute_rand_confidence_interval()}, a randomization confidence interval) for an arbitrary
 #' user-supplied statistic, without writing an \code{Inference} subclass.
 #' The statistic function is called once per permutation as
 #' \code{fn(y, w, dead)} -- plain numeric/integer vectors: the current

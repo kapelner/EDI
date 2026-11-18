@@ -29,7 +29,7 @@ matrix and delta-method standard errors, providing a significant speedup when
 computing bootstrap or randomization distributions.
 
 \strong{Variance fallback cascade.} If the primary analytic-gradient/sandwich-covariance
-variance is non-finite (e.g. near-boundary fitted probabilities), up to eight
+variance is non-finite (e.g. near-boundary fitted probabilities), up to seven
 progressively more conservative fallback strategies are tried in order (see
 the \code{variance_fallback_methods} constructor argument for the full list
 and their individual definitions): stabilized (PSD-projected) sandwich

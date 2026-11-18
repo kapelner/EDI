@@ -28,7 +28,7 @@ fast_zero_augmented_poisson_cpp(
 \item{Xzi}{Matrix of predictors for the zero-inflation/hurdle (logistic) component.}
 
 \item{is_hurdle}{If \code{TRUE}, fit a hurdle model; if \code{FALSE}, fit a
-zero-inflated model. See Details for the distinction.}
+zero-inflated model. See the description for the distinction.}
 
 \item{warm_start_params}{Optional starting values for the joint
 \eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} vector. If provided,
@@ -36,7 +36,7 @@ zero-inflated model. See Details for the distinction.}
 
 \item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no
 \code{warm_start_params} is supplied, use a model-specific heuristic initial guess;
-see Details.}
+see the "Fixed parameters, warm starts" section.}
 
 \item{estimate_only}{If \code{TRUE}, skip the post-fit Hessian/variance computation
 and return only \code{params}, \code{converged}, \code{neg_ll}/\code{neg_loglik}, and

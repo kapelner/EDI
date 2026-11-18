@@ -41,10 +41,13 @@ warm-start curvature information for the optimizer.}
 A list containing the following components:
 \item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
   (logit-of-mean scale).}
+\item{phi}{The estimated precision parameter \eqn{\hat\phi} (natural scale);
+  \code{NA} when the final OLS-on-\code{logit(y)} fallback was used (see Details).}
 \item{ssq_b_j}{The estimated variance (squared standard error) of the \code{j}-th
   coefficient, \eqn{\widehat{\mathrm{Var}}(\hat\beta_j)}, i.e. the \code{j}-th
-  diagonal entry of \code{vcov}. \code{NA} if the primary C++ fit failed and a
-  fallback stage without a variance estimate was used (see Details).}
+  diagonal entry of the fitted variance-covariance matrix. In the fallbacks (see
+  Details) it comes from \code{vcov()} of the \pkg{betareg} fit or from the OLS
+  variance of \code{\link{fast_ols_with_var_cpp}}, respectively.}
 \item{ssq_b_2}{The estimated variance of the second coefficient specifically
   (\eqn{\widehat{\mathrm{Var}}(\hat\beta_2)}), regardless of the \code{j} argument
   — provided as a convenience since column 2 is the package's usual
@@ -67,7 +70,8 @@ with \pkg{EDI}. If \pkg{betareg} is also unavailable, a final fallback of OLS on
 enable the intermediate fallback.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = runif(10)
+set.seed(1)
+X = cbind(1, matrix(rnorm(200), 100, 2))
+y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 fast_beta_regression_with_var(X, y)
 }

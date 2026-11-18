@@ -209,7 +209,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		#'   covariates from the design object are included. Use \code{~ 1} for univariate.
 		#' @param use_rcpp Logical. If \code{TRUE} (default), enable internal Rcpp score/information helpers for likelihood inference.
 		#'   Cox optimization uses \pkg{survival::coxph.fit}.
-		#' @param optimization_alg Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
+		#' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 		#' @param verbose Whether to print progress messages.
 		#' @param smart_cold_start_default Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, use_rcpp = TRUE, optimization_alg = "lbfgs", verbose = FALSE, smart_cold_start_default = NULL) {

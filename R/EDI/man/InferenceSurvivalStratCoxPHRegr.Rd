@@ -213,7 +213,7 @@ inf$compute_estimate()
 covariates from the design object are included. Use \code{~ 1} for univariate.}
       \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), enable internal Rcpp score/information helpers for likelihood inference.
 Cox optimization uses \pkg{survival::coxph.fit}.}
-      \item{\code{optimization_alg}}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+      \item{\code{optimization_alg}}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }

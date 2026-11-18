@@ -117,9 +117,9 @@ The procedure list is by declared capability; an object can still report a proce
 }
 
 \references{
-Kapelner, A. and Krieger, A. (2014). "Matching on-the-fly: A group
-sequential covariate balanced randomization procedure." \emph{arXiv
-preprint} arXiv:1305.6259. (KK14 in \code{REFERENCES.md}.)
+Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
 

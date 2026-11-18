@@ -1,9 +1,16 @@
 # Dismissed audit decisions
 
 The scheduled audits (`.github/workflows/audit-*.yml`) list each open decision under "Decisions for you"
-with an id such as `rd-d1a2b3c4d`, and keep listing it, run after run, until a run no longer finds it,
+with an id such as `rd-d` plus 8 hex digits, and keep listing it, run after run, until a run no longer finds it,
 an open release TODO cites the id, or the id is listed here. Add one line per dismissed decision, with
 the reason, so the next reader knows why it was let go:
 
 - `<audit>-d<hex>`: reason (date)
 
+
+- `rd-d8e94a804`: the CMH roxygen already says `se_est_num_vectors` defaults to `5000L`, matching `initialize()`
+  (`R/EDI/R/inference_incidence_cmh.R`); only the generated Rd was stale, and it is regenerated now (2026-11-18)
+- `rd-d6816296a`: the adjacent-category `with_var` text for `ssq_b_1` already matches the code, which reads the
+  first beta at free index `n_alpha` (`R/EDI/src/fast_adjacent_category_logit.cpp:525`) (2026-11-18)
+- `rd-d537f2cc5`: the continuation-ratio `warm_start_beta` really is the full `c(alpha, beta)` vector; the C++
+  requires length `n_alpha + p` (`R/EDI/src/fast_continuation_ratio_regression.cpp:172-173`) (2026-11-18)

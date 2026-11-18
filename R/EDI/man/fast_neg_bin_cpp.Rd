@@ -20,31 +20,37 @@ fast_neg_bin_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}; include an
+explicit intercept column if desired (no implicit intercept).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of non-negative observed counts, length \eqn{n};
+coerced to integer before fitting.}
 
 \item{warm_start_params}{Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
-\item{eps_f}{Convergence tolerance for function value.}
+\item{eps_f}{Currently unused (accepted for interface compatibility); only
+\code{eps_g} is passed to the optimizer.}
 
-\item{eps_g}{Convergence tolerance for gradient.}
+\item{eps_g}{Convergence tolerance on the gradient norm (the optimizer's
+stopping criterion).}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the \code{c(beta, log(theta))}
+parameter layout) of parameters to hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information for the optimizer.}
 
-\item{estimate_only}{Logical; if \code{TRUE}, may skip work not needed to
-produce point estimates (kept in sync with the package's other
-\code{fast_*} estimate-vs-inference split).}
+\item{estimate_only}{Logical; if \code{TRUE}, the curvature matrix is not
+computed and the returned \code{fisher_information} is a matrix of zeros.}
 }
 \value{
 A list containing the following components:
@@ -53,18 +59,20 @@ A list containing the following components:
 \item{theta_hat}{The estimated dispersion parameter \eqn{\hat\theta} (natural scale).}
 \item{logLik}{The model's log-likelihood at the fitted parameters.}
 \item{converged}{A logical value indicating whether the final gradient norm
-  was below the convergence tolerance (\code{gradient_norm < tol}); uniform
+  was below the convergence tolerance (\code{gradient_norm < eps_g}); uniform
   across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
 \item{num_iter}{The number of optimizer iterations performed.}
 \item{hit_iteration_cap}{A logical value, mutually exclusive with
   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
   iterations without meeting the gradient-norm convergence criterion.}
 \item{gradient_norm}{The norm of the gradient at the returned parameters.}
+\item{min_eigenvalue_information}{The smallest eigenvalue of the information
+  matrix at the returned parameters, as reported by the optimizer.}
+\item{dispersion_at_poisson_boundary}{A logical value: \code{TRUE} when
+  \eqn{\hat\theta} sits at the Poisson (no-overdispersion) boundary.}
 \item{fisher_information}{The working-weights curvature matrix used during
-  fitting.}
+  fitting (all zeros when \code{estimate_only = TRUE}).}
 }
-
-A list containing coefficients, theta, and convergence status.
 }
 \description{
 Fits the negative-binomial regression model in its mean/dispersion

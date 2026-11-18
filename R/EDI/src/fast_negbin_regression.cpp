@@ -433,7 +433,8 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
 //' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param maxit Maximum number of optimizer iterations.
-//' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+//' @param eps_f Currently unused (accepted for interface compatibility); only
+//'   \code{eps_g} is passed to the optimizer.
 //' @param eps_g Convergence tolerance on the gradient norm.
 //' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
 //'   parameter layout) of parameters to hold fixed rather than estimate.
@@ -442,13 +443,19 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
 //' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 //'   warm-start curvature information.
+//' @param estimate_only Logical; leave at \code{FALSE} here. If \code{TRUE}, the
+//'   curvature matrix is not computed (\code{hess_fisher_info_matrix} is all zeros),
+//'   so \code{vcov} is not a usable variance estimate.
 //' @return A list with components \code{b} (\eqn{\hat\beta}),
-//'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
-//'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
-//'   \code{information_invertible} (whether its free information block passed
-//'   the invertibility check),
-//'   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
-//'   (the working-weights curvature matrix \code{vcov} was inverted from).
+//'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{converged},
+//'   \code{num_iter} (optimizer iterations), \code{hit_iteration_cap},
+//'   \code{gradient_norm}, \code{min_eigenvalue_information},
+//'   \code{dispersion_at_poisson_boundary} (whether \eqn{\hat\theta} sits at the
+//'   Poisson boundary), \code{information_invertible} (whether the free
+//'   information block passed the invertibility check),
+//'   \code{hess_fisher_info_matrix} (the working-weights curvature matrix
+//'   \code{vcov} was inverted from), and \code{vcov} (the full
+//'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix).
 //' @seealso \code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
 //'   full model documentation; \code{\link{fast_neg_bin_weighted_cpp}} for the
 //'   row-weighted estimate-only variant.
@@ -514,18 +521,24 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 
 //' @title Fast Negative Binomial Regression (C++)
 //' @description High-performance negative binomial regression fitting.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
+//' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
+//'   explicit intercept column if desired (no implicit intercept).
+//' @param y A numeric vector of non-negative observed counts, length \eqn{n};
+//'   coerced to integer before fitting.
 //' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
-//' @param eps_f Convergence tolerance for function value.
-//' @param eps_g Convergence tolerance for gradient.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, theta, and convergence status.
+//' @param maxit Maximum number of optimizer iterations.
+//' @param eps_f Currently unused (accepted for interface compatibility); only
+//'   \code{eps_g} is passed to the optimizer.
+//' @param eps_g Convergence tolerance on the gradient norm (the optimizer's
+//'   stopping criterion).
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix to
+//'   warm-start curvature information for the optimizer.
 //' @export
 //' @keywords internal
 //' @examples
@@ -580,7 +593,8 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
 //' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param maxit Maximum number of optimizer iterations.
-//' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+//' @param eps_f Currently unused (accepted for interface compatibility); only
+//'   \code{eps_g} is passed to the optimizer.
 //' @param eps_g Convergence tolerance on the gradient norm.
 //' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
 //'   parameter layout) of parameters to hold fixed rather than estimate.
@@ -589,11 +603,13 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
 //' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 //'   warm-start curvature information.
-//' @param estimate_only If TRUE, skip Fisher information calculation.
+//' @param estimate_only Logical; if \code{TRUE}, skip the Fisher information
+//'   calculation: the returned \code{fisher_information} is then a matrix of zeros.
 //' @return A list with the same components as \code{\link{fast_neg_bin_cpp}}:
 //'   \code{b}, \code{theta_hat}, \code{logLik}, \code{converged},
-//'   \code{iterations}, and \code{fisher_information} (all reflecting the
-//'   weighted log-likelihood).
+//'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm},
+//'   \code{min_eigenvalue_information}, \code{dispersion_at_poisson_boundary},
+//'   and \code{fisher_information} (all reflecting the weighted log-likelihood).
 //' @seealso \code{\link{fast_neg_bin_cpp}} for the unweighted model and full
 //'   documentation.
 //' @export

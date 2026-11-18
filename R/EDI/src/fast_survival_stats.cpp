@@ -535,15 +535,32 @@ double get_restricted_mean_se_diff(SEXP y, SEXP dead, SEXP w) {
 }
 
 
-//' Parallel BRT kernel for KM-diff (median) and RMST-diff.
+//' Parallel BRT kernel for KM-diff (median) and RMST-diff
+//'
 //' Each replicate resamples rows i_mat(.,b) and pairs them with assignment w_mat(.,b).
 //' Sharp-null shift is multiplicative on treated times (exp(delta)). Uses an inline
 //' pure-C++ KM calculator — no R objects inside the loop, so OpenMP is safe.
+//' @param y0 Numeric vector of (effective) survival times; must not contain
+//'   \code{NA}/\code{NaN}.
+//' @param dead Integer vector of event indicators (1 = event, 0 = censored), same
+//'   length as \code{y0}.
+//' @param i_mat Integer matrix (n x nsim) of 1-based row indices into \code{y0}/\code{dead}:
+//'   column \code{b} is the resample for replicate \code{b}.
+//' @param w_mat Integer matrix (n x nsim) of 0/1 treatment assignments, paired by
+//'   position with the rows of \code{i_mat}.
+//' @param delta Null shift on the log-time scale: treated times are multiplied by
+//'   \code{exp(delta)}.
 //' @param do_rmst TRUE for RMST-diff, FALSE for median (KM-diff).
-//' @param rmst_tau Optional user RMST horizon (TODO-108). \code{NA} (default) keeps the
+//' @param noise_mat Optional numeric matrix (n x nsim) added to the resampled times;
+//'   \code{NULL} or a zero-length matrix means no noise.
+//' @param num_cores Number of OpenMP threads.
+//' @param rmst_tau Optional user RMST horizon (v1.0.5-TODO-108). \code{NA} (default) keeps the
 //'   shared horizon \code{min(arm maxima)}; a finite value uses
 //'   \code{min(rmst_tau, arm maxima)} (equivalent to right-truncating at tau).
 //'   Ignored when \code{do_rmst} is FALSE.
+//' @return Numeric vector of length \code{ncol(i_mat)}: per replicate, the treated
+//'   minus control KM median (or RMST), \code{NA} when an arm is empty or either
+//'   statistic is not finite.
 //' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(

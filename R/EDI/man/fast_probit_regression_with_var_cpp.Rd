@@ -54,7 +54,7 @@ A list with components \code{b, params} (the fitted coefficients \eqn{\hat\beta}
   W X} curvature matrix; \code{information_type} is always \code{"fisher"}),
   \code{hessian} (the negative of that same matrix), \code{neg_loglik}/\code{neg_ll}
   (two aliases for the negative log-likelihood), \code{loglik} (\code{-neg_ll}, or
-  \code{NA} if non-finite), \code{converged}, and \code{iterations}.
+  \code{NA} if non-finite), \code{converged}, and \code{num_iter}.
 }
 \description{
 Fits the same probit model as \code{\link{fast_probit_regression_cpp}} (see that

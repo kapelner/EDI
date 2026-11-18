@@ -12,14 +12,6 @@ A named list with components \code{default_alg} (the fallback
   \code{inference_class_overrides} (a named character vector: regular-expression
   pattern names to algorithm-name values, matched against the inference class
   name).
-Which algorithm converges fastest/most reliably per family is partly a
-hardware fact (relative cost of Hessian solves vs. L-BFGS iterations
-depends on BLAS and cache), so these defaults, computed on the
-maintainer's machine, are not necessarily optimal on yours. Run
-\code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
-own machine — it will only switch a family's algorithm when the
-candidate converges on every benchmark replicate, never trading speed
-for a convergence failure.
 }
 \description{
 Returns EDI's built-in policy table, consulted by the internal (non-exported)
@@ -39,8 +31,19 @@ The dispatcher checks the inference class name against
   practice — e.g. plain-vanilla generalized linear models with a canonical or
   near-canonical link (Poisson, quasi-Poisson, robust Poisson, various incidence
   models) default to \code{"irls"}, most non-canonical-link and ordinal/survival
-  models default to \code{"lbfgs"}, and stratified Cox PH and most matched
-  (\code{InferenceCountKKGLMM} only; other \code{KK*GLMM} classes use \code{"lbfgs"}) models default to \code{"newton_raphson"}.
+  models default to \code{"lbfgs"}, and stratified Cox PH and
+  \code{InferenceCountKKGLMM} default to \code{"newton_raphson"}; the other
+  \code{KK*GLMM}, KK hurdle-Poisson and KK conditional Poisson/logit classes
+  use \code{"lbfgs"}.
+
+  Which algorithm converges fastest/most reliably per family is partly a
+  hardware fact (relative cost of Hessian solves vs. L-BFGS iterations
+  depends on BLAS and cache), so these defaults, computed on the
+  maintainer's machine, are not necessarily optimal on yours. Run
+  \code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
+  own machine — it will only switch a family's algorithm when the
+  candidate converges on every benchmark replicate, never trading speed
+  for a convergence failure.
 }
 \examples{
 get_optimization_dispatch_policy()

@@ -135,6 +135,9 @@ def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.fl
         Response vector for the concordant subjects.
     group_conc : ndarray of int
         Group (random-intercept cluster) identifiers for the concordant subjects.
+        Groups are built from runs of equal adjacent values (no sorting), so
+        X_conc/y_conc/group_conc rows must be ordered so each group is
+        contiguous; otherwise each run becomes its own group.
     has_discordant : bool
         Whether any discordant pairs are present (enables the conditional-logit
         component).
@@ -142,8 +145,7 @@ def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.fl
         Whether any concordant/reservoir subjects are present (enables the
         random-intercept-GLMM component).
     warm_start_params : ndarray, optional
-        Optional starting values for all parameters. If provided,
-        smart_cold_start is ignored.
+        Optional starting values for all parameters.
     warm_start_beta : ndarray, optional
         Optional starting values for the coefficients only.
     estimate_only : bool, default False
@@ -216,14 +218,15 @@ def fast_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
         If True, use an initial OLS-based guess when starting from scratch. Ignored
         if a warm start is provided.
     estimate_only : bool, default False
-        If True, skip variance-covariance computation and return only
-        coefficients.
+        If True, skip the variance-covariance computation: only vcov is
+        omitted; the other fields (including fisher_information) are returned.
     maxit : int, default 100
-        Maximum number of Newton-Raphson iterations.
+        Maximum number of iterations (Newton-Raphson or L-BFGS).
     tol : float, default 1e-9
-        Convergence tolerance.
+        Convergence tolerance: on the change in the objective for
+        "newton_raphson", on the gradient norm for "lbfgs".
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "newton_raphson"
@@ -405,7 +408,7 @@ def fast_hurdle_negbin(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], 
     """
 def fast_hurdle_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_id: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], j_T: typing.SupportsInt | typing.SupportsIndex, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, n_gh: typing.SupportsInt | typing.SupportsIndex = 7, maxit: typing.SupportsInt | typing.SupportsIndex = 300, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-06, optimization_alg: str = 'lbfgs', fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fit a Hurdle-Poisson GLMM with a random intercept via Gauss-Hermite quadrature + L-BFGS. No R-side roxygen documents this raw kernel directly (fast_hurdle_poisson_glmm.cpp has none); parameter meanings are grounded in R/EDI/man/ documentation for the sibling fast_ordinal_glmm_cpp, which uses the same GLMM engine.
+    Fit only the zero-truncated Poisson count part of a hurdle-Poisson GLMM (random intercept, Gauss-Hermite quadrature + L-BFGS) on the rows with y > 0; rows with y = 0 are dropped and the logistic hurdle part is not estimated. No R-side roxygen documents this raw kernel directly (fast_hurdle_poisson_glmm.cpp has none); parameter meanings are grounded in R/EDI/man/ documentation for the sibling fast_ordinal_glmm_cpp, which uses the same GLMM engine.
     
     Parameters
     ----------
@@ -418,7 +421,8 @@ def fast_hurdle_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.floa
     j_T : int
         0-based index of the treatment effect in the beta vector.
     warm_start_params : ndarray, optional
-        Optional starting values for all parameters. If provided,
+        Optional starting values for all parameters, length ncol(X) + 1, laid
+        out as [beta (ncol(X) entries), log_sigma]. If provided,
         smart_cold_start is ignored.
     smart_cold_start : bool, default True
         If True, use an initial OLS-based guess when starting from scratch. Ignored
@@ -435,11 +439,13 @@ def fast_hurdle_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.floa
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters into the ncol(X) + 1
+        vector [beta, log_sigma].
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
-        Optional initial Fisher information matrix for the first iteration.
+        Optional initial Fisher information matrix for the first iteration;
+        must be (ncol(X) + 1) x (ncol(X) + 1), ordered as [beta, log_sigma].
     """
 def fast_identity_binomial_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-06, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
@@ -803,8 +809,7 @@ def fast_ordinal_clmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     eps_g : float, default 1e-6
         Convergence tolerance for the gradient.
     warm_start_params : ndarray, optional
-        Optional starting values for all parameters [alpha, beta, log_sigma]. If
-        provided, smart_cold_start is ignored.
+        Optional starting values for all parameters [alpha, beta, log_sigma].
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
@@ -1150,9 +1155,7 @@ def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
     tol : float, default 1e-8
         Convergence tolerance.
     smart_cold_start : bool, default True
-        If True, use an initial OLS-based guess when starting from scratch (a
-        "cold start") with no prior knowledge. Ignored if a warm start is
-        provided.
+        Accepted for interface parity; currently has no effect.
     fixed_idx : ndarray of int, optional
         Optional indices of fixed parameters.
     fixed_values : ndarray, optional
@@ -1162,11 +1165,9 @@ def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix for the first IRLS iteration.
     warm_start_params : ndarray, optional
-        Optional starting values for all parameters. If provided,
-        smart_cold_start is ignored.
+        Optional starting values for all parameters.
     warm_start_beta : ndarray, optional
-        Optional starting values for coefficients. If provided,
-        smart_cold_start is ignored.
+        Optional starting values for coefficients.
     estimate_only : bool, default False
         If True, skip variance-related computation and return only the point
         estimate.

@@ -48,7 +48,9 @@ parameter layout) of parameters to hold fixed rather than estimate.}
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
 warm-start curvature information.}
 
-\item{estimate_only}{If TRUE, skip Fisher information calculation.}
+\item{estimate_only}{Logical; if \code{TRUE}, skip the Fisher information
+calculation: the returned \code{fisher_information} is then a
+\code{(p + 1) x (p + 1)} matrix of zeros.}
 }
 \value{
 A list with the same components as

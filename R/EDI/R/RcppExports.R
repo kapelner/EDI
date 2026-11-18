@@ -312,11 +312,6 @@ fast_adjacent_category_logit_cpp <- function(X, y, maxit = 100L, tol = 1e-8, sma
     .Call(`_EDI_fast_adjacent_category_logit_cpp`, X, y, maxit, tol, smart_cold_start, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, warm_start_params, warm_start_beta)
 }
 
-#' @title Fast Adjacent-Category Logit with Variance (C++)
-#' @description Adjacent-category logit model fitting with full variance-covariance matrix.
-#' @param X A numeric matrix of predictors.
-#' @param y A numeric vector of responses (categorical).
-#' @param maxit Maximum number of iterations.
 #' Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)
 #'
 #' Fits the same adjacent-category logit model as
@@ -372,14 +367,31 @@ compute_adj_cat_logit_distr_parallel_cpp <- function(X, y, w_mat, delta, num_cor
 
 #' Fast Bai Adjusted T Statistic for Multiple Permutations
 #'
+#' For each column (draw) of \code{w_mat}/\code{m_mat}, computes the KK matched-pair
+#' treatment estimate used by the Bai (pairs-of-pairs) classes: the mean of the
+#' within-pair treated-minus-control differences \eqn{\bar d}, the reservoir
+#' treated-minus-control mean difference \eqn{\bar r}, or (with \code{convex_flag})
+#' their inverse-variance convex combination, where the variance of \eqn{\bar d}
+#' uses Bai's pairs-of-pairs adjustment.
+#'
 #' @param w_mat Integer matrix of permuted treatment assignments (n x r).
-#' @param m_mat Integer matrix of match indicators (n x r).
+#' @param m_mat Integer matrix of match indicators (n x r): \code{0} marks a
+#'   reservoir subject, \code{k > 0} the 1-based id of the subject's matched pair.
 #' @param y Numeric response vector.
-#' @param delta Null treatment effect shift.
-#' @param halves_idx Integer matrix of half-sample indices.
-#' @param convex_flag Logical flag for convex combination.
+#' @param delta Null treatment effect shift, added to the response of treated
+#'   subjects inside the function (pass the unshifted \code{y}).
+#' @param halves_idx Two-column integer matrix: each row holds the 1-based ids of two
+#'   matched pairs that are paired with each other in the pairs-of-pairs construction
+#'   (used to estimate \eqn{\lambda^2}). Rows with an id outside the observed pairs, or
+#'   whose pairs are incomplete in a draw, are skipped. May have zero rows.
+#' @param convex_flag Logical. If \code{TRUE} and the draw has matched pairs and at
+#'   least two treated and two control reservoir subjects, return
+#'   \eqn{w^* \bar d + (1 - w^*) \bar r} with
+#'   \eqn{w^* = \widehat{Var}(\bar r) / (\widehat{Var}(\bar r) + \widehat{Var}_{Bai}(\bar d))};
+#'   otherwise return \eqn{\bar d} when pairs exist, else \eqn{\bar r}.
 #' @param num_cores Number of OpenMP threads.
-#' @return Numeric vector of Bai adjusted T statistics.
+#' @return Numeric vector of length \code{ncol(w_mat)}, one statistic per draw
+#'   (\code{NA} for a draw with no complete pair and no reservoir subjects).
 #' @keywords internal
 compute_bai_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, halves_idx, convex_flag, num_cores) {
     .Call(`_EDI_compute_bai_distr_parallel_cpp`, w_mat, m_mat, y, delta, halves_idx, convex_flag, num_cores)
@@ -405,9 +417,9 @@ get_beta_regression_score_cpp <- function(X, y, params) {
 #' at arbitrary caller-supplied parameters \code{params} (not necessarily the
 #' MLE). Exported standalone — independent of any optimizer run — for direct
 #' numerical diagnostics (e.g. checking curvature or building a custom variance
-#' estimate at a specific parameter value) and for use by
-#' \code{\link{get_beta_regression_score_cpp}}'s sibling relationship in
-#' optimizer/inference code that needs both quantities at the same point.
+#' estimate at a specific parameter value), and for optimizer/inference code
+#' that pairs it with \code{\link{get_beta_regression_score_cpp}} to get the
+#' gradient and Hessian at the same point.
 #'
 #' @param X A numeric matrix of predictors, as used to fit the model.
 #' @param y A numeric vector of responses in \verb{(0, 1)}.
@@ -486,9 +498,9 @@ get_beta_regression_hessian_cpp <- function(X, y, params) {
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
 #'   \code{c(beta, log(phi))}) to warm-start curvature information for the first
 #'   optimizer iteration.
-#' @param estimate_only Logical; if \code{TRUE}, may skip work not needed to produce
-#'   point estimates (kept in sync with the package's other \code{fast_*} estimate-
-#'   vs-inference split).
+#' @param estimate_only Logical; if \code{TRUE}, the Hessian is not evaluated at the
+#'   fit and the returned \code{fisher_information} is a \code{(p + 1) x (p + 1)}
+#'   matrix of zeros (all other components are computed as usual).
 #' @return A list with components \code{coefficients} (\eqn{\hat\beta}, length
 #'   \code{p}), \code{phi} (\eqn{\hat\phi}, on its natural scale), \code{neg_loglik}
 #'   (the exact beta negative log-likelihood at the fitted parameters),
@@ -508,8 +520,9 @@ get_beta_regression_hessian_cpp <- function(X, y, params) {
 #' @export
 #' @keywords internal
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = runif(10)
+#' set.seed(1)
+#' X = cbind(1, matrix(rnorm(200), 100, 2))
+#' y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 #' fast_beta_regression_cpp(X, y)
 fast_beta_regression_cpp <- function(X, y, warm_start_beta = NULL, smart_cold_start = TRUE, start_phi = 10.0, compute_std_errs = FALSE, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_beta_regression_cpp`, X, y, warm_start_beta, smart_cold_start, start_phi, compute_std_errs, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
@@ -551,7 +564,9 @@ fast_beta_regression_cpp <- function(X, y, warm_start_beta = NULL, smart_cold_st
 #'   \code{\link{fast_beta_regression_cpp}}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 #'   warm-start curvature information.
-#' @param estimate_only If TRUE, skip Fisher information calculation.
+#' @param estimate_only Logical; if \code{TRUE}, skip the Fisher information
+#'   calculation: the returned \code{fisher_information} is then a
+#'   \code{(p + 1) x (p + 1)} matrix of zeros.
 #' @return A list with the same components as
 #'   \code{\link{fast_beta_regression_cpp}}: \code{coefficients}, \code{phi},
 #'   \code{neg_loglik} (the weighted negative log-likelihood), \code{converged}, and
@@ -595,6 +610,9 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #'   \code{fixed_idx} at.
 #' @param optimization_alg Optimization algorithm; see
 #'   \code{\link{fast_beta_regression_cpp}}.
+#' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+#'   \code{c(beta, log(phi))}) to warm-start curvature information for the first
+#'   optimizer iteration.
 #' @return A list with components \code{coefficients} (\eqn{\hat\beta}),
 #'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
 #'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
@@ -610,8 +628,9 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #' @export
 #' @keywords internal
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = runif(10)
+#' set.seed(1)
+#' X = cbind(1, matrix(rnorm(200), 100, 2))
+#' y = plogis(0.5 * X[, 2] - 0.5 * X[, 3] + rnorm(100, sd = 0.3))
 #' fast_beta_regression_with_var_cpp(X, y)
 fast_beta_regression_with_var_cpp <- function(X, y, warm_start_beta = NULL, smart_cold_start = TRUE, start_phi = 10.0, compute_std_errs = TRUE, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
     .Call(`_EDI_fast_beta_regression_with_var_cpp`, X, y, warm_start_beta, smart_cold_start, start_phi, compute_std_errs, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
@@ -731,7 +750,9 @@ fast_continuation_ratio_regression_cpp <- function(X, y, maxit = 100L, tol = 1e-
 #' binary row for subject \eqn{i} by that subject's nonnegative weight
 #' \eqn{w_i}. This entry point is intended for bootstrap and other weighted
 #' refits whose estimates must retain the continuation-ratio coefficient
-#' convention.
+#' convention. The category coding of \code{y}, the parameter layout and the
+#' \code{optimization_alg} options are described in the Details of
+#' \code{\link{fast_continuation_ratio_regression_cpp}}.
 #'
 #' @inheritParams fast_continuation_ratio_regression_cpp
 #' @param weights A finite, nonnegative subject-level weight vector of length
@@ -754,6 +775,9 @@ fast_continuation_ratio_regression_weighted_cpp <- function(X, y, weights, maxit
 #' information Hessian.
 #'
 #' @details
+#' The category coding of \code{y} and the \code{optimization_alg} options are
+#' described in the Details of \code{\link{fast_continuation_ratio_regression_cpp}}.
+#'
 #' \strong{Variance computation.} The observed information (Hessian of the
 #' augmented-data logistic negative log-likelihood, evaluated at the fitted
 #' parameters over all \code{n_alpha + p} parameters) is restricted to the free
@@ -1402,7 +1426,6 @@ get_log_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_r, be
 #'   \code{\link{get_log_binomial_regression_hessian_cpp}} for the unweighted
 #'   version; \code{\link{fast_log_binomial_regression_cpp}} for the full model
 #'   documentation.
-#' @return A numeric matrix representing the weighted Hessian.
 #' @export
 #' @keywords internal
 get_log_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weights_r, beta) {
@@ -1546,14 +1569,26 @@ get_identity_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weight
 #' @param fixed_values Optional values to fix the parameters named by
 #'   \code{fixed_idx} at.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+#' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+#' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+#'   and convergence fields (see Value), skipping \code{mu_hat},
+#'   \code{working_weights} and \code{fisher_information}.
 #' @return A list with components \code{b} (estimated coefficients
 #'   \eqn{\hat\beta}, on the log-relative-risk scale), \code{mu_hat} (fitted
 #'   probabilities, length \eqn{n}), \code{working_weights} (final IRLS
-#'   weights), \code{iterations}, \code{converged} (logical), and
-#'   \code{fisher_information} (the working-weights curvature matrix
-#'   \eqn{X^\top W X}).
+#'   weights), \code{num_iter} (number of Fisher-scoring iterations),
+#'   \code{converged} (logical), and \code{fisher_information} (the
+#'   working-weights curvature matrix \eqn{X^\top W X}).
+#'   Every fit also returns \code{hit_iteration_cap} (logical),
+#'   \code{kkt_converged} (same value as \code{converged}; marks that the fit
+#'   passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+#'   fitted probability sits at a bound).
+#'   With \code{estimate_only = TRUE} the list holds only \code{b},
+#'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+#'   \code{kkt_converged} and \code{n_active_bounds}.
 #' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
 #'   identity-link (risk-difference) analog and the full IRLS/line-search
 #'   mechanics; \code{\link{fast_log_binomial_regression_with_var_cpp}} for the
@@ -1598,6 +1633,8 @@ fast_log_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e-6, f
 #'   \code{fixed_idx} at.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
+#' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
 #' @return A list with components \code{b}, \code{ssq_b_j}, \code{converged},
 #'   \code{fisher_information}, \code{neg_ll}/\code{logLik} (present only on
@@ -1634,12 +1671,21 @@ fast_log_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit = 10
 #' @param fixed_values Optional values to fix the parameters named by
 #'   \code{fixed_idx} at.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+#' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+#' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+#'   and convergence fields (see Value), skipping \code{mu_hat},
+#'   \code{working_weights} and \code{fisher_information}.
 #' @return A list with the same components as
 #'   \code{\link{fast_log_binomial_regression_cpp}}: \code{b}, \code{mu_hat},
-#'   \code{working_weights}, \code{iterations}, \code{converged}, and
-#'   \code{fisher_information} (all reflecting the weighted log-likelihood).
+#'   \code{working_weights}, \code{num_iter}, \code{hit_iteration_cap},
+#'   \code{converged}, \code{fisher_information}, \code{kkt_converged} and
+#'   \code{n_active_bounds} (all reflecting the weighted log-likelihood).
+#'   With \code{estimate_only = TRUE} the list holds only \code{b},
+#'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+#'   \code{kkt_converged} and \code{n_active_bounds}.
 #' @seealso \code{\link{fast_log_binomial_regression_cpp}} for the unweighted
 #'   model and full documentation.
 #' @export
@@ -1705,14 +1751,18 @@ fast_log_binomial_regression_weighted_cpp <- function(X, y_r, weights_r, maxit =
 #' @return A list with components \code{b} (estimated coefficients
 #'   \eqn{\hat\beta}, on the risk-difference/identity scale), \code{mu_hat}
 #'   (fitted probabilities \eqn{\hat\mu_i}, length \eqn{n}), \code{working_weights}
-#'   (the final IRLS weights \eqn{w_i}), \code{iterations} (number of Fisher-
+#'   (the final IRLS weights \eqn{w_i}), \code{num_iter} (number of Fisher-
 #'   scoring iterations performed), \code{converged} (logical; also requires all
 #'   of \code{b}, \code{mu_hat}, \code{working_weights} to be finite), and
 #'   \code{fisher_information} (the working-weights curvature matrix
 #'   \eqn{X^\top W X}).
+#'   Every fit also returns \code{hit_iteration_cap} (logical),
+#'   \code{kkt_converged} (same value as \code{converged}; marks that the fit
+#'   passed the bound KKT check) and \code{n_active_bounds} (number of rows whose
+#'   fitted probability sits at a bound).
 #' @seealso \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
 #'   variance-augmented variant; \code{\link{fast_identity_binomial_regression_weighted_cpp}}
-#'   for the row-weighted variant; \code{fast_log_binomial_regression_cpp} for
+#'   for the row-weighted variant; \code{\link{fast_log_binomial_regression_cpp}} for
 #'   the log-link (relative-risk) analog of this model.
 #'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
 #'   linear model} for orientation. Analogous Python API:
@@ -1764,6 +1814,8 @@ fast_identity_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e
 #'   \code{fixed_idx} at.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
+#' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
 #' @return A list with components \code{b} (estimated coefficients
 #'   \eqn{\hat\beta}), \code{ssq_b_j} (the variance of \eqn{\hat\beta_j}, or
@@ -1803,12 +1855,22 @@ fast_identity_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit
 #' @param fixed_values Optional values to fix the parameters named by
 #'   \code{fixed_idx} at.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+#' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+#' @param estimate_only Logical; if \code{TRUE}, return only the point estimate
+#'   and convergence fields (see Value), skipping \code{mu_hat},
+#'   \code{working_weights} and \code{fisher_information}.
 #' @return A list with the same components as
 #'   \code{\link{fast_identity_binomial_regression_cpp}}: \code{b},
-#'   \code{mu_hat}, \code{working_weights}, \code{iterations}, \code{converged},
-#'   and \code{fisher_information} (all reflecting the weighted log-likelihood).
+#'   \code{mu_hat}, \code{working_weights}, \code{num_iter},
+#'   \code{hit_iteration_cap}, \code{converged}, \code{fisher_information},
+#'   \code{kkt_converged} and \code{n_active_bounds} (all reflecting the
+#'   weighted log-likelihood).
+#'   With \code{estimate_only = TRUE} the list holds only \code{b},
+#'   \code{converged}, \code{hit_iteration_cap}, \code{num_iter},
+#'   \code{kkt_converged} and \code{n_active_bounds}.
 #' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
 #'   unweighted model and full documentation;
 #'   \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
@@ -1874,8 +1936,9 @@ compute_logrank_rand_bootstrap_parallel_cpp <- function(y0, dead, i_mat, w_mat, 
 #' Fast Digamma Function, Vectorized (C++ Backend)
 #'
 #' Computes the digamma function \eqn{\psi(x) = d/dx \log \Gamma(x)} elementwise
-#' over \code{x}, via an asymptotic expansion with a recurrence (reflection)
-#' shift for small arguments to keep the expansion accurate — the standard
+#' over \code{x}, via an asymptotic expansion with an upward recurrence shift
+#' (\eqn{\psi(x) = \psi(x + 1) - 1/x}, no reflection formula) for small
+#' positive arguments to keep the expansion accurate — the standard
 #' technique for evaluating digamma/trigamma to double precision without a
 #' lookup table. Used internally inside the package's negative-binomial, beta,
 #' zero-inflated/hurdle, and KK21 count-response likelihood, score, and Hessian
@@ -1887,9 +1950,10 @@ compute_logrank_rand_bootstrap_parallel_cpp <- function(y0, dead, i_mat, w_mat, 
 #' / Math Kernel Performance" benchmark report} for the full methodology and
 #' per-kernel results).
 #'
-#' @param x Numeric vector of arguments (should be finite and, per the digamma
-#'   function's domain, not a non-positive integer, where \eqn{\psi} has poles;
-#'   no domain validation is performed by this function).
+#' @param x Numeric vector of arguments (should be finite). The fast kernel
+#'   handles \eqn{x > 0}; any element \eqn{x \le 0} is passed to R's own
+#'   digamma routine instead (not accelerated; \code{NaN} at the poles, the
+#'   non-positive integers). No other domain validation is performed.
 #' @return A numeric vector of \eqn{\psi(x)} values, the same length as \code{x}.
 #' @references Abramowitz, M., and Stegun, I. A. (1972). \emph{Handbook of
 #'   Mathematical Functions}, Section 6.3, for the asymptotic expansion and
@@ -1995,7 +2059,7 @@ fast_lgamma_vec_cpp <- function(x) {
 #' @param a Numeric vector of first shape arguments (should be positive; not
 #'   validated by this function).
 #' @param b Numeric vector of second shape arguments (should be positive; not
-#'   validated), recycled against \code{a} elementwise — \strong{must be the
+#'   validated), paired with \code{a} elementwise — \strong{must be the
 #'   same length as \code{a}}; unlike R's own vectorized arithmetic, this
 #'   function does not perform R-style shorter-vector recycling.
 #' @return A numeric vector of \eqn{\log B(a, b)} values, the same length as
@@ -2221,7 +2285,8 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 #' @param maxit Maximum number of optimizer iterations.
-#' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+#' @param eps_f Currently unused (accepted for interface compatibility); only
+#'   \code{eps_g} is passed to the optimizer.
 #' @param eps_g Convergence tolerance on the gradient norm.
 #' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
 #'   parameter layout) of parameters to hold fixed rather than estimate.
@@ -2230,13 +2295,19 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 #'   warm-start curvature information.
+#' @param estimate_only Logical; leave at \code{FALSE} here. If \code{TRUE}, the
+#'   curvature matrix is not computed (\code{hess_fisher_info_matrix} is all zeros),
+#'   so \code{vcov} is not a usable variance estimate.
 #' @return A list with components \code{b} (\eqn{\hat\beta}),
-#'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
-#'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
-#'   \code{information_invertible} (whether its free information block passed
-#'   the invertibility check),
-#'   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
-#'   (the working-weights curvature matrix \code{vcov} was inverted from).
+#'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{converged},
+#'   \code{num_iter} (optimizer iterations), \code{hit_iteration_cap},
+#'   \code{gradient_norm}, \code{min_eigenvalue_information},
+#'   \code{dispersion_at_poisson_boundary} (whether \eqn{\hat\theta} sits at the
+#'   Poisson boundary), \code{information_invertible} (whether the free
+#'   information block passed the invertibility check),
+#'   \code{hess_fisher_info_matrix} (the working-weights curvature matrix
+#'   \code{vcov} was inverted from), and \code{vcov} (the full
+#'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix).
 #' @seealso \code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
 #'   full model documentation; \code{\link{fast_neg_bin_weighted_cpp}} for the
 #'   row-weighted estimate-only variant.
@@ -2252,18 +2323,24 @@ fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold
 
 #' @title Fast Negative Binomial Regression (C++)
 #' @description High-performance negative binomial regression fitting.
-#' @param X A numeric matrix of predictors.
-#' @param y A numeric vector of responses.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
+#'   explicit intercept column if desired (no implicit intercept).
+#' @param y A numeric vector of non-negative observed counts, length \eqn{n};
+#'   coerced to integer before fitting.
 #' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-#' @param maxit Maximum number of iterations.
-#' @param eps_f Convergence tolerance for function value.
-#' @param eps_g Convergence tolerance for gradient.
-#' @param fixed_idx Optional indices of fixed parameters.
-#' @param fixed_values Optional values for fixed parameters.
-#' @param optimization_alg Optimization algorithm.
-#' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-#' @return A list containing coefficients, theta, and convergence status.
+#' @param maxit Maximum number of optimizer iterations.
+#' @param eps_f Currently unused (accepted for interface compatibility); only
+#'   \code{eps_g} is passed to the optimizer.
+#' @param eps_g Convergence tolerance on the gradient norm (the optimizer's
+#'   stopping criterion).
+#' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
+#'   parameter layout) of parameters to hold fixed rather than estimate.
+#' @param fixed_values Optional values to fix the parameters named by
+#'   \code{fixed_idx} at.
+#' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
+#' @param warm_start_fisher_info Optional initial Fisher Information matrix to
+#'   warm-start curvature information for the optimizer.
 #' @export
 #' @keywords internal
 #' @examples
@@ -2291,7 +2368,8 @@ fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = 
 #' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 #' @param maxit Maximum number of optimizer iterations.
-#' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+#' @param eps_f Currently unused (accepted for interface compatibility); only
+#'   \code{eps_g} is passed to the optimizer.
 #' @param eps_g Convergence tolerance on the gradient norm.
 #' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
 #'   parameter layout) of parameters to hold fixed rather than estimate.
@@ -2300,11 +2378,13 @@ fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = 
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix to
 #'   warm-start curvature information.
-#' @param estimate_only If TRUE, skip Fisher information calculation.
+#' @param estimate_only Logical; if \code{TRUE}, skip the Fisher information
+#'   calculation: the returned \code{fisher_information} is then a matrix of zeros.
 #' @return A list with the same components as \code{\link{fast_neg_bin_cpp}}:
 #'   \code{b}, \code{theta_hat}, \code{logLik}, \code{converged},
-#'   \code{iterations}, and \code{fisher_information} (all reflecting the
-#'   weighted log-likelihood).
+#'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm},
+#'   \code{min_eigenvalue_information}, \code{dispersion_at_poisson_boundary},
+#'   and \code{fisher_information} (all reflecting the weighted log-likelihood).
 #' @seealso \code{\link{fast_neg_bin_cpp}} for the unweighted model and full
 #'   documentation.
 #' @export
@@ -2372,17 +2452,17 @@ get_ordinal_cauchit_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #' \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
 #' marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 #' via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
-#' iterations or until the parameter/gradient change falls below \code{tol};
+#' iterations or until the gradient norm falls below \code{tol};
 #' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 #' curvature estimate.
 #'
-#' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+#' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 #' @param y A numeric vector of ordinal responses; only the rank order of distinct
 #'   values matters, not their numeric coding.
 #' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 #' @param maxit Maximum number of optimizer iterations.
-#' @param tol Convergence tolerance.
+#' @param tol Convergence tolerance on the gradient norm.
 #' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
 #' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
 #' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
@@ -2395,18 +2475,20 @@ get_ordinal_cauchit_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
-#'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+#'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+#'   when \code{estimate_only = FALSE} (the default), additionally
 #'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
 #'   (all the same observed-information matrix), \code{information_type} (always
-#'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
-#'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
-#'   conventionally the treatment effect, since \code{X} carries no separate intercept
-#'   column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
-#'   fewer than 2 distinct levels.
+#'   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
+#'   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
+#'   carries no separate intercept column here; the thresholds \code{alpha} play that
+#'   role) and \code{vcov} (the parameter covariance matrix). Only these last two depend
+#'   on convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+#'   \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2 distinct levels.
 #' @seealso \code{\link{fast_ordinal_cauchit_regression_with_var_cpp}}, which always computes
 #'   the variance quantities (equivalent to calling this function with
-#'   \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
+#'   \code{estimate_only = FALSE}) and additionally guards against the degenerate
 #'   case by returning \code{NA} placeholders instead of an empty list.
 #' @export
 #' @keywords internal
@@ -2438,14 +2520,17 @@ fast_ordinal_cauchit_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
-#' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{neg_loglik}, \code{converged}, \code{iterations},
+#' @return The same list as \code{\link{fast_ordinal_cauchit_regression_cpp}} with
+#'   \code{estimate_only = FALSE}: \code{b}, \code{alpha}, \code{params}, \code{n_params},
+#'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+#'   \code{gradient_norm}, \code{min_eigenvalue_information},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-#'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-#'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_2} is
-#'   \code{NA}) if the fit did not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has
-#'   fewer than 2 distinct levels.
+#'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+#'   — conventionally the treatment effect). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
+#'   \code{NaN}) if the fit did not converge. Note the different variance name in the
+#'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
+#'   \code{list(b = NA, ssq_b_2 = NA)}.
 #' @seealso \code{\link{fast_ordinal_cauchit_regression_cpp}} for the estimate-only-capable
 #'   variant and the full model documentation.
 #' @export
@@ -2487,9 +2572,9 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #' (with \eqn{F(\alpha_{-1} + \cdot) := 0} and \eqn{F(\alpha_{K-1} + \cdot) := 1} at the
 #' boundaries), each clamped below at \eqn{10^{-12}} before taking logs for numerical
 #' safety. Unlike the symmetric logit/probit/cauchit links, cloglog is
-#' \strong{asymmetric}: it is the natural link for a grouped/discretized
-#' proportional-hazards (continuation-ratio-free) survival model, appropriate when
-#' category probabilities are skewed toward the lower categories. If \code{y} has
+#' \strong{asymmetric}: the cumulative cloglog model is equivalent to a grouped
+#' (discretized) proportional-hazards model for a latent continuous survival time,
+#' with the categories as consecutive time intervals. If \code{y} has
 #' fewer than 2 distinct levels, an empty result list is returned (the model is
 #' degenerate).
 #'
@@ -2507,7 +2592,7 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 #' curvature estimate.
 #'
-#' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+#' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 #' @param y A numeric vector of ordinal responses; only the rank order of distinct
 #'   values matters, not their numeric coding.
 #' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
@@ -2526,7 +2611,7 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
 #'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
 #'   (all the same observed-information matrix), \code{information_type} (always
@@ -2570,13 +2655,15 @@ fast_ordinal_cloglog_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{neg_loglik}, \code{converged}, \code{iterations},
+#'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+#'   \code{gradient_norm}, \code{min_eigenvalue_information},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-#'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-#'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_2} is
-#'   \code{NA}) if the fit did not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has
-#'   fewer than 2 distinct levels.
+#'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+#'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_j} is
+#'   \code{NaN}) if the fit did not converge. Note the different variance name in the
+#'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
+#'   \code{list(b = NA, ssq_b_2 = NA)}.
 #' @seealso \code{\link{fast_ordinal_cloglog_regression_cpp}} for the estimate-only-capable
 #'   variant and the full model documentation.
 #' @export
@@ -2742,7 +2829,7 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
 #' curvature estimate.
 #'
-#' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+#' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 #' @param y A numeric vector of ordinal responses; only the rank order of distinct
 #'   values matters, not their numeric coding.
 #' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
@@ -2761,7 +2848,7 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
 #'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
 #'   (all the same observed-information matrix), \code{information_type} (always
@@ -2786,10 +2873,7 @@ fast_ordinal_probit_regression_cpp <- function(X, y, warm_start_params = NULL, s
 #' cumulative probit-link model, \eqn{\Pr(Y_i \le k \mid x_i) = \Phi(\alpha_k -
 #' x_i^\top\beta)}), but always fits with \code{estimate_only = FALSE} (equivalent
 #' to calling that function with its default), so the observed information matrix
-#' and variance-covariance matrix are always computed. It additionally guards the
-#' degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
-#' fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
-#' an empty list.
+#' and variance-covariance matrix are always computed.
 #'
 #' @inheritSection fast_ordinal_probit_regression_cpp Fixed parameters, warm starts, and optimization
 #'
@@ -2805,13 +2889,14 @@ fast_ordinal_probit_regression_cpp <- function(X, y, warm_start_params = NULL, s
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{neg_loglik}, \code{converged}, \code{iterations},
+#'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
+#'   \code{gradient_norm}, \code{min_eigenvalue_information},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
-#'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-#'   — conventionally the treatment effect; \code{NA} if it comes out non-finite or
-#'   non-positive). \code{vcov} is omitted (and \code{ssq_b_2} is \code{NA}) if the fit did
-#'   not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has fewer than 2 distinct levels.
+#'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+#'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+#'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
+#'   not converge.
 #' @seealso \code{\link{fast_ordinal_probit_regression_cpp}} for the estimate-only-capable
 #'   variant and the full model documentation.
 #' @export
@@ -2908,7 +2993,7 @@ get_ordinal_regression_hessian_cpp <- function(X, y, params) {
 #' (default \code{"lbfgs"}) for up to \code{maxit} iterations or until the
 #' parameter/gradient change falls below \code{tol}.
 #'
-#' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+#' @param X A numeric matrix of predictors (no intercept column needed; see the description).
 #' @param y A numeric vector of ordinal responses; only the rank order of distinct
 #'   values matters, not their numeric coding.
 #' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
@@ -2926,7 +3011,7 @@ get_ordinal_regression_hessian_cpp <- function(X, y, params) {
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (always \code{"observed"}),
@@ -2972,7 +3057,7 @@ fast_ordinal_regression_cpp <- function(X, y, warm_start_params = NULL, smart_co
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{converged}, \code{iterations}, \code{neg_loglik},
+#'   \code{converged}, \code{num_iter}, \code{neg_loglik},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}),
 #'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
@@ -3011,7 +3096,7 @@ fast_ordinal_regression_weighted_cpp <- function(X, y, weights, warm_start_param
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{converged}, \code{iterations}, \code{neg_loglik},
+#'   \code{converged}, \code{num_iter}, \code{neg_loglik},
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}),
 #'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
@@ -3232,8 +3317,9 @@ expand_continuation_ratio_data_cpp <- function(y, w, strata, K) {
 #' @return A list with components \code{y} (stacked 0/1 binary outcome), \code{w}
 #'   (stacked covariate, passed through unchanged), and \code{strata} (stacked
 #'   combined stratum-by-cut ID); all three are integer vectors of the same,
-#'   generally-longer-than-\eqn{n} length (each subject contributes 0, 1, or 2
-#'   stacked rows depending on their observed category).
+#'   generally-longer-than-\eqn{n} length (for \code{K >= 2}, each subject with
+#'   \code{y} in \code{1:K} contributes 1 stacked row at an extreme level and 2
+#'   otherwise; an out-of-range \code{y} contributes none).
 #' @seealso \code{expand_continuation_ratio_data_cpp()} for the analogous expansion
 #'   used by continuation-ratio ordinal models.
 #'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
@@ -3349,9 +3435,9 @@ get_probit_regression_hessian_cpp <- function(X, beta) {
 #' @param warm_start_fisher_info Optional initial curvature matrix for the first
 #'   IRLS iteration (IRLS path only).
 #' @param estimate_only If \code{TRUE}, skip the post-fit weight/curvature computation
-#'   and return only \code{b}, \code{converged}, and \code{iterations}.
+#'   and return only \code{b}, \code{converged}, and \code{num_iter}.
 #' @return If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
-#'   \code{iterations}. Otherwise: a list additionally containing \code{w} (the final
+#'   \code{num_iter}. Otherwise: a list additionally containing \code{w} (the final
 #'   probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
 #'   which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
 #'   at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).
@@ -3403,7 +3489,7 @@ fast_probit_regression_weighted_cpp <- function(X, y, weights, warm_start_beta =
 #'   W X} curvature matrix; \code{information_type} is always \code{"fisher"}),
 #'   \code{hessian} (the negative of that same matrix), \code{neg_loglik}/\code{neg_ll}
 #'   (two aliases for the negative log-likelihood), \code{loglik} (\code{-neg_ll}, or
-#'   \code{NA} if non-finite), \code{converged}, and \code{iterations}.
+#'   \code{NA} if non-finite), \code{converged}, and \code{num_iter}.
 #' @seealso \code{\link{fast_probit_regression_cpp}} for the estimate-only-capable variant
 #'   and full model documentation.
 #' @export
@@ -3721,9 +3807,10 @@ fast_stereotype_profile_loglik_cpp <- function(X, y, beta_fixed, maxit = 100L, t
 #' Parallel Stereotype Logit Randomization Distribution
 #'
 #' @param X Matrix of covariates (without intercept or treatment).
-#' @param y Numeric vector of response values (pre-null-shifted for treated).
+#' @param y Numeric vector of unshifted response values; \code{delta} is added to
+#'   the treated subjects inside the function, separately for each draw.
 #' @param w_mat Integer matrix of permuted treatment assignments (n x nsim).
-#' @param delta Null treatment effect (additive shift).
+#' @param delta Null treatment effect (additive shift applied to treated responses).
 #' @param num_cores Number of OpenMP threads.
 #' @return Numeric vector of length nsim with treatment coefficients.
 #' @keywords internal
@@ -3794,15 +3881,32 @@ get_restricted_mean_se_diff <- function(y, dead, w) {
     .Call(`_EDI_get_restricted_mean_se_diff`, y, dead, w)
 }
 
-#' Parallel BRT kernel for KM-diff (median) and RMST-diff.
+#' Parallel BRT kernel for KM-diff (median) and RMST-diff
+#'
 #' Each replicate resamples rows i_mat(.,b) and pairs them with assignment w_mat(.,b).
 #' Sharp-null shift is multiplicative on treated times (exp(delta)). Uses an inline
 #' pure-C++ KM calculator — no R objects inside the loop, so OpenMP is safe.
+#' @param y0 Numeric vector of (effective) survival times; must not contain
+#'   \code{NA}/\code{NaN}.
+#' @param dead Integer vector of event indicators (1 = event, 0 = censored), same
+#'   length as \code{y0}.
+#' @param i_mat Integer matrix (n x nsim) of 1-based row indices into \code{y0}/\code{dead}:
+#'   column \code{b} is the resample for replicate \code{b}.
+#' @param w_mat Integer matrix (n x nsim) of 0/1 treatment assignments, paired by
+#'   position with the rows of \code{i_mat}.
+#' @param delta Null shift on the log-time scale: treated times are multiplied by
+#'   \code{exp(delta)}.
 #' @param do_rmst TRUE for RMST-diff, FALSE for median (KM-diff).
-#' @param rmst_tau Optional user RMST horizon (TODO-108). \code{NA} (default) keeps the
+#' @param noise_mat Optional numeric matrix (n x nsim) added to the resampled times;
+#'   \code{NULL} or a zero-length matrix means no noise.
+#' @param num_cores Number of OpenMP threads.
+#' @param rmst_tau Optional user RMST horizon (v1.0.5-TODO-108). \code{NA} (default) keeps the
 #'   shared horizon \code{min(arm maxima)}; a finite value uses
 #'   \code{min(rmst_tau, arm maxima)} (equivalent to right-truncating at tau).
 #'   Ignored when \code{do_rmst} is FALSE.
+#' @return Numeric vector of length \code{ncol(i_mat)}: per replicate, the treated
+#'   minus control KM median (or RMST), \code{NA} when an arm is empty or either
+#'   statistic is not finite.
 #' @keywords internal
 compute_survival_stat_diff_rand_bootstrap_parallel_cpp <- function(y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores, rmst_tau = NA_real_) {
     .Call(`_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp`, y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores, rmst_tau)
@@ -3861,16 +3965,25 @@ get_weibull_regression_hessian_cpp <- function(X, y, dead, params) {
 #' @param X A numeric matrix of predictors.
 #' @param y A numeric vector of survival times.
 #' @param dead A numeric vector of event indicators (1=event, 0=censored).
-#' @param warm_start_params Optional starting values for coefficients.
+#' @param warm_start_params Optional starting values for the full
+#'   \eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
 #' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
 #' @param maxit Maximum number of iterations.
 #' @param tol Convergence tolerance.
 #' @param fixed_idx Optional indices of fixed parameters.
 #' @param fixed_values Optional values for fixed parameters.
-#' @param optimization_alg Optimization algorithm.
+#' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-#' @return A list containing coefficients, log_sigma, and convergence status.
+#' @return A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+#'   \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+#'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+#'   \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+#'   \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+#'   aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+#'   \code{score}, \code{observed_information}/\code{information} (the observed
+#'   information matrix), \code{hessian} (its negative), \code{information_type}
+#'   (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 #' @export
 #' @keywords internal
 fast_weibull_regression_cpp <- function(X, y, dead, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
@@ -3880,9 +3993,9 @@ fast_weibull_regression_cpp <- function(X, y, dead, warm_start_params = NULL, sm
 #' @title Compute Weibull Regression Score (General Censoring)
 #' @description Score vector for the Weibull AFT log-likelihood extended to
 #'   left-, right-, and interval-censored responses (see TODO-3 in
-#'   interval_censored_survival_response.md). Exactly one of \code{y[i]} or
-#'   (\code{y_L[i]}, \code{y_R[i]}) must be finite per subject: \code{NA} in
-#'   the unused slot(s).
+#'   interval_censored_survival_response.md). Each subject is either exact
+#'   (\code{y[i]} finite, \code{y_L[i]} and \code{y_R[i]} \code{NA}) or censored
+#'   (\code{y[i]} \code{NA}, \code{y_L[i]} finite, \code{y_R[i]} finite or \code{Inf}).
 #' @param X A numeric matrix of predictors.
 #' @param y Exact survival times, \code{NA} for censored subjects.
 #' @param y_L Censored-interval lower bounds, \code{NA} for exact subjects;
@@ -3928,16 +4041,25 @@ get_weibull_regression_general_hessian_cpp <- function(X, y, y_L, y_R, params) {
 #'   \code{0} for left-censored.
 #' @param y_R Censored-interval upper bounds, \code{NA} for exact subjects;
 #'   \code{Inf} for right-censored.
-#' @param warm_start_params Optional starting values for coefficients.
+#' @param warm_start_params Optional starting values for the full
+#'   \eqn{[\beta, \log\sigma]} parameter vector (length \code{ncol(X) + 1}).
 #' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
 #' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
 #' @param maxit Maximum number of iterations.
 #' @param tol Convergence tolerance.
 #' @param fixed_idx Optional indices of fixed parameters.
 #' @param fixed_values Optional values for fixed parameters.
-#' @param optimization_alg Optimization algorithm.
+#' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-#' @return A list containing coefficients, log_sigma, and convergence status.
+#' @return A list. If \code{estimate_only = TRUE}: \code{b} (the coefficients
+#'   \eqn{\hat\beta} on the columns of \code{X}), \code{log_sigma}, \code{converged},
+#'   \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm} and
+#'   \code{min_eigenvalue_information}. Otherwise: \code{params} (the full
+#'   \eqn{[\hat\beta, \log\hat\sigma]} vector), \code{neg_loglik}/\code{neg_ll} (two
+#'   aliases for the negative log-likelihood), \code{loglik}, the same convergence fields,
+#'   \code{score}, \code{observed_information}/\code{information} (the observed
+#'   information matrix), \code{hessian} (its negative), \code{information_type}
+#'   (\code{"observed"}) and \code{vcov} (the covariance matrix of \code{params}).
 #' @export
 #' @keywords internal
 fast_weibull_regression_general_cpp <- function(X, y, y_L, y_R, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
@@ -4033,13 +4155,13 @@ get_zero_augmented_poisson_hessian_cpp <- function(X, y, Xzi, params, is_hurdle)
 #' @param y Vector of nonnegative-integer count responses.
 #' @param Xzi Matrix of predictors for the zero-inflation/hurdle (logistic) component.
 #' @param is_hurdle If \code{TRUE}, fit a hurdle model; if \code{FALSE}, fit a
-#'   zero-inflated model. See Details for the distinction.
+#'   zero-inflated model. See the description for the distinction.
 #' @param warm_start_params Optional starting values for the joint
 #'   \eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} vector. If provided,
 #'   \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
 #'   \code{warm_start_params} is supplied, use a model-specific heuristic initial guess;
-#'   see Details.
+#'   see the "Fixed parameters, warm starts" section.
 #' @param estimate_only If \code{TRUE}, skip the post-fit Hessian/variance computation
 #'   and return only \code{params}, \code{converged}, \code{neg_ll}/\code{neg_loglik}, and
 #'   \code{gradient_norm}.
@@ -4134,7 +4256,8 @@ get_zero_one_inflated_beta_hessian_cpp <- function(X, X_zero_one, y, params) {
 #' @param warm_start_params Optional starting values for the joint \eqn{[\beta,
 #'   \log\phi, \gamma_0, \gamma_1]} vector. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
-#'   \code{warm_start_params} is supplied, use an OLS-based initial guess; see Details.
+#'   \code{warm_start_params} is supplied, use an OLS-based initial guess; see the
+#'   "Fixed parameters, warm starts" section.
 #' @param fixed_idx Optional 1-indexed positions of parameters to hold fixed.
 #' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
 #' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
@@ -4672,6 +4795,15 @@ match_diffs_cpp <- function(X, y, w, m_vec, m) {
 #' Solves the likelihood equations for p_C subject to p_T - p_C = delta.
 #' Uses bisection on the score function (derivative of log-likelihood)
 #' which is monotonic and well-behaved.
+#'
+#' @param x_t Number of events in treatment.
+#' @param n_t Number of subjects in treatment.
+#' @param x_c Number of events in control.
+#' @param n_c Number of subjects in control.
+#' @param delta Null risk difference \code{p_T - p_C}.
+#' @return The constrained MLE of \code{p_C}, a single number. The bisection runs on
+#'   \eqn{[\max(0, -\delta), \min(1, 1 - \delta)]} for at most 60 iterations; if that
+#'   range is empty (\eqn{|\delta| \ge 1}), its midpoint is returned.
 #' @keywords internal
 mn_constrained_mle_pc_cpp <- function(x_t, n_t, x_c, n_c, delta) {
     .Call(`_EDI_mn_constrained_mle_pc_cpp`, x_t, n_t, x_c, n_c, delta)
@@ -4690,7 +4822,9 @@ mn_constrained_mle_pc_cpp <- function(x_t, n_t, x_c, n_c, delta) {
 #' @param delta Null risk difference.
 #' @param p_t_obs Observed treatment-arm risk.
 #' @param p_c_obs Observed control-arm risk.
-#' @return The asymptotic z statistic.
+#' @return The asymptotic z statistic, or \code{NA} when \code{n_t} or \code{n_c} is 0,
+#'   when \code{delta} is outside \eqn{(-1, 1)}, or when the constrained variance is not
+#'   positive.
 #' @keywords internal
 mn_z_statistic_cpp <- function(x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs) {
     .Call(`_EDI_mn_z_statistic_cpp`, x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs)
@@ -4786,6 +4920,22 @@ newcombe_independent_ci_cpp <- function(x1, n1, x2, n2, alpha) {
 }
 
 #' Newcombe Hybrid Score Interval for Paired Proportions
+#'
+#' Computes Newcombe's (1998) hybrid score interval (his method 10) for the
+#' difference \eqn{p_1 - p_2} of two paired proportions, from the 2x2 table of
+#' matched pairs, with \eqn{p_1 = (n_{11} + n_{10})/n} and
+#' \eqn{p_2 = (n_{11} + n_{01})/n}. Wilson score intervals for \eqn{p_1} and
+#' \eqn{p_2} are combined with a correction for the phi correlation of the
+#' paired table (taken as 0 when a margin is empty).
+#'
+#' @param n11 Number of pairs where both members have the event.
+#' @param n10 Number of pairs where only the first member has the event.
+#' @param n01 Number of pairs where only the second member has the event.
+#' @param n00 Number of pairs where neither member has the event.
+#' @param alpha The confidence level is \eqn{1-\alpha}.
+#' @return A length-2 numeric vector: the lower and upper bounds for \eqn{p_1 - p_2},
+#'   clamped to \eqn{[-1, 1]}; \code{c(NA, NA)} if the total count is 0.
+#' @seealso \code{\link{newcombe_independent_ci_cpp}} for independent samples.
 #' @keywords internal
 newcombe_paired_ci_cpp <- function(n11, n10, n01, n00, alpha) {
     .Call(`_EDI_newcombe_paired_ci_cpp`, n11, n10, n01, n00, alpha)
@@ -4983,10 +5133,11 @@ pocock_simon_assign_and_update_cpp <- function(counts, subject_levels_idx, weigh
 #' them internally after each subject, rather than being called once per
 #' subject with externally-maintained \code{counts}. This is used to
 #' \strong{re-derive} (\dQuote{redraw}) a full sequence of assignments in a
-#' single vectorized pass — e.g. for simulation, or for reconstructing what a
-#' one-at-a-time run would have produced — while consuming R's uniform random
-#' stream in exactly the same order a subject-by-subject loop calling
-#' \code{\link{pocock_simon_assign_cpp}} would have.
+#' single vectorized pass — e.g. for simulation. Unlike
+#' \code{\link{pocock_simon_assign_cpp}}, which seeds its own generator from one
+#' R draw per call, this function continues R's live uniform random stream (see
+#' the note), so it does not reproduce the draws of a subject-by-subject loop
+#' over \code{\link{pocock_simon_assign_cpp}} for the same R seed.
 #'
 #' @param x_levels_matrix An integer matrix with one row per subject and one
 #'   column per stratification covariate; entry \code{(i, j)} is the 1-indexed
@@ -5108,12 +5259,11 @@ ols_hc2_post_fit_precomputed_cpp <- function(X_fit, y, coef_hat, bread, hat, j_t
 #' X^\top \mathrm{diag}(\omega_i) X}, where \eqn{\omega_i = r_i^2 / (1 - h_{ii})}
 #' — the squared OLS residual \eqn{r_i} \strong{leverage-corrected} by dividing
 #' by \eqn{1 - h_{ii}} (\eqn{h_{ii}} the \eqn{i}-th diagonal of the OLS hat
-#' matrix \eqn{X(X^\top X)^{-1}X^\top}), unlike the plain HC0 sandwich
-#' (\code{\link{gcomp_logistic_post_fit_cpp}}'s logistic analogue, or this
-#' function's own uncorrected \eqn{r_i^2} meat) which does not correct for
-#' leverage. HC2 is unbiased under homoskedasticity for balanced designs and
-#' generally has better small-sample properties than HC0/HC1 when leverage is
-#' uneven. Internally, this function first computes the (design-only) "setup"
+#' matrix \eqn{X(X^\top X)^{-1}X^\top}); the plain HC0 sandwich instead uses
+#' \eqn{\omega_i = r_i^2} with no leverage correction. Because
+#' \eqn{E[r_i^2] = \sigma^2 (1 - h_{ii})} under homoskedasticity, HC2 is unbiased
+#' under homoskedasticity for any design, and it generally has better small-sample
+#' properties than HC0/HC1 when leverage is uneven. Internally, this function first computes the (design-only) "setup"
 #' quantities \code{bread}/\code{hat} via \code{ols_hc2_setup_cpp}, then calls
 #' \code{ols_hc2_post_fit_precomputed_cpp}; callers who already have those
 #' precomputed (e.g. across repeated resampling on the same fixed design) can
@@ -5178,9 +5328,16 @@ stratified_bootstrap_indices_cpp <- function(strata_keys_sexp) {
 #' Compute automatic survival strata IDs from low-cardinality covariates
 #'
 #' Selects numeric covariate columns with a small number of observed levels and
-#' combines them into a single all-subject stratum identifier. This is used to
+#' combines them into one stratum identifier per subject (row of \code{X}): each
+#' distinct combination of the selected columns' values is one stratum. This is used to
 #' support automatic stratified Cox models when the design object stores observed
 #' covariates but no explicit stratum variable.
+#'
+#' A column is a candidate only if all its values are finite, it has at least 2 and at
+#' most \code{max_unique_per_col} distinct values, and every value occurs at least
+#' \code{min_count_per_level} times. Candidates are ordered by number of levels
+#' (fewest first, ties broken by column position) and the first
+#' \code{max_strata_cols} are kept.
 #'
 #' @param X Numeric covariate matrix.
 #' @param max_unique_per_col Maximum number of unique values allowed for a column
@@ -5188,7 +5345,10 @@ stratified_bootstrap_indices_cpp <- function(strata_keys_sexp) {
 #' @param max_strata_cols Maximum number of candidate columns to combine.
 #' @param min_count_per_level Minimum frequency required for every level in a
 #'   candidate column.
-#' @return A list with `strata_id`, `selected_cols`, and `num_strata`.
+#' @return A list with \code{strata_id} (integer vector of length \code{nrow(X)}, ids
+#'   numbered \code{1, 2, ...} in order of first appearance; all \code{1} when no column
+#'   qualifies), \code{selected_cols} (1-based integer indices of the selected columns,
+#'   empty if none), and \code{num_strata} (number of distinct strata; 1 if none selected).
 #' @keywords internal
 compute_survival_strata_ids_cpp <- function(X, max_unique_per_col = 4L, max_strata_cols = 4L, min_count_per_level = 2L) {
     .Call(`_EDI_compute_survival_strata_ids_cpp`, X, max_unique_per_col, max_strata_cols, min_count_per_level)
