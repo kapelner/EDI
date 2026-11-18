@@ -190,11 +190,13 @@ SurvivalDepCensTransformSource = list(
 			# of the never-implemented `_basic`/`_bca` name variants -- restoring
 			# the evident intent (validate a real basic/BCa bootstrap CI for this
 			# model) rather than perpetuating the crash.
+			# An NA basic interval falls back to percentile below, so its
+			# v1.0.6-TODO-113 NA warning is noise here.
 			ci = private$dep_cens_validate_bootstrap_ci(
-				self$compute_bootstrap_confidence_interval(
+				suppressWarnings(self$compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, type = "basic", min_number_usable_samples = min_number_usable_samples,
 					show_progress = show_progress, na.rm = na.rm
-				),
+				), classes = "edi_procedure_na_warning"),
 				alpha = alpha
 			)
 			if (length(ci) < 2L || !all(is.finite(as.numeric(ci[1:2])))) {

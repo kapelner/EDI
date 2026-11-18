@@ -215,7 +215,7 @@ InferenceContinLin = define_inference_class(
 		#' @param alpha The confidence level. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -228,7 +228,7 @@ InferenceContinLin = define_inference_class(
 		#' @param delta The null treatment effect. Defaults to 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -306,7 +306,11 @@ InferenceContinLin = define_inference_class(
 		},
 		get_centered_covariates = function(){
 			des_priv = private$des_obj_priv_int
-			X = as.matrix(private$X)
+			# get_X(), not private$X (v1.0.6-TODO-108): a reusable bootstrap/jackknife worker
+			# sets private$X = NULL on a rank-deficient draw (e.g. leave-one-block-out on a
+			# DesignFixedBlocking whose design_formula names the strata column) so the matrix
+			# is rebuilt; as.matrix(NULL) errored and every such replicate was a silent NA.
+			X = as.matrix(private$get_X())
 			p = ncol(X)
 			# Design-level cache keyed on the covariate matrix actually used (TODO-104):
 			# a second Lin object on the same design with a different model_formula must

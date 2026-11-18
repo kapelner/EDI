@@ -186,7 +186,7 @@ A class without a cluster-robust Wald variance warns. The simple difference in m
 is the example here; its randomization test is still cluster-aware and gives no
 warning.
 
-```{r cluster-warning}
+```{r cluster-warning, strict_expect_warning = TRUE}
 inf_diff = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 inf_diff$num_cores = 1L
 inf_diff$compute_asymp_confidence_interval()      # warns: SE treats students as independent
@@ -325,7 +325,7 @@ inf_b$compute_bootstrap_confidence_interval(B = 501, type = "percentile",
 ```
 
 The cluster jackknife is not available on this design: on a blocked design,
-`compute_jackknife_wald_confidence_interval()` returns `NA` (without a warning) for
+`compute_jackknife_wald_confidence_interval()` returns `NA` with a warning for
 `unit = "auto"`, `"cluster"` and `"observation"`. `unit = "block"` works, but it drops
 a whole district at a time, and with four districts that is too few units to be
 useful. Use the randomization test or the bootstrap.

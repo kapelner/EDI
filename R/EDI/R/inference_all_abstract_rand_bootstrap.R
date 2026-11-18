@@ -237,7 +237,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				private$assert_valid_bootstrap_type(bootstrap_type)
-				assertNumeric(delta); assertCount(B, positive = TRUE); assertFlag(debug)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE); assertCount(B, positive = TRUE); assertFlag(debug)
 			}
 			draws_supplied = !is.null(rand_bootstrap_draws)
 			cache_key = paste(
@@ -497,7 +497,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
-				assertNumeric(delta); assertCount(B, positive = TRUE); assertLogical(na.rm)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE); assertCount(B, positive = TRUE); assertFlag(na.rm)
 				assertChoice(tolower(type), private$rand_bootstrap_pval_types)
 			}
 			if (identical(transform_responses, "none")) {

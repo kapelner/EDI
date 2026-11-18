@@ -77,7 +77,7 @@ KKMeanDifferenceIVWCSource = list(
 		#
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$shared()
@@ -103,7 +103,7 @@ KKMeanDifferenceIVWCSource = list(
 		#
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$shared()

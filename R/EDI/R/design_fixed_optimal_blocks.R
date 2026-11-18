@@ -313,10 +313,18 @@ DesignFixedOptimalBlocks = define_design_class(
 			if (!is.null(private$cluster_col) && length(private$cluster_col) == 1L) {
 				keep = keep & names(cols) != private$cluster_col
 			}
-			keep = keep & vapply(cols, function(col) length(unique(col)) > 1L, logical(1L))
+			is_varying = vapply(cols, function(col) length(unique(col)) > 1L, logical(1L))
+			# v1.0.6-TODO-107: keep formula-named constant columns as placeholders, as
+			# covariate_impute_if_necessary_and_then_create_model_matrix() does.
+			const_formula_cols = constant_formula_named_columns(private$design_formula, cols, keep & !is_varying)
+			keep = keep & is_varying
 			if (!any(keep)) return(matrix(NA_real_, nrow = n, ncol = 0L))
 			df = as.data.frame(cols[keep], check.names = FALSE, stringsAsFactors = FALSE)
-			X = create_model_matrix_from_features(private$design_formula, df)
+			X = if (length(const_formula_cols) == 0L) {
+				create_model_matrix_from_features(private$design_formula, df)
+			} else {
+				create_model_matrix_with_constant_formula_columns(private$design_formula, df, cols, const_formula_cols)
+			}
 			if (ncol(X) > 0L) {
 				X = X[, apply(X, 2L, function(col) length(unique(col)) > 1L), drop = FALSE]
 			}

@@ -36,7 +36,7 @@
 .init_kk_quantile_regr_one_lik = function(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose){
 	if (should_run_asserts()) {
 		assertFormula(model_formula, null.ok = TRUE)
-		assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+		assertNumeric(tau, len = 1, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 	}
 	if (should_run_asserts()) {
 		if (!check_package_installed("quantreg")) {
@@ -127,7 +127,7 @@ KKQuantileRegrOneLikSource = list(
 		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -137,7 +137,7 @@ KKQuantileRegrOneLikSource = list(
 		#' @return A two-sided p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)

@@ -243,11 +243,11 @@ DesignFixedBlocking = define_design_class(
 					}
 				}
 				if (should_run_asserts()) {
-					if (!is.null(strata_cols)) assertCharacter(strata_cols, min.len = 1)
+					if (!is.null(strata_cols)) assertCharacter(strata_cols, min.len = 1, any.missing = FALSE)
 				assertCount(preferred_num_bins_for_continuous_covariate, positive = TRUE)
 				if (!is.null(B_target) && !is.na(B_target)) assertCount(B_target, positive = TRUE)
-					assertLogical(exact_num_blocks, len = 1)
-					assertLogical(equal_block_sizes, len = 1)
+					assertFlag(exact_num_blocks)
+					assertFlag(equal_block_sizes)
 					if (!is.null(m)) {
 						if (is.null(n)) {
 							stop("When supplying m to DesignFixedBlocking$new(), n must also be supplied.")

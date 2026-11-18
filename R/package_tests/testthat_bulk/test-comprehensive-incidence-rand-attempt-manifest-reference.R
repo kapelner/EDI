@@ -29,8 +29,8 @@ test_that("incidence rand expected keys distinguish rejected from skipped delta 
 	# This fixture pins the full runner natural key. The regular p-value is an
 	# attempted call with runtime status left open; nonzero delta is an expected
 	# safe_call error for the standard statistic, but is absent entirely when
-	# the runner's delta slow-path flag skips the call. Custom statistics are
-	# explicitly outside that public guard.
+	# the runner's delta slow-path flag skips the call. Custom statistics hit
+	# the same guard (v1.0.6-TODO-81/110).
 	expected <- data.frame(
 		rep = c(1L, 1L, 2L, 5L, 5L),
 		beta_T = c(0, 0, 0.5, 0.5, 0.5),
@@ -46,8 +46,8 @@ test_that("incidence rand expected keys distinguish rejected from skipped delta 
 			"compute_rand_two_sided_pval",
 			"compute_rand_two_sided_pval(delta=0.5)"
 		),
-		expected_status = c(NA_character_, "error", NA_character_, NA_character_, NA_character_),
-		expected_skip_reason = c(NA_character_, "error", NA_character_, NA_character_, NA_character_),
+		expected_status = c(NA_character_, "error", NA_character_, NA_character_, "error"),
+		expected_skip_reason = c(NA_character_, "error", NA_character_, NA_character_, "error"),
 		stringsAsFactors = FALSE
 	)
 	expect_identical(manifest, expected)

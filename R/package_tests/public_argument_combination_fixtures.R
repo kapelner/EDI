@@ -297,6 +297,14 @@ build_public_argument_fixture = function(spec) {
 
 build_public_argument_fixtures = function(tier = "smoke", fixture_ids = NULL) {
 	specs = public_argument_fixture_specs()
+	if (!is.null(fixture_ids) && any(is_data_shape_fixture_id(fixture_ids))) {
+		# Data-shape fixtures (v1.0.6-TODO-97) are built from their ids, never by tier.
+		shape_ids = fixture_ids[is_data_shape_fixture_id(fixture_ids)]
+		rest = setdiff(fixture_ids, shape_ids)
+		out = build_data_shape_fixtures(shape_ids)
+		if (length(rest)) out = c(build_public_argument_fixtures(tier = tier, fixture_ids = rest), out)
+		return(out)
+	}
 	if (!is.null(fixture_ids)) {
 		missing = setdiff(fixture_ids, names(specs))
 		if (length(missing)) stop("Unknown fixture_ids: ", paste(missing, collapse = ", "), call. = FALSE)
@@ -358,4 +366,234 @@ fixture_inventory = function(fixtures) {
 	out = do.call(rbind, rows)
 	row.names(out) = NULL
 	out
+}
+
+# ---------------------------------------------------------------------------------------------
+# Data-shape axes (v1.0.6-TODO-97).
+#
+# The registry-driven cases above vary argument values; their axes come from checkmate contracts,
+# which only see argument types. The canonical fixtures are all n = 8, fixed n, equal blocks and
+# clusters, complete covariates, right censoring at most and no real treatment effect, so a bug that
+# needs one of those settings (v1.0.6-TODO-73, -74, -76..78, -90, -91) never runs. These axes vary the
+# data instead. Cells are drawn pairwise (generate_public_argument_data_shape_cases() in
+# generate_public_argument_combinations.R), not full factorial, and each cell's fixture is built on
+# demand from its id, so a fixture that cannot even be built (e.g. KK21 with n = NULL,
+# v1.0.6-TODO-76) is recorded as that cell's error instead of aborting the run.
+# ---------------------------------------------------------------------------------------------
+
+data_shape_fixture_prefix = "data_shape__"
+
+data_shape_fixture_n = 40L
+
+# Design label -> class and design_type (the design_type vocabulary of the canonical fixtures).
+data_shape_designs = list(
+	fixed_bernoulli = list(class_name = "DesignFixedBernoulli", design_type = "fixed", sequential = FALSE, grouped = FALSE),
+	fixed_blocking = list(class_name = "DesignFixedBlocking", design_type = "stratified", sequential = FALSE, grouped = TRUE),
+	fixed_cluster = list(class_name = "DesignFixedCluster", design_type = "clustered", sequential = FALSE, grouped = TRUE),
+	fixed_blocked_cluster = list(class_name = "DesignFixedBlockedCluster", design_type = "blocked_cluster", sequential = FALSE, grouped = TRUE),
+	seq_bernoulli = list(class_name = "DesignSeqOneByOneBernoulli", design_type = "sequential", sequential = TRUE, grouped = FALSE),
+	seq_kk21 = list(class_name = "DesignSeqOneByOneKK21", design_type = "sequential", sequential = TRUE, grouped = FALSE)
+)
+
+# The fixture-level axes, in id order. Values are short tokens: they are joined into the fixture id.
+data_shape_fixture_axes = function() {
+	list(
+		design = names(data_shape_designs),
+		response_type = response_fixture_families,
+		# fixed: n given up front. null_mid: n = NULL, 40 enrolled, the first 30 have responses (an
+		# interim look). null_end: n = NULL, every enrolled subject has a response.
+		sample_size = c("fixed", "null_mid", "null_end"),
+		group_sizes = c("equal", "unequal"),
+		censoring = c("none", "right", "interval"),
+		missing_covariate = c("no", "yes"),
+		# strong: a shift large enough that 0 is far outside the bootstrap distribution.
+		effect = c("null", "strong")
+	)
+}
+
+data_shape_fixture_id = function(cell) {
+	axes = names(data_shape_fixture_axes())
+	paste0(data_shape_fixture_prefix, paste(vapply(axes, function(a) as.character(cell[[a]]), character(1)), collapse = "__"))
+}
+
+is_data_shape_fixture_id = function(fixture_id) startsWith(as.character(fixture_id), data_shape_fixture_prefix)
+
+parse_data_shape_fixture_id = function(fixture_id) {
+	axes = names(data_shape_fixture_axes())
+	parts = strsplit(sub(paste0("^", data_shape_fixture_prefix), "", fixture_id), "__", fixed = TRUE)[[1L]]
+	if (length(parts) != length(axes)) stop("Malformed data-shape fixture id: ", fixture_id, call. = FALSE)
+	cell = stats::setNames(as.list(parts), axes)
+	for (a in axes) {
+		if (!cell[[a]] %in% data_shape_fixture_axes()[[a]]) stop("Unknown value '", cell[[a]], "' for data-shape axis ", a, call. = FALSE)
+	}
+	cell
+}
+
+# Subject layout for one cell. Equal: two strata of 20 and ten clusters of 4. Unequal: strata of 17
+# and 23, clusters of 2 to 6 subjects, each cluster inside one stratum (so blocked-cluster designs see
+# blocks with different subject counts, v1.0.6-TODO-73).
+make_data_shape_covariates = function(cell, n = data_shape_fixture_n) {
+	cluster_sizes = if (identical(cell$group_sizes, "unequal")) c(2L, 3L, 4L, 5L, 3L, 3L, 4L, 5L, 6L, 5L) else rep(4L, 10L)
+	stopifnot(sum(cluster_sizes) == n)
+	cluster_id = rep(seq_along(cluster_sizes), times = cluster_sizes)
+	n_low = sum(cluster_sizes[1:5])
+	x1 = stats::qnorm(seq(0.5, n - 0.5) / n)[c(seq(1L, n, by = 2L), seq(2L, n, by = 2L))]
+	if (identical(cell$missing_covariate, "yes")) x1[c(3L, 11L)] = NA_real_
+	data.frame(
+		x1 = x1,
+		x2 = rep(c(0, 1), length.out = n),
+		stratum = factor(ifelse(seq_len(n) <= n_low, "low", "high"), levels = c("low", "high")),
+		cluster_id = factor(cluster_id),
+		stringsAsFactors = FALSE
+	)
+}
+
+# Noise is drawn once per cell (seeded), before the design assigns anyone, so the response is a
+# deterministic function of (noise, w): y = f(noise, w).
+make_data_shape_noise = function(n = data_shape_fixture_n, seed = 20261118L) {
+	old = if (exists(".Random.seed", envir = globalenv())) get(".Random.seed", envir = globalenv()) else NULL
+	on.exit(if (is.null(old)) rm(".Random.seed", envir = globalenv()) else assign(".Random.seed", old, envir = globalenv()))
+	set.seed(seed)
+	list(e = stats::rnorm(n), u = stats::runif(n), u_cens = stats::runif(n))
+}
+
+# One subject's response. Returns list(y, y_L, y_R): an exact value in y, or a censoring interval.
+data_shape_response_one = function(cell, i, w_i, x1_i, noise) {
+	strong = identical(cell$effect, "strong")
+	x = if (is.na(x1_i)) 0 else x1_i
+	e = noise$e[i]
+	u = noise$u[i]
+	exact = function(y) list(y = y, y_L = NA_real_, y_R = NA_real_)
+	switch(cell$response_type,
+		continuous = exact(0.5 * x + e + if (strong) 3 * w_i else 0),
+		incidence = exact(as.numeric(u < if (strong) (if (w_i == 1) 0.9 else 0.1) else 0.5)),
+		proportion = exact(stats::plogis(0.5 * e + if (strong) 2 * (2 * w_i - 1) else 0)),
+		count = exact(stats::qpois(u, if (strong) (if (w_i == 1) 8 else 1) else 2)),
+		ordinal = {
+			latent = e + if (strong) 3 * w_i else 0
+			exact(1 + (latent > -0.7) + (latent > 0) + (latent > 0.7))
+		},
+		survival = {
+			t_event = -log(u) * 10 * exp(0.2 * x + if (strong) 2.5 * w_i else 0)
+			if (identical(cell$censoring, "right")) {
+				t_cens = 5 + 40 * noise$u_cens[i]
+				if (t_event <= t_cens) exact(t_event) else list(y = NA_real_, y_L = t_cens, y_R = Inf)
+			} else if (identical(cell$censoring, "interval")) {
+				# Visit-schedule data as in the v1.0.6-TODO-90 repro: the event is known only to lie
+				# between two visits three time units apart.
+				left = floor(t_event / 3) * 3
+				list(y = NA_real_, y_L = left, y_R = left + 3)
+			} else {
+				exact(t_event)
+			}
+		},
+		stop("Unknown response_type: ", cell$response_type, call. = FALSE)
+	)
+}
+
+construct_data_shape_design = function(cell, n_arg) {
+	info = data_shape_designs[[cell$design]]
+	constructor = edi_export(info$class_name)
+	common = list(response_type = cell$response_type, n = n_arg, seed = 20260809L, design_formula = ~ x1 + x2 + stratum)
+	extra = switch(cell$design,
+		# equal_block_sizes = FALSE is the documented way to block unequal strata.
+		fixed_blocking = list(strata_cols = "stratum", equal_block_sizes = !identical(cell$group_sizes, "unequal")),
+		fixed_cluster = list(cluster_col = "cluster_id"),
+		fixed_blocked_cluster = list(strata_cols = "stratum", cluster_col = "cluster_id"),
+		list()
+	)
+	do.call(constructor$new, c(extra, common))
+}
+
+# Builds one data-shape fixture from its id. Anything EDI refuses while the design is built,
+# assigned or fed responses propagates as an error; the runner records it as the cell's outcome.
+build_data_shape_fixture = function(fixture_id) {
+	load_edi_for_fixtures()
+	cell = parse_data_shape_fixture_id(fixture_id)
+	info = data_shape_designs[[cell$design]]
+	n = data_shape_fixture_n
+	covariates = make_data_shape_covariates(cell, n)
+	if (isTRUE(info$sequential)) {
+		# Alternate the strata in arrival order. Arriving sorted (all "low" first) trips a separate
+		# bug: a design_formula naming a covariate that is still constant among the subjects so far
+		# fails with "object 'stratum' not found" in KK21 (found by this matrix, 2026-11-18).
+		half = n %/% 2L
+		covariates = covariates[c(rbind(seq_len(half), half + seq_len(half))), , drop = FALSE]
+		row.names(covariates) = NULL
+	}
+	noise = make_data_shape_noise(n)
+	n_null = cell$sample_size %in% c("null_mid", "null_end")
+	n_responded = if (identical(cell$sample_size, "null_mid")) 30L else n
+	design = construct_data_shape_design(cell, if (n_null) NULL else n)
+	responses = vector("list", n)
+	if (isTRUE(info$sequential)) {
+		for (i in seq_len(n)) {
+			design$add_one_subject_to_experiment_and_assign(covariates[i, , drop = FALSE])
+		}
+		w = as.numeric(design$get_w())
+		# Responses in enrollment order (out-of-order responses with n = NULL are v1.0.6-TODO-78's
+		# own bug; keeping order isolates the n = NULL analysis path).
+		for (i in seq_len(n_responded)) {
+			r = data_shape_response_one(cell, i, w[i], covariates$x1[i], noise)
+			responses[[i]] = r
+			if (!is.na(r$y)) design$add_one_subject_response(i, y = r$y) else design$add_one_subject_response(i, y_L = r$y_L, y_R = r$y_R)
+		}
+	} else {
+		design$add_all_subjects_to_experiment(covariates)
+		design$assign_w_to_all_subjects()
+		w = as.numeric(design$get_w())
+		responses = lapply(seq_len(n), function(i) data_shape_response_one(cell, i, w[i], covariates$x1[i], noise))
+		design$add_all_subject_responses(
+			ys = vapply(responses, function(r) r$y, numeric(1)),
+			y_Ls = vapply(responses, function(r) r$y_L, numeric(1)),
+			y_Rs = vapply(responses, function(r) r$y_R, numeric(1))
+		)
+	}
+	has_y = !vapply(responses, is.null, logical(1))
+	y_obs = vapply(responses, function(r) if (is.null(r)) NA_real_ else if (!is.na(r$y)) r$y else r$y_L, numeric(1))
+	dead = vapply(responses, function(r) if (is.null(r)) NA_real_ else as.numeric(!is.na(r$y)), numeric(1))
+	list(
+		fixture_id = fixture_id,
+		design = design,
+		data = covariates,
+		response = y_obs,
+		dead = dead,
+		w = w,
+		metadata = list(
+			fixture_id = fixture_id,
+			response_type = cell$response_type,
+			design_type = info$design_type,
+			class_name = info$class_name,
+			n = if (n_null) NA_integer_ else n,
+			n_enrolled = n,
+			n_responded = sum(has_y),
+			p = ncol(covariates),
+			has_strata = cell$design %in% c("fixed_blocking", "fixed_blocked_cluster"),
+			has_cluster = cell$design %in% c("fixed_cluster", "fixed_blocked_cluster"),
+			has_matching = identical(cell$design, "seq_kk21"),
+			has_censoring = !identical(cell$censoring, "none"),
+			censoring = cell$censoring,
+			effect = cell$effect,
+			data_shape = cell,
+			available_columns = names(covariates),
+			tier = "nightly"
+		)
+	)
+}
+
+# A fixture that failed to build: the runner turns build_error into the error outcome of every case
+# on it.
+failed_data_shape_fixture = function(fixture_id, message) {
+	list(fixture_id = fixture_id, build_error = message, metadata = list(fixture_id = fixture_id))
+}
+
+build_data_shape_fixtures = function(fixture_ids) {
+	fixtures = lapply(fixture_ids, function(id) {
+		tryCatch(
+			suppressWarnings(suppressMessages(build_data_shape_fixture(id))),
+			error = function(e) failed_data_shape_fixture(id, conditionMessage(e))
+		)
+	})
+	names(fixtures) = fixture_ids
+	fixtures
 }

@@ -253,10 +253,11 @@ tryCatch(des_na$add_all_subject_responses(y_missing),
          error = function(e) conditionMessage(e))
 ```
 
-(The message mentions `y_Ls` and `y_Rs` because a missing `ys` is allowed only for a
-censored survival response.) If you record responses one at a time, subjects without
-one simply have no response yet, and every inference class stops with "This experiment
-is incomplete as all responses aren't recorded yet."
+(A missing `ys` is allowed only for a censored survival response, entered through
+`y_Ls` and `y_Rs`.) `add_one_subject_response()` refuses `y = NA` with the same
+message. If you record responses one at a time, subjects you skip simply have no
+response yet, and every inference class stops with "This experiment is incomplete as
+all responses aren't recorded yet."
 
 So missing outcomes have to be dealt with before the data reach EDI, and the choice is
 a scientific one, not a software default:

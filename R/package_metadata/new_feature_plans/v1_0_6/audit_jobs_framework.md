@@ -103,6 +103,13 @@ todo/
     `github-actions[bot]` and fail the action's human-actor check (2026-11-17).
 - Each audit also checks its own result in the PR. The Rd audit, for example, re-runs `tools::checkRd` and the
   examples it changed on the PR branch, and puts that result in the body.
+- Decisions for the owner (added 2026-11-18). A report's "Decisions for you" items each get an id
+  (`<audit>-d<8 hex>`, stable across runs) and are kept in `<audit>/decisions_open.json` on `audit-notes`
+  until a run no longer finds them, an unticked release TODO cites the id, or the id is listed in
+  `R/package_metadata/audits/dismissed_decisions.md`. Items with nothing to decide go in a collapsed
+  "For information" block. `.github/scripts/audit_decisions.py` (run by `audit-status.yml`) lists every
+  audit's open decisions in one pinned issue labelled `audit-decisions`, so they stay visible after the PR
+  that raised them is merged.
 
 ### Secrets, models and cost guard
 

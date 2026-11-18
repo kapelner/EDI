@@ -25,8 +25,8 @@ exact_test_public = list(
 		#' @param args_for_type    Structured per-type arguments as a list.
 		compute_exact_confidence_interval = function(alpha = 0.05, pval_epsilon = 0.005, type = NULL, args_for_type = NULL){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
-				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+				assertNumeric(pval_epsilon, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
 			}
 			exact_type = private$resolve_exact_type(type)
 			exact_args = private$normalize_exact_inference_args(exact_type, args_for_type = args_for_type)
@@ -38,7 +38,7 @@ exact_test_public = list(
 		#' @param args_for_type    Structured per-type arguments as a list.
 		compute_exact_two_sided_pval_for_treatment_effect = function(delta = 0, type = NULL, args_for_type = NULL){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			exact_type = private$resolve_exact_type(type)
 			exact_args = private$normalize_exact_inference_args(exact_type, args_for_type = args_for_type)
@@ -78,14 +78,14 @@ exact_test_private = list(
 		},
 		compute_exact_confidence_interval_by_type = function(type, alpha, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			stop("Exact confidence intervals are not implemented for this exact inference class.")
 		},
 		compute_exact_two_sided_pval_for_treatment_effect_by_type = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			stop("Exact p-values are not implemented for this exact inference class.")

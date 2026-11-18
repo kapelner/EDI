@@ -73,8 +73,8 @@ DesignSeqOneByOneUrn = define_design_class(
 				# alpha = 0 passes a lower = 0 bound but makes the very first assignment's
 				# probability 0/0 (NaN), producing an NA assignment with an "NAs produced"
 				# warning instead of a validation error -- gated at +epsilon instead of 0.
-				assertNumber(alpha, lower = .Machine$double.eps)
-				assertNumber(beta, lower = 0)
+				assertNumber(alpha, lower = .Machine$double.eps, finite = TRUE)
+				assertNumber(beta, lower = 0, finite = TRUE)
 			}
 
 			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)

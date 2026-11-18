@@ -380,16 +380,19 @@ def apply(ctx, results, mech):
     old = ctx.read(CANDIDATES_FILE)
     rejected = rejected_units(ctx)
     confirmed = {u: f for u, f in confirmed.items() if u not in rejected}
-    kept = {}
+    kept, listed = {}, {}
     for line in (old or "").splitlines():
         m = LINE_RE.match(line)
-        if m and m.group("unit") in cands and m.group("unit") not in checked | rejected:
-            kept[m.group("unit")] = line
+        if m and m.group("unit") in cands:
+            listed[m.group("unit")] = line
+            if m.group("unit") not in checked | rejected:
+                kept[m.group("unit")] = line
     lines, proposed, human = dict(kept), [], []
     for u, f in confirmed.items():
         c = cands[u]
         text = re.sub(r"\s+", " ", f.get("text", "")).strip() or "confirmed"
-        line = candidate_line(u, c, text)
+        # A candidate already listed keeps its line: re-wording it would open a PR with no news.
+        line = listed.get(u) or candidate_line(u, c, text)
         lines[u] = line
         proposed.append({"unit": u, "kind": "dead-code", "text": finding_text(c),
                          "applied_file": CANDIDATES_FILE, "applied_text": f"- `{u}` "})

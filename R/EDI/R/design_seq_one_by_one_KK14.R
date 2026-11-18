@@ -142,6 +142,13 @@ DesignSeqOneByOneKK14 = define_design_class(
 						private$assign_wt_Bernoulli()
 					} else {
 						all_subject_data = private$compute_all_subject_data()
+						# v1.0.6-TODO-107: no covariate varies among the earlier subjects yet (e.g. the
+						# only formula covariate first varies at this subject), so there is nothing to
+						# match on and solve() would get a 0 x 0 matrix: randomize into the reservoir.
+						if (all_subject_data$rank_prev == 0L || NCOL(all_subject_data$X_prev) == 0L){
+							private$m[private$t] = 0
+							return(private$assign_wt_Bernoulli())
+						}
 						#compute inverse sample covariance of all past subjects (with eps regularization,
 						#scaled to the matrix's own magnitude -- a fixed .Machine$double.eps is negligible
 						#relative to real covariate scales (e.g. diag ~ 1e6), leaving near/exactly-singular

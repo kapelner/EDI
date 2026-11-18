@@ -56,4 +56,32 @@ cases_again = generate_public_argument_combinations(
 )
 expect_true(identical(cases, cases_again), "Generation is not deterministic.")
 
+# Data-shape cells (v1.0.6-TODO-97): legal only, every legal pair covered, deterministic.
+legal = legal_data_shape_cells()
+cells = pairwise_data_shape_cells(legal)
+expect_true(nrow(cells) > 0L && nrow(cells) < nrow(legal), "Data-shape covering array is empty or not smaller than the full factorial.")
+uncovered = 0L
+for (p in utils::combn(names(legal), 2L, simplify = FALSE)) {
+	uncovered = uncovered + length(setdiff(unique(paste(legal[[p[1L]]], legal[[p[2L]]])), unique(paste(cells[[p[1L]]], cells[[p[2L]]]))))
+}
+expect_true(uncovered == 0L, paste("Data-shape covering array misses", uncovered, "legal value pairs."))
+expect_true(!any(nzchar(data_shape_cell_violations(cells, data_shape_inference_classes, data_shape_kk_classes,
+	sequential_designs = c("seq_bernoulli", "seq_kk21"), grouped_designs = c("fixed_blocking", "fixed_cluster", "fixed_blocked_cluster")))),
+	"Data-shape covering array contains an illegal cell.")
+fixed_n = cells[cells$sample_size == "fixed", , drop = FALSE]
+fixed_legal = legal[legal$sample_size == "fixed", , drop = FALSE]
+fixed_pairs_missing = length(setdiff(unique(paste(fixed_legal$inference_class, fixed_legal$censoring)), unique(paste(fixed_n$inference_class, fixed_n$censoring))))
+expect_true(fixed_pairs_missing == 0L, "Some (inference class, censoring) pair is covered only on n = NULL cells.")
+expect_true(all(c("null_mid", "null_end") %in% cells$sample_size), "n = NULL cells are missing.")
+expect_true(all(c("unequal") %in% cells$group_sizes) && all(c("right", "interval") %in% cells$censoring) && "yes" %in% cells$missing_covariate && "strong" %in% cells$effect,
+	"A data-shape axis value is missing from the covering array.")
+shape_cases = generate_public_argument_data_shape_cases(max_cells = 3L)
+expect_true(!anyDuplicated(shape_cases$case_id), "Data-shape case_id values are not unique.")
+expect_true(all(shape_cases$argument_coverage_kind == "data_shape") && all(is_data_shape_fixture_id(shape_cases$fixture_id)), "Data-shape cases are mislabeled.")
+expect_true(all(custom_statistic_kinds %in% sub("^custom_stat=", "", shape_cases$argument_labels[shape_cases$class_name == "InferenceRandCustom"])), "InferenceRandCustom statistic kinds are missing.")
+expect_true(identical(shape_cases, generate_public_argument_data_shape_cases(max_cells = 3L)), "Data-shape generation is not deterministic.")
+for (id in unique(shape_cases$fixture_id)) {
+	expect_true(identical(data_shape_fixture_id(parse_data_shape_fixture_id(id)), id), paste("Data-shape fixture id does not round-trip:", id))
+}
+
 message("public argument combination generator smoke test passed with ", nrow(cases), " candidates")

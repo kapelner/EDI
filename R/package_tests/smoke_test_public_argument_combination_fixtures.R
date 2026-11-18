@@ -55,4 +55,22 @@ cluster_case = constraint_context_result(
 )
 expect_true(identical(cluster_case$status, "valid"), paste("Blocked-cluster metadata failed constraints:", cluster_case$reason))
 
+# Data-shape fixtures (v1.0.6-TODO-97) are built from their ids, on demand.
+shape_cell = list(design = "fixed_blocking", response_type = "survival", sample_size = "fixed", group_sizes = "unequal",
+	censoring = "interval", missing_covariate = "yes", effect = "strong")
+shape_id = data_shape_fixture_id(shape_cell)
+shape = build_public_argument_fixtures("nightly", fixture_ids = shape_id)[[shape_id]]
+expect_true(is.null(shape$build_error), paste("Data-shape fixture failed to build:", shape$build_error))
+expect_true(shape$design$any_censoring(), "Interval-censored data-shape fixture has no censoring.")
+expect_true(anyNA(shape$data$x1), "Missing-covariate data-shape fixture has no missing covariate.")
+expect_true(length(unique(table(shape$data$stratum))) > 1L, "Unequal-group data-shape fixture has equal strata.")
+expect_true(identical(shape$w, build_public_argument_fixtures("nightly", fixture_ids = shape_id)[[shape_id]]$w), "Data-shape fixture is not deterministic.")
+mid_id = data_shape_fixture_id(utils::modifyList(shape_cell, list(design = "seq_bernoulli", response_type = "continuous", sample_size = "null_mid",
+	group_sizes = "equal", censoring = "none", missing_covariate = "no")))
+mid = build_public_argument_fixtures("nightly", fixture_ids = mid_id)[[mid_id]]
+expect_true(is.null(mid$build_error), paste("Mid-stream data-shape fixture failed to build:", mid$build_error))
+expect_true(mid$metadata$n_responded < mid$metadata$n_enrolled && is.na(mid$metadata$n) && !isTRUE(mid$design$.__enclos_env__$private$fixed_sample), "Mid-stream fixture is not an n = NULL interim look.")
+broken = build_public_argument_fixtures("nightly", fixture_ids = "data_shape__no_such")
+expect_true(!is.null(broken[[1L]]$build_error), "A malformed data-shape id did not become a build error.")
+
 message("public_argument_combination_fixtures smoke test passed with ", nrow(inventory), " fixtures")

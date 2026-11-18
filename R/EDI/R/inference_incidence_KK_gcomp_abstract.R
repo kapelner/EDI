@@ -95,7 +95,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_confidence_interval(alpha)
@@ -119,7 +119,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#' @param alpha The significance level (default 0.05).
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_confidence_interval(alpha)
@@ -753,7 +753,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				delta = private$default_null_value()
 			}
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, any.missing = FALSE)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (identical(estimand, "RD")){
 				est = private$cached_values$rd
@@ -796,6 +796,8 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				private$set_failed_fit_cache(inference_ready = !estimate_only)
 				return(invisible(NULL))
 			}
+			# v1.0.6-TODO-109: separation warning (once per object, silent in resampling; no numeric change).
+			edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
 			private$cached_values = gcomp_cache_standardized_effects(
 				private$cached_values,
 				effects,

@@ -286,6 +286,10 @@ IncidenceProbitLikelihoodSource = list(
 					X = attempt$X,
 					j_treat = match(2L, attempt$keep)
 				)
+				# v1.0.6-TODO-119: warn (once per object, silent in resampling)
+				# when fitted probabilities Phi(X b) are numerically 0 or 1, i.e.
+				# (quasi-)complete separation. Warning only, no numeric change.
+				edi_warn_logistic_separation_once(self, private, attempt$X, attempt$fit$b, link = "probit")
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}

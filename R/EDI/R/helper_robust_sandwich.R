@@ -455,34 +455,80 @@ edi_warn_bootstrap_nonfinite_na_once = function(self, private, boot_distr, fn = 
 	invisible(TRUE)
 }
 
-#' Warn once per object and type when a BCa CI is NA on the boundary (TODO-101)
+#' Warn once per object and type when a BCa CI or p-value is NA on the boundary (TODO-101)
 #'
 #' Emits one classed warning (\code{edi_bootstrap_bca_boundary_warning}, fields
-#' \code{B}, \code{type}, \code{reason}) at most once per inference object and
-#' CI type when the BCa adjusted probabilities land on the order-statistic
-#' boundary (reason ending in \code{adjustment_on_boundary}) while every
+#' \code{B}, \code{type}, \code{reason}, \code{what} = \code{"interval"} or
+#' \code{"p-value"}) at most once per inference object, type and \code{what}
+#' when the BCa adjusted probabilities land on the order-statistic boundary (reason ending in \code{adjustment_on_boundary}) while every
 #' bootstrap draw is finite. Never changes any returned value. Silent while a
 #' resampling operation is active.
 #'
 #' @keywords internal
 #' @noRd
-edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, alpha = 0.05) {
+edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, alpha = 0.05, what = "interval") {
 	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (grepl("unstable_bias_or_acceleration$", as.character(reason)[1L])) {
+		return(edi_warn_bca_unstable_once(self, private, B, type, reason, what))
+	}
 	if (!grepl("adjustment_on_boundary$", as.character(reason)[1L])) return(invisible(FALSE))
 	ledger = private$cached_values$bca_boundary_warned
-	key = paste0(type, ":", reason)
+	# The CI and the p-value each warn once (v1.0.6-TODO-114); the CI keeps its original key.
+	key = paste0(type, if (!identical(what, "interval")) paste0("/", what), ":", reason)
 	if (is.character(ledger) && key %in% ledger) return(invisible(FALSE))
 	private$cached_values$bca_boundary_warned = c(if (is.character(ledger)) ledger, key)
-	k = round(alpha / 2 * (B + 1), 1)
+	# v1.0.6-TODO-92: "increase B" is advice only when B is below the recommended 501. At
+	# B >= 501 the boundary comes from the data (an extreme bias correction or acceleration),
+	# not from too few order statistics, so recommending the B just used is wrong.
+	advice = if (B < 501) {
+		k = round(alpha / 2 * (B + 1), 1)
+		paste0(": the nominal tail is only ~", k, " order statistics; increase B (>= 501 recommended) ",
+			"or use type = \"percentile\". ")
+	} else {
+		paste0(": the bias correction and acceleration estimated from these data push the adjusted tail ",
+			"onto the most extreme bootstrap draws, so a larger B will not fix it; use type = \"percentile\". ")
+	}
 	msg = paste0(
-		class(self)[1L], ": BCa adjustment on the boundary at B = ", B,
-		": the nominal tail is only ~", k, " order statistics; increase B (>= 501 recommended) ",
-		"or use type = \"percentile\". The returned interval is NA. ",
+		class(self)[1L], ": BCa adjustment on the boundary at B = ", B, advice,
+		"The returned ", what, " is NA. ",
 		"Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\")."
 	)
 	warning(structure(
 		class = c("edi_bootstrap_bca_boundary_warning", "warning", "condition"),
-		list(message = msg, call = NULL, B = B, type = type, reason = as.character(reason)[1L])
+		list(message = msg, call = NULL, B = B, type = type, reason = as.character(reason)[1L], what = what)
+	))
+	invisible(TRUE)
+}
+
+#' Warn once per object when a BCa CI or p-value is NA because the bias correction or
+#' acceleration is unstable (v1.0.6-TODO-116)
+#'
+#' \code{bca_ci_core()} / \code{bca_pval_core()} return NA with a reason ending in
+#' \code{unstable_bias_or_acceleration} when \eqn{|z_0| > 2.5}, \eqn{|a| > 1}, either is
+#' not finite, or the BCa denominator \eqn{1 - a(z_0 + z)} is (near) zero. Emits one
+#' \code{edi_bootstrap_bca_unstable_warning} (fields \code{B}, \code{type}, \code{reason},
+#' \code{what} = \code{"interval"} or \code{"p-value"}) per object, type and \code{what}.
+#' Called through \code{edi_warn_bca_boundary_once()}, so it shares its "silent while a
+#' resampling operation is active" guard. Never changes any returned value.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_bca_unstable_once = function(self, private, B, type = "bca", reason, what = "interval") {
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	ledger = private$cached_values$bca_boundary_warned
+	key = paste0(type, "/", what, ":", reason)
+	if (is.character(ledger) && key %in% ledger) return(invisible(FALSE))
+	private$cached_values$bca_boundary_warned = c(if (is.character(ledger)) ledger, key)
+	msg = paste0(
+		class(self)[1L], ": BCa bias correction or acceleration is unstable at B = ", B,
+		" (the estimate lies in the far tail of the bootstrap draws, or the jackknife acceleration ",
+		"is extreme), so the BCa adjustment is undefined; use type = \"percentile\". ",
+		"The returned ", what, " is NA. ",
+		"Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_unstable_warning\")."
+	)
+	warning(structure(
+		class = c("edi_bootstrap_bca_unstable_warning", "warning", "condition"),
+		list(message = msg, call = NULL, B = B, type = type, reason = as.character(reason)[1L], what = what)
 	))
 	invisible(TRUE)
 }
@@ -550,6 +596,82 @@ edi_warn_binomial_mle_boundary_once = function(self, private, X_fit, b, link = c
 	warning(structure(
 		class = c("edi_binomial_mle_boundary_warning", "warning", "condition"),
 		list(message = msg, call = NULL, link = link, n_on_boundary = n_on_boundary)
+	))
+	invisible(TRUE)
+}
+
+#' Number of subjects whose fitted logistic probability is numerically 0 or 1
+#' (v1.0.6-TODO-109)
+#'
+#' Counts rows of \code{X_fit} with fitted probability
+#' \eqn{\mathrm{plogis}(X\beta)} below \code{eps} or above \code{1 - eps},
+#' i.e. \eqn{|X\beta| \ge \mathrm{qlogis}(1 - eps)} (about 18.4 at the default
+#' \code{eps = 1e-8}). Under (quasi-)complete separation the maximum
+#' likelihood estimate does not exist and the fitter stops with some fitted
+#' probabilities on the edge. \code{glm()}'s check uses \code{eps = 10 *
+#' .Machine$double.eps}, but the EDI fitters stop earlier (a fit separated on
+#' treatment alone ends near \eqn{|X\beta| \approx 23}), so a looser edge is
+#' used. Returns \code{NA_integer_} when the linear predictor cannot be formed.
+#' \code{link = "probit"} (v1.0.6-TODO-119) uses \eqn{\Phi(X\beta)} instead,
+#' i.e. \eqn{|X\beta| \ge \Phi^{-1}(1 - eps)} (about 5.6 at the default; a
+#' probit fit separated on treatment alone ends near \eqn{|X\beta| \approx 7}).
+#'
+#' @keywords internal
+#' @noRd
+edi_logistic_n_fitted_extreme = function(X_fit, b, eps = 1e-8, link = c("logit", "probit")) {
+	link = match.arg(link)
+	if (is.null(X_fit) || is.null(b)) return(NA_integer_)
+	eta = tryCatch(as.numeric(as.matrix(X_fit) %*% as.numeric(b)), error = function(e) NULL)
+	if (!length(eta) || anyNA(eta)) return(NA_integer_)
+	edge = if (link == "probit") stats::qnorm(1 - eps) else stats::qlogis(1 - eps)
+	as.integer(sum(abs(eta) >= edge))
+}
+
+#' Warn once per object when a logistic fit shows (quasi-)complete separation
+#' (v1.0.6-TODO-109)
+#'
+#' Called right after a full-data logistic fit is accepted. If any fitted
+#' probability is numerically 0 or 1 (see
+#' \code{edi_logistic_n_fitted_extreme()}), the data are (quasi-)completely
+#' separated: the MLE does not exist, the reported coefficient is wherever the
+#' fitter stopped, and Wald standard errors, p-values and intervals are not
+#' meaningful. This is the condition \code{glm()} reports as "fitted
+#' probabilities numerically 0 or 1 occurred". Emits one classed warning
+#' \code{edi_logistic_separation_warning} (fields \code{n_extreme},
+#' \code{n}) at most once per inference object. Never changes any returned
+#' value. Silent while a resampling operation is active, so resampling inner
+#' loops never repeat it. \code{advice}, when given, replaces the default
+#' "Consider ..." sentence (v1.0.6-TODO-118: the KK GEE classes, which have no
+#' likelihood-ratio test and return NA Wald results under separation).
+#' \code{link = "probit"} (v1.0.6-TODO-119, \code{InferenceIncidProbitRegr})
+#' checks \eqn{\Phi(X\beta)} instead; the warning keeps the class
+#' \code{edi_logistic_separation_warning} for every binary link (one class to
+#' catch or suppress) and carries the link in its \code{link} field.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_logistic_separation_once = function(self, private, X_fit, b, eps = 1e-8, advice = NULL, link = c("logit", "probit")) {
+	link = match.arg(link)
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (isTRUE(private$cached_values$logistic_separation_warned)) return(invisible(FALSE))
+	n_extreme = edi_logistic_n_fitted_extreme(X_fit, b, eps, link = link)
+	if (is.na(n_extreme) || n_extreme == 0L) return(invisible(FALSE))
+	private$cached_values$logistic_separation_warned = TRUE
+	n = nrow(as.matrix(X_fit))
+	msg = paste0(
+		class(self)[1L], ": fitted probabilities numerically 0 or 1 occurred (", n_extreme, " of ", n,
+		" subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist ",
+		"and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence ",
+		"intervals are not meaningful here. ",
+		if (length(advice) && nzchar(advice[1L])) paste0(advice[1L], " ") else paste0(
+			"Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), ",
+			"a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. "
+		),
+		"Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\")."
+	)
+	warning(structure(
+		class = c("edi_logistic_separation_warning", "warning", "condition"),
+		list(message = msg, call = NULL, n_extreme = n_extreme, n = n, link = link)
 	))
 	invisible(TRUE)
 }
@@ -665,6 +787,37 @@ edi_clear_procedure_failure = function(private, procedure) {
 		private$cached_values$procedure_failure_reason = pf
 	}
 	invisible(NULL)
+}
+
+#' Warn that a public method is returning NA for a recorded reason
+#' (v1.0.6-TODO-113, the v1.0.6-TODO-95 rule)
+#'
+#' Call it right where a public method records a reason
+#' (\code{cache_procedure_failure()} / \code{edi_record_procedure_failure()})
+#' and hands the caller \code{NA}, so the user sees why instead of a silent
+#' \code{NA}. Emits one warning of class \code{warning_class} (default
+#' \code{edi_procedure_na_warning}) with fields \code{procedure} and
+#' \code{reason}. Never changes any returned value or recorded state. Silent
+#' while a resampling operation is active
+#' (\code{private$active_resampling_operation}), so replicate fits in
+#' bootstrap, jackknife or randomization inner loops never repeat it.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_procedure_na = function(self, private, procedure, reason, detail = NULL, warning_class = "edi_procedure_na_warning") {
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	reason = as.character(reason)[1L]
+	cls = unique(c(warning_class, "edi_procedure_na_warning"))
+	msg = paste0(
+		class(self)[1L], ": ", procedure, " returned NA (reason: ", reason, ").",
+		if (length(detail) && nzchar(detail)) paste0(" ", detail) else "",
+		" Suppress with suppressWarnings(expr, classes = \"", cls[1L], "\")."
+	)
+	warning(structure(
+		class = c(cls, "warning", "condition"),
+		list(message = msg, call = NULL, procedure = procedure, reason = reason)
+	))
+	invisible(TRUE)
 }
 
 #' Has a procedure already recorded a failure reason? (TODO-116)

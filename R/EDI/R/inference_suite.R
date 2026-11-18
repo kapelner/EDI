@@ -4866,16 +4866,18 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			if (should_run_asserts()) {
 				assertFlag(screen)
 				assertFlag(html)
-				assertNumber(alpha, lower = 0, upper = 1)
+				assertNumber(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps)
 				assertFlag(compute_conf_intervals)
 				assertCharacter(output_dir, len = 1L, any.missing = FALSE)
 				assertFlag(save_results_as_JSON)
 				assertFlag(plots)
 				assertFlag(pdf)
 				assertFlag(basic_bootstrap)
-				assertCharacter(classes, null.ok = TRUE)
-				assertCharacter(exclude_classes)
-				assertNumber(max_secs_per_class, lower = 0, null.ok = TRUE)
+				assertCharacter(classes, any.missing = FALSE, null.ok = TRUE)
+				assertCharacter(exclude_classes, any.missing = FALSE)
+				# Inf allowed: same as NULL (no limit). 0 is not: setTimeLimit(elapsed = 0) means
+				# no limit while the fork dispatcher kills every task at once.
+				assertNumber(max_secs_per_class, lower = .Machine$double.xmin, null.ok = TRUE)
 				assertCount(num_cores, positive = TRUE)
 				if (!is.null(formulas)) {
 					formulas_check = if (inherits(formulas, "formula")) list(formulas) else as.list(formulas)
@@ -4981,7 +4983,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 							"`combined_evidence_weights`, a named numeric vector (inference class name -> weight)."
 						)
 					}
-					assertNumeric(combined_evidence_weights, any.missing = FALSE)
+					assertNumeric(combined_evidence_weights, finite = TRUE, any.missing = FALSE)
 					if (any(combined_evidence_weights < 0)) {
 						stop("InferenceSuite$run_all_inference: `combined_evidence_weights` must be non-negative.")
 					}

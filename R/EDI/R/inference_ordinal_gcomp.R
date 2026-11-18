@@ -120,7 +120,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
@@ -144,7 +144,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
@@ -166,7 +166,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
@@ -190,7 +190,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		compute_wald_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){

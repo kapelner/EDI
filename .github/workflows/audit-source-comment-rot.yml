@@ -36,5 +36,6 @@ jobs:
     with:
       audit: source-comment-rot
       nth: 4
+      finish_needs_r: true   # roxygen regenerates the Rd pages of corrected roxygen lines
       scope: ${{ inputs.scope || 'auto' }}
     secrets: inherit

@@ -69,4 +69,19 @@ expect_status(list(args = list(), fixture = within(within(fixture, response_type
 expect_status(list(args = list(), fixture = fixture, tier = "ci", registry_entry = list(optional_dependencies = "optional_non_rcpp_backend")), "skipped_dependency")
 expect_status(list(args = list(B = 101L), fixture = fixture, tier = "smoke", registry_entry = list(slow_path_labels = "bootstrap")), "skipped_slow")
 
+# Data-shape cell constraints (v1.0.6-TODO-97).
+cells = data.frame(
+	design = c("seq_kk21", "fixed_bernoulli", "fixed_bernoulli", "fixed_blocking", "fixed_bernoulli", "fixed_bernoulli"),
+	response_type = c("survival", "continuous", "continuous", "continuous", "continuous", "continuous"),
+	sample_size = c("null_mid", "null_end", "fixed", "fixed", "fixed", "fixed"),
+	group_sizes = c("equal", "equal", "unequal", "unequal", "equal", "equal"),
+	censoring = c("interval", "none", "none", "none", "right", "none"),
+	missing_covariate = "no", effect = "null",
+	inference_class = c("KKSurv", "OLS", "OLS", "OLS", "OLS", "KKOLS"),
+	stringsAsFactors = FALSE
+)
+why = data_shape_cell_violations(cells, list(survival = "KKSurv", continuous = c("OLS", "KKOLS")), kk_classes = c("KKSurv", "KKOLS"),
+	sequential_designs = "seq_kk21", grouped_designs = "fixed_blocking")
+expect_true(identical(nzchar(why), c(FALSE, TRUE, TRUE, FALSE, TRUE, TRUE)), paste("Data-shape cell constraints misjudged:", paste(why, collapse = " / ")))
+
 message("public_argument_combination_constraints smoke test passed")

@@ -64,6 +64,14 @@ InferenceRandCustom = define_inference_class(
 			}
 			if (should_run_asserts()) {
 				assertFunction(custom_randomization_statistic_function, null.ok = TRUE)
+				# evaluate_stat() calls it as f(y, w, dead): a function that cannot take three
+				# positional arguments used to fail only at the first draw ("unused argument").
+				if (!is.null(custom_randomization_statistic_function)) {
+					fmls = names(formals(custom_randomization_statistic_function))
+					if (!("..." %in% fmls) && length(fmls) < 3L) {
+						stop("custom_randomization_statistic_function must accept three arguments (y, w, dead) or `...`; it has ", length(fmls), ".", call. = FALSE)
+					}
+				}
 			}
 			super$initialize(des_obj = des_obj, verbose = verbose)
 			# Field names below are deliberately identical to the ones
@@ -82,7 +90,20 @@ InferenceRandCustom = define_inference_class(
 		#' @param estimate_only Unused; present for the `fit()` contract.
 		fit = function(estimate_only = FALSE){
 			dat = self$get_analysis_data()
-			list(estimate = private$evaluate_stat(dat$y, dat$w, dat$dead))
+			est = private$evaluate_stat(dat$y, dat$w, dat$dead)
+			# v1.0.6-TODO-111: a statistic that is NA/NaN/Inf on the observed data
+			# used to give an NA estimate, p-value and CI with no warning (only the
+			# nonestimable reason "custom_estimate_unavailable" was recorded).
+			if (!is.finite(est)) {
+				stat_arg = if (is.null(private$compiled_cpp_stat_fn)) "custom_randomization_statistic_function" else "custom_randomization_statistic_cpp"
+				warning(
+					"InferenceRandCustom: the custom statistic (", stat_arg, ") returned ",
+					format(est), " on the observed data, so the estimate, randomization p-value and ",
+					"randomization CI are NA. Make the statistic return a finite number.",
+					call. = FALSE
+				)
+			}
+			list(estimate = est)
 		}
 	),
 	private = list(

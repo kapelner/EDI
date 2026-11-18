@@ -193,7 +193,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' 			for the difference in median survival times, on the original time scale.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			if (is.na(private$cached_values$s_beta_hat_T)) {
@@ -223,7 +223,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @return  The approximate frequentist p-value
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			if (is.na(private$cached_values$s_beta_hat_T)) {
@@ -246,7 +246,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @return  The approximate frequentist p-value
 		compute_asymp_log_rank_two_sided_pval_for_treatment_effect = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				if (delta != 0){
 					stop("Log-rank p-value for non-zero delta is not yet implemented.")
 				}
@@ -275,9 +275,95 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @return  A 1 - alpha sized frequentist confidence interval
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, ci_search_control = NULL){
 			stop("Randomization confidence intervals are not supported for InferenceSurvivalKMDiff due to inconsistent estimator units on the transformed scale.")
+		},
+		#' @description Jackknife-Wald confidence interval; see
+		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. The jackknife is
+		#'   unreliable for a median (leave-one-out medians take only a few distinct
+		#'   values, and the jackknife variance of a sample median is inconsistent), so
+		#'   it often returns \code{NA}; when it does, a warning gives the reason.
+		#'   The bootstrap interval is the better choice for this estimator.
+		#' @param alpha Significance level. Default 0.05.
+		#' @param unit Deletion unit. Default \code{"auto"}.
+		#' @return A jackknife-Wald confidence interval.
+		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
+			private$jackknife_wald_with_reason(function() private$jackknife_wald_ci_impl(alpha = alpha, unit = unit), unit)
+		},
+		#' @description Jackknife-Wald two-sided p-value; see
+		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. Warns with the
+		#'   reason when the result is \code{NA} (see
+		#'   \code{$compute_jackknife_wald_confidence_interval()}).
+		#' @param delta Null treatment-effect value. Default 0.
+		#' @param unit Deletion unit. Default \code{"auto"}.
+		#' @return A two-sided jackknife-Wald p-value.
+		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
+			private$jackknife_wald_with_reason(function() private$jackknife_wald_pval_impl(delta = delta, unit = unit), unit)
 		}
 	),
 	private = list(
+		jackknife_wald_ci_impl = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
+		jackknife_wald_pval_impl = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
+		# v1.0.6-TODO-112: the jackknife-Wald result was NA with no warning on plain uncensored
+		# data. Cause: leave-one-out KM medians take only three values per arm (the deleted
+		# subject is below, at or above the median), with uneven gaps, so the (n - 1)-scaled
+		# jackknife bias is large and the shared |bias| > 2 SE guard
+		# (InferenceJackknife compute_jackknife_summary(), reason "jackknife_extreme_summary")
+		# returns NA. The guard is right to refuse; this says why in median terms. The shared
+		# jackknife NA warning (v1.0.6-TODO-113, edi_warn_jackknife_na()) attributes that
+		# reason to separation, which does not apply here, so it is held back and replaced
+		# by this class's warning; it is re-raised unchanged when no median-specific reason
+		# applies (e.g. the median itself is NA, which shared() has already explained).
+		jackknife_wald_with_reason = function(fn, unit){
+			generic = list()
+			out = withCallingHandlers(fn(), edi_procedure_na_warning = function(cnd){
+				if (inherits(cnd, "edi_km_median_not_reached_warning")) return(invisible(NULL))
+				if (!grepl("^compute_jackknife", as.character(cnd$procedure %||% ""))) return(invisible(NULL))
+				generic[[length(generic) + 1L]] <<- cnd
+				invokeRestart("muffleWarning")
+			})
+			why = private$km_jackknife_na_reason(out, unit)
+			if (is.null(why)) {
+				for (cnd in generic) warning(cnd)
+				return(out)
+			}
+			msg = paste0(
+				class(self)[1L], ": the jackknife-Wald result is NA because ", why, ". ",
+				"Use compute_bootstrap_confidence_interval() / compute_bootstrap_two_sided_pval() instead. ",
+				"Suppress with suppressWarnings(expr, classes = \"edi_km_jackknife_na_warning\")."
+			)
+			warning(structure(
+				class = c("edi_km_jackknife_na_warning", "edi_procedure_na_warning", "warning", "condition"),
+				list(message = msg, call = NULL, procedure = "jackknife", reason = "jackknife_median_unreliable")
+			))
+			out
+		},
+		# The median-specific reason a jackknife-Wald result is NA, or NULL when there is none
+		# (finite result, inside resampling, NA median, no cached summary).
+		km_jackknife_na_reason = function(out, unit){
+			if (any(is.finite(out))) return(NULL)
+			if (!is.null(private$active_resampling_operation)) return(NULL)
+			theta_hat = private$cached_values$beta_hat_T
+			if (is.null(theta_hat) || !is.finite(theta_hat)) return(NULL)
+			key = tryCatch(private$jackknife_cache_key(private$normalize_jackknife_unit(unit)), error = function(e) NULL)
+			s = if (is.null(key)) NULL else private$cached_values$jackknife_summary[[key]]
+			if (is.null(s)) return(NULL)
+			jack = as.numeric(s$distribution)
+			if (length(jack) <= 1L) return(NULL)
+			if (any(!is.finite(jack))) {
+				return(paste0(
+					sum(!is.finite(jack)), " of ", length(jack), " leave-one-out estimates are NA ",
+					"(deleting a unit left an arm whose Kaplan-Meier curve never falls to 0.5, so its median is not reached)"
+				))
+			}
+			m = length(jack)
+			bias = (m - 1) * (mean(jack) - theta_hat)
+			se = sqrt((m - 1) / m * sum((jack - mean(jack))^2))
+			if (!is.finite(bias) || !is.finite(se) || abs(bias) <= 2 * se) return(NULL)
+			paste0(
+				"the jackknife bias estimate (", formatC(bias, digits = 3, format = "fg"), ") is more than twice the jackknife ",
+				"standard error (", formatC(se, digits = 3, format = "fg"), "). Leave-one-out medians take only a few distinct ",
+				"values, so the jackknife bias and variance of a median are unreliable (the jackknife variance of a sample median is inconsistent)"
+			)
+		},
 		bayesian_boot_compute_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
 		supports_interval_or_left_censored_data = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
@@ -323,6 +409,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 				private$w,
 				"median"
 			)
+			if (!is.finite(private$cached_values$beta_hat_T)) private$warn_km_median_not_reached_once()
 			if (estimate_only) return(invisible(NULL))
 
 			# Variance components via survfit (Brookmeyer-Crowley back-calculation)
@@ -375,6 +462,43 @@ InferenceSurvivalKMDiff = define_inference_class(
 			# what the CI or p-value use (they keep each side's half-width, see
 			# mover_half_widths()); it marks the analytic path as available.
 			private$cached_values$s_beta_hat_T = sqrt(((hi_T - lo_T) / (2 * z))^2 + ((hi_C - lo_C) / (2 * z))^2)
+		},
+		# v1.0.6-TODO-112: a median that is not reached is a legitimate NA, but say so, naming
+		# the arm(s) whose Kaplan-Meier curve stays above 0.5 and suggesting the restricted
+		# mean. shared() caches the NA estimate, so this fires once per fit, not once per
+		# method call; there is deliberately no once-per-object flag, because internal
+		# suppressWarnings(compute_estimate()) calls would use it up unseen. Silent inside
+		# resampling replicates (a bootstrap or jackknife draw can lose its median; those
+		# draws are counted by the resampling code, not warned one by one).
+		warn_km_median_not_reached_once = function(){
+			if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+			arm_note = function(w_val, label){
+				idx = which(private$w == w_val & is.finite(private$y))
+				if (!length(idx)) return(paste0("the ", label, " arm has no subjects with a usable response"))
+				dead = private$dead[idx]
+				fit = tryCatch(survival::survfit(survival::Surv(private$y[idx], dead) ~ 1), error = function(e) NULL)
+				min_surv = if (is.null(fit) || !length(fit$surv)) 1 else min(fit$surv)
+				if (min_surv <= 0.5) return(NULL)
+				paste0(
+					"the ", label, " arm's Kaplan-Meier curve never falls to 0.5 (lowest survival ",
+					formatC(min_surv, digits = 3, format = "fg"), ", ", sum(dead == 1), " events among ",
+					length(idx), " subjects), so its median is not reached"
+				)
+			}
+			notes = c(arm_note(1, "treated (w = 1)"), arm_note(0, "control (w = 0)"))
+			why = if (length(notes)) paste(notes, collapse = "; and ") else "a median could not be computed"
+			msg = paste0(
+				class(self)[1L], ": the difference in median survival is NA because ", why, ". ",
+				"The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. ",
+				"Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), ",
+				"which is defined however much follow-up there is. ",
+				"Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\")."
+			)
+			warning(structure(
+				class = c("edi_km_median_not_reached_warning", "edi_procedure_na_warning", "warning", "condition"),
+				list(message = msg, call = NULL, procedure = "estimate", reason = "km_median_not_reached")
+			))
+			invisible(TRUE)
 		},
 		# Each arm's Kaplan-Meier median and its Brookmeyer-Crowley bounds at level
 		# 1 - alpha (named m_T, l_T, u_T, m_C, l_C, u_C), or NULL when survfit fails
@@ -506,7 +630,8 @@ InferenceSurvivalKMDiff = define_inference_class(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_bayesian_bootstrap_two_sided_pval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
+			"compute_rand_confidence_interval", "compute_rand_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval", "compute_jackknife_wald_two_sided_pval"
 		),
 		private = c(
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",

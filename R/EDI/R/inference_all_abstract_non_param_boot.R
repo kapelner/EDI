@@ -705,7 +705,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @return 	A bootstrap two-sided p-value.
 		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertBootstrapArgs(B = B, min_number_usable_samples = min_number_usable_samples, context = "compute_bootstrap_two_sided_pval")
 			}
 			if (should_run_asserts()) {
@@ -879,7 +879,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("Bootstrap inference")
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertBootstrapArgs(B = B, min_number_usable_samples = min_number_usable_samples, context = "compute_bootstrap_confidence_interval")
 			}
 			type = tolower(private$get_bootstrap_type(type))
@@ -1088,6 +1088,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		mark_jackknife_nonestimable_if_block_unsupported = function(unit = "auto"){
 			if (!private$jackknife_block_size_gt_one_unsupported(unit = unit)) return(FALSE)
 			private$cache_procedure_failure("jackknife", "jackknife_block_size_gt_one_not_supported")
+			# Public jackknife methods return NA right after this; say why (v1.0.6-TODO-108,
+			# the v1.0.6-TODO-95 rule). Silent inside resampling (edi_warn_procedure_na()).
+			edi_warn_procedure_na(self, private, procedure = "jackknife",
+				reason = "jackknife_block_size_gt_one_not_supported",
+				detail = paste0("Deletion unit \"", private$resolve_jackknife_unit(unit), "\" is not supported on this ",
+					"blocking design because its blocks hold more than one subject; use unit = \"block\" ",
+					"(leave-one-block-out)."))
 			TRUE
 		},
 		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se"), procedure = NULL){
@@ -1098,7 +1105,16 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (is.character(cf) && !is.na(cf)) NULL
 			else {
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason)
-				else edi_record_procedure_failure(self, private, reason, stage, procedure = procedure)
+				else {
+					edi_record_procedure_failure(self, private, reason, stage, procedure = procedure)
+					# A recorded reason must not reach the user as a silent NA (v1.0.6-TODO-113).
+					edi_warn_procedure_na(self, private, procedure = "bootstrap confidence interval", reason = reason,
+						detail = if (grepl("extreme_confidence_interval$", reason)) paste0(
+							"The interval was wider than EDI's stability cap, so it is treated as numerically ",
+							"unstable (typically a few resamples near separation, or too few independent units ",
+							"such as clusters). A randomization interval (compute_rand_confidence_interval()) may still be available."
+						))
+				}
 				if (is.character(cf)) private$cached_values$ci_call_failure_reason = reason
 			}
 			ci = c(NA_real_, NA_real_)
@@ -1125,6 +1141,16 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		},
 		bootstrap_outcome_scale = function(){
 			y = tryCatch(suppressWarnings(as.numeric(private$y)), error = function(e) numeric(0))
+			if (isTRUE(private$has_general_censoring) && length(private$y_L) == length(y) && length(private$y_R) == length(y)) {
+				# Left-/interval-censored survival (v1.0.6-TODO-91): y is NA for every censored row,
+				# so the scale fell back to 1 and the width cap to 5 time units, and ordinary
+				# percentile intervals were discarded as "extreme". Use one time per subject: the
+				# exact time, else the interval midpoint, else the right-censoring time.
+				y_L = suppressWarnings(as.numeric(private$y_L))
+				y_R = suppressWarnings(as.numeric(private$y_R))
+				mid = ifelse(is.finite(y_L) & is.finite(y_R), (y_L + y_R) / 2, y_L)
+				y = ifelse(is.finite(y), y, mid)
+			}
 			y = y[is.finite(y)]
 			if (length(y) < 2L) return(1)
 			s = stats::sd(y)
@@ -1973,6 +1999,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
+				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap confidence interval (type = \"bca\")")
 				return(c(NA_real_, NA_real_))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
@@ -2076,12 +2103,31 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					"bootstrap_bca_jackknife_unavailable"
 				}
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
+				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap p-value (type = \"bca\")")
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
+				# v1.0.6-TODO-114: warn like the BCa CI does on the same boundary (no-op for other reasons)
+				edi_warn_bca_boundary_once(self, private, length(boot_distr), "bca", reason, what = "p-value")
 				NA_real_
 			})
 		}
 	))
 )
+
+# BCa needs >= 2 finite jackknife replicates for its acceleration; with fewer, the BCa CI /
+# p-value is NA. Warn instead of returning it silently (v1.0.6-TODO-108, the v1.0.6-TODO-95
+# rule). Silent inside resampling (edi_warn_procedure_na()).
+edi_warn_bca_jackknife_unavailable = function(self, private, reason, what){
+	detail = if (identical(reason, "jackknife_block_size_gt_one_not_supported")) {
+		paste0("The BCa acceleration uses the design's automatic jackknife unit (\"",
+			private$resolve_jackknife_unit("auto"), "\"), which this blocking design does not support. ",
+			"Use type = \"percentile\" (or another non-BCa type).")
+	} else {
+		paste0("The BCa acceleration needs at least two finite jackknife replicate estimates and fewer were ",
+			"available (see approximate_jackknife_distribution_beta_hat_T()). Use type = \"percentile\" ",
+			"(or another non-BCa type).")
+	}
+	edi_warn_procedure_na(self, private, procedure = what, reason = reason, detail = detail)
+}

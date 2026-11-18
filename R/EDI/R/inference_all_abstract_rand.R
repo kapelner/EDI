@@ -94,7 +94,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			on.exit(private$end_rand_worker_reuse_session(), add = TRUE)
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertNumeric(delta); assertCount(r, positive = TRUE); assertFlag(debug)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE); assertCount(r, positive = TRUE); assertFlag(debug)
 			}
 			mc_control_for_perms = private$randomization_mc_control
 			defer_permutation_generation_for_mc =
@@ -303,16 +303,23 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# did, so a "rand" CI could come back for a row whose "rand"
 			# p-value always came back `NA` even though it was actually
 			# computable.
+			# v1.0.6-TODO-110: a custom statistic supplied as C++
+			# (compiled_cpp_stat_fn) counts as custom just like the R-function
+			# form; only checking the R field refused the C++ form even at delta = 0.
 			private$should_use_zhang_incidence_randomization() ||
 				!(private$des_obj_priv_int$response_type == "incidence" &&
-					is.null(private$custom_randomization_statistic_function) &&
+					is.null(private[["custom_randomization_statistic_function"]]) &&
+					is.null(private[["compiled_cpp_stat_fn"]]) &&
 					!private$should_use_design_randomization_for_incidence())
 		},
 		#' @description Computes a randomization-based p-value.
 		#' @param r  	Number of randomization vectors.
 		#' @param delta  				Null difference.
 		#' @param transform_responses  Transformation.
-		#' @param na.rm 				Remove NAs.
+		#' @param na.rm 				Kept for compatibility; must be a flag. Non-finite reference
+		#'   statistics (draws whose statistic is \code{NA}, \code{NaN} or infinite) are
+		#'   dropped silently whatever its value, and the p-value is computed over the
+		#'   finite draws only; see Details for the minimum number required.
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
@@ -336,20 +343,29 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   matched-pair and Bernoulli designs. (Before EDI 1.0.5 such incidence designs
 		#'   instead returned the Zhang exact combined test, which does not use the draws
 		#'   and was markedly more conservative; it is still available explicitly through
-		#'   the \code{type = "Zhang"} argument of classes that offer it.) At least 10
-		#'   finite reference statistics are required, otherwise \code{NA} is returned.
+		#'   the \code{type = "Zhang"} argument of classes that offer it.) Non-finite
+		#'   reference statistics are dropped (for any \code{na.rm}) and \eqn{B} above is
+		#'   the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)} finite
+		#'   reference statistics are required (10\% of the draws, and never fewer than
+		#'   10), otherwise \code{NA} is returned.
 		#'   A nonzero \code{delta} is not supported for incidence responses.
 		#' @return 	Randomization p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
+			# v1.0.6-TODO-81/110: nonzero delta is refused on incidence however the
+			# statistic is supplied (built-in, custom R function or custom C++); the
+			# R-function form used to be exempt.
 			if (isTRUE(delta != 0) &&
-					private$des_obj_priv_int$response_type == "incidence" &&
-					is.null(private$custom_randomization_statistic_function)) {
+					private$des_obj_priv_int$response_type == "incidence") {
 				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertLogical(na.rm)
+				# v1.0.6-TODO-100: the delta check downstream (in
+				# approximate_randomization_distribution_beta_hat_T()) is skipped when the
+				# null distribution comes from the cache, so an NA delta returned a p-value.
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
+				assertFlag(na.rm)
 				if (!self$supports_rand_pval_for_incidence()) {
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
@@ -1099,7 +1115,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# OLS-family class going through the reused-worker path -- never pay a
 			# `duplicate()` for a template they'll never use.
 			if (should_run_asserts() && delta != 0) {
-				if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function)) stop("randomization tests with delta nonzero not supported for incidence")
+				if (private$des_obj_priv_int$response_type == "incidence") stop("randomization tests with delta nonzero not supported for incidence")
 			}
 			y_delta = if (delta != 0) {
 				private$shift_randomization_responses(

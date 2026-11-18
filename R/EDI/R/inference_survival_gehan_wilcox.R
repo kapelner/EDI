@@ -140,7 +140,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' seq_des_inf$compute_asymp_confidence_interval()
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_shared()
 			if (is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
@@ -175,7 +175,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' seq_des_inf$compute_asymp_two_sided_pval()
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				if (delta != 0){
 					stop("Testing non-zero delta is not yet implemented for InferenceSurvivalGehanWilcox.")
 				}
@@ -274,10 +274,15 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 				private$cached_values$icen_pval = NA_real_
 				return(invisible(NULL))
 			}
-			beta_hat = as.numeric(fit$estimate)
+			# ictest()'s estimate and Z are "first group minus second group", where
+			# the first group is whichever arm appears first in the data
+			# (v1.0.6-TODO-121, same cause as v1.0.6-TODO-117). Orient both as
+			# treatment minus control.
+			arm_sign = ictest_treatment_minus_control_sign(fit)
+			beta_hat = arm_sign * as.numeric(fit$estimate)
 			private$cached_values$beta_hat_T = beta_hat
 			if (estimate_only) return(invisible(NULL))
-			z_stat = as.numeric(fit$statistic)
+			z_stat = arm_sign * as.numeric(fit$statistic)
 			private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
 			private$cached_values$gw_score = z_stat
 			private$cached_values$gw_var = 1

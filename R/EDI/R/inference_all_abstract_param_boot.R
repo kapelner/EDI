@@ -73,7 +73,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				)
 			}
 			if (should_run_asserts()){
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertCount(max_attempts_per_replicate, positive = TRUE)
@@ -215,11 +215,11 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				)
 			}
 			if (should_run_asserts()){
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertCount(max_attempts_per_replicate, positive = TRUE)
-				assertNumeric(root_tolerance, lower = .Machine$double.xmin, null.ok = TRUE)
+				assertNumeric(root_tolerance, len = 1, lower = .Machine$double.xmin, finite = TRUE, null.ok = TRUE, any.missing = FALSE)
 				assertIntegerish(max_root_iterations, lower = 0, len = 1, any.missing = FALSE)
 			}
 			est = self$compute_estimate()
@@ -457,7 +457,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				)
 			}
 			if (should_run_asserts()){
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertCount(max_attempts_per_replicate, positive = TRUE)
@@ -534,7 +534,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				)
 			}
 			if (should_run_asserts()){
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertCount(max_attempts_per_replicate, positive = TRUE)

@@ -1,7 +1,8 @@
 # Audit status (after every audit run, and daily 08:07 UTC): one table of the scheduled audits,
 # grouped daily / weekly / monthly like their names in the Actions sidebar, with each audit's
 # schedule, last run, result and open PR or issue. It is the body of one pinned issue labelled
-# `audit-status`, edited in place, and the job summary. No Claude.
+# `audit-status`, edited in place, and the job summary. A second pinned issue (label
+# `audit-decisions`, .github/scripts/audit_decisions.py) lists every audit's open decisions. No Claude.
 # Script: .github/scripts/audit_status.py.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 1).
 # workflow_run matches workflows by name: a new audit must be added to the list below
@@ -25,6 +26,7 @@ on:
       - "audit · weekly · allowlist-hygiene"
       - "audit · weekly · ci-self-check"
       - "audit · weekly · generated-drift"
+      - "audit · weekly · message-args"
       - "audit · weekly · news-version"
       - "audit · weekly · privacy"
       - "audit · weekly · python-vulns"
@@ -57,10 +59,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: .github
+          sparse-checkout: |
+            .github
+            R/package_metadata/future_release_plans
+            R/package_metadata/audits
       - name: Write the status table
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/audit_status.py --out "$RUNNER_TEMP/status.md" --publish
           cat "$RUNNER_TEMP/status.md" >> "$GITHUB_STEP_SUMMARY"
+      # The owner's open decisions from every audit, in a second pinned issue (label audit-decisions).
+      # Its own step, so a failure here never hides the status table.
+      - name: Write the open-decisions list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --depth=1 origin audit-notes:refs/remotes/origin/audit-notes
+          python3 .github/scripts/audit_decisions.py --out "$RUNNER_TEMP/decisions.md" --publish
+          { echo; echo "---"; echo; head -c 60000 "$RUNNER_TEMP/decisions.md"; } >> "$GITHUB_STEP_SUMMARY"

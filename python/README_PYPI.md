@@ -165,6 +165,34 @@ Full per-argument documentation for every function is available via
 `Parameters` section, and the package ships a `py.typed` marker + type stub
 for IDE autocomplete.
 
+### Input checks
+
+Every kernel checks its inputs before calling the C++ solver and raises
+`ValueError` naming the bad argument, the way the R package's checkmate
+assertions do. The checks cover finite numeric data (no NaN or inf), 0/1
+treatment and event vectors (`w`, `dead`), arguments that must have matching
+lengths (`X` rows, `y`, `w`, `group_id`, ...), and choices such as
+`reference`, `requested_stat`, `method`, `family` and `link`. Arguments
+that use NaN on purpose are left alone: censoring codes in
+`fast_weibull_regression_general`, the non-finite `y` values that
+`wilcox_hl_point_estimate` drops, and the elementwise math utilities.
+
+```python
+import edi_kernels
+try:
+    edi_kernels.fast_logrank_stats([1, 2, 3.5, 4], [1, 1, 1, 1], [1, 2, 1, 2])
+except ValueError as e:
+    print(e)  # fast_logrank_stats(): argument 'w' must contain only 0 and 1; found 2. ...
+```
+
+Recode a 1/2 or -1/1 treatment vector to 0/1 first. Before these checks, such
+a vector gave a silent `nan` or a sign-flipped estimate.
+
+`edi_kernels.set_checks(False)` turns off the optional checks for speed in
+tight loops (it returns the previous setting; `get_checks()` reads it). The
+0/1 and matching-length checks still run, because skipping them gives wrong
+answers or out-of-bounds reads.
+
 ### Continuous
 
 ```python

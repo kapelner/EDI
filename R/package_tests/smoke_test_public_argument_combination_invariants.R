@@ -24,7 +24,9 @@ expected_names = c(
 	"distribution_length_valid",
 	"documented_nonestimable_ok",
 	"seeded_call_deterministic",
-	"output_names_stable_when_documented"
+	"output_names_stable_when_documented",
+	"strong_effect_detected",
+	"documented_refusal"
 )
 expect_true(identical(sort(all_names), sort(expected_names)), "Invariant registry is missing required invariants.")
 
@@ -60,5 +62,17 @@ expect_true(identical(summarize_public_argument_invariants(name_fail), "failed:o
 
 skipped = evaluate_public_argument_invariants(NULL, "error", "no_unexpected_error;ci_length_2")
 expect_true(grepl("^failed:", summarize_public_argument_invariants(skipped)), "Unexpected error was not treated as invariant failure.")
+
+# Data-shape invariants (v1.0.6-TODO-97).
+strong_missed = evaluate_public_argument_invariants(0.4, "ok", "pval_in_0_1;strong_effect_detected", list(effect = "strong"))
+expect_true(identical(summarize_public_argument_invariants(strong_missed), "failed:strong_effect_detected"), "A strong effect that was not rejected was not detected.")
+strong_found = evaluate_public_argument_invariants(0.001, "ok", "strong_effect_detected", list(effect = "strong"))
+expect_true(identical(summarize_public_argument_invariants(strong_found), "ok"), "A rejected strong effect was flagged.")
+null_effect = evaluate_public_argument_invariants(0.4, "ok", "strong_effect_detected", list(effect = "null"))
+expect_true(identical(summarize_public_argument_invariants(null_effect), "not_applicable"), "strong_effect_detected applied to a null-effect cell.")
+refusal_missing = evaluate_public_argument_invariants(1.2, "ok", "documented_refusal")
+expect_true(identical(summarize_public_argument_invariants(refusal_missing), "failed:documented_refusal"), "A call that should have been refused was accepted.")
+refusal_ok = evaluate_public_argument_invariants(NULL, "error", "documented_refusal")
+expect_true(identical(summarize_public_argument_invariants(refusal_ok), "ok"), "A documented refusal was flagged.")
 
 message("public_argument_combination_invariants smoke test passed")

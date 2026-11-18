@@ -221,6 +221,18 @@ CountLikelihoodPlumbingSource = list(
 				try(private$shared(estimate_only = TRUE), silent = TRUE)
 			}
 			private$cache_procedure_failure("count_likelihood_asymp", "count_likelihood_asymp_block_size_gt_one_not_supported")
+			# A documented design gate, not a data failure: say so instead of a
+			# silent NA (v1.0.6-TODO-113).
+			edi_warn_procedure_na(self, private,
+				procedure = "asymptotic / likelihood-based inference",
+				reason = "count_likelihood_asymp_block_size_gt_one_not_supported",
+				detail = paste0(
+					"It is not supported on a blocked-cluster design whose blocks hold more than one cluster ",
+					"(its design-based variance step has no leave-one-cluster-out version within blocks). ",
+					"Use compute_bootstrap_confidence_interval() / compute_bootstrap_two_sided_pval() or ",
+					"compute_rand_two_sided_pval(), which resample or re-randomize whole clusters."
+				),
+				warning_class = "edi_unsupported_procedure")
 			TRUE
 		},
 			count_likelihood_missing_ci = function(alpha = 0.05){

@@ -54,7 +54,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			pooled_stats = private$compute_direct_pooled_t_components()
 			if (!is.finite(pooled_stats$estimate) || !is.finite(pooled_stats$se) || pooled_stats$se <= 0) return(c(NA_real_, NA_real_))
@@ -74,7 +74,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			pooled_stats = private$compute_direct_pooled_t_components()
 			if (!is.finite(pooled_stats$estimate) || !is.finite(pooled_stats$se) || pooled_stats$se <= 0) return(NA_real_)

@@ -217,7 +217,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			switch(
@@ -236,7 +236,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param delta Null treatment effect. Default 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			switch(
@@ -256,7 +256,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_wald_confidence_interval_impl(alpha)
@@ -270,7 +270,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param delta Null treatment effect. Default 0.
 		compute_wald_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			p_model = private$compute_wald_two_sided_pval_impl(delta)
@@ -284,7 +284,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_score_confidence_interval_impl(alpha)
@@ -297,7 +297,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param delta Null treatment effect. Default 0.
 		compute_score_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			p_model = private$compute_score_two_sided_pval_impl(delta)
@@ -311,7 +311,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_lik_ratio_confidence_interval_impl(alpha)
@@ -324,7 +324,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param delta Null treatment effect. Default 0.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			p_model = private$compute_lik_ratio_two_sided_pval_impl(delta)
@@ -336,7 +336,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param B Number of Monte-Carlo replicates used for the Bartlett factor.
 		compute_lik_ratio_bartlett_approx_confidence_interval = function(alpha = 0.05, B = 99){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha, B = B)
@@ -357,7 +357,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param B Number of Monte-Carlo replicates when the approximate correction is used.
 		compute_lik_ratio_bartlett_confidence_interval = function(alpha = 0.05, B = 99){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_lik_ratio_bartlett_confidence_interval_impl(alpha, B = B, B_missing = missing(B))
@@ -380,7 +380,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			ci_model = private$compute_gradient_confidence_interval_impl(alpha)
@@ -393,7 +393,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param delta Null treatment effect. Default 0.
 		compute_gradient_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			p_model = private$compute_gradient_two_sided_pval_impl(delta)
@@ -591,14 +591,15 @@ InferenceCountPoisson = define_inference_class(
 		get_complexity_tier = function() "medium",
 		design_jackknife_pval = function(delta = 0){
 			tryCatch({
-				p = self$compute_jackknife_wald_two_sided_pval(delta = delta)
+				# An NA here falls back to the model result, so its v1.0.6-TODO-113 warning is noise.
+				p = suppressWarnings(self$compute_jackknife_wald_two_sided_pval(delta = delta), classes = "edi_procedure_na_warning")
 				p = as.numeric(p)[1L]
 				if (is.finite(p) && p >= 0 && p <= 1) p else NA_real_
 			}, error = function(e) NA_real_)
 		},
 		design_jackknife_ci = function(alpha = 0.05){
 			tryCatch({
-				ci = as.numeric(self$compute_jackknife_wald_confidence_interval(alpha = alpha))
+				ci = as.numeric(suppressWarnings(self$compute_jackknife_wald_confidence_interval(alpha = alpha), classes = "edi_procedure_na_warning"))
 				if (length(ci) >= 2L && all(is.finite(ci[1:2])) && ci[1L] <= ci[2L]) ci[1:2] else c(NA_real_, NA_real_)
 			}, error = function(e) c(NA_real_, NA_real_))
 		},

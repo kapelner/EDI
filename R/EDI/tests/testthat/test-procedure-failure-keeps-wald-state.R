@@ -26,10 +26,10 @@ test_that("block-size > 1 observation-level jackknife returns NA and leaves the 
 	expect_true(is.finite(before$se))
 	expect_false(f$inf$is_nonestimable("any"))
 
-	expect_true(is.na(f$inf$compute_jackknife_std_error(unit = "observation")))
-	expect_true(is.na(f$inf$compute_jackknife_estimate(unit = "observation")))
-	expect_true(is.na(f$inf$compute_jackknife_wald_two_sided_pval(unit = "observation")))
-	expect_true(all(is.na(f$inf$compute_jackknife_wald_confidence_interval(unit = "observation"))))
+	expect_true(is.na(expect_warning(f$inf$compute_jackknife_std_error(unit = "observation"), class = "edi_procedure_na_warning")))
+	expect_true(is.na(expect_warning(f$inf$compute_jackknife_estimate(unit = "observation"), class = "edi_procedure_na_warning")))
+	expect_true(is.na(expect_warning(f$inf$compute_jackknife_wald_two_sided_pval(unit = "observation"), class = "edi_procedure_na_warning")))
+	expect_true(all(is.na(expect_warning(f$inf$compute_jackknife_wald_confidence_interval(unit = "observation"), class = "edi_procedure_na_warning"))))
 
 	expect_false(f$inf$is_nonestimable("any"))
 	expect_false(f$inf$is_nonestimable("se"))
@@ -59,8 +59,8 @@ test_that("BCa with an unsupported block-size jackknife records a procedure fail
 	unlockBinding("jackknife_block_size_gt_one_unsupported", f$p)
 	f$p$jackknife_block_size_gt_one_unsupported = function(unit = "auto") TRUE
 	boot = rnorm(200, 0.5, 0.3)
-	expect_true(all(is.na(f$p$ci_bca(boot, 0.05, 0.5))))
-	expect_true(is.na(f$p$pval_bca(boot, 0.5, 0.2)))
+	expect_true(all(is.na(expect_warning(f$p$ci_bca(boot, 0.05, 0.5), class = "edi_procedure_na_warning"))))
+	expect_true(is.na(expect_warning(f$p$pval_bca(boot, 0.5, 0.2), class = "edi_procedure_na_warning")))
 	expect_true(all(is.na(f$p$missing_bootstrap_ci(0.05, "jackknife_block_size_gt_one_not_supported", stage = "se"))))
 	expect_false(f$inf$is_nonestimable("any"))
 	expect_identical(f$p$cached_values$procedure_failure_reason$jackknife, "jackknife_block_size_gt_one_not_supported")

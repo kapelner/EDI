@@ -89,7 +89,10 @@ def render(rows, generated_at, run_url="", repo=""):
              f"Updated {when(generated_at)} by `.github/workflows/audit-status.yml`"
              + (f" ([run]({run_url}))" if run_url else "") + ". Edited in place; do not edit by hand.", "",
              "> [!NOTE]", "> **This is a status board, not a task.** It stays open and pinned; do not close it "
-             "(the next update reopens it). Each audit's own issue or PR, linked below, carries its findings.", ""]
+             "(the next update reopens it). Each audit's own issue or PR, linked below, carries its findings.",
+             "> Every audit's open decisions are listed in one place: the issue labelled "
+             + (f"[`audit-decisions`](https://github.com/{repo}/issues?q=label%3Aaudit-decisions)." if repo
+                else "`audit-decisions`."), ""]
     bad = [r for r in rows if r["result"].startswith(("FAILED", "timed out"))]
     lines.append(f"{len(rows)} audits; {len(bad)} failed on their last run"
                  + (": " + ", ".join(f"`{r['audit']}`" for r in bad) if bad else "") + ".")

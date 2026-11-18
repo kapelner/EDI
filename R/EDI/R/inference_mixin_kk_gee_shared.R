@@ -82,7 +82,7 @@ InferenceMixinKKGEEShared = list(
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (private$use_kk_gee_jackknife_wald_calibration()) {
 				return(private$compute_kk_gee_jackknife_wald_confidence_interval(alpha = alpha))
@@ -102,7 +102,7 @@ InferenceMixinKKGEEShared = list(
 		#'   not yet supported.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$use_kk_gee_jackknife_wald_calibration()) {
 				return(private$compute_kk_gee_jackknife_wald_two_sided_pval(delta = delta))
@@ -125,7 +125,8 @@ InferenceMixinKKGEEShared = list(
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertLogical(na.rm)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE) # v1.0.6-TODO-100
+				assertFlag(na.rm)
 			}
 			if (should_run_asserts() && private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
 				stop("transform_responses is not supported for incidence randomization inference.")
@@ -474,7 +475,45 @@ InferenceMixinKKGEEShared = list(
 				private$cache_nonestimable_se("kk_gee_standard_error_unavailable")
 				return(invisible(NULL))
 			}
+			# v1.0.6-TODO-118: under (quasi-)complete separation a logit-link GEE
+			# has no finite solution; the fitter stops at a huge beta_hat_T and
+			# the sandwich SE collapses with it (e.g. estimate 50, SE 0.7, p = 0).
+			# That Wald SE is not an estimate of anything, so the SE (hence the
+			# asymptotic p-value and CI) is NA, with one classed warning per
+			# object (silent inside resampling). The estimate is left as is,
+			# matching v1.0.6-TODO-109. Logit link only: other families skip it.
+			if (private$gee_uses_logit_link()) {
+				eta = private$gee_fitted_linear_predictor(mod)
+				n_extreme = if (length(eta)) edi_logistic_n_fitted_extreme(matrix(eta, ncol = 1L), 1) else NA_integer_
+				if (!is.na(n_extreme) && n_extreme > 0L) {
+					edi_warn_logistic_separation_once(self, private, matrix(eta, ncol = 1L), 1, advice = paste0(
+						"The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are ",
+						"returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence ",
+						"method, or fewer covariates."
+					))
+					private$cache_nonestimable_se("kk_gee_logistic_separation")
+					return(invisible(NULL))
+				}
+			}
 			private$clear_nonestimable_state()
+		},
+		# v1.0.6-TODO-118: TRUE when the GEE family uses the logit link (incidence
+		# and proportion KK GEE), the only link the separation check covers.
+		gee_uses_logit_link = function(){
+			fam = tryCatch(private$gee_family(), error = function(e) NULL)
+			!is.null(fam) && identical(fam$family, "binomial") && identical(fam$link, "logit")
+		},
+		# v1.0.6-TODO-118: fitted linear predictor X %*% beta of a GEE fit, from
+		# geepack's linear.predictors or the Rcpp result's stored X_fit; NULL if
+		# it cannot be formed.
+		gee_fitted_linear_predictor = function(mod){
+			if (is.null(mod)) return(NULL)
+			if (inherits(mod, "geeglm")) {
+				eta = tryCatch(as.numeric(mod$linear.predictors), error = function(e) NULL)
+				return(if (length(eta)) eta else NULL)
+			}
+			if (is.null(mod$X_fit) || is.null(mod$beta) || ncol(mod$X_fit) != length(mod$beta)) return(NULL)
+			tryCatch(as.numeric(mod$X_fit %*% as.numeric(mod$beta)), error = function(e) NULL)
 		},
 		gee_has_reservoir = function(){
 			m_vec = private$m
@@ -548,7 +587,12 @@ InferenceMixinKKGEEShared = list(
 						warm_start_fisher_info = ws_args$warm_start_fisher_info
 					)
 				}, error = private$kk_gee_error_to_null)
-				if (!is.null(res) && isTRUE(res$converged)) return(res)
+				if (!is.null(res) && isTRUE(res$converged)) {
+					# v1.0.6-TODO-118: keep the design matrix so the separation
+					# check can form the linear predictor (the Rcpp result has none).
+					res$X_fit = X_rcpp
+					return(res)
+				}
 			}
 			# Fallback to geepack
 			std_err_arg = if (is.character(std_err)) std_err[1] else "san.se"

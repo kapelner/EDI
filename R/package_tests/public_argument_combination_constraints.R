@@ -375,3 +375,31 @@ example_constraint_cases = function() {
 		skipped_slow = list(args = list(show_progress = TRUE), fixture = fixture, tier = "ci", registry_entry = list())
 	)
 }
+
+# ---------------------------------------------------------------------------------------------
+# Data-shape cell constraints (v1.0.6-TODO-97). A cell is one row of the data-shape covering array
+# (design, response_type, sample_size, group_sizes, censoring, missing_covariate, effect,
+# inference_class). Vectorized over a data.frame of cells; returns "" for a legal cell, else why not.
+# inference_classes_by_response maps each response type to the inference classes drawn for it, and
+# kk_classes lists the ones that need a KK matching design.
+# ---------------------------------------------------------------------------------------------
+
+data_shape_cell_violations = function(cells, inference_classes_by_response, kk_classes = character(), sequential_designs = character(), grouped_designs = character()) {
+	reason = rep("", nrow(cells))
+	flag = function(bad, why) {
+		bad = bad & !nzchar(reason)
+		reason[bad] <<- why
+	}
+	flag(cells$sample_size != "fixed" & !cells$design %in% sequential_designs,
+		"n = NULL applies only to sequential designs")
+	flag(cells$group_sizes == "unequal" & !cells$design %in% grouped_designs,
+		"unequal group sizes apply only to blocked or clustered designs")
+	flag(cells$censoring != "none" & cells$response_type != "survival",
+		"censoring applies only to survival responses")
+	class_ok = mapply(function(cl, rt) cl %in% (inference_classes_by_response[[rt]] %||% character()),
+		as.character(cells$inference_class), as.character(cells$response_type))
+	flag(!class_ok, "inference class does not take this response type")
+	flag(cells$inference_class %in% kk_classes & cells$design != "seq_kk21",
+		"KK inference classes need a KK matching design")
+	reason
+}

@@ -20,6 +20,8 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 	repo_root = normalizePath(getwd(), mustWork = TRUE)
 }
 artifact = function(name) file.path(repo_root, "package_tests", name)
+# NA audit (v1.0.6-TODO-95): silent NA outputs fail the gate; see na_audit_gate.R.
+source(artifact("na_audit_gate.R"), local = TRUE)
 
 gate_paths = list(
 	inventory = artifact("public_api_inventory.csv"),
@@ -31,6 +33,9 @@ gate_paths = list(
 	unsupported_skipped = artifact("comprehensive_suite_unsupported_skipped_contexts.csv"),
 	exemptions = artifact("comprehensive_suite_exemptions.csv"),
 	gate_exemptions = artifact("comprehensive_suite_quality_gate_exemptions.csv"),
+	na_digest = artifact("comprehensive_suite_na_audit.csv"),
+	na_allowlist = artifact("na_audit_allowlist.csv"),
+	release_plans = file.path(repo_root, "package_metadata", "future_release_plans"),
 	report = artifact("comprehensive_suite_quality_gates.csv"),
 	summary = artifact("comprehensive_suite_quality_gate_summary.csv")
 )
@@ -310,9 +315,32 @@ build_comprehensive_quality_gate_report = function(inputs) {
 		)
 	}
 
+	rows[[length(rows) + 1L]] = comprehensive_na_audit_rows(inputs)
+
 	report = do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 	if (is.null(report) || !nrow(report)) report = empty_gate_rows()
 	report
+}
+
+# NA audit rows (v1.0.6-TODO-95). inputs$na_digest is comprehensive_suite_na_audit.csv (built
+# from the gitignored per-response result CSVs by `Rscript na_audit_gate.R digest`);
+# inputs$na_allowlist is na_audit_allowlist.csv; inputs$open_todos the open release TODOs.
+comprehensive_na_audit_rows = function(inputs) {
+	digest = inputs$na_digest
+	if (is.null(digest)) return(empty_gate_rows())
+	missing = setdiff(na_audit_digest_cols, names(digest))
+	if (length(missing)) {
+		return(gate_rows("schema_validity", "hard",
+			data.frame(target = "na_digest", value_expr = paste(missing, collapse = ","), stringsAsFactors = FALSE),
+			"Missing required columns in comprehensive_suite_na_audit.csv"))
+	}
+	na = na_audit_gate_rows(na_audit_cases_from_digest(digest), inputs$na_allowlist %||% na_audit_read_allowlist(""), inputs$open_todos %||% character(), scope = "comprehensive")
+	if (!nrow(na)) return(empty_gate_rows())
+	data.frame(
+		gate = na$gate, severity = na$severity, tier = "", target = na$target, arg = na$arg,
+		value_expr = na$value_expr, detail = na$detail, exemption_type = na$exemption_type,
+		exemption_reason = na$exemption_reason, stringsAsFactors = FALSE
+	)
 }
 
 apply_gate_exemptions = function(rows, exemptions) {
@@ -330,7 +358,7 @@ apply_gate_exemptions = function(rows, exemptions) {
 summarize_comprehensive_quality_gates = function(report, mode = "report") {
 	active = report$severity == "hard"
 	if (identical(mode, "strict")) active = report$severity %in% c("hard", "hard_later")
-	if (identical(mode, "report")) active = active & report$gate %in% c("argument_checking_dependency", "schema_validity", "unknown_runtime_tier", "unknown_unified_coverage_status", "unknown_skip_or_support_status", "expired_exemption")
+	if (identical(mode, "report")) active = active & report$gate %in% c("argument_checking_dependency", "schema_validity", "unknown_runtime_tier", "unknown_unified_coverage_status", "unknown_skip_or_support_status", "expired_exemption", "silent_na_output", "na_allowlist_invalid")
 	if ("exempted" %in% names(report)) active = active & !truthy(report$exempted)
 	data.frame(
 		mode = mode,
@@ -355,6 +383,11 @@ check_comprehensive_suite_quality_gates = function(mode = "report") {
 		unsupported_skipped = read_optional_csv(gate_paths$unsupported_skipped, required_schemas$unsupported_skipped),
 		exemptions = read_optional_csv(gate_paths$exemptions, c("target", "api_kind", "class_name", "method_name", "exemption_type", "reason", "expiry_date", "owner", "created_date"))
 	)
+	# The NA digest is optional: without it (a checkout where nobody ran the digest) the
+	# NA audit has nothing to read and adds no rows.
+	if (file.exists(gate_paths$na_digest)) inputs$na_digest = read_optional_csv(gate_paths$na_digest, na_audit_digest_cols)
+	inputs$na_allowlist = na_audit_read_allowlist(gate_paths$na_allowlist)
+	inputs$open_todos = na_audit_open_todos(gate_paths$release_plans)
 	gate_exemptions = read_optional_csv(gate_paths$gate_exemptions, c("gate", "target", "arg", "value_expr", "reason"))
 	report = apply_gate_exemptions(build_comprehensive_quality_gate_report(inputs), gate_exemptions)
 	if (!"exempted" %in% names(report)) report$exempted = FALSE

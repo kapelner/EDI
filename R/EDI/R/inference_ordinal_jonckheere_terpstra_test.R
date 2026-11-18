@@ -113,7 +113,7 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_asymptotic_jt_components()
 			if (!is.finite(private$cached_values$s_beta_hat_T)) return(c(NA_real_, NA_real_))
@@ -126,7 +126,7 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$compute_asymptotic_jt_components()
 			if (!is.finite(private$cached_values$s_beta_hat_T)) return(NA_real_)

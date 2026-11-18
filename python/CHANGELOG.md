@@ -17,6 +17,36 @@ not apply here. Seeded output is unchanged: the portable Fisher-Yates shuffle
 and thread-count-independent draws affect only R-side designs, and no shuffle
 or permutation function is exposed in Python.
 
+### Added
+
+- Input checks for every kernel (v1.0.6-TODO-101). Each exported function
+  is now a thin Python wrapper (same name, signature, docstring and type
+  stub) around the compiled `_core` function. It checks its inputs first and
+  raises `ValueError` naming the bad argument: finite numeric data, 0/1
+  treatment and event vectors (`w`, `w_r`, `dead`), matching lengths
+  (`X` rows, `y`, `w`, `group_id`, `weights`, ...; also `coef_hat` against
+  the columns of `X_fit`), counts (`maxit`, `n_gh`, `K`, `j`, `j_T`), and
+  choices (`reference`, `requested_stat`, `method`, `family`, `link`).
+  Arguments that use NaN on purpose (censoring codes in
+  `fast_weibull_regression_general`, the non-finite `y` values that
+  `wilcox_hl_point_estimate` drops, and the elementwise math utilities) are
+  not checked for finiteness. Before this, a 1/2- or -1/1-coded `w` made
+  `wilcox_hl_point_estimate`, `get_survival_stat_diff` and
+  `fast_ridit_analysis` return `nan` with no error, and a 1/2-coded `w`
+  made `fast_logrank_stats` return a sign-flipped `beta_hat`
+  (v1.0.6-TODO-86).
+  Mismatched lengths could read past the end of the shorter array (for
+  example `fast_lbeta` loops over `a` and indexes `b`).
+- `set_checks(enabled)` and `get_checks()`, the Python version of R's
+  `should_run_asserts()`. `set_checks(False)` skips the optional checks
+  (finite values, ranges, counts, choices), which cost about 20 µs a call.
+  The 0/1 and matching-length checks always run. The rules live in one
+  table, `edi_kernels._checks.KERNELS`. `python/tests/test_input_checks.py`
+  checks that table against the type stub, the R exports, and the R
+  checkmate rules in `R/package_tests/checkmate_argument_contracts.csv`.
+  No C++ changed (the wrappers are pure Python; users get them with the next
+  wheel). Calls that were already valid give the same results.
+
 ### Changed
 
 - `fast_wilcox_hl`: the Hodges-Lehmann variance is recalibrated. The

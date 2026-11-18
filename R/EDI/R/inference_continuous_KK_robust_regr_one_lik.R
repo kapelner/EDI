@@ -39,7 +39,7 @@ ContinKKRobustRegrOneLikSource = list(
 				assertResponseType(des_obj$get_response_type(), "continuous")
 				assertChoice(method, c("M", "MM"))
 				if (!is.null(maxit)) assertCount(maxit, positive = TRUE)
-				if (!is.null(acc)) assertNumeric(acc, lower = .Machine$double.xmin, upper = 1)
+				if (!is.null(acc)) assertNumeric(acc, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
 				assertFlag(start_with_ols)
 				assertFlag(use_rcpp)
 				assertFormula(model_formula, null.ok = TRUE)
@@ -123,7 +123,7 @@ ContinKKRobustRegrOneLikSource = list(
 		#'   nonestimable.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$fit_combined()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -138,7 +138,7 @@ ContinKKRobustRegrOneLikSource = list(
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}, or \code{NA_real_} if nonestimable.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$fit_combined()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -153,7 +153,7 @@ ContinKKRobustRegrOneLikSource = list(
 		#'   nonestimable.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$fit_combined()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -167,7 +167,7 @@ ContinKKRobustRegrOneLikSource = list(
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}, or \code{NA_real_} if nonestimable.
 		compute_wald_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$fit_combined()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)

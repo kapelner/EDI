@@ -50,7 +50,7 @@ required_cols = c(
 	"case_id", "api_kind", "class_name", "function_name", "method_name",
 	"fixture_id", "argument_signature", "tier", "status", "duration_time_sec",
 	"warning_message", "message_text", "output_type", "output_shape",
-	"invariant_status", "error_message"
+	"invariant_status", "error_message", "output_outcome", "na_reason"
 )
 expect_true(all(required_cols %in% names(results)), "Runner results are missing required schema columns.")
 expect_true(nrow(results) == nrow(cases), "Runner did not write one result row per selected case.")
@@ -71,5 +71,23 @@ results_again = run_public_argument_combinations(
 persisted_after_resume = read_csv_fast(results_file, stringsAsFactors = FALSE)
 expect_true(identical(persisted_before_resume, persisted_after_resume), "Runner resume behavior is not deterministic by case_id.")
 expect_true(identical(persisted_after_resume$case_id, results_again$case_id), "Runner resume returned different case IDs.")
+
+expect_true(all(results$output_outcome[results$status == "ok"] %in% c("finite", "warned_na", "recorded_na", "silent_na", "nonfinite", "non_numeric")), "ok cases carry an error outcome.")
+expect_true(all(results$output_outcome[results$status == "skipped_slow"] == "not_run"), "Constraint-rejected cases are not marked not_run.")
+
+# output_outcome vocabulary (v1.0.6-TODO-97): a silent NA is its own outcome, apart from a warned one.
+expect_true(identical(classify_output_outcome(list(status = "ok", result = c(1, 2), warning_message = "")), "finite"), "Finite output misclassified.")
+expect_true(identical(classify_output_outcome(list(status = "ok", result = c(NA_real_, NA_real_), warning_message = "")), "silent_na"), "Silent NA misclassified.")
+expect_true(identical(classify_output_outcome(list(status = "ok", result = NA_real_, warning_message = "not estimable")), "warned_na"), "Warned NA misclassified.")
+expect_true(identical(classify_output_outcome(list(status = "error", error_message = "missing value where TRUE/FALSE needed")), "unclear_error"), "Internal R error not marked unclear.")
+expect_true(identical(classify_output_outcome(list(status = "error", error_message = "B must be at least 10.")), "clear_error"), "EDI's own error marked unclear.")
+
+# Resuming over a results file written before output_outcome existed keeps working.
+legacy = read_csv_fast(results_file, stringsAsFactors = FALSE)
+legacy$output_outcome = NULL
+legacy = legacy[-1L, , drop = FALSE]
+write.csv(legacy, results_file, row.names = FALSE)
+results_legacy = run_public_argument_combinations(tier = "smoke", timeout_sec = 10, cases_file = cases_file, results_file = results_file, failures_file = failures_file)
+expect_true(nrow(results_legacy) == nrow(cases) && "output_outcome" %in% names(results_legacy), "Resume over a pre-output_outcome results file failed.")
 
 message("public argument combination runner smoke test passed with ", nrow(results), " results")

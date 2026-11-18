@@ -310,8 +310,8 @@ edi_tuning_accept_candidate = function(baseline_times, candidate_times,
                                         min_rel_improvement = 0.05, iqr_multiplier = 2) {
 	checkmate::assertNumeric(baseline_times, min.len = 1L, any.missing = FALSE)
 	checkmate::assertNumeric(candidate_times, min.len = 1L, any.missing = FALSE)
-	checkmate::assertNumber(min_rel_improvement, lower = 0)
-	checkmate::assertNumber(iqr_multiplier, lower = 0)
+	checkmate::assertNumber(min_rel_improvement, lower = 0, finite = TRUE)
+	checkmate::assertNumber(iqr_multiplier, lower = 0, finite = TRUE)
 
 	median_baseline = stats::median(baseline_times)
 	median_candidate = stats::median(candidate_times)

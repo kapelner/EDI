@@ -41,7 +41,7 @@
 .init_kk_quantile_regr_ivwc = function(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose, smart_cold_start_default){
 	if (should_run_asserts()) {
 		assertFormula(model_formula, null.ok = TRUE)
-		assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+		assertNumeric(tau, len = 1, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 	}
 	if (should_run_asserts()) {
 		if (!check_package_installed("quantreg")) {
@@ -116,7 +116,7 @@ KKQuantileRegrIVWCSource = list(
 		#' @return 	A (1 - alpha)-sized frequentist confidence interval for the treatment effect
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$shared()
@@ -130,7 +130,7 @@ KKQuantileRegrIVWCSource = list(
 		#' @return 	The approximate frequentist p-value
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$shared()

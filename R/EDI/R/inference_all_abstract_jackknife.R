@@ -35,7 +35,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			unit = private$normalize_jackknife_unit(unit)
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
 			private$assert_jackknife_supported(unit = unit)
-			private$compute_jackknife_summary(unit = unit)$estimate
+			val = private$compute_jackknife_summary(unit = unit)$estimate
+			if (!is.finite(val)) edi_warn_jackknife_na(self, private, "compute_jackknife_estimate()")
+			val
 		},
 		#' @description Computes the jackknife bias estimate.
 		#'
@@ -46,7 +48,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			unit = private$normalize_jackknife_unit(unit)
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
 			private$assert_jackknife_supported(unit = unit)
-			private$compute_jackknife_summary(unit = unit)$bias
+			val = private$compute_jackknife_summary(unit = unit)$bias
+			if (!is.finite(val)) edi_warn_jackknife_na(self, private, "compute_jackknife_bias_estimate()")
+			val
 		},
 		#' @description Computes the delete-1 jackknife standard error.
 		#'
@@ -63,7 +67,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			unit = private$normalize_jackknife_unit(unit)
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
 			private$assert_jackknife_supported(unit = unit)
-			private$compute_jackknife_summary(unit = unit)$std_error
+			val = private$compute_jackknife_summary(unit = unit)$std_error
+			if (!is.finite(val)) edi_warn_jackknife_na(self, private, "compute_jackknife_std_error()")
+			val
 		},
 		#' @description Computes a two-sided Wald p-value using the jackknife estimate
 		#'   and jackknife standard error.
@@ -83,15 +89,17 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
 			private$assert_jackknife_supported(unit = unit)
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			jack_summary = private$compute_jackknife_summary(unit = unit)
 			se_j = jack_summary$std_error
 			if (!is.finite(jack_summary$estimate)) {
+				edi_warn_jackknife_na(self, private, "compute_jackknife_wald_two_sided_pval()", fallback_reason = "jackknife_estimate_unavailable")
 				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_estimate_unavailable")
 				return(NA_real_)
 			}
 			if (!is.finite(se_j) || se_j <= 0) {
+				edi_warn_jackknife_na(self, private, "compute_jackknife_wald_two_sided_pval()", fallback_reason = "jackknife_standard_error_unavailable")
 				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_standard_error_unavailable")
 				return(NA_real_)
 			}
@@ -120,17 +128,19 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			}
 			private$assert_jackknife_supported(unit = unit)
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			jack_summary = private$compute_jackknife_summary(unit = unit)
 			se_j = jack_summary$std_error
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			if (!is.finite(jack_summary$estimate)) {
+				edi_warn_jackknife_na(self, private, "compute_jackknife_wald_confidence_interval()", fallback_reason = "jackknife_estimate_unavailable")
 				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_estimate_unavailable")
 				return(ci)
 			}
 			if (!is.finite(se_j) || se_j <= 0) {
+				edi_warn_jackknife_na(self, private, "compute_jackknife_wald_confidence_interval()", fallback_reason = "jackknife_standard_error_unavailable")
 				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_standard_error_unavailable")
 				return(ci)
 			}
@@ -232,3 +242,34 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		}
 	)
 )
+
+# Warn when a public jackknife method hands back NA (v1.0.6-TODO-113, the
+# v1.0.6-TODO-95 rule). Names the specific reason compute_jackknife_summary()
+# recorded (the public methods overwrite it with the generic
+# "jackknife_estimate_unavailable" right after this call), or fallback_reason. Silent during
+# resampling (see edi_warn_procedure_na()).
+edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackknife_estimate_unavailable"){
+	why = private$cached_values$procedure_failure_reason$jackknife
+	if (!is.character(why) || !length(why) || is.na(why[1L])) why = private$cached_values$nonestimable_reason
+	if (!is.character(why) || !length(why) || is.na(why[1L])) why = fallback_reason
+	why = why[1L]
+	# Later calls see the generic reason the first call wrote over the specific
+	# one; reuse the specific one remembered here.
+	if (why %in% c("jackknife_estimate_unavailable", "jackknife_standard_error_unavailable") &&
+		is.character(private$cached_values$jackknife_na_specific_reason)) {
+		why = private$cached_values$jackknife_na_specific_reason
+	} else if (!why %in% c("jackknife_estimate_unavailable", "jackknife_standard_error_unavailable")) {
+		private$cached_values$jackknife_na_specific_reason = why
+	}
+	detail = switch(why,
+		jackknife_extreme_summary = paste0("The jackknife bias exceeds twice its standard error, or the jackknife ",
+			"estimate or standard error is extreme; this is typical when the full-data fit is at or near separation ",
+			"(e.g. one arm almost entirely in one outcome category), where no finite estimate is trustworthy."),
+		jackknife_extreme_finite_estimates = "Some leave-one-unit-out estimates are extreme (near separation).",
+		jackknife_nonfinite_replicate_estimates = "Some leave-one-unit-out fits failed.",
+		jackknife_too_few_replicate_estimates = "There are too few deletion units for a jackknife.",
+		jackknife_original_estimate_unavailable = "The full-data estimate is not available.",
+		NULL
+	)
+	edi_warn_procedure_na(self, private, procedure = method, reason = why, detail = detail)
+}

@@ -146,7 +146,7 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		compute_asymp_confidence_interval = function(alpha = 0.05, pval_epsilon = 1e-7){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			counts = private$cached_values$mn_counts
@@ -163,7 +163,7 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			counts = private$cached_values$mn_counts

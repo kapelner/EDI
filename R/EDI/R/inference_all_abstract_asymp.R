@@ -19,7 +19,7 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		#' @return 	A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_wald_confidence_interval_impl(alpha)
 		},
@@ -35,7 +35,7 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		#' @return 	The asymptotic p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$compute_wald_two_sided_pval_impl(delta)
 		},
@@ -85,7 +85,7 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		#' @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_wald_confidence_interval_impl(alpha)
 		},

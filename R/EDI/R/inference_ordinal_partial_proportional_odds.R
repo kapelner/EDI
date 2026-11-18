@@ -68,7 +68,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			super$initialize(des_obj, verbose = verbose, harden = harden, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
-				assertCharacter(nonparallel, null.ok = TRUE)
+				assertCharacter(nonparallel, any.missing = FALSE, null.ok = TRUE)
 			}
 			if ("treatment" %in% nonparallel) {
 				warning("'treatment' in `nonparallel` is ignored: the treatment effect is always fit as a single parallel (proportional-odds) term.", call. = FALSE)
@@ -139,8 +139,10 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				if (should_run_asserts()) {
 					assertNumeric(
 						alpha,
+						len = 1,
 						lower = .Machine$double.xmin,
-						upper = 1 - .Machine$double.xmin
+						upper = 1 - .Machine$double.eps,
+						any.missing = FALSE
 					)
 				}
 				private$shared()
@@ -161,7 +163,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			#' @return A two-sided p-value.
 			compute_asymp_two_sided_pval = function(delta = 0){
 				if (should_run_asserts()) {
-					assertNumeric(delta)
+					assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				}
 				private$shared()
 				if (!private$has_finite_se()){
@@ -180,8 +182,10 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				if (should_run_asserts()) {
 					assertNumeric(
 						alpha,
+						len = 1,
 						lower = .Machine$double.xmin,
-						upper = 1 - .Machine$double.xmin
+						upper = 1 - .Machine$double.eps,
+						any.missing = FALSE
 					)
 				}
 				private$shared()
@@ -200,7 +204,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			#' @return A two-sided p-value.
 			compute_wald_two_sided_pval = function(delta = 0){
 				if (should_run_asserts()) {
-					assertNumeric(delta)
+					assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				}
 				private$shared()
 				if (!private$has_finite_se()){
@@ -226,7 +230,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 		#'   \code{beta_hat_T}, and \code{s_beta_hat_T}.
 		benchmark_asymp_two_sided_pval_breakdown = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				}
 
 				t0 = proc.time()[["elapsed"]]

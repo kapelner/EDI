@@ -88,9 +88,18 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
+			# Always enforced (v1.0.6-TODO-100): with asserts off, an NA p_best
+			# silently assigns every subject to the same arm and an NA weight
+			# silently changes the imbalance criterion -- wrong designs, not errors.
+			if (length(p_best) > 0L && anyNA(p_best)){
+				stop("p_best may not be NA.", call. = FALSE)
+			}
+			if (!is.null(weights) && anyNA(weights)){
+				stop("weights may not contain NA.", call. = FALSE)
+			}
 			if (should_run_asserts()) {
-				assertCharacter(strata_cols, min.len = 1)
-				assertNumeric(p_best, lower = 0.5, upper = 1)
+				assertCharacter(strata_cols, min.len = 1, any.missing = FALSE)
+				assertNumeric(p_best, len = 1, lower = 0.5, upper = 1, any.missing = FALSE)
 			}
 			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			
@@ -104,7 +113,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				private$weights = rep(1, length(strata_cols))
 			} else {
 				if (should_run_asserts()) {
-					assertNumeric(weights, len = length(strata_cols), lower = 0)
+					assertNumeric(weights, len = length(strata_cols), lower = 0, finite = TRUE, any.missing = FALSE)
 				}
 				private$weights = weights
 			}

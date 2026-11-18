@@ -21,6 +21,7 @@ changed). A contradiction where the code may be the wrong side goes to "Needs a 
 import re
 
 import audit_common as ac
+from audits import _doc_audit_shared as sh
 
 SPEC = {
     "period": "month",   # monthly job: the rotation cycle counts its monthly runs
@@ -219,9 +220,24 @@ def try_replace(ctx, path, old, new):
     return None
 
 
-def apply(ctx, results, mech):
+RCPP_EXPORTS_R = "R/EDI/R/RcppExports.R"
+
+
+def roxygen_sources(path, old, new):
+    """The roxygen sources a one-line edit changes, for run_roxygen_once: an R file for a `#'` line;
+    for a `//'` line in C++, RcppExports.R too, since compileAttributes copies it there and the Rd
+    header names RcppExports.R."""
+    lines = (old.lstrip(), new.lstrip())
+    if path.endswith(".R") and any(x.startswith("#'") for x in lines):
+        return {path}
+    if not path.endswith(".R") and any(x.startswith("//'") for x in lines):
+        return {path, RCPP_EXPORTS_R}
+    return set()
+
+
+def apply(ctx, results, mech, roxygen=None):
     known = set(source_files(ctx))
-    applied, human, proposed = [], [], []
+    applied, human, proposed, edited = [], [], [], set()
     for r in results:
         for f in r.get("findings") or []:
             path, old, new = f.get("unit", ""), f.get("old", ""), f.get("new", "")
@@ -238,13 +254,21 @@ def apply(ctx, results, mech):
             if err:
                 human.append(ac.decision(f"{where}: {why} Not applied: {err}. Suggested: `{old.strip()}` -> `{new.strip()}`", unit=f.get("unit"), key="contradiction"))
                 continue
+            edited |= roxygen_sources(path, old, new)
             applied.append(f"{where}: `{old.strip()}` -> `{new.strip()}` ({why})")
             proposed.append({"unit": path, "kind": "contradiction", "text": f"{old.strip()} -> {new.strip()}",
                              "reason": why, "applied_file": path, "applied_text": new.strip()})
+    # A corrected roxygen line changes its Rd page: regenerate it here so this PR carries both, as the
+    # rd audit does, instead of leaving the page for the generated-drift audit to propose later.
+    rox = (roxygen or sh.run_roxygen_once)(ctx.repo, sorted(edited))
+    rd_pages = [x for x in rox.get("kept", []) if x.endswith(".Rd")]
+    applied += [f"`{x}`: regenerated from the corrected roxygen" for x in rd_pages]
     mechanical = [f"`{f['unit']}:{f['line']}`: {f['text']}" for f in mech]
     files = sum(len(r.get("units_checked") or r.get("_units") or []) for r in results)
     summary = (f"Agents read {files} source file(s): {len(applied)} comment line(s) corrected, "
                f"{len(human)} left for a human. {len(mech)} TODO/FIXME/XXX note(s) with no release TODO citing "
                "them (mechanical).")
+    if edited:
+        summary += " " + rox["note"] + "."
     return {"summary": summary, "applied": applied, "mechanical": mechanical, "human": human,
             "proposed": proposed}

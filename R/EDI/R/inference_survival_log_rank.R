@@ -133,7 +133,7 @@ InferenceSurvivalLogRank = define_inference_class(
 		#' @param alpha Significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_shared()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
@@ -148,7 +148,7 @@ InferenceSurvivalLogRank = define_inference_class(
 		#' @return  The approximate frequentist p-value
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$invert_ci_to_find_two_sided_pval_for_treatment_effect(delta = delta)
 		},
@@ -158,7 +158,7 @@ InferenceSurvivalLogRank = define_inference_class(
 		#' @param delta Null treatment effect to test against. Only \code{0} is supported.
 		compute_asymp_log_rank_two_sided_pval_for_treatment_effect = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$compute_shared()
 			if (should_run_asserts()) {
@@ -270,10 +270,14 @@ InferenceSurvivalLogRank = define_inference_class(
 				private$cached_values$icen_pval = NA_real_
 				return(invisible(NULL))
 			}
-			beta_hat = as.numeric(fit$estimate)
+			# ictest()'s estimate and Z are "first group minus second group", where
+			# the first group is whichever arm appears first in the data, not a fixed
+			# arm (v1.0.6-TODO-117). Orient both as treatment minus control.
+			arm_sign = ictest_treatment_minus_control_sign(fit)
+			beta_hat = arm_sign * as.numeric(fit$estimate)
 			private$cached_values$beta_hat_T = beta_hat
 			if (estimate_only) return(invisible(NULL))
-			z_stat = as.numeric(fit$statistic)
+			z_stat = arm_sign * as.numeric(fit$statistic)
 			private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
 			private$cached_values$logrank_score = z_stat
 			private$cached_values$logrank_var = 1
@@ -323,3 +327,22 @@ InferenceSurvivalLogRank = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+# interval::ictest() turns a two-level group into character and orders the
+# groups by first appearance (unique()), so its two-sample estimate and Z are
+# "mean score of the arm that appears first minus the other arm". Which arm
+# comes first depends on row order, so on a bootstrap or randomization draw it
+# is random (v1.0.6-TODO-117). This returns +1 when the treatment arm came
+# first and -1 when control did, so multiplying fit$estimate and
+# fit$statistic by it gives treatment minus control. NA if the fit does not
+# name exactly the two arms 0/1.
+#' @keywords internal
+#' @noRd
+ictest_treatment_minus_control_sign = function(fit) {
+	g = names(fit$U)
+	if (length(g) != 2L) return(NA_real_)
+	g = ifelse(g == "TRUE", "1", ifelse(g == "FALSE", "0", g))
+	if (identical(g, c("1", "0"))) return(1)
+	if (identical(g, c("0", "1"))) return(-1)
+	NA_real_
+}

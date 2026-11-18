@@ -104,7 +104,7 @@ edi_tuning_tune_binary_axis = function(families, n_grid, reps,
                                         seed_fn = NULL, on_cell_done = NULL) {
 	checkmate::assertDataFrame(families, min.rows = 0L)
 	checkmate::assertSubset(c("class", "response_type"), names(families))
-	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L)
+	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L, any.missing = FALSE)
 	checkmate::assertFunction(get_current_setting, nargs = 2L)
 	checkmate::assertFunction(run_setting)
 	if (!is.null(on_cell_done)) checkmate::assertFunction(on_cell_done, nargs = 1L)
@@ -478,7 +478,7 @@ edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
                                              seed_fn = NULL, on_cell_done = NULL) {
 	checkmate::assertDataFrame(families, min.rows = 0L)
 	checkmate::assertSubset(c("class", "response_type"), names(families))
-	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L)
+	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L, any.missing = FALSE)
 	checkmate::assertCharacter(candidates, min.len = 2L, any.missing = FALSE, unique = TRUE)
 	checkmate::assertFunction(get_current_setting, nargs = 2L)
 	checkmate::assertFunction(run_setting)
@@ -790,7 +790,7 @@ edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(2
 	if (num_cores < 2L) {
 		stop("num_cores must be >= 2 to benchmark parallel against serial.", call. = FALSE)
 	}
-	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L)
+	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L, any.missing = FALSE)
 	if (!is.null(on_cell_done)) checkmate::assertFunction(on_cell_done, nargs = 1L)
 	if (is.null(families)) families = edi_tuning_parallel_families(operation)
 

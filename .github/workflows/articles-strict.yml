@@ -1,0 +1,106 @@
+name: articles-strict
+
+# Strict article render gate (v1.0.6-TODO-99). Renders every package vignette
+# (R/EDI/vignettes/*.Rmd) and every pkgdown-only article
+# (R/EDI/vignettes/articles/*.Rmd) with warnings as errors: a chunk whose
+# output shows a warning or an error, a warning from inline code, or a render
+# that stops fails the job. pkgdown.yaml builds the same pages only on push to
+# main and never fails on a chunk warning, so a change that breaks a workflow
+# an article documents would otherwise go unnoticed until someone reads the
+# site. The render logic is scripts/render_articles_strict.R, which also runs
+# locally (see its header; `--load-all` renders against the source tree).
+#
+# Not in scripts/pre-push: the hook stays lean.
+#
+# Runtime: installing EDI compiles the full src/ tree. Measured locally
+# (2026-11-18, two workers, source via load_all): ~19 min of render time in
+# total, ~12 min wall; three articles dominate (matching-on-the-fly ~400 s,
+# planning-a-study ~300 s, learn-statistics-through-edi ~240 s), the other 25
+# take under 40 s each. The script starts the largest files first.
+# custom-randomization-statistic.Rmd compiles a C++ statistic with Rcpp at
+# render time, which the runner's compiler covers.
+#
+# Not a required check, so the path filter on pull_request is safe here (a PR
+# that never starts this workflow does not wait on it).
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'R/EDI/R/**'
+      - 'R/EDI/src/**'
+      - 'R/EDI/vignettes/**'
+      - 'scripts/render_articles_strict.R'
+      - '.github/workflows/articles-strict.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'R/EDI/R/**'
+      - 'R/EDI/src/**'
+      - 'R/EDI/vignettes/**'
+      - 'scripts/render_articles_strict.R'
+      - '.github/workflows/articles-strict.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Same rule as R-CMD-check.yaml: a newer push or PR commit cancels the older
+# run; dispatch runs get their own group.
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'pull_request') && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+
+jobs:
+  render:
+    name: render articles (warnings as errors)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # Portable build, configure's default (kept explicit as in R-CMD-check.yaml
+      # and pkgdown.yaml).
+      EDI_PORTABLE: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reference BLAS is 10-50x slower than OpenBLAS for the fits the articles
+      # run. The -serial build, as in R-CMD-check.yaml: no thread pool, so two
+      # render workers on the runner's 2 vCPUs don't oversubscribe it.
+      - name: Switch to OpenBLAS (see R-CMD-check's identical step for why)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-serial
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/liblapack.so.3
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # Installs EDI's Imports and Suggests (the articles use several Suggests
+      # packages) from the cached library, plus EDI itself from this checkout.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::rmarkdown, any::knitr, any::callr, local::.
+          needs: website
+
+      # No file arguments: the script renders R/EDI/vignettes/*.Rmd and
+      # R/EDI/vignettes/articles/*.Rmd. Writes a per-file table to the job summary.
+      - name: Render every vignette and article strictly
+        run: Rscript scripts/render_articles_strict.R --workers=2 --timeout=900 --out-dir="$RUNNER_TEMP/articles"
+
+      - name: Upload the rendered pages and render logs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: articles-strict
+          path: ${{ runner.temp }}/articles
+          retention-days: 7
+          if-no-files-found: ignore

@@ -235,7 +235,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				}
 			}
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			switch(
 				private$testing_type,
@@ -257,7 +257,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				}
 			}
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			switch(
 				private$testing_type,

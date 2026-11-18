@@ -2350,6 +2350,14 @@ safe_call = function(label, expr){
 		message("          Skipping ", label, " (COMPREHENSIVE_SKIP_FUNCTIONS)")
 		return(invisible(NULL))
 	}
+	# v1.0.6-TODO-95: record the class of every warning the call raises (without
+	# muffling it), so an NA/NaN/Inf result is written with "; warnings=<classes>"
+	# or "; warnings=none". The NA audit gate (na_audit_gate.R) fails a silent NA
+	# and needs this to tell it from one the package warned about.
+	call_warning_classes = character()
+	record_call_warning = function(w) {
+		call_warning_classes <<- c(call_warning_classes, class(w)[1L])
+	}
 	# setTimeLimit()/R.utils::withTimeout() cannot reliably interrupt a single
 	# long-running compiled C++ call: R only checks the elapsed-time deadline
 	# at R-level checkpoints (between statements / at loop iterations it
@@ -2474,7 +2482,10 @@ safe_call = function(label, expr){
 				return(invisible(NULL))
 			}
 				if (has_invalid_numeric(result)) {
-					msg = paste0("Invalid output detected (NA/NaN/Inf) in ", label)
+					msg = paste0(
+						"Invalid output detected (NA/NaN/Inf) in ", label,
+						"; warnings=", if (length(call_warning_classes)) paste(unique(call_warning_classes), collapse = ",") else "none"
+					)
 					message("Recording missing output for ", label, " as ok: ", msg)
 					duration_time_sec = method_duration_sec
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
@@ -2693,7 +2704,7 @@ safe_call = function(label, expr){
 				)
 			}
 			ran = tryCatch(
-				list(ok = TRUE, value = R.utils::withTimeout(eval(expr), cpu = Inf, elapsed = FUNCTION_TIMEOUT_SEC, onTimeout = "error")),
+				list(ok = TRUE, value = R.utils::withTimeout(withCallingHandlers(eval(expr), warning = record_call_warning), cpu = Inf, elapsed = FUNCTION_TIMEOUT_SEC, onTimeout = "error")),
 				error = function(e) list(ok = FALSE, error = e)
 			)
 			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
@@ -2785,7 +2796,8 @@ safe_call = function(label, expr){
 			for (suspend_rerun in 0:SUSPEND_MAX_RERUNS) {
 				child = parallel::mcparallel({
 					seq_des_inf$num_cores = as.integer(NUM_CORES)
-					list(.safe_call_child_completed = TRUE, value = eval(expr))
+					value = withCallingHandlers(eval(expr), warning = record_call_warning)
+					list(.safe_call_child_completed = TRUE, value = value, warning_classes = call_warning_classes)
 				}, silent = TRUE, mc.set.seed = FALSE)
 				deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
 				collected = NULL
@@ -2829,11 +2841,12 @@ safe_call = function(label, expr){
 					label
 				))))
 			}
+			call_warning_classes = as.character(envelope$warning_classes)
 			return(handle_success(envelope$value))
 		}
 		tryCatch({
 			result <- R.utils::withTimeout(
-				expr,
+				withCallingHandlers(expr, warning = record_call_warning),
 				cpu = Inf,
 				elapsed = FUNCTION_TIMEOUT_SEC,
 				onTimeout = "error"

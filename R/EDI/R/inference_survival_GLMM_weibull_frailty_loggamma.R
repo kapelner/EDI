@@ -135,7 +135,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 		#'   confidence interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -147,7 +147,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 		#' @param delta                                   The null difference to test against. Default is 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -659,7 +659,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 		#'   confidence interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			# TODO-121: dispatch on the testing type (was: always Wald).
 			switch(
@@ -682,7 +682,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 		#' @param delta                                   The null difference to test against. Default is 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			# TODO-121: dispatch on the testing type (was: always Wald).
 			switch(

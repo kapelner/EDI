@@ -53,14 +53,14 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
 			# message("Class: ", class(self)[1])
+			# v1.0.6-TODO-81/110: same incidence delta guard for every statistic form.
 			if (isTRUE(delta != 0) &&
-					private$des_obj_priv_int$response_type == "incidence" &&
-					is.null(private$custom_randomization_statistic_function)) {
+					private$des_obj_priv_int$response_type == "incidence") {
 				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertLogical(na.rm)
+				assertFlag(na.rm)
 			}
 			if (should_run_asserts()) {
 				if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
@@ -256,9 +256,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
-				assertCount(r, positive = TRUE); assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
-				assertLogical(show_progress); show_progress = isTRUE(show_progress) && self$num_cores == 1
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+				assertCount(r, positive = TRUE); assertNumeric(pval_epsilon, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
+				assertFlag(show_progress); show_progress = isTRUE(show_progress) && self$num_cores == 1
 			}
 			ci_search_control = private$normalize_randomization_ci_search_control(ci_search_control, r, pval_epsilon)
 			ci_search_control$mc_stop_threshold = alpha
@@ -504,8 +504,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				assertNumber(ctrl$max_radius_scale_mult, lower = 0, finite = TRUE)
 			}
 			if (should_run_asserts()) {
-				assertCount(as.integer(ctrl$max_expansions), positive = TRUE)
-				assertCount(as.integer(ctrl$seed_boot_B), positive = TRUE)
+				assertCount(ctrl$max_expansions, positive = TRUE)
+				assertCount(ctrl$seed_boot_B, positive = TRUE)
 				assertFlag(ctrl$pval_cache_enable)
 			}
 			if (should_run_asserts()) {
@@ -513,11 +513,11 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			if (should_run_asserts()) {
 				assertFlag(ctrl$mc_enable)
-				assertCount(as.integer(ctrl$mc_batch_size), positive = TRUE)
-				assertCount(as.integer(ctrl$mc_min_draws), positive = TRUE)
+				assertCount(ctrl$mc_batch_size, positive = TRUE)
+				assertCount(ctrl$mc_min_draws, positive = TRUE)
 			}
 			if (should_run_asserts()) {
-				assertNumber(ctrl$mc_conf_level, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumber(ctrl$mc_conf_level, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps)
 			}
 			if (should_run_asserts()) {
 				assertFlag(ctrl$fit_warm_start_enable)
@@ -541,7 +541,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		compute_exact_confidence_interval_rand = function(type, alpha, args_for_type){
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,
@@ -556,7 +556,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		compute_exact_two_sided_pval_rand = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,

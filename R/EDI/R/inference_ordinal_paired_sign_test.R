@@ -212,7 +212,7 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 		#' @param  delta  				The null value for \eqn{\beta_T}; must be \code{0}.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				if (delta != 0) stop("Sign test only supports testing against delta = 0.")
 			}
 			private$shared()

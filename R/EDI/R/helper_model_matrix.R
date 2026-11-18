@@ -135,3 +135,39 @@ drop_highly_correlated_cols = function(M, threshold = 0.99){
 	list(M = M, js = js)
 }
 
+
+# v1.0.6-TODO-107: names of the analysis columns that the design formula names
+# explicitly but that are constant among the rows seen so far (e.g. a factor
+# whose second level has not been enrolled yet). These are dropped before
+# model.matrix() like any constant column, so the formula would not find them.
+constant_formula_named_columns = function(formula, data, is_constant_analysis_col){
+	if (!any(is_constant_analysis_col)) return(character(0))
+	formula_vars = setdiff(all.vars(formula), ".")
+	if (length(formula_vars) == 0L) return(character(0))
+	intersect(formula_vars, names(data)[is_constant_analysis_col])
+}
+
+# v1.0.6-TODO-107: build the model matrix when some formula-named columns are
+# constant. Each such column goes back in as a numeric placeholder (its value if
+# numeric or logical, else 0, since model.matrix() refuses a one-level factor);
+# every model-matrix column it produces is then constant and is dropped, as a
+# constant covariate carries no information. Used only on that path, so designs
+# whose formula columns all vary build their model matrix exactly as before.
+create_model_matrix_with_constant_formula_columns = function(formula, data, full_data, const_cols){
+	# A zero-column data.table has nrow() == 0, so rebuild the row count.
+	data = if (ncol(data) == 0L) data.frame(row.names = seq_len(length(full_data[[const_cols[1L]]]))) else as.data.frame(data)
+	for (col in const_cols){
+		v = full_data[[col]]
+		data[[col]] = if (is.numeric(v) || is.logical(v)) as.numeric(v) else rep(0, length(v))
+	}
+	mm = model.matrix(formula, data = data)
+	if (ncol(mm) > 0 && colnames(mm)[1] == "(Intercept)") {
+		mm = mm[, -1, drop = FALSE]
+	}
+	if (ncol(mm) > 0){
+		is_const = vapply(seq_len(ncol(mm)), function(j) length(unique(mm[, j])) <= 1L, logical(1))
+		mm = mm[, !is_const, drop = FALSE]
+	}
+	if (ncol(mm) == 0L) return(matrix(NA_real_, nrow = nrow(data), ncol = 0L))
+	drop_linearly_dependent_cols(mm)$M
+}

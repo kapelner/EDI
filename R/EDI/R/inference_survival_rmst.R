@@ -205,7 +205,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#' @return  A (1 - alpha)-sized frequentist confidence interval for the treatment effect
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (is.null(private$cached_values$beta_hat_T)){
 				self$compute_estimate()
@@ -232,7 +232,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#' @return  The approximate frequentist p-value
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (delta == 0){
 				if (is.null(private$cached_values$beta_hat_T)){

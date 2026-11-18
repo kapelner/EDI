@@ -72,9 +72,9 @@ test_that("BCa (non-block) failures leave the Wald state intact", {
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", f$p)
 	f$p$approximate_jackknife_distribution_beta_hat_T_private = function(unit = "auto") 1
 	boot = rnorm(100, 0.5, 0.3)
-	expect_true(all(is.na(f$p$ci_bca(boot, 0.05, 0.5))))
+	expect_true(all(is.na(expect_warning(f$p$ci_bca(boot, 0.05, 0.5), class = "edi_procedure_na_warning"))))
 	expect_wald_intact_bf_116(f, before, "bootstrap", "bootstrap_bca_jackknife_unavailable")
-	expect_true(is.na(f$p$pval_bca(boot, 0.5, 0.2)))
+	expect_true(is.na(expect_warning(f$p$pval_bca(boot, 0.5, 0.2), class = "edi_procedure_na_warning")))
 	expect_wald_intact_bf_116(f, before, "bootstrap", "bootstrap_bca_jackknife_unavailable")
 })
 

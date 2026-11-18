@@ -88,8 +88,30 @@ class Notes(Fixture):
 
 class Apply(Fixture):
     def apply(self, *findings):
+        self.rox_calls = []
+
+        def fake_roxygen(repo, edited):
+            self.rox_calls.append(edited)
+            if not edited:
+                return {"ran": False, "ok": True, "note": "no roxygen source was edited", "kept": [], "reverted": []}
+            return {"ran": True, "ok": True, "note": "roxygen ran once and regenerated 1 Rd file(s)",
+                    "kept": ["R/EDI/man/Fit.Rd"], "reverted": []}
         return scr.apply(self.ctx, [{"units_checked": ["R/EDI/R/fit.R"], "findings": list(findings),
-                                     "_batch": "b001", "_units": []}], [])
+                                     "_batch": "b001", "_units": []}], [], roxygen=fake_roxygen)
+
+    def test_roxygen_edit_regenerates_its_rd_page(self):
+        parts = self.apply(
+            self.f("R/EDI/R/fit.R", "#' @param tol Tolerance. Default 1e-6.", "#' @param tol Tolerance. Default 1e-8."))
+        self.assertEqual(self.rox_calls, [["R/EDI/R/fit.R"]])
+        self.assertIn("`R/EDI/man/Fit.Rd`: regenerated from the corrected roxygen", parts["applied"])
+        self.assertIn("regenerated 1 Rd file(s)", parts["summary"])
+
+    def test_roxygen_sources(self):
+        self.assertEqual(scr.roxygen_sources("R/EDI/R/a.R", "#' x", "#' y"), {"R/EDI/R/a.R"})
+        self.assertEqual(scr.roxygen_sources("R/EDI/R/a.R", "  # x", "  # y"), set())
+        self.assertEqual(scr.roxygen_sources("R/EDI/src/k.cpp", "//' x", "//' y"),
+                         {"R/EDI/src/k.cpp", scr.RCPP_EXPORTS_R})
+        self.assertEqual(scr.roxygen_sources("R/EDI/src/k.cpp", "// x", "// y"), set())
 
     def f(self, unit, old, new, kind="contradiction", line=1):
         return {"unit": unit, "kind": kind, "line": line, "old": old, "new": new, "text": "claim vs code",
@@ -101,7 +123,7 @@ class Apply(Fixture):
             self.f("R/EDI/R/fit.R", "\ty = x + 1  # always positive", "\ty = x + 1  # positive when x > -1"),
             self.f("R/EDI/src/f.cpp", "   * uses Newton steps", "   * uses fixed-point steps"),
             self.f("R/EDI/src/f.cpp", "  return n * k; // returns n squared", "  return n * k; // returns 100 n"))
-        self.assertEqual(len(parts["applied"]), 4, ac.texts(parts["human"]))
+        self.assertEqual(len(parts["applied"]), 5, ac.texts(parts["human"]))   # 4 comments + 1 regenerated Rd page
         r = (self.repo / "R/EDI/R/fit.R").read_text()
         self.assertIn("Default 1e-8.", r)
         self.assertIn("# positive when x > -1", r)

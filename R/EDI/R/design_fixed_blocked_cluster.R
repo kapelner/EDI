@@ -106,8 +106,8 @@ DesignFixedBlockedCluster = define_design_class(
 				preferred_num_bins_for_continuous_covariate = num_bins_for_continuous_covariate
 			}
 			if (should_run_asserts()) {
-				assertCharacter(strata_cols, min.len = 1)
-				assertCharacter(cluster_col, len = 1)
+				assertCharacter(strata_cols, min.len = 1, any.missing = FALSE)
+				assertCharacter(cluster_col, len = 1, any.missing = FALSE)
 				assertCount(preferred_num_bins_for_continuous_covariate, positive = TRUE)
 				assertStrataClusterArgs(
 					strata_cols = strata_cols,

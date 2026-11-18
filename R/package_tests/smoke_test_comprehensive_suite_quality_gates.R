@@ -25,6 +25,14 @@ expect_true(!any(out$report$gate == "internal_safety_net_without_rationale"), "I
 expect_true(!any(out$report$gate == "unknown_skip_or_support_status"), "Skip/support status gate should be clean.")
 expect_true(!any(out$report$gate == "expired_exemption"), "Expired exemption gate should be clean.")
 expect_true(!isTRUE(out$summary$ci_should_fail[1L]), "Report-mode comprehensive gates should not fail current artifacts.")
+# NA audit (v1.0.6-TODO-95, na_audit_gate.R): the allowlist must cite only open TODOs, and when
+# the NA digest is present its rows reach the report.
+expect_true(!any(out$report$gate == "na_allowlist_invalid"), "na_audit_allowlist.csv has invalid rows (closed/missing TODO, bad kind or regex).")
+if (file.exists(gate_paths$na_digest) && nrow(read.csv(gate_paths$na_digest))) {
+	na_gates = c("silent_na_output", "na_output_warning_status_unknown", "warned_na_output_not_allowlisted", "na_output_allowlisted_todo", "na_output_allowlisted_intentional", "declared_nonestimable_na_output")
+	expect_true(any(out$report$gate %in% na_gates), "NA digest present but the NA audit produced no gate rows.")
+	expect_true(all(out$report$severity[out$report$gate == "silent_na_output"] == "hard"), "silent_na_output must be a hard gate.")
+}
 expect_true(file.exists(gate_paths$report), "Comprehensive quality gate CSV was not written.")
 expect_true(file.exists(gate_paths$summary), "Comprehensive quality gate summary CSV was not written.")
 

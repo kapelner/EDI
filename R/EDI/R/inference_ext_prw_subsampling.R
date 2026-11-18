@@ -135,7 +135,7 @@ InferenceExtPRWSubsampling = list(
 		#'   and standard error are kept).
 		compute_subsampling_two_sided_pval_impl = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("centered"))
@@ -203,7 +203,7 @@ InferenceExtPRWSubsampling = list(
 		#'   kept).
 		compute_subsampling_confidence_interval_impl = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("basic"))
@@ -273,7 +273,7 @@ InferenceExtPRWSubsampling = list(
 		select_optimal_b_subsampling_impl = function(B = 251, alpha = 0.05, b_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), b_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, subsampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0.8){
 			if (should_run_asserts()) {
 				assertCount(B, positive = TRUE)
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertChoice(target, c("ci"))
 			}
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)

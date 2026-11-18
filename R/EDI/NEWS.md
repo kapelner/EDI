@@ -36,7 +36,75 @@
   depending on n. Draws change only for `abs_sum_diff` at odd n or unequal
   arms. The default `mahal_dist` is unchanged.
 
+* The default BCa bootstrap p-value (`compute_bootstrap_two_sided_pval()` and
+  `compute_bayesian_bootstrap_two_sided_pval()`, `type = "bca"`) now returns the
+  2/B floor instead of `NA` when the null value lies outside the bootstrap
+  distribution, matching the percentile, symmetric and studentized types
+  (v1.0.6-TODO-75, v1.0.6-TODO-114). When the BCa adjustment is on the boundary
+  the p-value is still `NA` but now warns `edi_bootstrap_bca_boundary_warning`,
+  like the BCa interval, and at B >= 501 that warning no longer recommends
+  increasing B (v1.0.6-TODO-92).
+
+* `InferenceSurvivalLogRank` and `InferenceSurvivalGehanWilcox` on left- or
+  interval-censored data now always report treatment minus control
+  (v1.0.6-TODO-117, v1.0.6-TODO-121). `interval::ictest()` orders the arms by
+  which one appears first in the data, so the estimate's sign used to depend on
+  whether subject 1 was treated, and bootstrap, jackknife and randomization
+  draws had an essentially random sign. That broke percentile and BCa intervals
+  and bootstrap p-values. Two-sided asymptotic p-values are unchanged.
+* `InferenceIncidKKGEE` and `InferencePropKKGEE` now return `NA` for the
+  asymptotic p-value and confidence interval, with
+  `edi_logistic_separation_warning`, under (quasi-)complete separation. Before,
+  the collapsed sandwich standard error gave p ~ 0. The point estimate is
+  unchanged (v1.0.6-TODO-118).
+* BCa bootstrap and jackknife intervals on `DesignFixedBlocking` with a
+  `design_formula` that names the strata column are no longer `NA`: the model
+  matrix is now rebuilt correctly when a resample leaves a formula column
+  constant (v1.0.6-TODO-108, v1.0.6-TODO-107). `InferenceContinLin` also
+  rebuilt its covariates incorrectly on rank-deficient resamples.
+
 ## Bug fixes
+
+* `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and
+  `DesignSeqOneByOneKK21stepwise` no longer fail with "object not found" when
+  `design_formula` names a covariate that is still constant among the subjects
+  enrolled so far, and KK14/KK21 no longer fail when no covariate varies yet
+  among earlier subjects (v1.0.6-TODO-107).
+* `DesignSeqOneByOneKK21stepwise` no longer errors ("missing values and NaN's
+  not allowed" in `quantile()`) when the responses so far are constant or fit
+  exactly by the covariates (for example with a single covariate, or all-zero
+  counts). The covariate weights fall back to equal weights, as
+  `DesignSeqOneByOneKK21` already did (v1.0.6-TODO-120, v1.0.6-TODO-63).
+* `InferenceIncidLogRegr`, `InferenceIncidProbitRegr` and the logistic
+  g-computation classes (`InferenceIncidGCompRiskDiff`/`RiskRatio`,
+  `InferenceIncidKKGCompRiskDiff`/`RiskRatio`) now warn
+  (`edi_logistic_separation_warning`, once per object, never inside resampling)
+  when fitted probabilities are numerically 0 or 1, i.e. under (quasi-)complete
+  separation. Estimates are unchanged (v1.0.6-TODO-109, v1.0.6-TODO-119).
+* `InferenceRandCustom` on incidence responses: a C++ statistic now gives the
+  randomization p-value at `delta = 0` (it was refused), and an R-function
+  statistic now refuses a nonzero `delta` like every other form
+  (v1.0.6-TODO-110, v1.0.6-TODO-81).
+* `InferenceRandCustom` now warns, naming the statistic argument, when the
+  custom statistic (R or C++) is not finite on the observed data, instead of
+  silently returning `NA` (v1.0.6-TODO-111).
+* `InferenceSurvivalKMDiff` now warns, naming the arm, when a Kaplan-Meier
+  median is not reached (all results are `NA`; use
+  `InferenceSurvivalRestrictedMeanDiff`), and explains a jackknife-Wald `NA`
+  (the jackknife is unreliable for medians; use the bootstrap)
+  (v1.0.6-TODO-112).
+* `NA` results that EDI recorded on the object without a warning now warn with
+  a classed warning carrying `procedure` and `reason` fields
+  (`edi_procedure_na_warning`, or `edi_unsupported_procedure` when the
+  procedure is unsupported): asymptotic inference for count-likelihood classes
+  on blocked-cluster designs, bootstrap intervals rejected as numerically
+  extreme, jackknife results that are not estimable, and jackknife or BCa
+  results on blocking designs whose deletion unit is unsupported (the warning
+  names `unit = "block"`) (v1.0.6-TODO-113, v1.0.6-TODO-108, v1.0.6-TODO-74).
+* The BCa bootstrap interval and p-value (plain and Bayesian) now warn once
+  per object with `edi_bootstrap_bca_unstable_warning` (suggesting
+  `type = "percentile"`) when they are `NA` because the BCa bias correction or
+  acceleration is unstable; that `NA` used to be silent (v1.0.6-TODO-116).
 
 * `DesignFixedRerandomization` now errors at construction on an `objective`
   other than `"mahal_dist"` or `"abs_sum_diff"`. Before, an unknown value

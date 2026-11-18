@@ -109,7 +109,7 @@ jobs:
   plan:
     needs: check
     # A push whose gate job failed still runs (fail open); a failed nightly check skips, as before.
-    if: always() && (github.event_name == 'workflow_dispatch' || needs.check.outputs.should_run == 'true' || (github.event_name == 'push' && needs.check.result != 'success'))
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.check.outputs.should_run == 'true' || (github.event_name == 'push' && needs.check.result != 'success')) }}
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
@@ -153,7 +153,12 @@ jobs:
     # whole-graph implicit-success() poisoning one level down. Matching
     # plan's own `always() && (...)` style instead of always() alone keeps
     # this job from running if plan genuinely fails.
-    if: always() && needs.plan.result == 'success'
+    #
+    # 2026-11-17: `!cancelled()` instead of `always()` in plan, shards and merge. Both survive a
+    # skipped ancestor, but always() also ignores a cancel: the run of 9f85cecc kept its 112 shards
+    # going after the next push cancelled it, held the concurrency slot, and every newer push waited
+    # behind it (and was replaced by the push after it), the opposite of `cancel-in-progress`.
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-latest
     # 2026-10-08: bumped from 60 -> 90 (and the "Run coverage shard" step
     # below from 45 -> 75). Run 37770247146's shard 3 genuinely ran the full
@@ -249,7 +254,7 @@ jobs:
     # that a skipped `check` elsewhere in the graph poisons.
     # 2026-09-25: needs its own always() prefix too -- see shards' comment
     # above for why a bare comparison alone isn't enough.
-    if: always() && needs.plan.result == 'success' && needs.shards.result == 'success'
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.shards.result == 'success' }}
     runs-on: ubuntu-latest
     # 2026-10-12: 15 -> 30. merge_coverage.R now sums compact per-shard
     # sidecars (seconds) but still reads one full ~1.6 GB coverage object as

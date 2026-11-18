@@ -107,7 +107,7 @@ DesignFixedCluster = define_design_class(
 				seed = NULL
 			) {
 			if (should_run_asserts()) {
-				assertCharacter(cluster_col, len = 1)
+				assertCharacter(cluster_col, len = 1, any.missing = FALSE)
 			}
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$cluster_col = cluster_col

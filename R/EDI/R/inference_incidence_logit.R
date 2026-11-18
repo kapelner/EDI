@@ -547,6 +547,10 @@ InferenceIncidLogRegr = define_inference_class(
 		#'   bootstrap resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
+			# v1.0.6-TODO-109: warn (once per object, never inside resampling)
+			# when fitted probabilities are numerically 0 or 1, i.e. the data
+			# are (quasi-)completely separated. Warning only, no numeric change.
+			if (!is.null(private$cached_mod)) edi_warn_logistic_separation_once(self, private, private$cached_mod$X, private$cached_mod$b)
 			estimand = self$get_estimand()
 			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
 				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))

@@ -21,6 +21,8 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 }
 
 gate_artifact = function(name) file.path(repo_root, "package_tests", name)
+# NA audit (v1.0.6-TODO-95): silent NA outputs fail the gate; see na_audit_gate.R.
+source(gate_artifact("na_audit_gate.R"), local = TRUE)
 
 gate_paths = list(
 	inventory = gate_artifact("public_api_inventory.csv"),
@@ -31,6 +33,9 @@ gate_paths = list(
 	coverage = gate_artifact("public_argument_combination_coverage.csv"),
 	ci_summary = gate_artifact("public_argument_combination_ci_failure_summary.csv"),
 	exemptions = gate_artifact("public_argument_combination_gate_exemptions.csv"),
+	na_allowlist = gate_artifact("na_audit_allowlist.csv"),
+	data_shape_results = gate_artifact("public_argument_combination_data_shape_results.csv"),
+	release_plans = file.path(repo_root, "package_metadata", "future_release_plans"),
 	report = gate_artifact("public_argument_combination_quality_gates.csv"),
 	summary = gate_artifact("public_argument_combination_quality_gate_summary.csv")
 )
@@ -224,9 +229,32 @@ build_quality_gate_report = function(inputs, exports = load_edi_exports()) {
 		data.frame(target = ci_errors$case_id, value_expr = ci_errors$error_message, stringsAsFactors = FALSE),
 		"Smoke/CI tier result has an unexpected error or invariant failure."
 	)
+	rows[[length(rows) + 1L]] = argument_combination_na_audit_rows(inputs)
 	report = do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
 	if (is.null(report) || !nrow(report)) report = empty_gate_rows()
 	report
+}
+
+# NA audit rows (v1.0.6-TODO-95) from the results' output_outcome column. The allowlist row
+# that let a case through (kind, TODO or warning class) is appended to its detail.
+argument_combination_na_audit_rows = function(inputs) {
+	cases = na_audit_cases_from_argument_results(inputs$results)
+	# The data-shape matrix (v1.0.6-TODO-97, run_public_argument_data_shape_matrix.R) writes its
+	# own results file; its rows are held to the same rule.
+	shape = if (!is.null(inputs$data_shape_results) && nrow(inputs$data_shape_results)) na_audit_cases_from_argument_results(inputs$data_shape_results)
+	if (!is.null(shape)) cases = if (is.null(cases)) shape else rbind(cases, shape)
+	if (is.null(cases)) {
+		return(gate_rows("na_audit_not_evaluable", "report",
+			data.frame(target = "public_argument_combination_results.csv", stringsAsFactors = FALSE),
+			"Results have no output_outcome column (written by an older run_public_argument_combinations.R), so silent NA outputs cannot be checked."))
+	}
+	na = na_audit_gate_rows(cases, inputs$na_allowlist %||% na_audit_read_allowlist(""), inputs$open_todos %||% character(), scope = "argument_combination")
+	if (!nrow(na)) return(empty_gate_rows())
+	data.frame(
+		gate = na$gate, severity = na$severity, target = na$target, arg = na$arg, value_expr = na$value_expr,
+		detail = ifelse(nzchar(na$exemption_type), paste0(na$detail, "; allowlisted (", na$exemption_type, "): ", na$exemption_reason), na$detail),
+		stringsAsFactors = FALSE
+	)
 }
 
 summarize_quality_gates = function(report, mode = "report") {
@@ -251,6 +279,9 @@ check_public_argument_combination_quality_gates = function(mode = "report") {
 	inputs = lapply(names(required_schemas), function(name) read_required_csv(gate_paths[[name]], name))
 	names(inputs) = names(required_schemas)
 	inputs$ci_summary = if (file.exists(gate_paths$ci_summary)) read_required_csv(gate_paths$ci_summary, "ci_summary") else data.frame()
+	inputs$na_allowlist = na_audit_read_allowlist(gate_paths$na_allowlist)
+	if (file.exists(gate_paths$data_shape_results)) inputs$data_shape_results = read_required_csv(gate_paths$data_shape_results, "data_shape_results")
+	inputs$open_todos = na_audit_open_todos(gate_paths$release_plans)
 	exemptions = read_optional_csv(gate_paths$exemptions, c("gate", "target", "arg", "value_expr", "reason"))
 	report = apply_exemptions(build_quality_gate_report(inputs), exemptions)
 	if (!"exempted" %in% names(report)) report$exempted = FALSE

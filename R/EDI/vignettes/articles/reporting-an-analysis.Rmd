@@ -127,7 +127,7 @@ ci_rand = inf$compute_rand_confidence_interval(alpha = alpha, r = r, show_progre
 p_rand  = inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE)
 ci_boot = inf$compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = "bca",
                                                     show_progress = FALSE)
-p_boot  = inf$compute_bootstrap_two_sided_pval(B = B, type = "percentile",
+p_boot  = inf$compute_bootstrap_two_sided_pval(B = B, type = "bca",
                                                show_progress = FALSE)
 
 results = data.frame(
@@ -143,10 +143,10 @@ results = data.frame(
 results
 ```
 
-The bootstrap row pairs a BCa interval with a percentile p-value, so say so in a
-table note. BCa needs `B` of about 501 or more; with fewer draws its adjusted
-tails land on the edge of the bootstrap sample and the interval is `NA` with a
-warning, and `type = "percentile"` is the choice if you need a small `B`.
+Both bootstrap numbers are BCa, the default type. BCa needs `B` of about 501 or
+more; with fewer draws its adjusted tails land on the edge of the bootstrap
+sample and the interval and p-value are `NA` with a warning, and
+`type = "percentile"` is the choice if you need a small `B`.
 
 For the paper, format it with `knitr::kable()` (or any table package). The one
 thing to get right is the p-value from a resampling test: with `r` draws the

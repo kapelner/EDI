@@ -74,7 +74,7 @@ InferenceContinQuantileRegr = define_inference_class(
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5,  verbose = FALSE){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "continuous")
-				assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+				assertNumeric(tau, len = 1, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertFormula(model_formula, null.ok = TRUE)
 			}
 			if (should_run_asserts()) {
@@ -161,7 +161,7 @@ InferenceContinQuantileRegr = define_inference_class(
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -175,7 +175,7 @@ InferenceContinQuantileRegr = define_inference_class(
 		#' @param delta The null difference to test against. Default is zero.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)

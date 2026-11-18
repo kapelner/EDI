@@ -110,11 +110,11 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
-				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
-				assertCount(as.integer(max_expansions), positive = TRUE)
-				assertLogical(show_progress)
+				assertNumeric(pval_epsilon, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
+				assertCount(max_expansions, positive = TRUE)
+				assertFlag(show_progress)
 				assertChoice(tolower(type), private$rand_bootstrap_ci_types)
 				if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function) && is.null(private[["compiled_cpp_stat_fn"]])) {
 					stop("Bootstrap randomization confidence intervals are not supported for incidence.")

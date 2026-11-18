@@ -17,5 +17,7 @@ stopifnot(all(c("gate", "severity", "target", "arg", "value_expr", "detail", "ex
 stopifnot(all(c("mode", "total_rows", "active_hard_rows", "ci_should_fail") %in% names(out$summary)))
 stopifnot(all(file.exists(unlist(gate_paths[c("report", "summary")]))))
 stopifnot(!any(out$report$gate == "unknown_constraint_status"))
+# NA audit (v1.0.6-TODO-95): the allowlist must cite only open TODOs.
+stopifnot(!any(out$report$gate == "na_allowlist_invalid"))
 
 message("public argument combination quality gates smoke test passed")

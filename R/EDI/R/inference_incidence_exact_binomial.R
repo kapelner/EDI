@@ -78,7 +78,7 @@ ExactBinomialIncidenceSource = list(
 		},
 		compute_exact_confidence_interval_by_type = function(type, alpha, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,
@@ -87,7 +87,7 @@ ExactBinomialIncidenceSource = list(
 		},
 		compute_exact_two_sided_pval_for_treatment_effect_by_type = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,

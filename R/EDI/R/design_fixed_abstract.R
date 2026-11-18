@@ -115,8 +115,11 @@ DesignFixed = R6::R6Class("DesignFixed",
 				if (private$response_type == "ordinal" && is.factor(ys)){
 					assertFactor(ys, len = private$t, ordered = TRUE, any.missing = FALSE)
 				} else {
+					# NA allowed: an NA in ys marks a censored subject entered through y_Ls/y_Rs;
+					# non-survival NAs are rejected below, always on (v1.0.6-TODO-93).
 					assertNumeric(ys, len = private$t)
 				}
+				# NA allowed in y_Ls/y_Rs: NA marks a subject with an exact response in ys.
 				assertNumeric(y_Ls, len = private$t)
 				assertNumeric(y_Rs, len = private$t)
 			}
@@ -136,7 +139,7 @@ DesignFixed = R6::R6Class("DesignFixed",
 				stop("Supply either ys or (y_Ls, y_Rs) for each subject, not both.")
 			}
 			if (any(!has_y & !has_bounds)){
-				stop("Each subject needs either ys or both y_Ls and y_Rs.")
+				stop(missing_response_error_message(private$response_type, which(!has_y & !has_bounds)[1L], vectorized = TRUE), call. = FALSE)
 			}
 			if (any(has_bounds) && private$response_type != "survival"){
 				stop("censored observations are only available for survival response types")
@@ -176,6 +179,7 @@ DesignFixed = R6::R6Class("DesignFixed",
 					stop("overwrite_all_subject_assignments: w must contain only 0 (control) or 1 (treated).")
 				}
 			}
+			assert_overwritten_w_always(w, private$t)
 			private$w = as.numeric(w)
 		}
 	),

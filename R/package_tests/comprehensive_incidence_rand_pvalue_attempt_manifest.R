@@ -1,7 +1,8 @@
 # Source-derived expected-attempt inventory for incidence rand p-values.
 # This is separate from the proportion helper: incidence's delta=0.5 runner
-# call is deliberately retained as an attempted row, but current public R
-# methods reject it (unless a custom randomization statistic is supplied).
+# call is deliberately retained as an attempted row, and current public R
+# methods reject it for every statistic form, custom R/C++ included
+# (v1.0.6-TODO-81/110).
 
 # read.csv() calls in this file go through read_csv_fast(): fread-backed, same
 # result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
@@ -110,8 +111,7 @@ comprehensive_incidence_rand_pvalue_source_guard <- function(runner_path) {
 				if (!identical(expr[[1L]], as.name("if")) || length(expr) < 3L) return(invisible(NULL))
 				condition_text <- paste(deparse(expr[[2L]], width.cutoff = 500L), collapse = " ")
 				if (!grepl("isTRUE\\(delta != 0\\)", condition_text) ||
-						!grepl('response_type == "incidence"', condition_text, fixed = TRUE) ||
-						!grepl("is.null(private$custom_randomization_statistic_function)", condition_text, fixed = TRUE)) {
+						!grepl('response_type == "incidence"', condition_text, fixed = TRUE)) {
 					return(invisible(NULL))
 				}
 				walk(expr[[3L]], function(inner) {
@@ -195,8 +195,10 @@ comprehensive_incidence_rand_pvalue_attempt_manifest <- function(cases, runner_p
 		skip_reasons <- NA_character_
 		if (!isTRUE(cases$skip_rand_delta_pval_slow[i])) {
 			functions <- c(functions, "compute_rand_two_sided_pval(delta=0.5)")
-			statuses <- c(statuses, if (isTRUE(cases$has_custom_randomization_statistic_function[i])) NA_character_ else "error")
-			skip_reasons <- c(skip_reasons, if (isTRUE(cases$has_custom_randomization_statistic_function[i])) NA_character_ else "error")
+			# v1.0.6-TODO-81/110: custom statistics are no longer exempt from the
+			# nonzero-delta incidence guard, so every form expects an error.
+			statuses <- c(statuses, "error")
+			skip_reasons <- c(skip_reasons, "error")
 		}
 		base <- cases[rep(i, length(functions)), key_columns, drop = FALSE]
 		base$function_run <- functions

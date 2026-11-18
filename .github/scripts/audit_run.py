@@ -180,6 +180,9 @@ def cmd_finish(a):
     proposed = [ac.normalise_finding(spec["name"], f, f.get("source", "claude"))
                 for f in parts.pop("proposed", [])]
     proposed = ac.drop_rejected(proposed, history)
+    # A finding already settled as fixed (e.g. a dead-code candidate listed by a merged PR) is not
+    # open again just because an agent re-confirms it; counting it kept the unit re-read every run.
+    settled = {h["id"] for h in history if h.get("status") in ("fixed", "rejected")}
     known = {h["id"] for h in history}
     stamp = ac.now_utc().isoformat(timespec="seconds")
     for f in proposed + mech:
@@ -196,7 +199,8 @@ def cmd_finish(a):
         covered.update(r.get("units_checked") or r["_units"])
     open_by_unit = {}
     for f in proposed:
-        open_by_unit[f["unit"]] = open_by_unit.get(f["unit"], 0) + 1
+        if f["id"] not in settled:
+            open_by_unit[f["unit"]] = open_by_unit.get(f["unit"], 0) + 1
     m = notes.manifest()
     for u in covered:
         if u not in plan["units"]:

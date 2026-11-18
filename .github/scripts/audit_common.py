@@ -395,7 +395,8 @@ def decision_note(counts):
         extra.append(f"{counts['dismissed']} dismissed")
     return ("Each item stays here, run after run, until a run no longer finds it, an open release TODO cites "
             "its id (the `<audit>-d<hex>` tag after the item), or its id is listed in "
-            f"`{DISMISSED_FILE}` with a reason."
+            f"`{DISMISSED_FILE}` with a reason. The issue labelled `audit-decisions` lists every audit's open "
+            "decisions together."
             + (" " + "; ".join(extra) + "." if extra else ""))
 
 

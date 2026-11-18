@@ -231,7 +231,7 @@ InferenceOrdinalRidit = define_inference_class(
 		#' @return The p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)

@@ -199,7 +199,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			tryCatch({
 				private$shared(estimate_only = FALSE)
@@ -215,7 +215,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			tryCatch({
 				private$shared(estimate_only = FALSE)
@@ -230,7 +230,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		compute_wald_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_pvalue(delta)
@@ -240,7 +240,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_confidence_interval(alpha)
@@ -262,7 +262,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L,
 			show_progress = TRUE, min_number_usable_samples = 5L){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			old_bootstrap_screening = private$bootstrap_screening_control
 			private$bootstrap_screening_control = list(
@@ -334,7 +334,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			if (should_run_asserts()) {
 				assertNumber(boundary_tol, lower = 0, upper = 0.5)
 				assertNumber(max_boundary_mass, lower = 0, upper = 1)
-				assertNumber(sep_tol, lower = 0)
+				assertNumber(sep_tol, lower = 0, finite = TRUE)
 			}
 			if (should_run_asserts()) {
 				assertCount(min_group_n, positive = TRUE)

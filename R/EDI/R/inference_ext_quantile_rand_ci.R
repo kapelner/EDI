@@ -23,8 +23,8 @@ InferenceExtQuantileRandCI = list(
 		#' @return 	A length-2 numeric vector giving the lower and upper CI boundary.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 1e-6, show_progress = TRUE, ci_search_control = NULL){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
-				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+				assertNumeric(pval_epsilon, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
 				assertCount(r, positive = TRUE)
 			}
 			# TODO-119 / G6: same exact-0/1 refusal as the generic randomization CI,

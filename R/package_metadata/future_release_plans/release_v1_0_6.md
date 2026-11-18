@@ -1147,6 +1147,15 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `stats::quantile`. Fall back to equal weights when the raw weights sum to 0. The failing test is
   `R/package_tests/testthat_bulk/test-kk21-stepwise-constant-response-zero-weight-normalisation.R` (skipped, citing
   this TODO); done when the fix lands and the skip is removed.
+  Status 2026-11-18 (agent, uncommitted): v1.0.6-TODO-120 and -63 fixed together (same cause), R only. The stepwise
+  kernel skips a candidate whose residual variance is 0 (exact fit, or constant y), so with one covariate all weights
+  are NA -> 0 and `assign_wt` normalized 0/0. `assign_wt` (`design_seq_one_by_one_KK21.R`) now falls back to equal
+  weights when the sum is non-finite or <= 0 (what non-stepwise KK21 already gives). 20 single-covariate scenarios:
+  continuous, count, proportion, survival and ordinal cases that crashed now run. Allocations unchanged on non-crashing
+  paths (72/72 configs identical vs HEAD). Test `test-kk21-stepwise-degenerate-weights-fall-back-to-equal.R` (51); the
+  TODO-63 bulk test's skip removed (3/3); 59 KK21/KK golden files pass. Not changed: with several covariates, one that
+  predicts y exactly gets weight ~0 in the stepwise kernel (eps in non-stepwise); a C++ change if wanted. NEWS line
+  pending.
 - [ ] TODO-64 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Zero-augmented Poisson fits depend on the core count.** `fit_zero_augmented_model()`
   (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1094`) passes `glmmTMBControl(parallel =
@@ -1366,6 +1375,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   deleting one cluster at a time, or, if that is not valid here, error or warn with the unit that works
   instead of returning `NA` silently, and make the cluster-independence warning name a unit that works on the
   design at hand. Add a test for each unit on this design. Update the article's stated limitation when fixed.
+  Update 2026-11-18 (v1.0.6-TODO-108 agent): not fixed (cluster-unit jackknife on blocked designs still unimplemented),
+  but `mark_jackknife_nonestimable_if_block_unsupported()` now warns and names `unit = "block"`, and the BCa CI that
+  hits the same refusal now warns too. `cluster-and-factorial-experiments.Rmd` text updated to "with a warning".
 - [ ] TODO-75 (added 2026-11-17, agent, owner request; found by the reporting-an-analysis article agent): **The
   BCa bootstrap p-value returns `NA`, with no warning, exactly when the evidence is strongest**: when the null
   value lies outside the whole bootstrap distribution. BCa is the default p-value type, so the default call
@@ -1391,6 +1403,15 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     at least warn); keep `NA` only for a genuinely degenerate adjustment. Add a test with this repro, and check
     the same clamp in any other BCa p-value path. `vignettes/articles/reporting-an-analysis.Rmd` works around it
     by pairing the BCa CI with a percentile p-value; it can use the default once this is fixed.
+  Status 2026-11-18 (agent, uncommitted): v1.0.6-TODO-75, -92 and -114 fixed together. `bca_pval_core()`
+  (`inference_ext_bca_bootstrap_ci.R`) returns the 2/B floor when delta is outside the bootstrap support (was NA via the
+  epsilon clamp and |adj_z| > 8); a boundary BCa p-value is still NA but now warns `edi_bootstrap_bca_boundary_warning`
+  (`what = "p-value"`), like the CI; at B >= 501 the warning no longer says to increase B (`helper_robust_sandwich.R`
+  `edi_warn_bca_boundary_once()`). Changes results (NA -> 2/B); NEWS line pending under "Changes that alter results".
+  New test `test-bootstrap-bca-pval-outside-support-and-boundary-warning.R`; one bulk test updated (NA -> 2/B). On
+  closing: remove the v1.0.6-TODO-75 rows of `R/package_tests/na_audit_allowlist.csv` and widen its BCa-boundary
+  intentional row to the bootstrap p-value methods. Still silent: the "unstable bias or acceleration" BCa NA (CI and
+  p-value). The LogRank boundary case is really a sign bug in LogRank bootstrap draws on interval data (not yet filed).
 - [ ] TODO-76 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **KK14, KK21 and KK21stepwise crash on the first assignment when `n = NULL`**, although the docs say
   `n = NULL` means the sample size is not fixed. `too_early_to_match()` (`R/design_seq_one_by_one_KK14.R`
@@ -1449,6 +1470,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `is.null(private$custom_randomization_statistic_function)`, so `InferenceRandCustom` with an R function runs
   `compute_rand_two_sided_pval(delta = 0.1)` on binary y (returned 0.01), while a `_cpp` statistic stops. Fix:
   apply the incidence `delta` guard regardless of how the statistic is supplied; test both forms.
+  Status 2026-11-18 (agent, uncommitted): fixed with v1.0.6-TODO-81/-110 together. Cause: "custom statistic?" checked
+  only the R-function field, not `compiled_cpp_stat_fn`. Now on incidence `delta = 0` runs for every form and nonzero
+  `delta` errors for every form (`inference_all_abstract_rand.R`, `inference_all_abstract_rand_ci.R`). Test
+  `test-rand-custom-incidence-delta-guard.R`; the incidence rand-attempt manifest and its bulk test updated. Stale,
+  left for the owner (changes the grid): `comprehensive_tests.R` ~L2199 `skip_custom_rand_pval` on incidence, and
+  `path_audits_source.R` `cell_rand_custom_p` (~L1577-1586). NEWS line pending.
 - [ ] TODO-82 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
   **`na.rm` in `compute_rand_two_sided_pval()` does nothing, and the finite-draw minimum is misdocumented.**
   `R/inference_all_abstract_rand.R` ~L343-352 asserts `na.rm` but never uses it; non-finite draws are always
@@ -1456,6 +1483,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   roxygen says "at least 10 finite reference statistics"; the code requires `max(10, 10% of r)`. Fix: honour
   `na.rm = FALSE` (return `NA` if any draw is non-finite) or remove the argument; warn when draws are dropped,
   with the count; make the roxygen state the real minimum. Test both.
+  Note 2026-11-18 (v1.0.6-TODO-111 agent): the cause is in the shared p-value code (`inference_all_abstract_rand.R`
+  ~L343, ~L837), not the custom class. Owner decision needed: honouring `na.rm = FALSE` literally would break every
+  rand CI, because the CI search (`inference_all_abstract_rand_ci.R` ~L454) passes `na.rm = FALSE` and some draws
+  fail; so either remove the argument or keep it as "drop non-finite draws" and fix the docs. A warning on dropped
+  draws would need deduplication. The "at least 10" doc vs `max(10, 10% of r)` code mismatch is a roxygen fix.
 - [ ] TODO-83 (added 2026-11-17, agent, owner request; found by the custom-randomization-statistic article agent):
   **A custom statistic that returns more than one value is silently truncated.** `evaluate_stat` keeps
   `as.numeric(...)[1L]` (see also `R/inference_all_abstract_rand.R` ~L196/L214), so
@@ -1482,10 +1514,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `w = [1, 2, 1, 2, 1, 2]` (and likewise with -1/1 coding), `wilcox_hl_point_estimate`, `get_survival_stat_diff`
   and `fast_ridit_analysis` silently return `nan`, and `fast_logrank_stats(...)["beta_hat"]` silently flips sign
   (+0.511 instead of -0.511), the worst case. No error in any of them. The R classes validate `w` before calling
-  these kernels, so this only affects direct (Python, or R `_cpp`) callers. Fix: validate `w` in {0, 1} at the
-  Python binding layer (cheap, once per call) for every kernel that takes a treatment vector, with a clear
-  error; add a parametrized test over all such kernels with 1/2 and -1/1 coding. Python package; takes effect
-  when the wheel is rebuilt.
+  these kernels, so this only affects direct (Python, or R `_cpp`) callers. The fix (input validation) moved to
+  v1.0.6-TODO-101 on 2026-11-18 (owner request); this entry keeps the repro and closes when TODO-101 lands with a
+  test of all treatment-vector kernels under 1/2 and -1/1 coding.
+  Status 2026-11-18: that test is in `python/tests/test_input_checks.py` and passes (6 kernels x 2 codings x checks
+  on/off); close with TODO-101.
 - [ ] TODO-87 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Variance
   outputs are missing from the Python kernels.** `fast_ols(estimate_only=False)` returns only `b` and `XtWX`
   (R's `fast_ols_with_var_cpp` also returns `ssq_b_j` and `sigma2_hat`); `fast_logistic_regression` always
@@ -1529,6 +1562,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   interval-censored Turnbull path, or an early return), make the fallback work or warn and say why; test on
   this fixture. `articles/censored-survival-outcomes.Rmd` lists KMDiff as accepting interval
   censoring but does not demonstrate it; add a demo once fixed.
+  Note 2026-11-18 (v1.0.6-TODO-112 agent): cause found, not fixed. `bootstrap_confidence_interval_extreme()`
+  (`inference_all_abstract_non_param_boot.R` ~L1134) flags the CI because `bootstrap_outcome_scale()` uses `private$y`,
+  which is all NA under interval censoring, so it falls back to scale 1 and caps the width at 5; a visit-grid interval
+  of width 6 counts as extreme. Fix: compute the scale from finite `y_L`/`y_R` (midpoints). Likely also v1.0.6-TODO-91.
+  Update 2026-11-18: the same `bootstrap_outcome_scale()` fix makes the KMDiff percentile CI on the repro finite
+  ([0, 9]); check whether the rest of this TODO (the "bootstrap fallback does not resample") still holds before closing.
 - [ ] TODO-91 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
   article agent): **`InferenceSurvivalRestrictedMeanDiff`'s bootstrap interval is `NA` on interval-censored data**,
   with no warning, even with `type = "percentile"` and B = 501, although
@@ -1537,6 +1576,10 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   A percentile interval from a finite distribution should never be `NA`, so the interval step is discarding the
   draws (check the CI path's finiteness/minimum-draw filter and any interval-censoring-specific branch). Test on
   that fixture; add the article demo once fixed.
+  Status 2026-11-18 (v1.0.6-TODO-115 agent, uncommitted): fixed by the `bootstrap_outcome_scale()` change (see
+  TODO-115): repro percentile CI [1.17, 7.16], asymp CI [2.06, 7.45]; known-issue row removed from
+  `run_public_argument_data_shape_matrix.R`. Close when committed; NEWS line pending. Its allowlist row in
+  `R/package_tests/na_audit_allowlist.csv` should then be removed.
 - [ ] TODO-92 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
   article agent): **The BCa boundary warning recommends the B that was just used.** On interval-censored data,
   `InferenceSurvivalLogRank`'s BCa interval at B = 501 returns `NA` with "BCa adjustment on the boundary at B = 501
@@ -1545,6 +1588,15 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   "increase B" advice (say the adjustment is on the boundary for this data and suggest `type = "percentile"`),
   and check whether this is the same epsilon-clamp cause as v1.0.6-TODO-75 (the boundary test on |adj_z| > 8).
   Test the message at B = 200 and B = 501.
+  Status 2026-11-18 (agent, uncommitted): v1.0.6-TODO-75, -92 and -114 fixed together. `bca_pval_core()`
+  (`inference_ext_bca_bootstrap_ci.R`) returns the 2/B floor when delta is outside the bootstrap support (was NA via the
+  epsilon clamp and |adj_z| > 8); a boundary BCa p-value is still NA but now warns `edi_bootstrap_bca_boundary_warning`
+  (`what = "p-value"`), like the CI; at B >= 501 the warning no longer says to increase B (`helper_robust_sandwich.R`
+  `edi_warn_bca_boundary_once()`). Changes results (NA -> 2/B); NEWS line pending under "Changes that alter results".
+  New test `test-bootstrap-bca-pval-outside-support-and-boundary-warning.R`; one bulk test updated (NA -> 2/B). On
+  closing: remove the v1.0.6-TODO-75 rows of `R/package_tests/na_audit_allowlist.csv` and widen its BCa-boundary
+  intentional row to the bootstrap p-value methods. Still silent: the "unstable bias or acceleration" BCa NA (CI and
+  p-value). The LogRank boundary case is really a sign bug in LogRank bootstrap draws on interval data (not yet filed).
 - [ ] TODO-93 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
   article agent): **A missing non-survival response gives an error about survival-only arguments.**
   `add_all_subject_responses()` with an `NA` in `ys` for a continuous or incidence response stops with "Each
@@ -1552,9 +1604,480 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `design_fixed_abstract.R` ~L139). Fix: for non-survival response types say that responses may not be `NA`
   (name the first offending subject) and point to the missing-outcomes section of
   `articles/missing-covariates.Rmd`; keep the y_L/y_R wording for survival only. Test both.
+  Status 2026-11-18: fixed with v1.0.6-TODO-100 (`missing_response_error_message()` in `design_abstract.R`; test in
+  `test-design-responses-reject-na.R`); uncommitted.
 - [ ] TODO-94 (added 2026-11-17, agent, owner request; found by the missing-data and censoring
   article agent; minor): **`add_one_subject_response(1, y = NA_real_)` is accepted silently on a continuous
   design.** `assert_y()` (`R/EDI/R/design_abstract.R` ~L1083) has no NA check for continuous responses. The result
   is not wrong (inference later stops with "This experiment is incomplete..."), but the error comes far from the
   cause. Fix: reject `NA` at `add_one_subject_response()` for non-survival types with the same message as
   v1.0.6-TODO-93; test it.
+  Status 2026-11-18: fixed with v1.0.6-TODO-100 (`missing_response_error_message()` in `design_abstract.R`; test in
+  `test-design-responses-reject-na.R`); uncommitted.
+
+### Test dimensions the v1.0.6 vignettes exposed (TODO-95..99)
+
+The agents writing the new pkgdown articles found 22 bugs (v1.0.6-TODO-73..94) that the testthat suite, the
+comprehensive suite, the argument-combination harness and the audit jobs had all missed. They were not wrong numbers
+on canonical inputs. They were silent `NA`s, messages and docs that say something false, documented options that crash
+(`n = NULL`, unequal blocks, interval censoring), and code outside the registry (`InferenceRandCustom`, the Python
+kernels). checkmate did not catch them because the inputs are legal; the downstream code is what fails. These five
+TODOs add the missing dimensions.
+
+- [ ] TODO-95 (added 2026-11-18, agent, owner request): **`NA` audit in the comprehensive suite.** A case whose
+  inputs are finite and whose estimate, CI bound or p-value comes back `NA` without a warning or error is a failure,
+  not "unsupported". Allowlist a row only against an open release-prefixed TODO, as calibration rows are (see the
+  calibration-acceptance rule). Would have caught v1.0.6-TODO-74, -75, -90 and -91. Location: the quality gates in
+  `R/package_tests/` (`comprehensive_suite_quality_gate_summary.csv` and its checker); extend the same gate to
+  `public_argument_combination_quality_gates.csv`. Also add an allowlisted list of intentional `NA` returns (e.g. a
+  documented "not estimable" path that warns) so the gate stays honest.
+  Status 2026-11-18 (agent, uncommitted): gate implemented in both checkers. New `R/package_tests/na_audit_gate.R`
+  (rule, allowlist validation against open `- [ ] TODO-n` lines, `digest` of the gitignored per-response results),
+  `na_audit_allowlist.csv` (kind todo|intentional; intentional rows must have a recorded warning),
+  `smoke_test_na_audit_gate.R`; `comprehensive_tests.R` `safe_call` now records warning classes
+  (`...; warnings=none|<classes>`). Hard gates `silent_na_output`, `silent_na_output_missing_input`,
+  `na_allowlist_invalid`; argument-combination gate reads TODO-97's `output_outcome` (`recorded_na` counts as
+  silent). Caveat: today's comprehensive results predate warning capture, so all 591,100 NA rows are "warning status
+  unknown" (hard_later): 82,683 allowlisted (68,895 under v1.0.6-TODO-75), 508,417 not, in 1,371 groups across 81
+  classes. Open (owner): commit the digest `comprehensive_suite_na_audit.csv` (2 MB) or make it part of a results
+  refresh; regenerate the comprehensive results so unknown rows resolve to silent/warned (the comprehensive smoke test
+  will then fail until they are fixed or allowlisted, by design); regenerate drift artifacts; policy: should declared
+  non-estimable NAs without a warning stay report-only? Silent NAs seen with no TODO yet: studentized and
+  Bayesian-bootstrap CIs/p-values (CoxPH ~1, LogBinomial, PropGCompMeanDiff), m-out-of-n/subsampling on
+  KKCondLogitGLMMOneLik, ZIP ~1 parametric bootstrap, ExactFisher estimate/CI on FixedBlocking (pima).
+
+- [ ] TODO-96 (added 2026-11-18, agent, owner request): **Mechanical message audit.** Every argument name quoted in a
+  `stop()`, `warning()` or `message()` string in `R/EDI/R/` (e.g. `` `equal_block_sizes = FALSE` ``, `\code{B}`)
+  must be a formal of that function, of the class's `initialize`, or of a listed public method. Fits the audit-jobs
+  framework: new `.github/scripts/audits/message_args.py` + `test_audit_message_args.py` + workflow, following
+  `docs_claims.py`. Would have caught v1.0.6-TODO-73. Stretch: flag numeric advice in a message that equals the value
+  just used (v1.0.6-TODO-92's "use B >= 501" after B = 501) by a targeted testthat check rather than the static audit.
+  Status 2026-11-18 (agent, uncommitted): implemented as `.github/scripts/audits/message_args.py`,
+  `test_audit_message_args.py` (13 tests) and `audit-message-args.yml` (weekly, Wed 07:07 UTC; one line added to
+  `audit-status.yml`). Real tree: 3 findings, all real: `design_blocking_abstract.R:289` "Set equal_block_sizes = FALSE"
+  reached by 13 classes that lack it (v1.0.6-TODO-73, id `message-args-d46d9b383`); `inference_all_abstract.R:1092`
+  advises `num_cores = 1`, which no Inference class takes (use `set_num_cores(1)`; id `message-args-dcfba122d`);
+  `inference_suite.R:4996` prints `weighting =` for `combined_evidence_weighting` (id `message-args-d7bd0d2e5`).
+  Not covered: messages built in a variable first (~40 of ~870), and the numeric-advice stretch goal.
+
+- [ ] TODO-97 (added 2026-11-18, agent, owner request): **Option-matrix (data-shape) tests.** Pairwise coverage, per
+  design and inference family, over the non-default but documented settings the canonical fixtures never use:
+  `n = NULL` (sequential designs, analyzed mid-stream and at the end), unequal block / cluster sizes, censoring type
+  (none / right / interval), a missing response or covariate, and effect size (null vs. strong enough that 0 is
+  outside the bootstrap distribution). Each cell must either succeed with finite output or fail with a clear,
+  correct error; a silent `NA` is a failure (shares the rule with v1.0.6-TODO-95). Build on the existing
+  argument-combination harness (`R/package_tests/generate_public_argument_combinations.R`,
+  `public_argument_combination_fixtures.R`): its axes come from checkmate contracts, which only see argument types,
+  so add data-shape axes to the fixtures rather than a new harness. Would have caught v1.0.6-TODO-73, -74, -76..78,
+  -90, -91. Also cover `InferenceRandCustom` with R and C++ statistics returning one value, several values and `NA`
+  (v1.0.6-TODO-81..83).
+  Status 2026-11-18 (agent, uncommitted): implemented in the argument-combination harness. New entry point
+  `R/package_tests/run_public_argument_data_shape_matrix.R` (`EDI_DATA_SHAPE_LOAD_ALL=1` runs against source);
+  fixtures, generator (greedy pairwise covering array: 1,812 legal cells -> 177, 0 pairs uncovered), constraints,
+  invariants and runner edited; results gain `output_outcome` (finite / warned_na / recorded_na / silent_na /
+  clear_error / unclear_error / ...), `na_reason` and `known_todo`. Full run: 1,346 cases, ~5 min on 2 workers;
+  491 fail, 431 map to open TODOs (-73: 42, -74: 13, -76: 98, -77: 238, -81: 4, -82: 4, -83: 25, -90: 5, -91: 2).
+  ~60 new failures, not yet filed (repros in the agent report): KK14/KK21 crash when `design_formula` names a covariate
+  still constant among enrolled subjects; BCa bootstrap and jackknife silent NA on `DesignFixedBlocking` with the
+  strata column in `design_formula`; no separation warning in `InferenceIncidLogRegr`; C++ custom statistic refused
+  on incidence even at `delta = 0`; all-NA custom statistic gives NA with no warning; KMDiff silent NA on right-censored
+  data; several smaller NA-without-warning paths. Open: wire into `run_public_argument_combination_nightly.R`, commit a
+  baseline `public_argument_combination_data_shape_*.csv`. TODO-78 is not exercised (responses added in order).
+  Fix 2026-11-18 (coordinator): `run_public_argument_combinations.R` read an empty `receiver_args` back as logical NA,
+  which `%||%` doesn't replace, so any filtered run with no `InferenceRandCustom` rows failed every case with
+  "non-character argument". Now coerced to "" before `args_from_signature()`; one-cell matrix rerun clean (20 finite, 1
+  warned_na) and the runner smoke test passes.
+- [ ] TODO-98 (added 2026-11-18, agent, owner request): **Scenario tests written from the docs alone, per feature
+  area.** The six article agents were in effect six runs of the agent harness (the owner's gitignored harness-audit notes)
+  on new territory, and found 22 bugs. Make this routine: when a feature area lands or changes (a new design, an
+  inference family, the Python kernels, the custom-statistic API), run one docs-only agent that must complete a
+  realistic task end to end using the installed help and vignettes, and file what it trips over. Decide (owner) the
+  trigger: a release-gate checklist item, or a step in the new-feature plan template. Record each run's findings
+  with release-prefixed TODOs, as here.
+
+- [ ] TODO-99 (added 2026-11-18, agent, owner request): **Articles as a CI gate.** Render every vignette and
+  `vignettes/articles/*.Rmd` with warnings as errors (`options(warn = 2)` or a knitr hook failing on any
+  `warning`/`error` chunk output) so the workflows the articles document keep working. Today
+  `.github/workflows/pkgdown.yaml` builds the site only on push to main and does not fail on a chunk warning.
+  Add a job (PR + push, path-filtered on `R/EDI/R/**` and `R/EDI/vignettes/**`) or a step before
+  `build_site_github_pages`. Mind the runtime: the articles take seconds to ~20 s each now; keep the gate under
+  ~10 min and note which articles compile code at render time (`custom-randomization-statistic.Rmd` uses
+  `Rcpp::cppFunction`). Not in pre-push (keeps the hook lean, per the pre-push rule).
+  Status 2026-11-18 (agent, uncommitted): `scripts/render_articles_strict.R` (fresh process per file, fails on chunk
+  or inline warnings/errors, `--load-all`, `--workers<=2`, `--timeout`) and `.github/workflows/articles-strict.yml`
+  (push + PR, path-filtered; actionlint clean). Verified on injected warnings. Full run from source: 28 files,
+  12 m 20 s wall on 2 workers. Decided (owner, 2026-11-18): the ~12 min runtime is acceptable; no CI-size switch.
+  Open (owner): (1, settled above) runtime is over the ~10 min target because three articles take
+  4-7 min each (`matching-on-the-fly` 398 s, `planning-a-study` 305 s, `learn-statistics-through-edi` 240 s); a
+  CI-size switch for their simulations, or run them on push to main only; (2) `cluster-and-factorial-experiments.Rmd`
+  chunk `cluster-warning` fails because it shows EDI's cluster-SE warning on purpose; either `warning = FALSE` and
+  show the text another way, or a per-chunk opt-out in the gate.
+  Decided (owner, 2026-11-18): per-chunk opt-out. Done: chunk option `strict_expect_warning = TRUE` exempts that
+  chunk's warnings (never errors) and fails the file if the chunk shows no warning, so stale prose is caught;
+  `cluster-warning` uses it and the article passes (7.4 s from source). Remaining: commit, then watch the first CI run.
+
+- [ ] TODO-100 (added 2026-11-18, agent, owner request): **Audit `assertNumeric` calls that let `NA` through.**
+  checkmate's `assertNumeric()` defaults to `any.missing = TRUE`, so `NA` passes unless the call says otherwise. That
+  is how `add_one_subject_response(1, y = NA)` is accepted (`R/EDI/R/design_abstract.R` ~L310,
+  `assertNumeric(y, len = 1, null.ok = TRUE)`; v1.0.6-TODO-94). On 2026-11-18 `R/EDI/R/` had ~207 single-line
+  `assertNumeric(` calls, ~195 of them without `any.missing = FALSE` (multi-line calls not counted). For each, decide
+  whether `NA` is legitimate; if not, add `any.missing = FALSE`, and if so, leave a short comment saying why.
+  `assertNumber()` needs no audit: its `na.ok` already defaults to `FALSE`. Watch out: 559 assertion sites are inside
+  `should_run_asserts()`, so they are skipped when asserts are off (e.g. `SimulationFramework`'s
+  `turn_off_asserts_for_speed`); an NA check that guards correctness, not just a clear message, belongs outside that
+  gate, as the censoring checks in `add_one_subject_response()` already are. Add a test per tightened public entry
+  point. This is the narrow validation fix; most of the 22 vignette bugs need v1.0.6-TODO-95 and -97 instead.
+  Status 2026-11-18 (agent, uncommitted): done. 209 `assertNumeric` calls (getParseData): 190 got
+  `any.missing = FALSE`, 7 left with a why-comment (`ys`/`y_Ls`/`y_Rs` in `add_all_subject_responses`, `y_temp` in
+  `transform_y`), 0 unsure; 12 already had it. Always-on (outside `should_run_asserts()`) NA checks added for
+  `add_one_subject_response` `y`/`y_R`, `prob_T`, Pocock-Simon `p_best`/`weights`. New `delta` check in
+  `compute_rand_two_sided_pval` (cached null path skipped the old one). Tests:
+  `test-design-responses-reject-na.R` (61) and `test-inference-args-reject-na.R` (844 passed on the coordinator's
+  re-run); 52 related test files, 0 failures. Follow-up: 472 (class, method) pairs in 91 classes have no argument
+  check and return NA for an NA argument (own Wald/asymp overrides, score/gradient/LR incl. Bartlett, jackknife Wald,
+  GComp RR paths); the test's `na_arg_unguarded` allowlist cites this TODO until a follow-up TODO is filed.
+
+- [ ] TODO-101 (added 2026-11-18, agent, owner request): **Input-validation gate for the Python kernels.** The
+  Python package does almost no input checking: `python/src/edi_kernels/__init__.py` re-exports the pybind11
+  functions from `_core` directly, and the 64 bindings in `python/cpp/bindings_*.cpp` have one explicit check (the
+  category count in `bindings_ordinal.cpp`). pybind11 converts types but checks nothing else, so a non-0/1 `w`, a
+  NaN in `y` or mismatched lengths go straight into the C++ solvers, which R never lets happen because checkmate
+  runs first. v1.0.6-TODO-86 (silent `nan`, logrank sign flip on 1/2-coded `w`) is the known result.
+  Decided (owner, 2026-11-18): no new dependency. Python has no checkmate equivalent for numpy values (`beartype`,
+  `typeguard` and `jaxtyping` check types and shapes, not finite or 0/1 values; `pydantic` is heavy and awkward with
+  arrays; `icontract`/`deal` still need every check written by hand). Plan:
+  1. A private `edi_kernels/_checks.py` (numpy only, ~100 lines) with checkmate-named helpers:
+     `assert_numeric(x, n=None, finite=True)`, `assert_binary(w)`, `assert_count(k)`, `assert_choice(s, choices)`,
+     `assert_same_length(...)`, each raising `ValueError` naming the argument.
+  2. `__init__.py` wraps each `_core` function in a thin Python function that checks its inputs, then calls the
+     kernel. Update `_core.pyi`/stubs as needed.
+  3. A switch mirroring R's `should_run_asserts()` (e.g. `edi_kernels.set_checks(False)`) for speed; checks that
+     guard correctness (0/1 `w`, matching lengths) stay on regardless, the rule v1.0.6-TODO-100 sets for R.
+  4. Declare each kernel's argument rules in one table in `_checks.py`, and add a test comparing it with the R
+     checkmate rules for the same kernels (`R/package_tests/checkmate_argument_contracts.csv`) so they don't drift;
+     consider wiring it into the rpy-parity audit.
+  5. Tests: a parametrized pytest per rule (NaN, wrong length, non-0/1 `w` with 1/2 and -1/1 coding), covering
+     v1.0.6-TODO-86's repro. Update the README and `python/CHANGELOG.md`. Python package; takes effect when the
+     wheel is rebuilt.
+  Status 2026-11-18 (agent, uncommitted): implemented. `python/src/edi_kernels/_checks.py` (helpers, the `KERNELS`
+  rules table for all 63 exports, `set_checks()`/`get_checks()`, `wrap_kernel()`), wrappers in `__init__.py`,
+  `python/tests/test_input_checks.py` (593 new tests; suite 791 passed, re-run by the coordinator), READMEs and
+  CHANGELOG. With checks off, 0/1 (`w`, `w_r`, `dead`) and matching-length checks still run. No R checkmate rows
+  exist for `_cpp` functions, so the R comparison covers only 7 class-argument pairs; the rest are pinned as
+  "no R rule". Overhead on `fast_ols`: 11 to 30 us at n = 100, 124 to 174 us at n = 10,000. Not done: rpy-parity
+  wiring, benchmarks with `set_checks(False)`, a mypy/pyright check of the stubs. Close when committed and the
+  wheel is rebuilt.
+
+### Silent fallbacks and out-of-bounds reads in the C++ kernels (TODO-102..104)
+
+Found 2026-11-18 by the v1.0.6-TODO-101 agent while writing the Python input checks. The Python wrappers now block
+all three, but direct callers of the R `_cpp` functions and of `edi_kernels._core` are still exposed. A fourth
+report (`fast_robust_regression` silently running MM for any `method` other than `"M"`) was checked by the
+coordinator and is not a bug: `fast_robust_regression.cpp` ~L78 throws on anything but `"M"`/`"MM"`, and the
+2026-11-17 `_core` build raises for `method = "bogus"`.
+
+- [ ] TODO-102 (added 2026-11-18, agent, owner request; minor): **An unknown `requested_stat` makes the survival
+  stat kernels return `NA` silently.** `get_survival_stat_for_group_result_at_tau()` (`R/EDI/src/fast_survival_stats.cpp`
+  ~L157-176) handles `"median"` and `"restricted_mean"` and otherwise falls through to `return NA_REAL;`, so
+  `get_survival_stat_diff(..., requested_stat = "mean")` (Python) or a typo from R returns `NA` with no error. Fix:
+  throw `std::invalid_argument` naming the accepted values on any other string; test from R (`_cpp`) and Python
+  (`_core`). Needs a targeted compile and a wheel rebuild.
+
+- [ ] TODO-103 (added 2026-11-18, agent, owner request; minor): **An unknown `family` in `gee_pairs_singletons`
+  silently becomes gaussian.** Both `R/EDI/src/fast_gee.cpp` ~L322-324 (`gee_pairs_singletons_weighted_cpp`) and
+  `python/cpp/bindings_incidence.cpp` ~L63-65 default to `GEEFamily::GAUSSIAN` and only switch on `"binomial"` /
+  `"poisson"`, so `"Binomial"`, `"logit"` or a typo fits a linear model with no warning. Fix: accept exactly
+  `"gaussian"`, `"binomial"`, `"poisson"` and throw otherwise, in both places (better: one shared parse helper in the
+  core so the two can't drift); test both. Check the R callers pass one of the three. Needs a targeted compile and a
+  wheel rebuild.
+
+- [ ] TODO-104 (added 2026-11-18, agent, owner request): **`fast_lbeta` and the vector `fast_pchisq_upper` read past
+  the end of a shorter second array.** In `python/cpp/bindings_fast_math.cpp` (~L41 `fast_pchisq_upper`, ~L96
+  `fast_lbeta`) the loop runs over the first argument's size and indexes the second (`df[i]`, `b[i]`) without
+  checking its length, so a shorter `df`/`b` is undefined behavior (garbage or a crash), not an error. Python-only
+  bindings; the v1.0.6-TODO-101 wrappers now reject mismatched lengths, but `_core` is still exposed. Fix: check
+  `a.size() == b.size()` (or broadcast a length-1 second argument, numpy-style) and throw otherwise; sweep the rest of
+  `bindings_fast_math.cpp` for the same pattern; add a `_core` test. Needs a wheel rebuild.
+
+### Argument-check gaps beyond assertNumeric (TODO-105..106)
+
+- [ ] TODO-105 (added 2026-11-18, agent, owner request; follow-up to v1.0.6-TODO-100): **472 (class, method) pairs in
+  91 Inference classes have no argument check and return `NA` for an `NA` argument instead of erroring.**
+  v1.0.6-TODO-100 could only tighten existing `assertNumeric` calls; these methods have none. A sweep calling every
+  exported class's `compute_*confidence_interval` / `compute_*pval` with `alpha`, `delta` or `pval_epsilon = NA`
+  (2,061 calls: 1,589 error, 472 return) is saved as `R/package_tests/sweep_na_argument_guards.R`. Worst offenders,
+  all class-level overrides: `compute_wald_two_sided_pval` (86), `compute_asymp_confidence_interval` (43),
+  `compute_asymp_two_sided_pval` (39), score / gradient / lik-ratio p-values incl. the Bartlett variants (35-42
+  each), jackknife Wald (10 + 10), e.g. `inference_continuous_ols.R` ~L246. Also the G-computation risk-ratio
+  subsampling / m-out-of-n paths (private `compute_rr_*`) and the dependent-censoring randomization stubs, which are
+  the 10 pairs in the `na_arg_unguarded` allowlist of `R/EDI/tests/testthat/test-inference-args-reject-na.R` (now
+  citing this TODO). Output is `NA`, not a wrong number, so this is a clarity fix. Fix: prefer one shared argument
+  check at the dispatch layer the overrides go through (or a helper each override calls first) over 400+ per-method
+  asserts; then empty `na_arg_unguarded` and extend that test to the override methods. Re-run the sweep to confirm 0
+  returns.
+
+- [ ] TODO-106 (added 2026-11-18, agent, owner request): **Audit every other checkmate assertion in `R/EDI/R/`.**
+  v1.0.6-TODO-100 covered only `assertNumeric`'s `any.missing` default. The other ~310 calls (2026-11-18:
+  `assertCount` 84, `assertFlag` 59, `assertChoice` 48, `assertList` 22, `assertFunction` 19, `assertCharacter` 19,
+  `assertNumber` 17, `assertIntegerish` 17, `assertLogical` 8, `assertSubset`/`assertString`/`assertFactor`/
+  `assertClass` 4 each, `assertDataFrame` 2) and the 207 `assertNumeric` calls again for defaults other than NA have
+  checkmate's permissive defaults to check:
+  - `finite = FALSE` in `assertNumeric`/`assertNumber`/`assertIntegerish`: `Inf` passes (e.g. `alpha = Inf`).
+  - Missing `lower`/`upper` (an `alpha` outside (0, 1), a negative `B`, a `prob_T` outside (0, 1)).
+  - Missing `len = 1` where a scalar is meant (a vector silently uses its first element or recycles).
+  - `any.missing = TRUE` in `assertCharacter`, `assertIntegerish`, `assertList`, `assertLogical`.
+  - `assertCount` allows 0 unless `positive = TRUE` (e.g. `B = 0`, `r = 0`, `num_cores = 0`).
+  - `null.ok = TRUE` where `NULL` is not actually handled downstream.
+  - `assertFunction` without `nargs`/`args` where the callback's signature matters (e.g. custom statistics).
+  - Asserts inside `should_run_asserts()` that guard correctness (the v1.0.6-TODO-100 rule: move those out).
+  - Arguments with no assert at all on public entry points (overlaps v1.0.6-TODO-105 for the inference methods).
+  Classify each call as fine / tighten / intentionally loose (comment why), parse with `getParseData` to catch
+  multi-line calls, add tests per tightened public entry point, and run the related test files. Also consider a
+  small static check (like v1.0.6-TODO-96's audit) that flags new `assertNumeric`/`assertNumber` calls without an
+  explicit `finite`/`any.missing` choice, so the gap doesn't come back.
+  Status 2026-11-18 (agent, uncommitted): done. 555 checkmate calls (all assert*): 232 tightened, 10 intentionally loose
+  (commented), 313 fine, 0 unsure; ~80 `R/EDI/R` files. Tightened: `len = 1` on alpha (91), delta (64) and other
+  scalars; `finite = TRUE` on all delta/delta_0 (`delta = Inf` gave p = 0), root_tolerance, urn/Pocock weights,
+  `assert_y()` continuous; alpha upper bound `1 - .Machine$double.xmin` (== 1, so `alpha = 1` passed) -> `1 -
+  .Machine$double.eps` (93 sites); any.missing on strata/cluster cols, suite classes, tuning grids; 8 assertLogical ->
+  assertFlag; `Design$new(n = 0)` rejected; `assertCount(as.integer(x))` truncation removed (5); RandCustom statistic
+  must take (y, w, dead); `overwrite_all_subject_assignments()` gets an always-on 0/1/NA/length check. Bug fixed:
+  `transform_y()` errored on any censored or not-yet-responded row. Tests: `test-inference-args-reject-nonscalar-nonfinite.R`
+  (1377), `test-design-args-reject-nonfinite-and-nonscalar.R` (27), `test-transform-y-with-censored-rows.R` (5); 104
+  related files, 0 failures. Static check saved as `R/package_tests/check_checkmate_explicit_defaults.R` (flags 16
+  sites today, all loose/fine; needs `# checkmate-loose: <why>` opt-outs before joining pre-push; owner decision).
+  Not fixed: `inference_survival_GLMM_weibull_frailty_loggamma.R:998` clamps `U2` to `1 - .Machine$double.xmin` (== 1,
+  a no-op), so `U2 = 1` can give a survival time of 0 (rare).
+### Bugs found by the data-shape matrix (TODO-107..115)
+
+Found 2026-11-18 by the v1.0.6-TODO-97 matrix (`R/package_tests/run_public_argument_data_shape_matrix.R`; fixture
+ids below are its cell ids, rebuilt with `build_data_shape_fixture(id)` from
+`R/package_tests/public_argument_combination_fixtures.R`). When one closes, drop its `known_todo` mapping there.
+
+- [ ] TODO-107 (added 2026-11-18, agent, owner request): **KK14/KK21 crash when `design_formula` names a covariate
+  that is still constant among the subjects enrolled so far.** "object 'g' not found" at subject 5.
+  `covariate_impute_if_necessary_and_then_create_model_matrix()` (`R/EDI/R/design_abstract.R` ~L1196) drops constant
+  columns before applying the formula. Repro:
+  `X = data.frame(x1 = rnorm(20), g = factor(rep(c("a","b"), each = 10)));
+  d = DesignSeqOneByOneKK21$new(response_type = "continuous", n = 20, design_formula = ~ x1 + g, seed = 1);
+  for (i in 1:20) d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])`. Fix: apply the formula first
+  (or keep formula-named columns and handle the constant column in the model matrix); test KK14, KK21, KK21stepwise.
+  Status 2026-11-18 (agent, uncommitted): fixed. `helper_model_matrix.R` gains `constant_formula_named_columns()` and
+  `create_model_matrix_with_constant_formula_columns()` (used in `design_abstract.R` only when a formula-named column is
+  constant); KK14 `assign_wt` sends a subject to the reservoir when no covariate varies yet (`rank_prev == 0`, was a
+  `solve()` on 0 x 0); same latent fix in `design_fixed_optimal_blocks.R`. Only formerly-crashing paths change: an A/B
+  over 72 KK cases gave identical `w`; ~30 KK golden/migration test files pass. Test
+  `test-kk-design-formula-covariate-constant-among-enrolled.R` (38). NEWS line pending. A separate KK21stepwise crash
+  found along the way is v1.0.6-TODO-120.
+- [ ] TODO-108 (added 2026-11-18, agent, owner request): **BCa bootstrap and jackknife return NA with no warning on
+  `DesignFixedBlocking` when `design_formula` names the strata column.** Reasons recorded only on the object:
+  `bootstrap_bca_jackknife_unavailable`, `jackknife_estimate_unavailable`. `~ .` or `~ x` work. Seen for OLS, Lin,
+  RobustRegr, RiskDiff, FractionalLogit, CoxPH, Poisson. Different cause from v1.0.6-TODO-74. Repro:
+  `set.seed(1); n = 40; Xb = data.frame(x = rnorm(n), s = factor(rep(c("a","b"), each = 20)));
+  db = DesignFixedBlocking$new(strata_cols = "s", response_type = "continuous", n = n, seed = 1, design_formula = ~ x + s);
+  db$add_all_subjects_to_experiment(Xb); db$assign_w_to_all_subjects(); db$add_all_subject_responses(rnorm(n) + db$get_w());
+  InferenceContinOLS$new(db)$compute_bootstrap_confidence_interval(B = 501, show_progress = FALSE)` gives `NA NA`.
+  Likely a leave-one-out / resample that leaves a stratum level constant. Fix the cause; any remaining NA must warn.
+  Status 2026-11-18 (agent, uncommitted): same root cause as v1.0.6-TODO-107 (leave-one-block-out leaves the strata
+  column constant; the worker's model-matrix rebuild dropped it before the formula), so it is fixed by TODO-107's
+  `design_abstract.R` change and must be committed with it. Second, Lin-only bug fixed: `get_centered_covariates()` read
+  `private$X` (NULL on rank-deficient worker draws); now `get_X()`. BCa CI/p-value (incl. Bayesian) now warn when fewer
+  than 2 jackknife replicates exist. Repro: BCa CI [0.628, 1.607], jackknife [-0.442, 2.601]. Test
+  `test-blocking-strata-in-design-formula-bca-jackknife.R` (39); two existing tests now `expect_warning(...,
+  class = "edi_procedure_na_warning")`. Unverified lead: ~12 other classes call `as.matrix(private$X)` directly (KK
+  OLS/RobustRegr, StratCox, ZeroAugmented Poisson, Weibull frailty) and may hit the same NULL-X worker problem.
+  NEWS line pending.
+- [ ] TODO-109 (added 2026-11-18, agent, owner request): **`InferenceIncidLogRegr` gives no warning under
+  quasi-complete separation.** Estimate 30.7, asymptotic p = 0.998, CI +/- 26,000, while `glm()` warns "fitted
+  probabilities numerically 0 or 1". Fixture `data_shape__fixed_blocking__incidence__fixed__equal__none__no__strong`.
+  Fix: detect separation (fitted probabilities at 0/1, or diverging coefficients / huge SE) and warn, as `glm()` does;
+  check the other logistic-family classes (KK, GEE, GLMM) for the same gap.
+  Status 2026-11-18 (agent, uncommitted): fixed for `InferenceIncidLogRegr` and the four logistic g-computation
+  classes: classed warning `edi_logistic_separation_warning` (helpers `edi_logistic_n_fitted_extreme`,
+  `edi_warn_logistic_separation_once` in `helper_robust_sandwich.R`), once per object, never inside resampling;
+  estimates unchanged. Test `test-logistic-separation-warning.R`; 33 related test files pass. Not covered (see the
+  agent's report): `InferenceIncidKKGEE` gives estimate 44.6 with p = 0.0000 under separation (sandwich SE collapses;
+  worse than this TODO; needs a family-aware check in `inference_mixin_kk_gee_shared.R`); KKCondLogitOneLik and
+  KKCondLogitGLMMOneLik give NA with no warning (v1.0.6-TODO-113 pattern); `InferenceIncidProbitRegr` has the same
+  gap (estimate 6.85, p = 0.999). NEWS line pending.
+- [ ] TODO-110 (added 2026-11-18, agent, owner request): **`InferenceRandCustom` with a C++ statistic refuses
+  `compute_rand_two_sided_pval()` on incidence even at `delta = 0`** ("Randomization tests are not supported for
+  incidence. Use Zhang method."); the R-function form runs (p = 0.475). Mirror image of v1.0.6-TODO-81 (R form
+  bypasses the delta guard). Fix: one guard for both forms, refusing only nonzero `delta` on incidence; test both.
+  Status 2026-11-18 (agent, uncommitted): fixed with v1.0.6-TODO-81/-110 together. Cause: "custom statistic?" checked
+  only the R-function field, not `compiled_cpp_stat_fn`. Now on incidence `delta = 0` runs for every form and nonzero
+  `delta` errors for every form (`inference_all_abstract_rand.R`, `inference_all_abstract_rand_ci.R`). Test
+  `test-rand-custom-incidence-delta-guard.R`; the incidence rand-attempt manifest and its bulk test updated. Stale,
+  left for the owner (changes the grid): `comprehensive_tests.R` ~L2199 `skip_custom_rand_pval` on incidence, and
+  `path_audits_source.R` `cell_rand_custom_p` (~L1577-1586). NEWS line pending.
+- [ ] TODO-111 (added 2026-11-18, agent, owner request): **An all-NA custom statistic (R or C++) gives NA estimate and
+  p-value with no warning** (only `custom_estimate_unavailable` is recorded). Fix: warn (or error) when the observed
+  statistic is NA, naming the statistic; related to v1.0.6-TODO-82 (`na.rm`, finite-draw minimum); test both forms.
+  Status 2026-11-18 (agent, uncommitted): fixed in `InferenceRandCustom$fit()` (`inference_rand_custom.R` ~L83-99):
+  warns once per user-facing call, naming the statistic argument, when the observed statistic is not finite; values
+  unchanged (NA). Test `test-rand-custom-nonfinite-statistic-warns.R` (4/4). NEWS line pending. v1.0.6-TODO-82 is a
+  different path (shared `inference_all_abstract_rand.R`), not fixed here.
+- [ ] TODO-112 (added 2026-11-18, agent, owner request): **`InferenceSurvivalKMDiff` returns NA with no warning on
+  right-censored data, and its jackknife is NA with no warning on uncensored data.** `compute_estimate()` is a silent
+  NA when the treated arm's KM curve never reaches 0.5 (median not reached); the other methods record NA without
+  warning. Fixture `fixed_blocking__survival__fixed__unequal__right__yes__strong`; jackknife on plain Bernoulli
+  survival. Fix: warn with the reason (median not reached in arm ...; suggest RMST); find why the jackknife is NA.
+  Related to v1.0.6-TODO-90 (interval censoring).
+  Status 2026-11-18 (agent, uncommitted): fixed in `inference_survival_km_diff.R`. Median not reached: classed warning
+  `edi_km_median_not_reached_warning` naming the arm(s) and lowest survival, suggesting RMST; silent inside resampling.
+  Jackknife NA (uncensored): not a bug; the leave-one-out median moves among 3 values, so the jackknife bias trips the
+  shared `abs(bias) > 2 SE` guard (the jackknife is inconsistent for medians); new public jackknife overrides warn
+  `edi_km_jackknife_na_warning` with that reason. Test `test-km-diff-na-warns-with-reason.R` (33). Owner: roxygenize
+  (two new public methods); amend the class roxygen sentence about the asymp methods "silently" falling back to the
+  bootstrap (NA when the median isn't reached). NEWS line pending.
+- [ ] TODO-113 (added 2026-11-18, agent, owner request): **Smaller NA-without-warning paths.** Each records a reason on
+  the object but does not warn: `InferenceCountPoisson` asymptotic CI and p-value on `DesignFixedBlockedCluster`
+  (`count_likelihood_asymp_block_size_gt_one_not_supported`); `InferenceOrdinalPropOddsRegr` bootstrap CI on
+  `DesignFixedCluster` (`bootstrap_extreme_confidence_interval`); `InferenceOrdinalKKGEE` jackknife on KK21. Fix:
+  warn (or refuse with a clear error if unsupported) for each; consider one shared helper so a recorded NA reason
+  always warns (the v1.0.6-TODO-95 rule).
+  Status 2026-11-18 (agent, uncommitted): done; none was a computation bug. New helper `edi_warn_procedure_na()`
+  (`helper_robust_sandwich.R`; class `edi_procedure_na_warning`, fields `procedure`/`reason`, silent inside resampling,
+  warns on every user-level call). Poisson/count-likelihood asymp on blocked-cluster now warns `edi_unsupported_procedure`
+  (points to bootstrap and randomization, both finite there); `missing_bootstrap_ci()` warns on an extreme CI; the five
+  public jackknife methods warn with the specific reason (`jackknife_extreme_summary` was being overwritten by
+  `jackknife_estimate_unavailable`). Test `test-recorded-na-reason-warns.R` (19); 41 related files pass. Owner decision:
+  `bootstrap_extreme_ci_width_threshold = 5` is in outcome-SD units but applied to log-odds coefficients too (a 5.6-wide
+  log-OR CI from 10 clusters is plausibly real); not changed. Related, not fixed: `InferenceOrdinalKKGEE` asymp CI under
+  separation is finite but meaningless (21.33, 25.80), no warning (see v1.0.6-TODO-118). NEWS line pending.
+- [ ] TODO-114 (added 2026-11-18, agent, owner request): **At the BCa boundary the bootstrap p-value is NA with no
+  warning, while the CI warns.** OLS on `DesignSeqOneByOneBernoulli` with a strong effect, and LogRank on
+  interval-censored data, at B = 501. Likely the same root cause as v1.0.6-TODO-75 (`bca_pval_core`, |adj_z| > 8)
+  and related to v1.0.6-TODO-92 (boundary message); coordinate with them. Fix: the p-value must warn like the CI
+  (or fall back to percentile with a warning).
+  Status 2026-11-18 (agent, uncommitted): v1.0.6-TODO-75, -92 and -114 fixed together. `bca_pval_core()`
+  (`inference_ext_bca_bootstrap_ci.R`) returns the 2/B floor when delta is outside the bootstrap support (was NA via the
+  epsilon clamp and |adj_z| > 8); a boundary BCa p-value is still NA but now warns `edi_bootstrap_bca_boundary_warning`
+  (`what = "p-value"`), like the CI; at B >= 501 the warning no longer says to increase B (`helper_robust_sandwich.R`
+  `edi_warn_bca_boundary_once()`). Changes results (NA -> 2/B); NEWS line pending under "Changes that alter results".
+  New test `test-bootstrap-bca-pval-outside-support-and-boundary-warning.R`; one bulk test updated (NA -> 2/B). On
+  closing: remove the v1.0.6-TODO-75 rows of `R/package_tests/na_audit_allowlist.csv` and widen its BCa-boundary
+  intentional row to the bootstrap p-value methods. Still silent: the "unstable bias or acceleration" BCa NA (CI and
+  p-value). The LogRank boundary case is really a sign bug in LogRank bootstrap draws on interval data (not yet filed).
+- [ ] TODO-115 (added 2026-11-18, agent, owner request; investigate): **RMST on interval-censored
+  `DesignFixedBlockedCluster` data with a strong effect: randomization p-value >= 0.05 and asymptotic CI NA.** The NA
+  CI is probably v1.0.6-TODO-91's cause; the p-value may be a power issue (small n = 40, clusters) rather than a bug.
+  Decide which with a small simulation (power at this effect and n), and fix or close with the evidence.
+  Status 2026-11-18 (agent): two causes. (1) CI: same as v1.0.6-TODO-91, fixed (uncommitted) in
+  `bootstrap_outcome_scale()` (`inference_all_abstract_non_param_boot.R`): under general censoring the scale uses
+  exact time / interval midpoint / right-censoring time instead of all-NA `y` (was scale 1, width cap 5). Fixture now:
+  asymp CI [8.49, 27.93]. Test `test-rmst-interval-censored-bootstrap-ci.R`. (2) p-value: not a coding bug. The default
+  tau (min of the arms' max follow-up) is recomputed in every randomization draw: observed tau 39, null draws 162-180,
+  so the observed 24 sits mid-null (p 0.475; tau held at 39: p 0.003). Power sim (n = 40, 10 clusters, 150 sets,
+  r = 199): strong effect rejection 0.027 with default tau vs 0.927 with prespecified tau = 30; null 0.047 both. The
+  test is valid but has power below alpha at large effects. OWNER DECISION: fix the horizon across draws (pooled or
+  observed tau held fixed) or document that `tau` must be prespecified for randomization tests. Also noted: the
+  bootstrap percentile CI rejects 12.7% under the null with 10 clusters (anti-conservative, few clusters), and the
+  "extreme interval" warning suggests `compute_rand_confidence_interval()`, which RMST refuses.
+
+### Found while fixing TODO-109 and TODO-114 (TODO-116..119)
+
+- [ ] TODO-116 (added 2026-11-18, agent, owner request): **The BCa "unstable bias or acceleration" NA is silent, for
+  both the interval and the p-value.** v1.0.6-TODO-75/-114 made the boundary NA warn; the separate instability check in
+  `bca_pval_core()` / the BCa CI path (`R/EDI/R/inference_ext_bca_bootstrap_ci.R`) still returns NA with no warning.
+  Fix: warn with a classed warning (or reuse `edi_bootstrap_bca_boundary_warning` with a distinct reason field) once per
+  object, never inside resampling; suggest `type = "percentile"`; add the warning class to
+  `R/package_tests/na_audit_allowlist.csv` as an intentional row; test both CI and p-value.
+  Status 2026-11-18 (agent, uncommitted): fixed in `helper_robust_sandwich.R`: `edi_warn_bca_boundary_once()` routes
+  `unstable_bias_or_acceleration` reasons to new `edi_warn_bca_unstable_once()`, classed
+  `edi_bootstrap_bca_unstable_warning` (fields B, type, reason, what), once per object/type/what, silent in resampling.
+  In practice fires when |z0| > 2.5 or z0/a non-finite (|a| <= 1/6 for a real jackknife). Test
+  `test-bootstrap-bca-unstable-bias-or-acceleration-warning.R` (24, stubbed draws; no real-data repro found);
+  allowlist row added; 15 bootstrap test files pass. Open: the Bayesian BCa CI also gets the generic
+  `edi_procedure_na_warning` from `missing_bootstrap_ci()` (double warning, also for the boundary case); roxygen of
+  the public BCa methods names only the boundary warning. NEWS line pending.
+- [ ] TODO-117 (added 2026-11-18, agent, owner request): **`InferenceSurvivalLogRank` bootstrap draws on
+  interval-censored data have an essentially random sign.** On fixture
+  `data_shape__fixed_bernoulli__survival__fixed__equal__interval__no__strong` the estimate is -1.11; the draws' |value|
+  centres near 1.08 but 57% are positive (median +0.90). On right-censored data they centre correctly (estimate -1.08,
+  draw median -1.05). Gives a percentile p-value of 0.69 under a strong effect, and is what puts LogRank's BCa on the
+  boundary. Repro: `fx = build_data_shape_fixture(id)` (from `R/package_tests/public_argument_combination_fixtures.R`),
+  `inf = InferenceSurvivalLogRank$new(fx$design)`, `bd = inf$approximate_bootstrap_distribution_beta_hat_T(B = 501)`,
+  `mean(bd > 0)`. Likely the resampled interval bounds or the arm labels are not carried with each subject in the
+  bootstrap path for interval data. Check the other survival classes' interval-censored bootstrap too.
+  Status 2026-11-18 (agent, uncommitted): fixed. Cause: not resampling but `interval::ictest()`'s sign convention: it
+  orders arms by first appearance (`unique(group)`), so its estimate and Z are "row-1 arm minus the other". Under
+  left/interval censoring the point estimate had the wrong sign whenever subject 1 was a control, and every resample
+  that changed row 1 flipped sign. `compute_shared_icen()` (`inference_survival_log_rank.R`) now multiplies by
+  `ictest_treatment_minus_control_sign(fit)` (reads `names(fit$U)`). Repro draws now all negative (median -1.07, was
+  +0.83). Test `test-logrank-interval-censored-sign-convention.R` (13); the existing ictest comparison test was enforcing
+  the bug and now compares against treatment-minus-control mean scores. Changes results for interval-censored LogRank
+  where subject 1 is a control (estimate sign, Wald CI, all resampling); regenerate affected matrix/comprehensive rows.
+  NEWS line pending. Same bug in Gehan-Wilcoxon is v1.0.6-TODO-121.
+- [ ] TODO-118 (added 2026-11-18, agent, owner request): **`InferenceIncidKKGEE` under (quasi-)complete separation gives
+  a confident wrong answer: estimate 44.6 with asymptotic p ~ 0, no warning.** Found by the v1.0.6-TODO-109 agent on a
+  `DesignSeqOneByOneKK14` incidence design where all treated subjects have y = 1. The sandwich SE collapses. The fit runs
+  through the GEE mixin (`R/EDI/R/inference_mixin_kk_gee_shared.R`), shared with non-logit families. Fix: a
+  family-aware separation check (reuse `edi_logistic_n_fitted_extreme()` / `edi_warn_logistic_separation_once()` from
+  `helper_robust_sandwich.R`) that warns, and make the asymptotic p-value / CI NA-with-warning (or refuse) rather than
+  p ~ 0 when the SE is degenerate; check the other KK GEE logit-link classes.
+  Status 2026-11-18 (agent, uncommitted): fixed for `InferenceIncidKKGEE` and `InferencePropKKGEE` (binomial/logit GEE)
+  in `inference_mixin_kk_gee_shared.R` `shared_gee_default()`: after the SE is accepted, fitted probabilities at 0/1 ->
+  one `edi_logistic_separation_warning` (advice: randomization, exact incidence method, fewer covariates; no LR, GEE has
+  none) and `cache_nonestimable_se("kk_gee_logistic_separation")`, so asymp p and CI are NA; estimate unchanged. Repro:
+  was estimate 50.48, SE 0.675, p = 0; now p NA. `edi_warn_logistic_separation_once()` gained optional `advice`. Test
+  `test-kk-gee-logistic-separation-na-wald.R` (22); 10 related files pass. Not covered: `InferenceOrdinalKKGEE` (own
+  ordLORgee dispatch; asymp CI (21.33, 25.80) under separation, no warning) and the jackknife-Wald p (0.376, no warning,
+  leave-one-out fits also separated). Poisson KK GEE excluded on purpose (all-zero arm already NA with warnings).
+  NEWS line pending.
+- [ ] TODO-119 (added 2026-11-18, agent, owner request; minor): **`InferenceIncidProbitRegr` gives no warning under
+  separation** (estimate 6.85, p = 0.999, on the v1.0.6-TODO-109 fixture
+  `data_shape__fixed_blocking__incidence__fixed__equal__none__no__strong`). Fix: extend the v1.0.6-TODO-109 helper to
+  the probit link (fitted Phi(Xb) within eps of 0/1) and call it the same way; test.
+  Status 2026-11-18 (agent, uncommitted): fixed. Helpers in `helper_robust_sandwich.R` take `link = c("logit",
+  "probit")` (default logit; same warning class, new `link` field); `inference_incidence_probit.R` `generate_mod` calls
+  it after the full fit. The named fixture no longer reproduces (estimate 3.39, p 1.5e-4: the full probit fit diverges,
+  the hardened QR step drops the separated `stratumhigh` covariate silently and refits; existing behaviour, owner's
+  call whether to say so); verified on the TODO-109 test fixture (6.79, p 0.999 -> warns once). Test
+  `test-probit-separation-warning.R` (21); 9 related files pass. The coordinator also fixed the TODO-109 test, which
+  called nonexistent `compute_jackknife_confidence_interval()` inside `tryCatch` (so its jackknife check never ran); now
+  `compute_jackknife_wald_confidence_interval()`, 14/14 pass. NEWS line pending.
+- [ ] TODO-120 (added 2026-11-18, agent; found by the v1.0.6-TODO-107 agent): **KK21stepwise crashes ("missing values
+  and NaN's not allowed" in `quantile()`) with a single varying covariate once responses come in.** Repro (default
+  formula): `set.seed(1); X = data.frame(x1 = rnorm(20)); d = DesignSeqOneByOneKK21stepwise$new(response_type =
+  "continuous", n = 20, seed = 1L); set.seed(1L); y = rnorm(20); for (i in 1:20) { d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE]); d$add_one_subject_response(i, y[i]) }`
+  fails at i = 8. `kk21_stepwise_continuous_weights_cpp` returns NaN, `na0()` makes it 0, and `assign_wt` in
+  `design_seq_one_by_one_KK21.R` normalizes `raw_weights / sum(raw_weights)` = 0/0. Fix: find why the C++ weight is NaN
+  with one covariate (needs a targeted compile if C++), and guard the all-zero case in R (fall back to equal weights,
+  as KK21 does before enough responses). Seeded allocations may change only on paths that crashed before; verify.
+  Status 2026-11-18 (agent, uncommitted): v1.0.6-TODO-120 and -63 fixed together (same cause), R only. The stepwise
+  kernel skips a candidate whose residual variance is 0 (exact fit, or constant y), so with one covariate all weights
+  are NA -> 0 and `assign_wt` normalized 0/0. `assign_wt` (`design_seq_one_by_one_KK21.R`) now falls back to equal
+  weights when the sum is non-finite or <= 0 (what non-stepwise KK21 already gives). 20 single-covariate scenarios:
+  continuous, count, proportion, survival and ordinal cases that crashed now run. Allocations unchanged on non-crashing
+  paths (72/72 configs identical vs HEAD). Test `test-kk21-stepwise-degenerate-weights-fall-back-to-equal.R` (51); the
+  TODO-63 bulk test's skip removed (3/3); 59 KK21/KK golden files pass. Not changed: with several covariates, one that
+  predicts y exactly gets weight ~0 in the stepwise kernel (eps in non-stepwise); a C++ change if wanted. NEWS line
+  pending.
+- [ ] TODO-121 (added 2026-11-18, coordinator; found by the v1.0.6-TODO-117 agent): **`InferenceSurvivalGehanWilcox`
+  has the same `interval::ictest()` arm-order sign bug as v1.0.6-TODO-117** (`compute_shared_icen()`,
+  `inference_survival_gehan_wilcox.R` ~L252-285, `scores = "wmw"`): on the TODO-117 fixture 50% of bootstrap draws were
+  positive (median +0.35) against an estimate of -0.703. Status 2026-11-18 (coordinator, uncommitted): fixed with the
+  same two lines (multiply `fit$estimate` and `fit$statistic` by `ictest_treatment_minus_control_sign(fit)`); draws now
+  all negative (median -0.683, B = 101); the Gehan `ictest()` comparison test in
+  `test-logrank-gehan-wilcox-general-censoring.R` updated to treatment-minus-control (19/19 pass). Changes results like
+  TODO-117; NEWS line pending.
+
+### Follow-ups from the TODO-108/-113/-118 fixes (TODO-122..123)
+
+- [ ] TODO-122 (added 2026-11-18, owner request): **Separation gaps left by v1.0.6-TODO-118.** (1)
+  `InferenceOrdinalKKGEE` uses its own ordLORgee dispatch, so the TODO-118 check never runs: on
+  `data_shape__seq_kk21__ordinal__fixed__equal__none__no__strong` (all treated in the top category) its asymptotic
+  CI is (21.33, 25.80) with no warning. Add the analogous check (cumulative-logit fitted category probabilities
+  numerically 0/1) after its SE is accepted, then `cache_nonestimable_se()` and the separation warning. (2) On a
+  separated design, `InferenceIncidKKGEE$compute_jackknife_wald_two_sided_pval()` returns 0.376 with no warning (the
+  leave-one-out fits are separated and the warning is silent inside resampling): warn from the jackknife driver when
+  the full-data fit is separated, or make it NA-with-warning.
+
+- [ ] TODO-123 (added 2026-11-18, owner request): **Classes that read `private$X` directly may fail on rank-deficient
+  worker draws.** The v1.0.6-TODO-108 agent found `InferenceContinLin$get_centered_covariates()` read `private$X`,
+  which the reusable bootstrap worker sets to NULL on a rank-deficient draw so the matrix is rebuilt; fixed there by
+  using `private$get_X()`. About a dozen other classes call `as.matrix(private$X)` (KK OLS / RobustRegr, StratCox,
+  ZeroAugmented Poisson, Weibull frailty, ...). Audit every direct `private$X` read in `R/EDI/R/`, reproduce on a
+  rank-deficient resample (e.g. `DesignFixedBlocking` with the strata column in `design_formula`, the
+  v1.0.6-TODO-108 fixture), switch to `get_X()` where needed, and test.

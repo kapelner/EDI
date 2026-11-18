@@ -302,7 +302,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertFlag(na.rm)
@@ -440,7 +440,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 			}
@@ -812,10 +812,13 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			jack = jack[is.finite(jack)]
 			if (length(jack) < 2L) {
 				edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_jackknife_unavailable", "se")
+				edi_warn_bca_jackknife_unavailable(self, private, "bayesian_bootstrap_bca_jackknife_unavailable", "Bayesian bootstrap p-value (type = \"bca\")")
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
+				# v1.0.6-TODO-114: warn like the BCa CI does on the same boundary (no-op for other reasons)
+				edi_warn_bca_boundary_once(self, private, length(boot_distr), "bca", reason, what = "p-value")
 				NA_real_
 			})
 		},

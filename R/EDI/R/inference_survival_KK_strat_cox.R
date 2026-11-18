@@ -56,7 +56,7 @@ SurvivalKKStratCoxIVWCSource = list(
 		#'   confidence interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -68,7 +68,7 @@ SurvivalKKStratCoxIVWCSource = list(
 		#'   any treatment effect at all this is set to zero (the default).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
 			if (delta == 0){
@@ -463,7 +463,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			# TODO-121: honor the configured testing type. This override used to
 			# return the Wald interval for every type, so score / lik_ratio /
@@ -487,7 +487,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			# TODO-121: honor the configured testing type (see the CI above).
 			tt = self$get_testing_type()

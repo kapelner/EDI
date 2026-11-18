@@ -161,8 +161,50 @@ construct_r6_receiver = function(case_row, fixture) {
 	obj
 }
 
+# Data-shape cases (v1.0.6-TODO-97) build their receiver with the constructor arguments in
+# receiver_args (e.g. InferenceRandCustom's statistic). Unlike construct_r6_receiver(), a refusal
+# here is the case's own outcome, not "unsupported": a design that cannot be analyzed at all (n =
+# NULL, v1.0.6-TODO-77) fails in Inference*$new(). A class the design says does not apply to it
+# (Design$applicable_inference_class_names()) is "unsupported".
+construct_data_shape_receiver = function(case_row, fixture) {
+	applicable = tryCatch(fixture$design$applicable_inference_class_names(), error = function(e) NULL)
+	if (!is.null(applicable) && !case_row$class_name %in% applicable && !identical(case_row$class_name, "InferenceRandCustom")) {
+		stop("Cannot construct receiver: ", case_row$class_name, " is not applicable to this design", call. = FALSE)
+	}
+	constructor = getExportedValue("EDI", case_row$class_name)
+	# read.csv turns an empty receiver_args into logical NA, which %||% does not replace.
+	receiver_args = case_row$receiver_args
+	if (is.null(receiver_args) || length(receiver_args) == 0L || is.na(receiver_args[1L])) receiver_args = ""
+	extra = args_from_signature(as.character(receiver_args), fixture)
+	obj = tryCatch(
+		do.call(constructor$new, c(list(des_obj = fixture$design), extra)),
+		error = function(e) stop("constructing ", case_row$class_name, ": ", conditionMessage(e), call. = FALSE)
+	)
+	if (is.function(obj$set_seed)) obj$set_seed(20261118L)
+	obj
+}
+
+is_data_shape_case = function(case_row) {
+	identical(as.character(case_row$argument_coverage_kind %||% ""), "data_shape")
+}
+
 execute_valid_case = function(case_row, fixture, timeout_sec) {
 	args = args_from_signature(case_row$argument_signature, fixture)
+	if (is_data_shape_case(case_row)) {
+		receiver = tryCatch(construct_data_shape_receiver(case_row, fixture), error = function(e) e)
+		if (inherits(receiver, "error")) {
+			msg = conditionMessage(receiver)
+			return(list(status = if (startsWith(msg, "Cannot construct receiver")) "unsupported" else "error",
+				result = NULL, duration_time_sec = 0, warning_message = "", message_text = "", error_message = msg))
+		}
+		if (!is.function(receiver[[case_row$method_name]])) {
+			return(list(status = "unsupported", result = NULL, duration_time_sec = 0, warning_message = "", message_text = "",
+				error_message = paste(case_row$class_name, "has no public method", case_row$method_name)))
+		}
+		out = capture_call(receiver[[case_row$method_name]], args, timeout_sec)
+		out$receiver = receiver
+		return(out)
+	}
 	if (identical(case_row$api_kind, "r6_public_method")) {
 		receiver = construct_r6_receiver(case_row, fixture)
 		out = capture_call(receiver[[case_row$method_name]], args, timeout_sec)
@@ -183,7 +225,7 @@ execute_valid_case = function(case_row, fixture, timeout_sec) {
 	)
 }
 
-result_row = function(case_row, status, duration_time_sec = 0, warning_message = "", message_text = "", output = NULL, invariant_status = "skipped", error_message = "") {
+result_row = function(case_row, status, duration_time_sec = 0, warning_message = "", message_text = "", output = NULL, invariant_status = "skipped", error_message = "", output_outcome = "not_run", na_reason = "") {
 	clean = function(x) {
 		x = as.character(x %||% "")
 		ifelse(is.na(x), "", x)
@@ -205,8 +247,67 @@ result_row = function(case_row, status, duration_time_sec = 0, warning_message =
 		output_shape = output_shape(output),
 		invariant_status = invariant_status,
 		error_message = error_message,
+		output_outcome = output_outcome,
+		na_reason = na_reason,
 		stringsAsFactors = FALSE
 	)
+}
+
+# What the call produced, as one token, so a gate can count each kind (v1.0.6-TODO-95/-97):
+#   finite         numeric output, every value finite
+#   warned_na      all-NA output with a warning from this call
+#   recorded_na    all-NA output with no warning, but a reason the receiver recorded
+#                  (is_nonestimable(), procedure_failure_reason): the user sees nothing
+#   silent_na      some NA/NaN output with no warning and no recorded reason
+#   nonfinite      Inf, or partly-NA output that EDI explained
+#   non_numeric    a non-numeric return (lists, objects)
+#   clear_error    an error raised by EDI's own checks
+#   unclear_error  an error from R or C++ internals (see internal_error_patterns), i.e. EDI did
+#                  not anticipate the input
+#   unsupported    the case could not be set up on this fixture (not an EDI result)
+#   not_run        a constraint rejected the case
+internal_error_patterns = c(
+	"missing value where TRUE/FALSE needed", "argument is of length zero", "argument of length 0",
+	"subscript out of bounds", "non-numeric argument", "object of type '[a-z]+' is not subsettable",
+	"invalid '[a-z]+' type", "NA/NaN/Inf in foreign function call", "unused argument",
+	"attempt to apply non-function", "arguments imply differing number of rows",
+	"replacement has [0-9]+ rows?", "object '[^']+' not found", "could not find function",
+	"incorrect number of dimensions", "\\$ operator is invalid", "invalid argument to unary operator",
+	"non-conformable", "the condition has length > 1", "undefined columns selected",
+	"[Ii]ndex out of bounds", "std::", "Mat::", "is not a function", "invalid subscript type",
+	"no applicable method", "dims \\[product", "length of 'dimnames'", "cannot coerce", "infinite or missing values in 'x'"
+)
+
+# The reason a receiver recorded for an NA, when it recorded one (is_nonestimable() or
+# procedure_failure_reason), as "procedure=reason;...". Lets a recorded_na row say why without a
+# warning having been shown.
+recorded_na_reason = function(executed) {
+	rec = executed$receiver
+	if (is.null(rec)) return("")
+	parts = character()
+	if (is.function(rec$is_nonestimable) && isTRUE(tryCatch(rec$is_nonestimable(), error = function(e) FALSE))) {
+		parts = c(parts, paste0("nonestimable=", tryCatch(rec$get_nonestimable_reason() %||% "", error = function(e) "")))
+	}
+	pf = tryCatch(rec$.__enclos_env__$private$cached_values$procedure_failure_reason, error = function(e) NULL)
+	if (is.list(pf) && length(pf)) parts = c(parts, paste(names(pf), vapply(pf, function(x) paste(as.character(x), collapse = ","), character(1)), sep = "="))
+	paste(parts, collapse = ";")
+}
+
+classify_output_outcome = function(executed) {
+	status = executed$status %||% "error"
+	if (identical(status, "unsupported")) return("unsupported")
+	if (!identical(status, "ok")) {
+		msg = executed$error_message %||% ""
+		internal = any(vapply(internal_error_patterns, function(p) grepl(p, msg), logical(1)))
+		return(if (internal) "unclear_error" else "clear_error")
+	}
+	out = executed$result
+	if (!is.numeric(out) || !length(out)) return("non_numeric")
+	if (all(is.finite(out))) return("finite")
+	explained = receiver_explains_na(executed)
+	if (any(is.na(out)) && !explained) return("silent_na")
+	if (all(is.na(out))) return(if (nzchar(executed$warning_message %||% "")) "warned_na" else "recorded_na")
+	"nonfinite"
 }
 
 # An all-NA result is documented non-estimability when EDI said why: a warning from this
@@ -235,6 +336,13 @@ run_case = function(case_row, fixtures, timeout_sec = 20) {
 	if (is.null(fixture)) {
 		return(result_row(case_row, status = "error", error_message = paste("Missing fixture:", case_row$fixture_id)))
 	}
+	# A data-shape fixture EDI refused to build (e.g. KK21 with n = NULL): every case on it carries
+	# that error.
+	if (!is.null(fixture$build_error)) {
+		failed = list(status = "error", error_message = paste("building fixture:", fixture$build_error))
+		return(result_row(case_row, status = "error", invariant_status = "skipped",
+			error_message = failed$error_message, output_outcome = classify_output_outcome(failed)))
+	}
 	# Setup errors (building the receiver or the arguments) belong to this case, not the run.
 	# A receiver no fixture can build (a design class without a fixture of its own, e.g.
 	# DesignFixedFactorial on the Bernoulli fallback) is "unsupported", not an EDI error.
@@ -246,7 +354,9 @@ run_case = function(case_row, fixtures, timeout_sec = 20) {
 	invariant_status = if (identical(executed$status, "unsupported")) "skipped" else
 		check_invariants(executed$result, executed$status, case_row$invariants, context = list(
 			documented_nonestimable_behavior = is.numeric(executed$result) && length(executed$result) > 0L &&
-				all(is.na(executed$result)) && receiver_explains_na(executed)))
+				all(is.na(executed$result)) && receiver_explains_na(executed),
+			effect = fixture$metadata$effect %||% NULL))
+	outcome = classify_output_outcome(executed)
 	result_row(
 		case_row,
 		status = executed$status,
@@ -255,7 +365,9 @@ run_case = function(case_row, fixtures, timeout_sec = 20) {
 		message_text = executed$message_text,
 		output = executed$result,
 		invariant_status = invariant_status,
-		error_message = executed$error_message
+		error_message = executed$error_message,
+		output_outcome = outcome,
+		na_reason = if (outcome %in% c("recorded_na", "warned_na", "nonfinite", "silent_na")) recorded_na_reason(executed) else ""
 	)
 }
 
@@ -270,6 +382,13 @@ run_public_argument_combinations = function(tier = "smoke", class_filter = NULL,
 	fixtures = if (length(fixture_ids)) build_public_argument_fixtures(tier = tier, fixture_ids = fixture_ids) else list()
 	new_results = lapply(seq_len(nrow(to_run)), function(i) run_case(to_run[i, , drop = FALSE], fixtures, timeout_sec))
 	new_results = if (length(new_results)) do.call(rbind, new_results) else NULL
+	# Results written before output_outcome existed (v1.0.6-TODO-97) get it blank on resume, and
+	# columns a caller appended (the data-shape matrix's known_todo) are kept, blank on new rows.
+	if (!is.null(existing) && !is.null(new_results)) {
+		for (col in setdiff(names(new_results), names(existing))) existing[[col]] = ""
+		for (col in setdiff(names(existing), names(new_results))) new_results[[col]] = ""
+		new_results = new_results[, names(existing), drop = FALSE]
+	}
 	results = if (!is.null(existing) && !is.null(new_results)) rbind(existing, new_results) else existing %||% new_results
 	results = results[match(unique(results$case_id), results$case_id), , drop = FALSE]
 	row.names(results) = NULL

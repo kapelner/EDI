@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Checks for the dead-code audit (audits/dead_code.py). Stdlib only, no network, no compiler."""
+import contextlib
 import datetime as dt
+import io
+import json
 import subprocess
 import sys
 import tempfile
@@ -10,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import audit_common as ac  # noqa: E402
 from audits import dead_code as dc  # noqa: E402
+import audit_run  # noqa: E402
 
 NOW = dt.datetime(2026, 11, 9, 6, tzinfo=dt.timezone.utc)
 
@@ -155,11 +159,58 @@ class Apply(Fixture):
         dc.apply(self.new_ctx(), [], [])
         self.assertNotIn("R:unused_fn", (self.repo / dc.CANDIDATES_FILE).read_text())
 
+    def test_reconfirmed_candidate_keeps_its_line(self):
+        f = {"unit": "R:unused_fn", "kind": "confirmed", "text": "no caller", "evidence": []}
+        dc.apply(self.ctx, [self.result([f])], [])
+        before = (self.repo / dc.CANDIDATES_FILE).read_text()
+        # Re-read and re-confirmed in other words: the listed line stays, so no change and no PR.
+        parts = dc.apply(self.new_ctx(), [self.result([{**f, "text": "grep finds only the definition"}])], [])
+        self.assertEqual((self.repo / dc.CANDIDATES_FILE).read_text(), before)
+        self.assertEqual(parts["applied"], [])
+
     def test_nothing_confirmed_writes_nothing(self):
         parts = dc.apply(self.ctx, [self.result([
             {"unit": "R:Child", "kind": "false_positive", "text": "used", "evidence": []}])], [])
         self.assertFalse((self.repo / dc.CANDIDATES_FILE).exists())
         self.assertEqual(parts["applied"], [])
+
+
+class SettledFindingIsNotReopened(Fixture):
+    """A candidate listed by a merged PR is settled as fixed. Re-confirming it must not mark its unit
+    open again, or every later run re-reads it (the 2026-11-17 dead-code PR #46 loop)."""
+
+    def run_cmd(self, cmd, *extra):
+        out = self.tmp / "out.txt"
+        out.write_text("")
+        with contextlib.redirect_stdout(io.StringIO()):
+            audit_run.main([cmd, "--audit", "dead-code", "--repo", str(self.repo), "--notes", str(self.tmp / "notes"),
+                            "--work", str(self.tmp / "work"), "--github-output", str(out), *extra])
+
+    def finish_confirming(self, unit):
+        res = self.tmp / "results"
+        res.mkdir(exist_ok=True)
+        for b in (self.tmp / "work/batches").glob("*.json"):
+            units = json.loads(b.read_text())["units"]
+            ids = [u["id"] if isinstance(u, dict) else u for u in units]
+            (res / b.name).write_text(json.dumps({"units_checked": ids, "findings": [
+                {"unit": unit, "kind": "confirmed", "text": "no caller", "evidence": []}] if unit in ids else []}))
+        self.run_cmd("finish", "--results", str(res))
+
+    def test_fixed_candidate_not_reread(self):
+        unit = "R:unused_fn"
+        self.run_cmd("prepare", "--no-harvest")
+        self.finish_confirming(unit)
+        # The PR merged: harvest settles the finding as fixed, but the count is stale (as before the fix).
+        hist = [{**h, "status": "fixed"} if h["unit"] == unit else h for h in self.notes.findings()]
+        self.notes.save_findings(hist)
+        m = self.notes.manifest()
+        self.assertEqual(m["units"][unit]["open_findings"], 1)
+        self.run_cmd("prepare", "--no-harvest")
+        self.assertIn(unit, json.loads((self.tmp / "work/plan.json").read_text())["chosen"])
+        self.finish_confirming(unit)
+        self.assertEqual(self.notes.manifest()["units"][unit]["open_findings"], 0)
+        self.run_cmd("prepare", "--no-harvest")
+        self.assertNotIn(unit, json.loads((self.tmp / "work/plan.json").read_text())["chosen"])
 
 
 if __name__ == "__main__":

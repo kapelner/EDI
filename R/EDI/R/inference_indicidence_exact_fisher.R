@@ -62,7 +62,7 @@ ExactFisherIncidenceSource = list(
 		},
 		compute_exact_confidence_interval_by_type = function(type, alpha, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,
@@ -71,7 +71,7 @@ ExactFisherIncidenceSource = list(
 		},
 		compute_exact_two_sided_pval_for_treatment_effect_by_type = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
 			switch(type,
@@ -129,8 +129,8 @@ ExactFisherIncidenceSource = list(
 		},
 		get_exact_fisher_htest = function(alpha = 0.05, delta_0 = 0){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
-				assertNumeric(delta_0, len = 1)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+				assertNumeric(delta_0, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			is_default_call = (abs(alpha - 0.05) < .Machine$double.eps && abs(delta_0) < .Machine$double.eps)
 			if (is_default_call && !is.null(private$cached_values$incid_exact_fisher_htest)) {

@@ -141,7 +141,7 @@ zhang_assert_exact_inference_params = function(inf_obj, type, args_for_type){
 		assertResponseType(private$des_obj$get_response_type(), "incidence")
 		assertNoCensoring(private$any_censoring)
 		assertChoice(args$combination_method, c("Fisher", "Stouffer", "min_p"))
-		if (!is.null(args$pval_epsilon)) assertNumeric(args$pval_epsilon, lower = .Machine$double.xmin, upper = 1)
+		if (!is.null(args$pval_epsilon)) assertNumeric(args$pval_epsilon, len = 1, lower = .Machine$double.xmin, upper = 1, any.missing = FALSE)
 	}
 	invisible(args)
 }

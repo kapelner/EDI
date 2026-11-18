@@ -222,12 +222,17 @@ Design = R6::R6Class("Design",
 					call. = FALSE
 				)
 			}
+			# Always enforced: an NA prob_T gives NA assignments rather than an
+			# error when asserts are off (v1.0.6-TODO-100).
+			if (length(prob_T) > 0L && anyNA(prob_T)){
+				stop("prob_T may not be NA.", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				assertChoice(response_type, c("continuous", "incidence", "proportion", "count", "survival", "ordinal"))
-				assertNumeric(prob_T, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+				assertNumeric(prob_T, len = 1, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertFlag(include_is_missing_as_a_new_feature)
 				assertFlag(verbose)
-				assertCount(n, null.ok = TRUE)
+				assertCount(n, positive = TRUE, null.ok = TRUE)
 				assertCount(seed, null.ok = TRUE)
 				assertChoice(missingness_method, c("impute", "drop_column", "error"))
 				assertFormula(design_formula)
@@ -297,8 +302,16 @@ Design = R6::R6Class("Design",
 		#'   event-time interval. Right-censored: \code{Inf}. Left-/
 		#'   interval-censored: the confirmed-by time / interval upper bound.
 		add_one_subject_response = function(t, y = NULL, y_L = NULL, y_R = NULL) {
+			# Always enforced, and before the checkmate asserts so the message is
+			# the same with asserts on or off (v1.0.6-TODO-94): an NA y used to be
+			# stored silently, and the error only came much later from inference
+			# ("This experiment is incomplete..."), far from the cause. Same
+			# message as add_all_subject_responses() (v1.0.6-TODO-93).
+			if (length(y) == 1L && is.na(y)){
+				stop(missing_response_error_message(private$response_type, t), call. = FALSE)
+			}
 			if (should_run_asserts()) {
-				assertNumeric(t, len = 1)
+				assertNumeric(t, len = 1, any.missing = FALSE)
 				assertCount(t, positive = TRUE)
 				if (t > private$t){
 					stop(paste("You cannot add response for subject", t, "when the most recent subjects' record added is", private$t))
@@ -306,10 +319,11 @@ Design = R6::R6Class("Design",
 				if (private$response_type == "ordinal" && is.factor(y)) {
 					assertFactor(y, len = 1, ordered = TRUE, any.missing = FALSE)
 				} else {
-					assertNumeric(y, len = 1, null.ok = TRUE)
+					assertNumeric(y, len = 1, null.ok = TRUE, any.missing = FALSE)
 				}
-				assertNumeric(y_L, len = 1, null.ok = TRUE)
-				assertNumeric(y_R, len = 1, null.ok = TRUE)
+				assertNumeric(y_L, len = 1, null.ok = TRUE, any.missing = FALSE)
+				# Not finite: y_R = Inf is a right-censored response (y_L finiteness is checked below, always on).
+				assertNumeric(y_R, len = 1, null.ok = TRUE, any.missing = FALSE)
 			}
 			has_y = !is.null(y)
 			has_bounds = !is.null(y_L) && !is.null(y_R)
@@ -363,6 +377,9 @@ Design = R6::R6Class("Design",
 				if (!is.finite(y_L) || y_L < 0){
 					stop("y_L must be finite and >= 0.")
 				}
+				if (is.na(y_R)){
+					stop("y_R may not be NA (use Inf for a right-censored response).")
+				}
 				if (!(y_R > y_L)){
 					stop("y_R must be strictly greater than y_L.")
 				}
@@ -411,8 +428,11 @@ Design = R6::R6Class("Design",
 				if (private$response_type == "ordinal" && is.factor(ys)){
 					assertFactor(ys, len = private$t, ordered = TRUE, any.missing = FALSE)
 				} else {
+					# NA allowed: an NA in ys marks a censored subject entered through y_Ls/y_Rs;
+					# non-survival NAs are rejected below, always on (v1.0.6-TODO-93).
 					assertNumeric(ys, len = private$t)
 				}
+				# NA allowed in y_Ls/y_Rs: NA marks a subject with an exact response in ys.
 				assertNumeric(y_Ls, len = private$t)
 				assertNumeric(y_Rs, len = private$t)
 			}
@@ -431,7 +451,7 @@ Design = R6::R6Class("Design",
 				stop("Supply either ys or (y_Ls, y_Rs) for each subject, not both.")
 			}
 			if (any(!has_y & !has_bounds)){
-				stop("Each subject needs either ys or both y_Ls and y_Rs.")
+				stop(missing_response_error_message(private$response_type, which(!has_y & !has_bounds)[1L], vectorized = TRUE), call. = FALSE)
 			}
 			if (any(has_bounds) && private$response_type != "survival"){
 				stop("censored observations are only available for survival response types")
@@ -468,6 +488,7 @@ Design = R6::R6Class("Design",
 			if (should_run_asserts()) {
 				assertIntegerish(w, lower = 0, upper = 1, any.missing = FALSE, len = private$t)
 			}
+			assert_overwritten_w_always(w, private$t)
 			private$w = as.numeric(w)
 		},
 		#' @description Check if this design was initialized with a fixed sample size n
@@ -942,8 +963,12 @@ Design = R6::R6Class("Design",
 			}
 			y_temp = transform_fun(y_original = private$y_original)
 			if (should_run_asserts()) {
+				# NA allowed: y_original is NA for censored survival rows (entered via
+				# y_L/y_R) and for subjects with no response yet; assert_y() checks the rows
+				# whose y_original is not NA (it used to get them all and so rejected every
+				# design with a censored or not-yet-responded subject).
 				assertNumeric(y_temp, len = length(private$y_original))
-				private$assert_y(y_temp, transformed_response_type)
+				private$assert_y(y_temp[!is.na(private$y_original)], transformed_response_type)
 			}
 			private$y = as.numeric(y_temp)
 			private$response_type = transformed_response_type
@@ -1082,14 +1107,18 @@ Design = R6::R6Class("Design",
 		},
 		assert_y = function(y, response_type) {
 			if (should_run_asserts()) {
-				if (response_type == "incidence") {
+				if (response_type == "continuous") {
+					assertNumeric(y, finite = TRUE, any.missing = FALSE)
+				} else if (response_type == "incidence") {
 					assertIntegerish(y, lower = 0, upper = 1, any.missing = FALSE)
 				} else if (response_type == "proportion") {
 					assertNumeric(y, lower = 0, upper = 1, any.missing = FALSE)
 				} else if (response_type == "count") {
 					assertIntegerish(y, lower = 0, any.missing = FALSE)
 				} else if (response_type == "survival") {
-					assertNumeric(y, lower = 0, any.missing = FALSE)
+					# An exact event time must be finite; a right-censored row is entered as
+					# y_L with y_R = Inf, not as y = Inf.
+					assertNumeric(y, lower = 0, finite = TRUE, any.missing = FALSE)
 				} else if (response_type == "ordinal") {
 					assertIntegerish(y, lower = 1, any.missing = FALSE)
 				}
@@ -1179,8 +1208,17 @@ Design = R6::R6Class("Design",
 			num_unique_values_per_column = count_unique_values_cpp(private$Ximp)
 			cols_for_model = which(analysis_col & num_unique_values_per_column > 1)
 			Ximp_for_model = private$Ximp[, .SD, .SDcols = cols_for_model]
+			# v1.0.6-TODO-107: a column the formula names may still be constant among the
+			# subjects enrolled so far; dropping it made model.matrix() fail ("object 'g'
+			# not found"). Put such columns back as placeholders; their model-matrix
+			# columns are constant and are dropped after model.matrix().
+			const_formula_cols = constant_formula_named_columns(private$design_formula, private$Ximp, analysis_col & num_unique_values_per_column <= 1)
 			# now we need to update the numeric model matrix which may have expanded due to new factors, new missingness cols, etc
-			private$X = create_model_matrix_from_features(private$design_formula, Ximp_for_model)
+			private$X = if (length(const_formula_cols) == 0L) {
+				create_model_matrix_from_features(private$design_formula, Ximp_for_model)
+			} else {
+				create_model_matrix_with_constant_formula_columns(private$design_formula, Ximp_for_model, private$Ximp, const_formula_cols)
+			}
 			# TODO-111: a zero-column data.table reports nrow() == 0, so the helper returns
 			# a 0 x 0 matrix; downstream KK/frailty code needs n x 0.
 			if (ncol(private$X) == 0L && nrow(private$X) != private$t){
@@ -1264,3 +1302,47 @@ Design = R6::R6Class("Design",
 		maybe_set_seed = function() { if (!is.null(private$seed)) set.seed(private$seed) }
 	)
 )
+
+# Error message for a missing (NA) exact response. Shared by
+# add_one_subject_response() and both add_all_subject_responses() methods
+# (Design and FixedDesign) so the wording stays the same (v1.0.6-TODO-93,
+# v1.0.6-TODO-94). For a non-survival response there is no censored
+# alternative, so the message says NA is not allowed and points to the
+# missing-outcomes section of the missing-covariates article; for survival it
+# keeps the y_L/y_R wording, since a censored subject is entered that way.
+missing_response_error_message = function(response_type, subject, vectorized = FALSE){
+	if (identical(response_type, "survival")){
+		if (vectorized){
+			return(paste0(
+				"Subject ", subject, " has no response: each subject needs either ys or both y_Ls and y_Rs ",
+				"(a censored survival response is entered through y_Ls and y_Rs)."
+			))
+		}
+		return(paste0(
+			"The response for subject ", subject, " is NA. For a censored survival response supply ",
+			"y_L and y_R instead of y."
+		))
+	}
+	paste0(
+		"The response for subject ", subject, " is NA, but responses may not be NA for response_type = \"", response_type, "\". ",
+		"EDI has no method for missing outcomes; handle them before the data reach EDI (see \"What EDI does ",
+		"not handle: missing outcomes\" in https://kapelner.github.io/EDI/articles/missing-covariates.html)."
+	)
+}
+
+# Always-on check for overwrite_all_subject_assignments() (Design and FixedDesign), outside
+# should_run_asserts() by the v1.0.6-TODO-100 rule (v1.0.6-TODO-106): a w of the wrong length
+# or with a value other than 0/1 is stored as is and later gives wrong estimates (e.g. a
+# subject with w = 2 is in neither arm), not an error. O(n) and called once per user call.
+assert_overwritten_w_always = function(w, t){
+	if (!is.numeric(w) && !is.logical(w)){
+		stop("overwrite_all_subject_assignments: w must be a numeric 0/1 vector.", call. = FALSE)
+	}
+	if (length(w) != t){
+		stop("overwrite_all_subject_assignments: w has length ", length(w), " but the design has ", t, " subjects.", call. = FALSE)
+	}
+	if (anyNA(w) || any(!(w %in% c(0, 1)))){
+		stop("overwrite_all_subject_assignments: w must contain only 0 (control) or 1 (treated).", call. = FALSE)
+	}
+	invisible(NULL)
+}

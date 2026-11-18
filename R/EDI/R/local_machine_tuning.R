@@ -348,7 +348,7 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 	preset = edi_tuning_effort_presets()[[effort]]
 	if (is.null(n_grid)) n_grid = preset$n_grid
 	if (is.null(reps)) reps = preset$reps
-	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L)
+	checkmate::assertIntegerish(n_grid, min.len = 1L, lower = 1L, any.missing = FALSE)
 	checkmate::assertCount(reps, positive = TRUE)
 	n_grid = sort(unique(as.integer(n_grid)))
 
@@ -372,7 +372,7 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		if (is.null(num_cores_grid)) {
 			num_cores_grid = unique(c(2L, as.integer(parallel::detectCores())))
 		}
-		checkmate::assertIntegerish(num_cores_grid, min.len = 1L, lower = 2L, unique = TRUE)
+		checkmate::assertIntegerish(num_cores_grid, min.len = 1L, lower = 2L, any.missing = FALSE, unique = TRUE)
 		num_cores_grid = sort(as.integer(num_cores_grid))
 	}
 

@@ -266,8 +266,18 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 								stop("raw weight values illegal in design ", class(self)[1])
 							}
 						}
-						#ensure the weights are normalized
-						private$covariate_weights = raw_weights / sum(raw_weights)
+						#ensure the weights are normalized. If no covariate carries usable signal
+						#(all weights 0, e.g. the stepwise kernels leave every weight NA -> 0 when the
+						#response is constant or fit exactly, so every residual variance is 0), the
+						#sum is 0 and raw / sum would be NaN, crashing quantile() below
+						#(v1.0.6-TODO-120). Fall back to equal weights, which is what KK21's own
+						#kernels give in that case (eps for every covariate).
+						sum_raw_weights = sum(raw_weights)
+						if (!is.finite(sum_raw_weights) || sum_raw_weights <= 0){
+							raw_weights = rep(1, length(raw_weights))
+							sum_raw_weights = length(raw_weights)
+						}
+						private$covariate_weights = raw_weights / sum_raw_weights
 						names(private$covariate_weights) = colnames(all_subject_data$X_all_with_y_scaled)
 						private$iteration_weights[[private$t]] = private$covariate_weights
 						#cat("    assign_wt_KK21 using sorted weights t", private$t, "weights", sort(weights), "\n")

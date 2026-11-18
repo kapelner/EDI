@@ -89,18 +89,34 @@ InferenceExtBcaBootstrapCI = list(
 			if (any(!is.finite(adj_ci)) || any(adj_ci <= 2 * prob_eps) || any(adj_ci >= 1 - 2 * prob_eps)) {
 				return(on_failure(paste0(reason_prefix, "adjustment_on_boundary")))
 			}
-			z_delta = stats::qnorm(private$bca_midrank_cdf(boot_distr, delta))
+			# v1.0.6-TODO-75 / v1.0.6-TODO-114: when delta cannot be reached by any BCa interval the
+			# p-value is the smallest one this B can report, not NA. The BCa p-value is the alpha at
+			# which a BCa endpoint equals delta. The endpoint for tail level z is
+			#   z_end = z0 + (z0 + z) / (1 - a (z0 + z))   (in normal-score space of the bootstrap CDF),
+			# which never leaves the bootstrap support [min, max] (its quantile is taken from the
+			# draws) and, for a != 0, never crosses z0 - 1/a. So (i) a delta outside the bootstrap
+			# support, and (ii) a delta with 1 + a (z_delta - z0) <= 0, lies outside every BCa interval
+			# at every level: the exact BCa p-value is below anything B draws can resolve. We report
+			# the 2/B floor that the percentile, symmetric and studentized types report in the same
+			# situation. The old code clamped the CDF to machine epsilon (qnorm = -8.1), tripped the
+			# |adj_z| > 8 check and returned NA silently. A large finite |adj_z| on the monotone
+			# branch is likewise just a far-tail delta, so it also gets the floor.
+			p_floor = 2 / length(boot_distr)
+			F_delta = mean(boot_distr < delta) + 0.5 * mean(boot_distr == delta)
+			if (F_delta <= 0 || F_delta >= 1) return(p_floor)
+			z_delta = stats::qnorm(F_delta)
 			s = z_delta - z0
 			denom = 1 + a * s
-			if (!is.finite(denom) || abs(denom) < sqrt(.Machine$double.eps)) {
+			if (!is.finite(denom)) {
 				return(on_failure(paste0(reason_prefix, "unstable_bias_or_acceleration")))
 			}
+			if (denom <= sqrt(.Machine$double.eps)) return(p_floor)
 			adj_z = s / denom - z0
-			if (!is.finite(adj_z) || abs(adj_z) > 8) {
+			if (!is.finite(adj_z)) {
 				return(on_failure(paste0(reason_prefix, "adjustment_on_boundary")))
 			}
-			p_raw = min(1, 2 * min(stats::pnorm(adj_z), 1 - stats::pnorm(adj_z)))
-			min(1, max(2 / length(boot_distr), p_raw))
+			p_raw = min(1, 2 * min(stats::pnorm(adj_z), stats::pnorm(-adj_z)))
+			min(1, max(p_floor, p_raw))
 		}
 	)
 )

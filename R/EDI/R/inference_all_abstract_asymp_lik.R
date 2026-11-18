@@ -27,7 +27,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			switch(
 				private$testing_type,
@@ -51,7 +51,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @return The asymptotic p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta)
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			switch(
 				private$testing_type,
@@ -136,7 +136,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_score_confidence_interval_impl(alpha)
 		},
@@ -158,7 +158,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_lik_ratio_confidence_interval_impl(alpha)
 		},
@@ -202,7 +202,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#'   factor. Default 99.
 		compute_lik_ratio_bartlett_approx_confidence_interval = function(alpha = 0.05, B = 99){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha, B = B)
 		},
@@ -229,7 +229,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_bartlett_exact_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
 		},
@@ -278,7 +278,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#'   is unavailable and the approximate factor is used instead. Default 99.
 		compute_lik_ratio_bartlett_confidence_interval = function(alpha = 0.05, B = 99){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_lik_ratio_bartlett_confidence_interval_impl(alpha, B = B, B_missing = missing(B))
 		},
@@ -293,7 +293,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$compute_gradient_confidence_interval_impl(alpha)
 		}

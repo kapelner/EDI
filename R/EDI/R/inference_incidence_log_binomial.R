@@ -163,7 +163,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 		#'   \code{1 - alpha} coverage.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
-				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			if (edi_log_binomial_wald_unavailable_at_boundary(self, private)) return(edi_log_binomial_na_ci(alpha))
 			private$compute_wald_confidence_interval_impl(alpha)
