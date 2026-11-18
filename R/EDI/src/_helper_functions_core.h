@@ -609,21 +609,40 @@ inline void score_weighted_crossprod_colwise_assign(const Eigen::MatrixXd& X,
     out.setZero();
     for (int j = 0; j < p; ++j) {
         const double* xj = X.col(j).data();
-        for (int k = j; k < p; ++k) {
+        {
+            double acc = 0.0;
+            double score_acc = 0.0;
+            for (int i = 0; i < n; ++i) {
+                acc += xj[i] * w[i] * xj[i];
+                score_acc += xj[i] * residual[i];
+            }
+            score[j] = score_acc;
+            out(j, j) = acc;
+        }
+        int k = j + 1;
+        // Two off-diagonal columns per pass over i: each accumulator is still
+        // summed in the same i-order with the same expression, so results are
+        // bit-identical, but the two add-latency chains overlap.
+        for (; k + 1 < p; k += 2) {
+            const double* xk0 = X.col(k).data();
+            const double* xk1 = X.col(k + 1).data();
+            double acc0 = 0.0;
+            double acc1 = 0.0;
+            for (int i = 0; i < n; ++i) {
+                acc0 += xj[i] * w[i] * xk0[i];
+                acc1 += xj[i] * w[i] * xk1[i];
+            }
+            out(j, k) = acc0;
+            out(k, j) = acc0;
+            out(j, k + 1) = acc1;
+            out(k + 1, j) = acc1;
+        }
+        for (; k < p; ++k) {
             const double* xk = X.col(k).data();
             double acc = 0.0;
-            if (k == j) {
-                double score_acc = 0.0;
-                for (int i = 0; i < n; ++i) {
-                    acc += xj[i] * w[i] * xj[i];
-                    score_acc += xj[i] * residual[i];
-                }
-                score[j] = score_acc;
-            } else {
-                for (int i = 0; i < n; ++i) acc += xj[i] * w[i] * xk[i];
-            }
+            for (int i = 0; i < n; ++i) acc += xj[i] * w[i] * xk[i];
             out(j, k) = acc;
-            if (k != j) out(k, j) = acc;
+            out(k, j) = acc;
         }
     }
 }
