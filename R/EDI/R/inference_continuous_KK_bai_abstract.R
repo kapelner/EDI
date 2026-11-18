@@ -35,7 +35,7 @@ BaiAdjustedTSource = list(
 		#'   to the user. Default is \code{FALSE}
 		#' @param convex_flag       A flag indicating whether the estimator should use a convex
 		#'   combination of the Bai et al
-		#' matched pairs estimate with the reservoir estimate, or just the Bai et al estimate by its self.
+		#' matched pairs estimate with the reservoir estimate, or just the Bai et al estimate by itself.
 		#'
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, convex_flag = FALSE){
 			if (should_run_asserts()) {

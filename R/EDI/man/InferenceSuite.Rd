@@ -321,7 +321,7 @@ how many distinct estimates there are: none for a single estimate
 (redundant with the forest's own dot), dots alone for 2-5, and dots
 over a box-and-whisker for more than 5. Built with \pkg{ggplot2} and
 stacked into a single \pkg{gtable} grob (draw with
-\code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package,
+\code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package;
 if it is not installed, a \code{warning()} is issued and plotting is
 skipped rather than erroring. Defaults to the value of \code{screen}.}
       \item{\code{pdf}}{If \code{TRUE}, save the visualization to one timestamped
