@@ -1,6 +1,6 @@
 #' Pattern-1 mixin: KK compound pass-through behavior
 #'
-#' Provides the five private methods shared by all KK compound estimators:
+#' Provides the private methods shared by all KK compound estimators:
 #' \code{supports_likelihood_tests}, \code{compute_basic_match_data},
 #' \code{compute_estimate_from_matched_and_reservoir}, \code{only_matches},
 #' \code{only_reservoir}, and \code{compute_reservoir_and_match_statistics}.

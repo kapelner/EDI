@@ -42,7 +42,7 @@ newcombe_independent_ci_stable_r = function(x_t, n_t, x_c, n_c, alpha) {
 #' iterative score-test inversion, unlike the Miettinen-Nurminen method in
 #' \code{\link[EDI:InferenceIncidMiettinenNurminenRiskDiff]{InferenceIncidMiettinenNurminenRiskDiff}}).
 #' The two-sided p-value has no closed form here: it is obtained by
-#' numerically inverting the confidence interval (bisection via
+#' numerically inverting the confidence interval (root-finding via
 #' \code{stats::uniroot}) to find the significance level at which \code{delta}
 #' falls exactly on the interval boundary.
 #'
