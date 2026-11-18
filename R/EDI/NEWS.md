@@ -28,6 +28,13 @@
   example, every discordant matched pair favors the same arm). It used to
   return `Inf` or `-Inf`, which `InferenceSuite` listed as an "ok" row. The
   exact p-value and confidence interval are unchanged.
+* `InferencePropBetaRegr` bootstrap and jackknife replicates on rank-deficient
+  draws (for example, a leave-one-block-out draw on a blocking design whose
+  formula names the strata) now fit the right model. A warm start sized for the
+  full design was passed to the reduced fit, the fit failed, and the
+  column-dropping fallback then dropped a real covariate as well, which moved
+  the replicate (by about 1e-3 on the logit scale in the test case). Full-data
+  estimates are unchanged.
 * `missingness_method = "impute"` no longer uses the outcome to impute missing
   covariates (v1.0.6-TODO-44). missRanger/missForest were given the response as
   a predictor. Treated subjects' responses are shifted, so the imputed covariate

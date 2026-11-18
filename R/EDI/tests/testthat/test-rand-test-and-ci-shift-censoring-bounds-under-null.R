@@ -22,6 +22,17 @@ rand_bounds_interval_design = function(n = 60L, all_interval = FALSE){
 }
 
 rand_bounds_null_draws = function(cls, des, delta, worker, r = 12L){
+	# Randomization warm starts off for the class under test: with them on (the
+	# shipped default), the reusable worker starts each draw's fit from the previous
+	# draw's solution while the slow path starts cold, so for an iterative fit
+	# (Weibull) the two stop at slightly different points inside the optimizer's
+	# tolerance (up to 4e-5 here, 2026-11-18). This test is about the shifted
+	# censoring bounds, not warm starts; with both paths cold they agree exactly.
+	# The policy in force (shipped, or a machine's saved tuning) is restored as is.
+	ee = get("edi_env", envir = asNamespace("EDI"))
+	old_policy = ee$warm_start_dispatch_policy_config
+	on.exit(ee$warm_start_dispatch_policy_config <- old_policy, add = TRUE)
+	set_warm_start_dispatch_policy(list(rand = list(inference_class_overrides = stats::setNames(FALSE, paste0("^", cls, "$")))))
 	inf = suppressWarnings(get(cls)$new(des, verbose = FALSE))
 	inf$num_cores = 1L
 	inf$.__enclos_env__$private$reusable_bootstrap_worker_enabled = worker
