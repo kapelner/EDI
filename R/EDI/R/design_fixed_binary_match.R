@@ -10,8 +10,8 @@
 #' special case of blocking with block size 2), which guarantees exact covariate balance
 #' within every pair (up to the matching algorithm's distance metric) while preserving
 #' randomization-based inference validity, in contrast to
-#' \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which balance the
-#' covariates in aggregate via an optimality criterion but do not guarantee pairwise
+#' \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which balances the
+#' covariates in aggregate via an optimality criterion but does not guarantee pairwise
 #' closeness of any two subjects.
 #'
 #' @details

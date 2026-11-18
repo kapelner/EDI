@@ -452,7 +452,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \emph{resampling distribution itself} with a bandwidth chosen to trade off bias against
 		#'   variance (often shrinking slower than \eqn{n^{-1/2}}, e.g. \eqn{n^{-1/5}}-type
 		#'   KDE rates); here, noise is instead added directly to each already-resampled response at
-		#'   a fixed \eqn{n^{-1/2}} rate. The bandwidth is not exposed as a parameter, has no
+		#'   a fixed \eqn{n^{-1/2}} rate. The bandwidth is not exposed as a parameter and has no
 		#'   zero-noise escape hatch (the only way to disable smoothing is to pick a different
 		#'   \code{type}). Treat it as a discreteness patch that is qualitatively motivated by the
 		#'   literature above, not a certified implementation of it. A true-null simulation (nine

@@ -265,11 +265,12 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #' }
 #'
 #' @examples
-#' \donttest{
 #' # Simple simulation with two designs and two inference methods.
 #' # n/Nrep_W/num_boot/B_boot/r_rand are kept small so this example runs in a
 #' # few seconds; a real simulation would use much larger values (this
 #' # class's defaults, or larger still) for adequately precise estimates.
+#' # Percentile bootstrap CIs are requested because the default BCa interval
+#' # needs a larger B_boot than is used here.
 #' sim = SimulationFramework$new(
 #'   response_type = "continuous",
 #'   design_classes_and_params = list(
@@ -280,10 +281,18 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #'     InferenceContinOLS = list(),
 #'     InferenceContinKKOLSIVWC = list()
 #'   ),
+#'   inference_types_and_params = list(
+#'     asymp_ci = list(),
+#'     asymp_pval = list(),
+#'     boot_ci = list(type = "percentile"),
+#'     boot_pval = list(),
+#'     rand_pval = list()
+#'   ),
 #'   n = 20, p = 3, Nrep_W = 2L, betaT = 1, B_boot = 50L, r_rand = 101L,
 #'   results_filename = tempfile(fileext = ".csv.bz2"),
 #'   continue_from_last_result_row = FALSE
 #' )
+#' \donttest{
 #' sim$run()
 #' report = SimulationFrameworkReport$new(sim)
 #' report$summarize()

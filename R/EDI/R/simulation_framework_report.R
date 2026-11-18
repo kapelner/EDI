@@ -13,15 +13,21 @@
 #' empty strings.
 #'
 #' @examples
-#' \donttest{
 #' sim <- SimulationFramework$new(
 #'   response_type = "continuous",
 #'   design_classes_and_params = list(DesignFixedBernoulli),
 #'   inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+#'   inference_types_and_params = list(
+#'     asymp_ci = list(),
+#'     asymp_pval = list(),
+#'     boot_ci = list(type = "percentile"),
+#'     boot_pval = list()
+#'   ),
 #'   n = 20L, Nrep_W = 5L, betaT = 1,
 #'   results_filename = tempfile(fileext = ".csv"),
 #'   verbose = FALSE, continue_from_last_result_row = FALSE
 #' )
+#' \donttest{
 #' sim$run()
 #' report <- SimulationFrameworkReport$new(sim)
 #' report$get_results()
