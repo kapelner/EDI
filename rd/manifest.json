@@ -2,601 +2,601 @@
  "example_timings": {
   "R/EDI/man/BaiAdjustedTSource.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00199999999999978,
-   "full": 2.246
+   "cran_cpu": 0.00100000000000011,
+   "full": 1.7269999999999999
   },
   "R/EDI/man/Design.Rd": {
-   "cran": 0.0249999999999999,
-   "cran_cpu": 0.0239999999999999
-  },
-  "R/EDI/man/DesignFixed.Rd": {
-   "cran": 0.014,
-   "cran_cpu": 0.0150000000000001
-  },
-  "R/EDI/man/DesignFixedBernoulli.Rd": {
-   "cran": 0.0149999999999999,
-   "cran_cpu": 0.015
-  },
-  "R/EDI/man/DesignFixedBinaryMatch.Rd": {
-   "cran": 1.705,
-   "cran_cpu": 1.697
-  },
-  "R/EDI/man/DesignFixedBlockedCluster.Rd": {
-   "cran": 0.0209999999999999,
+   "cran": 0.0189999999999999,
    "cran_cpu": 0.0190000000000001
   },
-  "R/EDI/man/DesignFixedBlocking.Rd": {
-   "cran": 0.0189999999999999,
-   "cran_cpu": 0.0189999999999999
+  "R/EDI/man/DesignFixed.Rd": {
+   "cran": 0.0119999999999998,
+   "cran_cpu": 0.013
   },
-  "R/EDI/man/DesignFixedCluster.Rd": {
-   "cran": 0.018,
-   "cran_cpu": 0.017
+  "R/EDI/man/DesignFixedBernoulli.Rd": {
+   "cran": 0.012,
+   "cran_cpu": 0.0129999999999999
   },
-  "R/EDI/man/DesignFixedFactorial.Rd": {
+  "R/EDI/man/DesignFixedBinaryMatch.Rd": {
+   "cran": 1.329,
+   "cran_cpu": 1.326
+  },
+  "R/EDI/man/DesignFixedBlockedCluster.Rd": {
    "cran": 0.0170000000000001,
-   "cran_cpu": 0.0159999999999999
-  },
-  "R/EDI/man/DesignFixedGreedy.Rd": {
-   "cran": 0.0129999999999999,
-   "cran_cpu": 0.012
-  },
-  "R/EDI/man/DesignFixedGreedyDOptimal.Rd": {
-   "cran": 0.028,
-   "cran_cpu": 0.028
-  },
-  "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd": {
-   "cran": 0.016,
-   "cran_cpu": 0.016
-  },
-  "R/EDI/man/DesignFixedOptimal.Rd": {
-   "cran": 1.039,
-   "cran_cpu": 1.038,
-   "full": 6.3870000000000005
-  },
-  "R/EDI/man/DesignFixedOptimalBlocks.Rd": {
-   "cran": 0.0449999999999999,
-   "cran_cpu": 0.045
-  },
-  "R/EDI/man/DesignFixedRerandomization.Rd": {
-   "cran": 0.0150000000000001,
    "cran_cpu": 0.015
   },
-  "R/EDI/man/DesignFixediBCRD.Rd": {
-   "cran": 0.018,
-   "cran_cpu": 0.0169999999999999
+  "R/EDI/man/DesignFixedBlocking.Rd": {
+   "cran": 0.0150000000000001,
+   "cran_cpu": 0.0150000000000002
   },
-  "R/EDI/man/DesignSeqOneByOne.Rd": {
-   "cran": 0.024,
-   "cran_cpu": 0.0240000000000001
+  "R/EDI/man/DesignFixedCluster.Rd": {
+   "cran": 0.014,
+   "cran_cpu": 0.0140000000000001
   },
-  "R/EDI/man/DesignSeqOneByOneAtkinson.Rd": {
-   "cran": 0.0229999999999999,
-   "cran_cpu": 0.0230000000000001
+  "R/EDI/man/DesignFixedFactorial.Rd": {
+   "cran": 0.014,
+   "cran_cpu": 0.0139999999999999
   },
-  "R/EDI/man/DesignSeqOneByOneBernoulli.Rd": {
-   "cran": 0.0269999999999999,
-   "cran_cpu": 0.028
+  "R/EDI/man/DesignFixedGreedy.Rd": {
+   "cran": 0.0210000000000001,
+   "cran_cpu": 0.0210000000000001
   },
-  "R/EDI/man/DesignSeqOneByOneEfron.Rd": {
-   "cran": 0.024,
-   "cran_cpu": 0.0229999999999999
+  "R/EDI/man/DesignFixedGreedyDOptimal.Rd": {
+   "cran": 0.0230000000000001,
+   "cran_cpu": 0.0229999999999998
   },
-  "R/EDI/man/DesignSeqOneByOneKK14.Rd": {
-   "cran": 0.026,
-   "cran_cpu": 0.0269999999999998
+  "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd": {
+   "cran": 0.012,
+   "cran_cpu": 0.012,
+   "full": 1.363
   },
-  "R/EDI/man/DesignSeqOneByOneKK21.Rd": {
-   "cran": 0.028,
-   "cran_cpu": 0.029,
-   "full": 0.0029999999999998986
+  "R/EDI/man/DesignFixedOptimal.Rd": {
+   "cran": 0.763,
+   "cran_cpu": 0.761,
+   "full": 5.104
   },
-  "R/EDI/man/DesignSeqOneByOneKK21stepwise.Rd": {
-   "cran": 0.034,
-   "cran_cpu": 0.0349999999999999
+  "R/EDI/man/DesignFixedOptimalBlocks.Rd": {
+   "cran": 0.0330000000000001,
+   "cran_cpu": 0.0329999999999999
   },
-  "R/EDI/man/DesignSeqOneByOnePocockSimon.Rd": {
-   "cran": 0.0269999999999999,
-   "cran_cpu": 0.027
-  },
-  "R/EDI/man/DesignSeqOneByOneRandomBlockSize.Rd": {
-   "cran": 0.0269999999999999,
-   "cran_cpu": 0.025
-  },
-  "R/EDI/man/DesignSeqOneByOneSPBR.Rd": {
-   "cran": 0.028,
-   "cran_cpu": 0.0279999999999999
-  },
-  "R/EDI/man/DesignSeqOneByOneUrn.Rd": {
+  "R/EDI/man/DesignFixedRerandomization.Rd": {
    "cran": 0.024,
    "cran_cpu": 0.0239999999999998
   },
+  "R/EDI/man/DesignFixediBCRD.Rd": {
+   "cran": 0.0129999999999999,
+   "cran_cpu": 0.012
+  },
+  "R/EDI/man/DesignSeqOneByOne.Rd": {
+   "cran": 0.016,
+   "cran_cpu": 0.016
+  },
+  "R/EDI/man/DesignSeqOneByOneAtkinson.Rd": {
+   "cran": 0.234,
+   "cran_cpu": 0.234
+  },
+  "R/EDI/man/DesignSeqOneByOneBernoulli.Rd": {
+   "cran": 0.0150000000000001,
+   "cran_cpu": 0.0150000000000001
+  },
+  "R/EDI/man/DesignSeqOneByOneEfron.Rd": {
+   "cran": 0.0170000000000001,
+   "cran_cpu": 0.018
+  },
+  "R/EDI/man/DesignSeqOneByOneKK14.Rd": {
+   "cran": 0.022,
+   "cran_cpu": 0.022
+  },
+  "R/EDI/man/DesignSeqOneByOneKK21.Rd": {
+   "cran": 0.022,
+   "cran_cpu": 0.022,
+   "full": 0.0020000000000000018
+  },
+  "R/EDI/man/DesignSeqOneByOneKK21stepwise.Rd": {
+   "cran": 0.0289999999999999,
+   "cran_cpu": 0.029
+  },
+  "R/EDI/man/DesignSeqOneByOnePocockSimon.Rd": {
+   "cran": 0.02,
+   "cran_cpu": 0.02
+  },
+  "R/EDI/man/DesignSeqOneByOneRandomBlockSize.Rd": {
+   "cran": 0.0190000000000001,
+   "cran_cpu": 0.0190000000000001
+  },
+  "R/EDI/man/DesignSeqOneByOneSPBR.Rd": {
+   "cran": 0.0210000000000001,
+   "cran_cpu": 0.0210000000000001
+  },
+  "R/EDI/man/DesignSeqOneByOneUrn.Rd": {
+   "cran": 0.02,
+   "cran_cpu": 0.0189999999999999
+  },
   "R/EDI/man/DesignSeqOneByOneiBCRD.Rd": {
-   "cran": 0.026,
-   "cran_cpu": 0.026
+   "cran": 0.018,
+   "cran_cpu": 0.018
   },
   "R/EDI/man/InferenceAllKKMeanDiffIVWC.Rd": {
-   "cran": 0.219,
-   "cran_cpu": 0.219
+   "cran": 0.164,
+   "cran_cpu": 0.164
   },
   "R/EDI/man/InferenceAllKKWilcoxIVWC.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.34699999999999986
+   "cran_cpu": 0.002,
+   "full": 0.2569999999999999
   },
   "R/EDI/man/InferenceAllSimpleAverageDiff.Rd": {
-   "cran": 0.261,
-   "cran_cpu": 0.261
+   "cran": 0.189,
+   "cran_cpu": 0.189
   },
   "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00199999999999989,
-   "full": 0.20599999999999988
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.1369999999999999
   },
   "R/EDI/man/InferenceAllSimpleWilcox.Rd": {
-   "cran": 0.225,
-   "cran_cpu": 0.225
+   "cran": 0.163,
+   "cran_cpu": 0.164
   },
   "R/EDI/man/InferenceBaiAdjustedTKK14.Rd": {
-   "cran": 1.639,
-   "cran_cpu": 1.634,
-   "full": 0.41300000000000003
+   "cran": 1.317,
+   "cran_cpu": 1.312,
+   "full": 0.28900000000000015
   },
   "R/EDI/man/InferenceBaiAdjustedTKK21.Rd": {
-   "cran": 1.636,
-   "cran_cpu": 1.628,
-   "full": 0.40000000000000013
+   "cran": 1.3,
+   "cran_cpu": 1.297,
+   "full": 0.2889999999999999
   },
   "R/EDI/man/InferenceContinKKGLMM.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.411
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.3060000000000001
   },
   "R/EDI/man/InferenceContinKKOLSIVWC.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.4380000000000001
+   "cran_cpu": 0.001,
+   "full": 0.3280000000000001
   },
   "R/EDI/man/InferenceContinKKOLSOneLik.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.466
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.34000000000000014
   },
   "R/EDI/man/InferenceContinKKQuantileRegrIVWC.Rd": {
-   "cran": 0.599,
-   "cran_cpu": 0.598,
-   "full": 0.04200000000000004
+   "cran": 0.451,
+   "cran_cpu": 0.45,
+   "full": 0.034999999999999976
   },
   "R/EDI/man/InferenceContinKKQuantileRegrOneLik.Rd": {
-   "cran": 0.621,
-   "cran_cpu": 0.62,
-   "full": 0.04400000000000004
+   "cran": 0.465,
+   "cran_cpu": 0.464,
+   "full": 0.02999999999999997
   },
   "R/EDI/man/InferenceContinKKRobustRegrIVWC.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00200000000000022,
-   "full": 0.527
+   "full": 0.3900000000000001
   },
   "R/EDI/man/InferenceContinLin.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.24099999999999988
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.17199999999999988
   },
   "R/EDI/man/InferenceContinOLS.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 0.246
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.1790000000000001
   },
   "R/EDI/man/InferenceContinQuantileRegr.Rd": {
-   "cran": 0.201,
-   "cran_cpu": 0.2,
-   "full": 0.266
+   "cran": 0.148,
+   "cran_cpu": 0.147,
+   "full": 0.17600000000000002
   },
   "R/EDI/man/InferenceContinRobustRegr.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.22800000000000012
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.1559999999999999
   },
   "R/EDI/man/InferenceCountHurdleNegBin.Rd": {
-   "cran": 0.00099999999999989,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.3580000000000001
+   "full": 0.2549999999999999
   },
   "R/EDI/man/InferenceCountHurdlePoisson.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.002,
-   "full": 0.46799999999999986
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.34000000000000014
   },
   "R/EDI/man/InferenceCountKKGLMM.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.8259999999999998
+   "full": 0.5940000000000001
   },
   "R/EDI/man/InferenceCountNegBin.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3099999999999999
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2269999999999999
   },
   "R/EDI/man/InferenceCountPoisson.Rd": {
-   "cran": 0.002,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 1.282
+   "full": 0.9079999999999999
   },
   "R/EDI/man/InferenceCountPoissonKKGEE.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4450000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00199999999999978,
+   "full": 0.3219999999999999
   },
   "R/EDI/man/InferenceCountQuasiPoisson.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.2190000000000001
+   "full": 0.16100000000000012
   },
   "R/EDI/man/InferenceCountRobustPoisson.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.22400000000000012
+   "cran": 0.002,
+   "cran_cpu": 0.002,
+   "full": 0.161
   },
   "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.002,
-   "full": 0.4690000000000001
+   "cran": 0.116,
+   "cran_cpu": 0.116,
+   "full": 0.22899999999999998
   },
   "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.46500000000000014
+   "cran": 0.337,
+   "cran_cpu": 0.336
   },
   "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.3820000000000001
+   "full": 0.2670000000000001
   },
   "R/EDI/man/InferenceIncidCMH.Rd": {
-   "cran": 0.353,
-   "cran_cpu": 0.352
+   "cran": 0.26,
+   "cran_cpu": 0.261
   },
   "R/EDI/man/InferenceIncidExactBinomial.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.3189999999999999
+   "full": 0.2410000000000001
   },
   "R/EDI/man/InferenceIncidExactFisher.Rd": {
-   "cran": 0.087,
-   "cran_cpu": 0.087
+   "cran": 0.056,
+   "cran_cpu": 0.0570000000000001
   },
   "R/EDI/man/InferenceIncidExactZhang.Rd": {
-   "cran": 0.354,
-   "cran_cpu": 0.353
+   "cran": 0.254,
+   "cran_cpu": 0.253
   },
   "R/EDI/man/InferenceIncidExtendedRobins.Rd": {
-   "cran": 0.36,
-   "cran_cpu": 0.36
+   "cran": 0.277,
+   "cran_cpu": 0.275
   },
   "R/EDI/man/InferenceIncidGCompRiskDiff.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.2999999999999999
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.002,
+   "full": 0.22400000000000012
   },
   "R/EDI/man/InferenceIncidGCompRiskRatio.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00199999999999978,
-   "full": 0.28799999999999987
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2160000000000001
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMIVWC.Rd": {
-   "cran": 0.36,
-   "cran_cpu": 0.359
+   "cran": 0.273,
+   "cran_cpu": 0.272
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMOneLik.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.3690000000000001
+   "full": 0.27200000000000013
   },
   "R/EDI/man/InferenceIncidKKGCompRiskDiff.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.4090000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.2789999999999999
   },
   "R/EDI/man/InferenceIncidKKGCompRiskRatio.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4049999999999999
+   "cran_cpu": 0.00199999999999989,
+   "full": 0.3039999999999999
   },
   "R/EDI/man/InferenceIncidKKGEE.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4489999999999999
-  },
-  "R/EDI/man/InferenceIncidKKModifiedPoisson.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.3560000000000001
+   "full": 0.3310000000000001
+  },
+  "R/EDI/man/InferenceIncidKKModifiedPoisson.Rd": {
+   "cran": 0.002,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.256
   },
   "R/EDI/man/InferenceIncidKKNewcombeRiskDiff.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.34899999999999987
+   "cran_cpu": 0.001,
+   "full": 0.24599999999999989
   },
   "R/EDI/man/InferenceIncidLogBinomial.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.002,
-   "full": 0.34100000000000014
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2599999999999999
   },
   "R/EDI/man/InferenceIncidLogRegr.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 0.954
+   "cran_cpu": 0.00200000000000022,
+   "full": 0.696
   },
   "R/EDI/man/InferenceIncidMiettinenNurminenRiskDiff.Rd": {
-   "cran": 0.296,
-   "cran_cpu": 0.293,
-   "full": 0.02300000000000002
+   "cran": 0.222,
+   "cran_cpu": 0.221,
+   "full": 0.016999999999999987
   },
   "R/EDI/man/InferenceIncidModifiedPoisson.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3770000000000001
+   "cran_cpu": 0.002,
+   "full": 0.27800000000000014
   },
   "R/EDI/man/InferenceIncidNewcombeRiskDiff.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.20999999999999988
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.1540000000000001
   },
   "R/EDI/man/InferenceIncidProbitRegr.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.3500000000000001
-  },
-  "R/EDI/man/InferenceIncidRiskDiff.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.21399999999999988
+   "full": 0.2589999999999999
+  },
+  "R/EDI/man/InferenceIncidRiskDiff.Rd": {
+   "cran": 0.002,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.157
   },
   "R/EDI/man/InferenceIncidWald.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.20999999999999988
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.15199999999999989
   },
   "R/EDI/man/InferenceMLEorKMSummaryTable.Rd": {
-   "cran": 0.244,
-   "cran_cpu": 0.243
+   "cran": 0.182,
+   "cran_cpu": 0.182
   },
   "R/EDI/man/InferenceOrdinalAdjCatLogitRegr.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.3409999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.2529999999999999
   },
   "R/EDI/man/InferenceOrdinalContRatioRegr.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.3470000000000001
+   "full": 0.2580000000000001
   },
   "R/EDI/man/InferenceOrdinalGCompMeanDiff.Rd": {
    "cran": 0.002,
    "cran_cpu": 0.00199999999999978,
-   "full": 0.215
+   "full": 0.166
   },
   "R/EDI/man/InferenceOrdinalJonckheereTerpstraTest.Rd": {
-   "cran": 0.211,
-   "cran_cpu": 0.21
+   "cran": 0.198,
+   "cran_cpu": 0.199
   },
   "R/EDI/man/InferenceOrdinalKKCLMM.Rd": {
-   "cran": 0.00099999999999989,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.3920000000000001
+   "full": 0.2799999999999999
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCauchit.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 0.39
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.001,
+   "full": 0.2729999999999999
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCloglog.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3779999999999999
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2960000000000001
   },
   "R/EDI/man/InferenceOrdinalKKCLMMProbit.Rd": {
-   "cran": 0.002,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.364
+   "full": 0.2749999999999999
   },
   "R/EDI/man/InferenceOrdinalKKCondAdjCatLogitRegr.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3510000000000001
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2620000000000001
   },
   "R/EDI/man/InferenceOrdinalKKGEE.Rd": {
-   "cran": 0.273,
-   "cran_cpu": 0.274,
-   "full": 1.5379999999999998
+   "cran": 0.211,
+   "cran_cpu": 0.21,
+   "full": 1.236
   },
   "R/EDI/man/InferenceOrdinalKKGLMM.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.4249999999999999
+   "full": 0.3140000000000001
   },
   "R/EDI/man/InferenceOrdinalOrderedProbitRegr.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 0.34199999999999997
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.27100000000000013
   },
   "R/EDI/man/InferenceOrdinalPairedSignTest.Rd": {
-   "cran": 0.34,
-   "cran_cpu": 0.34
+   "cran": 0.246,
+   "cran_cpu": 0.245
   },
   "R/EDI/man/InferenceOrdinalPropOddsRegr.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.9570000000000001
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.6980000000000001
   },
   "R/EDI/man/InferenceOrdinalRidit.Rd": {
-   "cran": 0.212,
-   "cran_cpu": 0.209
+   "cran": 0.138,
+   "cran_cpu": 0.138
   },
   "R/EDI/man/InferencePropBetaRegr.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.2830000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.20599999999999988
   },
   "R/EDI/man/InferencePropFractionalLogit.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.222
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.16200000000000012
   },
   "R/EDI/man/InferencePropGCompMeanDiff.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.232
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.16300000000000012
   },
   "R/EDI/man/InferencePropKKGEE.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.4519999999999999
+   "full": 0.3230000000000001
   },
   "R/EDI/man/InferencePropKKQuantileRegrIVWC.Rd": {
-   "cran": 0.207,
-   "cran_cpu": 0.205,
-   "full": 0.42600000000000005
+   "cran": 0.154,
+   "cran_cpu": 0.153,
+   "full": 0.31300000000000006
   },
   "R/EDI/man/InferencePropKKQuantileRegrOneLik.Rd": {
-   "cran": 0.208,
-   "cran_cpu": 0.207,
-   "full": 0.44200000000000006
+   "cran": 0.154,
+   "cran_cpu": 0.153,
+   "full": 0.33899999999999997
   },
   "R/EDI/man/InferencePropQuantileRegr.Rd": {
-   "cran": 0.202,
-   "cran_cpu": 0.201,
-   "full": 0.249
+   "cran": 0.15,
+   "cran_cpu": 0.148,
+   "full": 0.18600000000000003
   },
   "R/EDI/man/InferencePropZeroOneInflatedBetaRegr.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.2870000000000001
+   "full": 0.2030000000000001
   },
   "R/EDI/man/InferenceRandBootstrap.Rd": {
-   "cran": 0.54,
-   "cran_cpu": 0.539
+   "cran": 0.412,
+   "cran_cpu": 0.411
   },
   "R/EDI/man/InferenceRandBootstrapCI.Rd": {
-   "cran": 0.558,
-   "cran_cpu": 0.556
+   "cran": 0.406,
+   "cran_cpu": 0.404
   },
   "R/EDI/man/InferenceSuite.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 189.343
+   "cran_cpu": 0.002,
+   "full": 137.547
   },
   "R/EDI/man/InferenceSurvivalCoxPHRegr.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.24099999999999988
+   "full": 0.18099999999999988
   },
   "R/EDI/man/InferenceSurvivalDepCensTransformRegr.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.000999999999999987,
-   "full": 0.3560000000000001
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.2540000000000001
   },
   "R/EDI/man/InferenceSurvivalGehanWilcox.Rd": {
-   "cran": 0.257,
-   "cran_cpu": 0.257,
-   "full": 0.09999999999999998
+   "cran": 0.188,
+   "cran_cpu": 0.186,
+   "full": 0.01899999999999999
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHIVWC.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999989,
-   "full": 0.524
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.422
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHOneLik.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4559999999999999
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.35199999999999987
   },
   "R/EDI/man/InferenceSurvivalKKRankRegrIVWC.Rd": {
-   "cran": 1.194,
-   "cran_cpu": 1.193
+   "cran": 0.918,
+   "cran_cpu": 0.916
   },
   "R/EDI/man/InferenceSurvivalKKWeibullMarginal.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.4449999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.35399999999999987
   },
   "R/EDI/man/InferenceSurvivalKMDiff.Rd": {
-   "cran": 0.227,
-   "cran_cpu": 0.227,
-   "full": 0.032
+   "cran": 0.179,
+   "cran_cpu": 0.179,
+   "full": 0.024999999999999994
   },
   "R/EDI/man/InferenceSurvivalLogRank.Rd": {
-   "cran": 0.206,
-   "cran_cpu": 0.206
+   "cran": 0.156,
+   "cran_cpu": 0.157
   },
   "R/EDI/man/InferenceSurvivalRestrictedMeanDiff.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.2140000000000001
+   "cran_cpu": 0.001,
+   "full": 0.16200000000000012
   },
   "R/EDI/man/InferenceSurvivalStratCoxPHRegr.Rd": {
-   "cran": 0.256,
-   "cran_cpu": 0.253
+   "cran": 0.186,
+   "cran_cpu": 0.186
   },
   "R/EDI/man/InferenceSurvivalWeibullRegr.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.9200000000000002
+   "full": 0.6830000000000002
   },
   "R/EDI/man/ObservationalDesign.Rd": {
-   "cran": 0.014,
-   "cran_cpu": 0.0130000000000001
+   "cran": 0.012,
+   "cran_cpu": 0.012
   },
   "R/EDI/man/ObservationalDesignBlocks.Rd": {
-   "cran": 0.0190000000000001,
-   "cran_cpu": 0.02
+   "cran": 0.0149999999999999,
+   "cran_cpu": 0.0149999999999998
   },
   "R/EDI/man/ObservationalDesignMatching.Rd": {
-   "cran": 0.02,
-   "cran_cpu": 0.0199999999999998
+   "cran": 0.016,
+   "cran_cpu": 0.016
   },
   "R/EDI/man/SimulationFramework.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 7.108
+   "cran": 0.112,
+   "cran_cpu": 0.112,
+   "full": 2.266
   },
   "R/EDI/man/SimulationFrameworkReport.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 3.12
+   "cran": 0.0489999999999999,
+   "cran_cpu": 0.049,
+   "full": 1.8010000000000002
   },
   "R/EDI/man/clear_local_EDI_optimization.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.00100000000000011
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.002,
+   "full": 0.00099999999999989
   },
   "R/EDI/man/edi_build_info_cpp.Rd": {
-   "cran": 0.00099999999999989,
+   "cran": 0.002,
    "cran_cpu": 0.00100000000000011
   },
   "R/EDI/man/fast_beta_regression.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00299999999999989
+   "cran_cpu": 0.00200000000000011
   },
   "R/EDI/man/fast_beta_regression_cpp.Rd": {
-   "cran": 0.00300000000000011,
-   "cran_cpu": 0.003
+   "cran": 0.002,
+   "cran_cpu": 0.00199999999999989
   },
   "R/EDI/man/fast_beta_regression_with_var.Rd": {
-   "cran": 0.00299999999999989,
+   "cran": 0.002,
    "cran_cpu": 0.003
   },
   "R/EDI/man/fast_beta_regression_with_var_cpp.Rd": {
-   "cran": 0.00299999999999989,
-   "cran_cpu": 0.00300000000000011
+   "cran": 0.002,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_coxph_regression.Rd": {
-   "cran": 0.00300000000000011,
-   "cran_cpu": 0.00300000000000011
+   "cran": 0.002,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_logistic_regression.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_logistic_regression_with_var.Rd": {
    "cran": 0.002,
@@ -604,139 +604,139 @@
   },
   "R/EDI/man/fast_neg_bin_cpp.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_neg_bin_weighted_cpp.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00200000000000022
   },
   "R/EDI/man/fast_neg_bin_with_var_cpp.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.002,
    "cran_cpu": 0.002
   },
   "R/EDI/man/fast_negbin_regression.Rd": {
-   "cran": 0.00299999999999989,
-   "cran_cpu": 0.002
+   "cran": 0.002,
+   "cran_cpu": 0.00299999999999999
   },
   "R/EDI/man/fast_negbin_regression_with_var.Rd": {
-   "cran": 0.00299999999999989,
+   "cran": 0.002,
    "cran_cpu": 0.00300000000000011
   },
   "R/EDI/man/fast_weibull_regression.Rd": {
-   "cran": 0.00300000000000011,
-   "cran_cpu": 0.00300000000000011
+   "cran": 0.002,
+   "cran_cpu": 0.00199999999999989
   },
   "R/EDI/man/generate_covariate_dataset.Rd": {
-   "cran": 0.004,
-   "cran_cpu": 0.004
+   "cran": 0.00299999999999989,
+   "cran_cpu": 0.00300000000000011
   },
   "R/EDI/man/get_bootstrap_dispatch_policy.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00200000000000022
+   "cran_cpu": 0.00100000000000011
   },
   "R/EDI/man/get_cold_start_dispatch_policy.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/get_inference_procedure_validity.Rd": {
-   "cran": 0.298,
-   "cran_cpu": 0.296
+   "cran": 0.234,
+   "cran_cpu": 0.233
   },
   "R/EDI/man/get_local_EDI_optimization.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.00099999999999989
+   "full": 0.0
   },
   "R/EDI/man/get_optimization_dispatch_policy.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989
   },
   "R/EDI/man/get_parallel_dispatch_policy.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.001
   },
   "R/EDI/man/get_warm_start_dispatch_policy.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00199999999999978
   },
   "R/EDI/man/inv_logit.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.00100000000000011
   },
   "R/EDI/man/logit.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989
   },
   "R/EDI/man/robust_negbinreg.Rd": {
-   "cran": 0.012,
-   "cran_cpu": 0.012
+   "cran": 0.00900000000000012,
+   "cran_cpu": 0.0100000000000001
   },
   "R/EDI/man/robust_survreg.Rd": {
-   "cran": 0.014,
-   "cran_cpu": 0.014
+   "cran": 0.01,
+   "cran_cpu": 0.01
   },
   "R/EDI/man/robust_survreg_with_surv_object.Rd": {
-   "cran": 0.0130000000000001,
-   "cran_cpu": 0.013
+   "cran": 0.01,
+   "cran_cpu": 0.00999999999999979
   },
   "R/EDI/man/sample_mode.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.002
+   "cran_cpu": 0.00099999999999989
   },
   "R/EDI/man/set_cold_start_dispatch_policy.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.002,
    "cran_cpu": 0.002
   },
   "R/EDI/man/set_num_cores.Rd": {
-   "cran": 0.0530000000000002,
-   "cran_cpu": 0.0480000000000001
+   "cran": 0.056,
+   "cran_cpu": 0.0470000000000002
   },
   "R/EDI/man/set_optimization_dispatch_policy.Rd": {
    "cran": 0.002,
    "cran_cpu": 0.002
   },
   "R/EDI/man/set_parallel_dispatch_policy.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989
   },
   "R/EDI/man/set_warm_start_dispatch_policy.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00200000000000022
+   "cran_cpu": 0.002
   },
   "R/EDI/man/summary_glm_lean.Rd": {
-   "cran": 0.00900000000000012,
-   "cran_cpu": 0.0089999999999999
+   "cran": 0.00600000000000001,
+   "cran_cpu": 0.00600000000000001
   },
   "R/EDI/man/transform_cont_y_based_on_response_type.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989
   },
   "R/EDI/man/tune_EDI_for_this_machine.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 8.710999999999999
+   "full": 6.842
   },
   "R/EDI/man/unset_num_cores.Rd": {
-   "cran": 0.0469999999999999,
-   "cran_cpu": 0.041
+   "cran": 0.0389999999999999,
+   "cran_cpu": 0.0550000000000001
   }
  },
- "last_run": "2026-11-18T00:07:35+00:00",
- "open_pr": 52,
+ "last_run": "2026-11-18T20:33:38+00:00",
+ "open_pr": 65,
  "units": {
   "R/EDI/man/BaiAdjustedTSource.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "ba555b45baaeaf0e",
-   "hash": "32b46cace1f5731a",
-   "open_findings": 1,
-   "run": "44173478787"
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "d2964210e316d693",
+   "hash": "e20d9c7cc89371e8",
+   "open_findings": 0,
+   "run": "44358319326"
   },
   "R/EDI/man/ContinKKRobustRegrIVWCSource.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "a5b449c356e83673",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "0f5858e36aed33d8",
    "hash": "5df54603c7c888f8",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/CountCompositeLikelihoodSource.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -753,18 +753,18 @@
    "run": "44173478787"
   },
   "R/EDI/man/CountKKHurdlePoissonOneLikLikelihoodSource.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "6b60c0ce10f481dd",
-   "hash": "ae208fd5faa7b8e7",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "310f9b2297614b7a",
+   "hash": "9aee86353d9f4e97",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/Design.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "a5fc139967c93975",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "62664370642e5a5c",
    "hash": "e3f2e1e09a3d5d44",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignCustomSequential.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -774,25 +774,25 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignFixed.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "04316fd8492ac191",
-   "hash": "64d0dedf89716c44",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "4100620b813fcc71",
+   "hash": "1cbc8392a9c4c8f3",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixedBernoulli.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "d1d39bc435c91c56",
-   "hash": "5a7a5ec393f2d0c3",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "a50ef29495a97824",
+   "hash": "fb961667a742f7b4",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixedBinaryMatch.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "856c5ab574a60579",
-   "hash": "142e0783312c0627",
-   "open_findings": 1,
-   "run": "44173478787"
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "e211027c13a64482",
+   "hash": "1a9becdc2f1da7f9",
+   "open_findings": 0,
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixedBlockedCluster.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -830,11 +830,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignFixedGreedy.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "4f93ff936cb76a51",
-   "hash": "72940bd7c041ce22",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "94c872bb8449256d",
+   "hash": "a796005bf709c964",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixedGreedyDOptimal.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -844,11 +844,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "e9f9cf4e219317f1",
-   "hash": "0c39b36880f1f73c",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "dd10e577b7c860ef",
+   "hash": "7d4281dc5d35935d",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixedOptimal.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -865,18 +865,18 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignFixedRerandomization.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "79240cf4fccd3e95",
-   "hash": "0b3311b08efb8394",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "a3623314deab1770",
+   "hash": "0ba58771b7bd3a11",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignFixediBCRD.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "c469dd91b8baa34e",
-   "hash": "b716db06868bf8de",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "7081e11d2c882968",
+   "hash": "9e5305ebb28b8be0",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignSeqOneByOne.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -886,11 +886,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignSeqOneByOneAtkinson.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "527974e019eaaada",
-   "hash": "244a1789e9e9f690",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "ae6513544cbd240c",
+   "hash": "34841a134ea22a1c",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignSeqOneByOneBernoulli.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -907,11 +907,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/DesignSeqOneByOneKK14.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "5f44aa9ff92e985b",
-   "hash": "3eb5ba7633564278",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "77da97b9bae5bf28",
+   "hash": "3cdfa34ddacde90f",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/DesignSeqOneByOneKK21.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -977,11 +977,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/EDI_INFERENCE_ESTIMAND_TAGS.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "17173998fc8c0d53",
-   "hash": "d20fa8290812d2d4",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "df1feeccf8fd1a9c",
+   "hash": "54766218744ca0cc",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/ExactBinomialIncidenceSource.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1033,11 +1033,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/IncidenceLogBinomialLikelihoodSource.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "31c31e9cdb2e863f",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "5404033aeff2d5d5",
    "hash": "c33d5bff93a3dae2",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/IncidenceLogisticLikelihoodSource.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1082,18 +1082,18 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceAbstractKKModifiedPoisson.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "8e3538a72679f0f6",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "0bb324eb74b483d4",
    "hash": "30caa707017c208e",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAbstractKKOrdinalCLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "95efa2c392945f7c",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "a45eb9bab1fc85e2",
    "hash": "e6e8aa7a44744045",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAbstractQuantileRandCI.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1103,11 +1103,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceAllKKMeanDiffIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-18T20:33:38+00:00",
    "deps": "572fa2490a1cf5e6",
-   "hash": "23be485e93e62a66",
+   "hash": "b0b70a0d2256b55f",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAllKKWilcoxIVWC.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1117,18 +1117,18 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceAllSimpleAverageDiff.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-18T20:33:38+00:00",
    "deps": "a3c6714ad9d34f8d",
-   "hash": "dd9cdba1d63cbf54",
+   "hash": "acf9934f38be3aa2",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-18T20:33:38+00:00",
    "deps": "8bf9e581b91f2fa4",
-   "hash": "fa1602b1681be38e",
+   "hash": "c519f44779aa9b87",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAllSimpleWilcox.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1138,46 +1138,46 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceAsymp.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "60e2b33044088dce",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "d79bb27d8cdd8f82",
    "hash": "5f97b376ecd8b7ff",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceAsympLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "33800ee17065c57a",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "8ac80a1403dd001b",
    "hash": "66070d5595c82097",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceBaiAdjustedTKK14.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-18T20:33:38+00:00",
    "deps": "a274ac52844d6863",
-   "hash": "27da8bf20866820b",
+   "hash": "1b01c01d86dd62d9",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceBaiAdjustedTKK21.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "f54db3fd8e6c8c26",
-   "hash": "4520d3caf39f10e6",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "5f381049a1f52ae8",
+   "hash": "dc51c04de319f52d",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceBayesianBootstrap.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "c3408ed87cd372e4",
-   "hash": "c56a29d3a34391b3",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "9aafab7280f1a8c5",
+   "hash": "e97e2008f0eb5aef",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceContinKKGLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "00c4b05faf08f9ff",
-   "hash": "5720fc75ea9d7d86",
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "131438b0e709267d",
+   "hash": "78f233e504be16fb",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44358319326"
   },
   "R/EDI/man/InferenceContinKKOLSIVWC.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1337,14 +1337,14 @@
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "260d6b57985319a1",
    "hash": "70ab1ce3e29b8013",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "1393be8709a6110d",
    "hash": "50cc3cf9bc0b5977",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/InferenceCustomAsymp.Rd": {
@@ -1792,7 +1792,7 @@
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "911b77f78fd74ccd",
    "hash": "18eeabdc3d9c0e76",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/InferenceRandBootstrapCI.Rd": {
@@ -1827,7 +1827,7 @@
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "c9017dd0d7e7854e",
    "hash": "0616a44d02333c60",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/InferenceSurvivalCoxPHRegr.Rd": {
@@ -1956,18 +1956,60 @@
    "open_findings": 0,
    "run": "44173478787"
   },
+  "R/EDI/man/KKLWACoxIVWCPartialLikelihoodSource.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "e7452e46d39e8fb2",
+   "hash": "040fcbbea9e85989",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
+  "R/EDI/man/KKLWACoxOneLikPartialLikelihoodSource.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "80dbdf0b1e764d4c",
+   "hash": "c1a2d4187df463d2",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
+  "R/EDI/man/KKWilcoxIVWCSource.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "df52d920e0ac5070",
+   "hash": "5e39c4df771d4149",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
+  "R/EDI/man/ObservationalDesign.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "94d35e7be314ac72",
+   "hash": "dbd1034cfc77bc94",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
+  "R/EDI/man/ObservationalDesignBlocks.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "a2cca3c64a795ddd",
+   "hash": "b26c2dc6c177fdb6",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
+  "R/EDI/man/ObservationalDesignMatching.Rd": {
+   "audited_at": "2026-11-18T20:33:38+00:00",
+   "deps": "ca4b6c2d33aa6922",
+   "hash": "2594e2d3330b24e6",
+   "open_findings": 0,
+   "run": "44358319326"
+  },
   "R/EDI/man/SimulationFramework.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "994e6b4412e823a2",
    "hash": "ed19cd85ea405be3",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/SimulationFrameworkReport.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
    "deps": "42d5a509db6ec9b2",
    "hash": "49e3a6b99f34bb52",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44173478787"
   },
   "R/EDI/man/StandardModelCacheSource.Rd": {
