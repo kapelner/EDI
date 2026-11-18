@@ -14,7 +14,60 @@ weibull_fit_with_cold_retry = function(private, X, y, dead, warm_start_params = 
 	res = fit(warm_start_params, warm_start_fisher_info)
 	warm_failed = is.null(res) || !isTRUE(res$converged) || !all(is.finite(if (is.null(res$b)) res$params else res$b))
 	if (warm_failed && !is.null(warm_start_params)) res = fit(NULL, NULL)
+	if (weibull_fit_failed(res)) {
+		res = weibull_fit_standardized_retry(
+			fit_X = function(X_try, ws) private$weibull_kernel_fit(
+				X = X_try, y = y, dead = dead, warm_start_params = ws, warm_start_fisher_info = NULL,
+				estimate_only = estimate_only, smart_cold_start = smart_cold_start, optimization_alg = optimization_alg
+			),
+			X = X, failed_res = res
+		)
+	}
 	res
+}
+
+weibull_fit_failed = function(res) {
+	is.null(res) || !isTRUE(res$converged) || !all(is.finite(if (is.null(res$b)) res$params else res$b))
+}
+
+# v1.0.6-TODO-161: on unscaled covariates (age in years, node counts, times in
+# days) the Weibull likelihood is badly conditioned and lbfgs can stop at its
+# iteration cap (maxit = 100) short of the optimum, e.g. on survival::colon,
+# where survreg() converges in 5 iterations. The failed full fit then made
+# fit_with_hardened_qr_column_dropping() drop real covariates. Only when a fit
+# has already failed: refit cold on centered and scaled columns (an affine
+# reparametrization, so the optimum is the same model), map the solution back to
+# the original columns, and polish there from that warm start so every returned
+# field (params, information, vcov) is on the original scale. Columns that are
+# constant or held fixed (fixed_idx, 1-based) are left untouched; centering is
+# skipped when there is no free intercept column to absorb it. Returns the
+# polished fit if it converged, otherwise failed_res unchanged.
+weibull_fit_standardized_retry = function(fit_X, X, failed_res, fixed_idx = NULL) {
+	p = ncol(X)
+	if (is.null(p) || p < 1L || nrow(X) < 2L || !all(is.finite(X))) return(failed_res)
+	fixed = if (is.null(fixed_idx)) integer(0) else as.integer(fixed_idx)
+	col_sd = apply(X, 2L, stats::sd)
+	is_const = !is.finite(col_sd) | col_sd <= 0
+	int_j = which(is_const & abs(X[1L, ]) > 0)
+	int_j = setdiff(int_j, fixed)
+	int_j = if (length(int_j) > 0L) int_j[1L] else NA_integer_
+	to_scale = setdiff(which(!is_const), fixed)
+	if (length(to_scale) == 0L) return(failed_res)
+	ctr = numeric(p)
+	scl = rep(1, p)
+	if (!is.na(int_j)) ctr[to_scale] = colMeans(X[, to_scale, drop = FALSE])
+	scl[to_scale] = col_sd[to_scale]
+	X_s = X
+	X_s[, to_scale] = sweep(sweep(X[, to_scale, drop = FALSE], 2L, ctr[to_scale], "-"), 2L, scl[to_scale], "/")
+	res_s = tryCatch(fit_X(X_s, NULL), error = function(e) NULL)
+	if (weibull_fit_failed(res_s)) return(failed_res)
+	params_s = as.numeric(if (is.null(res_s$b)) res_s$params else c(res_s$b, res_s$log_sigma))
+	b_s = params_s[seq_len(p)]
+	b = b_s / scl
+	if (!is.na(int_j)) b[int_j] = b_s[int_j] - sum(ctr * b) / X[1L, int_j]
+	start = c(b, params_s[p + 1L])
+	res = tryCatch(fit_X(X, start), error = function(e) NULL)
+	if (weibull_fit_failed(res)) failed_res else res
 }
 
 #' Weibull likelihood component source
@@ -374,6 +427,17 @@ SurvivalWeibullLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
+					if (weibull_fit_failed(res)) {
+						res = weibull_fit_standardized_retry(
+							fit_X = function(X_try, ws) private$weibull_kernel_fit(
+								X = X_try, y = y, dead = dead, warm_start_params = ws,
+								fixed_idx = j_treat, fixed_values = delta,
+								smart_cold_start = private$smart_cold_start_default,
+								optimization_alg = private$optimization_alg
+							),
+							X = X_fit, failed_res = res, fixed_idx = j_treat
+						)
+					}
 					if (is.null(res) || !isTRUE(res$converged)) return(NULL)
 					list(b = as.numeric(res$params[seq_len(ncol(X_fit))]), log_sigma = as.numeric(res$params[ncol(X_fit) + 1L]), neg_loglik = as.numeric(res$neg_ll), fisher_information = res$information)
 				},
