@@ -75,6 +75,18 @@ def test_assert_numeric():
         assert_numeric(-1.0, name="a", lower=0.0)
     with pytest.raises(ValueError, match="'a' must be <= 1"):
         assert_numeric(1.5, name="a", upper=1.0)
+    # A ragged list makes np.asarray itself raise; the helper turns that into
+    # the same "must be numeric" ValueError naming the argument.
+    with pytest.raises(ValueError, match="'y' must be numeric: "):
+        assert_numeric([[1.0, 2.0], [3.0]], name="y")
+
+
+def test_wrap_kernel_refuses_a_kernel_without_rules():
+    def not_a_kernel():
+        pass
+
+    with pytest.raises(KeyError, match="not_a_kernel has no entry"):
+        _checks.wrap_kernel(not_a_kernel)
 
 
 def test_assert_matrix():

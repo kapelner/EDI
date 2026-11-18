@@ -183,7 +183,12 @@ result_row = function(step, runner, status, start_time, end_time, output_file = 
 	)
 }
 
+# TRUE inside a step forked by run_steps_in_parallel(): the child returns its row
+# and the parent appends it, so two children never rewrite the results CSV at once.
+in_parallel_step = FALSE
+
 append_result = function(row) {
+	if (isTRUE(in_parallel_step)) return(invisible(row))
 	current = read_optional_csv(paths$results)
 	if (nrow(current)) {
 		current = current[!(current$tier == row$tier & current$target_filter == row$target_filter & current$step == row$step), , drop = FALSE]
@@ -273,8 +278,41 @@ run_command_step = function(step, runner, command, command_args, output_file = "
 		error_message = if (!identical(effective_status, 0L)) paste(tail(output, 8L), collapse = " | ") else ""
 	)
 	append_result(row)
-	if (!identical(row$status, "ok")) stop("Comprehensive suite step failed: ", step, call. = FALSE)
+	if (!identical(row$status, "ok") && !isTRUE(in_parallel_step)) stop("Comprehensive suite step failed: ", step, call. = FALSE)
 	row
+}
+
+# The argument-combination, harness and workflow-coverage steps read only
+# committed CSVs and each writes its own outputs (none reads another's), so they
+# run at the same time (2026-11-18: ~52 s one after another, ~37 s at once in the
+# pre-push smoke tier). Each runs in a forked child that returns its result row;
+# the rows are appended here in the usual order, then a failed step stops the
+# run as before. COMPREHENSIVE_SUITE_SERIAL=1, or a platform without fork,
+# runs them one after another.
+run_steps_in_parallel = function(step_fns) {
+	if (.Platform$OS.type != "unix" || identical(Sys.getenv("COMPREHENSIVE_SUITE_SERIAL"), "1")) {
+		for (f in step_fns) f()
+		return(invisible(NULL))
+	}
+	jobs = lapply(step_fns, function(f) parallel::mcparallel({
+		assign("in_parallel_step", TRUE, envir = .GlobalEnv)
+		f()
+	}, silent = FALSE))
+	rows = parallel::mccollect(jobs)
+	errors = character()
+	for (i in seq_along(step_fns)) {
+		res = rows[[i]]
+		if (is.null(res) || inherits(res, "try-error")) {
+			errors = c(errors, sprintf("%s: %s", names(step_fns)[i], if (is.null(res)) "the forked step returned nothing" else trimws(as.character(res))))
+			next
+		}
+		if (is.data.frame(res) && nrow(res)) {
+			append_result(res)
+			if (!identical(res$status[1L], "ok")) errors = c(errors, sprintf("Comprehensive suite step failed: %s", res$step[1L]))
+		}
+	}
+	if (length(errors)) stop(paste(errors, collapse = "\n"), call. = FALSE)
+	invisible(NULL)
 }
 
 validate_dependency_step = function() {
@@ -398,9 +436,11 @@ run_comprehensive_harness_step = function() {
 
 run_comprehensive_suite = function() {
 	validate_dependency_step()
-	run_argument_combinations_step()
-	run_comprehensive_harness_step()
-	run_workflow_step()
+	run_steps_in_parallel(list(
+		argument_combinations = run_argument_combinations_step,
+		comprehensive_harness = run_comprehensive_harness_step,
+		public_workflow_coverage = run_workflow_step
+	))
 	run_internal_step()
 	results = read_optional_csv(paths$results)
 	selected = results[results$tier == tier & results$target_filter == target_filter, , drop = FALSE]

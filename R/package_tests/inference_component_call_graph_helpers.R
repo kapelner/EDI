@@ -532,6 +532,29 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		expect_false(any(startsWith(x, "rand_likelihood_is_nonconcave@")))
 		paste(sort(unique(c(x, paste0("rand_likelihood_is_nonconcave@", host)))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# abd7e49d (2026-11-18, v1.0.6 fixes) added private helpers only, none removed
+	# or rehosted: warn_hardened_column_drop (v1.0.6-TODO-138) on Inference; the
+	# randomization / rand-bootstrap censoring-bound helpers (v1.0.6-TODO-143); the
+	# bootstrap link-scale and jackknife separation guards; KM-difference jackknife
+	# and median warnings; RMST horizon helpers; GEE link helpers; the weighted
+	# g-computation SE. Reviewed additive delta: a class may gain exactly these
+	# method names, on whatever host it has them; anything else still fails.
+	abd7e49d_added_private <- c(
+		"warn_hardened_column_drop", "randomization_null_censoring_bounds",
+		"rand_bootstrap_null_censoring_bounds", "bootstrap_estimand_on_link_scale",
+		"bootstrap_link_scale_ci_plausible", "jackknife_full_fit_is_separated",
+		"gee_fitted_linear_predictor", "gee_uses_logit_link", "ordinal_gee_max_abs_cumulative_logit",
+		"weighted_gcomp_se_md", "jackknife_wald_ci_impl", "jackknife_wald_pval_impl",
+		"jackknife_wald_with_reason", "km_jackknife_na_reason", "warn_km_median_not_reached_once",
+		"rmst_default_horizon", "rmst_horizon"
+	)
+	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
+	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {
+		x <- strsplit(baseline$private_methods[[i]], "|", fixed = TRUE)[[1L]]
+		live <- actual_private_by_class[[baseline$class[[i]]]]
+		gained <- live[sub("@.*$", "", live) %in% abd7e49d_added_private]
+		paste(sort(unique(c(x, gained))), collapse = "|")
+	}, character(1L))
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

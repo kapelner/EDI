@@ -760,7 +760,12 @@ test_that("Fisher exact inference matches mantelhaen.test for KK incidence", {
 	ci_exact <- inf_exact$compute_exact_confidence_interval(alpha = 0.05)
 	p_exact <- inf_exact$compute_exact_two_sided_pval_for_treatment_effect(delta = 0)
 
-	expect_equal(inf_exact$compute_estimate(), log(as.numeric(ref$estimate)), tolerance = 1e-12)
+	# These tables are separated: the conditional MLE is 0 (log OR = -Inf). Since
+	# 2026-11-17 an infinite conditional MLE is nonestimable (NA), while the exact
+	# interval and p-value are still reported and still match.
+	expect_identical(as.numeric(ref$estimate), 0)
+	expect_true(is.na(inf_exact$compute_estimate()))
+	expect_true(inf_exact$is_nonestimable("estimate"))
 	expect_equal(unname(ci_exact), log(as.numeric(ref$conf.int)), tolerance = 1e-12)
 	expect_equal(p_exact, ref$p.value, tolerance = 1e-12)
 })

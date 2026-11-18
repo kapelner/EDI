@@ -270,6 +270,8 @@ InferencePropBetaRegr = define_inference_class(
 						} else {
 							ws_args$start_beta
 						}
+						# See generate_mod(): a start sized for another column set is no warm start.
+						if (length(start_beta) != ncol(X_fit)) start_beta = NULL
 						start_phi = if (!is.null(start_params) && length(start_params) >= n_params) {
 							exp(start_params[n_params])
 						} else {
@@ -624,10 +626,20 @@ InferencePropBetaRegr = define_inference_class(
 				fit_fun = function(X_fit){
 					n_params = ncol(X_fit) + 1L
 					ws_args = private$get_backend_warm_start_args(n_params)
+					# The lookup is keyed on n_params = ncol(X_fit) + 1, so a cached
+					# coefficient vector from a fit with ONE MORE column (the parent's
+					# full design, when QR dropped a column on a resampled draw) comes
+					# back as start_beta with the wrong length. The kernel rejects it,
+					# the fit returns NULL, and the hardened QR loop then drops a real
+					# covariate (2026-11-18: a leave-one-block-out jackknife draw fitted
+					# x only, not x + s, so the worker estimate was off by 1e-3).
+					# Only a start of exactly ncol(X_fit) is a warm start here.
+					start_beta = ws_args$start_beta
+					if (length(start_beta) != ncol(X_fit)) start_beta = NULL
 					if (estimate_only) {
 						res = fast_beta_regression_cpp(
 							X_fit, y_san,
-							warm_start_beta = ws_args$start_beta,
+							warm_start_beta = start_beta,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							compute_std_errs = FALSE,
 							smart_cold_start = private$smart_cold_start_default,
@@ -638,7 +650,7 @@ InferencePropBetaRegr = define_inference_class(
 					} else {
 						res = fast_beta_regression_with_var_cpp(
 							X_fit, y_san,
-							warm_start_beta = ws_args$start_beta,
+							warm_start_beta = start_beta,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							smart_cold_start = private$smart_cold_start_default,
 							optimization_alg = private$optimization_alg

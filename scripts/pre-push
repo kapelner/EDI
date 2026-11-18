@@ -167,6 +167,9 @@ fi
 abort_push() {
 	echo "pre-push: a local check failed -- stopping remaining checks; push aborted." >&2
 	echo "pre-push: fix the failure, or bypass with 'git push --no-verify' if you really mean to push anyway." >&2
+	# In the hook's own shell (not inside a block's subshell), stop any block
+	# already running in the background (the python block starts early).
+	if [ "$BASHPID" = "$$" ] && declare -F stop_blocks > /dev/null; then stop_blocks; fi
 	exit 1
 }
 
@@ -187,47 +190,53 @@ if ! python3 R/package_tests/ci/refresh_manifest.py; then
 	abort_push
 fi
 
-# Catch stale shard inventories before any builds or R checks. The planner
-# only reads filenames and CSV estimates; it never loads R or writes files.
-if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^scripts/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then
-	echo "pre-push: checking R CI shard inventories and runtime budgets ..."
-	if ! python3 R/package_tests/ci/plan_shards.py correctness --check-only \
-		|| ! python3 R/package_tests/ci/plan_shards.py coverage --check-only; then
-		echo "pre-push: shard check FAILED. For inventory drift, run 'python3 R/package_tests/ci/refresh_manifest.py' and commit R/package_tests/ci/test_runtimes.csv with the test changes. For oversized estimates, split the test or review its timing estimate." >&2
-		abort_push
+precheck_shards() {
+	# Catch stale shard inventories before any builds or R checks. The planner
+	# only reads filenames and CSV estimates; it never loads R or writes files.
+	if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^scripts/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then
+		echo "pre-push: checking R CI shard inventories and runtime budgets ..."
+		if ! python3 R/package_tests/ci/plan_shards.py correctness --check-only \
+			|| ! python3 R/package_tests/ci/plan_shards.py coverage --check-only; then
+			echo "pre-push: shard check FAILED. For inventory drift, run 'python3 R/package_tests/ci/refresh_manifest.py' and commit R/package_tests/ci/test_runtimes.csv with the test changes. For oversized estimates, split the test or review its timing estimate." >&2
+			abort_push
+		fi
+	else
+		echo "pre-push: no shard-relevant files changed, skipping shard inventory check."
 	fi
-else
-	echo "pre-push: no shard-relevant files changed, skipping shard inventory check."
-fi
+}
 
-# Only the USER-FACING docs are link-checked (see check_doc_links.py's
-# docstring): READMEs, python/CHANGELOG.md, R/EDI/REFERENCES.md, and the
-# roxygen comments in R/EDI/R/*.R. Internal plan documents
-# (R/package_metadata/**, etc.) are not checked, so changes to them don't
-# trigger this. Still not narrowed to which links moved within that corpus,
-# since a link can break from the OTHER end (renaming/moving the file it
-# points at breaks every doc that links to the old path, none of which show
-# up in a diff of the doc file itself).
-run_doc_link_check=0
-# Unfiltered list: roxygen comments carry the links, so a comment-only edit counts here.
-if grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_raw"; then
-	run_doc_link_check=1
-fi
 
-if [ "$run_doc_link_check" = "1" ]; then
-	echo "pre-push: user-facing docs/roxygen changed -- checking documentation links ..."
-	# Internal (relative-path) links block on new breakage only -- pre-existing
-	# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
-	# --write-baseline) so this doesn't retroactively block every push on the
-	# existing backlog. External HTTP failures block too; network failures
-	# warn after retry, and automated-client refusals are filtered by the checker.
-	if ! python3 scripts/check_doc_links.py; then
-		echo "pre-push: documentation link check FAILED (see output above)." >&2
-		abort_push
+precheck_doc_links() {
+	# Only the USER-FACING docs are link-checked (see check_doc_links.py's
+	# docstring): READMEs, python/CHANGELOG.md, R/EDI/REFERENCES.md, and the
+	# roxygen comments in R/EDI/R/*.R. Internal plan documents
+	# (R/package_metadata/**, etc.) are not checked, so changes to them don't
+	# trigger this. Still not narrowed to which links moved within that corpus,
+	# since a link can break from the OTHER end (renaming/moving the file it
+	# points at breaks every doc that links to the old path, none of which show
+	# up in a diff of the doc file itself).
+	run_doc_link_check=0
+	# Unfiltered list: roxygen comments carry the links, so a comment-only edit counts here.
+	if grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_raw"; then
+		run_doc_link_check=1
 	fi
-else
-	echo "pre-push: no user-facing docs/roxygen changed, skipping documentation link check."
-fi
+
+	if [ "$run_doc_link_check" = "1" ]; then
+		echo "pre-push: user-facing docs/roxygen changed -- checking documentation links ..."
+		# Internal (relative-path) links block on new breakage only -- pre-existing
+		# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
+		# --write-baseline) so this doesn't retroactively block every push on the
+		# existing backlog. External HTTP failures block too; network failures
+		# warn after retry, and automated-client refusals are filtered by the checker.
+		if ! python3 scripts/check_doc_links.py; then
+			echo "pre-push: documentation link check FAILED (see output above)." >&2
+			abort_push
+		fi
+	else
+		echo "pre-push: no user-facing docs/roxygen changed, skipping documentation link check."
+	fi
+}
+
 
 echo
 
@@ -300,143 +309,158 @@ fi
 
 echo
 
-# The CRAN pre-submission static checks that scripts/
-# submission_tar_build_and_win_mac_check.sh runs as its steps 1b-1d, run here
-# too so a problem is caught at push time rather than at release time. All
-# three need only the source tree (no install, no build), take a few seconds
-# each, and run after fast_roxygenize.R above so they see the regenerated
-# man/. Each came from a real CRAN rejection (2026-09-25):
-#   - check_examples_for_cran.R --static-only: no \dontrun{}, all Rd example
-#     code parses ("Unexecutable code in man/X.Rd");
-#   - check_global_state_for_cran.R --static-only: no writes to .GlobalEnv, no
-#     `<<-` that could reach it, no attach();
-#   - check_rd_usage_for_cran.R: every Rd \usage argument documented.
-# Any non-zero exit OR any R warning in their output fails the push.
-run_cran_static_checks=0
-if [ "$run_r_tests" = "1" ] || [ "$r_docs_changed" = "1" ] || grep -qE '^scripts/check_.*_for_cran\.R$|^scripts/pre-push$' "$changed_files_file"; then
-	run_cran_static_checks=1
-fi
+precheck_cran_static() {
+	# The CRAN pre-submission static checks that scripts/
+	# submission_tar_build_and_win_mac_check.sh runs as its steps 1b-1d, run here
+	# too so a problem is caught at push time rather than at release time. All
+	# three need only the source tree (no install, no build), take a few seconds
+	# each, and run after fast_roxygenize.R above so they see the regenerated
+	# man/. Each came from a real CRAN rejection (2026-09-25):
+	#   - check_examples_for_cran.R --static-only: no \dontrun{}, all Rd example
+	#     code parses ("Unexecutable code in man/X.Rd");
+	#   - check_global_state_for_cran.R --static-only: no writes to .GlobalEnv, no
+	#     `<<-` that could reach it, no attach();
+	#   - check_rd_usage_for_cran.R: every Rd \usage argument documented.
+	# Any non-zero exit OR any R warning in their output fails the push.
+	run_cran_static_checks=0
+	if [ "$run_r_tests" = "1" ] || [ "$r_docs_changed" = "1" ] || grep -qE '^scripts/check_.*_for_cran\.R$|^scripts/pre-push$' "$changed_files_file"; then
+		run_cran_static_checks=1
+	fi
 
-if [ "$run_cran_static_checks" = "1" ]; then
-	for cran_check in "check_examples_for_cran.R --static-only" "check_global_state_for_cran.R --static-only" "check_rd_usage_for_cran.R"; do
-		cran_script="${cran_check%% *}"
-		cran_flags=""
-		[ "$cran_script" != "$cran_check" ] && cran_flags="${cran_check#* }"
-		echo "pre-push: CRAN static check: $cran_script $cran_flags ..."
-		cran_out="$(mktemp)"
-		set +e
-		# shellcheck disable=SC2086
-		Rscript "scripts/$cran_script" R/EDI $cran_flags > "$cran_out" 2>&1
-		cran_status=$?
-		set -e
-		cat "$cran_out"
-		if [ "$cran_status" != "0" ]; then
-			echo "pre-push: CRAN static check $cran_script FAILED (see output above)." >&2
+	if [ "$run_cran_static_checks" = "1" ]; then
+		for cran_check in "check_examples_for_cran.R --static-only" "check_global_state_for_cran.R --static-only" "check_rd_usage_for_cran.R"; do
+			cran_script="${cran_check%% *}"
+			cran_flags=""
+			[ "$cran_script" != "$cran_check" ] && cran_flags="${cran_check#* }"
+			echo "pre-push: CRAN static check: $cran_script $cran_flags ..."
+			cran_out="$(mktemp)"
+			set +e
+			# shellcheck disable=SC2086
+			Rscript "scripts/$cran_script" R/EDI $cran_flags > "$cran_out" 2>&1
+			cran_status=$?
+			set -e
+			cat "$cran_out"
+			if [ "$cran_status" != "0" ]; then
+				echo "pre-push: CRAN static check $cran_script FAILED (see output above)." >&2
+				rm -f "$cran_out"
+				abort_push
+			elif grep -qE "^Warning" "$cran_out"; then
+				# R warnings don't change Rscript's exit code; the printed
+				# "Warning message(s):" block is the only signal.
+				echo "pre-push: CRAN static check $cran_script emitted an R warning (see output above)." >&2
+				rm -f "$cran_out"
+				abort_push
+			fi
 			rm -f "$cran_out"
-			abort_push
-		elif grep -qE "^Warning" "$cran_out"; then
-			# R warnings don't change Rscript's exit code; the printed
-			# "Warning message(s):" block is the only signal.
-			echo "pre-push: CRAN static check $cran_script emitted an R warning (see output above)." >&2
-			rm -f "$cran_out"
+		done
+	else
+		echo "pre-push: no R-package changes, skipping CRAN static checks."
+	fi
+}
+
+
+echo
+
+precheck_significant_changes() {
+	# The comment/whitespace change filter every gate above relies on: its own
+	# tests run only when it (or its tests) change. Pure Python, ~1s.
+	if grep -qE '^scripts/(test_)?significant_changes\.py$' "$changed_files_raw"; then
+		echo "pre-push: significant_changes.py changed -- running its tests ..."
+		if ! python3 scripts/test_significant_changes.py; then
+			echo "pre-push: significant_changes.py self-test FAILED (see output above)." >&2
 			abort_push
 		fi
-		rm -f "$cran_out"
-	done
-else
-	echo "pre-push: no R-package changes, skipping CRAN static checks."
-fi
+	fi
+}
+
+
+precheck_thread_determinism() {
+	# Thread-count determinism (v1.1.0 cross_platform_reproducibility.md TODO-2,
+	# decision D3): R/EDI/src must not use <random>/std::shuffle/rand() or
+	# per-thread seeds, nor combine floats in thread order (parallel reductions,
+	# atomics/criticals on floats, per-thread partials) unless allowlisted with a
+	# reason in scripts/check_thread_determinism_allowlist.csv. Pure text scan,
+	# ~3s. The checker's own planted-violation tests run only when it changes.
+	if grep -qE '^R/EDI/src/.*\.(cpp|h|hpp)$|^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$|^scripts/pre-push$' "$changed_files_file"; then
+		echo "pre-push: C++ sources changed -- checking thread-count determinism ..."
+		if grep -qE '^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$' "$changed_files_file" \
+			&& ! python3 scripts/test_check_thread_determinism.py; then
+			echo "pre-push: thread-determinism checker self-test FAILED (see output above)." >&2
+			abort_push
+		fi
+		if ! python3 scripts/check_thread_determinism.py; then
+			echo "pre-push: thread-count determinism check FAILED (see output above)." >&2
+			abort_push
+		fi
+	else
+		echo "pre-push: no C++ source changes, skipping thread-count determinism check."
+	fi
+}
+
 
 echo
 
-# The comment/whitespace change filter every gate above relies on: its own
-# tests run only when it (or its tests) change. Pure Python, ~1s.
-if grep -qE '^scripts/(test_)?significant_changes\.py$' "$changed_files_raw"; then
-	echo "pre-push: significant_changes.py changed -- running its tests ..."
-	if ! python3 scripts/test_significant_changes.py; then
-		echo "pre-push: significant_changes.py self-test FAILED (see output above)." >&2
-		abort_push
+precheck_unity_build() {
+	# Only C++ sources or configure feed this check (it copies R/EDI/src/*.cpp,
+	# *.h and configure), so an .R/.Rd-only push skips it (2026-11-14).
+	if grep -qE '^R/EDI/(src/.*\.(cpp|h|hpp)|configure(\.win)?)$' "$changed_files_file"; then
+		# Standing regression gate for package_metadata/new_feature_plans/
+		# unity_build_collision_audit.md's fix: verifies every unity-build
+		# wrapper (R/EDI/src/unity_NN.cpp, EDI_UNITY=1 -- the default) still
+		# compiles cleanly, catching a *future* kernel file introducing a new
+		# duplicated-symbol/repeated-default-argument collision. Runs in an
+		# isolated scratch copy (see the script's own comment for why) --
+		# independent of whether this working tree currently has EDI_UNITY=1 or
+		# =0 configured, so it still catches a regression even when a developer
+		# is deliberately running with EDI_UNITY=0 for fast targeted local
+		# compiles. ~30-40s (10 translation units checked in parallel).
+		echo "pre-push: C++-relevant files changed -- checking unity-build safety ..."
+		if ! bash scripts/check_unity_build_safety.sh; then
+			echo "pre-push: unity-build safety check FAILED (see output above)." >&2
+			abort_push
+		fi
+	else
+		echo "pre-push: no C++-relevant changes, skipping unity-build safety check."
 	fi
-fi
+}
 
-# Thread-count determinism (v1.1.0 cross_platform_reproducibility.md TODO-2,
-# decision D3): R/EDI/src must not use <random>/std::shuffle/rand() or
-# per-thread seeds, nor combine floats in thread order (parallel reductions,
-# atomics/criticals on floats, per-thread partials) unless allowlisted with a
-# reason in scripts/check_thread_determinism_allowlist.csv. Pure text scan,
-# ~3s. The checker's own planted-violation tests run only when it changes.
-if grep -qE '^R/EDI/src/.*\.(cpp|h|hpp)$|^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$|^scripts/pre-push$' "$changed_files_file"; then
-	echo "pre-push: C++ sources changed -- checking thread-count determinism ..."
-	if grep -qE '^scripts/(test_)?check_thread_determinism(\.py|_allowlist\.csv)$' "$changed_files_file" \
-		&& ! python3 scripts/test_check_thread_determinism.py; then
-		echo "pre-push: thread-determinism checker self-test FAILED (see output above)." >&2
-		abort_push
-	fi
-	if ! python3 scripts/check_thread_determinism.py; then
-		echo "pre-push: thread-count determinism check FAILED (see output above)." >&2
-		abort_push
-	fi
-else
-	echo "pre-push: no C++ source changes, skipping thread-count determinism check."
-fi
 
 echo
 
-# Only C++ sources or configure feed this check (it copies R/EDI/src/*.cpp,
-# *.h and configure), so an .R/.Rd-only push skips it (2026-11-14).
-if grep -qE '^R/EDI/(src/.*\.(cpp|h|hpp)|configure(\.win)?)$' "$changed_files_file"; then
-	# Standing regression gate for package_metadata/new_feature_plans/
-	# unity_build_collision_audit.md's fix: verifies every unity-build
-	# wrapper (R/EDI/src/unity_NN.cpp, EDI_UNITY=1 -- the default) still
-	# compiles cleanly, catching a *future* kernel file introducing a new
-	# duplicated-symbol/repeated-default-argument collision. Runs in an
-	# isolated scratch copy (see the script's own comment for why) --
-	# independent of whether this working tree currently has EDI_UNITY=1 or
-	# =0 configured, so it still catches a regression even when a developer
-	# is deliberately running with EDI_UNITY=0 for fast targeted local
-	# compiles. ~30-40s (10 translation units checked in parallel).
-	echo "pre-push: C++-relevant files changed -- checking unity-build safety ..."
-	if ! bash scripts/check_unity_build_safety.sh; then
-		echo "pre-push: unity-build safety check FAILED (see output above)." >&2
-		abort_push
+precheck_install() {
+	# One shared, in-place install for both R blocks below, instead of each doing
+	# its own. R CMD INSTALL compiles directly against R/EDI/src's existing *.o
+	# files (standard make-based incremental build -- unchanged *.cpp files are
+	# NOT recompiled), unlike R CMD build/check, which always extracts into a
+	# fresh, *.o-free tarball (verified: 0 of 856 packaged files) and therefore
+	# always forces a full from-scratch recompile regardless of what changed or
+	# where it runs. That trades away R CMD check's other sub-checks (Rd,
+	# NAMESPACE, DESCRIPTION fields, examples, packaging/.Rbuildignore
+	# correctness) -- those only mean anything against the real tarball
+	# round-trip, so they're left to CI's R-CMD-check.yaml (--as-cran), which
+	# already covers them authoritatively.
+	# Install only when the push changes what goes into the installed package:
+	# R/EDI/R, src, inst, data, DESCRIPTION, NAMESPACE, configure. Test files
+	# (R/EDI/tests, R/package_tests) are read from the checkout, not the install,
+	# and man/ is skipped by --no-help, so a push touching only those runs its
+	# checks against the EDI already installed (2026-11-14).
+	need_install=0
+	if grep -qE '^R/EDI/(R/|src/|inst/|data/|DESCRIPTION$|NAMESPACE$|configure(\.win)?$)' "$changed_files_file"; then
+		need_install=1
 	fi
-else
-	echo "pre-push: no C++-relevant changes, skipping unity-build safety check."
-fi
 
-echo
-
-# One shared, in-place install for both R blocks below, instead of each doing
-# its own. R CMD INSTALL compiles directly against R/EDI/src's existing *.o
-# files (standard make-based incremental build -- unchanged *.cpp files are
-# NOT recompiled), unlike R CMD build/check, which always extracts into a
-# fresh, *.o-free tarball (verified: 0 of 856 packaged files) and therefore
-# always forces a full from-scratch recompile regardless of what changed or
-# where it runs. That trades away R CMD check's other sub-checks (Rd,
-# NAMESPACE, DESCRIPTION fields, examples, packaging/.Rbuildignore
-# correctness) -- those only mean anything against the real tarball
-# round-trip, so they're left to CI's R-CMD-check.yaml (--as-cran), which
-# already covers them authoritatively.
-# Install only when the push changes what goes into the installed package:
-# R/EDI/R, src, inst, data, DESCRIPTION, NAMESPACE, configure. Test files
-# (R/EDI/tests, R/package_tests) are read from the checkout, not the install,
-# and man/ is skipped by --no-help, so a push touching only those runs its
-# checks against the EDI already installed (2026-11-14).
-need_install=0
-if grep -qE '^R/EDI/(R/|src/|inst/|data/|DESCRIPTION$|NAMESPACE$|configure(\.win)?$)' "$changed_files_file"; then
-	need_install=1
-fi
-
-if [ "$need_install" = "1" ]; then
-	echo "pre-push: installing EDI (incremental) ..."
-	# This install is only ever used to run tests/scripts against, never as a
-	# package someone actually loads and uses day-to-day -- skip everything
-	# that doesn't affect whether the code runs correctly.
-	if ! R CMD INSTALL --no-byte-compile --no-html --no-demo --no-help R/EDI; then
-		echo "pre-push: EDI install FAILED." >&2
-		abort_push
+	if [ "$need_install" = "1" ]; then
+		echo "pre-push: installing EDI (incremental) ..."
+		# This install is only ever used to run tests/scripts against, never as a
+		# package someone actually loads and uses day-to-day -- skip everything
+		# that doesn't affect whether the code runs correctly.
+		if ! R CMD INSTALL --no-byte-compile --no-html --no-demo --no-help R/EDI; then
+			echo "pre-push: EDI install FAILED." >&2
+			abort_push
+		fi
 	fi
-fi
+}
+
 
 echo
 
@@ -519,16 +543,30 @@ if [ "$run_r_tests" = "1" ]; then
 		echo "pre-push: checkmate explicit-defaults check FAILED (see the sites above)." >&2
 		abort_push
 	fi
-	echo "pre-push: R-relevant files changed -- structural wiring/drift/adversarial/parity audit ..."
-	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_structural_checks.R" ); then
+	structural_failed_msg() {
 		echo "pre-push: structural wiring/drift/adversarial/parity audit FAILED (details above)." >&2
 		echo "pre-push: an unlisted gap means a method/hook is missing on an assembled class; a drift means inference_class_registry.R disagrees with a define_inference_class() call." >&2
-		abort_push
+	}
+	run_structural_checks() { ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_structural_checks.R" ); }
+	if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
+		echo "pre-push: R-relevant files changed -- structural wiring/drift/adversarial/parity audit ..."
+		if ! run_structural_checks; then
+			structural_failed_msg
+			abort_push
+		fi
+		echo
+	else
+		# Parallel mode (2026-11-18): the audit (~90 s, one process) runs beside the
+		# suite's lanes instead of before them; the suite still skips its five files.
+		# Whichever fails first stops the other. Waited for below.
+		echo "pre-push: R-relevant files changed -- structural wiring/drift/adversarial/parity audit (beside the test suite) ..."
+		structural_log="$block_log_dir/structural.log"
+		run_structural_checks > "$structural_log" 2>&1 &
+		structural_pid=$!
 	fi
-	# The full suite below skips these five files now that they passed
-	# (scripts/structural_check_files.R lists them), instead of running them twice.
+	# The full suite below skips these five files (scripts/structural_check_files.R
+	# lists them): the audit above runs them, instead of running them twice.
 	export EDI_PREPUSH_STRUCTURAL_PASSED=1
-	echo
 fi
 
 if [ "$run_r_tests" = "1" ]; then
@@ -603,10 +641,42 @@ if [ "$run_r_tests" = "1" ]; then
 	}
 	r_suite_log=""
 	if [ "${EDI_PREPUSH_SERIAL:-0}" != "1" ]; then r_suite_log="$block_log_dir/r_suite.log"; fi
-	if if [ -n "$r_suite_log" ]; then run_r_suite > "$r_suite_log" 2>&1; else run_r_suite; fi; then
+	r_test_exit=0
+	if [ -n "${structural_pid:-}" ]; then
+		# Suite and structural audit run together; take whichever ends first.
+		run_r_suite > "$r_suite_log" 2>&1 &
+		local suite_pid=$! first="" first_status=0 structural_status=0
+		wait -n -p first "$structural_pid" "$suite_pid" || first_status=$?
+		if [ "$first" = "$structural_pid" ]; then
+			structural_status=$first_status
+			if [ "$structural_status" != 0 ]; then
+				kill_tree "$suite_pid"; wait "$suite_pid" 2>/dev/null || true
+				cat "$structural_log"
+				structural_failed_msg
+				abort_push
+			fi
+			wait "$suite_pid" || r_test_exit=$?
+		else
+			r_test_exit=$first_status
+			if [ "$r_test_exit" != 0 ]; then
+				kill_tree "$structural_pid"; wait "$structural_pid" 2>/dev/null || true
+			else
+				wait "$structural_pid" || structural_status=$?
+			fi
+		fi
+		cat "$structural_log"
+		if [ "$structural_status" != 0 ]; then
+			structural_failed_msg
+			abort_push
+		fi
+	elif [ -n "$r_suite_log" ]; then
+		run_r_suite > "$r_suite_log" 2>&1 || r_test_exit=$?
+	else
+		run_r_suite || r_test_exit=$?
+	fi
+	if [ "$r_test_exit" = 0 ]; then
 		show_r_suite_log
 	else
-		r_test_exit=$?
 		show_r_suite_log
 		if [ "$r_test_exit" = "124" ] || [ "$r_test_exit" = "137" ]; then
 			echo "pre-push: R tests TIMED OUT after ${r_test_timeout_secs}s -- this is a hang, not a slow-but-real run (normal full runs take ~3-5 min, ~8 in one process)." >&2
@@ -825,15 +895,48 @@ stop_blocks() {
 	if [ -n "${block_ticker_pid:-}" ]; then kill_tree "$block_ticker_pid"; fi
 }
 
+declare -A block_start=()
+start_block() {  # start_block NAME FUNCTION: run one block in the background, logged
+	( "$2" ) > "$block_log_dir/$1.log" 2>&1 &
+	block_pid_of[$!]="$1"
+	block_start[$1]=$SECONDS
+}
+
+# The checks that need neither the install nor each other (shards, doc links,
+# CRAN static, the filter's self-test, thread determinism, unity-build safety)
+# run beside the incremental install, each into its own log printed when it
+# ends (2026-11-18; they used to run one after another before the install).
+# The first failure stops the rest and aborts the push.
+run_prechecks() {
+	local -A pre_pid_of=()
+	local fn pid finished status
+	for fn in "$@"; do
+		( "$fn" ) > "$block_log_dir/pre_$fn.log" 2>&1 &
+		pre_pid_of[$!]="$fn"
+	done
+	while [ "${#pre_pid_of[@]}" -gt 0 ]; do
+		finished=""
+		status=0
+		wait -n -p finished "${!pre_pid_of[@]}" || status=$?
+		[ -n "$finished" ] || continue
+		fn="${pre_pid_of[$finished]}"
+		unset "pre_pid_of[$finished]"
+		cat "$block_log_dir/pre_$fn.log"
+		if [ "$status" != 0 ]; then
+			for pid in "${!pre_pid_of[@]}"; do kill_tree "$pid"; done
+			for pid in "${!pre_pid_of[@]}"; do wait "$pid" 2>/dev/null || true; done
+			abort_push
+		fi
+	done
+}
+
 run_parallel_blocks() {
 	local i name pid finished status
-	declare -A block_start=()
 	for i in "${!block_names[@]}"; do
 		name="${block_names[$i]}"
-		( "${block_fns[$i]}" ) > "$block_log_dir/$name.log" 2>&1 &
-		pid=$!
-		block_pid_of[$pid]="$name"
-		block_start[$name]=$SECONDS
+		# The python block may already be running (started before the install).
+		if [ -n "${block_start[$name]:-}" ]; then continue; fi
+		start_block "$name" "${block_fns[$i]}"
 	done
 	trap 'stop_blocks; exit 130' INT TERM
 	echo "pre-push: running R tests, consistency check, comprehensive suite and python checks in parallel (logs: $block_log_dir) ..."
@@ -873,7 +976,10 @@ run_parallel_blocks() {
 	rm -rf "$block_log_dir"
 }
 
+prechecks=(precheck_shards precheck_doc_links precheck_cran_static precheck_significant_changes
+	precheck_thread_determinism precheck_unity_build precheck_install)
 if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
+	for fn in "${prechecks[@]}"; do "$fn"; echo; done
 	run_r_block
 	echo
 	run_consistency_block
@@ -883,6 +989,14 @@ if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
 	run_python_block
 	rm -rf "$block_log_dir"
 else
+	# The python block builds its own copy of the C++ kernels and never loads the
+	# installed R package, so it starts now, beside the install and prechecks,
+	# instead of after them (2026-11-18).
+	trap 'stop_blocks; exit 130' INT TERM
+	if [ "$run_python_tests" = "1" ]; then start_block python run_python_block; fi
+	echo "pre-push: running the install and ${#prechecks[@]} independent checks in parallel$( [ "$run_python_tests" = "1" ] && echo ", python block started" ) ..."
+	run_prechecks "${prechecks[@]}"
+	echo
 	run_parallel_blocks
 fi
 
