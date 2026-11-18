@@ -1,146 +1,146 @@
 {
- "last_run": "2026-11-17T22:23:03+00:00",
- "open_pr": 46,
+ "last_run": "2026-11-18T19:37:45+00:00",
+ "open_pr": null,
  "units": {
   "cpp:R/EDI/src/_glmm_engine.h::sigma_penalty_hessian": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "9ee1630cb4dc3d2a",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/_helper_functions_core.h::likelihood_information": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "9acf83014a507ab0",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/_helper_functions_core.h::numerical_gradient": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "759c99c54ff3da82",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/_helper_functions_core.h::optimize_fixed_likelihood_newton": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "52e1f702b5b8c445",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/_helper_functions_core.h::ordinal_eta_sign": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "cba3d3d2665897ae",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/compute_all_subject_data.cpp::extract_row_cols": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "c1f69d8c82342a5b",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_gee.cpp::gee_obs_weight": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "138e5ae835de9871",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_hurdle_negbin.cpp::clamp_exp_arg_hnb": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "27c0f9228028633f",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_log_binomial_regression.cpp::safe_mu_from_eta": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "6baa0e95f5c5b87a",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_ordinal_probit_regression.cpp::pseudo_inverse_symmetric_probit": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "9651df2ce3a2b29b",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_poisson_glmm.cpp::clamp_eta_pg": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "23983cfaee4532f6",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_poisson_glmm.cpp::soft_barrier_grad": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "34296e5d35979420",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_robust_regression.cpp::bisquare_w": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "7f56dba85d5c21f5",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_robust_regression.cpp::huber_w": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "40abeb0ec779025a",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_stereotype_logit.cpp::pseudo_inverse_symmetric": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "0f48f9af5068f279",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_weibull_frailty.cpp::clamp_weibull_wf": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "d6d51d5e234b79de",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_weibull_frailty.cpp::log_sum_exp_wf": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "90f403c14194118d",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/fast_zero_augmented_poisson.cpp::log1pexp": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "8a1c7182e5d3811b",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/optimization_starts.h::weibull_smart_cold_start": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "bd26a8a1e17e3f55",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   },
   "cpp:R/EDI/src/optimization_starts.h::zinb_smart_cold_start": {
-   "audited_at": "2026-11-17T22:23:03+00:00",
+   "audited_at": "2026-11-18T19:37:45+00:00",
    "deps": null,
    "hash": "54d2dc859397d7e9",
-   "open_findings": 1,
-   "run": "44173431441"
+   "open_findings": 0,
+   "run": "44358245826"
   }
  }
 }
