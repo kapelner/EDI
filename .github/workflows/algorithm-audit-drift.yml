@@ -21,14 +21,16 @@ on:
   schedule:
     # Drift check: monthly, 06:07 UTC on the 21st (research does not run on this trigger).
     - cron: "7 6 21 * *"
-    # Research: monthly, on the first Thursday of the month at 23:07 Asia/Jerusalem, starting
-    # RESEARCH_START (owner, 2026-11-16: first run Thu 2026-12-03). Cron is UTC with no DST,
-    # and a cron with both day-of-month and day-of-week matches EITHER, so both candidate UTC
-    # times fire every Thursday and the plan job keeps only the one that is 23:07 in Jerusalem
-    # (20:07 UTC in summer, 21:07 UTC in winter) on a first Thursday (day <= 7) on or after
-    # RESEARCH_START. Drift does not run on these.
-    - cron: "7 20 * * 4"
+    # Research: monthly, at 00:07 Asia/Jerusalem on the Friday morning right after the first
+    # Thursday of the month (owner, 2026-11-18; was Thursday 23:59), the Thursday on or after
+    # RESEARCH_START (first run Fri 2026-12-04 00:07). Cron is UTC with no DST, and a cron with
+    # both day-of-month and day-of-week matches EITHER, so both candidate UTC times fire every
+    # Thursday and the plan job keeps only the one that is 00:07 Friday in Jerusalem (21:07 UTC
+    # Thursday in summer, 22:07 UTC in winter) after a first Thursday (day <= 7). Minute 7, not
+    # :00, because GitHub delays scheduled runs most at the top of the hour. Drift does not run
+    # on these.
     - cron: "7 21 * * 4"
+    - cron: "7 22 * * 4"
   workflow_dispatch:
     inputs:
       research_tasks:
@@ -37,7 +39,7 @@ on:
 
 env:
   MONTHLY_CRON: "7 6 21 * *"
-  RESEARCH_START: "2026-12-03"   # first scheduled research run (Jerusalem date)
+  RESEARCH_START: "2026-12-03"   # Thursday of the first scheduled research run (it starts Fri 00:07 Jerusalem)
 
 permissions:
   contents: read
@@ -129,12 +131,13 @@ jobs:
                   local = datetime.datetime.combine(day, datetime.time(hour, minute), datetime.timezone.utc)
                   local = local.astimezone(zoneinfo.ZoneInfo("Asia/Jerusalem"))
                   start = datetime.date.fromisoformat(os.environ["RESEARCH_START"])
-                  if (local.hour, local.minute) != (23, 7):
-                      log(f"{sched}: not 23:07 in Jerusalem this week ({local:%H:%M %Z}); skipping")
-                  elif local.date() < start:
-                      log(f"{local.date()}: before RESEARCH_START {start}; skipping")
-                  elif local.day > 7:
-                      log(f"{local.date()}: not the first Thursday of the month; skipping")
+                  thursday = local.date() - datetime.timedelta(days=1)   # the Thursday night before
+                  if (local.isoweekday(), local.hour, local.minute) != (5, 0, 7):
+                      log(f"{sched}: not Friday 00:07 in Jerusalem this week ({local:%a %H:%M %Z}); skipping")
+                  elif thursday < start:
+                      log(f"{thursday}: before RESEARCH_START {start}; skipping")
+                  elif thursday.day > 7:
+                      log(f"{thursday}: not the first Thursday of the month; skipping")
                   else:
                       req = "all"
           import subprocess
