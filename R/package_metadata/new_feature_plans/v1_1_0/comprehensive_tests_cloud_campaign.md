@@ -228,7 +228,7 @@ classes changed since the last campaign.
   first run restricted to one response type and one dataset.
 - [x] **Phase 3b: binomial test in `compare_path_audits.R`** (done 2026-11-14) (Design 5). Independent of the workflow; can land
   first, since the local release step benefits too.
-- [ ] **Phase 4: analyze and publish.** Merge shard rows, run the results audit; on the final wave, generate and
+- [x] **Phase 4: analyze and publish.** Merge shard rows, run the results audit; on the final wave, generate and *(ticked by the TODO audit 2026-11-18: .github/workflows/comprehensive-study.yml:292; R/package_tests/cloud/finalize_comprehensive_study.R:24; .github/workflows/comprehensive-study.yml:336; .github/workflows/comprehensive-study.yml:339; .github/workflows/comprehensive-study.yml:344; R/package_tests/cloud/merge_comprehensive_study_wave...)*
   compare the path audits (Design 5). Write the README and ledger, publish, dispatch the next wave.
 - [ ] **Phase 5: chain and gate.** The dispatch step in `calibration-study.yml`'s `publish` job, `study-sweeper.yml`, the gate
   verdict, `fetch_comprehensive_cloud_results.R`, and the release runbook wording for the path-audit gate (cloud
