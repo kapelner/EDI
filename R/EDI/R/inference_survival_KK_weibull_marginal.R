@@ -13,7 +13,7 @@
 #' term, it fits an ordinary (working-independence) Weibull AFT model and
 #' corrects the treatment-effect standard error post hoc for the within-pair
 #' dependence. The model is fit via the package's fast C++ Weibull AFT backend
-#' (\code{fast_weibull_regression_general_cpp}) and the cluster-robust sandwich is
+#' (\code{fast_weibull_regression_cpp}) and the cluster-robust sandwich is
 #' assembled from per-subject dfbeta contributions collapsed within clusters,
 #' which is numerically equivalent to
 #' \code{survival::survreg(..., cluster = ..., robust = TRUE)} (retained as a
