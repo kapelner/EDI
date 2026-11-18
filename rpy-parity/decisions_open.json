@@ -1,72 +1,16 @@
 {
- "rpy-parity-d13a591f5": {
-  "first_seen": "2026-11-18T06:23:37+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_hurdle_poisson_glmm` (other): The docstring does not give the parameter layout. warm_start_params must have length ncol(X)+1 (beta then log_sigma; the kernel throws otherwise: \"warm_start_params must have length ncol(X) + 1\"). warm_start_fisher_info must be (p+1)x(p+1). fixed_idx is 1-based into that p+1 vector. The doc only says \"Optional starting values for all parameters\" and \"Optional indices of fixed parameters\". The R caller passes j_T = j_treat - 1L, which is consistent with the 0-based j_T doc. Suggested: Document that params = [beta (p), log_sigma], that fixed_idx is 1-based over those p+1 entries, and the required fisher-info shape.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_hurdle_poisson_glmm"
- },
- "rpy-parity-d19f68537": {
-  "first_seen": "2026-11-17T22:51:10+00:00",
-  "key": "behaviour_mismatch",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_hurdle_poisson_glmm` (behaviour_mismatch): The docstring says it fits \"a two-part hurdle-Poisson mixed model: a hurdle part (logistic regression of I(Y_ij>0), no random effect) determines whether any count occurs, and a zero-truncated Poisson count part...\". The kernel keeps only rows with y>0 (`pos_idx`, fast_hurdle_poisson_glmm.cpp:457-462) and fits only the zero-truncated Poisson random-intercept part. Parameters are p+1 (beta plus log_sigma). No logistic hurdle component is estimated, and no hurdle coefficients are returned. Suggested: Reword the docstring to say only the zero-truncated count part is fitted, on rows with y>0 (zero rows are dropped). The hurdle logistic part is not estimated by this kernel. This spans several literal lines, so it needs a human.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_hurdle_poisson_glmm"
- },
- "rpy-parity-d1b6f8c66": {
-  "first_seen": "2026-11-17T22:51:10+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (other): The docstring says for warm_start_params \"If provided, smart_cold_start is ignored.\" This binding has no `smart_cold_start` argument. The R export has none either (fast_clogit_plus_glmm.cpp:709-717). The sentence refers to a nonexistent parameter. Suggested: Delete the sentence \"If provided, smart_cold_start is ignored.\" from the warm_start_params entry. The text is not unique in the file, so the edit needs a human.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
- },
  "rpy-parity-d1f65c8c0": {
   "first_seen": "2026-11-17T22:51:10+00:00",
   "key": "return_mismatch",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The binding does not expose R's `estimate_only` argument (R signature at fast_zero_one_inflated_beta.cpp:591 has `bool estimate_only = false`). It also returns only params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm (lines 131-136). R additionally returns b, log_phi, zero_one_b0 and zero_one_b1. Unless estimate_only is TRUE, R also returns vcov, observed_information, fisher_information, information, hessian and min_eigenvalue_information (lines 648-664). A Python user cannot get standard errors or the information matrix from this binding, and the docstring does not say they are omitted. Suggested: Either add estimate_only and the vcov/information fields to the binding to match R, or state in the docstring that variance output and estimate_only are intentionally not provided. The unpacked b, log_phi, zero_one_b0 and zero_one_b1 fields could also be added.",
+  "last_seen": "2026-11-18T11:01:46+00:00",
+  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The R export `fast_zero_one_inflated_beta_cpp` takes `estimate_only = false`. Unless `estimate_only` is TRUE, it also returns `vcov`, the joint covariance. It also returns `b`, `log_phi`, `zero_one_b0` and `zero_one_b1` as separate fields. The Python binding has no `estimate_only` argument. It returns only `params`, `neg_loglik`, `num_iter`, `hit_iteration_cap`, `converged` and `gradient_norm`. It never computes or returns a covariance matrix or Hessian. The docstring does not say the variance is omitted. A Python user therefore cannot reproduce the R standard errors from this binding. Separately, the docstring describes `fixed_idx` only as \"Optional indices of fixed parameters.\" The R roxygen says it is 1-indexed into [beta, log_phi, gamma_0, gamma_1], and the kernel's `make_fixed_param_spec` treats it that way. The Python text does not state this. Suggested: Decide whether the Python binding should expose the covariance. If so, add an `estimate_only` argument and a `vcov` return field, as `fast_coxph_regression` does. If not, say in the docstring that no variance is returned and that `estimate_only` is not supported. Also document that `fixed_idx` is 1-based into [beta, log_phi, zero_one_inflation_params]. I did not give a docstring fix for that sentence. The text \"Optional indices of fixed parameters.\" probably also appears in the `fast_beta_regression` docstring in the same file, so it is not unique.",
   "unit": "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta"
- },
- "rpy-parity-d44c36ed1": {
-  "first_seen": "2026-11-18T06:23:37+00:00",
-  "key": "docstring",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm` (docstring): The docstring for warm_start_params says \"If provided, smart_cold_start is ignored.\" The binding has no smart_cold_start argument, and fast_ordinal_clmm_cpp (R/EDI/src/fast_ordinal_clmm.cpp:185-275) has none either. The sentence refers to a parameter that does not exist. Suggested: Delete the sentence 'If provided, smart_cold_start is ignored.' from the warm_start_params entry of fast_ordinal_clmm. The same text also appears in fast_ordinal_glmm (line 807), so a human has to make the edit; the docstring-fix tool cannot target a unique single-line match here.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm"
- },
- "rpy-parity-d5aa1c7d0": {
-  "first_seen": "2026-11-18T06:23:37+00:00",
-  "key": "behaviour_mismatch",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (behaviour_mismatch): The docstring describes group_conc as \"Group (random-intercept cluster) identifiers for the concordant subjects.\" The kernel builds groups from runs of equal adjacent values (`build_contiguous_group_layout(group_conc_.size(), ...)`, fast_clogit_plus_glmm.cpp:96), without sorting. The R caller sorts rows by group first and explains why (inference_incidence_KK_cond_logit_glmm_abstract.R:468-481: otherwise each row becomes its own one-row group and the fit is silently wrong). The docstring does not say rows must be contiguous by group, unlike the sibling GLMM kernels, which sort internally. Suggested: Document that X_conc, y_conc and group_conc rows must be ordered so each group is contiguous. Alternatively, sort inside the binding or kernel as the sibling GLMM kernels do.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
  },
  "rpy-parity-d62675f61": {
   "first_seen": "2026-11-17T22:51:10+00:00",
   "key": "argument_mismatch",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (argument_mismatch): R export fast_clogit_plus_glmm_cpp takes `weights_disc` and `weights_conc` (R/EDI/src/fast_clogit_plus_glmm.cpp:716-717, kernel param at :546-547). The R classes pass them on the bootstrap path (inference_incidence_KK_cond_logit_glmm_abstract.R:182-183: `weights_disc = disc_weights, weights_conc = conc_weights`). The Python binding has no such arguments and hard-codes `std::nullopt, std::nullopt` (bindings_glmm.cpp:450). Python users cannot reproduce the weighted R fit, and the docstring does not say weights are unsupported. Suggested: Expose optional `weights_disc` and `weights_conc` py::args and pass them to fast_clogit_plus_glmm_internal. If unweighted-only is intended, say so in the docstring.",
+  "last_seen": "2026-11-18T11:01:46+00:00",
+  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (argument_mismatch): The R export fast_clogit_plus_glmm_cpp takes `weights_disc` and `weights_conc` (Nullable<NumericVector>, default R_NilValue), and the R class passes them (`weights_disc = disc_weights, weights_conc = conc_weights`). The Python binding has no such arguments. It hard-codes `std::nullopt, std::nullopt` for them in the call to `fast_clogit_plus_glmm_internal`, and the docstring does not say so. A Python user cannot reproduce the R weighted fit, which changes results. Suggested: Add optional `weights_disc` and `weights_conc` py::args to the binding and pass them through to the kernel. If the omission is intended, add a docstring sentence saying the binding always fits unweighted.",
   "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
- },
- "rpy-parity-d64bbe5b7": {
-  "first_seen": "2026-11-18T06:23:37+00:00",
-  "key": "docstring",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_stereotype_logit` (docstring): The docstring contradicts itself on smart_cold_start. The summary (line 703) says \"smart_cold_start has no effect here\". The parameter entries (lines 719-722) say \"If True, use an initial OLS-based guess when starting from scratch ... Ignored if a warm start is provided\", and the warm_start_params and warm_start_beta entries say \"smart_cold_start is ignored\" when a warm start is given. The kernel does `(void)smart_cold_start;` at fast_stereotype_logit.cpp:748, so the argument is never used. The R roxygen (line 1021) says \"Present for interface parity but currently has no effect\". Suggested: Replace the smart_cold_start parameter entry with 'Accepted for interface parity; currently has no effect.' Remove the 'smart_cold_start is ignored' sentences from the warm_start_params and warm_start_beta entries. The matching text is shared with other bindings and is not unique in the file, so a human needs to edit it.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_stereotype_logit"
- },
- "rpy-parity-d9670f587": {
-  "first_seen": "2026-11-18T06:23:37+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_survival.cpp::fast_coxph_regression` (other): The docstring says for estimate_only: \"skip variance-covariance computation and return only coefficients.\" With estimate_only=True the kernel also returns converged, neg_ll, num_iter, hit_iteration_cap, fisher_information, gradient_norm and min_eigenvalue_information (fast_coxph_regression.cpp:682-691). Only `vcov` is omitted. Also, fixed_idx is documented as \"Optional indices of fixed parameters\" but is 1-based (make_fixed_param_spec subtracts 1). maxit says \"Newton-Raphson iterations\" although optimization_alg='lbfgs' is allowed, and tol is objective-change based for Newton but gradient based for lbfgs. Suggested: Reword the estimate_only entry to say only vcov is omitted. State that fixed_idx is 1-based. State the tol semantics per algorithm. The estimate_only text occurs 4 times in this file, so the edit needs a human.",
-  "unit": "python/cpp/bindings_survival.cpp::fast_coxph_regression"
- },
- "rpy-parity-dd699435e": {
-  "first_seen": "2026-11-17T22:51:10+00:00",
-  "key": "return_mismatch",
-  "last_seen": "2026-11-18T06:23:37+00:00",
-  "text": "`python/cpp/bindings_continuous.cpp::fast_robust_regression` (return_mismatch): The R export returns `ssq_b_j` and `fisher_information` (the final X'WX) when estimate_only=FALSE (fast_robust_regression.cpp:332-343, 454+). The binding returns only coefficients, scale, converged, num_iter and hit_iteration_cap (bindings_continuous.cpp:142-146), and drops min_eigenvalue_information. A Python user therefore gets no standard error or information matrix. The docstring says estimate_only skips \"variance-component calculations\", but the binding never returns variance output either way. Only `j` is noted as having no effect. Suggested: Return `fisher_information` (res.XtWX) and `ssq_b_j`, or state in the docstring that no variance output is available. Reword the estimate_only entry accordingly.",
-  "unit": "python/cpp/bindings_continuous.cpp::fast_robust_regression"
  }
 }
