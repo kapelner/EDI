@@ -48,6 +48,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 		# changed, rather than skipping checks.
 		base="$(git merge-base "$local_sha" origin/main 2>/dev/null || true)"
 		[ -z "$base" ] && base="$empty_tree_sha"
+	elif ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+		# The remote tip is a commit this clone has never fetched (2026-11-18: the
+		# audit bot merged PR #54 after the last pull), so there is nothing to diff
+		# against, and the push would be rejected as non-fast-forward anyway. Say
+		# so instead of dying on `git diff` with "fatal: bad object".
+		echo "pre-push: $remote_ref on the remote is at ${remote_sha:0:8}, which this clone doesn't have --" >&2
+		echo "pre-push: someone pushed or merged since your last pull. Run 'git pull' (then push again)." >&2
+		exit 1
 	else
 		base="$remote_sha"
 	fi
