@@ -624,20 +624,180 @@
   "text": "The test tolerance is still the interim 0.03 and its comment says to tighten it once the fix lands. The kernel's converged is still isfinite(neg_ll) && fit.converged, with no gradient-norm gate or sigma=0 refit.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-100": {
+  "at": "2026-11-18",
+  "text": "Done. Of the 212 assertNumeric( lines in R/EDI/R, 203 now carry any.missing = FALSE (2 more are multi-line calls that also have it). The remaining 7 (ys/y_Ls/y_Rs in both add_all_subject_responses copies, plus y_temp) each have a why-comment. The always-on NA checks and the two named test files are in place.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-101": {
+  "at": "2026-11-18",
+  "text": "Partly done. _checks.py (helpers, KERNELS table, set_checks, wrap_kernel), the wrappers in __init__.py, the R-contract comparison test, the pytest suite and the README/CHANGELOG updates are all in the checkout. Step 4's 'consider wiring it into the rpy-parity audit' has no recorded result: the status lists it as not done. The 'close when the wheel is rebuilt' condition cannot be seen from the c...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-102": {
+  "at": "2026-11-18",
+  "text": "Not done. get_survival_stat_for_group_result_at_tau still falls through to return NA_REAL for an unknown requested_stat (fast_survival_stats.cpp:175), as does get_survival_stat_for_group (line 313). No invalid_argument naming the accepted values was added.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-103": {
+  "at": "2026-11-18",
+  "text": "Not done. fast_gee.cpp:322-324 and :363-365 and bindings_incidence.cpp:63-65 still default to GEEFamily::GAUSSIAN for any string other than binomial or poisson. There is no shared parse helper and no throw.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-104": {
+  "at": "2026-11-18",
+  "text": "Not done. bindings_fast_math.cpp:45 still indexes df[i] and :99 still indexes b[i] over the first argument's size, with no size check and no throw in the file.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-105": {
+  "at": "2026-11-18",
+  "text": "Not done. The na_arg_unguarded allowlist in test-inference-args-reject-na.R still lists 10 pairs and cites this TODO. Override methods such as compute_asymp_two_sided_pval in inference_continuous_ols.R:246 still have no argument check. The sweep script exists, but it was the investigation that produced this TODO, not the fix.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-106": {
+  "at": "2026-11-18",
+  "text": "Done. All the listed tightenings are in place: alpha upper bound eps (no 1 - double.xmin uppers remain), no assertCount(as.integer()) left, the always-on w check, RandCustom arity, and checkmate-loose comments. The transform_y fix, the three test files and the static check script are present too. The U2 clamp is a separate finding, not a part this TODO asks for. Joining the static check to pre-...",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-107": {
+  "at": "2026-11-18",
+  "text": "Done. design_abstract.R and design_fixed_optimal_blocks.R use the new helper_model_matrix.R functions for constant formula-named columns, and KK14 handles rank_prev == 0. A test covers KK14, KK21 and KK21stepwise, and NEWS has the entry.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-108": {
+  "at": "2026-11-18",
+  "text": "Done. The fix is in the checkout. The design keeps formula-named constant columns, so leave-one-block-out no longer drops the strata column. InferenceContinLin reads get_X() instead of private$X. A BCa or jackknife NA now warns with edi_procedure_na_warning, and a dedicated test covers six of the listed classes plus the warning paths.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-109": {
+  "at": "2026-11-18",
+  "text": "Done. InferenceIncidLogRegr and the logistic g-computation classes now warn edi_logistic_separation_warning under separation, and a test covers this. The check of the other logistic-family classes was carried out and its results are recorded. The gaps it found were addressed or split off: KKGEE is now handled in the GEE mixin, probit in inference_incidence_probit.R, and the rest went to v1.0.6-...",
+  "verdict": "done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-11": {
   "at": "2026-11-17",
   "text": "The tuning fixture still sets the proportion response noiselessly with pmin(0.95, pmax(0.05, plogis(linpred))). There is no beta noise, no exact 0s or 1s, no separate tuning generator, and no re-measured ZOIB A/B.",
   "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-110": {
+  "at": "2026-11-18",
+  "text": "Done. One incidence delta guard now counts both the R-function and the C++ custom statistic, in both the p-value and the CI path. A test covers both forms. The comprehensive-test harness no longer skips the custom randomization p-value on incidence.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-111": {
+  "at": "2026-11-18",
+  "text": "Done. InferenceRandCustom$fit() warns, naming the statistic argument, when the observed custom statistic is not finite. Tests cover the R form and both C++ forms.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-112": {
+  "at": "2026-11-18",
+  "text": "Done. KMDiff raises edi_km_median_not_reached_warning, naming the arm and suggesting RMST. The jackknife NA was investigated and explained (the bias guard trips because the jackknife is inconsistent for medians), and the public jackknife overrides now warn edi_km_jackknife_na_warning. Tests cover both.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-113": {
+  "at": "2026-11-18",
+  "text": "Done. A shared helper, edi_warn_procedure_na(), now makes each of the three listed NA paths warn: Poisson asymptotic inference on a blocked-cluster design, the ordinal bootstrap extreme CI, and the KK21 ordinal GEE jackknife. A test covers each path.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-114": {
+  "at": "2026-11-18",
+  "text": "Done. A BCa p-value that is NA on the boundary now warns edi_bootstrap_bca_boundary_warning (what = \"p-value\"), as the CI already did, in both the bootstrap and the Bayesian bootstrap. The out-of-support case now returns the 2/B floor. Tests cover both. The closing step on the NA-audit allowlist is also done: no v1.0.6-TODO-75 rows remain and the intentional row covers the p-value methods.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-115": {
+  "at": "2026-11-18",
+  "text": "Done. The investigation and the power simulation are recorded in the TODO text, and so is the owner's decision. The NA CI is fixed in bootstrap_outcome_scale(). The p-value fix keeps the observed RMST horizon (the tau cut-off) fixed across all resampling draws. Tests and a NEWS entry exist.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-116": {
+  "at": "2026-11-18",
+  "text": "Done. When the BCa bias correction or acceleration is unstable, the interval and p-value are still NA, but they now raise a classed warning (edi_bootstrap_bca_unstable_warning) once per object, never inside resampling, suggesting type = \"percentile\". The allowlist row, tests for both the CI and the p-value (plain and Bayesian), the double-warning fix, the roxygen/Rd text and the NEWS entry are...",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-117": {
+  "at": "2026-11-18",
+  "text": "Done. The cause was found: interval::ictest() orders the arms by which appears first in the data. compute_shared_icen() now orients the estimate and Z as treatment minus control. A dedicated test and a NEWS entry exist. The check of the other survival classes is recorded: only LogRank and Gehan-Wilcoxon call ictest(), and the Gehan bug became v1.0.6-TODO-121, also fixed.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-118": {
+  "at": "2026-11-18",
+  "text": "Done. shared_gee_default() now checks the logit-link fitted values for separation. If they are separated, it warns once and caches a non-estimable SE, so the asymptotic p-value and CI are NA. It covers both IncidKKGEE and PropKKGEE. The gaps the item left for ordinal GEE and the jackknife were closed under v1.0.6-TODO-122, and the test and NEWS entry exist.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-119": {
+  "at": "2026-11-18",
+  "text": "Done. The separation helpers now accept a probit link, and InferenceIncidProbitRegr calls them after the full fit. A dedicated test file and the NEWS entry exist.",
+  "verdict": "done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-12": {
   "at": "2026-11-17",
   "text": "I found no minimum valid-replicate fraction guard for bootstrap p-values with na.rm = TRUE, and no recorded decision on the threshold.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-120": {
+  "at": "2026-11-18",
+  "text": "Done. The cause is recorded: the stepwise kernel skips candidates whose residual variance is zero, so every weight ends up NA and then 0. assign_wt now falls back to equal weights when the sum of the weights is non-finite or <= 0. Unchanged allocations on paths that did not crash before are recorded in the item, and a test and NEWS entry exist.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-121": {
+  "at": "2026-11-18",
+  "text": "Done. Gehan-Wilcoxon's compute_shared_icen() now multiplies the ictest() estimate and statistic by ictest_treatment_minus_control_sign(). The ictest comparison test now checks treatment minus control, and NEWS covers it together with TODO-117.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-122": {
+  "at": "2026-11-18",
+  "text": "Done. Both gaps are closed: ordinal KK GEE now checks for separation using the cumulative-logit linear predictors, and the jackknife driver returns NA with reason jackknife_full_data_separation when the full-data fit is separated. Tests and NEWS exist.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-123": {
+  "at": "2026-11-18",
+  "text": "Done. No direct private$X model-matrix reads remain in the inference classes. The only matches left are the get_X() implementation, the resampling infrastructure that sets or forwards X, and docs. A dedicated test of rank-deficient draws and a NEWS entry exist.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-124": {
+  "at": "2026-11-18",
+  "text": "The affine-reuse fast path now returns through the same compute_two_sided_randomization_pval_from_t0s() helper, which applies the max(10, floor(r/10)) minimum. A test with stubbed draws exists.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-125": {
+  "at": "2026-11-18",
+  "text": "All three RMST parts are in the checkout. The user-tau check uses rmst_default_horizon(). The bootstrap and cluster warnings suggest only procedures the class supports. The cluster article documents a minimum of about 30 clusters.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-126": {
+  "at": "2026-11-18",
+  "text": "Both fixes are present. The worker's generate_mod() discards a cached column set that the hardened X_full no longer contains, and the subset copy clears the za_ caches, guarded by exists() for locked R6 environments. The regression test exists and NEWS records the fix.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-127": {
+  "at": "2026-11-18",
+  "text": "The PropGComp worker loader now takes indices$i_b from a list-shaped draw instead of calling as.integer() on the list. Tests cover the jackknife, subsampling and m-out-of-n draws.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-128": {
+  "at": "2026-11-18",
+  "text": "The status records which path was wrong: the slow path. A new helper drops covariates that are constant within every pair, and a warning fires when both halves fail. A test checks that the slow path equals the worker.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-129": {
+  "at": "2026-11-18",
+  "text": "The verification result is recorded: the fixed designs are safe, while Atkinson and KK21stepwise were affected. Both of those now call ensure_model_matrix_current() before reading X, and a regression test exists.",
+  "verdict": "done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-13": {
   "at": "2026-11-17",
   "text": "Each listed v1.1.0 TODO has only a dated placeholder ('Triage 2026-11-10: ... TODO-13 checks this first'), not a triage result. The TODO-170 multistart-on-rejecting-reps check is not recorded either: the 2026-11-11 re-run only shows n=1000 is nominal.",
   "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-130": {
+  "at": "2026-11-18",
+  "text": "The bootstrap worker now stores base_des_X when the design's matrix differs from the inference's base_X, and redraws on it. Tests check that the fast and slow paths agree per design. The two incidence fast-path tests it flagged were fixed by the v1.0.6-TODO-126 coordinator guard.",
+  "verdict": "done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-131": {
+  "at": "2026-11-18",
+  "text": "The design-side subset of y_L/y_R/y_original, the generic clear_parent_row_private_caches() guard and the audit result are all present. However, the requested slow-path test with a non-~ . model_formula covers only the incidence, count and survival families, not every family (for example continuous, proportion and ordinal).",
+  "verdict": "partly done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-14": {
   "at": "2026-11-17",
