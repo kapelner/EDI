@@ -879,7 +879,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     the touched `.cpp` files (CLAUDE.md targeted-compile rule).
   - Done when: `grep -rn` finds none of the three symbols outside history, the hurdle-NB, Cox and Newcombe tests pass
     with unchanged results, and the registries, inventory and NEWS are current.
-- [ ] TODO-44 (added 2026-11-17, agent, owner request; found by the case-study article agent): **Covariate
+- [x] TODO-44 (added 2026-11-17, agent, owner request; found by the case-study article agent): **Covariate *(ticked by the TODO audit 2026-11-17: R/EDI/R/design_abstract.R:1142; R/EDI/R/design_abstract.R:1151; R/EDI/man/Design.Rd:318; R/EDI/R/design_abstract.R:186; R/EDI/REFERENCES.md:212; R/package_tests/testthat_bulk/test-covariate-imputation-ignores-outcome.R:34; R/package_tests/testthat_bulk/test-design-missingness-impute-missranger-fa...)*
   imputation must not use the outcome.** `missingness_method = "impute"` (`R/EDI/R/design_abstract.R`,
   `covariate_impute_if_necessary_and_then_create_model_matrix()`) gave missRanger/missForest the response
   (`get_effective_time()`) as an extra predictor but not the assignment. Treated subjects have shifted responses, so
@@ -995,7 +995,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   log odds ratio = Inf on a separated 2x2 table. Find the row, then either report it with a non-ok status (and a
   reason) or define the estimate on separated tables; an 'ok' row must never carry Inf/NaN. Done when the audit
   test passes on the new data without changing the fixture.
-- [ ] TODO-50 (added 2026-11-17, agent; surfaced by the v1.0.6-TODO-45 pre-push run): **KK robust regression's
+- [x] TODO-50 (added 2026-11-17, agent; surfaced by the v1.0.6-TODO-45 pre-push run): **KK robust regression's *(ticked by the TODO audit 2026-11-17: R/package_metadata/future_release_plans/release_v1_0_6.md:1007; R/EDI/src/fast_robust_regression.cpp:192; R/EDI/src/fast_robust_regression.cpp:244; R/EDI/src/fast_robust_regression.cpp:195; R/EDI/src/fast_robust_regression.cpp:428; R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:196; R/EDI/R/i...)*
   C++ path disagrees with `MASS::rlm`.** `R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R` ("InferenceContinKKRobustRegrIVWC:
   use_rcpp matches MASS::rlm fallback") now fails: -0.864 (use_rcpp = TRUE) vs -0.854 (rlm), tolerance 1e-3. It is
   not the fixture: over 21 seeds (`method = "M"`, 40 forced pairs + 20 reservoir, t(4) noise, 3 outliers) the

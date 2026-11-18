@@ -931,7 +931,7 @@ ticked in their **owning plans**; this list is the release index.
   unconditionally bit-for-bit and may land with either tranche), and
   Tukey-bisquare robust regression (additionally starts from a converged
   Huber fit instead of OLS).
-- [ ] TODO-17t: **Algorithm choice audit** (survey; no code) (added
+- [x] TODO-17t: **Algorithm choice audit** (survey; no code) (added *(ticked by the TODO audit 2026-11-17: R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:33; R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:47; R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:724; R/package_metadata/new_feature_plans/v1_0_5/algorithm_choice_audit.md:462;...)*
   2026-09-03, user decision): `algorithm_choice_audit.md`. Complements
   `performance_profiling_and_upgrades.md` (which asks "is the
   implementation fast?") by asking "is the chosen algorithm the right
