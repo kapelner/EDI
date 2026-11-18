@@ -195,7 +195,6 @@
 
 ## Bug fixes
 
-<<<<<<< HEAD
 * `InferenceIncidGCompRiskDiff`, `InferenceIncidGCompRiskRatio` and `InferencePropGCompMeanDiff` now reject
   `prob_clip_eps = 0.5` (and `prob_clip_strong_eps = 0.5`), as documented: the clamps must be in `[0, 0.5)`.
   At 0.5 every fitted probability was clipped to 0.5.
@@ -240,7 +239,6 @@
   per object with `edi_bootstrap_bca_unstable_warning` (suggesting
   `type = "percentile"`) when they are `NA` because the BCa bias correction or
   acceleration is unstable; that `NA` used to be silent (v1.0.6-TODO-116).
-=======
 * `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and
   `DesignSeqOneByOneKK21stepwise` now warn when `morrison = TRUE` is passed
   (v1.0.6-TODO-46). The Morrison threshold calibration is not implemented, so
@@ -249,7 +247,6 @@
 * `get_block_ids()` on a sequential matching design no longer errors with
   "improperly sized" before the trial is full; it returns the match ids of the
   subjects enrolled so far (v1.0.6-TODO-46).
->>>>>>> 414dbd7c077750e1680580863e120500a2722d5a
 
 * `DesignFixedRerandomization` now errors at construction on an `objective`
   other than `"mahal_dist"` or `"abs_sum_diff"`. Before, an unknown value
