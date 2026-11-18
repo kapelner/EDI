@@ -1,280 +1,280 @@
 {
  "packages": {
   "MASS": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "7.3-66"
   },
   "R.utils": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "LGPL-2.1 | LGPL-3 [expanded from: LGPL (\u2265 2.1)]",
    "version": "2.13.0"
   },
   "R6": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "2.6.1"
   },
   "ROI.plugin.glpk": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-3",
    "version": "1.0-0"
   },
   "Rcpp": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "1.1.2"
   },
   "RcppEigen": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 | file LICENSE [expanded from: GPL (\u2265 2) | file LICENSE]",
    "version": "0.3.4.0.2"
   },
   "RcppNumerical": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "0.7-0"
   },
   "RcppXPtrUtils": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "0.1.3"
   },
   "Rfit": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "0.27.0"
   },
   "RhpcBLASctl": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "AGPL-3",
    "version": "0.23-42"
   },
   "VGAM": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-3",
    "version": "1.1-14"
   },
   "aftgee": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL (\u2265 3)",
    "version": "1.2.1"
   },
   "anticlust": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "0.8.18"
   },
   "betareg": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "3.2-6"
   },
   "blockTools": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 | file LICENSE [expanded from: GPL (\u2265 2) | file LICENSE]",
    "version": "0.6.6"
   },
   "checkmate": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "BSD_3_clause + file LICENSE",
    "version": "2.3.4"
   },
   "clinfun": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "1.1.6"
   },
   "coin": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2",
    "version": "1.4-6"
   },
   "copula": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL (\u2265 3) | file LICENCE",
    "version": "1.1-7"
   },
   "data.table": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MPL-2.0 | file LICENSE",
    "version": "1.18.6.1"
   },
   "digest": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "0.6.39"
   },
   "doParallel": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2",
    "version": "1.0.17"
   },
   "dplyr": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "1.2.1"
   },
   "fixest": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-3",
    "version": "0.14.2"
   },
   "gamlss.dist": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "6.1-11"
   },
   "geepack": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL (\u2265 3)",
    "version": "1.3.13"
   },
   "ggplot2": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "4.0.4"
   },
   "glmmTMB": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "AGPL-3",
    "version": "1.1.15.2"
   },
   "glmnet": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2",
    "version": "5.2"
   },
   "icenReg": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "LGPL-2 | LGPL-2.1 [expanded from: LGPL (\u2265 2.0, < 3)]",
    "version": "2.0.16"
   },
   "interval": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "1.1-1.0"
   },
   "jsonlite": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "2.0.0"
   },
   "knitr": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL]",
    "version": "1.52"
   },
   "lme4": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "2.1-0"
   },
   "mirai": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "2.7.4"
   },
   "missForest": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "1.6.1"
   },
   "missRanger": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "2.6.1"
   },
   "multgee": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "1.9.0"
   },
   "nbpMatching": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "1.5.6"
   },
   "nlme": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "3.1-172"
   },
   "nnet": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "7.3-21"
   },
   "numDeriv": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2",
    "version": "2016.8-1.1"
   },
   "ompr": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "1.0.4"
   },
   "ompr.roi": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "1.0.2"
   },
   "optmatch": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "0.10.8"
   },
   "ordinal": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "2026.7-26"
   },
   "pscl": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2",
    "version": "1.5.9"
   },
   "qpdf": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "Apache License 2.0",
    "version": "1.4.1"
   },
   "quantreg": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3 [expanded from: GPL (\u2265 2)]",
    "version": "6.1"
   },
   "randomizr": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "2.0.1"
   },
   "rmarkdown": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "2.32"
   },
   "sandwich": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "GPL-2 | GPL-3",
    "version": "3.1-3"
   },
   "survival": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "LGPL-2 | LGPL-2.1 | LGPL-3 [expanded from: LGPL (\u2265 2)]",
    "version": "3.8-12"
   },
   "testthat": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "3.3.2"
   },
   "withr": {
-   "checked_at": "2026-11-17T21:05:57+00:00",
+   "checked_at": "2026-11-18T17:36:12+00:00",
    "license": "MIT + file LICENSE",
    "version": "3.0.3"
   }
  },
- "updated_at": "2026-11-17T21:05:57+00:00"
+ "updated_at": "2026-11-18T17:36:12+00:00"
 }
