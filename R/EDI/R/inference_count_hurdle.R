@@ -73,6 +73,17 @@
 #' all of them are in one arm), its count-part coefficient is not identified and
 #' the estimate is \code{NA}.
 #'
+#' \strong{Positive counts all equal to 1 in an arm.} A zero-truncated count
+#' density at \eqn{y = 1} only increases as the rate goes to 0. So when every
+#' positive count in one arm equals 1, the likelihood keeps increasing as that
+#' arm's rate goes to 0 and the count-part treatment coefficient has no finite
+#' maximum likelihood estimate (\code{pscl::hurdle()} then reports a coefficient
+#' of about \eqn{\pm 12} with a standard error in the hundreds). The estimate is
+#' then \code{NA} (reason \code{"hurdle_count_mle_not_finite"}) with one warning of class
+#' \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
+#' \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
+#' keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+#'
 #' \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
 #' part is separated (a fitted probability of a zero is numerically 0 or 1, or
 #' the fit stopped on such a ridge), its coefficients are reported as \code{NA}
@@ -315,6 +326,27 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' is never dropped: when it is itself aliased on those subjects (for example,
 #' all of them are in one arm), its count-part coefficient is not identified and
 #' the estimate is \code{NA}.
+#'
+#' \strong{Positive counts all equal to 1 in an arm.} A zero-truncated count
+#' density at \eqn{y = 1} only increases as the rate goes to 0. So when every
+#' positive count in one arm equals 1, the likelihood keeps increasing as that
+#' arm's rate goes to 0 and the count-part treatment coefficient has no finite
+#' maximum likelihood estimate (\code{pscl::hurdle()} then reports a coefficient
+#' of about \eqn{\pm 12} with a standard error in the hundreds). The estimate is
+#' then \code{NA} (reason \code{"hurdle_negbin_count_mle_not_finite"}) with one warning of class
+#' \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
+#' \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
+#' keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+#'
+#' \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
+#' part is separated (a fitted probability of a zero is numerically 0 or 1, or
+#' the fit stopped on such a ridge), one warning of class
+#' \code{edi_zero_part_separation_warning} (a subclass of
+#' \code{edi_logistic_separation_warning}) says so, by the same rule as
+#' \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}. The
+#' hurdle part is fit separately from the count part, so the count-part
+#' treatment estimate does not depend on it and is kept. A hurdle part has no
+#' benign "no inflation" case, so this is always the warning (v1.0.6-TODO-218).
 #'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),

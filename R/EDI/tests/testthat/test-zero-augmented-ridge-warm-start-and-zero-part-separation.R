@@ -283,3 +283,48 @@ test_that("a subject pushed to a structural zero keeps the separation warning", 
 	expect_false(zero_augmented_zero_part_separation(
 		list(params = c(0.5, 0.2, -30, 32)), cbind(1, rep(0:1, 5)), rep(1, 10), cbind(1, rep(0:1, 5)))$no_inflation)
 })
+
+test_that("InferenceCountHurdleNegBin flags a separated hurdle part like InferenceCountHurdlePoisson", {
+	# v1.0.6-TODO-218 (2): HurdleNegBin fits its hurdle part separately (own C++
+	# path) and had no separation flag. Zeros exactly where x1 < 0: the hurdle
+	# logistic part is separated; both hurdle classes warn (never the
+	# no-zero-inflation message) and keep the count-part treatment estimate.
+	set.seed(11)
+	n = 50
+	x1 = rnorm(n)
+	w = sample(rep(0:1, n / 2))
+	y = ifelse(x1 < 0, 0, 1 + rpois(n, exp(0.3 + 0.2 * w)))
+	des = DesignFixediBCRD$new(n = n, response_type = "count")
+	des$add_all_subjects_to_experiment(data.frame(x1 = x1))
+	des$overwrite_all_subject_assignments(w)
+	des$add_all_subject_responses(y)
+	ests = c()
+	for (cls in c("InferenceCountHurdlePoisson", "InferenceCountHurdleNegBin")) {
+		inf = get(cls)$new(des, verbose = FALSE)
+		ws = list()
+		ms = list()
+		est = withCallingHandlers(inf$compute_estimate(),
+			warning = function(w) { ws[[length(ws) + 1L]] <<- w; invokeRestart("muffleWarning") },
+			message = function(m) { ms[[length(ms) + 1L]] <<- m; invokeRestart("muffleMessage") })
+		sep = Filter(function(w) inherits(w, "edi_zero_part_separation_warning"), ws)
+		expect_length(sep, 1L)
+		expect_identical(sep[[1]]$component, "hurdle")
+		expect_length(Filter(function(m) inherits(m, "edi_no_zero_inflation_message"), ms), 0L)
+		expect_identical(inf$.__enclos_env__$private$cached_values$zero_part_nonestimable_reason, "zero_part_separated", info = cls)
+		expect_true(is.finite(est), info = cls)
+		expect_no_warning(inf$compute_estimate(), class = "edi_zero_part_separation_warning")
+		ests[cls] = est
+	}
+	# the count parts are the same zero-truncated fit up to the NB dispersion
+	expect_equal(ests[["InferenceCountHurdleNegBin"]], ests[["InferenceCountHurdlePoisson"]], tolerance = 1e-3)
+	# a well-identified hurdle part is not flagged
+	set.seed(12)
+	y2 = ifelse(runif(n) < plogis(0.2 - 0.5 * x1), 0, 1 + rpois(n, exp(0.3 + 0.2 * w)))
+	des2 = DesignFixediBCRD$new(n = n, response_type = "count")
+	des2$add_all_subjects_to_experiment(data.frame(x1 = x1))
+	des2$overwrite_all_subject_assignments(w)
+	des2$add_all_subject_responses(y2)
+	inf2 = InferenceCountHurdleNegBin$new(des2, verbose = FALSE)
+	expect_no_warning(inf2$compute_estimate(), class = "edi_zero_part_separation_warning")
+	expect_null(inf2$.__enclos_env__$private$cached_values$zero_part_nonestimable_reason)
+})

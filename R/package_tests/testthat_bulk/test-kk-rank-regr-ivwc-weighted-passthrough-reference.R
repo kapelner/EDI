@@ -16,6 +16,15 @@ library(EDI)
 # internals) and independently recomputing the weighted-combination formula
 # from scratch.
 
+# v1.0.6-TODO-217 (2026-11-19): that fallback averaged raw survival times
+# (replicates near 2.3 for an estimate of 0.94 on one fixture), not this
+# log-time-ratio estimator, and is gone. The class now reruns both aftsrr fits
+# with the draw's case weights (weights = ), each with its ISMB variance, and
+# pools them by inverse variance. The tests below check the halves' point
+# estimates against aftgee::aftsrr(weights = ) directly (the rank estimating
+# equation is deterministic; only the ISMB variance is a seeded Monte Carlo)
+# and the pooling against the halves' recorded variances.
+
 # v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
 # this seed formed 8 pairs, not the 4 pairs + 16 reservoir subjects (20 blocks)
@@ -38,102 +47,57 @@ survival_kk_rank_regr_ivwc_fixture <- function(n = 24L, seed = 20260817L, lambda
 	des
 }
 
-kk_rank_regr_weighted_reference <- function(priv, row_weights) {
-	m <- priv$m
-	stats <- priv$cached_values$KKstats
-	pair_ids <- sort(unique(m[m > 0L]))
-	pair_w <- vapply(pair_ids, function(pid) mean(row_weights[which(m == pid)]), numeric(1))
-	d_bar_w <- if (length(pair_w) > 0) sum(stats$y_matched_diffs * pair_w) / sum(pair_w) else NA_real_
-	res_idx <- which(m == 0L)
-	yr <- stats$y_reservoir
-	wr <- stats$w_reservoir
-	rw <- row_weights[res_idx]
-	num_t <- sum(yr[wr == 1] * rw[wr == 1], na.rm = TRUE)
-	den_t <- sum(rw[wr == 1], na.rm = TRUE)
-	num_c <- sum(yr[wr == 0] * rw[wr == 0], na.rm = TRUE)
-	den_c <- sum(rw[wr == 0], na.rm = TRUE)
-	r_bar_w <- if (is.finite(den_t) && den_t > 0 && is.finite(den_c) && den_c > 0) {
-		num_t / den_t - num_c / den_c
-	} else NA_real_
-	w_star <- stats$w_star
-	if (is.null(w_star) || is.na(w_star)) {
-		if (!is.na(d_bar_w)) return(d_bar_w)
-		return(r_bar_w)
+kk_rank_regr_aftsrr_weighted <- function(time, dead, w, row_weights, id = NULL) {
+	dat <- data.frame(y = time, dead = dead, w = w, wt__ = row_weights)
+	if (!is.null(id)) {
+		dat$id <- id
+		fit <- aftgee::aftsrr(survival::Surv(y, dead) ~ w, id = id, data = dat, se = "NULL", B = 0, weights = wt__)
+	} else {
+		fit <- aftgee::aftsrr(survival::Surv(y, dead) ~ w, data = dat, se = "NULL", B = 0, weights = wt__)
 	}
-	w_star * d_bar_w + (1 - w_star) * r_bar_w
+	unname(stats::coef(fit)[["w"]])
 }
 
-test_that("compute_estimate_with_bootstrap_weights matches the from-scratch weighted passthrough formula", {
+test_that("a weighted replicate reruns both aftsrr fits with case weights and pools them by inverse variance", {
+	skip_if_not_installed("aftgee")
 	des <- survival_kk_rank_regr_ivwc_fixture()
-	inf <- InferenceSurvivalKKRankRegrIVWC$new(des)
+	# Treatment only, so each half is a single aftsrr call with no covariate ladder.
+	inf <- InferenceSurvivalKKRankRegrIVWC$new(des, model_formula = ~ 1)
 	priv <- inf$.__enclos_env__$private
-	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
-	priv$compute_basic_match_data()
-
-	# 4 matched pairs + 16 reservoir singletons in this fixture -> 20 bootstrap units.
+	ctx <- priv$build_bayesian_bootstrap_context()
+	priv$current_bayesian_bootstrap_context <- ctx
+	expect_identical(ncol(as.matrix(priv$get_X())), 0L)
 	set.seed(1)
-	wts_block <- runif(20, 0.5, 2)
-	row_weights <- priv$expand_subject_or_block_weights_to_row_weights(wts_block)
-	expect_length(row_weights, 24L)
+	wts <- runif(ctx$n_units, 0.5, 2)
+	row_weights <- wts[ctx$row_to_unit]
 
-	res <- inf$compute_estimate_with_bootstrap_weights(wts_block, estimate_only = TRUE)
-	expected <- kk_rank_regr_weighted_reference(priv, row_weights)
-	expect_equal(res, expected, tolerance = 1e-10)
+	res <- suppressWarnings(inf$compute_estimate_with_bootstrap_weights(wts, estimate_only = TRUE))
 	expect_true(is.finite(res))
-})
-
-test_that("constant weights are scale-invariant and estimate_only has no effect on this fallback path", {
-	des <- survival_kk_rank_regr_ivwc_fixture()
-	inf <- InferenceSurvivalKKRankRegrIVWC$new(des)
-	priv <- inf$.__enclos_env__$private
-	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
-
-	res_unit <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = TRUE)
-	res_scaled <- inf$compute_estimate_with_bootstrap_weights(rep(5, 20), estimate_only = TRUE)
-	expect_equal(res_scaled, res_unit, tolerance = 1e-10)
-
-	# Documented note, not a bug: this generic passthrough fallback never
-	# reads its estimate_only argument, unlike specialized weighted
-	# estimators elsewhere in the codebase that skip a variance computation
-	# when TRUE -- there is no variance step here to skip in the first place.
-	res_true <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = TRUE)
-	res_false <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = FALSE)
-	expect_identical(res_true, res_false)
-})
-
-test_that("all-zero weights degrade gracefully to a non-finite result rather than erroring", {
-	des <- survival_kk_rank_regr_ivwc_fixture()
-	inf <- InferenceSurvivalKKRankRegrIVWC$new(des)
-	priv <- inf$.__enclos_env__$private
-	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
-
-	res <- inf$compute_estimate_with_bootstrap_weights(rep(0, 20), estimate_only = TRUE)
-	expect_false(is.finite(res))
-})
-
-test_that("reweighting only the reservoir arm changes the estimate while leaving pair weights untouched", {
-	des <- survival_kk_rank_regr_ivwc_fixture()
-	inf <- InferenceSurvivalKKRankRegrIVWC$new(des)
-	priv <- inf$.__enclos_env__$private
-	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
-	priv$compute_basic_match_data()
-
+	refit <- priv$last_weighted_refit$cached_values
 	m <- priv$m
-	pair_ids <- sort(unique(m[m > 0L]))
-	n_pairs <- length(pair_ids)
-	n_reservoir <- sum(m == 0L)
-	expect_equal(n_pairs, 4L)
-	expect_equal(n_reservoir, 16L)
+	i_m <- which(m > 0L)
+	i_r <- which(m == 0L)
+	expect_equal(refit$beta_T_matched,
+		kk_rank_regr_aftsrr_weighted(priv$y[i_m], priv$dead[i_m], priv$w[i_m], row_weights[i_m], id = m[i_m]),
+		tolerance = 1e-6)
+	expect_equal(refit$beta_T_reservoir,
+		kk_rank_regr_aftsrr_weighted(priv$y[i_r], priv$dead[i_r], priv$w[i_r], row_weights[i_r]),
+		tolerance = 1e-6)
+	ssq_m <- refit$ssq_beta_T_matched
+	ssq_r <- refit$ssq_beta_T_reservoir
+	expect_true(is.finite(ssq_m) && ssq_m > 0 && is.finite(ssq_r) && ssq_r > 0)
+	w_star <- ssq_r / (ssq_r + ssq_m)
+	expect_equal(res, w_star * refit$beta_T_matched + (1 - w_star) * refit$beta_T_reservoir, tolerance = 1e-10)
+})
 
-	base_wts <- rep(1, n_pairs + n_reservoir)
-	skewed_wts <- base_wts
-	skewed_wts[(n_pairs + 1):length(skewed_wts)] <- runif(n_reservoir, 3, 5)
-
-	res_base <- inf$compute_estimate_with_bootstrap_weights(base_wts, estimate_only = TRUE)
-	res_skewed <- inf$compute_estimate_with_bootstrap_weights(skewed_wts, estimate_only = TRUE)
-	row_weights_skewed <- priv$expand_subject_or_block_weights_to_row_weights(skewed_wts)
-	expected_skewed <- kk_rank_regr_weighted_reference(priv, row_weights_skewed)
-
-	expect_equal(res_skewed, expected_skewed, tolerance = 1e-10)
-	expect_false(isTRUE(all.equal(res_skewed, res_base, tolerance = 1e-8)))
+test_that("constant weights give the point estimate", {
+	skip_if_not_installed("aftgee")
+	des <- survival_kk_rank_regr_ivwc_fixture()
+	inf <- InferenceSurvivalKKRankRegrIVWC$new(des)
+	priv <- inf$.__enclos_env__$private
+	ctx <- priv$build_bayesian_bootstrap_context()
+	priv$current_bayesian_bootstrap_context <- ctx
+	est <- suppressWarnings(inf$compute_estimate())
+	expect_equal(suppressWarnings(inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units), estimate_only = TRUE)), est, tolerance = 1e-12)
+	expect_equal(suppressWarnings(inf$compute_estimate_with_bootstrap_weights(rep(5, ctx$n_units), estimate_only = FALSE)), est, tolerance = 1e-12)
 })

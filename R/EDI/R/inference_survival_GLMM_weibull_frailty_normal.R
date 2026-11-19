@@ -774,8 +774,8 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' \strong{No Bayesian bootstrap.} The Weibull frailty fitter takes no case weights, so this class does not
-#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
-#' nonparametric or randomization bootstrap instead.
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+#' Its other resampling methods are unaffected.
 #'
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):

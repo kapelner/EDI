@@ -4049,7 +4049,25 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   Reproduce from the comprehensive seeds, find the cause, and return NA with a recorded reason (or the right interval)
   instead of a degenerate one. Also prune the stale `low_power|incidence|InferenceIncidExactZhang` results-audit
   baseline entry when the 29 new survival audit findings are triaged.
-- [ ] TODO-217 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-132 agent): **KK IVWC leftovers.**
+  DONE 2026-11-19 (agent, uncommitted), the CI part; the baseline prune stays open (it waits on the survival triage).
+  Cause: the confidence set is empty. In both cases the discordant pairs and the reservoir point to incompatible
+  effects (rep 6: pairs 13:7, reservoir n11..n00 = 0/6/9/1; rep 14: pairs 9:13, reservoir 6/2/0/6), and the largest
+  combined Fisher p-value over a 1e-4 grid on [-8, 8] is 0.00223 and 0.0428, below alpha = 0.05 (Stouffer/min_p max
+  0.0074/0.0154 and 0.049/0.076). `zhang_ci_inside_point()` then returned the rejected maximiser and both bisections
+  collapsed onto it. Fix (`inference_helpers_zhang.R`): when the candidates and `optimize()` are all rejected, new
+  `zhang_ci_inside_point_grid()` scans a 2001-point grid one unit beyond the search range and refines the 5 best points;
+  if nothing is accepted, `zhang_ci_exact_combined()` returns `c(NA, NA)`, records `exact_ci_empty_acceptance_set`
+  (procedure `compute_exact_confidence_interval`) and emits an `edi_procedure_na_warning`; a later accepted call
+  clears the reason. CIs whose search started from an accepted point are byte-identical: 198/200 pima KK21stepwise
+  comprehensive fits (both betas, both formulas, reps 1-50; the 2 others are the repros, now NA) and 5717/5717 such
+  CIs out of 6000 synthetic KK fits x alpha x combination method; the other 283 had a rejected start (268 now NA, 9
+  formerly degenerate now a real interval, 6 formerly with one endpoint at a rejected point now corrected). Roxygen
+  `@return` in `man-roxygen/exact-zhang-compute-exact-confidence-interval.R` (Rd not regenerated). Test:
+  `testthat_bulk/test-zhang-exact-ci-empty-acceptance-set.R` (32). Stored rows that would change: only the two
+  KK21stepwise `~.` pima beta 0.5 rep 6 / rep 14 `compute_exact_confidence_interval` rows (to NA). Open: the
+  minlike exact p-values make the acceptance set non-convex in about 2.5% of ordinary CIs (8 of 323 checked), and
+  the bisection returns only the piece around the start point; not changed here (proposed as a new TODO).
+- [x] TODO-217 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-132 agent): **KK IVWC leftovers.**
   (1) BUG: `InferenceSurvivalKKStratCoxPHIVWC`'s Bayesian bootstrap is all zeros (CI [0, 0]): the KKCompound
   `compute_estimate_with_bootstrap_weights` fallback reads `KKstats$y_matched_diffs`, which this class never creates
   (`sum(NULL)/...` = 0). Fix it, and check every IVWC class without `compute_weighted_estimate_ivwc` for the same
@@ -4059,6 +4077,44 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   statistic by design (2026-10-12 fix); confirm no nonparametric-bootstrap path reaches it on a non-sequential matched
   design. (4) The Weibull frailty IVWC classes' `compute_treatment_estimate_during_randomization_inference` still uses
   the observed-data IVW weights with a 0.5 fallback; check it against the TODO-132 rule.
+  Status 2026-11-19 (agent, uncommitted): DONE, all four items. (1) The generic fallback was wrong for 13 of the 14
+  classes that used it (MeanDiff matched at uniform weights but kept the observed w_star; Newcombe got the matched
+  mean difference alone, its KKstats has no w_star): StratCox 0 (BB CI [0, 0]); LWA Cox
+  +2.64 and RankRegr +2.28 (raw survival-time differences; estimates -0.61 / 0.94); CondLogit 0.30 (risk difference
+  for a log OR of 2.66); Prop quantile 0.14 (raw scale); OLS / Contin quantile / Robust / Bai unadjusted mean
+  differences; Weibull frailty Normal IVWC and Loggamma OneLik raw time differences. Fallback removed from both KK
+  compound dispatchers (now a clear error); `w_info` carries the draw's row weights. Weighted refits of the class's
+  own estimator (both halves refit under the weights, each half's variance from its weighted fit, IVW pooling as in
+  `shared()`) via `compute_weighted_estimate_ivwc()` for StratCox (weighted stratified / plain `coxph`, model-based
+  variance), LWA Cox (pair-clustered robust variance), OLS (WLS + HC2), CondLogit (weighted logit), MeanDiff
+  (weighted means / variances; w_star no longer fixed at the observed value), Newcombe, RankRegr (`aftsrr(weights =)`,
+  ISMB). Near-uniform weights reproduce `compute_estimate()` (1e-5; RankRegr within ISMB noise), BB sd ~ asymptotic
+  SE on 3 fixtures each. Refused (`supports_bayesian_bootstrap()` FALSE + `EDI_INFERENCE_EXCLUDED_CAPABILITIES`,
+  roxygen says so): Bai KK14/KK21, Contin/Prop QuantileRegr IVWC, RobustRegr IVWC, Weibull frailty Normal IVWC,
+  Loggamma OneLik. Wilcox IVWC never had the BB component. (2) Cause: not pair-id labels but data-frame row names.
+  `.kk_rank_regr_aftsrr_seed` hashed `dat` with its row names; `cbind()` with the covariate matrix carries them, and
+  on draws whose model matrix is rebuilt the slow path has character row names, the worker automatic ones, so they
+  drew different ISMB multipliers from identical data. The hash now ignores row names (observed-data fits have
+  automatic row names, so reported results are unchanged; resampled replicates whose row names were non-automatic get
+  new ISMB seeds). Worker = slow path on all 5 draws of the repro. (3) It does: on `DesignFixedBinaryMatch`, the
+  m-out-of-n bootstrap, subsampling and the jackknife distribution reached the W-statistic worker (replicate means
+  1.47 / 1.52 / 2.44 for an HL estimate of 0.63). The worker now returns W only for "rand" / "rand_bootstrap" (and
+  a NULL operation, as before) and the estimate otherwise (0.56 / 0.59 / 0.62). (4) Three bugs, both classes: the
+  fixed-sigma reservoir refit passed `fixed_idx = p_r` (one-based) instead of `p_r + 1`, pinning the last
+  coefficient (the treatment coefficient without covariates) to log sigma (reservoir beta -0.03 vs 1.03); the halves
+  were pooled with the observed variances from `cached_values`, or 50/50 when that cache was empty (duplicates,
+  reused workers), so observed and permuted statistics were different functions (0.43 vs 0.25 vs estimate 0.63);
+  Loggamma's `best_X_colnames_reservoir` was `c("w", "", ...)` (unnamed `KKstats$X_reservoir`), so the reservoir
+  refit dropped every covariate. Now the statistic pools with the draw's own variances (fixed-nuisance fits,
+  TODO-132 rule): it equals the estimate to <= 0.003 and is the same on a cache-cleared duplicate. Tests:
+  `test-kk-ivwc-bayesian-bootstrap-replicates-match-estimator.R` (94),
+  `test-kk-rank-regr-ivwc-worker-matches-slow-path-row-names.R` (13),
+  `test-kk-wilcox-ivwc-worker-estimate-scale-by-operation.R` (12),
+  `test-weibull-frailty-ivwc-randomization-statistic-matches-estimator.R` (10). Registry delta recorded in
+  `inference_component_call_graph_helpers.R`. Rd pending roxygenize. NEWS line proposed, not added. Open:
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s own BB hook is a marginal-Weibull surrogate, not the IVW
+  estimator (BB mean 0.55 vs 0.63; same TODO-132 question); weighted refits for the refused quantile classes (rq
+  takes weights) could restore their BB.
 - [ ] TODO-218 (added 2026-11-19, coordinator; from the v1.0.6-TODO-30/-152 agent): **Zero-part separation warning
   follow-ups.** (1) OWNER DECISION: on ordinary count data with no excess zeros, ZIP's zero part saturates and ZINB
   falls back to its zero-inflation-off boundary fit, so the new `edi_zero_part_separation_warning` fires (about 12

@@ -16,7 +16,7 @@
   and bootstrap draws. Point estimates can change where the old fit was not the
   maximum (they now agree with `pscl::zeroinfl()`), randomization p-values
   change, and small samples run more slowly because about half the fits at
-  n = 50 need the extra refits (v1.0.6-TODO-207).
+  n = 50 need the extra refits (v1.0.6-TODO-222).
 
 * Wald standard errors, p-values and CIs of likelihood-backed classes now always
   use the observed information; `set_information_preference()` affects only
@@ -476,6 +476,14 @@
   on interval-censored data (v1.0.6-TODO-143).
 
 ## Bug fixes
+
+* `InferenceSuite$run_all_inference()` is now reproducible after `set.seed()`:
+  each task runs from its own seed, drawn once from the caller's stream, with no
+  randomization draws carried over from earlier tasks, runs or direct calls on
+  the same design, and `num_cores = 2` gives the same results as
+  `num_cores = 1`. Seeded suite results differ from earlier versions. A user `B`
+  below 5 now errors before fitting when a bootstrap method runs
+  (v1.0.6-TODO-219).
 
 * `InferenceIncidLogBinomial`'s randomization statistic is now the cached point
   estimate, so it matches the reusable worker and repeated seeded calls agree.

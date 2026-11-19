@@ -1102,8 +1102,8 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 #' reservoir partition.
 #'
 #' \strong{No Bayesian bootstrap.} The Clayton/Weibull fitter takes no case weights, so this class does not
-#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
-#' nonparametric or randomization bootstrap instead.
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+#' Its other resampling methods are unaffected.
 #'
 #' @references
 #' Clayton, D. G. (1978). "A model for association in bivariate life tables

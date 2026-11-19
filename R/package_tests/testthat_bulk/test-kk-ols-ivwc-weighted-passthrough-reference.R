@@ -14,6 +14,13 @@ library(EDI)
 # independently recomputing the weighted-combination formula from scratch --
 # same pattern as the already-covered KKRankRegrIVWC/KKQuantileRegrIVWC
 # siblings.
+#
+# v1.0.6-TODO-217 (2026-11-19): that fallback was an unadjusted mean
+# difference pooled with the observed w_star, not this covariate-adjusted
+# estimator, and is gone. The class now refits both halves by weighted least
+# squares (HC2 variances) and pools them by inverse variance. The tests below
+# check the halves against stats::lm.wfit() and the pooling against the
+# halves' own variances.
 
 # v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
@@ -31,32 +38,20 @@ contin_kk_ols_ivwc_fixture <- function(n = 24L, seed = 20260817L, lambda = 0.05)
 	des
 }
 
-kk_ols_ivwc_weighted_reference <- function(priv, row_weights) {
+kk_ols_ivwc_weighted_halves_reference <- function(priv, row_weights) {
 	m <- priv$m
 	stats <- priv$cached_values$KKstats
 	pair_ids <- sort(unique(m[m > 0L]))
 	pair_w <- vapply(pair_ids, function(pid) mean(row_weights[which(m == pid)]), numeric(1))
-	d_bar_w <- if (length(pair_w) > 0) sum(stats$y_matched_diffs * pair_w) / sum(pair_w) else NA_real_
+	Xd <- as.matrix(stats$X_matched_diffs)
+	beta_m <- stats::lm.wfit(cbind(1, Xd), stats$y_matched_diffs, w = pair_w)$coefficients[[1L]]
 	res_idx <- which(m == 0L)
-	yr <- stats$y_reservoir
-	wr <- stats$w_reservoir
-	rw <- row_weights[res_idx]
-	num_t <- sum(yr[wr == 1] * rw[wr == 1], na.rm = TRUE)
-	den_t <- sum(rw[wr == 1], na.rm = TRUE)
-	num_c <- sum(yr[wr == 0] * rw[wr == 0], na.rm = TRUE)
-	den_c <- sum(rw[wr == 0], na.rm = TRUE)
-	r_bar_w <- if (is.finite(den_t) && den_t > 0 && is.finite(den_c) && den_c > 0) {
-		num_t / den_t - num_c / den_c
-	} else NA_real_
-	w_star <- stats$w_star
-	if (is.null(w_star) || is.na(w_star)) {
-		if (!is.na(d_bar_w)) return(d_bar_w)
-		return(r_bar_w)
-	}
-	w_star * d_bar_w + (1 - w_star) * r_bar_w
+	beta_r <- stats::lm.wfit(cbind(1, stats$w_reservoir, as.matrix(stats$X_reservoir)), stats$y_reservoir,
+		w = row_weights[res_idx])$coefficients[[2L]]
+	c(beta_m = beta_m, beta_r = beta_r)
 }
 
-test_that("compute_estimate_with_bootstrap_weights matches the from-scratch weighted passthrough formula", {
+test_that("a weighted replicate refits both halves by weighted least squares and pools them by inverse variance", {
 	des <- contin_kk_ols_ivwc_fixture()
 	inf <- InferenceContinKKOLSIVWC$new(des)
 	priv <- inf$.__enclos_env__$private
@@ -70,27 +65,33 @@ test_that("compute_estimate_with_bootstrap_weights matches the from-scratch weig
 	expect_length(row_weights, 24L)
 
 	res <- inf$compute_estimate_with_bootstrap_weights(wts_block, estimate_only = TRUE)
-	expected <- kk_ols_ivwc_weighted_reference(priv, row_weights)
-	expect_equal(res, expected, tolerance = 1e-10)
 	expect_true(is.finite(res))
+	refit <- priv$last_weighted_refit$cached_values
+	ref <- kk_ols_ivwc_weighted_halves_reference(priv, row_weights)
+	expect_equal(refit$beta_T_matched, ref[["beta_m"]], tolerance = 1e-8)
+	expect_equal(refit$beta_T_reservoir, ref[["beta_r"]], tolerance = 1e-8)
+	ssq_m <- refit$ssq_beta_T_matched
+	ssq_r <- refit$ssq_beta_T_reservoir
+	expect_true(is.finite(ssq_m) && ssq_m > 0 && is.finite(ssq_r) && ssq_r > 0)
+	w_star <- ssq_r / (ssq_r + ssq_m)
+	expect_equal(res, w_star * ref[["beta_m"]] + (1 - w_star) * ref[["beta_r"]], tolerance = 1e-8)
 })
 
-test_that("constant weights are scale-invariant and estimate_only has no effect on this fallback path", {
+test_that("constant weights give the point estimate, and the refit is scale-invariant", {
 	des <- contin_kk_ols_ivwc_fixture()
 	inf <- InferenceContinKKOLSIVWC$new(des)
 	priv <- inf$.__enclos_env__$private
 	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
 
-	res_unit <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = TRUE)
-	res_scaled <- inf$compute_estimate_with_bootstrap_weights(rep(5, 20), estimate_only = TRUE)
-	expect_equal(res_scaled, res_unit, tolerance = 1e-10)
-
-	# Documented note, not a bug: this generic passthrough fallback never
-	# reads its estimate_only argument, matching the pattern already
-	# confirmed on the KKRankRegrIVWC/KKQuantileRegrIVWC siblings.
-	res_true <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = TRUE)
-	res_false <- inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = FALSE)
-	expect_identical(res_true, res_false)
+	est <- inf$compute_estimate()
+	expect_equal(inf$compute_estimate_with_bootstrap_weights(rep(1, 20), estimate_only = TRUE), est, tolerance = 1e-12)
+	expect_equal(inf$compute_estimate_with_bootstrap_weights(rep(5, 20), estimate_only = FALSE), est, tolerance = 1e-12)
+	set.seed(2)
+	w <- runif(20, 0.5, 2)
+	expect_equal(inf$compute_estimate_with_bootstrap_weights(5 * w, estimate_only = TRUE),
+		inf$compute_estimate_with_bootstrap_weights(w, estimate_only = TRUE), tolerance = 1e-10)
+	# Near-uniform weights take the weighted path and still reproduce the estimate.
+	expect_equal(inf$compute_estimate_with_bootstrap_weights(1 + 1e-8 * w, estimate_only = TRUE), est, tolerance = 1e-6)
 })
 
 test_that("all-zero weights degrade gracefully to a non-finite result rather than erroring", {
@@ -99,11 +100,11 @@ test_that("all-zero weights degrade gracefully to a non-finite result rather tha
 	priv <- inf$.__enclos_env__$private
 	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
 
-	res <- inf$compute_estimate_with_bootstrap_weights(rep(0, 20), estimate_only = TRUE)
+	res <- suppressWarnings(inf$compute_estimate_with_bootstrap_weights(rep(0, 20), estimate_only = TRUE))
 	expect_false(is.finite(res))
 })
 
-test_that("reweighting only the reservoir arm changes the estimate while leaving pair weights untouched", {
+test_that("reweighting only the reservoir arm moves only the reservoir half", {
 	des <- contin_kk_ols_ivwc_fixture()
 	inf <- InferenceContinKKOLSIVWC$new(des)
 	priv <- inf$.__enclos_env__$private
@@ -111,21 +112,23 @@ test_that("reweighting only the reservoir arm changes the estimate while leaving
 	priv$compute_basic_match_data()
 
 	m <- priv$m
-	pair_ids <- sort(unique(m[m > 0L]))
-	n_pairs <- length(pair_ids)
+	n_pairs <- length(unique(m[m > 0L]))
 	n_reservoir <- sum(m == 0L)
 	expect_equal(n_pairs, 4L)
 	expect_equal(n_reservoir, 16L)
 
-	base_wts <- rep(1, n_pairs + n_reservoir)
-	skewed_wts <- base_wts
-	skewed_wts[(n_pairs + 1):length(skewed_wts)] <- runif(n_reservoir, 3, 5)
-
-	res_base <- inf$compute_estimate_with_bootstrap_weights(base_wts, estimate_only = TRUE)
+	# Units are numbered in order of first appearance, so find the reservoir units.
+	ctx <- priv$current_bayesian_bootstrap_context
+	reservoir_units <- unique(ctx$row_to_unit[m == 0L])
+	expect_length(reservoir_units, n_reservoir)
+	set.seed(4)
+	skewed_wts <- rep(1, ctx$n_units)
+	skewed_wts[reservoir_units] <- runif(n_reservoir, 3, 5)
 	res_skewed <- inf$compute_estimate_with_bootstrap_weights(skewed_wts, estimate_only = TRUE)
-	row_weights_skewed <- priv$expand_subject_or_block_weights_to_row_weights(skewed_wts)
-	expected_skewed <- kk_ols_ivwc_weighted_reference(priv, row_weights_skewed)
-
-	expect_equal(res_skewed, expected_skewed, tolerance = 1e-10)
-	expect_false(isTRUE(all.equal(res_skewed, res_base, tolerance = 1e-8)))
+	refit <- priv$last_weighted_refit$cached_values
+	inf$compute_estimate()
+	observed <- priv$cached_values
+	expect_equal(refit$beta_T_matched, observed$beta_T_matched, tolerance = 1e-10)
+	expect_false(isTRUE(all.equal(refit$beta_T_reservoir, observed$beta_T_reservoir, tolerance = 1e-8)))
+	expect_false(isTRUE(all.equal(res_skewed, inf$compute_estimate(), tolerance = 1e-8)))
 })

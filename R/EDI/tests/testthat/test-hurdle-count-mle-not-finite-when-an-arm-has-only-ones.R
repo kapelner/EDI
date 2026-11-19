@@ -47,8 +47,9 @@ test_that("pscl::hurdle has no finite count-part treatment estimate on such data
 	y = d$y
 	y[d$w == 1 & y > 0] = 1
 	fit = suppressWarnings(pscl::hurdle(y ~ w + x, data = data.frame(y = y, w = d$w, x = d$x), dist = "poisson"))
-	expect_gt(abs(coef(fit)[["count_w"]]), 8)
-	expect_gt(sqrt(diag(vcov(fit)))[["count_w"]], 50)
+	# (suppressWarnings: pscl itself warns ".Names is deprecated" on current R)
+	expect_gt(abs(suppressWarnings(coef(fit))[["count_w"]]), 8)
+	expect_gt(suppressWarnings(sqrt(diag(vcov(fit))))[["count_w"]], 50)
 })
 
 test_that("an arm whose positive counts all equal 1 gives NA, a reason and one warning; ordinary data are unchanged", {
@@ -58,8 +59,9 @@ test_that("an arm whose positive counts all equal 1 gives NA, a reason and one w
 		y[d$w == arm & y > 0] = 1
 		for (cls in names(hurdle_ones_classes)) {
 			inf = get(cls)$new(hurdle_ones_design(y, d$x, d$w), verbose = FALSE)
-			w = expect_warning(est <- inf$compute_estimate(), class = "edi_hurdle_count_mle_not_finite_warning")
+			w = tryCatch(inf$compute_estimate(), edi_hurdle_count_mle_not_finite_warning = function(w) w)
 			expect_s3_class(w, "edi_procedure_na_warning")
+			est = inf$compute_estimate()
 			expect_identical(w$reason, hurdle_ones_classes[[cls]])
 			expect_true(is.na(est), info = paste(cls, arm))
 			expect_identical(inf$.__enclos_env__$private$cached_values$nonestimable_reason, hurdle_ones_classes[[cls]])
@@ -73,8 +75,8 @@ test_that("an arm whose positive counts all equal 1 gives NA, a reason and one w
 		est = suppressWarnings(get(cls)$new(hurdle_ones_design(d$y, d$x, d$w), verbose = FALSE)$compute_estimate())
 		expect_true(is.finite(est), info = cls)
 		if (requireNamespace("pscl", quietly = TRUE)) {
-			ref = coef(pscl::hurdle(y ~ w + x, data = data.frame(y = d$y, w = d$w, x = d$x),
-				dist = if (grepl("NegBin", cls)) "negbin" else "poisson"))[["count_w"]]
+			ref = suppressWarnings(coef(pscl::hurdle(y ~ w + x, data = data.frame(y = d$y, w = d$w, x = d$x),
+				dist = if (grepl("NegBin", cls)) "negbin" else "poisson")))[["count_w"]]
 			expect_equal(est, ref, tolerance = 1e-3, info = cls)
 		}
 	}

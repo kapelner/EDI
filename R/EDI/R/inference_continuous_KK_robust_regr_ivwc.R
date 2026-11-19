@@ -434,8 +434,8 @@ ContinKKRobustRegrIVWCSource = list(
 #' as predictors.
 #'
 #' \strong{No Bayesian bootstrap.} Its MM-estimator fits have no weighted refit, so this class does not
-#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
-#' nonparametric or randomization bootstrap instead.
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+#' Its other resampling methods are unaffected.
 #'
 #' @examples
 #' \donttest{

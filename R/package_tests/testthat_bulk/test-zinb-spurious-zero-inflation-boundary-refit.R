@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-207 (found under v1.1.0-TODO-217): fast_zinb_cpp() with optimization_alg = "newton_raphson" (the class default), warm-started from
+# v1.0.6-TODO-222 (found under v1.1.0-TODO-217): fast_zinb_cpp() with optimization_alg = "newton_raphson" (the class default), warm-started from
 # the full-data MLE, can step into the flat region where every zero-inflation linear predictor is below -10; the C++
 # fit_zinb_zi_boundary_fallback() then accepts the zero-inflation-off NegBin fit ("NegBinNoZI") although an interior
 # fit has a lower negative log-likelihood. Randomization draws are warm-started that way, so 13-14% of them returned

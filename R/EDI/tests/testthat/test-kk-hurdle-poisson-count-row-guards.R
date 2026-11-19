@@ -62,8 +62,9 @@ test_that("a treated arm whose positive counts are all 1 gives NA with a recorde
 	})
 	for (cls in kk_hurdle_guard_classes) {
 		inf = get(cls)$new(des, verbose = FALSE)
-		w = expect_warning(est <- inf$compute_estimate(), class = "edi_hurdle_count_mle_not_finite_warning")
+		w = tryCatch(inf$compute_estimate(), edi_hurdle_count_mle_not_finite_warning = function(w) w)
 		expect_s3_class(w, "edi_procedure_na_warning")
+		est = inf$compute_estimate()
 		expect_identical(w$reason, "kk_hurdle_count_mle_not_finite")
 		expect_true(is.na(est), info = cls)
 		expect_identical(inf$.__enclos_env__$private$cached_values$nonestimable_reason,

@@ -1796,8 +1796,13 @@ zero_augmented_count_mle_infinite = function(X_fit, y, j_treat = 2L, weights = N
 # Full-data fit only (silent inside resampling): the hurdle count-part treatment
 # estimate is NA because its MLE is not finite (see
 # zero_augmented_count_mle_infinite_arms()). One edi_procedure_na_warning of
-# class edi_hurdle_count_mle_not_finite_warning, procedure "estimate".
+# class edi_hurdle_count_mle_not_finite_warning, procedure "estimate", once per
+# object.
 edi_warn_hurdle_count_mle_not_finite = function(self, private, arms, reason = "hurdle_count_mle_not_finite", kk_reservoir = FALSE) {
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	# once per object: the nonestimable fit is redone by later calls (CI, p-value)
+	if (isTRUE(private$cached_values$hurdle_count_mle_not_finite_warned)) return(invisible(FALSE))
+	private$cached_values$hurdle_count_mle_not_finite_warned = TRUE
 	arms = as.numeric(arms)
 	which_arms = if (length(arms) >= 2L) "both arms" else if (isTRUE(arms == 1)) "the treated arm (w = 1)" else "the control arm (w = 0)"
 	edi_warn_procedure_na(self, private, procedure = "estimate", reason = reason,
@@ -1867,7 +1872,7 @@ edi_zero_augmented_drop_aliased_count_cols = function(self, private, X_fit, weig
 	res$X
 }
 
-# v1.0.6-TODO-207 (2026-11-19; found under v1.1.0-TODO-217): ZINB negative log-likelihood in R, for comparing two
+# v1.0.6-TODO-222 (2026-11-19; found under v1.1.0-TODO-217): ZINB negative log-likelihood in R, for comparing two
 # fast_zinb_cpp() fits (its estimate_only results carry no neg_loglik). params =
 # c(beta_count, beta_zero, log_theta), the C++ layout; zi_off = TRUE evaluates the
 # zero-inflation-off limit (pi = 0), which is what a "NegBinNoZI" boundary fit stands for.
@@ -1886,7 +1891,7 @@ zinb_neg_loglik_r = function(params, X, Xzi, y, zi_off = FALSE) {
 	-sum(ll)
 }
 
-# v1.0.6-TODO-207 (2026-11-19; found under v1.1.0-TODO-217): fast_zinb_cpp() with a guard against a wrong
+# v1.0.6-TODO-222 (2026-11-19; found under v1.1.0-TODO-217): fast_zinb_cpp() with a guard against a wrong
 # (non-MLE) fit. Newton-Raphson (the class default), started from a warm start
 # such as the full-data MLE, has two failure modes on ZINB data whose
 # zero-inflation logit is flat or separated:
@@ -1909,7 +1914,7 @@ zinb_neg_loglik_r = function(params, X, Xzi, y, zi_off = FALSE) {
 # log-likelihood is kept (a refit must improve it by more than 1e-6). The root
 # cause is in C++ (both acceptance paths should compare likelihoods); this R
 # guard avoids a rebuild and is local to the ZINB fits. Remove it once both C++
-# acceptance paths compare likelihoods (the root fix in v1.0.6-TODO-207).
+# acceptance paths compare likelihoods (the root fix in v1.0.6-TODO-222).
 fast_zinb_cpp_guarded = function(...) {
 	args = list(...)
 	# v1.0.6-TODO-30: never warm-start from a zero part on the ridge (see
