@@ -51,6 +51,39 @@
 #' \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 #' which models the overdispersion.
 #'
+#' \strong{Aliased count-part covariates.} The count-part coefficients are
+#' estimated from the subjects with a positive count only (the zero-truncated
+#' part of the likelihood). A count-part covariate can be aliased on those
+#' subjects (constant among them, or a linear combination of the intercept, the
+#' treatment and the covariates before it) even when it varies over the whole
+#' sample.
+#' Such a covariate has no identified count-part coefficient, so it is dropped
+#' from the count part before fitting, with one warning of class
+#' \code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+#' every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+#' rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+#' with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+#' by leaving the aliased columns out of its pivoted QR decomposition and reports
+#' their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+#' is an error); the dropped count-part coefficients are likewise \code{NA} in
+#' this class's coefficient vector. As in \code{glm}, columns are checked in
+#' design order (intercept, treatment, then the covariates), and a column is
+#' dropped when it adds nothing given the columns kept before it. The treatment
+#' is never dropped: when it is itself aliased on those subjects (for example,
+#' all of them are in one arm), its count-part coefficient is not identified and
+#' the estimate is \code{NA}.
+#'
+#' \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
+#' part is separated (a fitted probability of a zero is numerically 0 or 1, or
+#' the fit stopped on such a ridge), its coefficients are reported as \code{NA}
+#' with one warning of class \code{edi_zero_part_separation_warning} (a subclass
+#' of \code{edi_logistic_separation_warning}). The hurdle likelihood factorizes,
+#' so the count-part treatment estimate does not depend on the hurdle part and is
+#' kept. Unlike a zero-inflation part, a hurdle part has no benign "no
+#' inflation" case (its probabilities model the observed zeros), so this is
+#' always the warning. Randomization and bootstrap refits are never warm-started from a
+#' full-data hurdle part on such a ridge (v1.0.6-TODO-30, v1.0.6-TODO-152).
+#'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
 #'   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
@@ -261,6 +294,28 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' \code{compute_jackknife_estimate()} and related methods report explicit
 #' non-estimability rather than attempting delete-one refits.
 #'
+#' \strong{Aliased count-part covariates.} The count-part coefficients are
+#' estimated from the subjects with a positive count only (the zero-truncated
+#' part of the likelihood). A count-part covariate can be aliased on those
+#' subjects (constant among them, or a linear combination of the intercept, the
+#' treatment and the covariates before it) even when it varies over the whole
+#' sample.
+#' Such a covariate has no identified count-part coefficient, so it is dropped
+#' from the count part before fitting, with one warning of class
+#' \code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+#' every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+#' rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+#' with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+#' by leaving the aliased columns out of its pivoted QR decomposition and reports
+#' their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+#' is an error); the dropped count-part coefficients are likewise \code{NA} in
+#' this class's coefficient vector. As in \code{glm}, columns are checked in
+#' design order (intercept, treatment, then the covariates), and a column is
+#' dropped when it adds nothing given the columns kept before it. The treatment
+#' is never dropped: when it is itself aliased on those subjects (for example,
+#' all of them are in one arm), its count-part coefficient is not identified and
+#' the estimate is \code{NA}.
+#'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
 #'   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
@@ -430,9 +485,18 @@ InferenceCountHurdleNegBin = define_inference_class(
 				private$cache_nonestimable_estimate("hurdle_negbin_weighted_design_unusable")
 				return(NA_real_)
 			}
+			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit, on the
+			# rows with positive weight.
+			X_fit = edi_zero_augmented_drop_aliased_count_cols(self, private, X_fit, weights = row_weights)
 			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_fit, private$y, 2L, weights = row_weights)) {
 				private$cache_nonestimable_estimate("hurdle_negbin_count_treatment_unidentified")
+				return(NA_real_)
+			}
+			# v1.0.6-TODO-195 (3): no finite count-part treatment MLE on the rows with
+			# positive weight.
+			if (zero_augmented_count_mle_infinite(X_fit, private$y, 2L, weights = row_weights)) {
+				private$cache_nonestimable_estimate("hurdle_negbin_count_mle_not_finite")
 				return(NA_real_)
 			}
 			dat = private$build_hurdle_frame(X_fit, X_hurdle)
@@ -527,8 +591,15 @@ InferenceCountHurdleNegBin = define_inference_class(
 			X_f = private$build_component_matrix(private$model_formula, private$best_X_colnames, treatment_name = "treatment")
 			X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			if (is.null(X_f) || is.null(X_hurdle)) return(NA_real_)
+			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit.
+			X_f = edi_zero_augmented_drop_aliased_count_cols(self, private, X_f)
 			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_f, private$y, 2L)) return(NA_real_)
+			# v1.0.6-TODO-195 (3): no finite count-part treatment MLE.
+			if (zero_augmented_count_mle_infinite(X_f, private$y, 2L)) return(NA_real_)
+			# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+			if (!isTRUE(tryCatch(edi_check_count_kernel_inputs("fast_hurdle_negbin_cpp", X_f, private$y, X_hurdle, X2_name = "X_hurdle"),
+				error = function(e) FALSE))) return(NA_real_)
 			n_params = ncol(X_f) + 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			has_vc = isTRUE(is.finite(private$cached_vc_params))
@@ -609,6 +680,9 @@ InferenceCountHurdleNegBin = define_inference_class(
 			data.frame(w = private$w)
 		},
 		try_hurdle_negbin_fit = function(X_f, X_hurdle, j_t, estimate_only = FALSE){
+			# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+			if (!isTRUE(tryCatch(edi_check_count_kernel_inputs("fast_hurdle_negbin_cpp", X_f, private$y, X_hurdle, X2_name = "X_hurdle"),
+				error = function(e) FALSE))) return(NULL)
 			n_params = ncol(X_f) + 1L
 			warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 			warm_fisher = private$get_fit_warm_start_fisher(n_params)
@@ -787,6 +861,26 @@ InferenceCountHurdleNegBin = define_inference_class(
 			} else {
 				X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			}
+			# v1.0.6-TODO-195 (2): drop count-part covariates aliased on the positive
+			# rows, as glm does (warns once, never inside resampling); j_treat stays 2.
+			if (isTRUE(private$harden) && identical(as.integer(j_treat), 2L)) {
+				aliased = zero_augmented_drop_aliased_count_cols(X_fit, private$y, j_treat = 2L)
+				if (length(aliased$dropped)) {
+					X_fit = aliased$X
+					reduced$keep = reduced$keep[aliased$keep]
+					edi_warn_covariate_dropped_once(self, private, aliased$dropped, "aliased_on_positive_rows")
+				}
+			}
+			# v1.0.6-TODO-195 (3): when one arm's positive counts all equal 1 the
+			# zero-truncated count part has no finite treatment MLE, whatever the
+			# covariates (so no treatment-only fallback): NA with a recorded reason and
+			# one edi_procedure_na_warning (silent inside resampling).
+			inf_arms = zero_augmented_count_mle_infinite_arms(X_fit, private$y, j_treat)
+			if (length(inf_arms)) {
+				private$cache_nonestimable_estimate("hurdle_negbin_count_mle_not_finite")
+				edi_warn_hurdle_count_mle_not_finite(self, private, inf_arms, reason = "hurdle_negbin_count_mle_not_finite")
+				return(NULL)
+			}
 			# v1.0.6-TODO-186: skip the fit when the positive rows do not identify the
 			# count-part treatment coefficient (see zero_augmented_count_treatment_identified()).
 			fit = if (zero_augmented_count_treatment_identified(X_fit, private$y, j_treat)) {
@@ -825,6 +919,23 @@ InferenceCountHurdleNegBin = define_inference_class(
 			private$cached_values$hurdle_coefficients = fit$mod$hurdle_b
 			log_th = log(as.numeric(fit$mod$theta_hat))
 			if (isTRUE(is.finite(log_th))) private$cached_vc_params = log_th
+			# v1.0.6-TODO-218 (2): the same zero-part separation flag as the other
+			# zero-augmented classes (v1.0.6-TODO-152). The hurdle part is a logistic
+			# regression of 1(y > 0) fit on its own, so its information block is
+			# X_h' diag(p (1 - p)) X_h. A hurdle part has no "no inflation" case:
+			# separation always gives the edi_zero_part_separation_warning. The
+			# internal hurdle_coefficients are kept for the parametric bootstrap's
+			# simulation; only the reason is recorded.
+			private$cached_values$zero_part_nonestimable_reason = NULL
+			hurdle_b = as.numeric(fit$mod$hurdle_b)
+			X_h = as.matrix(fit$X_hurdle)
+			if (length(hurdle_b) == ncol(X_h) && all(is.finite(hurdle_b))) {
+				p_h = stats::plogis(as.numeric(X_h %*% hurdle_b))
+				info_h = crossprod(X_h, X_h * (p_h * (1 - p_h)))
+				edi_zero_augmented_flag_zero_part_separation(self, private,
+					fit = list(params = c(rep(0, ncol(fit$X)), hurdle_b)),
+					X_fit = fit$X, Xzi_fit = X_h, is_hurdle = TRUE, zero_info = info_h)
+			}
 			
 			out
 		},
@@ -873,6 +984,13 @@ InferenceCountHurdleNegBin = define_inference_class(
 			b_j = as.numeric(full_res$b[j])
 			if (!is.finite(b_j)) return(NULL)
 			warm_fisher = full_res$fisher_information
+			# v1.0.6-TODO-186 / -195 (3): see the matching block in the zero-augmented
+			# Poisson simulate_under_lik_null(): the estimate replicate reads b[j] and
+			# counts NA as a failed refit; the LR replicate uses only the two nlls.
+			if (!zero_augmented_count_treatment_identified(X_pos, y_pos_obs, j_treat = j) ||
+				zero_augmented_count_mle_infinite(X_pos, y_pos_obs, j_treat = j)) {
+				full_res$b[j] = NA_real_
+			}
 			list(
 				full_fit = full_res,
 				fit_null = function(d, start = NULL){

@@ -2468,7 +2468,7 @@ InferenceIncidProbitRegr (model_formula=~.) [design_formula=~1],FixediBCRD,0.5,c
 InferenceAllSimpleAverageDiff [design_formula=~.],KK21stepwise,0.5,ci_asymp,incidence,0,1,57
 InferenceIncidExactFisher [design_formula=~.],KK21stepwise,0.5,ci_exact,incidence,0,1,57
 InferenceIncidExactBinomial [design_formula=~.],KK21stepwise,0.5,ci_exact,incidence,0,1,57
-InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,ci_exact,incidence,0,1,57
+InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,ci_exact,incidence,0,0.982456140350877,57
 InferenceIncidWald [design_formula=~.],KK21stepwise,0.5,ci_asymp,incidence,0,1,57
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,0.5,ci_asymp,incidence,0,1,57
 InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],KK21stepwise,0.5,ci_asymp,incidence,0,1,57
@@ -2492,7 +2492,7 @@ InferenceAllSimpleAverageDiff [design_formula=~.],FixedBinaryMatch,0.5,ci_asymp,
 InferenceAllSimpleAverageDiff [design_formula=~.],FixedBinaryMatch,0.5,ci_bootstrap,incidence,0,1,30
 InferenceIncidExactFisher [design_formula=~.],FixedBinaryMatch,0.5,ci_exact,incidence,0,1,57
 InferenceIncidExactBinomial [design_formula=~.],FixedBinaryMatch,0.5,ci_exact,incidence,0,1,57
-InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,ci_exact,incidence,0,1,57
+InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,ci_exact,incidence,0,0.982456140350877,57
 InferenceIncidWald [design_formula=~.],FixedBinaryMatch,0.5,ci_asymp,incidence,0,1,57
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,0.5,ci_asymp,incidence,0,1,57
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,0.5,ci_bootstrap,incidence,0,1,38

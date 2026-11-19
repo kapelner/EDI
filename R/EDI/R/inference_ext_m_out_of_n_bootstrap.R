@@ -49,10 +49,6 @@ InferenceExtMOutOfNBootstrap = list(
 		#' @references Bickel, P. J. and Sakov, A. (2008). On the choice of m in
 		#'   the m out of n bootstrap. \emph{The Annals of Statistics}.
 		approximate_m_out_of_n_bootstrap_distribution_beta_hat_T_impl = function(B = 501, m = NULL, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "m_out_of_n_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap setup")
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("m-out-of-n bootstrap inference")
@@ -99,12 +95,19 @@ InferenceExtMOutOfNBootstrap = list(
 				preserve_order = FALSE,
 				size_label = "m"
 			)
-			res = private$compute_resampling_draw_distribution(
-				draws = draws,
-				operation = "m_out_of_n_boot",
-				show_progress = show_progress,
-				debug = debug,
-				cache_key = cache_key
+			# Flag only the replicate loop (v1.0.6-TODO-207), restoring the caller's value
+			# (v1.0.6-TODO-185), so this method's own top-level code is not silenced.
+			prev_resampling_operation = private$active_resampling_operation
+			private$active_resampling_operation = "m_out_of_n_boot"
+			res = tryCatch(
+				private$compute_resampling_draw_distribution(
+					draws = draws,
+					operation = "m_out_of_n_boot",
+					show_progress = show_progress,
+					debug = debug,
+					cache_key = cache_key
+				),
+				finally = private$active_resampling_operation <- prev_resampling_operation
 			)
 			if (isTRUE(debug)) {
 				private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap debug summary")

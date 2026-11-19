@@ -136,6 +136,13 @@ ExactZhangIncidenceSource = list(
 #' normal-approximation (Haldane-Anscombe MLE) interval as the search bracket.
 #' Requires a Bernoulli-capable or matching-capable design.
 #'
+#' On a matching design the point estimate and the exact confidence interval
+#' are different quantities: the estimate is the log odds ratio of the pooled
+#' table over all subjects, while the interval inverts the combined test, which
+#' uses only the discordant matched pairs and the reservoir table. The estimate
+#' therefore is not guaranteed to lie inside the exact confidence interval,
+#' although it usually does.
+#'
 #' @examples
 #' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'incidence')
 #' for (i in 1:20) {

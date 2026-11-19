@@ -200,11 +200,28 @@ risk_diff_se_formula_changed_labels = c("asymp_ci", "asymp_pval", "wald_ci", "wa
 # reset) before being invoked -- see test-incid-cmh-extended-robins-migration-
 # golden.R for why this is the only safe general pattern for classes whose
 # nominally-deterministic methods may consume the global RNG stream.
+#
+# v1.0.6-TODO-212: the shared harness calls use r = B = 9, below the 10 finite
+# draws the randomization and randomization-bootstrap p-values need, so those
+# two columns compared NA with NA on both sides. This file raises them to 12 and
+# pins the (finite) value both sides must return.
+risk_diff_method_calls = local({
+	calls = inference_migration_method_calls_with_rand_r(12L)
+	calls$randomization_bootstrap_distr$args$B = 12L
+	calls$randomization_bootstrap_pval$args$B = 12L
+	calls
+})
+risk_diff_pinned_values = list(
+	randomization_pval = 0.16666666666666666,
+	randomization_bootstrap_pval = 0.16666666666666666
+)
+
 expect_risk_diff_migration_outputs_equal = function(legacy_class, migrated_class, design) {
 	legacy = legacy_class$new(design)
 	migrated = migrated_class$new(design)
-	for (label in names(inference_migration_method_calls)) {
-		spec = inference_migration_method_calls[[label]]
+	pinned_checked = character(0)
+	for (label in names(risk_diff_method_calls)) {
+		spec = risk_diff_method_calls[[label]]
 		legacy$set_seed(20260817L)
 		legacy_result = inference_migration_with_seed(20260817L,
 			inference_migration_call_optional_method(legacy, spec$method, spec$args))
@@ -246,7 +263,14 @@ expect_risk_diff_migration_outputs_equal = function(legacy_class, migrated_class
 			next
 		}
 		expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-7, info = label)
+		if (label %in% names(risk_diff_pinned_values)) {
+			expect_true(is.finite(legacy_result$value), info = label)
+			expect_equal(legacy_result$value, risk_diff_pinned_values[[label]], tolerance = 1e-8, info = label)
+			expect_equal(migrated_result$value, risk_diff_pinned_values[[label]], tolerance = 1e-8, info = label)
+			pinned_checked = c(pinned_checked, label)
+		}
 	}
+	expect_setequal(pinned_checked, names(risk_diff_pinned_values))
 }
 
 test_that("InferenceIncidRiskDiff migration produces identical outputs (no covariates beyond x)", {

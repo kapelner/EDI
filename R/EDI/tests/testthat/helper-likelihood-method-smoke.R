@@ -157,7 +157,7 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 
 			if (supports_param_boot_ci){
 				param_boot_ci = tryCatch(
-					inf$compute_lik_ratio_bootstrap_confidence_interval(alpha = 0.2, B = 5L, show_progress = FALSE),
+					inf$compute_lik_ratio_bootstrap_confidence_interval(alpha = 0.2, B = 9L, show_progress = FALSE),
 					error = function(e) {
 						if (is_unsupported_method_error(e)) {
 							cat(sprintf("  [%s] skipping compute_lik_ratio_bootstrap_confidence_interval: %s\n", label, conditionMessage(e)))

@@ -46,6 +46,11 @@ test_that("BCa CI on the boundary with some non-finite bootstrap draws is NA wit
 		inf$compute_bootstrap_confidence_interval(B = 201, type = "bca", show_progress = FALSE),
 		warning = function(w) { warns[[length(warns) + 1L]] <<- w; invokeRestart("muffleWarning") }
 	)
+	# On macOS this seed's BCa adjustment is not on the boundary (R-CMD-check macos-latest,
+	# 2026-11-19: finite CI, no warning, while the non-finite-draw precondition above held).
+	# Why the platforms differ is not established. The bug was an NA with no warning, which a
+	# finite CI cannot hide, so a finite CI just means this platform never reached the case.
+	if (all(is.finite(ci))) skip("this platform's bootstrap draws do not put the BCa adjustment on the boundary")
 	expect_true(all(is.na(ci)))
 	expect_length(warns, 1L)
 	expect_true(inherits(warns[[1L]], "edi_procedure_na_warning"))

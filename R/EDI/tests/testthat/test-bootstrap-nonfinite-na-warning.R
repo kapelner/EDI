@@ -35,9 +35,11 @@ test_that("NA p-value from non-finite replicates warns once, values unchanged, C
 	expect_no_warning(p2 <- inf$compute_bootstrap_two_sided_pval(B = 101, type = "percentile", show_progress = FALSE),
 		message = "edi_bootstrap_nonfinite_na_warning")
 	expect_true(is.na(p2))
-	# na.rm = TRUE: finite p-value, no such warning
+	# na.rm = TRUE: finite p-value, no such warning. 94 of 101 replicates are finite, below the
+	# default 95% minimum (v1.0.6-TODO-12), so the minimum is lowered to 0.9 here.
 	p3 = withCallingHandlers(
-		inf$compute_bootstrap_two_sided_pval(B = 101, type = "percentile", na.rm = TRUE, show_progress = FALSE),
+		inf$compute_bootstrap_two_sided_pval(B = 101, type = "percentile", na.rm = TRUE, show_progress = FALSE,
+			min_fraction_usable_samples = 0.9),
 		edi_bootstrap_nonfinite_na_warning = function(w) stop("unexpected edi_bootstrap_nonfinite_na_warning"))
 	expect_true(is.finite(p3))
 })

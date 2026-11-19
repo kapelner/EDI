@@ -53,7 +53,10 @@ InferenceResamplingCore = R6::R6Class("InferenceResamplingCore",
 		# Moved from Jackknife.
 		normalize_jackknife_unit = function(unit = "auto"){
 			unit = tolower(as.character(unit)[1L])
-			valid = c("auto", "observation", "cluster", "block", "pair", "matched_set")
+			# "permuted_block" and "observation_within_block": v1.0.6-TODO-4 (see
+			# NonparametricBootstrap's resolve_jackknife_unit()).
+			valid = c("auto", "observation", "cluster", "block", "pair", "matched_set",
+				"permuted_block", "observation_within_block")
 			if (should_run_asserts()) {
 				assertChoice(unit, valid)
 			}
@@ -66,8 +69,11 @@ InferenceResamplingCore = R6::R6Class("InferenceResamplingCore",
 			is_matching_design = isTRUE(design_obj$is_matching_design())
 			is_cluster_design = design_obj$is_a_cluster_capable()
 			if (should_run_asserts()) {
-				if (unit == "block" && !is_blocking_design) {
-					stop("jackknife unit = 'block' requires a blocking design.", call. = FALSE)
+				if (unit %in% c("block", "observation_within_block") && !is_blocking_design) {
+					stop("jackknife unit = '", unit, "' requires a blocking design.", call. = FALSE)
+				}
+				if (unit == "permuted_block" && !is(design_obj, "DesignSeqOneByOneSPBR")) {
+					stop("jackknife unit = 'permuted_block' requires a DesignSeqOneByOneSPBR design.", call. = FALSE)
 				}
 				if (unit %in% c("pair", "matched_set") && !is_matching_design) {
 					stop("jackknife unit = '", unit, "' requires a matching design.", call. = FALSE)

@@ -11,6 +11,15 @@ library(EDI)
 # clone-bug era. Deterministic goldens (estimates, asymptotic CIs/p-values,
 # KK bootstrap distribution/CI) are unchanged to the last digit.
 
+# v1.0.6-TODO-204 (2026-11-19): every golden below that reads the shared
+# continuous fixture was re-recorded after the fixture gained a small seeded
+# noise term (inference_migration_complete_design(); its old
+# seq(-0.3, 0.3) noise was collinear with x, so y was an exact linear function
+# of w, x and z). The values moved only because the data did: before the change
+# this file passed unchanged against the old fixture. Unchanged goldens (NA
+# results, and values that depend only on ranks or on draw counts) were not
+# touched.
+
 simple_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
@@ -158,7 +167,7 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"estimate",
 		"compute_estimate",
 		list(),
-		0.426363636363637
+		0.30435871217399524
 	)
 	# Re-recorded 2026-09-22: the previous value was the 95% CI, silently
 	# returned regardless of the requested alpha by a caching bug in
@@ -177,7 +186,7 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"asymptotic confidence interval",
 		"compute_asymp_confidence_interval",
 		list(alpha = 0.2),
-		c(-0.0226825070361196, 0.8491562829742763),
+		c(-0.011038369548522855, 0.89536898480746385),
 		tolerance = 1e-4
 	)
 	expect_simple_wilcox_golden(
@@ -191,32 +200,35 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
 		c(
-			0.049090909090908963, 0.4263636363636365, -0.11136363636363622,
-			0.196363636363636185, -0.124545454545454515, 0.84909090909090934,
-			0.1999999999999999, -0.49818181818181817, -0.449090909090908985
+			0.12478309614234062, 0.30435871217399524, -0.12478309614234062,
+			0.18802937649939488, -0.033604646194289947, 0.85528888758256405,
+			0.34413026464604191, -0.2412782501801316, -0.31836104081332084
 		)
 	)
 	expect_simple_wilcox_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		list(delta = 0, r = 9L, show_progress = FALSE),
-		NA_real_
+		# v1.0.6-TODO-212: r = 12, not 9. With r = 9 the p-value is NA (fewer
+		# than the 10 finite draws the randomization p-value needs), so the
+		# golden compared NA with NA.
+		list(delta = 0, r = 12L, show_progress = FALSE),
+		0.66666666666666663
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap distribution",
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.84909090909090923, 0.924545454545455, 0.35090909090909139,
-			0.32636363636363647, 0.30181818181818199, 1.17363636363636381,
-			0.57545454545454566, 0.84909090909090945, 0.38863636363636372
+			0.89532055979720915, 0.90171062137699409, 0.15431547231191767,
+			0.31829563638026082, 0.23010658429136777, 1.2260610900389519,
+			0.61697159098176024, 0.89532055979720915, 0.45630079367704934
 		)
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap confidence interval",
 		"compute_bootstrap_confidence_interval",
 		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = 0.30836363636363651, `90%` = 1.10721212121212131)
+		c(`10%` = 0.17452643550643768, `90%` = 1.1395676317290961)
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap p-value",
@@ -238,16 +250,18 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		# a broader regression. Re-verified finite and well-formed before
 		# recording.
 		c(
-			-0.04909090909090913, 0, -0.02272727272727283,
-			-0.02272727272727283, 0.47545454545454531, -0.43590909090909083,
-			0.02272727272727283, -0.97363636363636353, -0.27181818181818175
+			0, 0, -0.011021774843224641,
+			-0.033604646194289947, 0.4692274752449701, -0.2572158191799197,
+			0.099632210415790942, -0.92903446398468637, -0.11377724861676741
 		)
 	)
 	expect_simple_wilcox_golden(
 		"randomization bootstrap p-value",
 		"compute_rand_bootstrap_two_sided_pval",
-		list(delta = 0, B = 9L, show_progress = FALSE),
-		NA_real_
+		# v1.0.6-TODO-212: B = 12, not 9 (B = 9 is below the 10-finite-draw
+		# floor, so the golden compared NA with NA).
+		list(delta = 0, B = 12L, show_progress = FALSE),
+		0.16666666666666666
 	)
 	expect_simple_wilcox_golden(
 		"jackknife estimate",
@@ -317,8 +331,10 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 	expect_kk_wilcox_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		list(delta = 0, r = 9L, show_progress = FALSE),
-		NA_real_
+		# v1.0.6-TODO-212: r = 12, not 9 (r = 9 is below the 10-finite-draw floor,
+		# so the golden compared NA with NA).
+		list(delta = 0, r = 12L, show_progress = FALSE),
+		0.16666666666666666
 	)
 	# Ordinary nonparametric bootstrap was intentionally disabled for adaptive
 	# sequential designs, and since 2026-11-14 so is the randomization bootstrap;

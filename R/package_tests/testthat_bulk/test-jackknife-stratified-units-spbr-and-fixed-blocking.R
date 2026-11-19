@@ -1,0 +1,196 @@
+library(testthat)
+library(EDI)
+
+# v1.0.6-TODO-4: the jackknife on DesignSeqOneByOneSPBR and DesignFixedBlocking used to delete whole
+# strata (get_block_ids() returns stratum ids), leaving 2-4 replicates. The automatic units are now
+# "permuted_block" (SPBR: the design's permuted blocks, a trailing partial block merged into the
+# previous block of its stratum) and "observation_within_block" (FixedBlocking: one subject at a time),
+# both with the stratified delete-1 jackknife of Wolter (2007, Sec. 4.5) applied to the reweighting-
+# equivalent replicates theta* = theta_hat + r_h (theta_(h,i) - theta_hat), r_h = n_h (N - 1) / (N (n_h - 1)):
+#   v = sum_h (n_h - 1) / n_h * sum_i (theta*_(h,i) - theta*_bar_h)^2, bias = sum_h (n_h - 1) (theta*_bar_h - theta_hat).
+
+stratified_hand <- function(loo, strata, theta_hat) {
+	N <- length(loo); v <- 0; b <- 0
+	for (h in unique(strata)) {
+		th <- loo[strata == h]; n_h <- length(th)
+		if (n_h < 2L) next
+		th <- theta_hat + n_h * (N - 1) / (N * (n_h - 1)) * (th - theta_hat)
+		v <- v + (n_h - 1) / n_h * sum((th - mean(th))^2)
+		b <- b + (n_h - 1) * (mean(th) - theta_hat)
+	}
+	list(se = sqrt(v), bias = b)
+}
+
+mean_diff <- function(y, w) mean(y[w == 1]) - mean(y[w == 0])
+
+fixed_blocking_fixture <- function(sizes = c(4L, 4L, 4L), seed = 3L) {
+	set.seed(seed)
+	n <- sum(sizes)
+	X <- data.frame(s = factor(rep(letters[seq_along(sizes)], sizes)), x1 = rnorm(n))
+	des <- DesignFixedBlocking$new(strata_cols = "s", n = n, response_type = "continuous", equal_block_sizes = FALSE, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(n) + as.integer(X$s))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	inf$num_cores <- 1L
+	list(des = des, inf = inf, p = inf$.__enclos_env__$private, y = des$get_y(), w = des$get_w(), blk = des$get_block_ids())
+}
+
+spbr_fixture <- function(n = 23L, seed = 5L, block_size = 4L) {
+	set.seed(seed)
+	X <- data.frame(s = factor(sample(c("a", "b"), n, TRUE), levels = c("a", "b")), x1 = rnorm(n))
+	des <- DesignSeqOneByOneSPBR$new(strata_cols = "s", block_size = block_size, n = n, response_type = "continuous", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	des$add_all_subject_responses(rnorm(n) + as.integer(X$s))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	inf$num_cores <- 1L
+	list(des = des, inf = inf, p = inf$.__enclos_env__$private, X = X, y = des$get_y(), w = des$get_w())
+}
+
+test_that("FixedBlocking: the automatic jackknife deletes one subject and pools within strata (hand JKn)", {
+	f <- fixed_blocking_fixture()
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "observation_within_block")
+	theta_hat <- mean_diff(f$y, f$w)
+	loo <- vapply(seq_along(f$y), function(i) mean_diff(f$y[-i], f$w[-i]), numeric(1))
+	expect_equal(f$inf$approximate_jackknife_distribution_beta_hat_T(), loo, tolerance = 1e-12)
+	hand <- stratified_hand(loo, f$blk, theta_hat)
+	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_bias_estimate(), hand$bias, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_estimate(), theta_hat - hand$bias, tolerance = 1e-12)
+	z <- qnorm(0.975)
+	expect_equal(unname(f$inf$compute_jackknife_wald_confidence_interval()),
+		theta_hat - hand$bias + c(-1, 1) * z * hand$se, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_wald_two_sided_pval(),
+		2 * pnorm(-abs((theta_hat - hand$bias) / hand$se)), tolerance = 1e-12)
+	# Closed forms: v = ((N-1)/N)^2 sum_h n_h/(n_h-1) sum_i (theta_(h,i) - theta_bar_h)^2 and, with no
+	# singleton stratum, bias = (N - 1)(theta_bar - theta_hat).
+	N <- length(loo)
+	v_closed <- sum(vapply(unique(f$blk), function(h) { th <- loo[f$blk == h]; n_h <- length(th)
+		((N - 1) / N)^2 * n_h / (n_h - 1) * sum((th - mean(th))^2) }, numeric(1)))
+	expect_equal(f$inf$compute_jackknife_std_error(), sqrt(v_closed), tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_bias_estimate(), (N - 1) * (mean(loo) - theta_hat), tolerance = 1e-12)
+	# Not the unstratified delete-1 formula (which also counts the between-stratum spread).
+	G <- length(loo)
+	expect_false(isTRUE(all.equal(f$inf$compute_jackknife_std_error(), sqrt((G - 1) / G * sum((loo - mean(loo))^2)))))
+})
+
+test_that("FixedBlocking: an explicit unit = \"block\" still deletes whole strata", {
+	f <- fixed_blocking_fixture()
+	expect_length(f$inf$approximate_jackknife_distribution_beta_hat_T(unit = "block"), 3L)
+	# 3 strata: below EDI_JACKKNIFE_MIN_DELETION_UNITS, so NA with a warning.
+	expect_warning(se <- f$inf$compute_jackknife_std_error(unit = "block"), class = "edi_procedure_na_warning")
+	expect_true(is.na(se))
+})
+
+test_that("FixedBlocking: a one-subject stratum contributes nothing to the stratified jackknife", {
+	# Singleton strata are Bernoulli-randomized; pick a seed whose singleton is treated and whose other
+	# strata leave both arms after any one deletion.
+	f <- fixed_blocking_fixture(sizes = c(6L, 6L, 1L), seed = 11L)
+	expect_equal(sum(f$blk == f$blk[13L]), 1L)
+	theta_hat <- mean_diff(f$y, f$w)
+	loo <- vapply(seq_along(f$y), function(i) mean_diff(f$y[-i], f$w[-i]), numeric(1))
+	hand <- stratified_hand(loo, f$blk, theta_hat)
+	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
+	strata <- f$p$jackknife_replicate_strata("auto")
+	m <- EDI:::edi_jackknife_bias_variance(loo, theta_hat, strata)
+	# The singleton's replicate value never enters (it still counts in N, the number of units).
+	loo2 <- loo; loo2[13L] <- loo2[13L] + 100
+	expect_identical(EDI:::edi_jackknife_bias_variance(loo2, theta_hat, strata), m)
+	# Effective units: sum_h (n_h - 1) + 1 = 5 + 5 + 0 + 1.
+	expect_identical(EDI:::edi_jackknife_effective_units(13L, strata), 11L)
+})
+
+test_that("FixedBlocking: too few within-stratum degrees of freedom gives NA with the stratified message", {
+	f <- fixed_blocking_fixture(sizes = c(2L, 2L, 2L), seed = 4L)
+	expect_identical(EDI:::edi_jackknife_effective_units(6L, f$p$jackknife_replicate_strata("auto")), 4L)
+	expect_warning(se <- f$inf$compute_jackknife_std_error(), "degrees of freedom within strata", class = "edi_procedure_na_warning")
+	expect_true(is.na(se))
+})
+
+test_that("SPBR: the deletion units are the permuted blocks; a trailing partial block is merged", {
+	f <- spbr_fixture()
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
+	lay <- f$p$jackknife_stratified_layout("auto")
+	keys <- as.character(f$X$s)
+	strata_order <- unique(keys)
+	expected <- list(); expected_strata <- integer(0)
+	for (h in seq_along(strata_order)) {
+		idx <- which(keys == strata_order[h])
+		n_full <- length(idx) %/% 4L
+		blk <- (seq_along(idx) - 1L) %/% 4L + 1L
+		if (length(idx) %% 4L != 0L && n_full >= 1L) blk[blk > n_full] <- n_full
+		for (b in sort(unique(blk))) expected[[length(expected) + 1L]] <- idx[blk == b]
+		expected_strata <- c(expected_strata, rep(h, length(unique(blk))))
+	}
+	expect_identical(lay$delete, expected)
+	expect_identical(lay$strata, expected_strata)
+	# Every unit is one design block: full blocks have 2 treated of 4; the merged one 4 + partial.
+	sizes <- lengths(lay$delete)
+	expect_true(all(sizes >= 4L & sizes <= 7L))
+	expect_true(all(vapply(lay$delete[sizes == 4L], function(d) sum(f$w[d]), numeric(1)) == 2))
+	expect_identical(sort(unlist(lay$delete)), seq_len(23L))
+})
+
+test_that("SPBR: a stratum with only a partial block is one unit", {
+	set.seed(8)
+	n <- 15L
+	X <- data.frame(s = factor(c(rep("a", 12L), rep("b", 3L))[sample(n)], levels = c("a", "b")))
+	des <- DesignSeqOneByOneSPBR$new(strata_cols = "s", block_size = 4L, n = n, response_type = "continuous", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	des$add_all_subject_responses(rnorm(n))
+	p <- InferenceAllSimpleAverageDiff$new(des)$.__enclos_env__$private
+	lay <- p$jackknife_stratified_layout("auto")
+	b_units <- lay$delete[lay$strata == match("b", unique(as.character(X$s)))]
+	expect_length(b_units, 1L)
+	expect_identical(b_units[[1L]], which(X$s == "b"))
+	expect_length(lay$delete, 4L)
+})
+
+test_that("SPBR: jackknife SE and bias are the stratified JKn of the block-deleted replicates", {
+	f <- spbr_fixture(n = 60L, seed = 9L)
+	lay <- f$p$jackknife_stratified_layout("auto")
+	theta_hat <- mean_diff(f$y, f$w)
+	loo <- vapply(lay$delete, function(d) mean_diff(f$y[-d], f$w[-d]), numeric(1))
+	expect_equal(f$inf$approximate_jackknife_distribution_beta_hat_T(), loo, tolerance = 1e-12)
+	hand <- stratified_hand(loo, lay$strata, theta_hat)
+	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_estimate(), theta_hat - hand$bias, tolerance = 1e-12)
+})
+
+test_that("unit = \"permuted_block\" needs SPBR; \"observation_within_block\" needs a blocking design", {
+	f <- fixed_blocking_fixture()
+	expect_error(f$inf$compute_jackknife_std_error(unit = "permuted_block"), "DesignSeqOneByOneSPBR")
+	set.seed(1)
+	des <- DesignFixedBernoulli$new(n = 20L, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(20L))); des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(20L))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	expect_error(inf$compute_jackknife_std_error(unit = "observation_within_block"), "requires a blocking design")
+})
+
+test_that("unstratified units keep the ordinary jackknife formula bit for bit", {
+	set.seed(2)
+	jack <- rnorm(17L); theta_hat <- 0.3
+	G <- length(jack); jack_bar <- mean(jack)
+	m <- EDI:::edi_jackknife_bias_variance(jack, theta_hat, NULL)
+	expect_identical(m$bias, (G - 1) * (jack_bar - theta_hat))
+	expect_identical(m$variance, ((G - 1) / G) * sum((jack - jack_bar)^2))
+	expect_identical(EDI:::edi_jackknife_effective_units(17L, NULL), 17L)
+	des <- DesignFixedBernoulli$new(n = 30L, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(30L))); des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(30L))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	p <- inf$.__enclos_env__$private
+	expect_null(p$jackknife_replicate_strata("auto"))
+	loo <- inf$approximate_jackknife_distribution_beta_hat_T()
+	G <- length(loo)
+	expect_identical(inf$compute_jackknife_std_error(), sqrt(((G - 1) / G) * sum((loo - mean(loo))^2)))
+})
+
+test_that("with a single stratum the stratified formulas reduce to the ordinary jackknife", {
+	set.seed(4)
+	jack <- rnorm(12L); theta_hat <- 0.1
+	m1 <- EDI:::edi_jackknife_bias_variance(jack, theta_hat, rep(1L, 12L))
+	m0 <- EDI:::edi_jackknife_bias_variance(jack, theta_hat, NULL)
+	expect_equal(m1, m0, tolerance = 1e-12)
+})

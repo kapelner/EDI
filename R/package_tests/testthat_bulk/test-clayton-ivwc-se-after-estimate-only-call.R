@@ -6,11 +6,9 @@
 # Where: R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:354 (kind: na_where_defined).
 # On commit 0231668c948b this test failed with: Expected `all(is.finite(ci))` to be TRUE.
 # Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Covered and fixed by v1.0.6-TODO-132 (2026-11-19): estimate_only now runs the full fit, which caches the SE.
 
 test_that("Clayton IVWC Wald CI stays finite after an estimate-only call", {
-	skip("open a release TODO for this")
 		make_des = function() {
 			set.seed(2L)
 			n = 40L

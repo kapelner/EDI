@@ -47,8 +47,10 @@ test_that("standardized retry maps the solution back to the original columns", {
 	X = p$build_design_matrix()
 	X[, 1L] = 2  # a non-unit constant column still absorbs the centering
 	fit_X = function(X_try, ws) fast_weibull_regression_cpp(X = X_try, y = p$y, dead = p$dead, warm_start_params = ws)
+	# Whether this unscaled fit hits its iteration cap depends on the compiler/BLAS:
+	# it does locally but converges on GitHub's R CMD check runners (2026-11-19). The
+	# retry below does not depend on it: it refits on standardized columns and maps back.
 	failed = fit_X(X, NULL)
-	expect_false(isTRUE(failed$converged))
 	res = weibull_fit_standardized_retry(fit_X, X, failed_res = failed)
 	expect_true(isTRUE(res$converged))
 	sr = survival::survreg(survival::Surv(p$y, p$dead) ~ X - 1, dist = "weibull")

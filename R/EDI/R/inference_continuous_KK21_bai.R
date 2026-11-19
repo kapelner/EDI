@@ -21,6 +21,10 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
+#' \strong{No Bayesian bootstrap.} Its weights come from the Bai et al. pair-of-pairs variance, which has no weighted analogue, so this class does not
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
+#' nonparametric or randomization bootstrap instead.
+#'
 #' @examples
 #' if (requireNamespace("nbpMatching", quietly = TRUE)) {
 #' \donttest{
@@ -55,6 +59,11 @@ InferenceBaiAdjustedTKK21 = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
+		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# estimator the replicate fell through to the KK compound's generic
+		# mean-difference fallback, a different estimator from compute_estimate();
+		# the Bai et al. pair-of-pairs variance that sets its weights has no weighted analogue.
+		supports_bayesian_bootstrap = function() FALSE,
 		distance = function(avg1, avg2){
 			sum(private$des_obj_priv_int$covariate_weights * (avg1 - avg2)^2)
 		}
@@ -71,6 +80,7 @@ InferenceBaiAdjustedTKK21 = define_inference_class(
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

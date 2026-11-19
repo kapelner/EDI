@@ -100,11 +100,47 @@ test_that("a fully cached distribution short-circuits the batch loop using the k
 	expect_gt(length(tg()), 0L)
 })
 
-test_that("the reusable-worker cache is cleared on exit, and a non-finite p-value ends the loop", {
+test_that("the reusable-worker cache is cleared on exit; an all-NA pool draws every batch, then NA", {
+	# v1.0.6-TODO-166 (commit 3dabce47): a prefix with too few finite draws no longer ends the
+	# loop; the next batch is drawn, and only the full B draws give the (NA) answer.
 	p <- fx(ctrl()); tg <- stub_prefix(p, rep(NA_real_, 1000))
 	p$cached_values$reusable_bootstrap_worker <- list(stale = TRUE)
-	out <- run(p, 1, 1000L, draws_ok(1000L))
+	out <- suppressWarnings(run(p, 1, 1000L, draws_ok(1000L)), classes = "edi_procedure_na_warning")
 	expect_true(is.na(out))
-	expect_equal(tg(), 300L)
+	expect_equal(tg(), c(300L, 600L, 900L, 1000L))
 	expect_null(p$cached_values$reusable_bootstrap_worker)
+})
+
+run_narm <- function(p, t, B, draws, na.rm, delta = 0) {
+	p$compute_two_sided_brt_pval_with_sequential_mc(t = t, B = B, delta = delta, transform_arg = "none",
+		y0_full = numeric(0), draws = draws, zero_one_logit_clamp = 1e-12, na.rm = na.rm)
+}
+
+test_that("na.rm = FALSE: the first prefix with a non-finite draw ends the loop with a flagged NA (v1.0.6-TODO-214)", {
+	set.seed(3)
+	pool <- rnorm(1000); pool[450] <- NA_real_
+	t_obs <- unname(quantile(pool, 0.975, na.rm = TRUE))   # ambiguous: would draw past 300
+	p <- fx(ctrl()); tg <- stub_prefix(p, pool)
+	out <- run_narm(p, t_obs, 1000L, draws_ok(1000L), na.rm = FALSE)
+	expect_true(is.na(out))
+	expect_true(isTRUE(attr(out, "nonfinite_draws")))
+	expect_length(attr(out, "t0s"), 600L)
+	expect_equal(tg(), c(300L, 600L))
+	# an extreme statistic stops on the all-finite first batch and never sees draw 450
+	p <- fx(ctrl()); tg <- stub_prefix(p, pool)
+	out <- run_narm(p, 8, 1000L, draws_ok(1000L), na.rm = FALSE)
+	expect_equal(tg(), 300L)
+	expect_equal(out, ref_p(pool[1:300], 8))
+	# na.rm = TRUE (the default) is unchanged: the same draws give a finite p-value
+	p <- fx(ctrl()); tg <- stub_prefix(p, pool)
+	expect_true(is.finite(run_narm(p, t_obs, 1000L, draws_ok(1000L), na.rm = TRUE)))
+	# a cached full distribution with a non-finite entry is NA too
+	p <- fx(ctrl()); tg <- stub_prefix(p, pool)
+	key <- paste(500L, formatC(0, digits = 17L, format = "fg", flag = "#"), "none", "idA", sep = "|")
+	full <- rnorm(500); full[7] <- Inf
+	p$set_cached_resampling_distribution("rand_bootstrap", key, full)
+	out <- run_narm(p, 1.1, 500L, draws_ok(500L, "idA"), na.rm = FALSE)
+	expect_true(is.na(out) && isTRUE(attr(out, "nonfinite_draws")))
+	expect_length(tg(), 0L)
+	expect_equal(run_narm(p, 1.1, 500L, draws_ok(500L, "idA"), na.rm = TRUE), ref_p(full[is.finite(full)], 1.1))
 })

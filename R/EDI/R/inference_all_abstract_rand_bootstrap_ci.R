@@ -415,7 +415,10 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					na.rm = TRUE,
 					show_progress = FALSE,
 					rand_bootstrap_draws = draws,
-					zero_one_logit_clamp = zero_one_logit_clamp
+					zero_one_logit_clamp = zero_one_logit_clamp,
+					# v1.0.6-TODO-12: the valid-fraction minimum is for reported p-values; the CI
+					# search keeps its own failure handling, so its intervals are unchanged.
+					min_fraction_usable_samples = 0
 				))),
 				error = function(e) NA_real_
 			)

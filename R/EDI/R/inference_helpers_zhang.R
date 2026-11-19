@@ -273,8 +273,11 @@ zhang_compute_ci_bounds_parallel = function(inf_obj, inside, lo_bound, hi_bound,
 # KK21 n = 1000, 1.00 on BinaryMatch, while the test's size was 0.02-0.05).
 # Candidates: the reservoir estimate, the matched-pairs conditional MLE and their
 # inverse-variance combination; if none is accepted, the maximiser of the combined
-# p-value over the search range (an empty acceptance set then gives a degenerate
-# interval at that maximiser).
+# p-value over the search range; if that is rejected too, a dense grid search with
+# local refinement (zhang_ci_inside_point_grid()). If no accepted point is found the
+# confidence set is empty and NA_real_ is returned, with the largest combined p-value
+# found as attribute "max_pval" (v1.0.6-TODO-216: before, the rejected maximiser was
+# returned and both bisections collapsed onto it, giving a "CI" of width ~1e-6).
 zhang_ci_inside_point = function(p_fn, exact_stats, lo_bound, hi_bound, alpha){
 	p_at = function(delta){
 		p = tryCatch(p_fn(delta), error = function(e) NA_real_)
@@ -296,7 +299,31 @@ zhang_ci_inside_point = function(p_fn, exact_stats, lo_bound, hi_bound, alpha){
 	if (max(p_c) > alpha) return(cands[which.max(p_c)])
 	rng = range(c(lo_bound, hi_bound, cands))
 	opt = stats::optimize(function(d) -p_at(d), interval = rng)
-	if (-opt$objective > max(p_c)) opt$minimum else cands[which.max(p_c)]
+	if (-opt$objective > alpha) return(opt$minimum)
+	zhang_ci_inside_point_grid(p_at, c(rng, opt$minimum), alpha, max(-opt$objective, p_c))
+}
+
+# Last-resort search for a point the combined test accepts, used only when the
+# candidates and optimize() over the search range are all rejected. The combined
+# p-value is a product of two discrete, non-smooth exact p-values whose modes sit
+# near the reservoir and matched-pair estimates, so optimize() can stop at a local
+# maximum; scan a dense grid one unit beyond the search range, then refine around
+# the best grid points. Returns an accepted point, or NA_real_ (attribute
+# "max_pval": the largest p-value seen) when the acceptance set is empty.
+zhang_ci_inside_point_grid = function(p_at, pts, alpha, p_best, n_grid = 2001L, n_refine = 5L){
+	rng = range(pts) + c(-1, 1)
+	grid = seq(rng[1L], rng[2L], length.out = n_grid)
+	p_grid = vapply(grid, p_at, numeric(1))
+	i_max = which.max(p_grid)
+	if (p_grid[i_max] > alpha) return(grid[i_max])
+	p_best = max(p_best, p_grid[i_max])
+	step = grid[2L] - grid[1L]
+	for (i in utils::head(order(p_grid, decreasing = TRUE), n_refine)){
+		opt = stats::optimize(function(d) -p_at(d), interval = grid[i] + c(-1, 1) * step)
+		if (-opt$objective > alpha) return(opt$minimum)
+		p_best = max(p_best, -opt$objective)
+	}
+	structure(NA_real_, max_pval = p_best)
 }
 
 zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_method = "Fisher"){
@@ -322,6 +349,20 @@ zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_met
 		zhang_combine_exact_pvals(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
 	}
 	inside = zhang_ci_inside_point(p_fn, exact_stats, lo_bound, hi_bound, alpha)
+	procedure = "compute_exact_confidence_interval"
+	if (is.na(inside)) {
+		# v1.0.6-TODO-216: the combined test rejects every log odds ratio, so the
+		# inverted confidence set is empty; there is no interval to report.
+		private = inf_obj$.__enclos_env__$private
+		reason = "exact_ci_empty_acceptance_set"
+		private$cache_procedure_failure(procedure, reason)
+		edi_warn_procedure_na(inf_obj, private, procedure = procedure, reason = reason, detail = paste0(
+			"The combined (", combination_method, ") exact test rejects every log odds ratio at alpha = ", format(alpha),
+			" (largest combined p-value found: ", format(signif(attr(inside, "max_pval"), 3)), "): the matched-pair and ",
+			"reservoir components point to incompatible effects, so the inverted confidence set is empty."))
+		return(c(NA_real_, NA_real_))
+	}
+	edi_clear_procedure_failure(inf_obj$.__enclos_env__$private, procedure)
 	# The bounds are only starting scales for the bisection, but each must lie on its own side of `inside`.
 	lo_bound = min(lo_bound, inside - 1)
 	hi_bound = max(hi_bound, inside + 1)

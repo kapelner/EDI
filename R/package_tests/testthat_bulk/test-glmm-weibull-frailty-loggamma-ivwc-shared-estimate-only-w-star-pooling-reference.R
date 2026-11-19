@@ -9,7 +9,10 @@ library(EDI)
 # bcce1ded, 2026-09-23, fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md) made w_star =
 # NA/NA = NA in that case, making beta_hat_T unconditionally NA on every resampling draw under
 # estimate_only = TRUE even though both components were individually usable. The fix falls back to
-# equal weighting (w_star = 0.5) whenever either ssq is non-finite. A codebase-wide grep confirmed
+# equal weighting (w_star = 0.5) whenever either ssq is non-finite. v1.0.6-TODO-132 (2026-11-19,
+# owner decision) replaced that fallback: estimate_only = TRUE now runs both component fitters with
+# their variances and pools them by the same inverse-variance weights as the full call, so resampling
+# replicates estimate the reported quantity; the tests below pin that. A codebase-wide grep confirmed
 # zero test references anywhere for this exact class's shared()/w_star logic (the class's own existing
 # tests only cover compute_estimate_with_bootstrap_weights(), a different code path that bypasses this
 # combination entirely). Reached by unlockBinding-replacing the two component fitters (clayton_copula_
@@ -51,12 +54,15 @@ stub_components <- function(priv, beta_m, beta_r) {
 	}
 }
 
-test_that("estimate_only = TRUE with both finite component betas falls back to equal weighting (w_star = 0.5), not NA", {
+test_that("estimate_only = TRUE pools both finite components by inverse-variance weights, as the full call does", {
 	f <- fx(1L)
 	stub_components(f$priv, beta_m = 0.5, beta_r = 0.9)
 	est <- f$inf$compute_estimate(estimate_only = TRUE)
-	expect_equal(est, 0.5 * 0.5 + 0.5 * 0.9)
+	w_star_ref <- 0.2 / (0.2 + 0.1)
+	expect_equal(est, w_star_ref * 0.5 + (1 - w_star_ref) * 0.9, tolerance = 1e-12)
 	expect_true(is.finite(est))
+	# The SE is cached too, so a later full call on the same object agrees with a fresh one.
+	expect_equal(f$priv$cached_values$s_beta_hat_T, sqrt(0.1 * 0.2 / (0.1 + 0.2)), tolerance = 1e-12)
 })
 
 test_that("the full (non-estimate-only) path still uses the real inverse-variance weighting, unaffected by the fix", {
@@ -68,11 +74,22 @@ test_that("the full (non-estimate-only) path still uses the real inverse-varianc
 	expect_equal(f$priv$cached_values$s_beta_hat_T, sqrt(0.1 * 0.2 / (0.1 + 0.2)), tolerance = 1e-12)
 })
 
-test_that("estimate_only = TRUE with equal-weighting fallback averages symmetrically regardless of which component is 'larger'", {
+test_that("estimate_only = TRUE drops a component without a finite variance, as the full call does", {
+	matched_without_variance <- function(priv) {
+		unlockBinding("clayton_copula_for_matched_pairs", priv)
+		priv$clayton_copula_for_matched_pairs <- function(estimate_only = FALSE) {
+			priv$cached_values$beta_T_matched <- 2.0
+			priv$cached_values$ssq_beta_T_matched <- NA_real_
+		}
+	}
 	f <- fx(3L)
 	stub_components(f$priv, beta_m = 2.0, beta_r = -1.0)
-	est <- f$inf$compute_estimate(estimate_only = TRUE)
-	expect_equal(est, mean(c(2.0, -1.0)))
+	matched_without_variance(f$priv)
+	expect_equal(f$inf$compute_estimate(estimate_only = TRUE), -1.0)
+	f_full <- fx(3L)
+	stub_components(f_full$priv, beta_m = 2.0, beta_r = -1.0)
+	matched_without_variance(f_full$priv)
+	expect_equal(f_full$inf$compute_estimate(), -1.0)
 })
 
 test_that("randomization refit refreshes IVWC survival data through the effective-time accessors", {

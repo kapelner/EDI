@@ -254,6 +254,41 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 		# The pre-migration shim-only KKLWACoxIVWCPartialLikelihoodSource
 		# carried these delegating wrappers; preserved verbatim now that the
 		# real machinery lives in this same source.
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# the KK compound's generic fallback, a weighted raw mean difference of the
+		# survival times (wrong scale and sign: replicates centred near +2.6 for an
+		# estimate of -0.61). Now it is the same estimator as shared(): a weighted
+		# marginal Cox fit of the matched pairs with the pair-clustered (LWA) robust
+		# variance and a weighted Cox fit of the reservoir, pooled by inverse variance.
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			private$clear_nonestimable_state()
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			X_all = as.matrix(private$get_X())
+			fit_half = function(idx, cluster = NULL){
+				if (length(idx) == 0L || length(unique(private$w[idx])) < 2L) return(NULL)
+				kk_ivwc_weighted_cox_half(
+					private$y[idx], private$dead[idx],
+					private$cox_design_candidates(private$w[idx], X_all[idx, , drop = FALSE]),
+					row_weights[idx], cluster = cluster,
+					max_abs = private$max_abs_reasonable_coef
+				)
+			}
+			fit_m = fit_half(split$matched_idx, cluster = split$m_vec[split$matched_idx])
+			fit_r = fit_half(split$reservoir_idx)
+			pooled = kk_ivwc_pool_halves(fit_m$beta %||% NA_real_, fit_m$ssq %||% NA_real_,
+				fit_r$beta %||% NA_real_, fit_r$ssq %||% NA_real_)
+			if (!is.finite(pooled$beta) || abs(pooled$beta) > private$max_abs_reasonable_coef) {
+				private$cache_nonestimable_estimate("kk_lwa_cox_ivwc_weighted_no_usable_component")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
+		},
 		kk_lwa_cox_ivwc_shared = function(estimate_only = FALSE) {
 			private$shared(estimate_only = estimate_only)
 		},

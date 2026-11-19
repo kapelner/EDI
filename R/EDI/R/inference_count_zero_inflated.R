@@ -67,6 +67,55 @@
 #' \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}},
 #' which models the overdispersion.
 #'
+#' \strong{Aliased count-part covariates.} The count-part coefficients are
+#' learned from the subjects with a positive count: the zero counts inform them
+#' only through the mixture with the excess-zero part, which leaves a direction
+#' those subjects do not identify essentially flat (the fit used to wander along
+#' it, with no usable standard error). A count-part covariate can be aliased on
+#' those subjects (constant among them, or a linear combination of the intercept,
+#' the treatment and the covariates before it) even when it varies over the whole
+#' sample.
+#' Such a covariate has no identified count-part coefficient, so it is dropped
+#' from the count part before fitting, with one warning of class
+#' \code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+#' every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+#' rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+#' with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+#' by leaving the aliased columns out of its pivoted QR decomposition and reports
+#' their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+#' is an error); the dropped count-part coefficients are likewise \code{NA} in
+#' this class's coefficient vector. As in \code{glm}, columns are checked in
+#' design order (intercept, treatment, then the covariates), and a column is
+#' dropped when it adds nothing given the columns kept before it. The treatment
+#' is never dropped: when it is itself aliased on those subjects (for example,
+#' all of them are in one arm), its count-part coefficient is not identified and
+#' the estimate is \code{NA}.
+#'
+#' \strong{Separated zero-inflation part.} The zero-inflation logit often has no
+#' finite maximum: some fitted zero-inflation probabilities run off to 0 or 1
+#' (for example no excess zeros in one arm), and the likelihood keeps rising
+#' along a flat ridge. The class then (i) also fits from
+#' \code{pscl::zeroinfl()}'s default start (a Poisson GLM for the count part, a
+#' logistic GLM of \eqn{1(y = 0)} for the zero part) with L-BFGS and keeps the
+#' fit with the lower negative log-likelihood, which also escapes an interior
+#' local maximum of the default start; (ii) reports the zero-inflation
+#' coefficients as \code{NA} when a fitted zero-inflation probability is
+#' numerically 0 or 1, or the fit stopped on such a ridge, and says why once per
+#' object: when the ridge points only toward no inflation (every subject it
+#' drives to the boundary goes to probability 0, and no fitted zero-inflation
+#' probability exceeds 5\%; typical of data without excess zeros), with a
+#' message of class \code{edi_no_zero_inflation_message} ("no evidence of zero
+#' inflation"); otherwise (some subject pushed to a structural zero, or sizeable
+#' inflation next to subjects pushed to 0) with a warning of class
+#' \code{edi_zero_part_separation_warning} (a subclass of
+#' \code{edi_logistic_separation_warning}); in both cases the count-part
+#' treatment estimate is kept, since the count part is identified in the ridge
+#' limit; and (iii) never warm-starts a randomization, bootstrap or
+#' parametric-bootstrap refit from a full-data fit whose zero part is on the
+#' ridge (a fitted zero-inflation logit of 10 or more in absolute value): such a
+#' refit could not move its zero part and stopped below the maximum, so it is
+#' cold-started like a fresh fit (v1.0.6-TODO-30, v1.0.6-TODO-152).
+#'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
 #'   1-14, \doi{10.2307/1269547}, for the zero-inflated count-model
@@ -323,6 +372,59 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' a small-sample property of the model, not a defect of the fit; it fades by
 #' n = 200. At small n, adjust for fewer covariates or prefer the likelihood-ratio
 #' test.
+#'
+#' \strong{Fitting.} The default Newton-Raphson fitter can stop at a fit that is
+#' not the maximum-likelihood fit: at the zero-inflation-off negative binomial
+#' fit, or on a ridge where the zero-inflation logit is separated. This happens
+#' most often on the permuted or resampled data of randomization and bootstrap
+#' draws. Every fit the class makes is therefore checked: a fit that did not
+#' converge, sits at the zero-inflation boundary, has a zero-inflation
+#' coefficient beyond 10 in absolute value, or has a gradient norm above
+#' \eqn{10^{-5}} is refit with L-BFGS from a cold start and from the warm start,
+#' and the fit with the highest likelihood is kept. The estimates then agree with
+#' \code{pscl::zeroinfl()}. The extra refits make small, sparse samples slower.
+#'
+#' \strong{Aliased count-part covariates.} The count-part coefficients are
+#' learned from the subjects with a positive count: the zero counts inform them
+#' only through the mixture with the excess-zero part, which leaves a direction
+#' those subjects do not identify essentially flat (the fit used to wander along
+#' it, with no usable standard error). A count-part covariate can be aliased on
+#' those subjects (constant among them, or a linear combination of the intercept,
+#' the treatment and the covariates before it) even when it varies over the whole
+#' sample.
+#' Such a covariate has no identified count-part coefficient, so it is dropped
+#' from the count part before fitting, with one warning of class
+#' \code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+#' every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+#' rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+#' with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+#' by leaving the aliased columns out of its pivoted QR decomposition and reports
+#' their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+#' is an error); the dropped count-part coefficients are likewise \code{NA} in
+#' this class's coefficient vector. As in \code{glm}, columns are checked in
+#' design order (intercept, treatment, then the covariates), and a column is
+#' dropped when it adds nothing given the columns kept before it. The treatment
+#' is never dropped: when it is itself aliased on those subjects (for example,
+#' all of them are in one arm), its count-part coefficient is not identified and
+#' the estimate is \code{NA}.
+#'
+#' \strong{Separated zero-inflation part.} The zero-inflation logit often has no
+#' finite maximum: some fitted zero-inflation probabilities run off to 0 or 1
+#' (for example no excess zeros in one arm). The class then reports the
+#' zero-inflation coefficients as \code{NA} when a fitted zero-inflation
+#' probability is numerically 0 or 1, the fit stopped on such a ridge, or it is
+#' the zero-inflation-off boundary fit, and says why once per object: a message
+#' of class \code{edi_no_zero_inflation_message} ("no evidence of zero
+#' inflation") when the ridge points only toward no inflation (the boundary fit,
+#' or every subject driven to probability 0 with no fitted zero-inflation
+#' probability above 5\%), otherwise a warning of class
+#' \code{edi_zero_part_separation_warning} (a subclass of
+#' \code{edi_logistic_separation_warning}). The count-part treatment estimate is
+#' kept. It never warm-starts a randomization, bootstrap or parametric-bootstrap
+#' refit from a full-data fit whose zero part is on the ridge (a fitted
+#' zero-inflation logit of 10 or more in absolute value): such a refit could not
+#' move its zero part, so it is cold-started like a fresh fit (v1.0.6-TODO-30,
+#' v1.0.6-TODO-152).
 #'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),

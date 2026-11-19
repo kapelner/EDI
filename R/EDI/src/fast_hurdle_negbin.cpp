@@ -871,6 +871,32 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 }
 
 #ifndef EDI_CORE_ONLY
+namespace {
+// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported hurdle
+// negative-binomial fits. Without them a y of length 0 or an X_hurdle with fewer
+// rows than X read past the end of y / X_hurdle and returned a "converged" fit of
+// garbage. Named hnb_* because a unity build puts several kernels' anonymous
+// namespaces in one translation unit.
+inline void hnb_check_kernel_inputs(SEXP y, Eigen::Index n_X, Eigen::Index n_X_hurdle, const char* kernel) {
+	if (Rf_isNull(y)) {
+		Rcpp::stop("%s: y must be a numeric vector with one entry per row of X (got NULL)", kernel);
+	}
+	if (!Rf_isNumeric(y) && !Rf_isLogical(y)) {
+		Rcpp::stop("%s: y must be a numeric vector", kernel);
+	}
+	const R_xlen_t n_y = Rf_xlength(y);
+	if (n_y == 0 || n_X == 0) {
+		Rcpp::stop("%s: y and X must have at least one row (y has %d entries, X has %d rows)", kernel, (int)n_y, (int)n_X);
+	}
+	if (n_y != (R_xlen_t)n_X) {
+		Rcpp::stop("%s: y has %d entries but X has %d rows", kernel, (int)n_y, (int)n_X);
+	}
+	if (n_X_hurdle >= 0 && n_X_hurdle != n_X) {
+		Rcpp::stop("%s: X_hurdle has %d rows but X has %d rows", kernel, (int)n_X_hurdle, (int)n_X);
+	}
+}
+} // namespace
+
 // [[Rcpp::export]]
 Eigen::VectorXd get_hurdle_negbin_count_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
@@ -915,6 +941,7 @@ Eigen::MatrixXd get_hurdle_negbin_count_hessian_cpp(const Eigen::Map<Eigen::Matr
 
 // [[Rcpp::export]]
 List fast_hurdle_negbin_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::MatrixXd>& X_hurdle_r, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue, bool estimate_only = false) {
+	hnb_check_kernel_inputs(y_r, X_r.rows(), X_hurdle_r.rows(), "fast_hurdle_negbin_cpp");
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
 
@@ -1038,6 +1065,10 @@ List fast_hurdle_negbin_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, co
 //' @keywords internal
 // [[Rcpp::export]]
 List fast_hurdle_negbin_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::MatrixXd>& X_hurdle_r, int j = 2, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue) {
+	hnb_check_kernel_inputs(y_r, X_r.rows(), X_hurdle_r.rows(), "fast_hurdle_negbin_with_var_cpp");
+	if (j < 1 || j > X_r.cols()) {
+		Rcpp::stop("fast_hurdle_negbin_with_var_cpp: j must be between 1 and ncol(X) = %d (got %d)", (int)X_r.cols(), j);
+	}
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
 
@@ -1063,6 +1094,7 @@ List fast_hurdle_negbin_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEX
 
 // [[Rcpp::export]]
 List fast_truncated_negbin_count_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, bool estimate_only = false, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	hnb_check_kernel_inputs(y_r, X_r.rows(), -1, "fast_truncated_negbin_count_cpp");
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
 

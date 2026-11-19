@@ -95,13 +95,18 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 		supports_likelihood_tests = function(){
 			TRUE
 		},
+		# Expected (Fisher) information from ordinal_cumlink_expected_information(),
+		# as in the probit / cauchit / cloglog siblings (v1.0.6-TODO-201).
+		supports_fisher_information = function(){
+			TRUE
+		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			ordinal_cumlink_simulate_under_lik_null(private, spec, null_fit, fast_ordinal_regression_cpp, stats::plogis)
 		},
 		get_likelihood_test_spec = function(){
 			ordinal_cumlink_likelihood_test_spec(private, fast_ordinal_regression_cpp,
 				score_fn = get_ordinal_regression_score_cpp,
-				hessian_fn = get_ordinal_regression_hessian_cpp)
+				hessian_fn = get_ordinal_regression_hessian_cpp, link = "logit")
 		},
 		generate_mod = function(estimate_only = FALSE){
 			X_full = private$build_design_matrix()
@@ -268,6 +273,7 @@ InferenceOrdinalPropOddsRegr = define_inference_class(
 			"compute_lik_ratio_two_sided_pval_impl",
 			"get_likelihood_test_spec",
 			"supports_likelihood_tests",
+			"supports_fisher_information",
 			"get_complexity_tier",
 			"supports_lik_ratio_param_bootstrap",
 			"simulate_under_lik_null",

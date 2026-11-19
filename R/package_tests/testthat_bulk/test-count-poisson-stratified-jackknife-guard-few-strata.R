@@ -9,8 +9,12 @@ library(EDI)
 # RandomBlockSize stratified on two binary covariates). The class now falls back to the stratified delete-1
 # jackknife. With ~1 the leave-one-out Poisson estimate is the closed-form log ratio of arm means, so the
 # fallback is checked exactly against a hand computation.
+# v1.0.6-TODO-4: DesignFixedBlocking and DesignSeqOneByOneSPBR no longer use the block (= stratum) as their
+# automatic jackknife unit: FixedBlocking jackknifes one subject at a time within strata (the same stratified
+# formula, now in compute_jackknife_summary() itself) and SPBR one permuted block at a time. The fallback
+# below is therefore checked on DesignSeqOneByOneRandomBlockSize, whose automatic unit is still the block.
 
-strat_fixture <- function(design = c("blocking", "spbr"), n = 240L, seed = 3L) {
+strat_fixture <- function(design = c("blocking", "spbr", "rbs"), n = 240L, seed = 3L) {
 	design <- match.arg(design)
 	set.seed(seed)
 	X <- data.frame(x1 = rnorm(n), s1 = factor(rbinom(n, 1L, 0.5), levels = 0:1), s2 = factor(rbinom(n, 1L, 0.5), levels = 0:1))
@@ -22,7 +26,11 @@ strat_fixture <- function(design = c("blocking", "spbr"), n = 240L, seed = 3L) {
 		des$assign_w_to_all_subjects()
 		des$add_all_subject_responses(y_all)
 	} else {
-		des <- DesignSeqOneByOneSPBR$new(n = n, response_type = "count", strata_cols = c("s1", "s2"), verbose = FALSE)
+		des <- if (design == "spbr") {
+			DesignSeqOneByOneSPBR$new(n = n, response_type = "count", strata_cols = c("s1", "s2"), verbose = FALSE)
+		} else {
+			DesignSeqOneByOneRandomBlockSize$new(n = n, response_type = "count", strata_cols = c("s1", "s2"), verbose = FALSE)
+		}
 		for (t in seq_len(n)) {
 			des$add_one_subject_to_experiment_and_assign(X[t, , drop = FALSE])
 			des$add_one_subject_response(t, y_all[t])
@@ -39,7 +47,7 @@ hand_stratified_jackknife <- function(y, w, strata) {
 	list(estimate = est, std_error = sqrt(v), model_se = sqrt(1 / S1 + 1 / S0))
 }
 
-for (design in c("blocking", "spbr")) {
+for (design in "rbs") {
 	test_that(paste0("~1 Poisson on a 4-stratum ", design, " design reports the stratified-jackknife-widened Wald test"), {
 		f <- strat_fixture(design)
 		expect_equal(length(unique(f$des$get_block_ids())), 4L)
@@ -68,6 +76,42 @@ for (design in c("blocking", "spbr")) {
 	})
 }
 
+test_that("~1 Poisson on a 4-stratum FixedBlocking design uses the stratified jackknife directly (v1.0.6-TODO-4)", {
+	f <- strat_fixture("blocking")
+	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
+	inf$num_cores <- 1L
+	inf$set_testing_type("wald")
+	p <- inf$.__enclos_env__$private
+	expect_identical(p$resolve_jackknife_unit("auto"), "observation_within_block")
+	hand <- hand_stratified_jackknife(f$y, f$w, f$strata)
+	# No fallback needed: the automatic jackknife is the stratified delete-1 jackknife.
+	expect_null(p$design_stratified_jackknife())
+	# compute_jackknife_summary() applies Wolter's JKn to reweighting-equivalent replicates: the
+	# within-stratum sums carry ((N - 1)/N)^2 n_h/(n_h - 1) instead of (n_h - 1)/n_h, and the bias is
+	# the ordinary (N - 1)(mean - estimate) (see edi_jackknife_bias_variance()).
+	S1 <- sum(f$y[f$w == 1]); S0 <- sum(f$y[f$w == 0]); n1 <- sum(f$w); n0 <- length(f$w) - n1
+	loo <- ifelse(f$w == 1, log((S1 - f$y) / (n1 - 1)) - log(S0 / n0), log(S1 / n1) - log((S0 - f$y) / (n0 - 1)))
+	N <- length(loo)
+	se_jk <- sqrt(sum(vapply(unique(f$strata), function(h) { th <- loo[f$strata == h]; n_h <- length(th)
+		((N - 1) / N)^2 * n_h / (n_h - 1) * sum((th - mean(th))^2) }, numeric(1))))
+	expect_equal(inf$compute_jackknife_std_error(), se_jk, tolerance = 1e-6)
+	bias <- (N - 1) * (mean(loo) - hand$estimate)
+	expect_equal(inf$compute_jackknife_estimate(), hand$estimate - bias, tolerance = 1e-8)
+	p_model <- 2 * pnorm(-abs(hand$estimate / hand$model_se))
+	p_jk <- 2 * pnorm(-abs((hand$estimate - bias) / se_jk))
+	expect_equal(inf$compute_asymp_two_sided_pval(), max(p_model, p_jk), tolerance = 1e-6)
+})
+
+test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackknife (v1.0.6-TODO-4)", {
+	f <- strat_fixture("spbr")
+	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	expect_identical(p$resolve_jackknife_unit("auto"), "permuted_block")
+	expect_null(p$design_stratified_jackknife())
+	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
+})
+
 test_that("the stratified fallback stays off where the block jackknife works, on unstratified designs and for other estimands", {
 	# Unstratified design: the observation-level jackknife is used, no fallback.
 	set.seed(5)
@@ -80,7 +124,8 @@ test_that("the stratified fallback stays off where the block jackknife works, on
 	inf$num_cores <- 1L
 	expect_null(inf$.__enclos_env__$private$design_stratified_jackknife())
 
-	# Many blocks (8 strata): leave-one-block-out has enough units, no fallback.
+	# Many blocks (8 strata): no fallback (since v1.0.6-TODO-4 the automatic unit here is the subject
+	# within its stratum, not the block, so the jackknife is finite regardless of the stratum count).
 	set.seed(6)
 	n <- 200L
 	X <- data.frame(x1 = rnorm(n), s1 = factor(rbinom(n, 1L, 0.5), levels = 0:1))
@@ -96,7 +141,7 @@ test_that("the stratified fallback stays off where the block jackknife works, on
 	expect_true(is.finite(suppressWarnings(inf$compute_jackknife_wald_two_sided_pval())))
 
 	# A marginal estimand: the conditional-coefficient refits do not apply.
-	f <- strat_fixture("blocking")
+	f <- strat_fixture("rbs")
 	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 	inf$num_cores <- 1L
 	inf$set_estimand("marginal_mean_diff")

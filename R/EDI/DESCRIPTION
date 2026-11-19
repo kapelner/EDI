@@ -92,6 +92,7 @@ Suggests:
     ompr,
     ompr.roi,
     ROI.plugin.glpk,
+    clubSandwich,
     sandwich,
     withr
 VignetteBuilder: knitr

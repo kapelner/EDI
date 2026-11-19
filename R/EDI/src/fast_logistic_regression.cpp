@@ -65,9 +65,25 @@ public:
 
 } // namespace
 
-// Internal pure C++ logic. Defaults are declared once in internal_fn_decls.h
-// (included above) -- repeating them here would be an error.
-ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
+// Weighted (or unweighted) logistic negative log-likelihood at a linear predictor.
+// Used by the IRLS step-halving safeguard below (v1.0.6-TODO-192 C++ follow-up).
+static double logistic_irls_neg_ll(const Eigen::VectorXd& eta,
+                                   const Eigen::Ref<const Eigen::VectorXd>& y,
+                                   const Eigen::Ref<const Eigen::VectorXd>& weights,
+                                   bool use_weights) {
+    double nl = 0.0;
+    const int n = eta.size();
+    for (int i = 0; i < n; ++i) {
+        const double wi = use_weights ? weights[i] : 1.0;
+        nl += wi * (log1pexp_stable(eta[i]) - y[i] * eta[i]);
+    }
+    return nl;
+}
+
+// The fitter body. `num_step_halvings` (may be null) receives the number of IRLS step
+// halvings taken, so the weighted R entry point can report it; the shared
+// fast_logistic_regression_internal() signature (internal_fn_decls.h) is unchanged.
+static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                               const Eigen::Ref<const Eigen::VectorXd>& y,
                                               const Eigen::Ref<const Eigen::VectorXd>& weights,
                                               std::optional<Eigen::VectorXd> warm_start_beta,
@@ -79,7 +95,9 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
                                               std::string optimization_alg,
                                               std::optional<Eigen::VectorXd> warm_start_weights,
                                               std::optional<Eigen::MatrixXd> warm_start_fisher_info,
-                                              bool estimate_only) {
+                                              bool estimate_only,
+                                              int* num_step_halvings) {
+    if (num_step_halvings != nullptr) *num_step_halvings = 0;
     const int n = X.rows();
     const int p = X.cols();
     const bool use_weights = (weights.size() == n);
@@ -188,78 +206,190 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
     int iterations = 0;
     double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
 
-    for (int iter = 0; iter < maxit; iter++) {
-        edi_check_R_user_interrupt_every(iter);
-        iterations++;
-        eta.noalias() = eta_fixed;
-        eta.noalias() += X_free * beta_free;
+    // Step-halving safeguard (v1.0.6-TODO-192 C++ follow-up, filed under v1.0.6-TODO-169/170).
+    // Plain IRLS has no globalization: from a poor warm start (or a supplied Fisher information
+    // from a different problem) a full Newton step can overshoot into the saturated region,
+    // where the floored IRLS weights make every later step larger; the KK g-computation
+    // bootstrap refit ran to |b| ~ 1e9 in 100 iterations with converged = FALSE from a warm
+    // start a cold start fits without trouble.
+    //
+    // The fit first runs the plain IRLS path exactly as before (`safeguarded = false`). Only if
+    // that pass does not converge is it rerun from the same start with step halving
+    // (`safeguarded = true`): each new iterate's negative log-likelihood is compared with the
+    // previous one, and if it is larger (beyond a 1e-10 relative allowance for summation
+    // round-off) or not finite, the step is halved, up to `max_step_halvings` times; if no
+    // halved step decreases it, the pass stops at the previous iterate. Running the plain pass
+    // first keeps every fit that converged before bit-identical: halving inside a single pass
+    // also changed ~4% of converged fits from far warm starts by up to ~1e-9 (relative), since
+    // a path whose likelihood rises once and then recovers still converges, just to a slightly
+    // different point inside the tolerance.
+    const int max_step_halvings = 30;
+    const Eigen::VectorXd beta_free_start = beta_free;
+    int total_step_halvings = 0;
+    bool stalled = false;
 
-        // Fast vectorized plogis
-        mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
+    auto run_irls = [&](bool safeguarded) {
+        beta_free = beta_free_start;
+        iterations = 0;
+        last_grad_norm = std::numeric_limits<double>::quiet_NaN();
+        stalled = false;
+        double neg_ll_prev = std::numeric_limits<double>::quiet_NaN();
+        Eigen::VectorXd beta_prev(p_free);
+        Eigen::VectorXd step_prev(p_free);
+        auto acceptable = [&](double v) {
+            return std::isfinite(v) && v <= neg_ll_prev + 1e-10 * (std::abs(neg_ll_prev) + 0.1);
+        };
 
-        if (iter == 0 && warm_start_weights.has_value()) {
-            const Eigen::VectorXd& ww = *warm_start_weights;
-            if (ww.size() == n) w = ww;
-            else w.array() = mu.array() * (1.0 - mu.array());
-        } else {
-            w.array() = mu.array() * (1.0 - mu.array());
-        }
-        if (use_weights) w.array() *= weights.array();
-        w.array() = w.array().max(1e-10);
-        diff.array() = y.array() - mu.array();
-        if (use_weights) diff.array() *= weights.array();
-
-        const bool use_warm_xtwx = (iter == 0) &&
-            (warm_start_fisher_info.has_value() || (smart_cold_start && !warm_start_beta.has_value()));
-        if (!use_warm_xtwx) {
-            score_weighted_crossprod_colwise_assign(X_free, diff, w, score_free, XtWX);
-        } else {
-            score_free.noalias() = X_free.transpose() * diff;
-            if (warm_start_fisher_info.has_value()) {
-                XtWX = subset_matrix(*warm_start_fisher_info, fixed_spec.free_idx, fixed_spec.free_idx);
-            } else {
-                XtWX = subset_matrix(edi_opt::logistic_smart_hessian(X, beta), fixed_spec.free_idx, fixed_spec.free_idx);
-            }
-        }
-
-        last_grad_norm = score_free.norm();
-        if (last_grad_norm < tol) break;
-
-        Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
-        if (ldlt.info() != Eigen::Success) break;
-        Eigen::VectorXd delta = ldlt.solve(score_free);
-        if (!delta.allFinite()) break;
-
-        beta_free += delta;
-        if (delta.norm() < tol) {
-            // Step-size convergence: recompute the gradient norm at the
-            // post-step point so the uniform `converged = grad_norm < tol`
-            // rule below classifies this exit by its actual gradient, not by
-            // this (different) stopping criterion having fired.
+        for (int iter = 0; iter < maxit; iter++) {
+            edi_check_R_user_interrupt_every(iter);
+            iterations++;
             eta.noalias() = eta_fixed;
             eta.noalias() += X_free * beta_free;
+
+            if (safeguarded) {
+                double neg_ll_curr = logistic_irls_neg_ll(eta, y, weights, use_weights);
+                if (iter > 0) {
+                    int h = 0;
+                    while (!acceptable(neg_ll_curr) && h < max_step_halvings) {
+                        step_prev *= 0.5;
+                        beta_free = beta_prev + step_prev;
+                        eta.noalias() = eta_fixed;
+                        eta.noalias() += X_free * beta_free;
+                        neg_ll_curr = logistic_irls_neg_ll(eta, y, weights, use_weights);
+                        ++h;
+                    }
+                    total_step_halvings += h;
+                    if (!acceptable(neg_ll_curr)) {
+                        // No halved step decreases the objective: stop at the previous iterate,
+                        // whose mu, XtWX and gradient norm the previous iteration computed.
+                        beta_free = beta_prev;
+                        eta.noalias() = eta_fixed;
+                        eta.noalias() += X_free * beta_free;
+                        stalled = true;
+                        break;
+                    }
+                }
+                neg_ll_prev = neg_ll_curr;
+            }
+
+            // Fast vectorized plogis
             mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
-            Eigen::VectorXd w_final(n);
-            w_final.array() = mu.array() * (1.0 - mu.array());
-            if (use_weights) w_final.array() *= weights.array();
-            Eigen::VectorXd diff_final(n);
-            diff_final.array() = y.array() - mu.array();
-            if (use_weights) diff_final.array() *= weights.array();
-            last_grad_norm = (X_free.transpose() * diff_final).norm();
-            break;
+
+            if (iter == 0 && warm_start_weights.has_value()) {
+                const Eigen::VectorXd& ww = *warm_start_weights;
+                if (ww.size() == n) w = ww;
+                else w.array() = mu.array() * (1.0 - mu.array());
+            } else {
+                w.array() = mu.array() * (1.0 - mu.array());
+            }
+            if (use_weights) w.array() *= weights.array();
+            w.array() = w.array().max(1e-10);
+            diff.array() = y.array() - mu.array();
+            if (use_weights) diff.array() *= weights.array();
+
+            const bool use_warm_xtwx = (iter == 0) &&
+                (warm_start_fisher_info.has_value() || (smart_cold_start && !warm_start_beta.has_value()));
+            if (!use_warm_xtwx) {
+                score_weighted_crossprod_colwise_assign(X_free, diff, w, score_free, XtWX);
+            } else {
+                score_free.noalias() = X_free.transpose() * diff;
+                if (warm_start_fisher_info.has_value()) {
+                    XtWX = subset_matrix(*warm_start_fisher_info, fixed_spec.free_idx, fixed_spec.free_idx);
+                } else {
+                    XtWX = subset_matrix(edi_opt::logistic_smart_hessian(X, beta), fixed_spec.free_idx, fixed_spec.free_idx);
+                }
+            }
+
+            last_grad_norm = score_free.norm();
+            if (last_grad_norm < tol) break;
+
+            Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
+            if (ldlt.info() != Eigen::Success) break;
+            Eigen::VectorXd delta = ldlt.solve(score_free);
+            if (!delta.allFinite()) break;
+
+            if (safeguarded) {
+                beta_prev = beta_free;
+                step_prev = delta;
+            }
+            beta_free += delta;
+            if (delta.norm() < tol) {
+                // Step-size convergence: recompute the gradient norm at the
+                // post-step point so the uniform `converged = grad_norm < tol`
+                // rule below classifies this exit by its actual gradient, not by
+                // this (different) stopping criterion having fired.
+                eta.noalias() = eta_fixed;
+                eta.noalias() += X_free * beta_free;
+                mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
+                Eigen::VectorXd w_final(n);
+                w_final.array() = mu.array() * (1.0 - mu.array());
+                if (use_weights) w_final.array() *= weights.array();
+                Eigen::VectorXd diff_final(n);
+                diff_final.array() = y.array() - mu.array();
+                if (use_weights) diff_final.array() *= weights.array();
+                last_grad_norm = (X_free.transpose() * diff_final).norm();
+                break;
+            }
         }
-    }
+    };
+
+    // Scale-aware convergence fallback (v1.0.6-TODO-170, this fitter only). The absolute
+    // gradient rule fails at the optimum when a covariate has a large scale or offset (e.g.
+    // age + 1e5): rounding keeps |score| above 1e-8 although the fit cannot improve. When it
+    // fails, the fit is still declared converged if the Newton decrement
+    // lambda^2 = score' (X'WX)^{-1} score at the returned coefficients -- the deviance decrease a
+    // further Newton step predicts, invariant to linear reparametrization of the columns -- is
+    // within glm()'s relative deviance tolerance: lambda^2 <= tol * (|deviance| + 0.1), with
+    // deviance = 2 * neg_ll. Coefficients are never changed here; only the declaration is.
+    // (Its own guard below keeps it off saturated, i.e. separated, fits.)
+    auto newton_decrement_converged = [&]() -> bool {
+        if (p_free == 0 || !beta_free.allFinite()) return false;
+        Eigen::VectorXd eta_c = eta_fixed + X_free * beta_free;
+        Eigen::VectorXd mu_c(n);
+        mu_c.array() = 1.0 / (1.0 + (-eta_c.array()).exp());
+        Eigen::VectorXd w_c(n);
+        w_c.array() = mu_c.array() * (1.0 - mu_c.array());
+        // Not for a saturated fit (some row with positive weight has mu (1 - mu) < 1e-10, i.e.
+        // |eta| > ~23): there the small decrement reflects (quasi-)separation, not an optimum,
+        // and the declaration is left to the gradient rule as before.
+        for (int i = 0; i < n; ++i) {
+            if (w_c[i] < 1e-10 && (!use_weights || weights[i] > 0.0)) return false;
+        }
+        if (use_weights) w_c.array() *= weights.array();
+        w_c.array() = w_c.array().max(1e-10);
+        Eigen::VectorXd diff_c(n);
+        diff_c.array() = y.array() - mu_c.array();
+        if (use_weights) diff_c.array() *= weights.array();
+        Eigen::VectorXd score_c(p_free);
+        Eigen::MatrixXd XtWX_c(p_free, p_free);
+        score_weighted_crossprod_colwise_assign(X_free, diff_c, w_c, score_c, XtWX_c);
+        Eigen::LDLT<Eigen::MatrixXd> ldlt_c(XtWX_c);
+        if (ldlt_c.info() != Eigen::Success || !ldlt_c.isPositive()) return false;
+        const Eigen::VectorXd newton_c = ldlt_c.solve(score_c);
+        const double lambda2 = score_c.dot(newton_c);
+        const double deviance_c = 2.0 * logistic_irls_neg_ll(eta_c, y, weights, use_weights);
+        return newton_c.allFinite() && std::isfinite(lambda2) && std::isfinite(deviance_c) &&
+               lambda2 >= 0.0 && lambda2 <= tol * (std::abs(deviance_c) + 0.1);
+    };
 
     // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
     // TODO-4): `converged` no longer also fires on the step-size (delta.norm())
-    // criterion above. `hit_iteration_cap` is TRUE iff the loop ran to `maxit`
-    // without any of the above break conditions firing; every other exit
+    // criterion above. `hit_iteration_cap` is TRUE iff the returned pass ran to
+    // `maxit` without any of the above break conditions firing; every other exit
     // (singular Hessian, non-finite step) already implies `last_grad_norm >=
     // tol` -- the gradient-tol break above would have fired first otherwise --
     // so the blanket rule classifies those as `converged = false,
-    // hit_iteration_cap = false` correctly with no special-casing needed.
-    bool converged = (last_grad_norm < tol);
-    bool hit_iteration_cap = (iterations >= maxit) && !converged;
+    // hit_iteration_cap = false` correctly with no special-casing needed. A
+    // safeguarded pass that stopped because no halved step helped is not a cap
+    // hit either. `num_iter` counts the returned pass only.
+    run_irls(false);
+    bool converged = (last_grad_norm < tol) || newton_decrement_converged();
+    if (!converged && p_free > 0) {
+        run_irls(true);
+        converged = (last_grad_norm < tol) || newton_decrement_converged();
+    }
+    bool hit_iteration_cap = !stalled && (iterations >= maxit) && !converged;
+    if (num_step_halvings != nullptr) *num_step_halvings = total_step_halvings;
 
     ModelResult res;
     res.b = expand_free_params(beta_free, beta, fixed_spec);
@@ -286,6 +416,27 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
     // (optimizer_diagnostics_report.md TODO-1). Not meaningful for the
     // p_free == 0 case above (returns early); IRLS path only.
     return res;
+}
+
+// Internal pure C++ logic. Defaults are declared once in internal_fn_decls.h
+// (included above) -- repeating them here would be an error.
+ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                                              const Eigen::Ref<const Eigen::VectorXd>& y,
+                                              const Eigen::Ref<const Eigen::VectorXd>& weights,
+                                              std::optional<Eigen::VectorXd> warm_start_beta,
+                                              bool smart_cold_start,
+                                              int maxit,
+                                              double tol,
+                                              std::optional<Eigen::VectorXi> fixed_idx,
+                                              std::optional<Eigen::VectorXd> fixed_values,
+                                              std::string optimization_alg,
+                                              std::optional<Eigen::VectorXd> warm_start_weights,
+                                              std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+                                              bool estimate_only) {
+    return fast_logistic_regression_impl(X, y, weights, std::move(warm_start_beta), smart_cold_start, maxit, tol,
+                                         std::move(fixed_idx), std::move(fixed_values), std::move(optimization_alg),
+                                         std::move(warm_start_weights), std::move(warm_start_fisher_info),
+                                         estimate_only, nullptr);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -419,7 +570,8 @@ List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
     
 
     
-    ModelResult res = fast_logistic_regression_internal(
+    int num_step_halvings = 0;
+    ModelResult res = fast_logistic_regression_impl(
         X, y_vec_coerced, weights_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, maxit, tol,
@@ -427,7 +579,10 @@ List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         optimization_alg,
         nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
+        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
+        false, &num_step_halvings);
+    // num_step_halvings: IRLS step halvings taken (always 0 on the L-BFGS path). Its presence
+    // also marks a build that has the v1.0.6-TODO-192 step-halving safeguard.
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("mu", res.mu)
@@ -439,7 +594,8 @@ List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
         .set("num_iter", res.num_iter)
         .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+        .set("min_eigenvalue_information", res.min_eigenvalue_information)
+        .set("num_step_halvings", num_step_halvings));
 }
 
 // [[Rcpp::export]]

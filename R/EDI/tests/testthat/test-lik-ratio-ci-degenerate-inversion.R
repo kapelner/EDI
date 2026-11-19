@@ -45,6 +45,6 @@ test_that("LR bootstrap CI reports NA, not a zero-width interval at the estimate
 	suppressWarnings(inst$compute_estimate())
 	if (bindingIsLocked("compute_lik_ratio_bootstrap_two_sided_pval", inst)) unlockBinding("compute_lik_ratio_bootstrap_two_sided_pval", inst)
 	inst$compute_lik_ratio_bootstrap_two_sided_pval = function(...) 0.001
-	ci = suppressMessages(suppressWarnings(inst$compute_lik_ratio_bootstrap_confidence_interval(B = 19)))
+	ci = suppressMessages(suppressWarnings(inst$compute_lik_ratio_bootstrap_confidence_interval(B = 39)))
 	expect_true(all(is.na(ci)))
 })

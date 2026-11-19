@@ -9,11 +9,10 @@
 # Where: R/EDI/R/inference_incidence_binomial_identity.R:172 (kind: converged_unchecked).
 # On commit 48765322fe90 this test failed with: Expected `is.na(est) || abs(est - ref) < 0.001` to be
 # TRUE. Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# v1.0.6-TODO-205 fixed this: the method now returns compute_estimate(estimate_only = TRUE), whose
+# fit refits cold when the warm-started fit stalls and rejects a non-converged fit.
 
 test_that("identity-binomial randomization refit does not return a non-converged warm start as the estimate", {
-	skip("open a release TODO for this")
 		set.seed(11)
 		n = 40
 		des = DesignFixedBernoulli$new(n = n, response_type = "incidence")
@@ -22,10 +21,9 @@ test_that("identity-binomial randomization refit does not return a non-converged
 		w = as.numeric(des$get_w())
 		y = ifelse(w == 1, c(rep(c(0, 1), length.out = sum(w == 1))), 0)
 		des$add_all_subject_responses(ys = y)
-		inf = InferenceIncidBinomialIdentityRiskDiff$new(des)
+		# treatment-only model, as when the original fit kept no covariates
+		inf = InferenceIncidBinomialIdentityRiskDiff$new(des, model_formula = ~1)
 		priv = inf$.__enclos_env__$private
-		# treatment-only design, as when the original fit kept no covariates
-		priv$best_X_colnames = character(0)
 		# warm start chained from a previous permutation that is infeasible here
 		priv$fit_warm_start_enabled = TRUE
 		priv$fit_warm_start = c(5, 0)

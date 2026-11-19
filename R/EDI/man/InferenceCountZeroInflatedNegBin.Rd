@@ -59,6 +59,17 @@ high because the model-based standard error is about 35\% too small. This is
 a small-sample property of the model, not a defect of the fit; it fades by
 n = 200. At small n, adjust for fewer covariates or prefer the likelihood-ratio
 test.
+
+\strong{Fitting.} The default Newton-Raphson fitter can stop at a fit that is
+not the maximum-likelihood fit: at the zero-inflation-off negative binomial
+fit, or on a ridge where the zero-inflation logit is separated. This happens
+most often on the permuted or resampled data of randomization and bootstrap
+draws. Every fit the class makes is therefore checked: a fit that did not
+converge, sits at the zero-inflation boundary, has a zero-inflation
+coefficient beyond 10 in absolute value, or has a gradient norm above
+\eqn{10^{-5}} is refit with L-BFGS from a cold start and from the warm start,
+and the fit with the highest likelihood is kept. The estimates then agree with
+\code{pscl::zeroinfl()}. The extra refits make small, sparse samples slower.
 }
 \section{Small-sample behaviour}{
 

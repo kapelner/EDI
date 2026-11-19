@@ -14,6 +14,11 @@ library(EDI)
 #   4. An unreasonable fit (is_log_binomial_fit_reasonable() FALSE -- covers both a NULL/failed fit
 #      and a finite-but-implausible one, unlike the two-site guard on InferenceIncidModifiedPoisson)
 #      returns NA.
+# v1.0.6-TODO-209: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
+# reusable randomization worker uses, instead of its own warm-started refit (as v1.0.6-TODO-205 did for
+# InferenceIncidBinomialIdentityRiskDiff). A draw loader resets the fit caches
+# (reset_reused_worker_private_caches()) before asking for the statistic, so the tests that change w or
+# the fit check clear them the same way.
 
 logbin_fixture <- function(seed = 1L, n = 80L) {
 	set.seed(seed)
@@ -54,6 +59,8 @@ test_that("the randomization-time estimate refits the treatment coefficient for 
 	set.seed(9)
 	w2 <- sample(f$w)
 	f$priv$w <- w2
+	reset_reused_worker_private_caches(f$priv, changed = "assignment")
+	f$priv$cached_values <- list()
 	est2 <- f$priv$compute_treatment_estimate_during_randomization_inference()
 	ref2 <- unname(coef(glm(f$y ~ w2 + f$X$x1, family = binomial(link = "log"), start = c(-1.5, 0.4, 0.2)))[2])
 	expect_equal(est2, ref2, tolerance = 0.01)
@@ -82,6 +89,8 @@ test_that("an unreasonable fit (is_log_binomial_fit_reasonable() FALSE) returns 
 	f$inf$compute_estimate()
 	unlockBinding("is_log_binomial_fit_reasonable", f$priv)
 	f$priv$is_log_binomial_fit_reasonable <- function(...) FALSE
+	reset_reused_worker_private_caches(f$priv, changed = "assignment")
+	f$priv$cached_values <- list()
 
 	expect_true(is.na(f$priv$compute_treatment_estimate_during_randomization_inference()))
 })

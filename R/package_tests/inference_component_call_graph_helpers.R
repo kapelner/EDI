@@ -554,8 +554,37 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		"bootstrap_ci_estimates_extreme", "bootstrap_estimand_is_raw_ratio",
 		"resampling_centered_pivot_for_inference", "select_resampling_size_from_spec",
 		"compute_quantile_estimate_with_bootstrap_weights", "quantile_fit_response",
-		"design_stratified_jackknife"
+		"design_stratified_jackknife",
+		# v1.0.6-TODO-205 (2026-11-19, addition only): the identity-binomial
+		# warm-then-cold refit used by generate_mod() and the weighted bootstrap refit.
+		"fit_identity_binomial_warm_then_cold",
+		# v1.0.6-TODO-4 (2026-11-19, addition only): the stratified jackknife units'
+		# deletion layout and per-replicate strata on NonparametricBootstrap.
+		"jackknife_stratified_layout", "jackknife_replicate_strata",
+		# v1.0.6-TODO-217 (2026-11-19, addition only): KK IVWC classes' weighted
+		# (Bayesian-bootstrap) refit of their own estimator, which the KK compound
+		# dispatcher calls instead of its removed mean-difference fallback.
+		"compute_weighted_estimate_ivwc"
 	)
+	# v1.0.6-TODO-217 (2026-11-19, rehost only): these KK compound classes have no
+	# weighted refit of their estimator, so they opt out of the Bayesian bootstrap
+	# with a host-level supports_bayesian_bootstrap() = FALSE override. Reviewed
+	# delta: the method moves from the BayesianBootstrap host to the class itself.
+	todo217_bb_refused <- c(
+		"InferenceBaiAdjustedTKK14", "InferenceBaiAdjustedTKK21",
+		"InferenceContinKKQuantileRegrIVWC", "InferencePropKKQuantileRegrIVWC",
+		"InferenceContinKKRobustRegrIVWC", "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	)
+	for (class_name in todo217_bb_refused) {
+		row <- which(baseline$class == class_name)
+		x <- strsplit(baseline$private_methods[[row]], "|", fixed = TRUE)[[1L]]
+		old <- grep("^supports_bayesian_bootstrap@", x, value = TRUE)
+		expect_identical(length(old), 1L, info = class_name)
+		expect_false(identical(old, paste0("supports_bayesian_bootstrap@", class_name)), info = class_name)
+		x <- c(setdiff(x, old), paste0("supports_bayesian_bootstrap@", class_name))
+		baseline$private_methods[[row]] <- paste(sort(unique(x)), collapse = "|")
+	}
 	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
 	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {
 		x <- strsplit(baseline$private_methods[[i]], "|", fixed = TRUE)[[1L]]

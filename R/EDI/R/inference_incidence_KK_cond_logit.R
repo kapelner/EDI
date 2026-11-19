@@ -878,7 +878,10 @@ IncidKKCondLogitIVWCSource = list(
 			if (m_ok && r_ok){
 				w_star = ssq_r / (ssq_r + ssq_m)
 				private$cached_values$beta_hat_T   = w_star * beta_m + (1 - w_star) * beta_r
-				if (estimate_only) return(invisible(NULL))
+				# v1.0.6-TODO-132: no early return for estimate_only here. The component
+				# variances are already computed, and shared() returns early on a cached
+				# beta_hat_T, so returning before the SE left a later full call with
+				# no standard error (NA CIs and p-values after an estimate_only call).
 				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
 			} else if (m_ok){
 				private$cached_values$beta_hat_T   = beta_m
@@ -891,6 +894,57 @@ IncidKKCondLogitIVWCSource = list(
 				private$cached_values$s_beta_hat_T = NA_real_
 			}
 			private$cached_values$df = Inf
+		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# the KK compound's generic fallback, a weighted risk difference (0.30 for a
+		# log-odds-ratio estimate of 2.66). Now it is the same estimator as shared():
+		# the discordant-pair conditional logistic fit (weighted by pair) and the
+		# reservoir logistic fit (weighted by subject), each with the inverse of its
+		# weighted information as variance, pooled by inverse variance.
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			if (is.null(KKstats)) return(NA_real_)
+			weighted_logit = function(X, y, wts, j){
+				ok = is.finite(wts) & wts > 0
+				if (sum(ok) <= ncol(X)) return(NULL)
+				fit = tryCatch(
+					suppressWarnings(stats::glm.fit(X[ok, , drop = FALSE], y[ok], weights = wts[ok], family = stats::quasibinomial())),
+					error = function(e) NULL
+				)
+				if (is.null(fit) || !isTRUE(fit$converged) || anyNA(fit$coefficients) || fit$rank < ncol(X)) return(NULL)
+				V = tryCatch(chol2inv(fit$qr$qr[seq_len(fit$rank), seq_len(fit$rank), drop = FALSE]), error = function(e) NULL)
+				if (is.null(V)) return(NULL)
+				jj = match(j, fit$qr$pivot)
+				list(beta = as.numeric(fit$coefficients[j]), ssq = as.numeric(V[jj, jj]))
+			}
+			beta_m = NA_real_; ssq_m = NA_real_
+			if (KKstats$m > 0) {
+				# KKstats rows are the pairs in increasing pair id, as w_info$pair_ids.
+				y_m_all = KKstats$yTs_matched - KKstats$yCs_matched
+				i_disc = which(abs(y_m_all) == 1)
+				if (length(i_disc) > 0L && length(w_info$pair_weights) == length(y_m_all)) {
+					X_m = cbind(treatment = 1, KKstats$X_matched_diffs[i_disc, , drop = FALSE])
+					fit_m = weighted_logit(X_m, (y_m_all[i_disc] + 1) / 2, w_info$pair_weights[i_disc], 1L)
+					if (!is.null(fit_m)) { beta_m = fit_m$beta; ssq_m = fit_m$ssq }
+				}
+			}
+			beta_r = NA_real_; ssq_r = NA_real_
+			if (KKstats$nRT > 0 && KKstats$nRC > 0) {
+				w_r = KKstats$w_reservoir
+				X_covars = private$get_X()
+				X_r = if (is.null(X_covars) || ncol(X_covars) == 0) cbind(1, w_r) else cbind(1, w_r, KKstats$X_reservoir)
+				fit_r = weighted_logit(as.matrix(X_r), KKstats$y_reservoir, w_info$reservoir_weights, 2L)
+				if (!is.null(fit_r)) { beta_r = fit_r$beta; ssq_r = fit_r$ssq }
+			}
+			pooled = kk_ivwc_pool_halves(beta_m, ssq_m, beta_r, ssq_r)
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
 		},
 		clogit_for_matched_pairs = function(KKstats, X_covars){
 			fit = conditional_logit_fit_matched_pairs(KKstats)

@@ -27,7 +27,7 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	expect_true(is.list(res))
 	expect_identical(
 		names(res),
-		c("results", "results_table", "compute_conf_intervals", "design", "alpha",
+		c("results", "results_table", "compute_conf_intervals", "design", "alpha", "resample_counts",
 		  "unavailable_due_to_missing_packages", "combined_evidence", "plots", "files",
 		  "timestamp", "total_secs", "edi_version")
 	)

@@ -100,6 +100,7 @@ CountLikelihoodPlumbingSource = list(
 			)
 		},
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
+			edi_assert_lik_ratio_bootstrap_ci_B(B, alpha)
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval(
 				alpha = alpha,

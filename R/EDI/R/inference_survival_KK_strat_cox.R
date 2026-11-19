@@ -63,7 +63,9 @@ SurvivalKKStratCoxIVWCSource = list(
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the estimated treatment effect (log-hazard ratio).
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @param estimate_only If TRUE, return a cached estimate when one exists. The
+		#'   estimate is always the inverse-variance-weighted combination, which needs
+		#'   both halves' variances, so a fresh call costs the same as a full fit.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
@@ -199,17 +201,82 @@ SurvivalKKStratCoxIVWCSource = list(
 			}
 			candidates
 		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# the KK compound's generic mean-difference fallback, which reads
+		# KKstats$y_matched_diffs; this class never builds that field, so every
+		# replicate was sum(NULL) / ... = 0 and the interval was [0, 0]. Now it is the
+		# same estimator as shared(): a weighted stratified Cox fit of the matched
+		# pairs (pair strata) and a weighted Cox fit of the reservoir, each with the
+		# variance of its own weighted fit, pooled by inverse variance.
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			private$clear_nonestimable_state()
+			KKstats = private$cached_values$KKstats
+			if (is.null(KKstats)) KKstats = private$compute_basic_match_data()
+			if (is.null(KKstats) || sum(private$dead) == 0L) {
+				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_weighted_no_events")
+				return(NA_real_)
+			}
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			beta_m = NA_real_; ssq_m = NA_real_
+			if (KKstats$m > 0) {
+				strata_m = KKstats$m_matched_long
+				X_m = cbind(w = KKstats$w_matched_long, KKstats$X_matched_long)
+				if (isTRUE(private$harden)) X_m = kk_strat_cox_drop_within_strata_aliased_cols(X_m, strata_m)
+				fit_m = kk_ivwc_weighted_cox_half(
+					KKstats$y_matched_long, KKstats$dead_matched_long, list(X_m),
+					row_weights[split$matched_idx], strata = strata_m,
+					max_abs = private$max_abs_reasonable_coef
+				)
+				if (!is.null(fit_m)) { beta_m = fit_m$beta; ssq_m = fit_m$ssq }
+			}
+			beta_r = NA_real_; ssq_r = NA_real_
+			if (KKstats$nRT > 0 && KKstats$nRC > 0) {
+				w_r = KKstats$w_reservoir
+				X_treat_only = matrix(w_r, ncol = 1L, dimnames = list(NULL, "w"))
+				fit_r = kk_ivwc_weighted_cox_half(
+					KKstats$y_reservoir, KKstats$dead_reservoir,
+					c(private$cox_design_candidates(w_r, as.matrix(KKstats$X_reservoir)), list(X_treat_only)),
+					row_weights[split$reservoir_idx],
+					max_abs = private$max_abs_reasonable_coef
+				)
+				if (!is.null(fit_r)) { beta_r = fit_r$beta; ssq_r = fit_r$ssq }
+			}
+			pooled = kk_ivwc_pool_halves(beta_m, ssq_m, beta_r, ssq_r)
+			if (!is.finite(pooled$beta)) {
+				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_weighted_both_failed")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
+		},
 		rcpp_cox_fit_is_usable = function(fit, estimate_only = FALSE){
 			if (is.null(fit) || !isTRUE(fit$converged)) return(FALSE)
 			coef1 = fit$coefficients[1L]
 			if (!is.finite(coef1) || abs(coef1) > private$max_abs_reasonable_coef) return(FALSE)
 			if (estimate_only) return(TRUE)
-			se = sqrt(fit$vcov[1L, 1L])
-			is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef
+			# A negative variance is unusable; test it before sqrt() so it does not
+			# warn "NaNs produced" (every resampling replicate now takes this path,
+			# v1.0.6-TODO-132).
+			v = fit$vcov[1L, 1L]
+			is.finite(v) && v > 0 && sqrt(v) <= private$max_abs_reasonable_coef
 		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+			# v1.0.6-TODO-132 (owner decision 2026-11-19): estimate_only = TRUE used
+			# to combine the two halves by sample size (and to accept halves whose
+			# variance was not finite), a different estimator from the reported
+			# inverse-variance-weighted one. The reusable worker, the jackknife and
+			# the slow subset refit all call compute_estimate(estimate_only = TRUE),
+			# so their replicates were not of the reported quantity, and the result
+			# depended on call order (after a full fit, the cached IVW value was
+			# returned). The IVW weights need both halves' variances, so every call
+			# now runs the full fit; estimate_only only selects the cache check above.
 			private$clear_nonestimable_state()
 			if (is.null(private$cached_values$KKstats)){
 				private$compute_basic_match_data()
@@ -243,12 +310,12 @@ SurvivalKKStratCoxIVWCSource = list(
 				if (isTRUE(private$harden)) X_m = kk_strat_cox_drop_within_strata_aliased_cols(X_m, strata_m)
 
 				res = tryCatch(
-					fast_stratified_coxph_regression_cpp(X_m, y_m, dead_m, as.integer(strata_m), estimate_only = estimate_only),
+					fast_stratified_coxph_regression_cpp(X_m, y_m, dead_m, as.integer(strata_m), estimate_only = FALSE),
 					error = function(e) NULL
 				)
-				if (private$rcpp_cox_fit_is_usable(res, estimate_only = estimate_only)){
+				if (private$rcpp_cox_fit_is_usable(res)){
 					beta_m = res$coefficients[1L]
-					if (!estimate_only) ssq_m = res$vcov[1L, 1L]
+					ssq_m = res$vcov[1L, 1L]
 				}
 			}
 			# ── Reservoir ───────────────────────────────────────────────────
@@ -262,10 +329,10 @@ SurvivalKKStratCoxIVWCSource = list(
 				candidates = private$cox_design_candidates(w_r, X_cov_r)
 				for (X_candidate in candidates){
 					res_try = tryCatch(
-						fast_coxph_regression_cpp(X_candidate, y_r, dead_r, estimate_only = estimate_only),
+						fast_coxph_regression_cpp(X_candidate, y_r, dead_r, estimate_only = FALSE),
 						error = function(e) NULL
 					)
-					if (private$rcpp_cox_fit_is_usable(res_try, estimate_only = estimate_only)){
+					if (private$rcpp_cox_fit_is_usable(res_try)){
 						res = res_try
 						break
 					}
@@ -280,32 +347,26 @@ SurvivalKKStratCoxIVWCSource = list(
 					X_mat = matrix(w_r, ncol = 1L)
 					colnames(X_mat) = "w"
 					res_try = tryCatch(
-						fast_coxph_regression_cpp(X_mat, y_r, dead_r, estimate_only = estimate_only),
+						fast_coxph_regression_cpp(X_mat, y_r, dead_r, estimate_only = FALSE),
 						error = function(e) NULL
 					)
-					if (private$rcpp_cox_fit_is_usable(res_try, estimate_only = estimate_only)) res = res_try
+					if (private$rcpp_cox_fit_is_usable(res_try)) res = res_try
 				}
 			}
 			if (!is.null(res)){
 				beta_r = res$coefficients[1L]
-				if (!estimate_only) ssq_r = res$vcov[1L, 1L]
+				ssq_r = res$vcov[1L, 1L]
 			}
 			# ── Combine ─────────────────────────────────────────────────────
-			m_ok = is.finite(beta_m) && (estimate_only || (is.finite(ssq_m) && ssq_m > 0))
-			r_ok = is.finite(beta_r) && (estimate_only || (is.finite(ssq_r) && ssq_r > 0))
+			m_ok = is.finite(beta_m) && is.finite(ssq_m) && ssq_m > 0
+			r_ok = is.finite(beta_r) && is.finite(ssq_r) && ssq_r > 0
 			if (m_ok && r_ok){
-				if (estimate_only){
-					# Use simple sample size weighting as fallback if SEs not requested
-					w_star = m / (m + (nRT+nRC)/2)
-					private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
-				} else {
-					w_star = ssq_r / (ssq_r + ssq_m)
-					private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
-					private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
-				}
+				w_star = ssq_r / (ssq_r + ssq_m)
+				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
+				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
 			} else if (m_ok){
 				private$cached_values$beta_hat_T = beta_m
-				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_m)
+				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
 				# v1.0.6-TODO-133: say so whenever a non-empty reservoir is dropped
 				# (warn on direct calls only, never inside resampling). Owner decision
 				# 2026-11-18: an empty reservoir arm warns too; it carries no treatment
@@ -315,7 +376,7 @@ SurvivalKKStratCoxIVWCSource = list(
 						paste0(" has an empty ", if (nRT == 0L) "treated" else "control",
 							" arm, so it carries no treatment contrast")
 					} else {
-						paste0(" has no usable Cox fit", if (estimate_only) "" else " with a finite standard error")
+						" has no usable Cox fit with a finite standard error"
 					}
 					warning(structure(
 						class = c("edi_kk_strat_cox_ivwc_reservoir_dropped_warning", "warning", "condition"),
@@ -328,7 +389,7 @@ SurvivalKKStratCoxIVWCSource = list(
 				}
 			} else if (r_ok){
 				private$cached_values$beta_hat_T = beta_r
-				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_r)
+				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else {
 				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_both_failed")
 				# v1.0.6-TODO-128: do not hand back NA silently. Resampling replicates
@@ -338,7 +399,7 @@ SurvivalKKStratCoxIVWCSource = list(
 						class = c("edi_kk_strat_cox_ivwc_nonestimable_warning", "warning", "condition"),
 						list(
 							message = paste0(class(self)[1L], ": neither the matched-pair stratified Cox fit nor ",
-								"the reservoir Cox fit is usable", if (estimate_only) "" else " with a finite standard error",
+								"the reservoir Cox fit is usable with a finite standard error",
 								" (matched pairs: ", m, ", reservoir treated/control: ", nRT, "/", nRC,
 								"); returning NA."),
 							call = NULL

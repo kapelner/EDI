@@ -153,11 +153,14 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
 		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
-		compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
+		compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Compute Bayesian-bootstrap two sided pval
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
@@ -167,11 +170,14 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
 		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
-		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Compute Bayesian-bootstrap confidence interval
 		#' @param alpha The significance level (default 0.05).
@@ -547,6 +553,8 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			}
 			# v1.0.6-TODO-109: separation warning (once per object, silent in resampling; no numeric change).
 			edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
+			# v1.0.6-TODO-191: convergence / separation flags for the risk-ratio subsampling filter.
+			gcomp_record_fit_diagnostics(private, fit$X, fit$coefficients, converged = fit$converged)
 			# v1.0.6-TODO-138: name covariates dropped beyond collinearity (same rules).
 			edi_warn_gcomp_covariate_drop(self, private, X_full, fit, treatment_only_fallback)
 			private$cached_values = gcomp_cache_standardized_effects(
@@ -632,8 +640,9 @@ incidence_kk_gcomp_worker_overrides = list(
 	load_bootstrap_sample_into_worker = function(worker_state, indices){
 		private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 	},
+	# v1.0.6-TODO-191: marks degenerate risk-ratio subsampling / m-out-of-n draws as unusable.
 	compute_bootstrap_worker_estimate = function(worker_state){
-		private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state)
+		gcomp_bootstrap_worker_estimate(private, worker_state)
 	}
 )
 

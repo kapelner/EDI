@@ -130,6 +130,76 @@ kk_cpoisson_glm_fallback_spec = function(ctx){
 	ci
 }
 
+# v1.0.6-TODO-195 (1), 2026-11-19: the KK hurdle-Poisson classes fit the count
+# part of a hurdle model, a zero-truncated Poisson GLMM on the matched rows with a
+# positive count (fast_hurdle_poisson_glmm_cpp()); the hurdle (zero vs. positive)
+# part never enters. The OneLik class adds a plain Poisson likelihood on the
+# reservoir rows with the same coefficients. So the guards the other
+# zero-augmented classes apply to their positive rows apply here, to the rows
+# that actually enter the count likelihood ("count rows"):
+#   * aliased count covariates on those rows are dropped, as glm does
+#     (v1.0.6-TODO-195 (2), zero_augmented_drop_aliased_count_cols());
+#   * a treatment coefficient those rows do not identify is not estimable
+#     (v1.0.6-TODO-186, zero_augmented_count_treatment_identified());
+#   * an arm whose truncated rows all have y = 1 and whose Poisson (reservoir)
+#     rows all have y = 0 (and that has at least one count row) sends the
+#     treatment coefficient to infinity: lowering that arm's rate alone raises
+#     every one of its terms (v1.0.6-TODO-195 (3),
+#     zero_augmented_count_mle_infinite_arms() for the truncated-only case).
+# Before this, such data gave arbitrary estimates (e.g. -0.43 with SE 0.31 when
+# every positive matched row was treated, -14 with SE 335 when every treated
+# positive count was 1) and randomization replicates stuck at the warm start.
+# The matched rows with a positive count enter the OneLik likelihood only when
+# there are more of them than coefficients (combined_hurdle_neg_loglik()); the
+# guard uses the same rule. Returns list(X, keep, dropped, reason, arms); reason
+# is NULL when the fit can go ahead, else "kk_hurdle_count_treatment_unidentified"
+# or "kk_hurdle_count_mle_not_finite".
+kk_hurdle_count_guard = function(X_fit, y, j_treat, matched_idx, reservoir_idx = integer(), weights = NULL,
+		harden = TRUE, matched_needs_more_rows_than_coefs = FALSE) {
+	X_fit = as.matrix(X_fit)
+	y = as.numeric(y)
+	n = nrow(X_fit)
+	out = list(X = X_fit, keep = seq_len(ncol(X_fit)), dropped = character(), reason = NULL, arms = numeric())
+	if (length(y) != n || !is.finite(j_treat) || j_treat < 1L || j_treat > ncol(X_fit)) return(out)
+	wts = if (is.null(weights)) rep(1, n) else as.numeric(weights)
+	if (length(wts) != n) return(out)
+	ok = is.finite(y) & is.finite(wts) & wts > 0
+	in_matched = seq_len(n) %in% matched_idx
+	trunc_cand = in_matched & ok & y > 0
+	pois = (seq_len(n) %in% reservoir_idx) & ok
+	count_rows = function(p) pois | (trunc_cand & (!matched_needs_more_rows_than_coefs || sum(trunc_cand) > p))
+	if (isTRUE(harden) && identical(as.integer(j_treat), 2L)) {
+		rows = count_rows(ncol(X_fit))
+		if (any(rows)) {
+			res = zero_augmented_drop_aliased_count_cols(X_fit[rows, , drop = FALSE], rep(1, sum(rows)), j_treat = 2L)
+			if (length(res$dropped)) {
+				out$X = X_fit[, res$keep, drop = FALSE]
+				out$keep = res$keep
+				out$dropped = res$dropped
+			}
+		}
+	}
+	rows = count_rows(ncol(out$X))
+	if (!any(rows) || !zero_augmented_count_treatment_identified(out$X[rows, , drop = FALSE], rep(1, sum(rows)), j_treat = j_treat)) {
+		out$reason = "kk_hurdle_count_treatment_unidentified"
+		return(out)
+	}
+	trunc = trunc_cand & rows
+	arm = as.numeric(out$X[, j_treat])
+	arms = sort(unique(arm[rows]))
+	if (length(arms) == 2L) {
+		at_infinity = vapply(arms, function(a) {
+			sel = arm == a
+			all(y[sel & trunc] == 1) && all(y[sel & pois] == 0)
+		}, logical(1))
+		if (any(at_infinity)) {
+			out$reason = "kk_hurdle_count_mle_not_finite"
+			out$arms = arms[at_infinity]
+		}
+	}
+	out
+}
+
 # Static leaf source (2026-08-17 migration, same shape as
 # SurvivalKKWeibullMarginalSource): mixin content arrives through the
 # registered KKPassThrough component (this component's declared dependency);
@@ -356,10 +426,13 @@ CountKKHurdlePoissonIVWCSource = list(
 			m_vec = split$m_vec
 			matched_idx = split$matched_idx
 			reservoir_idx = split$reservoir_idx
+			private$cached_values$matched_component_nonestimable_reason = NULL
+			res_m = NULL
 			if (length(matched_idx) > 0L){
 				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec)
 				private$cached_values$beta_T_matched = res_m$beta_hat
 				private$cached_values$ssq_beta_T_matched = res_m$se^2
+				private$cached_values$matched_component_nonestimable_reason = res_m$reason
 			}
 			beta_m = private$cached_values$beta_T_matched
 			ssq_m = private$cached_values$ssq_beta_T_matched
@@ -388,6 +461,13 @@ CountKKHurdlePoissonIVWCSource = list(
 				private$cached_values$beta_hat_T = beta_r
 			if (estimate_only) return(invisible(NULL))
 				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
+			} else if (!is.null(res_m$reason)) {
+				# v1.0.6-TODO-195 (1) / (3): no reservoir to fall back on, so the
+				# matched component's guard decides the estimate.
+				private$cache_nonestimable_estimate(res_m$reason)
+				if (identical(res_m$reason, "kk_hurdle_count_mle_not_finite")) {
+					edi_warn_hurdle_count_mle_not_finite(self, private, res_m$arms, reason = res_m$reason)
+				}
 			} else {
 				private$cache_nonestimable_estimate("kk_hurdle_poisson_ivwc_no_usable_component")
 			}
@@ -407,6 +487,20 @@ CountKKHurdlePoissonIVWCSource = list(
 			X_fit = reduced$X
 			if (is.null(X_fit) || !is.finite(reduced$j_treat) || nrow(X_fit) <= ncol(X_fit)){
 				return(list(beta_hat = NA_real_, se = NA_real_))
+			}
+			# v1.0.6-TODO-195 (1): the matched component is the count part of a
+			# hurdle model, learned from the positive matched rows only; apply the
+			# zero-augmented guards there (see kk_hurdle_count_guard()). A failed
+			# guard makes this component unusable, so the IVWC estimate is the
+			# reservoir's alone, as for any failed component.
+			guard = kk_hurdle_count_guard(X_fit, private$y[matched_idx], reduced$j_treat,
+				matched_idx = seq_len(nrow(X_fit)), weights = weights, harden = private$harden)
+			if (length(guard$dropped)) {
+				edi_warn_covariate_dropped_once(self, private, guard$dropped, "aliased_on_positive_rows")
+				X_fit = guard$X
+			}
+			if (!is.null(guard$reason)) {
+				return(list(beta_hat = NA_real_, se = NA_real_, reason = guard$reason, arms = guard$arms))
 			}
 			# No weighted variant of the Rcpp matched-pair hurdle-GLMM optimizer
 			# exists, so a caller-supplied weights vector always routes through
@@ -431,7 +525,9 @@ CountKKHurdlePoissonIVWCSource = list(
 			)
 		},
 		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat){
-			fit = tryCatch(
+			fit = tryCatch({
+				# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+				edi_check_count_kernel_inputs("fast_hurdle_poisson_glmm_cpp", X_fit, y_fit, group_id = group_id)
 				fast_hurdle_poisson_glmm_cpp(
 					X = as.matrix(X_fit),
 					y = as.numeric(y_fit),
@@ -439,7 +535,7 @@ CountKKHurdlePoissonIVWCSource = list(
 					j_T = as.integer(j_treat - 1L),
 					estimate_only = FALSE,
 					optimization_alg = private$optimization_alg
-				),
+				)},
 				error = function(e) NULL
 			)
 			if (is.null(fit) || !isTRUE(fit$converged)) return(list(beta_hat = NA_real_, se = NA_real_))
@@ -1292,6 +1388,24 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				return(invisible(NULL))
 			}
 			X_model = X_fit
+			# v1.0.6-TODO-195 (1) / (3): the count-row guards of the other
+			# zero-augmented classes, on the rows that enter the combined likelihood
+			# (see kk_hurdle_count_guard()).
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X_fit))
+			guard = kk_hurdle_count_guard(X_fit, private$y, reduced$j_treat, split$matched_idx, split$reservoir_idx,
+				harden = private$harden, matched_needs_more_rows_than_coefs = TRUE)
+			if (length(guard$dropped)) {
+				edi_warn_covariate_dropped_once(self, private, guard$dropped, "aliased_on_positive_rows")
+				X_fit = guard$X
+			}
+			if (!is.null(guard$reason)) {
+				private$cache_nonestimable_estimate(guard$reason)
+				if (identical(guard$reason, "kk_hurdle_count_mle_not_finite")) {
+					edi_warn_hurdle_count_mle_not_finite(self, private, guard$arms, reason = guard$reason,
+						kk_reservoir = length(split$reservoir_idx) > 0L)
+				}
+				return(invisible(NULL))
+			}
 			dat = private$build_combined_hurdle_data(X_fit, reduced$j_treat)
 			fit = private$fit_combined_hurdle(dat, estimate_only = estimate_only)
 			fallback_used = FALSE
@@ -1357,6 +1471,16 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			}
 			if (weights_are_effectively_constant(row_weights)) {
 				return(as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L])
+			}
+			# v1.0.6-TODO-195 (1) / (3): same guards as the full fit, on the rows with
+			# positive weight.
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X_fit))
+			guard = kk_hurdle_count_guard(X_fit, private$y, reduced$j_treat, split$matched_idx, split$reservoir_idx,
+				weights = row_weights, harden = private$harden, matched_needs_more_rows_than_coefs = TRUE)
+			X_fit = guard$X
+			if (!is.null(guard$reason)) {
+				private$cache_nonestimable_estimate(guard$reason)
+				return(NA_real_)
 			}
 			dat = private$build_weighted_combined_hurdle_data(X_fit, reduced$j_treat, row_weights = row_weights)
 			fit = private$fit_combined_hurdle(dat, estimate_only = estimate_only)
@@ -1436,6 +1560,23 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			)
 			if (is.null(full_res) || !isTRUE(full_res$converged)) return(NULL)
 			if (length(full_res$b) < j || !is.finite(full_res$b[j])) return(NULL)
+			# v1.0.6-TODO-195 (1) / (3): a simulated response whose count rows do not
+			# identify the treatment coefficient, or put it at infinity, has no usable
+			# estimate: the parametric-bootstrap estimate replicate reads b[j] and
+			# counts NA as a failed refit; the LR replicate uses only the two nlls and
+			# the null refit starts from params, so it is unchanged.
+			y_sim_all = numeric(nrow(dat$X_fit))
+			y_sim_all[dat$matched_idx] = dat_sim$y_matched
+			y_sim_all[dat$reservoir_idx] = dat_sim$y_reservoir
+			w_sim_all = NULL
+			if (!is.null(dat$weights_matched) || !is.null(dat$weights_reservoir)) {
+				w_sim_all = rep(1, nrow(dat$X_fit))
+				if (!is.null(dat$weights_matched)) w_sim_all[dat$matched_idx] = dat$weights_matched
+				if (!is.null(dat$weights_reservoir)) w_sim_all[dat$reservoir_idx] = dat$weights_reservoir
+			}
+			sim_guard = kk_hurdle_count_guard(dat$X_fit, y_sim_all, j, dat$matched_idx, dat$reservoir_idx,
+				weights = w_sim_all, harden = FALSE, matched_needs_more_rows_than_coefs = TRUE)
+			if (!is.null(sim_guard$reason)) full_res$b[j] = NA_real_
 			list(
 				full_fit = full_res,
 				fit_null = function(d, start = NULL){

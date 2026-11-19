@@ -8,6 +8,9 @@ library(EDI)
 # test-gcomp-risk-ratio-resampling-coverage.R covers bootstrap/jackknife only.
 # The reference recentres on log(estimate) exactly as documented and is built
 # from the same seeded resampling distribution.
+# v1.0.6-TODO-191: degenerate draws come back NaN and the methods return NA when more than 5%
+# of the B draws are unusable; at B = 40, m = b = 15 that cap trips, so the arithmetic checks
+# pass min_fraction_usable_samples = 0 (the reference already keeps only the finite draws).
 
 rr_fixture <- function(y_fun = NULL, n = 60L, seed = 4L) {
 	set.seed(seed)
@@ -47,16 +50,16 @@ test_that("m-out-of-n RR interval and p-value match the log-centered reference b
 	est <- f$inf$compute_estimate()
 	expect_true(is.finite(est) && est > 0)
 	d <- f$inf$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T(B = 40, m = 15, show_progress = FALSE)
-	ci <- f$inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 40, m = 15, show_progress = FALSE)
+	ci <- f$inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 40, m = 15, show_progress = FALSE, min_fraction_usable_samples = 0)
 	expect_equal(as.numeric(ci), ref_rr_ci(d, est, 15, f$n, 0.05), tolerance = 1e-8)
 	expect_equal(names(ci), c("2.5%", "97.5%"))
 	for (delta in c(1, 2, 0.5)) {
-		pv <- f$inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = delta, B = 40, m = 15, show_progress = FALSE)
-		expect_equal(pv, ref_rr_pval(d, est, 15, f$n, delta), tolerance = 1e-10, info = delta)
+		pv <- f$inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = delta, B = 40, m = 15, show_progress = FALSE, min_fraction_usable_samples = 0)
+		expect_equal(pv, ref_rr_pval(d, est, 15, f$n, delta), tolerance = 1e-10, info = format(delta))
 	}
 	# The default null for a ratio estimand is 1.
 	expect_equal(
-		f$inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 40, m = 15, show_progress = FALSE),
+		f$inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 40, m = 15, show_progress = FALSE, min_fraction_usable_samples = 0),
 		ref_rr_pval(d, est, 15, f$n, 1), tolerance = 1e-10
 	)
 })
@@ -66,14 +69,14 @@ test_that("subsampling RR interval and p-value match the same log-centered refer
 	f$priv$harden <- FALSE  # v1.0.6-TODO-175: [0.002, 2.7] is over the log(RR) cap; arithmetic check
 	est <- f$inf$compute_estimate()
 	d <- f$inf$approximate_subsampling_distribution_beta_hat_T(B = 40, b = 15, show_progress = FALSE)
-	ci <- f$inf$compute_subsampling_confidence_interval(B = 40, b = 15, show_progress = FALSE)
+	ci <- f$inf$compute_subsampling_confidence_interval(B = 40, b = 15, show_progress = FALSE, min_fraction_usable_samples = 0)
 	expect_equal(as.numeric(ci), ref_rr_ci(d, est, 15, f$n, 0.05), tolerance = 1e-8)
-	ci90 <- f$inf$compute_subsampling_confidence_interval(alpha = 0.1, B = 40, b = 15, show_progress = FALSE)
+	ci90 <- f$inf$compute_subsampling_confidence_interval(alpha = 0.1, B = 40, b = 15, show_progress = FALSE, min_fraction_usable_samples = 0)
 	expect_equal(as.numeric(ci90), ref_rr_ci(d, est, 15, f$n, 0.1), tolerance = 1e-8)
 	# A 90% interval is nested inside the 95% interval.
 	expect_gte(ci90[1], ci[1] - 1e-12)
 	expect_lte(ci90[2], ci[2] + 1e-12)
-	pv <- f$inf$compute_subsampling_two_sided_pval(B = 40, b = 15, show_progress = FALSE)
+	pv <- f$inf$compute_subsampling_two_sided_pval(B = 40, b = 15, show_progress = FALSE, min_fraction_usable_samples = 0)
 	expect_equal(pv, ref_rr_pval(d, est, 15, f$n, 1), tolerance = 1e-10)
 })
 

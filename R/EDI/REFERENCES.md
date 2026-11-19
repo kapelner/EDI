@@ -178,6 +178,15 @@ Crossref 2026-11-17.)
   Association*, 115(529), 393-402. — Used by: `InferenceSuite` (the Combined Evidence Metric's Cauchy
   combination test, valid under arbitrary and unknown dependence among
   the per-class p-values being combined).
+- **[EfronHinkley1978]** Efron, B., and Hinkley, D. V. (1978). "Assessing the
+  accuracy of the maximum likelihood estimator: Observed versus expected
+  Fisher information." *Biometrika*, 65(3), 457-483.
+  [doi:10.1093/biomet/65.3.457](https://doi.org/10.1093/biomet/65.3.457). —
+  Used by: `InferenceAsympLik` and every likelihood-backed class built on it
+  (its information-preference setter and getters and its Wald and score
+  methods): Wald standard errors, p-values and CIs use the
+  observed information at the MLE; the information preference applies only
+  to score tests and score CIs (v1.0.6-TODO-215).
 
 ### Cross-cutting: two-sample location, rank, and robust methods
 
@@ -261,6 +270,26 @@ Crossref 2026-11-17.)
   Bootstrap Tests of Hypotheses*, Springer, for the test/CI duality, and
   states asymptotic validity as an open question. — Used by:
   `InferenceRandBootstrap` (`inference_all_abstract_rand_bootstrap.R`).
+- **[Wolter2007]** Wolter, K. M. (2007). *Introduction to Variance
+  Estimation* (2nd ed.). Springer, New York. Ch. 4, "The Jackknife Method"
+  (pp. 151-193), Sec. 4.5 (the jackknife in stratified sampling: one
+  primary unit deleted at a time within its stratum, variance
+  sum_h ((n_h - 1)/n_h) sum_i (theta_(h,i) - centre)^2).
+  [doi:10.1007/978-0-387-35099-8](https://doi.org/10.1007/978-0-387-35099-8)
+  (chapter pages from the publisher's chapter page, 2026-11-19; the book
+  text itself was not accessible, so the variance form was checked against
+  the restatement in Valliant, Brick and Dever 2008, *Journal of Official
+  Statistics* 24(3), 469-488, eq. 1 and Appendix B, which cites Wolter 2007
+  Sec. 4.5). — Used by: `InferenceJackknife`
+  (`inference_all_abstract_jackknife.R`, `edi_jackknife_bias_variance()`):
+  the stratified jackknife of the automatic deletion units
+  `"permuted_block"` (`DesignSeqOneByOneSPBR`) and
+  `"observation_within_block"` (`DesignFixedBlocking`), centred at the
+  stratum mean of the replicates, with bias sum_h (n_h - 1)(theta_bar_h -
+  theta_hat). Wolter's replicates reweight the rest of the stratum by
+  n_h/(n_h - 1); EDI's subset refits do not, so each replicate's departure
+  from theta_hat is first scaled by r_h = n_h (N - 1)/(N (n_h - 1)) (its
+  first-order reweighted equivalent; N = all units); v1.0.6-TODO-4.
 
 ### GEE (matched-design / correlated-data inference)
 
@@ -546,6 +575,17 @@ Crossref 2026-11-17.)
   [doi:10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1](https://doi.org/10.1002/%28SICI%291099-1255%28199611%2911:6%3C619::AID-JAE418%3E3.0.CO;2-1). —
   Used by: `InferencePropFractionalLogit` (the fractional logistic
   quasi-likelihood model this class fits).
+- **[SmithsonVerkuilen2006]** Smithson, M., and Verkuilen, J. (2006). "A
+  better lemon squeezer? Maximum-likelihood regression with beta-distributed
+  dependent variables." *Psychological Methods*, 11(1), 54-71.
+  [doi:10.1037/1082-989X.11.1.54](https://doi.org/10.1037/1082-989X.11.1.54)
+  (verified on Crossref 2026-11-19; the formula as restated in Cribari-Neto
+  and Zeileis 2010, *Journal of Statistical Software* 34(2), p. 3,
+  [doi:10.18637/jss.v034.i02](https://doi.org/10.18637/jss.v034.i02)). —
+  Used by: `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise`
+  (`proportion_use_speedup = TRUE`: when a response so far is 0 or 1, all
+  responses are compressed to (y(n - 1) + 0.5)/n, n the responses in the fit,
+  before the logit; v1.0.6-TODO-60).
 
 ### Convergence rates and small-sample behaviour
 

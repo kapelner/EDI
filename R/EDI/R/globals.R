@@ -289,6 +289,60 @@ kk_pair_and_reservoir_bootstrap_weights = function(private_env, row_weights) {
   )
 }
 
+# v1.0.6-TODO-217: helpers for the weighted (Bayesian-bootstrap) replicate of a KK
+# inverse-variance-weighted compound (IVWC) estimator. A replicate must be the same
+# estimator as compute_estimate() (v1.0.6-TODO-132 rule): refit each half under the
+# draw's weights, take each half's variance from that weighted fit, and pool them
+# with the same inverse-variance rule and the same one-half fallbacks.
+kk_ivwc_pool_halves = function(beta_m, ssq_m, beta_r, ssq_r) {
+  m_ok = length(beta_m) == 1L && length(ssq_m) == 1L && is.finite(beta_m) && is.finite(ssq_m) && ssq_m > 0
+  r_ok = length(beta_r) == 1L && length(ssq_r) == 1L && is.finite(beta_r) && is.finite(ssq_r) && ssq_r > 0
+  if (m_ok && r_ok) {
+    w_star = ssq_r / (ssq_r + ssq_m)
+    return(list(beta = w_star * beta_m + (1 - w_star) * beta_r, ssq = ssq_m * ssq_r / (ssq_m + ssq_r)))
+  }
+  if (m_ok) return(list(beta = beta_m, ssq = ssq_m))
+  if (r_ok) return(list(beta = beta_r, ssq = ssq_r))
+  list(beta = NA_real_, ssq = NA_real_)
+}
+
+# Weighted Cox fit of one KK half over a ladder of design-matrix candidates (treatment
+# first). Returns list(beta, ssq) for the first usable candidate, else NULL. `strata`
+# gives a stratified fit (pair strata); `cluster` gives the robust (Lin-Wei / LWA)
+# variance. The weighted partial likelihood is survival::coxph(weights = ), the same
+# Efron-ties likelihood as the unweighted C++ fitter.
+kk_ivwc_weighted_cox_half = function(time, dead, X_candidates, row_weights, strata = NULL, cluster = NULL, max_abs = 1e4) {
+  if (!length(time) || sum(dead[is.finite(row_weights) & row_weights > 0]) == 0) return(NULL)
+  for (X_fit in X_candidates) {
+    X_fit = as.matrix(X_fit)
+    colnames(X_fit)[1L] = "treatment"
+    fit = tryCatch(
+      weighted_cox_bootstrap_surrogate_fit(time, dead, X_fit, row_weights, strata = strata, cluster = cluster),
+      error = function(e) NULL
+    )
+    if (is.null(fit)) next
+    j = match("treatment", names(fit$coefficients))
+    # coxph() switches to the robust variance whenever case weights are not all
+    # integers; the unclustered halves of these classes use the model-based
+    # (information) variance, so read naive.var for them.
+    V = if (is.null(cluster) && !is.null(fit$fit$naive.var)) fit$fit$naive.var else fit$fit$var
+    v = tryCatch(as.numeric(V[j, j]), error = function(e) NA_real_)
+    beta = as.numeric(fit$beta_hat)
+    if (!is.finite(beta) || abs(beta) > max_abs) next
+    if (length(v) != 1L || !is.finite(v) || v <= 0 || sqrt(v) > max_abs) next
+    return(list(beta = beta, ssq = v))
+  }
+  NULL
+}
+
+# Row weights of the current Bayesian-bootstrap draw, carried in w_info by the KK
+# compound dispatchers (they also need pair- and reservoir-level summaries).
+kk_ivwc_row_weights = function(w_info, n) {
+  rw = w_info$row_weights
+  if (is.null(rw) || length(rw) != n) stop("KK IVWC weighted refit: row weights are missing.", call. = FALSE)
+  as.numeric(rw)
+}
+
 weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, strata = NULL, cluster = NULL, warm_start_beta = NULL) {
   X = as.matrix(X)
   row_weights = as.numeric(row_weights)

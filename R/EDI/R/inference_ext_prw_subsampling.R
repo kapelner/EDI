@@ -44,10 +44,6 @@ InferenceExtPRWSubsampling = list(
 		#' @references Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 		#'   \emph{Subsampling}. Springer.
 		approximate_subsampling_distribution_beta_hat_T_impl = function(B = 501, b = NULL, show_progress = TRUE, debug = FALSE, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "subsampling"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			private$check_bootstrap_replicate_deadline("subsampling distribution setup")
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("PRW subsampling inference")
@@ -94,12 +90,19 @@ InferenceExtPRWSubsampling = list(
 				preserve_order = TRUE,
 				size_label = "b"
 			)
-			res = private$compute_resampling_draw_distribution(
-				draws = draws,
-				operation = "subsampling",
-				show_progress = show_progress,
-				debug = debug,
-				cache_key = cache_key
+			# Flag only the replicate loop (v1.0.6-TODO-207), restoring the caller's value
+			# (v1.0.6-TODO-185), so this method's own top-level code is not silenced.
+			prev_resampling_operation = private$active_resampling_operation
+			private$active_resampling_operation = "subsampling"
+			res = tryCatch(
+				private$compute_resampling_draw_distribution(
+					draws = draws,
+					operation = "subsampling",
+					show_progress = show_progress,
+					debug = debug,
+					cache_key = cache_key
+				),
+				finally = private$active_resampling_operation <- prev_resampling_operation
 			)
 			if (isTRUE(debug)) {
 				private$check_bootstrap_replicate_deadline("subsampling debug summary")

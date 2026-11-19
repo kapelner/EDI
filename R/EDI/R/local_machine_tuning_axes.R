@@ -309,7 +309,9 @@ EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS = list(
 	# retry-chain optimization the reusable worker's native-call count on the
 	# diagnosed n = 50 fixture equals legacy (60 vs 60), its draws are
 	# bit-identical to forced-legacy, and the fixture's NA estimate is the
-	# documented contract on both routes.
+	# documented contract on both routes. (Those figures are for the old
+	# noise-free fixture; since v1.0.6-TODO-204 its proportion response carries
+	# noise, x and z are no longer exact predictors, and the jackknife is finite.)
 )
 
 #' Does a class (its own generator or an ancestor) define this public method?

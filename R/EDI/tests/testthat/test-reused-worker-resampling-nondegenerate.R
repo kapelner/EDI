@@ -85,11 +85,16 @@ RESAMPLING_NONDEGENERATE_KNOWN_BROKEN = character(0)
 # mirrored rather than reused because the KK and blocked designs need a
 # different subject-entry flow (one-by-one with on-the-fly matching, and
 # add-all-then-assign, respectively) than that helper's Bernoulli flow.
+# Like the helper, the continuous, proportion and survival responses carry a
+# small seeded rnorm() term (drawn after the assignment, inside the caller's
+# seed scope); without it they were exact linear functions of w, x and z and
+# the v1.0.6-TODO-158 perfect-predictor check dropped x and z (v1.0.6-TODO-204).
 resampling_nondegenerate_responses = function(response_type, w01, x){
 	n = length(w01)
 	linpred = -0.2 + 0.55 * w01 + 0.25 * x$x - 0.15 * x$z
 	if (identical(response_type, "continuous")) {
-		return(list(y = 0.4 + 0.8 * w01 + 0.35 * x$x - 0.2 * x$z + seq(-0.3, 0.3, length.out = n), dead = NULL))
+		return(list(y = 0.4 + 0.8 * w01 + 0.35 * x$x - 0.2 * x$z + seq(-0.3, 0.3, length.out = n) +
+			stats::rnorm(n, sd = 0.1), dead = NULL))
 	}
 	if (identical(response_type, "incidence")) {
 		return(list(y = as.integer(stats::plogis(linpred) > stats::quantile(stats::plogis(linpred), 0.45)), dead = NULL))
@@ -103,13 +108,13 @@ resampling_nondegenerate_responses = function(response_type, w01, x){
 		return(list(y = y, dead = NULL))
 	}
 	if (identical(response_type, "proportion")) {
-		return(list(y = pmin(0.95, pmax(0.05, stats::plogis(linpred))), dead = NULL))
+		return(list(y = pmin(0.95, pmax(0.05, stats::plogis(linpred + stats::rnorm(n, sd = 0.2)))), dead = NULL))
 	}
 	if (identical(response_type, "ordinal")) {
 		score = linpred + seq(-0.4, 0.4, length.out = n)
 		return(list(y = as.integer(cut(score, breaks = c(-Inf, -0.15, 0.25, 0.65, Inf), labels = FALSE)), dead = NULL))
 	}
-	y_latent = exp(1.2 - 0.25 * w01 + 0.1 * x$x)
+	y_latent = exp(1.2 - 0.25 * w01 + 0.1 * x$x + stats::rnorm(n, sd = 0.1))
 	censoring = exp(1.35 + 0.05 * x$z)
 	list(y = pmin(y_latent, censoring), dead = as.integer(y_latent <= censoring))
 }

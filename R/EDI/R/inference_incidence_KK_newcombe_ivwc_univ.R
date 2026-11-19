@@ -127,6 +127,44 @@ KKNewcombeRiskDiffIVWCSource = list(
 			if (!is.finite(p_t) || !is.finite(p_c)) return(NA_real_)
 			p_t - p_c
 		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate, formerly the KK compound's
+		# generic fallback (pair differences and reservoir means pooled with the
+		# observed data's w_star, read from a KKstats field this class does not
+		# set). Same estimator as shared_combined(): the weighted matched-pair risk
+		# difference p10 - p01 and the weighted reservoir risk difference, each with
+		# its Wald variance at the weighted proportions, pooled by inverse variance.
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			if (is.null(KKstats)) return(NA_real_)
+			m = KKstats$m; nRT = KKstats$nRT; nRC = KKstats$nRC
+			est_m = NA_real_; var_m = NA_real_
+			if (m > 0 && length(w_info$pair_weights) == m) {
+				# KKstats rows are the pairs in increasing pair id, as w_info$pair_ids.
+				pw = w_info$pair_weights / sum(w_info$pair_weights)
+				yT = KKstats$yTs_matched; yC = KKstats$yCs_matched
+				p10 = sum(pw[yT == 1 & yC == 0])
+				p01 = sum(pw[yT == 0 & yC == 1])
+				est_m = p10 - p01
+				var_m = (p10 + p01 - (p10 - p01)^2) / m
+			}
+			est_r = NA_real_; var_r = NA_real_
+			if (nRT > 0 && nRC > 0) {
+				y_r = KKstats$y_reservoir; w_r = KKstats$w_reservoir; wt_r = w_info$reservoir_weights
+				pRT = stats::weighted.mean(y_r[w_r == 1], wt_r[w_r == 1])
+				pRC = stats::weighted.mean(y_r[w_r == 0], wt_r[w_r == 0])
+				est_r = pRT - pRC
+				var_r = pRT * (1 - pRT) / nRT + pRC * (1 - pRC) / nRC
+			}
+			res = private$pool_estimates_ivwc(est_m, var_m, est_r, var_r)
+			private$cached_values$beta_hat_T = res$estimate
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(res$variance)
+			res$estimate
+		},
 		shared_combined = function(){
 			if (!isTRUE(private$has_match_structure)) {
 				private$cache_nonestimable_estimate("kk_design_required")

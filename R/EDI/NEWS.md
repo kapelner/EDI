@@ -2,11 +2,121 @@
 
 ## Changes that alter results
 
+* `InferenceCountZeroInflatedNegBin` no longer accepts a fit that is not the
+  maximum-likelihood fit. Its default Newton-Raphson fitter, started from a warm
+  start, could stop at the zero-inflation-off negative binomial fit or on a
+  separation ridge even when a fit with a higher likelihood existed. This
+  happened most often on the permuted data of the randomization test (13-14% of
+  draws at n = 50), which then rejected a true null about 8% of the time instead
+  of 5%. A fit that looks suspect (not converged, at the zero-inflation boundary,
+  a zero-inflation coefficient beyond 10 in absolute value, or a gradient norm
+  above 1e-5) is now refit with L-BFGS from a cold start and from the warm
+  start, and the fit with the highest likelihood is kept. This applies to every
+  fit the class makes: the estimate, the tests and CIs, and the randomization
+  and bootstrap draws. Point estimates can change where the old fit was not the
+  maximum (they now agree with `pscl::zeroinfl()`), randomization p-values
+  change, and small samples run more slowly because about half the fits at
+  n = 50 need the extra refits (v1.0.6-TODO-207).
+
+* Wald standard errors, p-values and CIs of likelihood-backed classes now always
+  use the observed information; `set_information_preference()` affects only
+  score tests and score CIs ("fisher" stays the default there). The only visible
+  change is for the cumulative-link ordinal classes under the default "fisher"
+  preference: `InferenceSuite`'s `se` column, the Wald fallback used when the fit
+  has no SE, and CI-inversion step sizes now use the observed SE, so score CI
+  endpoints move within the root finder's tolerance (v1.0.6-TODO-215).
+
 * `InferenceCountPoisson`: on a stratified design with 2 to 4 strata, the design-conservative p-value and interval no longer fall back to the raw Poisson test (anti-conservative under overdispersion, size 0.08-0.11 in the calibration study) when the leave-one-block-out jackknife is NA. They now use a stratified delete-1 jackknife standard error pooled within strata (v1.1.0-TODO-218). The ZINB fits (`InferenceCountZeroInflatedNegBin` and the zero-augmented family's ZINB path) now check each fit that looks wrong (zero-inflation at the boundary, a zero-inflation coefficient beyond +/-10, or a large gradient norm) and keep the lowest-likelihood refit, so randomization draws warm-started from the full-data fit no longer return a wrong treatment estimate and the randomization test is no longer oversized (v1.1.0-TODO-217).
 
 * `InferenceIncidBinomialIdentityRiskDiff` and `InferenceIncidLogBinomial` no longer silently drop covariates when the default cold start lies outside the mean support (v1.0.6-TODO-142). The least-squares start could give a fitted probability outside [0, 1], so the kernel stopped after one iteration and the class reported a reduced model. The start is now pulled 90% of the way to the support boundary, toward the intercept-only fit; feasible starts are untouched. Estimates, intervals and p-values change on data where the old fit failed, including some bootstrap and jackknife replicates. Bootstrap subset copies made outside an active resampling operation (for example the outer loop of `ci_calibrated_bootstrap()`) now follow the same warm-start policy as copies made inside one, instead of inheriting the parent's warm start.
 
 * Randomization p-values (`compute_rand_two_sided_pval()`, their Monte Carlo bands, the studentized randomization-bootstrap p-values and the closed-form randomization-bootstrap CI) now count a redrawn statistic as a tie in both tails when it is within `sqrt(.Machine$double.eps)` times max(|observed|, largest |redraw|) of the observed one. Before, the tolerance was 1e-8 times |observed|, so an observed statistic of exactly 0 never caught ties at about 1e-17 (an enumerated 12-subject `InferenceOrdinalRidit` test gave p = 0.9935 instead of 1). P-values with such ties can only rise. Also: `InferenceIncidExactZhang$compute_exact_confidence_interval()` (and the `type = "Zhang"` randomization CI for incidence) now starts its endpoint search from a point the combined test accepts, so the interval inverts the test it reports; with every subject matched it used to always contain 0, and on KK designs at large n coverage was 0.85-0.88.
+
+* `InferenceCountZeroInflatedPoisson` / `InferenceCountZeroInflatedNegBin`:
+  randomization, bootstrap-randomization and parametric-bootstrap refits are no
+  longer warm-started from a full-data fit whose zero-inflation part sits on a
+  flat ridge (a fitted zero-inflation logit of 10 or more in absolute value);
+  they are cold-started like a fresh fit. On such data every ZIP randomization
+  replicate used to differ from a fresh fit (by up to 0.84), and so did half the
+  ZINB ones (up to 0.64). The ZIP bootstrap-randomization reusable worker now
+  equals the slow path. Results on data with a well-identified zero part are
+  unchanged (v1.0.6-TODO-30).
+* `InferenceCountZeroInflatedPoisson`: each fit also runs L-BFGS from
+  `pscl::zeroinfl()`'s default start and keeps the fit with the lower negative
+  log-likelihood. Estimates that sat at an interior local maximum change (e.g.
+  1.138 to -0.466, now matching pscl); fits already at the maximum are unchanged.
+  When the zero-inflation (or hurdle) part of `InferenceCountZeroInflatedPoisson`,
+  `InferenceCountZeroInflatedNegBin` or `InferenceCountHurdlePoisson` has no
+  finite maximum likelihood estimate, its coefficients are now reported as `NA`
+  and the count-part treatment estimate is kept. If the zero-inflation part is
+  only driven toward no inflation (no fitted zero-inflation probability above 5%,
+  or ZINB's zero-inflation-off boundary fit), a message of class
+  `edi_no_zero_inflation_message` says there is no evidence of zero inflation;
+  otherwise (some subject pushed to a structural zero, and always for the hurdle
+  part) a warning of class `edi_zero_part_separation_warning` (a subclass of
+  `edi_logistic_separation_warning`) is raised (v1.0.6-TODO-152,
+  v1.0.6-TODO-218).
+
+* `InferenceSurvivalKKStratCoxPHIVWC`,
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` and
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`:
+  `compute_estimate(estimate_only = TRUE)` now returns the same
+  inverse-variance-weighted combination as `compute_estimate()`; it used
+  sample-size weights (StratCox) or 50/50 weights (Weibull frailty). Jackknife,
+  reusable-worker and slow-path resampling replicates, and the CIs and p-values
+  built from them, now resample the reported estimator and change. Results from
+  a fresh full call are unchanged. The Weibull frailty classes and
+  `InferenceIncidKKCondLogitIVWC` also no longer lose their standard error (`NA`
+  Wald CI and p-value) when `estimate_only = TRUE` was called first. Resampling
+  is about 20% slower for the Weibull frailty classes (v1.0.6-TODO-132).
+
+* `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise` with
+  `proportion_use_speedup = TRUE`: when any proportion response observed so far
+  is exactly 0 or 1, every response is now compressed to (y(n - 1) + 0.5)/n
+  before the logit (Smithson and Verkuilen 2006), with n the number of responses
+  in the weight regression. This replaces the clamp to machine epsilon, which
+  made a 0 or 1 a +/-36 logit outlier in the matching-weight t-statistics.
+  Allocations change for designs with 0/1 responses and are unchanged when all
+  responses are strictly between 0 and 1 (v1.0.6-TODO-60).
+
+* Zero-augmented count models (`InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedPoisson`, `InferenceCountZeroInflatedNegBin`,
+  `InferenceCountHurdleNegBin`) now drop count-part covariates that are aliased
+  on the subjects with a positive count, the same as what `glm` does with aliased
+  columns, with one `edi_covariate_dropped_warning`. Previously such fits drifted
+  along an unidentified direction (arbitrary ZIP/ZINB estimates, `NA` standard
+  errors and CIs) or, with few positive counts, were `NA`; they now give the
+  estimate of the model without those columns. Results on full-rank data are
+  unchanged (v1.0.6-TODO-195).
+
+* The cumulative-link ordinal classes (`InferenceOrdinalPropOddsRegr`,
+  `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalCauchitRegr`,
+  `InferenceOrdinalCloglogRegr`) now use the expected Fisher information wherever
+  "fisher" information is used; before, it was the observed information under a
+  "fisher" label. This changes default score-test p-values and score CIs, and
+  improves small-sample score-test size for the cauchit and cloglog links
+  (n = 40: 0.092 to 0.053 for cauchit). `InferenceOrdinalPropOddsRegr` now
+  offers `set_information_preference("fisher")` and uses it by default. Wald and
+  likelihood-ratio results are unchanged (v1.0.6-TODO-201).
+
+* Bootstrap, Bayesian-bootstrap and randomization-bootstrap p-values computed
+  with `na.rm = TRUE` now return `NA` (reason
+  `*_too_few_valid_replicates_fraction`, with one `edi_procedure_na_warning`)
+  when fewer than 95% of the replicates are valid, instead of a p-value from the
+  surviving replicates. The new argument `min_fraction_usable_samples` (default
+  0.95; `0` turns the check off) sets the minimum. This also changes default
+  calls where `na.rm = TRUE` is the default: `compute_rand_bootstrap_two_sided_pval()`,
+  the KM-difference Bayesian bootstrap and the zero-augmented count classes, and
+  the internal bootstrap fallbacks of the log-rank, Gehan-Wilcoxon, RMST, KK
+  conditional Poisson and ordinal g-computation classes. `na.rm = FALSE` and the
+  bootstrap confidence intervals are unchanged (v1.0.6-TODO-12).
+
+* `InferenceIncidBinomialIdentityRiskDiff`: the randomization p-value is now
+  reproducible and the same on the reusable-worker and slow paths.
+  Warm-started refits that stalled at their start were counted as null draws
+  equal to the observed estimate (about 30% of draws), and the observed
+  statistic drifted between calls; a stalled fit now refits cold
+  (v1.0.6-TODO-205).
 
 * Under `set_estimand("marginal_mean_diff")` / `"marginal_ratio"`, the
   randomization and bootstrap-randomization tests of `InferencePropBetaRegr`,
@@ -342,6 +452,13 @@
 
 ## New features
 
+* `InferenceSuite$run_all_inference()` gains `r` (draws for the randomization
+  and randomization-bootstrap tests and CIs) and `B` (replicates for the
+  nonparametric, Bayesian and parametric bootstrap and the parametric-bootstrap
+  likelihood-ratio tests and CIs). Both default to `NULL`, which keeps each
+  method's own default, and are recorded in the result as `resample_counts`
+  (v1.0.6-TODO-210).
+
 * `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio` gain
   `type = "symmetric-percentile-t"` in
   `compute_bayesian_bootstrap_confidence_interval()`: a symmetric studentized
@@ -359,6 +476,50 @@
   on interval-censored data (v1.0.6-TODO-143).
 
 ## Bug fixes
+
+* `InferenceIncidLogBinomial`'s randomization statistic is now the cached point
+  estimate, so it matches the reusable worker and repeated seeded calls agree.
+  The constrained log- and identity-binomial kernels now redo a fit from the
+  cold start when a warm Fisher information from other data makes the first
+  step fail, instead of returning the warm start unconverged (v1.0.6-TODO-209).
+
+* `compute_rand_bootstrap_two_sided_pval(na.rm = FALSE)` now returns `NA` on
+  any invalid null draw on every path. The studentized and sequential Monte
+  Carlo paths used to drop such draws silently, and the percentile and smoothed
+  paths returned an `NA` without a warning; each case now raises one
+  `edi_bootstrap_nonfinite_na_warning` (v1.0.6-TODO-214).
+
+* The logistic regression kernel (`fast_logistic_regression_cpp`,
+  `_weighted_cpp`, `_with_var_cpp`) now reruns a non-converging IRLS fit with
+  step halving, so a poor warm start (e.g. in the g-computation bootstrap
+  refits) converges instead of running to |b| ~ 1e9. When the absolute gradient
+  test fails, it also accepts a scale-aware Newton-decrement criterion, so fits
+  with large-offset covariates are no longer reported as not converged. Fits
+  that converged before are unchanged (v1.0.6-TODO-192, v1.0.6-TODO-170).
+
+* The parametric-bootstrap likelihood-ratio confidence interval's `NA`
+  reasons (`lik_ratio_bootstrap_ci_pval_at_estimate_unavailable`,
+  `..._rejects_at_estimate`, `..._bound_not_found`) are now recorded under
+  `procedure_failure_reason[["lik_ratio_bootstrap_ci"]]`, keeping the Wald
+  estimate and standard error, as other resampling procedures do
+  (v1.0.6-TODO-210).
+
+* The g-computation risk-ratio and risk-difference classes
+  (`InferenceIncidKKGCompRiskRatio` / `RiskDiff`, `InferenceIncidGCompRiskRatio`
+  / `RiskDiff`) no longer reuse a non-converged weighted refit as the starting
+  point for the next bootstrap replicate. In the KK classes one such fit made
+  every later Bayesian-bootstrap replicate return RR = 1 (RD = 0) with an NA
+  standard error, causing undercoverage and non-finite intervals. A failed refit
+  is now retried from the full-data fit and then cold, and is never cached
+  (v1.0.6-TODO-192).
+
+* The parametric-bootstrap LR p-value and CI, the parametric-bootstrap
+  estimate, CI and p-value, and the m-out-of-n and subsampling p-values now
+  warn (`edi_procedure_na_warning`) when they return `NA`, instead of returning
+  a silent `NA` (for example an LR-bootstrap CI with `B` too small to reach
+  alpha). The resampling flag now covers only their replicate loops, so on a
+  not-yet-fitted object parametric-bootstrap results can differ at about 1e-10
+  and now match the results on an already-fitted object (v1.0.6-TODO-207).
 
 * The Bayesian-bootstrap `type = "wald"` p-value now warns
   (`edi_procedure_na_warning`, reason
@@ -655,6 +816,21 @@
 ## Breaking changes
 
 * `DesignFixedRerandomization$new()` now requires an acceptance rule, exactly one of `obj_val_cutoff` and `prop_acceptable`, and stops if neither is given. Before, giving neither accepted every candidate draw, so the design was complete randomization with a fixed number treated. Pass e.g. `prop_acceptable = 0.1` (keep the best 10% of draws by Mahalanobis distance); `obj_val_cutoff = Inf` reproduces the old behaviour exactly. `SimulationFramework` supplies `prop_acceptable = 0.1` when the design is given without a rule.
+
+* `DesignSeqOneByOneiBCRD` now requires `n` and errors on `n = NULL`. Its old
+  `n = NULL` fallback assigned by Bernoulli coin while its randomization draws
+  forced exact balance, so its randomization tests were invalid. Use
+  `DesignSeqOneByOneBernoulli` when the sample size is unknown. Designs
+  constructed with `n` are unchanged (v1.0.6-TODO-187).
+
+* `compute_lik_ratio_bootstrap_confidence_interval()` now errors up front when
+  `B < 2/alpha - 1` (e.g. "B must be at least 39 for alpha = 0.05"): its
+  bootstrap p-value can never be below 2/(B+1). Such calls used to run the whole
+  search and return a warned `NA`; `InferenceCountPoisson` silently fell back to
+  its design-based interval. `InferenceSuite$run_all_inference()` makes the same
+  check before any fitting when the `"param_boot"` CI is in the run, and asks for
+  a larger `B`. The default `B = 199` covers any `alpha >= 0.01`
+  (v1.0.6-TODO-210).
 
 * Argument checks are stricter (v1.0.6-TODO-100, v1.0.6-TODO-106). Calls that
   used to be accepted and gave `NA`, a silently wrong value or a confusing later

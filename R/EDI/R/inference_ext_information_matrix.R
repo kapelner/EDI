@@ -4,7 +4,10 @@
 #' code{$private} slots), spliced into exactly one class
 #' (\code{InferenceAsympLik}) -- not a reusable mixin. Provides
 #' information-source selection and treatment-coefficient standard errors for
-#' likelihood-backed inference. Requires code{get_likelihood_test_spec()} and
+#' likelihood-backed inference. The information preference
+#' (\code{set_information_preference()}) drives the score (Rao) test and score
+#' CI only; Wald standard errors always use the observed information
+#' (v1.0.6-TODO-215, owner decision 2026-11-19, Efron and Hinkley 1978). Requires code{get_likelihood_test_spec()} and
 #' code{get_default_information_source()} private methods, as well as
 #' code{information_preference} and code{information_source_used} private
 #' fields, all provided by the host class.
@@ -17,7 +20,11 @@
 InferenceExtInformationMatrix = list(
 	public = list(),
 	private = list(
-		get_information_matrix = function(spec = NULL, fit = NULL){
+		# `preference`: NULL (default) resolves the configured information
+		# preference (private$information_preference, "auto" -> the class
+		# default). The Wald SE path passes "observed" explicitly
+		# (v1.0.6-TODO-215).
+		get_information_matrix = function(spec = NULL, fit = NULL, preference = NULL){
 			if (is.null(spec)) {
 				spec = private$get_likelihood_test_spec()
 			}
@@ -65,7 +72,7 @@ InferenceExtInformationMatrix = list(
 				}, error = function(e) NULL)
 			}
 
-			preference = private$information_preference
+			if (is.null(preference)) preference = private$information_preference
 			if (identical(preference, "auto")) {
 				preference = private$get_default_information_source()
 			}
@@ -127,6 +134,15 @@ InferenceExtInformationMatrix = list(
 			as.numeric(vcov[j, j])
 		},
 
+		# Wald standard error of coefficient j from an information matrix at the
+		# MLE. v1.0.6-TODO-215 (owner decision 2026-11-19): Wald SEs always use
+		# the OBSERVED information (the negative Hessian of the log-likelihood at
+		# the MLE; Efron and Hinkley 1978), whatever set_information_preference()
+		# says -- the preference applies to score tests and score CIs only. A
+		# class that exposes no observed information (only Fisher or a legacy
+		# matrix) falls back to what the configured preference resolves to, as
+		# before. The call does not change get_information_source_used(), which
+		# reports the source of the most recent score-test computation.
 		compute_standard_error_from_information_matrix = function(spec = NULL, fit = NULL, j = NULL){
 			if (is.null(spec)) {
 				spec = private$get_likelihood_test_spec()
@@ -135,7 +151,12 @@ InferenceExtInformationMatrix = list(
 			if (is.null(j)) {
 				j = as.integer(spec$j)
 			}
-			information = tryCatch(private$get_information_matrix(spec = spec, fit = fit), error = function(e) NULL)
+			source_used_before = private$information_source_used
+			on.exit(private$information_source_used <- source_used_before, add = TRUE)
+			information = tryCatch(private$get_information_matrix(spec = spec, fit = fit, preference = "observed"), error = function(e) NULL)
+			if (is.null(information)) {
+				information = tryCatch(private$get_information_matrix(spec = spec, fit = fit), error = function(e) NULL)
+			}
 			if (is.null(information)) return(NA_real_)
 			variance = private$compute_variance_from_information_matrix(information, j)
 			if (is.finite(variance) && variance >= 0) sqrt(variance) else NA_real_

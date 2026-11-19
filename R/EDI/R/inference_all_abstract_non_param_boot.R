@@ -714,14 +714,25 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
 		#'   confidence-interval method always drops non-finite replicates, so it can be finite
 		#'   when this p-value is \code{NA}; \code{na.rm = TRUE} drops them here too, subject to
-		#'   \code{min_number_usable_samples}.
+		#'   \code{min_number_usable_samples} and \code{min_fraction_usable_samples}.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must
+		#'   be finite when \code{na.rm = TRUE} (for the studentized types: a finite estimate and a
+		#'   positive finite standard error). A number in \eqn{[0, 1]}; default \code{0.95}, which
+		#'   mirrors the 5\% cap on invalid intervals that EDI's coverage calibration applies to
+		#'   confidence intervals. Below it the p-value is \code{NA} with the recorded reason
+		#'   \code{"bootstrap_too_few_valid_replicates_fraction"} and one
+		#'   \code{edi_procedure_na_warning} (silent inside an outer resampling operation), so a
+		#'   p-value is never formed from the few resamples on which the estimator happened to
+		#'   work. \code{0} turns the check off; \code{1} requires every replicate. Ignored when
+		#'   \code{na.rm = FALSE}, which already returns \code{NA} on any non-finite replicate.
 		#' @param show_progress  		A flag indicating whether a progress bar should be displayed.
 		#'
 		#' @return 	A bootstrap two-sided p-value.
-		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
+		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertBootstrapArgs(B = B, min_number_usable_samples = min_number_usable_samples, context = "compute_bootstrap_two_sided_pval")
+				assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			}
 			if (should_run_asserts()) {
 				assertFlag(na.rm)
@@ -775,6 +786,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				if (!is.null(boot_stats)) warn_studentized_na("bootstrap_too_few_finite_standard_errors")
 				else warn_pval_na("bootstrap_too_few_finite_estimates",
 					bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
+				return(NA_real_)
+			}
+			# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+			if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_distr), B, min_fraction_usable_samples)) {
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_too_few_valid_replicates_fraction",
+					if (!is.null(boot_stats)) "se" else "estimate")
+				warn_pval_na("bootstrap_too_few_valid_replicates_fraction", bootstrap_valid_fraction_na_detail(
+					length(boot_distr), B, min_fraction_usable_samples,
+					what = if (!is.null(boot_stats)) "replicates (estimate and standard error)" else "replicate estimates"))
 				return(NA_real_)
 			}
 			if (length(boot_distr) == 0L) return(NA_real_)
@@ -880,7 +900,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   interval errs conservative (over-coverage). See the class-level section
 		#'   \emph{Design-specific validity caveats for the nonparametric bootstrap}.
 		#'
-		#' @param alpha  				The confidence level 1 - \code{alpha}. Default 0.05.
+		#' @param alpha  				The significance level; the interval has confidence level
+		#'   1 - \code{alpha}. Default 0.05.
 		#' @param B  					Number of bootstrap samples. Default 501.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples
 		#'   required after filtering. Default 5. Must be less than or equal to \code{B}.
@@ -1105,16 +1126,85 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			} else if (is_cluster_design) {
 				"cluster"
 			} else if (is_blocking_design) {
-				"block"
+				# v1.0.6-TODO-4 (owner decisions 2026-11-19): get_block_ids() returns STRATUM ids,
+				# so leave-one-block-out deleted whole strata (G = 2-4 units, coverage ~0.85).
+				# SPBR deletes one permuted block at a time and DesignFixedBlocking one subject at
+				# a time, both within strata (the stratified jackknife; see
+				# jackknife_stratified_layout() and edi_jackknife_bias_variance()).
+				if (is(design_obj, "DesignSeqOneByOneSPBR")) {
+					"permuted_block"
+				} else if (is(design_obj, "DesignFixedBlocking")) {
+					"observation_within_block"
+				} else {
+					"block"
+				}
 			} else {
 				"observation"
 			}
+		},
+		# v1.0.6-TODO-4: the deletion units and their strata for the two stratified jackknife
+		# units, or NULL for every other unit. Returns list(delete = list of integer row-index
+		# vectors, one per deletion unit, in unit order; strata = integer stratum id per unit).
+		# "permuted_block" (DesignSeqOneByOneSPBR): the unit is the design's permuted block,
+		# rebuilt from the assignment record: within each stratum (the same key assign_wt()
+		# used) subjects in enrolment order fill blocks of block_size; a trailing partial
+		# block is merged into the previous block of its stratum (owner decision 2026-11-19),
+		# and a stratum holding only a partial block is one unit. "observation_within_block":
+		# each subject is a unit, its stratum the design's block id (get_block_ids(), whose
+		# meaning is unchanged). NULL also when the block ids are unavailable.
+		jackknife_stratified_layout = function(unit = "auto"){
+			unit = private$resolve_jackknife_unit(unit)
+			if (!unit %in% c("permuted_block", "observation_within_block")) return(NULL)
+			design_obj = private$des_obj
+			n = design_obj$get_n()
+			if (unit == "permuted_block") {
+				des_priv = private$des_obj_priv_int
+				block_size = as.integer(des_priv$block_size)
+				Xraw = des_priv$Xraw
+				if (is.null(Xraw) || nrow(Xraw) < n || length(block_size) != 1L || is.na(block_size) || block_size < 1L) return(NULL)
+				keys = vapply(seq_len(n), function(i) des_priv$get_strata_key(Xraw[i, , drop = FALSE]), character(1))
+				stratum = match(keys, unique(keys))
+				unit_id = integer(n)
+				unit_stratum = integer(0)
+				next_id = 0L
+				for (h in seq_len(max(stratum))) {
+					idx = which(stratum == h)
+					n_h = length(idx)
+					blk = (seq_len(n_h) - 1L) %/% block_size + 1L
+					n_blk = max(blk)
+					if (n_blk > 1L && n_h %% block_size != 0L) blk[blk == n_blk] = n_blk - 1L
+					unit_id[idx] = next_id + blk
+					n_units_h = max(blk)
+					unit_stratum = c(unit_stratum, rep.int(h, n_units_h))
+					next_id = next_id + n_units_h
+				}
+				return(list(delete = unname(split(seq_len(n), factor(unit_id, levels = seq_len(next_id)))),
+					strata = unit_stratum))
+			}
+			block_ids = tryCatch(
+				design_obj$get_block_ids(),
+				error = function(e) {
+					if (private$is_resampling_control_condition(e)) stop(e)
+					NULL
+				}
+			)
+			if (is.null(block_ids) || length(block_ids) != n) return(NULL)
+			block_ids = as.integer(block_ids)
+			if (anyNA(block_ids)) return(NULL)
+			list(delete = as.list(seq_len(n)), strata = match(block_ids, unique(block_ids)))
+		},
+		# Stratum id of each jackknife replicate (in deletion-unit order) for the stratified
+		# units, NULL otherwise (the ordinary delete-1 / delete-a-group formula applies).
+		jackknife_replicate_strata = function(unit = "auto"){
+			layout = private$jackknife_stratified_layout(unit)
+			if (is.null(layout) || length(layout$delete) < 2L) return(NULL)
+			layout$strata
 		},
 		jackknife_block_size_gt_one_unsupported = function(unit = "auto"){
 			resolved_unit = private$resolve_jackknife_unit(unit)
 			design_obj = private$des_obj
 			is_blocking_design = isTRUE(design_obj$is_blocking_design())
-			if (resolved_unit == "block") return(FALSE)
+			if (resolved_unit %in% c("block", "permuted_block", "observation_within_block")) return(FALSE)
 			if (resolved_unit %in% c("pair", "matched_set")) return(FALSE)
 			if (resolved_unit == "cluster" && !is_blocking_design) return(FALSE)
 			if (!is_blocking_design) return(FALSE)
@@ -1798,18 +1888,17 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			is_blocking_design = isTRUE(design_obj$is_blocking_design())
 			is_matching_design = isTRUE(design_obj$is_matching_design())
 			is_cluster_design = design_obj$is_a_cluster_capable()
-			if (unit == "auto") {
-				unit = if (is_matching_design) {
-					if (isTRUE(private$is_KK)) "matched_set" else "pair"
-				} else if (is_cluster_design) {
-					"cluster"
-				} else if (is_blocking_design) {
-					"block"
-				} else {
-					"observation"
-				}
-			}
+			if (unit == "auto") unit = private$resolve_jackknife_unit(unit)
 			private$assert_jackknife_supported(unit = unit)
+			if (unit %in% c("permuted_block", "observation_within_block")) {
+				layout = private$jackknife_stratified_layout(unit)
+				if (!is.null(layout) && length(layout$delete) >= 2L) {
+					return(lapply(layout$delete, function(drop_idx) {
+						list(i_b = all_idx[-drop_idx], m_vec_b = NULL)
+					}))
+				}
+				unit = "observation"
+			}
 			if (unit == "cluster") {
 				cluster_ids = private$get_cluster_jackknife_ids(design_obj)
 				if (!is.null(cluster_ids)) {
@@ -2369,6 +2458,27 @@ bootstrap_too_few_finite_na_detail = function(n_finite, B, min_usable) {
 	paste0("Only ", n_finite, " of ", B, " replicate estimates were finite; at least ", min_usable,
 		" are needed (min_number_usable_samples). The estimator fails on most resamples of this data; ",
 		"try a more stable estimator, a larger B, or an asymptotic or randomization p-value.")
+}
+# v1.0.6-TODO-12 (owner decision 2026-11-19): with na.rm = TRUE a bootstrap-family p-value
+# (nonparametric, Bayesian, randomization bootstrap) needs at least min_fraction_usable_samples
+# of its replicates to be finite. The default 0.95 mirrors the 5% invalid-interval cap EDI's
+# coverage calibration applies to confidence intervals. TRUE when n_valid of n_total falls short;
+# never TRUE when every replicate is finite, so complete runs are unchanged. The 1e-9 keeps
+# products such as 0.95 * 20 from rounding up to one replicate more than intended.
+bootstrap_valid_fraction_too_low = function(n_valid, n_total, min_fraction) {
+	n_valid < ceiling(min_fraction * n_total - 1e-9)
+}
+assert_min_fraction_usable_samples = function(min_fraction_usable_samples) {
+	checkmate::assertNumber(min_fraction_usable_samples, lower = 0, upper = 1, finite = TRUE,
+		.var.name = "min_fraction_usable_samples")
+}
+bootstrap_valid_fraction_na_detail = function(n_valid, n_total, min_fraction, what = "replicate estimates") {
+	paste0("Only ", n_valid, " of ", n_total, " ", what, " were finite (",
+		format(round(100 * n_valid / n_total, 1), nsmall = 1), "%); with na.rm = TRUE at least ",
+		format(100 * min_fraction), "% are needed (min_fraction_usable_samples = ", format(min_fraction), "). ",
+		"A p-value from the surviving replicates would describe only the resamples where the estimator ",
+		"happened to work. Try a more stable estimator, or an asymptotic or randomization p-value; ",
+		"lower min_fraction_usable_samples only if you accept that selection.")
 }
 bootstrap_extreme_na_detail = function() {
 	paste0("The finite replicate estimates are implausibly far from the original estimate (a diverged fit ",

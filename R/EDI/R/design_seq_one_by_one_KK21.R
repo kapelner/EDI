@@ -27,7 +27,16 @@
 #' log-logistic AFT (or OLS on \code{log(y)} if
 #' \code{survival_use_speedup_for_no_censoring = TRUE} and there is no censoring yet)
 #' for \code{"survival"}, and proportional-odds (or OLS on the numeric-coerced level if
-#' \code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. Weights are normalized to
+#' \code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. (The proportion speedup's logit
+#' is infinite at a response of exactly 0 or 1, so when any response so far is 0 or 1,
+#' every response is first compressed to \eqn{(y(n - 1) + 0.5) / n}, where \eqn{n} is the
+#' number of responses in the regression. This is the standard transformation of
+#' Smithson and Verkuilen (2006) for proportions that include the extremes (restated in
+#' Cribari-Neto and Zeileis 2010, p. 3). It maps \eqn{[0, 1]} affinely onto
+#' \eqn{[0.5/n, 1 - 0.5/n]}, so the order of the responses is kept and the logits lie
+#' within \eqn{\pm\log(2n - 1)}, instead of a clamp to machine epsilon that turned a 0
+#' or 1 into a \eqn{\pm 36} outlier dominating the OLS t-statistics. When every response
+#' is strictly inside \eqn{(0, 1)} the plain logit is used.) Weights are normalized to
 #' sum to 1 and cached per-iteration in \code{private$iteration_weights} (retrievable
 #' via \code{get_iteration_weights()}); the \code{*_use_speedup} flags trade weight
 #' accuracy for speed by substituting a fast continuous-regression proxy for the
@@ -83,7 +92,13 @@
 #'   \emph{Biometrics}, 79(1), 216-229 (published online 2021), \doi{10.1111/biom.13561}. See also
 #'   Morrison, T. (2025), "Reservoir Designs for Online Paired Experiments",
 #'   arXiv:2505.17247, for the alternative threshold calibration the (not yet
-#'   implemented) \code{morrison} argument is reserved for.
+#'   implemented) \code{morrison} argument is reserved for. Smithson, M., and Verkuilen, J.
+#'   (2006). "A better lemon squeezer? Maximum-likelihood regression with beta-distributed
+#'   dependent variables." \emph{Psychological Methods}, 11(1), 54-71,
+#'   \doi{10.1037/1082-989X.11.1.54}, for the \eqn{(y(n - 1) + 0.5) / n} compression of 0/1
+#'   responses in the proportion speedup; restated in Cribari-Neto, F., and Zeileis, A.
+#'   (2010). "Beta regression in R." \emph{Journal of Statistical Software}, 34(2), 1-24,
+#'   \doi{10.18637/jss.v034.i02}.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -146,6 +161,8 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'   response = proportion case via a continuous regression on log(y / (1 - y))
 		#'                                                         instead of a beta regression each
 		#' time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.
+		#'   If any response so far is exactly 0 or 1, all responses are first compressed to
+		#'   \eqn{(y(n - 1) + 0.5) / n} (Smithson and Verkuilen 2006; see Details).
 		#'   See the \emph{How much weight accuracy do the speedups cost?} paragraph of the Details
 		#'   section for simulation evidence that the accuracy lost is negligible.
 		#' @param survival_use_speedup_for_no_censoring   Should we speed up the estimation of the
@@ -389,10 +406,11 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(log(ys + 1))))
 			}
 			if (private$response_type == "proportion" && private$proportion_use_speedup){
-				# logit() clamps 0 and 1 to eps / 1 - eps (as KK21stepwise does), so a
-				# boundary response cannot turn every t-statistic non-finite; interior
-				# values are unchanged bit for bit (v1.0.6-TODO-60).
-				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(logit(ys))))
+				# A response of exactly 0 or 1 would make every t-statistic non-finite
+				# (v1.0.6-TODO-60); with one present, all responses are compressed to
+				# (y(n - 1) + 0.5) / n (Smithson and Verkuilen 2006) before the logit.
+				# All-interior responses get the plain logit, unchanged bit for bit.
+				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(kk21_speedup_proportion_logit(ys))))
 			}
 			if (private$response_type == "survival"){
 				if (private$survival_use_speedup_for_no_censoring && all(deads == 1)){
@@ -471,7 +489,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 			}, error = function(e){})
 			#if that didn't work, default to OLS and logit the proportions... again... this doesn't matter since we are just trying to get weights
 			#and we are not relying on the model assumptions being true
-			private$compute_weight_KK21_continuous(xs_to_date, logit(ys_to_date), deaths_to_date, j)
+			private$compute_weight_KK21_continuous(xs_to_date, kk21_speedup_proportion_logit(ys_to_date), deaths_to_date, j)
 		},
 		compute_weight_KK21_survival = function(xs_to_date, ys_to_date, deaths_to_date, j){
 			surv_obj = survival::Surv(ys_to_date, deaths_to_date)
@@ -509,3 +527,24 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		}
 	)
 )
+
+#' Logit of proportion responses for the KK21 weight speedups
+#'
+#' Used by the \code{proportion_use_speedup = TRUE} paths of
+#' \code{DesignSeqOneByOneKK21} and \code{DesignSeqOneByOneKK21stepwise}, which
+#' regress the logit of the responses observed so far on the covariates by OLS. When
+#' any response is exactly 0 or 1, every response is first compressed to
+#' \eqn{(y(n - 1) + 0.5) / n}, with \eqn{n} the number of responses in the fit
+#' (Smithson and Verkuilen 2006, as restated by Cribari-Neto and Zeileis 2010, p. 3),
+#' so the logits lie within \eqn{\pm\log(2n - 1)}. When every response is interior the
+#' plain logit is returned, so such designs are unchanged (v1.0.6-TODO-60).
+#' @param ys Numeric vector of the proportion responses in the fit, in \eqn{[0, 1]}.
+#' @return \code{logit()} of the (compressed, if needed) responses.
+#' @noRd
+kk21_speedup_proportion_logit = function(ys){
+	n = sum(!is.na(ys))
+	if (n > 0L && any(ys == 0 | ys == 1, na.rm = TRUE)){
+		ys = (ys * (n - 1) + 0.5) / n
+	}
+	logit(ys)
+}

@@ -10,11 +10,13 @@
 # Where: R/EDI/R/inference_suite.R:1465 (kind: core_count_dependence).
 # On commit 6c326a75c09c this test failed with: Expected `p_par_a` to equal `p_seq`. Differences: 2/2
 # mismatches (average diff: 0.024) [1] 0.152 - 0.176 == -0.024 [2] 0.184 - 0.208 == -0.024
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Fixed by v1.0.6-TODO-219: every task now runs from its own seed (drawn once from the caller's
+# stream) with an empty design-level permutation cache, on both paths.
 
 test_that("run_all_inference rand p-values after set.seed() do not depend on num_cores", {
-	skip("open a release TODO for this")
+	skip_on_cran()
+	skip_on_os("windows")
+	skip_if(isTRUE(EDI:::edi_env$mirai_has_been_used), "forks cannot be started safely after mirai has been used in this R session")
 		old_env = Sys.getenv("EDI_TESTING_DISABLE_FORK_CLUSTER", unset = NA)
 		Sys.setenv(EDI_TESTING_DISABLE_FORK_CLUSTER = "false")
 		on.exit(if (is.na(old_env)) Sys.unsetenv("EDI_TESTING_DISABLE_FORK_CLUSTER") else Sys.setenv(EDI_TESTING_DISABLE_FORK_CLUSTER = old_env), add = TRUE)

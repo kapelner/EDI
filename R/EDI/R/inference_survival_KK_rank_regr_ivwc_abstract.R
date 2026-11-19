@@ -257,6 +257,41 @@ SurvivalKKRankRegrIVWCSource = list(
 			}
 			private$clear_nonestimable_state()
 		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# the KK compound's generic fallback, a weighted raw mean difference of the
+		# survival times (replicates centred near 2.3 for an estimate of 0.94). Now it
+		# is the same estimator as shared(): both aftsrr fits rerun with the draw's
+		# case weights, each with its own ISMB variance, pooled by inverse variance.
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			private$clear_nonestimable_state()
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			for (key in c("beta_T_matched", "ssq_beta_T_matched", "beta_T_reservoir", "ssq_beta_T_reservoir")) {
+				private$cached_values[[key]] = NULL
+			}
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			if (KKstats$m > 0) {
+				private$aftsrr_for_matched_pairs(estimate_only = FALSE, weights = row_weights[split$matched_idx])
+			}
+			if (KKstats$nRT > 0 && KKstats$nRC > 0) {
+				private$aftsrr_for_reservoir(estimate_only = FALSE, weights = row_weights[split$reservoir_idx])
+			}
+			pooled = kk_ivwc_pool_halves(
+				private$cached_values$beta_T_matched %||% NA_real_, private$cached_values$ssq_beta_T_matched %||% NA_real_,
+				private$cached_values$beta_T_reservoir %||% NA_real_, private$cached_values$ssq_beta_T_reservoir %||% NA_real_
+			)
+			if (!is.finite(pooled$beta) || abs(pooled$beta) > private$max_abs_reasonable_coef) {
+				private$cache_nonestimable_estimate("kk_rank_regr_ivwc_weighted_no_usable_component")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
+		},
 		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
 		# ancestor). A later full call recomputes after an estimate-only pass
 		# that has cached only beta_hat_T, so this accessor can recover its SE.
@@ -265,7 +300,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			se = private$cached_values$s_beta_hat_T
 			if (is.null(se) || length(se) != 1L) NA_real_ else se
 		},
-		aftsrr_for_matched_pairs = function(estimate_only = FALSE){
+		aftsrr_for_matched_pairs = function(estimate_only = FALSE, weights = NULL){
 			split = split_kk_matched_reservoir_idx(private$m, private$n)
 			m_vec = split$m_vec
 			i_matched = split$matched_idx
@@ -276,6 +311,8 @@ SurvivalKKRankRegrIVWCSource = list(
 			# Filter strata that have no events (aftsrr needs at least some events)
 			if (sum(dead_m) < 2) return(invisible(NULL))
 			dat = data.frame(y = y_m, dead = dead_m, w = w_m, id = strata_m)
+			# Case weights of a Bayesian-bootstrap replicate (v1.0.6-TODO-217).
+			if (!is.null(weights)) dat$wt__ = as.numeric(weights)
 			formula_str = "survival::Surv(y, dead) ~ w"
 			cached_ssq = private$cached_values$ssq_beta_T_matched
 			need_variance = !estimate_only || is.null(cached_ssq) ||
@@ -291,7 +328,7 @@ SurvivalKKRankRegrIVWCSource = list(
 					X_covs = X_candidate[, colnames(X_candidate) != "w", drop = FALSE]
 					if (ncol(X_covs) > 0){
 						colnames(X_covs) = paste0("x", seq_len(ncol(X_covs)))
-						dat_try = cbind(dat_try[, c("y", "dead", "w", "id")], X_covs)
+						dat_try = cbind(dat_try[, intersect(c("y", "dead", "w", "id", "wt__"), names(dat_try))], X_covs)
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
 					mod_try = tryCatch({
@@ -316,7 +353,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			private$cached_values$beta_T_matched     = if (is.finite(beta) && abs(beta) <= private$max_abs_reasonable_coef) beta else NA_real_
 			if (need_variance) private$cached_values$ssq_beta_T_matched = if (is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef) se^2 else NA_real_
 		},
-		aftsrr_for_reservoir = function(estimate_only = FALSE){
+		aftsrr_for_reservoir = function(estimate_only = FALSE, weights = NULL){
 			KKstats = private$cached_values$KKstats
 			y_r    = KKstats$y_reservoir
 			w_r    = KKstats$w_reservoir
@@ -324,6 +361,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			X_r    = as.matrix(KKstats$X_reservoir)
 			if (sum(dead_r) < 2) return(invisible(NULL))
 			dat = data.frame(y = y_r, dead = dead_r, w = w_r)
+			if (!is.null(weights)) dat$wt__ = as.numeric(weights)
 			formula_str = "survival::Surv(y, dead) ~ w"
 			cached_ssq = private$cached_values$ssq_beta_T_reservoir
 			need_variance = !estimate_only || is.null(cached_ssq) ||
@@ -338,7 +376,7 @@ SurvivalKKRankRegrIVWCSource = list(
 					X_covs = X_candidate[, colnames(X_candidate) != "w", drop = FALSE]
 					if (ncol(X_covs) > 0){
 						colnames(X_covs) = paste0("x", seq_len(ncol(X_covs)))
-						dat_try = cbind(dat_try[, c("y", "dead", "w")], X_covs)
+						dat_try = cbind(dat_try[, intersect(c("y", "dead", "w", "wt__"), names(dat_try))], X_covs)
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
 					mod_try = tryCatch({
@@ -406,6 +444,14 @@ KKSurvivalRankRegressionSource = list(
 
 .kk_rank_regr_aftsrr_seed = function(base_seed, component, formula_str, dat){
 	base = if (is.null(base_seed)) .kk_rank_regr_aftsrr_unseeded_base else as.integer(base_seed)
+	# v1.0.6-TODO-217: hash the data's values, not its row names. cbind() with a
+	# covariate matrix carries that matrix's row names into `dat`; a bootstrap draw
+	# whose model matrix was rebuilt (e.g. a rare covariate dropped) has character
+	# row names in one path and automatic ones in the other, so the reusable worker
+	# and the slow subset refit drew different ISMB multipliers from identical data
+	# (matched variance 0.144 vs 0.097, estimate off by 0.28). aftsrr() ignores row
+	# names. Automatic row names (every observed-data fit) hash as before.
+	if (is.data.frame(dat)) attr(dat, "row.names") = .set_row_names(nrow(dat))
 	h = digest::digest(list(base, component, formula_str, dat), algo = "xxhash32")
 	# 7 hex digits < 2^28: always a valid positive integer seed
 	strtoi(substr(h, 1L, 7L), base = 16L)
@@ -426,7 +472,14 @@ KKSurvivalRankRegressionSource = list(
 	}, add = TRUE)
 	set.seed(seed, kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
 	formula_obj = stats::as.formula(formula_str)
-	if (clustered) {
+	# A `wt__` column carries Bayesian-bootstrap case weights (v1.0.6-TODO-217).
+	if ("wt__" %in% names(dat)) {
+		if (clustered) {
+			suppressMessages(aftgee::aftsrr(formula_obj, id = id, data = dat, se = se, B = B, weights = wt__))
+		} else {
+			suppressMessages(aftgee::aftsrr(formula_obj, data = dat, se = se, B = B, weights = wt__))
+		}
+	} else if (clustered) {
 		suppressMessages(aftgee::aftsrr(formula_obj, id = id, data = dat, se = se, B = B))
 	} else {
 		suppressMessages(aftgee::aftsrr(formula_obj, data = dat, se = se, B = B))

@@ -578,6 +578,34 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 }
 
 #ifndef EDI_CORE_ONLY
+namespace {
+// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported fit.
+// Without them a y of length 0, a group_id shorter than y or an out-of-range
+// j_T read out of bounds (the derivative/likelihood exports already check their
+// dimensions). Named hpg_* because a unity build puts several kernels'
+// anonymous namespaces in one translation unit.
+inline void hpg_check_kernel_inputs(SEXP y, Eigen::Index n_X, Eigen::Index p_X, Eigen::Index n_group, int j_T) {
+	if (Rf_isNull(y)) {
+		Rcpp::stop("fast_hurdle_poisson_glmm_cpp: y must be a numeric vector with one entry per row of X (got NULL)");
+	}
+	if (!Rf_isNumeric(y) && !Rf_isLogical(y)) {
+		Rcpp::stop("fast_hurdle_poisson_glmm_cpp: y must be a numeric vector");
+	}
+	const R_xlen_t n_y = Rf_xlength(y);
+	if (n_y == 0 || n_X == 0) {
+		Rcpp::stop("fast_hurdle_poisson_glmm_cpp: y and X must have at least one row (y has %d entries, X has %d rows)", (int)n_y, (int)n_X);
+	}
+	if (n_y != (R_xlen_t)n_X || n_group != n_X) {
+		Rcpp::stop("fast_hurdle_poisson_glmm_cpp: X has %d rows, y has %d entries and group_id has %d entries; they must agree",
+		           (int)n_X, (int)n_y, (int)n_group);
+	}
+	if (j_T < 0 || j_T >= p_X) {
+		Rcpp::stop("fast_hurdle_poisson_glmm_cpp: j_T is a 0-based column index and must be between 0 and ncol(X) - 1 = %d (got %d)",
+		           (int)p_X - 1, j_T);
+	}
+}
+} // namespace
+
 // [[Rcpp::export]]
 Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
@@ -793,6 +821,7 @@ List fast_hurdle_poisson_glmm_cpp( const Eigen::Map<Eigen::MatrixXd>& X_r,
 		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
 
+	hpg_check_kernel_inputs(y_r, X_r.rows(), X_r.cols(), group_id_r.size(), j_T);
 	// See fast_logistic_regression_with_var_cpp for why y_r is coerced here
 	// rather than taken as a direct Eigen::Map.
 	NumericVector y_vec(y_r);

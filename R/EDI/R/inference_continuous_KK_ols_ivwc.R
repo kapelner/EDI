@@ -147,6 +147,37 @@ ContinKKOLSIVWCSource = list(
 				}
 			}
 		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# the KK compound's generic fallback (an unadjusted mean difference pooled with
+		# the observed-data weight), not this covariate-adjusted estimator. Now both
+		# halves are refit by weighted least squares with their HC2 variances and
+		# pooled by inverse variance, as in shared().
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			for (key in c("beta_T_matched", "ssq_beta_T_matched", "df_beta_T_matched",
+					"beta_T_reservoir", "ssq_beta_T_reservoir", "df_beta_T_reservoir")) {
+				private$cached_values[[key]] = NULL
+			}
+			if (KKstats$m > 0) {
+				# KKstats rows are the pairs in increasing pair id, as w_info$pair_ids.
+				private$ols_for_matched_pairs(estimate_only = FALSE, weights = w_info$pair_weights)
+			}
+			if (KKstats$nRT > 0 && KKstats$nRC > 0) {
+				private$ols_for_reservoir(estimate_only = FALSE, weights = w_info$reservoir_weights)
+			}
+			pooled = kk_ivwc_pool_halves(
+				private$cached_values$beta_T_matched %||% NA_real_, private$cached_values$ssq_beta_T_matched %||% NA_real_,
+				private$cached_values$beta_T_reservoir %||% NA_real_, private$cached_values$ssq_beta_T_reservoir %||% NA_real_
+			)
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
+		},
 		satterthwaite_df = function(var_terms, dfs){
 			ok = is.finite(var_terms) & var_terms > 0 & is.finite(dfs) & dfs > 0
 			if (!any(ok)) return(NA_real_)
@@ -156,9 +187,15 @@ ContinKKOLSIVWCSource = list(
 			if (!is.finite(total_var) || total_var <= 0) return(NA_real_)
 			total_var^2 / sum((var_terms^2) / dfs)
 		},
-		fit_ols_with_treatment = function(X, y, j_treat, estimate_only = FALSE){
+		fit_ols_with_treatment = function(X, y, j_treat, estimate_only = FALSE, weights = NULL){
 			if (nrow(X) <= ncol(X)) return(NULL)
-			
+			# Weighted least squares (v1.0.6-TODO-217, Bayesian-bootstrap replicates):
+			# OLS and its HC2 sandwich on sqrt(weight)-scaled rows.
+			if (!is.null(weights)) {
+				sw = sqrt(as.numeric(weights))
+				X = X * sw
+				y = as.numeric(y) * sw
+			}
 			fit = tryCatch(stats::lm.fit(X, y), error = function(e) NULL)
 			if (is.null(fit) || length(stats::coef(fit)) < j_treat || !is.finite(stats::coef(fit)[j_treat])){
 				return(NULL)
@@ -176,7 +213,7 @@ ContinKKOLSIVWCSource = list(
 			if (!is.finite(se) || se <= 0) return(NULL)
 			list(beta = beta, ssq = se^2, df = df)
 		},
-		ols_for_matched_pairs = function(estimate_only = FALSE){
+		ols_for_matched_pairs = function(estimate_only = FALSE, weights = NULL){
 			yd = private$cached_values$KKstats$y_matched_diffs
 			m  = length(yd)
 			if (ncol(as.matrix(private$get_X())) > 0){
@@ -191,8 +228,15 @@ ContinKKOLSIVWCSource = list(
 			} else {
 				X = matrix(1, nrow = m, ncol = 1L)
 			}
-			fit = private$fit_ols_with_treatment(X, yd, 1L, estimate_only = estimate_only)
-			if (is.null(fit)) {
+			fit = private$fit_ols_with_treatment(X, yd, 1L, estimate_only = estimate_only, weights = weights)
+			if (is.null(fit) && !is.null(weights)) {
+				# Weighted analogue of the mean / var(yd) / m fallback below.
+				wn = as.numeric(weights) / sum(weights)
+				d_bar = sum(wn * yd)
+				private$cached_values$beta_T_matched     = if (m >= 1) d_bar else NA_real_
+				private$cached_values$ssq_beta_T_matched = if (m >= 2) sum(wn * (yd - d_bar)^2) * m / (m - 1) / m else NA_real_
+				private$cached_values$df_beta_T_matched  = if (m >= 2) m - 1 else NA_real_
+			} else if (is.null(fit)) {
 				private$cached_values$beta_T_matched     = if (m >= 1) mean(yd) else NA_real_
 				private$cached_values$ssq_beta_T_matched = if (m >= 2) var(yd) / m else NA_real_
 				private$cached_values$df_beta_T_matched  = if (m >= 2) m - 1 else NA_real_
@@ -202,7 +246,7 @@ ContinKKOLSIVWCSource = list(
 				private$cached_values$df_beta_T_matched  = fit$df
 			}
 		},
-		ols_for_reservoir = function(estimate_only = FALSE){
+		ols_for_reservoir = function(estimate_only = FALSE, weights = NULL){
 			y_r = private$cached_values$KKstats$y_reservoir
 			w_r = private$cached_values$KKstats$w_reservoir
 			X_r = as.matrix(private$cached_values$KKstats$X_reservoir)
@@ -219,7 +263,7 @@ ContinKKOLSIVWCSource = list(
 			} else {
 				X_full = cbind(1, w_r)
 			}
-			fit = private$fit_ols_with_treatment(X_full, y_r, j_treat, estimate_only = estimate_only)
+			fit = private$fit_ols_with_treatment(X_full, y_r, j_treat, estimate_only = estimate_only, weights = weights)
 			if (is.null(fit)) {
 				private$cached_values$beta_T_reservoir     = NA_real_
 				private$cached_values$ssq_beta_T_reservoir = NA_real_

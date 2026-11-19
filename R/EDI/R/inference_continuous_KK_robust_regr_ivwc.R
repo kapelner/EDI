@@ -433,6 +433,10 @@ ContinKKRobustRegrIVWCSource = list(
 #' and reservoir outcomes, with treatment and, optionally, all recorded covariates
 #' as predictors.
 #'
+#' \strong{No Bayesian bootstrap.} Its MM-estimator fits have no weighted refit, so this class does not
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
+#' nonparametric or randomization bootstrap instead.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
@@ -461,6 +465,13 @@ InferenceContinKKRobustRegrIVWC = define_inference_class(
 		# dispatch never applies to continuous data anyway).
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
+	private = list(
+		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# estimator the replicate fell through to the KK compound's generic
+		# mean-difference fallback, a different estimator from compute_estimate();
+		# its MM-estimator fits have no weighted refit here.
+		supports_bayesian_bootstrap = function() FALSE
+	),
 	metadata = list(likelihood_tier = "quasi"),
 	overrides = list(
 		public = c(
@@ -478,6 +489,7 @@ InferenceContinKKRobustRegrIVWC = define_inference_class(
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

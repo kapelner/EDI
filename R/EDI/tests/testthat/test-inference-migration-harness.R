@@ -165,22 +165,18 @@ test_that("custom randomization migration golden tests compare distribution and 
 
 	builders = inference_migration_golden_design_builders()
 	design_continuous = builders[["continuous"]](n = 12L, seed = 20260728L)
-	# v1.0.6-TODO-202: two warnings here are correct, not migration regressions.
-	# (1) The shared continuous fixture adds the noise seq(-0.3, 0.3, length.out = n),
-	# which is collinear with x = seq(-1.1, 1.1, length.out = n), so y is an exact
-	# linear function of w, x and z and both classes raise edi_perfect_predictor_warning
-	# (v1.0.6-TODO-158) at construction. The custom fit uses only w and y, so dropping
-	# x and z changes nothing; muffle that class only. The fixture is package-internal and
-	# shared with other tests and the benchmark tuner, so it is left as is.
-	# (2) r = 12, not 9: the p-value needs at least 10 finite draws, so r = 9 returned
-	# NA on both sides (edi_procedure_na_warning) and the comparison checked NA == NA.
-	expect_silent(suppressWarnings(expect_inference_migration_outputs_equal(
+	# r = 12, not 9 (v1.0.6-TODO-202): the p-value needs at least 10 finite draws, so
+	# r = 9 returned NA on both sides (edi_procedure_na_warning) and the comparison
+	# checked NA == NA. The edi_perfect_predictor_warning that TODO-202 also muffled here
+	# is gone at the source: the shared fixture's noise is no longer collinear with x
+	# (v1.0.6-TODO-204), so expect_silent() now covers every warning class.
+	expect_silent(expect_inference_migration_outputs_equal(
 		legacy_class = CustomRandLegacy,
 		migrated_class = CustomRandMigrated,
 		design = design_continuous,
 		method_calls = method_calls_for(n = 12L, r = 12L),
 		tolerance = 1e-12
-	), classes = "edi_perfect_predictor_warning"))
+	))
 	# Incidence deliberately no longer compares legacy vs. migrated bit-for-bit
 	# (fix_custom_randomization_statistic.md TODO-1): InferenceCustomRand now
 	# composes RandomizationCI (not just RandomizationTest), so it supports

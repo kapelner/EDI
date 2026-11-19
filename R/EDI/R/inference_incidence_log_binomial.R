@@ -306,7 +306,8 @@ IncidenceLogBinomialLikelihoodSource = list(
 		# randomization call refits the observed statistic on this object and
 		# overwrites fit_warm_start (compute_treatment_estimate_during_
 		# randomization_inference() below), which made a later jackknife differ
-		# by ~1e-11 from a fresh one. In a fresh call cached_mod is exactly what
+		# by ~1e-11 from a fresh one (since v1.0.6-TODO-209 that method returns
+		# compute_estimate() and no longer refits). In a fresh call cached_mod is exactly what
 		# shared() stored as fit_warm_start, so fresh results are unchanged.
 		# Workers whose dispatch policy is cold ignore the base warm start.
 		create_bootstrap_worker_state = function(){
@@ -341,37 +342,15 @@ IncidenceLogBinomialLikelihoodSource = list(
 			ws_args$warm_start_fisher_info = NULL
 			ws_args
 		},
+		# v1.0.6-TODO-209: the randomization statistic is the cached point estimate,
+		# the same quantity the reusable worker computes per draw
+		# (compute_bootstrap_worker_estimate -> compute_estimate), as v1.0.6-TODO-205
+		# did for InferenceIncidBinomialIdentityRiskDiff. This used to refit on every
+		# call from the warm start the previous call left behind (and overwrote that
+		# warm start), so the observed statistic could drift between calls and the
+		# slow and reusable-worker paths used different fits.
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			if (is.null(private$best_X_colnames)){
-				private$shared(estimate_only = TRUE)
-			}
-			if (is.null(private$best_X_colnames)){
-				return(self$compute_estimate(estimate_only = estimate_only))
-			}
-			X_cols = private$best_X_colnames
-			X_data = private$get_X()
-			if (length(X_cols) == 0L){
-				X = cbind(1, private$w)
-			} else {
-				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
-				X = cbind(1, treatment = private$w, X_cov)
-			}
-			ws_args = private$logbin_feasible_warm_start_args(X, private$get_backend_warm_start_args(ncol(X)))
-			res = tryCatch(
-				fast_log_binomial_regression_cpp(
-					X = X, y = as.numeric(private$y),
-					warm_start_beta = ws_args$warm_start_beta,
-					warm_start_fisher_info = ws_args$warm_start_fisher_info,
-					smart_cold_start = private$smart_cold_start_default
-				),
-				error = function(e) NULL
-			)
-
-			if (!isTRUE(private$is_log_binomial_fit_reasonable(res, X, 2L))){
-				return(NA_real_)
-			}
-			private$set_fit_warm_start(res$b, "beta", fisher = res$fisher_information, force_pd = TRUE)
-			as.numeric(res$b[2])
+			self$compute_estimate(estimate_only = estimate_only)
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

@@ -345,7 +345,7 @@ this reliably cuts off slow R-level work but is not guaranteed to
 interrupt one very slow single native (C/C++/BLAS) call with no
 intervening R-level check. \code{NULL} (default) means no limit.}
       \item{\code{num_cores}}{If greater than \code{1}, fit classes in parallel across
-this many forked workers (one \code{\link[parallel]{mcparallel}} child per task) --
+this many forked workers (one \code{parallel::mcparallel()} child per task) --
 Unix/Linux only; on other platforms this falls back to sequential
 (\code{num_cores = 1}) with a \code{warning()}. \strong{Screen output
 changes under parallel execution:} fitting is a single blocking call

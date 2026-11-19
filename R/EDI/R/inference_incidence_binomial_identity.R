@@ -46,16 +46,16 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 				required_cols = 2L,
 				fit_fun = function(X_fit, keep){
 					j_treat = match(2L, keep)
-					res = tryCatch(
+					# v1.0.6-TODO-205: refit cold when the warm-started fit stalls.
+					res = private$fit_identity_binomial_warm_then_cold(function(warm){
 						fast_identity_binomial_regression_weighted_cpp(
 							X = X_fit,
 							y = as.numeric(private$y),
 							weights = as.numeric(row_weights),
-							warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
-						),
-						error = function(e) NULL
-					)
+							warm_start_beta = if (warm) private$get_fit_warm_start_for_length("beta", ncol(X_fit)) else NULL,
+							warm_start_fisher_info = if (warm) private$get_fit_warm_start_fisher(ncol(X_fit)) else NULL
+						)
+					})
 					if (is.null(res)) return(NULL)
 					res$j_treat = j_treat
 					res$beta_hat_T = as.numeric(res$b[j_treat])
@@ -146,34 +146,35 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 			}
 			TRUE
 		},
+		# v1.0.6-TODO-205: the randomization statistic is the cached point estimate,
+		# the same quantity the reusable worker computes per draw
+		# (compute_bootstrap_worker_estimate -> compute_estimate). This used to refit
+		# on every call with no convergence check, from the warm start the previous
+		# call left behind: the observed statistic drifted by ~1e-7 between calls
+		# (this MLE sits near the mu = 0 bound and converges slowly), and draws whose
+		# warm-started fit stalled returned the warm start itself, i.e. exactly the
+		# observed estimate. Two seeded rand p-values on one object gave 1 vs 0.555
+		# and the slow and reusable-worker paths disagreed.
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			if (is.null(private$best_X_colnames)){
-				private$shared(estimate_only = TRUE)
+			self$compute_estimate(estimate_only = estimate_only)
+		},
+		# v1.0.6-TODO-205: fit_call(TRUE) fits from the stored warm start, fit_call(FALSE)
+		# from a cold start. The warm start (beta and Fisher information) comes from a
+		# fit on other data: on a randomization or bootstrap draw the treatment column or
+		# rows differ, so the warm Fisher information is the wrong curvature for the
+		# first Newton step. The constrained line search then rejects every step and
+		# the kernel returns the start unchanged with converged = FALSE (about 30% of
+		# draws on a 20-subject Bernoulli design). Refit cold when that happens.
+		# v1.0.6-TODO-209: the kernel now restarts cold itself in that case (same
+		# result as this retry, needs the owner's build); the retry stays for warm
+		# fits that fail later, e.g. at the iteration cap.
+		fit_identity_binomial_warm_then_cold = function(fit_call){
+			res = tryCatch(fit_call(TRUE), error = function(e) NULL)
+			if (is.null(res) || !isTRUE(res$converged)) {
+				cold = tryCatch(fit_call(FALSE), error = function(e) NULL)
+				if (!is.null(cold) && (is.null(res) || isTRUE(cold$converged))) res = cold
 			}
-			if (is.null(private$best_X_colnames)){
-				return(self$compute_estimate(estimate_only = estimate_only))
-			}
-			X_cols = private$best_X_colnames
-			X_data = private$get_X()
-			if (length(X_cols) == 0L){
-				X = cbind(1, private$w)
-			} else {
-				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
-				X = cbind(1, treatment = private$w, X_cov)
-			}
-			res = tryCatch(
-				fast_identity_binomial_regression_cpp(
-					X = X, y = as.numeric(private$y),
-					warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X)),
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X))
-				),
-				error = function(e) NULL
-			)
-			if (is.null(res) || !is.finite(res$b[2])){
-				return(NA_real_)
-			}
-			private$set_fit_warm_start(res$b, "beta", fisher = res$fisher_information)
-			as.numeric(res$b[2])
+			res
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -320,26 +321,28 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 					j_treat = which(keep == 2L)
 					warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit))
 					warm_fisher = private$get_fit_warm_start_fisher(ncol(X_fit))
+					# v1.0.6-TODO-205: refit cold when the warm-started fit stalls (see
+					# fit_identity_binomial_warm_then_cold), and keep `converged` on the
+					# estimate-only fit so fit_ok rejects a stalled one: dropping it let
+					# a draw's unmoved warm start (the observed estimate) through.
 					if (estimate_only) {
-						res = tryCatch(
+						res = private$fit_identity_binomial_warm_then_cold(function(warm){
 							fast_identity_binomial_regression_cpp(
 								X = X_fit, y = private$y,
-								warm_start_beta = warm_start_beta,
-								warm_start_fisher_info = warm_fisher
-							),
-							error = function(e) NULL
-						)
+								warm_start_beta = if (warm) warm_start_beta else NULL,
+								warm_start_fisher_info = if (warm) warm_fisher else NULL
+							)
+						})
 						if (is.null(res)) return(NULL)
-						list(b = res$b, beta_hat_T = as.numeric(res$b[j_treat]), ssq_b_j = NA_real_, j_treat = j_treat, fisher_information = res$fisher_information)
+						list(b = res$b, beta_hat_T = as.numeric(res$b[j_treat]), ssq_b_j = NA_real_, j_treat = j_treat, fisher_information = res$fisher_information, converged = isTRUE(res$converged))
 					} else {
-						res = tryCatch(
+						res = private$fit_identity_binomial_warm_then_cold(function(warm){
 							fast_identity_binomial_regression_with_var_cpp(
 								X = X_fit, y = private$y, j = j_treat,
-								warm_start_beta = warm_start_beta,
-								warm_start_fisher_info = warm_fisher
-							),
-							error = function(e) NULL
-						)
+								warm_start_beta = if (warm) warm_start_beta else NULL,
+								warm_start_fisher_info = if (warm) warm_fisher else NULL
+							)
+						})
 						if (is.null(res)) return(NULL)
 						res$j_treat = j_treat
 						res$beta_hat_T = as.numeric(res$b[j_treat])

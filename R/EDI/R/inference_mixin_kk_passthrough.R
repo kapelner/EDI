@@ -217,50 +217,22 @@ InferenceMixinKKPassThrough = list(
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE) {
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			
-			# If the class provides its own specialized weighted estimator (e.g. via backend), use it.
+			# A class with a weighted refit of its own estimator supplies
+			# compute_weighted_estimate_ivwc(); the draw's row weights travel in w_info.
 			if (is.function(private$compute_weighted_estimate_ivwc)) {
 				w_info = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
+				w_info$row_weights = row_weights
 				return(private$compute_weighted_estimate_ivwc(w_info, estimate_only))
 			}
-			
-			# Fallback for KK designs: weighted combination of matches and reservoir.
-			if (is.null(private$cached_values$KKstats)) {
-				private$compute_basic_match_data()
-			}
-			stats = private$cached_values$KKstats
-			if (is.null(stats)) return(NA_real_)
-			
-			w_info = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
-			
-			# 1. Matched differences mean
-			d_bar_w = if (length(w_info$pair_weights) > 0) {
-				sum(stats$y_matched_diffs * w_info$pair_weights, na.rm = TRUE) / sum(w_info$pair_weights, na.rm = TRUE)
-			} else NA_real_
-			
-			# 2. Reservoir mean diff
-			r_idx = w_info$reservoir_idx
-			r_w = w_info$reservoir_weights
-			if (length(r_idx) > 0 && !is.null(stats$y_reservoir)) {
-				y_r = stats$y_reservoir; w_r = stats$w_reservoir
-				num_t = sum(y_r[w_r == 1] * r_w[w_r == 1], na.rm = TRUE)
-				den_t = sum(r_w[w_r == 1], na.rm = TRUE)
-				num_c = sum(y_r[w_r == 0] * r_w[w_r == 0], na.rm = TRUE)
-				den_c = sum(r_w[w_r == 0], na.rm = TRUE)
-				r_bar_t = if (is.finite(den_t) && den_t > 0) num_t / den_t else NA_real_
-				r_bar_c = if (is.finite(den_c) && den_c > 0) num_c / den_c else NA_real_
-				r_bar_w = r_bar_t - r_bar_c
-			} else r_bar_w = NA_real_
-			
-			# Combine using fixed weights from observed fit
-			w_star = stats$w_star
-			if (is.null(w_star) || is.na(w_star)) {
-				if (!is.na(d_bar_w)) return(d_bar_w)
-				return(r_bar_w)
-			}
-			if (is.na(d_bar_w)) return(r_bar_w)
-			if (is.na(r_bar_w)) return(d_bar_w)
-			
-			as.numeric(w_star * d_bar_w + (1 - w_star) * r_bar_w)
+			# v1.0.6-TODO-217: there is no generic fallback. The former one returned a
+			# weighted mean of KKstats$y_matched_diffs and of the reservoir responses,
+			# pooled with the observed-data w_star: a raw-scale mean difference, not
+			# this class's estimator (e.g. all zeros for the stratified Cox IVWC, whose
+			# KKstats has no y_matched_diffs, and raw survival-time differences for the
+			# other Cox / AFT classes). Classes without a weighted refit must opt out
+			# of the Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).
+			stop(class(self)[1L], " has no weighted refit of its estimator, so it cannot compute a ",
+				"Bayesian-bootstrap replicate.", call. = FALSE)
 		}
 	),
 	private = list(

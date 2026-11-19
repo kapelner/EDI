@@ -10997,7 +10997,7 @@ InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],FixediBCRD,0
 InferenceAllSimpleAverageDiff [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_rand,0.04,50
 InferenceIncidExactFisher [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_exact,0.04,50
 InferenceIncidExactBinomial [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_exact,0.04,50
-InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_exact,0.04,50
+InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_exact,0.08,50
 InferenceIncidWald [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,compute_bayesian_bootstrap_two_sided_pval,0.04,50
 InferenceIncidWald [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,pval_rand,0.04,50
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,0.5,incidence,0.5,compute_bootstrap_two_sided_pval_symmetric,0.04,50
@@ -11589,7 +11589,7 @@ InferenceAllSimpleAverageDiff [design_formula=~1],KK21stepwise,0.5,incidence,0.5
 InferenceAllSimpleAverageDiff [design_formula=~1],KK21stepwise,0.5,incidence,0.5,compute_jackknife_wald_two_sided_pval,0.0196078431372549,51
 InferenceAllSimpleAverageDiff [design_formula=~1],KK21stepwise,0.5,incidence,0.5,pval_rand,0.0196078431372549,51
 InferenceIncidExactFisher [design_formula=~1],KK21stepwise,0.5,incidence,0.5,pval_exact,0.0196078431372549,51
-InferenceIncidExactZhang [design_formula=~1],KK21stepwise,0.5,incidence,0.5,pval_exact,0.0196078431372549,51
+InferenceIncidExactZhang [design_formula=~1],KK21stepwise,0.5,incidence,0.5,pval_exact,0.0588235294117647,51
 InferenceIncidWald [design_formula=~1],KK21stepwise,0.5,incidence,0.5,pval_asymp,0.0196078431372549,51
 InferenceIncidWald [design_formula=~1],KK21stepwise,0.5,incidence,0.5,compute_wald_two_sided_pval,0.0196078431372549,51
 InferenceIncidWald [design_formula=~1],KK21stepwise,0.5,incidence,0.5,compute_bayesian_bootstrap_two_sided_pval,0.0196078431372549,51
@@ -11887,7 +11887,7 @@ InferenceAllSimpleAverageDiff [design_formula=~.],KK21stepwise,0.5,incidence,0.5
 InferenceAllSimpleAverageDiff [design_formula=~.],KK21stepwise,0.5,incidence,0.5,compute_wald_two_sided_pval,0,50
 InferenceAllSimpleAverageDiff [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_rand,0,50
 InferenceIncidExactBinomial [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_exact,0,50
-InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_exact,0,50
+InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_exact,0.08,50
 InferenceIncidWald [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_asymp,0,50
 InferenceIncidWald [design_formula=~.],KK21stepwise,0.5,incidence,0.5,compute_wald_two_sided_pval,0,50
 InferenceIncidWald [design_formula=~.],KK21stepwise,0.5,incidence,0.5,pval_rand,0,50

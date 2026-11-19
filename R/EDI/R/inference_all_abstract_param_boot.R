@@ -1,3 +1,70 @@
+# Procedure names for the parametric-bootstrap NA warnings (v1.0.6-TODO-207).
+EDI_PARAM_BOOT_LR_PVAL_PROCEDURE = "parametric-bootstrap likelihood-ratio p-value"
+EDI_PARAM_BOOT_LR_CI_PROCEDURE = "parametric-bootstrap likelihood-ratio confidence interval"
+
+# Record a parametric-bootstrap procedure failure and warn that the public method
+# returns NA for it, instead of a silent NA (v1.0.6-TODO-207, the v1.0.6-TODO-113
+# rule). The warning is silent inside a resampling operation (edi_warn_procedure_na()).
+#' @keywords internal
+#' @noRd
+edi_param_boot_record_and_warn_na = function(self, private, procedure, reason, stage = c("se", "estimate"), detail = NULL){
+	stage = match.arg(stage)
+	edi_record_procedure_failure(self, private, reason, stage)
+	edi_warn_procedure_na(self, private, procedure = procedure, reason = reason, detail = detail)
+}
+
+# Smallest B for which the parametric-bootstrap LR confidence interval at level alpha can
+# reject anything (v1.0.6-TODO-210). compute_lik_ratio_bootstrap_two_sided_pval() returns
+# min(1, max(2 / (n + 1), (1 + n_exceed) / (n + 1))) with n <= B usable replicates, so its
+# smallest attainable value is 2 / (B + 1); the interval search needs a p-value <= alpha, so
+# B + 1 >= 2 / alpha, i.e. B >= 2 / alpha - 1 (39 for alpha = 0.05, 199 for alpha = 0.01). The
+# small tolerance keeps 2 / alpha - 1 that is an integer up to rounding at that integer (the
+# search accepts |p - alpha| <= 1e-6).
+#' @keywords internal
+#' @noRd
+edi_lik_ratio_bootstrap_ci_min_B = function(alpha){
+	as.integer(max(1, ceiling(2 / as.numeric(alpha) - 1 - 1e-8)))
+}
+
+# Error up front when B is too small for the LR-bootstrap CI at alpha (v1.0.6-TODO-210).
+#' @keywords internal
+#' @noRd
+edi_assert_lik_ratio_bootstrap_ci_B = function(B, alpha){
+	alpha = suppressWarnings(as.numeric(alpha))
+	B = suppressWarnings(as.numeric(B))
+	if (length(alpha) != 1L || !is.finite(alpha) || alpha <= 0 || alpha >= 1) return(invisible(NULL))
+	if (length(B) != 1L || !is.finite(B)) return(invisible(NULL))
+	min_B = edi_lik_ratio_bootstrap_ci_min_B(alpha)
+	if (B < min_B) {
+		stop("B must be at least ", min_B, " for alpha = ", alpha, " in the parametric-bootstrap ",
+			"likelihood-ratio confidence interval: the smallest attainable bootstrap p-value is ",
+			"2 / (B + 1), so with B = ", B, " no value can be rejected at level alpha.", call. = FALSE)
+	}
+	invisible(NULL)
+}
+
+# Evaluate expr, holding back its edi_procedure_na_warning conditions. Returns
+# list(value, warnings); re-signal them with edi_resignal_warnings() only when the
+# caller's own result is NA too (e.g. InferenceCountPoisson falls back to its
+# design-based interval when the parametric-bootstrap one is NA).
+#' @keywords internal
+#' @noRd
+edi_hold_procedure_na_warnings = function(expr){
+	held = list()
+	value = withCallingHandlers(expr, edi_procedure_na_warning = function(w){
+		held[[length(held) + 1L]] <<- w
+		invokeRestart("muffleWarning")
+	})
+	list(value = value, warnings = held)
+}
+
+#' @keywords internal
+#' @noRd
+edi_resignal_warnings = function(warnings){
+	for (w in warnings) warning(w)
+	invisible(NULL)
+}
+
 #' Parametric-Bootstrap-Capable Likelihood Inference
 #'
 #' Intermediate abstract base for the subset of likelihood-backed inference
@@ -54,7 +121,8 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' expensive than the asymptotic LR p-value.
 		#'
 		#' @param delta        Null treatment effect. Default 0.
-		#' @param B            Number of bootstrap replicates. Default 199.
+		#' @param B            Number of bootstrap replicates. Default 199. The
+		#'   smallest attainable p-value is \eqn{2 / (B + 1)}.
 		#' @param show_progress Logical; show a progress bar. Default \code{FALSE}.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap
 		#'   replicates required to return a finite p-value. Default \code{5L}.
@@ -63,10 +131,6 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' @return A scalar p-value, or \code{NA_real_} if the computation fails.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(private$supports_lik_ratio_param_bootstrap())){
 				stop(
 					class(self)[1], " does not support parametric-bootstrap LR calibration. ",
@@ -86,7 +150,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_spec_unavailable", "se")
+					edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE, "lik_ratio_bootstrap_spec_unavailable", "se")
 				return(NA_real_)
 			}
 
@@ -99,23 +163,23 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			)
 			if (isTRUE(eval_obs$invalid)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_invalid", "se")
+					edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE, "lik_ratio_bootstrap_observed_lr_invalid", "se")
 				return(NA_real_)
 			}
 			if (!is.finite(eval_obs$full_negloglik) || !is.finite(eval_obs$null_negloglik)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_negloglik_nonfinite", "se")
+					edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE, "lik_ratio_bootstrap_observed_negloglik_nonfinite", "se")
 				return(NA_real_)
 			}
 			lr_obs = 2 * (eval_obs$null_negloglik - eval_obs$full_negloglik)
 			if (!is.finite(lr_obs)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_nonfinite", "se")
+					edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE, "lik_ratio_bootstrap_observed_lr_nonfinite", "se")
 				return(NA_real_)
 			}
 			if (private$param_bootstrap_lr_extreme(lr_obs)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_extreme", "se")
+					edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE, "lik_ratio_bootstrap_observed_lr_extreme", "se")
 				return(NA_real_)
 			}
 			null_fit = eval_obs$null_fit
@@ -165,7 +229,11 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				used_deterministic_mode = isTRUE(deterministic_mode)
 			)
 			if (n_finite < as.integer(min_number_usable_samples)) {
-				edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_too_few_converged_samples", "se")
+				edi_param_boot_record_and_warn_na(self, private, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE,
+					"lik_ratio_bootstrap_too_few_converged_samples", "se",
+					detail = paste0("Only ", n_finite, " of ", as.integer(B), " bootstrap replicates gave a usable ",
+						"likelihood-ratio statistic; at least ", as.integer(min_number_usable_samples), " are needed ",
+						"(see get_last_param_bootstrap_diagnostics())."))
 				return(NA_real_)
 			}
 			n_exceed = sum(finite_lr >= lr_obs)
@@ -192,6 +260,9 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'
 		#' @param alpha        Significance level. Default 0.05.
 		#' @param B            Bootstrap replicates per p-value evaluation. Default 199.
+		#'   The smallest attainable bootstrap p-value is \eqn{2 / (B + 1)}, so
+		#'   \code{B} must be at least \eqn{2/\alpha - 1} (39 for
+		#'   \code{alpha = 0.05}, 199 for \code{alpha = 0.01}); smaller values error.
 		#' @param show_progress Logical; show a progress bar. Default \code{FALSE}.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap
 		#'   replicates required within each p-value evaluation. Default
@@ -208,10 +279,6 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' @return Named two-element numeric vector with the confidence-interval bounds.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(private$supports_lik_ratio_param_bootstrap_confidence_interval())){
 				stop(
 					class(self)[1], " does not support parametric-bootstrap LR confidence intervals.",
@@ -226,16 +293,33 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				assertNumeric(root_tolerance, len = 1, lower = .Machine$double.xmin, finite = TRUE, null.ok = TRUE, any.missing = FALSE)
 				assertIntegerish(max_root_iterations, lower = 0, len = 1, any.missing = FALSE)
 			}
+			edi_assert_lik_ratio_bootstrap_ci_B(B, alpha)
+			edi_clear_procedure_failure(private, "lik_ratio_bootstrap_ci")
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
 
-			pval_fn = function(d) self$compute_lik_ratio_bootstrap_two_sided_pval(
-				d,
-				B = B,
-				show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples,
-				max_attempts_per_replicate = max_attempts_per_replicate
+			# The p-value warns when it is NA (v1.0.6-TODO-207); the search calls it many
+			# times, so its warnings are muffled here and the interval reports its own NA.
+			pval_na_reason = NULL
+			pval_fn = function(d) withCallingHandlers(
+				self$compute_lik_ratio_bootstrap_two_sided_pval(
+					d,
+					B = B,
+					show_progress = show_progress,
+					min_number_usable_samples = min_number_usable_samples,
+					max_attempts_per_replicate = max_attempts_per_replicate
+				),
+				edi_procedure_na_warning = function(w){
+					if (identical(w$procedure, EDI_PARAM_BOOT_LR_PVAL_PROCEDURE)) {
+						pval_na_reason <<- w$reason
+						invokeRestart("muffleWarning")
+					}
+				}
 			)
+			# Recorded in procedure_failure_reason[["lik_ratio_bootstrap_ci"]] and warned once
+			# (v1.0.6-TODO-210).
+			warn_ci_na = function(reason, detail) edi_param_boot_record_and_warn_na(self, private,
+				EDI_PARAM_BOOT_LR_CI_PROCEDURE, reason, "se", detail = detail)
 
 			se = tryCatch(private$get_standard_error(), error = function(e) NA_real_)
 			step = if (is.finite(se) && se > 0) se else max(abs(est), 1)
@@ -253,6 +337,9 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 
 			p_est = pval_fn(est)
 			if (!is.finite(p_est)) {
+				warn_ci_na("lik_ratio_bootstrap_ci_pval_at_estimate_unavailable", paste0(
+					"The bootstrap p-value at the estimate itself is NA",
+					if (length(pval_na_reason)) paste0(" (reason: ", pval_na_reason, ")") else "", "."))
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				return(ci)
@@ -262,6 +349,9 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				# estimate itself means the bootstrap/null-fit machinery failed (e.g. the
 				# constrained fit is stuck in a worse optimum on a flat likelihood) -- that is
 				# non-estimability, not a zero-width interval located at the point estimate.
+				warn_ci_na("lik_ratio_bootstrap_ci_rejects_at_estimate", paste0(
+					"The bootstrap p-value at the estimate is ", signif(p_est, 3), ", below alpha = ", alpha,
+					"; the likelihood-ratio statistic there is 0, so the bootstrap or null-fit machinery failed."))
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				return(ci)
@@ -345,6 +435,15 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				find_bound(direction = 1, seed = upper_seed)
 			)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			if (!all(is.finite(ci))) {
+				# B too small for alpha errors up front (v1.0.6-TODO-210), so this is a search failure.
+				warn_ci_na("lik_ratio_bootstrap_ci_bound_not_found", paste0(
+					"No value within the search radius had a bootstrap p-value below alpha = ", alpha,
+					", or the p-values there were NA",
+					if (length(pval_na_reason)) paste0(" (last reason: ", pval_na_reason, ")") else "",
+					". A larger B may help."
+				))
+			}
 			ci
 		},
 		#' @description Returns diagnostics from the most recent
@@ -380,10 +479,6 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' @return A scalar bias-corrected estimate, or \code{NA_real_} if the computation fails.
 		compute_param_bootstrap_estimate = function(B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
 				stop(
 					class(self)[1], " does not support parametric-bootstrap estimate bias correction. ",
@@ -402,19 +497,20 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			batch = private$run_param_bootstrap_estimate_batch(
 				B = as.integer(B),
 				max_attempts_per_replicate = max_attempts_per_replicate,
-				show_progress = show_progress
+				show_progress = show_progress,
+				procedure = "parametric-bootstrap estimate"
 			)
 			if (is.null(batch)) return(NA_real_)
 			if (batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap estimate", "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				return(NA_real_)
 			}
 
 			theta = 2 * batch$raw_estimate - mean(batch$finite_reps)
 			if (!is.finite(theta) || private$param_bootstrap_estimate_extreme(theta, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_bias_correction", "estimate")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap estimate", "param_bootstrap_estimate_extreme_bias_correction", "estimate")
 				return(NA_real_)
 			}
 			theta
@@ -453,10 +549,6 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' @return Named two-element numeric vector with the confidence-interval bounds.
 		compute_param_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
 				stop(
 					class(self)[1], " does not support parametric-bootstrap estimate bias correction. ",
@@ -477,11 +569,12 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			batch = private$run_param_bootstrap_estimate_batch(
 				B = as.integer(B),
 				max_attempts_per_replicate = max_attempts_per_replicate,
-				show_progress = show_progress
+				show_progress = show_progress,
+				procedure = "parametric-bootstrap confidence interval"
 			)
 			if (is.null(batch) || batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!is.null(batch) && !isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap confidence interval", "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				ci = c(NA_real_, NA_real_)
 				names(ci) = ci_names
 				return(ci)
@@ -493,7 +586,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			names(ci) = ci_names
 			if (private$param_bootstrap_confidence_interval_extreme(ci, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_confidence_interval", "estimate")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap confidence interval", "param_bootstrap_estimate_extreme_confidence_interval", "estimate")
 				ci[] = NA_real_
 			}
 			ci
@@ -532,10 +625,6 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' @return A scalar p-value, or \code{NA_real_} if the computation fails.
 		compute_param_bootstrap_pval = function(delta, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
 				stop(
 					class(self)[1], " does not support parametric-bootstrap estimate bias correction. ",
@@ -555,18 +644,19 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			batch = private$run_param_bootstrap_estimate_batch(
 				B = as.integer(B),
 				max_attempts_per_replicate = max_attempts_per_replicate,
-				show_progress = show_progress
+				show_progress = show_progress,
+				procedure = "parametric-bootstrap p-value"
 			)
 			if (is.null(batch) || batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!is.null(batch) && !isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap p-value", "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				return(NA_real_)
 			}
 
 			t_delta = 2 * batch$raw_estimate - as.numeric(delta)[1L]
 			if (!is.finite(t_delta) || private$param_bootstrap_estimate_extreme(t_delta, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_pvalue_reflection", "estimate")
+					edi_param_boot_record_and_warn_na(self, private, "parametric-bootstrap p-value", "param_bootstrap_estimate_extreme_pvalue_reflection", "estimate")
 				return(NA_real_)
 			}
 			n = length(batch$finite_reps)
@@ -595,10 +685,14 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#' $results (one per-replicate result object per B, each carrying at least
 		#' $lr), $used_worker_path, and $used_deterministic_mode.
 		#'
-		#' Callers are responsible for setting private$active_resampling_operation
-		#' themselves (not done here, to avoid a nested caller clobbering an
-		#' already-active outer flag via a premature on.exit reset).
+		#' Sets private$active_resampling_operation = "param_boot" for the
+		#' replicate loop only and restores the caller's value on exit
+		#' (v1.0.6-TODO-185), so the callers' own top-level code stays outside
+		#' the flag and its procedure-NA warnings can fire (v1.0.6-TODO-207).
 		run_param_bootstrap_replicates = function(spec, delta, null_fit, B, max_attempts_per_replicate, show_progress = FALSE, allow_worker_reuse = TRUE){
+			prev_resampling_operation = private$active_resampling_operation
+			private$active_resampling_operation = "param_boot"
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			B = as.integer(B)
 			actual_cores = private$effective_parallel_cores("param_bootstrap", self$num_cores)
 			if (!is.null(private$seed)) {

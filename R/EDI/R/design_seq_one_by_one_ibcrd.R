@@ -19,11 +19,13 @@
 #' subjects are deterministically assigned to whichever type still has open slots.
 #'
 #' @details
-#' \strong{No target \eqn{n}: falls back to Bernoulli.} If \code{n} was not supplied at
-#' construction (\code{private$n} is \code{NULL}), there is no terminal target to
-#' balance toward, so \code{assign_wt()} falls back to an unbiased
-#' \eqn{\mathrm{Bernoulli}(prob\_T)} draw for every subject instead (equivalent to
-#' \code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}}).
+#' \strong{\code{n} is required.} The rule balances toward the planned sample size, so
+#' \code{n} must be supplied at construction; \code{n = NULL} is an error. When the
+#' sample size is not known in advance, use
+#' \code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}} (or another
+#' sequential design that does not need \code{n}). Before v1.0.6, \code{n = NULL} was
+#' accepted and fell back to Bernoulli assignment, but the randomization draws still
+#' forced exact balance, so its randomization distribution was wrong.
 #'
 #' \strong{Single implicit block.} \code{add_one_subject_to_experiment_and_assign()}
 #' overrides the inherited method only to additionally set \code{private$m} to a
@@ -48,17 +50,18 @@ DesignSeqOneByOneiBCRD = define_design_class(
 	public = list(
 		#' @description Initialize a sequential design targeting exact terminal
 		#'   treatment/control balance (see class documentation for the assignment
-		#'   rule and the no-fixed-\code{n} fallback).
+		#'   rule).
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
 		#' @param  prob_T  Target probability of treatment assignment; the terminal
-		#'   number of treated subjects is fixed at \code{round(n * prob_T)} when
-		#'   \code{n} is known (see class documentation).
+		#'   number of treated subjects is fixed at \code{round(n * prob_T)} (see class
+		#'   documentation).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
-		#' @param  n  		The planned (target) sample size; if \code{NULL}, there is no
-		#'   terminal balance target and assignment falls back to an unbiased
-		#'   Bernoulli coin (see class documentation).
+		#' @param  n  		The planned (target) sample size, required (a positive integer): the
+		#'   rule balances toward it. \code{NULL} is an error; use
+		#'   \code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}} when the
+		#'   sample size is not known in advance.
 		#' @param verbose A flag for verbosity.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
@@ -76,6 +79,14 @@ DesignSeqOneByOneiBCRD = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
+			# v1.0.6-TODO-187: n is required (owner decision 2026-11-19). Checked even with
+			# edi.run_asserts off: the assignment rule and the randomization redraw both
+			# balance toward n, so there is nothing correct to do without it.
+			if (is.null(n)) {
+				stop("DesignSeqOneByOneiBCRD needs n: the random allocation rule balances toward a planned ",
+					"sample size; use DesignSeqOneByOneBernoulli when n is unknown.", call. = FALSE)
+			}
+			checkmate::assertCount(n, positive = TRUE)
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$blocking_capable = TRUE
 		},
@@ -95,28 +106,20 @@ DesignSeqOneByOneiBCRD = define_design_class(
 		#' @description Draw the next subject's treatment assignment via the random
 		#'   allocation rule (see class documentation): with probability equal to the
 		#'   fraction of remaining treatment slots among all remaining slots, or a
-		#'   deterministic assignment if one slot type is exhausted; falls back to an
-		#'   unbiased Bernoulli coin if no fixed \code{n} was supplied.
+		#'   deterministic assignment if one slot type is exhausted.
 		#'
 		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
+			# n is always set (the constructor requires it, v1.0.6-TODO-187).
 			nT = sum(private$w == 1, na.rm = TRUE)
 			nC = sum(private$w == 0, na.rm = TRUE)
-			
-			if (is.null(private$n)){
-				#if n is not fixed, we cannot really ensure balance at the end, 
-				#so we just use Bernoulli
-				private$assign_wt_Bernoulli()
-			} else {
-				#if n is fixed, we use the remaining slots
-				nT_rem = round(private$n * private$prob_T) - nT
-				nC_rem = (private$n - round(private$n * private$prob_T)) - nC
-				
-				if (nT_rem <= 0) return(0)
-				if (nC_rem <= 0) return(1)
-				
-				rbinom(1, 1, nT_rem / (nT_rem + nC_rem))
-			}
+			nT_rem = round(private$n * private$prob_T) - nT
+			nC_rem = (private$n - round(private$n * private$prob_T)) - nC
+
+			if (nT_rem <= 0) return(0)
+			if (nC_rem <= 0) return(1)
+
+			rbinom(1, 1, nT_rem / (nT_rem + nC_rem))
 		}
 	),
 	private = list(

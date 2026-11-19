@@ -280,7 +280,10 @@ InferenceCountPoisson = define_inference_class(
 		#'   the Poisson score test at each candidate null, no full re-fit needed at
 		#'   the observed information), unioned with the design-based jackknife-Wald
 		#'   interval; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
-		#'   for the combination rule.
+		#'   for the combination rule. The score test uses the configured information
+		#'   preference (\code{"fisher"} by default, identical to the observed
+		#'   information for the canonical log link); Wald inference always uses
+		#'   the observed information.
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -406,20 +409,25 @@ InferenceCountPoisson = define_inference_class(
 		#'   p-value; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
 		#'   for the combination rule.
 		#' @param delta Null treatment effect. Default 0.
-		#' @param B Number of bootstrap replicates.
+		#' @param B Number of bootstrap replicates. Default 199. The smallest
+		#'   attainable bootstrap p-value is \eqn{2 / (B + 1)}.
 		#' @param show_progress Whether to show progress.
 		#' @param min_number_usable_samples Minimum usable bootstrap samples.
 		#' @param max_attempts_per_replicate Maximum attempts per replicate.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = private$param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
+			# Hold the model p-value's NA warning (v1.0.6-TODO-207): it is shown only when the
+			# design-based fallback is NA too.
+			held = edi_hold_procedure_na_warnings(private$param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
 				delta = delta,
 				B = B,
 				show_progress = show_progress,
 				min_number_usable_samples = min_number_usable_samples,
 				max_attempts_per_replicate = max_attempts_per_replicate
-			)
-			private$design_conservative_pval(p_model, delta = delta)
+			))
+			p = private$design_conservative_pval(held$value, delta = delta)
+			if (!is.finite(p)) edi_resignal_warnings(held$warnings)
+			p
 		},
 		#' @description Parametric-likelihood-bootstrap-calibrated likelihood-ratio
 		#'   confidence interval for \eqn{\beta_T} (test inversion using the
@@ -428,15 +436,22 @@ InferenceCountPoisson = define_inference_class(
 		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
 		#'   combination rule.
 		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates.
+		#' @param B Number of bootstrap replicates. Default 199. The smallest
+		#'   attainable bootstrap p-value is \eqn{2 / (B + 1)}, so \code{B} must be
+		#'   at least \eqn{2/\alpha - 1} (39 for \code{alpha = 0.05}); smaller
+		#'   values error.
 		#' @param show_progress Whether to show progress.
 		#' @param min_number_usable_samples Minimum usable bootstrap samples.
 		#' @param max_attempts_per_replicate Maximum attempts per replicate.
 		#' @param root_tolerance Root tolerance.
 		#' @param max_root_iterations Maximum root iterations.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
+			# B too small for alpha errors up front (v1.0.6-TODO-210), before the design-based fallback.
+			edi_assert_lik_ratio_bootstrap_ci_B(B, alpha)
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = private$param_boot_compute_lik_ratio_bootstrap_confidence_interval(
+			# Hold the model interval's NA warning (v1.0.6-TODO-207): it is shown only when the
+			# design-based fallback leaves the interval NA too.
+			held = edi_hold_procedure_na_warnings(private$param_boot_compute_lik_ratio_bootstrap_confidence_interval(
 				alpha = alpha,
 				B = B,
 				show_progress = show_progress,
@@ -444,8 +459,10 @@ InferenceCountPoisson = define_inference_class(
 				max_attempts_per_replicate = max_attempts_per_replicate,
 				root_tolerance = root_tolerance,
 				max_root_iterations = max_root_iterations
-			)
-			private$design_conservative_ci(ci_model, alpha = alpha)
+			))
+			ci = private$design_conservative_ci(held$value, alpha = alpha)
+			if (!all(is.finite(ci))) edi_resignal_warnings(held$warnings)
+			ci
 		},
 		#' @description Refits the Poisson model with subject/block-level weights
 		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or

@@ -178,7 +178,10 @@ SurvivalWeibullLikelihoodSource = list(
 		#' @param show_progress Whether to print a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite replicates required.
 		#' @param weighting_unit_type Resampling unit type for the bootstrap weights.
-		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
 			if (isTRUE(private$has_general_censoring)) {
 				stop(
 					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
@@ -196,7 +199,8 @@ SurvivalWeibullLikelihoodSource = list(
 			# inference_survival_dep_cens_transform.R.
 			private$bayesian_boot_compute_bayesian_bootstrap_two_sided_pval(
 				delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type
+				min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type,
+				min_fraction_usable_samples = min_fraction_usable_samples
 			)
 		},
 		#' @description Bartlett-corrected likelihood-ratio two-sided p-value; see
@@ -723,7 +727,10 @@ NULL
 #'   \code{InferenceParamBootstrap}). Not available under general (non-right)
 #'   censoring.
 #' @param alpha Significance level. Default 0.05.
-#' @param B Bootstrap replicates per p-value evaluation. Default 199.
+#' @param B Bootstrap replicates per p-value evaluation. Default 199. The
+#'   smallest attainable bootstrap p-value is \eqn{2 / (B + 1)}, so \code{B}
+#'   must be at least \eqn{2/\alpha - 1} (39 for \code{alpha = 0.05});
+#'   smaller values error.
 #' @param show_progress Logical; show a progress bar. Default \code{FALSE}.
 #' @param min_number_usable_samples Minimum number of usable bootstrap
 #'   replicates required within each p-value evaluation. Default \code{5L}.

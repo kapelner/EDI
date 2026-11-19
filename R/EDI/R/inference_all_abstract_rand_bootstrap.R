@@ -429,7 +429,26 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#' @param transform_responses  Type of response transformation for the sharp null shift.
 		#'   The default "none" resolves by response type (logit for proportion, log for count
 		#'   and survival, identity otherwise), matching \code{compute_rand_two_sided_pval}.
-		#' @param na.rm 				Remove non-finite null draws. Default \code{TRUE}.
+		#' @param na.rm 				Remove non-finite null draws. Default \code{TRUE}, subject to
+		#'   \code{min_fraction_usable_samples}. With \code{FALSE}, any non-finite null draw (for
+		#'   the studentized types: also a missing or non-positive draw standard error) makes the
+		#'   p-value \code{NA}, with one \code{edi_bootstrap_nonfinite_na_warning} per object
+		#'   (silent inside an outer resampling operation). Under the sequential Monte Carlo
+		#'   early-stopping path (\code{brt_mc_control}) only the draws evaluated before stopping
+		#'   are checked.
+		#' @param min_fraction_usable_samples Minimum fraction of the null draws that must be
+		#'   finite when \code{na.rm = TRUE} (for the studentized types: a finite statistic and a
+		#'   positive finite standard error). A number in \eqn{[0, 1]}; default \code{0.95},
+		#'   which mirrors the 5\% cap on invalid intervals that EDI's coverage calibration
+		#'   applies to confidence intervals. Below it the p-value is \code{NA} with the recorded
+		#'   reason \code{"rand_bootstrap_too_few_valid_replicates_fraction"} and one
+		#'   \code{edi_procedure_na_warning} (silent inside an outer resampling operation). Fewer
+		#'   than \code{max(10, 10\%)} finite draws keep the existing reason
+		#'   \code{"randomization_too_few_finite_estimates"}. \code{0} turns the check off;
+		#'   \code{1} requires every draw. Not applied by the sequential Monte Carlo early-stopping
+		#'   path (\code{brt_mc_control}), which stops on a prefix of the draws, nor inside
+		#'   \code{compute_rand_bootstrap_confidence_interval()}, which inverts these p-values
+		#'   and has its own failure reasons.
 		#' @param show_progress  		A flag indicating whether a progress bar should be displayed.
 		#' @param bootstrap_type 		Optional bootstrap-resampling scheme; see
 		#'   \code{approximate_bootstrap_distribution_beta_hat_T} for legal values. Default \code{NULL}.
@@ -523,7 +542,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   slower R-level fallback in every case, because adding continuous Gaussian noise to integer
 		#'   category codes is not statistically meaningful — see the response-type caveat above.
 		#' @return 	A two-sided p-value.
-		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
+		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile", min_fraction_usable_samples = 0.95){
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			# v1.0.6-TODO-151: same incidence guard as compute_rand_two_sided_pval()
 			# (v1.0.6-TODO-81/110). A nonzero delta shifted the 0/1 responses additively
@@ -537,6 +556,30 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE); assertCount(B, positive = TRUE); assertFlag(na.rm)
 				assertChoice(tolower(type), private$rand_bootstrap_pval_types)
+				assert_min_fraction_usable_samples(min_fraction_usable_samples)
+			}
+			# v1.0.6-TODO-12: with na.rm = TRUE the p-value needs min_fraction_usable_samples of
+			# the null draws to be valid. TRUE (after recording the reason and warning) when it
+			# falls short. A run below the randomization floor of
+			# compute_two_sided_randomization_pval_from_t0s() (max(10, 10%)) is left to that
+			# floor, so its reason "randomization_too_few_finite_estimates" is unchanged.
+			brt_valid_fraction_short = function(n_valid, n_total, what = "null-distribution draws") {
+				if (!isTRUE(na.rm) || n_valid < max(10L, as.integer(n_total * 0.10))) return(FALSE)
+				if (!bootstrap_valid_fraction_too_low(n_valid, n_total, min_fraction_usable_samples)) return(FALSE)
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "rand_bootstrap_too_few_valid_replicates_fraction", "estimate")
+				edi_warn_procedure_na(self, private, procedure = "randomization-bootstrap p-value",
+					reason = "rand_bootstrap_too_few_valid_replicates_fraction",
+					detail = bootstrap_valid_fraction_na_detail(n_valid, n_total, min_fraction_usable_samples, what = what))
+				TRUE
+			}
+			# v1.0.6-TODO-214: na.rm = FALSE returns NA on any invalid null draw, on every path
+			# (percentile, smoothed, studentized, sequential Monte Carlo), with one classed
+			# edi_bootstrap_nonfinite_na_warning per object, as the other bootstrap p-values do.
+			brt_na_rm_false_na = function(t0s, valid = is.finite(t0s)) {
+				if (isTRUE(na.rm) || all(valid)) return(FALSE)
+				edi_warn_bootstrap_nonfinite_na_once(self, private, t0s, fn = "compute_rand_bootstrap_two_sided_pval",
+					rand_bootstrap = TRUE, valid = valid)
+				TRUE
 			}
 			if (identical(transform_responses, "none")) {
 				transform_responses = switch(
@@ -602,6 +645,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					if (identical(as.numeric(delta), 0) && private$has_private_method("default_null_value")) {
 						stud_center = private$default_null_value()
 					}
+					ok_stud = is.finite(brt_stats$t0) & is.finite(brt_stats$se0) & brt_stats$se0 > 0
+					if (brt_na_rm_false_na(brt_stats$t0, valid = ok_stud)) return(NA_real_)
+					n_ok_stud = sum(ok_stud)
+					if (brt_valid_fraction_short(n_ok_stud, length(brt_stats$t0), what = "null draws (statistic and standard error)")) return(NA_real_)
 					return(private$compute_two_sided_brt_pval_studentized(t, brt_stats$t0, brt_stats$se0, stud_center, se_obs_stud, symmetric = symmetric_pivot))
 				}
 			}
@@ -638,7 +685,8 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					show_progress = FALSE, rand_bootstrap_draws = draws_sm,
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
-				if (!isTRUE(na.rm) && any(!is.finite(t0s_sm))) return(NA_real_)
+				if (brt_na_rm_false_na(t0s_sm)) return(NA_real_)
+				if (brt_valid_fraction_short(sum(is.finite(t0s_sm)), length(t0s_sm))) return(NA_real_)
 				return(private$compute_two_sided_randomization_pval_from_t0s(t0s_sm, t, procedure = "randomization-bootstrap p-value"))
 			}
 			# SMC early-stopping: evaluate the null distribution in batches; stop once the
@@ -670,9 +718,16 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					private$y
 				}
 				smc_pval = private$compute_two_sided_brt_pval_with_sequential_mc(
-					t, B, delta, transform_responses, y0_full_smc, rand_bootstrap_draws, zero_one_logit_clamp
+					t, B, delta, transform_responses, y0_full_smc, rand_bootstrap_draws, zero_one_logit_clamp,
+					na.rm = na.rm
 				)
-				if (!is.null(smc_pval)) return(smc_pval)
+				if (!is.null(smc_pval)) {
+					if (isTRUE(attr(smc_pval, "nonfinite_draws"))) {
+						brt_na_rm_false_na(attr(smc_pval, "t0s"))
+						return(NA_real_)
+					}
+					return(smc_pval)
+				}
 			}
 			t0s = self$approximate_rand_bootstrap_distribution_beta_hat_T(
 				B = B,
@@ -683,7 +738,8 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				rand_bootstrap_draws = rand_bootstrap_draws,
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)
-			if (!isTRUE(na.rm) && any(!is.finite(t0s))) return(NA_real_)
+			if (brt_na_rm_false_na(t0s)) return(NA_real_)
+			if (brt_valid_fraction_short(sum(is.finite(t0s)), length(t0s))) return(NA_real_)
 			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value")
 		}
 	),
@@ -982,7 +1038,15 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# lies entirely above or below mc_stop_threshold, the current p-value estimate is
 		# returned. Returns NULL when SMC is disabled, draws lack materialized w_b, or the
 		# batch size is >= B (which would be no batching at all).
-		compute_two_sided_brt_pval_with_sequential_mc = function(t, B, delta, transform_arg, y0_full, draws, zero_one_logit_clamp){
+		# v1.0.6-TODO-214: with na.rm = FALSE the first evaluated prefix (or cached full
+		# distribution) holding a non-finite draw ends the loop with NA carrying the
+		# attributes nonfinite_draws = TRUE and t0s (so the caller can warn): the full B draws
+		# hold that draw too, so this is the answer the one-shot path gives. A run that stops
+		# early on an all-finite prefix never sees the later draws, so it can return a finite
+		# p-value where the one-shot path (all B draws) would return NA; early stopping is
+		# exactly not evaluating those draws. The min_fraction_usable_samples check
+		# (v1.0.6-TODO-12) is likewise not applied here.
+		compute_two_sided_brt_pval_with_sequential_mc = function(t, B, delta, transform_arg, y0_full, draws, zero_one_logit_clamp, na.rm = TRUE){
 			mc_ctrl = private$brt_mc_control
 			if (!private$sequential_mc_control_enabled(mc_ctrl)) return(NULL)
 			# Scope the reusable-worker cache (see `compute_reusable_bootstrap_worker_
@@ -1000,12 +1064,14 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			conf_level = mc_ctrl$mc_conf_level
 			threshold = mc_ctrl$mc_stop_threshold
 			# Short-circuit: if the full B-draw distribution is already cached, skip batching.
+			nonfinite_na = function(t0s) structure(NA_real_, nonfinite_draws = TRUE, t0s = as.numeric(t0s))
 			draws_id = attr(draws, "draws_id")
 			if (!is.null(draws_id)) {
 				delta_key = formatC(as.numeric(delta), digits = 17L, format = "fg", flag = "#")
 				full_key = paste(B_int, delta_key, transform_arg, draws_id, sep = "|")
 				full_distr = private$get_cached_resampling_distribution("rand_bootstrap", full_key)
 				if (!is.null(full_distr) && length(full_distr) >= B_int) {
+					if (!isTRUE(na.rm) && any(!is.finite(full_distr))) return(nonfinite_na(full_distr))
 					return(private$compute_two_sided_randomization_pval_from_t0s(full_distr, t, procedure = "randomization-bootstrap p-value"))
 				}
 			}
@@ -1013,6 +1079,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			repeat {
 				target = min(B_int, target + batch_size)
 				t0s = private$get_brt_distribution_prefix(draws, target, delta, transform_arg, y0_full, zero_one_logit_clamp)
+				if (!isTRUE(na.rm) && any(!is.finite(t0s))) return(nonfinite_na(t0s))
 				if (target >= B_int) return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value"))
 				# v1.0.6-TODO-166: a prefix with too few finite draws is not a final
 				# answer; draw the next batch instead of returning NA (the full B draws

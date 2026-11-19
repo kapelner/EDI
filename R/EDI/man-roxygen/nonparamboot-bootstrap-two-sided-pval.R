@@ -35,6 +35,9 @@
 #'   inversion using the jackknife acceleration and bias-correction constants;
 #'   second-order accurate (Efron 1987; Efron & Tibshirani 1993).
 #' @param na.rm  				Remove non-finite bootstrap replicates. Default FALSE.
+#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must
+#'   be finite when \code{na.rm = TRUE}. Default 0.95; below it the p-value is \code{NA} with reason
+#'   \code{"bootstrap_too_few_valid_replicates_fraction"}. \code{0} turns the check off.
 #' @param show_progress  		A flag indicating whether a progress bar should be displayed.
 #'
 #' @return 	A bootstrap two-sided p-value.

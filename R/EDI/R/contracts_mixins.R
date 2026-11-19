@@ -765,7 +765,8 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"compute_basic_match_data", "get_standard_error", "shared",
-			"clogit_for_matched_pairs", "logistic_for_reservoir"
+			"clogit_for_matched_pairs", "logistic_for_reservoir",
+			"compute_weighted_estimate_ivwc"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
@@ -785,7 +786,7 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"get_standard_error", "compute_basic_match_data",
 			"cox_design_candidates", "rcpp_cox_fit_is_usable", "shared",
- "max_abs_reasonable_coef"
+ "max_abs_reasonable_coef", "compute_weighted_estimate_ivwc"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
@@ -826,7 +827,7 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"compute_fast_randomization_distr", "reused_worker_preserved_cache_keys",
 			"shared",			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
-			"ols_for_reservoir"
+			"ols_for_reservoir", "compute_weighted_estimate_ivwc"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "quasi",
@@ -1099,7 +1100,8 @@ EDI_COMPONENT_SPECS = list(
 			"kk_lwa_cox_design_candidates",
 			"kk_lwa_cox_fit_model",
 			"kk_lwa_cox_for_matched_pairs",
-			"kk_lwa_cox_for_reservoir"
+			"kk_lwa_cox_for_reservoir",
+			"compute_weighted_estimate_ivwc"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
@@ -1389,7 +1391,7 @@ EDI_COMPONENT_SPECS = list(
  "get_standard_error",
 			"aftsrr_for_matched_pairs", "aftsrr_for_reservoir",
 			"best_X_colnames_matched", "best_X_colnames_reservoir",
-			"max_abs_reasonable_coef"
+			"max_abs_reasonable_coef", "compute_weighted_estimate_ivwc"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "none",
@@ -1575,6 +1577,7 @@ EDI_COMPONENT_SPECS = list(
 					"supports_reusable_bootstrap_worker",
 					"supports_lik_ratio_param_bootstrap",
 					"supports_likelihood_tests",
+					"supports_fisher_information",
 					"simulate_under_lik_null",
 					"get_likelihood_test_spec",
 					"generate_mod",
@@ -1911,6 +1914,7 @@ EDI_COMPONENT_SPECS = list(
 					provides_private_methods = c(
 						"build_design_matrix",
 						"is_identity_binomial_fit_reasonable",
+						"fit_identity_binomial_warm_then_cold",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker",
 						"supports_likelihood_tests",

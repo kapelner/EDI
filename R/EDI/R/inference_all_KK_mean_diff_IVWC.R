@@ -189,6 +189,66 @@ KKMeanDifferenceIVWCSource = list(
 			)
 			return(res)
 		},
+		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate, formerly the KK compound's
+		# generic fallback, which pooled the weighted means with the observed data's
+		# w_star. Under the v1.0.6-TODO-132 rule a replicate is the same estimator as
+		# shared(), so the two variances (and hence w_star) come from the weighted
+		# draw too: weighted mean and variance of the pair differences, weighted
+		# treated-minus-control reservoir means with the weighted pooled variance,
+		# and the same usability branches as shared().
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			nRT = KKstats$nRT; nRC = KKstats$nRC; m = KKstats$m
+			wmean_var = function(x, wt){
+				wt = as.numeric(wt) / sum(wt)
+				mu = sum(wt * x)
+				k = length(x)
+				list(mean = mu, var = if (k > 1L) sum(wt * (x - mu)^2) * k / (k - 1) else NA_real_)
+			}
+			d_bar = NA_real_; ssqD = NA_real_
+			if (is.finite(m) && m > 0) {
+				# KKstats rows are the pairs in increasing pair id, as w_info$pair_ids.
+				st = wmean_var(KKstats$y_matched_diffs, w_info$pair_weights)
+				d_bar = st$mean
+				if (m > 1) ssqD = st$var / m
+			}
+			r_bar = NA_real_; ssqR = NA_real_
+			if (is.finite(nRT) && is.finite(nRC) && nRT > 0 && nRC > 0) {
+				y_r = KKstats$y_reservoir; w_r = KKstats$w_reservoir; wt_r = w_info$reservoir_weights
+				stT = wmean_var(y_r[w_r == 1], wt_r[w_r == 1])
+				stC = wmean_var(y_r[w_r == 0], wt_r[w_r == 0])
+				r_bar = stT$mean - stC$mean
+				nR = nRT + nRC
+				if (nRT > 1 && nRC > 1 && nR > 2) {
+					ssqR = (stT$var * (nRT - 1) + stC$var * (nRC - 1)) / (nR - 2) * (1 / nRT + 1 / nRC)
+				}
+			}
+			reservoir_unusable = !is.finite(nRT) || !is.finite(nRC) || nRT <= 1 || nRC <= 1
+			no_matches = !is.finite(m) || m <= 1
+			w_star = if (is.finite(ssqR) && is.finite(ssqD) && (ssqR + ssqD) > 0) ssqR / (ssqR + ssqD) else NA_real_
+			beta = if (reservoir_unusable && is.finite(d_bar)) {
+				d_bar
+			} else if (no_matches && is.finite(r_bar)) {
+				r_bar
+			} else if (is.finite(d_bar) && is.finite(r_bar)) {
+				w_star * d_bar + (1 - w_star) * r_bar
+			} else if (is.finite(r_bar)) {
+				r_bar
+			} else if (is.finite(d_bar)) {
+				d_bar
+			} else {
+				NA_real_
+			}
+			private$cached_values$beta_hat_T = beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else
+				sqrt(kk_ivwc_pool_halves(d_bar, ssqD, r_bar, ssqR)$ssq)
+			beta
+		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))

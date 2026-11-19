@@ -354,7 +354,13 @@ InferenceExtExchangeableResamplingUnits = list(
 					if (record) return(list(value = private$missing_bootstrap_ci(alpha, reason, stage = "estimate", procedure = procedure)))
 					return(list(value = c(NA_real_, NA_real_)))
 				}
-				if (record) edi_record_procedure_failure(self, private, reason, "estimate", procedure = procedure)
+				if (record) {
+					edi_record_procedure_failure(self, private, reason, "estimate", procedure = procedure)
+					# Warn like the CI branch (missing_bootstrap_ci()) instead of a silent NA (v1.0.6-TODO-207).
+					edi_warn_procedure_na(self, private,
+						procedure = if (m_out_of_n) "m-out-of-n bootstrap p-value" else "subsampling p-value",
+						reason = reason)
+				}
 				list(value = NA_real_)
 			}
 			if (is.list(size)) {

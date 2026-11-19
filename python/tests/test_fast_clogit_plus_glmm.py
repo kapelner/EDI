@@ -87,3 +87,20 @@ def test_estimate_only_still_returns_b():
     )
 
     assert res["b"] == pytest.approx(R_B, abs=1e-6, rel=1e-6)
+
+
+def test_unit_weights_match_no_weights_and_weights_change_the_fit():
+    """weights_disc / weights_conc reach the kernel, as R's bootstrap row weights do
+    (rpy-parity audit decision rpy-parity-d62675f61)."""
+    X_disc, y_disc, X_conc, y_conc, group_conc = _synthetic_data()
+    base = fast_clogit_plus_glmm(X_disc, y_disc, X_conc, y_conc, group_conc, True, True)
+    ones = fast_clogit_plus_glmm(
+        X_disc, y_disc, X_conc, y_conc, group_conc, True, True,
+        weights_disc=np.ones(len(y_disc)), weights_conc=np.ones(len(y_conc)),
+    )
+    assert ones["b"] == pytest.approx(base["b"], abs=1e-10, rel=1e-10)
+    w = np.random.default_rng(7).exponential(size=len(y_disc))
+    weighted = fast_clogit_plus_glmm(
+        X_disc, y_disc, X_conc, y_conc, group_conc, True, True, weights_disc=w
+    )
+    assert not np.allclose(weighted["b"], base["b"])

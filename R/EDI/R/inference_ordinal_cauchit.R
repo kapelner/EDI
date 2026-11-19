@@ -124,8 +124,10 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 				observed_information = function(fit){
 					-get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
 				},
+				# Expected information (v1.0.6-TODO-201); the C++ fit's own
+				# fisher_information field is the observed Hessian.
 				fisher_information = function(fit){
-					fit$fisher_information %||% -get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
+					ordinal_cumlink_expected_information(X_fit, y, fit$params, "cauchit")
 				},
 				information = function(fit){
 					fit$information %||% fit$fisher_information %||% -get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))

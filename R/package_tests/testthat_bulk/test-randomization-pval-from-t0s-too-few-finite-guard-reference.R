@@ -24,7 +24,12 @@ test_that("'randomization_too_few_finite_estimates' fires when finite draws fall
 	f <- smd_fixture()
 	t0s <- c(rep(NA_real_, 95), rnorm(5))  # 100 draws, only 5 finite; min_required = max(10, 10) = 10
 
-	res <- f$priv$compute_two_sided_randomization_pval_from_t0s(t0s, t = 0.3)
+	# The NA is announced with an edi_procedure_na_warning (v1.0.6-TODO-136);
+	# assert it by class (v1.0.6-TODO-204).
+	expect_warning(
+		res <- f$priv$compute_two_sided_randomization_pval_from_t0s(t0s, t = 0.3),
+		class = "edi_procedure_na_warning"
+	)
 	expect_true(is.na(res))
 	expect_false(isTRUE(f$inf$is_nonestimable("estimate")))   # TODO-116: procedure failure, Wald intact
 	expect_identical(f$priv$cached_values$procedure_failure_reason[["randomization"]], "randomization_too_few_finite_estimates")

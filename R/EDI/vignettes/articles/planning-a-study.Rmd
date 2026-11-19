@@ -57,8 +57,8 @@ h = c(0.05, 0.04, 0.03, 0.02, 0.01)
 data.frame(half_width = h, R_needed = ceiling(qnorm(0.975)^2 * 0.8 * 0.2 / h^2))
 ```
 
-This article uses `R` = 400 to 500 per point so that it builds in a few minutes,
-which gives a half-width of about 4 percentage points. For a real protocol, use
+This article uses `R` = 250 to 500 per power point so that it builds in a few minutes,
+which gives a half-width of 4 to 5 percentage points. For a real protocol, use
 1,500 or more at the final `n`.
 
 Two small helpers turn rejection rates into intervals and pick the `n`:
@@ -123,7 +123,7 @@ replication its own seed (`seed + i`), so the run is reproducible whatever
 
 ```{r ex1-sim, message = FALSE}
 ns1 = c(30L, 50L, 70L, 90L, 120L, 150L)
-R1 = 400L
+R1 = 250L
 
 generator = function(state, rep) {
   X = draw_covariates(state$n)

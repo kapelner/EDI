@@ -10,6 +10,27 @@
 #' supporting parametric-bootstrap LR calibration — inherit instead from
 #' \code{InferenceParamBootstrap}.
 #'
+#' @details
+#' \strong{Information source.} Wald standard errors, p-values and confidence intervals always
+#' use the observed information (the negative Hessian of the
+#' log-likelihood at the MLE), the usual choice for Wald inference (Efron
+#' and Hinkley 1978) and what \code{MASS::polr()} and
+#' \code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+#' Poisson) the observed and expected information coincide, so it is also
+#' what \code{glm()} reports. The information preference set with
+#' \code{set_information_preference()} affects only score (Rao) tests and
+#' score confidence intervals; \code{"fisher"} (expected information) is
+#' the default there where the class supports it, \code{"observed"}
+#' otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+#' expected information, and the Wald standard errors of
+#' \code{InferenceIncidBinomialIdentityRiskDiff} and
+#' \code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+#' information, as \code{glm()} reports for these non-canonical links.
+#'
+#' @references Efron, B., and Hinkley, D. V. (1978). "Assessing the accuracy
+#' of the maximum likelihood estimator: Observed versus expected Fisher
+#' information." \emph{Biometrika}, 65(3), 457-483. \doi{10.1093/biomet/65.3.457}
+#'
 #' @keywords internal
 InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 	lock_objects = FALSE,
@@ -20,7 +41,9 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#'   the fitted estimate and standard error; score, likelihood-ratio,
 		#'   gradient, and Bartlett-corrected likelihood-ratio intervals are obtained
 		#'   by inverting the corresponding test. For purely Wald asymptotic dispatch,
-		#'   see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#'   see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}. Wald inference always uses the observed information; the
+		#'   information preference (\code{set_information_preference()}) applies to
+		#'   score tests and score confidence intervals only.
 		#'
 		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		#'
@@ -45,6 +68,9 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#'   gradient, or Bartlett-corrected likelihood-ratio statistic under the
 		#'   null value \code{delta}. For count-specific likelihood families, see
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+		#'   Wald inference always uses the observed information; the
+		#'   information preference (\code{set_information_preference()}) applies to
+		#'   score tests and score confidence intervals only.
 		#'
 		#' @param delta Null treatment effect to test against. Default 0.
 		#'
@@ -81,7 +107,22 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 			private$testing_type = testing_type
 			invisible(self)
 		},
-		#' @description Sets the information matrix preference used by score-test dispatch.
+		#' @description Sets the information matrix preference used by score (Rao)
+		#'   tests and score confidence intervals. Wald standard errors, p-values and confidence intervals always
+		#'   use the observed information (the negative Hessian of the
+		#'   log-likelihood at the MLE), the usual choice for Wald inference (Efron
+		#'   and Hinkley 1978) and what \code{MASS::polr()} and
+		#'   \code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+		#'   Poisson) the observed and expected information coincide, so it is also
+		#'   what \code{glm()} reports. The information preference set with
+		#'   \code{set_information_preference()} affects only score (Rao) tests and
+		#'   score confidence intervals; \code{"fisher"} (expected information) is
+		#'   the default there where the class supports it, \code{"observed"}
+		#'   otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+		#'   expected information, and the Wald standard errors of
+		#'   \code{InferenceIncidBinomialIdentityRiskDiff} and
+		#'   \code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+		#'   information, as \code{glm()} reports for these non-canonical links.
 		#'
 		#' @param information_preference One of \code{"auto"}, \code{"fisher"}, or \code{"observed"}.
 		#'
@@ -105,11 +146,16 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		get_testing_type = function(){
 			private$testing_type
 		},
-		#' @description Gets the score-test information matrix preference.
+		#' @description Gets the score-test information matrix preference. Wald inference always uses the observed information; the
+		#'   information preference (\code{set_information_preference()}) applies to
+		#'   score tests and score confidence intervals only.
 		get_information_preference = function(){
 			private$information_preference
 		},
-		#' @description Gets the actual information source used by the most recent information-backed computation.
+		#' @description Gets the actual information source (\code{"fisher"},
+		#'   \code{"observed"} or \code{"legacy"}) used by the most recent score-test
+		#'   computation, or \code{NULL} before one. Wald standard errors always
+		#'   use the observed information and do not change this value.
 		get_information_source_used = function(){
 			private$information_source_used
 		},
@@ -117,13 +163,32 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		get_supported_testing_types = function(){
 			private$get_supported_testing_types_with_bartlett()
 		},
-		#' @description Gets the score-test information matrix preferences supported by this inference object.
+		#' @description Gets the information matrix preferences supported by this
+		#'   inference object for score tests and score confidence intervals
+		#'   (\code{"auto"}, plus \code{"observed"} and, where the class has the
+		#'   expected information, \code{"fisher"}). Wald standard errors, p-values and confidence intervals always
+		#'   use the observed information (the negative Hessian of the
+		#'   log-likelihood at the MLE), the usual choice for Wald inference (Efron
+		#'   and Hinkley 1978) and what \code{MASS::polr()} and
+		#'   \code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+		#'   Poisson) the observed and expected information coincide, so it is also
+		#'   what \code{glm()} reports. The information preference set with
+		#'   \code{set_information_preference()} affects only score (Rao) tests and
+		#'   score confidence intervals; \code{"fisher"} (expected information) is
+		#'   the default there where the class supports it, \code{"observed"}
+		#'   otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+		#'   expected information, and the Wald standard errors of
+		#'   \code{InferenceIncidBinomialIdentityRiskDiff} and
+		#'   \code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+		#'   information, as \code{glm()} reports for these non-canonical links.
 		get_supported_information_preferences = function(){
 			private$get_supported_information_preferences_impl()
 		},
 		#' @description Computes the score two-sided p-value regardless of configured
 		#'   testing type. The score test evaluates the null-restricted fit and uses
-		#'   the configured information matrix preference; compare with
+		#'   the configured information matrix preference (\code{"fisher"} by
+		#'   default where supported); Wald inference always uses the observed
+		#'   information instead. Compare with
 		#'   \code{compute_asymp_two_sided_pval()} for configured-test dispatch.
 		#' @param delta Null treatment effect.
 		compute_score_two_sided_pval = function(delta = 0){
@@ -131,8 +196,11 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		},
 		#' @description Computes the score confidence interval regardless of configured
 		#'   testing type by inverting score-test p-values over candidate treatment
-		#'   effects. Compare with \code{compute_asymp_confidence_interval()} for
-		#'   configured-test dispatch.
+		#'   effects, each with the configured information matrix preference
+		#'   (\code{"fisher"} by default where supported; Wald inference always
+		#'   uses the observed information). Compare with
+		#'   \code{compute_asymp_confidence_interval()} for configured-test
+		#'   dispatch.
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {

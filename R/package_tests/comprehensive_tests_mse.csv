@@ -47,7 +47,7 @@ InferenceOrdinalStereotypeLogitRegr [design_formula=~1],KK21stepwise,0.5,ordinal
 InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,0.5,count,0,0.904378754716981,53,0
 InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],SPBR,0.5,count,0,0.8963309375,16,0
 InferenceCountZeroInflatedNegBin [design_formula=~.],SPBR,0.5,count,0,0.8963309375,16,0
-InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,incidence,0,0.844132,57,0
+InferenceIncidExactZhang [design_formula=~.],KK21stepwise,0.5,incidence,0,0.0954919122807017,57,0
 InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],FixediBCRD,0.5,count,0,0.839924714285714,14,0
 InferenceCountZeroInflatedNegBin [design_formula=~.],FixediBCRD,0.5,count,0,0.839924714285714,14,0
 InferenceOrdinalStereotypeLogitRegr [design_formula=~.],FixedBlocking,0.5,ordinal,0,0.782825705882353,17,0
@@ -285,7 +285,7 @@ InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,0.5,i
 InferenceIncidExactFisher [design_formula=~1],KK21stepwise,0.5,incidence,0,0.0920007931034483,58,0
 InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],SPBR,0.2,incidence,0,0.0919391794871795,39,1
 InferenceOrdinalContRatioRegr [design_formula=~.],FixedBinaryMatch,0.5,ordinal,0,0.0913338947368421,95,0
-InferenceIncidExactZhang [design_formula=~1],KK21stepwise,0.5,incidence,0,0.0901631724137931,58,0
+InferenceIncidExactZhang [design_formula=~1],KK21stepwise,0.5,incidence,0,0.146649155172414,58,0
 InferenceSurvivalStratCoxPHRegr (model_formula=~.) [design_formula=~.],FixediBCRD,0.5,survival,0,0.0899853636363636,33,0
 InferenceSurvivalStratCoxPHRegr [design_formula=~.],FixediBCRD,0.5,survival,0,0.0899853636363636,33,0
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],SPBR,0.2,incidence,0,0.0897281538461538,39,0
@@ -1737,7 +1737,7 @@ InferencePropGCompMeanDiff [design_formula=~.],FixedMatchingGreedy,0.5,proportio
 InferencePropGCompMeanDiff [design_formula=~.],FixedBinaryMatch,0.5,proportion,0,0.000186486666666667,450,0
 InferenceAllSimpleWilcox [design_formula=~1],SPBR,0.5,count,0,0,54,0
 InferenceAllSimpleWilcox [design_formula=~.],FixedMatchingGreedy,0.5,count,0,0,54,0
-InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,incidence,0,0,57,0
+InferenceIncidExactZhang [design_formula=~.],FixedBinaryMatch,0.5,incidence,0,0.0598522807017544,57,0
 InferenceAllSimpleWilcox [design_formula=~.],SPBR,0.5,ordinal,0,0,93,0
 InferenceAllSimpleWilcox [design_formula=~.],FixediBCRD,0.5,ordinal,0,0,94,0
 InferenceAllSimpleWilcox [design_formula=~.],FixedMatchingGreedy,0.5,ordinal,0,0,95,0

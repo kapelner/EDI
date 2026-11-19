@@ -80,7 +80,11 @@
 #'   uses its forward-stepwise (rather than marginal) weight-estimation scheme. See also
 #'   Morrison, T. (2025), "Reservoir Designs for Online Paired Experiments",
 #'   arXiv:2505.17247, for the alternative threshold calibration the (not yet
-#'   implemented) \code{morrison} argument is reserved for.
+#'   implemented) \code{morrison} argument is reserved for. Smithson, M., and Verkuilen, J.
+#'   (2006). "A better lemon squeezer? Maximum-likelihood regression with beta-distributed
+#'   dependent variables." \emph{Psychological Methods}, 11(1), 54-71,
+#'   \doi{10.1037/1082-989X.11.1.54}, for the \eqn{(y(n - 1) + 0.5) / n} compression of 0/1
+#'   responses in the proportion speedup.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -140,6 +144,9 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 		#'   response = proportion case via a continuous regression on log(y / (1 - y))
 		#'                                                         instead of a beta regression each
 		#' time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.
+		#'   If any response so far is exactly 0 or 1, all responses are first compressed to
+		#'   \eqn{(y(n - 1) + 0.5) / n} (Smithson and Verkuilen 2006), as in
+		#'   \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}; see its Details.
 		#' @param survival_use_speedup_for_no_censoring   Should we speed up the estimation of the
 		#'   weights in the response = survival case via a continuous regression on log(y)
 		#'                                                         instead of a Weibull AFT regression
@@ -279,10 +286,9 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 				return(na0(kk21_stepwise_continuous_weights_cpp(xs, log(ys + 1), ws)))
 			}
 			if (private$response_type == "proportion" && private$proportion_use_speedup){
-				ys_adj = ys
-				ys_adj[ys_adj == 0] = .Machine$double.eps
-				ys_adj[ys_adj == 1] = 1 - .Machine$double.eps
-				return(na0(kk21_stepwise_continuous_weights_cpp(xs, log(ys_adj / (1 - ys_adj)), ws)))
+				# 0/1 responses: compress all responses to (y(n - 1) + 0.5) / n before the
+				# logit (Smithson and Verkuilen 2006; v1.0.6-TODO-60), not an eps clamp.
+				return(na0(kk21_stepwise_continuous_weights_cpp(xs, kk21_speedup_proportion_logit(ys), ws)))
 			}
 			if (private$response_type == "survival"){
 				if (private$survival_use_speedup_for_no_censoring && all(deads == 1)){
@@ -383,9 +389,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 				}, error = function(e){})
 			}
 			#if that didn't work, let's just use the continuous weights on a transformed proportion
-			ys[ys == 0] = .Machine$double.eps
-			ys[ys == 1] = 1 - .Machine$double.eps
-			private$compute_weights_KK21stepwise_continuous(xs, log(ys / (1 - ys)), ws, ...)
+			private$compute_weights_KK21stepwise_continuous(xs, kk21_speedup_proportion_logit(ys), ws, ...)
 		},
 		compute_weights_KK21stepwise_survival = function(xs, ys, ws, deaths){
 			private$compute_weights_KK21stepwise(xs, survival::Surv(ys, deaths), ws, function(response_obj, covariate_data_matrix){

@@ -168,8 +168,8 @@ test_that("tau, acc and root_tolerance reject length-2 or infinite values", {
 	expect_error(InferencePropQuantileRegr$new(fx$bern_proportion, tau = c(0.25, 0.75), verbose = FALSE), "Must have length 1")
 	expect_error(InferenceContinKKRobustRegrOneLik$new(fx$match_continuous, acc = c(1e-6, 1e-4), verbose = FALSE), "Must have length 1")
 	pois = InferenceCountPoisson$new(fx$bern_count, verbose = FALSE)
-	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 11L, root_tolerance = Inf), "Must be finite")
-	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 11L, root_tolerance = c(0.1, 0.2)), "Must have length 1")
+	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 39L, root_tolerance = Inf), "Must be finite")
+	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 39L, root_tolerance = c(0.1, 0.2)), "Must have length 1")
 })
 
 test_that("randomization show_progress and na.rm must be a single TRUE/FALSE", {

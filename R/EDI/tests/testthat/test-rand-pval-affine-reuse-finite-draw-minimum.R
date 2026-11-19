@@ -41,11 +41,15 @@ test_that("affine-reuse path returns NA below max(10, floor(r/10)) finite draws"
 	# zero-finite cutoff but below the documented minimum.
 	stub_cache(fx, n_finite = 15L)
 	expect_true(isTRUE(fx$priv$supports_additive_delta_shift("none")))
-	expect_true(is.na(fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
-		delta = 0.5, show_progress = FALSE)))
+	# The NA is announced with an edi_procedure_na_warning (v1.0.6-TODO-136);
+	# assert it by class (v1.0.6-TODO-204).
+	expect_warning(pv <- fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
+		delta = 0.5, show_progress = FALSE), class = "edi_procedure_na_warning")
+	expect_true(is.na(pv))
 	for (alt in c("greater", "less")) {
-		expect_true(is.na(fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
-			delta = 0.5, show_progress = FALSE, alternative = alt)))
+		expect_warning(pv <- fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
+			delta = 0.5, show_progress = FALSE, alternative = alt), class = "edi_procedure_na_warning")
+		expect_true(is.na(pv))
 	}
 })
 
@@ -73,8 +77,9 @@ test_that("affine-reuse NA records the same failure reason as the uncached path 
 	fx = affine_fixture(r = 200L)
 	stub_cache(fx, n_finite = 15L)
 	fx$priv$harden = TRUE
-	expect_true(is.na(fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
-		delta = 0.5, show_progress = FALSE)))
+	expect_warning(pv <- fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
+		delta = 0.5, show_progress = FALSE), class = "edi_procedure_na_warning")
+	expect_true(is.na(pv))
 	cv = fx$priv$cached_values
 	reasons = unlist(c(cv$procedure_failure_reason,
 		cv$nonestimable_reason), use.names = FALSE)

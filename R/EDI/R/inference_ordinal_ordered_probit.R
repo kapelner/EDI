@@ -54,7 +54,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 		get_likelihood_test_spec = function(){
 			ordinal_cumlink_likelihood_test_spec(private, fast_ordinal_probit_regression_cpp,
 				score_fn = get_ordinal_probit_regression_score_cpp,
-				hessian_fn = get_ordinal_probit_regression_hessian_cpp)
+				hessian_fn = get_ordinal_probit_regression_hessian_cpp, link = "probit")
 		},
 		generate_mod = function(estimate_only = FALSE){
 			X_full = private$build_design_matrix()
@@ -360,11 +360,84 @@ ordinal_cumlink_simulate_under_lik_null = function(private, spec, null_fit, fit_
 	)
 }
 
-# get_likelihood_test_spec(): the score / gradient / LR spec on the columns the
-# full fit kept, from the class's fitter, score and Hessian.
+# CDF and density of each cumulative link, matching the C++ kernels in
+# ordinal_fixed_link_helpers.h (cloglog: F(z) = 1 - exp(-exp(z))).
 #' @keywords internal
 #' @noRd
-ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn) {
+ordinal_cumlink_link_cdf_pdf = function(link) {
+	switch(link,
+		logit = list(cdf = stats::plogis, pdf = stats::dlogis),
+		probit = list(cdf = stats::pnorm, pdf = stats::dnorm),
+		cauchit = list(cdf = stats::pcauchy, pdf = stats::dcauchy),
+		cloglog = list(cdf = function(z) -expm1(-exp(z)), pdf = function(z) exp(z - exp(z))),
+		stop("unknown cumulative link: ", link, call. = FALSE)
+	)
+}
+
+# Expected (Fisher) information of the cumulative-link ordinal model
+# P(Y_i <= k | x_i) = F(z_ik), z_ik = alpha_k + eta_sign * x_i'beta, k = 1..K-1,
+# in the solvers' native parameterization params = c(alpha, beta) (raw,
+# increasing thresholds; eta_sign = -1 for logit/probit/cauchit, +1 for the
+# cloglog solver). With pi_ik = F(z_ik) - F(z_i,k-1) (F(z_i0) = 0,
+# F(z_iK) = 1) and f = F', the information is
+#   I = sum_i sum_k (d pi_ik / d par)(d pi_ik / d par)' / pi_ik,
+# which in blocks is
+#   I[a_m, a_m]     = sum_i f_im^2 (1 / pi_im + 1 / pi_i,m+1)
+#   I[a_m, a_m+1]   = -sum_i f_im f_i,m+1 / pi_i,m+1      (tridiagonal)
+#   I[a_m, beta]    = eta_sign * sum_i f_im (d_im / pi_im - d_i,m+1 / pi_i,m+1) x_i'
+#   I[beta, beta]   = sum_i x_i x_i' sum_k d_ik^2 / pi_ik
+# with d_ik = f_ik - f_i,k-1 (f_i0 = f_iK = 0). It does not depend on y beyond
+# its level set (the K categories), and it is the y-expectation of the
+# observed information -hessian_fn(X, y, params). Verified against the exact
+# expectation of the C++ score outer product and of the C++ negative Hessian
+# (relative error < 1e-14) for all four links, v1.0.6-TODO-201; see
+# R/package_metadata/audits/research_findings/2026-11-19-ordinal-cumulative-link-expected-information.md.
+# Category probabilities are floored at 1e-12, as in the C++ likelihood.
+# Returns NULL when params are not a valid (finite, increasing-threshold) point.
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_expected_information = function(X, y, params, link, eta_sign = -1) {
+	X = as.matrix(X)
+	params = as.numeric(params)
+	K = length(unique(as.numeric(y)))
+	n_alpha = K - 1L
+	p = ncol(X)
+	if (n_alpha < 1L || length(params) != n_alpha + p || any(!is.finite(params))) return(NULL)
+	a = seq_len(n_alpha)
+	b = n_alpha + seq_len(p)
+	alpha = params[a]
+	if (n_alpha > 1L && any(diff(alpha) <= 0)) return(NULL)
+	cf = ordinal_cumlink_link_cdf_pdf(link)
+	Z = outer(eta_sign * as.numeric(X %*% params[b]), alpha, "+")
+	Fz = matrix(cf$cdf(Z), nrow(X))
+	fz = matrix(cf$pdf(Z), nrow(X))
+	Fext = cbind(0, Fz, 1)
+	fext = cbind(0, fz, 0)
+	pi_ik = pmax(Fext[, -1L, drop = FALSE] - Fext[, -(K + 1L), drop = FALSE], 1e-12)
+	d_ik = fext[, -1L, drop = FALSE] - fext[, -(K + 1L), drop = FALSE]
+	ratio = d_ik / pi_ik
+	info = matrix(0, n_alpha + p, n_alpha + p)
+	info[cbind(a, a)] = colSums(fz^2 * (1 / pi_ik[, a, drop = FALSE] + 1 / pi_ik[, a + 1L, drop = FALSE]))
+	if (n_alpha > 1L) {
+		off = -colSums(fz[, -n_alpha, drop = FALSE] * fz[, -1L, drop = FALSE] / pi_ik[, 2:n_alpha, drop = FALSE])
+		info[cbind(1:(n_alpha - 1L), 2:n_alpha)] = off
+		info[cbind(2:n_alpha, 1:(n_alpha - 1L))] = off
+	}
+	info_ab = eta_sign * crossprod(fz * (ratio[, a, drop = FALSE] - ratio[, a + 1L, drop = FALSE]), X)
+	info[a, b] = info_ab
+	info[b, a] = t(info_ab)
+	info[b, b] = crossprod(X, X * rowSums(d_ik^2 / pi_ik))
+	info
+}
+
+# get_likelihood_test_spec(): the score / gradient / LR spec on the columns the
+# full fit kept, from the class's fitter, score and Hessian. `link` names the
+# cumulative link for the expected (Fisher) information; the C++ fits'
+# `fisher_information` field is the observed Hessian (information_type
+# "observed"), so it is not used as Fisher information here (v1.0.6-TODO-201).
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn, link) {
 	private$shared(estimate_only = FALSE)
 	ctx = private$cached_values$likelihood_test_context
 	if (is.null(ctx)) return(NULL)
@@ -400,7 +473,7 @@ ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessi
 			-hessian_fn(X_fit, y, as.numeric(fit$params))
 		},
 		fisher_information = function(fit){
-			fit$fisher_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))
+			ordinal_cumlink_expected_information(X_fit, y, fit$params, link)
 		},
 		information = function(fit){
 			fit$information %||% fit$fisher_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))

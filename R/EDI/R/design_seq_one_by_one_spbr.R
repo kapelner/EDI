@@ -28,6 +28,17 @@
 #' (\code{bootstrap_type = "within_blocks"} or \code{NULL}) or resamples whole strata
 #' otherwise.
 #'
+#' \strong{Jackknife.} The jackknife's automatic deletion unit is the permuted block
+#' (\code{unit = "permuted_block"}), the randomization unit of this design: within each
+#' stratum, the enrollees in order fill blocks of \code{block_size}, and a trailing
+#' partial block (a stratum's last, incomplete block) is merged into that stratum's
+#' previous block; a stratum with only a partial block is one unit. The variance pools
+#' the replicates' spread within strata (the stratified jackknife of Wolter 2007,
+#' \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
+#' \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A stratum with one block
+#' contributes nothing. Before EDI 1.0.6 a replicate deleted a whole stratum, which left
+#' only 2-4 replicates on typical data (v1.0.6-TODO-4).
+#'
 #' @references Zelen, M. (1974). "The randomization and stratification of patients to
 #'   clinical trials." \emph{Journal of Chronic Diseases}, 27(7-8), 365-375,
 #'   \doi{10.1016/0021-9681(74)90015-0}, for stratified permuted-block randomization.

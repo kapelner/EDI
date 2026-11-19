@@ -185,5 +185,5 @@ test_that("tau, acc, delta_0 and root_tolerance reject NA", {
 	expect_error(fisher_priv$get_exact_fisher_htest(alpha = NA_real_), "missing values")
 
 	pois = InferenceCountPoisson$new(fx$bern_count, verbose = FALSE)
-	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 11L, root_tolerance = NA_real_), "missing values")
+	expect_error(pois$compute_lik_ratio_bootstrap_confidence_interval(B = 39L, root_tolerance = NA_real_), "missing values")
 })

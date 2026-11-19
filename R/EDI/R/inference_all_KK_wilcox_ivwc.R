@@ -334,13 +334,22 @@ KKWilcoxIVWCSource = list(
 		# BRT p = 0.02 vs randomization-test p = 0.31 on the same data. Route
 		# the worker through the same statistic the observed value, the C++
 		# randomization kernel and the non-worker fallbacks all use. Only
-		# randomization_test / randomization_bootstrap reach this hook here
-		# (ordinary, m-out-of-n and subsampling bootstraps are unsupported for
-		# sequential designs), so no estimate-scale consumer is affected.
+		# randomization_test / randomization_bootstrap reach this hook on a
+		# sequential KK design (ordinary, m-out-of-n and subsampling bootstraps are
+		# unsupported there).
+		# v1.0.6-TODO-217: on a non-sequential matched design (DesignFixedBinaryMatch)
+		# the m-out-of-n bootstrap, subsampling and the jackknife distribution do
+		# reach this hook, and returned W statistics (replicate means 1.47 / 1.52 /
+		# 2.44 for an HL estimate of 0.63). Only the randomization operations use the
+		# W scale; every other operation gets the estimate, as the slow path does.
 		compute_bootstrap_worker_estimate = function(worker_state){
 			worker = worker_state$worker
 			if (is.function(worker$is_nonestimable) && isTRUE(worker$is_nonestimable("estimate"))) {
 				return(NA_real_)
+			}
+			op = private$active_resampling_operation
+			if (!is.null(op) && !(op %in% c("rand", "rand_bootstrap"))) {
+				return(private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state))
 			}
 			stat = worker$.__enclos_env__$private$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE)
 			as.numeric(stat)[1L]

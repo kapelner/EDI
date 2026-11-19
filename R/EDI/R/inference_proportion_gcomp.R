@@ -265,9 +265,12 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param type Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
 		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = "symmetric", na.rm = FALSE,
 			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L,
-			show_progress = TRUE, min_number_usable_samples = 5L){
+			show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
@@ -279,7 +282,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 				min_group_n = as.integer(min_group_n)
 			)
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
-			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Generic (non-screening-modified) bootstrap two-sided
 		#'   p-value, aliased directly from `InferenceNonParamBootstrap` so

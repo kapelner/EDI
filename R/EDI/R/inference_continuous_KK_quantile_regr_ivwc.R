@@ -35,6 +35,10 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
+#' \strong{No Bayesian bootstrap.} Its halves' standard errors have no weighted refit yet, so this class does not
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
+#' nonparametric or randomization bootstrap instead.
+#'
 #' @examples
 #' if (requireNamespace("quantreg", quietly = TRUE)) {
 #' \donttest{
@@ -68,6 +72,13 @@ InferenceContinKKQuantileRegrIVWC = define_inference_class(
 		"Wald",
 		"KKQuantileRegrIVWC"
 	),
+	private = list(
+		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# estimator the replicate fell through to the KK compound's generic
+		# mean-difference fallback, a different estimator from compute_estimate();
+		# its halves' standard errors (rq sparsity, then an IQR fallback) have no weighted refit here yet.
+		supports_bayesian_bootstrap = function() FALSE
+	),
 	metadata = list(likelihood_tier = "none"),
 	overrides = list(
 		public = c(
@@ -81,6 +92,7 @@ InferenceContinKKQuantileRegrIVWC = define_inference_class(
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

@@ -169,15 +169,17 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 							X = as.matrix(X_m),
 							y = private$y[i_matched], dead = private$dead[i_matched],
 							group_id = as.integer(group_m),
-							estimate_only = TRUE,
+							estimate_only = FALSE,
 							optimization_alg = private$optimization_alg,
 							fixed_idx    = as.integer(c(p_m + 1L, p_m + 2L)),
 							fixed_values = as.numeric(private$cached_vc_params_matched)
 						),
 						error = function(e) NULL
 					)
-					if (!is.null(fit_fast_m) && isTRUE(fit_fast_m$converged) && length(fit_fast_m$b) >= 1L && is.finite(fit_fast_m$b[1L]))
+					if (!is.null(fit_fast_m) && isTRUE(fit_fast_m$converged) && length(fit_fast_m$b) >= 1L && is.finite(fit_fast_m$b[1L])) {
 						beta_m = as.numeric(fit_fast_m$b[1L])
+						ssq_m = tryCatch(as.numeric(fit_fast_m$vcov[1L, 1L]), error = function(e) NA_real_)
+					}
 				}
 				if (!is.finite(beta_m)) {
 					fit_m = .fit_weibull_frailty(
@@ -185,12 +187,12 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 						dead = private$dead[i_matched],
 						X = X_m,
 						pair_id = m_vec[i_matched],
-						estimate_only = estimate_only,
+						estimate_only = FALSE,
 						optimization_alg = private$optimization_alg
 					)
 					if (!is.null(fit_m) && is.finite(fit_m$beta)){
 						beta_m = fit_m$beta
-						if (!estimate_only && !is.null(fit_m$ssq) && is.finite(fit_m$ssq) && fit_m$ssq > 0)
+						if (!is.null(fit_m$ssq) && is.finite(fit_m$ssq) && fit_m$ssq > 0)
 							ssq_m = fit_m$ssq
 					}
 				}
@@ -206,55 +208,49 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 				if (!is.null(private$cached_vc_params_reservoir) && is.finite(private$cached_vc_params_reservoir[1L])) {
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
+					# The parameter vector is (coefficients, log sigma), one-based, so log
+					# sigma is p_r + 1. It used to be p_r, which pinned the last coefficient
+					# (the treatment coefficient when there are no covariates) to the value
+					# of log sigma (v1.0.6-TODO-217).
 					fit_fast_r = tryCatch(
 						fast_weibull_regression_cpp(
 							y = private$y[i_reservoir], dead = private$dead[i_reservoir],
 							X    = X_r_int,
-							estimate_only = TRUE,
-							fixed_idx    = as.integer(p_r),
+							estimate_only = FALSE,
+							fixed_idx    = as.integer(p_r + 1L),
 							fixed_values = as.numeric(private$cached_vc_params_reservoir[1L])
 						),
 						error = function(e) NULL
 					)
-					if (!is.null(fit_fast_r) && isTRUE(fit_fast_r$converged) && length(fit_fast_r$b) >= 2L && is.finite(fit_fast_r$b[2L]))
-						beta_r = as.numeric(fit_fast_r$b[2L])
+					coef_fast_r = if (is.null(fit_fast_r)) NULL else (fit_fast_r$b %||% fit_fast_r$params)
+					if (!is.null(fit_fast_r) && isTRUE(fit_fast_r$converged) && length(coef_fast_r) >= 2L && is.finite(coef_fast_r[2L])) {
+						beta_r = as.numeric(coef_fast_r[2L])
+						ssq_r = tryCatch(as.numeric(fit_fast_r$vcov[2L, 2L]), error = function(e) NA_real_)
+					}
 				}
 				if (!is.finite(beta_r)) {
 					fit_r = .fit_standard_weibull_aft_from_matrix(
 						y = private$y[i_reservoir],
 						dead = private$dead[i_reservoir],
 						X = X_r,
-						estimate_only = estimate_only,
+						estimate_only = FALSE,
 						jitter_seed = private$effective_draw_seed()
 					)
 					if (!is.null(fit_r) && is.finite(fit_r$beta)){
 						beta_r = fit_r$beta
-						if (!estimate_only && !is.null(fit_r$ssq) && is.finite(fit_r$ssq) && fit_r$ssq > 0)
+						if (!is.null(fit_r$ssq) && is.finite(fit_r$ssq) && fit_r$ssq > 0)
 							ssq_r = fit_r$ssq
 					}
 				}
 			}
-			# Pooling
-			m_ok = is.finite(beta_m) && (estimate_only || is.finite(ssq_m))
-			r_ok = is.finite(beta_r) && (estimate_only || is.finite(ssq_r))
-			if (m_ok && r_ok){
-				if (estimate_only) {
-					ssq_m_orig = private$cached_values$ssq_beta_T_matched
-					ssq_r_orig = private$cached_values$ssq_beta_T_reservoir
-					if (!is.null(ssq_m_orig) && !is.null(ssq_r_orig) && is.finite(ssq_m_orig) && is.finite(ssq_r_orig)){
-						w_star = ssq_r_orig / (ssq_r_orig + ssq_m_orig)
-						return(w_star * beta_m + (1 - w_star) * beta_r)
-					}
-					return(0.5 * beta_m + 0.5 * beta_r)
-				}
-				w_star = ssq_r / (ssq_r + ssq_m)
-				return(w_star * beta_m + (1 - w_star) * beta_r)
-			} else if (m_ok){
-				return(beta_m)
-			} else if (r_ok){
-				return(beta_r)
-			}
-			NA_real_
+			# Pooling (v1.0.6-TODO-217): the inverse-variance weights come from this
+			# draw's own fits, as in shared() (v1.0.6-TODO-132 rule), and a half
+			# without a usable variance is dropped, as shared() drops it. The
+			# statistic used to pool with the observed data's variances read from
+			# cached_values, or 50/50 when that cache was empty (a duplicate or a
+			# reused worker after its per-draw cache reset), so the observed
+			# statistic and the permuted ones were different functions of the data.
+			kk_ivwc_pool_halves(beta_m, ssq_m, beta_r, ssq_r)$beta
 		},
 		cached_vc_params_matched = NULL,
 		cached_vc_params_reservoir = NULL,
@@ -351,6 +347,15 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			# v1.0.6-TODO-132 (owner decision 2026-11-19): estimate_only = TRUE used to
+			# fit the halves without variances and pool them 50/50 (or accept a half
+			# with no finite variance), a different estimator from the reported
+			# inverse-variance-weighted one, and an estimate_only call left no SE
+			# behind for a later full call (the early return on a cached beta_hat_T
+			# below). Resampling replicates (jackknife, reusable worker, slow subset
+			# refit) all use estimate_only = TRUE, so they were not of the reported
+			# quantity. The IVW weights need both halves' variances, so every call
+			# now runs the full fit; estimate_only only selects the cache check.
 			if (is.null(private$cached_values$KKstats)){
 				private$compute_basic_match_data()
 			}
@@ -360,39 +365,28 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
 			if (m > 0){
-				private$frailty_for_matched_pairs(estimate_only = estimate_only)
+				private$frailty_for_matched_pairs(estimate_only = FALSE)
 			}
 			beta_m = private$cached_values$beta_T_matched
 			ssq_m = private$cached_values$ssq_beta_T_matched
 			m_ok = !is.null(beta_m) && is.finite(beta_m) &&
-			       (!estimate_only && !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0 || estimate_only)
+			       !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
 			if (nRT > 0 && nRC > 0){
-				private$weibull_for_reservoir(estimate_only = estimate_only)
+				private$weibull_for_reservoir(estimate_only = FALSE)
 			}
 			beta_r = private$cached_values$beta_T_reservoir
 			ssq_r = private$cached_values$ssq_beta_T_reservoir
 			r_ok = !is.null(beta_r) && is.finite(beta_r) &&
-			       (!estimate_only && !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0 || estimate_only)
+			       !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0
 			if (m_ok && r_ok){
-				if (estimate_only){
-					if (!is.null(ssq_m) && !is.null(ssq_r) && is.finite(ssq_m) && is.finite(ssq_r)){
-						w_star = ssq_r / (ssq_r + ssq_m)
-						private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
-					} else {
-						private$cached_values$beta_hat_T = 0.5 * beta_m + 0.5 * beta_r
-					}
-					return(invisible(NULL))
-				}
 				w_star = ssq_r / (ssq_r + ssq_m)
 				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
 				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
 			} else if (m_ok){
 				private$cached_values$beta_hat_T = beta_m
-				if (estimate_only) return(invisible(NULL))
 				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
 			} else if (r_ok){
 				private$cached_values$beta_hat_T = beta_r
-				if (estimate_only) return(invisible(NULL))
 				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else {
 				private$cached_values$beta_hat_T = NA_real_
@@ -779,6 +773,10 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 #' (Clayton copula) alternative.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#' \strong{No Bayesian bootstrap.} The Weibull frailty fitter takes no case weights, so this class does not
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}); use the
+#' nonparametric or randomization bootstrap instead.
+#'
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
 # formerly a thin R6 leaf on the abstract base
@@ -802,6 +800,13 @@ InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
+	private = list(
+		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# estimator the replicate fell through to the KK compound's generic
+		# mean-difference fallback, a different estimator from compute_estimate();
+		# the Weibull frailty fitter takes no case weights.
+		supports_bayesian_bootstrap = function() FALSE
+	),
 	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
@@ -819,6 +824,7 @@ InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

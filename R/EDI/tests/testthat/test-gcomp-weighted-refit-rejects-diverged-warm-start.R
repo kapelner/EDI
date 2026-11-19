@@ -30,10 +30,17 @@ test_that("KK g-computation weighted refit does not keep a diverged warm-start f
 		est = as.numeric(inf$compute_estimate())
 		expect_true(is.finite(est), info = cls)
 		X_fit = as.matrix(priv$build_design_matrix())
-		# The chained start really diverges at unit weights.
+		# The chained start really diverges at unit weights on a kernel without IRLS step halving.
+		# A kernel with it (v1.0.6-TODO-192 C++ follow-up; its result carries
+		# `num_step_halvings`) converges from this start instead; the retry logic below must work
+		# either way.
 		bad = fast_logistic_regression_weighted_cpp(X = X_fit, y = as.numeric(priv$y), weights = rep(1, n),
 			warm_start_beta = diverging_warm_start, warm_start_fisher_info = priv$get_fit_warm_start_fisher(4L))
-		expect_false(isTRUE(bad$converged), info = cls)
+		if (is.null(bad$num_step_halvings)) {
+			expect_false(isTRUE(bad$converged), info = cls)
+		} else {
+			expect_true(isTRUE(bad$converged), info = cls)
+		}
 
 		priv$gcomp_boot_beta = diverging_warm_start
 		val = priv$compute_weighted_gcomp_estimate(rep(1, n), with_se = TRUE)

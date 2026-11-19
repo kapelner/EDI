@@ -6,3 +6,6 @@
 #' @param show_progress Whether to show a progress bar.
 #' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 #' @param weighting_unit_type Optional resampling unit override.
+#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+#'   \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.

@@ -91,23 +91,23 @@ InferenceExtParamBootstrapEstimate = list(
 		# with raw_estimate, finite_reps, and n_success -- callers apply their
 		# own min_number_usable_samples gate and final formula (mean-reflection
 		# for the point estimate, quantile-reflection for the interval).
-		run_param_bootstrap_estimate_batch = function(B, max_attempts_per_replicate, show_progress = FALSE){
+		run_param_bootstrap_estimate_batch = function(B, max_attempts_per_replicate, show_progress = FALSE, procedure = "parametric-bootstrap estimate"){
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec) || is.null(spec$full_fit) || is.null(spec$j) || length(spec$j) != 1L) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_spec_unavailable", "se")
+					edi_param_boot_record_and_warn_na(self, private, procedure, "param_bootstrap_estimate_spec_unavailable", "se")
 				return(NULL)
 			}
 			j = as.integer(spec$j)
 			raw_estimate = private$extract_param_bootstrap_estimate_coef(spec$full_fit, j)
 			if (!is.finite(raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_raw_estimate_nonfinite", "estimate")
+					edi_param_boot_record_and_warn_na(self, private, procedure, "param_bootstrap_estimate_raw_estimate_nonfinite", "estimate")
 				return(NULL)
 			}
 			if (private$param_bootstrap_estimate_extreme(raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_raw_estimate_extreme", "estimate")
+					edi_param_boot_record_and_warn_na(self, private, procedure, "param_bootstrap_estimate_raw_estimate_extreme", "estimate")
 				return(NULL)
 			}
 
@@ -156,7 +156,14 @@ InferenceExtParamBootstrapEstimate = list(
 		# point estimate's bias correction is not on the same CI-inversion hot
 		# path (repeated at many delta values) that motivated that optimization
 		# for the LR-bootstrap methods.
+		#
+		# Sets private$active_resampling_operation = "param_boot" for the replicate
+		# loop only and restores the caller's value on exit, so the public callers'
+		# top-level code stays outside the flag (v1.0.6-TODO-207).
 		run_param_bootstrap_estimate_replicates = function(spec, full_fit, B, max_attempts_per_replicate, show_progress = FALSE){
+			prev_resampling_operation = private$active_resampling_operation
+			private$active_resampling_operation = "param_boot"
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			B = as.integer(B)
 			actual_cores = private$effective_parallel_cores("param_bootstrap", self$num_cores)
 			if (!is.null(private$seed)) {

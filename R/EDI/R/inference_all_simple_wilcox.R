@@ -13,6 +13,17 @@ wilcox_each_arm_constant = function(yT, yC){
 #' constant (v1.0.6-TODO-59).
 #' @keywords internal
 #' @noRd
+# When every observation in both arms is tied (after shifting yT by the null delta),
+# the rank-sum statistic equals its null mean and the test cannot reject: p = 1.
+# R-devel (2026-10) returns 1 here; R 4.6.2 returns NaN from 0/0 in the
+# ties-corrected z. Return 1 on every R version.
+wilcox_all_tied_pval = function(yT_shifted, yC, pv){
+	pooled = c(yT_shifted, yC)
+	if (!is.finite(pv) && length(pooled) > 0L && all(is.finite(pooled)) &&
+	    isTRUE(all.equal(min(pooled), max(pooled)))) return(1)
+	pv
+}
+
 warn_wilcox_ci_each_arm_constant = function(class_name = "InferenceAllSimpleWilcox"){
 	warning(structure(
 		class = c("edi_wilcox_ci_unavailable_warning", "warning", "condition"),
@@ -115,7 +126,7 @@ SimpleWilcoxSource = list(
 						NA_real_
 					}
 				)
-			as.numeric(pv)
+			wilcox_all_tied_pval(yT - delta, yC, as.numeric(pv))
 		},
 		# @description Returns the Hodges-Lehmann confidence interval directly from
 		#   \code{stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE,
@@ -396,6 +407,7 @@ SimpleWilcoxSource = list(
 					}
 				)
 				if (!is.null(mod)) {
+					mod$p.value = wilcox_all_tied_pval(yT, yC, mod$p.value)
 					mod$conf.int = c(NA_real_, NA_real_)
 					private$cache_procedure_failure("wald", "wilcox_ci_each_arm_constant")
 				}

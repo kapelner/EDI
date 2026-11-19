@@ -859,7 +859,40 @@ run_all_inference_task_is_comprehensive_slow_path = function(task, response_type
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = NA_character_) {
+# Which run_all_inference() count argument reaches which sentinel, and the
+# method's own name for it (v1.0.6-TODO-210 follow-up, owner 2026-11-19).
+# `r` reaches the randomization procedures (randomization test/CI take `r`,
+# the randomization-bootstrap test/CI take `B`); `B` reaches the bootstrap
+# procedures. Every definition of these methods was checked to use exactly
+# this name.
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_RESAMPLE_COUNT_ARGS = list(
+	rand              = list(count = "r", formal = "r"),
+	rand_bootstrap    = list(count = "r", formal = "B"),
+	bootstrap         = list(count = "B", formal = "B"),
+	bayes_boot        = list(count = "B", formal = "B"),
+	param_boot        = list(count = "B", formal = "B"),
+	param_boot_direct = list(count = "B", formal = "B")
+)
+
+#' The count argument (if any) `run_all_inference()` passes to sentinel
+#' `method`'s call `fn`: `list()` when the user left that count `NULL`, the
+#' sentinel takes none, or `fn` has neither the formal nor `...` (a lazy
+#' component stub is `function(...)` and forwards it).
+#' @keywords internal
+#' @noRd
+run_all_inference_resample_count_args = function(fn, method, resample_counts = NULL) {
+	spec = EDI_INFERENCE_SUITE_RESAMPLE_COUNT_ARGS[[method]]
+	if (is.null(spec) || is.null(resample_counts)) return(list())
+	val = resample_counts[[spec$count]]
+	if (is.null(val)) return(list())
+	fmls = names(formals(fn))
+	if (!(spec$formal %in% fmls) && !("..." %in% fmls)) return(list())
+	stats::setNames(list(as.integer(val)), spec$formal)
+}
+
+run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = NA_character_, resample_counts = NULL) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(lower = NA_real_, upper = NA_real_, method = NA_character_))
@@ -899,6 +932,7 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
 		call_args$show_progress = FALSE
 	}
+	call_args = c(call_args, run_all_inference_resample_count_args(inf_obj[[entry$method]], method, resample_counts))
 	# Keep the error text (per user question, 2026-08-21: "why does Zhang
 	# produce no output but status is ok?" -- the exact CI call was erroring
 	# and this `tryCatch` swallowed it into a bare `NA`, indistinguishable
@@ -927,7 +961,7 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_character_) {
+run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_character_, resample_counts = NULL) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(pval = NA_real_, method = NA_character_))
@@ -992,6 +1026,7 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
 		call_args$show_progress = FALSE
 	}
+	call_args = c(call_args, run_all_inference_resample_count_args(inf_obj[[entry$method]], method, resample_counts))
 	# Keep the error text -- see the matching CI-side comment.
 	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) e)
 	err = if (inherits(pv, "error")) conditionMessage(pv) else NULL
@@ -1257,6 +1292,129 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 	tasks
 }
 
+#' Default `B` of a class's `compute_lik_ratio_bootstrap_confidence_interval()`
+#' (v1.0.6-TODO-210). The suite never passes `B`, so the CI runs at this
+#' default. Walks the generator's `get_inherit()` chain for an override with a
+#' `B` formal (lazy-component stubs are `function(...)`) and falls back to the
+#' `InferenceParamBootstrap` definition; every definition defaults to 199 today.
+#' @keywords internal
+#' @noRd
+run_all_inference_param_boot_ci_default_B = function(cls_name) {
+	m = "compute_lik_ratio_bootstrap_confidence_interval"
+	gen = tryCatch(get(cls_name, envir = asNamespace("EDI")), error = function(e) NULL)
+	f = NULL
+	while (is.null(f) && inherits(gen, "R6ClassGenerator")) {
+		f = gen$public_methods[[m]]
+		# Lazy-component stubs are function(...); skip them.
+		if (!is.null(f) && !("B" %in% names(formals(f)))) f = NULL
+		gen = tryCatch(gen$get_inherit(), error = function(e) NULL)
+	}
+	if (is.null(f)) f = InferenceParamBootstrap$public_methods[[m]]
+	as.numeric(eval(formals(f)$B, baseenv()))
+}
+
+#' Error before any fitting when `run_all_inference()` would run the
+#' parametric-bootstrap LR CI (sentinel `"param_boot"`, CIs on) at a `B` (the
+#' user's `B`, else the method default) too small for `alpha`
+#' (v1.0.6-TODO-210): that CI can never reject when `2 / (B + 1) > alpha`,
+#' i.e. needs `B >= 2 / alpha - 1`.
+#' @keywords internal
+#' @noRd
+run_all_inference_check_param_boot_ci_B = function(tasks, alpha, compute_conf_intervals, B = NULL) {
+	if (!isTRUE(compute_conf_intervals)) return(invisible(NULL))
+	cls = unique(vapply(Filter(function(t) identical(t$method, "param_boot"), tasks), `[[`, character(1L), "cls_name"))
+	if (!length(cls)) return(invisible(NULL))
+	min_B = edi_lik_ratio_bootstrap_ci_min_B(alpha)
+	user_B = !is.null(B)
+	B_eff = if (user_B) rep(as.numeric(B), length(cls)) else vapply(cls, run_all_inference_param_boot_ci_default_B, numeric(1L))
+	bad = cls[B_eff < min_B]
+	if (!length(bad)) return(invisible(NULL))
+	stop(sprintf(paste0(
+		"InferenceSuite$run_all_inference: B must be at least %d for alpha = %s (parametric-bootstrap ",
+		"likelihood-ratio CI, method \"param_boot\": smallest attainable p-value is 2/(B+1)); %s for %s. ",
+		"Pass B >= %d to run_all_inference(), leave \"param_boot\" out of `methods`, or set ",
+		"compute_conf_intervals = FALSE."),
+		min_B, format(alpha),
+		if (user_B) paste0("got B = ", format(B)) else paste0("the method default is B = ", paste(unique(format(B_eff[B_eff < min_B])), collapse = "/")),
+		paste(bad, collapse = ", "), min_B), call. = FALSE)
+}
+
+#' Smallest `B` every bootstrap method in the suite accepts: each one's
+#' `min_number_usable_samples` defaults to 5 and the methods reject
+#' `B < min_number_usable_samples` (v1.0.6-TODO-219).
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_MIN_USABLE_B = 5L
+
+#' Error before any fitting when the user's `B` is below
+#' `EDI_INFERENCE_SUITE_MIN_USABLE_B` and a task will pass it to a bootstrap
+#' procedure (`"bootstrap"`, `"bayes_boot"`, `"param_boot"`,
+#' `"param_boot_direct"`), instead of letting every such row fail on its own
+#' (v1.0.6-TODO-219).
+#' @keywords internal
+#' @noRd
+run_all_inference_check_min_usable_B = function(tasks, B = NULL) {
+	if (is.null(B) || as.integer(B) >= EDI_INFERENCE_SUITE_MIN_USABLE_B) return(invisible(NULL))
+	b_methods = names(Filter(function(s) identical(s$count, "B"), EDI_INFERENCE_SUITE_RESAMPLE_COUNT_ARGS))
+	used = unique(vapply(tasks, function(t) as.character(t$method %||% NA_character_), character(1L)))
+	used = used[!is.na(used) & used %in% b_methods]
+	if (!length(used)) return(invisible(NULL))
+	stop(sprintf(paste0(
+		"InferenceSuite$run_all_inference: B must be at least %d (the bootstrap methods' ",
+		"min_number_usable_samples); got B = %d for method(s) %s. Pass a larger B or leave ",
+		"those methods out of `methods`."),
+		EDI_INFERENCE_SUITE_MIN_USABLE_B, as.integer(B), paste0("\"", used, "\"", collapse = ", ")), call. = FALSE)
+}
+
+#' Per-task RNG seeds for `run_all_inference()` (v1.0.6-TODO-219). One master
+#' integer is drawn from the caller's RNG stream; each task's seed is that
+#' master plus a hash of the task's `result_name`, so a task's draws depend
+#' only on the caller's seed and on which task it is -- not on how many draws
+#' earlier tasks consumed, on task order, on the number of workers, or on
+#' which forked child runs it (an `mcparallel()` child otherwise reseeds
+#' itself from the clock and PID).
+#' @keywords internal
+#' @noRd
+run_all_inference_task_seeds = function(result_names) {
+	if (!length(result_names)) return(integer())
+	master = sample.int(.Machine$integer.max, 1L)
+	m = 2147483646
+	vapply(result_names, function(nm) {
+		h = 0
+		for (b in as.integer(charToRaw(enc2utf8(nm)))) h = (h * 31 + b) %% m
+		as.integer((master + h) %% m) + 1L
+	}, integer(1L), USE.NAMES = FALSE)
+}
+
+#' Run one suite task (`fn()`) with the global RNG set from `seed`, then
+#' restore the caller's `.Random.seed` (v1.0.6-TODO-219). The task also gets an
+#' empty design-level randomization-permutation cache, and the design's own
+#' cache is put back afterwards: unseeded randomization draws are cached on the
+#' design and shared by every inference object built on it, so otherwise the
+#' first randomization task in a run (or an earlier run, or a direct call) fixed
+#' the permutations every later task used, whatever its seed -- and forked
+#' tasks, whose cache dies with the child, drew their own instead.
+#' @keywords internal
+#' @noRd
+run_all_inference_with_task_seed = function(seed, fn, des_obj = NULL) {
+	if (is.null(seed)) return(fn())
+	genv = globalenv()
+	had_seed = exists(".Random.seed", envir = genv, inherits = FALSE)
+	if (had_seed) old_seed = get(".Random.seed", envir = genv, inherits = FALSE)
+	on.exit(
+		if (had_seed) assign(".Random.seed", old_seed, envir = genv) else if (exists(".Random.seed", envir = genv, inherits = FALSE)) rm(".Random.seed", envir = genv),
+		add = TRUE
+	)
+	des_priv = tryCatch(des_obj$.__enclos_env__$private, error = function(e) NULL)
+	if (is.environment(des_priv) && exists("permutations_cache", envir = des_priv, inherits = FALSE)) {
+		saved_cache = des_priv$permutations_cache
+		des_priv$permutations_cache = list()
+		on.exit(des_priv$permutations_cache <- saved_cache, add = TRUE)
+	}
+	set.seed(seed)
+	fn()
+}
+
 #' A placeholder `status = "timeout"` row for a fork-cluster task whose worker
 #' process was force-killed (`parallel_fork_cluster_test_safety.md`'s TODO-5)
 #' because it exceeded `max_secs_per_class` without ever returning to R's
@@ -1473,7 +1631,7 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 
 #' @keywords internal
 #' @noRd
-run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_, compute_conf_intervals = TRUE) {
+run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_, compute_conf_intervals = TRUE, resample_counts = NULL) {
 	t0 = Sys.time()
 	row = list(
 		inference_class = cls_name,
@@ -1572,12 +1730,12 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			} else if (is.na(method)) {
 				list(lower = NA_real_, upper = NA_real_, method = NA_character_)
 			} else {
-				run_all_inference_call_ci_for_method(inf_obj, alpha, method, type)
+				run_all_inference_call_ci_for_method(inf_obj, alpha, method, type, resample_counts)
 			}
 			pv = if (is.na(method)) {
 				list(pval = NA_real_, method = NA_character_)
 			} else {
-				run_all_inference_call_pval_for_method(inf_obj, method, type)
+				run_all_inference_call_pval_for_method(inf_obj, method, type, resample_counts)
 			}
 			# Always populated once construction succeeds (Inference$initialize()
 			# always sets private$model_formula, even for classes -- e.g.
@@ -4530,7 +4688,13 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   and auto-open a self-contained HTML report of the results.
 		#' @param alpha Significance level: confidence intervals are computed at
 		#'   \code{1 - alpha} and \code{alpha} is the significance threshold used
-		#'   anywhere the report flags significance. Default \code{0.05}.
+		#'   anywhere the report flags significance. Default \code{0.05}. With
+		#'   \code{compute_conf_intervals = TRUE} and the \code{"param_boot"}
+		#'   sentinel in the run, the parametric-bootstrap likelihood-ratio CI runs
+		#'   at \code{B} (default 199), whose smallest attainable p-value is
+		#'   \eqn{2/(B+1)}; when \eqn{B < 2/\alpha - 1} the run errors before any
+		#'   fitting, naming the minimum \code{B} (pass a larger \code{B}, leave
+		#'   \code{"param_boot"} out of \code{methods}, or turn CIs off).
 		#' @param save_results_as_JSON If \code{TRUE}, serialize the return object
 		#'   (excluding plot objects) to a timestamped JSON file in \code{output_dir}.
 		#'   Requires the optional \pkg{jsonlite} package; if it is not
@@ -4576,7 +4740,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   interrupt one very slow single native (C/C++/BLAS) call with no
 		#'   intervening R-level check. \code{NULL} (default) means no limit.
 		#' @param num_cores If greater than \code{1}, fit classes in parallel across
-		#'   this many forked workers (one \code{\link[parallel]{mcparallel}} child per task) --
+		#'   this many forked workers (one \code{parallel::mcparallel()} child per task) --
 		#'   Unix/Linux only; on other platforms this falls back to sequential
 		#'   (\code{num_cores = 1}) with a \code{warning()}. \strong{Screen output
 		#'   changes under parallel execution:} fitting is a single blocking call
@@ -4587,6 +4751,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   summary line (a deliberate design choice, not a degraded default).
 		#'   Default \code{1L}
 		#'   (sequential, with the normal incremental streaming/progress bar).
+		#'   \strong{Reproducibility:} the run draws one integer from the global
+		#'   RNG stream and runs every task (class, method and type) from its own
+		#'   seed derived from it and the task's name, restoring the global stream
+		#'   after each task. A run after \code{set.seed()} therefore gives the
+		#'   same results every time, with any \code{num_cores}, and a task gives
+		#'   the same result whichever other tasks run with it.
 		#' @param formulas \code{NULL} (default), a single formula (\code{~ .}), a
 		#'   single formula string (\code{"~ ."}), or a collection of either --
 		#'   including \code{c(~ 1, ~ .)}, which base R already returns as a plain
@@ -4795,6 +4965,24 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   of untracked file that can end up bundled into a source tarball
 		#'   (\code{R CMD build}) or committed by accident. Pass an explicit path
 		#'   (e.g. the current directory, or a temp directory) to write elsewhere.
+		#' @param r \code{NULL} (default: each method's own default, 501 today) or a
+		#'   positive integer: the number of draws for every randomization
+		#'   procedure in the run -- the randomization test and CI
+		#'   (\code{"rand"}, passed as their \code{r}) and the
+		#'   randomization-bootstrap test and CI (\code{"rand_bootstrap"}, passed
+		#'   as their \code{B}).
+		#' @param B \code{NULL} (default: each method's own default -- 501 for the
+		#'   nonparametric and Bayesian bootstrap, 199 for the parametric
+		#'   bootstrap) or a positive integer: the number of replicates for every
+		#'   bootstrap procedure in the run -- nonparametric (\code{"bootstrap"}),
+		#'   Bayesian (\code{"bayes_boot"}), parametric-bootstrap estimate
+		#'   (\code{"param_boot_direct"}) and parametric-bootstrap
+		#'   likelihood-ratio (\code{"param_boot"}) tests and CIs. The
+		#'   Monte-Carlo Bartlett factor (\code{"lik_ratio_bartlett_approx"}) keeps
+		#'   its own default. See \code{alpha} for the minimum \code{B} of the
+		#'   \code{"param_boot"} CI. A \code{B} below 5 (the bootstrap methods'
+		#'   \code{min_number_usable_samples}) errors before any fitting when the
+		#'   run includes one of these methods.
 		#' @param combined_evidence_estimands \code{NULL} (default: include every
 		#'   declared \code{estimand}), or a character vector of \code{estimand}
 		#'   values to restrict the Combined Evidence p-value/weights to.
@@ -4839,7 +5027,9 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   row's \code{results} name, not \code{results_table$inference_class}
 		#'   directly, since that column can repeat under \code{formulas};
 		#'   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
-		#'   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
+		#'   \code{design}, \code{alpha}, \code{resample_counts}
+		#'   (\code{list(r, B)} as passed, \code{NULL} entries meaning method
+		#'   defaults), \code{unavailable_due_to_missing_packages},
 		#'   \code{plots} (\code{list(ci_forest)}; \code{ci_forest} is a named list
 		#'   of one \pkg{gtable} grob per \code{estimand} -- the CI forest
 		#'   stacked over its \dQuote{Estimates} box-and-whisker subplot; draw
@@ -4854,6 +5044,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
 				methods = NULL, basic_bootstrap = FALSE, compute_conf_intervals = FALSE, output_dir = "~",
+				r = NULL, B = NULL,
 				combined_evidence_estimands = NULL,
 				combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
 				combined_evidence_weights = NULL) {
@@ -4874,6 +5065,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				# checkmate-loose: Inf means no per-class time limit.
 				assertNumber(max_secs_per_class, lower = .Machine$double.xmin, null.ok = TRUE)
 				assertCount(num_cores, positive = TRUE)
+				assertCount(r, positive = TRUE, null.ok = TRUE)
+				assertCount(B, positive = TRUE, null.ok = TRUE)
 				if (!is.null(formulas)) {
 					formulas_check = if (inherits(formulas, "formula")) list(formulas) else as.list(formulas)
 					if (length(formulas_check) == 0L) {
@@ -5002,6 +5195,14 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				exclude_comprehensive_slow_paths = use_default_method_selection,
 				response_type = response_type
 			)
+			resample_counts = list(r = if (is.null(r)) NULL else as.integer(r), B = if (is.null(B)) NULL else as.integer(B))
+			run_all_inference_check_param_boot_ci_B(tasks, alpha, compute_conf_intervals, resample_counts$B)
+			run_all_inference_check_min_usable_B(tasks, resample_counts$B)
+			# v1.0.6-TODO-219: each task runs from its own seed (drawn once from the
+			# caller's stream), so a seeded run is reproducible and the sequential and
+			# fork paths give the same results.
+			task_seeds = run_all_inference_task_seeds(vapply(tasks, `[[`, character(1L), "result_name"))
+			for (i in seq_along(tasks)) tasks[[i]]$seed = task_seeds[[i]]
 			n_total         = length(tasks)
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
@@ -5045,9 +5246,10 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					if (!is.null(task$model_formula)) {
 						params$model_formula = task$model_formula
 					}
-					run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals
-					)
+					run_all_inference_with_task_seed(task$seed, function() run_all_inference_one_class(
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals,
+						resample_counts
+					), des_obj)
 				}
 				# Internal test-only escape hatch (parallel_fork_cluster_test_
 				# safety.md's TODO-1): a real fork cluster is what's unsafe to
@@ -5109,9 +5311,10 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					if (!is.null(task$model_formula)) {
 						params$model_formula = task$model_formula
 					}
-					results[[i]] = run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals
-					)
+					results[[i]] = run_all_inference_with_task_seed(task$seed, function() run_all_inference_one_class(
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals,
+						resample_counts
+					), des_obj)
 					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
 						cat("\r\033[K")
@@ -5215,6 +5418,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					design_class = class(des_obj)[[1L]], n = des_obj$get_n()
 				),
 				alpha = alpha,
+				resample_counts = resample_counts,
 				unavailable_due_to_missing_packages = self$unavailable_due_to_missing_packages,
 				combined_evidence = list(
 					pval = combined$pval,

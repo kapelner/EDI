@@ -451,16 +451,30 @@ edi_warn_ci_wald_fallback_once = function(self, private, testing_type, reason) {
 #' \code{na.rm = TRUE} would drop them. Never changes any returned value.
 #' Silent while a resampling operation is active.
 #'
+#' v1.0.6-TODO-214: \code{compute_rand_bootstrap_two_sided_pval()} (default
+#' \code{na.rm = TRUE}) uses it too when called with \code{na.rm = FALSE}
+#' (\code{rand_bootstrap = TRUE}: its own once-per-object flag and wording, as
+#' na.rm = FALSE is not its default). The optional logical \code{valid} (one
+#' entry per draw) replaces \code{is.finite(boot_distr)} for studentized draws,
+#' which also need a finite positive standard error.
+#'
 #' @keywords internal
 #' @noRd
-edi_warn_bootstrap_nonfinite_na_once = function(self, private, boot_distr, fn = "compute_bootstrap_two_sided_pval") {
+edi_warn_bootstrap_nonfinite_na_once = function(self, private, boot_distr, fn = "compute_bootstrap_two_sided_pval", rand_bootstrap = FALSE, valid = NULL) {
 	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
-	if (isTRUE(private$cached_values$bootstrap_nonfinite_na_warned)) return(invisible(FALSE))
+	flag = if (isTRUE(rand_bootstrap)) "rand_bootstrap_nonfinite_na_warned" else "bootstrap_nonfinite_na_warned"
+	if (isTRUE(private$cached_values[[flag]])) return(invisible(FALSE))
 	boot_distr = as.numeric(boot_distr)
-	k = sum(!is.finite(boot_distr))
+	if (is.null(valid)) valid = is.finite(boot_distr)
+	k = sum(!valid)
 	if (k == 0L) return(invisible(FALSE))
-	private$cached_values$bootstrap_nonfinite_na_warned = TRUE
-	msg = paste0(
+	private$cached_values[[flag]] = TRUE
+	msg = if (isTRUE(rand_bootstrap)) paste0(
+		class(self)[1L], ": ", fn, "() returned NA because ", k, " of ", length(valid),
+		" null-distribution draws were non-finite and na.rm = FALSE returns NA if any draw is non-finite. ",
+		"The default na.rm = TRUE drops them (subject to min_fraction_usable_samples). ",
+		"Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_nonfinite_na_warning\")."
+	) else paste0(
 		class(self)[1L], ": ", fn, "() returned NA because ", k, " of ", length(boot_distr),
 		" bootstrap replicates were non-finite (na.rm = FALSE, the default, returns NA if any replicate is non-finite). ",
 		"The bootstrap confidence interval drops non-finite replicates, so it can be finite for the same object; ",
@@ -469,7 +483,7 @@ edi_warn_bootstrap_nonfinite_na_once = function(self, private, boot_distr, fn = 
 	)
 	warning(structure(
 		class = c("edi_bootstrap_nonfinite_na_warning", "warning", "condition"),
-		list(message = msg, call = NULL, n_nonfinite = k, n_total = length(boot_distr))
+		list(message = msg, call = NULL, n_nonfinite = k, n_total = length(valid))
 	))
 	invisible(TRUE)
 }
@@ -714,16 +728,19 @@ edi_warn_logistic_separation_once = function(self, private, X_fit, b, eps = 1e-8
 #' which need not be the dropped ones: the loop drops covariates from the end
 #' of the QR pivot until the fit is usable),
 #' \code{"full_fit_unusable"} (the full-rank fit failed or was rejected by the
-#' class's fit checks for another reason, e.g. no usable standard error), or
+#' class's fit checks for another reason, e.g. no usable standard error),
 #' \code{"treatment_only_fallback"} (every covariate was dropped after the
-#' covariate-adjusted fit failed). Emits one classed warning
+#' covariate-adjusted fit failed), or \code{"aliased_on_positive_rows"}
+#' (zero-augmented count classes, v1.0.6-TODO-195: count-part covariates
+#' aliased on the rows with a positive count, dropped as \code{glm} drops
+#' aliased columns). Emits one classed warning
 #' \code{edi_covariate_dropped_warning} (fields \code{dropped}, \code{reason},
 #' \code{diverged}) at most once per inference object, never inside a
 #' resampling operation, and never changes any returned value.
 #'
 #' @keywords internal
 #' @noRd
-edi_warn_covariate_dropped_once = function(self, private, dropped, reason = c("coefficient_diverged", "full_fit_unusable", "treatment_only_fallback"), diverged = character()) {
+edi_warn_covariate_dropped_once = function(self, private, dropped, reason = c("coefficient_diverged", "full_fit_unusable", "treatment_only_fallback", "aliased_on_positive_rows"), diverged = character()) {
 	reason = match.arg(reason)
 	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
 	if (isTRUE(private$cached_values$covariate_dropped_warned)) return(invisible(FALSE))
@@ -740,7 +757,12 @@ edi_warn_covariate_dropped_once = function(self, private, dropped, reason = c("c
 			", which usually means (quasi-)complete separation"
 		),
 		full_fit_unusable = "the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error)",
-		treatment_only_fallback = "the covariate-adjusted fit failed, so the treatment-only model was fit instead"
+		treatment_only_fallback = "the covariate-adjusted fit failed, so the treatment-only model was fit instead",
+		aliased_on_positive_rows = paste0(
+			"they are aliased (constant, or a linear combination of the intercept, treatment and earlier ",
+			"columns) on the rows with a positive count, which alone determine the count-part coefficients; ",
+			"as glm does with aliased columns, they are left out of the count part"
+		)
 	)
 	msg = paste0(
 		class(self)[1L], ": dropped covariate(s) ", paste(dropped, collapse = ", "),
@@ -812,7 +834,7 @@ edi_classify_hardened_drop = function(fit, col_names, max_abs = NULL) {
 #'
 #' Maps a resampling-failure reason string to the procedure it belongs to
 #' (\code{"bootstrap"}, \code{"bayesian_bootstrap"}, \code{"param_bootstrap"},
-#' \code{"lik_ratio_bootstrap"}, \code{"rand_bootstrap"},
+#' \code{"lik_ratio_bootstrap"}, \code{"lik_ratio_bootstrap_ci"}, \code{"rand_bootstrap"},
 #' \code{"rand_bootstrap_ci"}). Returns \code{NULL} for reasons that describe
 #' a failure of the primary fit itself (unavailable original estimate or
 #' original standard error) and for reasons outside the core
@@ -823,6 +845,10 @@ edi_classify_hardened_drop = function(fit, col_names, max_abs = NULL) {
 edi_resampling_procedure_for_reason = function(reason) {
 	reason = as.character(reason)[1L]
 	if (is.na(reason)) return(NULL)
+	# Before the primary-fit rule: "lik_ratio_bootstrap_ci_pval_at_estimate_unavailable" is the
+	# LR-bootstrap p-value failing at a finite estimate (the CI returns early on a non-finite
+	# one), a failure of the interval, not of the primary fit (v1.0.6-TODO-210).
+	if (grepl("^lik_ratio_bootstrap_ci_", reason)) return("lik_ratio_bootstrap_ci")
 	if (grepl("(^|_)(estimate|original_standard_error)_unavailable$", reason)) return(NULL)
 	if (grepl("^rand_bootstrap_ci_", reason)) return("rand_bootstrap_ci")
 	if (grepl("^rand_ci_", reason)) return("rand_ci")

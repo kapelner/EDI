@@ -274,8 +274,11 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				observed_information = function(fit){
 					-get_ordinal_cloglog_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
 				},
+				# Expected information in the solver's native orientation
+				# (eta_sign = +1, as the Hessian above; v1.0.6-TODO-201). The
+				# C++ fit's own fisher_information field is the observed Hessian.
 				fisher_information = function(fit){
-					fit$fisher_information %||% -get_ordinal_cloglog_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
+					ordinal_cumlink_expected_information(X_fit, y, fit$params, "cloglog", eta_sign = 1)
 				},
 				information = function(fit){
 					fit$information %||% fit$fisher_information %||% -get_ordinal_cloglog_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))

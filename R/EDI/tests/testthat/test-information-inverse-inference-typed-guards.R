@@ -59,7 +59,8 @@ test_that("zero-augmented Poisson inference preserves typed nonestimability for 
 		private$za_X_cov_all <- cbind(x = x, x_duplicate = x)
 		private$za_Xzi_cov_all <- matrix(numeric(), nrow = n, ncol = 0L)
 
-		estimate <- inf$compute_estimate()
+		# v1.0.6-TODO-218 (1): this fixture has no excess zeros (zero part driven to 0).
+		estimate <- suppressMessages(inf$compute_estimate(), classes = "edi_no_zero_inflation_message")
 		expect_true(is.finite(estimate), info = class_name)
 		expect_false(private$cached_mod$information_invertible, info = class_name)
 		expect_true(is.na(private$cached_values$s_beta_hat_T), info = class_name)

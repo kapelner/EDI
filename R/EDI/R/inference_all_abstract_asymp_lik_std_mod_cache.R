@@ -12,6 +12,9 @@ StandardModelCacheSource = list(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes an asymptotic confidence interval using the configured test.
+		#'   Wald inference always uses the observed information; the
+		#'   information preference (\code{set_information_preference()}) applies to
+		#'   score tests and score confidence intervals only.
 		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -46,6 +49,9 @@ StandardModelCacheSource = list(
 			)
 		},
 		#' @description Computes an asymptotic two-sided p-value using the configured test.
+		#'   Wald inference always uses the observed information; the
+		#'   information preference (\code{set_information_preference()}) applies to
+		#'   score tests and score confidence intervals only.
 		#' @param delta Null treatment effect to test against. Default 0.
 		#' @return The asymptotic p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){

@@ -325,16 +325,27 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#'   \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were
 		#'   non-finite). The confidence-interval method drops non-finite replicates
 		#'   by default, so it can be finite when this p-value is \code{NA}.
+		#'   \code{na.rm = TRUE} drops them here too, subject to
+		#'   \code{min_number_usable_samples} and \code{min_fraction_usable_samples}.
 		#' @param show_progress A flag indicating whether a progress bar should be displayed.
 		#' @param min_number_usable_samples Minimum number of finite Bayesian-bootstrap
 		#'   replicates required after filtering. Default 5.
 		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit
 		#'   scheme. See
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}()}.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that
+		#'   must be finite when \code{na.rm = TRUE} (for the studentized types: a finite
+		#'   estimate and a positive finite standard error). A number in \eqn{[0, 1]}; default
+		#'   \code{0.95}, which mirrors the 5\% cap on invalid intervals that EDI's coverage
+		#'   calibration applies to confidence intervals. Below it the p-value is \code{NA}
+		#'   with the recorded reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}
+		#'   and one \code{edi_procedure_na_warning} (silent inside an outer resampling
+		#'   operation). \code{0} turns the check off; \code{1} requires every replicate.
+		#'   Ignored when \code{na.rm = FALSE}.
 		#'
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if too few usable
 		#'   replicates remain or the estimate is non-finite.
-		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
@@ -343,6 +354,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertFlag(na.rm)
+				assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			}
 			type = tolower(type %||% "percentile")
 			if (should_run_asserts()) {
@@ -388,6 +400,15 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					warn_studentized_na("bayesian_bootstrap_unstable_studentized_standard_errors")
 					return(NA_real_)
 				}
+				# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+				if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_stats$theta), B, min_fraction_usable_samples)) {
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_valid_replicates_fraction", "se")
+					edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+						reason = "bayesian_bootstrap_too_few_valid_replicates_fraction",
+						detail = bootstrap_valid_fraction_na_detail(length(boot_stats$theta), B, min_fraction_usable_samples,
+							what = "replicates (estimate and standard error)"))
+					return(NA_real_)
+				}
 				if (private$bootstrap_estimates_extreme(boot_stats$theta, est = est)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_extreme_finite_estimates", "estimate")
 					edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
@@ -414,6 +435,14 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
 					reason = "bayesian_bootstrap_too_few_finite_estimates",
 					detail = bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
+				return(NA_real_)
+			}
+			# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+			if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_distr), B, min_fraction_usable_samples)) {
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_valid_replicates_fraction", "estimate")
+				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+					reason = "bayesian_bootstrap_too_few_valid_replicates_fraction",
+					detail = bootstrap_valid_fraction_na_detail(length(boot_distr), B, min_fraction_usable_samples))
 				return(NA_real_)
 			}
 			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {

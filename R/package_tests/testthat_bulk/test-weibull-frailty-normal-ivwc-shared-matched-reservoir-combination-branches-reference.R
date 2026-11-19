@@ -49,11 +49,18 @@ set_mocks <- function(priv, beta_m, ssq_m, beta_r, ssq_r) {
 	}
 }
 
-test_that("estimate_only = TRUE with both point estimates finite but both variances NA falls back to equal 0.5/0.5 weighting (the fixed bug's regression case)", {
+# v1.0.6-TODO-132 (2026-11-19, owner decision): the 0.5/0.5 fallback is gone. estimate_only = TRUE
+# now fits both pieces with their variances and applies the same rule as the full call, so two
+# finite point estimates without finite variances are not estimable (the full call gives NA too).
+test_that("estimate_only = TRUE with both variances NA is NA, as the full call is (no 0.5/0.5 fallback)", {
 	f <- mk_fixture(1L)
 	set_mocks(f$priv, 1.2, NA_real_, 0.8, NA_real_)
 	f$priv$shared(estimate_only = TRUE)
-	expect_equal(f$priv$cached_values$beta_hat_T, 0.5 * 1.2 + 0.5 * 0.8)
+	expect_true(is.na(f$priv$cached_values$beta_hat_T))
+	g <- mk_fixture(1L)
+	set_mocks(g$priv, 1.2, NA_real_, 0.8, NA_real_)
+	g$priv$shared(estimate_only = FALSE)
+	expect_true(is.na(g$priv$cached_values$beta_hat_T))
 })
 
 test_that("estimate_only = TRUE with both variances finite still uses inverse-variance weighting (not equal weights)", {

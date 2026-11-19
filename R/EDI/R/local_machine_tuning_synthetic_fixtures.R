@@ -65,6 +65,14 @@ inference_migration_add_subjects = function(des, x) {
 #'   hurdle) classes. At least one zero is guaranteed when positive. The
 #'   default 0 leaves the recipe -- and the migration golden values --
 #'   untouched.
+#' @details The continuous, proportion (logit scale) and survival (log time)
+#'   responses carry a small seeded \code{stats::rnorm()} term, drawn after the
+#'   assignment so \code{w} is unchanged. Without it each was an exact linear
+#'   function of \code{w}, \code{x} and \code{z} (the continuous recipe's
+#'   \code{seq(-0.3, 0.3)} term is collinear with \code{x}), so the
+#'   v1.0.6-TODO-158 perfect-predictor check dropped the covariates in every
+#'   caller's constructor (v1.0.6-TODO-204). The draws happen inside the local
+#'   seed scope, so the caller's RNG stream is untouched.
 #' @return A completed `DesignSeqOneByOneBernoulli` with every subject
 #'   assigned and responded.
 #' @keywords internal
@@ -85,7 +93,8 @@ inference_migration_complete_design = function(response_type, n = 12L, seed = 20
 		w01 = as.integer(des$.__enclos_env__$private$w == 1L)
 		linpred = -0.2 + 0.55 * w01 + 0.25 * x$x - 0.15 * x$z
 		if (identical(response_type, "continuous")) {
-			y = 0.4 + 0.8 * w01 + 0.35 * x$x - 0.2 * x$z + seq(-0.3, 0.3, length.out = n)
+			y = 0.4 + 0.8 * w01 + 0.35 * x$x - 0.2 * x$z + seq(-0.3, 0.3, length.out = n) +
+				stats::rnorm(n, sd = 0.1)
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "incidence")) {
 			y = as.integer(stats::plogis(linpred) > stats::quantile(stats::plogis(linpred), 0.45))
@@ -99,14 +108,14 @@ inference_migration_complete_design = function(response_type, n = 12L, seed = 20
 			}
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "proportion")) {
-			y = pmin(0.95, pmax(0.05, stats::plogis(linpred)))
+			y = pmin(0.95, pmax(0.05, stats::plogis(linpred + stats::rnorm(n, sd = 0.2))))
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "ordinal")) {
 			score = linpred + seq(-0.4, 0.4, length.out = n)
 			y = as.integer(cut(score, breaks = c(-Inf, -0.15, 0.25, 0.65, Inf), labels = FALSE))
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "survival")) {
-			y_lat = exp(1.2 - 0.25 * w01 + 0.1 * x$x)
+			y_lat = exp(1.2 - 0.25 * w01 + 0.1 * x$x + stats::rnorm(n, sd = 0.1))
 			cens = exp(1.35 + 0.05 * x$z)
 			add_all_subject_responses_seq(des, pmin(y_lat, cens), deads = as.integer(y_lat <= cens))
 		} else {

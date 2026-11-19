@@ -996,7 +996,7 @@ incidence,InferenceIncidExactFisher,,compute_bootstrap_confidence_interval_stude
 incidence,InferenceIncidExactFisher,,compute_exact_confidence_interval,715,669,40,0.935664335664336,0.0854368236137364
 incidence,InferenceIncidExactFisher,,compute_m_out_of_n_bootstrap_confidence_interval,85,0,85,0,2.58493941422841e-111
 incidence,InferenceIncidExactFisher,,compute_subsampling_confidence_interval,85,0,85,0,2.58493941422841e-111
-incidence,InferenceIncidExactZhang,,compute_exact_confidence_interval,365,359,0,0.983561643835616,0.00157464848724052
+incidence,InferenceIncidExactZhang,,compute_exact_confidence_interval,365,357,0,0.978082191780822,0.0110051579329061
 incidence,InferenceIncidGCompRiskDiff,~.,compute_asymp_confidence_interval,840,803,0,0.955952380952381,0.476205563343555
 incidence,InferenceIncidGCompRiskDiff,~.,compute_bayesian_bootstrap_confidence_interval,840,796,0,0.947619047619048,0.751148968364427
 incidence,InferenceIncidGCompRiskDiff,~.,compute_bayesian_bootstrap_confidence_interval_basic,840,789,0,0.939285714285714,0.153883353284113

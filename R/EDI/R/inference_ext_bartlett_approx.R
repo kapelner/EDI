@@ -60,11 +60,8 @@ InferenceExtBartlettApprox = list(
 			min_usable = max(2L, as.integer(ceiling(private$bartlett_factor_mc_min_usable_fraction * B)))
 			max_attempts = as.integer(private$bartlett_factor_mc_max_attempts_per_replicate)
 
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "param_boot"
-			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
-
+			# run_param_bootstrap_replicates() sets active_resampling_operation for the
+			# replicate loop only (v1.0.6-TODO-207).
 			run = tryCatch(
 				private$run_param_bootstrap_replicates(
 					spec = spec,

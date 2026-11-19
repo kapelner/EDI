@@ -546,6 +546,23 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
       }
       step *= 0.5;
     }
+    // v1.0.6-TODO-209: the warm Fisher information comes from a fit on other data
+    // (e.g. another randomization draw's assignment), so it can be the wrong
+    // curvature here. The first Newton step then points where the likelihood
+    // falls, the line search rejects every step, and the fit used to stop at its
+    // start with converged = FALSE (~30% of identity-link randomization draws in
+    // v1.0.6-TODO-205). Such a fit is redone from the cold start, so it returns
+    // exactly what a cold call returns. Recomputing the information at the warm
+    // start instead was tried and rejected: these warm starts often sit next to
+    // a mean bound, where the huge working weights make Newton increments tiny,
+    // and the fit then reported converged = TRUE short of the MLE (6e-3 off on a
+    // 20-subject Bernoulli draw). Fits whose warm first step was accepted are
+    // unchanged, bit for bit.
+    if (!accepted && used_warm_fisher) {
+      return fit_constrained_binomial_cpp_impl(X, y, link_type, maxit, tol, fixed_idx, fixed_values,
+                                               std::nullopt, smart_cold_start, std::nullopt, std::nullopt,
+                                               estimate_only);
+    }
     if (!accepted) break;
     prev_step_free = beta_free_new - beta_free;
     have_prev_step = true;
@@ -787,6 +804,14 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
         break;
       }
       step *= 0.5;
+    }
+    // v1.0.6-TODO-209: as in fit_constrained_binomial_cpp_impl, a first step
+    // built from the warm weights / Fisher information that the line search
+    // rejects is redone from the cold start (the result equals a cold call).
+    if (!accepted && (used_warm_fisher_w || use_warm_weights)) {
+      return fit_constrained_binomial_weighted_cpp_impl(X, y, obs_weights, link_type, maxit, tol, fixed_idx,
+                                                        fixed_values, std::nullopt, smart_cold_start,
+                                                        std::nullopt, std::nullopt, estimate_only);
     }
     if (!accepted) break;
     prev_step_free = beta_free_new - beta_free;

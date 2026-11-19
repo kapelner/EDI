@@ -164,11 +164,14 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
 		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
-		compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
+		compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			super$compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			super$compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Computes a Bayesian-bootstrap two-sided p-value for the treatment effect.
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
@@ -181,11 +184,14 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit scheme. See
 		#'   \code{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}.
-		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
+		#'   finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			super$compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			super$compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Computes a Bayesian-bootstrap confidence interval for the treatment effect.
 		#' @param alpha Significance level. Default 0.05.
@@ -582,8 +588,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				if (!is.null(dim(X)) && is.null(colnames(X))) {
 					colnames(X) = c("(Intercept)", "treatment", if (ncol(X) > 2L) private$get_covariate_names() else NULL)
 				}
-				b = glm.fit(x = X, y = as.numeric(private$y), family = binomial())$coefficients
+				glm_fit = glm.fit(x = X, y = as.numeric(private$y), family = binomial())
+				b = glm_fit$coefficients
 				if (length(b) >= 2L && all(is.finite(b))) {
+					gcomp_record_fit_diagnostics(private, X, b, converged = glm_fit$converged)
 					eta_base = drop(X %*% b) - X[, 2L] * b[2L]
 					risk1 = mean(plogis(eta_base + b[2L]))
 					risk0 = mean(plogis(eta_base))
@@ -619,6 +627,8 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			}
 			# v1.0.6-TODO-109: separation warning (once per object, silent in resampling; no numeric change).
 			edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
+			# v1.0.6-TODO-191: convergence / separation flags for the risk-ratio subsampling filter.
+			gcomp_record_fit_diagnostics(private, fit$X, fit$coefficients, converged = fit$converged)
 			# v1.0.6-TODO-138: name covariates dropped beyond collinearity (same rules).
 			edi_warn_gcomp_covariate_drop(self, private, X_full, fit, treatment_only_fallback)
 			private$cached_values = gcomp_cache_standardized_effects(

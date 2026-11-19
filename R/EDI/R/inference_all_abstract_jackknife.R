@@ -3,6 +3,60 @@
 #' Abstract class for delete-1 jackknife estimate correction and jackknife-Wald
 #' inference layered on top of bootstrap-capable inference classes.
 #'
+#' @details
+#' \strong{Deletion units.} With \code{unit = "auto"} each replicate deletes one unit
+#' of the design's randomization structure:
+#' \itemize{
+#'   \item matching designs: one matched pair (\code{"pair"}), or for KK designs one
+#'     matched set or one reservoir subject (\code{"matched_set"});
+#'   \item cluster designs: one cluster (\code{"cluster"});
+#'   \item \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}}: one permuted
+#'     block (\code{"permuted_block"}), the \code{block_size} consecutive enrollees of
+#'     a stratum that the design randomized together; a trailing partial block of a
+#'     stratum is merged into that stratum's previous block;
+#'   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
+#'     grouped by its stratum (\code{"observation_within_block"});
+#'   \item other blocking designs: one whole block (\code{"block"});
+#'   \item all other designs: one subject (\code{"observation"}).
+#' }
+#' Any of these can also be requested explicitly through \code{unit}
+#' (\code{"permuted_block"} only on SPBR; \code{"block"} and
+#' \code{"observation_within_block"} on any blocking design).
+#'
+#' \strong{Formulas.} With \eqn{\hat\theta} the full-data estimate and
+#' \eqn{\hat\theta_{(i)}} the estimate with unit \eqn{i} deleted, an unstratified unit
+#' (\eqn{G} units, mean \eqn{\bar\theta}) gives bias
+#' \eqn{(G - 1)(\bar\theta - \hat\theta)} and variance
+#' \eqn{\frac{G - 1}{G} \sum_i (\hat\theta_{(i)} - \bar\theta)^2}. The two stratified
+#' units (\code{"permuted_block"}, \code{"observation_within_block"}) use the stratified
+#' delete-1 ("JKn") jackknife of Wolter (2007, Sec. 4.5). Wolter's replicate deletes unit
+#' \eqn{i} of stratum \eqn{h} and reweights that stratum's other \eqn{n_h - 1} units by
+#' \eqn{n_h/(n_h - 1)}; EDI's replicates are refits on the remaining rows without
+#' reweighting, so each replicate's departure from \eqn{\hat\theta} is first scaled by
+#' \eqn{r_h = n_h (N - 1) / \{N (n_h - 1)\}} (\eqn{N} units in all), its first-order
+#' reweighted equivalent: \eqn{\theta^*_{(h,i)} = \hat\theta + r_h (\hat\theta_{(h,i)} - \hat\theta)}.
+#' With \eqn{\bar\theta^*_h} the stratum mean of these, Wolter's formulas give bias
+#' \eqn{\sum_h (n_h - 1)(\bar\theta^*_h - \hat\theta)} and variance
+#' \eqn{\sum_h \frac{n_h - 1}{n_h} \sum_{i \in h} (\theta^*_{(h,i)} - \bar\theta^*_h)^2
+#' = (\frac{N - 1}{N})^2 \sum_h \frac{n_h}{n_h - 1} \sum_{i \in h} (\hat\theta_{(h,i)} - \bar\theta_h)^2};
+#' with no single-unit stratum the bias equals the ordinary \eqn{(N - 1)(\bar\theta - \hat\theta)},
+#' and with one stratum both reduce to the unstratified formulas.
+#' The strata are fixed by the design and treatment is randomized within them, so only
+#' the within-stratum spread of the replicates enters the variance. A stratum with a
+#' single unit contributes nothing to either sum. The bias-corrected jackknife estimate is
+#' \eqn{\hat\theta} minus the bias, and the jackknife-Wald test and interval use it with
+#' the jackknife standard error and the normal reference. They are \code{NA} when the
+#' variance has fewer than 4 degrees of freedom (\eqn{G - 1}, or
+#' \eqn{\sum_h (n_h - 1)} for the stratified units).
+#'
+#' Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
+#' block, which on these designs is the stratum, so a replicate deleted a whole stratum
+#' and the jackknife had only 2-4 units (v1.0.6-TODO-4).
+#'
+#' @references Wolter, K. M. (2007). \emph{Introduction to Variance Estimation}, 2nd ed.
+#'   Springer, New York, ch. 4 "The Jackknife Method" (pp. 151-193), Sec. 4.5 (stratified
+#'   sampling), \doi{10.1007/978-0-387-35099-8}.
+#'
 #' @keywords internal
 InferenceJackknife = R6::R6Class("InferenceJackknife",
 	lock_objects = FALSE,
@@ -10,8 +64,10 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 	public = list(
 		#' @description Returns the leave-one-out jackknife estimate distribution.
 		#'
-		#' @param unit Deletion unit. Default `\"auto\"`, which chooses a design-aware
-		#'   unit automatically.
+		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+		#'   \code{"permuted_block"} or \code{"observation_within_block"}; see
+		#'   \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @return A numeric vector of jackknife replicate estimates.
 		approximate_jackknife_distribution_beta_hat_T = function(unit = "auto"){
@@ -22,13 +78,13 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		},
 		#' @description Computes the delete-1 jackknife bias-corrected treatment estimate.
 		#'
-		#' For blocking designs, this uses leave-one-block-out deletion units. For
-		#' matching designs, it uses leave-match-out deletion units. For KK designs,
-		#' it uses leave-match-out for matched pairs and leave-one-out for reservoir
-		#' subjects.
+		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
-		#' @param unit Deletion unit. Default `\"auto\"`, which chooses a design-aware
-		#'   unit automatically.
+		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+		#'   \code{"permuted_block"} or \code{"observation_within_block"}; see
+		#'   \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @return A numeric jackknife bias-corrected treatment estimate.
 		compute_jackknife_estimate = function(unit = "auto"){
@@ -54,13 +110,13 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		},
 		#' @description Computes the delete-1 jackknife standard error.
 		#'
-		#' For blocking designs, this uses leave-one-block-out deletion units. For
-		#' matching designs, it uses leave-match-out deletion units. For KK designs,
-		#' it uses leave-match-out for matched pairs and leave-one-out for reservoir
-		#' subjects.
+		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
-		#' @param unit Deletion unit. Default `\"auto\"`, which chooses a design-aware
-		#'   unit automatically.
+		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+		#'   \code{"permuted_block"} or \code{"observation_within_block"}; see
+		#'   \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @return A numeric jackknife standard error.
 		compute_jackknife_std_error = function(unit = "auto"){
@@ -74,14 +130,14 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		#' @description Computes a two-sided Wald p-value using the jackknife estimate
 		#'   and jackknife standard error.
 		#'
-		#' For blocking designs, this uses leave-one-block-out deletion units. For
-		#' matching designs, it uses leave-match-out deletion units. For KK designs,
-		#' it uses leave-match-out for matched pairs and leave-one-out for reservoir
-		#' subjects.
+		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @param delta Null treatment-effect value. Default 0.
-		#' @param unit Deletion unit. Default `\"auto\"`, which chooses a design-aware
-		#'   unit automatically.
+		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+		#'   \code{"permuted_block"} or \code{"observation_within_block"}; see
+		#'   \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @return A two-sided jackknife-Wald p-value.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
@@ -109,14 +165,14 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		#' @description Computes a normal-approximation confidence interval using the
 		#'   jackknife estimate and jackknife standard error.
 		#'
-		#' For blocking designs, this uses leave-one-block-out deletion units. For
-		#' matching designs, it uses leave-match-out deletion units. For KK designs,
-		#' it uses leave-match-out for matched pairs and leave-one-out for reservoir
-		#' subjects.
+		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @param alpha Significance level. Default 0.05.
-		#' @param unit Deletion unit. Default `\"auto\"`, which chooses a design-aware
-		#'   unit automatically.
+		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+		#'   \code{"permuted_block"} or \code{"observation_within_block"}; see
+		#'   \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @return A jackknife-Wald confidence interval.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
@@ -223,6 +279,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			}
 			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
 			n_units = length(jack)
+			jack_strata = private$jackknife_replicate_strata(unit)
 			if (n_units <= 1L) {
 				private$cache_procedure_failure("jackknife", "jackknife_too_few_replicate_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = numeric(0))
@@ -232,8 +289,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			# v1.0.6-TODO-135: with G deletion units the delete-1 jackknife variance
 			# has G - 1 degrees of freedom, but the Wald p-value and CI below use
 			# the normal reference. See EDI_JACKKNIFE_MIN_DELETION_UNITS.
-			if (n_units < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
-				private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit))
+			if (edi_jackknife_effective_units(n_units, jack_strata) < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
+				private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit),
+					df = if (!is.null(jack_strata)) edi_jackknife_effective_units(n_units, jack_strata) - 1L)
 				private$cache_procedure_failure("jackknife", "jackknife_too_few_deletion_units")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = jack)
 				private$cached_values$jackknife_summary[[cache_key]] = summary
@@ -251,10 +309,10 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
-			jack_bar = mean(jack)
-			bias_j = (n_units - 1) * (jack_bar - theta_hat)
+			moments = edi_jackknife_bias_variance(jack, theta_hat, jack_strata)
+			bias_j = moments$bias
 			theta_j = theta_hat - bias_j
-			var_j = ((n_units - 1) / n_units) * sum((jack - jack_bar)^2)
+			var_j = moments$variance
 			se_j = if (is.finite(var_j) && var_j >= 0) sqrt(var_j) else NA_real_
 			if (!is.finite(theta_j) || !is.finite(se_j) ||
 			    abs(theta_j) > private$bootstrap_extreme_estimate_threshold ||
@@ -285,6 +343,67 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 # (Cameron & Miller 2015; Bell & McCaffrey 2002) draws the line at about 5
 # units. Fewer than 5 is therefore NA; 5 or more is unchanged.
 EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
+
+# v1.0.6-TODO-4: jackknife bias and variance from the replicate estimates `jack`
+# (theta_(i), one per deletion unit) and the full-data estimate `theta_hat`.
+# strata = NULL: the ordinary delete-1 / delete-a-group jackknife with G units,
+#   bias = (G - 1) (theta_bar - theta_hat), v = ((G - 1) / G) sum_i (theta_(i) - theta_bar)^2
+#   (the expressions are kept exactly as before, so these results are unchanged).
+# strata = stratum id per replicate: the stratified delete-1 jackknife ("JKn"; Wolter
+#   2007, Introduction to Variance Estimation, 2nd ed., ch. 4 pp. 151-193, Sec. 4.5).
+#   With n_h units in stratum h, Wolter's replicate theta_(h,i) deletes unit i of stratum h
+#   AND reweights the stratum's other units by n_h / (n_h - 1), so the stratum keeps its
+#   weight; then
+#     v = sum_h ((n_h - 1) / n_h) sum_i (theta_(h,i) - theta_bar_h)^2,
+#     bias = sum_h (n_h - 1) (theta_bar_h - theta_hat)   (jackknife estimate theta_hat - bias).
+#   EDI's replicates are refits on the remaining rows, with no reweighting, so a deletion
+#   moves the estimate by about 1/(N - 1) of the unit's influence (N = all units) instead of
+#   W_h / (n_h - 1) = n_h / (N (n_h - 1)). Each replicate's departure from theta_hat is
+#   therefore scaled by r_h = n_h (N - 1) / (N (n_h - 1)), its first-order reweighted
+#   equivalent, before Wolter's formulas are applied:
+#     theta*_(h,i) = theta_hat + r_h (theta_(h,i) - theta_hat).
+#   Then v = sum_h ((N - 1) / N)^2 (n_h / (n_h - 1)) sum_i (theta_(h,i) - theta_bar_h)^2, and
+#   the bias is (N - 1)/N sum_h n_h (theta_bar_h - theta_hat), which is the ordinary
+#   (N - 1)(theta_bar - theta_hat) when no stratum is a singleton. With one stratum both
+#   reduce to the unstratified formulas. Applying (n_h - 1)/n_h to the unreweighted
+#   replicates directly understates the variance by about ((n_h - 1)/n_h)^2 per stratum
+#   (2026-11-19 study: SPBR, ~37 permuted blocks in 4 strata of 2-19 blocks, jackknife-Wald
+#   coverage at beta 0 was 0.89-0.92 that way and 0.92-0.94 rescaled).
+#   Centring at theta_bar_h drops the between-stratum spread of the replicate means, which
+#   is not randomization variance when strata are fixed by the design. A stratum with one
+#   unit (n_h = 1) contributes 0 to both sums (its weight n_h - 1 is 0).
+edi_jackknife_bias_variance = function(jack, theta_hat, strata = NULL){
+	n_units = length(jack)
+	if (is.null(strata) || length(strata) != n_units) {
+		jack_bar = mean(jack)
+		return(list(
+			bias = (n_units - 1) * (jack_bar - theta_hat),
+			variance = ((n_units - 1) / n_units) * sum((jack - jack_bar)^2)
+		))
+	}
+	bias = 0
+	variance = 0
+	for (h in unique(strata)) {
+		th = jack[strata == h]
+		n_h = length(th)
+		if (n_h < 2L) next
+		r_h = n_h * (n_units - 1) / (n_units * (n_h - 1))
+		th_star = theta_hat + r_h * (th - theta_hat)
+		th_star_bar = mean(th_star)
+		bias = bias + (n_h - 1) * (th_star_bar - theta_hat)
+		variance = variance + ((n_h - 1) / n_h) * sum((th_star - th_star_bar)^2)
+	}
+	list(bias = bias, variance = variance)
+}
+
+# v1.0.6-TODO-4: the unit count compared with EDI_JACKKNIFE_MIN_DELETION_UNITS. With G
+# unstratified units the jackknife variance has G - 1 degrees of freedom; with strata it
+# has sum_h (n_h - 1), so the stratified count is that plus 1 (the same df threshold).
+edi_jackknife_effective_units = function(n_units, strata = NULL){
+	if (is.null(strata) || length(strata) != n_units) return(n_units)
+	n_h = tabulate(match(strata, unique(strata)))
+	sum(n_h - 1L) + 1L
+}
 
 # Warn when a public jackknife method hands back NA (v1.0.6-TODO-113, the
 # v1.0.6-TODO-95 rule). Names the specific reason compute_jackknife_summary()
@@ -317,7 +436,13 @@ edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackk
 			"(compute_rand_two_sided_pval())."),
 		jackknife_nonfinite_replicate_estimates = "Some leave-one-unit-out fits failed.",
 		jackknife_too_few_replicate_estimates = "There are too few deletion units for a jackknife.",
-		jackknife_too_few_deletion_units = paste0("The jackknife has only ",
+		jackknife_too_few_deletion_units = if (!is.null(private$cached_values$jackknife_n_deletion_units$df)) paste0(
+			"The stratified jackknife has ", as.integer(private$cached_values$jackknife_n_deletion_units$n), " deletion units (unit = \"",
+			private$cached_values$jackknife_n_deletion_units$unit, "\") but only sum_h (n_h - 1) = ",
+			as.integer(private$cached_values$jackknife_n_deletion_units$df), " degrees of freedom within strata; at least ",
+			EDI_JACKKNIFE_MIN_DELETION_UNITS - 1L, " are needed, so the standard error is too unstable for a normal-reference ",
+			"Wald test or interval. Use a randomization test (compute_rand_two_sided_pval()) or the model-based standard error.")
+		else paste0("The jackknife has only ",
 			as.integer(private$cached_values$jackknife_n_deletion_units$n %||% NA_integer_), " deletion units (unit = \"",
 			private$cached_values$jackknife_n_deletion_units$unit %||% "auto", "\"); at least ",
 			EDI_JACKKNIFE_MIN_DELETION_UNITS, " are needed. With G units the jackknife variance has only G - 1 degrees ",
@@ -367,9 +492,11 @@ edi_rr_jackknife_log_summary = function(self, private, unit = "auto"){
 	if (isTRUE(private$jackknife_full_fit_is_separated())) return(fail("jackknife_full_data_separation"))
 	jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
 	n_units = length(jack)
+	jack_strata = private$jackknife_replicate_strata(unit)
 	if (n_units <= 1L) return(fail("jackknife_too_few_replicate_estimates"))
-	if (n_units < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
-		private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit))
+	if (edi_jackknife_effective_units(n_units, jack_strata) < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
+		private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit),
+			df = if (!is.null(jack_strata)) edi_jackknife_effective_units(n_units, jack_strata) - 1L)
 		return(fail("jackknife_too_few_deletion_units"))
 	}
 	if (any(!is.finite(jack))) return(fail("jackknife_nonfinite_replicate_estimates"))
@@ -377,11 +504,11 @@ edi_rr_jackknife_log_summary = function(self, private, unit = "auto"){
 	if (private$bootstrap_estimates_extreme(jack, est = est)) return(fail("jackknife_extreme_finite_estimates"))
 	log_est = log(est)
 	log_jack = log(jack)
-	log_bar = mean(log_jack)
-	var_j = ((n_units - 1) / n_units) * sum((log_jack - log_bar)^2)
+	moments = edi_jackknife_bias_variance(log_jack, log_est, jack_strata)
+	var_j = moments$variance
 	if (!is.finite(var_j) || var_j <= 0) return(fail("jackknife_log_risk_ratio_standard_error_unavailable"))
 	se_log = sqrt(var_j)
-	bias_log = (n_units - 1) * (log_bar - log_est)
+	bias_log = moments$bias
 	theta_j_log = log_est - bias_log
 	if (!is.finite(theta_j_log) || !is.finite(se_log) ||
 	    abs(theta_j_log) > private$bootstrap_extreme_estimate_threshold ||

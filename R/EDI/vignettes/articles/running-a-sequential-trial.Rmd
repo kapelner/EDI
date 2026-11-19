@@ -42,7 +42,7 @@ applies to all of them.
 | Class | How each arrival is assigned |
 |---|---|
 | `DesignSeqOneByOneBernoulli` | An independent coin with probability `prob_T` |
-| `DesignSeqOneByOneiBCRD` | Complete randomization run sequentially: exactly `n * prob_T` treated at the end |
+| `DesignSeqOneByOneiBCRD` | Complete randomization run sequentially: exactly `round(n * prob_T)` treated at the end (requires `n`) |
 | `DesignSeqOneByOneRandomBlockSize` | Permuted blocks of randomly varying size, optionally within strata |
 | `DesignSeqOneByOneSPBR` | Stratified permuted blocks of fixed size |
 | `DesignSeqOneByOneEfron` | Efron's biased coin toward the arm that is behind |

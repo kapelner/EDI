@@ -119,7 +119,9 @@ test_that("the RR classes accept a list b / m and use the selector's size", {
 			expect_equal(ci_list, ci_ref, tolerance = 1e-8, info = info)
 			expect_true(all(is.finite(ci_list)), info = info)
 
-			pv_args = list(B = 30, show_progress = FALSE)
+			# v1.0.6-TODO-191: at B = 30 the 0.95 usable-draw cap can trip on degenerate draws;
+			# this test is about the list-valued size, so it lifts the cap.
+			pv_args = list(B = 30, show_progress = FALSE, min_fraction_usable_samples = 0)
 			pv_args[[size_arg]] = list(B = 25)
 			pv = do.call(rr_new(kind)[[pv_fun]], pv_args)
 			expect_true(is.finite(pv) && pv > 0 && pv <= 1, info = info)

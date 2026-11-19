@@ -17,6 +17,15 @@ library(EDI)
 #     estimate-centered values are the correct behavior (verified: B=200
 #     gives 200/200 finite, mean ~ estimate).
 
+# v1.0.6-TODO-204 (2026-11-19): every golden below that reads the shared
+# continuous fixture was re-recorded after the fixture gained a small seeded
+# noise term (inference_migration_complete_design(); its old
+# seq(-0.3, 0.3) noise was collinear with x, so y was an exact linear function
+# of w, x and z). The values moved only because the data did: before the change
+# this file passed unchanged against the old fixture. Unchanged goldens (NA
+# results, and values that depend only on ranks or on draw counts) were not
+# touched.
+
 simple_mean_difference_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
@@ -115,61 +124,69 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		"estimate",
 		"compute_estimate",
 		list(),
-		0.462285714285715
+		0.42050624252614888
 	)
 	expect_simple_mean_difference_golden(
 		"randomization distribution",
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
 		c(
-			0.03488636363636366, 0.40150649350649364, -0.099393939393939257,
-			0.15963636363636369, -0.069454545454545435, 0.81363636363636371,
-			0.25522727272727253, -0.43693506493506495, -0.26840909090909071
+			0.072735792459449833, 0.3930559530075351, -0.1364814376192634,
+			0.12837532708727445, 0.034327893455332159, 0.85831290889699074,
+			0.37279231506616317, -0.38952274210802718, -0.28368538920388575
 		)
 	)
 	expect_simple_mean_difference_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		list(delta = 0, r = 9L, show_progress = FALSE),
-		NA_real_
+		# v1.0.6-TODO-212: r = 12, not 9. With r = 9 the p-value is NA (fewer
+		# than the 10 finite draws the randomization p-value needs), so the
+		# golden compared NA with NA and could not catch a regression.
+		list(delta = 0, r = 12L, show_progress = FALSE),
+		0.16666666666666666
 	)
 	expect_simple_mean_difference_golden(
 		"bootstrap distribution",
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.72109090909090934, 0.89939393939393963, 0.35090909090909128,
-			0.32409090909090926, 0.34852272727272737, 0.98242424242424264,
-			0.61602272727272744, 0.81196969696969712, 0.40420454545454559
+			0.7952276101125102, 0.90218796127342848, 0.21965224291348445,
+			0.31823731933660682, 0.2989926246826895, 1.0172347539923074,
+			0.59177730586700505, 0.92032441339853421, 0.3358196593222379
 		)
 	)
 	expect_simple_mean_difference_golden(
 		"bootstrap confidence interval",
 		"compute_bootstrap_confidence_interval",
-		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = NA_real_, `90%` = NA_real_)
+		# v1.0.6-TODO-212: B = 99, not 9. The default type is BCa, which returns
+		# NA when its adjusted tail lands within two order statistics of the ends
+		# (edi_bootstrap_bca_boundary_warning); at B = 9 the CI and the p-value
+		# were NA, and on this fixture the CI first comes back finite at B = 29
+		# and the p-value only at B = 99.
+		list(alpha = 0.2, B = 99L, show_progress = FALSE),
+		c(`10%` = 0.017572753681162796, `90%` = 0.90080356557028407)
 	)
 	expect_simple_mean_difference_golden(
 		"bootstrap p-value",
 		"compute_bootstrap_two_sided_pval",
-		list(delta = 0, B = 9L, show_progress = FALSE),
-		NA_real_
+		list(delta = 0, B = 99L, show_progress = FALSE),
+		0.1486897851656834
 	)
 	expect_simple_mean_difference_golden(
 		"bayesian bootstrap distribution",
 		"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.19448323582684879, 0.42816742892920184, 0.31442368672754006,
-			0.66668978340624663, 0.50190925369646533, 0.19224024788445437,
-			0.50628650214275361, 0.51833403695812996, 0.57560788857851741
+			0.083783448816805883, 0.45864145032444487, 0.2894626465301765,
+			0.69025051365341028, 0.43524150164751307, 0.13009862737703409,
+			0.45352305457886721, 0.48295323825027192, 0.49281732552413926
 		)
 	)
 	expect_simple_mean_difference_golden(
 		"bayesian bootstrap confidence interval",
 		"compute_bayesian_bootstrap_confidence_interval",
 		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = 0.1928383780024262, `90%` = 0.64240127811885206)
+		c(`10%` = 0.096134163099533404, `90%` = 0.63760166348560454)
 	)
 	expect_simple_mean_difference_golden(
 		"bayesian bootstrap p-value",
@@ -181,25 +198,25 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		"jackknife estimate",
 		"compute_jackknife_estimate",
 		list(),
-		0.462285714285715
+		0.42050624252614888
 	)
 	expect_simple_mean_difference_golden(
 		"jackknife standard error",
 		"compute_jackknife_std_error",
 		list(),
-		0.275917154730639
+		0.3279561961985531
 	)
 	expect_simple_mean_difference_golden(
 		"jackknife confidence interval",
 		"compute_jackknife_wald_confidence_interval",
 		list(alpha = 0.2),
-		c(`10%` = 0.108683652680053, `90%` = 0.815887775891377)
+		c(`10%` = 0.0002134658578409887, `90%` = 0.84079901919445676)
 	)
 	expect_simple_mean_difference_golden(
 		"jackknife p-value",
 		"compute_jackknife_wald_two_sided_pval",
 		list(delta = 0),
-		0.0938457479149271
+		0.19977163243684684
 	)
 })
 
@@ -210,21 +227,21 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"pooled estimate",
 		"compute_estimate",
 		list(),
-		0.462285714285715,
+		0.42050624252614888,
 		class_name = class_name
 	)
 	expect_simple_mean_difference_golden(
 		"pooled asymptotic confidence interval",
 		"compute_asymp_confidence_interval",
 		list(alpha = 0.2),
-		c(`10%` = 0.102469426781093, `90%` = 0.822102001790336),
+		c(`10%` = 0.0062125631167174178, `90%` = 0.83479992193558039),
 		class_name = class_name
 	)
 	expect_simple_mean_difference_golden(
 		"pooled asymptotic p-value",
 		"compute_asymp_two_sided_pval",
 		list(delta = 0),
-		0.108383005259051,
+		0.19388041594393407,
 		class_name = class_name
 	)
 	expect_simple_mean_difference_golden(
@@ -232,9 +249,9 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
 		c(
-			0.03488636363636366, 0.40150649350649364, -0.099393939393939257,
-			0.15963636363636369, -0.069454545454545435, 0.81363636363636371,
-			0.25522727272727253, -0.43693506493506495, -0.26840909090909071
+			0.072735792459449833, 0.3930559530075351, -0.1364814376192634,
+			0.12837532708727445, 0.034327893455332159, 0.85831290889699074,
+			0.37279231506616317, -0.38952274210802718, -0.28368538920388575
 		),
 		class_name = class_name
 	)
@@ -243,9 +260,9 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.72109090909090934, 0.89939393939393963, 0.35090909090909128,
-			0.32409090909090926, 0.34852272727272737, 0.98242424242424264,
-			0.61602272727272744, 0.81196969696969712, 0.40420454545454559
+			0.7952276101125102, 0.90218796127342848, 0.21965224291348445,
+			0.31823731933660682, 0.2989926246826895, 1.0172347539923074,
+			0.59177730586700505, 0.92032441339853421, 0.3358196593222379
 		),
 		class_name = class_name
 	)
@@ -254,9 +271,9 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.19448323582684879, 0.42816742892920184, 0.31442368672754006,
-			0.66668978340624663, 0.50190925369646533, 0.19224024788445437,
-			0.50628650214275361, 0.51833403695812996, 0.57560788857851741
+			0.083783448816805883, 0.45864145032444487, 0.2894626465301765,
+			0.69025051365341028, 0.43524150164751307, 0.13009862737703409,
+			0.45352305457886721, 0.48295323825027192, 0.49281732552413926
 		),
 		class_name = class_name
 	)
@@ -264,7 +281,7 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"pooled jackknife standard error",
 		"compute_jackknife_std_error",
 		list(),
-		0.275917154730639,
+		0.3279561961985531,
 		class_name = class_name
 	)
 })

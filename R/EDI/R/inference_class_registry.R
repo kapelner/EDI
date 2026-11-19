@@ -337,7 +337,18 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 		# a cumulative-logit surrogate for non-uniform weighted refits. Re-enable
 		# only after their native weighted-backend plans are complete.
 		InferenceOrdinalStereotypeLogitRegr = "bayesian_bootstrap",
-		InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap"
+		InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap",
+		# v1.0.6-TODO-217: KK compound classes with no weighted refit of their own
+		# estimator. Their replicates used to come from the KK compound's generic
+		# raw mean-difference fallback, a different estimator; the fallback now
+		# refuses and these classes opt out (supports_bayesian_bootstrap() = FALSE).
+		InferenceBaiAdjustedTKK14 = "bayesian_bootstrap",
+		InferenceBaiAdjustedTKK21 = "bayesian_bootstrap",
+		InferenceContinKKQuantileRegrIVWC = "bayesian_bootstrap",
+		InferencePropKKQuantileRegrIVWC = "bayesian_bootstrap",
+		InferenceContinKKRobustRegrIVWC = "bayesian_bootstrap",
+		InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "bayesian_bootstrap",
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "bayesian_bootstrap"
 	)
 	for (class_name in EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES) {
 		exclusions[[class_name]] = unique(c(

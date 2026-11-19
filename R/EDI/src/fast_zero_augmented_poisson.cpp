@@ -365,8 +365,44 @@ edi::ResultMap fast_zap_with_var_internal(const Eigen::Ref<const Eigen::MatrixXd
 }
 
 #ifndef EDI_CORE_ONLY
+namespace {
+// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported kernels.
+// Without them a y of the wrong length (numeric(0) aborted R with a segfault; a
+// short y or an Xzi with fewer rows than X read past the end of y / Xzi and
+// returned a "converged" fit of garbage) and a params vector of the wrong length
+// read out of bounds. A NULL y gets an explicit message instead of Rcpp's
+// coercion error (or a crash, depending on the Rcpp build). Named zap_* because a
+// unity build puts several kernels' anonymous namespaces in one translation unit.
+inline void zap_check_kernel_inputs(SEXP y, Eigen::Index n_X, Eigen::Index n_Xzi, const char* kernel) {
+    if (Rf_isNull(y)) {
+        Rcpp::stop("%s: y must be a numeric vector with one entry per row of X (got NULL)", kernel);
+    }
+    if (!Rf_isNumeric(y) && !Rf_isLogical(y)) {
+        Rcpp::stop("%s: y must be a numeric vector", kernel);
+    }
+    const R_xlen_t n_y = Rf_xlength(y);
+    if (n_y == 0 || n_X == 0) {
+        Rcpp::stop("%s: y and X must have at least one row (y has %d entries, X has %d rows)", kernel, (int)n_y, (int)n_X);
+    }
+    if (n_y != (R_xlen_t)n_X) {
+        Rcpp::stop("%s: y has %d entries but X has %d rows", kernel, (int)n_y, (int)n_X);
+    }
+    if (n_Xzi != n_X) {
+        Rcpp::stop("%s: Xzi has %d rows but X has %d rows", kernel, (int)n_Xzi, (int)n_X);
+    }
+}
+
+inline void zap_check_params_length(Eigen::Index n_params, Eigen::Index expected, const char* kernel) {
+    if (n_params != expected) {
+        Rcpp::stop("%s: params must have length ncol(X) + ncol(Xzi) = %d (got %d)", kernel, (int)expected, (int)n_params);
+    }
+}
+} // namespace
+
 // [[Rcpp::export]]
 Eigen::VectorXd get_zero_augmented_poisson_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXd>& Xzi, const Eigen::Map<Eigen::VectorXd>& params, bool is_hurdle) {
+	zap_check_kernel_inputs(y, X.rows(), Xzi.rows(), "get_zero_augmented_poisson_score_cpp");
+	zap_check_params_length(params.size(), X.cols() + Xzi.cols(), "get_zero_augmented_poisson_score_cpp");
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
 
@@ -386,6 +422,8 @@ Eigen::VectorXd get_zero_augmented_poisson_score_cpp(const Eigen::Map<Eigen::Mat
 
 // [[Rcpp::export]]
 Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXd>& Xzi, const Eigen::Map<Eigen::VectorXd>& params, bool is_hurdle) {
+	zap_check_kernel_inputs(y, X.rows(), Xzi.rows(), "get_zero_augmented_poisson_hessian_cpp");
+	zap_check_params_length(params.size(), X.cols() + Xzi.cols(), "get_zero_augmented_poisson_hessian_cpp");
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
 
@@ -507,10 +545,16 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 
     
 
+    zap_check_kernel_inputs(y, X.rows(), Xzi.rows(), "fast_zero_augmented_poisson_cpp");
     // See fast_logistic_regression_with_var_cpp for why y is coerced here
     // rather than taken as a direct Eigen::Map.
     NumericVector y_r(y);
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    for (R_xlen_t i = 0; i < y_r.size(); ++i) {
+        if (!std::isfinite(y_r[i]) || y_r[i] < 0.0) {
+            Rcpp::stop("fast_zero_augmented_poisson_cpp: y must contain only finite nonnegative counts");
+        }
+    }
     int p_cond = X.cols();
     int p_zi = Xzi.cols();
     int total_p = p_cond + p_zi;

@@ -160,7 +160,10 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' weighted-median draws by default and requires at least
 		#' \code{min_number_usable_samples} finite draws. If too few remain, the
 		#' result is \code{NA_real_} with nonestimability reason
-		#' \code{"bayesian_bootstrap_too_few_finite_estimates"}. Set
+		#' \code{"bayesian_bootstrap_too_few_finite_estimates"}. It also requires
+		#' at least \code{min_fraction_usable_samples} (default 95\%) of the \code{B}
+		#' draws to be finite (v1.0.6-TODO-12); below that the result is \code{NA_real_}
+		#' with reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}. Set
 		#' \code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
 		#'
 		#' @param delta Null median difference. Default 0.
@@ -172,9 +175,12 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @param min_number_usable_samples Minimum number of finite draws required.
 		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit
 		#'   scheme.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} draws that
+		#'   must be finite when \code{na.rm = TRUE}. Default 0.95. See
+		#'   \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
 		#' @return A numeric two-sided p-value, or \code{NA_real_} when too few
 		#'   finite draws remain.
-		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
 			# v1.0.6-TODO-90: under left-/interval-censoring every weighted draw stops (see
 			# compute_estimate_with_bootstrap_weights()), the draw loop turns those errors into NA
 			# draws, and with na.rm = TRUE the p-value came back NA with no warning. Stop up front.
@@ -191,7 +197,8 @@ InferenceSurvivalKMDiff = define_inference_class(
 				na.rm = na.rm,
 				show_progress = show_progress,
 				min_number_usable_samples = min_number_usable_samples,
-				weighting_unit_type = weighting_unit_type
+				weighting_unit_type = weighting_unit_type,
+				min_fraction_usable_samples = min_fraction_usable_samples
 			)
 		},
 		#' @description Computes a (1 - alpha)-level confidence interval for the difference in Kaplan-Meier

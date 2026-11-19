@@ -12,6 +12,10 @@ library(EDI)
 #   3. With no covariates selected (model_formula = ~1), X = cbind(1, w) rather than
 #      cbind(1, treatment = w, X_cov).
 #   4. A fitter failure (res NULL or non-finite res$b[2]) returns NA.
+# v1.0.6-TODO-205: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
+# reusable randomization worker uses, instead of its own warm-started refit. A draw loader resets the
+# fit caches (reset_reused_worker_private_caches()) before asking for the statistic, so the tests that
+# change w or the fitter clear them the same way.
 
 binid_fixture <- function(seed = 1L, n = 80L) {
 	set.seed(seed)
@@ -52,6 +56,8 @@ test_that("the randomization-time estimate refits the treatment coefficient for 
 	set.seed(9)
 	w2 <- sample(f$w)
 	f$priv$w <- w2
+	reset_reused_worker_private_caches(f$priv, changed = "assignment")
+	f$priv$cached_values <- list()
 	est2 <- f$priv$compute_treatment_estimate_during_randomization_inference()
 	ref2 <- unname(coef(glm(f$y ~ w2 + f$x, family = binomial(link = "identity"), start = c(0.3, 0.1, 0.05)))[2])
 	expect_equal(est2, ref2, tolerance = 0.01)
@@ -78,6 +84,8 @@ test_that("with no covariates selected, the refit uses X = cbind(1, w) and match
 test_that("a fitter failure (res NULL or non-finite res$b[2]) returns NA", {
 	f <- binid_fixture(seed = 4L)
 	f$inf$compute_estimate()
+	clear_fit <- function() { reset_reused_worker_private_caches(f$priv, changed = "assignment"); f$priv$cached_values <- list() }
+	clear_fit()
 	local_mocked_bindings(fast_identity_binomial_regression_cpp = function(...) NULL, .package = "EDI")
 	expect_true(is.na(f$priv$compute_treatment_estimate_during_randomization_inference()))
 
@@ -85,5 +93,6 @@ test_that("a fitter failure (res NULL or non-finite res$b[2]) returns NA", {
 		fast_identity_binomial_regression_cpp = function(X, ...) list(b = c(0, NA_real_, rep(0, ncol(X) - 2L))),
 		.package = "EDI"
 	)
+	clear_fit()
 	expect_true(is.na(f$priv$compute_treatment_estimate_during_randomization_inference()))
 })
