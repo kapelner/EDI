@@ -5325,7 +5325,7 @@
 "InferenceCountZeroInflatedPoisson::get_supported_testing_types","r6_public_method","InferenceCountZeroInflatedPoisson","get_supported_testing_types",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountHurdleNegBin::approximate_subsampling_distribution_beta_hat_T","r6_public_method","InferenceCountHurdleNegBin","approximate_subsampling_distribution_beta_hat_T",7,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedPoisson::get_treatment","r6_public_method","InferenceCountZeroInflatedPoisson","get_treatment",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceCountZeroInflatedPoisson::initialize","r6_public_method","InferenceCountZeroInflatedPoisson","initialize",6,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceCountZeroInflatedPoisson::initialize","r6_public_method","InferenceCountZeroInflatedPoisson","initialize",7,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedPoisson::is_nonestimable","r6_public_method","InferenceCountZeroInflatedPoisson","is_nonestimable",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKModifiedPoisson::get_supported_rand_bootstrap_pval_types","r6_public_method","InferenceIncidKKModifiedPoisson","get_supported_rand_bootstrap_pval_types",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKModifiedPoisson::get_supported_testing_types","r6_public_method","InferenceIncidKKModifiedPoisson","get_supported_testing_types",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -6325,7 +6325,7 @@
 "InferenceCountZeroInflatedNegBin::get_supported_testing_types","r6_public_method","InferenceCountZeroInflatedNegBin","get_supported_testing_types",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedNegBin::get_testing_type","r6_public_method","InferenceCountZeroInflatedNegBin","get_testing_type",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::compute_m_out_of_n_bootstrap_confidence_interval","r6_public_method","InferenceIncidKKGEE","compute_m_out_of_n_bootstrap_confidence_interval",8,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceCountZeroInflatedNegBin::initialize","r6_public_method","InferenceCountZeroInflatedNegBin","initialize",6,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceCountZeroInflatedNegBin::initialize","r6_public_method","InferenceCountZeroInflatedNegBin","initialize",7,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedNegBin::is_nonestimable","r6_public_method","InferenceCountZeroInflatedNegBin","is_nonestimable",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedNegBin::select_optimal_b_subsampling","r6_public_method","InferenceCountZeroInflatedNegBin","select_optimal_b_subsampling",11,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalStereotypeLogitRegr::approximate_jackknife_distribution_beta_hat_T","r6_public_method","InferenceOrdinalStereotypeLogitRegr","approximate_jackknife_distribution_beta_hat_T",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE

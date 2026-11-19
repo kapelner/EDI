@@ -809,7 +809,7 @@
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","clone","DesignSeqOneByOneAtkinson","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","get_design_formula","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","get_edi_version_created","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -866,7 +866,7 @@
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","clone","DesignSeqOneByOneBernoulli","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","get_design_formula","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","get_edi_version_created","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -923,7 +923,7 @@
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","clone","DesignSeqOneByOneEfron","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","get_design_formula","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","get_edi_version_created","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -983,7 +983,7 @@
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","clone","DesignSeqOneByOneiBCRD","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","get_block_ids","DesignSeqOneByOneiBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","get_cmh_se_w_mat","DesignSeqOneByOneiBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1050,7 +1050,7 @@
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","clone","DesignSeqOneByOneKK14","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","get_block_ids","DesignSeqOneByOneKK14","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","get_cmh_se_w_mat","DesignSeqOneByOneKK14","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1118,7 +1118,7 @@
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","clone","DesignSeqOneByOneKK21","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","get_block_ids","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","get_cmh_se_w_mat","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1188,7 +1188,7 @@
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","clone","DesignSeqOneByOneKK21stepwise","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","get_block_ids","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","get_cmh_se_w_mat","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1254,7 +1254,7 @@
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","clone","DesignSeqOneByOnePocockSimon","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","get_design_formula","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","get_edi_version_created","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1314,7 +1314,7 @@
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","clone","DesignSeqOneByOneRandomBlockSize","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","get_block_ids","DesignSeqOneByOneRandomBlockSize","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","get_cmh_se_w_mat","DesignSeqOneByOneRandomBlockSize","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1380,7 +1380,7 @@
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","clone","DesignSeqOneByOneSPBR","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","get_block_ids","DesignSeqOneByOneSPBR","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","get_cmh_se_w_mat","DesignSeqOneByOneSPBR","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1443,7 +1443,7 @@
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","check_experiment_completed","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","clone","DesignSeqOneByOneUrn","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","draw_ws_according_to_design","Design","inherited",1,"r",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","draw_ws_according_to_design","DesignSeqOneByOne","inherited",1,"r",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","duplicate","Design","inherited",1,"verbose",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","get_design_formula","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","get_edi_version_created","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
