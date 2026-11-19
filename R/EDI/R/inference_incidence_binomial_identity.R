@@ -479,11 +479,13 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #'
 #' @examples
 #' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'incidence')
+#' for (i in 1:30) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' # alternating 0/1 responses: both arms always contain events and non-events,
+#' # so the fit stays in the interior of the parameter space
+#' seq_des$add_all_subject_responses(rep(c(0, 1), 15))
 #' inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }

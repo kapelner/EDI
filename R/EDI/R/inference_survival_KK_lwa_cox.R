@@ -7,7 +7,7 @@
 #' pair as an independent cluster of correlated failure times), while reservoir
 #' subjects are analyzed with a standard (independent-subjects) Cox partial
 #' likelihood; the two log-hazard-ratio estimates are then combined by
-#' inverse-variance weighting. \code{likelihood_tier = "partial"} (Cox partial
+#' inverse-variance weighting. It has \code{likelihood_tier = "partial"} (Cox partial
 #' likelihood), but likelihood-ratio/score/gradient tests are not exposed on
 #' this IVWC compound (only on the
 #' \code{\link[EDI:InferenceSurvivalKKLWACoxPHOneLik]{OneLik}} sibling, which

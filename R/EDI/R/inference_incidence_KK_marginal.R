@@ -330,12 +330,12 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #'   for the risk-ratio analog on the same standardization machinery.
 #'
 #' @examples
+#' seq_des = DesignSeqOneByOneKK14$new(n = 30, response_type = 'incidence')
 #' \donttest{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
+#' for (i in 1:30) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' seq_des$add_all_subject_responses(rbinom(30, 1, 0.5))
 #' inf = InferenceIncidKKGCompRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
