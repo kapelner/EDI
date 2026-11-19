@@ -663,7 +663,7 @@ ticked in their **owning plans**; this list is the release index.
   `local_machine_optimization.md` plan moved to v1.0.0 (2026-08-20, user
   decision; see `release_v1_0_0.md`'s item 15). Removed from this release's
   scope entirely, not just resequenced.
-- [ ] ~~TODO-11~~ **(split 2026-08-27: merge + soft-deprecation → `release_v1_2_0.md → TODO-6`; the hard deletion of `DesignFixedGreedy`/`DesignFixedGreedyDOptimal` → `release_v2_0_0.md → TODO-7`)**: **Greedy-design merge**:
+- [ ] ~~TODO-11~~ **(split 2026-08-27: merge + soft-deprecation → `release_v1_2_0.md → TODO-5`; the hard deletion of `DesignFixedGreedy`/`DesignFixedGreedyDOptimal` → `release_v2_0_0.md → TODO-7`)**: **Greedy-design merge**:
   `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — deletes
   `DesignFixedGreedy`/`DesignFixedGreedyDOptimal`, replacing both with
   `DesignFixedGreedyPairSwitch`. Sequenced here per its plan (after the
@@ -793,7 +793,7 @@ ticked in their **owning plans**; this list is the release index.
   `../finished_features/`. If TODO-1 instead overturns that
   recommendation, this item does not fire and nominal proceeds as a
   2.0.0 response-shape item (`release_v2_0_0.md → TODO-4`).
-- [ ] ~~TODO-17e~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-1`**
+- [x] ~~TODO-17e~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-1`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-1 is ticked; from the TODO audit's pointer check)*
   (2026-09-23 bug-fix/feature split, user decision): **Reusable-bootstrap-
   worker support for `InferencePropZeroOneInflatedBetaRegr`** —
   `../finished_features/v1_0_5/reusable_bootstrap.md → TODO-1..6`. A fix to already-shipped
@@ -865,7 +865,7 @@ ticked in their **owning plans**; this list is the release index.
   cost (no closed-form result exists under arbitrary dependence, unlike
   CCT) is worth it. The TODO-1 gate decision may still be taken in this
   release's Phase 0 sitting; only the implementation moves.
-- [ ] ~~TODO-17o~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-2`**
+- [x] ~~TODO-17o~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-2`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-2 is ticked; from the TODO audit's pointer check)*
   (2026-09-23 bug-fix/feature split, user decision): **Randomization CI
   affine-shift reuse** — `randomization_ci_affine_shift_reuse.md →
   TODO-1..7` (plus a decision-gated TODO-8). Revives a dead fast path
@@ -878,7 +878,7 @@ ticked in their **owning plans**; this list is the release index.
   exact step function of δ, so TODO-17w (Brent, below) does not apply to
   it and Robbins–Monro (moved to `release_v1_2_0.md → TODO-21`) is moot on
   it.
-- [ ] ~~TODO-17p~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-3`**
+- [x] ~~TODO-17p~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-3`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-3 is ticked; from the TODO audit's pointer check)*
   (same split): **Wire the unused OLS randomization-distribution kernel;
   triage dead kernels** — `ols_randomization_distr_cpp_wiring.md →
   TODO-1..6`. Wires a complete, exported, never-called C++ kernel
@@ -886,7 +886,7 @@ ticked in their **owning plans**; this list is the release index.
   randomization distribution instead of falling through to the R-level
   reused-worker loop; also triages eight other dead kernel exports.
   Multiplicative with the moved TODO-17o.
-- [ ] ~~TODO-17q~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-4`**
+- [x] ~~TODO-17q~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-4`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-4 is ticked; from the TODO audit's pointer check)*
   (same split): **Guard the unguarded information-matrix inverses** —
   `../bug_fix_plans/v1_0_5/guard_unguarded_information_inverse.md → TODO-1..5`. Correctness, not
   performance: five kernels invert a free-parameter information block with
@@ -963,7 +963,7 @@ ticked in their **owning plans**; this list is the release index.
   a step function after TODO-17o; see that plan's interaction section.)
   - See also (research triage, 2026-11-19): Chandrupatla / ITP / modAB root-finders instead of textbook Brent for pval_invert_ci_cpp (`likelihood-ci-inversion#43925959437.1`).
   - See also (research triage, 2026-11-19): Log-binomial gradient CI is bisection, not Brent: fix inventory row, add to Brent plan (`likelihood-ci-inversion#43925959437.2`).
-- [ ] ~~TODO-17x~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-5`**
+- [x] ~~TODO-17x~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-5`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-5 is ticked; from the TODO audit's pointer check)*
   (2026-09-23 bug-fix/feature split, user decision): **Randomization CI
   construction audit** — `randomization_ci_construction_audit.md →
   TODO-1..4`. §A found and fixed a real bug (six log-hazard-ratio Cox-
@@ -1181,7 +1181,7 @@ ticked in their **owning plans**; this list is the release index.
   original per-class design intent this drifted from). Fix: one
   highest-priority row per `(class, estimand)` feeds `combined_evidence`;
   `results_table` display is unaffected.
-- [ ] ~~TODO-22~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-6`**
+- [x] ~~TODO-22~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-6`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-6 is ticked; from the TODO audit's pointer check)*
   (2026-09-23 bug-fix/feature split, user decision):
   **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer
   stability** — `../bug_fix_plans/v1_0_5/clayton_loggamma_frailty_optimizer_stability.md →
@@ -1189,7 +1189,7 @@ ticked in their **owning plans**; this list is the release index.
   harness timing investigation, traced to an unbounded C++ optimizer
   parameter plus a stale-gradient mismatch. A performance/correctness fix
   to an already-shipped class, not new v1.1.0 capability.
-- [ ] ~~TODO-39~~ **→ moved 2026-10-07 to `release_v1_0_5.md → TODO-57`**
+- [x] ~~TODO-39~~ **→ moved 2026-10-07 to `release_v1_0_5.md → TODO-57`** *(pointer ticked 2026-11-19: its target v1.0.5-TODO-57 is ticked; from the TODO audit's pointer check)*
   (user decision, the same day it was added): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
   `../bug_fix_plans/v1_0_5/bayesian_bootstrap_performance.md → TODO-1..9`. It fixes
