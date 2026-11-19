@@ -254,56 +254,56 @@ Proposed rejects: dead code, paths only legacy IVWC classes use, estimator or de
 wanted, gains negligible at EDI's sizes, or already benchmarked and dropped. Next month's agents are
 told not to re-report these without new evidence.
 
-### Exact cardinality-constrained MSSC (SDP branch-and-cut) for blocking  `blocking-partition#43925959437.4`
+### Exact cardinality-constrained MSSC (SDP branch-and-cut) for blocking  `blocking-partition#43925959437.4`  → **rejected** (approved 2026-11-19)
 Needs MATLAB/Gurobi-class tooling with no linked code, and only helps at n much larger than 20, which EDI's exact blocking does not target; the finding itself recommends not pursuing it.
 
-### fastcluster::hclust drop-in for the K-way hold-out step  `blocking-partition#43925959437.5`
+### fastcluster::hclust drop-in for the K-way hold-out step  `blocking-partition#43925959437.5`  → **rejected** (approved 2026-11-19)
 The step costs ~6-21 ms per replay draw (finding's own numbers), and fastcluster may resolve ward.D2 ties differently, which can change the held-out subjects and so the blocks (design_fixed_optimal_blocks.R:468); a new dependency for no measured win.
 
-### Eigen selfadjointView rankUpdate (SYRK) for the per-replicate Gram in OLS rand bootstrap  `dense-linear-algebra#43925959437.1`
+### Eigen selfadjointView rankUpdate (SYRK) for the per-replicate Gram in OLS rand bootstrap  `dense-linear-algebra#43925959437.1`  → **rejected** (approved 2026-11-19)
 The same swap was benchmarked and dropped: performance_profiling_and_upgrades.md TODO-29 (fast_ols.cpp) found Eigen rankUpdate 4-6% slower than the full product at p=6, and performance_profiling_and_upgrades.md TODO-118 found DSYRK wins only at p>=15. EDI's OLS kernels run at small p, and the Gram at rand_bootstrap_ols_parallel.cpp:76 is the same shape, so the prior measurement still holds.
 
-### O(log n) boundary search for the minlike exact binomial p-value  `exact-conditional-tests#43925959437.2`
+### O(log n) boundary search for the minlike exact binomial p-value  `exact-conditional-tests#43925959437.2`  → **v1.2.0-TODO-245** (approved 2026-11-19)
 At EDI's discordant-pair counts the O(n) dbinom loop in zhang_exact_speedups.cpp::binom_two_sided_pval costs microseconds even inside the Zhang CI bisection (as the finding itself notes), so the win does not apply at EDI's sizes.
 
-### Batched bounded-integer RNG (Lemire) for Fisher-Yates in random_balanced_init  `greedy-swap-allocation-search#43925959437.1`
+### Batched bounded-integer RNG (Lemire) for Fisher-Yates in random_balanced_init  `greedy-swap-allocation-search#43925959437.1`  → **rejected** (approved 2026-11-19)
 The shuffle is a negligible share of each greedy/D/A search draw (the O(n_T n_C) swap rounds dominate), so the end-to-end gain is about 1x, while it would change every seed-pinned design stream and its fixtures.
 
-### Null-model score statistics (Rfast::score.glms) instead of per-covariate univariate GLM fits  `kk21-covariate-weights#43925959437.3`
+### Null-model score statistics (Rfast::score.glms) instead of per-covariate univariate GLM fits  `kk21-covariate-weights#43925959437.3`  → **rejected** (approved 2026-11-19)
 Estimator change that departs from KK21's Wald-|t| importance measure and would change the design rule; the per-covariate fits are tiny 2-parameter fits (inventory: kk21_logistic/negbin_weights_cpp 'Keep'), so the gain at EDI sizes is small.
 
-### Replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp or fastglm_nb  `negbin-glm-mle#43925959437.1`  → dead-code cleanup in **v1.0.6-TODO-38**
+### Replace MASS::glm.nb in robust_negbinreg with fast_neg_bin_cpp or fastglm_nb  `negbin-glm-mle#43925959437.1`  → **rejected** (approved 2026-11-19)
 The only caller (design_seq_one_by_one_KK21_stepwise.R:352, compute_weights_KK21stepwise_count) is unreachable: compute_weights returns kk21_stepwise_negbin_weights_cpp for count with count_use_speedup=FALSE at :283-284 before the fallback at :295. Speeding up dead code has no value.
 
-### k-step Newton bootstrap replicates from theta-hat instead of full refits  `nonparametric-bootstrap-distribution#43925959437.2`
+### k-step Newton bootstrap replicates from theta-hat instead of full refits  `nonparametric-bootstrap-distribution#43925959437.2`  → **rejected** (approved 2026-11-19)
 Changes the bootstrap distribution at finite n (asymptotic equivalence only) and is risky for nonconcave likelihoods, while replicates are already warm-started at the full-data MLE (finding's own 'current'), so the remaining gain is the few iterations past k (est. 1-3x, unmeasured).
 
-### k-step parametric bootstrap refits instead of full convergence  `parametric-bootstrap-simulation#43925959437.1`
+### k-step parametric bootstrap refits instead of full convergence  `parametric-bootstrap-simulation#43925959437.1`  → **rejected** (approved 2026-11-19)
 Estimator change at finite n, and replicates are already warm-started from the base MLE (inventory run_param_bootstrap_replicates), so few iterations remain to save; same reasoning as the nonparametric k-step finding.
 
-### Cache delta-free central log-choose weights across Zhang exact-CI bisection steps  `pvalue-combination#43925959437.1`
+### Cache delta-free central log-choose weights across Zhang exact-CI bisection steps  `pvalue-combination#43925959437.1`  → **rejected** (approved 2026-11-19)
 Already assessed: inventory fisher_noncentral_two_sided_pval 'Keep (delta-free log-weights could be cached ...; trivial at EDI sizes)'; microseconds per call at EDI reservoir sizes, and that reason still holds.
 
-### aftsrr se='ISCF' closed-form sandwich instead of ISMB B=100 multiplier bootstrap  `quantile-rank-regression#43925959437.1`
+### aftsrr se='ISCF' closed-form sandwich instead of ISMB B=100 multiplier bootstrap  `quantile-rank-regression#43925959437.1`  → **rejected** (approved 2026-11-19)
 The only host is the legacy InferenceSurvivalKKRankRegrIVWC chain (aftsrr_for_matched_pairs/aftsrr_for_reservoir, inference_survival_KK_rank_regr_ivwc_abstract.R:266-282, se_method 'ISMB', B = 100), and IVWC classes are never published. Switching to ISCF also changes the SE and hence the IVWC weights (keeps_estimator = no).
 
-### MCMC/gradient rerandomization samplers (PSRSRR, Langevin-Gradient)  `rerandomization-sampling#43925959437.2`
+### MCMC/gradient rerandomization samplers (PSRSRR, Langevin-Gradient)  `rerandomization-sampling#43925959437.2`  → **rejected** (approved 2026-11-19)
 These samplers do not draw uniformly from {w : f(w) <= a} (LGR is explicitly non-uniform), so they change the design law that rerandomization_search_cpp's exact i.i.d. rejection sampler defines and that the randomization tests condition on. Any such sampler would be a separate opt-in design, not a speedup.
 
-### Per-event-time collapsed Newton for p=1 Cox in rand bootstrap kernel  `resampling-refit-loop#43925959437.2`  → dead-code cleanup in **v1.0.6-TODO-43**
+### Per-event-time collapsed Newton for p=1 Cox in rand bootstrap kernel  `resampling-refit-loop#43925959437.2`  → **rejected** (approved 2026-11-19)
 compute_coxph_rand_bootstrap_cpp (fast_coxph_regression.cpp:1135) has no caller outside RcppExports, so the faster path would speed up dead code. Keep FastSurvival as a test-oracle note in small_kernel_hoists_batch.md Item C if the kernel is ever wired.
 
-### Fast robust bootstrap (one weighted LS per replicate) for robust rand bootstrap  `resampling-refit-loop#43925959437.3`
+### Fast robust bootstrap (one weighted LS per replicate) for robust rand bootstrap  `resampling-refit-loop#43925959437.3`  → **rejected** (approved 2026-11-19)
 FRB is a linearized approximation of the replicate estimate, so it changes the bootstrap distribution that compute_robust_rand_bootstrap_parallel_cpp (called from inference_continuous_robust_regr.R:413) produces; keeps_estimator = no. Only relevant if a true MM estimator (audit TODO-31, v1.2.0-TODO-23) is adopted.
 
-### Corrected Newcombe phi (AD-BC-N/2) in the paired Newcombe interval  `risk-difference-ci#43925959437.2`  → dead-code cleanup in **v1.0.6-TODO-43**
+### Corrected Newcombe phi (AD-BC-N/2) in the paired Newcombe interval  `risk-difference-ci#43925959437.2`  → **rejected** (approved 2026-11-19)
 newcombe_paired_ci_cpp (newcombe_speedups.cpp:113, phi at :127-128) has no R caller (only RcppExports.R:4784) and is not exported; InferenceIncidKKNewcombeRiskDiff computes its matched part with its own Wald variance (inference_incidence_KK_newcombe_ivwc_univ.R:140-148). Fix the phi definition only if the function is ever wired in.
 
-### Monotone pointer instead of binary search in Cox robust vcov  `sandwich-variance#43925959437.2`
+### Monotone pointer instead of binary search in Cox robust vcov  `sandwich-variance#43925959437.2`  → **rejected** (approved 2026-11-19)
 The finding itself says it does not apply at EDI sizes: it removes a log K factor from a non-dominant term of compute_robust_vcov (inventory verdict Keep). Do it only alongside the I-6 reverse-accumulation fix if that edit touches the function.
 
 ### Lam's cheap bootstrap (few-resample t interval) for subsampling CIs  `subsampling-m-out-of-n#43925959437.1`
 It is a different CI procedure (a t-type interval from a handful of resamples), not a faster way to compute the current B = 501 subsampling/m-out-of-n pivot CI (inventory verdict Keep), so it changes the estimator's interval. If wanted, it belongs in a new-methods proposal, not this triage.
 
-### Fast tail-series or trigamma-free expected Hessian for truncated NB  `zero-inflated-count-mle#43925959437.3`  → dead-code cleanup in **v1.0.6-TODO-43**
+### Fast tail-series or trigamma-free expected Hessian for truncated NB  `zero-inflated-count-mle#43925959437.3`  → **rejected** (approved 2026-11-19)
 fast_hurdle_negbin.cpp TruncatedNegBinCount::expected_hessian is dead code with no caller (inventory verdict 'Keep. Dead code'), so speeding it up gains nothing. Delete it in a cleanup pass or rewrite it only if it is ever wired in.

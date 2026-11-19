@@ -1206,3 +1206,16 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   - Revisit on or after 2027-05-01.
   - Done when: a benchmark or check at EDI sizes shows a worthwhile gain with unchanged results (identical() or within
     tolerance), or the item closes with the numbers. Anything that changes results needs an owner decision.
+- [ ] TODO-245 (added 2026-11-19, owner; from the algorithm-research triage of run 43925959437, finding
+  `exact-conditional-tests#43925959437.2`, see `audits/research_triage_drafts.md`): **O(log n) boundary search for the
+  minlike exact binomial p-value**
+  - Port R's `.binom_test_two_sided_pval_minlike` (stats/R/binom.test.R, GPL-2+) into
+    `zhang_exact_speedups.cpp::binom_two_sided_pval` (used by `zhang_exact_binom_pval_cpp`): find the opposite-side
+    boundary by a linear scan on one side of the mode, or a binary search for n >= 1234, then
+    p = pbinom(yL) + pbinom(yR - 1, upper). That is O(log n) dbinom calls plus two pbinom calls instead of the current
+    O(n) dbinom loop.
+  - Keep the same minlike rule and 1e-7 relative tolerance. Gate with an equality test against the current kernel and
+    `stats::binom.test(...)$p.value` over a grid of (x, n, p0), including x = 0, x = n and ties at the boundary; the
+    pbinom tails may differ in the last bits, so compare to tolerance.
+  - Benchmark the Zhang exact CI bisection at EDI's discordant-pair counts and at large n.
+  - Done when: merged with the equality test passing and the timings recorded, or closed with the numbers.
