@@ -430,6 +430,11 @@ InferenceCountHurdleNegBin = define_inference_class(
 				private$cache_nonestimable_estimate("hurdle_negbin_weighted_design_unusable")
 				return(NA_real_)
 			}
+			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			if (!zero_augmented_count_treatment_identified(X_fit, private$y, 2L, weights = row_weights)) {
+				private$cache_nonestimable_estimate("hurdle_negbin_count_treatment_unidentified")
+				return(NA_real_)
+			}
 			dat = private$build_hurdle_frame(X_fit, X_hurdle)
 			mod = tryCatch(
 				suppressWarnings(suppressMessages(
@@ -522,6 +527,8 @@ InferenceCountHurdleNegBin = define_inference_class(
 			X_f = private$build_component_matrix(private$model_formula, private$best_X_colnames, treatment_name = "treatment")
 			X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			if (is.null(X_f) || is.null(X_hurdle)) return(NA_real_)
+			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			if (!zero_augmented_count_treatment_identified(X_f, private$y, 2L)) return(NA_real_)
 			n_params = ncol(X_f) + 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			has_vc = isTRUE(is.finite(private$cached_vc_params))
@@ -780,11 +787,17 @@ InferenceCountHurdleNegBin = define_inference_class(
 			} else {
 				X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			}
-			fit = private$try_hurdle_negbin_fit(X_fit, X_hurdle, j_treat, estimate_only = estimate_only)
+			# v1.0.6-TODO-186: skip the fit when the positive rows do not identify the
+			# count-part treatment coefficient (see zero_augmented_count_treatment_identified()).
+			fit = if (zero_augmented_count_treatment_identified(X_fit, private$y, j_treat)) {
+				private$try_hurdle_negbin_fit(X_fit, X_hurdle, j_treat, estimate_only = estimate_only)
+			} else NULL
 			if (private$harden && is.null(fit) && ncol(X_fit) > 2L){
 				X_treat_only = X_fit[, 1:2, drop = FALSE]
 				X_hurdle_treat_only = X_hurdle[, 1:2, drop = FALSE]
-				fit = private$try_hurdle_negbin_fit(X_treat_only, X_hurdle_treat_only, 2L, estimate_only = estimate_only)
+				fit = if (zero_augmented_count_treatment_identified(X_treat_only, private$y, 2L)) {
+					private$try_hurdle_negbin_fit(X_treat_only, X_hurdle_treat_only, 2L, estimate_only = estimate_only)
+				} else NULL
 				reduced = list(X = X_treat_only, keep = 1:2, j_treat = 2L)
 			}
 			if (is.null(fit)){

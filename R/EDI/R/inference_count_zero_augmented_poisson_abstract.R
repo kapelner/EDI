@@ -149,6 +149,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cache_nonestimable_estimate("zero_augmented_poisson_aux_design_unusable")
 				return(NA_real_)
 			}
+			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L, weights = row_weights)) {
+				private$cache_nonestimable_estimate("zero_augmented_count_treatment_unidentified")
+				return(NA_real_)
+			}
 			dat = private$build_component_frame(X_fit, Xzi_fit)
 			mod = private$fit_zero_augmented_model(dat, X_fit, Xzi_fit, weights = row_weights)
 			if (is.null(mod)) {
@@ -849,6 +854,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 			X_fit = private$build_component_matrix(private$model_formula, private$best_X_colnames, treatment_name = "treatment")
 			Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "treatment")
+			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L)) return(NA_real_)
 			if (private$use_rcpp && identical(private$za_description(), "Zero-Inflated Negative Binomial")) {
 				n_params = ncol(X_fit) + ncol(Xzi_fit) + 1L
 				ws_args = private$get_backend_warm_start_args(n_params)
@@ -1159,6 +1166,12 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$best_Xzi_colnames = setdiff(colnames(Xzi_fit), c("(Intercept)", "w"))
 				} else {
 					Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "w")
+				}
+				# v1.0.6-TODO-186: a count-part treatment coefficient the positive rows do
+				# not identify is not estimable; fitting would just return the warm start.
+				if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L)) {
+					private$invalidate_likelihood_fit("zero_augmented_count_treatment_unidentified")
+					return(NULL)
 				}
 				out = list()
 				private$cached_values$zero_inflation_fallback = NULL
@@ -1587,4 +1600,29 @@ zero_augmented_data_has_no_mle = function(y, is_hurdle) {
 	pos = as.numeric(y)
 	pos = pos[is.finite(pos) & pos > 0]
 	length(pos) > 0L && all(pos == 1)
+}
+
+# v1.0.6-TODO-186: TRUE when the rows with a positive count identify the
+# count-part treatment coefficient, i.e. dropping the treatment column from
+# those rows of the count design lowers its rank. For a hurdle the likelihood
+# factors into the binary part and a zero-truncated count part fit to the
+# positive rows only; ZIP/ZINB factor the same way (P(y > 0) times the
+# zero-truncated density), and since the zero part has its own treatment term,
+# the count-part treatment coefficient is again learned from the positive rows
+# only. When those rows do not identify it (e.g. one positive count, more count
+# parameters than positive rows, or every positive row in one arm), the
+# likelihood is flat along the treatment direction. The optimizer then returns
+# its warm start, so every randomization replicate equalled the observed estimate
+# instead of responding to the permuted assignment. Decided from the design and
+# data alone, so the outcome does not depend on the optimizer.
+zero_augmented_count_treatment_identified = function(X_fit, y, j_treat = 2L, weights = NULL) {
+	X_fit = as.matrix(X_fit)
+	y = as.numeric(y)
+	if (!is.finite(j_treat) || j_treat < 1L || j_treat > ncol(X_fit) || nrow(X_fit) != length(y)) return(FALSE)
+	keep = is.finite(y) & y > 0
+	if (!is.null(weights)) keep = keep & is.finite(as.numeric(weights)) & as.numeric(weights) > 0
+	if (!any(keep)) return(FALSE)
+	X_pos = X_fit[keep, , drop = FALSE]
+	if (any(!is.finite(X_pos))) return(FALSE)
+	qr(X_pos)$rank > qr(X_pos[, -j_treat, drop = FALSE])$rank
 }

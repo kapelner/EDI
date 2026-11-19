@@ -14,3 +14,5 @@ the reason, so the next reader knows why it was let go:
   first beta at free index `n_alpha` (`R/EDI/src/fast_adjacent_category_logit.cpp:525`) (2026-11-18)
 - `rd-d537f2cc5`: the continuation-ratio `warm_start_beta` really is the full `c(alpha, beta)` vector; the C++
   requires length `n_alpha + p` (`R/EDI/src/fast_continuation_ratio_regression.cpp:172-173`) (2026-11-18)
+- `code-duplication-df63f231e`: the divergence it flags (`InferenceCountZeroInflatedPoisson` / `...NegBin` not
+  accepting `smart_cold_start_default`, unlike the hurdle sibling) is fixed by v1.0.6-TODO-153 (2026-11-19)

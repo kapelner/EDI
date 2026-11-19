@@ -309,6 +309,14 @@
   bootstrap replicate no longer depend on `set_num_cores()`
   (v1.0.6-TODO-62, v1.0.6-TODO-64).
 
+* Hurdle and zero-inflated count models (`InferenceCountHurdlePoisson`,
+  `InferenceCountHurdleNegBin`, `InferenceCountZeroInflatedPoisson`,
+  `InferenceCountZeroInflatedNegBin`) now report the treatment effect as
+  non-estimable when the positive counts do not identify the count-part
+  treatment coefficient (e.g. a single positive count). The fit used to return
+  its starting values, so the estimate was arbitrary and the randomization
+  null distribution collapsed to a constant equal to it (v1.0.6-TODO-186).
+
 ## New features
 
 * The randomization test (`compute_rand_two_sided_pval()` with a nonzero

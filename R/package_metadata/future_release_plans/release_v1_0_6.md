@@ -3199,7 +3199,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   by an outer resampling call is lost after an inner one; check whether any outer operation then warns where it
   should be silent, and restore the previous value if so.
 
-- [ ] TODO-186 (added 2026-11-19, agent; found by the v1.0.6-TODO-166 agent): **`InferenceCountHurdlePoisson`'s
+- [x] TODO-186 (added 2026-11-19, agent; found by the v1.0.6-TODO-166 agent): **`InferenceCountHurdlePoisson`'s
   randomization null distribution collapses to a constant.** On MASS::birthwt (`ptl`, n = 16, covariates
   age/lwt/smoke/ht/ui) every randomization replicate is nearly the same value instead of responding to the permuted
   assignment: after the observed estimate is computed, replicates equal it (t = 0.00508, replicate 5-95% range
@@ -3208,7 +3208,16 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   across replicates (cf. the zero-inflation-ridge warm-start learning). Repro: the TODO-166 agent's scratch
   `probe5.R`, `probe6.R` in /tmp/claude-1000/-home-kapelner-workspace-EDI/354c53b6-c792-4138-93ba-8154526e6c02/scratchpad/.
   Check HurdleNegBin and the other zero-augmented classes too. Coordinate with v1.0.6-TODO-62 (hurdle core-count).
-
+  Done 2026-11-19 (agent, uncommitted): not a stale cache. Every repro dataset has exactly one positive count against a
+  7-column count submodel, so the count-part treatment coefficient (learned from positive rows only) is not
+  identified and the optimizer returns its warm start. New `zero_augmented_count_treatment_identified()` (rank of the
+  positive-row count design with vs without treatment); where it fails, the full fit, randomization refit and weighted
+  bootstrap are NA (`zero_augmented_count_treatment_unidentified`, `hurdle_negbin_count_treatment_unidentified`;
+  HurdleNegBin's treatment-only fallback still runs when dropping covariates restores identification). Null
+  simulation (300 datasets, n = 24): size 3.0-5.3% at 0.05, KS p 0.48-0.78. New
+  `test-zero-augmented-count-treatment-unidentified-from-positive-rows.R` (20); ~4,085 hurdle / zero-inflated / rand
+  expectations pass. Results change: such datasets are now NA instead of arbitrary; committed rows on sparse small-n
+  count data may go stale. Follow-ups: v1.0.6-TODO-195.
 - [ ] TODO-187 (added 2026-11-19, agent; found by the v1.0.6-TODO-183 agent; owner decision, changes results):
   **`DesignSeqOneByOneiBCRD` with `n = NULL` has the wrong randomization distribution.** With no planned `n`,
   `assign_wt()` falls back to a Bernoulli coin, but the redraw still calls `generate_permutations_ibcrd_cpp(t)`, which
@@ -3262,4 +3271,60 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   covariate-drop loop in the plain class (`inference_incidence_gcomp_abstract.R` ~L537-575). Working version: the
   agent's `t168/patch.R` (all 999 replicates kept, ~3x faster). Regression test with the rep-102 data. C++ follow-up
   (weighted logistic IRLS runs to |b| ~ 1e9 with no step-halving) belongs with v1.0.6-TODO-169/170.
+
+### Code-duplication audit backlog (TODO-193..194)
+
+- [ ] TODO-193 (added 2026-11-19, owner request): **Merge the code-duplication audit's "refactor" clones into shared
+  helpers.** The weekly code-duplication audit (`.github/workflows/audit-code-duplication.yml`; verdicts in
+  `code-duplication/verdicts.json` on the `audit-notes` branch) judges near-clones as `intentional`, `refactor` or
+  `divergence_bug`. Merge each `refactor` clone set into one shared helper. Rule: results must stay bit-identical,
+  proved by before/after output (same seed, `identical()`) on every class or kernel that calls the merged code; any
+  difference is a divergence bug, not a refactor, and gets its own TODO. Later weekly runs add their `refactor`
+  verdicts to this list (append the decision id, family id and files). Citing a decision id here keeps the audit from
+  re-listing it while this TODO is open; once a clone is merged its family disappears from the scan. Then tick the
+  item. Items marked [C++] need a C++ change: agents write the patch and verify it with targeted compiles only where
+  per-file objects exist (never a full build); otherwise the owner builds. First CI run 2026-11-18 (run 44358232233,
+  `4ce2b712`): 32 judged (20 refactor, 3 divergence_bug, 9 intentional), 365 not yet judged.
+  - `code-duplication-da35f9c8f` (`dup-1adb37d8ab20`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:534-614` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:622-701` (coordinate with v1.0.6-TODO-192, same function)
+  - `code-duplication-d6b10061f` (`dup-440466dd6dc0`): `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187` -- DONE by v1.0.6-TODO-154 (uncommitted): `DesignFixed`'s override removed, one body in `Design`
+  - `code-duplication-d4e38d855` (`dup-47b3c5848e6a`): `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317`
+  - `code-duplication-d23a10708` (`dup-4ca7ca9c9237`): `R/EDI/R/inference_ordinal_ordered_probit.R:100-186` vs `R/EDI/R/inference_ordinal_proportional_odds.R:134-217`
+  - `code-duplication-dcdb7e599` (`dup-51b70d0e54ad`): `R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:367-427` vs `R/EDI/R/inference_proportion_KK_combined.R:164-224`
+  - `code-duplication-dfe6e2293` (`dup-53e9eeb69c5d`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:863-970` vs `R/EDI/R/inference_incidence_gcomp.R:16-151`
+  - `code-duplication-de10bd6b1` (`dup-6af874290f8f`): `R/EDI/R/simulations_framework.R:3393-3441` vs `R/EDI/R/simulations_framework.R:3446-3494`
+  - `code-duplication-db001874c` (`dup-847f2d57f083`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:259-462` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:296-515` (coordinate with v1.0.6-TODO-192)
+  - `code-duplication-d7e6ac7c3` (`dup-86f70c0a1fbe`): `R/EDI/R/inference_ordinal_cauchit.R:8-80` vs `R/EDI/R/inference_ordinal_ordered_probit.R:2-76`
+  - `code-duplication-d24d11c40` (`dup-8fdf724fbd87`): `R/EDI/R/simulations_framework.R:2110-2146` vs `R/EDI/R/simulations_framework.R:2157-2194`
+  - `code-duplication-d1b25b18a` (`dup-a82df7b209aa`): `R/EDI/R/inference_continuous_quantile_regr.R:50-261` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-262`
+  - `code-duplication-d593b90a9` (`dup-e88368769f0c`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:400-427` vs `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:439-462` (coordinate with v1.0.6-TODO-192)
+  - `code-duplication-dc93f6357` (`dup-fb4cd2ec3279`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:183-232` vs `R/EDI/R/inference_incidence_risk_diff.R:217-273`
+  - `code-duplication-dc1588975` (`dup-01e154dfbad0`) [C++]: `R/EDI/src/gcomp_speedups.cpp:175-276` vs `R/EDI/src/gcomp_speedups.cpp:384-490`
+  - `code-duplication-d1a5a5abe` (`dup-5997356561a2`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:100-387` vs `R/EDI/src/fast_ordinal_cloglog_regression.cpp:108-386`
+  - `code-duplication-da540c45e` (`dup-7640a4a65caa`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82`
+  - `code-duplication-d4d992420` (`dup-b4945bb7ace9`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:636-663` vs `R/EDI/src/fast_gaussian_lmm.cpp:683-710`
+  - `code-duplication-dd690bfdc` (`dup-b82ef667e0cb`) [C++]: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211`
+  - `code-duplication-d730a0bdd` (`dup-b84f50f38a71`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381`
+  - `code-duplication-dee72312b` (`dup-be7f39dede8f`) [C++]: `R/EDI/src/fast_cpoisson_combined.cpp:87-124` vs `R/EDI/src/fast_cpoisson_combined.cpp:346-395`
+
+- [ ] TODO-194 (added 2026-11-19, owner request; from the code-duplication audit, decisions `code-duplication-d3fc63ea7`
+  (`dup-eb9320e6bb57`, p-value path) and `code-duplication-d61e30e3a` (`dup-7bbada5cb607`, CI path); one drift on two
+  paths, so one TODO): **PRW subsampling swallows timeouts that m-out-of-n honours.** The m-out-of-n CI, p-value and
+  pivot paths (`inference_ext_m_out_of_n_bootstrap.R` ~L144-172, ~L212-239) call
+  `private$check_bootstrap_replicate_deadline()` at setup, and the pivot reads the original estimate with
+  `error = private$resampling_error_to_na` (re-throws control conditions). The PRW subsampling copies
+  (`inference_ext_prw_subsampling.R` ~L136-163, ~L204-230) have no deadline check, and `subsampling_centered_pivot()`
+  uses `error = function(e) NA_real_`, so a timeout / control condition raised while computing the original estimate
+  is reported as `subsampling_original_estimate_unavailable` instead of aborting. Impact is limited (the shared
+  `compute_resampling_draw_distribution()` still checks the deadline per replicate). Repro: set
+  `options(EDI.ci_timeout_deadline)` in the past and compare the two CI calls. Fix: same deadline check and error
+  handler as m-out-of-n; ideally merge the two setups into one helper. Test both paths.
+
+- [ ] TODO-195 (added 2026-11-19, agent; found by the v1.0.6-TODO-186 agent): **Leftovers from the zero-augmented
+  identification fix.** (1) The KK hurdle classes (`InferenceCountKKHurdlePoissonOneLik`, `...IVWC`,
+  `inference_count_KK_cond_poisson.R`) use a separate path and were not checked for the same unidentified count-part
+  treatment coefficient; add the guard if needed. (2) Owner decision (changes results): drop aliased count-part
+  covariates on the positive rows (as `glm` would) so more small-n datasets stay estimable instead of NA. (3) When every
+  positive count equals 1 the hurdle count MLE goes to -infinity; today only the SE is dropped
+  (`zero_augmented_data_has_no_mle`) and the point estimate is still returned. (4) `fast_zero_augmented_poisson_cpp`
+  with `y = NULL` segfaults instead of erroring (C++ input check).
 
