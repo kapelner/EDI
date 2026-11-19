@@ -228,7 +228,7 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #' results are available through \code{SimulationFrameworkReport}.
 #'
 #' @details
-#' Covariates are drawn independently from \eqn{\mathrm{Uniform}(0, 1)}.
+#' Covariates are drawn independently using \code{cov_draw_method} (default \code{stats::rnorm}).
 #' \itemize{
 #'   \item \code{cond_exp_func_model = "linear"}: the base continuous signal is
 #'     \eqn{y = X\beta} where \eqn{\beta} is evenly spaced from 1 to \eqn{-1}.

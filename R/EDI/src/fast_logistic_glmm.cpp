@@ -90,7 +90,7 @@ inline double log_sigma_penalty_hessian(double log_sigma, double center = kLogSi
 struct LogisticGLMMData {
 	Eigen::MatrixXd X_s;        // n x p (includes intercept)
 	std::vector<double> y_s;    // responses in [0,1], length n
-	std::vector<int> grp_start; // warm_start_params index of each group
+	std::vector<int> grp_start; // start row index of each group
 	std::vector<int> grp_size;  // size of each group
 	Eigen::VectorXd grp_y_sum;  // sum of responses in each group
 	int n, p, G, max_group_size;
