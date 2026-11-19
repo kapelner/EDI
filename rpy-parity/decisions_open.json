@@ -2,57 +2,22 @@
  "rpy-parity-d1f65c8c0": {
   "first_seen": "2026-11-17T22:51:10+00:00",
   "key": "return_mismatch",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The Python binding returns only params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm (bindings_proportion.cpp:130-137). The R export fast_zero_one_inflated_beta_cpp also returns b, log_phi, zero_one_b0, zero_one_b1, vcov, observed_information/fisher_information/information, information_type, hessian and min_eigenvalue_information. R documents these as \"vcov (the joint variance-covariance matrix ...)\". The Python docstring mentions only 'params'. It also has no estimate_only argument, which R has (default FALSE). So a Python user gets no vcov or information matrix and cannot reproduce R's standard errors. Suggested: Either return vcov/observed_information (and min_eigenvalue_information) from the binding as the R export does, adding estimate_only, or state in the docstring that variance output is intentionally not provided. If the omission is deliberate, record it in decisions.md.",
+  "last_seen": "2026-11-19T13:46:07+00:00",
+  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The R export `fast_zero_one_inflated_beta_cpp` takes `estimate_only = false` and, unless `estimate_only = TRUE`, returns `vcov` (joint covariance), `observed_information`/`fisher_information`/`information`, `information_type` and `hessian`. It also returns `b`, `log_phi`, `zero_one_b0` and `zero_one_b1`. The Python binding has no `estimate_only` argument. It calls `fast_zero_one_inflated_beta_internal` and returns only `params`, `neg_loglik`, `num_iter`, `hit_iteration_cap`, `converged` and `gradient_norm`. A Python user therefore cannot get the variance-covariance matrix or information matrix that the R result provides. Sibling bindings such as `fast_ordinal_regression` and `fast_stereotype_logit` do expose `estimate_only` and the variance fields. The docstring does not say that the variance output is absent. Suggested: Python side: add `estimate_only` and the post-fit Hessian/vcov block (vcov, observed_information, fisher_information, information, information_type, hessian, and the b/log_phi/zero_one_b0/zero_one_b1 split) to the binding, ideally by moving the R export's code into a shared internal function. If the omission is intended, document it in the docstring.",
   "unit": "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta"
- },
- "rpy-parity-d47e54762": {
-  "first_seen": "2026-11-19T13:14:13+00:00",
-  "key": "docstring",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_binary.cpp::fast_logistic_regression` (docstring): The docstring says `fixed_idx : Optional indices of fixed parameters.` without giving the base. The kernel (make_fixed_param_spec) treats the indices as 1-based (`fixed_idx_r[i] - 1`). Python callers will likely pass 0-based indices. That line is repeated in this file, so no unique literal edit is given. Suggested: State in the docstring that fixed_idx is 1-based. Alternatively, convert the indices in the binding if 0-based is intended.",
-  "unit": "python/cpp/bindings_binary.cpp::fast_logistic_regression"
  },
  "rpy-parity-d62675f61": {
   "first_seen": "2026-11-17T22:51:10+00:00",
   "key": "argument_mismatch",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (argument_mismatch): The R export fast_clogit_plus_glmm_cpp takes `weights_disc` and `weights_conc` (both `Rcpp::Nullable<Rcpp::NumericVector> ... = R_NilValue`). Per the kernel, these are positive per-row weights that change the likelihood. The Python binding exposes neither: it passes `std::nullopt, std::nullopt` to fast_clogit_plus_glmm_internal (python/cpp/bindings_glmm.cpp:457), and the docstring does not mention this. A Python user cannot reproduce R's weighted/bootstrap fits. Suggested: Add optional `weights_disc` and `weights_conc` py::args and pass them through to the kernel. Or add a docstring sentence saying the Python binding is unweighted.",
+  "last_seen": "2026-11-19T13:46:07+00:00",
+  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (argument_mismatch): The R export fast_clogit_plus_glmm_cpp takes `weights_disc = R_NilValue, weights_conc = R_NilValue`. The R caller passes them (`weights_disc = disc_weights, weights_conc = conc_weights`) and they change the likelihood. The Python binding has no such arguments: its lambda always passes `std::nullopt, std::nullopt` to fast_clogit_plus_glmm_internal. The docstring does not say that weighted fits are unavailable from Python. Suggested: Add optional `weights_disc` and `weights_conc` py::args to the binding and pass them through to fast_clogit_plus_glmm_internal. If the omission is intended, say so in the docstring. This needs a human decision because it changes the binding signature.",
   "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
  },
- "rpy-parity-d8fd1cc34": {
-  "first_seen": "2026-11-19T12:25:34+00:00",
-  "key": "argument_mismatch",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_ordinal_regression` (argument_mismatch): The docstring says \"fixed_idx : ndarray of int, optional -- Optional indices of fixed parameters.\" and does not give the index base. The kernel make_fixed_param_spec treats the values as 1-based (`int idx = fixed_idx_r[i] - 1;` and the error \"fixed_idx entries must be one-based indices\"). R's roxygen says \"Optional 1-indexed positions (into [alpha,beta]) of parameters to hold fixed.\" A Python user who passes 0-based indices will fix the wrong parameter or get an error. The same applies to fast_zero_one_inflated_beta, whose docstring (bindings_proportion.cpp:177-178) is also silent on the base, while R says \"1-indexed into [beta, log_phi, gamma_0, gamma_1]\". The old_text is not unique in either file, so this is not a docstring-only fix. Suggested: State in the fixed_idx docstrings that the indices are 1-based, into [alpha, beta] for ordinal and [beta, log_phi, gamma_0, gamma_1] for ZOIB. The same text recurs across the bindings, so use a shared edit. Alternatively, convert 0-based indices to 1-based in the Python layer.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_ordinal_regression"
- },
- "rpy-parity-d95105c64": {
-  "first_seen": "2026-11-19T13:14:13+00:00",
-  "key": "argument_mismatch",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_stereotype_logit` (argument_mismatch): Docstring says \"fixed_idx : ndarray of int, optional -- Optional indices of fixed parameters.\" The R roxygen for fast_stereotype_logit_cpp says \"Optional 1-indexed positions (into the joint parameter vector...)\". The kernel uses the same one-based make_fixed_param_spec. The Python text does not say the indices are 1-based or that they index the joint parameter vector (alpha, phi, beta), which is not just beta. Suggested: Change the docstring to say \"Optional 1-based indices into the joint parameter vector of fixed parameters.\" The old_text line is not unique in the file, so a human should make the edit.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_stereotype_logit"
- },
- "rpy-parity-dc3a7e28b": {
-  "first_seen": "2026-11-19T13:14:13+00:00",
-  "key": "docstring",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zinb` (docstring): The docstring says `fixed_idx : Optional indices of fixed parameters.`, with no base and no layout. The kernel treats the indices as 1-based into [beta_cond, beta_zi, log_theta] (make_fixed_param_spec). That line is repeated in this file, so no unique literal edit is given. Suggested: State that fixed_idx is 1-based into [beta_cond, beta_zi, log_theta].",
+ "rpy-parity-d7bf376cf": {
+  "first_seen": "2026-11-19T13:46:07+00:00",
+  "key": "return_mismatch",
+  "last_seen": "2026-11-19T13:46:07+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zinb` (return_mismatch): The R export fast_zinb_cpp returns `zero_inflation_at_boundary`, `reduced_model` and `min_eigenvalue_information`, in addition to `dispersion_at_poisson_boundary`. The kernel's fallbacks (ZIP reduced fit, ZI boundary) set these. The Python binding returns only params, neg_loglik, num_iter, hit_iteration_cap, converged, gradient_norm and dispersion_at_poisson_boundary through likelihood_fit_result_to_dict. A Python user cannot tell when `params` came from a ZIP or zero-inflation-boundary fallback, and the docstring does not list the returned keys. Suggested: Add `zero_inflation_at_boundary`, `reduced_model` and `min_eigenvalue_information` to the fast_zinb dict, or to likelihood_fit_result_to_dict if every user of it has these fields. Add a Returns section to the docstring. This needs a human decision because it changes the return dict.",
   "unit": "python/cpp/bindings_count.cpp::fast_zinb"
- },
- "rpy-parity-dd3c1d960": {
-  "first_seen": "2026-11-19T13:14:13+00:00",
-  "key": "docstring",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (docstring): The docstring says `fixed_idx : Optional indices of fixed parameters.` without giving the base. The kernel's make_fixed_param_spec subtracts 1 (`int idx = fixed_idx_r[i] - 1;`, error text \"one-based indices\"). The sibling fast_logistic_glmm docstring in the same file states \"1-based\". A Python user would likely pass 0-based indices. The parameter vector layout [beta, log_sigma] is also not stated here. That line is repeated in this file, so no unique literal edit is given. Suggested: Change the fixed_idx text to say the indices are 1-based into the parameter vector, as in the fast_logistic_glmm docstring (bindings_glmm.cpp:427-428).",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
- },
- "rpy-parity-df64df60a": {
-  "first_seen": "2026-11-19T13:14:13+00:00",
-  "key": "argument_mismatch",
-  "last_seen": "2026-11-19T13:14:13+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm` (argument_mismatch): Docstring says \"fixed_idx : ndarray of int, optional -- Optional indices of fixed parameters.\" and in the same docstring j_T is \"0-based\". The kernel (make_fixed_param_spec) takes fixed_idx as ONE-based into the full [alpha, beta, log_sigma] vector (idx = fixed_idx[i] - 1; error \"fixed_idx entries must be one-based indices within the parameter vector\"). A Python user would reasonably read it as 0-based, and 0 raises an error. The sibling fast_coxph_regression docstring does say \"1-based\". Suggested: Change the fixed_idx text to \"Optional 1-based indices (into the full [alpha, beta, log_sigma] parameter vector) of fixed parameters.\" The line \"    Optional indices of fixed parameters.\\n\" is repeated in many docstrings in this file, so it is not a unique old_text. A human should edit it, or the edit should include the preceding fixed_idx line.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm"
  }
 }
