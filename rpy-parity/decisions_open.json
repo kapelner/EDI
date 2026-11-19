@@ -1,37 +1,16 @@
 {
- "rpy-parity-d1b6f8c66": {
-  "first_seen": "2026-11-19T14:06:09+00:00",
-  "key": "other",
-  "last_seen": "2026-11-19T14:06:09+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (other): The docstring says \"fixed_idx : ndarray of int, optional -- Optional indices of fixed parameters.\" It does not say the indices are 1-based. The shared kernel subtracts 1 (`fixed_idx_r[i] - 1`) and rejects out-of-range values. A sibling binding in the same file does say \"Optional 1-based indices\". The parameter vector layout is [beta, log_sigma] when has_concordant is true, and beta alone otherwise, and the docstring does not say so either. Suggested: Reword the fixed_idx entry to \"Optional 1-based indices of fixed parameters into [beta, log_sigma] (beta only if has_concordant is False)\". The current line is not unique in the file, so it needs a manual edit.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
- },
  "rpy-parity-d1f65c8c0": {
   "first_seen": "2026-11-17T22:51:10+00:00",
   "key": "return_mismatch",
-  "last_seen": "2026-11-19T14:06:09+00:00",
-  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): R's fast_zero_one_inflated_beta_cpp (estimate_only = FALSE, the default) returns b, log_phi, zero_one_b0, zero_one_b1, params, vcov, observed_information, fisher_information, information, information_type, hessian, neg_loglik, converged, num_iter, hit_iteration_cap, gradient_norm and min_eigenvalue_information. The Python binding returns only params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm. It drops vcov and the information matrix, and the docstring has no Returns section saying so. A Python user cannot reproduce R's standard errors from this binding. There is also no `_with_var` sibling (compare fast_zinb_with_var). Suggested: Either add a variance-returning variant or extra return fields (vcov, observed_information), or add a Returns section to the docstring listing the six fields and stating that no covariance is returned. Also document the split of params into [beta (p), log_phi, gamma_0 (p_zero_one), gamma_1 (p_zero_one)].",
+  "last_seen": "2026-11-19T21:29:41+00:00",
+  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The R export sets `min_eigenvalue_information` in both return branches (`.set(\"min_eigenvalue_information\", fit.min_eigenvalue_information)`). The Python binding builds its dict from params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm only, so it drops that field. The docstring's 'Unlike R ...' sentence lists the omitted fields (vcov, information matrices, the split of params) but does not name this one. Suggested: Either add `out[\"min_eigenvalue_information\"] = fit.min_eigenvalue_information;` to the binding and its docstring, or state in the 'Unlike R ...' sentence that this diagnostic is not returned. A human should decide which. It is a convergence diagnostic that the kernel already computes.",
   "unit": "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta"
  },
- "rpy-parity-d62675f61": {
-  "first_seen": "2026-11-17T22:51:10+00:00",
-  "key": "argument_mismatch",
-  "last_seen": "2026-11-19T14:06:09+00:00",
-  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (argument_mismatch): R's fast_clogit_plus_glmm_cpp takes `weights_disc` and `weights_conc` (Nullable<NumericVector>, default R_NilValue) and passes them to the kernel. The R caller at inference_incidence_KK_cond_logit_glmm_abstract.R:179-180 passes them as bootstrap row weights, which change the fit. The Python binding has no counterpart. Its lambda hard-codes `std::nullopt, std::nullopt` for them (bindings_glmm.cpp:457), and the docstring does not mention this. A Python user cannot reproduce R's weighted (bootstrap) fits. Suggested: Either expose `weights_disc` and `weights_conc` as optional py::args and forward them, or add a docstring sentence saying the Python binding is always unweighted. The kernel already validates the weights as finite, positive, and matching the row counts.",
-  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
- },
- "rpy-parity-d82ae6c9e": {
-  "first_seen": "2026-11-19T14:06:09+00:00",
-  "key": "other",
-  "last_seen": "2026-11-19T14:06:09+00:00",
-  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (other): The Python docstring omits two things that R's Rd documents. (1) fixed_idx is 1-indexed: R says \"Optional 1-indexed positions of parameters to hold fixed\", and Python says only \"Optional indices of fixed parameters\". (2) The solver's maxit and tol are hardcoded (1500 iterations, tolerance 1e-6) with no arguments, while fast_zinb and the clogit/GLMM binding expose maxit/tol or eps_g. The R Rd states this explicitly (\"1500 iterations at gradient-norm tolerance 1e-6 -- both hardcoded\"); the Python docstring is silent. Suggested: Update the fixed_idx entry to say \"1-based indices into [beta, log_phi, gamma_0, gamma_1]\" and add a sentence to the description that the optimizer runs at most 1500 iterations at gradient-norm tolerance 1e-6, not configurable. The fixed_idx line is not unique in the file, so it cannot be applied by the automatic docstring fixer.",
-  "unit": "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta"
- },
- "rpy-parity-dfce93433": {
-  "first_seen": "2026-11-19T14:06:09+00:00",
-  "key": "other",
-  "last_seen": "2026-11-19T14:06:09+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zinb` (other): Python docstring says only \"fixed_idx : ndarray of int, optional -- Optional indices of fixed parameters.\" It never says the indices are 1-based. The kernel (make_fixed_param_spec) computes `idx = fixed_idx_r[i] - 1` and throws \"fixed_idx entries must be one-based indices within the parameter vector\" otherwise. A Python user would naturally pass 0-based indices; 0 raises, and any other index silently fixes the neighbouring parameter. The R side and the other Python bindings (for example the GLMM binding that says \"Optional 1-based indices of fixed parameters\") are explicit about this. Suggested: Change the fixed_idx line in the fast_zinb docstring to \"Optional 1-based indices of fixed parameters into [beta_cond, beta_zi, log_theta].\" The current text is a shared line that occurs many times in the file, so it cannot be fixed by a unique-match docstring edit.",
-  "unit": "python/cpp/bindings_count.cpp::fast_zinb"
+ "rpy-parity-d385cd179": {
+  "first_seen": "2026-11-19T21:29:41+00:00",
+  "key": "behaviour_mismatch",
+  "last_seen": "2026-11-19T21:29:41+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (behaviour_mismatch): The docstring says: \"If the optimizer throws an exception internally, this does not propagate a Python error: it returns {\\\"converged\\\": False, \\\"gradient_norm\\\": nan} with no other fields.\" The binding calls fast_zap_internal directly with no try/catch, and nothing in the optimizer helpers catches either. fast_zap_internal itself throws std::invalid_argument (bad warm_start_params length or non-finite values, bad warm_start_fisher_info), and those exceptions reach Python as errors. The catch-and-return-diagnostic behaviour exists only in the R export fast_zero_augmented_poisson_cpp (catch blocks around lines 618-622). R's fallback list also differs from the docstring: it includes params, neg_loglik and exception_message. Suggested: Delete the three-line sentence (docstring lines 529-531, and the matching text in _core.pyi). The sentence copies R's behaviour and does not apply to the Python binding. Alternatively, add a try/catch in the binding that returns the same fallback dict as R, if parity is wanted. This is not a one-line docstring edit, so it needs a human.",
+  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
  }
 }
