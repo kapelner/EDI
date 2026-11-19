@@ -41,6 +41,22 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\details{
+\strong{Count-row guards.} The count part is learned from the rows that
+enter its likelihood: the matched rows with a positive count. As in
+\code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}, a
+covariate aliased on those rows is dropped (the same as what
+\code{\link[stats]{glm}} does, with one \code{edi_covariate_dropped_warning});
+a treatment coefficient those rows do not identify gives \code{NA} (reason
+\code{"kk_hurdle_count_treatment_unidentified"}); and when in one arm every
+positive matched count equals 1, the treatment coefficient has no finite
+maximum likelihood estimate, giving \code{NA} (reason
+\code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
+\code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
+refits apply the same rules to their own data (v1.0.6-TODO-195). For this class the guards apply to the matched-pair component: when it fails
+them the estimate is the reservoir component's alone, as for any failed
+component, and \code{NA} only when there is no usable reservoir.
+}
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountKKHurdlePoissonIVWC}
 }
@@ -66,6 +82,7 @@ Computes a randomization-based p-value.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_estimand'><code>Inference$get_estimand()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
@@ -74,9 +91,11 @@ Computes a randomization-based p-value.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_supported_estimands'><code>Inference$get_supported_estimands()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_estimand'><code>Inference$set_estimand()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>

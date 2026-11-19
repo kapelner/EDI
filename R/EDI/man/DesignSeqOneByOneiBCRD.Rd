@@ -31,6 +31,14 @@ sequential design that does not need \code{n}). Before v1.0.6, \code{n = NULL} w
 accepted and fell back to Bernoulli assignment, but the randomization draws still
 forced exact balance, so its randomization distribution was wrong.
 
+\strong{Rounding of the treated count.} \eqn{\mathrm{round}} is R's \code{round()},
+which rounds a .5 tie to the even integer (\code{n = 21}, \code{prob_T = 0.5} gives 10
+treated). The randomization redraws (\code{draw_ws_according_to_design()}) use the
+same count, so every redraw has exactly as many treated subjects as the trial. (Before
+v1.0.6 the redraws rounded ties away from zero, giving one more treated subject than
+the trial when \eqn{n \cdot prob\_T} ended in .5.) \code{DesignFixediBCRD} rounds such
+ties up instead, so at a tie the two designs differ by one treated subject.
+
 \strong{Single implicit block.} \code{add_one_subject_to_experiment_and_assign()}
 overrides the inherited method only to additionally set \code{private$m} to a
 constant vector of 1s (a single block containing every subject enrolled so far)

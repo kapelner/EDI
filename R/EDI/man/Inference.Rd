@@ -67,6 +67,9 @@ Defaults to the global budget unless overridden on the object.}
     \item \href{#method-Inference-get_design_object}{\code{Inference$get_design_object()}}
     \item \href{#method-Inference-get_response_type}{\code{Inference$get_response_type()}}
     \item \href{#method-Inference-get_procedure_validity}{\code{Inference$get_procedure_validity()}}
+    \item \href{#method-Inference-set_estimand}{\code{Inference$set_estimand()}}
+    \item \href{#method-Inference-get_estimand}{\code{Inference$get_estimand()}}
+    \item \href{#method-Inference-get_supported_estimands}{\code{Inference$get_supported_estimands()}}
     \item \href{#method-Inference-get_model_formula}{\code{Inference$get_model_formula()}}
     \item \href{#method-Inference-set_optimization_alg}{\code{Inference$set_optimization_alg()}}
     \item \href{#method-Inference-get_optimization_alg}{\code{Inference$get_optimization_alg()}}
@@ -510,6 +513,70 @@ procedure labels as used in the \code{method} column of
   procedure, see \code{\link{get_inference_procedure_validity}()}),
   \code{measured} (\code{NULL}: no measured calibration values are
   shipped yet) and \code{measured_note}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-set_estimand"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-set_estimand}{}}}
+\subsection{\code{Inference$set_estimand()}}{
+  Change the target estimand. Only classes that compose the
+  \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+  (capability \code{"marginal_estimand"}) can do this; they replace this
+  method with their own. On every other class it stops with an error of
+  class \code{"edi_estimand_not_supported"}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$set_estimand(estimand)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimand}}{Ignored here; see the
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} version.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Does not return; always signals an error.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-get_estimand"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-get_estimand}{}}}
+\subsection{\code{Inference$get_estimand()}}{
+  The current target estimand. On classes without the
+  \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+  this is always \code{"conditional"}: the class reports only its
+  default treatment effect.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$get_estimand()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A character scalar.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-get_supported_estimands"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-get_supported_estimands}{}}}
+\subsection{\code{Inference$get_supported_estimands()}}{
+  The estimands this object can be switched to with
+  \code{set_estimand()}. Classes without the
+  \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+  cannot switch, so this stops with an error of class
+  \code{"edi_estimand_not_supported"}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$get_supported_estimands()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Does not return on classes without the component.
   }
 }
 

@@ -78,6 +78,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_estimand'><code>Inference$get_estimand()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
@@ -86,8 +87,10 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_supported_estimands'><code>Inference$get_supported_estimands()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_estimand'><code>Inference$set_estimand()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
