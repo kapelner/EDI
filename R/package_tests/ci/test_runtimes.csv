@@ -65,6 +65,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-f
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-null-fit-infeasible-start-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-rand-pval-worker-slow-path-agree.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-refit-nonconverged-start.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -150,6 +151,7 @@ R/package_tests/testthat_bulk/test-compute-brt-null-statistics-with-reused-worke
 R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-rand-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-constrained-binomial-kernel-stale-warm-fisher-restarts-cold.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-contin-kk-bai-migration-golden.R,correctness,4.7,measured_with_30_percent_headroom
@@ -515,6 +517,7 @@ R/package_tests/testthat_bulk/test-information-score-analytic-references.R,corre
 R/package_tests/testthat_bulk/test-interval-package-required-guard-interval-censored-survival-classes-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-jackknife-deletion-draws-and-summary-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-jackknife-non-reused-worker-per-iteration-error-message-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-jackknife-stratified-units-spbr-and-fixed-blocking.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-summary-extreme-and-wald-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-jackknife-summary-nonfinite-and-extreme-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-jackknife-unit-resolution-block-guard-and-cluster-ids-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -710,6 +713,7 @@ R/package_tests/testthat_bulk/test-log-binomial-fit-unavailable-guards-reference
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-log-binomial-rand-pval-worker-slow-path-agree.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-wald-na-at-boundary-mle.R,correctness,120,bootstrap
@@ -1218,6 +1222,7 @@ R/package_tests/testthat_bulk/test-validate-optimal-design-interest-formula-one-
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-tilde-string-promotion-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-type-fallback-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wald-component-is-a-asymp-marker-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-wald-se-uses-observed-information.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-warm-start-params-size-mismatch-guards-five-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-aft-unscaled-covariates-converges.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper.R,correctness,1,measured_with_30_percent_headroom
@@ -1265,6 +1270,7 @@ R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-ma
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-binom-and-fisher-pval-kernels-match-binom-test-and-fisher-test-references.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zhang-exact-ci-empty-acceptance-set.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zhang-exact-ci-parallel-bounds-search-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1288,6 +1294,7 @@ R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-aa-fork-inference-suite-seeded-runs-reproducible.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-worker-count-invariance.R,coverage,30,bootstrap
@@ -1301,6 +1308,7 @@ R/EDI/tests/testthat/test-bai-thread-local-workspaces.R,coverage,1,measured_with
 R/EDI/tests/testthat/test-bartlett-lr-ols-exact.R,coverage,2.1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bayesian-bootstrap-studentized-se-wiring.R,coverage,4.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bayesian-bootstrap.R,coverage,4.0,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-bayesian-wald-pval-se-na-warns-and-nested-resampling-restores-operation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bca-ci-boundary-with-nonfinite-draws-warns.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-beta-regression-preallocated-eta-mu.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-binomial-identity-irls-cycle-guard-reference.R,coverage,30,bootstrap
@@ -1319,6 +1327,7 @@ R/EDI/tests/testthat/test-bootstrap-extreme-ci-cap-on-estimand-scale.R,coverage,
 R/EDI/tests/testthat/test-bootstrap-family-procedure-failure-keeps-wald-state.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bootstrap-m-local-rng.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-nonfinite-na-warning.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-bootstrap-pval-min-valid-fraction.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bootstrap-reused-worker-asymp-families.R,coverage,1.5,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-reused-worker-families.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-studentized-pval-missing-se-warns.R,coverage,30,bootstrap
@@ -1414,7 +1423,9 @@ R/EDI/tests/testthat/test-gcomp-helper-parity.R,coverage,1,measured_with_30_perc
 R/EDI/tests/testthat/test-gcomp-ordinal-and-kk-weighted-refit-standard-errors.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-risk-ratio-bayesian-bootstrap-symmetric-log-studentized-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-risk-ratio-jackknife-shared-guards-warn.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-gcomp-risk-ratio-subsampling-degenerate-draws.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-studentized-bootstrap-standard-errors.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-gcomp-weighted-refit-rejects-diverged-warm-start.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gee-warm-start.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gehan-wilcox-fused-martingale.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-get-summary-all-classes.R,coverage,30,bootstrap
@@ -1422,6 +1433,7 @@ R/EDI/tests/testthat/test-glmm-cpp-equivalence.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-greedy-d-optimal-merged.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-greedy-unequal-arms.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-group-bootstrap-rcpp.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-hurdle-count-mle-not-finite-when-an-arm-has-only-ones.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-hurdle-negbin-large-mean-likelihood.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-log1p-fast-path.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-parametric-bootstrap-lr.R,coverage,1.7,measured_with_30_percent_headroom
@@ -1453,6 +1465,9 @@ R/EDI/tests/testthat/test-inference-likelihood-properties-registry.R,coverage,30
 R/EDI/tests/testthat/test-inference-migration-harness.R,coverage,1.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-registry-uses-declared-metadata.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-suite-discovery.R,coverage,3.9,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-inference-suite-param-boot-ci-minimum-B-errors-before-fitting.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-inference-suite-r-and-B-reach-resampling-procedures.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-inference-suite-seeded-runs-reproducible.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-edge-cases.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-guard.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-inference-typed-guards.R,coverage,30,bootstrap
@@ -1466,13 +1481,18 @@ R/EDI/tests/testthat/test-kk-design-formula-covariate-constant-among-enrolled.R,
 R/EDI/tests/testthat/test-kk-gee-fallback.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-gee-logistic-separation-na-wald.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-gee-separation-ordinal-and-jackknife.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-kk-hurdle-poisson-count-row-guards.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-kk-ivwc-bayesian-bootstrap-replicates-match-estimator.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-ivwc-compound-focused-regression.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-kk-ivwc-estimate-only-matches-full-estimate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-mean-diff-ivwc-binary-match-bootstrap.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-ols-se.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-kk-rank-regr-ivwc-worker-matches-slow-path-row-names.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-strat-cox-ivwc-covariate-constant-within-pairs.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-strat-cox-ivwc-reservoir-fallback-usability.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-kk-wilcox-ivwc-worker-estimate-scale-by-operation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-proportion-speedup-boundary-response-clamped.R,coverage,30,bootstrap
@@ -1482,6 +1502,7 @@ R/EDI/tests/testthat/test-km-diff-interval-censored-bootstrap-fallback.R,coverag
 R/EDI/tests/testthat/test-km-diff-interval-censored-median-not-reached-warns.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-km-diff-na-warns-with-reason.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-km-median-canonical.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-lik-ratio-bootstrap-ci-minimum-B-and-recorded-na-reasons.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-ratio-ci-degenerate-inversion.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-test-procedure-failure-keeps-wald-state.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-test-unavailable-warning.R,coverage,30,bootstrap
@@ -1494,11 +1515,13 @@ R/EDI/tests/testthat/test-log-binomial-jackknife-history-independence.R,coverage
 R/EDI/tests/testthat/test-log-hazard-ratio-randomization-ci-disabled.R,coverage,3.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logbin-var-reuses-fisher.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logistic-cleanup.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-logistic-irls-step-halving-and-scale-aware-convergence.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-logistic-plogis-safe.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logistic-separation-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-logrank-fused-martingale.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logrank-gehan-wilcox-general-censoring.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logrank-interval-censored-sign-convention.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-marginal-estimand-randomization-statistic-glm-classes.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-miettinen-nurminen-ci-dispatch.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mixture-submodel-formulas.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mle-km-summary-table.R,coverage,1.7,measured_with_30_percent_headroom
@@ -1529,6 +1552,7 @@ R/EDI/tests/testthat/test-ordinal-cauchit-scratch-buffers.R,coverage,1,measured_
 R/EDI/tests/testthat/test-ordinal-cloglog-cached-exp.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-cloglog-exp-cache.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-cloglog-migration-golden.R,coverage,1.3,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-ordinal-cumulative-link-expected-information.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ordinal-gcomp-and-stereotype-covariate-scale-invariance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ordinal-gcomp-post-fit.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-glmm-alpha-buf.R,coverage,1,measured_with_30_percent_headroom
@@ -1545,6 +1569,7 @@ R/EDI/tests/testthat/test-ordinal-prop-odds-migration-golden.R,coverage,1.2,meas
 R/EDI/tests/testthat/test-ordinal-ridit-delong-se.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-overwrite-assignments-shared-fixed-and-sequential.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-pair-dist-helpers-cpp.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-param-boot-and-subsampling-resampling-flag-scoped-to-replicate-loop.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-param-bootstrap-estimate.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-param-bootstrap-method-availability.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-param-bootstrap-replicate-coefficient-field.R,coverage,30,bootstrap
@@ -1566,6 +1591,7 @@ R/EDI/tests/testthat/test-prop-gcomp-rand-bootstrap-null-uses-fresh-assignment.R
 R/EDI/tests/testthat/test-qr-reduce-preserve-cols.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-and-bootstrap-pval-silent-na-warns.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-bootstrap-ci-and-bayesian-bca-silent-na-warns.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rand-bootstrap-pval-na-rm-false-every-path.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-bootstrap-shifts-censoring-bounds-under-null.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-bootstrap-smoothing-refused-under-general-censoring.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-ci-capability-response-type-aware.R,coverage,30,bootstrap
@@ -1611,6 +1637,7 @@ R/EDI/tests/testthat/test-same-binary-determinism-registry.R,coverage,30,bootstr
 R/EDI/tests/testthat/test-seed-reproducibility-all-designs.R,coverage,3.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-seed-reproducibility-single-thread-metadata.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-seeded-sequential-design-per-subject-rng.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-seq-ibcrd-requires-n.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-sequential-design-redraw-leaves-design-state-unchanged.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-sequential-design-without-fixed-n.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-sequential-mc-pval-continues-past-nonfinite-prefix.R,coverage,30,bootstrap
@@ -1650,6 +1677,7 @@ R/EDI/tests/testthat/test-warm-start-dispatch-policy-refactor.R,coverage,1.7,mea
 R/EDI/tests/testthat/test-warm-start-weights.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-weibull-aft-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-weibull-cold-retry-and-zero-col-components.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-weibull-frailty-ivwc-randomization-statistic-matches-estimator.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-weibull-frailty-loggamma-null-boundary.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-weibull-frailty-normal.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-weibull-general-censoring-inference.R,coverage,1,measured_with_30_percent_headroom
@@ -1657,13 +1685,17 @@ R/EDI/tests/testthat/test-weibull-general-censoring.R,coverage,1,measured_with_3
 R/EDI/tests/testthat/test-weibull-marginal.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-weibull-unscaled-covariates-fit-converges.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-wilcox-regr-bootstrap-fast-path.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-zero-augmented-bootstrap-pval-min-fraction-usable-samples.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zero-augmented-count-aliased-covariates-dropped-on-positive-rows.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-count-rank-deficient-draw-refits.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-poisson-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-log1m.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-zero-augmented-ridge-warm-start-and-zero-part-separation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-inflated-smart-cold-start-and-risk-diff-nonestimable-reason.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-one-inflated-beta-fast-math.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zhang-exact-ci-inverts-combined-test.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zhang-exact-estimate-uses-pooled-table.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zhang-fisher-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-operator-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-poisson-boundary-score-length.R,coverage,1,measured_with_30_percent_headroom
@@ -1743,6 +1775,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-f
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-null-fit-infeasible-start-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-rand-pval-worker-slow-path-agree.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-refit-nonconverged-start.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-guard-reference.R,coverage,240,bootstrap
@@ -1828,6 +1861,7 @@ R/package_tests/testthat_bulk/test-compute-brt-null-statistics-with-reused-worke
 R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-rand-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-constrained-binomial-kernel-stale-warm-fisher-restarts-cold.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-contin-kk-bai-migration-golden.R,coverage,4.1,measured_with_30_percent_headroom
@@ -2193,6 +2227,7 @@ R/package_tests/testthat_bulk/test-information-score-analytic-references.R,cover
 R/package_tests/testthat_bulk/test-interval-package-required-guard-interval-censored-survival-classes-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-deletion-draws-and-summary-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-non-reused-worker-per-iteration-error-message-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-jackknife-stratified-units-spbr-and-fixed-blocking.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-summary-extreme-and-wald-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-summary-nonfinite-and-extreme-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-jackknife-unit-resolution-block-guard-and-cluster-ids-reference.R,coverage,240,bootstrap
@@ -2388,6 +2423,7 @@ R/package_tests/testthat_bulk/test-log-binomial-fit-unavailable-guards-reference
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-log-binomial-rand-pval-worker-slow-path-agree.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-wald-na-at-boundary-mle.R,coverage,240,bootstrap
@@ -2896,6 +2932,7 @@ R/package_tests/testthat_bulk/test-validate-optimal-design-interest-formula-one-
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-tilde-string-promotion-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-type-fallback-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wald-component-is-a-asymp-marker-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-wald-se-uses-observed-information.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-warm-start-params-size-mismatch-guards-five-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-aft-unscaled-covariates-converges.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper.R,coverage,240,bootstrap
@@ -2943,6 +2980,7 @@ R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-ma
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-binom-and-fisher-pval-kernels-match-binom-test-and-fisher-test-references.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zhang-exact-ci-empty-acceptance-set.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-parallel-bounds-search-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,coverage,240,bootstrap
