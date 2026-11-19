@@ -1,4 +1,11 @@
 {
+ "source-comment-rot-d06973fef": {
+  "first_seen": "2026-11-19T13:15:03+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-19T13:15:03+00:00",
+  "text": "`R/EDI/src/fast_beta_regression.cpp:375`: the code may be the wrong side: The roxygen Details say fisher_information (fit.XtWX) is an expected-information, working-weights approximation, \"rather than a fresh evaluation of the exact observed-information Hessian\". The code sets res.XtWX = fun.hessian(params), which is the exact observed Hessian of the negative log-likelihood. The unused BetaRegression::expected_hessian() is what the comment describes. The same claim is repeated in the with_var Details (lines 574-575, 608-609). Either the comment or the call at line 267 is wrong. Comment: `//' (\\code{fit.XtWX}) \u2014 the same expected-information approximation classical IRLS`",
+  "unit": "R/EDI/src/fast_beta_regression.cpp"
+ },
  "source-comment-rot-d0cf8b6ee": {
   "first_seen": "2026-11-17T22:56:57+00:00",
   "key": "contradiction",
@@ -27,12 +34,26 @@
   "text": "`R/EDI/R/inference_incidence_gcomp_abstract.R:33`: the code may be the wrong side: The roxygen for `prob_clip_eps` says it must be in [0, 0.5), which excludes 0.5. The assertion `assertNumber(prob_clip_eps, lower = 0, upper = 0.5)` accepts 0.5, because checkmate bounds are inclusive. At 0.5 every fitted probability is clipped to exactly 0.5, so the code may be too permissive. Alternatively the comment should say [0, 0.5]. Comment: `#'   \\eqn{mu(1-mu)} is bounded away from zero. Must be in \\code{[0, 0.5)}.`",
   "unit": "R/EDI/R/inference_incidence_gcomp_abstract.R"
  },
+ "source-comment-rot-d6554d59d": {
+  "first_seen": "2026-11-19T13:15:03+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-19T13:15:03+00:00",
+  "text": "`R/EDI/R/local_machine_tuning_correctness.R:130`: the code may be the wrong side: The comment says the check compares the point estimate under serial and `num_cores`, but the function never sets or varies the core count. It builds two identical synthetic experiments and fits the same class on each (lines 145-149), so both fits run under whatever core setting is already active. The check cannot detect a serial-vs-parallel disagreement. Comment: `#' Verify one parallel-crossover deviation: does the point estimate agree`",
+  "unit": "R/EDI/R/local_machine_tuning_correctness.R"
+ },
  "source-comment-rot-d6669db65": {
   "first_seen": "2026-11-17T22:56:57+00:00",
   "key": "contradiction",
   "last_seen": "2026-11-17T22:56:57+00:00",
   "text": "`R/EDI/R/inference_ordinal_paired_sign_test.R:143`: The doc says pairs with no discordant weighted votes are cached as nonestimable. When n_eff <= 0 the code instead caches beta_hat_T = 0 with s_beta_hat_T = NA and calls neither cache_nonestimable_estimate() nor cache_nonestimable_se() (lines 181-186). Only the no-pairs case (line 163) uses cache_nonestimable_estimate(). Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `#'   discordant (untied) weighted votes are cached as nonestimable.` -> `#'   discordant (untied) weighted votes get an estimate of \\code{0} and an \\code{NA} standard error.`",
   "unit": "R/EDI/R/inference_ordinal_paired_sign_test.R"
+ },
+ "source-comment-rot-d77150edf": {
+  "first_seen": "2026-11-19T13:15:03+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-19T13:15:03+00:00",
+  "text": "`R/EDI/src/fast_math_utils.cpp:265`: the code may be the wrong side: The doc says fast_log_pnorm is evaluated in a form that is stable for large negative x, where Phi(x) underflows long before the true log-probability does. fast_log_pnorm clamps instead: for x <= -8 it returns the constant -35.0496, and below that point it does not follow log Phi(x). log Phi(-10) is about -53.2. Otherwise it computes log(0.5*erfc(...)) directly. Either the doc overstates the range or the code should use an asymptotic tail. A human should decide which. Comment: `//' \\mathrm{erfc}(-x/\\sqrt{2})}, evaluated in a form stable for large negative`",
+  "unit": "R/EDI/src/fast_math_utils.cpp"
  },
  "source-comment-rot-d8959b19b": {
   "first_seen": "2026-11-18T20:16:32+00:00",
@@ -96,6 +117,13 @@
   "last_seen": "2026-11-18T20:16:32+00:00",
   "text": "`R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R:167`: The comment says this is an abstract method whose subclasses return TRUE/FALSE. The code below is a concrete extract_term_estimate() that returns a coefficient or NA_real_, and it takes no part in any multivariate/univariate flag. Not applied: the old line occurs 0 times in the file, not exactly once. Suggested: `# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).` -> `# Extracts the term's coefficient from a fitted aftsrr model; NA_real_ if absent.`",
   "unit": "R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R"
+ },
+ "source-comment-rot-de20927dd": {
+  "first_seen": "2026-11-19T13:15:03+00:00",
+  "key": "contradiction",
+  "last_seen": "2026-11-19T13:15:03+00:00",
+  "text": "`R/EDI/src/bootstrap_match_indices.cpp:24`: the code may be the wrong side: The comment calls bootstrap_m_indices_internal EDI_CORE_ONLY-safe. The file includes <RcppEigen.h> unconditionally (line 1), has no #ifdef EDI_CORE_ONLY guard, and uses Rcpp/R_finite/R::unif_rand/Function in the same translation unit. The function body has no R dependency, but the file cannot compile under EDI_CORE_ONLY, unlike bootstrap_indices.cpp, which guards the include and the wrapper. Comment: `// Portable core (EDI_CORE_ONLY-safe): identical logic to bootstrap_m_indices_cpp`",
+  "unit": "R/EDI/src/bootstrap_match_indices.cpp"
  },
  "source-comment-rot-df6e615ac": {
   "first_seen": "2026-11-17T22:56:57+00:00",

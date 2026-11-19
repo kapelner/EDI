@@ -1,0 +1,9 @@
+{
+ "source-comment-rot-m95e1e445": {
+  "first_seen": "2026-11-19T13:15:03+00:00",
+  "key": "finding:`R/EDI/R/inference_suite.R:#`: `# TODO, #-#-#: an incidence-response design that supports` has no release TODO citing it",
+  "last_seen": "2026-11-19T13:15:03+00:00",
+  "text": "`R/EDI/R/inference_suite.R:949`: `# TODO, 2026-08-21: an incidence-response design that supports` has no release TODO citing it",
+  "unit": ""
+ }
+}
