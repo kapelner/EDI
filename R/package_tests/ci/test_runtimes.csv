@@ -151,6 +151,7 @@ R/package_tests/testthat_bulk/test-compute-brt-null-statistics-with-reused-worke
 R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-rand-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-constrained-binomial-kernel-near-bound-start-reaches-mle.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-kernel-stale-warm-fisher-restarts-cold.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -855,6 +856,7 @@ R/package_tests/testthat_bulk/test-ordinal-cond-clogit-shared-multi-guards-refer
 R/package_tests/testthat_bulk/test-ordinal-continuation-ratio-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-cumulative-link-and-adjcat-likelihood-tests-available.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-fixed-link-kernels-edge-cases-agree.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-delta-method-and-bootstrap-fallback.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-mean-diff-md-from-theta-gradient-and-weighted-md-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1300,6 +1302,7 @@ R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-ma
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-binom-and-fisher-pval-kernels-match-binom-test-and-fisher-test-references.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zhang-exact-ci-convex-hull-of-accepted-set.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-empty-acceptance-set.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zhang-exact-ci-parallel-bounds-search-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1638,6 +1641,7 @@ R/EDI/tests/testthat/test-rand-pval-tie-tolerance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-seed-reproducibility.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-test-and-ci-shift-censoring-bounds-under-null.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-warm-start-anchoring-nonconcave.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-ratio-subsampling-degenerate-draws.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rcpp-fitting-equivalence.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rcpp-fitting-real-data.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-recorded-na-reason-warns.R,coverage,30,bootstrap
@@ -1647,6 +1651,7 @@ R/EDI/tests/testthat/test-regression-no-implicit-block-fixed-effects.R,coverage,
 R/EDI/tests/testthat/test-rerandomization-abs-sum-diff-standardized-and-objective-validation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-batched-fallback.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-objective-contiguous-indicts.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-rerandomization-prop-acceptable-odd-n-treated-count.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-search-early-stop.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R,coverage,30,bootstrap
@@ -1738,6 +1743,7 @@ R/EDI/tests/testthat/test-zinb-zero-inflation-boundary.R,coverage,1,measured_wit
 R/EDI/tests/testthat/test-zinb-zi-block-unidentified-count-se.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zip-hurdle-poisson-marginal-estimand.R,coverage,3.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zip-newton-stall-cold-retry.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zip-sharpened-start-reaches-ridge.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zoib-kernel-input-length-validation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zoib-marginal-estimand-randomization-statistic.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zoib-rand-bootstrap-null-uses-fresh-assignment.R,coverage,30,bootstrap
@@ -1894,6 +1900,7 @@ R/package_tests/testthat_bulk/test-compute-brt-null-statistics-with-reused-worke
 R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-rand-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-constrained-binomial-kernel-near-bound-start-reaches-mle.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-kernel-stale-warm-fisher-restarts-cold.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,coverage,1,measured_with_30_percent_headroom
@@ -2598,6 +2605,7 @@ R/package_tests/testthat_bulk/test-ordinal-cond-clogit-shared-multi-guards-refer
 R/package_tests/testthat_bulk/test-ordinal-continuation-ratio-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-cumulative-link-and-adjcat-likelihood-tests-available.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-fixed-link-kernels-edge-cases-agree.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-delta-method-and-bootstrap-fallback.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-mean-diff-md-from-theta-gradient-and-weighted-md-reference.R,coverage,240,bootstrap
@@ -3043,6 +3051,7 @@ R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-ma
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-binom-and-fisher-pval-kernels-match-binom-test-and-fisher-test-references.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zhang-exact-ci-convex-hull-of-accepted-set.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-empty-acceptance-set.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-exact-ci-parallel-bounds-search-reference.R,coverage,240,bootstrap
