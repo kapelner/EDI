@@ -43,7 +43,7 @@ covariates (same \eqn{p} as \code{X_diff_v_r}).}
 
 \item{maxit}{Maximum number of Newton iterations.}
 
-\item{tol}{Convergence tolerance (on the norm of the parameter update step).}
+\item{tol}{Convergence tolerance (on the gradient norm, and on the norm of the parameter update step).}
 
 \item{fixed_idx}{Optional integer indices (into the
 \code{c(beta_0, beta_T, beta_xs)} parameter layout) of parameters to hold
@@ -73,7 +73,7 @@ A list with components \code{b}/\code{params} (the fitted
   parameters), \code{observed_information}/\code{fisher_information}/
   \code{information} (three aliases for the same Fisher information matrix,
   also tagged by \code{information_type = "fisher"}), \code{hessian} (the
-  Hessian of the negative log-likelihood, i.e. \code{-information}),
+  Hessian of the log-likelihood, i.e. \code{-information}),
   \code{neg_loglik}/\code{neg_ll} (aliases for the combined negative
   log-likelihood at the fitted parameters), and \code{loglik} (its negation).
 }
@@ -130,7 +130,7 @@ inverse of the observed/Fisher information restricted to free parameters;
 
 \strong{Estimate-only mode.} If \code{estimate_only = TRUE}, optimization
 still runs to convergence but the score/information/variance computation is
-skipped entirely, returning only \code{b}, \code{params}, and
+skipped entirely, returning \code{b}, \code{params}, the iteration diagnostics, and
 \code{converged}.
 }
 \seealso{
