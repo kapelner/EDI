@@ -547,9 +547,9 @@ void bind_glmm(py::module_& m) {
     "    Number of Gauss-Hermite quadrature nodes used to integrate out the random\n"
     "    intercept.\n"
     "weights_disc : ndarray, optional\n"
-    "    Optional nonnegative weights, one per discordant pair row of X_disc (R\n"
+    "    Optional positive weights, one per discordant pair row of X_disc (R\n"
     "    passes Bayesian-bootstrap row weights here). None means unit weights.\n"
     "weights_conc : ndarray, optional\n"
-    "    Optional nonnegative weights, one per concordant/reservoir row of X_conc.\n"
+    "    Optional positive weights, one per concordant/reservoir row of X_conc.\n"
     "    None means unit weights.");
 }

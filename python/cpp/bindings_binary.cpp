@@ -446,13 +446,13 @@ void bind_binary(py::module_& m) {
         BinomialConstrainedLink::kLog,
         "Fast log-binomial (relative-risk) regression via Fisher scoring. Pass "
         "weights to fit the weighted variant.",
-        "Fast log-binomial regression with full variance-covariance matrix (ssq_b_j "
+        "Fast log-binomial regression with a targeted variance only, no full vcov (ssq_b_j "
         "is the variance of parameter index j).");
 
     bind_constrained_binomial(m, "fast_identity_binomial_regression", "fast_identity_binomial_regression_with_var",
         BinomialConstrainedLink::kIdentity,
         "Fast identity-link (risk-difference) binomial regression via Fisher "
         "scoring. Pass weights to fit the weighted variant.",
-        "Fast identity-link binomial regression with full variance-covariance "
+        "Fast identity-link binomial regression with a targeted variance only, no full vcov "
         "matrix (ssq_b_j is the variance of parameter index j).");
 }
