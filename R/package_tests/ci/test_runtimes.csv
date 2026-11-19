@@ -199,6 +199,7 @@ R/package_tests/testthat_bulk/test-count-likelihood-plumbing-tests-block-guard-a
 R/package_tests/testthat_bulk/test-count-model-and-bootstrap-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-count-poisson-stratified-jackknife-guard-few-strata.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1265,6 +1266,7 @@ R/package_tests/testthat_bulk/test-zhang-stouffer-min-p-combination-tail-accurac
 R/package_tests/testthat_bulk/test-zinb-fit-unavailable-exact-reason-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zinb-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zinb-poisson-boundary-rescue-acceptance-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zinb-spurious-zero-inflation-boundary-refit.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-no-interior-responses-early-return-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1402,6 +1404,7 @@ R/EDI/tests/testthat/test-gcomp-design-matrix-helpers.R,coverage,1,measured_with
 R/EDI/tests/testthat/test-gcomp-fractional-post-fit-native-result.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gcomp-helper-parity.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gcomp-ordinal-and-kk-weighted-refit-standard-errors.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-gcomp-risk-ratio-bayesian-bootstrap-symmetric-log-studentized-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-risk-ratio-jackknife-shared-guards-warn.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-studentized-bootstrap-standard-errors.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gee-warm-start.R,coverage,1,measured_with_30_percent_headroom
@@ -1585,6 +1588,7 @@ R/EDI/tests/testthat/test-reused-worker-rank-deficient-draw-rebuilds-covariates.
 R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ridit-kernel-se-equals-delong.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-risk-ratio-rand-bootstrap-null-centering.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-risk-ratio-resampling-honours-timeouts-and-list-sizes.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-horizon-fixed-across-resampling-draws.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-interval-censored-bootstrap-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-rand-bootstrap-ci-disabled.R,coverage,30,bootstrap
@@ -1623,6 +1627,7 @@ R/EDI/tests/testthat/test-stereotype-logit-loading-boundary.R,coverage,30,bootst
 R/EDI/tests/testthat/test-stereotype-logit-null-refit-pd-gate.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-strat-cox-matched-design.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-stratified-bootstrap-integer-ids.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-subsampling-honours-timeouts-like-m-out-of-n.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-suite-unsupported-procedure-message.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-survival-bayesian-bootstrap-general-censoring-refused.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-survival-kernel-na-guard.R,coverage,1,measured_with_30_percent_headroom
@@ -1864,6 +1869,7 @@ R/package_tests/testthat_bulk/test-count-likelihood-plumbing-tests-block-guard-a
 R/package_tests/testthat_bulk/test-count-model-and-bootstrap-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-count-poisson-stratified-jackknife-guard-few-strata.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,coverage,240,bootstrap
@@ -2930,6 +2936,7 @@ R/package_tests/testthat_bulk/test-zhang-stouffer-min-p-combination-tail-accurac
 R/package_tests/testthat_bulk/test-zinb-fit-unavailable-exact-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zinb-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zinb-poisson-boundary-rescue-acceptance-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zinb-spurious-zero-inflation-boundary-refit.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-fit-no-interior-responses-early-return-reference.R,coverage,240,bootstrap

@@ -29,5 +29,5 @@ An object of class \code{summary.EDIInferenceSuiteResults}, printable via its
 \description{
 Summarizes an \code{\link[EDI:InferenceSuite]{InferenceSuite}} \code{run_all_inference()}
 result: counts by \code{status}, the estimate range across \code{status == "ok"}
-classes, and how many reject at \code{alpha}.
+classes, and how many reject at \code{alpha}
 }

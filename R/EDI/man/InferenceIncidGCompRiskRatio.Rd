@@ -57,6 +57,22 @@ Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
 Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
 }
 \details{
+\strong{Bayesian-bootstrap intervals.} The \code{type = "studentized"}
+(\code{"bootstrap-t"}) interval of
+\code{$compute_bayesian_bootstrap_confidence_interval()} is studentized on the
+raw risk-ratio scale and undercovers in small samples: in a simulation with a
+logistic outcome model, two covariates and a true risk ratio of about 1.4, a nominal
+95\% interval covered about 89\% of the time at \eqn{n = 60} and about 93\% at
+\eqn{n = 200}. Large replicate estimates come with large replicate standard
+errors, which compresses the upper tail of the pivot, so the interval misses
+mostly on one side (the true ratio falls below the lower bound). For small
+samples prefer \code{type = "symmetric-percentile-t"}, a symmetric studentized
+interval built on the log risk-ratio scale and back-transformed (about 92\%
+in the same simulation, against 90\% for \code{"studentized"}), or the
+log-scale \code{type = "wald"} or \code{type = "basic"} intervals or
+\code{type = "percentile"}.
+\code{"symmetric-percentile-t"} is available only for the risk-ratio classes.
+
 \strong{Separation.} When the logistic working model's fitted probabilities
 are numerically 0 or 1 (the data look (quasi-)completely separated) the
 working-model MLE does not exist and the fitted risks sit where the fitter
