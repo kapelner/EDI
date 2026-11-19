@@ -30,7 +30,7 @@ zinb_no_excess_zeros_fixture <- function(seed = 4L, n = 200L) {
 	y <- rnbinom(n, size = 3, mu = exp(0.6 + 0.4 * w + 0.3 * x))
 	des$add_all_subject_responses(y)
 	inf <- InferenceCountZeroInflatedNegBin$new(des, verbose = FALSE)
-	if (is.function(inf$set_estimand)) inf$set_estimand("conditional")
+	if (isTRUE(inf$supports("marginal_estimand"))) inf$set_estimand("conditional")
 	inf
 }
 

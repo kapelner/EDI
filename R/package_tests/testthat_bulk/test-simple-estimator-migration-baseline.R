@@ -68,12 +68,19 @@ simple_estimator_expected_classes = c(
 # 2026-11-19 (v1.0.6-TODO-4): +2 private owners on every class for jackknife_stratified_layout
 # and jackknife_replicate_strata (NonparametricBootstrap; the permuted-block / within-stratum
 # jackknife units). Private owners 346/349/357/330/343.
+# 2026-11-19 (v1.0.6-TODO-208 item (4)): +3 public methods on every class for the root
+# set_estimand() / get_estimand() / get_supported_estimands() (classed
+# edi_estimand_not_supported error; MarginalEstimand overrides them) and +1 private owner
+# for stop_estimand_not_supported(). Also +1 private owner on InferenceAllKKMeanDiffIVWC for
+# compute_weighted_estimate_ivwc (v1.0.6-TODO-217, 5bdb9dfb, not pinned until now).
+# Re-confirmed via EDI:::simple_estimator_behavior_manifest(): public 69/69/69/63/63,
+# private owners 347/350/359/331/344.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 66L,
-		private_owner_count = 346L,
+		public_count = 69L,
+		private_owner_count = 347L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -85,8 +92,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 66L,
-		private_owner_count = 349L,
+		public_count = 69L,
+		private_owner_count = 350L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -98,8 +105,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKMeanDiffIVWC = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 66L,
-		private_owner_count = 357L,
+		public_count = 69L,
+		private_owner_count = 359L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -112,8 +119,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleWilcox = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 60L,
-		private_owner_count = 330L,
+		public_count = 63L,
+		private_owner_count = 331L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -124,8 +131,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 60L,
-		private_owner_count = 343L,
+		public_count = 63L,
+		private_owner_count = 344L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

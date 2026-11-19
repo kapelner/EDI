@@ -469,6 +469,9 @@ NULL
 #' extreme estimate, so the default 0.95 returned \code{NA} for 9\% (subsampling) and 29\%
 #' (m-out-of-n) of them, most of the ones the Wald test rejects, and the size among the rest was
 #' 0.016 and 0.000; with \code{min_fraction_usable_samples = 0.8} no data set was \code{NA}.
+#' The 0.95 default is under review and may change in a later release; until then, expect
+#' \code{NA} from these two methods on small samples and set
+#' \code{min_fraction_usable_samples} lower only if the dropped draws are acceptable.
 #' For the risk ratio the ordinary bootstrap
 #' (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 #' is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}

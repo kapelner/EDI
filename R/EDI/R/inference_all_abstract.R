@@ -492,6 +492,36 @@ Inference = R6::R6Class("Inference",
 		get_procedure_validity = function(procedure = NULL){
 			edi_procedure_validity_for_object(self, procedure)
 		},
+		#' @description Change the target estimand. Only classes that compose the
+		#'   \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+		#'   (capability \code{"marginal_estimand"}) can do this; they replace this
+		#'   method with their own. On every other class it stops with an error of
+		#'   class \code{"edi_estimand_not_supported"}.
+		#' @param estimand Ignored here; see the
+		#'   \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} version.
+		#' @return Does not return; always signals an error.
+		set_estimand = function(estimand){
+			# v1.0.6-TODO-208 item (4): without this, classes lacking the component
+			# (e.g. InferenceCountNegBin) failed with "attempt to apply non-function".
+			private$stop_estimand_not_supported("set_estimand()")
+		},
+		#' @description The current target estimand. On classes without the
+		#'   \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+		#'   this is always \code{"conditional"}: the class reports only its
+		#'   default treatment effect.
+		#' @return A character scalar.
+		get_estimand = function(){
+			"conditional"
+		},
+		#' @description The estimands this object can be switched to with
+		#'   \code{set_estimand()}. Classes without the
+		#'   \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} component
+		#'   cannot switch, so this stops with an error of class
+		#'   \code{"edi_estimand_not_supported"}.
+		#' @return Does not return on classes without the component.
+		get_supported_estimands = function(){
+			private$stop_estimand_not_supported("get_supported_estimands()")
+		},
 		#' @description Return the model formula used for covariate adjustment.
 		#' @return A formula object or \code{NULL}.
 		get_model_formula = function(){
@@ -986,6 +1016,22 @@ Inference = R6::R6Class("Inference",
 		# available (TODO-116). It signals a classed warning
 		# (edi_unsupported_procedure) so callers are not silently handed NA,
 		# and records the reason for diagnostics.
+		# v1.0.6-TODO-208 item (4): the shared error for the root set_estimand() /
+		# get_supported_estimands(), which classes composing MarginalEstimand replace.
+		stop_estimand_not_supported = function(method){
+			cls = class(self)[1L]
+			stop(structure(
+				class = c("edi_estimand_not_supported", "error", "condition"),
+				list(
+					message = sprintf(paste0("%s does not support %s: only its default (\"conditional\") estimand ",
+						"is available, i.e. the treatment effect the class reports (for a regression model, the ",
+						"model-scale coefficient); marginal estimands are not available for this class in this release."),
+						cls, method),
+					call = NULL,
+					inference_class = cls
+				)
+			))
+		},
 		signal_unsupported_procedure = function(reason){
 			reason = as.character(reason)[1L]
 			private$cached_values$unsupported_procedure_reason = reason

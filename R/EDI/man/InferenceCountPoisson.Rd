@@ -42,6 +42,23 @@ their standard component definitions and are not unioned with a second
 jackknife interval; use one of the design-conservative likelihood methods
 when robustness to Poisson equidispersion failure is required.
 
+\strong{Which jackknife.} The design-based half uses the automatic deletion
+unit of \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. On a blocking
+design whose automatic unit is the whole block (= stratum), such as
+\code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
+that jackknife is \code{NA} when there are fewer than 5 blocks, which is the
+usual case for a design stratified on one or two factors. The class then uses
+the stratified delete-1 ("JKn") jackknife instead (\code{unit =
+"observation_within_block"}; Wolter 2007, Sec. 4.5): one subject is deleted
+at a time, and only the spread of the replicates within each stratum enters
+the variance, because the strata are fixed by the design and treatment is
+randomized within them. This is the estimator
+\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}} uses automatically.
+Without it the class would report the raw Poisson test alone, which is
+anti-conservative under overdispersion: with \code{~ 1} on a 4-stratum design
+it rejected a true null 17-19\% of the time at a nominal 5\% in a simulation,
+against about 3-5\% with the fallback.
+
 \strong{Estimand.} Composes
 \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
 (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
@@ -162,6 +179,11 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 Cameron, A. C., and Trivedi, P. K. (2013). \emph{Regression
   Analysis of Count Data} (2nd ed.). Cambridge University Press, for the
   Poisson regression model and its maximum-likelihood theory.
+
+Wolter, K. M. (2007). \emph{Introduction to Variance Estimation}, 2nd ed.
+  Springer, New York, ch. 4 "The Jackknife Method", Sec. 4.5 (stratified
+  sampling), \doi{10.1007/978-0-387-35099-8}, for the stratified delete-1
+  jackknife used on blocking designs.
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
 

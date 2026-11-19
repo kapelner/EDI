@@ -317,6 +317,13 @@ item beyond the shared-machinery core that gates nothing else there.
   `define_inference_class(components = "MarginalEstimand")` conversion
   the Poisson concretes already used. Independent of other items;
   schedule alongside TODO-16 if convenient.
+  Added 2026-11-19 (owner, from v1.0.6-TODO-208 item (4)): plain
+  `InferenceCountNegBin` has no `set_estimand` either; extend the same
+  marginal estimands to it (its marginal mean is the ordinary log-link
+  mean, so it can follow the Poisson g-computation helper once the NegBin
+  information-matrix shape is confirmed). Until then, all three NegBin
+  classes stop with the classed `edi_estimand_not_supported` error from
+  the `Inference` root's `set_estimand()`.
 - [ ] TODO-18: **Wilkinson r-out-of-k combined-evidence test, Stage 2**
   (moved from `release_v1_1_0.md → TODO-17n` on 2026-09-06):
   `wilkinson_combined_pval.md → TODO-1 (gate), TODO-3..4` — the formal

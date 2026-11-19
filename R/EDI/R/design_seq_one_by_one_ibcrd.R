@@ -27,6 +27,14 @@
 #' accepted and fell back to Bernoulli assignment, but the randomization draws still
 #' forced exact balance, so its randomization distribution was wrong.
 #'
+#' \strong{Rounding of the treated count.} \eqn{\mathrm{round}} is R's \code{round()},
+#' which rounds a .5 tie to the even integer (\code{n = 21}, \code{prob_T = 0.5} gives 10
+#' treated). The randomization redraws (\code{draw_ws_according_to_design()}) use the
+#' same count, so every redraw has exactly as many treated subjects as the trial. (Before
+#' v1.0.6 the redraws rounded ties away from zero, giving one more treated subject than
+#' the trial when \eqn{n \cdot prob\_T} ended in .5.) \code{DesignFixediBCRD} rounds such
+#' ties up instead, so at a tie the two designs differ by one treated subject.
+#'
 #' \strong{Single implicit block.} \code{add_one_subject_to_experiment_and_assign()}
 #' overrides the inherited method only to additionally set \code{private$m} to a
 #' constant vector of 1s (a single block containing every subject enrolled so far)
@@ -128,10 +136,17 @@ DesignSeqOneByOneiBCRD = define_design_class(
 			# sequential design. The rule balances toward the planned n, so draw full
 			# n-subject sequences and keep their first t rows (the law of the subjects
 			# enrolled so far); a no-op once the trial is complete.
+			# v1.0.6-TODO-213: pass the realized treated count, not prob_T. assign_wt()
+			# targets R's round(n * prob_T) (half to even) but the kernel rounds with
+			# std::round (half away from zero), so at a .5 tie (n = 21, prob_T = 0.5)
+			# every redraw had one more treated subject than the trial. Handing the
+			# kernel n_T / n makes its std::round(n * (n_T / n)) land exactly on n_T.
+			n = as.integer(self$get_n())
+			n_T = round(n * private$prob_T)
 			w_mat = generate_permutations_ibcrd_cpp(
-				as.integer(self$get_n()),
+				n,
 				as.integer(r),
-				as.numeric(private$prob_T)
+				as.numeric(n_T / n)
 			)$w_mat
 			w_mat[seq_len(private$t), , drop = FALSE]
 		}

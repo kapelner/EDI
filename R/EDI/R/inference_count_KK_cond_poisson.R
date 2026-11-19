@@ -647,6 +647,21 @@ CountKKHurdlePoissonIVWCSource = list(
 #' component is fit with an ordinary Poisson log-link regression. The reported
 #' treatment effect is on the log-rate scale.
 #'
+#' \strong{Count-row guards.} The count part is learned from the rows that
+#' enter its likelihood: the matched rows with a positive count. As in
+#' \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}, a
+#' covariate aliased on those rows is dropped (the same as what
+#' \code{\link[stats]{glm}} does, with one \code{edi_covariate_dropped_warning});
+#' a treatment coefficient those rows do not identify gives \code{NA} (reason
+#' \code{"kk_hurdle_count_treatment_unidentified"}); and when in one arm every
+#' positive matched count equals 1, the treatment coefficient has no finite
+#' maximum likelihood estimate, giving \code{NA} (reason
+#' \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
+#' \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
+#' refits apply the same rules to their own data (v1.0.6-TODO-195). For this class the guards apply to the matched-pair component: when it fails
+#' them the estimate is the reservoir component's alone, as for any failed
+#' component, and \code{NA} only when there is no usable reservoir.
+#'
 #' @export
 InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 	classname = "InferenceCountKKHurdlePoissonIVWC",
@@ -1683,6 +1698,19 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' or subclass) supplying the matched/reservoir partition. No response
 #' censoring is supported (checked at construction via
 #' \code{assertNoCensoring()}).
+#'
+#' \strong{Count-row guards.} The count part is learned from the rows that
+#' enter its likelihood: the matched rows with a positive count (when there are more of them than coefficients) and all reservoir rows. As in
+#' \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}, a
+#' covariate aliased on those rows is dropped (the same as what
+#' \code{\link[stats]{glm}} does, with one \code{edi_covariate_dropped_warning});
+#' a treatment coefficient those rows do not identify gives \code{NA} (reason
+#' \code{"kk_hurdle_count_treatment_unidentified"}); and when in one arm every
+#' positive matched count equals 1 and every reservoir count there is 0, the treatment coefficient has no finite
+#' maximum likelihood estimate, giving \code{NA} (reason
+#' \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
+#' \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
+#' refits apply the same rules to their own data (v1.0.6-TODO-195).
 #'
 #' @references
 #' Mullahy, J. (1986). "Specification and Testing of Some Modified Count

@@ -2,6 +2,55 @@
 
 ## Changes that alter results
 
+* KK IVWC Bayesian bootstrap: replicates are now weighted refits of each class's
+  own inverse-variance-weighted estimator (stratified Cox, LWA Cox, OLS,
+  conditional logit, mean difference, Newcombe, rank regression). They used to
+  be a raw mean difference, all zero for `InferenceSurvivalKKStratCoxPHIVWC`.
+  The Bai KK14/KK21, quantile IVWC, robust IVWC, Weibull frailty Normal IVWC and
+  Loggamma OneLik classes no longer offer the Bayesian bootstrap. Also fixed:
+  the Weibull frailty IVWC randomization statistic (wrong fixed parameter in the
+  reservoir refit, state-dependent pooling, dropped Loggamma covariates), the
+  Wilcox IVWC worker returning the W statistic to m-out-of-n, subsampling and
+  jackknife on fixed matched designs, and the rank-regression ISMB seed
+  depending on row names (v1.0.6-TODO-217).
+
+* The jackknife on `DesignSeqOneByOneSPBR` and `DesignFixedBlocking` no longer
+  deletes whole strata (2-4 replicates; jackknife-Wald coverage about 0.84).
+  SPBR now deletes one permuted block at a time (a trailing partial block is
+  merged into the previous block) and `DesignFixedBlocking` deletes one subject
+  at a time; both use the stratified jackknife (Wolter 2007, Sec. 4.5), so
+  jackknife SEs, p-values, CIs and BCa intervals change on these designs.
+  Coverage at beta = 0 is now about 0.92-0.97. Other designs are unchanged
+  (v1.0.6-TODO-4).
+
+* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio`:
+  subsampling and m-out-of-n p-values and intervals now drop degenerate draws (an
+  arm with no or only events, or a non-converged or separated logistic fit;
+  these draws are now `NaN` in the subsampling and m-out-of-n distributions).
+  They return `NA` with a recorded reason and a warning when fewer than
+  `min_fraction_usable_samples` (new, default 0.95) of the draws are usable.
+  These tests previously almost never rejected under the null (size 0.005 /
+  0.000 at n = 80) (v1.0.6-TODO-191).
+
+* Saved `tune_EDI_for_this_machine()` policies from earlier versions are
+  ignored (tuning schema version 2), because their continuous, proportion and
+  survival timings were measured on synthetic fixtures whose covariates were
+  dropped as perfect predictors; run the tuner again (v1.0.6-TODO-212).
+
+* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio`: the
+  subsampling and m-out-of-n p-values and intervals now drop degenerate draws (an
+  arm with no events or only events, or a non-converged or separated logistic
+  fit). Kept, these draws gave log risk ratios near +/-20 and made the tests
+  almost never reject (null size 0.005 and 0.000 at n = 80). When fewer than
+  `min_fraction_usable_samples` (new argument, default 0.95) of the draws are
+  usable, the result is `NA` with reason
+  `subsampling_too_few_usable_draws_fraction` or
+  `m_out_of_n_too_few_usable_draws_fraction` and one `edi_procedure_na_warning`.
+  On small samples this is common: at n = 80 under the null, 9% (subsampling)
+  and 29% (m-out-of-n) of data sets return `NA`. The 0.95 default is under
+  review. For the risk ratio the ordinary bootstrap is the recommended
+  resampling method (v1.0.6-TODO-191).
+
 * `InferenceCountZeroInflatedNegBin` no longer accepts a fit that is not the
   maximum-likelihood fit. Its default Newton-Raphson fitter, started from a warm
   start, could stop at the zero-inflation-off negative binomial fit or on a
@@ -26,7 +75,19 @@
   has no SE, and CI-inversion step sizes now use the observed SE, so score CI
   endpoints move within the root finder's tolerance (v1.0.6-TODO-215).
 
-* `InferenceCountPoisson`: on a stratified design with 2 to 4 strata, the design-conservative p-value and interval no longer fall back to the raw Poisson test (anti-conservative under overdispersion, size 0.08-0.11 in the calibration study) when the leave-one-block-out jackknife is NA. They now use a stratified delete-1 jackknife standard error pooled within strata (v1.1.0-TODO-218). The ZINB fits (`InferenceCountZeroInflatedNegBin` and the zero-augmented family's ZINB path) now check each fit that looks wrong (zero-inflation at the boundary, a zero-inflation coefficient beyond +/-10, or a large gradient norm) and keep the lowest-likelihood refit, so randomization draws warm-started from the full-data fit no longer return a wrong treatment estimate and the randomization test is no longer oversized (v1.1.0-TODO-217).
+* `InferenceCountPoisson`: the design-conservative tests (every asymptotic and
+  likelihood test, which report the larger of the model-based and jackknife
+  p-values and the union of the two intervals) lost their jackknife half on
+  blocking designs whose automatic jackknife unit is the whole block, such as
+  `DesignSeqOneByOneRandomBlockSize`. With fewer than 5 blocks that jackknife is
+  `NA` (v1.0.6-TODO-135), so the raw Poisson test was reported alone, and it is
+  anti-conservative under overdispersion: with `~ 1` on a 4-stratum design it
+  rejected a true null 17-19% of the time at a nominal 5%. The class now falls
+  back to the stratified delete-1 jackknife, `unit = "observation_within_block"`
+  (Wolter 2007, Sec. 4.5), the estimator `DesignFixedBlocking` already uses
+  automatically since v1.0.6-TODO-4, which brings the size to about 3-5%. On
+  these designs p-values can rise and intervals widen. Other designs and other
+  classes are unchanged (v1.1.0-TODO-218).
 
 * `InferenceIncidBinomialIdentityRiskDiff` and `InferenceIncidLogBinomial` no longer silently drop covariates when the default cold start lies outside the mean support (v1.0.6-TODO-142). The least-squares start could give a fitted probability outside [0, 1], so the kernel stopped after one iteration and the class reported a reduced model. The start is now pulled 90% of the way to the support boundary, toward the intercept-only fit; feasible starts are untouched. Estimates, intervals and p-values change on data where the old fit failed, including some bootstrap and jackknife replicates. Bootstrap subset copies made outside an active resampling operation (for example the outer loop of `ci_calibrated_bootstrap()`) now follow the same warm-start policy as copies made inside one, instead of inheriting the parent's warm start.
 
@@ -476,6 +537,42 @@
   on interval-censored data (v1.0.6-TODO-143).
 
 ## Bug fixes
+
+* `set_estimand()` and `get_supported_estimands()` on inference classes that
+  cannot switch estimands (e.g. `InferenceCountNegBin`,
+  `InferenceCountZeroInflatedNegBin`, `InferenceCountHurdleNegBin`) now stop with
+  a clear error of class `edi_estimand_not_supported` instead of "attempt to
+  apply non-function"; `get_estimand()` returns `"conditional"` on every class
+  (v1.0.6-TODO-208).
+
+* `DesignSeqOneByOneiBCRD`: when `n * prob_T` ends in .5 (e.g. n = 21,
+  `prob_T = 0.5`), randomization redraws had one more treated subject than the
+  realized trial, because the two rounded the tie differently; redraws now use
+  the realized treated count, so randomization p-values and CIs use the correct
+  null. Realized assignments are unchanged (v1.0.6-TODO-213).
+
+* `InferenceIncidExactZhang$compute_exact_confidence_interval()` on a matching
+  design now returns `NA` bounds with an `edi_procedure_na_warning` (reason
+  `exact_ci_empty_acceptance_set`) when the matched-pair and reservoir parts of
+  the combined exact test reject every log odds ratio; before, it returned a
+  near-zero-width interval at a rejected point. When the search's starting
+  points are all rejected, a grid search now finds an accepted region the old
+  search missed (v1.0.6-TODO-216).
+
+* Hurdle count models (`InferenceCountHurdlePoisson`, `InferenceCountHurdleNegBin`,
+  the KK hurdle-Poisson classes): when every positive count in one arm equals 1,
+  the count-part treatment estimate is now `NA` with an
+  `edi_hurdle_count_mle_not_finite_warning` (its MLE is infinite) instead of the
+  optimizer's stopping point (v1.0.6-TODO-195).
+* The KK hurdle-Poisson classes now drop count covariates aliased on the
+  positive rows (the same as what `glm` does) and return `NA` when those rows do
+  not identify the treatment, instead of an arbitrary estimate
+  (v1.0.6-TODO-195).
+* The zero-augmented and hurdle count kernels check their inputs; `y =
+  numeric(0)` and mismatched input lengths no longer crash R or return a
+  converged-looking fit of garbage (v1.0.6-TODO-195).
+* `InferenceCountHurdleNegBin` now warns when its hurdle part is separated
+  (`edi_zero_part_separation_warning`) (v1.0.6-TODO-218).
 
 * `InferenceSuite$run_all_inference()` is now reproducible after `set.seed()`:
   each task runs from its own seed, drawn once from the caller's stream, with no

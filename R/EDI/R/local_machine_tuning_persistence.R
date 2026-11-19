@@ -19,7 +19,10 @@ NULL
 
 #' @keywords internal
 #' @noRd
-EDI_TUNING_SCHEMA_VERSION = 1L
+# 2 (v1.0.6-TODO-212): v1 policies were timed on continuous / proportion / survival
+# fixtures whose covariates were dropped as perfect predictors (fixed by
+# v1.0.6-TODO-204), so they are invalidated and re-tuned.
+EDI_TUNING_SCHEMA_VERSION = 2L
 
 #' @keywords internal
 #' @noRd

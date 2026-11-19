@@ -109,6 +109,9 @@ about 0.41, \code{B = 199}) dropping the degenerate draws alone gave null sizes 
 extreme estimate, so the default 0.95 returned \code{NA} for 9\% (subsampling) and 29\%
 (m-out-of-n) of them, most of the ones the Wald test rejects, and the size among the rest was
 0.016 and 0.000; with \code{min_fraction_usable_samples = 0.8} no data set was \code{NA}.
+The 0.95 default is under review and may change in a later release; until then, expect
+\code{NA} from these two methods on small samples and set
+\code{min_fraction_usable_samples} lower only if the dropped draws are acceptable.
 For the risk ratio the ordinary bootstrap
 (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}
@@ -432,28 +435,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}
@@ -537,28 +544,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}
@@ -764,28 +775,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}
@@ -867,28 +882,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}
@@ -971,28 +990,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}
@@ -1075,28 +1098,32 @@ minimum fraction of the \code{B} subsamples that must be usable. A draw is unusa
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} subsamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
       \item{\code{min_fraction_usable_samples}}{Risk ratio only (ignored for the risk difference):
 minimum fraction of the \code{B} resamples that must be usable. A draw is unusable
 when it is degenerate (an arm with no events or only events, or a non-converged or
 separated logistic fit) or its fit fails. Below this fraction the method returns
 \code{NA} with a recorded reason and one \code{edi_procedure_na_warning}; otherwise it
-uses the usable draws only. Default 0.95. See \strong{Subsampling and
+uses the usable draws only. Default 0.95 (under review; on small samples this often
+gives \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
     }
     \if{html}{\out{</div>}}

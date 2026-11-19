@@ -37,7 +37,7 @@ fx <- function(zero_inflated = FALSE) {
 }
 new_inf <- function(cls, des) {
 	inf <- get(cls, envir = asNamespace("EDI"))$new(des, verbose = FALSE)
-	if (is.function(inf$set_estimand)) inf$set_estimand("conditional")
+	if (isTRUE(inf$supports("marginal_estimand"))) inf$set_estimand("conditional")
 	inf
 }
 

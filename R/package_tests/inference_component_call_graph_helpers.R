@@ -520,6 +520,23 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		expect_false("get_procedure_validity@Inference" %in% x)
 		paste(sort(unique(c(x, "get_procedure_validity@Inference"))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.6-TODO-208 item (4) (2026-11-19) added root versions of set_estimand(),
+	# get_estimand() and get_supported_estimands() on Inference (classed
+	# "edi_estimand_not_supported" error / "conditional"), which the MarginalEstimand
+	# component's copies override on the classes that compose it, plus the private
+	# helper stop_estimand_not_supported(). Reviewed additive delta: every class
+	# gains exactly these four names on the root host, nothing else changes.
+	baseline$public_methods <- vapply(baseline$public_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		add <- paste0(c("set_estimand", "get_estimand", "get_supported_estimands"), "@Inference")
+		expect_false(any(add %in% x))
+		paste(sort(unique(c(x, add))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		expect_false("stop_estimand_not_supported@Inference" %in% x)
+		paste(sort(unique(c(x, "stop_estimand_not_supported@Inference"))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	# v1.0.6 (2026-11-16; release_v1_0_6.md TODO-30 records the change): rand
 	# warm-start chaining is gated on the registry's likelihood_concave via the
 	# private helper rand_likelihood_is_nonconcave() on InferenceRand. Reviewed
@@ -550,11 +567,11 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		# 3dabce47 / 97e466f1 (2026-11-18/19, v1.0.6 fixes), also additions only: the
 		# bootstrap extreme-estimate and raw-ratio-estimand guards, the shared
 		# subsampling / m-out-of-n size selection and centered pivot, the quantile
-		# regressions' weighted-refit helpers, and the Poisson design-stratified jackknife.
+		# regressions' weighted-refit helpers, and the Poisson within-block jackknife fallback (v1.1.0-TODO-218).
 		"bootstrap_ci_estimates_extreme", "bootstrap_estimand_is_raw_ratio",
 		"resampling_centered_pivot_for_inference", "select_resampling_size_from_spec",
 		"compute_quantile_estimate_with_bootstrap_weights", "quantile_fit_response",
-		"design_stratified_jackknife",
+		"use_within_block_jackknife_fallback",
 		# v1.0.6-TODO-205 (2026-11-19, addition only): the identity-binomial
 		# warm-then-cold refit used by generate_mod() and the weighted bootstrap refit.
 		"fit_identity_binomial_warm_then_cold",
@@ -566,25 +583,6 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		# dispatcher calls instead of its removed mean-difference fallback.
 		"compute_weighted_estimate_ivwc"
 	)
-	# v1.0.6-TODO-217 (2026-11-19, rehost only): these KK compound classes have no
-	# weighted refit of their estimator, so they opt out of the Bayesian bootstrap
-	# with a host-level supports_bayesian_bootstrap() = FALSE override. Reviewed
-	# delta: the method moves from the BayesianBootstrap host to the class itself.
-	todo217_bb_refused <- c(
-		"InferenceBaiAdjustedTKK14", "InferenceBaiAdjustedTKK21",
-		"InferenceContinKKQuantileRegrIVWC", "InferencePropKKQuantileRegrIVWC",
-		"InferenceContinKKRobustRegrIVWC", "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
-		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
-	)
-	for (class_name in todo217_bb_refused) {
-		row <- which(baseline$class == class_name)
-		x <- strsplit(baseline$private_methods[[row]], "|", fixed = TRUE)[[1L]]
-		old <- grep("^supports_bayesian_bootstrap@", x, value = TRUE)
-		expect_identical(length(old), 1L, info = class_name)
-		expect_false(identical(old, paste0("supports_bayesian_bootstrap@", class_name)), info = class_name)
-		x <- c(setdiff(x, old), paste0("supports_bayesian_bootstrap@", class_name))
-		baseline$private_methods[[row]] <- paste(sort(unique(x)), collapse = "|")
-	}
 	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
 	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {
 		x <- strsplit(baseline$private_methods[[i]], "|", fixed = TRUE)[[1L]]

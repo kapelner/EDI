@@ -34,9 +34,10 @@ intercept occupies column 1).}
 
 \item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.}
 
-\item{warm_start_fisher_info}{Currently unused: accepted for interface
-compatibility but not passed to the C++ fitter, which is warm-started from
-\code{warm_start_beta} only.}
+\item{warm_start_fisher_info}{Optional initial information matrix for the
+first optimizer iteration, passed to the C++ fitter. It must be
+\code{(ncol(X) + 1) x (ncol(X) + 1)}, ordered as \code{c(beta, log(phi))}.
+\code{NULL} (the default) starts from the fitter's own initial curvature.}
 }
 \value{
 A list containing the following components:

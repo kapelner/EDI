@@ -40,6 +40,9 @@ exact_incidence_baseline_public_methods = c(
 	"get_analysis_data",
 	"get_covariates",
 	"get_design_object",
+	# 2026-11-19 (v1.0.6-TODO-208 item (4)): root set_estimand() / get_estimand() /
+	# get_supported_estimands() on Inference (classed edi_estimand_not_supported error).
+	"get_estimand",
 	"get_model_formula",
 	"get_nonestimable_reason",
 	"get_nonestimable_stage",
@@ -59,6 +62,7 @@ exact_incidence_baseline_public_methods = c(
 	"get_supported_bayesian_bootstrap_pval_types",
 	"get_supported_bootstrap_ci_types",
 	"get_supported_bootstrap_pval_types",
+	"get_supported_estimands",
 	"get_supported_rand_bootstrap_ci_types",
 	"get_supported_rand_bootstrap_pval_types",
 	"get_treatment",
@@ -66,6 +70,7 @@ exact_incidence_baseline_public_methods = c(
 	"is_nonestimable",
 	"select_optimal_b_subsampling",
 	"select_optimal_m_out_of_n_bootstrap",
+	"set_estimand",
 	"set_optimization_alg",
 	"set_seed",
 	"supports",
@@ -113,6 +118,9 @@ exact_binomial_migrated_public_methods = c(
 	"get_analysis_data",
 	"get_covariates",
 	"get_design_object",
+	# 2026-11-19 (v1.0.6-TODO-208 item (4)): root set_estimand() / get_estimand() /
+	# get_supported_estimands() on Inference (classed edi_estimand_not_supported error).
+	"get_estimand",
 	"get_model_formula",
 	"get_nonestimable_reason",
 	"get_nonestimable_stage",
@@ -121,9 +129,11 @@ exact_binomial_migrated_public_methods = c(
 	"get_response",
 	"get_response_type",
 	"get_summary",
+	"get_supported_estimands",
 	"get_treatment",
 	"initialize",
 	"is_nonestimable",
+	"set_estimand",
 	"set_optimization_alg",
 	"set_seed",
 	"supports"

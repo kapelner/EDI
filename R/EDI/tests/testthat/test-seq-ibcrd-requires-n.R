@@ -47,9 +47,8 @@ test_that("DesignSeqOneByOneiBCRD with n assigns exactly as before the change", 
 })
 
 test_that("DesignSeqOneByOneiBCRD redraws keep the realized number treated", {
-	# n * prob_T not on a .5 tie here: at a tie (e.g. n = 21, prob_T = 0.5) assign_wt() rounds half to
-	# even (10) while the C++ redraw kernel rounds half away from zero (11); that mismatch predates
-	# v1.0.6-TODO-187 and is reported separately.
+	# n * prob_T not on a .5 tie here; the tie cases are in test-ibcrd-tie-rounding-redraw-count.R
+	# (v1.0.6-TODO-213).
 	for (cfg in list(list(n = 20L, p = 0.3, s = 2L), list(n = 15L, p = 0.5, s = 3L))) {
 		d = ibcrd_enroll(cfg$n, cfg$p, set_seed = cfg$s)
 		set.seed(5L)

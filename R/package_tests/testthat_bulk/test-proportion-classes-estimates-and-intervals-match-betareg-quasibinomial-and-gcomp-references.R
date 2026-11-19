@@ -27,7 +27,7 @@ fx <- function() {
 }
 new_inf <- function(cls, des) {
 	inf <- K(cls)$new(des, verbose = FALSE)
-	if (is.function(inf$set_estimand)) inf$set_estimand("conditional")
+	if (isTRUE(inf$supports("marginal_estimand"))) inf$set_estimand("conditional")
 	inf
 }
 std_diff <- function(pred_fun, x) mean(pred_fun(data.frame(w = 1, x = x))) - mean(pred_fun(data.frame(w = 0, x = x)))

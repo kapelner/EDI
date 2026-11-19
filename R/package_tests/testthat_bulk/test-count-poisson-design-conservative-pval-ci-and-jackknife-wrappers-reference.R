@@ -56,16 +56,16 @@ test_that("the jackknife wrappers turn errors and out-of-range output into NA", 
 	inf <- f$inf
 	unlockBinding("compute_jackknife_wald_two_sided_pval", inf)
 	unlockBinding("compute_jackknife_wald_confidence_interval", inf)
-	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0) stop("no jackknife")
-	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05) stop("no jackknife")
+	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0, unit = "auto") stop("no jackknife")
+	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05, unit = "auto") stop("no jackknife")
 	expect_true(is.na(f$p$design_jackknife_pval(0)))
 	expect_equal(f$p$design_jackknife_ci(0.05), c(NA_real_, NA_real_))
-	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0) 1.5
-	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05) c(2, 1)
+	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0, unit = "auto") 1.5
+	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05, unit = "auto") c(2, 1)
 	expect_true(is.na(f$p$design_jackknife_pval(0)))
 	expect_equal(f$p$design_jackknife_ci(0.05), c(NA_real_, NA_real_))
-	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0) 0.04
-	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05) c(-1, 3, 99)
+	inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0, unit = "auto") 0.04
+	inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05, unit = "auto") c(-1, 3, 99)
 	expect_equal(f$p$design_jackknife_pval(0), 0.04)
 	expect_equal(f$p$design_jackknife_ci(0.05), c(-1, 3))
 })
