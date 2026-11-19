@@ -93,15 +93,16 @@ Design-specific differences from the table:
 }
 
 \examples{
-\donttest{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
-for (i in 1:10) {
+set.seed(1)
+seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = 'continuous')
+for (i in 1:20) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-seq_des$add_all_subject_responses(rnorm(10))
+seq_des$add_all_subject_responses(rnorm(20))
 inf = InferenceAllSimpleMeanDiffPooledVar$new(seq_des)
 inf$compute_estimate()
-}
+inf$compute_asymp_confidence_interval()
+inf$compute_asymp_two_sided_pval()
 }
 \references{
 Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
@@ -191,10 +192,10 @@ Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{des_obj}}{A completed design object.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
-the formula from the design object is used and its pre-computed design matrix is
-reused. If a formula is provided, a new design matrix is constructed from the
-design's imputed covariates.}
+      \item{\code{model_formula}}{Optional covariate formula. It is accepted for interface
+consistency but does not change the estimate or standard error, which use only
+the responses and treatment assignments (no covariate adjustment). If \code{NULL}
+(default), the formula from the design object is used.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }

@@ -17,17 +17,22 @@ A numeric vector of \eqn{\log \Phi(x)} values, the same length as
 Computes \eqn{\log \Phi(x)}, the log of the standard normal cumulative
 distribution function, elementwise over \code{x}, via the complementary
 error function kernel \code{fast_erfc} (\eqn{\Phi(x) = \tfrac{1}{2}
-\mathrm{erfc}(-x/\sqrt{2})}, evaluated in a form stable for large negative
-\code{x}, where \eqn{\Phi(x)} underflows in ordinary (non-log) arithmetic
-long before the true log-probability does), avoiding R's own
+\mathrm{erfc}(-x/\sqrt{2})}, with the log taken directly), avoiding R's own
 \code{\link[stats]{pnorm}} dispatch overhead. Faster than base R's
 \code{\link[stats]{pnorm}(x, log.p = TRUE)} — measured at 2.49x on a
 length-5000 vector (see the
 \href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
 / Math Kernel Performance" benchmark report}). Used internally inside the
 package's probit regression and other likelihood kernels that need a
-numerically stable normal log-CDF, e.g. for censored/truncated Gaussian
-contributions.
+normal log-CDF, e.g. for censored/truncated Gaussian contributions.
+}
+\details{
+The tails are clamped rather than computed: for \code{x <= -8} the result is
+the constant \code{-35.0496} (about \eqn{\log(6 \times 10^{-16})}) and for
+\code{x >= 8} it is \code{-6.661e-16}. Below \code{-8} the output therefore
+does not track the true \eqn{\log \Phi(x)} (e.g. \eqn{\log \Phi(-10)
+\approx -53.2}); use \code{\link[stats]{pnorm}(x, log.p = TRUE)} when the far
+lower tail matters.
 }
 \references{
 \href{https://en.wikipedia.org/wiki/Normal_distribution}{Normal

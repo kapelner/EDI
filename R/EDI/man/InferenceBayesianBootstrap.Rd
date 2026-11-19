@@ -233,7 +233,8 @@ family.}
   na.rm = FALSE,
   show_progress = TRUE,
   min_number_usable_samples = 5L,
-  weighting_unit_type = NULL
+  weighting_unit_type = NULL,
+  min_fraction_usable_samples = 0.95
 )}
     \if{html}{\out{</div>}}
   }
@@ -263,13 +264,24 @@ computing the p-value. Default \code{FALSE}, in which case any non-finite
 replicate returns \code{NA} (with a once-per-object warning of class
 \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were
 non-finite). The confidence-interval method drops non-finite replicates
-by default, so it can be finite when this p-value is \code{NA}.}
+by default, so it can be finite when this p-value is \code{NA}.
+\code{na.rm = TRUE} drops them here too, subject to
+\code{min_number_usable_samples} and \code{min_fraction_usable_samples}.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite Bayesian-bootstrap
 replicates required after filtering. Default 5.}
       \item{\code{weighting_unit_type}}{Optional Bayesian-bootstrap weighting-unit
 scheme. See
 \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}()}.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B} replicates that
+must be finite when \code{na.rm = TRUE} (for the studentized types: a finite
+estimate and a positive finite standard error). A number in \eqn{[0, 1]}; default
+\code{0.95}, which mirrors the 5\% cap on invalid intervals that EDI's coverage
+calibration applies to confidence intervals. Below it the p-value is \code{NA}
+with the recorded reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}
+and one \code{edi_procedure_na_warning} (silent inside an outer resampling
+operation). \code{0} turns the check off; \code{1} requires every replicate.
+Ignored when \code{na.rm = FALSE}.}
     }
     \if{html}{\out{</div>}}
   }

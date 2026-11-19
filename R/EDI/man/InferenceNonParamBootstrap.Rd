@@ -778,7 +778,8 @@ Any non-\code{NULL} value is rejected for designs outside that blocking family.}
   type = NULL,
   na.rm = FALSE,
   show_progress = TRUE,
-  min_number_usable_samples = 5L
+  min_number_usable_samples = 5L,
+  min_fraction_usable_samples = 0.95
 )}
     \if{html}{\out{</div>}}
   }
@@ -832,10 +833,20 @@ single non-finite replicate makes the p-value \code{NA} (with a once-per-object 
 \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
 confidence-interval method always drops non-finite replicates, so it can be finite
 when this p-value is \code{NA}; \code{na.rm = TRUE} drops them here too, subject to
-\code{min_number_usable_samples}.}
+\code{min_number_usable_samples} and \code{min_fraction_usable_samples}.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples
 required after filtering. Default 5. Must be less than or equal to \code{B}.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B} replicates that must
+be finite when \code{na.rm = TRUE} (for the studentized types: a finite estimate and a
+positive finite standard error). A number in \eqn{[0, 1]}; default \code{0.95}, which
+mirrors the 5\% cap on invalid intervals that EDI's coverage calibration applies to
+confidence intervals. Below it the p-value is \code{NA} with the recorded reason
+\code{"bootstrap_too_few_valid_replicates_fraction"} and one
+\code{edi_procedure_na_warning} (silent inside an outer resampling operation), so a
+p-value is never formed from the few resamples on which the estimator happened to
+work. \code{0} turns the check off; \code{1} requires every replicate. Ignored when
+\code{na.rm = FALSE}, which already returns \code{NA} on any non-finite replicate.}
     }
     \if{html}{\out{</div>}}
   }
@@ -867,7 +878,8 @@ required after filtering. Default 5. Must be less than or equal to \code{B}.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The confidence level 1 - \code{alpha}. Default 0.05.}
+      \item{\code{alpha}}{The significance level; the interval has confidence level
+1 - \code{alpha}. Default 0.05.}
       \item{\code{B}}{Number of bootstrap samples. Default 501.}
       \item{\code{type}}{Bootstrap CI type. Supported values are
 \code{"percentile"}, \code{"basic"}, \code{"studentized"},

@@ -54,9 +54,16 @@ block structure in the resampling scheme, analogous to the cluster-level bootstr
 
 \itemize{
   \item \strong{Block-aware:} randomization inference (re-draws within blocks),
-    the bootstrap and the jackknife (resample within blocks), and the
+    the bootstrap (resamples within blocks), the jackknife, and the
     block-stratified tests \code{InferenceIncidCMH} and
-    \code{InferenceIncidExtendedRobins}.
+    \code{InferenceIncidExtendedRobins}. The jackknife's automatic unit here is one
+    subject (\code{unit = "observation_within_block"}): each replicate deletes one
+    subject, and the variance pools the replicates' spread within blocks (the
+    stratified jackknife of Wolter 2007,
+    \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
+    \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A block of one subject
+    contributes nothing. Before EDI 1.0.6 a replicate deleted a whole block, which left
+    only as many replicates as blocks (v1.0.6-TODO-4).
   \item \strong{Not block-aware:} the regression-type classes (OLS, Lin, robust,
     quantile, GLM, ordinal, survival regressions, ...) add \emph{no} block fixed
     effects automatically; the blocks enter the model only if the blocking column is

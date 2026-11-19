@@ -20,7 +20,9 @@ attribute-only markers are not missed. See the implementation comment
 below for the full mechanism.}
 }
 \description{
-Since 2026-10-22 (TODO-125) this is a no-op kept for one release:
+Since 2026-10-22 (v1.0.5-TODO-125) this is a no-op for methods already
+bound to one of the clone's own enclosing environments (kept for one
+release), and only repoints the remaining ones as described below:
 \code{install_lazy_inference_component()} now closes each installed
 method over the calling stub's own R6 enclosing environment, which R6's
 \code{clone()} remaps by itself. Before that, installed methods were
@@ -30,10 +32,11 @@ environment is \code{identical()} to one of the object's enclosing
 environments, so a clone kept calling back into the ORIGINAL object's
 data (e.g. a Bayesian-bootstrap worker clone silently reading the
 pre-clone object's \code{current_bayesian_bootstrap_context}, always
-\code{NULL}, instead of its own). This helper repoints any
-already-installed lazy-component method (public and private) that is not
-closed over one of the clone's own enclosing environments at the clone's
-leaf enclosing environment; state fields (\code{owns_state}) are left
+\code{NULL}, instead of its own). This helper repoints only those
+already-installed lazy-component methods (public and private) that are not
+closed over one of the clone's own enclosing environments (for example
+\code{compute_estimate_with_bootstrap_weights} or \code{weighted_refit_impl}
+when bound elsewhere) at the clone's leaf enclosing environment; state fields (\code{owns_state}) are left
 untouched since \code{clone()} already copies their current values
 correctly.
 }

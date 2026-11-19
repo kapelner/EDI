@@ -8,7 +8,12 @@ A new \code{InferenceIncidExactZhang} object.
 
 The treatment estimate.
 
-A confidence interval.
+A confidence interval. When the matched pairs and the reservoir
+  point to incompatible effects, the combined test can reject every log
+  odds ratio at level \code{alpha}; the confidence set is then empty and
+  both bounds are \code{NA}, with the reason
+  \code{"exact_ci_empty_acceptance_set"} recorded and an
+  \code{edi_procedure_na_warning}.
 }
 \description{
 Performs exact inference for a binary (incidence) outcome that
@@ -39,18 +44,31 @@ Requires a Bernoulli-capable or matching-capable design.
 
 Initialize exact Zhang combined-test incidence inference.
   Requires \code{des_obj} to be Bernoulli-capable or
-  matching-capable, an uncensored incidence response.
+  matching-capable, with an uncensored incidence response.
 
 Computes the Haldane-Anscombe continuity-corrected log odds
   ratio \eqn{\log\left((n_{11}+0.5)(n_{00}+0.5) /
   \left((n_{10}+0.5)(n_{01}+0.5)\right)\right)} from the pooled
   \eqn{2\times2} table across all subjects (matched and reservoir
   combined) — see class documentation for the full combined-test model.
+  On a matching design this estimate is not the quantity the exact
+  confidence interval inverts (that uses only the discordant pairs and the
+  reservoir), so it is not guaranteed to lie inside that interval.
 
 Computes an exact confidence interval for the log odds
   ratio by bisection-inverting the combined matched-pairs +
   Fisher-exact p-value (see class documentation for the full
-  combination methodology).
+  combination methodology). On a matching design the interval is not
+  guaranteed to contain \code{compute_estimate()}, which uses the pooled
+  table over all subjects.
+}
+\details{
+On a matching design the point estimate and the exact confidence interval
+are different quantities: the estimate is the log odds ratio of the pooled
+table over all subjects, while the interval inverts the combined test, which
+uses only the discordant matched pairs and the reservoir table. The estimate
+therefore is not guaranteed to lie inside the exact confidence interval,
+although it usually does.
 }
 \section{Small-sample behaviour}{
 

@@ -40,6 +40,11 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\details{
+\strong{No Bayesian bootstrap.} Its MM-estimator fits have no weighted refit, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
+}
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')

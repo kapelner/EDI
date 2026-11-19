@@ -234,8 +234,9 @@ intervals or p-values; only \eqn{\hat\beta_T} is returned.}
   \code{private$expand_subject_or_block_weights_to_row_weights()}),
   and returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. When
   weights are effectively constant, this collapses to the unweighted
-  \code{compute_estimate()} call (returns \code{df = Inf} to signal a
-  degenerate/skipped bootstrap replicate rather than refitting). When
+  \code{compute_estimate()} call and returns the unweighted estimate
+  without refitting (the cached \code{df} is set to \code{Inf} and the
+  cached summary table is cleared). When
   \code{use_rcpp = TRUE}, a weighted Rcpp fast path is tried first via
   \code{private$weighted_rcpp_estimate()}; otherwise
   \code{private$compute_weighted_glmm_bootstrap_estimate()} refits via
@@ -267,10 +268,12 @@ weights), expanded to per-row weights before fitting.}
 \if{html}{\out{<a id="method-InferenceContinKKGLMM-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinKKGLMM-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceContinKKGLMM$compute_asymp_confidence_interval()}}{
-  Computes a \eqn{1-\alpha} Wald confidence interval for
-  \eqn{\beta_T} from the fitted-model standard error, using a normal
-  or \eqn{t} critical value depending on the resolved degrees of
-  freedom (see \code{private$compute_z_or_t_ci_from_s_and_df}).
+  Computes a \eqn{1-\alpha} confidence interval for
+  \eqn{\beta_T} using the active testing type (see
+  \code{set_testing_type()}). Under the default Wald type it uses the
+  fitted-model standard error with a normal or \eqn{t} critical value
+  depending on the resolved degrees of freedom; the score, gradient,
+  likelihood-ratio and Bartlett-corrected types invert the matching test.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinKKGLMM$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -290,10 +293,11 @@ weights), expanded to per-row weights before fitting.}
 \if{html}{\out{<a id="method-InferenceContinKKGLMM-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinKKGLMM-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceContinKKGLMM$compute_asymp_two_sided_pval()}}{
-  Computes a two-sided Wald p-value for
-  \eqn{H_0: \beta_T = \code{delta}} using the fitted-model estimate
-  and standard error (same statistic that
-  \code{$compute_asymp_confidence_interval()} inverts).
+  Computes a two-sided p-value for
+  \eqn{H_0: \beta_T = \code{delta}} using the active testing type (Wald
+  by default; score, gradient, likelihood-ratio and Bartlett-corrected
+  types are also supported), the same test that
+  \code{$compute_asymp_confidence_interval()} inverts.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinKKGLMM$compute_asymp_two_sided_pval(delta = 0)}

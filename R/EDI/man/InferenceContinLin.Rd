@@ -310,7 +310,8 @@ resampling paths.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The confidence level. The default is 0.05.}
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is
+1 - \code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
   }

@@ -6,7 +6,8 @@
 \value{
 A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 
-The setting-appropriate (see description) numeric estimate of the treatment effect
+The difference in sample means (treated minus control) as a single
+  number, or \code{NA_real_} if either arm has no observations.
 }
 \description{
 Fits the simplest possible treatment-effect estimator for a continuous
@@ -268,10 +269,10 @@ use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
     \describe{
       \item{\code{des_obj}}{A DesignSeqOneByOne object whose entire n subjects are assigned
 and response y is recorded within.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
-the formula from the design object is used and its pre-computed design matrix is
-reused. If a formula is provided, a new design matrix is constructed from the
-design's imputed covariates.}
+      \item{\code{model_formula}}{Optional covariate formula. It is accepted for interface
+consistency but does not change the estimate or standard error, which use only
+the responses and treatment assignments (no covariate adjustment). If \code{NULL}
+(default), the formula from the design object is used.}
       \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
       \item{\code{max_resample_attempts}}{Maximum number of times a single bootstrap replicate
 may be redrawn when the drawn sample fails validity screening. If all attempts

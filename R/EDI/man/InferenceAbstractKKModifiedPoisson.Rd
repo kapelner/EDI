@@ -129,7 +129,8 @@ Abstract class for all-subject modified-Poisson inference in KK designs
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{subject_or_block_weights}}{Numeric vector. Row weights for bootstrap.}
+      \item{\code{subject_or_block_weights}}{Numeric vector. Subject- or block-level
+bootstrap weights (expanded internally to row weights).}
       \item{\code{estimate_only}}{Logical. If TRUE, skip the weighted cluster-robust
 sandwich variance calculation.}
     }

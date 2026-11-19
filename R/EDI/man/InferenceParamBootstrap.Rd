@@ -223,7 +223,8 @@ expensive than the asymptotic LR p-value.
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment effect. Default 0.}
-      \item{\code{B}}{Number of bootstrap replicates. Default 199.}
+      \item{\code{B}}{Number of bootstrap replicates. Default 199. The
+smallest attainable p-value is \eqn{2 / (B + 1)}.}
       \item{\code{show_progress}}{Logical; show a progress bar. Default \code{FALSE}.}
       \item{\code{min_number_usable_samples}}{Minimum number of usable bootstrap
 replicates required to return a finite p-value. Default \code{5L}.}
@@ -275,7 +276,10 @@ evaluations.
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{B}}{Bootstrap replicates per p-value evaluation. Default 199.}
+      \item{\code{B}}{Bootstrap replicates per p-value evaluation. Default 199.
+The smallest attainable bootstrap p-value is \eqn{2 / (B + 1)}, so
+\code{B} must be at least \eqn{2/\alpha - 1} (39 for
+\code{alpha = 0.05}, 199 for \code{alpha = 0.01}); smaller values error.}
       \item{\code{show_progress}}{Logical; show a progress bar. Default \code{FALSE}.}
       \item{\code{min_number_usable_samples}}{Minimum number of usable bootstrap
 replicates required within each p-value evaluation. Default
@@ -480,9 +484,10 @@ the same performance characteristics for free. Returns a list with
 $results (one per-replicate result object per B, each carrying at least
 $lr), $used_worker_path, and $used_deterministic_mode.
 
-Callers are responsible for setting private$active_resampling_operation
-themselves (not done here, to avoid a nested caller clobbering an
-already-active outer flag via a premature on.exit reset).
+Sets private$active_resampling_operation = "param_boot" for the
+replicate loop only and restores the caller's value on exit
+(v1.0.6-TODO-185), so the callers' own top-level code stays outside
+the flag and its procedure-NA warnings can fire (v1.0.6-TODO-207).
 Simulate a bootstrap dataset under the fitted null likelihood and return
 a minimal spec list for refitting.
 

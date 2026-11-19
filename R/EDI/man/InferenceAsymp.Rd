@@ -131,7 +131,7 @@ Abstract class for asymptotic inference.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level 1 - \code{alpha}. Default 0.05.}
+      \item{\code{alpha}}{Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }

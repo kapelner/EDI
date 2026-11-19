@@ -6,6 +6,61 @@
 \description{
 Abstract class for delete-1 jackknife estimate correction and jackknife-Wald
 inference layered on top of bootstrap-capable inference classes.
+
+
+\strong{Deletion units.} With \code{unit = "auto"} each replicate deletes one unit
+of the design's randomization structure:
+\itemize{
+  \item matching designs: one matched pair (\code{"pair"}), or for KK designs one
+    matched set or one reservoir subject (\code{"matched_set"});
+  \item cluster designs: one cluster (\code{"cluster"});
+  \item \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}}: one permuted
+    block (\code{"permuted_block"}), the \code{block_size} consecutive enrollees of
+    a stratum that the design randomized together; a trailing partial block of a
+    stratum is merged into that stratum's previous block;
+  \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
+    grouped by its stratum (\code{"observation_within_block"});
+  \item other blocking designs: one whole block (\code{"block"});
+  \item all other designs: one subject (\code{"observation"}).
+}
+Any of these can also be requested explicitly through \code{unit}
+(\code{"permuted_block"} only on SPBR; \code{"block"} and
+\code{"observation_within_block"} on any blocking design).
+
+\strong{Formulas.} With \eqn{\hat\theta} the full-data estimate and
+\eqn{\hat\theta_{(i)}} the estimate with unit \eqn{i} deleted, an unstratified unit
+(\eqn{G} units, mean \eqn{\bar\theta}) gives bias
+\eqn{(G - 1)(\bar\theta - \hat\theta)} and variance
+\eqn{\frac{G - 1}{G} \sum_i (\hat\theta_{(i)} - \bar\theta)^2}. The two stratified
+units (\code{"permuted_block"}, \code{"observation_within_block"}) use the stratified
+delete-1 ("JKn") jackknife of Wolter (2007, Sec. 4.5). Wolter's replicate deletes unit
+\eqn{i} of stratum \eqn{h} and reweights that stratum's other \eqn{n_h - 1} units by
+\eqn{n_h/(n_h - 1)}; EDI's replicates are refits on the remaining rows without
+reweighting, so each replicate's departure from \eqn{\hat\theta} is first scaled by
+\eqn{r_h = n_h (N - 1) / \{N (n_h - 1)\}} (\eqn{N} units in all), its first-order
+reweighted equivalent: \eqn{\theta^*_{(h,i)} = \hat\theta + r_h (\hat\theta_{(h,i)} - \hat\theta)}.
+With \eqn{\bar\theta^*_h} the stratum mean of these, Wolter's formulas give bias
+\eqn{\sum_h (n_h - 1)(\bar\theta^*_h - \hat\theta)} and variance
+\eqn{\sum_h \frac{n_h - 1}{n_h} \sum_{i \in h} (\theta^*_{(h,i)} - \bar\theta^*_h)^2
+= (\frac{N - 1}{N})^2 \sum_h \frac{n_h}{n_h - 1} \sum_{i \in h} (\hat\theta_{(h,i)} - \bar\theta_h)^2};
+with no single-unit stratum the bias equals the ordinary \eqn{(N - 1)(\bar\theta - \hat\theta)},
+and with one stratum both reduce to the unstratified formulas.
+The strata are fixed by the design and treatment is randomized within them, so only
+the within-stratum spread of the replicates enters the variance. A stratum with a
+single unit contributes nothing to either sum. The bias-corrected jackknife estimate is
+\eqn{\hat\theta} minus the bias, and the jackknife-Wald test and interval use it with
+the jackknife standard error and the normal reference. They are \code{NA} when the
+variance has fewer than 4 degrees of freedom (\eqn{G - 1}, or
+\eqn{\sum_h (n_h - 1)} for the stratified units).
+
+Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
+block, which on these designs is the stratum, so a replicate deleted a whole stratum
+and the jackknife had only 2-4 units (v1.0.6-TODO-4).
+}
+\references{
+Wolter, K. M. (2007). \emph{Introduction to Variance Estimation}, 2nd ed.
+  Springer, New York, ch. 4 "The Jackknife Method" (pp. 151-193), Sec. 4.5 (stratified
+  sampling), \doi{10.1007/978-0-387-35099-8}.
 }
 \keyword{internal}
 \section{Super classes}{
@@ -118,8 +173,10 @@ inference layered on top of bootstrap-capable inference classes.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{unit}}{Deletion unit. Default `\"auto\"`, which chooses a design-aware
-unit automatically.}
+      \item{\code{unit}}{Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+\code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+\code{"permuted_block"} or \code{"observation_within_block"}; see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -134,10 +191,8 @@ unit automatically.}
 \subsection{\code{InferenceJackknife$compute_jackknife_estimate()}}{
   Computes the delete-1 jackknife bias-corrected treatment estimate.
 
-For blocking designs, this uses leave-one-block-out deletion units. For
-matching designs, it uses leave-match-out deletion units. For KK designs,
-it uses leave-match-out for matched pairs and leave-one-out for reservoir
-subjects.
+The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_estimate(unit = "auto")}
@@ -146,8 +201,10 @@ subjects.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{unit}}{Deletion unit. Default `\"auto\"`, which chooses a design-aware
-unit automatically.}
+      \item{\code{unit}}{Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+\code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+\code{"permuted_block"} or \code{"observation_within_block"}; see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -184,10 +241,8 @@ unit automatically.}
 \subsection{\code{InferenceJackknife$compute_jackknife_std_error()}}{
   Computes the delete-1 jackknife standard error.
 
-For blocking designs, this uses leave-one-block-out deletion units. For
-matching designs, it uses leave-match-out deletion units. For KK designs,
-it uses leave-match-out for matched pairs and leave-one-out for reservoir
-subjects.
+The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_std_error(unit = "auto")}
@@ -196,8 +251,10 @@ subjects.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{unit}}{Deletion unit. Default `\"auto\"`, which chooses a design-aware
-unit automatically.}
+      \item{\code{unit}}{Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+\code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+\code{"permuted_block"} or \code{"observation_within_block"}; see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -213,10 +270,8 @@ unit automatically.}
   Computes a two-sided Wald p-value using the jackknife estimate
   and jackknife standard error.
 
-For blocking designs, this uses leave-one-block-out deletion units. For
-matching designs, it uses leave-match-out deletion units. For KK designs,
-it uses leave-match-out for matched pairs and leave-one-out for reservoir
-subjects.
+The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_wald_two_sided_pval(
@@ -229,8 +284,10 @@ subjects.
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment-effect value. Default 0.}
-      \item{\code{unit}}{Deletion unit. Default `\"auto\"`, which chooses a design-aware
-unit automatically.}
+      \item{\code{unit}}{Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+\code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+\code{"permuted_block"} or \code{"observation_within_block"}; see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -246,10 +303,8 @@ unit automatically.}
   Computes a normal-approximation confidence interval using the
   jackknife estimate and jackknife standard error.
 
-For blocking designs, this uses leave-one-block-out deletion units. For
-matching designs, it uses leave-match-out deletion units. For KK designs,
-it uses leave-match-out for matched pairs and leave-one-out for reservoir
-subjects.
+The automatic deletion unit (\code{unit = "auto"}) follows the design: see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_wald_confidence_interval(
@@ -262,8 +317,10 @@ subjects.
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{unit}}{Deletion unit. Default `\"auto\"`, which chooses a design-aware
-unit automatically.}
+      \item{\code{unit}}{Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
+\code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
+\code{"permuted_block"} or \code{"observation_within_block"}; see
+\strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.}
     }
     \if{html}{\out{</div>}}
   }

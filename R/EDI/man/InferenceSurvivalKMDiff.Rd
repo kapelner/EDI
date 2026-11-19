@@ -81,11 +81,13 @@ Design-specific differences from the table:
 
 \examples{
 \donttest{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
-for (i in 1:10) {
+# n = 40 so neither arm is empty or tiny (each arm's KM median must be reached)
+set.seed(1)
+seq_des = DesignSeqOneByOneBernoulli$new(n = 40, response_type = 'survival')
+for (i in 1:40) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-seq_des$add_all_subject_responses(runif(10))
+seq_des$add_all_subject_responses(runif(40))
 inf = InferenceSurvivalKMDiff$new(seq_des)
 inf$compute_estimate()
 }
@@ -307,7 +309,10 @@ finite median-difference estimate. This class therefore drops non-finite
 weighted-median draws by default and requires at least
 \code{min_number_usable_samples} finite draws. If too few remain, the
 result is \code{NA_real_} with nonestimability reason
-\code{"bayesian_bootstrap_too_few_finite_estimates"}. Set
+\code{"bayesian_bootstrap_too_few_finite_estimates"}. It also requires
+at least \code{min_fraction_usable_samples} (default 95\%) of the \code{B}
+draws to be finite (v1.0.6-TODO-12); below that the result is \code{NA_real_}
+with reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}. Set
 \code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -318,7 +323,8 @@ result is \code{NA_real_} with nonestimability reason
   na.rm = TRUE,
   show_progress = TRUE,
   min_number_usable_samples = 5L,
-  weighting_unit_type = NULL
+  weighting_unit_type = NULL,
+  min_fraction_usable_samples = 0.95
 )}
     \if{html}{\out{</div>}}
   }
@@ -334,6 +340,9 @@ to \code{TRUE} for this estimator.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite draws required.}
       \item{\code{weighting_unit_type}}{Optional Bayesian-bootstrap weighting-unit
 scheme.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B} draws that
+must be finite when \code{na.rm = TRUE}. Default 0.95. See
+\code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
     }
     \if{html}{\out{</div>}}
   }

@@ -131,7 +131,6 @@ use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
 \subsection{\code{InferenceCustomRand$compute_estimate()}}{
   Compute the treatment-effect estimate by delegating to the
   user-supplied custom estimator (the \code{$fit()} callback). See
-  \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} and
   \code{\link[EDI:InferenceRand]{InferenceRand}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

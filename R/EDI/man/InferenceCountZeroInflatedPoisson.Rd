@@ -11,7 +11,7 @@ Poisson count submodel \eqn{\log E[Y_i \mid \text{not structural zero},
 w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. Unlike a hurdle
 model, zero counts can arise from either the structural-zero mechanism or
 from an ordinary Poisson draw of \eqn{0}, so the two mixture components are
-not identified by disjoint support. The hurdle and count submodels may use
+not identified by disjoint support. The zero-inflation and count submodels may use
 different covariate formulas (\code{model_formula}/\code{model_formula_zero}).
 The reported treatment effect is the coefficient from the conditional count
 component, on the log-rate scale, \strong{conditional on the response
@@ -70,6 +70,55 @@ which uses a sandwich covariance, stays calibrated in this setting: prefer
 it, adjust for the prognostic covariates, or use
 \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}},
 which models the overdispersion.
+
+\strong{Aliased count-part covariates.} The count-part coefficients are
+learned from the subjects with a positive count: the zero counts inform them
+only through the mixture with the excess-zero part, which leaves a direction
+those subjects do not identify essentially flat (the fit used to wander along
+it, with no usable standard error). A count-part covariate can be aliased on
+those subjects (constant among them, or a linear combination of the intercept,
+the treatment and the covariates before it) even when it varies over the whole
+sample.
+Such a covariate has no identified count-part coefficient, so it is dropped
+from the count part before fitting, with one warning of class
+\code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+by leaving the aliased columns out of its pivoted QR decomposition and reports
+their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+is an error); the dropped count-part coefficients are likewise \code{NA} in
+this class's coefficient vector. As in \code{glm}, columns are checked in
+design order (intercept, treatment, then the covariates), and a column is
+dropped when it adds nothing given the columns kept before it. The treatment
+is never dropped: when it is itself aliased on those subjects (for example,
+all of them are in one arm), its count-part coefficient is not identified and
+the estimate is \code{NA}.
+
+\strong{Separated zero-inflation part.} The zero-inflation logit often has no
+finite maximum: some fitted zero-inflation probabilities run off to 0 or 1
+(for example no excess zeros in one arm), and the likelihood keeps rising
+along a flat ridge. The class then (i) also fits from
+\code{pscl::zeroinfl()}'s default start (a Poisson GLM for the count part, a
+logistic GLM of \eqn{1(y = 0)} for the zero part) with L-BFGS and keeps the
+fit with the lower negative log-likelihood, which also escapes an interior
+local maximum of the default start; (ii) reports the zero-inflation
+coefficients as \code{NA} when a fitted zero-inflation probability is
+numerically 0 or 1, or the fit stopped on such a ridge, and says why once per
+object: when the ridge points only toward no inflation (every subject it
+drives to the boundary goes to probability 0, and no fitted zero-inflation
+probability exceeds 5\%; typical of data without excess zeros), with a
+message of class \code{edi_no_zero_inflation_message} ("no evidence of zero
+inflation"); otherwise (some subject pushed to a structural zero, or sizeable
+inflation next to subjects pushed to 0) with a warning of class
+\code{edi_zero_part_separation_warning} (a subclass of
+\code{edi_logistic_separation_warning}); in both cases the count-part
+treatment estimate is kept, since the count part is identified in the ridge
+limit; and (iii) never warm-starts a randomization, bootstrap or
+parametric-bootstrap refit from a full-data fit whose zero part is on the
+ridge (a fitted zero-inflation logit of 10 or more in absolute value): such a
+refit could not move its zero part and stopped below the maximum, so it is
+cold-started like a fresh fit (v1.0.6-TODO-30, v1.0.6-TODO-152).
 }
 \section{Small-sample behaviour}{
 

@@ -72,6 +72,40 @@ stopped. The class then raises one warning of class
 \code{edi_logistic_separation_warning} per object (silent inside resampling);
 the returned values are unchanged. A randomization test or an exact incidence
 method is safer there.
+
+\strong{Subsampling and m-out-of-n.} The subsampling and m-out-of-n bootstrap
+p-values and intervals use the log-scale pivot \eqn{\sqrt{b}(\log\widehat{RR}^* -
+\log\widehat{RR})}. At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} (21 at
+\eqn{n = 80}) a draw has only a few events per arm, so with non-negligible probability
+it is \emph{degenerate}: (i) an arm of the draw has no events or only events, (ii) the
+logistic fit reports that it did not converge, or (iii) the fit is (quasi-)separated, i.e.
+some fitted probability is numerically 0 or 1 (\eqn{|x_i^\top\hat\beta| \ge
+\mathrm{logit}(1 - 10^{-8})}, the criterion of the separation warning). A degenerate
+draw's log risk ratio is about \eqn{\pm 20}, where the fitter stopped. Subsampling
+estimates the sampling law of the estimator at size \eqn{b} and relies on it being close
+to the law at size \eqn{n} (Politis, Romano and Wolf 1999, Theorem 2.2.1; 2001); at small
+\eqn{b} that law puts a few percent of its mass on these atoms, which land in the tail the
+test uses and put a floor of about twice their fraction under the p-value. Kept, they made
+the tests almost never reject (null size 0.005 for subsampling and 0.000 for m-out-of-n at
+\eqn{n = 80}, nominal 0.05). Degenerate draws are therefore unusable: the
+\code{approximate_subsampling_distribution_beta_hat_T()} and
+\code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} replicates are
+\code{NaN} for them. If fewer than \code{min_fraction_usable_samples} (default 0.95) of
+the \code{B} draws are usable (not degenerate and not failed), the p-value or interval is
+\code{NA}, the reason (\code{"subsampling_too_few_usable_draws_fraction"} or
+\code{"m_out_of_n_too_few_usable_draws_fraction"}) is recorded and one warning of class
+\code{edi_procedure_na_warning} is raised (silent inside resampling); otherwise the
+usable draws are used. In a null simulation at \eqn{n = 80} (200 data sets, event rate
+about 0.41, \code{B = 199}) dropping the degenerate draws alone gave null sizes of 0.040
+(subsampling) and 0.030 (m-out-of-n), but degenerate draws concentrate in data sets with an
+extreme estimate, so the default 0.95 returned \code{NA} for 9\% (subsampling) and 29\%
+(m-out-of-n) of them, most of the ones the Wald test rejects, and the size among the rest was
+0.016 and 0.000; with \code{min_fraction_usable_samples = 0.8} no data set was \code{NA}.
+For the risk ratio the ordinary bootstrap
+(\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
+is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}
+bootstrap is consistent, and resampling fewer than \eqn{n} units only adds these
+small-sample failures. Firth-penalized fits inside the draws are planned as an option.
 }
 \section{Small-sample behaviour}{
 

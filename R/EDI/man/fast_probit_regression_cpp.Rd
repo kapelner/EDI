@@ -28,7 +28,8 @@ fast_probit_regression_cpp(
 provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no
-\code{warm_start_beta} is supplied, use an OLS-based initial guess (see Details).}
+\code{warm_start_beta} is supplied, use an OLS-based initial guess (see the section
+"Fixed parameters, warm starts").}
 
 \item{maxit}{Maximum number of iterations (IRLS path only).}
 
@@ -42,7 +43,8 @@ provided, \code{smart_cold_start} is ignored.}
 \code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
 likelihood minimization.}
 
-\item{warm_start_weights}{Accepted but unused; see Details.}
+\item{warm_start_weights}{Accepted but unused; see the section "Fixed parameters,
+warm starts".}
 
 \item{warm_start_fisher_info}{Optional initial curvature matrix for the first
 IRLS iteration (IRLS path only).}

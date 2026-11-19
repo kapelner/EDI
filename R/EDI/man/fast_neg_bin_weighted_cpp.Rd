@@ -70,9 +70,13 @@ nonnegative row weight \code{weights[i]}. Setting all weights to 1 recovers
 \code{\link{fast_neg_bin_cpp}} exactly.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = rpois(10, 2)
-fast_neg_bin_weighted_cpp(X, y, weights = rep(1, 10))
+set.seed(1)
+n = 100
+X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
+# e.g. bootstrap-style weights: some rows dropped (0), some doubled (2)
+w = sample(c(0, 1, 2), n, replace = TRUE)
+fast_neg_bin_weighted_cpp(X, y, weights = w)
 }
 \seealso{
 \code{\link{fast_neg_bin_cpp}} for the unweighted model and full

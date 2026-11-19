@@ -347,7 +347,10 @@ retries per bootstrap replicate. Default \code{2L}.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{B}}{Bootstrap replicates per p-value evaluation. Default 199.}
+      \item{\code{B}}{Bootstrap replicates per p-value evaluation. Default 199. The
+smallest attainable bootstrap p-value is \eqn{2 / (B + 1)}, so \code{B}
+must be at least \eqn{2/\alpha - 1} (39 for \code{alpha = 0.05});
+smaller values error.}
       \item{\code{show_progress}}{Logical; show a progress bar. Default \code{FALSE}.}
       \item{\code{min_number_usable_samples}}{Minimum number of usable bootstrap
 replicates required within each p-value evaluation. Default \code{5L}.}

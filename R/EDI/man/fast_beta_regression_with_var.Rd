@@ -34,8 +34,9 @@ intercept occupies column 1).}
 
 \item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix, used to
-warm-start curvature information for the optimizer.}
+\item{warm_start_fisher_info}{Currently unused: accepted for interface
+compatibility but not passed to the C++ fitter, which is warm-started from
+\code{warm_start_beta} only.}
 }
 \value{
 A list containing the following components:

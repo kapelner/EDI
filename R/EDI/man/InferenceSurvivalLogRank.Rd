@@ -83,6 +83,11 @@ infer <- InferenceSurvivalLogRank$
   verbose = FALSE
 )
 infer
+# the interval-censored path uses the interval package (Suggests)
+if (requireNamespace("interval", quietly = TRUE)) {
+  infer$compute_estimate()
+  infer$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()
+}
 
 }
 \references{

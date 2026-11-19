@@ -49,10 +49,9 @@ per pair — the pair, not the subject, is the exchangeable resampling unit.
 
 \strong{Constraints.} Allocation is always 1:1 (there is no \code{prob_T}
 argument), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
-otherwise); \code{n/2} matched pairs are formed regardless of parity, but the
-additional divisible-by-4 requirement is enforced by this class specifically (unlike
-\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires
-even \code{n}).
+otherwise). \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}
+requires only even \code{n} (forming \code{n/2} matched pairs); this class
+additionally requires \code{n} to be divisible by 4.
 }
 \examples{
 des = DesignFixedMatchingGreedyPairSwitching$new(n = 12, response_type = 'continuous')

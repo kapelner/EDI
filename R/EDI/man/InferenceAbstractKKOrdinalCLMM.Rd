@@ -137,7 +137,8 @@ back to \pkg{ordinal::clmm}.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{subject_or_block_weights}}{Numeric vector. Row weights for bootstrap.}
+      \item{\code{subject_or_block_weights}}{Numeric vector. Subject- or block-level
+bootstrap weights (expanded internally to row weights).}
       \item{\code{estimate_only}}{Logical. If TRUE, skip variance component calculations.}
     }
     \if{html}{\out{</div>}}
@@ -180,7 +181,9 @@ back to \pkg{ordinal::clmm}.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
+      \item{\code{delta}}{Numeric. Null treatment effect value (default 0); only 0 is
+supported, and a nonzero value returns \code{NA} (or errors when
+assertions are enabled).}
     }
     \if{html}{\out{</div>}}
   }

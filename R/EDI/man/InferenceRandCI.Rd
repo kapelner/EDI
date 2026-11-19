@@ -221,7 +221,7 @@ entries are \code{fallback}, \code{seed}, \code{max_radius_se_mult} (default 25)
 reuse settings \code{fit_warm_start_enable} and
 \code{fit_reuse_factorizations}. Set \code{mc_enable = FALSE} to force
 full enumeration of all requested randomization draws.
-The search radius is \code{max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y))}.
+The search radius is \code{max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y), 1)}.
 When the randomization p-value does not drop below \code{alpha} anywhere within
 the search radius (e.g. the test has low power or the design has few unique
 permutations), a \emph{conservative} CI bound is returned at the search boundary

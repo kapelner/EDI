@@ -13,6 +13,28 @@ likelihood. Classes requiring a full generative likelihood — i.e. those
 supporting parametric-bootstrap LR calibration — inherit instead from
 \code{InferenceParamBootstrap}.
 }
+\details{
+\strong{Information source.} Wald standard errors, p-values and confidence intervals always
+use the observed information (the negative Hessian of the
+log-likelihood at the MLE), the usual choice for Wald inference (Efron
+and Hinkley 1978) and what \code{MASS::polr()} and
+\code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+Poisson) the observed and expected information coincide, so it is also
+what \code{glm()} reports. The information preference set with
+\code{set_information_preference()} affects only score (Rao) tests and
+score confidence intervals; \code{"fisher"} (expected information) is
+the default there where the class supports it, \code{"observed"}
+otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+expected information, and the Wald standard errors of
+\code{InferenceIncidBinomialIdentityRiskDiff} and
+\code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+information, as \code{glm()} reports for these non-canonical links.
+}
+\references{
+Efron, B., and Hinkley, D. V. (1978). "Assessing the accuracy
+of the maximum likelihood estimator: Observed versus expected Fisher
+information." \emph{Biometrika}, 65(3), 457-483. \doi{10.1093/biomet/65.3.457}
+}
 \keyword{internal}
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceResamplingCore]{InferenceResamplingCore}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{InferenceAsympLik}
@@ -154,7 +176,9 @@ supporting parametric-bootstrap LR calibration — inherit instead from
   the fitted estimate and standard error; score, likelihood-ratio,
   gradient, and Bartlett-corrected likelihood-ratio intervals are obtained
   by inverting the corresponding test. For purely Wald asymptotic dispatch,
-  see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}. Wald inference always uses the observed information; the
+  information preference (\code{set_information_preference()}) applies to
+  score tests and score confidence intervals only.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -163,7 +187,7 @@ supporting parametric-bootstrap LR calibration — inherit instead from
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level 1 - \code{alpha}. Default 0.05.}
+      \item{\code{alpha}}{Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }
@@ -182,6 +206,9 @@ supporting parametric-bootstrap LR calibration — inherit instead from
   gradient, or Bartlett-corrected likelihood-ratio statistic under the
   null value \code{delta}. For count-specific likelihood families, see
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+  Wald inference always uses the observed information; the
+  information preference (\code{set_information_preference()}) applies to
+  score tests and score confidence intervals only.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$compute_asymp_two_sided_pval(delta = 0)}
@@ -228,7 +255,22 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \if{html}{\out{<a id="method-InferenceAsympLik-set_information_preference"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAsympLik-set_information_preference}{}}}
 \subsection{\code{InferenceAsympLik$set_information_preference()}}{
-  Sets the information matrix preference used by score-test dispatch.
+  Sets the information matrix preference used by score (Rao)
+  tests and score confidence intervals. Wald standard errors, p-values and confidence intervals always
+  use the observed information (the negative Hessian of the
+  log-likelihood at the MLE), the usual choice for Wald inference (Efron
+  and Hinkley 1978) and what \code{MASS::polr()} and
+  \code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+  Poisson) the observed and expected information coincide, so it is also
+  what \code{glm()} reports. The information preference set with
+  \code{set_information_preference()} affects only score (Rao) tests and
+  score confidence intervals; \code{"fisher"} (expected information) is
+  the default there where the class supports it, \code{"observed"}
+  otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+  expected information, and the Wald standard errors of
+  \code{InferenceIncidBinomialIdentityRiskDiff} and
+  \code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+  information, as \code{glm()} reports for these non-canonical links.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$set_information_preference(
@@ -264,7 +306,9 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \if{html}{\out{<a id="method-InferenceAsympLik-get_information_preference"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAsympLik-get_information_preference}{}}}
 \subsection{\code{InferenceAsympLik$get_information_preference()}}{
-  Gets the score-test information matrix preference.
+  Gets the score-test information matrix preference. Wald inference always uses the observed information; the
+  information preference (\code{set_information_preference()}) applies to
+  score tests and score confidence intervals only.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$get_information_preference()}
@@ -276,7 +320,10 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \if{html}{\out{<a id="method-InferenceAsympLik-get_information_source_used"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAsympLik-get_information_source_used}{}}}
 \subsection{\code{InferenceAsympLik$get_information_source_used()}}{
-  Gets the actual information source used by the most recent information-backed computation.
+  Gets the actual information source (\code{"fisher"},
+  \code{"observed"} or \code{"legacy"}) used by the most recent score-test
+  computation, or \code{NULL} before one. Wald standard errors always
+  use the observed information and do not change this value.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$get_information_source_used()}
@@ -300,7 +347,24 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \if{html}{\out{<a id="method-InferenceAsympLik-get_supported_information_preferences"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAsympLik-get_supported_information_preferences}{}}}
 \subsection{\code{InferenceAsympLik$get_supported_information_preferences()}}{
-  Gets the score-test information matrix preferences supported by this inference object.
+  Gets the information matrix preferences supported by this
+  inference object for score tests and score confidence intervals
+  (\code{"auto"}, plus \code{"observed"} and, where the class has the
+  expected information, \code{"fisher"}). Wald standard errors, p-values and confidence intervals always
+  use the observed information (the negative Hessian of the
+  log-likelihood at the MLE), the usual choice for Wald inference (Efron
+  and Hinkley 1978) and what \code{MASS::polr()} and
+  \code{ordinal::clm()} report; for a canonical-link GLM (logistic,
+  Poisson) the observed and expected information coincide, so it is also
+  what \code{glm()} reports. The information preference set with
+  \code{set_information_preference()} affects only score (Rao) tests and
+  score confidence intervals; \code{"fisher"} (expected information) is
+  the default there where the class supports it, \code{"observed"}
+  otherwise. Exceptions: \code{InferenceIncidProbitRegr} exposes only the
+  expected information, and the Wald standard errors of
+  \code{InferenceIncidBinomialIdentityRiskDiff} and
+  \code{InferenceIncidLogBinomial} come from their IRLS fits' expected
+  information, as \code{glm()} reports for these non-canonical links.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$get_supported_information_preferences()}
@@ -314,7 +378,9 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \subsection{\code{InferenceAsympLik$compute_score_two_sided_pval()}}{
   Computes the score two-sided p-value regardless of configured
   testing type. The score test evaluates the null-restricted fit and uses
-  the configured information matrix preference; compare with
+  the configured information matrix preference (\code{"fisher"} by
+  default where supported); Wald inference always uses the observed
+  information instead. Compare with
   \code{compute_asymp_two_sided_pval()} for configured-test dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -336,8 +402,11 @@ supporting parametric-bootstrap LR calibration — inherit instead from
 \subsection{\code{InferenceAsympLik$compute_score_confidence_interval()}}{
   Computes the score confidence interval regardless of configured
   testing type by inverting score-test p-values over candidate treatment
-  effects. Compare with \code{compute_asymp_confidence_interval()} for
-  configured-test dispatch.
+  effects, each with the configured information matrix preference
+  (\code{"fisher"} by default where supported; Wald inference always
+  uses the observed information). Compare with
+  \code{compute_asymp_confidence_interval()} for configured-test
+  dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$compute_score_confidence_interval(alpha = 0.05)}

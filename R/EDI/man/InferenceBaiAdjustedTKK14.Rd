@@ -53,6 +53,10 @@ Computes a randomization-based p-value.
 }
 \details{
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+
+\strong{No Bayesian bootstrap.} Its weights come from the Bai et al. pair-of-pairs variance, which has no weighted analogue, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
 }
 \section{Small-sample behaviour}{
 
@@ -69,7 +73,6 @@ under References.
 \code{wald} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab pairs + reservoir \tab regular \tab assumed default \tab [Hall1992] \cr
 \code{jackknife} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab pairs + reservoir \tab regular \tab assumed default \tab [ShaoTu1995] \cr
 \code{bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab pairs + reservoir \tab regular \tab assumed default \tab [Hall1992] \cr
-\code{bayes_boot} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab pairs + reservoir \tab regular \tab assumed default \tab [Rubin1981], [Lo1987] \cr
 \code{rand_bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab pairs + reservoir \tab regular \tab assumed default \tab [Hall1992], [Kallus2018]}
 
 The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).
@@ -100,10 +103,6 @@ inf$compute_estimate()
 [Hall1992] Hall, P. (1992). \emph{The Bootstrap and Edgeworth Expansion}. Springer.
 
 [ShaoTu1995] Shao, J., and Tu, D. (1995). \emph{The Jackknife and Bootstrap}. Springer.
-
-[Rubin1981] Rubin, D. B. (1981). "The Bayesian Bootstrap." \emph{The Annals of Statistics}, 9(1), 130-134.
-
-[Lo1987] Lo, A. Y. (1987). "A Large Sample Study of the Bayesian Bootstrap." \emph{The Annals of Statistics}, 15(1), 360-375.
 
 [Kallus2018] Kallus, N. (2018). "Optimal a priori balance in the design of controlled experiments." \emph{Journal of the Royal Statistical Society: Series B}, 80(1), 85-112. Section 5 ("Algorithms for inference"), Algorithm 4.
 

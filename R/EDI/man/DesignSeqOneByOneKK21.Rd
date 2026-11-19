@@ -31,7 +31,16 @@ standard error) as that covariate's weight: OLS for \code{"continuous"}, logisti
 log-logistic AFT (or OLS on \code{log(y)} if
 \code{survival_use_speedup_for_no_censoring = TRUE} and there is no censoring yet)
 for \code{"survival"}, and proportional-odds (or OLS on the numeric-coerced level if
-\code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. Weights are normalized to
+\code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. (The proportion speedup's logit
+is infinite at a response of exactly 0 or 1, so when any response so far is 0 or 1,
+every response is first compressed to \eqn{(y(n - 1) + 0.5) / n}, where \eqn{n} is the
+number of responses in the regression. This is the standard transformation of
+Smithson and Verkuilen (2006) for proportions that include the extremes (restated in
+Cribari-Neto and Zeileis 2010, p. 3). It maps \eqn{[0, 1]} affinely onto
+\eqn{[0.5/n, 1 - 0.5/n]}, so the order of the responses is kept and the logits lie
+within \eqn{\pm\log(2n - 1)}, instead of a clamp to machine epsilon that turned a 0
+or 1 into a \eqn{\pm 36} outlier dominating the OLS t-statistics. When every response
+is strictly inside \eqn{(0, 1)} the plain logit is used.) Weights are normalized to
 sum to 1 and cached per-iteration in \code{private$iteration_weights} (retrievable
 via \code{get_iteration_weights()}); the \code{*_use_speedup} flags trade weight
 accuracy for speed by substituting a fast continuous-regression proxy for the
@@ -102,7 +111,13 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   \emph{Biometrics}, 79(1), 216-229 (published online 2021), \doi{10.1111/biom.13561}. See also
   Morrison, T. (2025), "Reservoir Designs for Online Paired Experiments",
   arXiv:2505.17247, for the alternative threshold calibration the (not yet
-  implemented) \code{morrison} argument is reserved for.
+  implemented) \code{morrison} argument is reserved for. Smithson, M., and Verkuilen, J.
+  (2006). "A better lemon squeezer? Maximum-likelihood regression with beta-distributed
+  dependent variables." \emph{Psychological Methods}, 11(1), 54-71,
+  \doi{10.1037/1082-989X.11.1.54}, for the \eqn{(y(n - 1) + 0.5) / n} compression of 0/1
+  responses in the proportion speedup; restated in Cribari-Neto, F., and Zeileis, A.
+  (2010). "Beta regression in R." \emph{Journal of Statistical Software}, 34(2), 1-24,
+  \doi{10.18637/jss.v034.i02}.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{DesignSeqOneByOneKK21}
@@ -270,6 +285,8 @@ regression each time? This is at the expense of the weights being less accurate.
   response = proportion case via a continuous regression on log(y / (1 - y))
                                                         instead of a beta regression each
 time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.
+  If any response so far is exactly 0 or 1, all responses are first compressed to
+  \eqn{(y(n - 1) + 0.5) / n} (Smithson and Verkuilen 2006; see Details).
   See the \emph{How much weight accuracy do the speedups cost?} paragraph of the Details
   section for simulation evidence that the accuracy lost is negligible.}
       \item{\code{survival_use_speedup_for_no_censoring}}{Should we speed up the estimation of the

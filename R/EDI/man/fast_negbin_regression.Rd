@@ -56,8 +56,11 @@ remain — at which point, if it still fails, this function \code{stop()}s with 
 explicit error rather than returning a corrupted fit.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = rpois(10, 2)
+set.seed(1)
+n = 100
+# intercept, treatment indicator, and two covariates
+X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
 fast_negbin_regression(X, y)
 }
 \seealso{

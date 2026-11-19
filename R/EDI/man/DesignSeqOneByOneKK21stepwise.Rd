@@ -96,7 +96,11 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   uses its forward-stepwise (rather than marginal) weight-estimation scheme. See also
   Morrison, T. (2025), "Reservoir Designs for Online Paired Experiments",
   arXiv:2505.17247, for the alternative threshold calibration the (not yet
-  implemented) \code{morrison} argument is reserved for.
+  implemented) \code{morrison} argument is reserved for. Smithson, M., and Verkuilen, J.
+  (2006). "A better lemon squeezer? Maximum-likelihood regression with beta-distributed
+  dependent variables." \emph{Psychological Methods}, 11(1), 54-71,
+  \doi{10.1037/1082-989X.11.1.54}, for the \eqn{(y(n - 1) + 0.5) / n} compression of 0/1
+  responses in the proportion speedup.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} -> \code{DesignSeqOneByOneKK21stepwise}
@@ -267,7 +271,10 @@ regression each time? This is at the expense of the weights being less accurate.
       \item{\code{proportion_use_speedup}}{Should we speed up the estimation of the weights in the
   response = proportion case via a continuous regression on log(y / (1 - y))
                                                         instead of a beta regression each
-time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.}
+time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.
+  If any response so far is exactly 0 or 1, all responses are first compressed to
+  \eqn{(y(n - 1) + 0.5) / n} (Smithson and Verkuilen 2006), as in
+  \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}; see its Details.}
       \item{\code{survival_use_speedup_for_no_censoring}}{Should we speed up the estimation of the
   weights in the response = survival case via a continuous regression on log(y)
                                                         instead of a Weibull AFT regression

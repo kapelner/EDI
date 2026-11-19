@@ -84,6 +84,10 @@ copula correctly captures within-pair dependence (a positive-dependence,
 single-parameter Archimedean copula); independent censoring given
 covariates; a KK matching-on-the-fly design supplying the matched/
 reservoir partition.
+
+\strong{No Bayesian bootstrap.} The Clayton/Weibull fitter takes no case weights, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
 }
 \section{Small-sample behaviour}{
 
@@ -107,7 +111,6 @@ under References.
 \code{param_boot} \tab asymptotic \tab unknown \tab events \tab variance component \tab unknown \tab [SelfLiang1987], [StramLee1994] \cr
 \code{param_boot_direct} \tab asymptotic \tab unknown \tab events \tab variance component \tab unknown \tab [SelfLiang1987], [StramLee1994] \cr
 \code{bootstrap} \tab asymptotic \tab unknown \tab events \tab variance component \tab unknown \tab [SelfLiang1987], [StramLee1994] \cr
-\code{bayes_boot} \tab asymptotic \tab unknown \tab events \tab variance component \tab unknown \tab [SelfLiang1987], [StramLee1994] \cr
 \code{rand_bootstrap} \tab asymptotic \tab unknown \tab events \tab variance component \tab unknown \tab [SelfLiang1987], [StramLee1994]}
 
 The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).

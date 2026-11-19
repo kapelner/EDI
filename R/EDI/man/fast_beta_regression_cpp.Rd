@@ -92,14 +92,15 @@ obtain standard errors.
 
 \strong{Reported likelihood and information.} \code{neg_loglik} is the exact beta
 negative log-likelihood re-evaluated at the fitted parameters (not merely the
-optimizer's internal objective trace); \code{fisher_information} is the
-\eqn{X^\top W X}-style working-weights curvature matrix from the fit
-(\code{fit.XtWX}) — the same expected-information approximation classical IRLS
-uses for GLM standard errors, and exactly what
-\code{\link{fast_beta_regression_with_var_cpp}} inverts to produce \code{vcov} —
-rather than a fresh evaluation of the exact observed-information Hessian from
-\code{\link{get_beta_regression_hessian_cpp}}. It is also suitable for
-warm-starting a subsequent fit via \code{warm_start_fisher_info}.
+optimizer's internal objective trace); \code{fisher_information} is the exact
+observed-information matrix (the analytic Hessian of the negative
+log-likelihood over \code{c(beta, log(phi))}) evaluated at the fitted
+parameters and stored as \code{fit.XtWX} — the same matrix
+\code{\link{get_beta_regression_hessian_cpp}} returns with its sign flipped,
+and exactly what \code{\link{fast_beta_regression_with_var_cpp}} inverts to
+produce \code{vcov}. It is a zero matrix when \code{estimate_only = TRUE}. It is
+also suitable for warm-starting a subsequent fit via
+\code{warm_start_fisher_info}.
 }
 \examples{
 set.seed(1)

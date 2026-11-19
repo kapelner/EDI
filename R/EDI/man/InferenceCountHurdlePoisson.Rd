@@ -10,12 +10,12 @@ jointly with the count submodel) crossed with a zero-truncated Poisson
 count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
 w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 submodels may use different covariate formulas
-(\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
-effect is the coefficient from the conditional (truncated, \eqn{Y > 0})
-count component, on the log-rate scale, \strong{conditional on clearing
-the hurdle}: it is not the effect on the unconditional mean \eqn{E[Y]},
-which also depends on how treatment shifts the hurdle-crossing
-probability, under the default \code{estimand = "conditional"}.
+(\code{model_formula}/\code{model_formula_hurdle}). Under the default
+\code{estimand = "conditional"}, the reported treatment effect is the
+coefficient from the conditional (truncated, \eqn{Y > 0}) count component,
+on the log-rate scale, \strong{conditional on clearing the hurdle}: it is
+not the effect on the unconditional mean \eqn{E[Y]}, which also depends on
+how treatment shifts the hurdle-crossing probability.
 \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
 likelihood-ratio tests are available for the count submodel's treatment
 coefficient under that estimand, and so is a score test.
@@ -54,6 +54,50 @@ covariance, stays calibrated in this setting: prefer it, adjust for the
 prognostic covariates, or use
 \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 which models the overdispersion.
+
+\strong{Aliased count-part covariates.} The count-part coefficients are
+estimated from the subjects with a positive count only (the zero-truncated
+part of the likelihood). A count-part covariate can be aliased on those
+subjects (constant among them, or a linear combination of the intercept, the
+treatment and the covariates before it) even when it varies over the whole
+sample.
+Such a covariate has no identified count-part coefficient, so it is dropped
+from the count part before fitting, with one warning of class
+\code{edi_covariate_dropped_warning} naming it (silent inside resampling;
+every randomization, bootstrap and Bayesian-bootstrap refit applies the same
+rule to its own data). This is the same as what \code{\link[stats]{glm}} does:
+with its default \code{singular.ok = TRUE}, \code{glm} fits a singular design
+by leaving the aliased columns out of its pivoted QR decomposition and reports
+their coefficients as \code{NA} (with \code{singular.ok = FALSE} a singular fit
+is an error); the dropped count-part coefficients are likewise \code{NA} in
+this class's coefficient vector. As in \code{glm}, columns are checked in
+design order (intercept, treatment, then the covariates), and a column is
+dropped when it adds nothing given the columns kept before it. The treatment
+is never dropped: when it is itself aliased on those subjects (for example,
+all of them are in one arm), its count-part coefficient is not identified and
+the estimate is \code{NA}.
+
+\strong{Positive counts all equal to 1 in an arm.} A zero-truncated count
+density at \eqn{y = 1} only increases as the rate goes to 0. So when every
+positive count in one arm equals 1, the likelihood keeps increasing as that
+arm's rate goes to 0 and the count-part treatment coefficient has no finite
+maximum likelihood estimate (\code{pscl::hurdle()} then reports a coefficient
+of about \eqn{\pm 12} with a standard error in the hundreds). The estimate is
+then \code{NA} (reason \code{"hurdle_count_mle_not_finite"}) with one warning of class
+\code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
+\code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
+keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+
+\strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
+part is separated (a fitted probability of a zero is numerically 0 or 1, or
+the fit stopped on such a ridge), its coefficients are reported as \code{NA}
+with one warning of class \code{edi_zero_part_separation_warning} (a subclass
+of \code{edi_logistic_separation_warning}). The hurdle likelihood factorizes,
+so the count-part treatment estimate does not depend on the hurdle part and is
+kept. Unlike a zero-inflation part, a hurdle part has no benign "no
+inflation" case (its probabilities model the observed zeros), so this is
+always the warning. Randomization and bootstrap refits are never warm-started from a
+full-data hurdle part on such a ridge (v1.0.6-TODO-30, v1.0.6-TODO-152).
 }
 \section{Small-sample behaviour}{
 

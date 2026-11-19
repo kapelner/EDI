@@ -37,6 +37,10 @@ and is not installed automatically with \pkg{EDI}.
 Install \pkg{quantreg} before using this class.
 
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+
+\strong{No Bayesian bootstrap.} Its halves' standard errors have no weighted refit yet, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
 }
 \examples{
 if (requireNamespace("quantreg", quietly = TRUE)) {

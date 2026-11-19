@@ -410,8 +410,10 @@ R6 inference classes. Treatment is encoded as 0/1.
   Return the processed covariate matrix used by inference extension classes.
 
 This accessor returns the design object's model-matrix covariates, after
-the package's missingness handling and encoding. It may be \code{NULL} if
-no covariates are available.
+the package's missingness handling and encoding, minus any columns
+dropped by the perfect-predictor check (so it can have fewer columns
+than the design object's own matrix). It may be \code{NULL} if no
+covariates are available.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Inference$get_covariates()}

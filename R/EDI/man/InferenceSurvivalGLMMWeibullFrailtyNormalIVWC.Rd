@@ -44,6 +44,9 @@ Computes a randomization-based p-value.
 }
 \details{
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+\strong{No Bayesian bootstrap.} The Weibull frailty fitter takes no case weights, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}

@@ -69,11 +69,15 @@ A list containing the following components:
   omitted/not computed when \code{estimate_only = TRUE}.}
 \item{neg_ll}{The negative Cox partial log-likelihood at the final iteration.}
 \item{converged}{A logical value indicating whether the algorithm converged.}
-\item{iterations}{The number of optimizer iterations performed.}
+\item{num_iter}{The number of optimizer iterations performed.}
+\item{hit_iteration_cap}{Logical; \code{TRUE} if the optimizer stopped at
+  \code{maxit} without meeting the convergence tolerance.}
 \item{fisher_information}{The Hessian of the negative partial log-likelihood at
   the fitted coefficients (the observed information matrix).}
 \item{gradient_norm}{The norm of the score (gradient) vector at convergence, a
   diagnostic of how tightly the convergence criterion was met.}
+\item{min_eigenvalue_information}{The smallest eigenvalue of the information
+  matrix at the fitted coefficients, a diagnostic of near-singularity.}
 }
 }
 \description{

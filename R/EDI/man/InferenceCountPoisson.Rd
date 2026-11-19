@@ -300,8 +300,8 @@ design's imputed covariates.}
   \eqn{\hat\beta_T}, the treatment log-rate-ratio. Under
   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"} (set
   via \code{set_estimand()}), returns the g-computation marginal
-  rate difference/log-rate-ratio instead — see the class-level
-  \code{@details} for the formula. The underlying model fit is
+  rate difference/log-rate-ratio instead — see the "Estimand"
+  paragraph of the class description for the formula. The underlying model fit is
   identical either way (a pure post-fit transform of the same
   cached fit, no refit).
   \subsection{Usage}{
@@ -422,7 +422,10 @@ bootstrap resampling paths.}
   the Poisson score test at each candidate null, no full re-fit needed at
   the observed information), unioned with the design-based jackknife-Wald
   interval; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
-  for the combination rule.
+  for the combination rule. The score test uses the configured information
+  preference (\code{"fisher"} by default, identical to the observed
+  information for the canonical log link); Wald inference always uses
+  the observed information.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_score_confidence_interval(alpha = 0.05)}
@@ -670,7 +673,8 @@ bootstrap resampling paths.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment effect. Default 0.}
-      \item{\code{B}}{Number of bootstrap replicates.}
+      \item{\code{B}}{Number of bootstrap replicates. Default 199. The smallest
+attainable bootstrap p-value is \eqn{2 / (B + 1)}.}
       \item{\code{show_progress}}{Whether to show progress.}
       \item{\code{min_number_usable_samples}}{Minimum usable bootstrap samples.}
       \item{\code{max_attempts_per_replicate}}{Maximum attempts per replicate.}
@@ -706,7 +710,10 @@ bootstrap resampling paths.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{B}}{Number of bootstrap replicates.}
+      \item{\code{B}}{Number of bootstrap replicates. Default 199. The smallest
+attainable bootstrap p-value is \eqn{2 / (B + 1)}, so \code{B} must be
+at least \eqn{2/\alpha - 1} (39 for \code{alpha = 0.05}); smaller
+values error.}
       \item{\code{show_progress}}{Whether to show progress.}
       \item{\code{min_number_usable_samples}}{Minimum usable bootstrap samples.}
       \item{\code{max_attempts_per_replicate}}{Maximum attempts per replicate.}

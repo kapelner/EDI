@@ -53,8 +53,16 @@ assignment logic in this version of the class; treat them as reserved for future
 rather than as active configuration.
 }
 \examples{
-seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = 'continuous')
-seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+set.seed(1)
+seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'continuous')
+for (i in 1:20) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+# treatment assignments; matching begins after the burn-in, and a subject
+# matched to an earlier reservoir subject gets the opposite treatment
+seq_des$get_w()
+# matched pairs share a cluster id; reservoir subjects are singletons
+seq_des$get_matching_cluster_ids()
 }
 \references{
 Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential

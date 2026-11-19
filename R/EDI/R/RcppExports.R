@@ -341,8 +341,10 @@ fast_adjacent_category_logit_cpp <- function(X, y, maxit = 100L, tol = 1e-8, sma
 #' coefficient on the \strong{first} column of \code{X} — by the package's usual
 #' convention, the treatment-effect column — extracted directly from the free-parameter
 #' covariance block rather than requiring the caller to index into the full
-#' \code{vcov} matrix; it is \code{NA} if that coefficient was fixed
-#' (via \code{fixed_idx}) or if its estimated variance is non-finite or non-positive.
+#' \code{vcov} matrix; it is \code{NA} if \code{X} has no columns, if that
+#' coefficient was fixed (via \code{fixed_idx}), if the free-parameter covariance
+#' block is not all finite, or if its estimated variance is non-finite or
+#' non-positive.
 #'
 #' @inheritParams fast_adjacent_category_logit_cpp
 #' @return A list with all the components of
@@ -350,9 +352,11 @@ fast_adjacent_category_logit_cpp <- function(X, y, maxit = 100L, tol = 1e-8, sma
 #'   \code{params}, \code{neg_loglik}, \code{converged}), plus \code{ssq_b_1}
 #'   (equivalently \code{ssq_b_j}, the variance of the first covariate's
 #'   coefficient), \code{vcov} (the full parameter variance-covariance matrix, or
-#'   \code{NULL} if not converged), and \code{fisher_information} (the full observed
+#'   \code{NULL} if not converged), \code{fisher_information} (the full observed
 #'   information matrix at the fitted parameters, over all parameters regardless of
-#'   \code{fixed_idx}).
+#'   \code{fixed_idx}), and the optimizer diagnostics \code{num_iter},
+#'   \code{hit_iteration_cap}, \code{gradient_norm} and
+#'   \code{min_eigenvalue_information}.
 #' @seealso \code{\link{fast_adjacent_category_logit_cpp}} for the estimate-only
 #'   variant and the full model/parameterization documentation.
 #' @export
@@ -469,14 +473,15 @@ get_beta_regression_hessian_cpp <- function(X, y, params) {
 #'
 #' \strong{Reported likelihood and information.} \code{neg_loglik} is the exact beta
 #' negative log-likelihood re-evaluated at the fitted parameters (not merely the
-#' optimizer's internal objective trace); \code{fisher_information} is the
-#' \eqn{X^\top W X}-style working-weights curvature matrix from the fit
-#' (\code{fit.XtWX}) — the same expected-information approximation classical IRLS
-#' uses for GLM standard errors, and exactly what
-#' \code{\link{fast_beta_regression_with_var_cpp}} inverts to produce \code{vcov} —
-#' rather than a fresh evaluation of the exact observed-information Hessian from
-#' \code{\link{get_beta_regression_hessian_cpp}}. It is also suitable for
-#' warm-starting a subsequent fit via \code{warm_start_fisher_info}.
+#' optimizer's internal objective trace); \code{fisher_information} is the exact
+#' observed-information matrix (the analytic Hessian of the negative
+#' log-likelihood over \code{c(beta, log(phi))}) evaluated at the fitted
+#' parameters and stored as \code{fit.XtWX} — the same matrix
+#' \code{\link{get_beta_regression_hessian_cpp}} returns with its sign flipped,
+#' and exactly what \code{\link{fast_beta_regression_with_var_cpp}} inverts to
+#' produce \code{vcov}. It is a zero matrix when \code{estimate_only = TRUE}. It is
+#' also suitable for warm-starting a subsequent fit via
+#' \code{warm_start_fisher_info}.
 #'
 #' @param X A numeric matrix of predictors, \eqn{n \times p}; include an explicit
 #'   intercept column if desired (the model has no implicit intercept).
@@ -585,11 +590,11 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #' Fits the same beta regression model as \code{\link{fast_beta_regression_cpp}}
 #' (see that page for the full model, parameterization, and optimizer contract) and
 #' additionally computes the variance-covariance matrix and standard errors of the
-#' fitted parameters, via the same working-weights (\eqn{X^\top W X}) curvature
-#' matrix documented there.
+#' fitted parameters, via the same observed-information matrix (stored as
+#' \code{fit.XtWX}) documented there.
 #'
 #' @details
-#' \strong{Variance computation.} The fit's working-information matrix
+#' \strong{Variance computation.} The fit's observed-information matrix
 #' (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
 #' restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
 #' invertibility check guards the same plain matrix inverse used previously, so
@@ -619,7 +624,7 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
 #'   \code{information_invertible} (whether the free information block passed
 #'   the invertibility check), and
-#'   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
+#'   \code{fisher_information} (the observed-information matrix \code{vcov} was
 #'   inverted from).
 #' @seealso \code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
 #'   the full model/parameterization documentation;
@@ -2159,17 +2164,21 @@ fast_qnorm_vec_cpp <- function(p) {
 #' Computes \eqn{\log \Phi(x)}, the log of the standard normal cumulative
 #' distribution function, elementwise over \code{x}, via the complementary
 #' error function kernel \code{fast_erfc} (\eqn{\Phi(x) = \tfrac{1}{2}
-#' \mathrm{erfc}(-x/\sqrt{2})}, evaluated in a form stable for large negative
-#' \code{x}, where \eqn{\Phi(x)} underflows in ordinary (non-log) arithmetic
-#' long before the true log-probability does), avoiding R's own
+#' \mathrm{erfc}(-x/\sqrt{2})}, with the log taken directly), avoiding R's own
 #' \code{\link[stats]{pnorm}} dispatch overhead. Faster than base R's
 #' \code{\link[stats]{pnorm}(x, log.p = TRUE)} — measured at 2.49x on a
 #' length-5000 vector (see the
 #' \href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
 #' / Math Kernel Performance" benchmark report}). Used internally inside the
 #' package's probit regression and other likelihood kernels that need a
-#' numerically stable normal log-CDF, e.g. for censored/truncated Gaussian
-#' contributions.
+#' normal log-CDF, e.g. for censored/truncated Gaussian contributions.
+#'
+#' The tails are clamped rather than computed: for \code{x <= -8} the result is
+#' the constant \code{-35.0496} (about \eqn{\log(6 \times 10^{-16})}) and for
+#' \code{x >= 8} it is \code{-6.661e-16}. Below \code{-8} the output therefore
+#' does not track the true \eqn{\log \Phi(x)} (e.g. \eqn{\log \Phi(-10)
+#' \approx -53.2}); use \code{\link[stats]{pnorm}(x, log.p = TRUE)} when the far
+#' lower tail matters.
 #'
 #' @param x Numeric vector of arguments.
 #' @return A numeric vector of \eqn{\log \Phi(x)} values, the same length as
@@ -2314,15 +2323,17 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' @export
 #' @keywords internal
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = rpois(10, 2)
-#' fast_neg_bin_with_var_cpp(X, y)
+#' set.seed(1)
+#' n = 100
+#' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+#' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
+#' fit = fast_neg_bin_with_var_cpp(X, y)
+#' fit$vcov
 fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_with_var_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
 
 #' @title Fast Negative Binomial Regression (C++)
-#' @description High-performance negative binomial regression fitting.
 #' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y A numeric vector of non-negative observed counts, length \eqn{n};
@@ -2344,8 +2355,10 @@ fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold
 #' @export
 #' @keywords internal
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = rpois(10, 2)
+#' set.seed(1)
+#' n = 100
+#' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+#' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
 #' fast_neg_bin_cpp(X, y)
 fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
@@ -2390,9 +2403,13 @@ fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = 
 #' @export
 #' @keywords internal
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = rpois(10, 2)
-#' fast_neg_bin_weighted_cpp(X, y, weights = rep(1, 10))
+#' set.seed(1)
+#' n = 100
+#' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+#' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
+#' # e.g. bootstrap-style weights: some rows dropped (0), some doubled (2)
+#' w = sample(c(0, 1, 2), n, replace = TRUE)
+#' fast_neg_bin_weighted_cpp(X, y, weights = w)
 fast_neg_bin_weighted_cpp <- function(X, y, weights, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_weighted_cpp`, X, y, weights, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
@@ -2505,7 +2522,9 @@ fast_ordinal_cauchit_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #' and variance-covariance matrix are always computed. It additionally guards the
 #' degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
 #' fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
-#' an empty list.
+#' an empty list. This function has no \code{maxit} or \code{tol} arguments: the
+#' \code{maxit} and \code{tol} in the section below are fixed at 100 and
+#' \code{1e-6}.
 #'
 #' @inheritSection fast_ordinal_cauchit_regression_cpp Fixed parameters, warm starts, and optimization
 #'
@@ -3423,7 +3442,8 @@ get_probit_regression_hessian_cpp <- function(X, beta) {
 #' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If
 #'   provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
-#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess (see Details).
+#'   \code{warm_start_beta} is supplied, use an OLS-based initial guess (see the section
+#'   "Fixed parameters, warm starts").
 #' @param maxit Maximum number of iterations (IRLS path only).
 #' @param tol Convergence tolerance.
 #' @param fixed_idx Optional indices of fixed parameters.
@@ -3431,7 +3451,8 @@ get_probit_regression_hessian_cpp <- function(X, beta) {
 #' @param optimization_alg Optimization algorithm: any value other than
 #'   \code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
 #'   likelihood minimization.
-#' @param warm_start_weights Accepted but unused; see Details.
+#' @param warm_start_weights Accepted but unused; see the section "Fixed parameters,
+#'   warm starts".
 #' @param warm_start_fisher_info Optional initial curvature matrix for the first
 #'   IRLS iteration (IRLS path only).
 #' @param estimate_only If \code{TRUE}, skip the post-fit weight/curvature computation
@@ -3547,9 +3568,9 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #' @param y A numeric vector of responses.
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
-#'   is supplied, use an OLS (QR) initial guess; see Details.
+#'   is supplied, use an OLS (QR) initial guess; see the section "Fixed parameters, warm starts".
 #' @param method Robust estimation method: \code{"M"} for Huber weighting, anything else
-#'   (default \code{"MM"}) for Tukey bisquare weighting; see Details.
+#'   (default \code{"MM"}) for Tukey bisquare weighting; see the Description.
 #' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 #' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 #' @param maxit Maximum number of IRLS iterations.

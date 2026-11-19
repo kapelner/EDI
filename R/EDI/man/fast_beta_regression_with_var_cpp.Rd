@@ -51,18 +51,18 @@ A list with components \code{coefficients} (\eqn{\hat\beta}),
   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
   \code{information_invertible} (whether the free information block passed
   the invertibility check), and
-  \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
+  \code{fisher_information} (the observed-information matrix \code{vcov} was
   inverted from).
 }
 \description{
 Fits the same beta regression model as \code{\link{fast_beta_regression_cpp}}
 (see that page for the full model, parameterization, and optimizer contract) and
 additionally computes the variance-covariance matrix and standard errors of the
-fitted parameters, via the same working-weights (\eqn{X^\top W X}) curvature
-matrix documented there.
+fitted parameters, via the same observed-information matrix (stored as
+\code{fit.XtWX}) documented there.
 }
 \details{
-\strong{Variance computation.} The fit's working-information matrix
+\strong{Variance computation.} The fit's observed-information matrix
 (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
 restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
 invertibility check guards the same plain matrix inverse used previously, so

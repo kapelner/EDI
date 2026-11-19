@@ -85,12 +85,12 @@ dispersion parameter \eqn{\theta} shared across all observations and
 more overdispersion relative to Poisson; \eqn{\theta \to \infty} recovers
 Poisson). The optimizer's parameter vector is \code{c(beta, log(theta))}
 (\eqn{\theta} optimized on the log scale for positivity).
-
-High-performance negative binomial regression fitting.
 }
 \examples{
-X = matrix(rnorm(100), 10, 10)
-y = rpois(10, 2)
+set.seed(1)
+n = 100
+X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
 fast_neg_bin_cpp(X, y)
 }
 \seealso{

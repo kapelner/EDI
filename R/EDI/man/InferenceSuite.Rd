@@ -24,10 +24,13 @@ attempt.
   \code{is_inference_class_compatible_with_design_metadata()}, also used by
   \code{\link[EDI:Design]{Design}}'s own
   \code{applicable_inference_class_names()}): a candidate class is
-  excluded if it is abstract or not exported; if it declares no compatible
-  response types, or none match \code{des_obj}'s response type; if its name
-  contains \code{"KK"} (a matched-design-only class) but \code{des_obj} does
-  not support KK matching; if the class's \code{requires_blocking_design()}
+  excluded if its name contains \code{"IVWC"} (the legacy KK estimators,
+  superseded by their \code{OneLik} variants); if it is abstract or not
+  exported; if it declares no compatible response types, or none match
+  \code{des_obj}'s response type; if its registered
+  \code{requires_kk_matching_design} metadata is \code{TRUE} (a
+  matched-design-only class) but \code{des_obj} does not support KK
+  matching; if the class's \code{requires_blocking_design()}
   is \code{TRUE} (currently only \code{InferenceIncidExtendedRobins} --
   \code{InferenceIncidCMH} works on both blocking and non-blocking designs
   via different standard-error estimators, so it is \strong{not} excluded)
@@ -40,8 +43,7 @@ attempt.
   metadata (see \code{infer_inference_requires_blocking_design()}/
   \code{infer_inference_supports_general_censoring()} in
   \code{inference_class_registry.R}). Ordinary right-censoring alone never
-  excludes a class. The KK-name-pattern rule is still hardcoded in this
-  class rather than looked up from a central registry.
+  excludes a class.
 
   A class that is design-compatible but whose registered
   \code{required_packages} are not all installed is excluded from
@@ -284,6 +286,8 @@ Defaults to an empty list (no extra arguments for any class).}
   basic_bootstrap = FALSE,
   compute_conf_intervals = FALSE,
   output_dir = "~",
+  r = NULL,
+  B = NULL,
   combined_evidence_estimands = NULL,
   combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
   combined_evidence_weights = NULL
@@ -299,7 +303,13 @@ one of \code{screen}/\code{html} must be \code{TRUE}.}
 and auto-open a self-contained HTML report of the results.}
       \item{\code{alpha}}{Significance level: confidence intervals are computed at
 \code{1 - alpha} and \code{alpha} is the significance threshold used
-anywhere the report flags significance. Default \code{0.05}.}
+anywhere the report flags significance. Default \code{0.05}. With
+\code{compute_conf_intervals = TRUE} and the \code{"param_boot"}
+sentinel in the run, the parametric-bootstrap likelihood-ratio CI runs
+at \code{B} (default 199), whose smallest attainable p-value is
+\eqn{2/(B+1)}; when \eqn{B < 2/\alpha - 1} the run errors before any
+fitting, naming the minimum \code{B} (pass a larger \code{B}, leave
+\code{"param_boot"} out of \code{methods}, or turn CIs off).}
       \item{\code{save_results_as_JSON}}{If \code{TRUE}, serialize the return object
 (excluding plot objects) to a timestamped JSON file in \code{output_dir}.
 Requires the optional \pkg{jsonlite} package; if it is not
@@ -355,7 +365,13 @@ instead prints a "fitting N classes across K workers" message up front,
 then every result row together once complete, then a total-elapsed-time
 summary line (a deliberate design choice, not a degraded default).
 Default \code{1L}
-(sequential, with the normal incremental streaming/progress bar).}
+(sequential, with the normal incremental streaming/progress bar).
+\strong{Reproducibility:} the run draws one integer from the global
+RNG stream and runs every task (class, method and type) from its own
+seed derived from it and the task's name, restoring the global stream
+after each task. A run after \code{set.seed()} therefore gives the
+same results every time, with any \code{num_cores}, and a task gives
+the same result whichever other tasks run with it.}
       \item{\code{formulas}}{\code{NULL} (default), a single formula (\code{~ .}), a
 single formula string (\code{"~ ."}), or a collection of either --
 including \code{c(~ 1, ~ .)}, which base R already returns as a plain
@@ -564,6 +580,24 @@ timestamped report left in \code{getwd()} there is exactly the kind
 of untracked file that can end up bundled into a source tarball
 (\code{R CMD build}) or committed by accident. Pass an explicit path
 (e.g. the current directory, or a temp directory) to write elsewhere.}
+      \item{\code{r}}{\code{NULL} (default: each method's own default, 501 today) or a
+positive integer: the number of draws for every randomization
+procedure in the run -- the randomization test and CI
+(\code{"rand"}, passed as their \code{r}) and the
+randomization-bootstrap test and CI (\code{"rand_bootstrap"}, passed
+as their \code{B}).}
+      \item{\code{B}}{\code{NULL} (default: each method's own default -- 501 for the
+nonparametric and Bayesian bootstrap, 199 for the parametric
+bootstrap) or a positive integer: the number of replicates for every
+bootstrap procedure in the run -- nonparametric (\code{"bootstrap"}),
+Bayesian (\code{"bayes_boot"}), parametric-bootstrap estimate
+(\code{"param_boot_direct"}) and parametric-bootstrap
+likelihood-ratio (\code{"param_boot"}) tests and CIs. The
+Monte-Carlo Bartlett factor (\code{"lik_ratio_bartlett_approx"}) keeps
+its own default. See \code{alpha} for the minimum \code{B} of the
+\code{"param_boot"} CI. A \code{B} below 5 (the bootstrap methods'
+\code{min_number_usable_samples}) errors before any fitting when the
+run includes one of these methods.}
       \item{\code{combined_evidence_estimands}}{\code{NULL} (default: include every
 declared \code{estimand}), or a character vector of \code{estimand}
 values to restrict the Combined Evidence p-value/weights to.
@@ -612,7 +646,9 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   row's \code{results} name, not \code{results_table$inference_class}
   directly, since that column can repeat under \code{formulas};
   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
-  \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
+  \code{design}, \code{alpha}, \code{resample_counts}
+  (\code{list(r, B)} as passed, \code{NULL} entries meaning method
+  defaults), \code{unavailable_due_to_missing_packages},
   \code{plots} (\code{list(ci_forest)}; \code{ci_forest} is a named list
   of one \pkg{gtable} grob per \code{estimand} -- the CI forest
   stacked over its \dQuote{Estimates} box-and-whisker subplot; draw

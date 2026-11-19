@@ -103,8 +103,9 @@ question; the two specific gaps are:
     i.i.d. \emph{and matched pairs as intact units} — preserving each pair's true,
     historically realized within-pair covariate distance rather than fabricating an
     artificial zero-distance one. This is the correct fix for the naive-duplicate-row
-    concern, and it is already active for every BRT draw on a matching-capable design
-    (\code{InferenceRandBootstrap} inherits \code{bootstrap_sample_indices()} from the
+    concern, and it is already active for every BRT draw on a supported
+    matching-capable design (currently \code{DesignFixedBinaryMatch}; see
+    "Design restriction") (\code{InferenceRandBootstrap} inherits \code{bootstrap_sample_indices()} from the
     same chain, so no separate wiring is needed). \strong{What remains open, narrower
     than the naive concern above:} reservoir subjects are still resampled i.i.d.
     independently of the intact pairs, so a single reservoir subject can still appear
@@ -145,7 +146,11 @@ their subclasses (including the KK matching-on-the-fly designs), except the conc
 is unproven. Calling a restricted method reports that the method is not supported,
 and \code{supports()} returns \code{FALSE} for \code{randomization_bootstrap} and
 \code{randomization_bootstrap_ci}. KK estimators still offer it on the fixed
-matched-pairs design \code{DesignFixedBinaryMatch}.
+matched-pairs design \code{DesignFixedBinaryMatch}. Where the Details below
+mention the matching-on-the-fly designs (\code{DesignSeqOneByOneKK14}/\code{KK21}/
+\code{KK21stepwise}), they describe how the construction would apply in
+principle; in this package the BRT does not run on those designs, and the
+pair-aware resampling applies to \code{DesignFixedBinaryMatch}.
 }
 
 \examples{
@@ -334,7 +339,8 @@ calls with different \code{delta} values (used by the CI inversion). Default \co
   bootstrap_type = NULL,
   rand_bootstrap_draws = NULL,
   zero_one_logit_clamp = .Machine$double.eps,
-  type = "percentile"
+  type = "percentile",
+  min_fraction_usable_samples = 0.95
 )}
     \if{html}{\out{</div>}}
   }
@@ -350,7 +356,13 @@ the raw risk-ratio g-computation classes).}
       \item{\code{transform_responses}}{Type of response transformation for the sharp null shift.
 The default "none" resolves by response type (logit for proportion, log for count
 and survival, identity otherwise), matching \code{compute_rand_two_sided_pval}.}
-      \item{\code{na.rm}}{Remove non-finite null draws. Default \code{TRUE}.}
+      \item{\code{na.rm}}{Remove non-finite null draws. Default \code{TRUE}, subject to
+\code{min_fraction_usable_samples}. With \code{FALSE}, any non-finite null draw (for
+the studentized types: also a missing or non-positive draw standard error) makes the
+p-value \code{NA}, with one \code{edi_bootstrap_nonfinite_na_warning} per object
+(silent inside an outer resampling operation). Under the sequential Monte Carlo
+early-stopping path (\code{brt_mc_control}) only the draws evaluated before stopping
+are checked.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{bootstrap_type}}{Optional bootstrap-resampling scheme; see
 \code{approximate_bootstrap_distribution_beta_hat_T} for legal values. Default \code{NULL}.}
@@ -443,6 +455,19 @@ across \code{delta} values. Default \code{NULL}.}
   (\code{InferenceOrdinalRidit}, \code{InferenceOrdinalJonckheereTerpstraTest}) still use the
   slower R-level fallback in every case, because adding continuous Gaussian noise to integer
   category codes is not statistically meaningful — see the response-type caveat above.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the null draws that must be
+finite when \code{na.rm = TRUE} (for the studentized types: a finite statistic and a
+positive finite standard error). A number in \eqn{[0, 1]}; default \code{0.95},
+which mirrors the 5\% cap on invalid intervals that EDI's coverage calibration
+applies to confidence intervals. Below it the p-value is \code{NA} with the recorded
+reason \code{"rand_bootstrap_too_few_valid_replicates_fraction"} and one
+\code{edi_procedure_na_warning} (silent inside an outer resampling operation). Fewer
+than \code{max(10, 10\%)} finite draws keep the existing reason
+\code{"randomization_too_few_finite_estimates"}. \code{0} turns the check off;
+\code{1} requires every draw. Not applied by the sequential Monte Carlo early-stopping
+path (\code{brt_mc_control}), which stops on a prefix of the draws, nor inside
+\code{compute_rand_bootstrap_confidence_interval()}, which inverts these p-values
+and has its own failure reasons.}
     }
     \if{html}{\out{</div>}}
   }

@@ -16,8 +16,14 @@ The asymptotic p-value.
 Computes the treatment estimate using the underlying model.
 
 Computes an asymptotic confidence interval using the configured test.
+  Wald inference always uses the observed information; the
+  information preference (\code{set_information_preference()}) applies to
+  score tests and score confidence intervals only.
 
 Computes an asymptotic two-sided p-value using the configured test.
+  Wald inference always uses the observed information; the
+  information preference (\code{set_information_preference()}) applies to
+  score tests and score confidence intervals only.
 }
 \details{
 Abstract class providing MLE/KM-based inference methods for GLM and survival models.

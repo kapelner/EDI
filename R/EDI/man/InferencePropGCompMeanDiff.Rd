@@ -412,7 +412,8 @@ An empty vector always returns \code{NA} variance.}
   sep_tol = 0.02,
   min_group_n = 5L,
   show_progress = TRUE,
-  min_number_usable_samples = 5L
+  min_number_usable_samples = 5L,
+  min_fraction_usable_samples = 0.95
 )}
     \if{html}{\out{</div>}}
   }
@@ -431,6 +432,9 @@ once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.}
       \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
       \item{\code{show_progress}}{Whether to show a progress bar.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B} replicates that must be
+finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
     }
     \if{html}{\out{</div>}}
   }
