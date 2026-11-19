@@ -858,8 +858,6 @@
 "InferenceIncidLogBinomial::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidLogBinomial","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidLogBinomial::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidLogBinomial","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidLogBinomial::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidLogBinomial","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSurvivalKMDiff::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSurvivalKMDiff::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKMDiff::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKMDiff::approximate_randomization_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_randomization_distribution_beta_hat_T",7,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKMDiff::compute_bayesian_bootstrap_confidence_interval","r6_public_method","InferenceSurvivalKMDiff","compute_bayesian_bootstrap_confidence_interval",7,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -872,6 +870,7 @@
 "InferenceSurvivalLogRank::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalLogRank","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalLogRank::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalLogRank","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalLogRank::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalLogRank","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceSurvivalLogRank::approximate_randomization_distribution_beta_hat_T","r6_public_method","InferenceSurvivalLogRank","approximate_randomization_distribution_beta_hat_T",7,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidLogBinomial::initialize","r6_public_method","InferenceIncidLogBinomial","initialize",6,TRUE,TRUE,1,1,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidLogRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidLogRegr","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidLogRegr::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidLogRegr","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1042,7 +1041,6 @@
 "InferenceOrdinalCauchitRegr::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalCauchitRegr","compute_rand_bootstrap_two_sided_pval",9,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalCauchitRegr::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalCauchitRegr","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalCauchitRegr::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalCauchitRegr","compute_rand_two_sided_pval",8,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalCauchitRegr::initialize","r6_public_method","InferenceOrdinalCauchitRegr","initialize",4,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalCloglogRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalCloglogRegr","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalCloglogRegr::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalCloglogRegr","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalCloglogRegr::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalCloglogRegr","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1244,7 +1242,6 @@
 "InferenceOrdinalOrderedProbitRegr::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalOrderedProbitRegr","compute_rand_bootstrap_two_sided_pval",9,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalOrderedProbitRegr::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalOrderedProbitRegr","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalOrderedProbitRegr::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalOrderedProbitRegr","compute_rand_two_sided_pval",8,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalOrderedProbitRegr::initialize","r6_public_method","InferenceOrdinalOrderedProbitRegr","initialize",4,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalPairedSignTest::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalPairedSignTest","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalPairedSignTest::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalPairedSignTest","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalPairedSignTest::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalPairedSignTest","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1296,7 +1293,6 @@
 "InferenceOrdinalPropOddsRegr::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalPropOddsRegr","compute_rand_bootstrap_two_sided_pval",9,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalPropOddsRegr::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalPropOddsRegr","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalPropOddsRegr::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalPropOddsRegr","compute_rand_two_sided_pval",8,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalPropOddsRegr::initialize","r6_public_method","InferenceOrdinalPropOddsRegr","initialize",4,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalRidit::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalRidit","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalRidit::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalRidit","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalRidit::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalRidit","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1726,7 +1722,8 @@
 "InferenceSurvivalKKWeibullMarginal::compute_rand_confidence_interval","r6_public_method","InferenceSurvivalKKWeibullMarginal","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKKWeibullMarginal::compute_rand_two_sided_pval","r6_public_method","InferenceSurvivalKKWeibullMarginal","compute_rand_two_sided_pval",8,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKKWeibullMarginal::initialize","r6_public_method","InferenceSurvivalKKWeibullMarginal","initialize",3,TRUE,TRUE,1,1,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSurvivalLogRank::approximate_randomization_distribution_beta_hat_T","r6_public_method","InferenceSurvivalLogRank","approximate_randomization_distribution_beta_hat_T",7,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceSurvivalKMDiff::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceSurvivalKMDiff::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKMDiff","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalLogRank::compute_bayesian_bootstrap_confidence_interval","r6_public_method","InferenceSurvivalLogRank","compute_bayesian_bootstrap_confidence_interval",7,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalLogRank::compute_bayesian_bootstrap_two_sided_pval","r6_public_method","InferenceSurvivalLogRank","compute_bayesian_bootstrap_two_sided_pval",7,TRUE,TRUE,5,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalLogRank::compute_bootstrap_confidence_interval","r6_public_method","InferenceSurvivalLogRank","compute_bootstrap_confidence_interval",6,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
