@@ -57,7 +57,8 @@ A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
   carries no separate intercept column here; the thresholds \code{alpha} play that
-  role) and \code{vcov} (the parameter covariance matrix). Only these last two depend
+  role; \code{NaN} if it comes out non-finite or non-positive) and \code{vcov} (the
+  parameter covariance matrix). Only these last two depend
   on convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
   \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2 distinct levels.
 }

@@ -21,13 +21,14 @@ within-pair test, unlike the IVWC-style classes elsewhere in the KK family
 that combine matched-pair and reservoir information.
 \code{likelihood_tier = "none"} (\code{supports_likelihood_tests()} is hard
 \code{FALSE}): only Wald inference on the proportion scale is exposed.
-Bootstrap and jackknife are deliberately unsupported and throw explicit
-errors (see \code{approximate_bootstrap_distribution_beta_hat_T()} and
-\code{approximate_jackknife_distribution_beta_hat_T()}), since subject-level
-resampling or deletion would violate the matched-pair design's dependence
-structure; randomization inference (\code{compute_rand_two_sided_pval()})
-remains available since it permutes treatment assignment within the design's
-own randomization mechanism rather than resampling subjects. Requires a KK
+Bootstrap and jackknife are supported and respect the matched-pair
+structure: the nonparametric bootstrap
+(\code{approximate_bootstrap_distribution_beta_hat_T()}) resamples matched
+pairs and reservoir subjects rather than individual subjects, the Bayesian
+bootstrap reweights each pair's vote
+(\code{compute_estimate_with_bootstrap_weights()}), and the jackknife deletes
+whole matched sets by default. Randomization inference
+(\code{compute_rand_two_sided_pval()}) is also available. Requires a KK
 matching-on-the-fly design (\code{DesignSeqOneByOneKK14}/\code{KK21}) or
 \code{DesignFixedBinaryMatch}; a design with no discordant (untied) pairs is
 cached as nonestimable for the standard error (point estimate \code{0}) or

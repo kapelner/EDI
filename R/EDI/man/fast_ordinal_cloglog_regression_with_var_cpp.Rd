@@ -41,7 +41,8 @@ A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-  — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_j} is
+  — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+  non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is
   \code{NaN}) if the fit did not converge. Note the different variance name in the
   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
   \code{list(b = NA, ssq_b_2 = NA)}.

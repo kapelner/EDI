@@ -15,9 +15,6 @@ Initialize KK Clayton-copula survival inference and prepare
 Returns the model-specific log-time-ratio treatment estimate; see
   \code{\link[EDI:Inference]{Inference}}.
 
-Recomputes the IVWC Clayton-copula treatment estimate under
-  Bayesian-bootstrap weights.
-
 Uses the shared asymptotic confidence-interval contract; see
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 

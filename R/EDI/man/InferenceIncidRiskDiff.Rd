@@ -159,12 +159,14 @@ inf$compute_estimate()
 \subsection{\code{InferenceIncidRiskDiff$new()}}{
   Uses the randomization-CI layer's two-sided p-value contract
   (\code{InferenceRandCI}'s version, not
-  \code{InferenceRand}'s): for incidence responses it dispatches to the
-  Zhang exact randomization test rather than refusing outright, matching
-  this class's pre-migration old-ladder behavior. This deliberately
-  differs from the \code{InferenceAllSimpleAverageDiff}-family precedent of
-  pinning \code{InferenceRand}'s version, which would have regressed the
-  working Zhang dispatch this class had on the old ladder.
+  \code{InferenceRand}'s): for incidence responses it does not refuse
+  outright; the default p-value comes from the randomization draws, and
+  the Zhang exact randomization test is used only when
+  \code{type = "Zhang"} is passed explicitly (where applicable). This
+  matches this class's pre-migration old-ladder behavior of not refusing,
+  and deliberately differs from the
+  \code{InferenceAllSimpleAverageDiff}-family precedent of pinning
+  \code{InferenceRand}'s version, which refuses incidence responses.
 
 
   Initialize a risk-difference inference object.

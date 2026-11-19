@@ -56,7 +56,8 @@ A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
   conventionally the treatment effect, since \code{X} carries no separate intercept
-  column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
+  column here; the thresholds \code{alpha} play that role; \code{NaN} if it comes out
+  non-finite or non-positive). Empty if \code{y} has
   fewer than 2 distinct levels.
 }
 \description{

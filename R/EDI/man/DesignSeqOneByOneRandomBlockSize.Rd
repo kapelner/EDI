@@ -39,6 +39,19 @@ size, randomly ordered) whenever it is empty.
 \strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within strata (via
 \code{stratified_bootstrap_indices_cpp()}) when \code{strata_cols} is supplied, or
 performs a plain i.i.d. nonparametric bootstrap over subjects otherwise.
+
+\strong{Jackknife.} \code{assign_wt()} records the permuted block each subject was
+assigned from (and each block's stratum and drawn size), and the jackknife's automatic
+deletion unit is that block (\code{unit = "permuted_block"}), the randomization unit of
+this design. A stratum's trailing block that was not filled is merged into that
+stratum's previous block, as on
+\code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}}; the variance pools the
+replicates' spread within strata (the stratified jackknife of Wolter 2007, Sec. 4.5;
+formulas in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). Without
+\code{strata_cols} all blocks form one stratum. Before EDI 1.0.6 a replicate deleted a
+whole stratum (2-4 replicates on typical data, so the jackknife was \code{NA}), and a
+design object saved before 1.0.6, which has no block record, still does
+(v1.0.6-TODO-231).
 }
 \examples{
 seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 6, response_type = 'continuous')

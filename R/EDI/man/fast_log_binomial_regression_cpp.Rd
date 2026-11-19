@@ -27,7 +27,10 @@ explicit intercept column if desired (no implicit intercept).}
 \item{maxit}{Maximum number of Fisher-scoring iterations.}
 
 \item{tol}{Convergence tolerance, on the relative norm of the coefficient
-update step.}
+update step. A candidate must also pass the Newton step under the observed
+information (decrement at most \code{tol * (2 |loglik| + 0.1)}, or a relative
+Newton increment at most \code{10 * tol}), so tiny Fisher-scoring steps next
+to a mean bound do not count as convergence.}
 
 \item{fixed_idx}{Optional integer indices of coefficients to hold fixed
 rather than estimate.}

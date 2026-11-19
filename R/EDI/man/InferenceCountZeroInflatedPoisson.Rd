@@ -100,10 +100,14 @@ finite maximum: some fitted zero-inflation probabilities run off to 0 or 1
 (for example no excess zeros in one arm), and the likelihood keeps rising
 along a flat ridge. The class then (i) also fits from
 \code{pscl::zeroinfl()}'s default start (a Poisson GLM for the count part, a
-logistic GLM of \eqn{1(y = 0)} for the zero part) with L-BFGS and keeps the
-fit with the lower negative log-likelihood, which also escapes an interior
-local maximum of the default start; (ii) reports the zero-inflation
-coefficients as \code{NA} when a fitted zero-inflation probability is
+logistic GLM of \eqn{1(y = 0)} for the zero part) with L-BFGS, and again
+from that start with its zero part multiplied by 10, and keeps the fit with
+the lowest negative log-likelihood, which also escapes an interior local
+maximum of the default start. With covariates in the zero formula the
+likelihood can have several interior local maxima besides the ridge, and
+these starts do not always reach the highest (\code{pscl::zeroinfl()} stops
+at the same kind of point; v1.0.6-TODO-232); (ii) reports the
+zero-inflation coefficients as \code{NA} when a fitted zero-inflation probability is
 numerically 0 or 1, or the fit stopped on such a ridge, and says why once per
 object: when the ridge points only toward no inflation (every subject it
 drives to the boundary goes to probability 0, and no fitted zero-inflation

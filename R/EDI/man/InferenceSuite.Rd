@@ -151,8 +151,9 @@ seq_des$add_all_subject_responses(rnorm(20))
 suite = InferenceSuite$new(seq_des)
 suite$applicable_design_classes
 
-# Fit and compare every applicable class:
-results = suite$run_all_inference(screen = TRUE)
+# Fit and compare every applicable class (Wald and randomization only, with
+# 99 draws, to keep the example short; omit `methods` and `r` for every method):
+results = suite$run_all_inference(screen = TRUE, methods = c("wald", "rand"), r = 99)
 results$results_table
 }
 }

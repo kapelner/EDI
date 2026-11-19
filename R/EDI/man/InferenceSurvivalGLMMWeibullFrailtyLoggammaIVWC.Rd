@@ -66,6 +66,10 @@ prefer the Weibull-frailty class for a Gaussian-random-intercept / GLMM-style
 dependence structure.
 
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+
+\strong{No Bayesian bootstrap.} The Clayton/Weibull fitter takes no case weights, so this class does not
+offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+Its other resampling methods are unaffected.
 }
 \references{
 Clayton DG (1978). "A Model for Association in Bivariate Life Tables and

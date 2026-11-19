@@ -1568,7 +1568,10 @@ get_identity_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weight
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
 #' @param tol Convergence tolerance, on the relative norm of the coefficient
-#'   update step.
+#'   update step. A candidate must also pass the Newton step under the observed
+#'   information (decrement at most \code{tol * (2 |loglik| + 0.1)}, or a relative
+#'   Newton increment at most \code{10 * tol}), so tiny Fisher-scoring steps next
+#'   to a mean bound do not count as convergence.
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed
 #'   rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by
@@ -1743,7 +1746,10 @@ fast_log_binomial_regression_weighted_cpp <- function(X, y_r, weights_r, maxit =
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
 #' @param tol Convergence tolerance, on the relative norm of the coefficient
-#'   update step.
+#'   update step. A candidate must also pass the Newton step under the observed
+#'   information (decrement at most \code{tol * (2 |loglik| + 0.1)}, or a relative
+#'   Newton increment at most \code{10 * tol}), so tiny Fisher-scoring steps next
+#'   to a mean bound do not count as convergence.
 #' @param fixed_idx Optional integer indices of coefficients to hold fixed
 #'   rather than estimate.
 #' @param fixed_values Optional values to fix the parameters named by
@@ -2500,7 +2506,8 @@ get_ordinal_cauchit_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
 #'   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
 #'   carries no separate intercept column here; the thresholds \code{alpha} play that
-#'   role) and \code{vcov} (the parameter covariance matrix). Only these last two depend
+#'   role; \code{NaN} if it comes out non-finite or non-positive) and \code{vcov} (the
+#'   parameter covariance matrix). Only these last two depend
 #'   on convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
 #'   \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2 distinct levels.
 #' @seealso \code{\link{fast_ordinal_cauchit_regression_with_var_cpp}}, which always computes
@@ -2546,7 +2553,8 @@ fast_ordinal_cauchit_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-#'   — conventionally the treatment effect). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
+#'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+#'   non-positive). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
 #'   \code{NaN}) if the fit did not converge. Note the different variance name in the
 #'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
 #'   \code{list(b = NA, ssq_b_2 = NA)}.
@@ -2637,7 +2645,8 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 #'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 #'   conventionally the treatment effect, since \code{X} carries no separate intercept
-#'   column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
+#'   column here; the thresholds \code{alpha} play that role; \code{NaN} if it comes out
+#'   non-finite or non-positive). Empty if \code{y} has
 #'   fewer than 2 distinct levels.
 #' @seealso \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}}, which always computes
 #'   the variance quantities (equivalent to calling this function with
@@ -2679,7 +2688,8 @@ fast_ordinal_cloglog_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 #'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-#'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_j} is
+#'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+#'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is
 #'   \code{NaN}) if the fit did not converge. Note the different variance name in the
 #'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
 #'   \code{list(b = NA, ssq_b_2 = NA)}.
@@ -2915,7 +2925,8 @@ fast_ordinal_probit_regression_cpp <- function(X, y, warm_start_params = NULL, s
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
 #'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
 #'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
-#'   not converge.
+#'   not converge. Note the different variance name in the degenerate case: if \code{y} has
+#'   fewer than 2 distinct levels the result is \code{list(b = NA, ssq_b_2 = NA)}.
 #' @seealso \code{\link{fast_ordinal_probit_regression_cpp}} for the estimate-only-capable
 #'   variant and the full model documentation.
 #' @export

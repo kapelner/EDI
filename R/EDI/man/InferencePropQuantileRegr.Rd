@@ -250,12 +250,9 @@ design's imputed covariates.}
   fit reweighted by \code{subject_or_block_weights} (expanded to per-row weights and
   passed as \code{quantreg::rq(..., weights = ...)}), for the Bayesian bootstrap
   contract; see \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-  \strong{Writes into the same \code{beta_hat_T}/\code{s_beta_hat_T}/\code{df} cache
-  fields that \code{compute_estimate} reads from} — a call to this method overwrites
-  the cached original-data estimate with the bootstrap-reweighted one, so a subsequent
-  \code{compute_estimate()} call will return the \emph{bootstrap replicate's} value
-  from cache rather than recomputing on the original data, until the cache is reset by
-  whatever higher-level bootstrap driver owns this object's lifecycle. Returns
+  The call runs inside the package's weighted-refit isolation wrapper, which
+  restores the cached values afterwards, so a later \code{compute_estimate()}
+  still returns the original-data estimate. Returns
   \code{NA_real_} under the same degenerate-design/fit-failure conditions as
   \code{compute_estimate}.
   \subsection{Usage}{

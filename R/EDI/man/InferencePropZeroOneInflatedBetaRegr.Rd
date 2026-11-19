@@ -321,12 +321,30 @@ targets \code{1 - alpha} coverage.}
 \if{html}{\out{<a id="method-InferencePropZeroOneInflatedBetaRegr-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropZeroOneInflatedBetaRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()}}{
-  Refits the zero/one-inflated beta model with subject/block-level
-  weights applied to the fitting log-likelihood (Bayesian-bootstrap or
-  nonparametric-bootstrap draw weights, expanded to row level via
-  \code{private$expand_subject_or_block_weights_to_row_weights()}), and
-  returns the reweighted conditional log-odds-ratio estimate
-  \eqn{\hat\beta_T^{(w)}}.
+  Weighted refit for the bootstrap contract. The
+  subject/block-level weights (Bayesian-bootstrap or
+  nonparametric-bootstrap draw weights) are expanded to row level via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}. This is
+  \emph{not} a weighted joint maximum-likelihood fit of the
+  zero/one-inflated beta model; the parts are refit separately:
+  \itemize{
+    \item two weighted logistic regressions, of \eqn{1(y = 0)} and of
+      \eqn{1(y = 1)}, on the zero/one design matrix;
+    \item a weighted \code{betareg::betareg()} fit on the interior rows
+      \eqn{0 < y < 1} only. If \pkg{betareg} is not installed, the fit
+      errors, or its treatment coefficient is not finite, it falls back to
+      a weighted least-squares fit (\code{stats::lm.wfit}) of
+      \eqn{\mathrm{logit}(y)} on the interior rows.
+  }
+  Under the default conditional estimand it returns the treatment
+  coefficient of that interior-row fit, a log-odds-ratio
+  \eqn{\hat\beta_T^{(w)}}. Under \code{estimand = "marginal_mean_diff"} it
+  returns the g-computation marginal mean difference built from the
+  three reweighted fits (when both logistic fits succeed). Because the
+  parts are fit separately, even unit weights do not reproduce the joint
+  MLE that \code{compute_estimate()} returns (see v1.2.0-TODO-250).
+  No standard error is computed; returns \code{NA_real_} when there are
+  no interior rows or every fit fails.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights(

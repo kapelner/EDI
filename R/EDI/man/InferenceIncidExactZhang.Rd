@@ -56,13 +56,28 @@ Computes the Haldane-Anscombe continuity-corrected log odds
   reservoir), so it is not guaranteed to lie inside that interval.
 
 Computes an exact confidence interval for the log odds
-  ratio by bisection-inverting the combined matched-pairs +
-  Fisher-exact p-value (see class documentation for the full
-  combination methodology). On a matching design the interval is not
-  guaranteed to contain \code{compute_estimate()}, which uses the pooled
-  table over all subjects.
+  ratio by inverting the combined matched-pairs + Fisher-exact p-value
+  (see class documentation for the full combination methodology). The
+  combined p-value is not monotone in the log odds ratio, so the set it
+  accepts can have gaps; the interval returned is the convex hull of that
+  set, the smallest interval containing every log odds ratio the test does
+  not reject (Blaker 2000; Fay 2010). On a matching design the interval is
+  not guaranteed to contain \code{compute_estimate()}, which uses the
+  pooled table over all subjects.
 }
 \details{
+Both component p-values are two-sided "minimum likelihood" exact p-values
+(as in \code{stats::binom.test} and \code{stats::fisher.test}), which jump
+wherever another outcome ties the observed one in probability, so the
+combined p-value is not monotone in the log odds ratio and the set of values
+the test accepts can have gaps. The confidence interval is the convex hull
+of that set: the smallest interval containing every log odds ratio whose
+combined p-value is at least \code{alpha}. This is the usual convention for
+inverting such tests (Blaker 2000; Fay 2010); it can be slightly
+conservative, and it keeps the interval consistent with the test (a value
+the test accepts is never outside the interval). An endpoint that falls on
+one of these jumps is reported at the jump itself, where the test accepts.
+
 On a matching design the point estimate and the exact confidence interval
 are different quantities: the estimate is the log odds ratio of the pooled
 table over all subjects, while the interval inverts the combined test, which
@@ -95,6 +110,13 @@ inf$compute_estimate()
 inf$compute_exact_two_sided_pval_for_treatment_effect()
 }
 \references{
+Blaker, H. (2000). Confidence curves and improved exact confidence intervals
+for discrete distributions. \emph{Canadian Journal of Statistics}, 28(4),
+783--798. \doi{10.2307/3315916}
+
+Fay, M. P. (2010). Two-sided exact tests and matching confidence intervals for
+discrete data. \emph{The R Journal}, 2(1), 53--58. \doi{10.32614/RJ-2010-008}
+
 [LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
 }
 \section{Super class}{
@@ -204,7 +226,8 @@ always cheap to compute; there is no separate variance step to skip).}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{alpha}}{Significance level.}
-      \item{\code{pval_epsilon}}{Bisection tolerance for the inversion routine.}
+      \item{\code{pval_epsilon}}{Bisection tolerance for the inversion routine, on the
+log odds ratio scale (capped at \code{1e-6}).}
       \item{\code{type}}{Exact inference type; only \code{"Zhang"} (the default) is supported.}
       \item{\code{args_for_type}}{Optional arguments keyed by exact type; recognizes
 \code{combination_method} (\code{"Fisher"} (default), \code{"Stouffer"},

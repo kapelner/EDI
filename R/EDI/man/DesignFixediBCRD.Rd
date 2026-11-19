@@ -29,12 +29,12 @@ reproducibility here).
 \code{assign_w_to_all_subjects()} draws one such allocation (\code{r = 1}) and applies
 it to all subjects.
 
-\strong{Rounding of the treated count.} When \eqn{n \cdot prob\_T} ends in .5 the
-tie is rounded up (C++ \code{std::round}), e.g. \code{n = 21}, \code{prob_T = 0.5}
-gives 11 treated; R's own \code{round()} would give 10 (half to even). The realized
-allocation and every randomization redraw come from the same kernel, so they always
-agree. \code{\link[EDI:DesignSeqOneByOneiBCRD]{DesignSeqOneByOneiBCRD}} uses R's
-\code{round()}, so at such a tie the two designs differ by one treated subject.
+\strong{Rounding of the treated count.} \eqn{n_T} is R's \code{round(n * prob_T)},
+which rounds a .5 tie to even (e.g. \code{n = 21}, \code{prob_T = 0.5} gives 10
+treated), the same count \code{\link[EDI:DesignSeqOneByOneiBCRD]{DesignSeqOneByOneiBCRD}}
+targets. The realized allocation and every randomization redraw come from the same
+kernel, so they always agree. (Before v1.0.6 a .5 tie was rounded up here, giving 11
+treated at \code{n = 21}.)
 
 \strong{Single implicit block.} The constructor sets \code{private$m} to a constant
 vector of 1s (a single block containing every subject) once \code{n} is known, so that

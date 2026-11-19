@@ -202,9 +202,11 @@ Welch, B. L. (1947). "The Generalization of 'Student's' Problem
 \subsection{\code{InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval()}}{
   Uses the randomization-CI layer's two-sided p-value contract
   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-  incidence responses this dispatches to the Zhang exact randomization
-  test where applicable rather than refusing outright, matching this
-  class's pre-migration old-ladder behavior (see
+  incidence responses it does not refuse outright; the default p-value
+  comes from the randomization draws, and the Zhang exact randomization
+  test is used only when \code{type = "Zhang"} is passed explicitly
+  (where applicable), matching this class's pre-migration old-ladder
+  behavior of not refusing (see
   \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
   to \code{InferenceRand}'s version instead, which silently regressed
   Zhang dispatch after migration -- see
