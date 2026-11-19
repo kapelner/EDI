@@ -755,7 +755,7 @@ SurvivalDepCensTransformSource = list(
 #' \eqn{(\epsilon^E_i, \epsilon^C_i)} jointly standard bivariate normal with
 #' correlation \eqn{\rho} (estimated via an \code{atanh}-reparameterized,
 #' clamped nuisance parameter). \eqn{X_i} includes the treatment indicator
-#' \eqn{W_i} as its first column, so \eqn{\hat\beta_T} (the first entry of
+#' \eqn{W_i} as its second column (after an intercept), so \eqn{\hat\beta_T} (the second entry of
 #' \eqn{\hat\beta_{\mathrm{event}}}) is a log-time-ratio for the
 #' \strong{event} submodel, on the same AFT interpretation scale as
 #' \code{\link[EDI:InferenceSurvivalWeibullRegr]{InferenceSurvivalWeibullRegr}}
