@@ -121,3 +121,16 @@ test_that("public Bayesian bootstrap is disabled for the surrogate weighted refi
 		ignore.case = TRUE
 	)
 })
+
+# docs-claims audit, finding docs-claims-d95cc5759: "the surrogate returns NA if the fit fails".
+test_that("a failed weighted surrogate fit gives an NA estimate and NA standard error", {
+	fx <- make_kk_cond_adj_cat_fixture()
+	inf <- InferenceOrdinalKKCondAdjCatLogitRegr$new(fx$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	ctx <- install_bb_context(inf)
+	local_mocked_bindings(weighted_ordinal_bootstrap_surrogate_fit = function(...) NULL, .package = "EDI")
+	set.seed(1)
+	beta <- inf$compute_estimate_with_bootstrap_weights(stats::runif(ctx$n_units, 0.3, 2))
+	expect_identical(beta, NA_real_)
+	expect_true(is.na(priv$last_weighted_refit$s_beta_hat_T))
+})

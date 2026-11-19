@@ -78,3 +78,18 @@ test_that("effectively-constant nonzero bootstrap weights take the fast identica
 	# The fast path explicitly skips variance-component work.
 	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
+
+# docs-claims audit, finding docs-claims-db50271f2: use_rcpp = FALSE falls back to ordinal::clmm for the probit leaf too.
+test_that("InferenceOrdinalKKCLMMProbit(use_rcpp = FALSE) matches ordinal::clmm(link = 'probit') and the Rcpp estimate", {
+	f <- kk_clmm_rcpp_false_fixture()
+	inf <- InferenceOrdinalKKCLMMProbit$new(f$des, model_formula = ~ 1, use_rcpp = FALSE, verbose = FALSE)
+	expect_false(inf$.__enclos_env__$private$use_rcpp)
+	est <- suppressWarnings(inf$compute_estimate(estimate_only = TRUE))
+	m <- f$des$.__enclos_env__$private$m
+	g <- m; g[is.na(g)] <- 0L; r <- which(g == 0L); g[r] <- max(g) + seq_along(r)
+	dat <- data.frame(y = ordered(f$y), w = f$des$get_w(), grp = factor(g))
+	ref <- suppressWarnings(ordinal::clmm(y ~ w + (1 | grp), data = dat, link = "probit"))
+	expect_equal(est, unname(coef(ref)["w"]), tolerance = 1e-6)
+	est_rcpp <- InferenceOrdinalKKCLMMProbit$new(f$des, model_formula = ~ 1, verbose = FALSE)$compute_estimate(estimate_only = TRUE)
+	expect_equal(est, est_rcpp, tolerance = 1e-3)
+})

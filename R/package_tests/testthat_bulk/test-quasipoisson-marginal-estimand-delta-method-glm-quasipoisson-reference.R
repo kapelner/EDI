@@ -60,3 +60,19 @@ test_that("for the log link the marginal log-ratio equals the conditional coeffi
 	expect_equal(q$compute_estimate(), unname(b["w"]), tolerance = 1e-6)
 	expect_equal(q$.__enclos_env__$private$get_standard_error(), unname(sqrt(vcov(g)["w", "w"])), tolerance = 1e-4)
 })
+
+# docs-claims audit, finding docs-claims-d3256db66: "Switching the estimand is a pure post-fit transform of the
+# cached fit, never a refit" (inference_count_quasipoisson.R class docs).
+test_that("switching the estimand after a full fit reuses the cached fit object (no refit)", {
+	q <- mk(); q$compute_estimate(); p <- q$.__enclos_env__$private
+	mod0 <- p$cached_mod
+	expect_false(is.null(mod0$vcov))
+	q$set_estimand("marginal_mean_diff"); e_m <- q$compute_estimate(); invisible(p$get_standard_error())
+	expect_identical(p$cached_mod, mod0)
+	q$set_estimand("marginal_ratio"); invisible(q$compute_estimate())
+	expect_identical(p$cached_mod, mod0)
+	q$set_estimand("conditional"); e_c <- q$compute_estimate()
+	expect_identical(p$cached_mod, mod0)
+	expect_equal(e_m, functional(b, "marginal_mean_diff"), tolerance = 1e-6)
+	expect_equal(e_c, unname(b["w"]), tolerance = 1e-6)
+})

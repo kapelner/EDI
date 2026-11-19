@@ -98,3 +98,28 @@ test_that("every OTHER bootstrap type still delegates normally instead of being 
 	expect_true(is.finite(pv_default))
 	expect_false(inf2$is_nonestimable("any"))
 })
+
+# docs-claims audit, finding docs-claims-d03ccf4c6: InferenceCountZeroInflatedNegBin documents the same jackknife
+# refusal (inference_count_zero_inflated.R, ZINB class docs); it inherits the stubs from the shared abstract.
+test_that("ZINB: every jackknife method returns NA and records the shared unsupported-procedure reason", {
+	set.seed(4L); n <- 60L
+	X <- data.frame(x1 = rnorm(n))
+	d <- DesignFixedBernoulli$new(response_type = "count", n = n, seed = 1L, verbose = FALSE)
+	d$add_all_subjects_to_experiment(X); d$assign_w_to_all_subjects()
+	w <- d$get_w(); zi <- rbinom(n, 1, 0.3)
+	d$add_all_subject_responses(ifelse(zi == 1, 0L, rnbinom(n, mu = exp(0.6 + 0.4 * w + 0.2 * X$x1), size = 3)))
+	calls <- list(
+		estimate = function(inf) inf$compute_jackknife_estimate(),
+		bias = function(inf) inf$compute_jackknife_bias_estimate(),
+		se = function(inf) inf$compute_jackknife_std_error(),
+		pval = function(inf) inf$compute_jackknife_wald_two_sided_pval(delta = 0.3),
+		ci = function(inf) inf$compute_jackknife_wald_confidence_interval(alpha = 0.1)
+	)
+	for (nm in names(calls)) {
+		inf <- InferenceCountZeroInflatedNegBin$new(d, verbose = FALSE)
+		val <- unsup(calls[[nm]](inf))
+		expect_true(all(is.na(val)), info = nm)
+		expect_identical(unsup_reason(inf), "zero_augmented_poisson_jackknife_not_supported", info = nm)
+		expect_false(inf$is_nonestimable("any"), info = nm)
+	}
+})

@@ -4511,3 +4511,13 @@ itself still needs a look.
   - Failing expectation: `expect_true(all(is.na(tbl$ci_method)))`, skipped at `R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R:89`.
   - Candidate fix: code (skip the back-fill when `compute_conf_intervals = FALSE`), or doc (say ci_method keeps the method label while ci_a and ci_b are NA).
   - Done when: fix it and remove the skip().
+- [ ] TODO-262 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dccc6a08a`): **`InferenceCountPoisson` weighted refit with a non-finite treatment coefficient is not cached as non-estimable.**
+  The method docs of `compute_estimate_with_bootstrap_weights` (`R/EDI/R/inference_count_poisson.R:456`) say a hardened weighted fit with a non-finite treatment coefficient "is cached as nonestimable and returns NA". With `fast_poisson_regression_weighted_cpp` mocked to return `b[2] = NA`, the estimate and `last_weighted_refit$s_beta_hat_T` are NA, but `last_weighted_refit$nonestimable` is FALSE and no reason is recorded. The code (about lines 461-512) sets the values to NA and never calls `cache_nonestimable_estimate()`.
+  - Failing expectation: `expect_true(f$p$last_weighted_refit$nonestimable)`, skipped at `R/package_tests/testthat_bulk/test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R:100`.
+  - Candidate fix (code): call `private$cache_nonestimable_estimate(<reason>)` on that path. Alternative (doc): say it returns NA with an NA SE.
+  - Done when: fix it and remove the skip().
+- [ ] TODO-263 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d78c189b0`): **`InferenceOrdinalKKGLMM(use_rcpp = FALSE)` never fits: `glmmTMB::cumulative` does not exist.**
+  The docs (`R/EDI/R/inference_ordinal_KK_combined.R:349`) say `use_rcpp = FALSE` fits via glmmTMB Laplace. `private$glmm_family()` (`:550`) calls `glmmTMB::cumulative(link = "logit")`, which the installed glmmTMB 1.1.14 does not export. Every fit prints "GLMM FIT ERROR: 'cumulative' is not an exported object from 'namespace:glmmTMB'", and the estimate is always NA. The documented `supports_likelihood_tests()` = FALSE part does hold.
+  - Failing expectation: `expect_true(is.finite(est))`, skipped at `R/package_tests/testthat_bulk/test-ordinal-kk-glmm-deferred-fit-wald-likelihood-tests-and-polish.R:106`.
+  - Candidate fix (code): fit the `use_rcpp = FALSE` path with `ordinal::clmm`, as the weighted helper already does. Alternative (doc): say the path is unavailable, and refuse `use_rcpp = FALSE` at construction.
+  - Done when: fix it and remove the skip().

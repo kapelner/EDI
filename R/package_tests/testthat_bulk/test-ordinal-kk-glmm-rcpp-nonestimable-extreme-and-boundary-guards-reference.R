@@ -71,3 +71,32 @@ test_that("a well-behaved fit is NOT nonestimable via this guard", {
 	expect_false(inf$is_nonestimable("estimate"))
 	expect_equal(p$cached_values$beta_hat_T, 0.3)
 })
+
+# docs-claims audit, finding docs-claims-d78c189b0: "A valid near-zero random-effect variance boundary is accepted
+# using conditional fixed-effect information" (InferenceOrdinalKKGLMM$compute_estimate() docs). Real fit, no mock:
+# responses with no pair effect drive log_sigma to its lower bound.
+test_that("a fit at the lower random-effect variance boundary is accepted with a finite SE", {
+	skip_if_not_installed("ordinal")
+	set.seed(1L)
+	n <- 60L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	X <- data.frame(x1 = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	w <- des$get_w()
+	y <- as.integer(cut(0.6 * w + 0.3 * X$x1 + rlogis(n), c(-Inf, -0.8, 0.7, Inf)))
+	des$add_all_subject_responses(y)
+	inf <- InferenceOrdinalKKGLMM$new(des, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	est <- inf$compute_estimate()
+	diag <- p$cached_values$optimizer_diagnostics
+	expect_true(isTRUE(diag$variance_boundary_hit))
+	expect_lt(diag$log_sigma, -7.9)
+	expect_false(inf$is_nonestimable("any"))
+	se <- p$cached_values$s_beta_hat_T
+	expect_true(is.finite(est) && is.finite(se) && se > 0)
+	# with the random intercept at zero the conditional fixed-effect information is the plain clm information
+	ref <- summary(ordinal::clm(ordered(y) ~ w + x1, data = data.frame(y = y, w = w, x1 = X$x1)))$coefficients["w", ]
+	expect_equal(est, unname(ref["Estimate"]), tolerance = 1e-4)
+	expect_equal(se, unname(ref["Std. Error"]), tolerance = 1e-3)
+	expect_true(all(is.finite(inf$compute_asymp_confidence_interval())))
+})

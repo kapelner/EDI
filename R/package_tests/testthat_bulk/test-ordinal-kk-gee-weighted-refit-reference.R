@@ -114,3 +114,20 @@ test_that("nonfinite weights are rejected by the input validator before reaching
 	bad_weights[1] <- NaN
 	expect_error(inf$compute_estimate_with_bootstrap_weights(bad_weights), "missing values")
 })
+
+# docs-claims audit, finding docs-claims-dfabf84ea: the non-uniform weighted fallback leaves s_beta_hat_T = NA and
+# df = Inf (InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights() docs).
+test_that("non-uniform weighted fallback records an NA standard error and df = Inf", {
+	skip_if_not_installed("multgee")
+	fx <- make_ordinal_kk_gee_fixture(n_pairs = 30L, n_single = 10L)
+	inf <- InferenceOrdinalKKGEE$new(fx$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	ctx <- install_bb_context(inf)
+	set.seed(1)
+	for (eo in c(TRUE, FALSE)) {
+		est <- inf$compute_estimate_with_bootstrap_weights(stats::runif(ctx$n_units, 0.3, 2), estimate_only = eo)
+		expect_true(is.finite(est), info = eo)
+		expect_true(is.na(priv$last_weighted_refit$s_beta_hat_T), info = eo)
+		expect_identical(priv$last_weighted_refit$df, Inf, info = eo)
+	}
+})

@@ -105,3 +105,33 @@ test_that("Bartlett likelihood-ratio entry points use the same design-conservati
 		c(-0.7, 0.8)
 	)
 })
+
+# docs-claims audit, finding docs-claims-dccc6a08a: the max / union rule also applies to the score, likelihood-ratio,
+# gradient and likelihood-ratio-bootstrap entry points (inference_count_poisson.R class docs).
+test_that("score, LR, gradient and LR-bootstrap entry points use the same design-conservative combination", {
+	f <- fx()
+	stub(f$p, "design_jackknife_pval", function(delta = 0) 0.31)
+	stub(f$p, "design_jackknife_ci", function(alpha = 0.05) c(-0.7, 0.8))
+	stub(f$p, "compute_score_two_sided_pval_impl", function(delta) 0.04)
+	stub(f$p, "compute_score_confidence_interval_impl", function(alpha) c(-0.2, 0.9))
+	stub(f$p, "compute_lik_ratio_two_sided_pval_impl", function(delta) 0.45)
+	stub(f$p, "compute_lik_ratio_confidence_interval_impl", function(alpha) c(-0.9, 0.4))
+	stub(f$p, "compute_gradient_two_sided_pval_impl", function(delta) 0.02)
+	stub(f$p, "compute_gradient_confidence_interval_impl", function(alpha) c(-0.1, 0.5))
+	stub(f$p, "param_boot_compute_lik_ratio_bootstrap_two_sided_pval", function(...) 0.6)
+	stub(f$p, "param_boot_compute_lik_ratio_bootstrap_confidence_interval", function(...) c(-0.3, 1.1))
+
+	expect_equal(f$inf$compute_score_two_sided_pval(delta = 0.1), 0.31)
+	expect_equal(unname(f$inf$compute_score_confidence_interval(alpha = 0.1)), c(-0.7, 0.9))
+	expect_equal(f$inf$compute_lik_ratio_two_sided_pval(delta = 0.1), 0.45)
+	expect_equal(unname(f$inf$compute_lik_ratio_confidence_interval(alpha = 0.1)), c(-0.9, 0.8))
+	expect_equal(f$inf$compute_gradient_two_sided_pval(delta = 0.1), 0.31)
+	expect_equal(unname(f$inf$compute_gradient_confidence_interval(alpha = 0.1)), c(-0.7, 0.8))
+	expect_equal(f$inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0.1, B = 19), 0.6)
+	expect_equal(unname(f$inf$compute_lik_ratio_bootstrap_confidence_interval(alpha = 0.1, B = 19)), c(-0.7, 1.1))
+	# the asymp dispatchers route through the same rule for each testing type
+	f$inf$set_testing_type("score")
+	expect_equal(f$inf$compute_asymp_two_sided_pval(0.1), 0.31)
+	f$inf$set_testing_type("gradient")
+	expect_equal(unname(f$inf$compute_asymp_confidence_interval(0.1)), c(-0.7, 0.8))
+})

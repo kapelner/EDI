@@ -168,3 +168,24 @@ test_that("Bartlett dispatch: exact factor warns when B is supplied, and no avai
 	expect_error(p$stop_bartlett_unsupported(), "neither an exact nor an approximate factor")
 	expect_warning(p$warn_bartlett_B_ignored_by_exact(), "no simulation is performed")
 })
+
+# docs-claims audit, finding docs-claims-dccc6a08a: InferenceCountPoisson overrides get_supported_testing_types() and
+# set_testing_type(), so the restriction above is checked on that class's own code too.
+test_that("InferenceCountPoisson: a non-conditional estimand restricts testing to Wald", {
+	set.seed(3); n <- 40L
+	des <- DesignFixediBCRD$new(n = n, response_type = "count", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rpois(n, 2))
+	inf <- InferenceCountPoisson$new(des, verbose = FALSE)
+	expect_true(all(c("score", "lik_ratio", "gradient") %in% inf$get_supported_testing_types()))
+	for (est in c("marginal_mean_diff", "marginal_ratio")) {
+		inf$set_estimand(est)
+		expect_equal(inf$get_supported_testing_types(), "wald", info = est)
+		expect_error(inf$set_testing_type("score"), "does not support testing_type", info = est)
+		expect_error(inf$set_testing_type("lik_ratio"), "does not support testing_type", info = est)
+		expect_no_error(inf$set_testing_type("wald"))
+	}
+	inf$set_estimand("conditional")
+	expect_true("score" %in% inf$get_supported_testing_types())
+})

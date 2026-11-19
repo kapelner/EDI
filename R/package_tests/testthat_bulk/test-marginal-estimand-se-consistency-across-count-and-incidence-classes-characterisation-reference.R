@@ -101,3 +101,55 @@ test_that("Poisson: get_standard_error() is the finite delta-method SE; the desi
 		expect_gte(pv, 2 * pnorm(-abs(e / se)) * (1 - 1e-6))
 	}
 })
+
+# docs-claims audit, finding docs-claims-dccc6a08a: under a marginal estimand the design-based jackknife-Wald
+# component refits under the active estimand, and the public CI is the union of it with the delta-method interval.
+test_that("Poisson marginal_mean_diff: the jackknife-Wald CI targets the marginal functional and the public CI is its union with the delta-method CI", {
+	inf <- InferenceCountPoisson$new(dc, verbose = FALSE)
+	beta_T <- inf$compute_estimate()
+	inf$set_estimand("marginal_mean_diff"); e <- inf$compute_estimate()
+	p <- inf$.__enclos_env__$private
+	expect_gt(abs(e - beta_T), 0.1)                                          # the two targets are far apart here
+	jci <- as.numeric(inf$compute_jackknife_wald_confidence_interval(alpha = 0.05))
+	jse <- inf$compute_jackknife_std_error()
+	expect_true(all(is.finite(jci)) && is.finite(jse))
+	# centre of the jackknife-Wald interval is the marginal jackknife estimate, near the marginal point, not beta_T
+	expect_lt(abs(mean(jci) - e), 0.25 * jse)
+	expect_gt(abs(mean(jci) - beta_T), abs(mean(jci) - e))
+	dm <- e + c(-1, 1) * qnorm(0.975) * p$get_standard_error()
+	expect_equal(unname(inf$compute_asymp_confidence_interval(0.05)), c(min(dm[1], jci[1]), max(dm[2], jci[2])), tolerance = 1e-8)
+	expect_equal(inf$compute_asymp_two_sided_pval(0),
+		max(2 * pnorm(-abs(e / p$get_standard_error())), inf$compute_jackknife_wald_two_sided_pval(0)), tolerance = 1e-8)
+})
+
+# docs-claims audit, finding docs-claims-df753035f (InferenceIncidLogRegr):
+# switching the estimand is a pure post-fit transform of the same cached fit,
+# never a refit; switching back restores the conditional values.
+test_that("logistic: estimand switches reuse the identical cached fit (no refit) and restore conditional / marginal values", {
+	inf <- InferenceIncidLogRegr$new(di, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	n_fits <- 0L
+	gm <- p$generate_mod
+	unlockBinding("generate_mod", p)
+	p$generate_mod <- function(...) { n_fits <<- n_fits + 1L; gm(...) }
+	inf$set_estimand("marginal_mean_diff")
+	est_marg <- inf$compute_estimate()
+	ci_marg <- inf$compute_asymp_confidence_interval()
+	mod_ref <- p$cached_mod
+	fits_after_first <- n_fits
+	expect_gte(fits_after_first, 1L)  # the counter sees the fit
+	expect_false(is.null(mod_ref))
+
+	inf$set_estimand("conditional")
+	est_cond <- inf$compute_estimate()
+	expect_identical(p$cached_mod, mod_ref)
+	g <- glm(di$get_y() ~ di$get_w() + ., data = di$get_X_raw(), family = binomial)
+	expect_equal(est_cond, unname(coef(g)[2]), tolerance = 1e-5)
+	expect_equal(est_cond, as.numeric(mod_ref$b[2L]))
+
+	inf$set_estimand("marginal_mean_diff")
+	expect_identical(p$cached_mod, mod_ref)
+	expect_identical(inf$compute_estimate(), est_marg)
+	expect_identical(inf$compute_asymp_confidence_interval(), ci_marg)
+	expect_identical(n_fits, fits_after_first)
+})

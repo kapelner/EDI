@@ -123,3 +123,20 @@ test_that("fit_ok rejects divergent, non-finite and zero-variance conditional-lo
 		}
 	}
 })
+
+# docs-claims audit, finding docs-claims-d95cc5759: the Wald CI and p-value use the conditional-logit model's SE.
+test_that("the public Wald CI and p-value equal beta +/- z * SE and the Wald p-value of the survival::clogit fit", {
+	f <- adj_cat_fixture()
+	e <- make_mock_env(f$priv)
+	run_shared_multi(e)
+	setup <- EDI:::ordinal_cond_clogit_compute_setup(f$priv)
+	ex <- EDI:::expand_adjacent_category_data_cpp(
+		as.integer(setup$y_ord), as.integer(f$priv$w), as.integer(setup$strata_ids), as.integer(setup$K)
+	)
+	df <- data.frame(y = ex$y, tr = ex$w, x1 = e$captured_X[, 2], st = ex$strata)
+	ref <- survival::clogit(y ~ tr + x1 + strata(st), data = df)
+	b <- unname(coef(ref)["tr"]); se <- unname(sqrt(vcov(ref)["tr", "tr"]))
+	expect_equal(unname(f$inf$compute_asymp_confidence_interval(0.1)), b + c(-1, 1) * qnorm(0.95) * se, tolerance = 1e-3)
+	expect_equal(f$inf$compute_asymp_two_sided_pval(0), unname(summary(ref)$coefficients["tr", "Pr(>|z|)"]), tolerance = 1e-3)
+	expect_equal(f$inf$compute_asymp_two_sided_pval(0.2), 2 * pnorm(-abs((b - 0.2) / se)), tolerance = 1e-3)
+})

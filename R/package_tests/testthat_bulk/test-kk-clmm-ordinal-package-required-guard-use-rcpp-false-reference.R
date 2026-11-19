@@ -47,3 +47,28 @@ test_that("the default use_rcpp = TRUE never triggers the guard, even when 'ordi
 		}
 	)
 })
+
+# docs-claims audit, finding docs-claims-d1a9c17a6: the Cauchit leaf declares its own initialize() default
+# (use_rcpp = TRUE); check it too, not only the logit leaf above.
+test_that("InferenceOrdinalKKCLMMCauchit defaults to use_rcpp = TRUE and never reaches the 'ordinal' guard", {
+	set.seed(3)
+	n <- 20L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(sample(1:4, n, replace = TRUE))
+
+	expect_true(isTRUE(formals(InferenceOrdinalKKCLMMCauchit$public_methods$initialize)$use_rcpp))
+	with_mocked_bindings(
+		check_package_installed = function(pkg) FALSE,
+		.package = "EDI",
+		{
+			inf <- NULL
+			expect_no_error(inf <- InferenceOrdinalKKCLMMCauchit$new(des, verbose = FALSE))
+			expect_true(inf$.__enclos_env__$private$use_rcpp)
+			expect_error(
+				InferenceOrdinalKKCLMMCauchit$new(des, use_rcpp = FALSE, verbose = FALSE),
+				"Package 'ordinal' is required for InferenceOrdinalKKCLMMCauchit.", fixed = TRUE
+			)
+		}
+	)
+})

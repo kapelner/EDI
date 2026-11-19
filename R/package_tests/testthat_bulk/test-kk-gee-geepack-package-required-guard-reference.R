@@ -64,3 +64,23 @@ test_that("InferencePropKKGEE's own initialize() errors with its own documented 
 		}
 	)
 })
+
+# docs-claims audit, finding docs-claims-dfabf84ea: InferenceOrdinalKKGEE always requires 'multgee' and errors at
+# construction without it (no use_rcpp escape hatch).
+test_that("InferenceOrdinalKKGEE errors at construction when multgee is (mocked as) unavailable", {
+	set.seed(3L)
+	n <- 30L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(sample(1:4, n, replace = TRUE))
+	with_mocked_bindings(
+		check_package_installed = function(pkg, ...) !identical(pkg, "multgee"),
+		.package = "EDI",
+		code = expect_error(
+			InferenceOrdinalKKGEE$new(des, verbose = FALSE),
+			"Package 'multgee' is required for InferenceOrdinalKKGEE. Please install it.",
+			fixed = TRUE
+		)
+	)
+	expect_false("use_rcpp" %in% names(formals(InferenceOrdinalKKGEE$public_methods$initialize)))
+})

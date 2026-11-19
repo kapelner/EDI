@@ -72,3 +72,77 @@ test_that("bootstrap CI with many zero-free replicates has no dropped draws", {
 	}, numeric(1))
 	expect_true(all(is.finite(ests)))
 })
+
+# docs-claims audit, findings docs-claims-ddb49a587 (ZIP) and docs-claims-d03ccf4c6 (ZINB): the zero-free fallback
+# is documented for the Bayesian-bootstrap weighted refit and the parametric-bootstrap simulation too, not only the
+# nonparametric-bootstrap worker tested above.
+zi_mixed_design <- function(family = c("poisson", "negbin"), n = 60L, seed = 4L) {
+	family <- match.arg(family)
+	set.seed(seed)
+	X <- data.frame(x1 = rnorm(n))
+	des <- DesignFixedBernoulli$new(response_type = "count", n = n, seed = 1L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X); des$assign_w_to_all_subjects()
+	w <- des$get_w(); zi <- rbinom(n, 1, 0.3)
+	mu <- exp(0.6 + 0.4 * w + 0.2 * X$x1)
+	cnt <- if (family == "poisson") rpois(n, mu) else rnbinom(n, mu = mu, size = 3)
+	des$add_all_subject_responses(ifelse(zi == 1, 0L, cnt))
+	list(des = des, y = des$get_y(), w = w, x1 = X$x1)
+}
+
+test_that("ZIP / ZINB Bayesian-bootstrap weights that zero out every zero row give the Poisson / NB fit", {
+	f <- zi_mixed_design("poisson")
+	inf <- InferenceCountZeroInflatedPoisson$new(f$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
+	keep <- f$y > 0
+	expect_true(any(!keep))
+	est <- inf$compute_estimate_with_bootstrap_weights(as.numeric(keep))
+	ref <- unname(coef(glm(f$y[keep] ~ f$w[keep] + f$x1[keep], family = poisson))[2L])
+	expect_equal(est, ref, tolerance = 1e-5)
+
+	g <- zi_mixed_design("negbin")
+	inf_nb <- InferenceCountZeroInflatedNegBin$new(g$des, verbose = FALSE)
+	priv_nb <- inf_nb$.__enclos_env__$private
+	priv_nb$current_bayesian_bootstrap_context <- priv_nb$build_bayesian_bootstrap_context()
+	keep_nb <- g$y > 0
+	est_nb <- inf_nb$compute_estimate_with_bootstrap_weights(as.numeric(keep_nb))
+	ref_nb <- unname(coef(MASS::glm.nb(g$y[keep_nb] ~ g$w[keep_nb] + g$x1[keep_nb]))[2L])
+	expect_equal(est_nb, ref_nb, tolerance = 1e-4)
+})
+
+test_that("ZIP / ZINB parametric-bootstrap simulations with no zeros are refit, not dropped", {
+	f <- zi_mixed_design("poisson")
+	inf <- InferenceCountZeroInflatedPoisson$new(f$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	invisible(inf$compute_estimate())
+	spec <- priv$get_likelihood_test_spec()
+	null_fit <- spec$fit_null(0)
+	# a null fit with no structural zeros and a large count mean: the simulated response has no zeros
+	null_fit$coefficients$cond <- c(log(30), 0, 0.1)
+	null_fit$coefficients$zi <- c(-40, 0, 0)
+	set.seed(9)
+	sim <- priv$simulate_under_lik_null(spec, 0, null_fit)
+	expect_false(is.null(sim))
+	y_sim <- sim$worker_data$y
+	expect_false(any(y_sim == 0))
+	expect_true(isTRUE(sim$full_fit$converged))
+	expect_equal(unname(sim$full_fit$coefficients$cond),
+		unname(coef(glm(y_sim ~ spec$X[, -1L], family = poisson))), tolerance = 1e-5)
+
+	g <- zi_mixed_design("negbin")
+	inf_nb <- InferenceCountZeroInflatedNegBin$new(g$des, verbose = FALSE)
+	priv_nb <- inf_nb$.__enclos_env__$private
+	invisible(inf_nb$compute_estimate())
+	spec_nb <- priv_nb$get_likelihood_test_spec()
+	null_nb <- spec_nb$fit_null(0)
+	p_cond <- ncol(spec_nb$X); p_zi <- ncol(spec_nb$Xzi)
+	null_nb$params <- c(log(30), 0, 0.1, rep(0, p_zi), log(5))
+	null_nb$params[p_cond + 1L] <- -40
+	set.seed(10)
+	sim_nb <- priv_nb$simulate_under_lik_null(spec_nb, 0, null_nb)
+	expect_false(is.null(sim_nb))
+	y_nb <- sim_nb$worker_data$y
+	expect_false(any(y_nb == 0))
+	ref_nb <- MASS::glm.nb(y_nb ~ spec_nb$X[, -1L])
+	expect_equal(as.numeric(sim_nb$full_fit$params[seq_len(p_cond)]), unname(coef(ref_nb)), tolerance = 1e-3)
+})
