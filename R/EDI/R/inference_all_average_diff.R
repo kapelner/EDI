@@ -389,9 +389,10 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 	public = list(
 		# Uses the randomization-CI layer's two-sided p-value contract
 		# (InferenceRandCI's version, not InferenceRand's): for
-		# incidence responses this dispatches to the Zhang exact randomization
-		# test where applicable rather than refusing outright, matching this
-		# class's pre-migration old-ladder behavior (see
+		# incidence responses it does not refuse outright; the default p-value
+		# comes from the randomization draws, and the Zhang exact test is used
+		# only with an explicit type = "Zhang", matching this class's
+		# pre-migration old-ladder behavior of not refusing (see
 		# InferenceIncidRiskDiff's identical rationale). Previously bound
 		# to InferenceRand's version instead, which silently regressed
 		# Zhang dispatch after migration -- see
@@ -441,9 +442,11 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 #' @R6method InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval
 #' @description Uses the randomization-CI layer's two-sided p-value contract
 #'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-#'   incidence responses this dispatches to the Zhang exact randomization
-#'   test where applicable rather than refusing outright, matching this
-#'   class's pre-migration old-ladder behavior (see
+#'   incidence responses it does not refuse outright; the default p-value
+#'   comes from the randomization draws, and the Zhang exact randomization
+#'   test is used only when \code{type = "Zhang"} is passed explicitly
+#'   (where applicable), matching this class's pre-migration old-ladder
+#'   behavior of not refusing (see
 #'   \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
 #'   to \code{InferenceRand}'s version instead, which silently regressed
 #'   Zhang dispatch after migration -- see

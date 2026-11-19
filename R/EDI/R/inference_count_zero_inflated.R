@@ -484,10 +484,9 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
-			estimand = if (is.function(self$get_estimand)) self$get_estimand() else "conditional"
-			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
-				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
-			}
+			# No marginal-estimand branch: ZINB does not compose MarginalEstimand,
+			# so get_estimand() is always "conditional" (Inference base) and
+			# set_estimand() stops (docs-claims-d03ccf4c6).
 			# Keep the point estimate when the native ZINB fit is usable but its
 			# guarded covariance is not. This mirrors the ZIP/Hurdle-Poisson
 			# wrappers and records typed SE nonestimability for the public API.

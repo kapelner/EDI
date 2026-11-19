@@ -4451,3 +4451,31 @@ itself still needs a look.
   - Changes KK21 count-design weights (the `count_use_speedup = FALSE` negbin path): add a NEWS bullet and rerun the
     KK21 count weight comparisons and the affected package_tests CSVs.
   - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
+- [ ] TODO-254 (added 2026-11-19, owner; from docs-claims audit finding `docs-claims-d1f53ee72`; CHANGES RESULTS):
+  **`InferenceIncidNewcombeRiskDiff` p-value is the 1e-300 floor instead of 1 when delta sits on the interval boundary
+  at every alpha.** With p_T = 1, p_C = 0 and delta = 1 the null is inside every Newcombe interval (the upper bound is
+  capped at 1), but `compute_asymp_two_sided_pval(delta = 1)` returns 1e-300. The upper-boundary branch measures
+  `ci[2] - delta`, which is exactly 0 at the floor, and `outside_at_floor = ... at_floor <= 0`
+  (`R/EDI/R/inference_incidence_newcombe_univ.R` ~L197) counts that zero gap as outside. The doc (~L170) says the
+  p-value is 1 in this case.
+  - Fix: treat a zero gap as inside (`at_floor < 0` on the upper side, `at_floor > 0` on the lower side), and check the
+    `inside_at_ceiling` test the same way. Remove the `skip()` in
+    `R/package_tests/testthat_bulk/test-newcombe-pval-boundary-estimate-equals-delta.R` and cite this TODO there.
+  - Changes the p-value on boundary data: add a NEWS bullet under "Changes that alter results".
+  - Done when: the un-skipped boundary test passes (p-value 1 at delta = 1 with p_T = 1, p_C = 0), the other Newcombe
+    tests still pass, and NEWS notes the change.
+- [ ] TODO-255 (added 2026-11-19, owner; from docs-claims audit finding `docs-claims-dfa95cecb`): **KK g-computation
+  failed fits are never marked non-estimable.** The docs (e.g. `InferenceIncidKKGCompRiskRatio`,
+  `R/EDI/R/inference_incidence_KK_marginal.R` ~L315 and ~L419) say a working model that fails to converge, has no
+  treatment-arm variation, or gives a zero all-control standardized risk is marked non-estimable via
+  `is_nonestimable()`. In all three cases `shared()` (`R/EDI/R/inference_incidence_KK_gcomp_abstract.R` ~L550) calls
+  `set_failed_fit_cache()`, which calls `gcomp_cache_failed_standardized_effects()` (`R/EDI/R/helper_gcomp.R`
+  ~L114). That only writes NA effects and never calls `cache_nonestimable_estimate()`, so `cached_values$nonestimable`
+  stays unset and `is_nonestimable()` returns FALSE. This affects every KK g-comp class (risk difference and risk
+  ratio).
+  - Fix: have the failed-fit path call `private$cache_nonestimable_estimate()` with a reason per failure mode (e.g.
+    `gcomp_working_model_failed`, `gcomp_no_treatment_variation`, `gcomp_zero_control_risk`), keeping the NA estimate.
+    Check that resampling replicates still count the failures as before.
+  - Test: for each of the three failure modes, on each KK g-comp class, `compute_estimate()` is NA and
+    `is_nonestimable()` is TRUE with the expected reason.
+  - Done when: the new tests pass and the existing KK g-comp tests are unchanged.

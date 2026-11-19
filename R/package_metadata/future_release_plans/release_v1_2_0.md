@@ -1289,3 +1289,14 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     v1.0.6-TODO-122.
   - Done when: the check is reported (flags vs divergent fits) and the pre-check is merged with unchanged results on
     non-separated inputs, or the item closes with the numbers.
+- [ ] TODO-250 (added 2026-11-19, owner; from docs-claims audit finding `docs-claims-d218ace01`): **Joint weighted ZOIB
+  MLE for the bootstrap refit.** `InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()`
+  (`R/EDI/R/inference_proportion_zero_one_inflated_beta.R`) does not refit the joint zero/one-inflated beta likelihood:
+  it runs two separate weighted logistic fits plus a weighted `betareg` on the interior rows, with an `lm.wfit` fallback
+  on logit(y). Even unit weights therefore do not reproduce the joint-MLE estimate of `compute_estimate()`, so the
+  Bayesian/weighted bootstrap distribution is centred on a different estimator.
+  - Investigate a weighted version of the joint ZOIB likelihood the full fit maximizes (row weights on each
+    log-likelihood term), warm-started from the unweighted fit; check cost per replicate.
+  - Done when: with unit weights the weighted refit equals `compute_estimate()` to optimizer tolerance on the existing
+    fixtures (conditional and `marginal_mean_diff`), the doc's note on the separate fits is removed, and timings are
+    recorded; or the item closes with the numbers.

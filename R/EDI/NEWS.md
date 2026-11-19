@@ -974,6 +974,15 @@
 
 * Corrected documentation claims: `SimulationFramework` draws covariates with `cov_draw_method` (default `stats::rnorm`), not Uniform(0, 1); `InferenceSurvivalRestrictedMeanDiff` integrates the Kaplan-Meier curve exactly (a sum of rectangles), not by the trapezoid rule; and `fast_cpoisson_combined_with_var_cpp()` documents its `tol`, `hessian` and estimate-only return accurately.
 
+* Corrected more class documentation that contradicted the code (docs-claims audit): the incidence classes'
+  `compute_rand_two_sided_pval()` takes its default p-value from randomization draws and uses the Zhang exact test
+  only with `type = "Zhang"`; `InferenceIncidKKNewcombeRiskDiff` uses Wald variances in both components;
+  `InferencePropQuantileRegr`'s weighted refit no longer claims to overwrite the cached estimate;
+  `InferencePropZeroOneInflatedBetaRegr`'s weighted refit is described as the separate weighted fits it runs;
+  `InferenceOrdinalPairedSignTest` supports bootstrap and jackknife; and `InferenceOrdinalStereotypeLogitRegr` lists
+  only its Bartlett p-value as excluded from the comprehensive suite. `InferenceCountZeroInflatedNegBin` also loses a
+  marginal-estimand branch that could never run.
+
 # EDI 1.0.4
 
 Correctness release. Wrong results found by the algorithm audit and the

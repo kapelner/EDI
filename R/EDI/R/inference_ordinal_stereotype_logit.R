@@ -910,9 +910,11 @@ OrdinalStereotypeLikelihoodSource = list(
 #' (Monte-Carlo Bartlett correction; ~4\% Type-I error); those two figures
 #' predate the refit change and were not re-measured. Both are
 #' roughly 20-40x slower per call than the raw chi-square test (a fresh
-#' bootstrap/Monte-Carlo refit at every delta candidate), which is why they
-#' are excluded from this package's own routine comprehensive test suite
-#' (see \code{comprehensive_slow_paths.R}).
+#' bootstrap/Monte-Carlo refit at every delta candidate). Of the two, only the
+#' Bartlett p-value is excluded from this package's own routine comprehensive
+#' test suite (its \code{bartlett_pval} entry in
+#' \code{comprehensive_slow_paths.R}); the likelihood-ratio bootstrap p-value
+#' is not listed there.
 #' \code{compute_lik_ratio_two_sided_pval()}
 #' itself is left unchanged (not silently recalibrated) to avoid an
 #' undocumented behavior change to an existing method's contract.
