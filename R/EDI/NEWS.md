@@ -319,6 +319,14 @@
 
 ## New features
 
+* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio` gain
+  `type = "symmetric-percentile-t"` in
+  `compute_bayesian_bootstrap_confidence_interval()`: a symmetric studentized
+  Bayesian-bootstrap interval built on the log risk ratio. It covers better in
+  small samples than `type = "studentized"`, which is built on the raw ratio
+  scale and undercovers (about 0.89 at n = 60); the class docs now say so
+  (v1.0.6-TODO-168).
+
 * The randomization test (`compute_rand_two_sided_pval()` with a nonzero
   `delta`) and the randomization confidence interval now work on left- and
   interval-censored survival data: the null shift rescales the treated
@@ -598,6 +606,17 @@
   (silently matching unweighted) when a response is exactly 0 or 1: the logit
   is now clamped as in `DesignSeqOneByOneKK21stepwise`. Designs whose
   responses are all inside (0, 1) are unchanged (v1.0.6-TODO-60).
+
+* PRW subsampling confidence intervals and p-values now respect the CI
+  timeout deadline and re-raise timeouts or interrupts that occur while
+  computing the original estimate, instead of returning NA; they now share one
+  setup routine with the m-out-of-n bootstrap (v1.0.6-TODO-194).
+
+* The g-computation risk-ratio classes now accept a list-valued `b` / `m`
+  (minimum-volatility size selection) for subsampling and m-out-of-n intervals
+  and p-values; timeouts raised while computing their original estimate, or
+  while the resample-size selectors evaluate a candidate, now abort the call
+  instead of producing NA or a non-estimable candidate (v1.0.6-TODO-196).
 
 ## Breaking changes
 

@@ -142,45 +142,16 @@ InferenceExtMOutOfNBootstrap = list(
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
 		compute_m_out_of_n_bootstrap_two_sided_pval_impl = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
-			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap p-value setup")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("centered"))
 			}
-			if (is.list(m)) {
-				selection = do.call(self$select_optimal_m_out_of_n_bootstrap, c(list(
-					B = as.integer(m$B %||% min(as.integer(B), 251L)),
-					alpha = as.numeric(m$alpha %||% 0.05),
-					bootstrap_type = bootstrap_type,
-					scaling = scaling,
-					show_progress = show_progress
-				), m[setdiff(names(m), c("method", "B", "alpha"))]))
-				m = selection$m_optimal
-				if (!is.numeric(m) || length(m) != 1L || !is.finite(m)) {
-					edi_record_procedure_failure(self, private, "m_out_of_n_m_selection_failed", "estimate")
-					return(NA_real_)
-				}
-			}
-			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = bootstrap_type)
-			m = private$resolve_resampling_size(m, unit_info$n_units, "m")
-			pivot = private$m_out_of_n_bootstrap_centered_pivot(
-				B = B,
-				m = m,
-				unit_info = unit_info,
-				show_progress = show_progress,
-				bootstrap_type = bootstrap_type,
-				scaling = scaling
-			)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "m_out_of_n")
-				return(NA_real_)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "m_out_of_n_too_few_finite_estimates", "estimate")
-				return(NA_real_)
-			}
+			setup = private$resampling_centered_pivot_for_inference("m_out_of_n", "pval", B = B, size = m, alpha = NULL, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling)
+			if (is.null(setup$pivot)) return(setup$value)
+			pivot = setup$pivot
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling)
 		},
 		#' @description Computes a basic m-out-of-n bootstrap confidence interval.
@@ -210,44 +181,16 @@ InferenceExtMOutOfNBootstrap = list(
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
 		compute_m_out_of_n_bootstrap_confidence_interval_impl = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
-			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap CI setup")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("basic"))
 			}
-			if (is.list(m)) {
-				selection = do.call(self$select_optimal_m_out_of_n_bootstrap, c(list(
-					B = as.integer(m$B %||% min(as.integer(B), 251L)),
-					alpha = alpha,
-					bootstrap_type = bootstrap_type,
-					scaling = scaling,
-					show_progress = show_progress
-				), m[setdiff(names(m), c("method", "B", "alpha"))]))
-				m = selection$m_optimal
-				if (!is.numeric(m) || length(m) != 1L || !is.finite(m)) {
-					return(private$missing_bootstrap_ci(alpha, "m_out_of_n_m_selection_failed", stage = "estimate"))
-				}
-			}
-			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = bootstrap_type)
-			m = private$resolve_resampling_size(m, unit_info$n_units, "m")
-			pivot = private$m_out_of_n_bootstrap_centered_pivot(
-				B = B,
-				m = m,
-				unit_info = unit_info,
-				show_progress = show_progress,
-				bootstrap_type = bootstrap_type,
-				scaling = scaling
-			)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
-				return(c(NA_real_, NA_real_))
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_too_few_finite_estimates", stage = "estimate"))
-				return(c(NA_real_, NA_real_))
-			}
+			setup = private$resampling_centered_pivot_for_inference("m_out_of_n", "ci", B = B, size = m, alpha = alpha, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling)
+			if (is.null(setup$pivot)) return(setup$value)
+			pivot = setup$pivot
 			ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$est, n_units = pivot$n_units, scaling = scaling)
 			if (!all(is.finite(ci[1:2])) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_extreme_confidence_interval", stage = "estimate"))

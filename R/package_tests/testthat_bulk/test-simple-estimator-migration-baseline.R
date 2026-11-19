@@ -57,12 +57,20 @@ simple_estimator_expected_classes = c(
 # bootstrap_estimand_is_raw_ratio and bootstrap_ci_estimates_extreme
 # (NonparametricBootstrap, v1.0.6-TODO-160/175 work, uncommitted when pinned).
 # Re-confirmed via the manifest: private owners 342/345/353/326/339.
+# 2026-11-19 (v1.0.6-TODO-194): +1 private owner on every class for
+# resampling_centered_pivot_for_inference (NonparametricBootstrap; shared m-out-of-n /
+# subsampling CI and p-value setup). Re-confirmed via the manifest: it is the only new name.
+# Private owners 343/346/354/327/340.
+# 2026-11-19 (v1.0.6-TODO-196): +1 private owner on every class for
+# select_resampling_size_from_spec (NonparametricBootstrap; list b / m size selection shared
+# by the generic setup and the risk-ratio log-scale pivots). Re-confirmed via the manifest.
+# Private owners 344/347/355/328/341.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 342L,
+		private_owner_count = 344L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -75,7 +83,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 345L,
+		private_owner_count = 347L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -88,7 +96,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 353L,
+		private_owner_count = 355L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -102,7 +110,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 326L,
+		private_owner_count = 328L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -114,7 +122,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 339L,
+		private_owner_count = 341L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

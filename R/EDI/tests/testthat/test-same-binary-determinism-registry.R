@@ -52,23 +52,16 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 #     vector: the same 17 numbers gave two different means (last bit) across
 #     300 fresh copies. Any Eigen::Map reduction (sum, mean, dot, squaredNorm)
 #     on R-allocated memory has this property; Bai is where this sweep sees it.
-# (2) release_v1_0_6.md TODO-35. Worker-count-dependent randomization p-values (stable in 3 of 3 runs):
-#     the permutation draws match but per-replicate estimates differ by
-#     1e-11 to 1e-3 at 4 cores, and InferenceIncidKKCondLogitGLMMOneLik even
-#     has a different number of NA (non-converged) replicates (22 serial vs
-#     6). Each class carries a solver warm start from one replicate to the
-#     next (set_fit_warm_start / fit_warm_start), so the chain of starting
-#     values, and the point an iterative fit stops at, depends on how the
-#     replicates are split among workers.
+# (2) Fixed 2026-11-19 (release_v1_0_6.md TODO-35, by TODO-61): the worker-count-
+#     dependent randomization p-values of InferenceIncidBinomialIdentityRiskDiff,
+#     InferenceIncidKKCondLogitGLMMOneLik and InferenceOrdinalGCompMeanDiff came
+#     from warm starts chained between replicates within each worker's chunk.
+#     Replicates no longer chain, and the three pass (3 local runs).
 SAME_BINARY_KNOWN_FAILURES = c(
 	as.vector(outer(   # v1.0.6 TODO-34
 		c("InferenceBaiAdjustedTKK14|continuous", "InferenceBaiAdjustedTKK21|continuous"),
 		as.vector(outer(c("estimate", "summary", "asymp_ci", "asymp_pval"), c("rerun", "cores"), paste, sep = "|")),
-		paste, sep = "|")),
-	# v1.0.6 TODO-35
-	"InferenceIncidBinomialIdentityRiskDiff|incidence|rand_pval|cores",
-	"InferenceIncidKKCondLogitGLMMOneLik|incidence|rand_pval|cores",
-	"InferenceOrdinalGCompMeanDiff|ordinal|rand_pval|cores"
+		paste, sep = "|"))
 )
 
 same_binary_with_seed = function(seed, expr) {

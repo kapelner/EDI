@@ -70,7 +70,8 @@ static ScoreInfoResult cpoisson_combined_score_info_cpp_impl(
 	const Eigen::Ref<const Eigen::VectorXd>& y_r,
 	const Eigen::Ref<const Eigen::VectorXd>& w_r,
 	const Eigen::Ref<const Eigen::MatrixXd>& X_r,
-	const Eigen::Ref<const Eigen::VectorXd>& params
+	const Eigen::Ref<const Eigen::VectorXd>& params,
+	bool want_info = true  // false: score only (info left as an empty matrix)
 ) {
 	const int nd = (int)yT_v.size();
 	const int nR = (int)y_r.size();
@@ -78,7 +79,8 @@ static ScoreInfoResult cpoisson_combined_score_info_cpp_impl(
 	const int np = p + 2;
 
 	VectorXd score = VectorXd::Zero(np);
-	MatrixXd info = MatrixXd::Zero(np, np);
+	MatrixXd info;
+	if (want_info) info = MatrixXd::Zero(np, np);
 
 	const double beta_0 = params[0];
 	const double beta_T = params[1];
@@ -92,13 +94,15 @@ static ScoreInfoResult cpoisson_combined_score_info_cpp_impl(
 	score[1] += score_p.sum();
 	if (p > 0) score.tail(p).noalias() += X_diff_v.transpose() * score_p;
 
-	VectorXd w_p_vec = w_p_arr.matrix();
-	info(1, 1) += w_p_vec.sum();
-	if (p > 0) {
-		VectorXd Xdw = X_diff_v.transpose() * w_p_vec;
-		info.block(1, 2, 1, p).noalias() += Xdw.transpose();
-		info.block(2, 1, p, 1).noalias() += Xdw;
-		info.block(2, 2, p, p).noalias() += weighted_crossprod(X_diff_v, w_p_vec);
+	if (want_info) {
+		VectorXd w_p_vec = w_p_arr.matrix();
+		info(1, 1) += w_p_vec.sum();
+		if (p > 0) {
+			VectorXd Xdw = X_diff_v.transpose() * w_p_vec;
+			info.block(1, 2, 1, p).noalias() += Xdw.transpose();
+			info.block(2, 1, p, 1).noalias() += Xdw;
+			info.block(2, 2, p, p).noalias() += weighted_crossprod(X_diff_v, w_p_vec);
+		}
 	}
 
 	VectorXd eta_r = VectorXd::Constant(nR, beta_0) + beta_T * w_r;
@@ -109,20 +113,22 @@ static ScoreInfoResult cpoisson_combined_score_info_cpp_impl(
 	score[1] += score_r.dot(w_r);
 	if (p > 0) score.tail(p).noalias() += X_r.transpose() * score_r;
 
-	const double mu_sum = mu_r.sum();
-	const double muw_sum = mu_r.dot(w_r);
-	info(0, 0) += mu_sum;
-	info(0, 1) += muw_sum;
-	info(1, 0) += muw_sum;
-	info(1, 1) += (mu_r.array() * w_r.array().square()).sum();
-	if (p > 0) {
-		VectorXd Xrmu = X_r.transpose() * mu_r;
-		VectorXd Xrwmu = X_r.transpose() * mu_r.cwiseProduct(w_r);
-		info.block(0, 2, 1, p).noalias() += Xrmu.transpose();
-		info.block(2, 0, p, 1).noalias() += Xrmu;
-		info.block(1, 2, 1, p).noalias() += Xrwmu.transpose();
-		info.block(2, 1, p, 1).noalias() += Xrwmu;
-		info.block(2, 2, p, p).noalias() += weighted_crossprod(X_r, mu_r);
+	if (want_info) {
+		const double mu_sum = mu_r.sum();
+		const double muw_sum = mu_r.dot(w_r);
+		info(0, 0) += mu_sum;
+		info(0, 1) += muw_sum;
+		info(1, 0) += muw_sum;
+		info(1, 1) += (mu_r.array() * w_r.array().square()).sum();
+		if (p > 0) {
+			VectorXd Xrmu = X_r.transpose() * mu_r;
+			VectorXd Xrwmu = X_r.transpose() * mu_r.cwiseProduct(w_r);
+			info.block(0, 2, 1, p).noalias() += Xrmu.transpose();
+			info.block(2, 0, p, 1).noalias() += Xrmu;
+			info.block(1, 2, 1, p).noalias() += Xrwmu.transpose();
+			info.block(2, 1, p, 1).noalias() += Xrwmu;
+			info.block(2, 2, p, p).noalias() += weighted_crossprod(X_r, mu_r);
+		}
 	}
 
 	return ScoreInfoResult{score, info};
@@ -275,7 +281,6 @@ edi::ResultMap fast_cpoisson_combined_internal(
 	std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
 	bool estimate_only = false
 ) {
-	const int nd = (int)yT_v.size();
 	const int nR = (int)y_r.size();
 	const int p  = (int)X_diff_v.cols();
 	const int np = p + 2;              // beta_0, beta_T, beta_xs (p)
@@ -314,88 +319,20 @@ edi::ResultMap fast_cpoisson_combined_internal(
 	for (int iter = 0; iter < maxit; ++iter) {
 		iterations_run = iter + 1;
 		edi_check_R_user_interrupt_every(iter);
-		const double  beta_0  = params[0];
-		const double  beta_T  = params[1];
-		const VectorXd beta_xs = params.tail(p);
-
-		grad.setZero();
-		H.setZero();
-
-        if (iter == 0 && warm_start_fisher_info.has_value()) {
-            H = *warm_start_fisher_info;
-            if (H.rows() != np || H.cols() != np) throw std::invalid_argument("warm_start_fisher_info must be a (p+2) x (p+2) matrix");
-            
-            // Still need to compute gradient
-            VectorXd eta_p = VectorXd::Constant(nd, beta_T);
-            if (p > 0) eta_p.noalias() += X_diff_v * beta_xs;
-            ArrayXd  p_k_arr  = plogis_array(eta_p.array());
-            VectorXd resid_p  = (n_k_v.array() * p_k_arr - yT_v.array()).matrix();
-            grad[1] += resid_p.sum();
-            if (p > 0) grad.tail(p).noalias() += X_diff_v.transpose() * resid_p;
-
-            VectorXd eta_r = VectorXd::Constant(nR, beta_0) + beta_T * w_r;
-            if (p > 0) eta_r.noalias() += X_r * beta_xs;
-            VectorXd mu_r   = eta_r.array().exp();
-            VectorXd score_r = y_r - mu_r;
-            grad[0] -= score_r.sum();
-            grad[1] -= score_r.dot(w_r);
-            if (p > 0) grad.tail(p).noalias() -= X_r.transpose() * score_r;
-        } else {
-            // ---- Pair component (conditional Poisson) -------------------------
-            // X_pairs_eff row k = [0, 1, X_diff_v[k,:]]  →  cols 1..np-1 only
-            VectorXd eta_p = VectorXd::Constant(nd, beta_T);
-            if (p > 0) eta_p.noalias() += X_diff_v * beta_xs;
-
-            // Logistic probabilities and Fisher weights
-            ArrayXd  p_k_arr  = plogis_array(eta_p.array());
-            ArrayXd  w_p_arr  = n_k_v.array() * p_k_arr * (1.0 - p_k_arr);
-            VectorXd resid_p  = (n_k_v.array() * p_k_arr - yT_v.array()).matrix();
-
-            // Gradient contributions from pairs  (d(-L)/d beta_T and d beta_xs)
-            grad[1] += resid_p.sum();
-            if (p > 0) grad.tail(p).noalias() += X_diff_v.transpose() * resid_p;
-
-            // Fisher block H[1..np-1, 1..np-1]:
-            //   [1 | X_diff_v]' * diag(w_p) * [1 | X_diff_v]
-            VectorXd w_p_vec = w_p_arr.matrix();
-            H(1, 1) += w_p_vec.sum();
-            if (p > 0) {
-                VectorXd Xdw = X_diff_v.transpose() * w_p_vec;        // p-vector
-                H.block(1, 2, 1, p).noalias() += Xdw.transpose();
-                H.block(2, 1, p, 1).noalias() += Xdw;
-                H.block(2, 2, p, p).noalias() += weighted_crossprod(X_diff_v, w_p_vec);
-            }
-
-            // ---- Reservoir component (marginal Poisson) -----------------------
-            // X_res_eff row i = [1, w_r[i], X_r[i,:]]
-            VectorXd eta_r = VectorXd::Constant(nR, beta_0) + beta_T * w_r;
-            if (p > 0) eta_r.noalias() += X_r * beta_xs;
-
-            VectorXd mu_r   = eta_r.array().exp();
-            VectorXd resid_r = mu_r - y_r;
-
-            // Gradient contributions from reservoir
-            grad[0] += resid_r.sum();
-            grad[1] += resid_r.dot(w_r);
-            if (p > 0) grad.tail(p).noalias() += X_r.transpose() * resid_r;
-
-            // Fisher block H += [1|w_r|X_r]' * diag(mu_r) * [1|w_r|X_r]
-            const double mu_sum  = mu_r.sum();
-            const double muw_sum = mu_r.dot(w_r);
-            H(0, 0) += mu_sum;
-            H(0, 1) += muw_sum;
-            H(1, 0) += muw_sum;
-            H(1, 1) += (mu_r.array() * w_r.array().square()).sum();
-            if (p > 0) {
-                VectorXd Xrmu  = X_r.transpose() * mu_r;
-                VectorXd Xrwmu = X_r.transpose() * mu_r.cwiseProduct(w_r);
-                H.block(0, 2, 1, p).noalias() += Xrmu.transpose();
-                H.block(2, 0, p, 1).noalias() += Xrmu;
-                H.block(1, 2, 1, p).noalias() += Xrwmu.transpose();
-                H.block(2, 1, p, 1).noalias() += Xrwmu;
-                H.block(2, 2, p, p).noalias() += weighted_crossprod(X_r, mu_r);
-            }
-        }
+		// Pair + reservoir score and Fisher information come from the shared
+		// cpoisson_combined_score_info_cpp_impl() (v1.0.6-TODO-193); the
+		// gradient of the negative log-likelihood is the negated score.
+		if (iter == 0 && warm_start_fisher_info.has_value()) {
+			H = *warm_start_fisher_info;
+			if (H.rows() != np || H.cols() != np) throw std::invalid_argument("warm_start_fisher_info must be a (p+2) x (p+2) matrix");
+			// Still need the gradient (the warm-start H replaces the info).
+			ScoreInfoResult si = cpoisson_combined_score_info_cpp_impl(yT_v, n_k_v, X_diff_v, y_r, w_r, X_r, params, false);
+			grad = -si.score;
+		} else {
+			ScoreInfoResult si = cpoisson_combined_score_info_cpp_impl(yT_v, n_k_v, X_diff_v, y_r, w_r, X_r, params);
+			grad = -si.score;
+			H = si.info;
+		}
 
 		// Gradient-norm-based convergence check (optimizer_diagnostics_report.md
 		// TODO-4), added ahead of the existing step-size fallback below --

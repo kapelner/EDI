@@ -44,6 +44,27 @@ inline GHRule gauss_hermite_rule(int n) {
     return rule;
 }
 
+// Soft quadratic barrier on |log_sigma| beyond `center` (value, gradient,
+// Hessian). Shared by the Poisson and hurdle-Poisson GLMM kernels, which used
+// to carry byte-identical per-file copies (v1.0.6-TODO-193).
+inline double soft_barrier(double log_sigma, double center = 5.0, double scale = 10.0) {
+    const double d = std::abs(log_sigma) - center;
+    if (d <= 0.0) return 0.0;
+    return scale * d * d;
+}
+
+inline double soft_barrier_grad(double log_sigma, double center = 5.0, double scale = 10.0) {
+    const double d = std::abs(log_sigma) - center;
+    if (d <= 0.0) return 0.0;
+    return 2.0 * scale * d * (log_sigma > 0 ? 1.0 : -1.0);
+}
+
+inline double soft_barrier_hessian(double log_sigma, double center = 5.0, double scale = 10.0) {
+    const double d = std::abs(log_sigma) - center;
+    if (d <= 0.0) return 0.0;
+    return 2.0 * scale;
+}
+
 inline double log_sum_exp(const Eigen::VectorXd& x) {
     const double m = x.maxCoeff();
     if (!std::isfinite(m)) return m;

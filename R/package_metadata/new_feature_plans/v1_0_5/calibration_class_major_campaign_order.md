@@ -387,3 +387,24 @@ Done 2026-11-16 (uncommitted), `plan_calibration_study.R` and `build_calibration
   - On the ledger after wave 10, the three inflated cells (also count `DesignFixedBinaryMatch` n = 1000, 43 s) drop to
     0.8-7 s. No other cell moves by more than 0.6 s.
   - Regression test: few-replicate slow shards beside a cheap class. It fails without the fix.
+* **Fix, 2026-11-19: overhead as a + b x classes; confirmation units priced from their own replicates.**
+  - **Problem.** Campaign 2026-11-15, waves 13-14: IncidLogBinomial confirmation shards (one class, 5,000 replicates)
+    on n = 1000 sequential designs skipped up to 78% of their replicates. On `SeqOneByOneRandomBlockSize@prob_T=0.2`
+    they were planned at ~1.3 s per replicate and ran at 5.5.
+  - **First cause: the overhead was charged per class.** Most of a shard's overhead is paid once per replicate, not
+    once per class: drawing a sequential design at n = 1000 costs ~4.5 s per replicate there. An 8-class pack spreads
+    that over its classes, so the per-class share learned from packs was far too small for a solo shard.
+  - **Second cause: confirmation units reused the screening cost.** Confirmation replicates cost about twice as
+    much: 0.95-1.06 s against 0.46-0.49 s (score and gradient tests on `~.`).
+  - **Fix.** Shard overhead is modelled as a + b x k for a shard of k classes, fitted per (response type, design, n)
+    with the usual fallback chain. The fit is a weighted least-squares line through the median residual at each k,
+    with a and b floored at 0. A cell whose shards all have one k takes b from the nearest wider level and a from its
+    own median. Confirmation units take their own measured cost from the stats rows with stage `confirm` once they
+    have `--min-measured-reps` replicates.
+  - **Backtest on the ledger after wave 14 (in-sample, shards with at least 20 replicates):**
+    - shards off by more than 1.5x fall from 1.1% to 0.5%, and those under 0.67x from 4.5% to 2.1%;
+    - the median ratio stays 1.00;
+    - on that cell, a solo shard is predicted at 5.1 s (actual 5.2-5.5, old 3.2) and a 14-class pack at 7.1 s
+      (actual 6.9-7.0, old 35.9).
+  - **Tests.** The per-class test is replaced by an a + b x k test, including a cell whose shards all have one size.
+    A new test covers confirmation pricing.

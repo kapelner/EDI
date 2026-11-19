@@ -46,6 +46,7 @@ InferenceExtPRWSubsampling = list(
 		approximate_subsampling_distribution_beta_hat_T_impl = function(B = 501, b = NULL, show_progress = TRUE, debug = FALSE, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
 			private$active_resampling_operation = "subsampling"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			private$check_bootstrap_replicate_deadline("subsampling distribution setup")
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("PRW subsampling inference")
 				private$assert_valid_bootstrap_type(subsampling_type)
@@ -72,6 +73,7 @@ InferenceExtPRWSubsampling = list(
 				cached = private$get_cached_resampling_distribution("subsampling", cache_key)
 				if (!is.null(cached)) return(cached)
 			}
+			private$check_bootstrap_replicate_deadline("subsampling draw generation")
 			if (!is.null(private$seed)) {
 				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
 				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -98,7 +100,8 @@ InferenceExtPRWSubsampling = list(
 				cache_key = cache_key
 			)
 			if (isTRUE(debug)) {
-				est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+				private$check_bootstrap_replicate_deadline("subsampling debug summary")
+				est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 				res$centered_scaled_values = private$resampling_scaling_factor(b, scaling) * (res$values - est)
 				res$full_estimate = est
 				res$b = b
@@ -140,38 +143,10 @@ InferenceExtPRWSubsampling = list(
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("centered"))
 			}
-			if (is.list(b)) {
-				selection = do.call(self$select_optimal_b_subsampling, c(list(
-					B = as.integer(b$B %||% min(as.integer(B), 251L)),
-					alpha = as.numeric(b$alpha %||% 0.05),
-					subsampling_type = subsampling_type,
-					scaling = scaling,
-					show_progress = show_progress
-				), b[setdiff(names(b), c("method", "B", "alpha"))]))
-				b = selection$b_optimal
-				if (!is.numeric(b) || length(b) != 1L || !is.finite(b)) {
-					edi_record_procedure_failure(self, private, "subsampling_b_selection_failed", "estimate")
-					return(NA_real_)
-				}
-			}
-			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)
-			b = private$resolve_resampling_size(b, unit_info$n_units, "b")
-			pivot = private$subsampling_centered_pivot(
-				B = B,
-				b = b,
-				unit_info = unit_info,
-				show_progress = show_progress,
-				subsampling_type = subsampling_type,
-				scaling = scaling
-			)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "subsampling")
-				return(NA_real_)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "subsampling_too_few_finite_estimates", "estimate")
-				return(NA_real_)
-			}
+			setup = private$resampling_centered_pivot_for_inference("subsampling", "pval", B = B, size = b, alpha = NULL, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling)
+			if (is.null(setup$pivot)) return(setup$value)
+			pivot = setup$pivot
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling)
 		},
 		#' @description Computes a basic PRW subsampling confidence interval.
@@ -208,37 +183,10 @@ InferenceExtPRWSubsampling = list(
 				assertCount(min_number_usable_samples, positive = TRUE)
 				assertChoice(type, c("basic"))
 			}
-			if (is.list(b)) {
-				selection = do.call(self$select_optimal_b_subsampling, c(list(
-					B = as.integer(b$B %||% min(as.integer(B), 251L)),
-					alpha = alpha,
-					subsampling_type = subsampling_type,
-					scaling = scaling,
-					show_progress = show_progress
-				), b[setdiff(names(b), c("method", "B", "alpha"))]))
-				b = selection$b_optimal
-				if (!is.numeric(b) || length(b) != 1L || !is.finite(b)) {
-					return(private$missing_bootstrap_ci(alpha, "subsampling_b_selection_failed", stage = "estimate"))
-				}
-			}
-			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)
-			b = private$resolve_resampling_size(b, unit_info$n_units, "b")
-			pivot = private$subsampling_centered_pivot(
-				B = B,
-				b = b,
-				unit_info = unit_info,
-				show_progress = show_progress,
-				subsampling_type = subsampling_type,
-				scaling = scaling
-			)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
-				return(c(NA_real_, NA_real_))
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_too_few_finite_estimates", stage = "estimate"))
-				return(c(NA_real_, NA_real_))
-			}
+			setup = private$resampling_centered_pivot_for_inference("subsampling", "ci", B = B, size = b, alpha = alpha, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling)
+			if (is.null(setup$pivot)) return(setup$value)
+			pivot = setup$pivot
 			ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$est, n_units = pivot$n_units, scaling = scaling)
 			if (!all(is.finite(ci[1:2])) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_extreme_confidence_interval", stage = "estimate"))
@@ -344,10 +292,12 @@ InferenceExtPRWSubsampling = list(
 			paste(as.integer(B), as.integer(b), subsampling_type %||% "NULL", private$resampling_scaling_key(scaling), center, sep = "|")
 		},
 		subsampling_centered_pivot = function(B, b, unit_info, show_progress = TRUE, subsampling_type = NULL, scaling = "sqrt_n"){
+			private$check_bootstrap_replicate_deadline("subsampling centered pivot")
 			cache_key = private$subsampling_cache_key(B = B, b = b, subsampling_type = subsampling_type, scaling = scaling, center = "full_estimate")
 			cached = private$get_cached_centered_resampling_pivot("subsampling", cache_key)
 			if (!is.null(cached)) return(cached)
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+			# Control conditions (timeouts, interrupts) re-throw, as in the m-out-of-n pivot (v1.0.6-TODO-194).
+			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 			if (!is.finite(est)) {
 				return(list(ok = FALSE, reason = "subsampling_original_estimate_unavailable"))
 			}
@@ -409,9 +359,10 @@ InferenceExtPRWSubsampling = list(
 			private$estimate_bootstrap_worker(worker_state)
 		},
 		evaluate_subsampling_size = function(b, B, alpha, subsampling_type = NULL, scaling = "sqrt_n", show_progress = FALSE){
+			private$check_bootstrap_replicate_deadline("subsampling b selection")
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)
 			b = private$resolve_resampling_size(b, unit_info$n_units, "b")
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 			if (!is.finite(est)) {
 				return(list(status = "nonestimable", dominant_failure_reason = "subsampling_original_estimate_unavailable", finite_fraction = 0, n_finite = 0L))
 			}

@@ -166,61 +166,7 @@ InferencePropKKGLMM = R6::R6Class("InferencePropKKGLMM",
 			private$shared(estimate_only = FALSE)
 			ctx = private$cached_values$likelihood_test_context
 			if (is.null(ctx) || is.null(private$cached_mod)) return(NULL)
-			d = ctx$d
-			j_treat = as.integer(ctx$j_T)
-			list(
-				X = d$X_conc,
-				j = j_treat,
-				d = d,
-				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					fast_clogit_plus_glmm_cpp(
-						X_disc = d$X_disc, y_disc = d$y_disc,
-						X_conc = d$X_conc, y_conc = d$y_conc,
-						group_conc = d$group_conc,
-						has_discordant = d$has_discordant,
-						has_concordant = d$has_concordant,
-						warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start,
-						warm_start_fisher_info = private$get_fit_warm_start_fisher(length(ctx$start)),
-						estimate_only = FALSE,
-						max_abs_log_sigma = private$max_abs_log_sigma,
-						fixed_idx = j_treat, fixed_values = delta,
-						optimization_alg = private$optimization_alg
-					)
-				},
-				extract_start = function(fit){ as.numeric(fit$params) },
-				score = function(fit){
-					as.numeric(get_clogit_plus_glmm_score_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				observed_information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				fisher_information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				neg_loglik = function(fit){
-					as.numeric(fit$neg_loglik %||% fit$neg_ll)
-				}
-			)
+			clogit_plus_glmm_likelihood_spec(private, ctx, include_d = TRUE)
 		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){

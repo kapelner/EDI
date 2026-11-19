@@ -198,6 +198,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#'   \code{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}.
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			type_resolved = tolower(type %||% "percentile")
+			# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
+			if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
+				return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+			}
 			if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
 				return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 			}
@@ -400,10 +404,26 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		# InferenceIncidGCompRiskDiff sibling. Recentering on log(estimate) with
 		# a log(delta) null, as already done for the bootstrap/BBT CIs and the
 		# jackknife-Wald methods above, fixes this the same way.
-		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress){
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL){
+			# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-196).
+			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 			if (!is.finite(est) || est <= 0) {
 				return(list(ok = FALSE, reason = "resampling_original_estimate_unavailable"))
+			}
+			# A list-valued b / m goes through the same minimum-volatility selector as the
+			# generic paths (v1.0.6-TODO-196); a failed selection is recorded even unhardened.
+			if (is.list(size)) {
+				family = if (identical(size_arg_name, "b")) "subsampling" else "m_out_of_n"
+				size = private$select_resampling_size_from_spec(family, size, B = B, alpha = alpha,
+					resampling_type = resampling_type, scaling = "sqrt_n", show_progress = show_progress)
+				if (!is.numeric(size) || length(size) != 1L || !is.finite(size)) {
+					reason = if (identical(family, "subsampling")) "subsampling_b_selection_failed" else "m_out_of_n_m_selection_failed"
+					if (!isTRUE(private$harden)) {
+						if (!is.null(alpha)) private$missing_bootstrap_ci(alpha, reason, stage = "estimate")
+						else edi_record_procedure_failure(self, private, reason, "estimate")
+					}
+					return(list(ok = FALSE, reason = reason))
+				}
 			}
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
 			size = private$resolve_resampling_size(size, unit_info$n_units, size_arg_name)
@@ -444,7 +464,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
+			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress, alpha = alpha)
 			if (!isTRUE(pivot$ok)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
 				return(ci)
@@ -479,7 +499,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
+			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress, alpha = alpha)
 			if (!isTRUE(pivot$ok)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
 				return(ci)
@@ -923,3 +943,68 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 )
 
 IncidenceGComputationSource = inference_component_source_parts(InferenceIncidGCompAbstract)
+
+# v1.0.6-TODO-168 (a): symmetric studentized (percentile-t) Bayesian-bootstrap interval for the
+# g-computation risk ratio, type = "symmetric-percentile-t" of
+# compute_bayesian_bootstrap_confidence_interval() on InferenceIncidGCompRiskRatio and
+# InferenceIncidKKGCompRiskRatio (the same type name and pivot as the nonparametric and
+# randomization bootstrap). The pivot is built on log(RR): t_b = |log RR_b - log RR| / se_log_b with
+# se_log_b = se_b / RR_b (exact, since each replicate's SE is RR_b * se_log_b from the weighted
+# sandwich), and the interval is exp(log RR +/- q_{1 - alpha} * se / RR). The raw-scale "studentized"
+# type undercovers at small n (0.89 at n = 60 in the TODO-168 study) because large replicate estimates
+# come with large replicate SEs, compressing the pivot's upper tail; the symmetric log-scale pivot
+# covered 0.93. Shared by the KK and non-KK RR helpers; runs the same replicate guard
+# (bootstrap_ci_estimates_extreme) and interval check (bootstrap_confidence_interval_extreme, which
+# judges a risk ratio on log(RR)) as the other Bayesian-bootstrap types.
+edi_rr_bayesian_bootstrap_symmetric_studentized_ci = function(self, private, alpha = 0.05, B = 501, na.rm = TRUE,
+		show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+	if (should_run_asserts()) {
+		assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+		assertCount(B, positive = TRUE)
+		assertFlag(na.rm)
+		assertFlag(show_progress)
+		assertCount(min_number_usable_samples, positive = TRUE)
+	}
+	est = as.numeric(self$compute_estimate())[1L]
+	edi_clear_procedure_failure(private, "bayesian_bootstrap")
+	private$cached_values$ci_call_failure_reason = NA_character_
+	on.exit({private$cached_values$ci_call_failure_reason <- NULL; private$cached_values$ci_call_ctx <- NULL}, add = TRUE)
+	ci = c(NA_real_, NA_real_)
+	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	if (!is.finite(est) || est <= 0) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_original_estimate_unavailable", stage = "estimate"))
+	}
+	se_hat = suppressWarnings(as.numeric(private$infer_original_se())[1L])
+	if (length(se_hat) != 1L || !is.finite(se_hat) || se_hat <= 0) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_standard_error_ci_unavailable", stage = "se"))
+	}
+	boot_stats = private$approximate_bayesian_bootstrap_statistics_beta_hat_T(
+		B = B, show_progress = show_progress, na.rm = isTRUE(na.rm),
+		require_se = TRUE, weighting_unit_type = weighting_unit_type
+	)
+	ok = is.finite(boot_stats$theta) & boot_stats$theta > 0 & is.finite(boot_stats$se) & boot_stats$se > 0
+	if (sum(ok) < as.integer(min_number_usable_samples)) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_standard_errors", stage = "se"))
+	}
+	theta = boot_stats$theta[ok]
+	if (private$bootstrap_ci_estimates_extreme(theta, est = est)) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
+	}
+	log_theta = log(theta)
+	ci_log = tryCatch(
+		bootstrap_ci_symmetric_studentized(list(theta = log_theta, se = boot_stats$se[ok] / theta), alpha, log(est),
+			se_hat / est, min_number_usable_samples = min_number_usable_samples),
+		error = function(e) c(NA_real_, NA_real_)
+	)
+	if (length(ci_log) < 2L || !all(is.finite(ci_log[1:2]))) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_standard_error_ci_unavailable", stage = "se"))
+	}
+	if (bootstrap_studentized_interval_scale_unstable(theta = log_theta, ci = ci_log, est = log(est), alpha = alpha)) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_unstable_studentized_interval", stage = "se"))
+	}
+	ci[] = exp(ci_log[1:2])
+	if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = theta)) {
+		return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval", stage = "se"))
+	}
+	ci
+}

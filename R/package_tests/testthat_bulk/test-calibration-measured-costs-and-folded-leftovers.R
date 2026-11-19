@@ -26,7 +26,7 @@ sys.source(file.path(cal_dir, "calibration_study_synthetic_fixture.R"), envir = 
 # A campaign dir with the synthetic roster (continuous: ContinLin 0.1 s, ContinOLS 0.2 s; incidence: IncidLogit 0.3 s, roster
 # secs_n50) and, optionally, finished shards: `done` is a list of list(cls, design, n, reps_done, reps_stat, fit) giving one
 # ledger row and the class's statistics rows (wald and rand, `fit` seconds per replicate in all); reps_stat is the number of
-# replicates the statistics hold (the ones actually done). An entry's `spr` overrides its ledger secs_per_rep.
+# replicates the statistics hold (the ones actually done). An entry's `spr` overrides its ledger secs_per_rep; `stage` sets its statistics' stage, `no_ledger` drops its ledger row.
 amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, roster = env$cal_synth_roster()) {
 	root = tempfile("calamende"); dir.create(file.path(root, "c", "stats"), recursive = TRUE)
 	roster_path = file.path(root, "roster.csv")
@@ -38,11 +38,12 @@ amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, ros
 		d = done[[i]]
 		for (pr in c("wald", "rand")) {
 			t = data.frame(response_type = "continuous", design = d$design, prob_T = 0.5, inf_class = d$cls, formula = "~.", n = d$n, n_nominal = d$n,
-				effect_label = "null", stage = "screen", inf_procedure = pr, reps = d$reps_stat, n_p = d$reps_stat, rej = 0L, rej10 = 0L,
+				effect_label = "null", stage = if (is.null(d$stage)) "screen" else d$stage, inf_procedure = pr, reps = d$reps_stat, n_p = d$reps_stat, rej = 0L, rej10 = 0L,
 				n_ci = d$reps_stat, cov = d$reps_stat, fit_secs = d$fit / 2 * d$reps_stat, stringsAsFactors = FALSE)
 			t[u] = lapply(u, function(j) 0L)
 			tests[[length(tests) + 1L]] = t
 		}
+		if (isTRUE(d$no_ledger)) next
 		nd = d$reps_stat
 		led[[i]] = data.frame(response_type = "continuous", design = d$design, n = d$n, effect = "null", only = if (is.null(d$only)) d$cls else d$only, exclude = "", reps_done = d$reps_done,
 			n_done = nd, n_failed = 0L, n_skipped = 0L, cores = 4L, elapsed_sec = 10, secs_per_rep = if (!is.null(d$spr)) d$spr else if (is.null(ledger_spr)) d$fit else ledger_spr,
@@ -201,19 +202,49 @@ test_that("class-major priority order is kept with folding: null before power, r
 	expect_identical(readLines(f), readLines(f0))
 })
 
-test_that("the pack overhead is charged per class: a one-class shard is not charged a whole pack's overhead", {
-	# campaign 2026-11-14: single-class confirmation shards were charged the median overhead of ~10-class packs (planned 1.9 s per
-	# replicate, ran 0.28 s). Here a Lin + OLS pack took 1.4 s per replicate for 0.5 + 0.5 s of class costs: 0.2 s per class.
+test_that("the pack overhead is a per shard plus b per class, fitted from shards of different sizes in the cell", {
+	# campaign 2026-11-14: charged once per pack, single-class confirmation shards cost ~6x their prediction's share; campaign
+	# 2026-11-15: charged per class, a single-class confirmation shard on a costly design came out ~4x too cheap. Here a Lin shard
+	# alone has 0.3 s of overhead per replicate and a Lin + OLS pack 0.4 s: a = 0.2, b = 0.1.
 	bern = "DesignFixedBernoulli"
 	pk = "InferenceContinLin;InferenceContinOLS"
-	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", only = pk, design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5),
-		list(cls = "InferenceContinOLS", only = pk, design = bern, n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5)), ledger_spr = 1.4)
+	cp = amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:50", reps_stat = 50L, fit = 0.5, spr = 0.8),
+		list(cls = "InferenceContinLin", only = pk, design = bern, n = 50L, reps_done = "51:100", reps_stat = 50L, fit = 0.5, spr = 1.4),
+		list(cls = "InferenceContinOLS", only = pk, design = bern, n = 50L, reps_done = "51:100", reps_stat = 50L, fit = 0.5, no_ledger = TRUE)))
 	w1 = amend_e_plan(cp, "--pack-minutes", 0, null_reps = 150)
-	expect_equal(find_shard(w1, bern, 50L, "InferenceContinLin", 101)$secs_per_rep, 0.7)
+	expect_equal(find_shard(w1, bern, 50L, "InferenceContinLin", 101)$secs_per_rep, 0.8)     # 0.5 + 0.2 + 0.1
 	w2 = amend_e_plan(cp, null_reps = 150)
 	s = find_shard(w2, bern, 50L, "InferenceContinLin", 101)
 	expect_equal(s$only, "InferenceContinLin,InferenceContinOLS")
-	expect_equal(s$secs_per_rep, 1.4)
+	expect_equal(s$secs_per_rep, 1.4)                                                       # 0.5 + 0.5 + 0.2 + 2 x 0.1
+	# A cell whose shards all have one size takes b from a wider level (same design and n, any response type: none here, so
+	# the same n: this cell's own fit is the only one, b = 0.1) and a from its own median: iBCRD solo shards, residual 1.0.
+	cp2 = amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:50", reps_stat = 50L, fit = 0.5, spr = 0.8),
+		list(cls = "InferenceContinLin", only = pk, design = bern, n = 50L, reps_done = "51:100", reps_stat = 50L, fit = 0.5, spr = 1.4),
+		list(cls = "InferenceContinOLS", only = pk, design = bern, n = 50L, reps_done = "51:100", reps_stat = 50L, fit = 0.5, no_ledger = TRUE),
+		list(cls = "InferenceContinLin", design = "DesignFixediBCRD", n = 50L, reps_done = "1:100", reps_stat = 100L, fit = 0.5, spr = 1.5)))
+	w3 = amend_e_plan(cp2, "--pack-minutes", 0, null_reps = 150)
+	expect_equal(find_shard(w3, "DesignFixediBCRD", 50L, "InferenceContinLin", 101)$secs_per_rep, 1.5)   # 0.5 + (1.0 - 0.1) + 0.1
+})
+
+test_that("a confirmation unit is priced from its own confirmation replicates once it has them", {
+	# campaign 2026-11-15: IncidLogBinomial n = 1000 confirmation replicates cost 0.95-1.06 s against 0.46-0.49 s in screening.
+	bern = "DesignFixedBernoulli"; ibcrd = "DesignFixediBCRD"
+	block = lapply(list(c(bern, 50L), c(bern, 200L), c(ibcrd, 50L), c(ibcrd, 200L)), function(dn)
+		list(cls = "InferenceContinLin", design = dn[[1L]], n = as.integer(dn[[2L]]), reps_done = "1:100", reps_stat = 100L, fit = 0.5))
+	conf = list(cls = "InferenceContinLin", design = bern, n = 200L, reps_done = "10001:10030", reps_stat = 30L, fit = 2, stage = "confirm", no_ledger = TRUE)
+	flag = function(cp) utils::write.csv(data.frame(response_type = "continuous", design = bern, prob_T = 0.5, inf_class = "InferenceContinLin",
+		formula = "~.", n_nominal = 200L, effect_label = "null", inf_procedure = "wald", metric = "size"),
+		{ dir.create(file.path(cp$cdir, "summary"), showWarnings = FALSE); file.path(cp$cdir, "summary", "confirm_cells.csv") }, row.names = FALSE)
+	cp0 = amend_e_campaign(block); flag(cp0)
+	c0 = amend_e_plan(cp0, "--confirm-reps", 200)
+	c0 = c0[grepl("^confirm:", c0$group), ]
+	expect_equal(nrow(c0), 1L)
+	expect_equal(c0$secs_per_rep, 0.5)        # no confirmation replicates yet: the screening unit's cost
+	cp1 = amend_e_campaign(c(block, list(conf))); flag(cp1)
+	c1 = amend_e_plan(cp1, "--confirm-reps", 200)
+	c1 = c1[grepl("^confirm:", c1$group), ]
+	expect_equal(c1$secs_per_rep, 2)          # its own confirmation replicates (30 >= --min-measured-reps)
 })
 
 test_that("a default roster cost borrows the class's cost on other designs and is never scaled by the measured / roster correction", {

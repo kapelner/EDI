@@ -311,6 +311,72 @@ InferenceExtExchangeableResamplingUnits = list(
 			private$cached_values[[cache_name]][[cache_key]] = value
 			invisible(value)
 		},
+		# Resolves a list-valued size spec (b = list(...) / m = list(...)) to one
+		# size via the family's minimum-volatility selector. alpha is the CI
+		# level for CI targets; NULL (p-value targets) uses size$alpha, default
+		# 0.05. Returns the selected size, which may be NA when selection fails;
+		# the caller records the failure. Shared by the generic setup below and
+		# the risk-ratio log-scale pivots (v1.0.6-TODO-196).
+		select_resampling_size_from_spec = function(family, size, B, alpha = NULL, resampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE){
+			m_out_of_n = identical(family, "m_out_of_n")
+			selector = if (m_out_of_n) self$select_optimal_m_out_of_n_bootstrap else self$select_optimal_b_subsampling
+			selection = do.call(selector, c(
+				list(
+					B = as.integer(size$B %||% min(as.integer(B), 251L)),
+					alpha = if (!is.null(alpha)) alpha else as.numeric(size$alpha %||% 0.05)
+				),
+				stats::setNames(list(resampling_type), if (m_out_of_n) "bootstrap_type" else "subsampling_type"),
+				list(scaling = scaling, show_progress = show_progress),
+				size[setdiff(names(size), c("method", "B", "alpha"))]
+			))
+			selection[[if (m_out_of_n) "m_optimal" else "b_optimal"]]
+		},
+		# Shared setup for the centered-pivot p-value and CI of the m-out-of-n
+		# bootstrap (family "m_out_of_n") and PRW subsampling (family
+		# "subsampling"), target "pval" or "ci" (v1.0.6-TODO-194). The four
+		# callers held four copies of this, and the subsampling copies had lost
+		# the setup deadline check. Runs the deadline check, the optional
+		# minimum-volatility size selection (size given as a list), size
+		# resolution, the family's centered pivot and the usable-replicate count.
+		# Returns list(pivot = <pivot>) on success, or list(value = <NA p-value
+		# or NA CI>) with the failure already recorded, exactly as each caller
+		# recorded it before.
+		resampling_centered_pivot_for_inference = function(family, target, B, size, alpha = NULL, show_progress = TRUE, min_number_usable_samples = 5L, resampling_type = NULL, scaling = "sqrt_n"){
+			m_out_of_n = identical(family, "m_out_of_n")
+			is_ci = identical(target, "ci")
+			private$check_bootstrap_replicate_deadline(paste(
+				if (m_out_of_n) "m-out-of-n bootstrap" else "subsampling",
+				if (is_ci) "CI setup" else "p-value setup"
+			))
+			fail = function(reason, procedure = NULL, harden_only = TRUE){
+				record = !harden_only || isTRUE(private$harden)
+				if (is_ci) {
+					if (record) return(list(value = private$missing_bootstrap_ci(alpha, reason, stage = "estimate", procedure = procedure)))
+					return(list(value = c(NA_real_, NA_real_)))
+				}
+				if (record) edi_record_procedure_failure(self, private, reason, "estimate", procedure = procedure)
+				list(value = NA_real_)
+			}
+			if (is.list(size)) {
+				size = private$select_resampling_size_from_spec(family, size, B = B, alpha = if (is_ci) alpha else NULL,
+					resampling_type = resampling_type, scaling = scaling, show_progress = show_progress)
+				if (!is.numeric(size) || length(size) != 1L || !is.finite(size)) {
+					return(fail(if (m_out_of_n) "m_out_of_n_m_selection_failed" else "subsampling_b_selection_failed", harden_only = FALSE))
+				}
+			}
+			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
+			size = private$resolve_resampling_size(size, unit_info$n_units, if (m_out_of_n) "m" else "b")
+			pivot = if (m_out_of_n) {
+				private$m_out_of_n_bootstrap_centered_pivot(B = B, m = size, unit_info = unit_info, show_progress = show_progress, bootstrap_type = resampling_type, scaling = scaling)
+			} else {
+				private$subsampling_centered_pivot(B = B, b = size, unit_info = unit_info, show_progress = show_progress, subsampling_type = resampling_type, scaling = scaling)
+			}
+			if (!isTRUE(pivot$ok)) return(fail(pivot$reason, procedure = family))
+			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
+				return(fail(paste0(family, "_too_few_finite_estimates")))
+			}
+			list(pivot = pivot)
+		},
 		resampling_ci_from_centered_distribution = function(centered_scaled, alpha, est, n_units, scaling = "sqrt_n"){
 			centered_scaled = centered_scaled[is.finite(centered_scaled)]
 			if (!length(centered_scaled)) return(c(NA_real_, NA_real_))

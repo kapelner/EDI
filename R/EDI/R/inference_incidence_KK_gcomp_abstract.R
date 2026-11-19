@@ -181,6 +181,10 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			type_resolved = tolower(type %||% "percentile")
+			# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
+			if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
+				return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+			}
 			if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
 				return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 			}
@@ -355,10 +359,26 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		# ratio estimand whose null is 1 and whose raw sampling distribution is
 		# right-skewed, especially so at the reduced effective sample sizes
 		# (b/m ~ n^0.7) subsampling and m-out-of-n draw at.
-		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress){
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL){
+			# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-196).
+			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 			if (!is.finite(est) || est <= 0) {
 				return(list(ok = FALSE, reason = "resampling_original_estimate_unavailable"))
+			}
+			# A list-valued b / m goes through the same minimum-volatility selector as the
+			# generic paths (v1.0.6-TODO-196); a failed selection is recorded even unhardened.
+			if (is.list(size)) {
+				family = if (identical(size_arg_name, "b")) "subsampling" else "m_out_of_n"
+				size = private$select_resampling_size_from_spec(family, size, B = B, alpha = alpha,
+					resampling_type = resampling_type, scaling = "sqrt_n", show_progress = show_progress)
+				if (!is.numeric(size) || length(size) != 1L || !is.finite(size)) {
+					reason = if (identical(family, "subsampling")) "subsampling_b_selection_failed" else "m_out_of_n_m_selection_failed"
+					if (!isTRUE(private$harden)) {
+						if (!is.null(alpha)) private$missing_bootstrap_ci(alpha, reason, stage = "estimate")
+						else edi_record_procedure_failure(self, private, reason, "estimate")
+					}
+					return(list(ok = FALSE, reason = reason))
+				}
 			}
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
 			size = private$resolve_resampling_size(size, unit_info$n_units, size_arg_name)
@@ -399,7 +419,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
+			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress, alpha = alpha)
 			if (!isTRUE(pivot$ok)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
 				return(ci)
@@ -434,7 +454,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
+			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress, alpha = alpha)
 			if (!isTRUE(pivot$ok)) {
 				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
 				return(ci)
@@ -915,6 +935,10 @@ incidence_kk_gcomp_generic_alias_overrides = list(
 	},
 	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 		type_resolved = tolower(type %||% "percentile")
+		# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
+		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
+			return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+		}
 		if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
 			return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 		}

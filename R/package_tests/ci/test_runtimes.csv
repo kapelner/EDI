@@ -1645,6 +1645,7 @@ R/EDI/tests/testthat/test-weibull-marginal.R,coverage,1,measured_with_30_percent
 R/EDI/tests/testthat/test-weibull-unscaled-covariates-fit-converges.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-wilcox-regr-bootstrap-fast-path.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-count-rank-deficient-draw-refits.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-poisson-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-log1m.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-inflated-smart-cold-start-and-risk-diff-nonestimable-reason.R,coverage,30,bootstrap

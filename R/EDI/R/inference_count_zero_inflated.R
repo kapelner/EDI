@@ -55,6 +55,18 @@
 #' test, since the marginal quantity is a functional of the fitted
 #' parameters, not itself a likelihood).
 #'
+#' \strong{Omitted covariates.} When covariates that drive the outcome are
+#' left out of the formula (for example \code{~ 1}), the Poisson count part is
+#' overdispersed (in the calibration study's design, variance about twice the
+#' mean), so the model-based standard error is too small. The score, gradient
+#' and likelihood-ratio tests then reject a true null about 16-17\% of the time
+#' at a nominal 5\% level, at n = 50, 200 and 1000 alike. This is model
+#' misspecification, so it does not go away with more data. The Wald test,
+#' which uses a sandwich covariance, stays calibrated in this setting: prefer
+#' it, adjust for the prognostic covariates, or use
+#' \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}},
+#' which models the overdispersion.
+#'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
 #'   1-14, \doi{10.2307/1269547}, for the zero-inflated count-model

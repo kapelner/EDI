@@ -182,53 +182,7 @@ StandardModelCacheSource = list(
 			p_value
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			has_cached_se = !is.null(private$cached_values$s_beta_hat_T) &&
-				length(private$cached_values$s_beta_hat_T) == 1L &&
-				isTRUE(is.finite(private$cached_values$s_beta_hat_T))
-			if (isTRUE(!is.null(private$cached_values$beta_hat_T) && (estimate_only || has_cached_se))) return(invisible(NULL))
-			
-			# Abstract function implemented by daughter classes.
-			# Should return a list with 'b' (coeff vector), 'params' (full vector if diff from b),
-			# 'fisher_information' (Hessian matrix), and either 'ssq_b_2' or 'ssq_b_j'
-			# for the treatment-effect variance.
-			model_output = private$generate_mod(estimate_only = estimate_only) 
-			
-			private$cached_mod = model_output
-			if (is.null(model_output)) {
-				# A class may name a more specific reason for its NULL fit.
-				private$cache_nonestimable_estimate(private$cached_values$generate_mod_nonestimable_reason %||% "model_fit_unavailable")
-				private$cached_values$df = NA_real_
-				return(invisible(NULL))
-			}
-			beta_hat_T = as.numeric(model_output$beta_hat_T %||% model_output$b[2])[1L]
-			if (!is.finite(beta_hat_T)) {
-				private$cache_nonestimable_estimate("model_treatment_estimate_unavailable")
-				private$cached_values$df = NA_real_
-				return(invisible(NULL))
-			}
-			private$cached_values$beta_hat_T = beta_hat_T
-			
-			if (!is.null(model_output$b)) {
-				private$set_fit_warm_start(
-					as.numeric(model_output$params %||% model_output$b),
-					type = if (!is.null(model_output$params)) "params" else "beta",
-					fisher = model_output$fisher_information %||% model_output$XtWX,
-					weights = model_output$w %||% model_output$mu,
-					force_pd = TRUE
-				)
-			}
-			if (estimate_only) return(invisible(NULL))
-			ssq = model_output$ssq_b_2 %||% model_output$ssq_b_j
-			ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-			private$cached_values$df = model_output$df %||% NA_real_
-			if (is.finite(ssq) && ssq > 0) {
-				private$cached_values$s_beta_hat_T = sqrt(ssq)
-				private$clear_nonestimable_state()
-			} else {
-				private$cache_nonestimable_se("model_standard_error_unavailable")
-			}
+			standard_model_cache_shared(private, estimate_only)
 		},
 		# Helper for subclasses to extract the policy-driven warm start arguments for C++ calls.
 			get_backend_warm_start_args = function(expected_length, expected_fisher_dim = expected_length) {
@@ -269,3 +223,60 @@ InferenceAsympLikStdModCacheNoParamBootstrap = R6::R6Class("InferenceAsympLikStd
 		is_a_asymp_lik_std_mod_cache_no_param_bootstrap = function() TRUE
 	))
 )
+
+# The shared() model-cache state machine of StandardModelCacheSource, also used
+# by InferenceIncidRiskDiff, which cannot compose the StandardModelCache
+# component (v1.0.6-TODO-193, code-duplication audit dup-fb4cd2ec3279). Fits
+# private$generate_mod() once, caches the estimate / SE / df and the warm start,
+# and records the non-estimable reason.
+#' @keywords internal
+#' @noRd
+standard_model_cache_shared = function(private, estimate_only = FALSE){
+	if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+	if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+	has_cached_se = !is.null(private$cached_values$s_beta_hat_T) &&
+		length(private$cached_values$s_beta_hat_T) == 1L &&
+		isTRUE(is.finite(private$cached_values$s_beta_hat_T))
+	if (isTRUE(!is.null(private$cached_values$beta_hat_T) && (estimate_only || has_cached_se))) return(invisible(NULL))
+	
+	# Abstract function implemented by daughter classes.
+	# Should return a list with 'b' (coeff vector), 'params' (full vector if diff from b),
+	# 'fisher_information' (Hessian matrix), and either 'ssq_b_2' or 'ssq_b_j'
+	# for the treatment-effect variance.
+	model_output = private$generate_mod(estimate_only = estimate_only) 
+	
+	private$cached_mod = model_output
+	if (is.null(model_output)) {
+		# A class may name a more specific reason for its NULL fit.
+		private$cache_nonestimable_estimate(private$cached_values$generate_mod_nonestimable_reason %||% "model_fit_unavailable")
+		private$cached_values$df = NA_real_
+		return(invisible(NULL))
+	}
+	beta_hat_T = as.numeric(model_output$beta_hat_T %||% model_output$b[2])[1L]
+	if (!is.finite(beta_hat_T)) {
+		private$cache_nonestimable_estimate("model_treatment_estimate_unavailable")
+		private$cached_values$df = NA_real_
+		return(invisible(NULL))
+	}
+	private$cached_values$beta_hat_T = beta_hat_T
+	
+	if (!is.null(model_output$b)) {
+		private$set_fit_warm_start(
+			as.numeric(model_output$params %||% model_output$b),
+			type = if (!is.null(model_output$params)) "params" else "beta",
+			fisher = model_output$fisher_information %||% model_output$XtWX,
+			weights = model_output$w %||% model_output$mu,
+			force_pd = TRUE
+		)
+	}
+	if (estimate_only) return(invisible(NULL))
+	ssq = model_output$ssq_b_2 %||% model_output$ssq_b_j
+	ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+	private$cached_values$df = model_output$df %||% NA_real_
+	if (is.finite(ssq) && ssq > 0) {
+		private$cached_values$s_beta_hat_T = sqrt(ssq)
+		private$clear_nonestimable_state()
+	} else {
+		private$cache_nonestimable_se("model_standard_error_unavailable")
+	}
+}

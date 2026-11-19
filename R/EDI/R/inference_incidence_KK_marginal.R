@@ -417,6 +417,21 @@ NULL
 #' standardized risk is zero (undefined ratio), the estimate is marked
 #' non-estimable via \code{is_nonestimable()}.
 #'
+#' \strong{Bayesian-bootstrap intervals.} The \code{type = "studentized"}
+#' (\code{"bootstrap-t"}) interval of
+#' \code{$compute_bayesian_bootstrap_confidence_interval()} is studentized on the
+#' raw risk-ratio scale and undercovers in small samples: in a simulation with a
+#' logistic outcome model, two covariates and a true risk ratio of about 1.4, a nominal
+#' 95\% interval covered about 89\% of the time at \eqn{n = 60} and about 93\% at
+#' \eqn{n = 200}. Large replicate estimates come with large replicate standard
+#' errors, which compresses the upper tail of the pivot, so the interval misses
+#' mostly on one side (the true ratio falls below the lower bound). For small
+#' samples prefer \code{type = "symmetric-percentile-t"}, a symmetric studentized
+#' interval built on the log risk-ratio scale and back-transformed (about 93\% in
+#' the same simulation), or the log-scale \code{type = "wald"} or
+#' \code{type = "basic"} intervals or \code{type = "percentile"} (about 94\%).
+#' \code{"symmetric-percentile-t"} is available only for the risk-ratio classes.
+#'
 #' \strong{Separation.} When the logistic working model's fitted probabilities
 #' are numerically 0 or 1 (the data look (quasi-)completely separated) the
 #' working-model MLE does not exist and the fitted risks sit where the fitter
@@ -456,7 +471,9 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 		build_design_matrix = function(){
 			private$create_design_matrix()
 		},
-		get_estimand_type = function() "RR"
+		get_estimand_type = function() "RR",
+		# v1.0.6-TODO-168 (a): adds the log(RR) symmetric studentized interval.
+		bayesian_bootstrap_ci_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric-percentile-t")
 	),
 	overrides = list(
 		public = c(
@@ -484,7 +501,8 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
 			"compute_rr_resampling_pivot",
 			"compute_rr_subsampling_two_sided_pval", "compute_rr_subsampling_confidence_interval",
-			"compute_rr_m_out_of_n_bootstrap_two_sided_pval", "compute_rr_m_out_of_n_bootstrap_confidence_interval"
+			"compute_rr_m_out_of_n_bootstrap_two_sided_pval", "compute_rr_m_out_of_n_bootstrap_confidence_interval",
+			"bayesian_bootstrap_ci_types"
 		)
 	),
 	metadata = list(likelihood_tier = "none")

@@ -66,6 +66,10 @@ incidence_gcomp_generic_alias_overrides = list(
 	# Documented via @R6method (see gcomp-bayesian-bootstrap-confidence-interval template).
 	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 		type_resolved = tolower(type %||% "percentile")
+		# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
+		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
+			return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+		}
 		if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
 			return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 		}
@@ -337,6 +341,22 @@ NULL
 #' \code{likelihood_tier = "none"} means that this class does not provide
 #' likelihood-ratio or score tests; it does not preclude its Wald inference.
 #'
+#' \strong{Bayesian-bootstrap intervals.} The \code{type = "studentized"}
+#' (\code{"bootstrap-t"}) interval of
+#' \code{$compute_bayesian_bootstrap_confidence_interval()} is studentized on the
+#' raw risk-ratio scale and undercovers in small samples: in a simulation with a
+#' logistic outcome model, two covariates and a true risk ratio of about 1.4, a nominal
+#' 95\% interval covered about 89\% of the time at \eqn{n = 60} and about 93\% at
+#' \eqn{n = 200}. Large replicate estimates come with large replicate standard
+#' errors, which compresses the upper tail of the pivot, so the interval misses
+#' mostly on one side (the true ratio falls below the lower bound). For small
+#' samples prefer \code{type = "symmetric-percentile-t"}, a symmetric studentized
+#' interval built on the log risk-ratio scale and back-transformed (about 92\%
+#' in the same simulation, against 90\% for \code{"studentized"}), or the
+#' log-scale \code{type = "wald"} or \code{type = "basic"} intervals or
+#' \code{type = "percentile"}.
+#' \code{"symmetric-percentile-t"} is available only for the risk-ratio classes.
+#'
 #' \strong{Separation.} When the logistic working model's fitted probabilities
 #' are numerically 0 or 1 (the data look (quasi-)completely separated) the
 #' working-model MLE does not exist and the fitted risks sit where the fitter
@@ -377,9 +397,14 @@ InferenceIncidGCompRiskRatio = define_inference_class(
 		build_design_matrix = function(){
 			private$create_design_matrix()
 		},
-		get_estimand_type = function() "RR"
+		get_estimand_type = function() "RR",
+		# v1.0.6-TODO-168 (a): adds the log(RR) symmetric studentized interval.
+		bayesian_bootstrap_ci_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric-percentile-t")
 	)),
-	overrides = incidence_gcomp_overrides,
+	overrides = list(
+		public = incidence_gcomp_overrides$public,
+		private = c(incidence_gcomp_overrides$private, "bayesian_bootstrap_ci_types")
+	),
 	metadata = list(likelihood_tier = "none")
 )
 

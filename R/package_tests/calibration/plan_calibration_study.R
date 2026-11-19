@@ -219,11 +219,15 @@ dead_of <- function(k) dead_n[[k]] %||% 0L
 # deadline are not in it) and the next wave's shards refine it. A class needs --min-measured-reps replicates to count.
 # Runner setup is not in these numbers (the shard's elapsed time starts after it). What a measured class cost does not include
 # is the work a pack shares (data, design, assignment): the ledger's per-shard secs_per_rep minus the sum of the shard's
-# measured class costs is that overhead. It grows with the pack (about 0.1 s per class at n = 50 and 200, campaign 2026-11-14),
-# so it is taken per class: (shard secs_per_rep - its class costs) / its number of classes, the median per (response type,
-# design, n), else per (design, n), else per (response type, n), else per n, else 0, and charged once per class of a pack.
-# (Charged once per pack, a median over packs of ~10 classes made a one-class confirmation shard ~6x too expensive.)
-# Only shards that completed --min-measured-reps replicates count, and the median is taken before flooring at 0: a shard's
+# measured class costs is that overhead, modelled as a + b * k for a shard of k classes: a per shard (the design draw and data,
+# paid once per replicate whatever the pack), b per class. Both matter: charged once per pack (a alone, the median over packs of
+# ~10 classes), a one-class confirmation shard came out ~6x too expensive (campaign 2026-11-14); charged per class (b alone), a
+# one-class confirmation shard on a costly sequential design came out ~4x too cheap (campaign 2026-11-15, waves 13-14:
+# IncidLogBinomial on SeqOneByOneRandomBlockSize@prob_T=0.2, n = 1000, planned ~1.3 s per replicate, ran 5.5).
+# Fit per (response type, design, n), else (design, n), else (response type, n), else n: the median residual at each k, then a
+# weighted least-squares line through those medians (weights = shards), a and b floored at 0. Where the cell's shards all have
+# one k, b comes from the nearest level of the chain that has several, and a is the cell's median of (residual - b * k).
+# Only shards that completed --min-measured-reps replicates count, and medians are taken before flooring at 0: a shard's
 # overhead is a residual, so a few-replicate shard of a slow class (CountKKGLMM, 4 replicates at ~1,500 s each) puts the
 # whole sampling noise of its time (+-500 s) into it. Floored per shard, that noise only pushed the median up: 73 s per class
 # on count KK21 n = 1000 (true 4-7 s), so CountHurdlePoisson (3.5 s) was cut into 77-replicate shards (campaign 2026-11-15,
@@ -254,11 +258,12 @@ unit_cost <- function(u) {
 	max(0.05, u$secs_n50) * cost_curve(u, u$n) / cost_curve(u, 50L)
 }
 
-read_measured <- function(dir) {
+read_measured <- function(dir, stage = NULL) {
 	p <- file.path(dir, "stats", "tests.csv.gz")
 	if (!nzchar(dir) || !file.exists(p) || file.size(p) < 30L) return(NULL)
 	t <- tryCatch(cal_stats_prepare(cal_stats_read(p)), error = function(e) NULL)
 	if (is.null(t) || !nrow(t) || !all(c("fit_secs", "reps", "inf_class", "inf_procedure") %in% names(t))) return(NULL)
+	if (!is.null(stage)) { t <- t[t$stage == stage, , drop = FALSE]; if (!nrow(t)) return(NULL) }
 	t$design_label <- cal_plan_design_label(t$design, t$prob_T)
 	rk <- paste(t$response_type, t$design_label, t$n_nominal, t$inf_class, t$formula, t$inf_procedure, sep = "\r")
 	f <- factor(rk, levels = unique(rk))
@@ -282,6 +287,10 @@ read_measured <- function(dir) {
 }
 meas <- read_measured(campaign_dir)
 meas_cost <- if (is.null(meas)) numeric() else stats::setNames(meas$cost, meas$key)
+# Confirmation replicates alone: they can cost more than screening ones (IncidLogBinomial n = 1000: 0.95-1.06 s against
+# 0.46-0.49 s), so a confirmation unit is priced from its own once it has one.
+meas_conf <- read_measured(campaign_dir, "confirm")
+meas_conf_cost <- if (is.null(meas_conf)) numeric() else stats::setNames(meas_conf$cost, meas_conf$key)
 mkey <- function(rt, d, n, cls) cal_plan_key(rt, d, n, "", cls)
 
 # Resolve the cost of the rows of df (response_type, design, n, inf_class, family, secs_n50). Returns list(cost, source).
@@ -346,7 +355,7 @@ if ("--verbose" %in% args) message("calibration planner: unit costs from ", past
 
 # Per-pack overhead (see above) from the ledger.
 overhead_fn <- function() {
-	none <- function(rt, d, n) 0
+	none <- function(rt, d, n) c(a = 0, b = 0)
 	if (is.null(ledger) || is.null(meas)) return(none)
 	l <- ledger[is.finite(ledger$secs_per_rep) & ledger$n_done >= min_measured_reps & !is.na(ledger$only) & nzchar(ledger$only), , drop = FALSE]
 	rows <- list()
@@ -355,14 +364,39 @@ overhead_fn <- function() {
 		m <- meas_cost[mkey(l$response_type[[i]], l$design[[i]], l$n[[i]], cl)]
 		if (!length(m) || anyNA(m)) next
 		rows[[length(rows) + 1L]] <- data.frame(rt = l$response_type[[i]], d = l$design[[i]], n = as.integer(l$n[[i]]),
-			ov = (l$secs_per_rep[[i]] - sum(m)) / length(cl), stringsAsFactors = FALSE)
+			k = length(cl), r = l$secs_per_rep[[i]] - sum(m), stringsAsFactors = FALSE)
 	}
 	if (!length(rows)) return(none)
 	o <- do.call(rbind, rows)
+	# a + b * k through the median residual at each k (weights = shards), or NULL when the shards have a single k.
+	fit_ab <- function(sel) {
+		med <- tapply(o$r[sel], o$k[sel], stats::median)
+		if (length(med) < 2L) return(NULL)
+		kk <- as.numeric(names(med)); w <- as.numeric(table(o$k[sel])[names(med)])
+		f <- stats::lm.wfit(cbind(1, kk), as.numeric(med), w)$coefficients
+		a <- f[[1L]]; b <- f[[2L]]
+		if (b < 0) { b <- 0; a <- stats::median(o$r[sel]) }
+		if (a < 0) { a <- 0; b <- max(0, stats::median(o$r[sel] / o$k[sel])) }
+		c(a = max(0, a), b = b)
+	}
+	cache <- new.env(parent = emptyenv())
 	function(rt, d, n) {
-		for (sel in list(o$rt == rt & o$d == d & o$n == n, o$d == d & o$n == n, o$rt == rt & o$n == n, o$n == n))
-			if (any(sel)) return(max(0, stats::median(o$ov[sel])))
-		0
+		ck <- paste(rt, d, n, sep = "|")
+		if (!is.null(hit <- cache[[ck]])) return(hit)
+		chain <- list(o$rt == rt & o$d == d & o$n == n, o$d == d & o$n == n, o$rt == rt & o$n == n, o$n == n)
+		base <- Position(any, chain)
+		out <- c(a = 0, b = 0)
+		if (!is.na(base)) {
+			sel <- chain[[base]]
+			out <- fit_ab(sel)
+			if (is.null(out)) {
+				b <- 0
+				for (s2 in chain[-seq_len(base)]) if (any(s2) && !is.null(ab <- fit_ab(s2))) { b <- ab[["b"]]; break }
+				out <- c(a = max(0, stats::median(o$r[sel] - b * o$k[sel])), b = b)
+			}
+		}
+		assign(ck, out, envir = cache)
+		out
 	}
 }
 
@@ -381,7 +415,7 @@ cls_short <- function(x) sub("^Inference", "", x)
 # shard carries ONE replicate set, so only classes whose missing sets contain that set can share it (a class never repeats a
 # replicate it has done: the statistics add up).
 #  1. Classes with the same missing set, in priority order, are packed next-fit into bins whose whole work (replicates x
-#     (summed class costs + the cell's overhead per class)) fits --pack-minutes on --cores cores (one class per bin when
+#     (summed class costs + the cell's overhead a + b x classes)) fits --pack-minutes on --cores cores (one class per bin when
 #     --pack-minutes is 0). A unit that has already lost a shard to a death or timeout always runs alone, and is never
 #     folded; so does a new class's probe (plan_unit_set()).
 #  2. Fold (Amendment E): a bin whose predicted time is under --min-shard-minutes (typically the leftovers of a shard that hit
@@ -390,13 +424,13 @@ cls_short <- function(x) sub("^Inference", "", x)
 #     other replicates are planned as usual. Without such a class the bin stays small.
 #  3. A bin's replicates are cut into the fewest chunks of about --target-minutes, of equal size (no tiny tail chunk).
 # The classes of a pack share every replicate's data and design, so a shard's cost is the sum of its classes' costs plus the
-# overhead per class times their number.
+# overhead a + b x their number.
 shards <- list()
 overhead_of <- overhead_fn()
 plan_cell <- function(u, m, confirm) {
 	rt <- u$response_type[[1L]]; dd <- u$design[[1L]]; nn <- u$n[[1L]]; ef <- u$effect[[1L]]
-	ov <- overhead_of(rt, dd, nn)   # per class of the pack
-	bin_cost <- function(b) ov * length(b) + sum(u$cost[b])
+	ov <- overhead_of(rt, dd, nn)   # a per shard + b per class
+	bin_cost <- function(b) ov[["a"]] + ov[["b"]] * length(b) + sum(u$cost[b])
 	emit <- function(b, reps) {
 		cost <- bin_cost(b)
 		per <- max(cores, floor(target_secs * cores / cost))
@@ -530,11 +564,14 @@ if (nzchar(campaign_dir) && file.exists(confirm_path) && file.size(confirm_path)
 				reps = cal_plan_confirm_reps(g$design_label, g$inf_class, confirm_reps, slow_confirm_reps),
 				rep_from = CONFIRM_REP0 + 1L, n_tests = 0L, secs_n50 = NA_real_, block = g$block, stringsAsFactors = FALSE)
 			confirm_units$key <- cal_plan_key(confirm_units$response_type, confirm_units$design, confirm_units$n, confirm_units$effect, confirm_units$inf_class)
-			# Cost of a class on a design is that of the same class's screening unit (the confirmation reuses it).
+			# Cost of a class on a design: its own confirmation replicates' measured cost once it has --min-measured-reps of them,
+			# else that of the same class's screening unit.
 			ci <- match(confirm_units$key, units$key)
 			confirm_units$secs_n50 <- 1
 			confirm_units$secs_source <- "previous"
 			confirm_units$cost <- ifelse(is.na(ci), resolve_cost(confirm_units)$cost, units$cost[ci])
+			cm <- meas_conf_cost[mkey(confirm_units$response_type, confirm_units$design, confirm_units$n, confirm_units$inf_class)]
+			confirm_units$cost[!is.na(cm)] <- cm[!is.na(cm)]
 			o <- order(match(confirm_units$effect, CAL_PLAN_EFFECTS), cal_rt_rank(confirm_units$response_type), confirm_units$inf_class,
 				units$design_rank[match(confirm_units$design, units$design)], confirm_units$design, confirm_units$n)
 			confirm_units <- confirm_units[o, ]

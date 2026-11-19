@@ -26,6 +26,7 @@
 #include <RcppEigen.h>
 #endif
 #include "internal_fn_decls.h"
+#include "_glmm_engine.h"
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -39,48 +40,14 @@ using namespace Rcpp;
 
 namespace {
 
-struct GHRuleP {
-	Eigen::VectorXd nodes;
-	Eigen::VectorXd log_norm_weights;
-};
-
-GHRuleP gauss_hermite_rule_poisson(int n) {
-	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(n, n);
-	for (int i = 0; i < n - 1; ++i) {
-		const double v = std::sqrt((i + 1.0) / 2.0);
-		J(i, i + 1) = v;
-		J(i + 1, i) = v;
-	}
-	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(J);
-	GHRuleP rule;
-	rule.nodes = es.eigenvalues();
-	rule.log_norm_weights = (std::sqrt(M_PI) * es.eigenvectors().row(0).array().square()).log()
-		                    - 0.5 * std::log(M_PI);
-	return rule;
-}
+// The Gauss-Hermite rule and the soft log_sigma barrier are the shared
+// glmm:: versions from _glmm_engine.h (v1.0.6-TODO-193).
+using GHRuleP = glmm::GHRule;
 
 inline double log_sum_exp_p(const Eigen::VectorXd& x) {
 	const double m = x.maxCoeff();
 	if (!std::isfinite(m)) return m;
 	return m + std::log((x.array() - m).exp().sum());
-}
-
-inline double soft_barrier(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return scale * d * d;
-}
-
-inline double soft_barrier_grad(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return 2.0 * scale * d * (log_sigma > 0 ? 1.0 : -1.0);
-}
-
-inline double soft_barrier_hessian(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return 2.0 * scale;
 }
 
 inline Eigen::ArrayXd clamp_eta_pg(const Eigen::ArrayXd& eta) {
@@ -103,7 +70,7 @@ struct PoissonGLMMData {
 		const std::vector<int>& group_id,
 		int n_gh,
 		const Eigen::VectorXd* row_weights = nullptr
-	) : n(X.rows()), p(X.cols()), gh(gauss_hermite_rule_poisson(n_gh)) {
+	) : n(X.rows()), p(X.cols()), gh(glmm::gauss_hermite_rule(n_gh)) {
 
 		std::vector<int> ord(n);
 		std::iota(ord.begin(), ord.end(), 0);
@@ -206,7 +173,7 @@ public:
 			}
 		}
 
-		double total_nll = soft_barrier(log_sigma);
+		double total_nll = glmm::soft_barrier(log_sigma);
 		for (int gi = 0; gi < dat.G; ++gi) {
 			m_ll_g_vec[gi] = log_sum_exp_p(m_log_terms_mat.row(gi));
 			if (!std::isfinite(m_ll_g_vec[gi])) { grad.setZero(m_total); return 1e100; }
@@ -267,7 +234,7 @@ public:
 		for (int gi = 0; gi < dat.G; ++gi) m_ll_g_vec[gi] = log_sum_exp_p(m_log_terms_mat.row(gi));
 
 		Eigen::MatrixXd H = Eigen::MatrixXd::Zero(m_total, m_total);
-		H(dat.p, dat.p) = soft_barrier_hessian(log_sigma);
+		H(dat.p, dat.p) = glmm::soft_barrier_hessian(log_sigma);
 
 		m_E_Hik_sum.setZero();
 		m_E_GiGiT_sum.setZero();
@@ -480,7 +447,7 @@ edi::ResultMap fast_poisson_glmm_internal(
 			.set("neg_loglik", std::numeric_limits<double>::quiet_NaN());
 	}
 
-	const double pen = soft_barrier(par[total - 1]);
+	const double pen = glmm::soft_barrier(par[total - 1]);
 	const double true_neg_ll = neg_ll - pen;
 	if (estimate_only) {
 		return edi::ResultMap()
@@ -497,7 +464,7 @@ edi::ResultMap fast_poisson_glmm_internal(
 	}
 
 	Eigen::MatrixXd information = obj.hessian(par);
-	information(total - 1, total - 1) -= soft_barrier_hessian(par[total - 1]);
+	information(total - 1, total - 1) -= glmm::soft_barrier_hessian(par[total - 1]);
 
 	double ssq_b_T = std::numeric_limits<double>::quiet_NaN();
 	Eigen::MatrixXd vcov = Eigen::MatrixXd::Constant(total, total, std::numeric_limits<double>::quiet_NaN());

@@ -32,7 +32,7 @@ name: calibration-study
 # neighbouring cheap classes of one cell.
 on:
   schedule:
-    - cron: '7 3 1 * *'    # 1st of every month, 03:07 UTC: start a campaign
+    - cron: '7 23 18 * *'  # 18th of every month, 23:07 UTC (19th, 01:07 Jerusalem winter time): start a campaign. Moved from the 1st (owner, 2026-11-19) so campaign 2026-11-15-e36c7710 (ETA ~Dec 1) finishes first; first firing Dec 19, 01:07 Jerusalem
   workflow_dispatch:
     inputs:
       campaign:

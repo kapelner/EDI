@@ -217,37 +217,8 @@ InferenceSurvivalLogRank = define_inference_class(
 			)
 		},
 		weighted_logrank_mean_difference = function(row_weights){
-			keep = is.finite(private$y) & is.finite(private$dead) & is.finite(row_weights) & row_weights > 0
-			if (!any(keep)) return(NA_real_)
-			y = private$y[keep]
-			dead = private$dead[keep]
-			w = private$w[keep]
-			row_weights = as.numeric(row_weights[keep])
-			surv_obj = survival::Surv(y, dead)
-			cox_null = tryCatch(
-				# method = "breslow" to match fast_logrank_stats_cpp()'s cumulative hazard
-				# convention (d_all / risk_all per tied-time group, i.e. Nelson-Aalen);
-				# coxph()'s default "efron" tie-handling gives a genuinely different
-				# martingale residual under tied event times even for this null model
-				# (same fix as InferenceSurvivalGehanWilcox's weighted_peto_prentice_mean_difference()).
-				survival::coxph(surv_obj ~ 1, weights = row_weights, method = "breslow"),
-				error = function(e) NULL
-			)
-			if (is.null(cox_null)) return(NA_real_)
-			M = tryCatch(
-				as.numeric(stats::residuals(cox_null, type = "martingale")),
-				error = function(e) NULL
-			)
-			if (is.null(M) || length(M) != length(y) || !all(is.finite(M))) return(NA_real_)
-			idx_t = w == 1
-			idx_c = w == 0
-			if (!any(idx_t) || !any(idx_c)) return(NA_real_)
-			wt_t = row_weights[idx_t]
-			wt_c = row_weights[idx_c]
-			if (sum(wt_t) <= 0 || sum(wt_c) <= 0) return(NA_real_)
-			mean_t = sum(wt_t * M[idx_t]) / sum(wt_t)
-			mean_c = sum(wt_c * M[idx_c]) / sum(wt_c)
-			as.numeric(mean_t - mean_c)
+			# Shared with InferenceSurvivalGehanWilcox (v1.0.6-TODO-193).
+			survival_null_martingale_mean_difference(private$y, private$dead, private$w, row_weights, peto_prentice = FALSE)
 		},
 		# interval::ictest() dispatch for left-/interval-censored data (TODO-7,
 		# interval_censored_survival_response.md). Sun's-scores log-rank test
@@ -259,64 +230,20 @@ InferenceSurvivalLogRank = define_inference_class(
 		# empirically against a live ictest() call mixing all three shapes
 		# before writing this dispatch (same check TODO-6 did for icenReg).
 		compute_shared_icen = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			assert_interval_installed(class(self)[1L])
-			L = ifelse(is.na(private$y), private$y_L, private$y)
-			R = ifelse(is.na(private$y), private$y_R, private$y)
-			fit = tryCatch(
-				suppressWarnings(interval::ictest(L, R, private$w, scores = "logrank1")),
-				error = function(e) NULL
-			)
-			if (is.null(fit)) {
-				private$cached_values$beta_hat_T = NA_real_
-				if (estimate_only) return(invisible(NULL))
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$logrank_score = NA_real_
-				private$cached_values$logrank_var = NA_real_
-				private$cached_values$icen_pval = NA_real_
-				return(invisible(NULL))
-			}
-			# ictest()'s estimate and Z are "first group minus second group", where
-			# the first group is whichever arm appears first in the data, not a fixed
-			# arm (v1.0.6-TODO-117). Orient both as treatment minus control.
-			arm_sign = ictest_treatment_minus_control_sign(fit)
-			beta_hat = arm_sign * as.numeric(fit$estimate)
-			private$cached_values$beta_hat_T = beta_hat
-			if (estimate_only) return(invisible(NULL))
-			z_stat = arm_sign * as.numeric(fit$statistic)
-			private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
-			private$cached_values$logrank_score = z_stat
-			private$cached_values$logrank_var = 1
-			private$cached_values$icen_pval = as.numeric(fit$p.value)
+			survival_ictest_compute_shared(private, class(self)[1L], estimate_only,
+				scores = "logrank1", score_key = "logrank_score", var_key = "logrank_var")
 		},
 		compute_shared = function(estimate_only = FALSE){
 			if (isTRUE(private$has_general_censoring)) {
 				return(private$compute_shared_icen(estimate_only = estimate_only))
 			}
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			logrank_stats = tryCatch(
-				fast_logrank_stats_cpp(
+			survival_fast_stats_compute_shared(private, estimate_only,
+				stats_fn = function() fast_logrank_stats_cpp(
 					w = as.integer(private$w),
 					y = as.numeric(private$y),
 					dead = as.integer(private$dead)
 				),
-				error = function(e) NULL
-			)
-			if (is.null(logrank_stats)){
-				private$cached_values$beta_hat_T = NA_real_
-			if (estimate_only) return(invisible(NULL))
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$logrank_score = NA_real_
-				private$cached_values$logrank_var = NA_real_
-				return(invisible(NULL))
-			}
-			private$cached_values$beta_hat_T = as.numeric(logrank_stats$beta_hat)
-			private$cached_values$s_beta_hat_T = as.numeric(logrank_stats$se_beta_hat)
-			private$cached_values$logrank_score = as.numeric(logrank_stats$score)
-			private$cached_values$logrank_var = as.numeric(logrank_stats$var_score)
+				score_key = "logrank_score", var_key = "logrank_var")
 		}
 	),
 	overrides = list(
@@ -352,4 +279,121 @@ ictest_treatment_minus_control_sign = function(fit) {
 	if (identical(g, c("1", "0"))) return(1)
 	if (identical(g, c("0", "1"))) return(-1)
 	NA_real_
+}
+
+# Shared by InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox
+# (v1.0.6-TODO-193, code-duplication audit dup-47b3c5848e6a): the two classes
+# differ only in the ictest() score, the fused C++ kernel and the Peto-Prentice
+# weights, so a fix here (e.g. the v1.0.6-TODO-117/121 arm-sign fixes) lands in
+# both.
+
+# Weighted difference in mean null-model martingale residuals (treatment minus
+# control), the Bayesian-bootstrap re-estimate. coxph(method = "breslow") matches
+# the fused C++ kernels' cumulative hazard convention (d_all / risk_all per tied
+# time group, i.e. Nelson-Aalen); coxph()'s default "efron" tie handling gives a
+# genuinely different martingale residual under tied event times even for this
+# null model. peto_prentice = TRUE multiplies each residual by the overall KM
+# survival just before its time (the Gehan-Wilcoxon / rho = 1 weights).
+#' @keywords internal
+#' @noRd
+survival_null_martingale_mean_difference = function(y, dead, w, row_weights, peto_prentice = FALSE) {
+	keep = is.finite(y) & is.finite(dead) & is.finite(row_weights) & row_weights > 0
+	if (!any(keep)) return(NA_real_)
+	y = y[keep]
+	dead = dead[keep]
+	w = w[keep]
+	row_weights = as.numeric(row_weights[keep])
+	surv_obj = survival::Surv(y, dead)
+	cox_null = tryCatch(
+		survival::coxph(surv_obj ~ 1, weights = row_weights, method = "breslow"),
+		error = function(e) NULL
+	)
+	if (is.null(cox_null)) return(NA_real_)
+	M = tryCatch(
+		as.numeric(stats::residuals(cox_null, type = "martingale")),
+		error = function(e) NULL
+	)
+	if (is.null(M) || length(M) != length(y) || !all(is.finite(M))) return(NA_real_)
+	if (peto_prentice) {
+		km_all = tryCatch(
+			survival::survfit(surv_obj ~ 1, weights = row_weights),
+			error = function(e) NULL
+		)
+		if (is.null(km_all)) return(NA_real_)
+		idx = findInterval(y, km_all$time, left.open = TRUE)
+		peto_weights = c(1.0, km_all$surv)[idx + 1L]
+		M = peto_weights * M
+	}
+	idx_t = w == 1
+	idx_c = w == 0
+	if (!any(idx_t) || !any(idx_c)) return(NA_real_)
+	wt_t = row_weights[idx_t]
+	wt_c = row_weights[idx_c]
+	if (sum(wt_t) <= 0 || sum(wt_c) <= 0) return(NA_real_)
+	mean_t = sum(wt_t * M[idx_t]) / sum(wt_t)
+	mean_c = sum(wt_c * M[idx_c]) / sum(wt_c)
+	as.numeric(mean_t - mean_c)
+}
+
+# compute_shared_icen() body: interval::ictest() with the given scores on
+# left-/interval-censored data, cached into private$cached_values under the
+# class's score/variance keys. Exact rows (private$y non-NA) become a zero-width
+# [y, y] interval; censored rows use y_L/y_R directly (right-censored y_R = Inf
+# and left-censored y_L = 0 both fit the (L, R) shape ictest() expects).
+#' @keywords internal
+#' @noRd
+survival_ictest_compute_shared = function(private, class_name, estimate_only, scores, score_key, var_key) {
+	if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+	if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+	assert_interval_installed(class_name)
+	L = ifelse(is.na(private$y), private$y_L, private$y)
+	R = ifelse(is.na(private$y), private$y_R, private$y)
+	fit = tryCatch(
+		suppressWarnings(interval::ictest(L, R, private$w, scores = scores)),
+		error = function(e) NULL
+	)
+	if (is.null(fit)) {
+		private$cached_values$beta_hat_T = NA_real_
+		if (estimate_only) return(invisible(NULL))
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values[[score_key]] = NA_real_
+		private$cached_values[[var_key]] = NA_real_
+		private$cached_values$icen_pval = NA_real_
+		return(invisible(NULL))
+	}
+	# ictest()'s estimate and Z are "first group minus second group", where the
+	# first group is whichever arm appears first in the data, not a fixed arm
+	# (v1.0.6-TODO-117, v1.0.6-TODO-121). Orient both as treatment minus control.
+	arm_sign = ictest_treatment_minus_control_sign(fit)
+	beta_hat = arm_sign * as.numeric(fit$estimate)
+	private$cached_values$beta_hat_T = beta_hat
+	if (estimate_only) return(invisible(NULL))
+	z_stat = arm_sign * as.numeric(fit$statistic)
+	private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
+	private$cached_values[[score_key]] = z_stat
+	private$cached_values[[var_key]] = 1
+	private$cached_values$icen_pval = as.numeric(fit$p.value)
+}
+
+# compute_shared() right-censored body: one fused C++ sweep (stats_fn() returns
+# beta_hat, se_beta_hat, score and var_score) cached into private$cached_values.
+#' @keywords internal
+#' @noRd
+survival_fast_stats_compute_shared = function(private, estimate_only, stats_fn, score_key, var_key) {
+	if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+	if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+	if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+	stats = tryCatch(stats_fn(), error = function(e) NULL)
+	if (is.null(stats)) {
+		private$cached_values$beta_hat_T = NA_real_
+		if (estimate_only) return(invisible(NULL))
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values[[score_key]] = NA_real_
+		private$cached_values[[var_key]] = NA_real_
+		return(invisible(NULL))
+	}
+	private$cached_values$beta_hat_T = as.numeric(stats$beta_hat)
+	private$cached_values$s_beta_hat_T = as.numeric(stats$se_beta_hat)
+	private$cached_values[[score_key]] = as.numeric(stats$score)
+	private$cached_values[[var_key]] = as.numeric(stats$var_score)
 }

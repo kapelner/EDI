@@ -35,43 +35,9 @@ using namespace Rcpp;
 
 namespace {
 
-struct GHRuleHP {
-	Eigen::VectorXd nodes;
-	Eigen::VectorXd log_norm_weights;
-};
-
-GHRuleHP gauss_hermite_rule_hp(int n) {
-	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(n, n);
-	for (int i = 0; i < n - 1; ++i) {
-		const double v = std::sqrt((i + 1.0) / 2.0);
-		J(i, i + 1) = v;
-		J(i + 1, i) = v;
-	}
-	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(J);
-	GHRuleHP rule;
-	rule.nodes = es.eigenvalues();
-	rule.log_norm_weights = (std::sqrt(M_PI) * es.eigenvectors().row(0).array().square()).log()
-		                    - 0.5 * std::log(M_PI);
-	return rule;
-}
-
-inline double soft_barrier_hp(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return scale * d * d;
-}
-
-inline double soft_barrier_hp_grad(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return 2.0 * scale * d * (log_sigma > 0 ? 1.0 : -1.0);
-}
-
-inline double soft_barrier_hp_hessian(double log_sigma, double center = 5.0, double scale = 10.0) {
-	const double d = std::abs(log_sigma) - center;
-	if (d <= 0.0) return 0.0;
-	return 2.0 * scale;
-}
+// The Gauss-Hermite rule and the soft log_sigma barrier are the shared
+// glmm:: versions from _glmm_engine.h (v1.0.6-TODO-193).
+using GHRuleHP = glmm::GHRule;
 
 inline double log_one_minus_exp_neg_hp(double lam, double eneg, double eta) {
 	if (lam < 1e-10) return eta;
@@ -142,7 +108,7 @@ struct HurdlePoissonGLMMData {
 		const std::vector<int>& group_id,
 		int n_gh,
 		const Eigen::VectorXd* row_weights = nullptr
-	) : n((int)X.rows()), p((int)X.cols()), gh(gauss_hermite_rule_hp(n_gh)) {
+	) : n((int)X.rows()), p((int)X.cols()), gh(glmm::gauss_hermite_rule(n_gh)) {
 
 		std::vector<int> ord(n);
 		std::iota(ord.begin(), ord.end(), 0);
@@ -234,7 +200,7 @@ public:
 		// Precompute exp(b_vals[k]) once per optimizer step (K exps amortized over G groups).
 		for (int k = 0; k < K; ++k) m_exp_bvals[k] = std::exp(m_b_vals[k]);
 
-		double total_nll = soft_barrier_hp(log_sigma);
+		double total_nll = glmm::soft_barrier(log_sigma);
 		grad.setZero();
 		const double d = std::abs(log_sigma) - 5.0;
 		if (d > 0.0) grad[p] += 20.0 * d * (log_sigma > 0 ? 1.0 : -1.0);
@@ -328,7 +294,7 @@ public:
 		for (int k = 0; k < K; ++k) m_exp_bvals[k] = std::exp(m_b_vals[k]);
 
 		Eigen::MatrixXd H = Eigen::MatrixXd::Zero(total, total);
-		H(dat.p, dat.p) = soft_barrier_hp_hessian(log_sigma);
+		H(dat.p, dat.p) = glmm::soft_barrier_hessian(log_sigma);
 
 		for (int gi = 0; gi < dat.G; gi++) {
 			const double group_weight = dat.grp_weight[gi];
@@ -550,7 +516,7 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
     }
     const bool variance_boundary_hit = glmm::glmm_variance_boundary_hit(par[total - 1]);
 
-    const double pen         = soft_barrier_hp(par[total - 1]);
+    const double pen         = glmm::soft_barrier(par[total - 1]);
     const double true_neg_ll = neg_ll - pen;
 
     // Early return: skip score/Hessian computation when only point estimates are needed.
@@ -574,10 +540,10 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 
     Eigen::VectorXd score(total);
     obj(par, score);
-    score[total - 1] -= soft_barrier_hp_grad(par[total - 1]);
+    score[total - 1] -= glmm::soft_barrier_grad(par[total - 1]);
     score = -score;
     Eigen::MatrixXd information = obj.hessian(par);
-    information(total - 1, total - 1) -= soft_barrier_hp_hessian(par[total - 1]);
+    information(total - 1, total - 1) -= glmm::soft_barrier_hessian(par[total - 1]);
 
     double ssq_b_T = std::numeric_limits<double>::quiet_NaN();
     Eigen::MatrixXd vcov = Eigen::MatrixXd::Constant(total, total, std::numeric_limits<double>::quiet_NaN());
@@ -641,7 +607,7 @@ Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::Matrix
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	grad[X_r.cols()] -= soft_barrier_hp_grad(params[X_r.cols()]);
+	grad[X_r.cols()] -= glmm::soft_barrier_grad(params[X_r.cols()]);
 	return -grad;
 }
 
@@ -677,7 +643,7 @@ Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eige
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	grad[X_r.cols()] -= soft_barrier_hp_grad(params[X_r.cols()]);
+	grad[X_r.cols()] -= glmm::soft_barrier_grad(params[X_r.cols()]);
 	return -grad;
 }
 
@@ -709,7 +675,7 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::Matr
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
-	information(X_r.cols(), X_r.cols()) -= soft_barrier_hp_hessian(params[X_r.cols()]);
+	information(X_r.cols(), X_r.cols()) -= glmm::soft_barrier_hessian(params[X_r.cols()]);
 	return -information;
 }
 
@@ -744,7 +710,7 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Ei
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
-	information(X_r.cols(), X_r.cols()) -= soft_barrier_hp_hessian(params[X_r.cols()]);
+	information(X_r.cols(), X_r.cols()) -= glmm::soft_barrier_hessian(params[X_r.cols()]);
 	return -information;
 }
 
@@ -775,7 +741,7 @@ double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>&
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
-	return likelihood_value(obj, params) - soft_barrier_hp(params[X_r.cols()]);
+	return likelihood_value(obj, params) - glmm::soft_barrier(params[X_r.cols()]);
 }
 
 // [[Rcpp::export]]
@@ -808,7 +774,7 @@ double get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(const Eigen::Map<Eigen::M
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
 	HurdlePoissonGLMMObjective obj(dat);
-	return likelihood_value(obj, params) - soft_barrier_hp(params[X_r.cols()]);
+	return likelihood_value(obj, params) - glmm::soft_barrier(params[X_r.cols()]);
 }
 
 // [[Rcpp::export]]

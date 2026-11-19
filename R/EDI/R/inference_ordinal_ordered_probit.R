@@ -12,14 +12,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 		# @param verbose Whether to print progress messages.
 		# @param smart_cold_start_default Whether to use smart cold start values by default.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
-			if (should_run_asserts()) {
-				assertResponseType(des_obj$get_response_type(), "ordinal")
-				assertFormula(model_formula, null.ok = TRUE)
-			}
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
-			if (should_run_asserts()) {
-				assertNoCensoring(private$any_censoring)
-			}
+			ordinal_cumlink_initialize(super, private, des_obj, model_formula, verbose, smart_cold_start_default)
 		},
 		# @description Recomputes the treatment estimate under subject/block-level
 		#   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
@@ -33,67 +26,15 @@ OrdinalOrderedProbitLikelihoodSource = list(
 		# @param estimate_only If \code{TRUE}, compute only the weighted point
 		#   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
-			X_fit = private$build_design_matrix()
-			if (!is.null(private$best_X_colnames)) {
-				keep = c("treatment", intersect(private$best_X_colnames, colnames(X_fit)))
-				X_fit = X_fit[, keep, drop = FALSE]
-			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "probit")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
-			private$cached_values$summary_table = NULL
-			private$cached_values$beta_hat_T
+			ordinal_surrogate_estimate_with_bootstrap_weights(private, subject_or_block_weights, method = "probit")
 		}
 	),
 	private = list(
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "heavy",
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			if (is.null(private$best_X_colnames)){
-				private$shared(estimate_only = TRUE)
-			}
-			if (is.null(private$best_X_colnames)){
-				return(self$compute_estimate(estimate_only = estimate_only))
-			}
-			X_cols = private$best_X_colnames
-			X_data = private$get_X()
-			if (length(X_cols) == 0L){
-				X = as.matrix(private$w)
-				colnames(X) = "treatment"
-			} else {
-				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
-				X = cbind(treatment = private$w, X_cov)
-			}
-			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
-			ws_args = private$get_backend_warm_start_args(n_params)
-			ws_fisher = ws_args$warm_start_fisher_info
-			res = ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
-				X = X, y = as.numeric(private$y),
-				warm_start_params = ws_args$start_params,
-				warm_start_fisher_info = ws_fisher,
-				smart_cold_start = private$smart_cold_start_default,
-				estimate_only = TRUE
-			)
-			# treatment is X's first column (cbind(treatment = ..., X_cov)
-			# above); res$b[1] is the treatment slope, matching generate_mod()'s
-			# own extraction. res$b[length(res$b)] (the last covariate's slope
-			# whenever design_formula includes covariates) fed the
-			# randomization test a covariate's coefficient instead of
-			# treatment's.
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
-				return(NA_real_)
-			}
-			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = ws_fisher)
-			as.numeric(res$b[1])
+			ordinal_cumlink_rand_estimate(self, private, estimate_only, fast_ordinal_probit_regression_cpp,
+				warm_start_args = private$get_backend_warm_start_args)
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -108,90 +49,12 @@ OrdinalOrderedProbitLikelihoodSource = list(
 			TRUE
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			params_null = as.numeric(null_fit$params)
-			y_sim       = private$simulate_param_boot_ordinal_y(spec$X, params_null, spec$y, stats::pnorm)
-			if (is.null(y_sim)) return(NULL)
-			X_fit    = spec$X
-			j        = spec$j
-			
-			# Parametric bootstrap: use observed fit as anchor
-			ws_args = private$get_backend_warm_start_args(length(params_null))
-			full_res = tryCatch(
-				ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
-					X_fit, y_sim,
-					warm_start_params = ws_args$start_params,
-					warm_start_fisher_info = ws_args$warm_start_fisher_info,
-					smart_cold_start = private$smart_cold_start_default
-				),
-				error = function(e) NULL
-			)
-			if (is.null(full_res) || length(full_res$params) == 0L) return(NULL)
-			full_fit_boot = list(params = as.numeric(full_res$params), neg_loglik = as.numeric(full_res$neg_loglik))
-			if (!is.finite(full_fit_boot$neg_loglik)) return(NULL)
-			list(
-				worker_data = list(y = y_sim),
-				full_fit = full_fit_boot,
-				fit_null = function(d, start = NULL){
-					ws_args_null = private$get_backend_warm_start_args(length(params_null))
-					res = tryCatch(
-						ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
-							X_fit, y_sim,
-							warm_start_params = start %||% full_fit_boot$params,
-							warm_start_fisher_info = ws_args_null$warm_start_fisher_info,
-							fixed_idx = j, fixed_values = d,
-							smart_cold_start = TRUE
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0L) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
-				},
-				neg_loglik = function(fit) as.numeric(fit$neg_loglik)
-			)
+			ordinal_cumlink_simulate_under_lik_null(private, spec, null_fit, fast_ordinal_probit_regression_cpp, stats::pnorm)
 		},
 		get_likelihood_test_spec = function(){
-			private$shared(estimate_only = FALSE)
-			ctx = private$cached_values$likelihood_test_context
-			if (is.null(ctx)) return(NULL)
-			X_fit = ctx$X
-			y = as.numeric(private$y)
-			j_treat = as.integer(ctx$j_treat)
-			full_fit = list(params = ctx$full_params, neg_loglik = ctx$full_neg_loglik)
-			list(
-				X = X_fit, y = y, j = j_treat,
-				full_fit = full_fit,
-				fit_null = function(delta, start = NULL){
-					ws_args = private$get_backend_warm_start_args(length(ctx$full_params))
-					res = tryCatch(
-						ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
-							X_fit, y,
-							fixed_idx = j_treat, fixed_values = delta,
-							warm_start_params = start %||% ws_args$start_params,
-							warm_start_fisher_info = ws_args$warm_start_fisher_info,
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
-				},
-				extract_start = function(fit){
-					as.numeric(fit$params)
-				},
-				score = function(fit){
-					get_ordinal_probit_regression_score_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				observed_information = function(fit){
-					-get_ordinal_probit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				fisher_information = function(fit){
-					fit$fisher_information %||% -get_ordinal_probit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				information = function(fit){
-					fit$information %||% fit$fisher_information %||% -get_ordinal_probit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
-			)
+			ordinal_cumlink_likelihood_test_spec(private, fast_ordinal_probit_regression_cpp,
+				score_fn = get_ordinal_probit_regression_score_cpp,
+				hessian_fn = get_ordinal_probit_regression_hessian_cpp)
 		},
 		generate_mod = function(estimate_only = FALSE){
 			X_full = private$build_design_matrix()
@@ -360,3 +223,188 @@ NULL
 #' @R6method InferenceOrdinalOrderedProbitRegr$compute_rand_two_sided_pval
 #' @template rand-compute-rand-two-sided-pval-params
 NULL
+
+# Shared cumulative-link ordinal helpers (v1.0.6-TODO-193; code-duplication
+# audit dup-4ca7ca9c9237 and dup-86f70c0a1fbe). The ordered-probit,
+# proportional-odds and cauchit classes repeated these bodies, differing only in
+# the C++ fitter / score / Hessian, the link CDF and (cauchit) how the warm start
+# is read. Each class keeps its private/public method as a one-line wrapper.
+
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_initialize = function(super, private, des_obj, model_formula, verbose, smart_cold_start_default) {
+	if (should_run_asserts()) {
+		assertResponseType(des_obj$get_response_type(), "ordinal")
+		assertFormula(model_formula, null.ok = TRUE)
+	}
+	super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+	if (should_run_asserts()) {
+		assertNoCensoring(private$any_censoring)
+	}
+}
+
+# compute_estimate_with_bootstrap_weights(): the weighted surrogate fit
+# (weighted_ordinal_bootstrap_surrogate_fit()) on the columns the full fit kept.
+# No standard error is computed.
+#' @keywords internal
+#' @noRd
+ordinal_surrogate_estimate_with_bootstrap_weights = function(private, subject_or_block_weights, method) {
+	row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
+	X_fit = private$build_design_matrix()
+	if (!is.null(private$best_X_colnames)) {
+		keep = c("treatment", intersect(private$best_X_colnames, colnames(X_fit)))
+		X_fit = X_fit[, keep, drop = FALSE]
+	}
+	fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = method)
+	if (is.null(fit) || !is.finite(fit$beta_hat)) {
+		private$cached_values$beta_hat_T = NA_real_
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values$df = NA_real_
+		return(NA_real_)
+	}
+	private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
+	private$cached_values$s_beta_hat_T = NA_real_
+	private$cached_values$df = NA_real_
+	private$cached_values$full_coefficients = fit$coefficients
+	private$cached_values$summary_table = NULL
+	private$cached_values$beta_hat_T
+}
+
+# compute_treatment_estimate_during_randomization_inference(): refit on the
+# columns the full fit kept, estimate only. warm_start_args(n_params) returns
+# list(start_params, warm_start_fisher_info).
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_rand_estimate = function(self, private, estimate_only, fit_fn, warm_start_args) {
+	if (is.null(private$best_X_colnames)){
+		private$shared(estimate_only = TRUE)
+	}
+	if (is.null(private$best_X_colnames)){
+		return(self$compute_estimate(estimate_only = estimate_only))
+	}
+	X_cols = private$best_X_colnames
+	X_data = private$get_X()
+	if (length(X_cols) == 0L){
+		X = matrix(private$w, ncol = 1L)
+		colnames(X) = "treatment"
+	} else {
+		X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
+		X = cbind(treatment = private$w, X_cov)
+	}
+	n_params = ncol(X) + length(sort(unique(private$y))) - 1L
+	ws_args = warm_start_args(n_params)
+	ws_fisher = ws_args$warm_start_fisher_info
+	res = ordinal_fit_scaled(fit_fn,
+		X = X, y = as.numeric(private$y),
+		warm_start_params = ws_args$start_params,
+		warm_start_fisher_info = ws_fisher,
+		smart_cold_start = private$smart_cold_start_default,
+		estimate_only = TRUE
+	)
+	# treatment is X's first column (cbind(treatment = ..., X_cov) above), and
+	# res$b follows X's column order: b[1] is the treatment slope, matching
+	# generate_mod()'s own extraction. res$b[length(res$b)] (the last
+	# covariate's slope whenever design_formula includes covariates) fed the
+	# randomization test a covariate's coefficient instead of treatment's.
+	if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
+		return(NA_real_)
+	}
+	private$set_fit_warm_start(as.numeric(res$params), "params", fisher = ws_fisher)
+	as.numeric(res$b[1])
+}
+
+# simulate_under_lik_null(): parametric-bootstrap draw from the null fit through
+# the link CDF, then the full refit (anchored at the policy warm start) and the
+# null refit closure.
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_simulate_under_lik_null = function(private, spec, null_fit, fit_fn, cdf) {
+	params_null = as.numeric(null_fit$params)
+	y_sim       = private$simulate_param_boot_ordinal_y(spec$X, params_null, spec$y, cdf)
+	if (is.null(y_sim)) return(NULL)
+	X_fit    = spec$X
+	j        = spec$j
+	# Parametric bootstrap: use observed fit as anchor
+	ws_args = private$get_backend_warm_start_args(length(params_null))
+	full_res = tryCatch(
+		ordinal_fit_scaled(fit_fn,
+			X_fit, y_sim,
+			warm_start_params = ws_args$start_params,
+			warm_start_fisher_info = ws_args$warm_start_fisher_info,
+			smart_cold_start = private$smart_cold_start_default
+		),
+		error = function(e) NULL
+	)
+	if (is.null(full_res) || length(full_res$params) == 0L) return(NULL)
+	full_fit_boot = list(params = as.numeric(full_res$params), neg_loglik = as.numeric(full_res$neg_loglik))
+	if (!is.finite(full_fit_boot$neg_loglik)) return(NULL)
+	list(
+		worker_data = list(y = y_sim),
+		full_fit = full_fit_boot,
+		fit_null = function(d, start = NULL){
+			ws_args_null = private$get_backend_warm_start_args(length(params_null))
+			res = tryCatch(
+				ordinal_fit_scaled(fit_fn,
+					X_fit, y_sim,
+					warm_start_params = start %||% full_fit_boot$params,
+					warm_start_fisher_info = ws_args_null$warm_start_fisher_info,
+					fixed_idx = j, fixed_values = d,
+					smart_cold_start = TRUE
+				),
+				error = function(e) NULL
+			)
+			if (is.null(res) || length(res) == 0L) return(NULL)
+			list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+		},
+		neg_loglik = function(fit) as.numeric(fit$neg_loglik)
+	)
+}
+
+# get_likelihood_test_spec(): the score / gradient / LR spec on the columns the
+# full fit kept, from the class's fitter, score and Hessian.
+#' @keywords internal
+#' @noRd
+ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn) {
+	private$shared(estimate_only = FALSE)
+	ctx = private$cached_values$likelihood_test_context
+	if (is.null(ctx)) return(NULL)
+	X_fit = ctx$X
+	y = as.numeric(private$y)
+	j_treat = as.integer(ctx$j_treat)
+	full_fit = list(params = ctx$full_params, neg_loglik = ctx$full_neg_loglik)
+	list(
+		X = X_fit, y = y, j = j_treat,
+		full_fit = full_fit,
+		fit_null = function(delta, start = NULL){
+			ws_args = private$get_backend_warm_start_args(length(ctx$full_params))
+			res = tryCatch(
+				ordinal_fit_scaled(fit_fn,
+					X_fit, y,
+					warm_start_params = start %||% ws_args$start_params,
+					warm_start_fisher_info = ws_args$warm_start_fisher_info,
+					fixed_idx = j_treat, fixed_values = delta,
+					smart_cold_start = private$smart_cold_start_default
+				),
+				error = function(e) NULL
+			)
+			if (is.null(res) || length(res) == 0) return(NULL)
+			list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
+		},
+		extract_start = function(fit){
+			as.numeric(fit$params)
+		},
+		score = function(fit){
+			score_fn(X_fit, y, as.numeric(fit$params))
+		},
+		observed_information = function(fit){
+			-hessian_fn(X_fit, y, as.numeric(fit$params))
+		},
+		fisher_information = function(fit){
+			fit$fisher_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))
+		},
+		information = function(fit){
+			fit$information %||% fit$fisher_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))
+		},
+		neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
+	)
+}

@@ -368,6 +368,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_resampling_draw_distribution",
 			"get_cached_centered_resampling_pivot",
 			"set_cached_centered_resampling_pivot",
+			"select_resampling_size_from_spec", "resampling_centered_pivot_for_inference",
 			"resampling_ci_from_centered_distribution", "resampling_centered_pval",
 			"resampling_scaling_factor", "select_optimal_resample_size",
 			"approximate_m_out_of_n_bootstrap_distribution_beta_hat_T_impl",

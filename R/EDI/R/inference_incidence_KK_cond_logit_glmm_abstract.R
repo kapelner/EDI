@@ -370,60 +370,7 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			ctx = private$cached_values$likelihood_test_context
 			if (is.null(ctx) || is.null(private$cached_mod)) return(NULL)
 			if (private$uses_reservoir_logit()) return(private$get_clogit_reservoir_logit_spec(ctx))
-			d = ctx$d
-			j_treat = as.integer(ctx$j_T)
-			list(
-				X = d$X_conc, 
-				j = j_treat,
-				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					fast_clogit_plus_glmm_cpp(
-						X_disc = d$X_disc, y_disc = d$y_disc,
-						X_conc = d$X_conc, y_conc = d$y_conc,
-						group_conc = d$group_conc,
-						has_discordant = d$has_discordant,
-						has_concordant = d$has_concordant,
-						warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start,
-						warm_start_fisher_info = private$get_fit_warm_start_fisher(length(ctx$start)),
-						estimate_only = FALSE,
-						max_abs_log_sigma = private$max_abs_log_sigma,
-						fixed_idx = j_treat, fixed_values = delta,
-						optimization_alg = private$optimization_alg
-					)
-				},
-				extract_start = function(fit){ as.numeric(fit$params) },
-				score = function(fit){
-					as.numeric(get_clogit_plus_glmm_score_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				observed_information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				fisher_information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				information = function(fit){
-					as.matrix(get_clogit_plus_glmm_hessian_cpp(
-						d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
-						as.numeric(fit$params), d$has_discordant, d$has_concordant,
-						private$max_abs_log_sigma
-					))
-				},
-				neg_loglik = function(fit){
-					as.numeric(fit$neg_loglik %||% fit$neg_ll)
-				}
-			)
+			clogit_plus_glmm_likelihood_spec(private, ctx, include_d = FALSE)
 		},
 		prepare_clogit_plus_glmm_data = function(){
 			private$compute_basic_match_data()
@@ -753,3 +700,59 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		)
 	)
 )
+
+# Likelihood-test spec of the joint conditional-logit (discordant pairs) plus
+# random-intercept GLMM (concordant pairs / reservoir) likelihood, shared by
+# InferenceAbstractKKCondLogitGLMM and InferencePropKKGLMM (v1.0.6-TODO-193,
+# code-duplication audit dup-51b70d0e54ad). include_d = TRUE adds the prepared
+# data `d` to the spec, which InferencePropKKGLMM's simulate_under_lik_null()
+# reads. The Hessian serves as observed, Fisher and default information.
+#' @keywords internal
+#' @noRd
+clogit_plus_glmm_likelihood_spec = function(private, ctx, include_d = FALSE) {
+	d = ctx$d
+	j_treat = as.integer(ctx$j_T)
+	information_fn = function(fit){
+		as.matrix(get_clogit_plus_glmm_hessian_cpp(
+			d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
+			as.numeric(fit$params), d$has_discordant, d$has_concordant,
+			private$max_abs_log_sigma
+		))
+	}
+	c(
+		list(X = d$X_conc, j = j_treat),
+		if (include_d) list(d = d),
+		list(
+			full_fit = private$cached_mod,
+			fit_null = function(delta, start = NULL){
+				fast_clogit_plus_glmm_cpp(
+					X_disc = d$X_disc, y_disc = d$y_disc,
+					X_conc = d$X_conc, y_conc = d$y_conc,
+					group_conc = d$group_conc,
+					has_discordant = d$has_discordant,
+					has_concordant = d$has_concordant,
+					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start,
+					warm_start_fisher_info = private$get_fit_warm_start_fisher(length(ctx$start)),
+					estimate_only = FALSE,
+					max_abs_log_sigma = private$max_abs_log_sigma,
+					fixed_idx = j_treat, fixed_values = delta,
+					optimization_alg = private$optimization_alg
+				)
+			},
+			extract_start = function(fit){ as.numeric(fit$params) },
+			score = function(fit){
+				as.numeric(get_clogit_plus_glmm_score_cpp(
+					d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
+					as.numeric(fit$params), d$has_discordant, d$has_concordant,
+					private$max_abs_log_sigma
+				))
+			},
+			observed_information = information_fn,
+			fisher_information = information_fn,
+			information = information_fn,
+			neg_loglik = function(fit){
+				as.numeric(fit$neg_loglik %||% fit$neg_ll)
+			}
+		)
+	)
+}

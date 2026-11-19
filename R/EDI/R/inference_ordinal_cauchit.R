@@ -15,14 +15,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 		# @param verbose Whether to print progress messages.
 		# @param smart_cold_start_default Whether to use smart cold start values by default.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
-			if (should_run_asserts()) {
-				assertResponseType(des_obj$get_response_type(), "ordinal")
-				assertFormula(model_formula, null.ok = TRUE)
-			}
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
-			if (should_run_asserts()) {
-				assertNoCensoring(private$any_censoring)
-			}
+			ordinal_cumlink_initialize(super, private, des_obj, model_formula, verbose, smart_cold_start_default)
 		},
 		# @description Refits the cauchit cumulative-link model under subject/block
 		#   resampling weights via \code{weighted_ordinal_bootstrap_surrogate_fit()}
@@ -38,65 +31,17 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 		# @param estimate_only Accepted for interface compatibility; standard errors
 		#   are never computed for a single bootstrap replicate regardless of this flag.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
-			X_fit = private$build_design_matrix()
-			if (!is.null(private$best_X_colnames)) {
-				keep = c("treatment", intersect(private$best_X_colnames, colnames(X_fit)))
-				X_fit = X_fit[, keep, drop = FALSE]
-			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "cauchit")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
-			private$cached_values$summary_table = NULL
-			private$cached_values$beta_hat_T
+			ordinal_surrogate_estimate_with_bootstrap_weights(private, subject_or_block_weights, method = "cauchit")
 		}
 	),
 	private = list(
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			if (is.null(private$best_X_colnames)){
-				private$shared(estimate_only = TRUE)
-			}
-			if (is.null(private$best_X_colnames)){
-				return(self$compute_estimate(estimate_only = estimate_only))
-			}
-			X_cols = private$best_X_colnames
-			X_data = private$get_X()
-			if (length(X_cols) == 0L){
-				X = matrix(private$w, ncol = 1L)
-				colnames(X) = "treatment"
-			} else {
-				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
-				X = cbind(treatment = private$w, X_cov)
-			}
-			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
-			ws_fisher = private$get_fit_warm_start_fisher(n_params)
-			res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
-				X = X, y = as.numeric(private$y),
-				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
-				warm_start_fisher_info = ws_fisher,
-				smart_cold_start = private$smart_cold_start_default,
-				estimate_only = TRUE
-			)
-			# treatment is X's first column (cbind(treatment = ..., X_cov)
-			# above); res$b[1] is the treatment slope, matching generate_mod()'s
-			# own extraction. res$b[length(res$b)] (the last covariate's slope
-			# whenever design_formula includes covariates) fed the
-			# randomization test a covariate's coefficient instead of
-			# treatment's.
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
-				return(NA_real_)
-			}
-			private$set_fit_warm_start(res$params, "params", fisher = ws_fisher)
-			as.numeric(res$b[1])
+			ordinal_cumlink_rand_estimate(self, private, estimate_only, fast_ordinal_cauchit_regression_cpp,
+				warm_start_args = function(n_params) list(
+					start_params = private$get_fit_warm_start_for_length("params", n_params),
+					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
+				))
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

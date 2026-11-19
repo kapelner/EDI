@@ -9,6 +9,7 @@
 #endif
 #include "ordinal_fixed_link_helpers.h"
 #include "ordinal_scale_guard.h"
+#include "ordinal_fixed_link_internal.h"
 #include <algorithm>
 #include <vector>
 #include <optional>
@@ -76,19 +77,7 @@ Eigen::VectorXd get_ordinal_cloglog_regression_score_cpp(const Rcpp::NumericMatr
 														 const Rcpp::NumericVector& params,
 														 Nullable<IntegerVector> fixed_idx = R_NilValue,
 														 Nullable<NumericVector> fixed_values = R_NilValue) {
-	Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
-	Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
-	Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
-
-	OrdinalCLLRegression model(map_X, map_y);
-	FixedParamSpec fixed_spec = make_fixed_param_spec(
-		map_params.size(),
-		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-		nullable_to_optional<Eigen::VectorXd>(fixed_values));
-	Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
-	Eigen::VectorXd grad(par.size());
-	model(par, grad);
-	return -grad;
+	return edi_ordinal::fixed_link_ordinal_score<OrdinalCLLRegression>(X, y, params, fixed_idx, fixed_values);
 }
 
 // [[Rcpp::export]]
@@ -97,19 +86,13 @@ Eigen::MatrixXd get_ordinal_cloglog_regression_hessian_cpp(const Rcpp::NumericMa
 														   const Rcpp::NumericVector& params,
 														   Nullable<IntegerVector> fixed_idx = R_NilValue,
 														   Nullable<NumericVector> fixed_values = R_NilValue) {
-	Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
-	Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
-	Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
-
-	OrdinalCLLRegression model(map_X, map_y);
-	FixedParamSpec fixed_spec = make_fixed_param_spec(
-		map_params.size(),
-		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-		nullable_to_optional<Eigen::VectorXd>(fixed_values));
-	Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
-	return -model.hessian(par);
+	return edi_ordinal::fixed_link_ordinal_hessian<OrdinalCLLRegression>(X, y, params, fixed_idx, fixed_values);
 }
 #endif // EDI_CORE_ONLY
+
+static double cloglog_legacy_alpha(int k, int K) {
+    return -1.0 + 2.0 * (k + 1) / K;
+}
 
 // Portable core: see fast_ordinal_cauchit_regression.cpp for the analogous
 // pattern this mirrors (fit-only when estimate_only, else fit + vcov/ssq_b_j
@@ -128,100 +111,13 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
     bool estimate_only = false
 ) {
-    OrdinalCLLRegression model(X, y);
-    int p = (int)X.cols();
-    int K = (int)OrdinalCLLRegression::init_levels(y).size();
-    const int n_alpha = K > 1 ? K - 1 : 0;
-    const int n_params = n_alpha + p;
-    require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
-    if (K < 2) return edi::ResultMap();
-
-    VectorXd params(n_params);
-    FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);
-    if (warm_start_params.has_value()) {
-        params = *warm_start_params;
-        if (params.size() != n_params) throw std::invalid_argument("warm_start_params must have length equal to the number of model parameters");
-    } else {
-        OrdinalStart legacy_start;
-        legacy_start.alpha = VectorXd(n_alpha);
-        for (int k = 0; k < n_alpha; ++k) {
-            legacy_start.alpha[k] = -1.0 + 2.0 * (k + 1) / K;
-        }
-        legacy_start.beta = VectorXd::Zero(p);
-        params = ordinal_start_to_params(
-            smart_cold_start ? ordinal_smart_cold_start_or_legacy(X, y, edi_ordinal::Link::Cloglog, legacy_start, fixed_spec)
-                        : legacy_start
-        );
-    }
-
-    params = apply_fixed_values(params, fixed_spec);
-
-    Eigen::MatrixXd info_start;
-    const Eigen::MatrixXd* info_start_ptr = nullptr;
-    if (warm_start_fisher_info.has_value()) {
-        info_start = *warm_start_fisher_info;
-        info_start_ptr = &info_start;
-    }
-
-    LikelihoodFitResult fit = optimize_fixed_likelihood(model, params, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
-    params = fit.params;
-    if (fit.converged && ordinal_covariates_badly_scaled(X) &&
-        !ordinal_newton_decrement_ok(model, fit.params, fixed_spec, tol)) fit.converged = false;
-
-    if (estimate_only) {
-        return edi::ResultMap()
-            .set("b", params.tail(p))
-            .set("alpha", params.head(n_alpha))
-            .set("n_params", n_params)
-            .set("params", params)
-            .set("converged", fit.converged)
-            .set("num_iter", fit.niter)
-            .set("hit_iteration_cap", fit.hit_iteration_cap)
-            .set("gradient_norm", fit.gradient_norm)
-            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
-    }
-
-    MatrixXd H_full = model.hessian(params);
-
-    double ssq_b_2 = std::numeric_limits<double>::quiet_NaN();
-    MatrixXd vcov;
-    bool have_vcov = false;
-    if (fit.converged) {
-        FixedParameterFunctor<OrdinalCLLRegression> fixed_obj(model, fixed_spec, params);
-        VectorXd params_free = subset_vector(params, fixed_spec.free_idx);
-        MatrixXd H_free = fixed_obj.hessian(params_free);
-        int n_alpha2 = n_params - p;
-        int free_j = -1;
-        for (int jj = 0; jj < (int)fixed_spec.free_idx.size(); ++jj)
-            if (fixed_spec.free_idx[jj] == n_alpha2) { free_j = jj + 1; break; }
-        if (p >= 1 && free_j > 0) ssq_b_2 = compute_diagonal_inverse_entry(H_free, free_j);
-        MatrixXd cov_free = covariance_from_information(H_free);
-        vcov = expand_free_covariance(n_params, fixed_spec, cov_free, true);
-        have_vcov = true;
-    }
-
-    edi::ResultMap rm = edi::ResultMap()
-        .set("b", params.tail(p))
-        .set("alpha", params.head(n_alpha))
-        .set("n_params", n_params)
-        .set("params", params)
-        .set("neg_loglik", fit.value)
-        .set("converged", fit.converged)
-        .set("num_iter", fit.niter)
-        .set("hit_iteration_cap", fit.hit_iteration_cap)
-        .set("gradient_norm", fit.gradient_norm)
-        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-        .set("ssq_b_j", ssq_b_2)
-        .set("observed_information", H_full)
-        .set("fisher_information", H_full)
-        .set("information", H_full)
-        .set("information_type", std::string("observed"));
-    if (have_vcov) {
-        rm.set("vcov", vcov);
-    } else {
-        rm.set("vcov", std::monostate{});
-    }
-    return rm;
+    // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.6-TODO-193).
+    static const edi_ordinal::FixedLinkFitSpec spec = {
+        edi_ordinal::Link::Cloglog, cloglog_legacy_alpha,
+        edi_ordinal::DegenerateLevelsPolicy::EmptyAfterValidation, false};
+    return edi_ordinal::fixed_link_ordinal_internal<OrdinalCLLRegression>(
+        spec, X, y, std::move(warm_start_params), smart_cold_start, maxit, tol, std::move(optimization_alg),
+        std::move(fixed_idx), std::move(fixed_values), std::move(warm_start_fisher_info), estimate_only);
 }
 
 #ifndef EDI_CORE_ONLY

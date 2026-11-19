@@ -172,11 +172,18 @@ struct LogisticPostFitResult {
   double se_log_rr;
 };
 
+// Shared logistic g-computation post-fit (sandwich vcov + delta-method RD /
+// log RR SEs). The HC0 and cluster-robust exports differ only in the meat, so
+// the caller passes it as meat_fn(score_resid) -> p x p matrix
+// (v1.0.6-TODO-193). caller_name goes into the dimension-mismatch error.
+template <typename MeatFn>
 LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::MatrixXd>& X_fit,
-                                                       const Eigen::Map<Eigen::VectorXd>& y,
+                                                       const Eigen::Ref<const Eigen::VectorXd>& y,
                                                        const Eigen::Map<Eigen::VectorXd>& coef_hat,
                                                        const Eigen::Map<Eigen::VectorXd>& mu_hat,
-                                                       int j_treat) {
+                                                       int j_treat,
+                                                       MeatFn meat_fn,
+                                                       const char* caller_name) {
   const int n = X_fit.rows();
   const int p = X_fit.cols();
   const int j_treat0 = j_treat - 1;
@@ -185,7 +192,7 @@ LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::Ma
     stop("treatment column index is out of bounds");
   }
   if (y.size() != n || coef_hat.size() != p || mu_hat.size() != n) {
-    stop("dimension mismatch in gcomp_logistic_post_fit_cpp");
+    stop("dimension mismatch in %s", caller_name);
   }
 
   for (int i = 0; i < n; ++i) {
@@ -208,8 +215,7 @@ LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::Ma
   }
 
   const Eigen::VectorXd score_resid = y - mu_hat;
-  const Eigen::VectorXd resid_sq = score_resid.array().square().matrix();
-  Eigen::MatrixXd meat = weighted_crossprod(X_fit, resid_sq);
+  Eigen::MatrixXd meat = meat_fn(score_resid);
   Eigen::MatrixXd vcov_robust = bread * meat * bread;
   vcov_robust = 0.5 * (vcov_robust + vcov_robust.transpose());
 
@@ -287,6 +293,21 @@ LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::Ma
   };
 }
 
+// HC0 meat X' diag(resid^2) X for compute_gcomp_logistic_post_fit().
+LogisticPostFitResult compute_gcomp_logistic_post_fit_hc0(const Eigen::Map<Eigen::MatrixXd>& X_fit,
+                                                           const Eigen::Ref<const Eigen::VectorXd>& y,
+                                                           const Eigen::Map<Eigen::VectorXd>& coef_hat,
+                                                           const Eigen::Map<Eigen::VectorXd>& mu_hat,
+                                                           int j_treat) {
+  return compute_gcomp_logistic_post_fit(
+    X_fit, y, coef_hat, mu_hat, j_treat,
+    [&](const Eigen::VectorXd& score_resid) {
+      const Eigen::VectorXd resid_sq = score_resid.array().square().matrix();
+      return Eigen::MatrixXd(weighted_crossprod(X_fit, resid_sq));
+    },
+    "gcomp_logistic_post_fit_cpp");
+}
+
 }  // namespace
 
 //' Fast G-Computation Post-Fit Inference for Logistic Regression (C++)
@@ -345,7 +366,7 @@ LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::Ma
 List gcomp_logistic_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, int j_treat) {
 	NumericVector y_r_coerced(y); Eigen::Map<Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-  LogisticPostFitResult result = compute_gcomp_logistic_post_fit(
+  LogisticPostFitResult result = compute_gcomp_logistic_post_fit_hc0(
     X_fit, y_vec_coerced, coef_hat, mu_hat, j_treat
   );
   return List::create(
@@ -366,7 +387,7 @@ List gcomp_logistic_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP 
 List gcomp_fractional_logit_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, int j_treat) {
 	NumericVector y_r_coerced(y); Eigen::Map<Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-  LogisticPostFitResult result = compute_gcomp_logistic_post_fit(
+  LogisticPostFitResult result = compute_gcomp_logistic_post_fit_hc0(
     X_fit, y_vec_coerced, coef_hat, mu_hat, j_treat
   );
   return List::create(
@@ -384,120 +405,24 @@ List gcomp_fractional_logit_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fi
 List gcomp_logistic_cluster_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const IntegerVector& cluster_id, int j_treat) {
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-
-  
-
-  
-
-  
-
-  
-  const int n = X_fit.rows();
-  const int p = X_fit.cols();
-  const int j_treat0 = j_treat - 1;
-
-  if (j_treat0 < 0 || j_treat0 >= p) {
-    stop("treatment column index is out of bounds");
-  }
-  if (y_vec_coerced.size() != n || coef_hat.size() != p || mu_hat.size() != n) {
-    stop("dimension mismatch in gcomp_logistic_cluster_post_fit_cpp");
-  }
-
-  for (int i = 0; i < n; ++i) {
-    const double mu_i = mu_hat[i];
-    if (!R_finite(mu_i) || mu_i <= 0.0 || mu_i >= 1.0) {
-      stop("non-finite or boundary fitted values");
-    }
-  }
-  const Eigen::VectorXd W = (mu_hat.array() * (1.0 - mu_hat.array())).matrix();
-
-  const Eigen::MatrixXd XtWX = weighted_crossprod(X_fit, W);
-  Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
-  if (ldlt.info() != Eigen::Success) {
-    stop("failed to factorize X'WX");
-  }
-
-  const Eigen::MatrixXd bread = ldlt.solve(Eigen::MatrixXd::Identity(p, p));
-  if (ldlt.info() != Eigen::Success) {
-    stop("failed to invert X'WX");
-  }
-
-  const Eigen::VectorXd score_resid = y_vec_coerced - mu_hat;
-  Eigen::MatrixXd meat = cluster_meat_gcomp(X_fit, score_resid, cluster_id);
-  Eigen::MatrixXd vcov_robust = bread * meat * bread;
-  vcov_robust = 0.5 * (vcov_robust + vcov_robust.transpose());
-
-  for (int j = 0; j < p; ++j) {
-    for (int k = 0; k < p; ++k) {
-      if (!R_finite(vcov_robust(j, k))) {
-        stop("non-finite robust covariance");
-      }
-    }
-  }
-
-  const double ssq_treat = vcov_robust(j_treat0, j_treat0);
-  if (!R_finite(ssq_treat) || ssq_treat <= 0.0) {
-    stop("non-positive treatment variance");
-  }
-
-  const Eigen::VectorXd eta = X_fit * coef_hat;
-  const Eigen::VectorXd eta_base = eta - coef_hat[j_treat0] * X_fit.col(j_treat0);
-
-  const Eigen::ArrayXd risk1_arr = plogis_array(eta_base.array() + coef_hat[j_treat0]);
-  const Eigen::ArrayXd risk0_arr = plogis_array(eta_base.array());
-  const Eigen::VectorXd risk1_i = risk1_arr.matrix();
-  const Eigen::VectorXd risk0_i = risk0_arr.matrix();
-
-  const double risk1 = risk1_i.mean();
-  const double risk0 = risk0_i.mean();
-
-  const double inv_n = 1.0 / static_cast<double>(n);
-  const Eigen::VectorXd wt1 = (risk1_arr * (1.0 - risk1_arr) * inv_n).matrix();
-  const Eigen::VectorXd wt0 = (risk0_arr * (1.0 - risk0_arr) * inv_n).matrix();
-  Eigen::VectorXd grad1 = X_fit.transpose() * wt1;
-  Eigen::VectorXd grad0 = X_fit.transpose() * wt0;
-  grad1[j_treat0] = wt1.sum();
-  grad0[j_treat0] = 0.0;
-
-  const double rd = risk1 - risk0;
-  const Eigen::VectorXd grad_rd = grad1 - grad0;
-  const Eigen::VectorXd bread_grad_rd = ldlt.solve(grad_rd);
-  const double var_rd = (bread_grad_rd.transpose() * meat * bread_grad_rd)(0, 0);
-  const double se_rd = (R_finite(var_rd) && var_rd >= 0.0) ? std::sqrt(var_rd) : NA_REAL;
-
-  double log_rr = NA_REAL;
-  double rr = NA_REAL;
-  double se_log_rr = NA_REAL;
-  if (risk1 > 0.0 && risk0 > 0.0) {
-    log_rr = std::log(risk1) - std::log(risk0);
-    rr = std::exp(log_rr);
-    const Eigen::VectorXd grad_log_rr = grad1 / risk1 - grad0 / risk0;
-    const Eigen::VectorXd bread_grad_log_rr = ldlt.solve(grad_log_rr);
-    const double var_log_rr = (bread_grad_log_rr.transpose() * meat * bread_grad_log_rr)(0, 0);
-    if (R_finite(var_log_rr) && var_log_rr >= 0.0) {
-      se_log_rr = std::sqrt(var_log_rr);
-    }
-  }
-
-  Eigen::VectorXd std_err(p);
-  Eigen::VectorXd z_vals(p);
-  for (int j = 0; j < p; ++j) {
-    const double var_j = vcov_robust(j, j);
-    std_err[j] = (R_finite(var_j) && var_j >= 0.0) ? std::sqrt(var_j) : NA_REAL;
-    z_vals[j] = (R_finite(std_err[j]) && std_err[j] > 0.0) ? coef_hat[j] / std_err[j] : NA_REAL;
-  }
-
+  // Same pipeline as gcomp_logistic_post_fit_cpp, with the cluster-robust meat.
+  LogisticPostFitResult result = compute_gcomp_logistic_post_fit(
+    X_fit, y_vec_coerced, coef_hat, mu_hat, j_treat,
+    [&](const Eigen::VectorXd& score_resid) {
+      return cluster_meat_gcomp(X_fit, score_resid, cluster_id);
+    },
+    "gcomp_logistic_cluster_post_fit_cpp");
   return List::create(
-    _["vcov"] = vcov_robust,
-    _["std_err"] = std_err,
-    _["z_vals"] = z_vals,
-    _["risk1"] = risk1,
-    _["risk0"] = risk0,
-    _["rd"] = rd,
-    _["se_rd"] = se_rd,
-    _["log_rr"] = log_rr,
-    _["rr"] = rr,
-    _["se_log_rr"] = se_log_rr
+    _["vcov"] = result.vcov,
+    _["std_err"] = result.std_err,
+    _["z_vals"] = result.z_vals,
+    _["risk1"] = result.risk1,
+    _["risk0"] = result.risk0,
+    _["rd"] = result.rd,
+    _["se_rd"] = result.se_rd,
+    _["log_rr"] = result.log_rr,
+    _["rr"] = result.rr,
+    _["se_log_rr"] = result.se_log_rr
   );
 }
 

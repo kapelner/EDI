@@ -730,7 +730,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Needs a build (owner). NEWS: Bai results may move in the last bit.
   - Done when: the Bai entries are removed from `SAME_BINARY_KNOWN_FAILURES` and the same-binary test passes 3 runs
     in a row.
-- [ ] TODO-35 (added 2026-11-16, agent, owner request; found by `test-same-binary-determinism-registry.R`,
+- [x] TODO-35 (added 2026-11-16, agent, owner request; found by `test-same-binary-determinism-registry.R`,
   cross-platform TODO-2; cause unconfirmed): **Randomization p-values of `InferenceIncidBinomialIdentityRiskDiff`,
   `InferenceIncidKKCondLogitGLMMOneLik` and `InferenceOrdinalGCompMeanDiff` depend on the worker count.**
   - Symptom, stable in 3 of 3 runs: the permutation draws match, but per-replicate estimates differ by 1e-11 to 1e-3
@@ -747,6 +747,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     not just reproducibility.
   - Done when: the three entries are removed from `SAME_BINARY_KNOWN_FAILURES` and the same-binary test passes. NEWS
     notes any p-value change.
+  - Fixed 2026-11-19 by TODO-61 (agent; owner accepted TODO-61 the same day). The "check first" step above was wrong
+    when written: the 2026-11-16 rule anchored only non-concave classes, and all three of these still chained (two are
+    listed as concave; `OrdinalGCompMeanDiff` is on neither list, so NA). TODO-61 removed chaining between replicates
+    for every class. On the current tree, `test-same-binary-determinism-registry.R` (`load_all(compile = FALSE)`)
+    passes for all three in 3 local runs; only the Bai entries (TODO-34) still fail. Their three entries were removed
+    from `SAME_BINARY_KNOWN_FAILURES`. NEWS: covered by TODO-61's entry.
 - [ ] TODO-36 (added 2026-11-16, agent, owner request; found by nightly run 43877847174): **Make KK21 and KK21stepwise
   assignments robust to last-bit floating-point differences across platforms.**
   - What was seen: with the digest test's old response (`y = x1`, an exact covariate), KK21 `w_md5` differed on every
@@ -1178,7 +1184,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `test-kk21-proportion-speedup-boundary-response-clamped.R`; bulk test un-skipped; 30 KK21 files (1262) pass.
   Open design question (both KK21 classes): the eps clamp makes a 0/1 response a +/-36 logit outlier for the OLS
   t-statistics; a milder clamp such as (y(n-1)+0.5)/n would keep more signal.
-- [ ] TODO-61 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+- [x] TODO-61 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Randomization distribution of warm-started fits depends on the core count.** The reused-worker
   randomization path (`R/EDI/R/inference_all_abstract_rand.R:672`) chains warm starts within each of `num_cores`
   chunks, so each null fit's start, and so its converged iterate, depends on the core count; for loose-tolerance fits
@@ -1186,12 +1192,14 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   the chunking (e.g. the full-data MLE, or chunk boundaries fixed independently of cores); see v1.1.0-TODO-48. The
   failing test is `R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R`
   (skipped, citing this TODO); done when the fix lands and the skip is removed.
-  Fixed 2026-11-19 (agent, uncommitted; PENDING OWNER SIGN-OFF): removed warm-start chaining between permutations in
+  Fixed 2026-11-19 (agent, uncommitted; owner accepted 2026-11-19): removed warm-start chaining between permutations in
   `compute_randomization_distr_via_reused_worker_states`; every permutation starts from the full-data fit. This
   reverses the 2026-11-16 ruling that concave classes chain (the option this TODO's own text suggests). No measurable
   slowdown (Poisson, NegBin, PropOdds). 1-core values change at tolerance level (Poisson 1e-10, HurdlePoisson 2e-5).
   `rand_likelihood_is_nonconcave()` is now unused by this loop (still referenced by a test and the call-graph
   baseline). 1-core vs 2-core (fork) now bit-identical; new `test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R` (22); bulk test un-skipped (callr-based bulk tests need a reinstall).
+  Owner ruling 2026-11-19: accepted. Randomization replicates never chain warm starts, for any class (supersedes the
+  2026-11-16 ruling that concave classes chain): every permutation starts from the full-data fit.
 - [x] TODO-62 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Hurdle negbin bootstrap-weighted fits depend on the core count.**
   `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_count_hurdle.R:442`)
@@ -2961,7 +2969,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   in v1.0.6-TODO-150, and ZOIB snapshot runtime X). New test
   `test-zoib-rand-bootstrap-null-uses-fresh-assignment.R`. Comprehensive / argument-combination ZOIB BRT rows are now
   stale. Follow-up: v1.0.6-TODO-184.
-- [ ] TODO-168 (added 2026-11-18, owner request; from v1.0.6-TODO-149): **Investigate the low coverage of the
+- [x] TODO-168 (added 2026-11-18, owner request; from v1.0.6-TODO-149): **Investigate the low coverage of the
   `InferenceIncidKKGCompRiskRatio` studentized Bayesian-bootstrap interval.** The v1.0.6-TODO-149 coverage check
   (B = 101, n = 60, 100 reps, 2 cores; Monte Carlo SE ~0.022) gave 0.90 for KK RR against 0.95 nominal (KK RD 0.95,
   ordinal 0.95), about 2 MC SEs low, and 1 of 100 intervals non-finite. The agent suspected small-sample skew of a
@@ -2980,6 +2988,17 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   OWNER DECISION: (a) switch to a symmetric studentized interval on log RR (0.93 KK, 0.91 plain) and/or (b) document
   the small-sample undercoverage and point to log Wald / percentile / log basic. Agent recommends (b), plus (a) if a
   log-scale studentized RR path is wanted for consistency.
+  Decided (owner, 2026-11-19): both. (a) Add a symmetric studentized Bayesian-bootstrap interval on log RR for the two
+  g-computation risk-ratio classes; (b) document the small-sample undercoverage of the raw-scale studentized interval
+  (about 0.89 at n = 60, 0.93 at n = 200) and point to log Wald / percentile / log basic. Agent started 2026-11-19.
+  DONE 2026-11-19 (agent, uncommitted; roxygenize pending): new `type = "symmetric-percentile-t"` in
+  `compute_bayesian_bootstrap_confidence_interval()` for `InferenceIncidGCompRiskRatio` and
+  `InferenceIncidKKGCompRiskRatio` (shared free function `edi_rr_bayesian_bootstrap_symmetric_studentized_ci()` in
+  `inference_incidence_gcomp_abstract.R`; RD classes reject it), plus a "Bayesian-bootstrap intervals" roxygen paragraph
+  on both classes. Existing six types `identical()` before/after. Coverage at n = 60, 500 reps, B = 999: KK 0.936
+  (studentized 0.892, percentile 0.945), plain 0.918 (studentized 0.900, percentile 0.920); misses balanced. 67/500 KK
+  datasets still hit the v1.0.6-TODO-192 RR = 1 replicates (0.940 on the clean 433). Test:
+  `test-gcomp-risk-ratio-bayesian-bootstrap-symmetric-log-studentized-ci.R` (35 expectations).
 - [ ] TODO-169 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **The L-BFGS wrapper declares convergence too early.** `optimize_likelihood_lbfgs`
   (`R/EDI/src/_helper_functions_core.h` ~L1361-1394) sets `past = 1`, `delta = tol` and then
   `converged = gradient_norm < tol || niter < maxit`, so any stop before the cap, including LBFGSpp's one-step
@@ -3287,26 +3306,26 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   `4ce2b712`): 32 judged (20 refactor, 3 divergence_bug, 9 intentional), 365 not yet judged.
   - `code-duplication-da35f9c8f` (`dup-1adb37d8ab20`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:534-614` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:622-701` (coordinate with v1.0.6-TODO-192, same function)
   - `code-duplication-d6b10061f` (`dup-440466dd6dc0`): `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187` -- DONE by v1.0.6-TODO-154 (uncommitted): `DesignFixed`'s override removed, one body in `Design`
-  - `code-duplication-d4e38d855` (`dup-47b3c5848e6a`): `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317`
-  - `code-duplication-d23a10708` (`dup-4ca7ca9c9237`): `R/EDI/R/inference_ordinal_ordered_probit.R:100-186` vs `R/EDI/R/inference_ordinal_proportional_odds.R:134-217`
-  - `code-duplication-dcdb7e599` (`dup-51b70d0e54ad`): `R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:367-427` vs `R/EDI/R/inference_proportion_KK_combined.R:164-224`
+  - `code-duplication-d4e38d855` (`dup-47b3c5848e6a`): `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317` -- DONE (agent, uncommitted)
+  - `code-duplication-d23a10708` (`dup-4ca7ca9c9237`): `R/EDI/R/inference_ordinal_ordered_probit.R:100-186` vs `R/EDI/R/inference_ordinal_proportional_odds.R:134-217` -- DONE (agent, uncommitted)
+  - `code-duplication-dcdb7e599` (`dup-51b70d0e54ad`): `R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:367-427` vs `R/EDI/R/inference_proportion_KK_combined.R:164-224` -- DONE (agent, uncommitted)
   - `code-duplication-dfe6e2293` (`dup-53e9eeb69c5d`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:863-970` vs `R/EDI/R/inference_incidence_gcomp.R:16-151`
-  - `code-duplication-de10bd6b1` (`dup-6af874290f8f`): `R/EDI/R/simulations_framework.R:3393-3441` vs `R/EDI/R/simulations_framework.R:3446-3494`
+  - `code-duplication-de10bd6b1` (`dup-6af874290f8f`): `R/EDI/R/simulations_framework.R:3393-3441` vs `R/EDI/R/simulations_framework.R:3446-3494` -- DONE (agent, uncommitted)
   - `code-duplication-db001874c` (`dup-847f2d57f083`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:259-462` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:296-515` (coordinate with v1.0.6-TODO-192)
-  - `code-duplication-d7e6ac7c3` (`dup-86f70c0a1fbe`): `R/EDI/R/inference_ordinal_cauchit.R:8-80` vs `R/EDI/R/inference_ordinal_ordered_probit.R:2-76`
-  - `code-duplication-d24d11c40` (`dup-8fdf724fbd87`): `R/EDI/R/simulations_framework.R:2110-2146` vs `R/EDI/R/simulations_framework.R:2157-2194`
-  - `code-duplication-d1b25b18a` (`dup-a82df7b209aa`): `R/EDI/R/inference_continuous_quantile_regr.R:50-261` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-262`
+  - `code-duplication-d7e6ac7c3` (`dup-86f70c0a1fbe`): `R/EDI/R/inference_ordinal_cauchit.R:8-80` vs `R/EDI/R/inference_ordinal_ordered_probit.R:2-76` -- DONE (agent, uncommitted)
+  - `code-duplication-d24d11c40` (`dup-8fdf724fbd87`): `R/EDI/R/simulations_framework.R:2110-2146` vs `R/EDI/R/simulations_framework.R:2157-2194` -- DONE (agent, uncommitted)
+  - `code-duplication-d1b25b18a` (`dup-a82df7b209aa`): `R/EDI/R/inference_continuous_quantile_regr.R:50-261` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-262` -- DONE (agent, uncommitted)
   - `code-duplication-d593b90a9` (`dup-e88368769f0c`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:400-427` vs `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:439-462` (coordinate with v1.0.6-TODO-192)
-  - `code-duplication-dc93f6357` (`dup-fb4cd2ec3279`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:183-232` vs `R/EDI/R/inference_incidence_risk_diff.R:217-273`
-  - `code-duplication-dc1588975` (`dup-01e154dfbad0`) [C++]: `R/EDI/src/gcomp_speedups.cpp:175-276` vs `R/EDI/src/gcomp_speedups.cpp:384-490`
-  - `code-duplication-d1a5a5abe` (`dup-5997356561a2`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:100-387` vs `R/EDI/src/fast_ordinal_cloglog_regression.cpp:108-386`
-  - `code-duplication-da540c45e` (`dup-7640a4a65caa`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82`
-  - `code-duplication-d4d992420` (`dup-b4945bb7ace9`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:636-663` vs `R/EDI/src/fast_gaussian_lmm.cpp:683-710`
-  - `code-duplication-dd690bfdc` (`dup-b82ef667e0cb`) [C++]: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211`
-  - `code-duplication-d730a0bdd` (`dup-b84f50f38a71`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381`
-  - `code-duplication-dee72312b` (`dup-be7f39dede8f`) [C++]: `R/EDI/src/fast_cpoisson_combined.cpp:87-124` vs `R/EDI/src/fast_cpoisson_combined.cpp:346-395`
+  - `code-duplication-dc93f6357` (`dup-fb4cd2ec3279`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:183-232` vs `R/EDI/R/inference_incidence_risk_diff.R:217-273` -- DONE (agent, uncommitted)
+  - `code-duplication-dc1588975` (`dup-01e154dfbad0`) [C++]: `R/EDI/src/gcomp_speedups.cpp:175-276` vs `R/EDI/src/gcomp_speedups.cpp:384-490` -- DONE (agent, uncommitted; verified by kernel swap): `compute_gcomp_logistic_post_fit()` is now a template taking the meat as a functor; HC0 and cluster exports both call it
+  - `code-duplication-d1a5a5abe` (`dup-5997356561a2`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:100-387` vs `R/EDI/src/fast_ordinal_cloglog_regression.cpp:108-386` -- DONE (agent, uncommitted; verified by kernel swap): one template `edi_ordinal::fixed_link_ordinal_internal<Model>()` (+ shared score/Hessian templates) in new header `R/EDI/src/ordinal_fixed_link_internal.h`, shared with probit; the cloglog validation-order drift is kept as an explicit policy flag (bit-identical), not fixed
+  - `code-duplication-da540c45e` (`dup-7640a4a65caa`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82` -- PATCHED, needs owner build: soft_barrier trio moved into `_glmm_engine.h` (namespace glmm), both files use `glmm::gauss_hermite_rule`; hurdle half verified by kernel swap, `fast_poisson_glmm.cpp` cannot be sourceCpp'd standalone (needs `fast_poisson_regression_internal` from another TU)
+  - `code-duplication-d4d992420` (`dup-b4945bb7ace9`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:636-663` vs `R/EDI/src/fast_gaussian_lmm.cpp:683-710` -- DONE (agent, uncommitted; verified by kernel swap): static `build_lmm_data()` in the same file
+  - `code-duplication-dd690bfdc` (`dup-b82ef667e0cb`) [C++]: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211` -- DONE (agent, uncommitted; verified by kernel swap): static inline `compound_beta_hat()` in the same file
+  - `code-duplication-d730a0bdd` (`dup-b84f50f38a71`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381` -- DONE (agent, uncommitted; verified by kernel swap): same shared template as the cauchit/cloglog item; probit's NaN guard on ssq_b_j and its missing K<2 early return are kept as explicit policy flags (bit-identical), not unified
+  - `code-duplication-dee72312b` (`dup-be7f39dede8f`) [C++]: `R/EDI/src/fast_cpoisson_combined.cpp:87-124` vs `R/EDI/src/fast_cpoisson_combined.cpp:346-395` -- DONE (agent, uncommitted; verified by kernel swap): the Newton loop now calls `cpoisson_combined_score_info_cpp_impl()` (new `want_info` flag skips the info on the warm-start iteration)
 
-- [ ] TODO-194 (added 2026-11-19, owner request; from the code-duplication audit, decisions `code-duplication-d3fc63ea7`
+- [x] TODO-194 (added 2026-11-19, owner request; from the code-duplication audit, decisions `code-duplication-d3fc63ea7`
   (`dup-eb9320e6bb57`, p-value path) and `code-duplication-d61e30e3a` (`dup-7bbada5cb607`, CI path); one drift on two
   paths, so one TODO): **PRW subsampling swallows timeouts that m-out-of-n honours.** The m-out-of-n CI, p-value and
   pivot paths (`inference_ext_m_out_of_n_bootstrap.R` ~L144-172, ~L212-239) call
@@ -3318,7 +3337,14 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   `compute_resampling_draw_distribution()` still checks the deadline per replicate). Repro: set
   `options(EDI.ci_timeout_deadline)` in the past and compare the two CI calls. Fix: same deadline check and error
   handler as m-out-of-n; ideally merge the two setups into one helper. Test both paths.
-
+  Done 2026-11-19 (agent, uncommitted): new shared private helper `resampling_centered_pivot_for_inference(family,
+  target, ...)` (`inference_ext_exchangeable_resampling_units.R`, registered in `contracts_mixins.R`) replaces the four
+  duplicated m-out-of-n / subsampling p-value and CI setups; subsampling's pivot, distribution and size evaluator now
+  check the deadline and use `resampling_error_to_na`. Repro: a timeout inside `compute_estimate` was swallowed by
+  subsampling (NA, `subsampling_original_estimate_unavailable`), now re-thrown. Bit-identical on 14 runs (7 classes,
+  harden on/off). New `test-subsampling-honours-timeouts-like-m-out-of-n.R` (35); 19 resampling bulk files pass;
+  migration baseline re-pinned to 343/346/354/327/340 (only this helper). Resolves code-duplication decisions
+  `code-duplication-d3fc63ea7` and `code-duplication-d61e30e3a`. Follow-ups: v1.0.6-TODO-196.
 - [ ] TODO-195 (added 2026-11-19, agent; found by the v1.0.6-TODO-186 agent): **Leftovers from the zero-augmented
   identification fix.** (1) The KK hurdle classes (`InferenceCountKKHurdlePoissonOneLik`, `...IVWC`,
   `inference_count_KK_cond_poisson.R`) use a separate path and were not checked for the same unidentified count-part
@@ -3328,7 +3354,22 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   (`zero_augmented_data_has_no_mle`) and the point estimate is still returned. (4) `fast_zero_augmented_poisson_cpp`
   with `y = NULL` segfaults instead of erroring (C++ input check).
 
-
+- [x] TODO-196 (added 2026-11-19, agent; found by the v1.0.6-TODO-194 agent): **More resampling paths swallow
+  timeouts, and the RR classes reject a list `b`/`m`.** (1) `compute_rr_resampling_pivot()`
+  (`inference_incidence_gcomp_abstract.R` ~L404, `inference_incidence_KK_gcomp_abstract.R` ~L358) reads the original
+  estimate with `error = function(e) NA_real_`, so a timeout inside `compute_estimate` is swallowed on both
+  subsampling and m-out-of-n for the RR classes; use `resampling_error_to_na`. (2)
+  `InferenceIncidGCompRiskRatio$compute_subsampling_confidence_interval(b = list(...))` fails with "b selection must
+  be resolved before drawing." because the RR pivot passes the list straight to `resolve_resampling_size`; route it
+  through `resampling_centered_pivot_for_inference()` or resolve the size first. (3) `select_optimal_resample_size()`
+  (`inference_ext_minimum_volatility_selector.R` ~L39) turns any evaluator error, timeouts included, into a
+  non-estimable candidate; re-throw control conditions. Coordinate with v1.0.6-TODO-191 / -192 (same RR files).
+  Done 2026-11-19 (agent, uncommitted): (1) `compute_rr_resampling_pivot()` (both g-comp files) reads the estimate with
+  `resampling_error_to_na`; (2) list `b`/`m` resolved via new private helper `select_resampling_size_from_spec()`
+  (`inference_ext_exchangeable_resampling_units.R`, registered in `contracts_mixins.R`, also used by the generic setup);
+  (3) `select_optimal_resample_size()` re-throws control conditions. 72-entry before/after check identical except the 8
+  RR list-size calls (error -> finite). New `test-risk-ratio-resampling-honours-timeouts-and-list-sizes.R` (87); 46
+  related files pass; migration baseline re-pinned to 344/347/355/328/341 (this helper only).
 - [ ] TODO-197 (added 2026-11-19, agent, owner request; found by the Phase 0 algorithm-research bench run 44048167550,
   finding `beta-regression-mle#43925959437.1`): **Every `betareg` call in EDI fails, so the beta fits silently fall
   back to OLS on logit(y).** All three call sites pass `betareg::betareg.control(start = list(phi = ...))`. In betareg
@@ -3378,3 +3419,25 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   (coordinate with the proportion-fixture item in this file, which edits the same generator family). Done when every
   example runs warning-free under the audit's 5 seeds, or a warning that is the point of the example is wrapped in
   `suppressWarnings(..., classes = ...)` with a comment saying why.
+
+- [ ] TODO-201 (added 2026-11-19, agent; found by the v1.0.6-TODO-193 R-refactor agent; owner decision, changes
+  results): **`InferenceOrdinalPropOddsRegr` lacks `supports_fisher_information()`, unlike its probit sibling.** The
+  code-duplication audit (`dup-4ca7ca9c9237`) flagged it as a drift. Adding it changes the testing types offered and the
+  information source PropOdds uses, so it was left out of the bit-identical refactor. Decide whether PropOdds should
+  support it (and check cauchit / cloglog for the same gap), then add it with a test and a NEWS line.
+
+- [ ] TODO-202 (added 2026-11-19, coordinator; seen by the v1.0.6-TODO-193 R-refactor agent):
+  **`test-inference-migration-harness.R` fails at its custom-randomization block (~L168).** `expect_silent` now catches
+  `edi_perfect_predictor_warning` (v1.0.6-TODO-158) and an `edi_procedure_na_warning` (v1.0.6-TODO-136/-145/-165) from
+  `InferenceRandCustom`. Check whether the fixture really has a perfect predictor and a silent-NA path (then the
+  warnings are correct: muffle by class or change the fixture) or whether a warning fires where it should not (then fix
+  the code).
+- [ ] TODO-203 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-193 C++-refactor agent):
+  **The three fixed-link ordinal kernels (cauchit, cloglog, probit) disagree on edge cases.** The v1.0.6-TODO-193 merge
+  into `R/EDI/src/ordinal_fixed_link_internal.h` kept each difference as an explicit `FixedLinkFitSpec` policy flag so
+  the refactor stayed bit-identical; this TODO is to decide one behavior and test it:
+  - cloglog validates `warm_start_fisher_info` before the K < 2 early return; cauchit returns first.
+  - probit has no K < 2 early return at all.
+  - probit maps a non-finite or non-positive `ssq_b_j` to NaN; cauchit and cloglog pass it through.
+  - cauchit's `_with_var` returns a list of NAs where probit returns an empty list.
+  Needs the owner's build to verify (C++).

@@ -1,0 +1,232 @@
+#ifndef EDI_ORDINAL_FIXED_LINK_INTERNAL_H
+#define EDI_ORDINAL_FIXED_LINK_INTERNAL_H
+
+// Shared fit + vcov pipeline for the fixed-link cumulative ordinal kernels
+// (cauchit, cloglog, probit). v1.0.6-TODO-193 (code-duplication audit
+// families dup-5997356561a2 and dup-b84f50f38a71): the three *_internal
+// functions and their score / Hessian exports were near-identical copies.
+//
+// This is a pure refactor: every kernel keeps its exact previous behavior,
+// including the places where the three copies had drifted apart. Those
+// differences are spelled out in FixedLinkFitSpec below rather than
+// silently unified, because unifying them would change results:
+//   * degenerate y (fewer than 2 levels): cauchit returns an empty ResultMap
+//     before validating warm_start_fisher_info; cloglog validates first and
+//     then returns empty; probit has no early return at all;
+//   * probit maps a non-finite or non-positive ssq_b_j to NaN; cauchit and
+//     cloglog pass it through.
+//
+// Lives in its own header (not ordinal_fixed_link_helpers.h) because
+// _helper_functions_core.h includes ordinal_fixed_link_helpers.h, while this
+// template needs FixedParamSpec, OrdinalStart, optimize_fixed_likelihood and
+// edi::ResultMap from the core helpers. Include it after the kernel's own
+// _helper_functions / result_map includes.
+
+#ifdef EDI_CORE_ONLY
+#include "_helper_functions_core.h"
+#include "result_map.h"
+#else
+#include "_helper_functions.h"
+#include "result_map_rcpp.h"
+#include <Rcpp.h>
+#include <RcppEigen.h>
+#endif
+#include "ordinal_fixed_link_helpers.h"
+#include "ordinal_scale_guard.h"
+#include <limits>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <variant>
+
+namespace edi_ordinal {
+
+enum class DegenerateLevelsPolicy {
+    EmptyBeforeValidation,  // K < 2: return an empty ResultMap first (cauchit)
+    EmptyAfterValidation,   // validate warm_start_fisher_info, then empty (cloglog)
+    NoEarlyReturn           // no K < 2 special case (probit)
+};
+
+struct FixedLinkFitSpec {
+    Link link;
+    // Legacy cold-start threshold k (0-based) out of K levels.
+    double (*legacy_alpha)(int k, int K);
+    DegenerateLevelsPolicy degenerate_policy;
+    // true: a non-finite or non-positive ssq_b_j becomes NaN (probit).
+    bool nan_nonpositive_ssq;
+};
+
+template <class Model>
+edi::ResultMap fixed_link_ordinal_internal(
+    const FixedLinkFitSpec& spec,
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::VectorXd>& y,
+    std::optional<Eigen::VectorXd> warm_start_params,
+    bool smart_cold_start,
+    int maxit,
+    double tol,
+    std::string optimization_alg,
+    std::optional<Eigen::VectorXi> fixed_idx,
+    std::optional<Eigen::VectorXd> fixed_values,
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+    bool estimate_only
+) {
+    using Eigen::MatrixXd;
+    using Eigen::VectorXd;
+
+    Model model(X, y);
+    const int p = (int)X.cols();
+    const int K = (int)init_levels(y).size();
+    if (spec.degenerate_policy == DegenerateLevelsPolicy::EmptyBeforeValidation && K < 2)
+        return edi::ResultMap();
+    const int n_alpha = (spec.degenerate_policy == DegenerateLevelsPolicy::EmptyAfterValidation)
+        ? (K > 1 ? K - 1 : 0)
+        : K - 1;
+    const int n_params = n_alpha + p;
+
+    require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
+    if (spec.degenerate_policy == DegenerateLevelsPolicy::EmptyAfterValidation && K < 2)
+        return edi::ResultMap();
+
+    VectorXd params(n_params);
+    FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);
+    if (warm_start_params.has_value()) {
+        params = *warm_start_params;
+        if (params.size() != n_params) throw std::invalid_argument("warm_start_params must have length equal to the number of model parameters");
+    } else {
+        OrdinalStart legacy_start;
+        legacy_start.alpha = VectorXd(n_alpha);
+        for (int k = 0; k < n_alpha; ++k) {
+            legacy_start.alpha[k] = spec.legacy_alpha(k, K);
+        }
+        legacy_start.beta = VectorXd::Zero(p);
+        params = ordinal_start_to_params(
+            smart_cold_start ? ordinal_smart_cold_start_or_legacy(X, y, spec.link, legacy_start, fixed_spec)
+                        : legacy_start
+        );
+    }
+
+    params = apply_fixed_values(params, fixed_spec);
+
+    MatrixXd info_start;
+    const MatrixXd* info_start_ptr = nullptr;
+    if (warm_start_fisher_info.has_value()) {
+        info_start = *warm_start_fisher_info;
+        info_start_ptr = &info_start;
+    }
+
+    LikelihoodFitResult fit = optimize_fixed_likelihood(model, params, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
+    params = fit.params;
+    if (fit.converged && ordinal_covariates_badly_scaled(X) &&
+        !ordinal_newton_decrement_ok(model, fit.params, fixed_spec, tol)) fit.converged = false;
+
+    if (estimate_only) {
+        return edi::ResultMap()
+            .set("b", params.tail(p))
+            .set("alpha", params.head(n_alpha))
+            .set("n_params", n_params)
+            .set("params", params)
+            .set("converged", fit.converged)
+            .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
+    }
+
+    MatrixXd H_full = model.hessian(params);
+
+    double ssq_b_2 = std::numeric_limits<double>::quiet_NaN();
+    MatrixXd vcov;
+    bool have_vcov = false;
+    if (fit.converged) {
+        FixedParameterFunctor<Model> fixed_obj(model, fixed_spec, params);
+        VectorXd params_free = subset_vector(params, fixed_spec.free_idx);
+        MatrixXd H_free = fixed_obj.hessian(params_free);
+        const int n_alpha2 = n_params - p;
+        int free_j = -1;
+        for (int jj = 0; jj < (int)fixed_spec.free_idx.size(); ++jj)
+            if (fixed_spec.free_idx[jj] == n_alpha2) { free_j = jj + 1; break; }
+        if (p >= 1 && free_j > 0) {
+            ssq_b_2 = compute_diagonal_inverse_entry(H_free, free_j);
+            if (spec.nan_nonpositive_ssq && (!std::isfinite(ssq_b_2) || ssq_b_2 <= 0))
+                ssq_b_2 = std::numeric_limits<double>::quiet_NaN();
+        }
+        MatrixXd cov_free = covariance_from_information(H_free);
+        vcov = expand_free_covariance(n_params, fixed_spec, cov_free, true);
+        have_vcov = true;
+    }
+
+    edi::ResultMap rm = edi::ResultMap()
+        .set("b", params.tail(p))
+        .set("alpha", params.head(n_alpha))
+        .set("n_params", n_params)
+        .set("params", params)
+        .set("neg_loglik", fit.value)
+        .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+        .set("ssq_b_j", ssq_b_2)
+        .set("observed_information", H_full)
+        .set("fisher_information", H_full)
+        .set("information", H_full)
+        .set("information_type", std::string("observed"));
+    if (have_vcov) {
+        rm.set("vcov", vcov);
+    } else {
+        rm.set("vcov", std::monostate{});
+    }
+    return rm;
+}
+
+#ifndef EDI_CORE_ONLY
+// Score (gradient of the log-likelihood) at params, with any fixed entries
+// overwritten by fixed_values first. Shared by the three *_score_cpp exports.
+template <class Model>
+Eigen::VectorXd fixed_link_ordinal_score(const Rcpp::NumericMatrix& X,
+                                         const Rcpp::NumericVector& y,
+                                         const Rcpp::NumericVector& params,
+                                         Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx,
+                                         Rcpp::Nullable<Rcpp::NumericVector> fixed_values) {
+    Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
+    Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
+    Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
+
+    Model model(map_X, map_y);
+    FixedParamSpec fixed_spec = make_fixed_param_spec(
+        map_params.size(),
+        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+        nullable_to_optional<Eigen::VectorXd>(fixed_values));
+    Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
+    Eigen::VectorXd grad(par.size());
+    model(par, grad);
+    return -grad;
+}
+
+// Hessian of the log-likelihood (negative observed information) at params.
+// Shared by the three *_hessian_cpp exports.
+template <class Model>
+Eigen::MatrixXd fixed_link_ordinal_hessian(const Rcpp::NumericMatrix& X,
+                                           const Rcpp::NumericVector& y,
+                                           const Rcpp::NumericVector& params,
+                                           Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx,
+                                           Rcpp::Nullable<Rcpp::NumericVector> fixed_values) {
+    Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
+    Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
+    Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
+
+    Model model(map_X, map_y);
+    FixedParamSpec fixed_spec = make_fixed_param_spec(
+        map_params.size(),
+        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+        nullable_to_optional<Eigen::VectorXd>(fixed_values));
+    Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
+    return -model.hessian(par);
+}
+#endif // EDI_CORE_ONLY
+
+}  // namespace edi_ordinal
+
+#endif // EDI_ORDINAL_FIXED_LINK_INTERNAL_H

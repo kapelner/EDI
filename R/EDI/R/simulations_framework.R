@@ -2108,59 +2108,24 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     n_progress_lines         = 5L,
     # ── Design spec parsing ───────────────────────────────────────────────────
     .parse_design_classes_and_params = function(spec, eval_env) {
-      if (is.null(spec)) {
-        classes = private$.default_design_classes()
-        return(list(classes = classes, params = lapply(classes, function(...) list())))
-      }
-      if (!is.list(spec))
-        stop("design_classes_and_params must be NULL or a list")
-      nm = names(spec)
-      if (is.null(nm)) nm = rep("", length(spec))
-      classes = vector("list", length(spec))
-      params  = vector("list", length(spec))
-      for (i in seq_along(spec)) {
-        entry_name = nm[[i]]
-        entry      = spec[[i]]
-        if (inherits(entry, "R6ClassGenerator")) {
-          classes[[i]] = entry
-          params[[i]]  = list()
-          next
-        }
-        if (!nzchar(entry_name)) {
-          stop(
-            "design_classes_and_params[[", i, "]] must be an R6 class generator ",
-            "or a named parameter list whose name is the design class"
-          )
-        }
-        cls = private$.resolve_design_class(entry_name, eval_env)
-        if (!inherits(cls, "R6ClassGenerator"))
-          stop("design class '", entry_name, "' is not an R6 class generator")
-        if (is.null(entry)) {
-          entry = list()
-        } else if (!is.list(entry)) {
-          stop("design_classes_and_params[['", entry_name, "']] must be a list of parameters")
-        }
-        classes[[i]] = cls
-        params[[i]]  = entry
-      }
-      list(classes = classes, params = params)
-    },
-    .resolve_design_class = function(class_name, eval_env) {
-      if (exists(class_name, envir = eval_env, inherits = TRUE))
-        return(get(class_name, envir = eval_env, inherits = TRUE))
-      ns = asNamespace("EDI")
-      if (exists(class_name, envir = ns, inherits = FALSE))
-        return(get(class_name, envir = ns, inherits = FALSE))
-      stop("could not find design class '", class_name, "'")
+      private$.parse_class_spec("design", spec, eval_env)
     },
     # ── Inference spec parsing ────────────────────────────────────────────────
     .parse_inference_classes_and_params = function(spec, eval_env) {
+      private$.parse_class_spec("inference", spec, eval_env)
+    },
+    # One parser for both class specs (v1.0.6-TODO-193); kind is "design" or
+    # "inference". Only inference constructor arguments are checked against
+    # initialize() here (.validate_r6_init_args()); design parameters are
+    # combined with response_type and n later.
+    .parse_class_spec = function(kind, spec, eval_env) {
+      arg_name = paste0(kind, "_classes_and_params")
       if (is.null(spec)) {
-        classes = private$.default_inference_classes()
+        classes = if (identical(kind, "design")) private$.default_design_classes() else private$.default_inference_classes()
         return(list(classes = classes, params = lapply(classes, function(...) list())))
       }
       if (!is.list(spec))
-        stop("inference_classes_and_params must be NULL or a list")
+        stop(arg_name, " must be NULL or a list")
       nm = names(spec)
       if (is.null(nm)) nm = rep("", length(spec))
       classes = vector("list", length(spec))
@@ -2175,31 +2140,31 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         }
         if (!nzchar(entry_name)) {
           stop(
-            "inference_classes_and_params[[", i, "]] must be an R6 class generator ",
-            "or a named parameter list whose name is the inference class"
+            arg_name, "[[", i, "]] must be an R6 class generator ",
+            "or a named parameter list whose name is the ", kind, " class"
           )
         }
-        cls = private$.resolve_inference_class(entry_name, eval_env)
+        cls = private$.resolve_class(kind, entry_name, eval_env)
         if (!inherits(cls, "R6ClassGenerator"))
-          stop("inference class '", entry_name, "' is not an R6 class generator")
+          stop(kind, " class '", entry_name, "' is not an R6 class generator")
         if (is.null(entry)) {
           entry = list()
         } else if (!is.list(entry)) {
-          stop("inference_classes_and_params[['", entry_name, "']] must be a list of parameters")
+          stop(arg_name, "[['", entry_name, "']] must be a list of parameters")
         }
-        private$.validate_r6_init_args(cls, entry, "inference_classes_and_params")
+        if (identical(kind, "inference")) private$.validate_r6_init_args(cls, entry, arg_name)
         classes[[i]] = cls
         params[[i]]  = entry
       }
       list(classes = classes, params = params)
     },
-    .resolve_inference_class = function(class_name, eval_env) {
+    .resolve_class = function(kind, class_name, eval_env) {
       if (exists(class_name, envir = eval_env, inherits = TRUE))
         return(get(class_name, envir = eval_env, inherits = TRUE))
       ns = asNamespace("EDI")
       if (exists(class_name, envir = ns, inherits = FALSE))
         return(get(class_name, envir = ns, inherits = FALSE))
-      stop("could not find inference class '", class_name, "'")
+      stop("could not find ", kind, " class '", class_name, "'")
     },
     .validate_r6_init_args = function(r6gen, args, arg_name) {
       if (length(args) == 0L) return(invisible(TRUE))
@@ -3365,6 +3330,31 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             )
             if (!is.null(progress_cb)) progress_cb()
           }
+          # One inference call of the given type: errors become an error record
+          # (handle_error() returns a fatal result to propagate when the run
+          # stops on error) or the type's NA fallback (v1.0.6-TODO-193).
+          call_inference = function(type, method, args, na_value) {
+            tryCatch(do.call(inf_obj[[method]], args), error = function(e) {
+              fatal = handle_error(make_error(
+                stage = "inference_call",
+                design = design_name,
+                design_params = design_extra,
+                inference = inf_name,
+                inference_params = inf_ctor_extra,
+                inference_type = type,
+                inference_type_params = args,
+                message = conditionMessage(e),
+                metadata = list(
+                  method = method,
+                  design_class = design_gen$classname,
+                  inference_class = inf_gen$classname,
+                  condition_class = class(e)
+                )
+              ))
+              if (!is.null(fatal)) return(fatal)
+              na_value
+            })
+          }
           # Advance progress for already-present results (cached)
           if (!is.null(progress_cb) && length(valid_inference_types) > length(pending_inference_types)) {
              already_done = length(valid_inference_types) - length(pending_inference_types)
@@ -3374,51 +3364,13 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (supports_asymp_inference(inf_obj) && any(c("asymp_ci", "asymp_pval") %in% pending_inference_types)) {
             if ("asymp_pval" %in% pending_inference_types) {
               args = get_args("asymp_pval")
-              pval_a = tryCatch(do.call(inf_obj$compute_asymp_two_sided_pval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "asymp_pval",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_asymp_two_sided_pval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                NA_real_
-              })
+              pval_a = call_inference("asymp_pval", "compute_asymp_two_sided_pval", args, NA_real_)
               if (is.list(pval_a) && !is.null(pval_a$fatal_error)) return(pval_a)
               local_record("asymp_pval", c(NA_real_, NA_real_), pval_a)
             }
             if ("asymp_ci" %in% pending_inference_types) {
               args = get_args("asymp_ci", list(alpha = state$alpha))
-              ci_a = tryCatch(do.call(inf_obj$compute_asymp_confidence_interval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "asymp_ci",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_asymp_confidence_interval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                c(NA_real_, NA_real_)
-              })
+              ci_a = call_inference("asymp_ci", "compute_asymp_confidence_interval", args, c(NA_real_, NA_real_))
               if (is.list(ci_a) && !is.null(ci_a$fatal_error)) return(ci_a)
               local_record("asymp_ci", ci_a, NA_real_)
             }
@@ -3427,51 +3379,13 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (supports_exact_inference(inf_obj) && any(c("exact_ci", "exact_pval") %in% pending_inference_types)) {
             if ("exact_pval" %in% pending_inference_types) {
               args = get_args("exact_pval")
-              pval_e = tryCatch(do.call(inf_obj$compute_exact_two_sided_pval_for_treatment_effect, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "exact_pval",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_exact_two_sided_pval_for_treatment_effect",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                NA_real_
-              })
+              pval_e = call_inference("exact_pval", "compute_exact_two_sided_pval_for_treatment_effect", args, NA_real_)
               if (is.list(pval_e) && !is.null(pval_e$fatal_error)) return(pval_e)
               local_record("exact_pval", c(NA_real_, NA_real_), pval_e)
             }
             if ("exact_ci" %in% pending_inference_types) {
               args = get_args("exact_ci", list(alpha = state$alpha))
-              ci_e = tryCatch(do.call(inf_obj$compute_exact_confidence_interval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "exact_ci",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_exact_confidence_interval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                c(NA_real_, NA_real_)
-              })
+              ci_e = call_inference("exact_ci", "compute_exact_confidence_interval", args, c(NA_real_, NA_real_))
               if (is.list(ci_e) && !is.null(ci_e$fatal_error)) return(ci_e)
               local_record("exact_ci", ci_e, NA_real_)
             }
@@ -3480,51 +3394,13 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (supports_nonparam_bootstrap_inference(inf_obj) && any(c("boot_ci", "boot_pval") %in% pending_inference_types)) {
             if ("boot_pval" %in% pending_inference_types) {
               args = get_args("boot_pval", list(B = state$B_boot, na.rm = TRUE))
-              pval_b = tryCatch(do.call(inf_obj$compute_bootstrap_two_sided_pval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "boot_pval",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_bootstrap_two_sided_pval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                NA_real_
-              })
+              pval_b = call_inference("boot_pval", "compute_bootstrap_two_sided_pval", args, NA_real_)
               if (is.list(pval_b) && !is.null(pval_b$fatal_error)) return(pval_b)
               local_record("boot_pval", c(NA_real_, NA_real_), pval_b)
             }
             if ("boot_ci" %in% pending_inference_types) {
               args = get_args("boot_ci", list(B = state$B_boot, alpha = state$alpha, na.rm = TRUE, show_progress = FALSE))
-              ci_b = tryCatch(do.call(inf_obj$compute_bootstrap_confidence_interval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "boot_ci",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_bootstrap_confidence_interval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                c(NA_real_, NA_real_)
-              })
+              ci_b = call_inference("boot_ci", "compute_bootstrap_confidence_interval", args, c(NA_real_, NA_real_))
               if (is.list(ci_b) && !is.null(ci_b$fatal_error)) return(ci_b)
               local_record("boot_ci", ci_b, NA_real_)
             }
@@ -3533,26 +3409,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (supports_inference_capability(inf_obj, "randomization_test") && any(c("rand_ci", "rand_pval") %in% pending_inference_types)) {
             if ("rand_pval" %in% pending_inference_types) {
               args = get_args("rand_pval", list(r = state$r_rand, na.rm = TRUE, show_progress = FALSE))
-              pval_r = tryCatch(do.call(inf_obj$compute_rand_two_sided_pval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "rand_pval",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_rand_two_sided_pval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                NA_real_
-              })
+              pval_r = call_inference("rand_pval", "compute_rand_two_sided_pval", args, NA_real_)
               if (is.list(pval_r) && !is.null(pval_r$fatal_error)) return(pval_r)
               local_record("rand_pval", c(NA_real_, NA_real_), pval_r)
             }
@@ -3560,26 +3417,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
                 supports_inference_capability(inf_obj, "randomization_ci") &&
                 state$response_type %in% c("continuous", "proportion", "count")) {
               args = get_args("rand_ci", list(r = state$r_rand, alpha = state$alpha, pval_epsilon = state$pval_epsilon, show_progress = FALSE))
-              ci_r = tryCatch(do.call(inf_obj$compute_rand_confidence_interval, args), error = function(e) {
-                fatal = handle_error(make_error(
-                  stage = "inference_call",
-                  design = design_name,
-                  design_params = design_extra,
-                  inference = inf_name,
-                  inference_params = inf_ctor_extra,
-                  inference_type = "rand_ci",
-                  inference_type_params = args,
-                  message = conditionMessage(e),
-                  metadata = list(
-                    method = "compute_rand_confidence_interval",
-                    design_class = design_gen$classname,
-                    inference_class = inf_gen$classname,
-                    condition_class = class(e)
-                  )
-                ))
-                if (!is.null(fatal)) return(fatal)
-                c(NA_real_, NA_real_)
-              })
+              ci_r = call_inference("rand_ci", "compute_rand_confidence_interval", args, c(NA_real_, NA_real_))
               if (is.list(ci_r) && !is.null(ci_r$fatal_error)) return(ci_r)
               local_record("rand_ci", ci_r, NA_real_)
             }

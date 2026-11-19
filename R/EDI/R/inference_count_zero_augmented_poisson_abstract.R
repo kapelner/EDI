@@ -863,7 +863,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				n_vc = ncol(Xzi_fit) + 1L
 				has_vc = !is.null(private$cached_vc_params) && length(private$cached_vc_params) == n_vc && all(is.finite(private$cached_vc_params))
 				fit = tryCatch(
-					fast_zinb_cpp(
+					fast_zinb_cpp_guarded(
 						X = X_fit, y = as.numeric(private$y), Xzi = Xzi_fit,
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -1000,7 +1000,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				fit_null = function(delta, start = NULL){
 					warm_fisher = private$get_fit_warm_start_fisher(start_len)
 					fit_from = function(warm_start_params) if (is_zinb) {
-						fast_zinb_cpp(
+						fast_zinb_cpp_guarded(
 							X = X_fit,
 							y = y,
 							Xzi = Xzi_fit,
@@ -1182,7 +1182,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				ws_args = private$get_backend_warm_start_args(n_params)
 				fit_error = NULL
 				fit = tryCatch(
-					fast_zinb_cpp(
+					fast_zinb_cpp_guarded(
 						X = X_fit, y = as.numeric(private$y), Xzi = Xzi_fit,
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -1436,7 +1436,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			sim_fix = private$zero_inflation_fixed_args(y_sim, ncol(X), ncol(Xzi))
 			full_res = tryCatch(
 				if (is_zinb) {
-					fast_zinb_cpp(
+					fast_zinb_cpp_guarded(
 						X = X, y = as.numeric(y_sim), Xzi = Xzi,
 						smart_cold_start = private$smart_cold_start_default,
 						estimate_only = FALSE,
@@ -1469,7 +1469,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					null_fix = private$zero_inflation_fixed_args(y_sim, ncol(X), ncol(Xzi), extra_idx = j, extra_values = d)
 					fit = tryCatch(
 						if (is_zinb) {
-							fast_zinb_cpp(
+							fast_zinb_cpp_guarded(
 								X = X, y = as.numeric(y_sim), Xzi = Xzi,
 								warm_start_params = ws,
 								smart_cold_start = private$smart_cold_start_default,
@@ -1625,4 +1625,87 @@ zero_augmented_count_treatment_identified = function(X_fit, y, j_treat = 2L, wei
 	X_pos = X_fit[keep, , drop = FALSE]
 	if (any(!is.finite(X_pos))) return(FALSE)
 	qr(X_pos)$rank > qr(X_pos[, -j_treat, drop = FALSE])$rank
+}
+
+# v1.1.0-TODO-217 (2026-11-19): ZINB negative log-likelihood in R, for comparing two
+# fast_zinb_cpp() fits (its estimate_only results carry no neg_loglik). params =
+# c(beta_count, beta_zero, log_theta), the C++ layout; zi_off = TRUE evaluates the
+# zero-inflation-off limit (pi = 0), which is what a "NegBinNoZI" boundary fit stands for.
+zinb_neg_loglik_r = function(params, X, Xzi, y, zi_off = FALSE) {
+	p = ncol(X); pz = ncol(Xzi)
+	params = as.numeric(params)
+	if (length(params) != p + pz + 1L || any(!is.finite(params))) return(NA_real_)
+	mu = exp(drop(X %*% params[seq_len(p)]))
+	theta = exp(params[p + pz + 1L])
+	ll_nb = stats::dnbinom(y, size = theta, mu = mu, log = TRUE)
+	if (isTRUE(zi_off)) return(-sum(ll_nb))
+	eta_z = drop(Xzi %*% params[p + seq_len(pz)])
+	log_pi = stats::plogis(eta_z, log.p = TRUE)
+	log_1mpi = stats::plogis(eta_z, lower.tail = FALSE, log.p = TRUE)
+	ll = ifelse(y == 0, pmax(log_pi, log_1mpi + ll_nb) + log1p(exp(-abs(log_pi - (log_1mpi + ll_nb)))), log_1mpi + ll_nb)
+	-sum(ll)
+}
+
+# v1.1.0-TODO-217 (2026-11-19): fast_zinb_cpp() with a guard against a wrong
+# (non-MLE) fit. Newton-Raphson (the class default), started from a warm start
+# such as the full-data MLE, has two failure modes on ZINB data whose
+# zero-inflation logit is flat or separated:
+#   * it steps into the region where every zero-inflation linear predictor is
+#     below -10, and fast_zinb.cpp's fit_zinb_zi_boundary_fallback() accepts the
+#     zero-inflation-off NegBin fit ("NegBinNoZI", zero_inflation_at_boundary =
+#     TRUE) without checking that an interior fit has a lower negative
+#     log-likelihood;
+#   * it runs off along a separation ridge (zero-inflation coefficients ~1e5)
+#     and accept_zinb_near_stationary_gradient() reports converged = TRUE with a
+#     gradient norm ~1e-2, at a higher negative log-likelihood than the MLE.
+# Randomization draws are warm-started from the full-data fit, so on the
+# calibration DGP 13-14% of draws returned a wrong treatment estimate (36% when
+# chained, the pre-c28bbb34 loop) and the randomization test was oversized.
+# When a fit looks suspect (at the zero-inflation boundary, a zero-inflation
+# coefficient beyond +-10, or a gradient norm above 1e-5), the data have zeros
+# and no zero-inflation coefficient is fixed, it is refit with L-BFGS from the
+# same start and from the cold start (and with the caller's algorithm from the
+# cold start when a warm start was given); the fit with the lowest negative
+# log-likelihood is kept (a refit must improve it by more than 1e-6). The root
+# cause is in C++ (both acceptance paths should compare likelihoods); this R
+# guard avoids a rebuild and is local to the ZINB fits.
+fast_zinb_cpp_guarded = function(...) {
+	args = list(...)
+	fit = do.call(fast_zinb_cpp, args)
+	X = args$X; Xzi = args$Xzi; y = as.numeric(args$y)
+	p = ncol(X); pz = ncol(Xzi)
+	if (!any(y == 0) || any(as.integer(args$fixed_idx) %in% (p + seq_len(pz)))) return(fit)
+	fit_nll = function(f) {
+		if (is.null(f) || !isTRUE(f$converged)) return(Inf)
+		v = zinb_neg_loglik_r(f$params, X, Xzi, y, zi_off = isTRUE(f$zero_inflation_at_boundary))
+		if (is.finite(v)) v else Inf
+	}
+	params = as.numeric(fit$params)
+	gn = suppressWarnings(as.numeric(fit$gradient_norm %||% NA_real_)[1L])
+	suspect = !isTRUE(fit$converged) || isTRUE(fit$zero_inflation_at_boundary) ||
+		(length(params) == p + pz + 1L && any(abs(params[p + seq_len(pz)]) > 10)) ||
+		(is.finite(gn) && gn > 1e-5)
+	if (!suspect) return(fit)
+	best = fit_nll(fit)
+	alg = args$optimization_alg %||% "lbfgs"
+	refit = function(start, algorithm) {
+		alt_args = args
+		alt_args["warm_start_params"] = list(start)
+		alt_args["warm_start_fisher_info"] = list(NULL)
+		alt_args$optimization_alg = algorithm
+		tryCatch(do.call(fast_zinb_cpp, alt_args), error = function(e) NULL)
+	}
+	alts = list(refit(NULL, "lbfgs"))
+	if (!is.null(args$warm_start_params)) {
+		alts = c(alts, list(refit(args$warm_start_params, "lbfgs")))
+		if (!identical(alg, "lbfgs")) alts = c(alts, list(refit(NULL, alg)))
+	}
+	for (alt in alts) {
+		v = fit_nll(alt)
+		if (v < best - 1e-6) {
+			fit = alt
+			best = v
+		}
+	}
+	fit
 }

@@ -590,18 +590,82 @@ InferenceCountPoisson = define_inference_class(
 		poisson_X_cov_cache = NULL,
 		get_complexity_tier = function() "medium",
 		design_jackknife_pval = function(delta = 0){
-			tryCatch({
+			p = tryCatch({
 				# An NA here falls back to the model result, so its v1.0.6-TODO-113 warning is noise.
 				p = suppressWarnings(self$compute_jackknife_wald_two_sided_pval(delta = delta), classes = "edi_procedure_na_warning")
 				p = as.numeric(p)[1L]
 				if (is.finite(p) && p >= 0 && p <= 1) p else NA_real_
 			}, error = function(e) NA_real_)
+			if (is.finite(p)) return(p)
+			sj = private$design_stratified_jackknife()
+			if (is.null(sj)) return(NA_real_)
+			2 * stats::pnorm(-abs((sj$estimate - delta) / sj$std_error))
 		},
 		design_jackknife_ci = function(alpha = 0.05){
-			tryCatch({
+			ci = tryCatch({
 				ci = as.numeric(suppressWarnings(self$compute_jackknife_wald_confidence_interval(alpha = alpha), classes = "edi_procedure_na_warning"))
 				if (length(ci) >= 2L && all(is.finite(ci[1:2])) && ci[1L] <= ci[2L]) ci[1:2] else c(NA_real_, NA_real_)
 			}, error = function(e) c(NA_real_, NA_real_))
+			if (all(is.finite(ci))) return(ci)
+			sj = private$design_stratified_jackknife()
+			if (is.null(sj)) return(c(NA_real_, NA_real_))
+			sj$estimate + c(-1, 1) * stats::qnorm(1 - alpha / 2) * sj$std_error
+		},
+		# v1.1.0-TODO-218: the design-based half of the design-conservative rule on a stratified design with
+		# few strata. There the automatic deletion unit is the block (= stratum), and with fewer than
+		# EDI_JACKKNIFE_MIN_DELETION_UNITS strata the leave-one-block-out jackknife is NA (v1.0.6-TODO-135;
+		# before that it had G - 1 = 3 df and almost never widened anything), so the class silently reported
+		# the raw Poisson test, which is anti-conservative under overdispersion (calibration: size 0.08-0.11 on
+		# FixedBlocking / SPBR / RandomBlockSize stratified on two binary factors). Strata are fixed by the
+		# design, not sampled, so the matching design-based variance is the stratified delete-1 jackknife
+		# (Shao & Tu 1995, sec. 6.2): delete one subject at a time and pool the within-stratum spread,
+		# v = sum_h (n_h - 1) / n_h * sum_{i in h} (theta_(i) - mean_h theta_(.))^2, centred at the full-data
+		# estimate. Used only when the design is a blocking design whose automatic jackknife unit is "block",
+		# it has 2 to EDI_JACKKNIFE_MIN_DELETION_UNITS - 1 blocks (one block already gets the delete-1
+		# jackknife: build_jackknife_deletion_draws() falls back to observations), and the estimand is the conditional
+		# log-rate ratio (the refits below are of that coefficient). NULL otherwise or on any failure. Cached.
+		design_stratified_jackknife = function(){
+			cached = private$cached_values$design_stratified_jackknife
+			if (!is.null(cached)) return(if (isFALSE(cached)) NULL else cached)
+			res = tryCatch({
+				des = private$des_obj
+				ok = identical(self$get_estimand(), "conditional") &&
+					isTRUE(des$is_blocking_design()) &&
+					identical(private$resolve_jackknife_unit("auto"), "block")
+				spec = if (ok) private$get_likelihood_test_spec() else NULL
+				strata = if (!is.null(spec)) as.integer(des$get_block_ids()) else NULL
+				if (is.null(spec) || length(strata) != length(spec$y) || anyNA(strata) ||
+						length(unique(strata)) < 2L || length(unique(strata)) >= EDI_JACKKNIFE_MIN_DELETION_UNITS) {
+					NULL
+				} else {
+					X = spec$X
+					y = spec$y
+					j = spec$j
+					b_full = as.numeric(spec$full_fit$b)
+					theta_hat = as.numeric(b_full[j])
+					loo = vapply(seq_along(y), function(i) {
+						fit = tryCatch(fast_poisson_regression_cpp(X = X[-i, , drop = FALSE], y = y[-i],
+							warm_start_beta = b_full, estimate_only = TRUE), error = function(e) NULL)
+						if (is.null(fit) || length(fit$b) < j) NA_real_ else as.numeric(fit$b[j])
+					}, numeric(1))
+					v = 0
+					for (h in unique(strata)) {
+						th = loo[strata == h]
+						n_h = length(th)
+						if (n_h > 1L) v = v + (n_h - 1) / n_h * sum((th - mean(th))^2)
+					}
+					if (is.finite(theta_hat) && all(is.finite(loo)) && is.finite(v) && v > 0) {
+						list(estimate = theta_hat, std_error = sqrt(v))
+					} else {
+						NULL
+					}
+				}
+			}, error = function(e) {
+				if (private$is_resampling_control_condition(e)) stop(e)
+				NULL
+			})
+			private$cached_values$design_stratified_jackknife = if (is.null(res)) FALSE else res
+			res
 		},
 		design_conservative_pval = function(model_p, delta = 0){
 			model_p = as.numeric(model_p)[1L]

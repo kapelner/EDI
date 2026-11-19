@@ -215,7 +215,7 @@ InferenceIncidRiskDiff = define_inference_class(
 	private = list(
 		supports_likelihood_tests = function(){ FALSE },
 		supports_lik_ratio_param_bootstrap = function(){ FALSE },
-		# Absorbed (verbatim, minus likelihood-only branches) from
+		# Absorbed (minus likelihood-only branches) from
 		# StandardModelCacheSource when this class migrated off the old
 		# InferenceAsympLikStdModCacheNoParamBootstrap ladder: this class is
 		# likelihood_tier "none" (its OLS linear-probability objective is a
@@ -223,7 +223,8 @@ InferenceIncidRiskDiff = define_inference_class(
 		# supports_likelihood_tests = FALSE above), so it cannot compose the
 		# StandardModelCache component (whose standard_model_cache capability
 		# requires likelihood_tests, tier >= quasi). The likelihood-free subset
-		# it actually uses -- the shared() model-cache state machine, the
+		# it actually uses -- the shared() model-cache state machine (now the
+		# shared standard_model_cache_shared() helper, v1.0.6-TODO-193), the
 		# cached-SE/df getters, and the design-backed bootstrap-worker
 		# delegation -- is small enough to own here directly. get_standard_
 		# error() drops the source's information-matrix-preference branch: that
@@ -231,47 +232,7 @@ InferenceIncidRiskDiff = define_inference_class(
 		# to supports_likelihood_tests() and therefore never fired for this
 		# class on the old ladder either.
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			has_cached_se = !is.null(private$cached_values$s_beta_hat_T) &&
-				length(private$cached_values$s_beta_hat_T) == 1L &&
-				isTRUE(is.finite(private$cached_values$s_beta_hat_T))
-			if (isTRUE(!is.null(private$cached_values$beta_hat_T) && (estimate_only || has_cached_se))) return(invisible(NULL))
-			model_output = private$generate_mod(estimate_only = estimate_only)
-			private$cached_mod = model_output
-			if (is.null(model_output)) {
-				# A class may name a more specific reason for its NULL fit
-				# (same expression as StandardModelCacheSource's shared()).
-				private$cache_nonestimable_estimate(private$cached_values$generate_mod_nonestimable_reason %||% "model_fit_unavailable")
-				private$cached_values$df = NA_real_
-				return(invisible(NULL))
-			}
-			beta_hat_T = as.numeric(model_output$beta_hat_T %||% model_output$b[2])[1L]
-			if (!is.finite(beta_hat_T)) {
-				private$cache_nonestimable_estimate("model_treatment_estimate_unavailable")
-				private$cached_values$df = NA_real_
-				return(invisible(NULL))
-			}
-			private$cached_values$beta_hat_T = beta_hat_T
-			if (!is.null(model_output$b)) {
-				private$set_fit_warm_start(
-					as.numeric(model_output$params %||% model_output$b),
-					type = if (!is.null(model_output$params)) "params" else "beta",
-					fisher = model_output$fisher_information %||% model_output$XtWX,
-					weights = model_output$w %||% model_output$mu,
-					force_pd = TRUE
-				)
-			}
-			if (estimate_only) return(invisible(NULL))
-			ssq = model_output$ssq_b_2 %||% model_output$ssq_b_j
-			ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-			private$cached_values$df = model_output$df %||% NA_real_
-			if (is.finite(ssq) && ssq > 0) {
-				private$cached_values$s_beta_hat_T = sqrt(ssq)
-				private$clear_nonestimable_state()
-			} else {
-				private$cache_nonestimable_se("model_standard_error_unavailable")
-			}
+			standard_model_cache_shared(private, estimate_only)
 		},
 		get_standard_error = function(){
 			private$shared(estimate_only = FALSE)

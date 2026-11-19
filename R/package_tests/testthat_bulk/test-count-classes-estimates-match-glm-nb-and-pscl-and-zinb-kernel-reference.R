@@ -95,16 +95,20 @@ test_that("with true excess zeros, fast_zinb_cpp equals pscl::zeroinfl(negbin): 
 # 2026-11-03: the asymptotic CI used to come back NA here (an SE gap at the zero-inflation boundary).
 # Since the Oct 2026 fast_zinb.cpp boundary fallbacks it is finite and, as it should be when the
 # zero-inflation part sits at its boundary, equals the NB Wald CI from MASS::glm.nb (~2e-4 apart).
-test_that("without excess zeros the ZINB class' point estimate is finite and stable and its asymptotic CI matches glm.nb", {
+# v1.1.0-TODO-217 (2026-11-19): that boundary fit was not the MLE. pscl::zeroinfl(negbin) has an interior
+# fit with a lower negative log-likelihood (367.4735 vs glm.nb's 367.5391); fast_zinb_cpp_guarded() now
+# refits the spurious "NegBinNoZI" boundary fit and lands on pscl's MLE, so the estimate is checked against
+# pscl and the CI only for finiteness and containing the estimate.
+test_that("without excess zeros the ZINB class' point estimate is finite, stable and pscl's MLE, and its asymptotic CI is finite", {
 	f <- fx(zero_inflated = FALSE)
 	inf <- new_inf("InferenceCountZeroInflatedNegBin", f$des)
 	e1 <- inf$compute_estimate()
 	expect_true(is.finite(e1))
 	ci <- suppressWarnings(inf$compute_asymp_confidence_interval())
-	nb <- MASS::glm.nb(y ~ w + x, data = f$d)
-	nb_ci <- unname(coef(nb)["w"] + c(-1, 1) * stats::qnorm(0.975) * sqrt(vcov(nb)["w", "w"]))
+	zi <- suppressWarnings(pscl::zeroinfl(y ~ w + x | w + x, data = f$d, dist = "negbin"))
+	expect_equal(e1, unname(coef(zi)[["count_w"]]), tolerance = 5e-3)
 	expect_true(all(is.finite(ci)))
-	expect_equal(unname(as.numeric(ci)), nb_ci, tolerance = 5e-3)
+	expect_true(ci[1L] < e1 && e1 < ci[2L])
 	e2 <- inf$compute_estimate()
 	expect_true(is.finite(e2))
 	expect_equal(e2, e1)
