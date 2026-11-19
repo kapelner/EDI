@@ -134,3 +134,41 @@ def test_positional_arguments_are_bound_by_name():
     X, yc, *_ = _data()
     res = ek.fast_ols(X, yc, None, None, False)
     assert res["ssq_b_2"] == pytest.approx(R_OLS_SSQ2, rel=RTOL)
+
+
+# Edge branches of edi_kernels._variance, called directly: the kernels never return these shapes
+# on ordinary data, so the public-API tests above cannot reach them.
+from edi_kernels import _variance as V  # noqa: E402
+
+
+def test_inverse_on_free_with_every_coefficient_fixed_is_all_nan():
+    vcov = V._inverse_on_free(np.eye(2), np.array([], dtype=int), 2)
+    assert vcov.shape == (2, 2) and np.all(np.isnan(vcov))
+
+
+def test_inverse_on_free_turns_a_linalg_error_into_nan(monkeypatch):
+    def boom(_):
+        raise np.linalg.LinAlgError("singular")
+    monkeypatch.setattr(V.np.linalg, "inv", boom)
+    vcov = V._inverse_on_free(np.eye(2), np.arange(2), 2)
+    assert np.all(np.isnan(vcov))
+
+
+@pytest.mark.parametrize("res", [{}, {"XtWX": np.eye(3)}], ids=["missing", "wrong_shape"])
+def test_missing_or_misshaped_information_leaves_the_result_alone(res):
+    X = np.column_stack([np.ones(4), [0, 1, 0, 1]])
+    a = {"X": X, "y": np.arange(4.0), "estimate_only": False}
+    assert "vcov" not in V.POST["fast_ols"](dict(res, b=np.zeros(2)), a)
+    assert "vcov" not in V.POST["fast_logistic_regression"](dict(res), a)
+    nb = {} if not res else {"XtWX": np.eye(4)}  # neg-bin expects (p + 1) x (p + 1)
+    assert "vcov" not in V.POST["fast_neg_bin"](dict(nb), a)
+
+
+def test_neg_bin_at_the_poisson_boundary_drops_log_theta():
+    X = np.column_stack([np.ones(4), [0, 1, 0, 1]])
+    info = np.diag([2.0, 4.0, 8.0])
+    out = V.POST["fast_neg_bin"]({"XtWX": info, "dispersion_at_poisson_boundary": True},
+                                 {"X": X, "estimate_only": False})
+    np.testing.assert_allclose(np.diag(out["vcov"])[:2], [0.5, 0.25])
+    assert np.all(np.isnan(out["vcov"][2, :])) and np.all(np.isnan(out["vcov"][:, 2]))
+    assert out["ssq_b_2"] == pytest.approx(0.25)
