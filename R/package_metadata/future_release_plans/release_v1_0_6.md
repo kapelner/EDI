@@ -4389,7 +4389,7 @@ itself still needs a look.
   - Pass `private$quantile_full_method` (when not `NA`) to the weighted `rq()` call, so each class uses one solver.
   - Done when: the proportion class's weighted fit uses "fn", the continuous class is unchanged, and a test checks
     that unit weights reproduce the point estimate.
-- [ ] TODO-222 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-191 agent): **Ratio subsampling follow-ups.**
+- [ ] TODO-230 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-191 agent): **Ratio subsampling follow-ups.**
   (1) OWNER DECISION: the default `min_fraction_usable_samples` cap for the g-comp RR subsampling / m-out-of-n paths.
   At 0.95, 9% (subsampling) / 29% (m-out-of-n) of null datasets return NA, the size among the rest is 0.016 / 0.000, and
   7 / 9 of the 11 datasets where Wald rejects become NA, because degenerate draws pile up where log RR-hat is extreme.
@@ -4399,7 +4399,7 @@ itself still needs a look.
   1.4%; `InferenceIncidLogBinomial` has 2-3% failed (NA) draws instead. (3) `InferenceIncidKKGCompRiskRatio`'s
   subsampling / m-out-of-n size stays low (0.015 / 0.010) for reasons other than degenerate draws. (4) The
   `debug = TRUE` distribution path does not apply the NaN marking. Scripts: /tmp/claude-1000/t191/.
-- [ ] TODO-223 (added 2026-11-19, coordinator; from the v1.0.6-TODO-4 agent): **Stratified jackknife follow-ups.**
+- [ ] TODO-231 (added 2026-11-19, coordinator; from the v1.0.6-TODO-4 agent): **Stratified jackknife follow-ups.**
   (1) OWNER DECISION: TODO-4 applies Wolter's JKn formulas to reweighting-equivalent replicates
   theta* = theta-hat + r_h (theta_(h,i) - theta-hat), r_h = n_h(N-1)/(N(n_h-1)), because EDI's replicates are unweighted
   subset refits and the literal (n_h-1)/n_h weight undercovers on SPBR (0.89-0.93 vs 0.92-0.96). Confirm, or switch to the
@@ -4409,19 +4409,19 @@ itself still needs a look.
   (unit = stratum, G = 2, so NA); record permuted-block ids at assignment and apply the same fix. (4) BCa acceleration
   still uses the unstratified spread of the replicates. (5) `DesignObservationalBlocks` still resolves to "block"; check
   it. (6) SPBR incidence AverageDiff coverage 0.924-0.928, just under the 0.93-0.97 band.
-- [ ] TODO-224 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-218 agent's 1200-dataset sweep): **Small ZIP
+- [ ] TODO-232 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-218 agent's 1200-dataset sweep): **Small ZIP
   fits that stop unflagged below the maximum.** 3 of 1197 fits (n 24-40, 2-7 positive counts) end at a worse
   log-likelihood than `pscl::zeroinfl` by 0.17, 1.3 and 6.6 without any flag (e.g. sweep seed 100888: 0.003 vs pscl
   -23.6); the v1.0.6-TODO-152 pscl-start L-BFGS candidate does not catch them. Find why (start, optimizer stop, or a
   third local maximum) and add the missing candidate or flag. Sweep scripts are in the TODO-218 agent's $TMPDIR.
-- [ ] TODO-225 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-216 agent; OWNER DECISION, changes results):
+- [ ] TODO-233 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-216 agent; OWNER DECISION, changes results):
   **Zhang exact CIs can have gaps.** The combined two-sided exact p-value is not monotone in delta and can jump, so in
   about 2.5% of ordinary `InferenceIncidExactZhang` CIs on matching designs (8 of 323 checked) the accepted set has
   gaps, and the bisection returns only the piece around its starting point. Options: report the convex hull of the
   accepted set (conservative, standard for exact CIs), or keep the connected piece and document it. Also: ties at
   p0 = 0.5 within the binomial's 1e-7 tolerance give a narrow accepted window at exactly delta = 0, so some endpoints
   land at about -1e-7. Scripts: /tmp/claude-1000/z216/.
-- [ ] TODO-226 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-213 agent; OWNER DECISION, changes realized
+- [ ] TODO-234 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-213 agent; OWNER DECISION, changes realized
   allocations): **Treated-count rounding differs between designs.** (1) `DesignFixediBCRD` rounds a .5 tie up (n = 21,
   prob_T = 0.5 gives 11 treated; realized and redraws agree, from one kernel), while `DesignSeqOneByOneiBCRD` uses R's
   `round()` (10). Align them (one-line R change in `design_fixed_ibcrd.R`, changes realized fixed allocations at ties) or
@@ -4429,7 +4429,7 @@ itself still needs a look.
   `complete_randomization_forced_balanced_cpp` = floor(n/2) (n = 23: 11 treated) while the other paths use
   `round(n * prob_T)` (12); realized and redraws agree within each path, so the null is right, but the documented count
   is wrong. Fix: use the forced-balanced kernel only when n is even (changes realized allocations for n = 3 mod 4).
-- [ ] TODO-227 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-217 agent): **KK IVWC leftovers after the
+- [ ] TODO-235 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-217 agent): **KK IVWC leftovers after the
   Bayesian-bootstrap fix.** (1) OWNER DECISION: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s own Bayesian-bootstrap
   hook is a marginal-Weibull surrogate, not the IVW estimator (bootstrap mean 0.55 vs estimate 0.63): refuse it like
   the Normal IVWC class, or build a weighted fit. (2) The quantile IVWC classes could get their Bayesian bootstrap back
