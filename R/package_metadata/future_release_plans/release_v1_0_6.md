@@ -3328,3 +3328,21 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   (`zero_augmented_data_has_no_mle`) and the point estimate is still returned. (4) `fast_zero_augmented_poisson_cpp`
   with `y = NULL` segfaults instead of erroring (C++ input check).
 
+
+- [ ] TODO-197 (added 2026-11-19, agent, owner request; found by the Phase 0 algorithm-research bench run 44048167550,
+  finding `beta-regression-mle#43925959437.1`): **Every `betareg` call in EDI fails, so the beta fits silently fall
+  back to OLS on logit(y).** All three call sites pass `betareg::betareg.control(start = list(phi = ...))`. In betareg
+  3.2.6 `start` must be the full parameter vector (mean coefficients and precision), so a bare `phi` makes `optim`
+  stop with "initial value in 'vmmin' is not finite" on any data; reproduced on a plain n = 200 dataset, where the
+  same call without `start` fits normally. Affected:
+  (1) `InferencePropZeroOneInflatedBeta$compute_estimate_with_bootstrap_weights()`
+  (`inference_proportion_zero_one_inflated_beta.R` ~L286-296): the error is swallowed by `tryCatch`, so every
+  Bayesian-bootstrap replicate of the ZOIB conditional estimate is the `lm.wfit` fallback on `logit(y_mid)`, a
+  different estimator from the point estimate, with no warning;
+  (2) and (3) the `betareg` fallbacks of the beta-regression wrappers in `helper_glm_fit.R` (~L1193 and ~L1284),
+  reached when `fast_beta_regression_cpp` fails; they warn "betareg fallback failed" and use OLS on logit(y).
+  Fix: drop `start`, or pass a complete start (mean coefficients from the logit-OLS fit, then `phi`); check the
+  betareg version range EDI supports. Test: a small fixture with exact 0s/1s where the bootstrap replicate's
+  estimate matches a direct weighted `betareg` fit, and a forced-fallback test for each `helper_glm_fit.R` path.
+  Then rerun the Phase 0 bench spec for `beta-regression-mle#43925959437.1`, whose current side is this code (see
+  v1.1.0-TODO-197). Related: the open owner decision from the 2026-11-17 re-review to delete or fix the ZOIB wrapper.
