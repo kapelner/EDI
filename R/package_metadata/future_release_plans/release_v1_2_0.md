@@ -1245,3 +1245,47 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     pbinom tails may differ in the last bits, so compare to tolerance.
   - Benchmark the Zhang exact CI bisection at EDI's discordant-pair counts and at large n.
   - Done when: merged with the equality test passing and the timings recorded, or closed with the numbers.
+- [ ] TODO-246 (added 2026-11-19, owner; from the algorithm-research triage of run 44358397244, findings
+  `likelihood-tests-null-refits#44358397244.1` and `#44358397244.3`, see
+  `audits/research_findings/2026-11-18-run44358397244.md`): **Profiled 1-D null refit for the Gaussian LMM likelihood
+  tests**
+  - With beta_T = delta moved into an offset, profile beta (GLS) and sigma_e^2 (closed form) out and search the single
+    ratio lambda = sigma_b^2 / sigma_e^2 in [0, lambda_max] with Brent or a safeguarded 1-D Newton (the lme4 /
+    MixedModels.jl profiled deviance, with the lambda = 0 boundary handled exactly). KK groups have only two sizes
+    (pairs, singletons), so after one O(n p^2) pass each profile evaluation is O(p^3), independent of n. Build on
+    `fast_gaussian_lmm_gls_cpp`. One deterministic search replaces both L-BFGS starts and the 1e-4 switching rule.
+  - Folded in (finding .3): for the score test, return a cached p x p beta-block information from the null fit
+    (sum_g X_g' P_g X_g, which equals the efficient information once the cross blocks are zero) instead of rebuilding
+    the full information per accessor; fix the comment to "observed Hessian with cross blocks zeroed; beta block
+    equals expected".
+  - Done when: LR / score / gradient p-values and CI endpoints match the current refit to tolerance on the KK GLMM
+    package_tests rows (or a difference is shown to be the current refit missing the optimum), with timings recorded;
+    or the item closes with the numbers.
+- [ ] TODO-247 (added 2026-11-19, owner; from the algorithm-research triage of run 44358397244, finding
+  `likelihood-tests-null-refits#44358397244.2`): **Warm-start the KK conditional-Poisson fallback null refits**
+  - In `fit_with_fixed` (`R/EDI/R/inference_count_KK_cond_poisson.R` ~L69), pass the previous null fit's nuisance
+    coefficients (`start[-j]`, already returned by `extract_start`) to `glm.fit(start = ...)`, with a cold-start retry on
+    non-convergence. When `Z[, -j]` is intercept-only (Poisson reservoir-only fallback), return the closed form
+    log(sum y / sum exp(delta * Z[, j])) without IRLS.
+  - Done when: p-values and CI endpoints match the current output to 1e-8 on the existing KK conditional-Poisson
+    fallback tests, with timings recorded; or the item closes with the numbers.
+- [ ] TODO-248 (added 2026-11-19, owner; from the algorithm-research triage of run 44358397244, finding
+  `cox-ph-fit#44358397244.1`): **Early stop for the Cox Newton-Raphson loop in estimate-only fits**
+  - After accepting a step-1 candidate with |ll - ll_candidate| < tol, stop with converged = TRUE; when `estimate_only`
+    and nothing consumes the Hessian at the final beta, skip the confirming pass, else run only the gradient pass for
+    `gradient_norm`. Optionally stop on the Newton decrement g'H^-1 g / 2 < tol from the LDLT already computed
+    (lifelines 0.15.0). beta is bit-identical under the first variant.
+  - First count `num_iter` on KK and stratified Cox randomization runs; proceed only if most replicates converge in
+    <= 4 iterations (saving 1 of k O(n p^2) passes, ~15-40% of kernel time).
+  - Done when: beta is bit-identical on the package_tests CSVs and `fisher_information` / `gradient_norm` consumers are
+    unaffected, with timings recorded; or the item closes with the iteration counts.
+- [ ] TODO-249 (added 2026-11-19, owner; low priority; from the algorithm-research triage of run 44358397244, finding
+  `clmm-ordinal-mixed-fit#44358397244.3`): **LP overlap pre-check before the CLMM ordinal multistart**
+  - Run the single linear-programming overlap test of Sablica, Hornik & Rusch (2026) to decide whether a finite MLE of
+    the cumulative-link fixed part exists; if not, skip the multistart and polish and mark the fit or replicate
+    non-estimable, consistent with EDI's separation warnings.
+  - First read the paper's LP formulation and check on a separated KK ordinal dataset whether it flags the cases where
+    the CLMM/GLMM fits diverge. If it does, consider it as a shared pre-check alongside the separation handling in
+    v1.0.6-TODO-122.
+  - Done when: the check is reported (flags vs divergent fits) and the pre-check is merged with unchanged results on
+    non-separated inputs, or the item closes with the numbers.

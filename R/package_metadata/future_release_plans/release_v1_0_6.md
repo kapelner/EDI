@@ -4436,3 +4436,18 @@ itself still needs a look.
   with weighted `rq` refits. (3) `test-reused-worker-rank-deficient-draw-rebuilds-covariates.R:122` fails:
   `InferenceSurvivalStratCoxPHRegr` jackknife with explicit `unit = "block"` returns 60 replicates where 3 (strata) are
   expected; likely from v1.0.6-TODO-4 (explicit "block" should still delete whole strata) — check and fix.
+- [ ] TODO-236 (added 2026-11-19, owner; from the algorithm-research triage of run 44358397244, finding
+  `kk21-covariate-weights#44358397244.1`, checked against the code; CHANGES RESULTS): **KK21 negative-binomial theta
+  Newton step has the wrong sign.**
+  - `univariate_negbin_tstat` (`R/EDI/src/kk21_weights.cpp:570`) and `multivariate_negbin_tstat` (`:1045`) update
+    `theta_new = theta - score / info`, but `info` there is the negative second derivative of the log-likelihood (the
+    same expression as `MASS::theta.ml`'s `i`), so the Newton step is `theta + score / info`. As written each step
+    moves away from the MLE and theta walks to the [0.01, 1000] clamp. The R reference in
+    `R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R:37` copies the wrong sign, so the test cannot catch it.
+  - Fix: flip the sign at both sites and in the test reference; optionally step on log(theta) or add step-halving
+    (as `fastglm_nb` does) so theta stays positive without the clamp.
+  - Test: on a fixture, theta-hat matches `MASS::theta.ml(y, fitted(MASS::glm.nb(...)))` to tolerance and is not at a
+    clamp, for both the univariate and multivariate paths.
+  - Changes KK21 count-design weights (the `count_use_speedup = FALSE` negbin path): add a NEWS bullet and rerun the
+    KK21 count weight comparisons and the affected package_tests CSVs.
+  - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
