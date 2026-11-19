@@ -312,6 +312,7 @@ R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-refere
 R/package_tests/testthat_bulk/test-edi-tuning-assert-diffs-respect-untunable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,correctness,2.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-efron-weighted-coin-prob-range-validation.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-estimand-not-supported-classed-error.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-estimate-annealing-initial-temp-exact-value-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,correctness,1.8,measured_with_30_percent_headroom
@@ -1439,6 +1440,7 @@ R/EDI/tests/testthat/test-hurdle-negbin-log1p-fast-path.R,coverage,1,measured_wi
 R/EDI/tests/testthat/test-hurdle-negbin-parametric-bootstrap-lr.R,coverage,1.7,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-poisson-glmm-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-poisson-glmm-log1p-fast-path.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-ibcrd-tie-rounding-redraw-count.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-incid-cmh-extended-robins-migration-golden.R,coverage,2.5,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-incid-kk-cond-logit-ivwc-migration-golden.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-incid-kk-cond-logit-onelik-fit-acceptance.R,coverage,1.1,measured_with_30_percent_headroom
@@ -2023,6 +2025,7 @@ R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-refere
 R/package_tests/testthat_bulk/test-edi-tuning-assert-diffs-respect-untunable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-efron-weighted-coin-prob-range-validation.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-estimand-not-supported-classed-error.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-estimate-annealing-initial-temp-exact-value-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,coverage,240,bootstrap
