@@ -1,11 +1,12 @@
 # Dismissed audit decisions
 
 The scheduled audits (`.github/workflows/audit-*.yml`) list each open decision under "Decisions for you"
-with an id such as `rd-d` plus 8 hex digits, and keep listing it, run after run, until a run no longer finds it,
-an open release TODO cites the id, or the id is listed here. Add one line per dismissed decision, with
-the reason, so the next reader knows why it was let go:
+with an id such as `rd-d` plus 8 hex digits, and each open mechanical finding under "Mechanical findings"
+with an id such as `rd-m` plus 8 hex digits (since 2026-11-19). They keep listing it, run after run, until a
+run no longer finds it, an open release TODO cites the id, or the id is listed here. Add one line per
+dismissed item, with the reason, so the next reader knows why it was let go:
 
-- `<audit>-d<hex>`: reason (date)
+- `<audit>-d<hex>` or `<audit>-m<hex>`: reason (date)
 
 
 - `rd-d8e94a804`: the CMH roxygen already says `se_est_num_vectors` defaults to `5000L`, matching `initialize()`

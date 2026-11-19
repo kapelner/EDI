@@ -110,6 +110,15 @@ todo/
   "For information" block. `.github/scripts/audit_decisions.py` (run by `audit-status.yml`) lists every
   audit's open decisions in one pinned issue labelled `audit-decisions`, so they stay visible after the PR
   that raised them is merged.
+- Mechanical findings (owner, 2026-11-19) have the same lifecycle. Each line of a report's "Mechanical
+  findings" gets an id `<audit>-m<8 hex>` (from its unit and text) and is kept in
+  `<audit>/mechanical_open.json` on `audit-notes`. It leaves the list when a run no longer finds it (it counts
+  as fixed, and its `findings.jsonl` entry goes from `reported` to `fixed`), when an unticked release TODO
+  cites the id, or when the id is listed in `dismissed_decisions.md`. The `audit-decisions` issue lists the
+  open ones under their own heading, "Mechanical findings". A module whose mechanical stage checks only some
+  units each run returns `mechanical_scope_units` (the units it checked) in its parts, so findings on the
+  other units are carried, not counted as fixed. Before this, mechanical findings were only re-listed in
+  each PR body, with no way to cite or dismiss them (PR #65 listed 125).
 
 ### Secrets, models and cost guard
 

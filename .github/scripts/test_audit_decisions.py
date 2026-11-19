@@ -31,7 +31,8 @@ class Repo(unittest.TestCase):
                        "- [x] **TODO-2** done (audit decision rd-d00000003)\n")
         dis = self.repo / ac.DISMISSED_FILE
         dis.parent.mkdir(parents=True)
-        dis.write_text("# Dismissed\n\n- `rd-d00000004`: the docs are right (2026-11-18)\n")
+        dis.write_text("# Dismissed\n\n- `rd-d00000004`: the docs are right (2026-11-18)\n"
+                       "- `rd-m00000004`: intended (2026-11-19)\n")
         run("add", "-A")
         run("commit", "-qm", "main")
         run("checkout", "-q", "--orphan", "audit-notes")
@@ -45,6 +46,8 @@ class Repo(unittest.TestCase):
         }.items():
             (self.repo / audit).mkdir()
             (self.repo / audit / "decisions_open.json").write_text(json.dumps(recs))
+        (self.repo / "rd" / "mechanical_open.json").write_text(json.dumps({
+            "rd-m00000011": rec("`B.Rd`: checkRd: title ends in a period"), "rd-m00000004": rec("dismissed")}))
         run("add", "-A")
         run("commit", "-qm", "notes")
         run("update-ref", "refs/remotes/origin/audit-notes", "HEAD")
@@ -65,6 +68,20 @@ class Repo(unittest.TestCase):
         self.assertIn("standing list, not a task", body)
         self.assertNotIn("rd-d00000002", body)
         self.assertNotIn("rd-d00000004", body)
+
+    def test_mechanical_section(self):
+        cited, dismissed = ac.cited_decisions(self.repo), ac.dismissed_decisions(self.repo)
+        sel, counts = ad.select(ad.load_open(self.repo), cited, dismissed)
+        mech, mcounts = ad.select(ad.load_open(self.repo, name="mechanical_open.json"), cited, dismissed)
+        self.assertEqual(list(mech), ["rd"])
+        body = ad.render(sel, counts, "2026-11-18T09:00:00+00:00", "o/r", mech=mech, mcounts=mcounts)
+        self.assertIn("# Mechanical findings", body)
+        self.assertIn("**1 open mechanical finding(s)** across 1 audit(s)", body)
+        self.assertIn("- `rd-m00000011` · since 2026-11-17 · `B.Rd`: checkRd", body)
+        self.assertIn("blob/audit-notes/rd/mechanical_open.json", body)
+        self.assertIn("**3 open decision(s)**", body)          # decisions unchanged
+        self.assertNotIn("rd-m00000004", body)                # dismissed
+        self.assertIn("not listed: 1 dismissed", body)
 
     def test_main_writes_out(self):
         out = self.repo / "out.md"

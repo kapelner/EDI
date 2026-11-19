@@ -276,6 +276,33 @@ def cmd_finish(a):
     if parts["human"] or dcounts["cited"] or dcounts["dismissed"]:
         parts["decision_note"] = ac.decision_note(dcounts)
 
+    # Mechanical findings get the same lifecycle (owner, 2026-11-19): open until a run no longer finds
+    # them (fixed), an open release TODO cites their `<audit>-m<hex>` id, or dismissed_decisions.md
+    # lists it. A module whose mechanical stage checks only some units sets `mechanical_scope_units`.
+    mpath = notes.dir / "mechanical_open.json"
+    try:
+        prev_mech = json.loads(mpath.read_text())
+    except (OSError, ValueError):
+        prev_mech = {}
+    open_mech, parts["mechanical"], mcounts, mech_fixed = ac.track_mechanical(
+        spec["name"], parts.get("mechanical") or [], mech, prev_mech, set(plan["units"]),
+        ac.cited_decisions(a.repo), ac.dismissed_decisions(a.repo), stamp,
+        scope_units=parts.pop("mechanical_scope_units", None))
+    mpath.write_text(json.dumps(open_mech, indent=1, sort_keys=True) + "\n")
+    if parts["mechanical"] or mcounts["cited"] or mcounts["dismissed"]:
+        parts["mechanical_note"] = ac.mechanical_note(mcounts)
+    if mech_fixed:
+        parts.setdefault("info", []).append(f"{len(mech_fixed)} mechanical finding(s) from earlier runs are no "
+                                            "longer found: counted as fixed.")
+        # The same findings in the history: "reported" -> "fixed" once no longer found.
+        now_texts = {f.get("text", "") for f in mech}
+        gone = {prev_mech[mid].get("text", "") for mid in mech_fixed}
+        for h in history:
+            if (h.get("source") == "mechanical" and h.get("status") == "reported"
+                    and h.get("text", "") in gone and h.get("text", "") not in now_texts):
+                h["status"], h["settled_at"] = "fixed", stamp
+        notes.save_findings(history)
+
     coverage = {
         "units in scope": len(plan["units"]),
         "re-read this run": f"{len(covered)} of {len(plan['chosen'])} chosen "

@@ -6,7 +6,8 @@ table. The list is the body of one pinned issue labelled `audit-decisions`, edit
 URL never changes; merging an audit PR does not hide its decisions. Plan:
 R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md.
 
-Source: each audit's `<audit>/decisions_open.json` on the `audit-notes` branch, which its finish
+Source: each audit's `<audit>/decisions_open.json` on the `audit-notes` branch (and, under their own
+heading, its open mechanical findings from `<audit>/mechanical_open.json`, owner 2026-11-19), which its finish
 stage writes ({id: {text, first_seen, last_seen, unit, key}}). A decision leaves the list when a run
 no longer finds it (the audit drops it from that file), when an unticked TODO in a release file
 cites its id, or when its id is in R/package_metadata/audits/dismissed_decisions.md. The last two
@@ -36,12 +37,13 @@ def gh(*args, check=True):
     return r.stdout
 
 
-def load_open(repo, ref=NOTES_REF):
-    """{audit: {id: record}} from every <audit>/decisions_open.json on the notes branch."""
+def load_open(repo, ref=NOTES_REF, name="decisions_open.json"):
+    """{audit: {id: record}} from every <audit>/<name> on the notes branch (decisions_open.json, or
+    mechanical_open.json for the mechanical findings)."""
     ls = subprocess.run(["git", "ls-tree", "-r", "--name-only", ref], cwd=repo, capture_output=True, text=True)
     out = {}
     for path in ls.stdout.split():
-        if not path.endswith("/decisions_open.json"):
+        if not path.endswith("/" + name):
             continue
         r = subprocess.run(["git", "show", f"{ref}:{path}"], cwd=repo, capture_output=True, text=True)
         try:
@@ -75,7 +77,8 @@ def clip(text, cap):
     return text[:cap].rsplit(" ", 1)[0] + " …"
 
 
-def render(selected, counts, generated_at, repo="", run_url="", cap=None):
+def render(selected, counts, generated_at, repo="", run_url="", cap=None, mech=None, mcounts=None):
+    mech, mcounts = mech or {}, mcounts or {}
     total = sum(len(v) for v in selected.values())
     notes = f"https://github.com/{repo}/blob/audit-notes" if repo else ""
     lines = [f"# {TITLE}", "",
@@ -113,19 +116,53 @@ def render(selected, counts, generated_at, repo="", run_url="", cap=None):
             first, sep, rest = text.partition("\n")
             lines.append(f"- `{did}` · since {str(rec.get('first_seen', ''))[:10]} · {first}" + sep + rest)
         lines += ["", "</details>"]
+    lines += render_mechanical(mech, mcounts, notes, cap)
     return "\n".join(lines) + "\n"
 
 
-def render_fitting(selected, counts, generated_at, repo="", run_url=""):
+def render_mechanical(mech, mcounts, notes, cap):
+    """The "Mechanical findings" section: each audit's open mechanical findings (ids `<audit>-m<hex>`),
+    which leave the list the same three ways as decisions."""
+    total = sum(len(v) for v in mech.values())
+    extra = []
+    if mcounts.get("cited"):
+        extra.append(f"{mcounts['cited']} cited by an open release TODO")
+    if mcounts.get("dismissed"):
+        extra.append(f"{mcounts['dismissed']} dismissed")
+    lines = ["", "# Mechanical findings", "",
+             f"**{total} open mechanical finding(s)** across {len(mech)} audit(s)"
+             + (f"; not listed: {', '.join(extra)}" if extra else "") + ". These come from the audits' "
+             "checks without Claude (checkRd, spelling, example runs, ...). Each leaves the list when a run "
+             "no longer finds it (fixed), when an open release TODO cites its `<audit>-m<hex>` id, or when the "
+             f"id is listed in `{ac.DISMISSED_FILE}`."]
+    if mech:
+        lines += ["", "| Audit | Open | Oldest |", "|---|---|---|"]
+        for audit, items in mech.items():
+            lines.append(f"| `{audit}` | {len(items)} | {str(items[0][1].get('first_seen', ''))[:10]} |")
+    for audit, items in mech.items():
+        lines += ["", f"## {audit} (mechanical)", ""]
+        if notes:
+            lines += [f"Full records: [`{audit}/mechanical_open.json`]({notes}/{audit}/mechanical_open.json)", ""]
+        lines += ["<details><summary>" + f"{len(items)} finding(s)" + "</summary>", ""]
+        for mid, rec in items:
+            text = clip(str(rec.get("text", "")).strip(), cap)
+            first, sep, rest = text.partition("\n")
+            lines.append(f"- `{mid}` · since {str(rec.get('first_seen', ''))[:10]} · {first}" + sep + rest)
+        lines += ["", "</details>"]
+    return lines
+
+
+def render_fitting(selected, counts, generated_at, repo="", run_url="", mech=None, mcounts=None):
     """The full list if it fits; else the largest per-item text cap that does."""
-    body = render(selected, counts, generated_at, repo, run_url)
+    body = render(selected, counts, generated_at, repo, run_url, mech=mech, mcounts=mcounts)
     if len(body) <= MAX_BODY:
         return body
-    lo, hi = MIN_CAP, max((len(str(r.get("text", ""))) for v in selected.values() for _, r in v), default=MIN_CAP)
-    best = render(selected, counts, generated_at, repo, run_url, MIN_CAP)
+    every = [r for v in selected.values() for _, r in v] + [r for v in (mech or {}).values() for _, r in v]
+    lo, hi = MIN_CAP, max((len(str(r.get("text", ""))) for r in every), default=MIN_CAP)
+    best = render(selected, counts, generated_at, repo, run_url, MIN_CAP, mech, mcounts)
     while lo <= hi:
         mid = (lo + hi) // 2
-        b = render(selected, counts, generated_at, repo, run_url, mid)
+        b = render(selected, counts, generated_at, repo, run_url, mid, mech, mcounts)
         if len(b) <= MAX_BODY:
             best, lo = b, mid + 1
         else:
@@ -163,9 +200,10 @@ def main(argv=None):
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     run_url = (f"{os.environ['GITHUB_SERVER_URL']}/{a.repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
                if os.environ.get("GITHUB_RUN_ID") else "")
-    selected, counts = select(load_open(a.checkout, a.notes_ref), ac.cited_decisions(a.checkout),
-                              ac.dismissed_decisions(a.checkout))
-    body = render_fitting(selected, counts, now, a.repo or "", run_url)
+    cited, dismissed = ac.cited_decisions(a.checkout), ac.dismissed_decisions(a.checkout)
+    selected, counts = select(load_open(a.checkout, a.notes_ref), cited, dismissed)
+    mech, mcounts = select(load_open(a.checkout, a.notes_ref, "mechanical_open.json"), cited, dismissed)
+    body = render_fitting(selected, counts, now, a.repo or "", run_url, mech, mcounts)
     Path(a.out).write_text(body)
     if a.publish:
         print(f"issue #{publish(a.repo, body)}")

@@ -309,7 +309,8 @@ def settle_open_counts(manifest, settled):
 
 DISMISSED_FILE = "R/package_metadata/audits/dismissed_decisions.md"
 RELEASE_GLOB = "R/package_metadata/future_release_plans/release_v*.md"
-DECISION_ID = re.compile(r"\b([a-z][a-z0-9-]*-d[0-9a-f]{8}(?:-\d+)?)\b")
+# `<audit>-d<hex>` is a decision for the owner, `<audit>-m<hex>` a mechanical finding (same lifecycle).
+DECISION_ID = re.compile(r"\b([a-z][a-z0-9-]*-[dm][0-9a-f]{8}(?:-\d+)?)\b")
 
 
 def decision(text, unit=None, key=None):
@@ -324,9 +325,9 @@ def texts(items):
     return [x["text"] if isinstance(x, dict) else x for x in items or []]
 
 
-def decision_id(audit, unit, key, text):
+def decision_id(audit, unit, key, text, kind="d"):
     basis = ("u", unit, key) if unit is not None else ("t", re.sub(r"\s+", " ", str(text)).strip())
-    return f"{audit}-d{text_hash(*basis)[:8]}"
+    return f"{audit}-{kind}{text_hash(*basis)[:8]}"
 
 
 def cited_decisions(repo):
@@ -344,19 +345,21 @@ def dismissed_decisions(repo):
     return set(DECISION_ID.findall(p.read_text(errors="replace"))) if p.is_file() else set()
 
 
-def track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp, keep_unlisted=False):
+def track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp, keep_unlisted=False,
+                    kind="d"):
     """Carry the owner's open decisions from run to run.
 
     items: this run's "human" items (str or decision()). prev: {id: record} from the last run.
     A previous decision this run did not report again stays open if its unit was not re-read this
     run (covered), else it is resolved (the finding is gone). One cited by an open release TODO is
     kept but not listed; one whose id is in DISMISSED_FILE is dropped.
+    kind "m" tracks mechanical findings the same way (ids `<audit>-m<hex>`).
     Returns (open records to save, report lines, {"cited": n, "dismissed": n}).
     """
     cur = {}
     for it in items:
         it = it if isinstance(it, dict) else decision(it)
-        base = decision_id(audit, it.get("unit"), it.get("key"), it["text"])
+        base = decision_id(audit, it.get("unit"), it.get("key"), it["text"], kind)
         did, n = base, 1
         while did in cur:
             n += 1
@@ -402,9 +405,51 @@ def decision_note(counts):
 
 # ---------------------------------------------------------------- reports
 
+def mechanical_note(counts):
+    extra = []
+    if counts.get("cited"):
+        extra.append(f"{counts['cited']} more are cited by an open release TODO and not listed")
+    if counts.get("dismissed"):
+        extra.append(f"{counts['dismissed']} dismissed")
+    return ("Each finding stays here until a run no longer finds it (then it counts as fixed), an open release "
+            "TODO cites its id (the `<audit>-m<hex>` tag after the item), or its id is listed in "
+            f"`{DISMISSED_FILE}` with a reason. The issue labelled `audit-decisions` lists every audit's open "
+            "mechanical findings under their own heading."
+            + (" " + "; ".join(extra) + "." if extra else ""))
+
+
+def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, stamp, scope_units=None):
+    """The decisions lifecycle for the "mechanical" part of a report.
+
+    lines: the report's mechanical lines (str). mech: this run's mechanical findings (dicts with text,
+    unit and optionally key), used to give a line its unit and a stable key; a line with no match is
+    keyed on its text. A previous finding this run did not report again is fixed, unless the audit's
+    mechanical stage is incremental and did not look at its unit this run (`scope_units`: the units it
+    checked; None = every unit, the default).
+    Returns (open records to save, report lines, counts, ids of previous findings now fixed).
+    """
+    by_text = {}
+    for f in mech or []:
+        by_text.setdefault(f.get("text", ""), f)
+    items = []
+    for t in lines or []:
+        f = by_text.get(t) or {}
+        unit = f.get("unit") or None
+        items.append({"text": t, "unit": unit, "key": f.get("key") or (re.sub(r"\s+", " ", t).strip() if unit else None)})
+    if scope_units is None:
+        covered = set(plan_units) | {r.get("unit") for r in prev.values() if r.get("unit")}
+        open_, out, counts = track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp,
+                                             kind="m")
+    else:
+        open_, out, counts = track_decisions(audit, items, prev, set(scope_units), plan_units, cited,
+                                             dismissed, stamp, keep_unlisted=True, kind="m")
+    fixed = [mid for mid in prev if mid not in open_ and mid not in dismissed]
+    return open_, out, counts, fixed
+
+
 def render_report(spec, parts, coverage, run_url):
     """parts: {"applied": [str], "mechanical": [str], "human": [str], "info": [str], "summary": str,
-    "decision_note": str}. "human" is rendered as "Decisions for you"; "info" (verdicts, progress
+    "decision_note": str, "mechanical_note": str}. "human" is rendered as "Decisions for you"; "info" (verdicts, progress
     notes, detector summaries: nothing to decide) goes in a collapsed block."""
     md = [f"## {spec['title']}", ""]
     if parts.get("summary"):
@@ -416,6 +461,8 @@ def render_report(spec, parts, coverage, run_url):
             md += [f"### {title} ({len(items)})", ""]
             if key == "human" and parts.get("decision_note"):
                 md += [parts["decision_note"], ""]
+            if key == "mechanical" and parts.get("mechanical_note"):
+                md += [parts["mechanical_note"], ""]
             md += [f"- {x}" for x in items] + [""]
     info = parts.get("info") or []
     if info:
@@ -437,8 +484,8 @@ def issue_note(spec):
             "itself when a run finds nothing. Do not close it, assign it or work in it: closing it by hand "
             "only makes the next run open a new one. To act on a finding, fix it in its own PR or open a "
             "release TODO (`v<version>-TODO-<n>`) that cites its id (the `<audit>-d<hex>` tag after a "
-            "decision), or dismiss it by listing that id in `" + DISMISSED_FILE + "`; a decision leaves "
-            "this report once a run no longer finds it.\n\n")
+            "decision, `<audit>-m<hex>` after a mechanical finding), or dismiss it by listing that id in `"
+            + DISMISSED_FILE + "`; an item leaves this report once a run no longer finds it.\n\n")
 
 
 BODY_LIMIT = 60000   # GitHub rejects PR and issue bodies and comments over 65,536 characters

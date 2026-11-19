@@ -225,6 +225,72 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("bad", (self.tmp / "work/report.md").read_text())
 
 
+class MechanicalLifecycle(EndToEnd):
+    """Mechanical findings: open until no longer found, cited by an open TODO, or dismissed (2026-11-19)."""
+
+    MOD = ('SPEC = {"name": "demo", "report": "issue"}\n'
+           'from pathlib import Path\n'
+           'def mechanical(ctx):\n'
+           '    p = Path(ctx.repo) / "lint.txt"\n'
+           '    return [{"unit": "a.txt", "kind": "lint", "text": t} for t in p.read_text().split("\\n") if t] '
+           'if p.exists() else []\n')
+
+    def finish(self):
+        self.out.write_text("")
+        audit_run.main(self.args("prepare", "--no-harvest"))
+        self.out.write_text("")
+        audit_run.main(self.args("finish"))
+        notes = ac.Notes(self.tmp / "notes", "demo")
+        return (json.loads((notes.dir / "mechanical_open.json").read_text()),
+                (self.tmp / "work/report.md").read_text(), notes)
+
+    def test_open_cited_dismissed_fixed(self):
+        (self.tmp / "mods/audits/demo.py").write_text(self.MOD)
+        (self.repo / "lint.txt").write_text("trailing space\nbad title\n")
+        open_, report, _ = self.finish()
+        first_open = open_
+        self.assertEqual(len(open_), 2)
+        ids = sorted(open_)
+        self.assertTrue(all(ac.DECISION_ID.fullmatch(i) and "-m" in i for i in ids))
+        self.assertIn(f"`{ids[0]}`", report)
+        self.assertIn("until a run no longer finds it", report)
+        # the same finding keeps its id on the next run
+        self.assertEqual(sorted(self.finish()[0]), ids)
+        # cited by an open TODO: still open, not listed; dismissed: dropped
+        rel = self.repo / "R/package_metadata/future_release_plans/release_v1_0_6.md"
+        rel.parent.mkdir(parents=True)
+        rel.write_text(f"- [ ] TODO-1 fix it ({ids[0]})\n")
+        dis = self.repo / ac.DISMISSED_FILE
+        dis.parent.mkdir(parents=True, exist_ok=True)
+        dis.write_text(f"- `{ids[1]}`: intended\n")
+        open_, report, _ = self.finish()
+        self.assertEqual(set(open_), {ids[0]})
+        self.assertNotIn(ids[0], report)
+        self.assertNotIn(ids[1], report)
+        self.assertNotIn("Mechanical findings (", report)     # nothing left to list: no section
+        # fixed: no longer found -> leaves the list, and the history says fixed
+        (self.repo / "lint.txt").write_text("")
+        rel.unlink(); dis.unlink()
+        open_, report, notes = self.finish()
+        self.assertEqual(open_, {})
+        self.assertIn("no longer found: counted as fixed", report)
+        st = {h["text"]: h["status"] for h in notes.findings() if h.get("source") == "mechanical"}
+        cited_text = first_open[ids[0]]["text"]
+        self.assertEqual(st[cited_text], "fixed")           # cited, then no longer found: fixed
+        self.assertEqual(sorted(st.values()), ["fixed", "reported"])   # the dismissed one left while dismissed
+
+    def test_incremental_scope_keeps_unchecked_units(self):
+        prev = {}
+        first, _, _, _ = ac.track_mechanical("demo", ["x bad", "y bad"],
+                                            [{"unit": "x", "text": "x bad"}, {"unit": "y", "text": "y bad"}],
+                                            prev, {"x", "y"}, set(), set(), "2026-11-19T00:00:00+00:00")
+        nxt, lines, _, fixed = ac.track_mechanical("demo", [], [], first, {"x", "y"}, set(), set(),
+                                                   "2026-11-26T00:00:00+00:00", scope_units={"x"})
+        self.assertEqual(len(nxt), 1)                       # y was not checked this run: still open
+        self.assertIn("not re-checked this run", lines[0])
+        self.assertEqual(len(fixed), 1)                     # x was checked and is gone: fixed
+
+
 class Repo(unittest.TestCase):
     """Every audit module in the repository loads and has what its stages need."""
 
