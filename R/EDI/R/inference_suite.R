@@ -980,7 +980,7 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 	# confirmed reachable for `InferenceIncidGCompRiskDiff`/`RiskRatio`,
 	# `InferenceIncidKKNewcombeRiskDiffIVWC`, and the Miettinen-Nurminen
 	# incidence class (`fix_inference_hierarchy.md`'s method-level-`stop()`
-	# TODO, 2026-08-21: an incidence-response design that supports
+	# item of 2026-08-21, closed with that plan: an incidence-response design that supports
 	# randomization draws but isn't `randomization_family() ==
 	# "rerandomization"` and has no custom randomization statistic hits the
 	# `stop()`, which this function's own `tryCatch` below used to swallow
@@ -4568,8 +4568,9 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #' suite = InferenceSuite$new(seq_des)
 #' suite$applicable_design_classes
 #'
-#' # Fit and compare every applicable class:
-#' results = suite$run_all_inference(screen = TRUE)
+#' # Fit and compare every applicable class (Wald and randomization only, with
+#' # 99 draws, to keep the example short; omit `methods` and `r` for every method):
+#' results = suite$run_all_inference(screen = TRUE, methods = c("wald", "rand"), r = 99)
 #' results$results_table
 #' }
 InferenceSuite = R6::R6Class("InferenceSuite",
