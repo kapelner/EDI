@@ -4218,3 +4218,58 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - Done when: the confirmation stage shows the ZINB randomization cells nominal on the R guard. The C++ root fix is
     optional after that; if it is done, remove the R guard and its "Fitting" caveat about extra refits. The campaign's 78 ZINB randomization flags (size 0.075-0.109)
     are not accepted; they wait for that re-run.
+
+### Code bugs found by the source-comment-rot fixes, 2026-11-19 (TODO-223..229)
+
+The source-comment-rot decisions fixed in 21e0679a rewrote these comments to describe the current code. The code
+itself still needs a look.
+
+- [ ] TODO-223 (added 2026-11-19, owner; audit decision `source-comment-rot-d06973fef`): **`fast_beta_regression`
+  reports the observed Hessian as `fisher_information`.** `R/EDI/src/fast_beta_regression.cpp` sets `fit.XtWX =
+  fun.hessian(params)`, the exact observed Hessian of the negative log-likelihood, and `vcov` inverts it, while
+  `BetaRegression::expected_hessian()` is never called. The old docs said expected (working-weights) information.
+  - Decide which is intended. If expected information: call `expected_hessian()` for `fisher_information` and keep
+    the observed one under `observed_information`, as the other likelihood kernels do. If observed: delete the dead
+    `expected_hessian()`.
+  - Done when: the label matches the matrix, the unused code is gone, and a test compares both matrices with a
+    numerical Hessian on a small fixture. Changing the matrix behind `vcov` changes SEs, so it needs a NEWS bullet.
+- [ ] TODO-224 (added 2026-11-19, owner; `source-comment-rot-d77150edf`): **`fast_log_pnorm` is a constant for every
+  x <= -8.** It returns -35.0496 there (and -6.661e-16 for x >= 8), with no asymptotic lower tail; log Phi(-10) is
+  about -53.2. Censored-normal likelihoods that call it (`fast_survival_models_optim.cpp`) get no gradient far into
+  the lower tail.
+  - Replace the clamp with the standard asymptotic tail (log Phi(x) = log(phi(x)/|x|) + log of the Mills-ratio
+    series, or `R::pnorm(x, 0, 1, 1, 1)` where R is available); this overlaps v1.1.0-TODO-50's erfcx item
+    (`normal-cdf-quantile#43925959437.1`), so take whichever lands first.
+  - Done when: |fast_log_pnorm(x) - pnorm(x, log.p = TRUE)| < 1e-12 relative on x in [-40, 8], with a test.
+- [ ] TODO-225 (added 2026-11-19, owner; `source-comment-rot-d4adc9b4d`): **`prob_clip_eps` assert accepts 0.5.**
+  `R/EDI/R/inference_incidence_gcomp_abstract.R` checks `assertNumber(prob_clip_eps, lower = 0, upper = 0.5)`
+  (inclusive), while a separate `stop()` rejects `>= 0.5`. Behavior is correct; tighten the assert (e.g.
+  `upper = 0.5 - .Machine$double.eps`) and drop the redundant `stop()`, keeping the error message.
+  - Done when: one check, and a test that 0.5 errors.
+- [ ] TODO-226 (added 2026-11-19, owner; `source-comment-rot-d6554d59d`): **`edi_tuning_verify_parallel_deviation`
+  cannot detect a serial-vs-parallel difference.** `R/EDI/R/local_machine_tuning_correctness.R` fits the same class
+  on two identical seeded experiments without setting or varying the core count, so both fits run under the same
+  core setting.
+  - Run one fit with one core and the other with `num_cores`, restoring the setting afterward, and compare.
+  - Done when: a test plants a core-count-dependent estimator and the check flags it.
+- [ ] TODO-227 (added 2026-11-19, owner; `source-comment-rot-de20927dd`): **`bootstrap_match_indices.cpp` cannot be
+  compiled under `EDI_CORE_ONLY`.** It includes `<RcppEigen.h>` unconditionally and has no `#ifdef EDI_CORE_ONLY`
+  guard, although `bootstrap_m_indices_internal` has no R dependency. Apply the guard pattern of
+  `bootstrap_indices.cpp` (core function outside, Rcpp wrapper inside `#ifndef EDI_CORE_ONLY`).
+  - Done when: the file compiles in a `cpp_tests/` target (per the CLAUDE.md whitelist) and the R build is unchanged.
+- [ ] TODO-228 (added 2026-11-19, owner; `source-comment-rot-df6e615ac`): **The KK "Newcombe" risk-difference class
+  uses Wald variances.** `shared_combined()` in `R/EDI/R/inference_incidence_KK_newcombe_ivwc_univ.R` computes
+  Wald variances (var_m = (p10 + p01 - (p10 - p01)^2)/n, var_r = pRT(1-pRT)/nRT + pRC(1-pRC)/nRC) and no Wilson-score
+  interval. The docs now say so, but the class name promises Newcombe.
+  - Decide: implement the paired (Newcombe Method 10) and independent Newcombe intervals for the components, or
+    rename the class (with a deprecated alias) to describe the Wald combination.
+  - Done when: the name and the method agree; if the method changes, calibration coverage is rechecked and NEWS says
+    so.
+- [ ] TODO-229 (added 2026-11-19, owner; `source-comment-rot-d8959b19b`): **`InferencePropQuantileRegr`'s
+  Bayesian-bootstrap refits use a different solver from its main fit.** The point and variance fits use
+  `method = "fn"`, but the weighted `quantreg::rq()` in the shared `compute_quantile_estimate_with_bootstrap_weights`
+  (`R/EDI/R/inference_continuous_quantile_regr.R`) uses the default `"br"`, so replicates and the original estimate
+  come from different solvers.
+  - Pass `private$quantile_full_method` (when not `NA`) to the weighted `rq()` call, so each class uses one solver.
+  - Done when: the proportion class's weighted fit uses "fn", the continuous class is unchanged, and a test checks
+    that unit weights reproduce the point estimate.
