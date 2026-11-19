@@ -1,6 +1,6 @@
 {
- "issue_hash": "f4946ce2dada4a0a",
- "last_run": "2026-11-18T19:58:20+00:00",
+ "issue_hash": "3e15cde93825af8d",
+ "last_run": "2026-11-19T13:10:16+00:00",
  "units": {
   "DesignFixedBernoulli": {
    "audited_at": "2026-11-17T10:28:57+00:00",
@@ -617,6 +617,174 @@
    "hash": "fa805a75dfee1313",
    "open_findings": 0,
    "run": "44358259975"
+  },
+  "InferenceOrdinalKKCLMMCloglog": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "be051479683db599",
+   "hash": "493cb172d450e0e0",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalKKCLMMProbit": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "2fc7332fbe3e2206",
+   "hash": "cba1c4044e48b70f",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalKKCondAdjCatLogitRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "b6e88e8b7e1288f1",
+   "hash": "5ded6f2127eade30",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalKKGEE": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "bb48bcdbc6f4b5b9",
+   "hash": "11f2c9ccc8ea4518",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalKKGLMM": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "704ce3b55eae2bd5",
+   "hash": "0c4ee7c73d74a0e4",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalOrderedProbitRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "8b93c76bc9530d88",
+   "hash": "caf5705a842065da",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalPairedSignTest": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "32cfc2fcb8beaa01",
+   "hash": "eb93812938370af3",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalPartialProportionalOddsRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "34cb78cffee791ff",
+   "hash": "c3515e77740e0104",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalPropOddsRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "5cb223c1d40b0931",
+   "hash": "45feb43f8d5ca622",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalRidit": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "14fd3b9b17e90429",
+   "hash": "dc1c7eaa1fc499e2",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceOrdinalStereotypeLogitRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "39fa01081c3b8bab",
+   "hash": "cc6826d938754cbc",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropBetaRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "7bf901bff287f58d",
+   "hash": "8851042728c350de",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropFractionalLogit": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "5b121723b08fb390",
+   "hash": "c970c979c265c5f1",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropGCompMeanDiff": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "cc6c2562aee6d471",
+   "hash": "f5f82dd4fad39bc2",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropKKGEE": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "e9f69acaf4f3a4e8",
+   "hash": "a0bc927c70c9f252",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropKKGLMM": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "0b58df978b9cfa13",
+   "hash": "b3344c2aa0d5f792",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropKKQuantileRegrIVWC": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "3286d4635344c69c",
+   "hash": "3fbe375b4bc9a956",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropKKQuantileRegrOneLik": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "4b4f66a79825d843",
+   "hash": "e7a5c70276bfef3a",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropQuantileRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "0a4f4586bbed2967",
+   "hash": "e3193d9b4946cb35",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferencePropZeroOneInflatedBetaRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "311163b21e2d0a48",
+   "hash": "ff2ba3c8384aaa04",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceRandCustom": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "94b304195e409ffb",
+   "hash": "17275c102adafb08",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceSuite": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "490a5f6ce9bcba54",
+   "hash": "8f87bc34b3d31e39",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceSurvivalCoxPHRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "9c7699948f6c1aa9",
+   "hash": "00b42e741fa7c734",
+   "open_findings": 0,
+   "run": "44511365645"
+  },
+  "InferenceSurvivalDepCensTransformRegr": {
+   "audited_at": "2026-11-19T13:10:16+00:00",
+   "deps": "bfa85e30a3089790",
+   "hash": "61b06cc370789ed7",
+   "open_findings": 0,
+   "run": "44511365645"
   }
  }
 }
