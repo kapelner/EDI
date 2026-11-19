@@ -291,7 +291,7 @@ Crossref 2026-11-17.)
   from theta_hat is first scaled by r_h = n_h (N - 1)/(N (n_h - 1)) (its
   first-order reweighted equivalent; N = all units); v1.0.6-TODO-4. Also
   used by `InferenceCountPoisson` (`inference_count_poisson.R`,
-  `design_jackknife_pval()` / `design_jackknife_ci()`): the fallback for the
+  private methods design_jackknife_pval / design_jackknife_ci): the fallback for the
   design-conservative tests on blocking designs whose automatic unit is the
   whole block and that have fewer than 5 blocks (e.g.
   `DesignSeqOneByOneRandomBlockSize`); v1.1.0-TODO-218.
