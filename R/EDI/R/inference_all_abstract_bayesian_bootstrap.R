@@ -106,8 +106,10 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("Bayesian bootstrap inference")
 				private$assert_valid_bootstrap_type(weighting_unit_type)
@@ -459,6 +461,12 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			se_boot = stats::sd(boot_distr)
 			if (!is.finite(se_boot) || se_boot <= 0) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_standard_error_unavailable", "se")
+				# v1.0.6-TODO-185: warn instead of a silent NA (silent inside resampling).
+				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+					reason = "bayesian_bootstrap_standard_error_unavailable",
+					detail = paste0("The ", length(boot_distr), " finite Bayesian-bootstrap draws have no spread ",
+						"(standard deviation ", format(se_boot, digits = 3), "), so the normal-approximation ",
+						"(type = \"wald\") p-value is undefined."))
 				return(NA_real_)
 			}
 			n_bs = length(boot_distr)
@@ -754,8 +762,10 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			theta
 		},
 		approximate_bayesian_bootstrap_statistics_beta_hat_T = function(B = 501, show_progress = TRUE, na.rm = TRUE, require_se = FALSE, weighting_unit_type = NULL) {
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!isTRUE(require_se)) {
 				theta = self$approximate_bayesian_bootstrap_distribution_beta_hat_T(
 					B = B, show_progress = show_progress, weighting_unit_type = weighting_unit_type
@@ -824,8 +834,10 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			result
 		},
 		approximate_bayesian_jackknife_distribution_beta_hat_T = function(weighting_unit_type = NULL) {
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = "auto")) {
 				return(numeric(0))
 			}

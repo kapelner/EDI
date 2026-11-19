@@ -58,6 +58,26 @@ test_that("randomization p-value with too few finite draws warns once", {
 	expect_true(is.finite(res2$value))
 })
 
+test_that("randomization p-value with r below the finite-draw floor blames r, not the estimator", {
+	# v1.0.6-TODO-202: r = 9 with every draw finite still returns NA (floor is 10), and the
+	# warning must say r is too small rather than that the estimator fails on re-randomizations.
+	des = make_cont_design()
+	inf = InferenceAllSimpleAverageDiff$new(des)
+	stub_method(inf, "approximate_randomization_distribution_beta_hat_T",
+		function(r = 501, ...) rnorm(r))
+	res = collect_na_warnings(inf$compute_rand_two_sided_pval(r = 9, show_progress = FALSE))
+	expect_one_na_warning(res, "randomization p-value", "randomization_too_few_finite_estimates")
+	msg = conditionMessage(res$na[[1L]])
+	expect_match(msg, "Increase r", fixed = TRUE)
+	expect_false(grepl("estimator fails", msg, fixed = TRUE))
+	# draws requested but mostly non-finite: the estimator wording stays
+	inf2 = InferenceAllSimpleAverageDiff$new(des)
+	stub_method(inf2, "approximate_randomization_distribution_beta_hat_T",
+		function(r = 501, ...) c(rnorm(5), rep(NA_real_, r - 5)))
+	res2 = collect_na_warnings(inf2$compute_rand_two_sided_pval(r = 101, show_progress = FALSE))
+	expect_match(conditionMessage(res2$na[[1L]]), "estimator fails", fixed = TRUE)
+})
+
 test_that("the p-value helper is silent while a resampling operation is active", {
 	des = make_cont_design()
 	inf = InferenceAllSimpleAverageDiff$new(des)

@@ -546,7 +546,15 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		"gee_fitted_linear_predictor", "gee_uses_logit_link", "ordinal_gee_max_abs_cumulative_logit",
 		"weighted_gcomp_se_md", "jackknife_wald_ci_impl", "jackknife_wald_pval_impl",
 		"jackknife_wald_with_reason", "km_jackknife_na_reason", "warn_km_median_not_reached_once",
-		"rmst_default_horizon", "rmst_horizon"
+		"rmst_default_horizon", "rmst_horizon",
+		# 3dabce47 / 97e466f1 (2026-11-18/19, v1.0.6 fixes), also additions only: the
+		# bootstrap extreme-estimate and raw-ratio-estimand guards, the shared
+		# subsampling / m-out-of-n size selection and centered pivot, the quantile
+		# regressions' weighted-refit helpers, and the Poisson design-stratified jackknife.
+		"bootstrap_ci_estimates_extreme", "bootstrap_estimand_is_raw_ratio",
+		"resampling_centered_pivot_for_inference", "select_resampling_size_from_spec",
+		"compute_quantile_estimate_with_bootstrap_weights", "quantile_fit_response",
+		"design_stratified_jackknife"
 	)
 	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
 	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {

@@ -900,8 +900,19 @@ ZeroAugmentedCountLikelihoodSource = list(
 					}
 					if (is.null(fit) || !isTRUE(fit$converged)) return(NA_real_)
 					private$set_fit_warm_start(as.numeric(fit$params), "params")
-					return(as.numeric(fit$params[2]))
+					# v1.0.6-TODO-189: under a marginal estimand (ZIP / hurdle Poisson
+					# only) return the g-computed functional, the scale
+					# compute_estimate() and the reused worker use.
+					estimand = if (is.function(self$get_estimand)) self$get_estimand() else "conditional"
+					if (identical(estimand, "conditional")) return(as.numeric(fit$params[2]))
+					return(edi_rand_statistic_marginal_point(function() private$zero_augmented_poisson_marginal_functional(
+						as.numeric(fit$params), X_fit, Xzi_fit, is_hurdle, estimand
+					)))
 			} else {
+				# v1.0.6-TODO-189: the glmmTMB path has no marginal functional (the
+				# marginal estimate needs the Rcpp fit's stacked params), so it gives
+				# no statistic rather than the conditional coefficient.
+				if (is.function(self$get_estimand) && !identical(self$get_estimand(), "conditional")) return(NA_real_)
 				dat = private$build_component_frame(X_fit, Xzi_fit)
 				mod = private$fit_zero_augmented_model(dat, X_fit, Xzi_fit)
 				if (is.null(mod)) return(NA_real_)

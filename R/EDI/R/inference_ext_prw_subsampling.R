@@ -44,8 +44,10 @@ InferenceExtPRWSubsampling = list(
 		#' @references Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 		#'   \emph{Subsampling}. Springer.
 		approximate_subsampling_distribution_beta_hat_T_impl = function(B = 501, b = NULL, show_progress = TRUE, debug = FALSE, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "subsampling"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			private$check_bootstrap_replicate_deadline("subsampling distribution setup")
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("PRW subsampling inference")

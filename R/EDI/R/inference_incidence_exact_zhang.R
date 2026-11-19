@@ -22,8 +22,9 @@ ExactZhangIncidenceSource = list(
 		# Computes the exact-Zhang estimate. Documented via @R6method
 		# below (see InferenceIncidExactZhang$compute_estimate).
 		compute_estimate = function(estimate_only = FALSE){
-			stats = zhang_get_exact_stats(self)
-			zhang_incid_treatment_estimate(stats)
+			# Pooled table over all subjects, as documented (v1.0.6-TODO-147); the
+			# reservoir-only table gave 0 whenever every subject was matched.
+			zhang_incid_treatment_estimate(zhang_get_pooled_table(self))
 		},
 		# Computes an exact confidence interval for the log odds ratio.
 		# Documented via @R6method below (see

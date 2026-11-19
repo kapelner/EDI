@@ -212,7 +212,9 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
 		}
 	),
-	private = list(
+	# default_null_value() and the compute_rr_*() risk-ratio methods: gcomp_incid_rr_private_methods
+	# (helper_gcomp.R), shared by the KK and non-KK classes (v1.0.6-TODO-193).
+	private = c(gcomp_incid_rr_private_methods, list(
 		is_a_incid_kk_gcomp = function() TRUE,
 		max_abs_reasonable_coef = 25,
 		best_X_colnames = NULL,
@@ -270,206 +272,6 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		},
 		build_design_matrix = function() stop(class(self)[1], " must implement build_design_matrix()."),
 		get_estimand_type = function() stop(class(self)[1], " must implement get_estimand_type()."),
-		default_null_value = function(){
-			if (identical(private$get_estimand_type(), "RR")) 1 else 0
-		},
-		compute_rr_bootstrap_basic_confidence_interval = function(alpha = 0.05, B = 501, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			est = as.numeric(self$compute_estimate(estimate_only = FALSE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				return(private$missing_bootstrap_ci(alpha, "bootstrap_original_estimate_unavailable", stage = "estimate"))
-			}
-			boot_distr = as.numeric(self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress))
-			if (isTRUE(na.rm)) {
-				boot_distr = boot_distr[is.finite(boot_distr) & boot_distr > 0]
-			} else if (any(!is.finite(boot_distr) | boot_distr <= 0)) {
-				return(ci)
-			}
-			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
-				return(private$missing_bootstrap_ci(alpha, "bootstrap_too_few_finite_estimates", stage = "estimate"))
-			}
-			# v1.0.6-TODO-175 (3): the same replicate and interval checks as the other bootstrap
-			# CI types (both judge a risk ratio on log(RR)); before, a degenerate basic interval
-			# such as [1.4e-8, 20] or [0.04, 7.6e7] was returned silently.
-			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
-				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_finite_estimates", stage = "estimate"))
-			}
-			q = stats::quantile(log(boot_distr), probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
-			ci[] = exp(2 * log(est) - q)
-			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
-				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_confidence_interval", stage = "estimate"))
-			}
-			ci
-		},
-		compute_rr_bayesian_bootstrap_log_confidence_interval = function(alpha = 0.05, B = 501, type = "basic", na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			est = as.numeric(self$compute_estimate(estimate_only = FALSE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_original_estimate_unavailable", stage = "estimate"))
-			}
-			boot_distr = as.numeric(self$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress, weighting_unit_type = weighting_unit_type))
-			if (isTRUE(na.rm)) {
-				boot_distr = boot_distr[is.finite(boot_distr) & boot_distr > 0]
-			} else if (any(!is.finite(boot_distr) | boot_distr <= 0)) {
-				return(ci)
-			}
-			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
-				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
-			}
-			# v1.0.6-TODO-175 (3): same checks as the generic Bayesian-bootstrap CI types.
-			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
-				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
-			}
-			log_boot = log(boot_distr)
-			if (identical(type, "wald")) {
-				se_log = stats::sd(log_boot)
-				if (!is.finite(se_log) || se_log <= 0) return(ci)
-				z = stats::qnorm(1 - alpha / 2)
-				ci[] = exp(log(est) + c(-1, 1) * z * se_log)
-			} else {
-				q = stats::quantile(log_boot, probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
-				ci[] = exp(2 * log(est) - q)
-			}
-			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
-				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval",
-					stage = if (identical(type, "wald")) "se" else "estimate"))
-			}
-			ci
-		},
-		# v1.0.6-TODO-137: shared with the KK/non-KK sibling; the helpers in
-		# inference_all_abstract_jackknife.R apply the compute_jackknife_summary()
-		# guards and warn on every NA.
-		compute_rr_jackknife_log_se = function(unit = "auto"){
-			edi_rr_jackknife_log_summary(self, private, unit = unit)$se_log
-		},
-		compute_rr_jackknife_wald_two_sided_pval = function(delta = 1, unit = "auto"){
-			edi_rr_jackknife_wald_two_sided_pval(self, private, delta = delta, unit = unit)
-		},
-		compute_rr_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			edi_rr_jackknife_wald_confidence_interval(self, private, alpha = alpha, unit = unit)
-		},
-		# Log-scale PRW subsampling/m-out-of-n pivot for the risk-ratio estimand,
-		# mirroring compute_rr_bootstrap_basic_confidence_interval()'s log-scale
-		# convention above -- see the identical, more fully commented version in
-		# inference_incidence_gcomp_abstract.R (the non-KK sibling) for the
-		# full rationale: the generic centered-pivot machinery centers/scales on
-		# the raw estimate scale, appropriate for risk difference but not for a
-		# ratio estimand whose null is 1 and whose raw sampling distribution is
-		# right-skewed, especially so at the reduced effective sample sizes
-		# (b/m ~ n^0.7) subsampling and m-out-of-n draw at.
-		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL){
-			# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-196).
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
-			if (!is.finite(est) || est <= 0) {
-				return(list(ok = FALSE, reason = "resampling_original_estimate_unavailable"))
-			}
-			# A list-valued b / m goes through the same minimum-volatility selector as the
-			# generic paths (v1.0.6-TODO-196); a failed selection is recorded even unhardened.
-			if (is.list(size)) {
-				family = if (identical(size_arg_name, "b")) "subsampling" else "m_out_of_n"
-				size = private$select_resampling_size_from_spec(family, size, B = B, alpha = alpha,
-					resampling_type = resampling_type, scaling = "sqrt_n", show_progress = show_progress)
-				if (!is.numeric(size) || length(size) != 1L || !is.finite(size)) {
-					reason = if (identical(family, "subsampling")) "subsampling_b_selection_failed" else "m_out_of_n_m_selection_failed"
-					if (!isTRUE(private$harden)) {
-						if (!is.null(alpha)) private$missing_bootstrap_ci(alpha, reason, stage = "estimate")
-						else edi_record_procedure_failure(self, private, reason, "estimate")
-					}
-					return(list(ok = FALSE, reason = reason))
-				}
-			}
-			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
-			size = private$resolve_resampling_size(size, unit_info$n_units, size_arg_name)
-			draw_args = list(B = B, show_progress = show_progress)
-			draw_args[[size_arg_name]] = size
-			draw_args[[if (identical(size_arg_name, "b")) "subsampling_type" else "bootstrap_type"]] = resampling_type
-			draws = as.numeric(do.call(distribution_fn, draw_args))
-			finite = draws[is.finite(draws) & draws > 0]
-			if (!length(finite)) {
-				return(list(ok = FALSE, reason = "resampling_too_few_finite_estimates"))
-			}
-			list(
-				ok = TRUE,
-				reason = NA_character_,
-				est = est,
-				log_est = log(est),
-				finite = finite,
-				centered_scaled = private$resampling_scaling_factor(size, "sqrt_n") * (log(finite) - log(est)),
-				n_units = unit_info$n_units
-			)
-		},
-		compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
-			if (!is.finite(delta) || delta <= 0) {
-				edi_record_procedure_failure(self, private, "subsampling_log_risk_ratio_null_unavailable", "estimate")
-				return(NA_real_)
-			}
-			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "subsampling")
-				return(NA_real_)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "subsampling_too_few_finite_estimates", "estimate")
-				return(NA_real_)
-			}
-			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
-		},
-		compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress, alpha = alpha)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
-				return(ci)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_too_few_finite_estimates", stage = "estimate"))
-				return(ci)
-			}
-			log_ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$log_est, n_units = pivot$n_units, scaling = "sqrt_n")
-			ci[] = exp(log_ci)
-			if (!all(is.finite(ci)) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_extreme_confidence_interval", stage = "estimate"))
-			}
-			ci
-		},
-		compute_rr_m_out_of_n_bootstrap_two_sided_pval = function(delta = 1, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
-			if (!is.finite(delta) || delta <= 0) {
-				edi_record_procedure_failure(self, private, "m_out_of_n_log_risk_ratio_null_unavailable", "estimate")
-				return(NA_real_)
-			}
-			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "m_out_of_n")
-				return(NA_real_)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "m_out_of_n_too_few_finite_estimates", "estimate")
-				return(NA_real_)
-			}
-			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
-		},
-		compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress, alpha = alpha)
-			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
-				return(ci)
-			}
-			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_too_few_finite_estimates", stage = "estimate"))
-				return(ci)
-			}
-			log_ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$log_est, n_units = pivot$n_units, scaling = "sqrt_n")
-			ci[] = exp(log_ci)
-			if (!all(is.finite(ci)) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_extreme_confidence_interval", stage = "estimate"))
-			}
-			ci
-		},
 		compute_weighted_gcomp_estimate = function(row_weights, with_se = FALSE){
 			X = private$build_design_matrix()
 			if (is.null(X)) return(NA_real_)
@@ -480,25 +282,13 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			y_fit = as.numeric(private$y[ok])
 			w_fit = as.numeric(row_weights[ok])
 			p_fit = ncol(X_fit)
-			boot_ws = if (!is.null(private$gcomp_boot_beta) && length(private$gcomp_boot_beta) == p_fit) {
-				private$gcomp_boot_beta
-			} else {
-				private$get_fit_warm_start_for_length("beta", p_fit)
-			}
-			mod = tryCatch(
-				fast_logistic_regression_weighted_cpp(
-					X = X_fit,
-					y = y_fit,
-					weights = w_fit,
-					warm_start_beta = boot_ws,
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(p_fit)
-				),
-				error = function(e) {
-					if (is_edi_control_condition(e)) stop(e)
-					NULL
-				}
-			)
-			if (is.null(mod) || is.null(mod$b)) {
+			# v1.0.6-TODO-192: accept a fit only if IRLS converged and the coefficients are
+			# usable. Otherwise retry from the full-data warm start, then cold. A failed fit is
+			# never cached as the next replicate's warm start (one diverged fit used to make
+			# every later replicate of the chain garbage: RR exactly 1, NA SE).
+			mod = gcomp_weighted_logistic_fit_with_retries(private, X_fit, y_fit, w_fit,
+				chain_beta = private$gcomp_boot_beta)$fit
+			if (is.null(mod)) {
 				private$gcomp_boot_beta = NULL
 				return(NA_real_)
 			}
@@ -567,106 +357,21 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				all(is.finite(coef_hat)) &&
 				max(abs(coef_hat), na.rm = TRUE) <= private$max_abs_reasonable_coef
 		},
+		# One body with the non-KK class (v1.0.6-TODO-193, code-duplication audit decision
+		# code-duplication-da35f9c8f): this class clamps at machine epsilon and uses the KK-pair
+		# cluster-robust sandwich.
 		fit_logistic_with_sandwich = function(X_full, estimate_only = FALSE){
-			X_curr = X_full
-			# v1.0.6-TODO-138: remember the QR-rank design and its first fit so the caller can name
-			# covariates the drop loop removed beyond collinearity.
-			rank_colnames = NULL
-			rank_coefs = NULL
-			repeat {
-				reduced = private$reduce_design_matrix_preserving_treatment(X_curr)
-				X_fit = reduced$X
-				j_treat = reduced$j_treat
-				if (is.null(X_fit) || !is.finite(j_treat) || nrow(X_fit) <= ncol(X_fit)){
-					return(NULL)
-				}
-				mod = tryCatch(
-					fast_logistic_regression_cpp(
-						X = X_fit, 
+			gcomp_fit_logistic_with_sandwich(private, X_full, estimate_only, clip_eps = .Machine$double.eps,
+				post_fit = function(X_fit, coef_hat, mu_hat, j_treat){
+					gcomp_logistic_cluster_post_fit_cpp(
+						X_fit = X_fit,
 						y = as.numeric(private$y),
-						warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-						warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
-					),
-					error = function(e) {
-						if (is_edi_control_condition(e)) stop(e)
-						NULL
-					}
-				)
-				if (is.null(mod)){
-					return(NULL)
-				}
-				coef_hat = as.numeric(mod$b)
-				if (is.null(rank_colnames)) {
-					rank_colnames = colnames(X_fit)
-					rank_coefs = coef_hat
-				}
-				converged = private$coefficients_are_usable(coef_hat)
-				if (!converged){
-					if (ncol(X_curr) <= 2L) return(NULL)
-					drop_col = gcomp_select_covariate_to_drop(X_curr, coef_hat)
-					if (!is.finite(drop_col)) return(NULL)
-					X_curr = X_curr[, -drop_col, drop = FALSE]
-					next
-				}
-				private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
-				
-				if (estimate_only){
-					return(list(
-						X = X_fit,
-						j_treat = j_treat,
-						coefficients = coef_hat,
-						estimate_only = TRUE,
-						qr_rank_colnames = rank_colnames,
-						qr_rank_coefficients = rank_coefs
-					))
-				}
-				mu_hat = inv_logit(X_fit %*% coef_hat)
-				mu_hat = pmin(pmax(as.numeric(mu_hat), .Machine$double.eps), 1 - .Machine$double.eps)
-				W = mu_hat * (1 - mu_hat)
-				if (any(!is.finite(W)) || any(W <= 0)){
-					if (ncol(X_curr) <= 2L) return(NULL)
-					drop_col = gcomp_select_covariate_to_drop(X_curr, coef_hat)
-					if (!is.finite(drop_col)) return(NULL)
-					X_curr = X_curr[, -drop_col, drop = FALSE]
-					next
-				}
-					post_fit = tryCatch(
-						gcomp_logistic_cluster_post_fit_cpp(
-							X_fit = X_fit,
-							y = as.numeric(private$y),
-							coef_hat = coef_hat,
-							mu_hat = mu_hat,
-							cluster_id = private$get_cluster_ids(),
-							j_treat = j_treat
-						),
-						error = function(e) {
-							if (is_edi_control_condition(e)) stop(e)
-							NULL
-						}
+						coef_hat = coef_hat,
+						mu_hat = mu_hat,
+						cluster_id = private$get_cluster_ids(),
+						j_treat = j_treat
 					)
-				if (is.null(post_fit)){
-					if (ncol(X_curr) <= 2L) return(NULL)
-					drop_col = gcomp_select_covariate_to_drop(X_curr, coef_hat)
-					if (!is.finite(drop_col)) return(NULL)
-					X_curr = X_curr[, -drop_col, drop = FALSE]
-					next
-				}
-				coef_names = colnames(X_fit)
-				names(coef_hat) = coef_names
-				vcov_robust = post_fit$vcov
-				colnames(vcov_robust) = rownames(vcov_robust) = coef_names
-				return(list(
-					X = X_fit,
-					j_treat = j_treat,
-					coefficients = coef_hat,
-					vcov = vcov_robust,
-					mu_hat = mu_hat,
-					post_fit = post_fit,
-					estimate_only = FALSE,
-					qr_rank_colnames = rank_colnames,
-					qr_rank_coefficients = rank_coefs
-				))
-			}
+				})
 		},
 		compute_standardized_effects_r = function(fit){
 			X_fit = fit$X
@@ -858,7 +563,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				private$cached_values$s_beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$se_rd else effects$rr * effects$se_log_rr
 			}
 		}
-	)
+	))
 )
 
 # Static leaf-shared source (2026-08-18 migration, fix_inference_hierarchy.md
@@ -887,108 +592,19 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 # pattern as `incidence_gcomp_generic_alias_overrides`
 # (inference_incidence_gcomp.R) for every method whose harvested body calls
 # `super$...` -- valid under the old R6 ladder, not under flat composition.
-incidence_kk_gcomp_generic_alias_overrides = list(
-	# Pinned from InferenceRandCI, NOT InferenceRand: unlike the non-KK
-	# sibling (incidence_gcomp_generic_alias_overrides, which resolves to
-	# InferenceRand via InferenceAsymp's ladder), this KK class's legacy
-	# ladder (InferenceParamBootstrap -> ... -> InferenceRandCI) actually
-	# resolves compute_rand_two_sided_pval to InferenceRandCI's version
-	# (verified via R6 ancestor walk) -- InferenceRand's version refuses
-	# incidence data outright ("Randomization tests are not supported for
-	# incidence. Use Zhang method"), which is NOT what the legacy class does.
-	# Lesson 3 applies here after all; the non-KK sibling's different choice
-	# doesn't generalize because that class's OWN ladder resolves differently.
-	compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-	get_supported_testing_types = InferenceAsymp$public_methods$get_supported_testing_types,
-	compute_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
-	compute_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
-	approximate_bootstrap_distribution_beta_hat_T_generic = InferenceNonParamBootstrap$public_methods$approximate_bootstrap_distribution_beta_hat_T,
-	compute_bayesian_bootstrap_two_sided_pval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
-	compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
-	compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
-	compute_jackknife_wald_confidence_interval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
-	compute_subsampling_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_two_sided_pval,
-	compute_subsampling_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_confidence_interval,
-	compute_m_out_of_n_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_two_sided_pval,
-	compute_m_out_of_n_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_confidence_interval,
-	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type)
-	},
-	compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
-		type_resolved = tolower(type %||% "percentile")
-		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
-			return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples))
-		}
-		self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
-	},
-	compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
-		if (is.null(delta)){
-			delta = private$default_null_value()
-		}
-		self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
-	},
-	compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
-		if (is.null(delta)){
-			delta = private$default_null_value()
-		}
-		self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
-	},
-	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
-		type_resolved = tolower(type %||% "percentile")
-		# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
-		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
-			return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
-		}
-		if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
-			return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
-		}
-		self$compute_bayesian_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
-	},
-	compute_jackknife_wald_two_sided_pval = function(delta = NULL, unit = "auto"){
-		if (is.null(delta)){
-			delta = private$default_null_value()
-		}
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_jackknife_wald_two_sided_pval(delta = delta, unit = unit))
-		}
-		self$compute_jackknife_wald_two_sided_pval_generic(delta = delta, unit = unit)
-	},
-	compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
-		}
-		self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
-	},
-	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
-		if (is.null(delta)){
-			delta = private$default_null_value()
-		}
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_subsampling_two_sided_pval(delta = delta, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
-		}
-		self$compute_subsampling_two_sided_pval_generic(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
-	},
-	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_subsampling_confidence_interval(alpha = alpha, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
-		}
-		self$compute_subsampling_confidence_interval_generic(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
-	},
-	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
-		if (is.null(delta)){
-			delta = private$default_null_value()
-		}
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_m_out_of_n_bootstrap_two_sided_pval(delta = delta, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
-		}
-		self$compute_m_out_of_n_bootstrap_two_sided_pval_generic(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
-	},
-	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
-		if (identical(private$get_estimand_type(), "RR")) {
-			return(private$compute_rr_m_out_of_n_bootstrap_confidence_interval(alpha = alpha, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
-		}
-		self$compute_m_out_of_n_bootstrap_confidence_interval_generic(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
-	}
+# The KK list is the non-KK list (incidence_gcomp_generic_alias_overrides,
+# inference_incidence_gcomp.R) with one alias changed (v1.0.6-TODO-193,
+# code-duplication audit decision code-duplication-dfe6e2293).
+# compute_rand_two_sided_pval is pinned from InferenceRandCI, NOT InferenceRand:
+# unlike the non-KK sibling (whose legacy ladder resolves to InferenceRand via
+# InferenceAsymp), this KK class's legacy ladder (InferenceParamBootstrap -> ... ->
+# InferenceRandCI) resolves compute_rand_two_sided_pval to InferenceRandCI's
+# version (verified via R6 ancestor walk) -- InferenceRand's version refuses
+# incidence data outright ("Randomization tests are not supported for
+# incidence. Use Zhang method"), which is NOT what the legacy class does.
+incidence_kk_gcomp_generic_alias_overrides = utils::modifyList(
+	incidence_gcomp_generic_alias_overrides,
+	list(compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval)
 )
 
 # Reusable-bootstrap-worker wiring, mirroring `incidence_gcomp_worker_

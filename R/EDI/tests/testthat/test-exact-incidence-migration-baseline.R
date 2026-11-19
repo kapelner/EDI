@@ -414,7 +414,9 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 			design = make_exact_binomial_migration_design(),
 			alpha = 0.10,
 			pval_epsilon = 0.01,
-			estimate = 0,
+			# Was 0 (reservoir-only table; this fixture has no reservoir). Re-pinned
+			# 2026-11-19 to the pooled-table estimate (v1.0.6-TODO-147); p-value and CI unchanged.
+			estimate = 1.69459572077441,
 			pval = 0.625,
 			ci = c(-0.751658555610134, 3.62346160483959)
 		)

@@ -80,8 +80,11 @@ test_that("closed-form estimate (0.5-corrected log odds ratio) and Wald interval
 	se <- sqrt(1 / 3.5 + 1 / 2.5 + 1 / 5.5 + 1 / 4.5)
 	expect_equal(Z("zhang_incid_mle_ci")(s, 0.1), est + c(-1, 1) * qnorm(0.95) * se, tolerance = 1e-12)
 	expect_true(is.finite(Z("zhang_incid_treatment_estimate")(list(n11 = 0L, n10 = 0L, n01 = 0L, n00 = 5L))))   # the 0.5 correction keeps it finite
+	# The point estimate uses the pooled table over all subjects, not the reservoir table of
+	# zhang_get_exact_stats() (v1.0.6-TODO-147).
 	f <- kk_fx()
-	expect_equal(f$inf$compute_estimate(), Z("zhang_incid_treatment_estimate")(Z("zhang_get_exact_stats")(f$inf)), tolerance = 1e-10)
+	pooled <- list(n11 = sum(f$y[f$w == 1]), n10 = sum(1 - f$y[f$w == 1]), n01 = sum(f$y[f$w == 0]), n00 = sum(1 - f$y[f$w == 0]))
+	expect_equal(f$inf$compute_estimate(), Z("zhang_incid_treatment_estimate")(pooled), tolerance = 1e-10)
 })
 
 test_that("bisection finds the crossing of a monotone p-value curve from either side", {

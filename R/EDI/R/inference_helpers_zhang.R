@@ -96,7 +96,10 @@ zhang_bisect_ci_boundary = function(p_fn, inside, outside, pval_th, tol){
 	(inside + outside) / 2
 }
 
-# Computes the point estimate used for bisection starting points
+# Haldane-Anscombe log odds ratio of a 2x2 table (n11, n10, n01, n00). Applied to the
+# pooled table it is the point estimate; applied to zhang_get_exact_stats() (the
+# reservoir table under matching) it is the reservoir component's estimate used to
+# seed the CI search.
 zhang_incid_treatment_estimate = function(stats){
 	n11 = stats$n11
 	n10 = stats$n10
@@ -104,6 +107,27 @@ zhang_incid_treatment_estimate = function(stats){
 	n00 = stats$n00
 	# Sample Odds Ratio (with continuity correction)
 	log((n11 + 0.5) * (n00 + 0.5) / ((n10 + 0.5) * (n01 + 0.5)))
+}
+
+# The pooled 2x2 table over all subjects (matched and reservoir together): each
+# subject counted once by its own treatment and outcome. This is the table the
+# point estimate uses (v1.0.6-TODO-147). The exact test and its CI search instead
+# use zhang_get_exact_stats(), whose n11..n00 are the reservoir only when there is a
+# match structure: the matched pairs enter the exact test through the discordant
+# pairs, so a pooled table there would count them twice. Not cached: it is O(n) and
+# always reflects the current y and w (bootstrap / randomization draws included).
+zhang_get_pooled_table = function(inf_obj){
+	private = inf_obj$.__enclos_env__$private
+	y = private$y
+	w = private$w
+	ok = !is.na(y) & !is.na(w)
+	y = y[ok]
+	w = w[ok]
+	nT = sum(w == 1L)
+	nC = sum(w == 0L)
+	n11 = sum(y[w == 1L])
+	n01 = sum(y[w == 0L])
+	list(n11 = n11, n10 = nT - n11, n01 = n01, n00 = nC - n01)
 }
 
 # Computes the MLE-based CI used for bisection search bounds
@@ -277,6 +301,13 @@ zhang_ci_inside_point = function(p_fn, exact_stats, lo_bound, hi_bound, alpha){
 
 zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_method = "Fisher"){
 	exact_stats = zhang_get_exact_stats(inf_obj)
+	# The search works on the exact test's own tables, not the pooled table the point
+	# estimate uses (v1.0.6-TODO-147): `exact_stats` holds the reservoir table under
+	# matching. zhang_ci_inside_point() combines the reservoir and matched-pair
+	# estimates by inverse variance, which needs the two to be disjoint (a pooled table
+	# would count the pairs twice), and the Wald bracket below is only a starting scale
+	# that zhang_bisect_ci_boundary() expands as needed. This also keeps the interval,
+	# the inversion of the unchanged exact test, identical to before.
 	est = zhang_incid_treatment_estimate(exact_stats)
 	if (should_run_asserts()) {
 		if (!is.finite(est)) stop("Cannot compute exact CI: point estimate is not finite.")

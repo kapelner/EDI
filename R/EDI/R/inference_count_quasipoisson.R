@@ -280,7 +280,11 @@ InferenceCountQuasiPoisson = define_inference_class(
 			if (is.null(res) || !is.finite(res$b[2])){
 				return(NA_real_)
 			}
-			as.numeric(res$b[2])
+			# v1.0.6-TODO-189: under a marginal estimand return the g-computed
+			# functional, the scale compute_estimate() and the reused worker use.
+			estimand = self$get_estimand()
+			if (identical(estimand, "conditional")) return(as.numeric(res$b[2]))
+			edi_rand_statistic_marginal_point(function() private$quasipoisson_marginal_functional(as.numeric(res$b), X, estimand))
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

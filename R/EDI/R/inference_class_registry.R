@@ -2934,6 +2934,17 @@ get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
 			live_remove = c(live_remove, capability)
 		}
 	}
+	# v1.0.6-TODO-189: under a non-conditional estimand the randomization and
+	# randomization-bootstrap CIs are refused
+	# (inference_stop_rand_ci_non_conditional_estimand()), so a live object no
+	# longer advertises them; set_estimand("conditional") restores them.
+	estimand = tryCatch(
+		if (is.function(live_obj$get_estimand)) live_obj$get_estimand() else NULL,
+		error = function(e) NULL
+	)
+	if (!is.null(estimand) && !identical(estimand, "conditional")) {
+		live_remove = c(live_remove, "randomization_ci", "randomization_bootstrap_ci")
+	}
 	setdiff(union(capabilities, live_add), live_remove)
 }
 

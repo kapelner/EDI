@@ -310,6 +310,20 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' regression's; dropping such replicates would bias the resampling
 #' distribution toward replicates that happen to contain zeros.
 #'
+#' \strong{Many covariates in small samples.} With few subjects per parameter
+#' the zero-inflated negative binomial fit is often degenerate: in the
+#' calibration study at n = 50 with 5 covariates (15 parameters), about half the
+#' fits had a separated zero-inflation logit (a coefficient beyond 10 in
+#' absolute value) and about a quarter had the dispersion at its Poisson
+#' boundary. The model-based tests are then oversized at a nominal 5\% level:
+#' Wald and score reject a true null about 18-19\% of the time, likelihood-ratio
+#' about 14\% and gradient about 15\%. On the non-degenerate fits the
+#' likelihood-ratio test is close to nominal (about 5\%), but Wald and score stay
+#' high because the model-based standard error is about 35\% too small. This is
+#' a small-sample property of the model, not a defect of the fit; it fades by
+#' n = 200. At small n, adjust for fewer covariates or prefer the likelihood-ratio
+#' test.
+#'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
 #'   1-14, \doi{10.2307/1269547}, for the zero-inflated count-model

@@ -167,3 +167,25 @@ poisson_family_marginal_estimand_estimate = function(private_env, mod, estimand,
 	}
 	point
 }
+
+#' Randomization statistic on a marginal estimand's scale
+#'
+#' @description v1.0.6-TODO-189: a class whose
+#' \code{compute_treatment_estimate_during_randomization_inference()} refits the
+#' model on a permuted (or bootstrap-randomization) assignment must return the
+#' statistic on the scale of \code{compute_estimate()}, which under a marginal
+#' estimand is the g-computed functional, not the treatment coefficient. The
+#' reused worker computes the replicate through \code{compute_estimate()}, so a
+#' statistic that stayed conditional mixed a conditional observed value with
+#' marginal null draws (or the reverse on the slow path). This evaluates the
+#' class's functional at the refit coefficients and maps any error or
+#' non-finite value to \code{NA_real_}.
+#'
+#' @param point_fn A function of no arguments returning the functional's value.
+#' @return A numeric scalar, \code{NA_real_} when unavailable.
+#' @keywords internal
+#' @noRd
+edi_rand_statistic_marginal_point = function(point_fn) {
+	point = tryCatch(as.numeric(point_fn())[1L], error = function(e) NA_real_)
+	if (length(point) == 1L && is.finite(point)) point else NA_real_
+}

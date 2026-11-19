@@ -473,7 +473,13 @@ InferencePropBetaRegr = define_inference_class(
 			} else {
 				ws_args$start_beta
 			}
-			has_vc = isTRUE(is.finite(private$cached_vc_params))
+			# v1.0.6-TODO-189: under estimand = "marginal_mean_diff" the statistic is
+			# the g-computation mean difference (below), and the reused worker computes
+			# it through compute_estimate(), which refits phi; refit phi here too so the
+			# randomization and BRT slow paths match the worker. The conditional path
+			# keeps its fixed log(phi), unchanged.
+			is_marginal = identical(self$get_estimand(), "marginal_mean_diff")
+			has_vc = !is_marginal && isTRUE(is.finite(private$cached_vc_params))
 			res = fast_beta_regression_cpp(
 				X = X, y = sanitize_beta_response(as.numeric(private$y)),
 				warm_start_beta = start_beta,
@@ -489,7 +495,12 @@ InferencePropBetaRegr = define_inference_class(
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(c(as.numeric(res$coefficients), log(as.numeric(res$phi))), "params", fisher = res$fisher_information)
-			as.numeric(res$coefficients[2])
+			if (!is_marginal) return(as.numeric(res$coefficients[2]))
+			# v1.0.6-TODO-189: return the statistic on the estimand's own scale; the
+			# randomization test, the BRT and their reused worker all compare it with
+			# compute_estimate(), the marginal mean difference here.
+			point = tryCatch(private$beta_regr_marginal_functional(as.numeric(res$coefficients), X), error = function(e) NA_real_)
+			if (is.finite(point)) as.numeric(point) else NA_real_
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

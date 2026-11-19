@@ -445,8 +445,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   }
 		#'   Any non-\code{NULL} value is rejected for designs outside that blocking family.
 		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "non_param_boot"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("Bootstrap inference")
 				private$assert_valid_bootstrap_type(bootstrap_type)
@@ -2040,8 +2042,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			})
 		},
 		approximate_bootstrap_statistics_beta_hat_T = function(B = 501, show_progress = TRUE, na.rm = TRUE, smooth = FALSE, require_se = FALSE){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "non_param_boot"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (should_run_asserts()) {
 				assertCount(B, positive = TRUE)
 				assertFlag(require_se)
@@ -2114,8 +2118,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			list(theta = stats_mat[, 1L], se = stats_mat[, 2L])
 		},
 		approximate_jackknife_distribution_beta_hat_T_private = function(unit = "auto"){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "jackknife"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			unit = private$normalize_jackknife_unit(unit)
 			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) {
 				return(numeric(0))

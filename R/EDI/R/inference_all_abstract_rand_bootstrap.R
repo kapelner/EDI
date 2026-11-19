@@ -243,8 +243,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
 		#'   \code{prop_illegal_values}.
 		approximate_rand_bootstrap_distribution_beta_hat_T = function(B = 501, delta = 0, transform_responses = "none", show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "rand_bootstrap"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			if (!is.null(rand_bootstrap_draws) &&
 			    !rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type) &&
 			    any(vapply(rand_bootstrap_draws, function(draw) !is.null(draw[["smooth_noise"]]), logical(1)))) {

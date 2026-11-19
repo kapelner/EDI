@@ -67,7 +67,10 @@ test_that("ZOIB reusable worker keeps distinct component matrices aligned across
 	design$add_all_subjects_to_experiment(data.frame(beta_x = beta_x, rare_zero_one = rare_zero_one))
 	design$assign_w_to_all_subjects()
 	w <- as.numeric(design$get_w())
-	y <- plogis(-0.3 + 0.55 * w + 0.25 * beta_x)
+	# The noise keeps beta_x an ordinary covariate: without it logit(y) is an
+	# exact linear function of w and beta_x, and the v1.0.6-TODO-158
+	# perfect-predictor check drops beta_x in the constructor.
+	y <- plogis(-0.3 + 0.55 * w + 0.25 * beta_x + rnorm(n, sd = 0.3))
 	y[seq.int(2L, n, by = 7L)] <- 0
 	y[seq.int(5L, n, by = 11L)] <- 1
 	design$add_all_subject_responses(y)
@@ -225,11 +228,14 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 })
 
 test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws across routes", {
-	# TODO-4's exact diagnosed no-boundary fixture is important because its
-	# public summaries are NA on both routes. Compare the finite underlying
-	# leave-one-out values too, so an NA-only equality cannot hide a migration
-	# difference. The seed and tuning fixture constructor match the recorded
-	# TODO-3 diagnosis; this is parity, not a claim that the summary is estimable.
+	# The tuning fixture's proportion response is noise-free (y = plogis(linpred)),
+	# so logit(y) is an exact linear function of w, x and z. Since
+	# v1.0.6-TODO-158 both routes drop x and z in the constructor with an
+	# edi_perfect_predictor_warning. On this seed that also removes the 8
+	# non-finite leave-one-out fits TODO-3 diagnosed, so the summaries, NA on
+	# both routes before, are now finite. Compare the leave-one-out values too,
+	# so a summary-only equality cannot hide a migration difference. The
+	# NA-producing extreme-summary guard is covered by the synthetic test above.
 	n <- 50L
 	seed <- 20264492L
 	ns <- asNamespace("EDI")
@@ -245,10 +251,22 @@ test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws acr
 		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
+	dropped <- list()
+	make_instance <- function(generator, route) {
+		withCallingHandlers(
+			generator$new(design, verbose = FALSE),
+			edi_perfect_predictor_warning = function(cnd) {
+				dropped[[route]] <<- cnd$dropped
+				invokeRestart("muffleWarning")
+			}
+		)
+	}
 	instances <- list(
-		reusable = zoib_generator$new(design, verbose = FALSE),
-		legacy = LegacyZOIB$new(design, verbose = FALSE)
+		reusable = make_instance(zoib_generator, "reusable"),
+		legacy = make_instance(LegacyZOIB, "legacy")
 	)
+	expect_identical(dropped$reusable, c("x", "z"))
+	expect_identical(dropped$legacy, c("x", "z"))
 	for (inf in instances) inf$num_cores <- 1L
 	summaries <- lapply(instances, function(inf) {
 		inf$.__enclos_env__$private$compute_jackknife_summary(unit = "auto")
@@ -259,12 +277,10 @@ test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws acr
 	expect_length(new_summary$distribution, n)
 	expect_true(all(is.finite(new_summary$distribution)))
 	expect_identical(new_summary$distribution, old_summary$distribution)
-	expect_identical(new_summary$estimate, NA_real_)
-	expect_identical(new_summary$bias, NA_real_)
-	expect_identical(new_summary$std_error, NA_real_)
+	expect_true(all(is.finite(c(new_summary$estimate, new_summary$bias, new_summary$std_error))))
 	expect_identical(new_summary, old_summary)
-	expect_identical(instances$reusable$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
-	expect_identical(instances$legacy$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
+	expect_null(instances$reusable$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife)
+	expect_null(instances$legacy$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife)
 	for (method in c(
 		"compute_jackknife_estimate",
 		"compute_jackknife_std_error",
@@ -290,6 +306,21 @@ test_that("ZOIB reusable jackknife skips futile full-matrix refits after a faile
 		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
+	# The 8 failed fits come from x and z being exact predictors of logit(y)
+	# on this noise-free fixture. Since v1.0.6-TODO-158 the constructor drops
+	# them, which removes the failures, so this test stubs the detector to
+	# keep the diagnosed covariates and still reach the fallback it guards.
+	orig_detect <- get("edi_find_perfect_predictors", envir = ns)
+	unlockBinding("edi_find_perfect_predictors", ns)
+	assign("edi_find_perfect_predictors", function(targets, X, w) {
+		list(drop = integer(0), scales = character(0))
+	}, envir = ns)
+	lockBinding("edi_find_perfect_predictors", ns)
+	on.exit({
+		unlockBinding("edi_find_perfect_predictors", ns)
+		assign("edi_find_perfect_predictors", orig_detect, envir = ns)
+		lockBinding("edi_find_perfect_predictors", ns)
+	}, add = TRUE)
 	orig <- get("fast_zero_one_inflated_beta_cpp", envir = ns)
 	n_calls <- 0L
 	unlockBinding("fast_zero_one_inflated_beta_cpp", ns)
@@ -314,6 +345,9 @@ test_that("ZOIB reusable jackknife skips futile full-matrix refits after a faile
 	legacy <- measure(LegacyZOIB)
 	expect_identical(reusable$summary$distribution, legacy$summary$distribution)
 	expect_identical(reusable$summary, legacy$summary)
+	# Non-vacuity: the legacy route must have hit failed direct fits (more
+	# than one native call per fold plus the full fit).
+	expect_gt(legacy$calls, 51L)
 	expect_lte(reusable$calls, legacy$calls)
 	# The skip flag is scoped to the fallback and must not leak.
 	expect_null(reusable$priv$zoib_skip_full_fit_ncol)

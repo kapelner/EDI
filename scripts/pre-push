@@ -459,6 +459,8 @@ precheck_install() {
 			abort_push
 		fi
 	fi
+	# The python block waits for this before building edi_kernels (see run_python_block).
+	touch "$block_log_dir/install.done"
 }
 
 
@@ -844,6 +846,17 @@ if [ "$run_python_tests" = "1" ]; then
 		py_needs_install=1
 	fi
 	if [ "$py_needs_install" = "1" ]; then
+		# Two -O3 C++ builds at once (the EDI install and this one) each took ~9.5 min on
+		# 2026-11-19 instead of finishing one after the other, so a failure in either showed
+		# up late. Build after the install (or right away when it compiles nothing). In
+		# serial mode the install has already run; if the install fails, abort_push stops
+		# this block.
+		if [ "${EDI_PREPUSH_SERIAL:-0}" != "1" ] && [ ! -e "$block_log_dir/install.done" ]; then
+			echo "pre-push: waiting for the EDI install to finish before building edi_kernels ..."
+			local waited=$SECONDS
+			while [ ! -e "$block_log_dir/install.done" ]; do sleep 2; done
+			echo "pre-push: EDI install done after $(( SECONDS - waited ))s."
+		fi
 		echo "pre-push: C++/bindings/build config changed -- reinstalling edi_kernels ..."
 	else
 		echo "pre-push: no C++/bindings/build-config changes -- testing the existing edi_kernels install."
@@ -883,10 +896,19 @@ block_fns=(run_r_block run_consistency_block run_comprehensive_block run_python_
 
 # Background jobs of a non-interactive shell ignore SIGINT, and killing a block's
 # subshell leaves its Rscript/pytest children running, so stop whole trees.
-kill_tree() {
+# Parent first: killing the children first let a block's own shell see its Rscript/pytest
+# die and log "FAILED" plus abort_push for a check that was only stopped (2026-11-19). The
+# whole tree is listed before anything is killed, since orphans leave pgrep -P's view.
+tree_pids() {
 	local child
-	for child in $(pgrep -P "$1" 2>/dev/null || true); do kill_tree "$child"; done
-	kill "$1" 2>/dev/null || true
+	echo "$1"
+	for child in $(pgrep -P "$1" 2>/dev/null || true); do tree_pids "$child"; done
+}
+kill_tree() {
+	local pids
+	pids="$(tree_pids "$1")"
+	# shellcheck disable=SC2086  # one pid per word, parent first
+	kill $pids 2>/dev/null || true
 }
 declare -A block_pid_of=()
 stop_blocks() {
@@ -962,11 +984,15 @@ run_parallel_blocks() {
 		echo "===== pre-push: $name $( [ "$status" = 0 ] && echo passed || echo "FAILED (exit $status)" ) after $(( SECONDS - block_start[$name] ))s ====="
 		cat "$block_log_dir/$name.log"
 		if [ "$status" != 0 ]; then
-			if [ "${#block_pid_of[@]}" -gt 0 ]; then
-				echo "pre-push: stopping the blocks still running: ${block_pid_of[*]}" >&2
+			local stopped=("${block_pid_of[@]}") n
+			if [ "${#stopped[@]}" -gt 0 ]; then
+				echo "pre-push: stopping the blocks still running (stopped, not failed): ${stopped[*]}" >&2
 			fi
 			stop_blocks
 			wait 2>/dev/null || true
+			for n in "${stopped[@]}"; do
+				echo "===== pre-push: $n was STOPPED (not failed) because $name failed; its results above are incomplete =====" >> "$block_log_dir/$n.log"
+			done
 			abort_push
 		fi
 	done
@@ -991,7 +1017,8 @@ if [ "${EDI_PREPUSH_SERIAL:-0}" = "1" ]; then
 else
 	# The python block builds its own copy of the C++ kernels and never loads the
 	# installed R package, so it starts now, beside the install and prechecks,
-	# instead of after them (2026-11-18).
+	# instead of after them (2026-11-18). When it has to rebuild edi_kernels, it
+	# waits for the install to finish first (2026-11-19, see run_python_block).
 	trap 'stop_blocks; exit 130' INT TERM
 	if [ "$run_python_tests" = "1" ]; then start_block python run_python_block; fi
 	echo "pre-push: running the install and ${#prechecks[@]} independent checks in parallel$( [ "$run_python_tests" = "1" ] && echo ", python block started" ) ..."

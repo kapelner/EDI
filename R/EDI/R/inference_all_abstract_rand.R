@@ -86,8 +86,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		approximate_randomization_distribution_beta_hat_T = function(r = 501, delta = 0, transform_responses = "none", show_progress = TRUE, permutations = NULL, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
+			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "rand"
-			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
 			# Third top-level owner of the reusable randomization-worker cache's
 			# session lifetime (see `compute_randomization_distr_via_reused_worker_
 			# states()`'s `reuse_key` comment, and `compute_two_sided_pval_with_
@@ -845,11 +847,19 @@ InferenceRand = R6::R6Class("InferenceRand",
 				# v1.0.6-TODO-136: warn instead of a silent NA. Silent inside resampling
 				# (edi_warn_procedure_na()); the CI searches, which call this once per
 				# delta, muffle it (edi_muffle_rand_pval_na_warnings()) and report their own failure.
+				# v1.0.6-TODO-202: when r itself is below the floor, every draw can be finite and the
+				# estimator is not at fault; say so rather than blaming the estimator.
+				detail = if (length(t0s) < min_required) {
+					paste0("Only ", length(t0s), " null-distribution draws were requested (", nsim_adj, " finite); ",
+						"at least ", min_required, " finite draws are needed. Increase r.")
+				} else {
+					paste0("Only ", nsim_adj, " of ", length(t0s), " null-distribution draws gave a finite ",
+						"statistic; at least ", min_required, " are needed. The estimator fails on many re-randomized ",
+						"assignments of this data; try a more stable estimator or more draws.")
+				}
 				edi_warn_procedure_na(self, private, procedure = procedure,
 					reason = "randomization_too_few_finite_estimates",
-					detail = paste0("Only ", nsim_adj, " of ", length(t0s), " null-distribution draws gave a finite ",
-						"statistic; at least ", min_required, " are needed. The estimator fails on many re-randomized ",
-						"assignments of this data; try a more stable estimator or more draws."))
+					detail = detail)
 				return(NA_real_)
 			}
 			tails = rand_tail_counts(t0s, t)

@@ -2,6 +2,23 @@
 
 ## Changes that alter results
 
+* Under `set_estimand("marginal_mean_diff")` / `"marginal_ratio"`, the
+  randomization and bootstrap-randomization tests of `InferencePropBetaRegr`,
+  `InferenceCountPoisson`, `InferenceCountQuasiPoisson`,
+  `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedPoisson` and
+  `InferenceIncidLogRegr` now use the marginal statistic. Before, the observed
+  statistic was the conditional coefficient while the null draws could be
+  marginal, so p-values were wrong. `$capabilities()` no longer lists the
+  randomization confidence intervals under a marginal estimand, where they are
+  refused (v1.0.6-TODO-189).
+
+* `InferenceIncidExactZhang$compute_estimate()` now returns the
+  Haldane-Anscombe log odds ratio of the pooled 2x2 table over all subjects, as
+  documented. It used only the unmatched (reservoir) subjects, so on matching
+  designs it ignored the matched pairs and was always 0 when every subject was
+  matched. Bernoulli designs, the exact p-values and the exact confidence
+  intervals are unchanged (v1.0.6-TODO-147).
+
 * Weibull AFT fits no longer fail on covariates left on their raw scale
   (v1.0.6-TODO-163). With columns such as age in years or lymph-node counts
   next to the intercept, the likelihood was badly conditioned and the fitter
@@ -336,6 +353,17 @@
   on interval-censored data (v1.0.6-TODO-143).
 
 ## Bug fixes
+
+* The Bayesian-bootstrap `type = "wald"` p-value now warns
+  (`edi_procedure_na_warning`, reason
+  `bayesian_bootstrap_standard_error_unavailable`) instead of returning a silent
+  `NA` when the draws have no spread. Resampling methods now restore an outer
+  resampling operation on exit instead of clearing it, so nested calls no
+  longer turn on warnings that should be silent (v1.0.6-TODO-185).
+
+* When fewer than 10 randomization draws were requested, the randomization
+  p-value's NA warning (`randomization_too_few_finite_estimates`) now says to
+  increase `r` instead of blaming the estimator (v1.0.6-TODO-202).
 
 * `InferenceIncidGCompRiskDiff`, `InferenceIncidGCompRiskRatio` and `InferencePropGCompMeanDiff` now reject
   `prob_clip_eps = 0.5` (and `prob_clip_strong_eps = 0.5`), as documented: the clamps must be in `[0, 0.5)`.

@@ -75,7 +75,7 @@ test_that("numeric strata columns are cut at quantile breaks into the preferred 
 test_that("equal_block_sizes = TRUE rejects unbalanced strata; FALSE accepts them", {
 	X <- data.frame(g = c(rep("a", 6), rep("b", 2)))
 	expect_error(keys_of(blocking_design(X, strata_cols = "g", equal_block_sizes = TRUE)),
-		"equal_block_sizes = TRUE but the strata produced unequal block sizes \\(2, 6\\)")
+		"requires equal block sizes but the strata produced unequal block sizes \\(2, 6\\)")
 	expect_equal(keys_of(blocking_design(X, strata_cols = "g", equal_block_sizes = FALSE)), as.character(X$g))
 })
 
