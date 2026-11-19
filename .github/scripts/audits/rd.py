@@ -353,6 +353,8 @@ def mechanical(ctx):
 
     if not sh.have_r():
         status.append("R is not available in this job: checkRd, links, codoc, examples and spelling were NOT RUN")
+        findings.append({"unit": None, "kind": "not-run", "text": "R is not available in this job: checkRd, "
+                         "links, codoc, examples and spelling were NOT RUN"})
         static = None
     else:
         static, err = run_static(ctx)
@@ -386,6 +388,8 @@ def mechanical(ctx):
         if not ok:
             status.append("examples NOT RUN: library(EDI) fails in this job: " + why.splitlines()[-1] if why
                           else "examples NOT RUN: library(EDI) fails in this job")
+            findings.append({"unit": None, "kind": "not-run", "text": "examples NOT RUN: library(EDI) fails in "
+                             "this job"})
         else:
             with cf.ThreadPoolExecutor(max_workers=WORKERS) as pool:
                 futs = {pool.submit(check_example, e.get("cran"), e.get("full"), dontrun=e.get("dontrun_file")): e

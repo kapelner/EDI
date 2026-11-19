@@ -278,7 +278,8 @@ def cmd_finish(a):
 
     # Mechanical findings get the same lifecycle (owner, 2026-11-19): open until a run no longer finds
     # them (fixed), an open release TODO cites their `<audit>-m<hex>` id, or dismissed_decisions.md
-    # lists it. A module whose mechanical stage checks only some units sets `mechanical_scope_units`.
+    # lists it. A module whose mechanical stage checks only some units sets `mechanical_scope_units`;
+    # a not-run finding (ac.MECH_NOT_RUN_KINDS) means nothing is counted as fixed that run.
     mpath = notes.dir / "mechanical_open.json"
     try:
         prev_mech = json.loads(mpath.read_text())
@@ -287,7 +288,9 @@ def cmd_finish(a):
     open_mech, parts["mechanical"], mcounts, mech_fixed = ac.track_mechanical(
         spec["name"], parts.get("mechanical") or [], mech, prev_mech, set(plan["units"]),
         ac.cited_decisions(a.repo), ac.dismissed_decisions(a.repo), stamp,
-        scope_units=parts.pop("mechanical_scope_units", None))
+        scope_units=parts.pop("mechanical_scope_units", None),
+        not_run=any(f.get("kind") in ac.MECH_NOT_RUN_KINDS for f in mech),
+        sticky=ac.MECH_STICKY_KINDS | set(spec.get("mechanical_sticky_kinds") or ()))
     mpath.write_text(json.dumps(open_mech, indent=1, sort_keys=True) + "\n")
     if parts["mechanical"] or mcounts["cited"] or mcounts["dismissed"]:
         parts["mechanical_note"] = ac.mechanical_note(mcounts)

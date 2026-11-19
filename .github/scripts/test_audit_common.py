@@ -279,6 +279,30 @@ class MechanicalLifecycle(EndToEnd):
         self.assertEqual(st[cited_text], "fixed")           # cited, then no longer found: fixed
         self.assertEqual(sorted(st.values()), ["fixed", "reported"])   # the dismissed one left while dismissed
 
+    def test_not_run_sticky_and_stable_ids(self):
+        T = "2026-11-19T00:00:00+00:00"
+        m1 = [{"unit": "a.Rd", "kind": "example-time", "text": "`a.Rd`: example took 61.2 s"},
+              {"unit": "b.Rd", "kind": "example-slower", "text": "`b.Rd`: took 9.0 s, was 3.0 s"},
+              {"unit": "c.Rd", "kind": "checkrd", "text": "`c.Rd`: title ends in a period"}]
+        first, _, _, _ = ac.track_mechanical("rd", [x["text"] for x in m1], m1, {}, {"a.Rd", "b.Rd", "c.Rd"},
+                                             set(), set(), T, sticky=ac.MECH_STICKY_KINDS)
+        # numbers that move do not change the id
+        m2 = [dict(m1[0], text="`a.Rd`: example took 64.9 s")]
+        nxt, _, _, fixed = ac.track_mechanical("rd", [m2[0]["text"]], m2, first, {"a.Rd", "b.Rd", "c.Rd"},
+                                               set(), set(), T, sticky=ac.MECH_STICKY_KINDS)
+        aid = next(k for k, r in first.items() if r["unit"] == "a.Rd")
+        bid = next(k for k, r in first.items() if r["unit"] == "b.Rd")
+        cid = next(k for k, r in first.items() if r["unit"] == "c.Rd")
+        self.assertIn(aid, nxt)                              # same id despite 61.2 -> 64.9
+        self.assertIn(bid, nxt)                              # reported once (sticky): not fixed by absence
+        self.assertEqual(fixed, [cid])                       # the checkRd one is gone: fixed
+        # a not-run finding: nothing is fixed, everything carried
+        nr = [{"unit": None, "kind": "not-run", "text": "R is not available"}]
+        kept, _, _, fixed = ac.track_mechanical("rd", [nr[0]["text"]], nr, first, {"a.Rd", "b.Rd", "c.Rd"},
+                                                set(), set(), T, not_run=True)
+        self.assertEqual(fixed, [])
+        self.assertTrue(set(first) <= set(kept))
+
     def test_incremental_scope_keeps_unchecked_units(self):
         prev = {}
         first, _, _, _ = ac.track_mechanical("demo", ["x bad", "y bad"],

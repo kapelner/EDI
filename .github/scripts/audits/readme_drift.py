@@ -162,6 +162,7 @@ def mechanical(ctx):
     plan = {d: extract_chunks(ctx.read(d) or "", markdown=d.endswith(".md")) for d in docs}
     if not sh.have_r():
         status.append("R is not available in this job: no chunk was run")
+        findings.append({"unit": None, "kind": "not-run", "text": "R is not available in this job: no chunk was run"})
     else:
         todo = {d: c for d, c in plan.items() if any(x["eval"] for x in c)}
         with cf.ThreadPoolExecutor(max_workers=WORKERS) as pool:

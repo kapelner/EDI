@@ -117,8 +117,14 @@ todo/
   cites the id, or when the id is listed in `dismissed_decisions.md`. The `audit-decisions` issue lists the
   open ones under their own heading, "Mechanical findings". A module whose mechanical stage checks only some
   units each run returns `mechanical_scope_units` (the units it checked) in its parts, so findings on the
-  other units are carried, not counted as fixed. Before this, mechanical findings were only re-listed in
-  each PR body, with no way to cite or dismiss them (PR #65 listed 125).
+  other units are carried, not counted as fixed. Two more guards: a run with a not-run finding (kinds
+  `not-run`, `unreadable`, `not-configured`, `tool`, `input`, `stage_failed`; rd and readme-drift emit
+  `not-run` when R or EDI is missing) counts nothing as fixed; and kinds reported only once against a
+  snapshot (`example-slower`, `license-changed`, `deprecated-call`, plus a module's
+  `SPEC["mechanical_sticky_kinds"]`) stay open until cited or dismissed. Ids come from the unit plus the kind
+  and the text with numbers masked, so a moving line number, duration or count keeps the id. Before this,
+  mechanical findings were only re-listed in each PR body, with no way to cite or dismiss them (PR #65
+  listed 125).
 
 ### Secrets, models and cost guard
 

@@ -418,14 +418,32 @@ def mechanical_note(counts):
             + (" " + "; ".join(extra) + "." if extra else ""))
 
 
-def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, stamp, scope_units=None):
+# A mechanical finding of one of these kinds means a check did not run (missing input, tool error, no
+# secret), so an earlier finding's absence proves nothing: nothing is counted as fixed that run.
+MECH_NOT_RUN_KINDS = {"not-run", "unreadable", "not-configured", "tool", "input", "stage_failed"}
+# Kinds a module reports only once, against a snapshot it then overwrites (a license change, a call
+# deprecated in a new release, an example slower than last run): absence is not a fix, so they stay
+# open until cited or dismissed. A module adds its own with SPEC["mechanical_sticky_kinds"].
+MECH_STICKY_KINDS = {"example-slower", "license-changed", "deprecated-call"}
+
+
+def mech_key(kind, text):
+    """A finding's key for its id: its kind plus its text with numbers masked, so a line number, a
+    duration or a count that moves between runs does not give it a new id."""
+    t = re.sub(r"\d+(?:\.\d+)?", "#", re.sub(r"\s+", " ", str(text)).strip())
+    return f"{kind or 'finding'}:{t}"
+
+
+def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, stamp, scope_units=None,
+                     not_run=False, sticky=()):
     """The decisions lifecycle for the "mechanical" part of a report.
 
     lines: the report's mechanical lines (str). mech: this run's mechanical findings (dicts with text,
-    unit and optionally key), used to give a line its unit and a stable key; a line with no match is
-    keyed on its text. A previous finding this run did not report again is fixed, unless the audit's
-    mechanical stage is incremental and did not look at its unit this run (`scope_units`: the units it
-    checked; None = every unit, the default).
+    unit, kind), used to give a line its unit and kind; a line with no match gets unit "" and is keyed
+    on its text. A previous finding this run did not report again is fixed, except: when `not_run`
+    (a check failed or was skipped) everything is carried; when the module's mechanical stage is
+    incremental (`scope_units`: the units it checked; None = every unit) findings on unchecked units are
+    carried; and findings of a `sticky` kind stay until cited or dismissed.
     Returns (open records to save, report lines, counts, ids of previous findings now fixed).
     """
     by_text = {}
@@ -434,16 +452,28 @@ def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, sta
     items = []
     for t in lines or []:
         f = by_text.get(t) or {}
-        unit = f.get("unit") or None
-        items.append({"text": t, "unit": unit, "key": f.get("key") or (re.sub(r"\s+", " ", t).strip() if unit else None)})
-    if scope_units is None:
-        covered = set(plan_units) | {r.get("unit") for r in prev.values() if r.get("unit")}
-        open_, out, counts = track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp,
-                                             kind="m")
+        items.append({"text": t, "unit": f.get("unit") or "", "key": mech_key(f.get("kind"), t)})
+    if not_run:
+        covered, keep = set(), True
+    elif scope_units is None:
+        covered, keep = set(plan_units) | {r.get("unit") for r in prev.values()}, False
     else:
-        open_, out, counts = track_decisions(audit, items, prev, set(scope_units), plan_units, cited,
-                                             dismissed, stamp, keep_unlisted=True, kind="m")
-    fixed = [mid for mid in prev if mid not in open_ and mid not in dismissed]
+        covered, keep = set(scope_units), True
+    open_, out, counts = track_decisions(audit, items, prev, covered, plan_units, cited, dismissed, stamp,
+                                         keep_unlisted=keep, kind="m")
+    sticky = set(sticky)
+    for mid, rec in prev.items():
+        kind = str(rec.get("key") or "").split(":", 1)[0]
+        if mid in open_ or mid in dismissed or kind not in sticky:
+            continue
+        open_[mid] = dict(rec)
+        if mid in cited:
+            counts["cited"] += 1
+            continue
+        first, sep, rest = rec["text"].partition("\n")
+        out.append(first + f" <sub>`{mid}` · open since {str(rec['first_seen'])[:10]} · reported once; stays "
+                   "until cited or dismissed</sub>" + sep + rest)
+    fixed = [] if not_run else [mid for mid in prev if mid not in open_ and mid not in dismissed]
     return open_, out, counts, fixed
 
 
