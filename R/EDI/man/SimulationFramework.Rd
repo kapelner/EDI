@@ -53,8 +53,8 @@ Reported summary metrics include:
 # n/Nrep_W/num_boot/B_boot/r_rand are kept small so this example runs in a
 # few seconds; a real simulation would use much larger values (this
 # class's defaults, or larger still) for adequately precise estimates.
-# Percentile bootstrap CIs are requested because the default BCa interval
-# needs a larger B_boot than is used here.
+# Percentile bootstrap CIs and p-values are requested because the default BCa
+# interval needs a larger B_boot than is used here.
 sim = SimulationFramework$new(
   response_type = "continuous",
   design_classes_and_params = list(
@@ -69,7 +69,7 @@ sim = SimulationFramework$new(
     asymp_ci = list(),
     asymp_pval = list(),
     boot_ci = list(type = "percentile"),
-    boot_pval = list(),
+    boot_pval = list(type = "percentile"),
     rand_pval = list()
   ),
   n = 20, p = 3, Nrep_W = 2L, betaT = 1, B_boot = 50L, r_rand = 101L,

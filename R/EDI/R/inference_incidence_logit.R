@@ -469,12 +469,12 @@ IncidenceLogisticLikelihoodSource = list(
 #'   regression} (Wikipedia).
 #'
 #' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 60, response_type = 'incidence')
+#' for (i in 1:60) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' seq_des$add_all_subject_responses(rbinom(60, 1, 0.4))
+#' \donttest{
 #' inf = InferenceIncidLogRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
