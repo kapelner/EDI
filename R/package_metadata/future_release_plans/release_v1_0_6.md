@@ -4494,3 +4494,8 @@ itself still needs a look.
   - Failing expectation: `expect_identical(sum(is.na(b50)), 0L)`, skipped at `R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R:179`.
   - Candidate fix (code): wire the redraw loop into the public non-KK bootstrap path, or delete the dead kernel and the parameter. Alternative (doc): say failed draws are NA and the parameter is unused.
   - Done when: fix it and remove the skip().
+- [ ] TODO-259 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d7661f482`): **`InferenceIncidWald` returns NA for an empty arm but never flags it non-estimable.**
+  The docs (`R/EDI/R/inference_incid_wald.R:15`) say the class is non-estimable if either arm has zero subjects. With every subject treated, or every subject control, `compute_estimate()`, the CI and the p-value are NA as expected. But `is_nonestimable("estimate")` is FALSE and `get_nonestimable_reason()` is NULL. The cause is that `compute_incidence_wald_components()` (about lines 127-130) only sets `incidence_wald_se = NA` and never calls `cache_nonestimable_estimate()`.
+  - Failing expectation: `expect_true(inf$is_nonestimable("estimate"))`, skipped at `R/package_tests/testthat_bulk/test-incid-wald-welch-ttest-dispatch-reference.R:118`.
+  - Candidate fix (code): in the empty-arm branch, call `private$cache_nonestimable_estimate("incidence_wald_empty_arm")`. Alternative (doc): say "returns NA" rather than "non-estimable".
+  - Done when: fix it and remove the skip().

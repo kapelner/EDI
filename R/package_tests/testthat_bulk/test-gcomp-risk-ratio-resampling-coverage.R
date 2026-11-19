@@ -90,3 +90,34 @@ test_that("risk ratio jackknife limits agree with deleting one subject from arm 
                2 * stats::pnorm(-abs(log(est) / se)), tolerance = 1e-5)
   expect_true(is.na(inf$compute_jackknife_wald_two_sided_pval(delta = 0, unit = "observation")))
 })
+
+# docs-claims audit, finding docs-claims-d6bc838fa (InferenceIncidGCompRiskDiff):
+# the treatment-only working model (model_formula = ~ 1) gives the empirical
+# risk difference.
+test_that("treatment-only gcomp risk difference agrees with empirical arm risks", {
+  des <- DesignFixedBernoulli$new(n = 20L, response_type = "incidence", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(x = seq_len(20L)))
+  des$overwrite_all_subject_assignments(rep(c(0L, 1L), each = 10L))
+  des$add_all_subject_responses(c(rep(1, 4), rep(0, 6), rep(1, 7), rep(0, 3)))
+  inf <- InferenceIncidGCompRiskDiff$new(des, model_formula = ~ 1, verbose = FALSE)
+  y <- des$get_y(); w <- des$get_w()
+  expect_equal(inf$compute_estimate(estimate_only = TRUE), mean(y[w == 1]) - mean(y[w == 0]), tolerance = 1e-6)
+  expect_equal(inf$compute_estimate(), 0.7 - 0.4, tolerance = 1e-6)
+})
+
+# docs-claims audit, finding docs-claims-df0598ae7 (InferenceIncidGCompRiskRatio):
+# randomization inference remains available on an incidence design.
+test_that("gcomp risk ratio randomization p-value is finite, in (0, 1] and seed-reproducible on a Bernoulli incidence design", {
+  set.seed(3); n <- 30L
+  des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+  for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+  des$add_all_subject_responses(rbinom(n, 1, 0.4))
+  p <- vapply(1:2, function(k) {
+    inf <- InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+    inf$num_cores <- 1L
+    set.seed(1)
+    inf$compute_rand_two_sided_pval(r = 29, delta = 0, show_progress = FALSE)
+  }, numeric(1))
+  expect_true(is.finite(p[1]) && p[1] > 0 && p[1] <= 1)
+  expect_identical(p[1], p[2])
+})

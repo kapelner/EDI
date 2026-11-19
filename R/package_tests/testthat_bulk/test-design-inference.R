@@ -373,6 +373,35 @@ test_that("Extended Robins standard error matches the blockwise formula", {
 	expect_equal(se_cpp, se_r, tolerance = 1e-12)
 })
 
+# docs-claims audit, finding docs-claims-dc16c3b9a: on matched pairs (block size
+# 2) the per-block term of the extended Robins variance is identically zero, so the
+# SE is the pooled (Jensen) term alone.
+test_that("Extended Robins SE on blocks of size 2 is the pooled term alone (per-block term is zero)", {
+	for (seed in 1:3) {
+		set.seed(seed)
+		n <- 12L
+		des <- DesignFixedBlocking$new(n = n, response_type = "incidence", m = rep(1:6, each = 2), verbose = FALSE)
+		des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+		des$assign_w_to_all_subjects()
+		des$add_all_subject_responses(rbinom(n, 1, 0.5))
+		inf <- InferenceIncidExtendedRobins$new(des, verbose = FALSE)
+		se_cpp <- inf$.__enclos_env__$private$get_standard_error()
+
+		m <- des$get_block_ids(); y <- des$get_y(); w <- des$get_w()
+		per_block <- vapply(sort(unique(m)), function(b) {
+			p_t <- sum(y[m == b & w == 1]) / 1
+			p_c <- sum(y[m == b & w == 0]) / 1
+			m1 <- max(p_t, p_c); m0 <- min(p_t, p_c)
+			m1 * (1 - m1) + m0 * (1 - m0) + ((2 * m0 - m1) * (1 - m1) - m0 * (1 - m0)) / 2
+		}, numeric(1))
+		expect_identical(sum(abs(per_block)), 0, info = paste("seed", seed))
+		p_hat_T <- mean(y[w == 1]); p_hat_C <- mean(y[w == 0])
+		pooled <- sqrt((p_hat_T * (1 - p_hat_T) + p_hat_C * (1 - p_hat_C)) / n)
+		expect_true(is.finite(se_cpp))
+		expect_equal(se_cpp, pooled, tolerance = 1e-12, info = paste("seed", seed))
+	}
+})
+
 test_that("G-computation risk-ratio intervals error when log-scale bounds overflow", {
 	des <- DesignFixediBCRD$new(n = 4, response_type = "incidence", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = 1:4))

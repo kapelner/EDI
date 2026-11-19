@@ -122,3 +122,20 @@ test_that("risk-difference bootstrap CI ignores the RR-only basic-CI override an
 	expect_true(all(is.finite(ci)))
 	expect_lt(ci[1], ci[2])
 })
+
+# docs-claims audit, finding docs-claims-d6bc838fa (InferenceIncidGCompRiskDiff):
+# randomization inference remains available on an incidence design.
+test_that("gcomp risk difference randomization p-value is finite, in (0, 1] and seed-reproducible on a Bernoulli incidence design", {
+	set.seed(3); n <- 30L
+	des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(rbinom(n, 1, 0.4))
+	p <- vapply(1:2, function(k) {
+		inf <- InferenceIncidGCompRiskDiff$new(des, verbose = FALSE)
+		inf$num_cores <- 1L
+		set.seed(1)
+		inf$compute_rand_two_sided_pval(r = 29, delta = 0, show_progress = FALSE)
+	}, numeric(1))
+	expect_true(is.finite(p[1]) && p[1] > 0 && p[1] <= 1)
+	expect_identical(p[1], p[2])
+})

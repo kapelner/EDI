@@ -96,3 +96,25 @@ test_that("InferenceIncidWald is nonestimable when one arm has zero subjects", {
 	inf <- InferenceIncidWald$new(des, verbose = FALSE)
 	expect_true(is.na(inf$compute_estimate()))
 })
+
+# docs-claims audit, finding docs-claims-d7661f482: "Non-estimable if either arm
+# has zero subjects" -- both empty-arm cases, estimate, CI, p-value and the
+# non-estimable flag.
+test_that("InferenceIncidWald with an empty treatment or control arm is non-estimable (estimate, CI and p-value NA)", {
+	infs <- lapply(c(0, 1), function(all_w) {
+		des <- DesignFixediBCRD$new(n = 4L, response_type = "incidence", verbose = FALSE)
+		des$add_all_subjects_to_experiment(data.frame(x = 1:4))
+		des$overwrite_all_subject_assignments(rep(all_w, 4))
+		des$add_all_subject_responses(c(1, 0, 1, 1))
+		InferenceIncidWald$new(des, verbose = FALSE)
+	})
+	for (k in 1:2) {
+		inf <- infs[[k]]
+		lab <- paste("all w =", k - 1)
+		expect_true(is.na(inf$compute_estimate()), info = lab)
+		expect_true(all(is.na(inf$compute_asymp_confidence_interval())), info = lab)
+		expect_true(is.na(inf$compute_asymp_two_sided_pval()), info = lab)
+	}
+	skip("v1.0.6-TODO-259: InferenceIncidWald returns NA for an empty arm but never sets is_nonestimable()/a reason")
+	for (inf in infs) expect_true(inf$is_nonestimable("estimate"))
+})

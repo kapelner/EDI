@@ -113,3 +113,23 @@ test_that("nonpositive nulls, too few usable draws and an unusable original esti
 		expect_true(f3$inf$is_nonestimable("estimate"), info = format(bad))
 	}
 })
+
+# docs-claims audit, finding docs-claims-df0598ae7: the null treatment effect
+# defaults to 1 for the risk ratio in the bootstrap and Bayesian-bootstrap
+# p-value methods too.
+test_that("RR bootstrap and Bayesian-bootstrap p-values with delta omitted equal delta = 1 under the same seed", {
+	run <- function(method, ...) {
+		f <- rr_fixture()
+		set.seed(99)
+		f$inf[[method]](B = 39, show_progress = FALSE, ...)
+	}
+	for (method in c("compute_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_two_sided_pval")) {
+		p_default <- run(method)
+		p_one <- run(method, delta = 1)
+		expect_true(is.finite(p_default), info = method)
+		expect_identical(p_default, p_one, info = method)
+		# and it is not the risk-difference null of 0 in disguise
+		p_other <- run(method, delta = 3)
+		expect_false(identical(p_default, p_other), info = method)
+	}
+})

@@ -59,3 +59,18 @@ test_that("get_exact_binomial_log_or_estimate() is nonestimable with no matched 
 	expect_true(is.na(res))
 	expect_identical(inf$get_nonestimable_reason(), "exact_binomial_no_matched_pairs")
 })
+
+# docs-claims audit, finding docs-claims-ddab9b480: public compute_estimate()
+# returns NA and flags the estimate non-estimable on a real KK design with no
+# matched pairs (no stubbing).
+test_that("public compute_estimate() is NA and non-estimable on a KK14 design with no matched pairs", {
+	des <- DesignSeqOneByOneKK14$new(n = 2L, response_type = "incidence", verbose = FALSE)
+	des$add_one_subject_to_experiment_and_assign(data.frame(x1 = 0))
+	des$add_one_subject_to_experiment_and_assign(data.frame(x1 = 1))
+	des$add_all_subject_responses(c(0, 1))
+	expect_true(all(as.integer(des$.__enclos_env__$private$m) == 0L))
+	inf <- InferenceIncidExactBinomial$new(des, verbose = FALSE)
+	expect_true(is.na(inf$compute_estimate()))
+	expect_true(inf$is_nonestimable("estimate"))
+	expect_identical(inf$get_nonestimable_reason(), "exact_binomial_no_matched_pairs")
+})

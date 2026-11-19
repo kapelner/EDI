@@ -124,3 +124,36 @@ test_that("boundary-warning helper: identity link bounds at 0 and 1, resampling 
 		expect_false(edi_warn_binomial_mle_boundary_once(self = inf, private = priv, X, b_bound, "identity"))
 	}
 })
+
+# docs-claims audit, finding docs-claims-dfdd8a4b7: InferenceIncidBinomialIdentityRiskDiff's
+# own compute_estimate() warns once when its MLE is on the boundary (here the control
+# arm has no events, so its fitted probability is 0), and estimate / CI / jackknife /
+# bootstrap calls add no further warnings.
+test_that("binomial identity: a boundary MLE (fitted probability 0) warns exactly once across estimate, CI and resampling", {
+	set.seed(3); n <- 30L
+	des <- DesignFixediBCRD$new(n = n, response_type = "incidence", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = runif(n)))
+	des$overwrite_all_subject_assignments(rep(c(0, 1), length.out = n))
+	w <- des$get_w()
+	y <- ifelse(w == 1, stats::rbinom(n, 1, 0.5), 0L)
+	des$add_all_subject_responses(y)
+	inf <- InferenceIncidBinomialIdentityRiskDiff$new(des, model_formula = ~ 1, verbose = FALSE)
+	inf$num_cores <- 1L
+	expect_warning(est <- inf$compute_estimate(), class = "edi_binomial_mle_boundary_warning")
+	expect_equal(est, mean(y[w == 1]) - mean(y[w == 0]), tolerance = 1e-5)
+	n_more <- count_boundary_warnings({
+		inf$compute_estimate()
+		inf$compute_asymp_confidence_interval()
+		inf$compute_jackknife_estimate()
+		set.seed(1)
+		inf$compute_bootstrap_confidence_interval(type = "percentile", B = 21, show_progress = FALSE)
+	})
+	expect_identical(n_more, 0L)
+	fresh <- InferenceIncidBinomialIdentityRiskDiff$new(des, model_formula = ~ 1, verbose = FALSE)
+	fresh$num_cores <- 1L
+	expect_identical(count_boundary_warnings({
+		fresh$compute_estimate()
+		fresh$compute_asymp_confidence_interval()
+		fresh$compute_jackknife_estimate()
+	}), 1L)
+})

@@ -91,3 +91,31 @@ test_that("Exact-binomial rejects the p-value/CI computation when there are no d
 	# The unreachable branch itself still behaves as documented when called directly.
 	expect_equal(inf$.__enclos_env__$private$pval_exact_binomial(0.5), 1)
 })
+
+# docs-claims audit, finding docs-claims-ddab9b480: "the interval and test invert
+# one another for every null value" -- across several tables, the p-value is alpha
+# at each Clopper--Pearson endpoint, above alpha just inside and at most alpha
+# just outside.
+test_that("Exact-binomial p-value equals alpha at the CI endpoints and inverts the CI on several tables", {
+	skip_if_not_installed("nbpMatching")
+	alpha <- 0.05
+	eps <- 1e-4
+	for (tab in list(c(7L, 2L), c(3L, 3L), c(1L, 6L), c(5L, 0L))) {
+		des <- make_matched_pair_design(favor_treatment_pairs = tab[1], favor_control_pairs = tab[2])
+		inf <- InferenceIncidExactBinomial$new(des, verbose = FALSE)
+		lab <- paste(tab, collapse = "/")
+		ci <- inf$compute_exact_confidence_interval(alpha = alpha)
+		pv <- function(d) inf$compute_exact_two_sided_pval_for_treatment_effect(delta = d)
+		for (k in 1:2) {
+			e <- ci[[k]]
+			if (!is.finite(e)) next  # d+ = 0 or d- = 0 gives an infinite endpoint
+			inward <- if (k == 1L) 1 else -1
+			expect_equal(pv(e), alpha, tolerance = 1e-6, info = paste(lab, k))
+			expect_gt(pv(e + inward * eps), alpha)
+			expect_lte(pv(e - inward * eps), alpha)
+		}
+		# interior points are accepted, far exterior points rejected
+		mid <- if (all(is.finite(ci))) mean(ci) else if (is.finite(ci[[1]])) ci[[1]] + 1 else ci[[2]] - 1
+		expect_gt(pv(mid), alpha)
+	}
+})

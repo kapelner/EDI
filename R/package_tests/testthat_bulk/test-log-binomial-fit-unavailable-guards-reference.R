@@ -85,3 +85,28 @@ test_that("an all-ones response now fits: log RR = 0 at the boundary, with the b
 	expect_equal(est, 0, tolerance = 1e-8)
 	expect_false(inf$is_nonestimable("estimate"))
 })
+
+# docs-claims audit, finding docs-claims-dfbe3e8c5: the coefficient-magnitude cap
+# max_abs_reasonable_coef rejects a converged, ordinary fit as nonestimable
+# (no mocking: a real fit whose intercept exceeds a tiny cap).
+test_that("a small max_abs_reasonable_coef rejects an ordinary converged log-binomial fit as nonestimable", {
+	set.seed(2); n <- 60L
+	X <- data.frame(x1 = rnorm(n))
+	des <- DesignFixedBernoulli$new(response_type = "incidence", n = n, seed = 1L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rbinom(n, 1, exp(-1.5 + 0.3 * des$get_w())))
+
+	# with the default cap the same data fit fine
+	ok <- InferenceIncidLogBinomial$new(des, verbose = FALSE)
+	expect_true(is.finite(ok$compute_estimate()))
+
+	for (harden in c(TRUE, FALSE)) {
+		inf <- InferenceIncidLogBinomial$new(des, harden = harden, max_abs_reasonable_coef = 0.01, verbose = FALSE)
+		expect_null(inf$.__enclos_env__$private$generate_mod(estimate_only = TRUE), info = paste("harden =", harden))
+		expect_identical(inf$get_nonestimable_reason(), "log_binomial_fit_unavailable", info = paste("harden =", harden))
+		inf2 <- InferenceIncidLogBinomial$new(des, harden = harden, max_abs_reasonable_coef = 0.01, verbose = FALSE)
+		expect_true(is.na(inf2$compute_estimate()), info = paste("harden =", harden))
+		expect_true(inf2$is_nonestimable("estimate"), info = paste("harden =", harden))
+	}
+})
