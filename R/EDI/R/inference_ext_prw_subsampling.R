@@ -314,6 +314,10 @@ InferenceExtPRWSubsampling = list(
 				scaling = scaling
 			)
 			finite = sub[is.finite(sub)]
+			# v1.0.6-TODO-230: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# ratio_resampling_min_fraction_usable of the B subsamples to be usable.
+			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "subsampling", sub)
+			if (!is.null(too_few_usable)) return(too_few_usable)
 			# Fraction-based failure gate (2026-09-06): see the identical
 			# comment in inference_ext_m_out_of_n_bootstrap.R's
 			# m_out_of_n_bootstrap_centered_pivot() -- same rationale, same

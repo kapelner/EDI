@@ -136,12 +136,32 @@ ExactZhangIncidenceSource = list(
 #' normal-approximation (Haldane-Anscombe MLE) interval as the search bracket.
 #' Requires a Bernoulli-capable or matching-capable design.
 #'
+#' Both component p-values are two-sided "minimum likelihood" exact p-values
+#' (as in \code{stats::binom.test} and \code{stats::fisher.test}), which jump
+#' wherever another outcome ties the observed one in probability, so the
+#' combined p-value is not monotone in the log odds ratio and the set of values
+#' the test accepts can have gaps. The confidence interval is the convex hull
+#' of that set: the smallest interval containing every log odds ratio whose
+#' combined p-value is at least \code{alpha}. This is the usual convention for
+#' inverting such tests (Blaker 2000; Fay 2010); it can be slightly
+#' conservative, and it keeps the interval consistent with the test (a value
+#' the test accepts is never outside the interval). An endpoint that falls on
+#' one of these jumps is reported at the jump itself, where the test accepts.
+#'
 #' On a matching design the point estimate and the exact confidence interval
 #' are different quantities: the estimate is the log odds ratio of the pooled
 #' table over all subjects, while the interval inverts the combined test, which
 #' uses only the discordant matched pairs and the reservoir table. The estimate
 #' therefore is not guaranteed to lie inside the exact confidence interval,
 #' although it usually does.
+#'
+#' @references
+#' Blaker, H. (2000). Confidence curves and improved exact confidence intervals
+#' for discrete distributions. \emph{Canadian Journal of Statistics}, 28(4),
+#' 783--798. \doi{10.2307/3315916}
+#'
+#' Fay, M. P. (2010). Two-sided exact tests and matching confidence intervals for
+#' discrete data. \emph{The R Journal}, 2(1), 53--58. \doi{10.32614/RJ-2010-008}
 #'
 #' @examples
 #' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'incidence')

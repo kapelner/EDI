@@ -2,6 +2,35 @@
 
 ## Changes that alter results
 
+* The g-computation risk-ratio subsampling and m-out-of-n methods now default to
+  `min_fraction_usable_samples = 0.8` (was 0.95). Degenerate draws pile up in
+  datasets with an extreme log RR-hat, so at 0.95, 9% (subsampling) and 29%
+  (m-out-of-n) of small null datasets returned NA, including most of those
+  where the Wald test rejects. At 0.8 none did, and null size was 0.040 / 0.030
+  (v1.0.6-TODO-230).
+
+* Subsampling and m-out-of-n for `InferenceIncidLogRegr`, `InferenceIncidKKGEE`,
+  `InferenceIncidModifiedPoisson`, `InferenceIncidLogBinomial` and
+  `InferenceCountPoisson` drop degenerate draws: a treatment arm with no events
+  (logit scale: or only events; counts: a zero total), or a separated logistic
+  fit. Below 80% usable draws the p-value or interval is NA with a recorded
+  reason and one `edi_procedure_na_warning`. Intervals that used to be NA from
+  the extreme-interval cap (up to 54% of small null datasets) are now finite
+  (v1.0.6-TODO-230).
+
+* `DesignFixediBCRD` now sets the treated count with R's `round(n * prob_T)` (a
+  .5 tie goes to even), matching `DesignSeqOneByOneiBCRD`: n = 21 at
+  `prob_T = 0.5` now treats 10, not 11. `DesignFixedRerandomization` with
+  `prop_acceptable` at `prob_T = 0.5` and odd n now treats `round(n / 2)`, as
+  its other paths and its documentation do: n = 23 now treats 12, not 11.
+  Realized allocations and randomization redraws change only in these tie cases
+  (v1.0.6-TODO-234).
+
+* `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` no longer offers the
+  Bayesian bootstrap: its replicates came from a marginal Weibull fit, not the
+  class's Clayton-copula inverse-variance-weighted estimator. It now refuses,
+  as the Normal IVWC class does (v1.0.6-TODO-235).
+
 * KK IVWC Bayesian bootstrap: replicates are now weighted refits of each class's
   own inverse-variance-weighted estimator (stratified Cox, LWA Cox, OLS,
   conditional logit, mean difference, Newcombe, rank regression). They used to
@@ -538,6 +567,39 @@
 
 ## Bug fixes
 
+* `approximate_subsampling_distribution_beta_hat_T(debug = TRUE)` and the
+  m-out-of-n equivalent now mark degenerate ratio draws NaN like the default
+  path, and report `num_degenerate` (v1.0.6-TODO-230).
+
+* The identity- and log-binomial regression kernels (and their weighted
+  variants) no longer report convergence short of the maximum likelihood
+  estimate when a start lies next to a mean bound: convergence now also
+  requires the observed-information Newton step to agree, so
+  `InferenceIncidBinomialIdentityRiskDiff` and `InferenceIncidLogBinomial`
+  randomization and bootstrap draws reach the MLE (v1.0.6-TODO-221).
+
+* `InferenceOrdinalOrderedProbitRegr` returns NA instead of 0 when the response
+  has a single level, and its bootstrap no longer counts single-level draws as
+  zero estimates. The cauchit, cloglog and probit kernels now agree on these
+  edge cases: they validate inputs before the one-level early return and report
+  a non-positive treatment variance as NaN (v1.0.6-TODO-203).
+
+* `DesignSeqOneByOneRandomBlockSize`: the jackknife now deletes one permuted
+  block at a time (blocks are recorded at assignment; a trailing unfilled block
+  is merged into the previous one) and pools within strata. It used to delete
+  whole strata, which left 2-4 replicates and an NA jackknife
+  (v1.0.6-TODO-231).
+
+* BCa bootstrap intervals and p-values on `DesignFixedBlocking` take their
+  acceleration from the within-stratum (stratified) jackknife influence values
+  (v1.0.6-TODO-231).
+
+* `InferenceCountZeroInflatedPoisson` also tries an L-BFGS start with a sharpened
+  zero part, so small-sample fits that stopped unflagged at an interior local
+  maximum below a separated zero-inflation ridge now reach the higher likelihood
+  and carry the zero-part separation warning. ZIP fits are about 1.8x slower
+  (v1.0.6-TODO-232).
+
 * `set_estimand()` and `get_supported_estimands()` on inference classes that
   cannot switch estimands (e.g. `InferenceCountNegBin`,
   `InferenceCountZeroInflatedNegBin`, `InferenceCountHurdleNegBin`) now stop with
@@ -971,6 +1033,11 @@
   a `w` the design never drew) (v1.0.6-TODO-154).
 
 ## Documentation
+
+* The jackknife documentation explains why the stratified jackknife rescales
+  EDI's subset refits to Wolter's reweighted replicates, and that its bias
+  correction then equals the ordinary jackknife bias, which can over-correct
+  nonlinear estimators when strata differ strongly (v1.0.6-TODO-231).
 
 * Corrected documentation claims: `SimulationFramework` draws covariates with `cov_draw_method` (default `stats::rnorm`), not Uniform(0, 1); `InferenceSurvivalRestrictedMeanDiff` integrates the Kaplan-Meier curve exactly (a sum of rectangles), not by the trapezoid rule; and `fast_cpoisson_combined_with_var_cpp()` documents its `tol`, `hessian` and estimate-only return accurately.
 

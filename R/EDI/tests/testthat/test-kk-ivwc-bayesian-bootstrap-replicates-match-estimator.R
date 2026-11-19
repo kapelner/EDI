@@ -121,7 +121,10 @@ refused = list(
 	InferenceContinKKQuantileRegrIVWC = "continuous",
 	InferenceContinKKRobustRegrIVWC = "continuous",
 	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "survival",
-	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "survival"
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "survival",
+	# v1.0.6-TODO-235 (1): its own weighted hook refit a marginal-Weibull surrogate
+	# (no copula, no IVW pooling), not this estimator; removed, so it refuses too.
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "survival"
 )
 
 test_that("KK compound classes without a weighted refit refuse the Bayesian bootstrap", {

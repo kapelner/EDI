@@ -1133,6 +1133,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				# jackknife_stratified_layout() and edi_jackknife_bias_variance()).
 				if (is(design_obj, "DesignSeqOneByOneSPBR")) {
 					"permuted_block"
+				} else if (is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
+					# v1.0.6-TODO-231: the permuted blocks assign_wt() recorded; a design object
+					# without that record (saved before EDI 1.0.6) keeps the old whole-stratum unit.
+					if (is.null(private$jackknife_stratified_layout("permuted_block"))) "block" else "permuted_block"
 				} else if (is(design_obj, "DesignFixedBlocking")) {
 					"observation_within_block"
 				} else {
@@ -1157,6 +1161,37 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (!unit %in% c("permuted_block", "observation_within_block")) return(NULL)
 			design_obj = private$des_obj
 			n = design_obj$get_n()
+			if (unit == "permuted_block" && is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
+				# v1.0.6-TODO-231: DesignSeqOneByOneRandomBlockSize draws each block's size at random,
+				# so its blocks are read from the record assign_wt() keeps (block of each subject,
+				# stratum key and drawn size of each block). Same merge rule as SPBR: a stratum's
+				# trailing block that was not filled is merged into that stratum's previous block.
+				des_priv = private$des_obj_priv_int
+				ids = des_priv$permuted_block_ids
+				keys = des_priv$permuted_block_keys
+				sizes = des_priv$permuted_block_sizes
+				if (length(ids) < n || length(keys) != length(sizes) || !length(keys)) return(NULL)
+				ids = as.integer(ids[seq_len(n)])
+				if (anyNA(ids) || any(ids < 1L) || any(ids > length(keys))) return(NULL)
+				blocks = sort(unique(ids))
+				block_stratum = match(keys[blocks], unique(keys[blocks]))
+				block_count = tabulate(match(ids, blocks), nbins = length(blocks))
+				unit_of_block = integer(length(blocks))
+				unit_stratum = integer(0)
+				next_id = 0L
+				for (h in seq_len(max(block_stratum))) {
+					b_h = which(block_stratum == h)   # this stratum's blocks, in the order they were drawn
+					u = seq_along(b_h)
+					n_b = length(b_h)
+					if (n_b > 1L && block_count[b_h[n_b]] < sizes[blocks[b_h[n_b]]]) u[n_b] = n_b - 1L
+					unit_of_block[b_h] = next_id + u
+					unit_stratum = c(unit_stratum, rep.int(h, max(u)))
+					next_id = next_id + max(u)
+				}
+				unit_id = unit_of_block[match(ids, blocks)]
+				return(list(delete = unname(split(seq_len(n), factor(unit_id, levels = seq_len(next_id)))),
+					strata = unit_stratum))
+			}
 			if (unit == "permuted_block") {
 				des_priv = private$des_obj_priv_int
 				block_size = as.integer(des_priv$block_size)
@@ -2311,6 +2346,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		ci_bca = function(boot_distr, alpha, est){
 			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
 			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-231: stratum of each finite replicate for the stratified acceleration.
+			jack_strata = private$jackknife_replicate_strata("auto")
+			jack_strata = if (length(jack_strata) == length(jack_all)) jack_strata[is.finite(jack_all)] else NULL
 			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
 			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
 			if (!is.null(reason)) {
@@ -2320,7 +2358,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(c(NA_real_, NA_real_))
 			}
-			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
+			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", strata = jack_strata, on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
 				ctx = private$cached_values$ci_call_ctx
@@ -2435,6 +2473,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		pval_bca = function(boot_distr, est, delta){
 			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
 			jack = jack_all[is.finite(jack_all)]
+			# v1.0.6-TODO-231: stratum of each finite replicate for the stratified acceleration.
+			jack_strata = private$jackknife_replicate_strata("auto")
+			jack_strata = if (length(jack_strata) == length(jack_all)) jack_strata[is.finite(jack_all)] else NULL
 			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
 			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
 			if (!is.null(reason)) {
@@ -2443,7 +2484,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(NA_real_)
 			}
-			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
+			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", strata = jack_strata, on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
 				# v1.0.6-TODO-114: warn like the BCa CI does on the same boundary (no-op for other reasons)
 				edi_warn_bca_boundary_once(self, private, length(boot_distr), "bca", reason, what = "p-value")

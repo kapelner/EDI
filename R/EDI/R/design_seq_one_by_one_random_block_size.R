@@ -36,6 +36,19 @@
 #' \code{stratified_bootstrap_indices_cpp()}) when \code{strata_cols} is supplied, or
 #' performs a plain i.i.d. nonparametric bootstrap over subjects otherwise.
 #'
+#' \strong{Jackknife.} \code{assign_wt()} records the permuted block each subject was
+#' assigned from (and each block's stratum and drawn size), and the jackknife's automatic
+#' deletion unit is that block (\code{unit = "permuted_block"}), the randomization unit of
+#' this design. A stratum's trailing block that was not filled is merged into that
+#' stratum's previous block, as on
+#' \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}}; the variance pools the
+#' replicates' spread within strata (the stratified jackknife of Wolter 2007, Sec. 4.5;
+#' formulas in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). Without
+#' \code{strata_cols} all blocks form one stratum. Before EDI 1.0.6 a replicate deleted a
+#' whole stratum (2-4 replicates on typical data, so the jackknife was \code{NA}), and a
+#' design object saved before 1.0.6, which has no block record, still does
+#' (v1.0.6-TODO-231).
+#'
 #' @references Efron, B. (1971). "Forcing a sequential experiment to be balanced."
 #'   \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}, for sequential
 #'   balanced-block randomization background. See also
@@ -132,11 +145,22 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 				n_C = current_block_size - n_T
 				new_block = sample(c(rep(1, n_T), rep(0, n_C)))
 				private$strata_states[[key]] = new_block
+				# v1.0.6-TODO-231: number the new block and remember its stratum and size, so the
+				# jackknife can delete one permuted block at a time (block sizes are random, so the
+				# blocks cannot be rebuilt afterwards from the enrolment order the way SPBR's are).
+				private$permuted_block_keys = c(private$permuted_block_keys, key)
+				private$permuted_block_sizes = c(private$permuted_block_sizes, as.integer(current_block_size))
+				private$current_permuted_block_by_key[[key]] = length(private$permuted_block_keys)
 			}
 			# Pop one
 			block = private$strata_states[[key]]
 			w_t = block[1]
 			private$strata_states[[key]] = block[-1]
+			t = private$t
+			if (length(t) == 1L && !is.na(t) && t >= 1L) {
+				if (length(private$permuted_block_ids) < t) length(private$permuted_block_ids) = t
+				private$permuted_block_ids[t] = as.integer(private$current_permuted_block_by_key[[key]] %||% NA_integer_)
+			}
 			w_t
 		}
 	),
@@ -144,6 +168,14 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 		strata_cols = NULL,
 		block_sizes = NULL,
 		strata_states = NULL, # hash map of stratum -> vector of remaining assignments
+		# v1.0.6-TODO-231: the permuted blocks as assign_wt() drew them. permuted_block_ids[t] is the
+		# block of subject t; permuted_block_keys[b] / permuted_block_sizes[b] are block b's stratum key
+		# and drawn size; current_permuted_block_by_key[[key]] is the stratum's block being filled.
+		# A plain list/vectors (not an environment) so duplicate()'s shallow clone copies them.
+		permuted_block_ids = integer(0),
+		permuted_block_keys = character(0),
+		permuted_block_sizes = integer(0),
+		current_permuted_block_by_key = list(),
 		draw_ws_raw = function(r = 100){
 			strata_keys = if (private$uses_covariates) {
 				vapply(seq_len(private$t), function(i) {

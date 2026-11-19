@@ -74,8 +74,10 @@
 #' \code{\link{set_num_cores}} or when using a fork cluster/mirai daemons.
 #'
 #' \strong{\code{prop_acceptable} path.} Uses
-#' \code{complete_randomization_forced_balanced_cpp()} (balanced case) or
-#' \code{complete_randomization_imbalanced_cpp()} (\code{prob_T != 0.5}) to draw
+#' \code{complete_randomization_forced_balanced_cpp()} (\code{prob_T = 0.5} with even
+#' \eqn{n}) or \code{complete_randomization_imbalanced_cpp()} (any other case, with
+#' \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}, so \code{n = 23} at \code{prob_T = 0.5}
+#' has 12 treated; before v1.0.6 odd \eqn{n} at 0.5 had \eqn{\lfloor n/2 \rfloor}{floor(n/2)}) to draw
 #' \eqn{n_{\mathrm{draw}} = \mathrm{round}(r / prop\_acceptable)} candidate allocations
 #' in one batched call, computes \eqn{M(w)} for all of them via
 #' \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
@@ -212,7 +214,10 @@ DesignFixedRerandomization = define_design_class(
 				X = private$X[1:n, , drop = FALSE]
 				n_draw = round(r / private$prop_acceptable)
 				ext_seed = if (!is.null(private$seed)) private$seed else sample.int(.Machine$integer.max, 1L)
-				if (private$prob_T == 0.5) {
+				# v1.0.6-TODO-234: the forced-balanced kernel draws floor(n / 2) treated, which
+				# equals round(n * prob_T) only for even n; odd n uses the n_T kernel like
+				# every other path (n = 23: 12 treated, not 11).
+				if (private$prob_T == 0.5 && n %% 2 == 0) {
 					indicTs = complete_randomization_forced_balanced_cpp(n, n_draw, ext_seed)
 				} else {
 					indicTs = complete_randomization_imbalanced_cpp(n, n_T, n_draw, ext_seed)

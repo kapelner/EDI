@@ -235,6 +235,13 @@ InferenceExtExchangeableResamplingUnits = list(
 			}
 			n_draws = length(draws)
 			if (n_draws == 0L) return(numeric(0))
+			# v1.0.6-TODO-230: ratio estimands mark a degenerate subsampling / m-out-of-n draw
+			# NaN (unusable) on every path: the reused worker, the fresh-object path and debug.
+			degenerate_rule = if (operation %in% c("subsampling", "m_out_of_n_boot")) edi_ratio_resampling_degenerate_rule(self, private) else NULL
+			mark_draw = function(theta, draw, worker_priv = NULL) {
+				if (is.null(degenerate_rule)) return(theta)
+				edi_mark_degenerate_resampling_draw(self, private, operation, theta, draw, worker_priv = worker_priv, rule = degenerate_rule)
+			}
 			if (isTRUE(debug)) {
 				debug_results = lapply(draws, function(draw) {
 					private$check_bootstrap_replicate_deadline(paste0(operation, " debug replicate"))
@@ -243,7 +250,7 @@ InferenceExtExchangeableResamplingUnits = list(
 					iter_val = withCallingHandlers(
 						tryCatch({
 							sub_inf = private$bootstrap_subset_inference(draw, smooth = FALSE)
-							if (is.null(sub_inf)) NA_real_ else as.numeric(sub_inf$compute_estimate(estimate_only = TRUE))[1L]
+							if (is.null(sub_inf)) NA_real_ else mark_draw(as.numeric(sub_inf$compute_estimate(estimate_only = TRUE))[1L], draw, sub_inf$.__enclos_env__$private)
 						}, error = function(e) {
 							if (private$is_resampling_control_condition(e)) stop(e)
 							iter_errs <<- c(iter_errs, conditionMessage(e))
@@ -269,11 +276,13 @@ InferenceExtExchangeableResamplingUnits = list(
 					prop_iterations_with_errors = mean(num_errors_vec > 0),
 					prop_iterations_with_warnings = mean(num_warnings_vec > 0),
 					prop_illegal_values = mean(!is.finite(values)),
-					finite_fraction = mean(is.finite(values))
+					finite_fraction = mean(is.finite(values)),
+					num_degenerate = sum(is.nan(values))
 				))
 			}
 			actual_cores = private$effective_parallel_cores(operation, self$num_cores)
-			values = if (isTRUE(private$use_reusable_bootstrap_worker())) {
+			reusable = isTRUE(private$use_reusable_bootstrap_worker())
+			values = if (reusable) {
 				private$compute_reusable_bootstrap_worker_distribution(
 					draws = draws,
 					actual_cores = actual_cores,
@@ -287,13 +296,18 @@ InferenceExtExchangeableResamplingUnits = list(
 					if (is.null(sub_inf)) return(NA_real_)
 					out = tryCatch({
 						theta = as.numeric(sub_inf$compute_estimate(estimate_only = TRUE))[1L]
-						if (is.finite(theta)) theta else NA_real_
+						if (is.finite(theta)) mark_draw(theta, draws[[i]], sub_inf$.__enclos_env__$private) else NA_real_
 					}, error = private$resampling_error_to_na)
 					private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
 					out
 				}, n_cores = actual_cores, show_progress = show_progress), use.names = FALSE))
 			}
 			if (!is.numeric(values)) values = as.numeric(values)
+			# The reused worker has no per-draw object left here; the draw's arm rule is
+			# applied to its rows (the g-computation worker also applies its fit rule).
+			if (!is.null(degenerate_rule) && reusable) {
+				values = vapply(seq_along(values), function(i) mark_draw(values[i], draws[[i]]), numeric(1L))
+			}
 			if (!is.null(cache_key)) private$set_cached_resampling_distribution(operation, cache_key, values)
 			values
 		},
@@ -348,18 +362,20 @@ InferenceExtExchangeableResamplingUnits = list(
 				if (m_out_of_n) "m-out-of-n bootstrap" else "subsampling",
 				if (is_ci) "CI setup" else "p-value setup"
 			))
-			fail = function(reason, procedure = NULL, harden_only = TRUE){
+			fail = function(reason, procedure = NULL, harden_only = TRUE, detail = NULL){
 				record = !harden_only || isTRUE(private$harden)
+				label = paste(if (m_out_of_n) "m-out-of-n bootstrap" else "subsampling", if (is_ci) "confidence interval" else "p-value")
 				if (is_ci) {
-					if (record) return(list(value = private$missing_bootstrap_ci(alpha, reason, stage = "estimate", procedure = procedure)))
-					return(list(value = c(NA_real_, NA_real_)))
+					if (!record) return(list(value = c(NA_real_, NA_real_)))
+					if (is.null(detail)) return(list(value = private$missing_bootstrap_ci(alpha, reason, stage = "estimate", procedure = procedure)))
+					value = private$missing_bootstrap_ci(alpha, reason, stage = "estimate", procedure = procedure, warn = FALSE)
+					edi_warn_procedure_na(self, private, procedure = label, reason = reason, detail = detail)
+					return(list(value = value))
 				}
 				if (record) {
 					edi_record_procedure_failure(self, private, reason, "estimate", procedure = procedure)
 					# Warn like the CI branch (missing_bootstrap_ci()) instead of a silent NA (v1.0.6-TODO-207).
-					edi_warn_procedure_na(self, private,
-						procedure = if (m_out_of_n) "m-out-of-n bootstrap p-value" else "subsampling p-value",
-						reason = reason)
+					edi_warn_procedure_na(self, private, procedure = label, reason = reason, detail = detail)
 				}
 				list(value = NA_real_)
 			}
@@ -377,7 +393,9 @@ InferenceExtExchangeableResamplingUnits = list(
 			} else {
 				private$subsampling_centered_pivot(B = B, b = size, unit_info = unit_info, show_progress = show_progress, subsampling_type = resampling_type, scaling = scaling)
 			}
-			if (!isTRUE(pivot$ok)) return(fail(pivot$reason, procedure = family))
+			# v1.0.6-TODO-230: too few usable draws for a ratio estimand is recorded and warned
+			# even unhardened (the risk-ratio pivots do the same).
+			if (!isTRUE(pivot$ok)) return(fail(pivot$reason, procedure = family, harden_only = is.null(pivot$detail), detail = pivot$detail))
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
 				return(fail(paste0(family, "_too_few_finite_estimates")))
 			}
@@ -410,3 +428,156 @@ InferenceExtExchangeableResamplingUnits = list(
 		}
 	)
 )
+
+#' Degenerate-draw rule for ratio estimands in subsampling / m-out-of-n (v1.0.6-TODO-230).
+#'
+#' At the small sizes subsampling and the m-out-of-n bootstrap draw at (\code{b = m =
+#' floor(n^0.7)} by default), a draw in which a treatment arm has no events (or, for a
+#' logit-scale estimand, only events; for a count, a zero total) has no finite log ratio:
+#' the fitter stops near \eqn{\pm 20} and the draw is an atom, not a sample from the law the
+#' pivot estimates. Kept, such atoms land in the tail the test uses and put a floor of about
+#' twice their fraction under the p-value (v1.0.6-TODO-191). This returns the rule for the
+#' calling class, or \code{NULL} when the class keeps every finite draw:
+#' \describe{
+#'   \item{\code{arm}}{\code{function(y, w)}: \code{TRUE} when the draw's responses
+#'     \code{y} and assignments \code{w} make the ratio degenerate.}
+#'   \item{\code{fit}}{\code{NULL} or \code{function(worker_priv)}: \code{TRUE} when the
+#'     fit on the draw (the private environment of the object that estimated it) is
+#'     non-converged or separated. Only the g-computation risk ratio has one (its reused
+#'     worker applies it itself; the debug and non-reused paths call it here).}
+#' }
+#' Additive estimands (\code{"marginal_mean_diff"}, the g-computation risk difference)
+#' have no rule. The cap on the usable fraction is \code{ratio_resampling_min_fraction_usable}.
+#'
+#' @keywords internal
+#' @noRd
+edi_ratio_resampling_degenerate_rule = function(self, private){
+	cls = class(self)[1L]
+	estimand = tryCatch(self$get_estimand(), error = function(e) "conditional")
+	if (identical(estimand, "marginal_mean_diff")) return(NULL)
+	no_or_all_events = function(y, w){
+		for (arm in c(0, 1)) {
+			in_arm = w == arm
+			n_arm = sum(in_arm)
+			events = sum(y[in_arm])
+			if (n_arm == 0L || events == 0 || events == n_arm) return(TRUE)
+		}
+		FALSE
+	}
+	no_events = function(y, w){
+		for (arm in c(0, 1)) {
+			in_arm = w == arm
+			if (!any(in_arm) || sum(y[in_arm]) == 0) return(TRUE)
+		}
+		FALSE
+	}
+	switch(cls,
+		# log odds ratio (or a marginal ratio from the logit fit): zero or all events in an arm,
+		# or a (quasi-)separated fit (a fitted probability numerically 0 or 1, the
+		# v1.0.6-TODO-109 criterion), where the coefficient sits where the fitter stopped.
+		InferenceIncidLogRegr = list(arm = no_or_all_events, fit = function(worker_priv){
+			mod = worker_priv$cached_mod
+			n_extreme = if (is.null(mod)) NA_integer_ else edi_logistic_n_fitted_extreme(mod$X, mod$b)
+			isTRUE(!is.na(n_extreme) && n_extreme > 0L)
+		}),
+		InferenceIncidKKGEE = list(arm = no_or_all_events, fit = NULL),
+		# log risk ratio (log link) / log rate ratio: an arm with no events is the atom; an
+		# arm with only events has a finite risk of 1.
+		InferenceIncidModifiedPoisson = ,
+		InferenceIncidLogBinomial = ,
+		InferenceCountPoisson = list(arm = no_events, fit = NULL),
+		InferenceIncidGCompRiskRatio = ,
+		InferenceIncidKKGCompRiskRatio = if (identical(private$get_estimand_type(), "RR")) {
+			list(arm = no_or_all_events, fit = gcomp_rr_resample_is_degenerate)
+		} else NULL,
+		NULL
+	)
+}
+
+#' Minimum usable fraction of the B draws for the generic subsampling / m-out-of-n pivot of a
+#' class with a degenerate-draw rule (v1.0.6-TODO-230). Same value and reasoning as the
+#' g-computation risk ratio's \code{min_fraction_usable_samples} default (owner decision
+#' 2026-11-19): degenerate draws pile up in the data sets with an extreme estimate, so a
+#' stricter cap (0.95) returned \code{NA} on most data sets a test should reject.
+#'
+#' @keywords internal
+#' @noRd
+ratio_resampling_min_fraction_usable = 0.8
+
+#' Returns \code{theta}, or \code{NaN} when the subsampling / m-out-of-n draw is degenerate
+#' under the class's rule (\code{edi_ratio_resampling_degenerate_rule()}). \code{draw} is the
+#' resampling draw (its \code{i_b} rows index the full data); \code{worker_priv}, when given, is
+#' the private environment of the object that estimated the draw (for the fit rule). Other
+#' operations, non-finite \code{theta} and classes without a rule pass through.
+#'
+#' @keywords internal
+#' @noRd
+edi_mark_degenerate_resampling_draw = function(self, private, operation, theta, draw, worker_priv = NULL, rule = NULL){
+	if (!(operation %in% c("subsampling", "m_out_of_n_boot"))) return(theta)
+	if (length(theta) != 1L || !is.finite(theta)) return(theta)
+	if (is.null(rule)) rule = edi_ratio_resampling_degenerate_rule(self, private)
+	if (is.null(rule)) return(theta)
+	rows = draw$i_b
+	if (length(rows)) {
+		y = as.numeric(private$y)[rows]
+		w = as.numeric(private$w)[rows]
+		ok = !is.na(y) & !is.na(w)
+		if (isTRUE(rule$arm(y[ok], w[ok]))) return(NaN)
+	}
+	if (!is.null(worker_priv) && is.function(rule$fit) && isTRUE(rule$fit(worker_priv))) return(NaN)
+	theta
+}
+
+#' The pivot-level cap (v1.0.6-TODO-230): \code{NULL} when the draws are acceptable, else the
+#' failure list (\code{ok = FALSE}, a reason and a warning detail) for the generic subsampling /
+#' m-out-of-n centered pivots. Applies only to classes with a degenerate-draw rule; there a
+#' failed fit (\code{NA}) and a degenerate draw (\code{NaN}) both count as unusable.
+#'
+#' @keywords internal
+#' @noRd
+edi_ratio_resampling_usable_fraction_failure = function(self, private, family, draws){
+	if (is.null(edi_ratio_resampling_degenerate_rule(self, private))) return(NULL)
+	n_total = length(draws)
+	n_usable = sum(is.finite(draws))
+	if (!n_total || !bootstrap_valid_fraction_too_low(n_usable, n_total, ratio_resampling_min_fraction_usable)) return(NULL)
+	n_degenerate = sum(is.nan(draws))
+	what = if (identical(family, "subsampling")) "subsamples" else "m-out-of-n resamples"
+	list(
+		ok = FALSE,
+		reason = paste0(family, "_too_few_usable_draws_fraction"),
+		detail = paste0("Only ", n_usable, " of ", n_total, " ", what, " were usable (",
+			format(round(100 * n_usable / n_total, 1), nsmall = 1), "%; ", n_degenerate,
+			" degenerate: a treatment arm with no events (on the logit scale also only events; for a count a zero total) or a separated logistic fit; ",
+			n_total - n_usable - n_degenerate, " failed). At least ",
+			format(100 * ratio_resampling_min_fraction_usable), "% are needed. A degenerate draw's log ratio sits ",
+			"where the fitter stopped (about +/-20), not in the sampling law the pivot needs, and keeping ",
+			"only the usable draws would describe only the resamples where the estimator worked. ",
+			"Use the ordinary bootstrap (compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval()) ",
+			"or a larger ", if (identical(family, "subsampling")) "b" else "m", ".")
+	)
+}
+
+#' Reused-worker version of \code{edi_mark_degenerate_resampling_draw()} (v1.0.6-TODO-230).
+#'
+#' Called from \code{compute_bootstrap_worker_estimate()} with the worker that just estimated
+#' the draw, so the fit rule (non-convergence, separation) can read the worker's fit. Acts only
+#' while \code{private$active_resampling_operation} is \code{"subsampling"} or
+#' \code{"m_out_of_n_boot"}; the bootstrap, Bayesian bootstrap, jackknife and randomization
+#' replicates are unchanged.
+#'
+#' @keywords internal
+#' @noRd
+edi_mark_degenerate_resampling_worker_draw = function(self, private, theta, worker_state){
+	op = private$active_resampling_operation
+	if (is.null(op) || !(op %in% c("subsampling", "m_out_of_n_boot"))) return(theta)
+	if (length(theta) != 1L || !is.finite(theta)) return(theta)
+	rule = edi_ratio_resampling_degenerate_rule(self, private)
+	worker_priv = worker_state$worker_priv
+	if (is.null(rule) || is.null(worker_priv)) return(theta)
+	y = as.numeric(worker_priv$y)
+	w = as.numeric(worker_priv$w)
+	ok = !is.na(y) & !is.na(w)
+	if (isTRUE(rule$arm(y[ok], w[ok]))) return(NaN)
+	if (is.function(rule$fit) && isTRUE(rule$fit(worker_priv))) return(NaN)
+	theta
+}

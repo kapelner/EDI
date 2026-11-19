@@ -96,7 +96,7 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes a PRW subsampling two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-subsampling-two-sided-pval template).
-	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
 		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (is.null(delta)){
@@ -109,7 +109,7 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes a PRW subsampling confidence interval for the treatment effect.
 	# Documented via @R6method (see gcomp-subsampling-confidence-interval template).
-	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
 		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (identical(private$get_estimand_type(), "RR")) {
@@ -119,7 +119,7 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-two-sided-pval template).
-	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
 		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (is.null(delta)){
@@ -132,7 +132,7 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
 	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-confidence-interval template).
-	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
 		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (identical(private$get_estimand_type(), "RR")) {
@@ -167,9 +167,11 @@ incidence_gcomp_worker_overrides = list(
 	load_bootstrap_sample_into_worker = function(worker_state, indices){
 		private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 	},
-	# v1.0.6-TODO-191: marks degenerate risk-ratio subsampling / m-out-of-n draws as unusable.
+	# v1.0.6-TODO-191 / v1.0.6-TODO-230: marks degenerate risk-ratio subsampling /
+	# m-out-of-n draws as unusable (NaN).
 	compute_bootstrap_worker_estimate = function(worker_state){
-		gcomp_bootstrap_worker_estimate(private, worker_state)
+		edi_mark_degenerate_resampling_worker_draw(self, private,
+			private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state), worker_state)
 	}
 )
 
@@ -391,20 +393,22 @@ NULL
 #' \eqn{n = 80}, nominal 0.05). Degenerate draws are therefore unusable: the
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} replicates are
-#' \code{NaN} for them. If fewer than \code{min_fraction_usable_samples} (default 0.95) of
+#' \code{NaN} for them. If fewer than \code{min_fraction_usable_samples} (default 0.8) of
 #' the \code{B} draws are usable (not degenerate and not failed), the p-value or interval is
 #' \code{NA}, the reason (\code{"subsampling_too_few_usable_draws_fraction"} or
 #' \code{"m_out_of_n_too_few_usable_draws_fraction"}) is recorded and one warning of class
 #' \code{edi_procedure_na_warning} is raised (silent inside resampling); otherwise the
 #' usable draws are used. In a null simulation at \eqn{n = 80} (200 data sets, event rate
 #' about 0.41, \code{B = 199}) dropping the degenerate draws alone gave null sizes of 0.040
-#' (subsampling) and 0.030 (m-out-of-n), but degenerate draws concentrate in data sets with an
-#' extreme estimate, so the default 0.95 returned \code{NA} for 9\% (subsampling) and 29\%
-#' (m-out-of-n) of them, most of the ones the Wald test rejects, and the size among the rest was
-#' 0.016 and 0.000; with \code{min_fraction_usable_samples = 0.8} no data set was \code{NA}.
-#' The 0.95 default is under review and may change in a later release; until then, expect
-#' \code{NA} from these two methods on small samples and set
-#' \code{min_fraction_usable_samples} lower only if the dropped draws are acceptable.
+#' (subsampling) and 0.030 (m-out-of-n). The default cap is 0.8 rather than the 0.95 of the
+#' ordinary bootstrap's \code{na.rm = TRUE} rule because degenerate draws pile up in the data sets
+#' where \eqn{\log\widehat{RR}} is extreme, which are the ones a test should reject: in the same
+#' simulation a cap of 0.95 returned \code{NA} for 9\% (subsampling) and 29\% (m-out-of-n) of the
+#' null data sets, including 7 and 9 of the 11 where the Wald test rejects, and the size among the
+#' rest fell to 0.016 and 0.000 (0.90: \code{NA} for 2\% and 5\%, size 0.031 and 0.011); at 0.8
+#' no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
+#' \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
+#' whatever usable draws there are.
 #' For the risk ratio the ordinary bootstrap
 #' (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 #' is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}

@@ -25,6 +25,8 @@ InferenceExtBcaBootstrapCI = list(
 	public = list(),
 	private = list(
 		# Shared BCa confidence-interval math (Efron 1987; Efron & Tibshirani 1993).
+		# `strata` (v1.0.6-TODO-231): the stratum of each element of `jack` when the jackknife is
+		# the stratified one (see edi_jackknife_acceleration()), else NULL.
 		# `jack` must already be the finite jackknife replicate distribution (length >= 2);
 		# callers are responsible for sourcing it (plain vs. Bayesian jackknife) and for
 		# handling the "too few jackknife replicates" case themselves, since that failure
@@ -40,12 +42,9 @@ InferenceExtBcaBootstrapCI = list(
 			p = mean(boot_distr < x) + 0.5 * mean(boot_distr == x)
 			pmin(1 - .Machine$double.eps, pmax(.Machine$double.eps, p))
 		},
-		bca_ci_core = function(boot_distr, alpha, est, jack, reason_prefix, on_failure){
+		bca_ci_core = function(boot_distr, alpha, est, jack, reason_prefix, on_failure, strata = NULL){
 			z0 = stats::qnorm(private$bca_midrank_cdf(boot_distr, est))
-			jack_bar = mean(jack)
-			num = sum((jack_bar - jack)^3)
-			den = 6 * (sum((jack_bar - jack)^2)^(3/2))
-			a = if (is.finite(den) && den > 0) num / den else 0
+			a = edi_jackknife_acceleration(jack, strata)
 			if (!is.finite(z0) || !is.finite(a) || abs(z0) > 2.5 || abs(a) > 1) {
 				return(on_failure(paste0(reason_prefix, "unstable_bias_or_acceleration")))
 			}
@@ -70,12 +69,9 @@ InferenceExtBcaBootstrapCI = list(
 		# Shared BCa two-sided p-value math -- see bca_ci_core() above for the shared
 		# bias-correction (z0) / acceleration (a) derivation; this additionally maps a
 		# tested null value `delta` through the same adjustment to get a two-sided p-value.
-		bca_pval_core = function(boot_distr, est, delta, jack, reason_prefix, on_failure){
+		bca_pval_core = function(boot_distr, est, delta, jack, reason_prefix, on_failure, strata = NULL){
 			z0 = stats::qnorm(private$bca_midrank_cdf(boot_distr, est))
-			jack_bar = mean(jack)
-			num = sum((jack_bar - jack)^3)
-			den = 6 * (sum((jack_bar - jack)^2)^(3/2))
-			a = if (is.finite(den) && den > 0) num / den else 0
+			a = edi_jackknife_acceleration(jack, strata)
 			if (!is.finite(z0) || !is.finite(a) || abs(z0) > 2.5 || abs(a) > 1) {
 				return(on_failure(paste0(reason_prefix, "unstable_bias_or_acceleration")))
 			}

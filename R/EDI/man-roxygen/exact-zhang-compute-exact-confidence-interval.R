@@ -1,11 +1,15 @@
 #' @description Computes an exact confidence interval for the log odds
-#'   ratio by bisection-inverting the combined matched-pairs +
-#'   Fisher-exact p-value (see class documentation for the full
-#'   combination methodology). On a matching design the interval is not
-#'   guaranteed to contain \code{compute_estimate()}, which uses the pooled
-#'   table over all subjects.
+#'   ratio by inverting the combined matched-pairs + Fisher-exact p-value
+#'   (see class documentation for the full combination methodology). The
+#'   combined p-value is not monotone in the log odds ratio, so the set it
+#'   accepts can have gaps; the interval returned is the convex hull of that
+#'   set, the smallest interval containing every log odds ratio the test does
+#'   not reject (Blaker 2000; Fay 2010). On a matching design the interval is
+#'   not guaranteed to contain \code{compute_estimate()}, which uses the
+#'   pooled table over all subjects.
 #' @param alpha Significance level.
-#' @param pval_epsilon Bisection tolerance for the inversion routine.
+#' @param pval_epsilon Bisection tolerance for the inversion routine, on the
+#'   log odds ratio scale (capped at \code{1e-6}).
 #' @param type Exact inference type; only \code{"Zhang"} (the default) is supported.
 #' @param args_for_type Optional arguments keyed by exact type; recognizes
 #'   \code{combination_method} (\code{"Fisher"} (default), \code{"Stouffer"},

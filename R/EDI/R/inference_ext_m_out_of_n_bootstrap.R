@@ -276,6 +276,10 @@ InferenceExtMOutOfNBootstrap = list(
 				scaling = scaling
 			)
 			finite = boot[is.finite(boot)]
+			# v1.0.6-TODO-230: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# ratio_resampling_min_fraction_usable of the B resamples to be usable.
+			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "m_out_of_n", boot)
+			if (!is.null(too_few_usable)) return(too_few_usable)
 			# Fraction-based failure gate (2026-09-06): min_number_usable_samples
 			# at the two call sites only checks the ABSOLUTE count of finite
 			# replicates (default 5) -- with B in the hundreds, even a large

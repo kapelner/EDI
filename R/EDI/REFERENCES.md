@@ -283,7 +283,8 @@ Crossref 2026-11-17.)
   Sec. 4.5). — Used by: `InferenceJackknife`
   (`inference_all_abstract_jackknife.R`, `edi_jackknife_bias_variance()`):
   the stratified jackknife of the automatic deletion units
-  `"permuted_block"` (`DesignSeqOneByOneSPBR`) and
+  `"permuted_block"` (`DesignSeqOneByOneSPBR`; `DesignSeqOneByOneRandomBlockSize`
+  from its recorded blocks, v1.0.6-TODO-231) and
   `"observation_within_block"` (`DesignFixedBlocking`), centred at the
   stratum mean of the replicates, with bias sum_h (n_h - 1)(theta_bar_h -
   theta_hat). Wolter's replicates reweight the rest of the stratum by
@@ -293,8 +294,38 @@ Crossref 2026-11-17.)
   used by `InferenceCountPoisson` (`inference_count_poisson.R`,
   private methods design_jackknife_pval / design_jackknife_ci): the fallback for the
   design-conservative tests on blocking designs whose automatic unit is the
-  whole block and that have fewer than 5 blocks (e.g.
-  `DesignSeqOneByOneRandomBlockSize`); v1.1.0-TODO-218.
+  whole block and that have fewer than 5 blocks (e.g. a
+  `DesignSeqOneByOneRandomBlockSize` object saved before 1.0.6, which has no
+  block record); v1.1.0-TODO-218.
+- **[Jones1974]** Jones, H. L. (1974). Jackknife estimation of functions of
+  stratum means. *Biometrika* 61(2), 343-348.
+  [doi:10.1093/biomet/61.2.343](https://doi.org/10.1093/biomet/61.2.343)
+  (the stratified jackknife bias sum_h (n_h - 1)(theta_bar_h - theta_hat);
+  paper not accessible 2026-11-19, form checked by a second-order Taylor
+  expansion and simulation, see `edi_jackknife_bias_variance()`). — Used by:
+  `InferenceJackknife` (`inference_all_abstract_jackknife.R`,
+  `edi_jackknife_bias_variance()`); v1.0.6-TODO-231.
+- **[KrewskiRao1981]** Krewski, D. and Rao, J. N. K. (1981). Inference from
+  stratified samples: properties of the linearization, jackknife and
+  balanced repeated replication methods. *The Annals of Statistics* 9(5),
+  1010-1019. [doi:10.1214/aos/1176345580](https://doi.org/10.1214/aos/1176345580)
+  (the delete-one-PSU-within-stratum replicate that reweights the rest of the
+  stratum by n_h/(n_h - 1), the variance with weight (n_h - 1)/n_h, and the
+  pseudovalues n_h theta_hat - (n_h - 1) theta_(h,i); checked against the
+  restatement in S. Kolenikov's lecture notes "Resampling with complex survey
+  data", UNC, 2002). — Used by: `InferenceJackknife`
+  (`inference_all_abstract_jackknife.R`, `edi_jackknife_bias_variance()`);
+  v1.0.6-TODO-231.
+- **[DavisonHinkley1997]** Davison, A. C. and Hinkley, D. V. (1997).
+  *Bootstrap Methods and their Application*. Cambridge University Press.
+  [doi:10.1017/CBO9780511802843](https://doi.org/10.1017/CBO9780511802843)
+  (BCa acceleration as the skewness of the empirical influence values; in a
+  stratified sample a = sum_h n_h^-3 sum_j l_hj^3 / (6 (sum_h n_h^-2 sum_j
+  l_hj^2)^(3/2)) with l_hj centred within stratum h; the stratified form was
+  derived from the third cumulant of the linear approximation, book text not
+  checked). — Used by: `InferenceJackknife`
+  (`inference_all_abstract_jackknife.R`, `edi_jackknife_acceleration()`), the
+  BCa interval and p-value of `InferenceNonParamBootstrap`; v1.0.6-TODO-231.
 
 ### GEE (matched-design / correlated-data inference)
 
@@ -342,6 +373,16 @@ Crossref 2026-11-17.)
   Inference." *Journal of the Royal Statistical Society*, 98(1), 39-82.
   [doi:10.2307/2342435](https://doi.org/10.2307/2342435). — Used by: the exact conditional test underlying
   `InferenceIncidExactFisher`/`stats::fisher.test`.
+- **[Blaker2000]** Blaker, H. (2000). "Confidence Curves and Improved Exact
+  Confidence Intervals for Discrete Distributions." *Canadian Journal of
+  Statistics*, 28(4), 783-798. [doi:10.2307/3315916](https://doi.org/10.2307/3315916). — Used by:
+  `InferenceIncidExactZhang` (the exact CI is the convex hull of the accepted
+  set when the inverted exact p-value is not monotone).
+- **[Fay2010]** Fay, M. P. (2010). "Two-sided Exact Tests and Matching
+  Confidence Intervals for Discrete Data." *The R Journal*, 2(1), 53-58.
+  [doi:10.32614/RJ-2010-008](https://doi.org/10.32614/RJ-2010-008). — Used by: `InferenceIncidExactZhang`
+  (same convex-hull convention for inverting two-sided "minimum likelihood"
+  exact tests).
 - **[MantelHaenszel1959]** Mantel, N., and Haenszel, W. (1959).
   "Statistical Aspects of the Analysis of Data from Retrospective Studies
   of Disease." *Journal of the National Cancer Institute*, 22(4), 719-748.

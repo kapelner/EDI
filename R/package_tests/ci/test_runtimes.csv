@@ -381,7 +381,6 @@ R/package_tests/testthat_bulk/test-gehan-wilcox-nonzero-delta-not-yet-implemente
 R/package_tests/testthat_bulk/test-generate-covariate-dataset-argument-shape-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glm-sandwich-kernels-input-guards-cluster-label-invariance-and-summary-fields-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-shared-estimate-only-w-star-pooling-reference.R,correctness,1,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-weighted-bootstrap-cluster.R,correctness,1.5,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-onelik-randomization-estimate-effective-time-dead-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-randomization-estimate-effective-time-dead-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,correctness,1,measured_with_30_percent_headroom
@@ -2125,7 +2124,6 @@ R/package_tests/testthat_bulk/test-gehan-wilcox-nonzero-delta-not-yet-implemente
 R/package_tests/testthat_bulk/test-generate-covariate-dataset-argument-shape-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glm-sandwich-kernels-input-guards-cluster-label-invariance-and-summary-fields-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-shared-estimate-only-w-star-pooling-reference.R,coverage,240,bootstrap
-R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-weighted-bootstrap-cluster.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-onelik-randomization-estimate-effective-time-dead-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-randomization-estimate-effective-time-dead-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,coverage,240,bootstrap

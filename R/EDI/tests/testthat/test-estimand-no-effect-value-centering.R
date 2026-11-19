@@ -79,7 +79,8 @@ for (cl in nonzero_null_classes) {
 		inf = rr_fixture(cl)
 		B = 49L
 		# v1.0.6-TODO-191: subsampling / m-out-of-n RR draws with an empty or all-event arm or a
-		# separated fit are unusable, and below 95% usable draws the p-value is NA by design. On
+		# separated fit are unusable, and below the usable-draw cap (0.8 by default since v1.0.6-TODO-230)
+		# the p-value is NA by design. On
 		# this n = 60 fixture over 5% of the size-17 draws are degenerate (7 of 49 for the non-KK
 		# class), so drop the cap here. This test is about the default null (delta = RR = 1), not the usable-draw rule, which
 		# test-gcomp-risk-ratio-subsampling-degenerate-draws.R covers.

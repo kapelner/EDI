@@ -2124,7 +2124,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					requires_state = "optimization_alg",
 					provides_public_methods = c(
-						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"initialize", "compute_estimate",
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(

@@ -14,6 +14,14 @@ library(EDI)
 # automatic jackknife unit: FixedBlocking jackknifes one subject at a time within strata (the same stratified
 # estimator the fallback uses) and SPBR one permuted block at a time. The fallback
 # below is therefore checked on DesignSeqOneByOneRandomBlockSize, whose automatic unit is still the block.
+# v1.0.6-TODO-231: DesignSeqOneByOneRandomBlockSize now records its permuted blocks at assignment and
+# jackknifes one block at a time too. Only a design object without that record (saved before EDI 1.0.6)
+# keeps the whole-stratum unit, so the fallback is checked on such an object (the record is cleared).
+
+forget_recorded_blocks <- function(des) {
+	des$.__enclos_env__$private$permuted_block_ids <- integer(0)
+	invisible(des)
+}
 
 strat_fixture <- function(design = c("blocking", "spbr", "rbs"), n = 240L, seed = 3L) {
 	design <- match.arg(design)
@@ -65,6 +73,7 @@ hand_jkn <- function(y, w, strata) {
 for (design in "rbs") {
 	test_that(paste0("~1 Poisson on a 4-stratum ", design, " design reports the stratified-jackknife-widened Wald test"), {
 		f <- strat_fixture(design)
+		forget_recorded_blocks(f$des)
 		expect_equal(length(unique(f$des$get_block_ids())), 4L)
 		inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 		inf$num_cores <- 1L
@@ -129,6 +138,16 @@ test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackkni
 	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
 })
 
+test_that("~1 Poisson on a 4-stratum RandomBlockSize design uses its recorded permuted blocks (v1.0.6-TODO-231)", {
+	f <- strat_fixture("rbs")
+	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	expect_identical(p$resolve_jackknife_unit("auto"), "permuted_block")
+	expect_false(p$use_within_block_jackknife_fallback())
+	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
+})
+
 test_that("the stratified fallback stays off on unstratified designs and where the automatic unit is not the block, and covers marginal estimands", {
 	# Unstratified design: the observation-level jackknife is used, no fallback.
 	set.seed(5)
@@ -159,6 +178,7 @@ test_that("the stratified fallback stays off on unstratified designs and where t
 
 	# A marginal estimand: the shared jackknife refits under the active estimand, so the fallback applies too.
 	f <- strat_fixture("rbs")
+	forget_recorded_blocks(f$des)
 	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 	inf$num_cores <- 1L
 	inf$set_estimand("marginal_mean_diff")

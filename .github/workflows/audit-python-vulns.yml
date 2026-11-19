@@ -28,7 +28,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-      actions: read      # the reusable prepare job reads run data
+      actions: write     # prepare reads run data; finish deletes the bot's PR runs (audit_run.py drop_bot_pr_runs)
     uses: ./.github/workflows/audit.yml
     with:
       audit: python-vulns

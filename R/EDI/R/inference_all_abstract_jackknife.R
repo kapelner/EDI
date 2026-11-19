@@ -14,13 +14,17 @@
 #'     block (\code{"permuted_block"}), the \code{block_size} consecutive enrollees of
 #'     a stratum that the design randomized together; a trailing partial block of a
 #'     stratum is merged into that stratum's previous block;
+#'   \item \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}:
+#'     one permuted block (\code{"permuted_block"}), as recorded when the design drew it
+#'     (block sizes are random), with the same rule for a stratum's trailing unfilled block;
+#'     a design object saved before EDI 1.0.6 has no such record and uses \code{"block"};
 #'   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
 #'     grouped by its stratum (\code{"observation_within_block"});
 #'   \item other blocking designs: one whole block (\code{"block"});
 #'   \item all other designs: one subject (\code{"observation"}).
 #' }
 #' Any of these can also be requested explicitly through \code{unit}
-#' (\code{"permuted_block"} only on SPBR; \code{"block"} and
+#' (\code{"permuted_block"} only on SPBR and RandomBlockSize; \code{"block"} and
 #' \code{"observation_within_block"} on any blocking design).
 #'
 #' \strong{Formulas.} With \eqn{\hat\theta} the full-data estimate and
@@ -41,6 +45,26 @@
 #' = (\frac{N - 1}{N})^2 \sum_h \frac{n_h}{n_h - 1} \sum_{i \in h} (\hat\theta_{(h,i)} - \bar\theta_h)^2};
 #' with no single-unit stratum the bias equals the ordinary \eqn{(N - 1)(\bar\theta - \hat\theta)},
 #' and with one stratum both reduce to the unstratified formulas.
+#'
+#' \emph{Why the replicates are rescaled, and what that does to the bias.} Deleting unit
+#' \eqn{(h, i)} and refitting on the other \eqn{N - 1} units moves the estimate by about
+#' \eqn{1/(N - 1)} of that unit's influence and also shifts every stratum's share of the
+#' data; Wolter's reweighted replicate keeps stratum \eqn{h}'s share and moves the estimate
+#' by \eqn{n_h / \{N (n_h - 1)\}} of the unit's influence measured from its stratum mean. To
+#' first order the two differ, within a stratum, by the factor \eqn{r_h} and a constant,
+#' and the constant cancels in the within-stratum variance; so the rescaled variance is
+#' Wolter's to first order, while Wolter's weight \eqn{(n_h - 1)/n_h} applied to the raw
+#' refits would understate it by about \eqn{((n_h - 1)/n_h)^2} per stratum. The bias form
+#' \eqn{\sum_h (n_h - 1)(\bar\theta^*_h - \hat\theta)} is the stratified jackknife bias
+#' of Jones (1974), as in Wolter (2007, Sec. 4.5): on genuinely reweighted replicates it
+#' estimates the bias of a smooth function of the stratum means from the within-stratum
+#' spread alone. The bias is a second-order quantity, though, and the first-order
+#' rescaling does not carry it over: on the rescaled refits the formula equals the
+#' ordinary unstratified bias \eqn{(N - 1)(\bar\theta - \hat\theta)}, which also counts the
+#' spread of the outcome between strata. For a linear estimator (a difference in means)
+#' both are 0; for a nonlinear one with strongly different strata the bias correction can
+#' be too large (v1.0.6-TODO-231). The jackknife-Wald test and interval are centred at the
+#' bias-corrected estimate.
 #' The strata are fixed by the design and treatment is randomized within them, so only
 #' the within-stratum spread of the replicates enters the variance. A stratum with a
 #' single unit contributes nothing to either sum. The bias-corrected jackknife estimate is
@@ -53,7 +77,25 @@
 #' block, which on these designs is the stratum, so a replicate deleted a whole stratum
 #' and the jackknife had only 2-4 units (v1.0.6-TODO-4).
 #'
-#' @references Wolter, K. M. (2007). \emph{Introduction to Variance Estimation}, 2nd ed.
+#' \strong{BCa acceleration.} The BCa bootstrap interval and p-value of the nonparametric
+#' bootstrap take their acceleration from the same jackknife. On the stratified units it is
+#' the skewness of the empirical influence values centred within strata,
+#' \eqn{a = \sum_h c_h^3 \sum_i d_{hi}^3 / \{6 (\sum_h c_h^2 \sum_i d_{hi}^2)^{3/2}\}} with
+#' \eqn{d_{hi} = \bar\theta^*_h - \theta^*_{(h,i)}} and \eqn{c_h = (n_h - 1)/n_h} (the
+#' stratified form of the influence-function acceleration, Davison and Hinkley 1997); with
+#' one stratum this is Efron's formula, and other units keep it unchanged.
+#'
+#' @references Jones, H. L. (1974). Jackknife estimation of functions of stratum means.
+#'   \emph{Biometrika}, 61(2), 343-348, \doi{10.1093/biomet/61.2.343}.
+#'
+#'   Krewski, D. and Rao, J. N. K. (1981). Inference from stratified samples: properties of
+#'   the linearization, jackknife and balanced repeated replication methods. \emph{The
+#'   Annals of Statistics}, 9(5), 1010-1019, \doi{10.1214/aos/1176345580}.
+#'
+#'   Davison, A. C. and Hinkley, D. V. (1997). \emph{Bootstrap Methods and their
+#'   Application}. Cambridge University Press, \doi{10.1017/CBO9780511802843}.
+#'
+#'   Wolter, K. M. (2007). \emph{Introduction to Variance Estimation}, 2nd ed.
 #'   Springer, New York, ch. 4 "The Jackknife Method" (pp. 151-193), Sec. 4.5 (stratified
 #'   sampling), \doi{10.1007/978-0-387-35099-8}.
 #'
@@ -372,6 +414,16 @@ EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
 #   Centring at theta_bar_h drops the between-stratum spread of the replicate means, which
 #   is not randomization variance when strata are fixed by the design. A stratum with one
 #   unit (n_h = 1) contributes 0 to both sums (its weight n_h - 1 is 0).
+#   v1.0.6-TODO-231 check of the bias (2026-11-19): sum_h (n_h - 1)(theta_bar_h - theta_hat) on
+#   REWEIGHTED replicates is the stratified jackknife bias of Jones (1974) / Krewski & Rao (1981),
+#   the form Wolter Sec. 4.5 uses; a second-order Taylor expansion of g(sum_h W_h ybar_h) gives
+#   (n_h - 1) E(theta_bar_h - theta_hat) = g''/2 W_h^2 s_h^2 / n_h, stratum h's own bias term.
+#   The r_h rescaling is first order only, so on rescaled refits the formula is the ordinary
+#   bias above, which also carries the between-stratum spread of the data. Simulation (exp and
+#   logistic g of a mean, 3-4 strata, 40000 reps): Jones on reweighted replicates 0.0854 / 0.0061 /
+#   -0.0005 vs true 0.0815 / 0.0067 / -0.0004; this rescaled form 0.108 / 0.036 / -0.0028 (too
+#   large when strata differ; 0 for a difference in means). Applying Jones to the raw refits is
+#   worse (-0.10 / -0.088: the first-order term no longer cancels). Kept; owner decision filed.
 edi_jackknife_bias_variance = function(jack, theta_hat, strata = NULL){
 	n_units = length(jack)
 	if (is.null(strata) || length(strata) != n_units) {
@@ -394,6 +446,46 @@ edi_jackknife_bias_variance = function(jack, theta_hat, strata = NULL){
 		variance = variance + ((n_h - 1) / n_h) * sum((th_star - th_star_bar)^2)
 	}
 	list(bias = bias, variance = variance)
+}
+
+# v1.0.6-TODO-231: BCa acceleration from the jackknife replicates `jack` (finite, one per deletion
+# unit). strata = NULL: Efron's a = sum (theta_bar - theta_(i))^3 / (6 (sum (theta_bar - theta_(i))^2)^(3/2))
+#   (the expressions are kept exactly as before, so these results are unchanged).
+# strata = stratum id per replicate (the stratified units of v1.0.6-TODO-4): the acceleration is the
+#   skewness of the empirical influence values, and with strata fixed by the design those are centred
+#   within their stratum, l_(h,i) = (n_h - 1)(theta_bar*_h - theta*_(h,i)), with theta* the
+#   reweighting-equivalent replicates of edi_jackknife_bias_variance() (theta* - theta_bar*_h =
+#   r_h (theta_(h,i) - theta_bar_h)). The stratified influence form (Davison & Hinkley 1997,
+#   Bootstrap Methods and their Application, stratified case of the empirical influence values) is
+#     a = sum_h n_h^-3 sum_i l_(h,i)^3 / (6 (sum_h n_h^-2 sum_i l_(h,i)^2)^(3/2)),
+#   i.e. with d = theta_bar*_h - theta*_(h,i) and c_h = (n_h - 1)/n_h,
+#     a = sum_h c_h^3 sum_i d^3 / (6 (sum_h c_h^2 sum_i d^2)^(3/2)).
+#   With one stratum c_h cancels and this is Efron's formula. The unstratified formula instead centres
+#   every replicate at the overall mean, so between-stratum differences of the replicate means (the
+#   strata's different shares of the estimate, not sampling variation) entered the skewness.
+#   Singleton strata contribute nothing (their within-stratum deviation is 0).
+edi_jackknife_acceleration = function(jack, strata = NULL){
+	if (is.null(strata) || length(strata) != length(jack)) {
+		jack_bar = mean(jack)
+		num = sum((jack_bar - jack)^3)
+		den = 6 * (sum((jack_bar - jack)^2)^(3/2))
+		return(if (is.finite(den) && den > 0) num / den else 0)
+	}
+	n_units = length(jack)
+	num = 0
+	ss = 0
+	for (h in unique(strata)) {
+		th = jack[strata == h]
+		n_h = length(th)
+		if (n_h < 2L) next
+		r_h = n_h * (n_units - 1) / (n_units * (n_h - 1))
+		d = r_h * (mean(th) - th)
+		c_h = (n_h - 1) / n_h
+		num = num + c_h^3 * sum(d^3)
+		ss = ss + c_h^2 * sum(d^2)
+	}
+	den = 6 * ss^(3/2)
+	if (is.finite(den) && den > 0) num / den else 0
 }
 
 # v1.0.6-TODO-4: the unit count compared with EDI_JACKKNIFE_MIN_DELETION_UNITS. With G

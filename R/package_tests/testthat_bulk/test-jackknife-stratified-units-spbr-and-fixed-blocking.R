@@ -194,3 +194,132 @@ test_that("with a single stratum the stratified formulas reduce to the ordinary 
 	m0 <- EDI:::edi_jackknife_bias_variance(jack, theta_hat, NULL)
 	expect_equal(m1, m0, tolerance = 1e-12)
 })
+
+# v1.0.6-TODO-231 (3): DesignSeqOneByOneRandomBlockSize draws each block's size at random, so its blocks
+# cannot be rebuilt from the enrolment order; assign_wt() records the block of every subject (and each
+# block's stratum and drawn size), and the jackknife deletes one recorded block at a time, with SPBR's
+# rule for a stratum's trailing unfilled block (merged into that stratum's previous block).
+rbs_fixture <- function(n = 50L, seed = 6L, strata = TRUE) {
+	set.seed(seed)
+	X <- data.frame(s = factor(sample(c("a", "b"), n, TRUE), levels = c("a", "b")), x1 = rnorm(n))
+	des <- if (strata) {
+		DesignSeqOneByOneRandomBlockSize$new(strata_cols = "s", block_sizes = c(2L, 4L, 6L), n = n, response_type = "continuous", verbose = FALSE)
+	} else {
+		DesignSeqOneByOneRandomBlockSize$new(block_sizes = c(2L, 4L, 6L), n = n, response_type = "continuous", verbose = FALSE)
+	}
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	des$add_all_subject_responses(rnorm(n) + as.integer(X$s))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	inf$num_cores <- 1L
+	list(des = des, dp = des$.__enclos_env__$private, inf = inf, p = inf$.__enclos_env__$private, X = X,
+		y = des$get_y(), w = des$get_w())
+}
+
+test_that("RandomBlockSize: assign_wt() records balanced permuted blocks within strata", {
+	f <- rbs_fixture()
+	ids <- f$dp$permuted_block_ids
+	expect_length(ids, 50L)
+	expect_false(anyNA(ids))
+	keys <- f$dp$permuted_block_keys
+	sizes <- f$dp$permuted_block_sizes
+	expect_true(all(sizes %in% c(2L, 4L, 6L)))
+	# Every block holds one stratum; a complete block is balanced, and only a stratum's last block can be
+	# incomplete.
+	for (b in unique(ids)) {
+		idx <- which(ids == b)
+		expect_length(unique(as.character(f$X$s[idx])), 1L)
+		if (length(idx) == sizes[b]) expect_equal(sum(f$w[idx]), sizes[b] / 2)
+		else expect_identical(b, max(which(keys == keys[b])))
+	}
+	expect_identical(f$des$duplicate()$.__enclos_env__$private$permuted_block_ids, ids)
+})
+
+test_that("RandomBlockSize: the jackknife deletes one recorded block, merging a trailing unfilled block", {
+	f <- rbs_fixture()
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
+	ids <- f$dp$permuted_block_ids
+	keys <- f$dp$permuted_block_keys
+	sizes <- f$dp$permuted_block_sizes
+	expected <- list(); expected_strata <- integer(0)
+	strata_order <- unique(keys[sort(unique(ids))])
+	for (h in seq_along(strata_order)) {
+		b_h <- sort(unique(ids[keys[ids] == strata_order[h]]))
+		groups <- as.list(b_h)
+		last <- b_h[length(b_h)]
+		if (length(b_h) > 1L && sum(ids == last) < sizes[last]) {
+			groups[[length(groups) - 1L]] <- c(groups[[length(groups) - 1L]], last)
+			groups[[length(groups)]] <- NULL
+		}
+		for (g in groups) expected[[length(expected) + 1L]] <- which(ids %in% g)
+		expected_strata <- c(expected_strata, rep(h, length(groups)))
+	}
+	lay <- f$p$jackknife_stratified_layout("auto")
+	expect_identical(lay$delete, expected)
+	expect_identical(lay$strata, expected_strata)
+	theta_hat <- mean_diff(f$y, f$w)
+	loo <- vapply(lay$delete, function(d) mean_diff(f$y[-d], f$w[-d]), numeric(1))
+	expect_equal(f$inf$approximate_jackknife_distribution_beta_hat_T(), loo, tolerance = 1e-12)
+	hand <- stratified_hand(loo, lay$strata, theta_hat)
+	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_estimate(), theta_hat - hand$bias, tolerance = 1e-12)
+	# Explicit "block" still deletes whole strata.
+	expect_length(f$inf$approximate_jackknife_distribution_beta_hat_T(unit = "block"), 2L)
+})
+
+test_that("RandomBlockSize without strata: the recorded blocks form one stratum (ordinary delete-a-block jackknife)", {
+	f <- rbs_fixture(strata = FALSE)
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
+	lay <- f$p$jackknife_stratified_layout("auto")
+	expect_identical(unique(lay$strata), 1L)
+	loo <- f$inf$approximate_jackknife_distribution_beta_hat_T()
+	G <- length(loo)
+	expect_equal(f$inf$compute_jackknife_std_error(), sqrt((G - 1) / G * sum((loo - mean(loo))^2)), tolerance = 1e-12)
+})
+
+test_that("RandomBlockSize without a block record (an object saved before 1.0.6) keeps the whole-stratum unit", {
+	f <- rbs_fixture()
+	f$dp$permuted_block_ids <- integer(0)
+	inf <- InferenceAllSimpleAverageDiff$new(f$des)
+	expect_identical(inf$.__enclos_env__$private$resolve_jackknife_unit("auto"), "block")
+	expect_null(inf$.__enclos_env__$private$jackknife_stratified_layout("permuted_block"))
+})
+
+# v1.0.6-TODO-231 (4): the BCa acceleration on the stratified units is the skewness of the empirical
+# influence values centred within strata (Davison & Hinkley 1997, stratified case):
+# a = sum_h c_h^3 sum_i d^3 / (6 (sum_h c_h^2 sum_i d^2)^(3/2)), d = r_h (theta_bar_h - theta_(h,i)),
+# c_h = (n_h - 1)/n_h.
+test_that("stratified BCa acceleration: hand formula, single-stratum reduction, invariance to stratum shifts", {
+	set.seed(7)
+	jack <- c(rnorm(6L), rexp(9L), rnorm(1L))
+	strata <- c(rep(1L, 6L), rep(2L, 9L), 3L)
+	N <- length(jack)
+	num <- 0; ss <- 0
+	for (h in 1:2) {
+		th <- jack[strata == h]; n_h <- length(th)
+		d <- n_h * (N - 1) / (N * (n_h - 1)) * (mean(th) - th)
+		num <- num + ((n_h - 1) / n_h)^3 * sum(d^3); ss <- ss + ((n_h - 1) / n_h)^2 * sum(d^2)
+	}
+	expect_equal(EDI:::edi_jackknife_acceleration(jack, strata), num / (6 * ss^1.5), tolerance = 1e-12)
+	# Shifting a whole stratum's replicates (a between-stratum difference) does not change it.
+	jack2 <- jack + c(rep(5, 6L), rep(-3, 9L), 100)
+	expect_equal(EDI:::edi_jackknife_acceleration(jack2, strata), EDI:::edi_jackknife_acceleration(jack, strata), tolerance = 1e-12)
+	# One stratum: Efron's formula; NULL strata: the old expression bit for bit.
+	jb <- mean(jack)
+	old <- sum((jb - jack)^3) / (6 * (sum((jb - jack)^2)^(3/2)))
+	expect_identical(EDI:::edi_jackknife_acceleration(jack, NULL), old)
+	expect_equal(EDI:::edi_jackknife_acceleration(jack, rep(1L, N)), old, tolerance = 1e-12)
+	expect_identical(EDI:::edi_jackknife_acceleration(rep(1, 5L), NULL), 0)
+})
+
+test_that("FixedBlocking BCa interval uses the stratified acceleration", {
+	f <- fixed_blocking_fixture(sizes = c(8L, 10L, 12L), seed = 12L)
+	p <- f$p
+	jack <- p$approximate_jackknife_distribution_beta_hat_T_private("auto")
+	strata <- p$jackknife_replicate_strata("auto")
+	expect_length(strata, length(jack))
+	boot <- sort(rnorm(999L, mean_diff(f$y, f$w), 0.4))
+	est <- mean_diff(f$y, f$w)
+	fail <- function(reason) c(NA_real_, NA_real_)
+	expect_identical(p$ci_bca(boot, 0.05, est),
+		p$bca_ci_core(boot, 0.05, est, jack, reason_prefix = "bootstrap_bca_", on_failure = fail, strata = strata))
+})

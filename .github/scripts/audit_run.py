@@ -377,6 +377,33 @@ def publish_issue(spec, notes, m, report, label, findings):
     return 0
 
 
+def drop_bot_pr_runs(repo_slug, sha, polls=6, wait=15):
+    """Delete the pull_request runs this job's push and PR just triggered on `sha`.
+
+    The bot opens audit PRs with the default token, and the repo's approval policy
+    ("first-time contributors") holds every PR run the bot triggers until someone clicks
+    "Approve and run workflows". Nobody does (owner, 2026-11-19: audit PRs are merged
+    without PR checks; main's push checks test the merge), so the runs expired and showed
+    as failed ("workflow file issue") on every audit PR. GitHub creates the runs a few
+    seconds after the push, so this polls for about a minute and a half. Best effort: a
+    failure here never fails the publish. Needs `actions: write`.
+    """
+    if not repo_slug or not sha:
+        return
+    for i in range(polls):
+        out = gh("api", f"repos/{repo_slug}/actions/runs?head_sha={sha}&event=pull_request&per_page=100",
+                 "--jq", '.workflow_runs[] | select(.triggering_actor.login == "github-actions[bot]") '
+                         '| select(.status != "in_progress") | [.id, .name] | @tsv', check=False)
+        for line in filter(None, out.splitlines()):
+            run_id, _, name = line.partition("\t")
+            r = subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{repo_slug}/actions/runs/{run_id}"],
+                               capture_output=True, text=True)
+            print(f"deleted PR run {run_id} ({name})" if r.returncode == 0
+                  else f"could not delete PR run {run_id} ({name}): {r.stderr.strip()}")
+        if i < polls - 1:
+            time.sleep(wait)
+
+
 def publish_pr(spec, notes, m, report, label, changed, work, repo, findings=False):
     branch = f"audit/{spec['name']}"
     existing = gh("pr", "list", "--head", branch, "--state", "open", "--json", "number",
@@ -424,6 +451,8 @@ def publish_pr(spec, notes, m, report, label, changed, work, repo, findings=Fals
         url = gh("pr", "create", "--base", os.environ.get("AUDIT_BASE", "main"), "--head", branch,
                  "--label", label, "--title", title, "--body", report, *draft)
         pr = url.rstrip("/").split("/")[-1]
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
+    drop_bot_pr_runs(os.environ.get("GITHUB_REPOSITORY", ""), head)
     m["open_pr"] = int(pr)
     notes.save_manifest(m)
     ids = set(json.loads((work / "proposed.json").read_text()))

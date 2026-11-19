@@ -72,8 +72,11 @@ InferenceResamplingCore = R6::R6Class("InferenceResamplingCore",
 				if (unit %in% c("block", "observation_within_block") && !is_blocking_design) {
 					stop("jackknife unit = '", unit, "' requires a blocking design.", call. = FALSE)
 				}
-				if (unit == "permuted_block" && !is(design_obj, "DesignSeqOneByOneSPBR")) {
-					stop("jackknife unit = 'permuted_block' requires a DesignSeqOneByOneSPBR design.", call. = FALSE)
+				# v1.0.6-TODO-231: also DesignSeqOneByOneRandomBlockSize, whose blocks assign_wt() records.
+				if (unit == "permuted_block" && !is(design_obj, "DesignSeqOneByOneSPBR") &&
+					!is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
+					stop("jackknife unit = 'permuted_block' requires a DesignSeqOneByOneSPBR or ",
+						"DesignSeqOneByOneRandomBlockSize design.", call. = FALSE)
 				}
 				if (unit %in% c("pair", "matched_set") && !is_matching_design) {
 					stop("jackknife unit = '", unit, "' requires a matching design.", call. = FALSE)

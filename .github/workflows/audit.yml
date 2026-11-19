@@ -283,6 +283,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      actions: write       # delete the PR runs the bot's push triggers (audit_run.py drop_bot_pr_runs)
     concurrency:
       group: audit-finish-${{ inputs.audit }}
       cancel-in-progress: false

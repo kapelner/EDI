@@ -46,7 +46,10 @@ for (cls in names(blocking_strata_formula_specs)) local({
 		expect_true(all(is.na(jci)))
 		# BCa takes its acceleration from the automatic unit: n = 40 within-stratum deletions
 		# (v1.0.6-TODO-4), well above the minimum, so the interval is finite with no failure.
-		bci = inf$compute_bootstrap_confidence_interval(B = 201, type = "bca", show_progress = FALSE)
+		# B = 501 (v1.0.6-TODO-231): at B = 201 the 2.5% BCa tail is ~5 order statistics, and the
+		# stratified acceleration (-0.0185 vs -0.0168 unstratified on the Cox fixture) moved the
+		# adjusted lower level from 0.0100 to 0.0098, just inside the 2/(B + 1) boundary margin.
+		bci = inf$compute_bootstrap_confidence_interval(B = 501, type = "bca", show_progress = FALSE)
 		expect_true(all(is.finite(bci)))
 		expect_null(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$bootstrap)
 	})

@@ -111,8 +111,7 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
 ) {
     // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.6-TODO-193).
     static const edi_ordinal::FixedLinkFitSpec spec = {
-        edi_ordinal::Link::Probit, probit_legacy_alpha,
-        edi_ordinal::DegenerateLevelsPolicy::NoEarlyReturn, true};
+        edi_ordinal::Link::Probit, probit_legacy_alpha};
     return edi_ordinal::fixed_link_ordinal_internal<OrdinalProbitRegression>(
         spec, X, y, std::move(warm_start_params), smart_cold_start, maxit, tol, std::move(optimization_alg),
         std::move(fixed_idx), std::move(fixed_values), std::move(warm_start_fisher_info), estimate_only);
@@ -244,7 +243,8 @@ List fast_ordinal_probit_regression_cpp(const Rcpp::NumericMatrix& X,
 //'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
 //'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
 //'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
-//'   not converge.
+//'   not converge. Note the different variance name in the degenerate case: if \code{y} has
+//'   fewer than 2 distinct levels the result is \code{list(b = NA, ssq_b_2 = NA)}.
 //' @seealso \code{\link{fast_ordinal_probit_regression_cpp}} for the estimate-only-capable
 //'   variant and the full model documentation.
 //' @export
@@ -269,6 +269,6 @@ List fast_ordinal_probit_regression_with_var_cpp(const Rcpp::NumericMatrix& X,
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         false);
-    return edi::to_rcpp_list(res);
+    return edi_ordinal::fixed_link_ordinal_with_var_list(res);
 }
 #endif // EDI_CORE_ONLY

@@ -103,32 +103,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the IVWC Clayton-copula treatment estimate under
-		#'   Bayesian-bootstrap weights.
-		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, cache only the weighted point
-		#'   estimate. Otherwise, also cache the surrogate fit's treatment-coefficient
-		#'   standard error for studentized Bayesian-bootstrap inference.
-		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
-				# Constant weights define the original, unweighted estimating
-				# problem. Return that result even when it is non-finite: falling
-				# through would replace a failed Clayton/Weibull IVWC fit with the
-				# different marginal-Weibull surrogate used for genuinely varying
-				# weights, making the apparent "shortcut" disagree with a direct fit.
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L]
-				private$cached_values$beta_hat_T = beta_hat_T
-				return(private$cached_values$beta_hat_T)
-			}
-			X_cov = private$get_X()
-			X_fit = if (ncol(as.matrix(X_cov)) > 0) cbind(treatment = private$w, X_cov) else matrix(private$w, ncol = 1, dimnames = list(NULL, "treatment"))
-			fit = weighted_weibull_bootstrap_surrogate_fit(private$y, private$dead, X_fit, row_weights)
-			private$cached_values$beta_hat_T = if (is.null(fit)) NA_real_ else as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(fit)) as.numeric(fit$se) else NA_real_
-			private$cached_values$beta_hat_T
-		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha                                   The confidence level in the computed
@@ -535,6 +509,10 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
+#' \strong{No Bayesian bootstrap.} The Clayton/Weibull fitter takes no case weights, so this class does not
+#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
+#' Its other resampling methods are unaffected.
+#'
 #' @references
 #' Clayton DG (1978). "A Model for Association in Bivariate Life Tables and
 #' Its Application in Epidemiological Studies of Familial Tendency in Chronic
@@ -562,6 +540,14 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
+	private = list(
+		# v1.0.6-TODO-235 (1): no Bayesian bootstrap. The class's own weighted hook
+		# refit a marginal Weibull AFT surrogate (no copula, no IVW pooling), a
+		# different estimator from compute_estimate() (bootstrap mean 0.55 vs
+		# estimate 0.63); the Clayton/Weibull fitter takes no case weights. The
+		# hook is gone, so a direct call reaches the KK compound's refusal.
+		supports_bayesian_bootstrap = function() FALSE
+	),
 	metadata = list(likelihood_tier = "full"),
 	overrides = list(
 		public = c(
@@ -574,6 +560,7 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 			"approximate_bootstrap_distribution_beta_hat_T"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

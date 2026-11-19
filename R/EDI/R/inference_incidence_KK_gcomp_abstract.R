@@ -640,9 +640,11 @@ incidence_kk_gcomp_worker_overrides = list(
 	load_bootstrap_sample_into_worker = function(worker_state, indices){
 		private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 	},
-	# v1.0.6-TODO-191: marks degenerate risk-ratio subsampling / m-out-of-n draws as unusable.
+	# v1.0.6-TODO-191 / v1.0.6-TODO-230: marks degenerate risk-ratio subsampling /
+	# m-out-of-n draws as unusable (NaN).
 	compute_bootstrap_worker_estimate = function(worker_state){
-		gcomp_bootstrap_worker_estimate(private, worker_state)
+		edi_mark_degenerate_resampling_worker_draw(self, private,
+			private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state), worker_state)
 	}
 )
 

@@ -1989,6 +1989,22 @@ fast_zinb_cpp_guarded = function(...) {
 # subject reaches 10-24; dropping such a start costs one cold start and does
 # not change the maximum.
 ZERO_AUGMENTED_RIDGE_ETA_EDGE = 10
+# v1.0.6-TODO-232 (2026-11-19): with covariates in the zero formula the ZIP
+# likelihood often has its supremum on a ridge (zero part separating some zeros
+# from every positive count) while the default and pscl starts stop at an
+# interior local maximum (gradient ~1e-10, information positive definite), so the
+# fit was reported unflagged. pscl::zeroinfl() stops at the same kind of point,
+# so comparing with pscl could not see it. Example: TODO-218 sweep seed 101057
+# (n = 24, 7 positives): default fit nll 21.073 (count treatment -0.344), pscl
+# 20.903 (-0.261, another interior maximum), ridge 20.159 (-0.164). A 30-start
+# reference on the 1,197 sweep datasets: 96 of 602 unflagged fits were below a
+# higher-likelihood point (40 of the 41 examined in detail were separated zero
+# parts). An L-BFGS candidate from pscl's start with the zero part multiplied by
+# 10 improves 55 of the 96 and reaches the reference in 41 (x5: 28 / 19; x20:
+# 58 / 48 but fails to converge more often at n = 400); the separated fit is then
+# flagged by edi_zero_augmented_flag_zero_part_separation(). Not a full fix: the
+# rest still stop at an interior maximum (v1.0.6-TODO-232 open item).
+ZERO_AUGMENTED_SHARPENED_START_SCALE = 10
 # v1.0.6-TODO-218 (1): see zero_augmented_zero_part_separation().
 ZERO_AUGMENTED_NO_INFLATION_MAX_LOGIT = stats::qlogis(0.05)
 
@@ -2052,9 +2068,11 @@ zero_augmented_pscl_start = function(X, y, Xzi) {
 
 # fast_zero_augmented_poisson_cpp() with the two guards described above: a
 # warm start on the zero-inflation ridge is dropped (cold start), and for a ZIP
-# mixture (not hurdle) whose data have zeros and whose zero part is free, a
-# second L-BFGS fit from pscl's start is kept when it lowers the negative
-# log-likelihood by more than 1e-6. The candidate is tried only when the primary
+# mixture (not hurdle) whose data have zeros and whose zero part is free, two
+# more L-BFGS fits, from pscl's start and from that start with its zero part
+# scaled by ZERO_AUGMENTED_SHARPENED_START_SCALE (v1.0.6-TODO-232), and the
+# lowest negative log-likelihood is kept; a candidate must lower it by more than
+# 1e-6. The candidate is tried only when the primary
 # fit converged, so an unconverged primary fit still reaches the callers' own
 # recovery paths unchanged. The hurdle likelihood factorizes into two concave
 # GLM-type parts (no local maxima), so it gets the warm-start guard only.
@@ -2083,15 +2101,26 @@ fast_zero_augmented_poisson_cpp_guarded = function(X, y, Xzi, is_hurdle = FALSE,
 	start = zero_augmented_pscl_start(X, y, Xzi)
 	if (is.null(start)) return(fit)
 	if (length(fixed_idx)) start[as.integer(fixed_idx)] = as.numeric(fixed_values)
-	alt = tryCatch(fit_from(start, NULL, FALSE, "lbfgs"), error = function(e) NULL)
-	if (is.null(alt) || !isTRUE(alt$converged)) return(fit)
-	v_fit = zip_neg_loglik_r(fit$params, X, Xzi, y)
-	v_alt = zip_neg_loglik_r(alt$params, X, Xzi, y)
-	if (is.finite(v_alt) && (!is.finite(v_fit) || v_alt < v_fit - 1e-6)) {
-		alt$start_candidate = "pscl_start_lbfgs"
-		return(alt)
+	# v1.0.6-TODO-232: a second candidate from the same start with its zero part
+	# scaled by ZERO_AUGMENTED_SHARPENED_START_SCALE, which reaches a higher ridge
+	# the unscaled start misses (see the note above ZERO_AUGMENTED_RIDGE_ETA_EDGE).
+	sharpened = start
+	iz = n_cond + seq_len(ncol(Xzi))
+	sharpened[iz] = ZERO_AUGMENTED_SHARPENED_START_SCALE * start[iz]
+	best = fit
+	v_best = zip_neg_loglik_r(fit$params, X, Xzi, y)
+	candidates = list(pscl_start_lbfgs = start, pscl_start_sharpened_lbfgs = sharpened)
+	for (nm in names(candidates)) {
+		alt = tryCatch(fit_from(candidates[[nm]], NULL, FALSE, "lbfgs"), error = function(e) NULL)
+		if (is.null(alt) || !isTRUE(alt$converged)) next
+		v_alt = zip_neg_loglik_r(alt$params, X, Xzi, y)
+		if (is.finite(v_alt) && (!is.finite(v_best) || v_alt < v_best - 1e-6)) {
+			alt$start_candidate = nm
+			best = alt
+			v_best = v_alt
+		}
 	}
-	fit
+	best
 }
 
 # v1.0.6-TODO-152 (2026-11-19): is the zero-inflation (or hurdle) part of a

@@ -3,7 +3,8 @@
 # prob_T = 0.5 realized 10 treated while every randomization redraw had 11. Owner decision
 # 2026-11-19, option (b): the redraw is handed the realized count, so realized allocations are
 # unchanged and only the redraws move. DesignFixediBCRD draws its realized allocation from the
-# same kernel as its redraws, so it always agreed (ties round up there).
+# same kernel as its redraws, so it always agreed; v1.0.6-TODO-234 (owner decision 2026-11-19)
+# aligned its count with R's round() too (it used to round ties up: n = 21 gave 11).
 
 library(testthat)
 library(EDI)
@@ -53,15 +54,27 @@ test_that("DesignSeqOneByOneiBCRD redraws keep every planned count on a grid of 
 	}
 })
 
-test_that("DesignFixediBCRD realized allocation and redraws agree at a .5 tie (ties round up)", {
+test_that("DesignFixediBCRD realized allocation and redraws use R's round() at a .5 tie", {
 	for (cfg in tie_cases) {
 		des = DesignFixediBCRD$new(n = cfg$n, prob_T = cfg$p, response_type = "continuous", seed = 4L)
 		des$add_all_subjects_to_experiment(data.frame(x1 = seq_len(cfg$n) / cfg$n))
 		des$assign_w_to_all_subjects()
 		n_T = sum(des$get_w())
-		expect_equal(n_T, floor(cfg$n * cfg$p + 0.5), info = paste(cfg$n, cfg$p))
+		expect_equal(n_T, round(cfg$n * cfg$p), info = paste(cfg$n, cfg$p))
 		set.seed(9L)
 		expect_true(all(colSums(des$draw_ws_according_to_design(40)) == n_T), info = paste(cfg$n, cfg$p))
+	}
+})
+
+test_that("DesignFixediBCRD and DesignSeqOneByOneiBCRD treat the same number on a grid of n and prob_T", {
+	for (n in c(3L, 5L, 7L, 10L, 14L, 21L, 23L)) for (p in c(0.25, 0.5, 0.75)) {
+		n_T = round(n * p)
+		if (n_T < 1 || n_T > n - 1) next
+		des = DesignFixediBCRD$new(n = n, prob_T = p, response_type = "continuous", seed = n)
+		des$add_all_subjects_to_experiment(data.frame(x1 = seq_len(n) / n))
+		des$assign_w_to_all_subjects()
+		expect_equal(sum(des$get_w()), n_T, info = paste(n, p))
+		expect_equal(sum(seq_ibcrd_enroll(n, p, set_seed = n)$get_w()), n_T, info = paste(n, p))
 	}
 })
 

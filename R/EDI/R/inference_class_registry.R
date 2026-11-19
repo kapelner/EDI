@@ -348,6 +348,8 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 		InferencePropKKQuantileRegrIVWC = "bayesian_bootstrap",
 		InferenceContinKKRobustRegrIVWC = "bayesian_bootstrap",
 		InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "bayesian_bootstrap",
+		# v1.0.6-TODO-235 (1): its own weighted hook was a marginal-Weibull surrogate.
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "bayesian_bootstrap",
 		InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "bayesian_bootstrap"
 	)
 	for (class_name in EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES) {

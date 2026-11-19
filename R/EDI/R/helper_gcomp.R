@@ -450,28 +450,6 @@ gcomp_rr_resample_is_degenerate = function(worker_priv){
 	isTRUE(!is.null(n_extreme) && !is.na(n_extreme) && n_extreme > 0L)
 }
 
-#' Reused-worker replicate estimate for the g-computation classes (v1.0.6-TODO-191).
-#'
-#' The usual design-backed worker estimate, except that inside a risk-ratio subsampling
-#' or m-out-of-n run (\code{private$active_resampling_operation} is \code{"subsampling"}
-#' or \code{"m_out_of_n_boot"}) a degenerate draw
-#' (\code{gcomp_rr_resample_is_degenerate()}) returns \code{NaN}: unusable, and told
-#' apart from a failed fit (\code{NA}) when the pivot counts them. The risk difference and
-#' every other resampling operation (bootstrap, Bayesian bootstrap, jackknife,
-#' randomization) are unchanged.
-#'
-#' @keywords internal
-#' @noRd
-gcomp_bootstrap_worker_estimate = function(private, worker_state){
-	theta = private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state)
-	op = private$active_resampling_operation
-	if (is.null(op) || !(op %in% c("subsampling", "m_out_of_n_boot"))) return(theta)
-	if (!identical(private$get_estimand_type(), "RR")) return(theta)
-	if (!is.finite(theta)) return(theta)
-	if (gcomp_rr_resample_is_degenerate(worker_state$worker_priv)) return(NaN)
-	theta
-}
-
 #' Log-scale PRW subsampling / m-out-of-n p-value and confidence interval for a risk ratio.
 #'
 #' One body for the subsampling and m-out-of-n families (v1.0.6-TODO-193, code-duplication
@@ -516,7 +494,7 @@ gcomp_rr_unusable_draws_na_detail = function(family, n_usable, n_total, n_degene
 
 #' @keywords internal
 #' @noRd
-gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, size, show_progress, min_number_usable_samples, resampling_type, min_fraction_usable_samples = 0.95){
+gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, size, show_progress, min_number_usable_samples, resampling_type, min_fraction_usable_samples = 0.8){
 	if (!is.finite(delta) || delta <= 0) {
 		edi_record_procedure_failure(self, private, paste0(family, "_log_risk_ratio_null_unavailable"), "estimate")
 		return(NA_real_)
@@ -542,7 +520,7 @@ gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, s
 
 #' @keywords internal
 #' @noRd
-gcomp_rr_resampling_confidence_interval = function(self, private, family, alpha, B, size, show_progress, min_number_usable_samples, resampling_type, min_fraction_usable_samples = 0.95){
+gcomp_rr_resampling_confidence_interval = function(self, private, family, alpha, B, size, show_progress, min_number_usable_samples, resampling_type, min_fraction_usable_samples = 0.8){
 	ci = c(NA_real_, NA_real_)
 	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 	fam = gcomp_rr_resampling_family(self, family)
@@ -678,7 +656,7 @@ gcomp_incid_rr_private_methods = list(
 	# InferenceIncidGCompRiskDiff sibling. Recentering on log(estimate) with
 	# a log(delta) null, as already done for the bootstrap/BBT CIs and the
 	# jackknife-Wald methods above, fixes this the same way.
-	compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL, min_fraction_usable_samples = 0.95){
+	compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL, min_fraction_usable_samples = 0.8){
 		# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-196).
 		est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 		if (!is.finite(est) || est <= 0) {
@@ -709,7 +687,7 @@ gcomp_incid_rr_private_methods = list(
 		if (!length(finite)) {
 			return(list(ok = FALSE, reason = "resampling_too_few_finite_estimates"))
 		}
-		# v1.0.6-TODO-191: degenerate draws (NaN from gcomp_bootstrap_worker_estimate()) and
+		# v1.0.6-TODO-191: degenerate draws (NaN from edi_mark_degenerate_resampling_worker_draw()) and
 		# failed fits (NA) are unusable. Below min_fraction_usable_samples of the B draws the
 		# procedure returns NA; otherwise the pivot is built from the usable draws only.
 		n_total = length(draws)
@@ -735,16 +713,16 @@ gcomp_incid_rr_private_methods = list(
 	# Subsampling and m-out-of-n share one body (v1.0.6-TODO-193, code-duplication audit
 	# decision code-duplication-d593b90a9): gcomp_rr_resampling_two_sided_pval() /
 	# gcomp_rr_resampling_confidence_interval() below.
-	compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
 		gcomp_rr_resampling_two_sided_pval(self, private, "subsampling", delta, B, b, show_progress, min_number_usable_samples, subsampling_type, min_fraction_usable_samples)
 	},
-	compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
 		gcomp_rr_resampling_confidence_interval(self, private, "subsampling", alpha, B, b, show_progress, min_number_usable_samples, subsampling_type, min_fraction_usable_samples)
 	},
-	compute_rr_m_out_of_n_bootstrap_two_sided_pval = function(delta = 1, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_rr_m_out_of_n_bootstrap_two_sided_pval = function(delta = 1, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
 		gcomp_rr_resampling_two_sided_pval(self, private, "m_out_of_n", delta, B, m, show_progress, min_number_usable_samples, bootstrap_type, min_fraction_usable_samples)
 	},
-	compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.95){
+	compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
 		gcomp_rr_resampling_confidence_interval(self, private, "m_out_of_n", alpha, B, m, show_progress, min_number_usable_samples, bootstrap_type, min_fraction_usable_samples)
 	}
 )

@@ -458,20 +458,22 @@ NULL
 #' \eqn{n = 80}, nominal 0.05). Degenerate draws are therefore unusable: the
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} replicates are
-#' \code{NaN} for them. If fewer than \code{min_fraction_usable_samples} (default 0.95) of
+#' \code{NaN} for them. If fewer than \code{min_fraction_usable_samples} (default 0.8) of
 #' the \code{B} draws are usable (not degenerate and not failed), the p-value or interval is
 #' \code{NA}, the reason (\code{"subsampling_too_few_usable_draws_fraction"} or
 #' \code{"m_out_of_n_too_few_usable_draws_fraction"}) is recorded and one warning of class
 #' \code{edi_procedure_na_warning} is raised (silent inside resampling); otherwise the
 #' usable draws are used. In a null simulation at \eqn{n = 80} (200 data sets, event rate
 #' about 0.41, \code{B = 199}) dropping the degenerate draws alone gave null sizes of 0.040
-#' (subsampling) and 0.030 (m-out-of-n), but degenerate draws concentrate in data sets with an
-#' extreme estimate, so the default 0.95 returned \code{NA} for 9\% (subsampling) and 29\%
-#' (m-out-of-n) of them, most of the ones the Wald test rejects, and the size among the rest was
-#' 0.016 and 0.000; with \code{min_fraction_usable_samples = 0.8} no data set was \code{NA}.
-#' The 0.95 default is under review and may change in a later release; until then, expect
-#' \code{NA} from these two methods on small samples and set
-#' \code{min_fraction_usable_samples} lower only if the dropped draws are acceptable.
+#' (subsampling) and 0.030 (m-out-of-n). The default cap is 0.8 rather than the 0.95 of the
+#' ordinary bootstrap's \code{na.rm = TRUE} rule because degenerate draws pile up in the data sets
+#' where \eqn{\log\widehat{RR}} is extreme, which are the ones a test should reject: in the same
+#' simulation a cap of 0.95 returned \code{NA} for 9\% (subsampling) and 29\% (m-out-of-n) of the
+#' null data sets, including 7 and 9 of the 11 where the Wald test rejects, and the size among the
+#' rest fell to 0.016 and 0.000 (0.90: \code{NA} for 2\% and 5\%, size 0.031 and 0.011); at 0.8
+#' no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
+#' \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
+#' whatever usable draws there are.
 #' For the risk ratio the ordinary bootstrap
 #' (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 #' is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}

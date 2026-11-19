@@ -281,6 +281,105 @@ inline BoundKktVerdict kkt_verdict_at_bounds(const Eigen::LDLT<Eigen::MatrixXd>&
   return out;
 }
 
+// v1.0.6-TODO-221: convergence check that tiny Fisher-scoring steps cannot fool.
+// The loop scores with the expected information X' W X, w = 1/(mu(1-mu))
+// (identity) or mu/(1-mu) (log). Next to a mean bound that weight is huge
+// (~1/distance), while the observed curvature of the rows that do not sit on the
+// bound by their own data (y = 0 at mu -> 0 or y = 1 at mu -> 1 for identity;
+// y = 1 at mu -> 1 for log) stays O(1). Fisher scoring then moves such a row off
+// the bound by a few percent of its distance per iteration, every increment is
+// tiny, and the relative-change test (and the KKT gate, whose Newton metric has
+// the same weights) passed short of the MLE: a warm start with one y = 0 row at
+// mu = 8e-7 stopped at mu = 1.2e-6, treatment 0.0906 vs MLE 0.0912 (the MLE has
+// that row at mu = 0.009; log-likelihood 3e-4 lower). Before declaring
+// convergence the fitters now also take the Newton step under the observed
+// information (the honest curvature; both log-likelihoods are concave in eta and
+// eta is linear in beta, so it is positive semidefinite), projected off the held
+// bound rows as the loop's own step is. The point is accepted if its Newton
+// decrement g' d (twice the predicted log-likelihood gain; scaled down when
+// the full step would leave the mean support) is at most
+// tol * (2 |loglik| + 0.1) (glm's relative deviance tolerance, as in the
+// logistic fix for v1.0.6-TODO-170), or if that Newton increment passes the
+// loop's relative-change test with the KKT gate's slack. Otherwise the loop goes
+// on with observed-information Newton steps (same projection and line search)
+// until it converges. Where the observed information is singular (a log-link
+// fit whose y = 0 rows do not span the columns) the check is skipped and the
+// old verdict stands. Fits the check accepts are unchanged, bit for bit.
+struct ObservedNewtonStep {
+  bool ok = false;
+  Eigen::VectorXd d;        // projected Newton increment for the free coefficients
+  double decrement = 0.0;   // g' d, scaled to the feasible part of d (see below)
+};
+
+inline ObservedNewtonStep observed_newton_step(const Eigen::MatrixXd& X_free,
+                                               const Eigen::VectorXd& eta,
+                                               const Eigen::Ref<const Eigen::VectorXd>& y,
+                                               BinomialConstrainedLink link_type,
+                                               const Eigen::VectorXd* obs_weights = nullptr) {
+  ObservedNewtonStep out;
+  const int n = (int)eta.size();
+  Eigen::VectorXd score(n), curv(n);
+  for (int i = 0; i < n; ++i) {
+    const double wi = (obs_weights == nullptr) ? 1.0 : (*obs_weights)[i];
+    if (!(wi > 0.0)) { score[i] = 0.0; curv[i] = 0.0; continue; }
+    const double yi = y[i];
+    double s, c;
+    if (link_type == BinomialConstrainedLink::kLog) {
+      const double mui = std::max(std::exp(std::min(eta[i], kMaxEtaLog)), kEps);
+      const double omi = std::max(1.0 - mui, kEps);
+      s = yi - (1.0 - yi) * mui / omi;
+      c = (1.0 - yi) * mui / (omi * omi);
+    } else {
+      const double mui = std::min(std::max(eta[i], kMinMu), kMaxMu);
+      const double omi = 1.0 - mui;
+      s = yi / mui - (1.0 - yi) / omi;
+      c = yi / (mui * mui) + (1.0 - yi) / (omi * omi);
+    }
+    score[i] = wi * s;
+    curv[i] = wi * c;
+  }
+  const Eigen::VectorXd g = X_free.transpose() * score;
+  Eigen::LDLT<Eigen::MatrixXd> ldlt(weighted_crossprod(X_free, curv));
+  if (ldlt.info() != Eigen::Success || !ldlt.isPositive()) return out;
+  const Eigen::VectorXd D = ldlt.vectorD();
+  if (!(D.minCoeff() > 1e-12 * D.cwiseAbs().maxCoeff())) return out;
+  const Eigen::VectorXd d0 = ldlt.solve(g);
+  if (!all_finite_vec(d0)) return out;
+  out.d = project_increment_off_active_bounds(ldlt, X_free, eta, d0, link_type, obs_weights);
+  // Only the part of the step that stays inside the mean support can be
+  // realized: with t the largest feasible fraction of d (<= 1), the quadratic
+  // model's gain along d is (t - t^2 / 2) g' d, so the decrement is scaled by
+  // t (2 - t). At a boundary MLE whose bound rows the projection does not hold
+  // (within ~1e-5 rather than 1e-6 of the bound) this is ~0, not the full g' d.
+  const Eigen::VectorXd delta_eta = X_free * out.d;
+  double t = 1.0;
+  for (int i = 0; i < n; ++i) {
+    if (obs_weights != nullptr && !((*obs_weights)[i] > 0.0)) continue;
+    const double de = delta_eta[i];
+    if (link_type == BinomialConstrainedLink::kLog) {
+      if (de > 0.0) t = std::min(t, (kMaxEtaLog - eta[i]) / de);
+    } else if (de > 0.0) {
+      t = std::min(t, (kMaxMu - eta[i]) / de);
+    } else if (de < 0.0) {
+      t = std::min(t, (kMinMu - eta[i]) / de);
+    }
+  }
+  t = std::max(t, 0.0);
+  out.decrement = t * (2.0 - t) * g.dot(out.d);
+  out.ok = all_finite_vec(out.d) && std::isfinite(out.decrement);
+  return out;
+}
+
+// true: the point passes (or the observed information cannot judge it).
+inline bool observed_newton_confirms_convergence(const ObservedNewtonStep& st,
+                                                 const Eigen::VectorXd& beta_free,
+                                                 double loglik,
+                                                 double tol) {
+  if (!st.ok) return true;
+  if (st.decrement <= tol * (2.0 * std::abs(loglik) + 0.1)) return true;
+  return st.d.norm() / (beta_free.norm() + 1e-10) <= kKktTolFactor * tol;
+}
+
 // v1.0.6-TODO-142: a start outside the mean support can never be repaired by
 // the loop below. Its log-likelihood is -Inf, the TODO-128 projection holds
 // every out-of-support row whose increment points further out, and the line
@@ -421,6 +520,7 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
 
   bool converged = false;
   bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
+  bool observed_newton_mode = false; // v1.0.6-TODO-221: see observed_newton_step()
   Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
   Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
   Eigen::VectorXd z_adj(n);
@@ -494,18 +594,29 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     // information may come from a warm start rather than from this point.
     if (iter > 0) {
       const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol);
-      if (kkt.n_active > 0 && kkt.ok) {
-        converged = true;
-        break;
-      }
-      if (kkt_confirm_pending) {
-        converged = (kkt.n_active == 0);
+      // In observed-Newton mode the observed-information check also judges a
+      // candidate the Fisher-metric KKT gate rejects (that gate has the same
+      // inflated weights next to a bound).
+      if ((kkt.n_active > 0 && kkt.ok) || (kkt_confirm_pending && (kkt.n_active == 0 || observed_newton_mode))) {
+        // v1.0.6-TODO-221: the observed-information Newton step must agree.
+        if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta, y, link_type), beta_free, ll_curr, tol)) {
+          converged = true;
+          break;
+        }
+        observed_newton_mode = true;
+        kkt_confirm_pending = false;
+      } else if (kkt_confirm_pending) {
+        converged = false;
         break;
       }
     }
 
     // TODO-128: hold rows already on the mean-support boundary fixed.
-    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
+    // v1.0.6-TODO-221: after a rejected convergence candidate, step with the
+    // observed information (Fisher scoring if it is singular).
+    ObservedNewtonStep newton_step;
+    if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type);
+    const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
       ldlt, X_free, eta, beta_free_target - beta_free, link_type);
 
     // Precompute the step direction in eta-space once per IRLS iteration so
@@ -579,8 +690,13 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
         kkt_confirm_pending = true;
         continue;
       }
-      converged = true;
-      break;
+      // v1.0.6-TODO-221: the observed-information Newton step must agree.
+      if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta_try, y, link_type), beta_free, ll_curr, tol)) {
+        converged = true;
+        break;
+      }
+      observed_newton_mode = true;
+      continue;
     }
     beta = beta_new;
     beta_free = beta_free_new;
@@ -681,6 +797,7 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
 
   bool converged = false;
   bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
+  bool observed_newton_mode = false; // v1.0.6-TODO-221: see observed_newton_step()
   Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
   Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
   Eigen::VectorXd z_adj(n);
@@ -760,18 +877,28 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     // information may come from a warm start rather than from this point.
     if (iter > 0) {
       const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol, &obs_weights);
-      if (kkt.n_active > 0 && kkt.ok) {
-        converged = true;
-        break;
-      }
-      if (kkt_confirm_pending) {
-        converged = (kkt.n_active == 0);
+      // In observed-Newton mode the observed-information check also judges a
+      // candidate the Fisher-metric KKT gate rejects (that gate has the same
+      // inflated weights next to a bound).
+      if ((kkt.n_active > 0 && kkt.ok) || (kkt_confirm_pending && (kkt.n_active == 0 || observed_newton_mode))) {
+        // v1.0.6-TODO-221: the observed-information Newton step must agree.
+        if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta, y, link_type, &obs_weights), beta_free, ll_curr, tol)) {
+          converged = true;
+          break;
+        }
+        observed_newton_mode = true;
+        kkt_confirm_pending = false;
+      } else if (kkt_confirm_pending) {
+        converged = false;
         break;
       }
     }
 
     // TODO-128: hold rows already on the mean-support boundary fixed.
-    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
+    // v1.0.6-TODO-221: see the unweighted fitter.
+    ObservedNewtonStep newton_step;
+    if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type, &obs_weights);
+    const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
       ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
     const Eigen::VectorXd delta_eta = X_free * delta_beta;
     double step = 1.0;
@@ -829,8 +956,13 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
         kkt_confirm_pending = true;
         continue;
       }
-      converged = true;
-      break;
+      // v1.0.6-TODO-221: the observed-information Newton step must agree.
+      if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta_try, y, link_type, &obs_weights), beta_free, ll_curr, tol)) {
+        converged = true;
+        break;
+      }
+      observed_newton_mode = true;
+      continue;
     }
     beta = beta_new;
     beta_free = beta_free_new;
@@ -1333,7 +1465,10 @@ Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(const Eige
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance, on the relative norm of the coefficient
-//'   update step.
+//'   update step. A candidate must also pass the Newton step under the observed
+//'   information (decrement at most \code{tol * (2 |loglik| + 0.1)}, or a relative
+//'   Newton increment at most \code{10 * tol}), so tiny Fisher-scoring steps next
+//'   to a mean bound do not count as convergence.
 //' @param fixed_idx Optional integer indices of coefficients to hold fixed
 //'   rather than estimate.
 //' @param fixed_values Optional values to fix the parameters named by
@@ -1550,7 +1685,10 @@ List fast_log_binomial_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance, on the relative norm of the coefficient
-//'   update step.
+//'   update step. A candidate must also pass the Newton step under the observed
+//'   information (decrement at most \code{tol * (2 |loglik| + 0.1)}, or a relative
+//'   Newton increment at most \code{10 * tol}), so tiny Fisher-scoring steps next
+//'   to a mean bound do not count as convergence.
 //' @param fixed_idx Optional integer indices of coefficients to hold fixed
 //'   rather than estimate.
 //' @param fixed_values Optional values to fix the parameters named by

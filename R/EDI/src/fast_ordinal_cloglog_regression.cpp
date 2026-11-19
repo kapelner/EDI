@@ -113,8 +113,7 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
 ) {
     // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.6-TODO-193).
     static const edi_ordinal::FixedLinkFitSpec spec = {
-        edi_ordinal::Link::Cloglog, cloglog_legacy_alpha,
-        edi_ordinal::DegenerateLevelsPolicy::EmptyAfterValidation, false};
+        edi_ordinal::Link::Cloglog, cloglog_legacy_alpha};
     return edi_ordinal::fixed_link_ordinal_internal<OrdinalCLLRegression>(
         spec, X, y, std::move(warm_start_params), smart_cold_start, maxit, tol, std::move(optimization_alg),
         std::move(fixed_idx), std::move(fixed_values), std::move(warm_start_fisher_info), estimate_only);
@@ -184,7 +183,8 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
 //'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 //'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 //'   conventionally the treatment effect, since \code{X} carries no separate intercept
-//'   column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
+//'   column here; the thresholds \code{alpha} play that role; \code{NaN} if it comes out
+//'   non-finite or non-positive). Empty if \code{y} has
 //'   fewer than 2 distinct levels.
 //' @seealso \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}}, which always computes
 //'   the variance quantities (equivalent to calling this function with
@@ -248,7 +248,8 @@ List fast_ordinal_cloglog_regression_cpp(const Rcpp::NumericMatrix& X,
 //'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
 //'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
 //'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
-//'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_j} is
+//'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
+//'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is
 //'   \code{NaN}) if the fit did not converge. Note the different variance name in the
 //'   degenerate case: if \code{y} has fewer than 2 distinct levels the result is
 //'   \code{list(b = NA, ssq_b_2 = NA)}.
@@ -276,7 +277,6 @@ List fast_ordinal_cloglog_regression_with_var_cpp(const Rcpp::NumericMatrix& X,
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         false);
-    if (res.entries().empty()) return edi::to_rcpp_list(edi::ResultMap().set("b", NA_REAL).set("ssq_b_2", NA_REAL));
-    return edi::to_rcpp_list(res);
+    return edi_ordinal::fixed_link_ordinal_with_var_list(res);
 }
 #endif // EDI_CORE_ONLY

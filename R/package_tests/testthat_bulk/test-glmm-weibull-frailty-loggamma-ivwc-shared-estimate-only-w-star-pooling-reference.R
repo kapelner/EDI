@@ -14,8 +14,8 @@ library(EDI)
 # their variances and pools them by the same inverse-variance weights as the full call, so resampling
 # replicates estimate the reported quantity; the tests below pin that. A codebase-wide grep confirmed
 # zero test references anywhere for this exact class's shared()/w_star logic (the class's own existing
-# tests only cover compute_estimate_with_bootstrap_weights(), a different code path that bypasses this
-# combination entirely). Reached by unlockBinding-replacing the two component fitters (clayton_copula_
+# tests only covered compute_estimate_with_bootstrap_weights(), a different code path that bypassed this
+# combination entirely and was removed by v1.0.6-TODO-235: the class now refuses the Bayesian bootstrap). Reached by unlockBinding-replacing the two component fitters (clayton_copula_
 # for_matched_pairs()/weibull_for_reservoir()) with stubs setting exact cached beta/ssq values,
 # independent of the real (documented-fragile) Clayton-copula/Weibull-frailty MLE machinery -- the
 # same technique already established for this file's sibling IVWC classes.

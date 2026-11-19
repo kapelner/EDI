@@ -4,7 +4,8 @@ library(EDI)
 # v1.0.6-TODO-191 (owner decision 2026-11-19): the g-computation risk-ratio subsampling and
 # m-out-of-n p-values and intervals treat a degenerate draw (an arm with no events or only
 # events, or a non-converged or separated logistic fit) as unusable. The replicate comes back
-# NaN; when fewer than min_fraction_usable_samples (default 0.95) of the B draws are usable the
+# NaN; when fewer than min_fraction_usable_samples (default 0.8 since v1.0.6-TODO-230; it was 0.95) of
+# the B draws are usable the
 # method returns NA with a recorded reason and one edi_procedure_na_warning, otherwise the
 # pivot uses the usable draws only. The risk difference is unchanged.
 
@@ -82,7 +83,7 @@ test_that("RR subsampling drops degenerate draws and the p-value uses the usable
 	expect_true(all(is.finite(ci)))
 })
 
-test_that("more than 5% degenerate draws: NA with a recorded reason and one warning (both families, CI too)", {
+test_that("more than 20% unusable draws: NA with a recorded reason and one warning (both families, CI too)", {
 	des = make_incid_design(1, 40, p = 0.2)
 	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
 	inf$num_cores = 1L
@@ -117,7 +118,13 @@ test_that("KK risk ratio applies the same rule", {
 	set.seed(1)
 	draws = inf$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T(B = 100, show_progress = FALSE)
 	expect_gt(sum(is.nan(draws)), 5L)
-	res = collect_warnings(inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 100, show_progress = FALSE))
+	# Between 5% and 20% of the draws are degenerate here: the 0.8 default (v1.0.6-TODO-230)
+	# uses the usable ones, a stricter user cap returns NA.
+	expect_lt(sum(!is.finite(draws)), 20L)
+	res_default = collect_warnings(inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 100, show_progress = FALSE))
+	expect_true(is.finite(res_default$value))
+	expect_length(res_default$na, 0L)
+	res = collect_warnings(inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 100, show_progress = FALSE, min_fraction_usable_samples = 0.95))
 	expect_true(is.na(res$value))
 	expect_identical(failure_reason(inf, "m_out_of_n"), "m_out_of_n_too_few_usable_draws_fraction")
 })
