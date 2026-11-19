@@ -246,7 +246,7 @@ Defaults to an empty list (no extra arguments for any class).}
 \subsection{\code{InferenceSuite$run_all_inference()}}{
   Construct and fit every class in \code{applicable_design_classes},
   and report one uniform comparison row per class -- estimate, SE, CI, p-value
-  (each via the highest-priority available method), likelihood
+  (each via that row's own method sentinel), likelihood
   tier, estimand (where declared), fit time, captured warnings, and status.
   Unlike the constructor, this method fits models and is not free; call it
   explicitly when you want the comparison, not automatically.
@@ -262,7 +262,7 @@ Defaults to an empty list (no extra arguments for any class).}
   \code{html = TRUE} writes a self-contained, timestamped HTML report (the
   same table plus the same footer) to \code{output_dir}
   and opens it via \code{\link[utils]{browseURL}}; it requires the
-  \pkg{knitr} package. When the optional \pkg{ggplot2} package is installed,
+  \pkg{utils} package. When the optional \pkg{ggplot2} package is installed,
   the HTML report also embeds the \code{plots} visualizations as inline PNGs;
   \code{pdf = TRUE} saves them to a PDF file (see \code{plots} and
   \code{pdf} below).
@@ -307,7 +307,7 @@ installed, a \code{warning()} is issued and this artifact is skipped rather
 than erroring. Default \code{FALSE}.}
       \item{\code{plots}}{If \code{TRUE}, build and display (on the current graphics
 device) one visualization per estimand: an annotated confidence-interval
-forest plot (p-value left of each interval, interval width right of it,
+forest plot (a combined p-value/width label centered above each interval,
 class/method label right-aligned on each row, color-keyed to
 significance at \code{alpha}) stacked over its own \dQuote{Estimates}
 box-and-whisker subplot -- a free x-axis (same label, same log10/linear
@@ -345,7 +345,7 @@ this reliably cuts off slow R-level work but is not guaranteed to
 interrupt one very slow single native (C/C++/BLAS) call with no
 intervening R-level check. \code{NULL} (default) means no limit.}
       \item{\code{num_cores}}{If greater than \code{1}, fit classes in parallel across
-this many forked workers (\code{\link[parallel]{makeForkCluster}}) --
+this many forked workers (one \code{\link[parallel]{mcparallel}} child per task) --
 Unix/Linux only; on other platforms this falls back to sequential
 (\code{num_cores = 1}) with a \code{warning()}. \strong{Screen output
 changes under parallel execution:} fitting is a single blocking call

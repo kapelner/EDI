@@ -368,7 +368,7 @@ local({
 #' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`
 #' (TODO-23: computed from those two derived specs, not typed out a second
 #' time), which in turn covers every testing-procedure capability in
-#' `contracts_mixins.R`'s `public_methods_for_capability` (13 sentinels as of
+#' `contracts_mixins.R`'s `public_methods_for_capability` (14 sentinels as of
 #' 2026-08-19, widened earlier the same day from an initial four --
 #' `"wald"`/`"exact"`/`"rand"`/`"bootstrap"` -- that omitted most of the
 #' package's actual inference machinery, per user feedback). `methods = NULL`
@@ -1794,7 +1794,7 @@ EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 )
 
 #' Word-wraps `text` to at most 2 lines no wider than `width` characters
-#' (via `strwrap()`, so it breaks at word boundaries, not mid-word -- per
+#' (by balanced word-count halves, not `strwrap()`; it breaks at word boundaries, not mid-word -- per
 #' user request, 2026-08-19: `"inference class"` -> `"inference"` /
 #' `"class"`, `"mean diff"` -> `"mean"` / `"diff"`). `NA` displays as the
 #' literal string `"NA"` (this file's usual convention). Any content beyond
@@ -1926,7 +1926,7 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 #' physical lines, each column word-wrapped independently to its own
 #' `EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS` cap (looked up by `headers`,
 #' so the same function renders both the live table's column set -- has
-#' `"method"` -- and the pretty table's -- has `"weight"` instead). Backs
+#' no `"weight"` -- and the pretty table's -- has `"weight"`). Backs
 #' both `run_all_inference_build_live_table_header()`/`run_all_inference_
 #' print_row()` and `run_all_inference_format_pretty_table()`, so the two
 #' stay visually identical (per the file's established "screen output looks
@@ -4498,7 +4498,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		},
 		#' @description Construct and fit every class in \code{applicable_design_classes},
 		#'   and report one uniform comparison row per class -- estimate, SE, CI, p-value
-		#'   (each via the highest-priority available method), likelihood
+		#'   (each via that row's own method sentinel), likelihood
 		#'   tier, estimand (where declared), fit time, captured warnings, and status.
 		#'   Unlike the constructor, this method fits models and is not free; call it
 		#'   explicitly when you want the comparison, not automatically.
@@ -4514,7 +4514,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{html = TRUE} writes a self-contained, timestamped HTML report (the
 		#'   same table plus the same footer) to \code{output_dir}
 		#'   and opens it via \code{\link[utils]{browseURL}}; it requires the
-		#'   \pkg{knitr} package. When the optional \pkg{ggplot2} package is installed,
+		#'   \pkg{utils} package. When the optional \pkg{ggplot2} package is installed,
 		#'   the HTML report also embeds the \code{plots} visualizations as inline PNGs;
 		#'   \code{pdf = TRUE} saves them to a PDF file (see \code{plots} and
 		#'   \code{pdf} below).
@@ -4532,7 +4532,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   than erroring. Default \code{FALSE}.
 		#' @param plots If \code{TRUE}, build and display (on the current graphics
 		#'   device) one visualization per estimand: an annotated confidence-interval
-		#'   forest plot (p-value left of each interval, interval width right of it,
+		#'   forest plot (a combined p-value/width label centered above each interval,
 		#'   class/method label right-aligned on each row, color-keyed to
 		#'   significance at \code{alpha}) stacked over its own \dQuote{Estimates}
 		#'   box-and-whisker subplot -- a free x-axis (same label, same log10/linear
@@ -4570,7 +4570,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   interrupt one very slow single native (C/C++/BLAS) call with no
 		#'   intervening R-level check. \code{NULL} (default) means no limit.
 		#' @param num_cores If greater than \code{1}, fit classes in parallel across
-		#'   this many forked workers (\code{\link[parallel]{makeForkCluster}}) --
+		#'   this many forked workers (one \code{\link[parallel]{mcparallel}} child per task) --
 		#'   Unix/Linux only; on other platforms this falls back to sequential
 		#'   (\code{num_cores = 1}) with a \code{warning()}. \strong{Screen output
 		#'   changes under parallel execution:} fitting is a single blocking call
@@ -5016,7 +5016,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				# copy-on-write, so this closure needs no clusterExport() --
 				# des_obj/alpha/etc. are already in its enclosing frame. Screen
 				# output cannot stream per-class as it completes here:
-				# clusterApply() is a single blocking call that returns only once
+				# run_all_inference_fork_dispatch() is a single blocking call that returns only once
 				# every worker has finished, so there is no meaningful per-row ETA
 				# to show (deliberate design decision, not an oversight -- see
 				# inference_suite_inspect.md's TODO-13).
