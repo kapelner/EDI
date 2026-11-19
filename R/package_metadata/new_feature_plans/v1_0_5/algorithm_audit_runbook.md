@@ -283,6 +283,13 @@ After each research PR is merged:
    Drafts are `status: proposed` (a Claude session may draft them); the owner's decision makes
    them `approved`, and only then is the TODO added to the release file and cited in `todo`
    as `v<version>-TODO-<n>` (e.g. `v1.1.0-TODO-196`).
+   Exception (owner, 2026-11-19): an `investigate` / `adopt` draft whose `todo` cites a release
+   TODO that already exists is decided without the owner, because the finding is already
+   scheduled. The drafter adds a one-line "See also" to that TODO naming the method and the
+   finding id, then runs `.github/scripts/algorithm_audit_triage.py approve-covered`, which marks
+   such rows approved. Only rejects, defers and drafts that need a new TODO go to the owner
+   (`algorithm_audit_triage.py summary` counts them). The inventory check flags any cited TODO
+   that does not exist, for proposed rows as well as approved ones.
 3. **Feedback.** The next run's agents get each problem's decisions in
    `previous_results.json` (`triage`), set `previous_finding_id` when re-reporting the same
    idea, and do not re-report a rejected (or not-yet-due deferred) finding without

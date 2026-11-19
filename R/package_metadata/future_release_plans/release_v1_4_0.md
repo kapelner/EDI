@@ -267,6 +267,7 @@ item beyond the shared-machinery core that gates nothing else there.
   constructions on `_glmm_engine.h`'s and cache by `n_gh` — ~1 % of a GLMM
   fit, done for deduplication not speed (bit-identical once the copies
   are confirmed identical). No dependencies.
+  - See also (research triage, 2026-11-19): Eigenvalues-only GH nodes plus recurrence log-weights, in the shared cached GH rule (`gauss-hermite-nodes#43925959437.1`).
 - [ ] TODO-12: **Sequential-inference scoping** `sequential_inference.md →
   TODO-1..5`. (The nominal vignette section that used to be bundled here
   is not v1.4.0 scope — see the In-scope note above; owned by

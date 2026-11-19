@@ -216,6 +216,11 @@ Ticked in owning plans; this list is the index.
   no user-facing change and needs no gate. Exit criterion: every one of
   `→ TODO-136..179` has either a measured entry or a "measured and
   dropped" note, and `benchmark_model_fits.md` has been re-run.
+  - See also (research triage, 2026-11-19): Adaptive GH with exact AQ gradient (Stringer 2024) for ordinal GLMM/CLMM (`clmm-ordinal-mixed-fit#43925959437.2`).
+  - See also (research triage, 2026-11-19): Adaptive or pseudo-adaptive GH for the 20-node logistic/clogit/engine and 7-node hurdle GLMMs (`glmm-marginal-likelihood#43925959437.2`).
+  - See also (research triage, 2026-11-19): Normal-equations LLT with ColPivQR fallback for OLS start values (`mle-starting-values#43925959437.1`).
+  - See also (research triage, 2026-11-19): Anytime-valid betting (Fischer-Ramdas) stopping for standalone randomization p-values (`randomization-null-distribution#43925959437.1`).
+  - See also (research triage, 2026-11-19): Lambert-W closed-form-mode adaptive GH (LAGHQ) for the Weibull normal frailty (`survival-frailty-copula-mle#43925959437.2`).
 - [ ] TODO-12: **More SIMD optimization lane** (moved from
   `release_v1_1_0.md → TODO-4c` on 2026-09-06): `more_simd_optimization.md
   → TODO-1..7`. Premise: power users compile from source, so runtime ISA
@@ -232,6 +237,7 @@ Ticked in owning plans; this list is the index.
   test). **Additive-constraint gate:** `→ TODO-6` ships opt-in or with
   re-justified tolerances; `→ TODO-2` inherits TODO-11's TODO-137 gate;
   `→ TODO-1, 3, 4, 5, 7` are bit-for-bit or flag-only.
+  - See also (research triage, 2026-11-19): Vectorize the fused score + X'WX loop (SIMD reduction hint or Eigen dot) (`gram-matrix-accumulation#43925959437.1`).
 - [ ] TODO-13: **Fixed-size Eigen specializations for small `p`** (moved
   from `release_v1_1_0.md → TODO-4d` on 2026-09-06):
   `fixed_size_eigen_small_p.md → TODO-1..5`. Compile-time-`p` dispatch
@@ -321,6 +327,7 @@ Ticked in owning plans; this list is the index.
   hybrid start for ZINB/ZIP, TODO-6/ZOIB deferred until TODO-2/3 validate
   the pattern; composes with TODO-20's multistart as one more
   deterministic start).
+  - See also (research triage, 2026-11-19): Keep conservative CRN bisection (Glazer-Stark); narrow or downgrade Robbins-Monro plan (`monte-carlo-test-inversion-ci#43925959437.3`).
 
 - [ ] TODO-202 (added 2026-11-16, owner request): **Optimizer techniques for
   the nonconcave likelihoods.**
@@ -382,6 +389,16 @@ Ticked in owning plans; this list is the index.
     (exact for TODO-18's presorting, which is bit-identical by
     construction), except TODO-21 (documented draw change) and TODO-11
     (tolerance-equal to `ictest`).
+  - See also (research triage, 2026-11-19): Weighted C++ cpoisson-combined Newton instead of R optim BFGS (`conditional-logit-matched-fit#43925959437.2`).
+  - See also (research triage, 2026-11-19): Breslow hazard and R Cox NLL via one reverse cumsum per stratum (`cox-ph-fit#43925959437.1`).
+  - See also (research triage, 2026-11-19): Pooled interval-censored NPMLE solved once per randomization test (icFIT= or wlr_trafo scores) (`interval-censored-npmle#43925959437.3`).
+  - See also (research triage, 2026-11-19): Weighted Greenwood RMST SE by sort + reverse cumsum instead of O(n*D) vapply (`kaplan-meier-rmst#43925959437.1`).
+  - See also (research triage, 2026-11-19): One weighted C++ KM sweep shared by weighted median, weighted RMST and RMST SE (`kaplan-meier-rmst#43925959437.2`).
+  - See also (research triage, 2026-11-19): Interval-censored log-rank: pooled NPMLE scores once per test, faster single NPMLE solve (`logrank-family-tests#43925959437.2`).
+  - See also (research triage, 2026-11-19): Arm-wise Gram plus two small LDLT solves for Lin's per-draw randomization fit (`ols-fit#43925959437.1`).
+  - See also (research triage, 2026-11-19): Whiten once (LLT, relative ridge) then Euclidean pair loop for Mahalanobis (`pairwise-distance-matrix#43925959437.2`).
+  - See also (research triage, 2026-11-19): Batched C++ random-block-size draw kernel with dense stratum ids (`permuted-block-randomization#43925959437.1`).
+  - See also (research triage, 2026-11-19): Cluster-total collapse of Weibull-frailty GH likelihood and gradient to O(np + GK) (`survival-frailty-copula-mle#43925959437.1`).
 - [ ] TODO-23 (added 2026-10-15, user decision): **Algorithm audit: items
   gated on the A/B harness** — `algorithm_choice_audit.md → TODO-4, -5, -8,
   -12, -13, -20, -25 (score-test stepwise half), -26, -27, -30, -31, -32,
@@ -402,6 +419,13 @@ Ticked in owning plans; this list is the index.
     re-imputation (changes design output).
   - **TODO-8:** replace the audit's theoretical speedup table with the
     measured multiples as each report lands.
+  - See also (research triage, 2026-11-19): Exact subset dynamic program for small-n optimal blocking (`blocking-partition#43925959437.1`).
+  - See also (research triage, 2026-11-19): Draw the double-bootstrap outer x inner set once for all grid alphas (`bootstrap-confidence-interval#43925959437.1`).
+  - See also (research triage, 2026-11-19): Sufficient-statistic (pair/singleton stratum) evaluation of the Gaussian LMM likelihood (`gaussian-lmm-fit#43925959437.1`).
+  - See also (research triage, 2026-11-19): Regularized (sqrt(||g||)) Newton with LLT/LDLT and indefiniteness shift in optimize_likelihood_newton (`generic-smooth-mle-optimization#43925959437.1`).
+  - See also (research triage, 2026-11-19): Rao score z per candidate in beta/NB/ordinal KK21 stepwise instead of full refits (`kk21-covariate-weights#43925959437.2`).
+  - See also (research triage, 2026-11-19): Stored missRanger forests: predict new arrivals, refit every k arrivals (`missing-covariate-imputation#43925959437.1`).
+  - See also (research triage, 2026-11-19): Weighted C++ ZI/hurdle fits, with fastglm_hurdle/fastglm_zi as oracle (`zero-inflated-count-mle#43925959437.2`).
 
 - **Moved in from v1.1.0 on 2026-10-20 (user decision, lighten-1.1.0 pass 2):** the performance, parity and exact-null items below (TODO-24..35) plus the two audit-lever items (TODO-17z moved on to v1.3.0). Their original text is kept verbatim; cross-references to other moved items are renumbered, and references to items that stayed in v1.1.0 are marked "v1.1.0".
 
@@ -645,6 +669,8 @@ Ticked in owning plans; this list is the index.
     the right level. Compose with `performance_profiling_and_upgrades.md →
     TODO-156` (Besag–Clifford) and audit TODO-5 (saddlepoint early stop):
     compare, don't assume.
+  - See also (research triage, 2026-11-19): Anytime-valid Monte Carlo testing by betting for the BRT sequential p-value (`bootstrap-randomization-test#43925959437.1`).
+  - See also (research triage, 2026-11-19): Anytime-valid betting stop in the randomization/BRT CI-search sequential MC (`sequential-mc-pvalue-stopping#43925959437.1`).
 
 - [ ] ~~TODO-35~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision; split into a contract item and a single Incidence GLM pilot item, the other eight families going to v2.0.0): `ModelDiagnostics` — declaration contract + pilot batteries.
 

@@ -961,6 +961,8 @@ ticked in their **owning plans**; this list is the release index.
   Garthwaite–Buckland case — see that plan's scope note — and explicitly
   *not* applicable to the randomization CI search either, whose `p(δ)` is
   a step function after TODO-17o; see that plan's interaction section.)
+  - See also (research triage, 2026-11-19): Chandrupatla / ITP / modAB root-finders instead of textbook Brent for pval_invert_ci_cpp (`likelihood-ci-inversion#43925959437.1`).
+  - See also (research triage, 2026-11-19): Log-binomial gradient CI is bisection, not Brent: fix inventory row, add to Brent plan (`likelihood-ci-inversion#43925959437.2`).
 - [ ] ~~TODO-17x~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-5`**
   (2026-09-23 bug-fix/feature split, user decision): **Randomization CI
   construction audit** — `randomization_ci_construction_audit.md →
@@ -1348,6 +1350,10 @@ ticked in their **owning plans**; this list is the release index.
     changes. Items that move results beyond their tier (the tail fix, the φ
     grid, Monte Carlo CMH variance) are documented default changes (see
     Standing constraints).
+  - See also (research triage, 2026-11-19): Analytic score and Hessian for log/identity-binomial instead of finite differences (`constrained-binomial-mle#43925959437.2`).
+  - See also (research triage, 2026-11-19): Tail-only JT polynomial DP with reachable-range pruning (`exact-rank-null-distribution#43925959437.1`).
+  - See also (research triage, 2026-11-19): icenReg::ic_np (C++ EMICM, weights=) instead of interval::icfit EM for Turnbull stats (`interval-censored-npmle#43925959437.2`).
+  - See also (research triage, 2026-11-19): erfcx-based log Phi / Phi / Mills ratio for the negative tail (`normal-cdf-quantile#43925959437.1`).
 
 - [ ] ~~TODO-51~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-32`** (user decision, lighten-1.1.0 pass 2): InferenceSuite worker pool.
 
@@ -1649,6 +1655,7 @@ ticked in their **owning plans**; this list is the release index.
     with fixed-seed draw parity, serialized payload bytes and fork/mirai
     validation runs.
   - Pointer: `release_v1_0_5.md → TODO-57`, G6 #37.
+  - See also (research triage, 2026-11-19): survreg.fit on prebuilt matrices for weighted Weibull Bayesian-bootstrap draws (`weibull-aft-mle#43925959437.2`).
 
 - [ ] TODO-64 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #7`;
   from v1.0.5 TODO-105): **`add_block_fixed_effects` opt-in for regression

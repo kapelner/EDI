@@ -950,6 +950,27 @@ class TriageTests(InventoryCheckTests):
         self.assertNotIn("TODO-7", bad)
         self.assertEqual(len(out["triage_due"]), 1)
 
+    def test_investigate_draft_citing_an_existing_todo_is_decided(self):
+        """Owner, 2026-11-19: only rejects, defers and drafts needing a new TODO wait for the owner."""
+        self.write_triage([
+            {"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "proposed", "todo": "v1.1.0-TODO-7"},
+            {"finding_id": "binary-glm-mle#1.2", "decision": "investigate", "status": "proposed", "todo": ""},
+            {"finding_id": "binary-glm-mle#1.2", "decision": "reject", "status": "proposed"}])
+        settled = [drift.triage_settled(t) for t in drift.load_triage()]
+        self.assertEqual(settled, [True, False, False])
+        self.assertIn("2 drafts waiting for the owner", triage_mod.summary())
+        self.assertEqual(triage_mod.approve_covered(today="2026-11-19"), ["binary-glm-mle#1.1"])
+        rows = drift.load_triage()
+        self.assertEqual((rows[0]["status"], rows[0]["decided"]), ("approved", "2026-11-19"))
+        self.assertEqual([r["status"] for r in rows[1:]], ["proposed", "proposed"])
+        self.assertEqual(triage_mod.approve_covered(), [])
+
+    def test_proposed_investigate_with_a_missing_todo_is_flagged(self):
+        self.write_triage([{"finding_id": "binary-glm-mle#1.1", "decision": "investigate", "status": "proposed",
+                            "todo": "v1.1.0-TODO-99"}])
+        self.assertIn("v1.1.0-TODO-99` not found", " ".join(self.run_check()["bad_triage"]))
+        self.assertFalse(drift.triage_settled(drift.load_triage()[0]))
+
     def test_research_needed_only_for_new_changed_or_due(self):
         """Owner, 2026-11-17: a `changed` run researches only these problems."""
         self.assertEqual(drift.research_needed("never-seen", []), "never researched")

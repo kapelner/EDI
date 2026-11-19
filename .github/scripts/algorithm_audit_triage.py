@@ -4,13 +4,19 @@
 Every faster-algorithm finding gets one decision in R/package_metadata/audits/research_triage.csv:
 reject / defer / investigate / adopt, with status proposed (a draft) or approved (the owner's
 decision). An approved investigate / adopt names its release TODO (v<version>-TODO-<n>, e.g. v1.1.0-TODO-196).
+An investigate / adopt draft that cites a release TODO that exists is decided without the owner
+(owner, 2026-11-19): approve-covered marks it approved. Only rejects, defers and drafts that need a
+new TODO wait for the owner.
 
-  algorithm_audit_triage.py annotate   # write each decision under its finding in research_findings/*.md
-  algorithm_audit_triage.py summary    # counts by decision / status, and what still needs a decision
+  algorithm_audit_triage.py approve-covered  # approve investigate/adopt drafts whose TODO exists
+  algorithm_audit_triage.py annotate         # write each decision under its finding in research_findings/*.md
+  algorithm_audit_triage.py summary          # counts by decision / status, and what still needs a decision
 
 The inventory check (algorithm_audit_drift.py, check 4) validates the CSV.
 """
 import argparse
+import csv
+import datetime
 import re
 import sys
 from collections import Counter
@@ -67,6 +73,23 @@ def annotate(triage=None, folder=FINDINGS):
     return done, sorted(set(triage) - seen)
 
 
+def approve_covered(today=None):
+    """Mark proposed investigate / adopt rows approved when their cited TODO exists. Returns the ids."""
+    rows = drift.load_triage()
+    today = today or datetime.date.today().isoformat()
+    done = []
+    for t in rows:
+        if t.get("status") == "proposed" and drift.triage_settled(t):
+            t["status"], t["decided"] = "approved", t.get("decided") or today
+            done.append(t["finding_id"])
+    if done:
+        with drift.TRIAGE.open("w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=drift.TRIAGE_COLS, lineterminator="\n")
+            w.writeheader()
+            w.writerows(rows)
+    return done
+
+
 def summary(triage=None):
     rows = triage if triage is not None else drift.load_triage()
     by = Counter((t["decision"], t["status"]) for t in rows)
@@ -74,15 +97,20 @@ def summary(triage=None):
     untriaged = [i for i in log_ids if i not in {t["finding_id"] for t in rows}]
     lines = [f"{len(rows)} triaged findings:"]
     lines += [f"  {d:<11} {s:<8} {n}" for (d, s), n in sorted(by.items())]
+    waiting = [t["finding_id"] for t in rows if not drift.triage_settled(t)]
+    lines.append(f"{len(waiting)} drafts waiting for the owner (rejects, defers, or a new TODO needed)")
     lines.append(f"{len(untriaged)} findings in research_log.json without a decision")
     return "\n".join(lines)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["annotate", "summary"])
+    ap.add_argument("cmd", choices=["approve-covered", "annotate", "summary"])
     a = ap.parse_args()
-    if a.cmd == "annotate":
+    if a.cmd == "approve-covered":
+        done = approve_covered()
+        print(f"approved {len(done)} investigate/adopt drafts whose TODO exists" + (f": {done}" if done else ""))
+    elif a.cmd == "annotate":
         n, missing = annotate()
         print(f"annotated {n} findings" + (f"; ids in no findings file: {missing}" if missing else ""))
     else:

@@ -442,14 +442,13 @@ def check_inventory(offline):
             out["bad_triage"].append(f"{where}: status `{t.get('status')}` is not proposed / approved")
         if t.get("finding_id") not in log_ids:
             out["bad_triage"].append(f"{where}: finding id not in research_log.json")
-        if dec in ("investigate", "adopt") and t.get("status") == "approved":
+        # an approved investigate/adopt needs its TODO; a proposed one that cites a TODO must cite a real one
+        if dec in ("investigate", "adopt") and (t.get("status") == "approved" or todo):
             m = TODO_REF.match(todo)
-            rel = RELEASES / f"release_v{m.group(1)}_{m.group(2)}_{m.group(3)}.md" if m else None
             if not m:
-                out["bad_triage"].append(f"{where}: approved {dec} needs a v<version>-TODO-<n>, got `{todo}`")
-            elif not rel.exists() or not re.search(rf"^- \[[ x]\] (~~)?TODO-{m.group(4)}\b",
-                                                   rel.read_text(), re.M):
-                out["bad_triage"].append(f"{where}: `{todo}` not found in {rel.name}")
+                out["bad_triage"].append(f"{where}: {t.get('status')} {dec} needs a v<version>-TODO-<n>, got `{todo}`")
+            elif not todo_exists(todo):
+                out["bad_triage"].append(f"{where}: `{todo}` not found in {release_file(m).name}")
         if dec == "defer":
             if not re.match(r"^\d{4}-\d{2}-\d{2}$", t.get("revisit", "")):
                 out["bad_triage"].append(f"{where}: defer needs a revisit date (YYYY-MM-DD)")
@@ -607,6 +606,27 @@ def load_research_log():
     if not RESEARCH_LOG.exists():
         return {}
     return json.loads(RESEARCH_LOG.read_text()).get("problems", {})
+
+
+def release_file(m):
+    return RELEASES / f"release_v{m.group(1)}_{m.group(2)}_{m.group(3)}.md"
+
+
+def todo_exists(todo):
+    """True when `todo` (v1.1.0-TODO-196 form) is a checklist item in its release file."""
+    m = TODO_REF.match(todo or "")
+    if not m or not release_file(m).exists():
+        return False
+    return bool(re.search(rf"^- \[[ x]\] (~~)?TODO-{m.group(4)}\b", release_file(m).read_text(), re.M))
+
+
+def triage_settled(t):
+    """Owner, 2026-11-19: a row is decided when the owner approved it, or when it is an investigate /
+    adopt draft that cites a release TODO that exists (the finding is already scheduled there). Only
+    rejects, defers and investigate / adopt drafts that need a new TODO wait for the owner."""
+    if t.get("status") == "approved":
+        return True
+    return t.get("decision") in ("investigate", "adopt") and todo_exists(t.get("todo", ""))
 
 
 def load_triage():

@@ -204,7 +204,7 @@ Applies only to OLS / mean-diff / Lin studentized BRT pivots, which fall back to
 _Revisit 2027-05-01._
 Each p(delta) evaluation is O(d+S) arithmetic, so even 20 -> 8-10 evaluations saves microseconds; the inventory already lists three conflicting verdicts for zhang_bisect_ci_boundary ('Keep', 'Adopt-with-caveat', 'Prototype') that should be reconciled first (the 'step function' rationale is the part to correct).
 
-### Opt-in cheap bootstrap (B about 5-10) and studentized cheap bootstrap CI types  `nonparametric-bootstrap-distribution#43925959437.1`
+### Opt-in cheap bootstrap (B about 5-10) and studentized cheap bootstrap CI types  `nonparametric-bootstrap-distribution#43925959437.1`  → **v1.4.0-TODO-20** (approved 2026-11-19)
 _Revisit 2027-05-01._
 A new, different interval (wider at small B), not a faster way to compute the current one; it needs an owner decision on a new CI type and a coverage A/B, and the studentized variant is an unreviewed 2026 preprint. Revisit after v1.2.0-TODO-21's harness lands.
 
@@ -302,7 +302,7 @@ newcombe_paired_ci_cpp (newcombe_speedups.cpp:113, phi at :127-128) has no R cal
 ### Monotone pointer instead of binary search in Cox robust vcov  `sandwich-variance#43925959437.2`  → **rejected** (approved 2026-11-19)
 The finding itself says it does not apply at EDI sizes: it removes a log K factor from a non-dominant term of compute_robust_vcov (inventory verdict Keep). Do it only alongside the I-6 reverse-accumulation fix if that edit touches the function.
 
-### Lam's cheap bootstrap (few-resample t interval) for subsampling CIs  `subsampling-m-out-of-n#43925959437.1`
+### Lam's cheap bootstrap (few-resample t interval) for subsampling CIs  `subsampling-m-out-of-n#43925959437.1`  → **v1.4.0-TODO-20** (approved 2026-11-19)
 It is a different CI procedure (a t-type interval from a handful of resamples), not a faster way to compute the current B = 501 subsampling/m-out-of-n pivot CI (inventory verdict Keep), so it changes the estimator's interval. If wanted, it belongs in a new-methods proposal, not this triage.
 
 ### Fast tail-series or trigamma-free expected Hessian for truncated NB  `zero-inflated-count-mle#43925959437.3`  → **rejected** (approved 2026-11-19)
