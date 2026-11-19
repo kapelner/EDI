@@ -1689,6 +1689,7 @@ R/EDI/tests/testthat/test-zero-augmented-bootstrap-pval-min-fraction-usable-samp
 R/EDI/tests/testthat/test-zero-augmented-count-aliased-covariates-dropped-on-positive-rows.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-count-rank-deficient-draw-refits.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-zero-augmented-kernel-input-checks.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-augmented-poisson-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-log1m.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-ridge-warm-start-and-zero-part-separation.R,coverage,30,bootstrap
