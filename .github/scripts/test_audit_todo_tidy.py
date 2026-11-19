@@ -247,6 +247,13 @@ class RepoReferences(unittest.TestCase):
         self.assertTrue(any("renumbered to TODO-31" in a for a in applied))
         self.assertTrue(all(isinstance(h, dict) and h["unit"] for h in human))
         self.assertTrue(any("1 commit(s)" in i for i in info))
+        # a skipped file (CRLF) is a dict too: todo_status.py reads h["text"] and h["unit"]
+        skipped = {"report": [{"file": "x.md", "renumbered": [], "rewritten": [], "flagged": [], "commits": [],
+                               "runs": [], "skipped": "the file has line separators other than \\n; not tidied",
+                               "reorder_skipped": None}], "files": {}}
+        _, human2, _ = tt.summarise(skipped)
+        self.assertEqual(human2[0]["unit"], "x.md")
+        self.assertIn("not tidied", human2[0]["text"])
         # nothing was written
         self.assertEqual((self.repo / REL).read_text(), DUPS)
 

@@ -464,7 +464,7 @@ def summarise(result):
     for e in result["report"]:
         f = e["file"]
         if e["skipped"]:
-            human.append(f"`{f}`: {e['skipped']}.")
+            human.append({"text": f"`{f}`: {e['skipped']}.", "unit": f})
         sorted_runs = [r for r in e["runs"] if not r["kept_order"]]
         moved = sum(r["moved"] for r in sorted_runs)
         if moved:
