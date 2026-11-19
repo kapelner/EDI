@@ -83,3 +83,47 @@ test_that("coefficients_are_usable: non-empty, finite, and within the maximum re
 	expect_false(rd$p$coefficients_are_usable(c(0.5, m * 1.01))); expect_false(rd$p$coefficients_are_usable(numeric(0)))
 	expect_false(rd$p$coefficients_are_usable(c(1, NA))); expect_false(rd$p$coefficients_are_usable(c(1, Inf)))
 })
+
+# docs-claims audit, findings docs-claims-dcb561000 (InferenceIncidKKGCompRiskDiff) and
+# docs-claims-dfa95cecb (InferenceIncidKKGCompRiskRatio): the public estimate, SE and asymptotic CI of
+# both classes against an independent glm + sandwich::vcovCL (pairs as clusters, reservoir subjects as
+# singletons, HC0, no small-sample adjustment) delta-method reference.
+kk_gcomp_public_reference <- function() {
+	ref <- glm(yv ~ Xd - 1, family = binomial, control = glm.control(epsilon = 1e-14, maxit = 100))
+	m <- as.integer(des$.__enclos_env__$private$m); m[is.na(m)] <- 0L
+	cl <- ifelse(m > 0L, m, max(m) + seq_along(m))
+	V <- sandwich::vcovCL(ref, cluster = cl, type = "HC0", cadjust = FALSE)
+	b <- coef(ref)
+	X1 <- Xd; X1[, 2] <- 1; X0 <- Xd; X0[, 2] <- 0
+	p1 <- plogis(drop(X1 %*% b)); p0 <- plogis(drop(X0 %*% b))
+	r1 <- mean(p1); r0 <- mean(p0)
+	g1 <- colMeans(X1 * p1 * (1 - p1)); g0 <- colMeans(X0 * p0 * (1 - p0))
+	g_rd <- g1 - g0
+	g_lrr <- g1 / r1 - g0 / r0
+	list(r1 = r1, r0 = r0, V = V, V_naive = vcov(ref),
+		se_rd = sqrt(drop(t(g_rd) %*% V %*% g_rd)), se_rd_naive = sqrt(drop(t(g_rd) %*% vcov(ref) %*% g_rd)),
+		se_log_rr = sqrt(drop(t(g_lrr) %*% V %*% g_lrr)))
+}
+
+test_that("RD public SE is the delta-method SE under the pair-clustered sandwich (not the naive vcov)", {
+	skip_if_not_installed("sandwich")
+	r <- kk_gcomp_public_reference()
+	inf <- mk(InferenceIncidKKGCompRiskDiff)$inf
+	expect_equal(inf$compute_estimate(), r$r1 - r$r0, tolerance = 1e-6)
+	expect_equal(inf$get_standard_error(), r$se_rd, tolerance = 1e-5)
+	expect_gt(abs(r$se_rd - r$se_rd_naive), 1e-4)
+	ci <- unname(inf$compute_asymp_confidence_interval())
+	expect_equal(ci, (r$r1 - r$r0) + c(-1, 1) * qnorm(0.975) * r$se_rd, tolerance = 1e-5)
+})
+
+test_that("RR public estimate is r1/r0 from an independent glm, its SE is rr * delta-method log-RR SE, and the CI is exp(log rr +/- z se)", {
+	skip_if_not_installed("sandwich")
+	r <- kk_gcomp_public_reference()
+	inf <- mk(InferenceIncidKKGCompRiskRatio)$inf
+	rr_ref <- r$r1 / r$r0
+	expect_equal(inf$compute_estimate(), rr_ref, tolerance = 1e-6)
+	expect_equal(inf$get_standard_error(), rr_ref * r$se_log_rr, tolerance = 1e-5)
+	ci <- unname(inf$compute_asymp_confidence_interval())
+	expect_equal(ci, exp(log(rr_ref) + c(-1, 1) * qnorm(0.975) * r$se_log_rr), tolerance = 1e-5)
+	expect_true(all(ci > 0))
+})

@@ -72,3 +72,33 @@ test_that("both pieces fail (or return non-converged): beta_hat_T and s_beta_hat
 	est <- inf$compute_estimate()
 	expect_true(is.na(est))
 })
+
+# docs-claims audit, finding docs-claims-d4609a785: on real data the matched-pair piece is exact
+# conditional logit (survival's exact conditional likelihood) and the reservoir piece is ordinary
+# logistic regression (glm binomial); the cached components and their variances match both.
+test_that("KK CondLogit IVWC matched and reservoir components equal survival's conditional logit and glm(binomial)", {
+	skip_if_not_installed("survival")
+	set.seed(31)
+	n <- 120
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
+	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	w <- des$get_w()
+	y <- rbinom(n, 1, plogis(-0.2 + 0.7 * w + 0.5 * X$x1))
+	des$add_all_subject_responses(y)
+	m <- des$.__enclos_env__$private$m[seq_len(n)]
+	inf <- InferenceIncidKKCondLogitIVWC$new(des, verbose = FALSE)
+	inf$compute_estimate()
+	inf$compute_asymp_confidence_interval()
+	cv <- inf$.__enclos_env__$private$cached_values
+	d <- data.frame(y = y, w = w, X, m = m)
+	pr <- d[d$m > 0, ]
+	cl <- survival::coxph(survival::Surv(rep(1, nrow(pr)), y) ~ w + x1 + x2 + survival::strata(m), data = pr, method = "exact")
+	expect_equal(cv$beta_T_matched, unname(coef(cl)[["w"]]), tolerance = 1e-6)
+	expect_equal(cv$ssq_beta_T_matched, vcov(cl)[["w", "w"]], tolerance = 1e-5)
+	rs <- d[d$m == 0, ]
+	expect_gt(nrow(rs), 5L)
+	g <- glm(y ~ w + x1 + x2, family = binomial(), data = rs, control = glm.control(epsilon = 1e-14, maxit = 100))
+	expect_equal(cv$beta_T_reservoir, unname(coef(g)[["w"]]), tolerance = 1e-6)
+	expect_equal(cv$ssq_beta_T_reservoir, vcov(g)[["w", "w"]], tolerance = 1e-5)
+})

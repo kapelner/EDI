@@ -70,3 +70,22 @@ test_that("compute_conf_intervals = FALSE omits ci_a/ci_b/ci-method columns enti
 test_that("an empty results_table returns NULL", {
 	expect_null(build_display(mk_tbl()[0, ]))
 })
+
+# docs-claims audit, finding docs-claims-d3906c9d4: with compute_conf_intervals = FALSE a real
+# run_all_inference() results_table keeps ci_a/ci_b/ci_method, all NA.
+test_that("a real run with compute_conf_intervals = FALSE keeps ci_a/ci_b/ci_method in results_table, all NA", {
+	set.seed(1)
+	des <- DesignSeqOneByOneBernoulli$new(n = 20L, response_type = "continuous", verbose = FALSE)
+	for (i in 1:20) des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
+	des$add_all_subject_responses(rnorm(20))
+	res <- NULL
+	capture.output(res <- InferenceSuite$new(des)$run_all_inference(screen = TRUE, plots = FALSE,
+		classes = c("InferenceAllSimpleAverageDiff", "InferenceContinOLS"), methods = c("wald", "rand"), r = 19,
+		compute_conf_intervals = FALSE))
+	tbl <- res$results_table
+	expect_true(all(c("ci_a", "ci_b", "ci_method") %in% names(tbl)))
+	expect_true(all(is.na(tbl$ci_a)))
+	expect_true(all(is.na(tbl$ci_b)))
+	skip("v1.0.6-TODO-261: with compute_conf_intervals = FALSE, run_all_inference_one_class() back-fills ci_method with the row's method sentinel ('wald', 'rand'), so ci_method is not NA as documented")
+	expect_true(all(is.na(tbl$ci_method)))
+})

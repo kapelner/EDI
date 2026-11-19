@@ -77,3 +77,17 @@ test_that("every live registry record agrees with its declaration, else with the
 	}
 	expect_true(all(vapply(reg, function(r) r$likelihood_tier %in% Z("EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS"), NA)))
 })
+
+# docs-claims audit, finding docs-claims-dfa95cecb: InferenceIncidKKGCompRiskRatio declares
+# likelihood_tier = "none", so no score or likelihood-ratio testing is offered.
+test_that("InferenceIncidKKGCompRiskRatio is pinned to likelihood_tier 'none' and offers no score/LR tests", {
+	expect_identical(Z("get_inference_class_metadata")("InferenceIncidKKGCompRiskRatio")$likelihood_tier, "none")
+	set.seed(4)
+	des <- DesignSeqOneByOneKK14$new(n = 30L, response_type = "incidence", verbose = FALSE)
+	for (i in 1:30) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(rbinom(30, 1, 0.5))
+	inf <- InferenceIncidKKGCompRiskRatio$new(des, verbose = FALSE)
+	types <- inf$get_supported_testing_types()
+	expect_false(any(c("score", "lik_ratio", "gradient") %in% types))
+	expect_null(inf$compute_lik_ratio_bootstrap_two_sided_pval)
+})

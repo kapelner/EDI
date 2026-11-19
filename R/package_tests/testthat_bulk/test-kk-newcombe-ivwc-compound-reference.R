@@ -97,3 +97,38 @@ test_that("KK Newcombe IVWC estimate_only skips variance/df but reuses cached es
 	expect_equal(est_full, est_only, tolerance = 1e-12)
 	expect_true(is.finite(priv$cached_values$s_beta_hat_T))
 })
+
+# docs-claims audit, finding docs-claims-d022a56f2: the matched-pairs-only fallback (no usable
+# reservoir component because one reservoir arm is empty) uses the paired component directly.
+test_that("KK Newcombe IVWC falls back to the matched-pairs-only component when a reservoir arm is empty", {
+	des <- make_kk_design(40L, 42)
+	inf <- InferenceIncidKKNewcombeRiskDiff$new(des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$compute_basic_match_data()
+	KKstats <- priv$cached_values$KKstats
+	expect_gt(KKstats$m, 0L)
+	KKstats$nRT <- 0L # no treated reservoir subjects -> reservoir component unusable
+	unlockBinding("cached_values", priv)
+	priv$cached_values$KKstats <- KKstats
+
+	est <- inf$compute_estimate()
+	m <- KKstats$m
+	p10 <- KKstats$d_plus / m
+	p01 <- KKstats$d_minus / m
+	skip_if(p10 + p01 == 0, "fixture has no discordant pairs")
+	expect_equal(est, (KKstats$d_plus - KKstats$d_minus) / m, tolerance = 1e-12)
+	expect_equal(priv$cached_values$s_beta_hat_T, sqrt((p10 + p01 - (p10 - p01)^2) / m), tolerance = 1e-12)
+})
+
+test_that("KK Newcombe IVWC initialize rejects a non-KK incidence design and a KK non-incidence design", {
+	set.seed(5)
+	bern <- DesignSeqOneByOneBernoulli$new(n = 10L, response_type = "incidence")
+	for (i in 1:10) bern$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	bern$add_all_subject_responses(rbinom(10, 1, 0.5))
+	expect_error(InferenceIncidKKNewcombeRiskDiff$new(bern), "requires a KK matching-on-the-fly design")
+
+	kk_cont <- DesignSeqOneByOneKK14$new(n = 10L, response_type = "continuous")
+	for (i in 1:10) kk_cont$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	kk_cont$add_all_subject_responses(rnorm(10))
+	expect_error(InferenceIncidKKNewcombeRiskDiff$new(kk_cont), "only available for incidence responses")
+})

@@ -242,6 +242,7 @@ R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-ze
 R/package_tests/testthat_bulk/test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-jackknife-methods-all-report-explicit-nonestimability-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-randomization-methods-not-supported-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-dep-cens-transform-recovers-log-time-ratio-under-dependent-censoring.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-score-and-lik-ratio-ci-unstable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-studentized-bootstrap-ci-unstable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-design-abstract-base-class-direct-instantiation-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -470,6 +471,7 @@ R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,correct
 R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-public-method-names-generator-lookup-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-custom-bare-external-pointer-no-recorded-signature-guard-reference.R,correctness,6.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-rand-custom-dead-argument-and-nonfinite-draws.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom-install-stat-cpp-type-and-arity-guards-reference.R,correctness,4.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-custom.R,correctness,17.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-storage-and-design-level-cache-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -519,6 +521,7 @@ R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-30.R,c
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-31.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-32.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-33.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-documented-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-supports-capability-argument-validation-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-target-parent-components-and-ancestor-chain-helpers-reference.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-warm-start-state-tiers-and-ci-inversion-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -547,6 +550,7 @@ R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,co
 R/package_tests/testthat_bulk/test-kk-compound-reservoir-match-statistics-pooled-variance-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,correctness,1.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-max-abs-log-sigma-unused.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-discordant-only-j-t-index-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-constant-weights-shortcircuit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -564,6 +568,7 @@ R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overf
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-fit-failed-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-geepack-package-required-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-gee-incidence-constructor-guards-and-rcpp-fallback.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,correctness,7.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,correctness,2.5,measured_with_30_percent_headroom
@@ -1966,6 +1971,7 @@ R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-ze
 R/package_tests/testthat_bulk/test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-jackknife-methods-all-report-explicit-nonestimability-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-randomization-methods-not-supported-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-dep-cens-transform-recovers-log-time-ratio-under-dependent-censoring.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-score-and-lik-ratio-ci-unstable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-studentized-bootstrap-ci-unstable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-design-abstract-base-class-direct-instantiation-guard-reference.R,coverage,240,bootstrap
@@ -2194,6 +2200,7 @@ R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,coverag
 R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-public-method-names-generator-lookup-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom-bare-external-pointer-no-recorded-signature-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-rand-custom-dead-argument-and-nonfinite-draws.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom-install-stat-cpp-type-and-arity-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom.R,coverage,16.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-storage-and-design-level-cache-reference.R,coverage,240,bootstrap
@@ -2243,6 +2250,7 @@ R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-30.R,c
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-31.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-32.R,coverage,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-33.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-documented-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-supports-capability-argument-validation-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-target-parent-components-and-ancestor-chain-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-warm-start-state-tiers-and-ci-inversion-reference.R,coverage,240,bootstrap
@@ -2271,6 +2279,7 @@ R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,co
 R/package_tests/testthat_bulk/test-kk-compound-reservoir-match-statistics-pooled-variance-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-max-abs-log-sigma-unused.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-discordant-only-j-t-index-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-constant-weights-shortcircuit-reference.R,coverage,240,bootstrap
@@ -2288,6 +2297,7 @@ R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overf
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-fit-failed-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-geepack-package-required-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-gee-incidence-constructor-guards-and-rcpp-fallback.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,coverage,11.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,coverage,240,bootstrap

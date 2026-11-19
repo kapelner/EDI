@@ -77,3 +77,30 @@ test_that("RD subsampling and m-out-of-n bootstrap dispatch run and produce vali
 	expect_true(is.finite(inf$compute_subsampling_two_sided_pval(delta = 0, B = 15, show_progress = FALSE)))
 	expect_true(is.finite(inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = 0, B = 15, show_progress = FALSE)))
 })
+
+# docs-claims audit, finding docs-claims-dcb561000: the jackknife deletes one cluster (matched pair or
+# singleton reservoir subject) at a time. On a KK14 design with a reservoir, there is one draw per
+# cluster and each equals the estimate refit (glm + standardization) with that cluster removed.
+test_that("RD jackknife has one draw per pair and per reservoir subject, each a refit without that cluster", {
+	set.seed(9); n <- 60L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
+	for (i in seq_len(n)) {
+		x <- data.frame(x1 = rnorm(1)); w <- des$add_one_subject_to_experiment_and_assign(x)
+		des$add_one_subject_response(i, rbinom(1, 1, plogis(-0.2 + 0.8 * w + 0.4 * x$x1)))
+	}
+	inf <- InferenceIncidKKGCompRiskDiff$new(des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	m <- as.integer(des$.__enclos_env__$private$m[seq_len(n)]); m[is.na(m)] <- 0L
+	expect_gt(sum(m == 0L), 0L); expect_gt(sum(m > 0L), 0L)
+	cl <- ifelse(m > 0L, m, max(m) + seq_along(m))
+	jk <- as.numeric(priv$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto"))
+	expect_length(jk, length(unique(m[m > 0L])) + sum(m == 0L))
+	Xd <- priv$build_design_matrix(); yv <- as.numeric(priv$y)
+	ref <- vapply(sort(unique(cl)), function(k) {
+		keep <- cl != k
+		f <- glm.fit(Xd[keep, ], yv[keep], family = binomial(), control = glm.control(epsilon = 1e-14, maxit = 100))
+		X1 <- Xd[keep, ]; X1[, 2] <- 1; X0 <- Xd[keep, ]; X0[, 2] <- 0
+		mean(plogis(X1 %*% f$coefficients)) - mean(plogis(X0 %*% f$coefficients))
+	}, numeric(1))
+	expect_equal(sort(jk), sort(ref), tolerance = 1e-6)
+})

@@ -108,3 +108,46 @@ test_that("weighted estimate tracks coxph(weights=), drops the SE, and flags ext
 	expect_true(g$p$weighted_refit_is_nonestimable("estimate"))
 	expect_identical(g$p$last_weighted_refit$nonestimable_reason, "coxph_weighted_extreme_coefficients")
 })
+
+# docs-claims audit, finding docs-claims-dd3b297a7: when the internal Newton-Raphson solver does not
+# converge, the fit falls back to survival's Breslow Cox fit.
+test_that("a non-converged C++ Cox fit falls back to survival's Breslow fit", {
+	calls <- 0L
+	local_mocked_bindings(
+		fast_coxph_regression_prebuilt_cpp = function(...) { calls <<- calls + 1L; list(converged = FALSE) },
+		.package = "EDI"
+	)
+	f <- cox_fx(seed = 5L)
+	expect_true(f$p$use_rcpp)
+	est <- f$inf$compute_estimate()
+	expect_gt(calls, 0L)
+	ref <- coxph(Surv(f$t, f$d) ~ f$w + f$x, ties = "breslow")
+	expect_equal(est, unname(coef(ref)[1]), tolerance = 1e-6)
+	f$inf$compute_asymp_confidence_interval()
+	expect_equal(f$p$cached_values$s_beta_hat_T, sqrt(vcov(ref)[1, 1]), tolerance = 1e-5)
+})
+
+# docs-claims audit, finding docs-claims-dd3b297a7: the parametric likelihood-ratio bootstrap runs only
+# on the exact/right-censored path; on interval-censored data it returns NA with a recorded reason.
+test_that("the LR parametric bootstrap is available on right-censored data but returns NA on interval-censored data", {
+	f <- cox_fx(seed = 6L, n = 40L)
+	set.seed(1)
+	p_rc <- f$inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 19, show_progress = FALSE)
+	expect_true(is.finite(p_rc))
+
+	set.seed(3)
+	n <- 40L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	yL <- runif(n, 0, 3); yR <- yL + runif(n, 0.5, 3)
+	des$add_all_subject_responses(ys = rep(NA_real_, n), y_Ls = yL, y_Rs = yR)
+	inf <- InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+	expect_true(inf$.__enclos_env__$private$has_general_censoring)
+	p_ic <- NULL
+	expect_warning(p_ic <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 19, show_progress = FALSE),
+		class = "edi_procedure_na_warning")
+	expect_true(is.na(p_ic))
+	expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$lik_ratio_bootstrap,
+		"lik_ratio_bootstrap_spec_unavailable")
+})

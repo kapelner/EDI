@@ -78,3 +78,16 @@ test_that("KK21 validates weight-estimation controls and exposes empty history",
   expect_true(w %in% c(0, 1))
   expect_identical(des$get_iteration_weights(), list())
 })
+
+# docs-claims audit, finding docs-claims-dc3c2bc0e: InferenceIncidKKCondLogitOneLik's constructor
+# calls assertNoCensoring(), so a design reporting censoring is rejected at construction.
+test_that("InferenceIncidKKCondLogitOneLik rejects a design that reports censoring", {
+  set.seed(2)
+  des <- DesignSeqOneByOneKK14$new(n = 20, response_type = "incidence", verbose = FALSE)
+  for (i in 1:20) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+  des$add_all_subject_responses(rbinom(20, 1, 0.5))
+  expect_no_error(InferenceIncidKKCondLogitOneLik$new(des, verbose = FALSE))
+  unlockBinding("any_censoring", des)
+  des$any_censoring <- function() TRUE
+  expect_error(InferenceIncidKKCondLogitOneLik$new(des, verbose = FALSE), "uncensored responses")
+})

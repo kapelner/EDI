@@ -4499,3 +4499,15 @@ itself still needs a look.
   - Failing expectation: `expect_true(inf$is_nonestimable("estimate"))`, skipped at `R/package_tests/testthat_bulk/test-incid-wald-welch-ttest-dispatch-reference.R:118`.
   - Candidate fix (code): in the empty-arm branch, call `private$cache_nonestimable_estimate("incidence_wald_empty_arm")`. Alternative (doc): say "returns NA" rather than "non-estimable".
   - Done when: fix it and remove the skip().
+- [ ] TODO-260 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dcb561000`): **KK g-computation incidence classes do not flag a failed fit or a missing treatment arm as non-estimable.**
+  The docs of `InferenceIncidKKGCompRiskDiff` (`R/EDI/R/inference_incidence_KK_marginal.R:313-316`) say a working model that fails to converge, or a design with no treatment-arm variation, marks the estimate non-estimable via `is_nonestimable()`. `InferenceIncidKKGCompRiskRatio` makes the same promise at `:417`. Two things go wrong for both classes:
+  - Failed fit: with `fit_logistic_with_sandwich` injected to return NULL, the estimate is NA but `is_nonestimable("estimate")` is FALSE and the reason is NULL. `set_failed_fit_cache()` (`R/EDI/R/inference_incidence_KK_gcomp_abstract.R:338`, called at :551) writes NA effects and never calls `cache_nonestimable_estimate()`.
+  - All subjects treated (`DesignFixedBinaryMatch`, n = 20, seed 3): the estimate is finite (RD -0.163, RR 0.658) and not flagged. The design matrix has no treatment column, but the class still standardizes over the remaining columns.
+  - Failing expectations: `expect_true(inf$is_nonestimable("estimate"))`, `expect_false(is.null(inf$get_nonestimable_reason()))`, and `expect_true(is.na(est))` for the all-treated design. One skip at `R/package_tests/testthat_bulk/test-rand-bootstrap-and-kk-gcomp-fallback-branches-reference.R:179` covers the whole block.
+  - Candidate fix (code): `set_failed_fit_cache()` calls `private$cache_nonestimable_estimate(<reason>)`, and `shared()` marks the estimate non-estimable when `w` has no variation or the treatment column is missing from the fit.
+  - Done when: fix it and remove the skip().
+- [ ] TODO-261 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d3906c9d4`): **`InferenceSuite` fills `ci_method` even when `compute_conf_intervals = FALSE`.**
+  The `compute_conf_intervals` param doc (`R/EDI/R/inference_suite.R:4956`) says ci_a, ci_b and ci_method "stay present but always NA in results_table". ci_a and ci_b are NA, but ci_method is "wald" or "rand" on every row. `run_all_inference_one_class()` back-fills it (`R/EDI/R/inference_suite.R:1843`, `if (is.na(row$ci_method)) row$ci_method = method`).
+  - Failing expectation: `expect_true(all(is.na(tbl$ci_method)))`, skipped at `R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R:89`.
+  - Candidate fix: code (skip the back-fill when `compute_conf_intervals = FALSE`), or doc (say ci_method keeps the method label while ci_a and ci_b are NA).
+  - Done when: fix it and remove the skip().

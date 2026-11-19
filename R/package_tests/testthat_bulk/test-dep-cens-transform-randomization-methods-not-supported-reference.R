@@ -41,3 +41,13 @@ test_that("compute_rand_confidence_interval always returns an all-NA CI and reco
 	expect_false(inf$is_nonestimable("any"))
 	expect_identical(unsup_reason(inf), "dep_cens_transform_randomization_not_supported")
 })
+
+# docs-claims audit, finding docs-claims-dce6a05a5: the third randomization method,
+# approximate_randomization_distribution_beta_hat_T(), is also an unsupported stub.
+test_that("approximate_randomization_distribution_beta_hat_T returns r NAs with an edi_unsupported_procedure warning", {
+	inf <- fx(seed = 4L)
+	draws <- unsup(inf$approximate_randomization_distribution_beta_hat_T(r = 7, show_progress = FALSE))
+	expect_identical(draws, rep(NA_real_, 7))
+	expect_false(inf$is_nonestimable("any"))
+	expect_identical(unsup_reason(inf), "dep_cens_transform_randomization_not_supported")
+})

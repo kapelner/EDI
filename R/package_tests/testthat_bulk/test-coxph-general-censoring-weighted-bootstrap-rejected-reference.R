@@ -52,3 +52,22 @@ test_that("the guard is specific to general censoring: the same call works on an
 
 	expect_no_error(inf$compute_estimate_with_bootstrap_weights(rep(2, n)))
 })
+
+# docs-claims audit, finding docs-claims-dd3b297a7: effectively constant bootstrap weights short-circuit
+# to the unweighted compute_estimate(estimate_only = TRUE).
+test_that("constant bootstrap weights give exactly the unweighted Cox estimate on a right-censored design", {
+	set.seed(4)
+	n <- 40L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(rexp(n, rate = exp(0.3 * w)))
+	inf <- InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
+	est <- inf$compute_estimate()
+	expect_true(is.finite(est))
+	expect_identical(inf$compute_estimate_with_bootstrap_weights(rep(2, n)), est)
+	expect_false(identical(inf$compute_estimate_with_bootstrap_weights(seq(0.5, 2, length.out = n)), est))
+})

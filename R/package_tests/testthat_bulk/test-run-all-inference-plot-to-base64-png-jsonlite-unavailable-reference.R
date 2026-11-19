@@ -23,3 +23,28 @@ test_that("run_all_inference_plot_to_base64_png() returns NULL (not an error) fo
 	)
 	expect_null(res)
 })
+
+# docs-claims audit, finding docs-claims-d3906c9d4: without jsonlite, run_all_inference(save_results_as_JSON
+# = TRUE) warns and skips the JSON file instead of erroring.
+test_that("run_all_inference(save_results_as_JSON = TRUE) warns and leaves files$json NULL when jsonlite is (mocked as) unavailable", {
+	set.seed(1)
+	des <- DesignSeqOneByOneBernoulli$new(n = 16L, response_type = "continuous", verbose = FALSE)
+	for (i in 1:16) des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
+	des$add_all_subject_responses(rnorm(16))
+	s <- InferenceSuite$new(des)
+	out_dir <- withr::local_tempdir()
+	real_rn <- base::requireNamespace
+	res <- NULL
+	with_mocked_bindings(
+		requireNamespace = function(package, ...) if (identical(package, "jsonlite")) FALSE else real_rn(package, ...),
+		.package = "base",
+		expect_warning(
+			capture.output(res <- s$run_all_inference(screen = TRUE, plots = FALSE, classes = "InferenceAllSimpleAverageDiff",
+				methods = "wald", save_results_as_JSON = TRUE, output_dir = out_dir)),
+			"jsonlite"
+		)
+	)
+	expect_s3_class(res, "EDIInferenceSuiteResults")
+	expect_null(res$files$json)
+	expect_length(list.files(out_dir, pattern = "\\.json$"), 0L)
+})

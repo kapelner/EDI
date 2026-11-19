@@ -165,3 +165,31 @@ test_that("KK g-computation drops a covariate and refits when the coefficients a
 	# The refit dropped one of the two covariates (intercept and treatment kept).
 	expect_identical(fit_cols[1:2], c(4L, 3L))
 })
+
+# docs-claims audit, finding docs-claims-dcb561000: the KK g-computation docs say a working model that
+# fails to fit, or a design with no treatment-arm variation, marks the estimate nonestimable via
+# is_nonestimable() with a cached reason.
+test_that("KK g-computation marks the estimate nonestimable after a failed fit and with no treatment-arm variation", {
+	for (cls in list(InferenceIncidKKGCompRiskDiff, InferenceIncidKKGCompRiskRatio)) {
+		inf = cls$new(kk_incidence_design(), verbose = FALSE)
+		inf$num_cores = 1L
+		priv = inf$.__enclos_env__$private
+		replace_method(priv, "fit_logistic_with_sandwich", function(X, estimate_only = FALSE) NULL)
+		expect_true(is.na(suppressWarnings(inf$compute_estimate())))
+		skip("v1.0.6-TODO-260: a failed KK g-comp working-model fit gives NA but is_nonestimable('estimate') stays FALSE with no reason; a design with all subjects treated gives a finite estimate")
+		expect_true(inf$is_nonestimable("estimate"))
+		expect_false(is.null(inf$get_nonestimable_reason()))
+	}
+	set.seed(3)
+	des = DesignFixedBinaryMatch$new(response_type = "incidence", n = 20L, m = rep(1:10, each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(20)))
+	des$overwrite_all_subject_assignments(rep(1, 20))
+	des$add_all_subject_responses(rbinom(20, 1, 0.5))
+	for (cls in list(InferenceIncidKKGCompRiskDiff, InferenceIncidKKGCompRiskRatio)) {
+		inf = cls$new(des, verbose = FALSE)
+		est = suppressWarnings(inf$compute_estimate())
+		expect_true(is.na(est))
+		expect_true(inf$is_nonestimable("estimate"))
+		expect_false(is.null(inf$get_nonestimable_reason()))
+	}
+})

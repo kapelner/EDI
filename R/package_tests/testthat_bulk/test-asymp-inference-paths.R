@@ -249,3 +249,35 @@ test_that("KK Design Incidence Asymp paths", {
 	inf <- InferenceIncidKKCondLogitOneLik$new(des)
 	test_all_asymp_paths(inf, "KK CondLogit OneLik")
 })
+
+# docs-claims audit, finding docs-claims-dc3c2bc0e: InferenceIncidKKCondLogitOneLik offers gradient
+# inference alongside Wald/score/LR. The gradient p-value must be finite, differ from Wald, and equal a
+# hand-computed gradient statistic U_T(restricted fit) * beta_hat_T on the class's stacked
+# conditional-logit + reservoir-logistic design (refit with stats::glm.fit).
+test_that("KK CondLogit OneLik gradient p-value matches a hand-computed gradient statistic", {
+	set.seed(31)
+	n <- 80
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
+	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	w <- des$get_w()
+	des$add_all_subject_responses(rbinom(n, 1, plogis(-0.2 + 0.7 * w + 0.5 * X$x1)))
+	inf <- InferenceIncidKKCondLogitOneLik$new(des, verbose = FALSE)
+	expect_true("gradient" %in% inf$get_supported_testing_types())
+	est <- inf$compute_estimate()
+	p_wald <- inf$compute_asymp_two_sided_pval()
+	inf$set_testing_type("gradient")
+	p_grad <- inf$compute_asymp_two_sided_pval()
+	expect_true(is.finite(p_grad))
+	expect_false(isTRUE(all.equal(p_grad, p_wald)))
+
+	p <- inf$.__enclos_env__$private
+	d <- EDI:::conditional_logit_prepare_combined_design(p, p$cached_values$KKstats)
+	j <- d$j_beta_T
+	ctrl <- glm.control(epsilon = 1e-14, maxit = 100)
+	g0 <- glm.fit(d$X[, -j, drop = FALSE], d$y, family = binomial(), control = ctrl)
+	p0 <- plogis(drop(d$X[, -j, drop = FALSE] %*% g0$coefficients))
+	U_T <- sum(d$X[, j] * (d$y - p0))
+	G <- U_T * est
+	expect_equal(p_grad, pchisq(G, df = 1, lower.tail = FALSE), tolerance = 1e-4)
+})

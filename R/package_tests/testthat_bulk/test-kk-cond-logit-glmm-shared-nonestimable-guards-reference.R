@@ -190,3 +190,26 @@ test_that("incidence path drops a covariate whose within-pair differences are al
 	expect_equal(inf$compute_estimate(), unname(coef(ref)[1]), tolerance = 1e-6)
 	expect_false(inf$is_nonestimable("estimate"))
 })
+
+# docs-claims audit, finding docs-claims-d61b2254a: the default max_abs_reasonable_coef is 50, so a
+# coefficient of 60 is flagged and one of 40 is not (the 1000 above would pass for any default < 1000).
+test_that("incidence path's default max_abs_reasonable_coef = 50 flags a coefficient of 60 but not one of 40", {
+	for (case in list(list(x = 60, flagged = TRUE), list(x = 40, flagged = FALSE))) {
+		inf <- rl_fixture(seed = 7L)
+		p <- inf$.__enclos_env__$private
+		expect_equal(p$max_abs_reasonable_coef, 50)
+		mock_rl_data(p)
+		unlockBinding("fit_clogit_reservoir_logit", p)
+		x_coef <- case$x
+		p$fit_clogit_reservoir_logit <- function(...) list(params = c(treatment = 0.1, x = x_coef), neg_loglik = 1,
+			converged = TRUE, fisher_information = diag(2))
+		est <- inf$compute_estimate()
+		if (case$flagged) {
+			expect_true(is.na(est))
+			expect_identical(inf$get_nonestimable_reason(), "joint_likelihood_nonestimable")
+		} else {
+			expect_equal(est, 0.1)
+			expect_false(inf$is_nonestimable("estimate"))
+		}
+	}
+})

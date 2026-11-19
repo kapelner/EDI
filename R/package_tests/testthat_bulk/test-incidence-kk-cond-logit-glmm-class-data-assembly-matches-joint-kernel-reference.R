@@ -262,3 +262,30 @@ test_that("the public Bayesian bootstrap distribution refits the weighted likeli
 	expect_true(all(is.finite(actual_standard)))
 	expect_equal(actual_standard, expected, tolerance = 1e-6)
 })
+
+# docs-claims audit, finding docs-claims-d61b2254a: when the reservoir's outcomes do not vary its
+# intercept MLE is infinite, so OneLik leaves the reservoir out and reduces to conditional logit alone,
+# i.e. it equals the IVWC (discordant-pairs-only) fit.
+test_that("OneLik equals IVWC (conditional logit alone) when the reservoir outcomes are constant", {
+	for (s in 911:913) {
+		set.seed(s)
+		n <- 120L
+		des <- DesignSeqOneByOneKK14$new(response_type = "incidence", n = n, verbose = FALSE)
+		X <- data.frame(x = rnorm(n))
+		for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+		w <- des$get_w()
+		m <- des$.__enclos_env__$private$m[seq_len(n)]
+		y <- as.numeric(rbinom(n, 1, plogis(-0.3 + 0.8 * w + 0.4 * X$x)))
+		y[m == 0] <- 0 # constant reservoir
+		expect_gt(sum(m == 0), 1L)
+		des$add_all_subject_responses(y)
+		one <- K("InferenceIncidKKCondLogitGLMMOneLik")$new(des, verbose = FALSE)
+		ivwc <- K("InferenceIncidKKCondLogitGLMMIVWC")$new(des, verbose = FALSE)
+		est <- one$compute_estimate()
+		expect_true(is.finite(est), info = as.character(s))
+		expect_equal(est, ivwc$compute_estimate(), tolerance = 1e-10, info = as.character(s))
+		expect_equal(one$.__enclos_env__$private$get_standard_error(),
+			ivwc$.__enclos_env__$private$get_standard_error(), tolerance = 1e-10, info = as.character(s))
+		expect_false(one$.__enclos_env__$private$cached_values$likelihood_test_context$a$use_res)
+	}
+})

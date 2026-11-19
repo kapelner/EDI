@@ -81,3 +81,14 @@ test_that("compute_weighted_combined_estimate caches 'kk_clogit_combined_weighte
 	expect_true(is.na(res))
 	expect_identical(p$cached_values$nonestimable_reason, "kk_clogit_combined_weighted_match_data_unavailable")
 })
+
+# docs-claims audit, finding docs-claims-dc3c2bc0e: compute_rand_two_sided_pval() preflights the
+# observed combined-likelihood statistic, so the separated fixture (nonestimable estimate) gets NA.
+test_that("compute_rand_two_sided_pval returns NA when the observed combined-likelihood estimate is nonestimable", {
+	inf <- kk_clogit_onelik_fixture()
+	set.seed(1)
+	pval <- inf$compute_rand_two_sided_pval(r = 19, show_progress = FALSE)
+	expect_true(is.na(pval))
+	expect_true(inf$is_nonestimable("estimate"))
+	expect_false(is.null(inf$get_nonestimable_reason()))
+})
