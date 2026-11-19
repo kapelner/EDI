@@ -342,7 +342,11 @@ calls with different \code{delta} values (used by the CI inversion). Default \co
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{B}}{Number of bootstrap randomization draws. Default 501.}
-      \item{\code{delta}}{The null treatment effect. Default 0.}
+      \item{\code{delta}}{The sharp-null shift of the responses (on the
+\code{transform_responses} scale), not a value of the estimand. Default 0, the null
+of no effect for every class, including ratio estimands (risk ratio 1, log risk ratio
+0); the studentized types center their pivot at the estimand's no-effect value (1 for
+the raw risk-ratio g-computation classes).}
       \item{\code{transform_responses}}{Type of response transformation for the sharp null shift.
 The default "none" resolves by response type (logit for proportion, log for count
 and survival, identity otherwise), matching \code{compute_rand_two_sided_pval}.}

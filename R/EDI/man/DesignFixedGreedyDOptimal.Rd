@@ -192,7 +192,6 @@ Atkinson, A. C., Donev, A. N., and Tobias, R. D. (2007).
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Design</summary>
@@ -236,6 +235,7 @@ Atkinson, A. C., Donev, A. N., and Tobias, R. D. (2007).
   <li><a href='../../EDI/html/Design.html#method-Design-is_blocking_design'><code>Design$is_blocking_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_matching_design'><code>Design$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>

@@ -115,13 +115,16 @@ response type, the target sample size `n`, the design's tuning arguments, and th
   changes partway through (an integer that arrives as a character string, say)
   produces a warning. A missing covariate value is allowed: it is imputed (see the
   `missingness_method` argument).
-* **Set `seed`.** The constructor calls `set.seed(seed)` once. From then on, every
-  assignment draws from R's random number generator, so the seed fixes the whole
-  allocation only if the generator's state is carried from one assignment to the
-  next. The section after next shows how.
+* **Set `seed`.** With a seed, the design seeds each assignment from the seed and the
+  subject's enrollment number, and puts the session's random number stream back
+  afterwards. So the seed fixes the whole allocation (given the covariates and, for
+  KK21, the outcomes known at each assignment), whatever else the R session does in
+  between, and the seed is saved inside the design object. Without a seed
+  (`seed = NULL`), assignments draw from the session's random number stream, and an
+  exact restart would need that stream's state (`.Random.seed`) saved and restored
+  around every assignment; see [Reproducibility](reproducibility.html).
 
-The trial state lives in one file: the design object, the state of R's random number
-generator, and the event log. `saveRDS()` stores the whole R6 object, including the
+The trial state lives in one file: the design object and the event log. `saveRDS()` stores the whole R6 object, including the
 assignments, the responses, the match structure and KK21's weight history; there is
 no special save function. Each save writes a temporary file first and then renames it
 over the old one, so a crash during a save cannot leave a half-written trial file.
@@ -138,8 +141,7 @@ trial_file = file.path(tempdir(), "trial.rds")
 
 des = DesignSeqOneByOneKK21$new(response_type = "continuous", n = n, seed = trial_seed)
 save_trial(list(
-  design = des,
-  rng    = .Random.seed,     # the generator state right after set.seed(trial_seed)
+  design = des,              # carries the seed
   log    = data.frame(time = start[0], event = character(0), subject = integer(0),
                       value = numeric(0))
 ), trial_file)
@@ -152,23 +154,14 @@ so that a mistaken entry can be undone by going back one file.
 
 ## Each arrival: load, assign, save
 
-Two small functions do all the bookkeeping. `enroll()` loads the trial, puts R's
-random number generator into the state saved after the previous assignment, assigns
-the new patient, saves the generator's new state with the design, appends a line to
-the log, and writes the file back. `record_outcome()` does the same for an outcome;
-it draws no random numbers. Both put the session's own random number stream back the
-way they found it, so other work in the same R session neither affects the trial nor
-is affected by it.
+Two small functions do all the bookkeeping. `enroll()` loads the trial, assigns the
+new patient, appends a line to the log, and writes the file back. `record_outcome()`
+does the same for an outcome. Neither touches R's random number generator: the
+seeded design draws each assignment from its own seed and leaves the session's
+stream as it found it, so other work in the same R session neither affects the trial
+nor is affected by it.
 
 ```{r enroll-functions}
-with_trial_rng = function(state, expr) {
-  session_rng = get0(".Random.seed", envir = globalenv(), inherits = FALSE)
-  on.exit(if (!is.null(session_rng)) assign(".Random.seed", session_rng, envir = globalenv()))
-  assign(".Random.seed", state$rng, envir = globalenv())
-  value = expr                                   # lazy: evaluated here, under the trial's stream
-  list(value = value, rng = get(".Random.seed", envir = globalenv()))
-}
-
 log_event = function(state, time, event, subject, value) {
   state$log = rbind(state$log, data.frame(time = time, event = event,
                                           subject = subject, value = value))
@@ -177,11 +170,10 @@ log_event = function(state, time, event, subject, value) {
 
 enroll = function(file, x_new, time) {
   state = readRDS(file)
-  res = with_trial_rng(state, state$design$add_one_subject_to_experiment_and_assign(x_new))
-  state$rng = res$rng
-  state = log_event(state, time, "assign", state$design$get_t(), res$value)
+  w = state$design$add_one_subject_to_experiment_and_assign(x_new)
+  state = log_event(state, time, "assign", state$design$get_t(), w)
   save_trial(state, file)
-  res$value
+  w
 }
 
 record_outcome = function(file, subject, y, time) {
@@ -220,10 +212,10 @@ coincide.
 
 ## Saving and restoring is exact
 
-Because the generator state travels with the design, stopping and restarting the
-trial makes no difference to the allocation. To check, rerun the same events in a
-single session, holding the design in memory and never saving it, with nothing else
-using the random number generator in between:
+Because each assignment is seeded from the trial's seed and the subject's enrollment
+number, stopping and restarting the trial makes no difference to the allocation. To
+check, rerun the same events in a single session, holding the design in memory and
+never saving it:
 
 ```{r uninterrupted}
 uninterrupted = function(events, seed, skip_outcomes = integer(0)) {
@@ -245,11 +237,9 @@ c(same_assignments = identical(des_mem$get_w(), state$design$get_w()),
 
 Both runs give the same 60 assignments and the same pairs.
 
-Saving the design object alone is not enough. `readRDS()` restores the design but not
-R's random number stream, and EDI does not set the seed again after a reload: it draws
-from whatever state the generator is in. Here is the same trial with the design kept
-in memory but with the session's other work (the `runif()` calls) sharing the
-generator, as happens when the generator state is not saved and restored:
+Nor does the session's other work matter. Here is the same trial with the design kept
+in memory and the `runif()` calls sharing R's random number generator between
+assignments:
 
 ```{r shared-stream}
 d_shared = DesignSeqOneByOneKK21$new(response_type = "continuous", n = n, seed = trial_seed)
@@ -265,9 +255,11 @@ for (e in seq_len(nrow(events))) {
 sum(d_shared$get_w() != state$design$get_w())    # assignments that differ
 ```
 
-That allocation is just as valid a draw from the design, so the trial's validity does
-not depend on any of this. What is lost is the ability to show afterwards that the
-allocation is the one the seed produces.
+None differ. This needs the seed: with `seed = NULL` the design draws from the
+session's stream, and the other work in the session would change the assignments
+that follow it. That allocation would be just as valid a draw from the design, so the
+trial's validity does not depend on the seed. What is lost without one is the ability
+to show afterwards that the allocation is the one the seed produces.
 
 The design records the EDI version it was created under. If a design saved under one
 major version of EDI is reloaded under another, the first assignment after the reload
@@ -359,7 +351,7 @@ as they were entered, and the EDI and R versions, this log is enough for anyone 
 reproduce the allocation. The replay below starts a fresh design with the same seed
 and walks through the log, entering each enrollment and each logged outcome in the
 recorded order, and checks every assignment against the log as it goes. Nothing in the
-replay depends on the trial file or on the generator states it stored.
+replay depends on the trial file.
 
 ```{r replay}
 replay = function(log, X, seed) {
@@ -482,12 +474,11 @@ Before the first subject:
 
 1. Fix the design class and its arguments, `n`, the response type, the covariate list
    and the seed in the protocol, and record the EDI and R versions.
-2. Create the design and save it, together with `.Random.seed`, to a backed-up file.
+2. Create the design with its `seed` and save it to a backed-up file.
 
 For each arrival:
 
-3. Load the trial file, restore the saved generator state, call
-   `add_one_subject_to_experiment_and_assign()`, save the new generator state, log the
+3. Load the trial file, call `add_one_subject_to_experiment_and_assign()`, log the
    event with its time, and write the file back.
 
 For each outcome:

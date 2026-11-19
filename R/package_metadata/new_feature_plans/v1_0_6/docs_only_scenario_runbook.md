@@ -286,3 +286,7 @@ $100-200, spread over three weeks by the 8-area cap; a typical week with a few c
 a week with no relevant change costs nothing beyond a 1-minute plan job. Wall time: about 45-60 minutes for
 the EDI build (two compiles plus the vignettes), then the agents in waves of 4 (8 areas: about 3 hours).
 
+**CI settings (owner, 2026-11-18):** weekly (Saturday 01:07 UTC), Claude Opus 5.5 at effort `high`, at most $30 and 80
+minutes per area, at most 8 areas per run. An area runs when something relevant changed since its last successful run,
+and in any case every 42 days, so its learnings keep going deeper. Order within the cap: never run, then changed, then
+periodic re-runs.

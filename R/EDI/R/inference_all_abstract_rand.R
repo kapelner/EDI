@@ -41,6 +41,17 @@ rand_tail_counts = function(t0s, t){
 	c(ge = sum(t0s >= t - tol), le = sum(t0s <= t + tol))
 }
 
+# v1.0.6-TODO-136: a randomization CI search evaluates the p-value once per delta, so the
+# p-value's NA warning would repeat for every evaluation. The CI searches run their p-value
+# calls through this, which drops only those p-value warnings (other warnings pass through);
+# the CI then reports its own NA once.
+EDI_RAND_PVAL_NA_PROCEDURES = c("randomization p-value", "randomization-bootstrap p-value")
+edi_muffle_rand_pval_na_warnings = function(expr){
+	withCallingHandlers(expr, edi_procedure_na_warning = function(w){
+		if (isTRUE(w$procedure %in% EDI_RAND_PVAL_NA_PROCEDURES)) invokeRestart("muffleWarning")
+	})
+}
+
 #' Randomization-based Inference
 #'
 #' Abstract class for randomization-based inference.
@@ -356,7 +367,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite
 		#'   reference statistics are required (10\% of the draws, and never fewer than
 		#'   10), otherwise \code{NA} is returned.
-		#'   A nonzero \code{delta} is not supported for incidence responses.
+		#'   A nonzero \code{delta} is not supported for incidence responses. \code{delta}
+		#'   is a shift of the responses, not a value of the estimand: \code{delta = 0} is the
+		#'   sharp null of no effect for every class, including ratio estimands (risk ratio
+		#'   1, log risk ratio 0).
 		#' @return 	Randomization p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
@@ -850,12 +864,20 @@ InferenceRand = R6::R6Class("InferenceRand",
 				)
 			), use.names = FALSE))
 		},
-		compute_two_sided_randomization_pval_from_t0s = function(t0s, t, alternative = "two.sided"){
+		compute_two_sided_randomization_pval_from_t0s = function(t0s, t, alternative = "two.sided", procedure = "randomization p-value"){
 			na_t0s = !is.finite(t0s)
 			nsim_adj = sum(!na_t0s)
 			min_required = max(10L, as.integer(length(t0s) * 0.10))
 			if (nsim_adj < min_required) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
+				# v1.0.6-TODO-136: warn instead of a silent NA. Silent inside resampling
+				# (edi_warn_procedure_na()); the CI searches, which call this once per
+				# delta, muffle it (edi_muffle_rand_pval_na_warnings()) and report their own failure.
+				edi_warn_procedure_na(self, private, procedure = procedure,
+					reason = "randomization_too_few_finite_estimates",
+					detail = paste0("Only ", nsim_adj, " of ", length(t0s), " null-distribution draws gave a finite ",
+						"statistic; at least ", min_required, " are needed. The estimator fails on many re-randomized ",
+						"assignments of this data; try a more stable estimator or more draws."))
 				return(NA_real_)
 			}
 			tails = rand_tail_counts(t0s, t)
@@ -890,10 +912,13 @@ InferenceRand = R6::R6Class("InferenceRand",
 				permutations[indices]
 			}
 		},
-		get_randomization_distribution_prefix = function(r, delta, transform_responses, show_progress, permutations, cache_key, batch_size = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		get_randomization_distribution_prefix = function(r, delta, transform_responses, show_progress, permutations, cache_key, batch_size = NULL, zero_one_logit_clamp = .Machine$double.eps, keep_nonfinite_cache = FALSE){
 			private$ensure_resampling_distribution_cache("rand")
 			cached = if (!is.null(cache_key)) private$get_cached_resampling_distribution("rand", cache_key) else NULL
-			if (length(cached) > 0L && !any(is.finite(cached))) {
+			# v1.0.6-TODO-166: the sequential-MC loop resumes from its own earlier
+			# batches, which can all be non-finite; dropping them here would redraw
+			# the same first batch forever (fixed permutations) or silently discard it.
+			if (!isTRUE(keep_nonfinite_cache) && length(cached) > 0L && !any(is.finite(cached))) {
 				cached = NULL
 				if (!is.null(cache_key)) private$set_cached_resampling_distribution("rand", cache_key, NULL)
 			}
@@ -936,6 +961,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# decrements without disturbing it.
 			private$begin_rand_worker_reuse_session()
 			on.exit(private$end_rand_worker_reuse_session(), add = TRUE)
+			r_int = as.integer(r)
+			first_batch = TRUE
 			repeat {
 				t0s = private$get_randomization_distribution_prefix(
 					r = r,
@@ -945,21 +972,24 @@ InferenceRand = R6::R6Class("InferenceRand",
 					permutations = permutations,
 					cache_key = cache_key,
 					batch_size = batch_size,
-					zero_one_logit_clamp = zero_one_logit_clamp
+					zero_one_logit_clamp = zero_one_logit_clamp,
+					keep_nonfinite_cache = !first_batch
 				)
-				n_valid = sum(is.finite(t0s))
-				if (length(t0s) >= as.integer(r)) {
+				first_batch = FALSE
+				if (length(t0s) >= r_int) {
 					private$cache_additive_delta_shift_distribution(
 						t0s, r, delta, transform_responses, permutations
 					)
+					return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t))
 				}
+				# v1.0.6-TODO-166: a prefix with too few finite draws is not a final
+				# answer; draw the next batch (the full r draws may have enough). Check
+				# the finite-draw minimum of compute_two_sided_randomization_pval_from_t0s()
+				# here so a short prefix neither warns nor records a hardened failure.
+				n_valid = sum(is.finite(t0s))
+				if (n_valid < min_draws || n_valid < max(10L, as.integer(length(t0s) * 0.10))) next
 				p_hat = private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
-				if (length(t0s) >= as.integer(r) || n_valid < min_draws || !is.finite(p_hat)) {
-					if (length(t0s) >= as.integer(r) || !is.finite(p_hat)) return(p_hat)
-				} else {
-					if (private$sequential_mc_band_excludes_threshold(t0s, t, threshold, conf_level)) return(p_hat)
-				}
-				if (length(t0s) >= as.integer(r)) return(p_hat)
+				if (is.finite(p_hat) && private$sequential_mc_band_excludes_threshold(t0s, t, threshold, conf_level)) return(p_hat)
 			}
 		},
 		# TODO-112: the seed that governs randomization draws. The inference

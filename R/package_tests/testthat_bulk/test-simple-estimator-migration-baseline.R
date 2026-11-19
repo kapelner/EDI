@@ -44,12 +44,25 @@ simple_estimator_expected_classes = c(
 # 2026-11-16: +1 private method on every class for rand_likelihood_is_nonconcave()
 # (rand warm-start chaining gated on likelihood_concave; release_v1_0_6.md TODO-30):
 # private owners 328/331/339/312/325.
+# 2026-11-18 (abd7e49d, v1.0.6 fixes): +8 private owners on every class -- the
+# helpers warn_hardened_column_drop (v1.0.6-TODO-138), randomization_null_censoring_bounds
+# and rand_bootstrap_null_censoring_bounds (v1.0.6-TODO-143), bootstrap_estimand_on_link_scale,
+# bootstrap_link_scale_ci_plausible, jackknife_full_fit_is_separated, plus their supporting
+# private fields. Private owners 336/339/347/320/333 at the committed source.
+# 2026-11-19 (v1.0.6-TODO-176): +4 private owners on every class for the
+# perfect_predictor_* fields (dropped/full_X/n_recorded/state) added by v1.0.6-TODO-158.
+# Re-confirmed via EDI:::simple_estimator_behavior_manifest() against a HEAD copy: these four
+# names are the only difference. Private owners 340/343/351/324/337.
+# 2026-11-19 (same re-pin): +2 more private owners on every class for
+# bootstrap_estimand_is_raw_ratio and bootstrap_ci_estimates_extreme
+# (NonparametricBootstrap, v1.0.6-TODO-160/175 work, uncommitted when pinned).
+# Re-confirmed via the manifest: private owners 342/345/353/326/339.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 328L,
+		private_owner_count = 342L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -62,7 +75,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 331L,
+		private_owner_count = 345L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -75,7 +88,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 339L,
+		private_owner_count = 353L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -89,7 +102,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 312L,
+		private_owner_count = 326L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -101,7 +114,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 325L,
+		private_owner_count = 339L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

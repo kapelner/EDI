@@ -175,7 +175,7 @@ sandwich variance calculation.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
+      \item{\code{delta}}{Numeric. Null value of the log risk ratio (default 0, i.e. risk ratio 1).}
     }
     \if{html}{\out{</div>}}
   }

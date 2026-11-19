@@ -25,7 +25,6 @@ des$assign_w_to_all_subjects()
     \item \href{#method-DesignFixed-assign_w_to_all_subjects}{\code{DesignFixed$assign_w_to_all_subjects()}}
     \item \href{#method-DesignFixed-add_all_subjects_to_experiment}{\code{DesignFixed$add_all_subjects_to_experiment()}}
     \item \href{#method-DesignFixed-add_all_subject_responses}{\code{DesignFixed$add_all_subject_responses()}}
-    \item \href{#method-DesignFixed-overwrite_all_subject_assignments}{\code{DesignFixed$overwrite_all_subject_assignments()}}
     \item \href{#method-DesignFixed-clone}{\code{DesignFixed$clone()}}
   }
 }
@@ -70,6 +69,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-is_blocking_design'><code>Design$is_blocking_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_matching_design'><code>Design$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
@@ -196,25 +196,6 @@ error otherwise -- see individual class docs).}
 subject with an exact response in \code{ys}. Right-censored:
 \code{Inf}. Left-/interval-censored: the confirmed-by time /
 interval upper bound.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DesignFixed-overwrite_all_subject_assignments"></a>}}
-\if{latex}{\out{\hypertarget{method-DesignFixed-overwrite_all_subject_assignments}{}}}
-\subsection{\code{DesignFixed$overwrite_all_subject_assignments()}}{
-  Overwrite all subject assignments for a fixed design.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixed$overwrite_all_subject_assignments(w)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{w}}{A \{0,1\} vector of subject assignments (1 = treated, 0 = control).}
     }
     \if{html}{\out{</div>}}
   }

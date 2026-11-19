@@ -437,7 +437,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						X_cov_all = private$get_X()
 					} else {
 						X_imp = private$des_obj$get_X_imp()
-						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else create_model_matrix_from_features(model_formula, X_imp)
+						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
 					}
 					private$za_Xzi_cov_all = X_cov_all
 				} else {
@@ -449,7 +449,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						X_cov_all = private$get_X()
 					} else {
 						X_imp = private$des_obj$get_X_imp()
-						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else create_model_matrix_from_features(model_formula, X_imp)
+						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
 					}
 					private$za_X_cov_all = X_cov_all
 				} else {

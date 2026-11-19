@@ -119,9 +119,10 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 		#' @param use_rcpp Logical. If \code{TRUE} (default), use our internal Rcpp
 		#'   implementation. If \code{FALSE}, use \pkg{glmmTMB}.
 		#' @param verbose Whether to print progress messages.
+		#' @param smart_cold_start_default   Whether to use smart cold start values.
 		#' @param optimization_alg Optimization algorithm. Default is dispatched via policy.
-		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, optimization_alg = NULL){
-			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, optimization_alg = optimization_alg)
+		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL, optimization_alg = NULL){
+			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, smart_cold_start_default = smart_cold_start_default, optimization_alg = optimization_alg)
 		},
 		#' @description Fits the zero-inflated Poisson model. Under the default
 		#'   \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
@@ -340,9 +341,10 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		#' @param use_rcpp Logical. If \code{TRUE} (default), use our internal Rcpp
 		#'   implementation. If \code{FALSE}, use \pkg{glmmTMB}.
 		#' @param verbose Whether to print progress messages.
+		#' @param smart_cold_start_default   Whether to use smart cold start values.
 		#' @param optimization_alg Optimization algorithm. Default is dispatched via policy.
-		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, optimization_alg = NULL){
-			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, optimization_alg = optimization_alg)
+		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL, optimization_alg = NULL){
+			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, smart_cold_start_default = smart_cold_start_default, optimization_alg = optimization_alg)
 		},
 		#' @description Fits the zero-inflated negative binomial model and returns
 		#'   \eqn{\hat\beta_T}, the treatment log-rate coefficient from the

@@ -22,7 +22,10 @@ For survival outcomes with left- or interval-censoring, a nonzero
   the number of finite ones. At least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite
   reference statistics are required (10\% of the draws, and never fewer than
   10), otherwise \code{NA} is returned.
-  A nonzero \code{delta} is not supported for incidence responses.
+  A nonzero \code{delta} is not supported for incidence responses. \code{delta}
+  is a shift of the responses, not a value of the estimand: \code{delta = 0} is the
+  sharp null of no effect for every class, including ratio estimands (risk ratio
+  1, log risk ratio 0).
 }
 \keyword{internal}
 \section{Super classes}{

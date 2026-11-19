@@ -10,6 +10,31 @@ This class takes a completed \code{Design} object as an input where this object
 contains data for a fully completed experiment (i.e. all treatment
 assignments were allocated and all responses were collected).
 }
+\section{Perfect predictors among the covariates}{
+
+At construction (or, if too few responses are recorded yet, lazily at the first
+fit) the object checks whether the response, on a scale suited to its type, is an
+exact linear function of the treatment and the covariates: \code{y} (continuous),
+\code{log y} over exact event times with every censored time's interval containing
+the fitted time (survival), \code{logit(y)} over interior values (proportion),
+\code{y} or \code{log1p(y)} (count), the 0/1 response (incidence) or the category
+codes (ordinal). The check is a least-squares residual check (residual sum of
+squares about 0 relative to the total), skipped when there are fewer than 5
+residual degrees of freedom. An exact fit on the treatment alone is a real
+treatment effect and is left alone. Otherwise the smallest set of covariate
+columns whose removal breaks the exact fit is dropped from the covariates this
+object uses (the treatment is never dropped; with several smallest sets, their
+union is dropped), and one warning of class \code{edi_perfect_predictor_warning}
+(fields \code{dropped}, \code{scales}) names them: in a randomized experiment this
+almost always means leakage (the outcome, or a variable measured after treatment,
+among the covariates). Every later estimate, interval, test and resampling
+replicate uses the reduced covariates. Only linear relations on that scale are
+caught. Separation (some combination of treatment and covariates splitting the
+outcomes) can happen by chance, so it is never handled here: classes warn about it
+but keep the covariates. Classes whose fit does not use the covariates skip the
+check.
+}
+
 \keyword{internal}
 \section{Active bindings}{
   \if{html}{\out{<div class="r6-active-bindings">}}

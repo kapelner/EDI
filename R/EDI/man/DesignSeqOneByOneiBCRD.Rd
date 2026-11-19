@@ -62,6 +62,7 @@ Rosenberger, W. F., and Lachin, J. M. (2016). \emph{Randomization in
 \if{html}{\out{<details><summary>+ inherited public methods from DesignSeqOneByOne</summary>
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-draw_ws_according_to_design'><code>DesignSeqOneByOne$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
 </ul>
 </details>
@@ -77,7 +78,6 @@ Rosenberger, W. F., and Lachin, J. M. (2016). \emph{Randomization in
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>

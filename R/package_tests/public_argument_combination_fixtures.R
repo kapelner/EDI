@@ -531,9 +531,9 @@ build_data_shape_fixture = function(fixture_id) {
 			design$add_one_subject_to_experiment_and_assign(covariates[i, , drop = FALSE])
 		}
 		w = as.numeric(design$get_w())
-		# Responses in enrollment order (out-of-order responses with n = NULL are v1.0.6-TODO-78's
-		# own bug; keeping order isolates the n = NULL analysis path).
-		for (i in seq_len(n_responded)) {
+		# With n = NULL the responses arrive in reverse enrollment order, which exercises
+		# out-of-order responses (v1.0.6-TODO-78); the stored data are the same either way.
+		for (i in if (n_null) rev(seq_len(n_responded)) else seq_len(n_responded)) {
 			r = data_shape_response_one(cell, i, w[i], covariates$x1[i], noise)
 			responses[[i]] = r
 			if (!is.na(r$y)) design$add_one_subject_response(i, y = r$y) else design$add_one_subject_response(i, y_L = r$y_L, y_R = r$y_R)

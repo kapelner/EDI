@@ -74,26 +74,34 @@ routine upgrade. Objects saved before this field existed self-initialize
 it to the currently loaded version the first time it is read, rather than
 erroring on the missing field.
 
-\strong{Randomization inference and the seed.} A seeded design's
-\code{draw_ws_according_to_design()} calls \code{maybe_set_seed()}, i.e.
-\code{set.seed()} on the global RNG, and does not restore the caller's
-stream. Randomization p-values/CIs draw their permutations from a
-\code{duplicate()} (which has no seed) under the inference object's
-\code{set_seed()}, falling back to this design's \code{seed}, inside a
-\code{.Random.seed} save/restore; see
-\code{Inference$set_seed()} and \code{clear_randomization_cache()}.
+\strong{What \code{seed} guarantees.} A fixed design applies the seed with
+\code{set.seed()} on the global RNG at the start of every draw
+(\code{assign_w_to_all_subjects()}, \code{draw_ws_according_to_design()}),
+so the same seed always gives the same allocation and a repeated call
+repeats the first draw (the caller's stream is not restored). A sequential
+design (v1.0.6) seeds each assignment from (\code{seed}, the subject's index
+\code{t}) and runs it with the session's \code{.Random.seed} saved and
+restored; its \code{draw_ws_according_to_design()} likewise runs under a seed
+derived from (\code{seed}, \code{"redraw"}). Its allocation therefore depends
+only on the seed and the subjects' data (and, for KK21, the responses recorded
+so far): random numbers used between assignments do not change it, and the
+caller's stream is untouched. With \code{seed = NULL} a sequential design
+draws every assignment from the session's stream.
 
-\strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
-once per call, inside \code{maybe_set_seed()} (at construction for sequential designs, on each draw for fixed ones), and is
-\emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
-after a reload therefore draws from whatever the global
-\code{.Random.seed} happens to be in the new session, not a deterministic
-continuation of the original stream. This is almost certainly the right
-behavior for a real trial (bit-for-bit-reproducible continuation across a
-process restart is not a property a production trial should have), but it
-means a same-seed reload-and-continue is \emph{not} expected to reproduce
-the same draws as an uninterrupted run with that seed -- do not rely on
-that for testing.
+\strong{Randomization inference and the seed.} Randomization p-values/CIs
+draw their permutations from a \code{duplicate()} (which has no seed) under
+the inference object's \code{set_seed()}, falling back to this design's
+\code{seed}, inside a \code{.Random.seed} save/restore, for fixed and
+sequential designs alike; see \code{Inference$set_seed()} and
+\code{clear_randomization_cache()}.
+
+\strong{Save and reload.} A seeded sequential design saved with
+\code{saveRDS()} keeps its seed, so after \code{readRDS()} the next
+assignments are exactly those of an uninterrupted run, with no user code.
+A sequential design with \code{seed = NULL} draws from whatever the global
+\code{.Random.seed} is in the new session; to continue such a trial exactly,
+save \code{.Random.seed} with the design and assign it back to the global
+environment before the next assignment; see \code{vignette("reproducibility")}.
 
 \strong{Known non-serializable case.} A \code{DesignFixedOptimal}
 constructed with \code{objective = "custom"} from a raw

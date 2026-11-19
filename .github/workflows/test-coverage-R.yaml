@@ -370,3 +370,15 @@ jobs:
         with:
           name: coverage-merged
           path: coverage-artifacts/merged-coverage.rds
+      # One CSV row per covr expression (R and gcov C++ lines), read by the weekly untested-code
+      # audit (.github/scripts/audits/untested_code.py) with the Python standard library.
+      - name: Export line-level coverage for the untested-code audit
+        id: export_lines
+        if: always() && hashFiles('coverage-artifacts/merged-coverage.rds') != ''
+        continue-on-error: true
+        run: Rscript .github/scripts/audits/untested_code_export.R coverage-artifacts/merged-coverage.rds coverage-artifacts/coverage-lines.csv
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.export_lines.outcome == 'success'
+        with:
+          name: coverage-lines
+          path: coverage-artifacts/coverage-lines.csv

@@ -76,14 +76,22 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (weights_are_effectively_constant(row_weights)) {
 				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
 				if (is.finite(beta_hat_T)) {
+					# v1.0.6-TODO-149: constant weights are the unweighted fit, so its SE is this
+					# draw's SE. Reuse a cached full-fit SE only (no refit here).
+					se_const = if (isTRUE(estimate_only)) NA_real_ else
+						suppressWarnings(as.numeric(private$cached_values$s_beta_hat_T %||% NA_real_)[1L])
 					private$cached_values$beta_hat_T = beta_hat_T
-					private$cached_values$s_beta_hat_T = NA_real_
+					private$cached_values$s_beta_hat_T = if (length(se_const) == 1L && is.finite(se_const) && se_const > 0) se_const else NA_real_
 					private$cached_values$gcomp_standardized_effects_inference_ready = FALSE
 					return(private$cached_values$beta_hat_T)
 				}
 			}
-			private$cached_values$beta_hat_T = private$compute_weighted_gcomp_estimate(row_weights)
-			private$cached_values$s_beta_hat_T = NA_real_
+			est_w = private$compute_weighted_gcomp_estimate(row_weights, with_se = !isTRUE(estimate_only))
+			se_w = suppressWarnings(as.numeric(attr(est_w, "se", exact = TRUE) %||% NA_real_)[1L])
+			private$cached_values$beta_hat_T = as.numeric(est_w)[1L]
+			# v1.0.6-TODO-149: the Bayesian-bootstrap studentized path reads this draw's SE
+			# (last_weighted_refit$s_beta_hat_T); weighted KK-pair cluster sandwich SE.
+			private$cached_values$s_beta_hat_T = if (length(se_w) == 1L && is.finite(se_w) && se_w > 0) se_w else NA_real_
 			private$cached_values$gcomp_standardized_effects_inference_ready = FALSE
 			private$cached_values$beta_hat_T
 		},
@@ -104,7 +112,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#'   the standardized risk difference or risk ratio using the cluster-robust
 		#'   delta-method standard error. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta The null treatment effect (default 0).
+		#' @param delta The null treatment effect on the estimand's own scale. Defaults to 0 for RD and 1 for RR.
 		compute_asymp_two_sided_pval = function(delta = NULL){
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_pvalue(delta)
@@ -138,7 +146,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		#' @description Compute bootstrap two sided pval
-		#' @param delta The null treatment effect (default 0).
+		#' @param delta The null treatment effect on the estimand's own scale. Defaults to 0 for RD and 1 for RR.
 		#' @param B The number of bootstrap samples (default 501).
 		#' @param type Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates. Default
@@ -277,8 +285,17 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bootstrap_too_few_finite_estimates", stage = "estimate"))
 			}
+			# v1.0.6-TODO-175 (3): the same replicate and interval checks as the other bootstrap
+			# CI types (both judge a risk ratio on log(RR)); before, a degenerate basic interval
+			# such as [1.4e-8, 20] or [0.04, 7.6e7] was returned silently.
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
+				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_finite_estimates", stage = "estimate"))
+			}
 			q = stats::quantile(log(boot_distr), probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
 			ci[] = exp(2 * log(est) - q)
+			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
+				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_confidence_interval", stage = "estimate"))
+			}
 			ci
 		},
 		compute_rr_bayesian_bootstrap_log_confidence_interval = function(alpha = 0.05, B = 501, type = "basic", na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
@@ -297,6 +314,10 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
 			}
+			# v1.0.6-TODO-175 (3): same checks as the generic Bayesian-bootstrap CI types.
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
+				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
+			}
 			log_boot = log(boot_distr)
 			if (identical(type, "wald")) {
 				se_log = stats::sd(log_boot)
@@ -307,54 +328,23 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				q = stats::quantile(log_boot, probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
 				ci[] = exp(2 * log(est) - q)
 			}
+			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
+				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval",
+					stage = if (identical(type, "wald")) "se" else "estimate"))
+			}
 			ci
 		},
+		# v1.0.6-TODO-137: shared with the KK/non-KK sibling; the helpers in
+		# inference_all_abstract_jackknife.R apply the compute_jackknife_summary()
+		# guards and warn on every NA.
 		compute_rr_jackknife_log_se = function(unit = "auto"){
-			unit = private$normalize_jackknife_unit(unit)
-			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
-			private$assert_jackknife_supported(unit = unit)
-			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
-			jack = jack[is.finite(jack) & jack > 0]
-			n_units = length(jack)
-			if (n_units <= 1L) {
-				edi_record_procedure_failure(self, private, "jackknife_too_few_positive_risk_ratio_estimates", "se")
-				return(NA_real_)
-			}
-			log_jack = log(jack)
-			var_j = ((n_units - 1) / n_units) * sum((log_jack - mean(log_jack))^2)
-			if (!is.finite(var_j) || var_j <= 0) {
-				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_standard_error_unavailable", "se")
-				return(NA_real_)
-			}
-			sqrt(var_j)
+			edi_rr_jackknife_log_summary(self, private, unit = unit)$se_log
 		},
 		compute_rr_jackknife_wald_two_sided_pval = function(delta = 1, unit = "auto"){
-			if (!is.finite(delta) || delta <= 0) {
-				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_null_unavailable", "se")
-				return(NA_real_)
-			}
-			est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				private$cache_nonestimable_estimate("jackknife_original_risk_ratio_unavailable")
-				return(NA_real_)
-			}
-			se_log = private$compute_rr_jackknife_log_se(unit = unit)
-			if (!is.finite(se_log) || se_log <= 0) return(NA_real_)
-			2 * stats::pnorm(-abs((log(est) - log(delta)) / se_log))
+			edi_rr_jackknife_wald_two_sided_pval(self, private, delta = delta, unit = unit)
 		},
 		compute_rr_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				private$cache_nonestimable_estimate("jackknife_original_risk_ratio_unavailable")
-				return(ci)
-			}
-			se_log = private$compute_rr_jackknife_log_se(unit = unit)
-			if (!is.finite(se_log) || se_log <= 0) return(ci)
-			z = stats::qnorm(1 - alpha / 2)
-			ci[] = exp(log(est) + c(-1, 1) * z * se_log)
-			ci
+			edi_rr_jackknife_wald_confidence_interval(self, private, alpha = alpha, unit = unit)
 		},
 		# Log-scale PRW subsampling/m-out-of-n pivot for the risk-ratio estimand,
 		# mirroring compute_rr_bootstrap_basic_confidence_interval()'s log-scale
@@ -460,7 +450,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			}
 			ci
 		},
-		compute_weighted_gcomp_estimate = function(row_weights){
+		compute_weighted_gcomp_estimate = function(row_weights, with_se = FALSE){
 			X = private$build_design_matrix()
 			if (is.null(X)) return(NA_real_)
 			X = as.matrix(X)
@@ -505,9 +495,29 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			risk1 = mean(stats::plogis(as.numeric(X1 %*% coef_hat)))
 			risk0 = mean(stats::plogis(as.numeric(X0 %*% coef_hat)))
 			if (!is.finite(risk1) || !is.finite(risk0)) return(NA_real_)
-			if (identical(private$get_estimand_type(), "RD")) return(risk1 - risk0)
-			if (risk1 > 0 && risk0 > 0) return(risk1 / risk0)
-			NA_real_
+			is_rd = identical(private$get_estimand_type(), "RD")
+			est = if (is_rd) risk1 - risk0 else if (risk1 > 0 && risk0 > 0) risk1 / risk0 else NA_real_
+			if (isTRUE(with_se) && is.finite(est)) {
+				# v1.0.6-TODO-149: delta-method SE through the weighted KK-pair cluster
+				# sandwich (gcomp_weighted_logistic_cluster_sandwich_vcov(); unit weights
+				# reproduce the unweighted cluster-robust SE).
+				attr(est, "se") = NA_real_
+				cluster_id = tryCatch(private$get_cluster_ids(), error = function(e) NULL)
+				if (!is.null(cluster_id) && length(cluster_id) == length(ok)) {
+					names(coef_hat) = colnames(X_fit)
+					vcov_w = gcomp_weighted_logistic_cluster_sandwich_vcov(X_fit, y_fit, coef_hat, w_fit,
+						cluster_id[ok])
+					if (!is.null(vcov_w)) {
+						eff_w = tryCatch(private$compute_standardized_effects_r(list(
+							X = X_fit, coefficients = coef_hat, vcov = vcov_w, j_treat = 2L, estimate_only = FALSE
+						)), error = function(e) NULL)
+						se_w = if (is.null(eff_w)) NA_real_ else if (is_rd) eff_w$se_rd else est * eff_w$se_log_rr
+						se_w = suppressWarnings(as.numeric(se_w)[1L])
+						if (length(se_w) == 1L && is.finite(se_w) && se_w > 0) attr(est, "se") = se_w
+					}
+				}
+			}
+			est
 		},
 		set_failed_fit_cache = function(inference_ready = TRUE){
 			private$cached_values = gcomp_cache_failed_standardized_effects(
@@ -819,6 +829,14 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				effects,
 				inference_ready = !estimate_only
 			)
+			# v1.0.6-TODO-151: the studentized BRT reads beta_hat_T next to s_beta_hat_T; without it
+			# every null statistic was NA (as in inference_incidence_gcomp_abstract.R's shared()).
+			private$cached_values$beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$rd else effects$rr
+			# v1.0.6-TODO-149: the generic studentized bootstrap reads s_beta_hat_T (replicate
+			# and original SEs); mirror get_standard_error()'s value. Full fits only.
+			if (!estimate_only) {
+				private$cached_values$s_beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$se_rd else effects$rr * effects$se_log_rr
+			}
 		}
 	)
 )

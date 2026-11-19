@@ -515,12 +515,36 @@ InferencePropGCompMeanDiff = define_inference_class(
 			worker_state$runtime$sample_usable = usable
 			list(sample_usable = usable, X_full = X_full_b, y = y_b)
 		},
+		# Fits on the worker's CURRENT (w, y), not the snapshot that
+		# load_bootstrap_sample_into_worker() took. The bootstrap randomization
+		# test (rand_bootstrap contract) reuses this estimator, and its loader
+		# replaces the worker's w with a fresh design draw and y with the
+		# sharp-null responses after the row snapshot was taken. Reading the
+		# snapshot fit the observed treatment column and observed y, so every
+		# BRT "null" draw was an ordinary bootstrap replicate centered at the
+		# estimate (p ~ 0.9 at z ~ 4; v1.0.6-TODO-150). On the plain bootstrap
+		# path the current (w, y) equal the snapshot, so results are unchanged.
 		compute_bootstrap_worker_estimate = function(worker_state){
-			if (!isTRUE(worker_state$runtime$sample_usable)) return(NA_real_)
-			worker_state$worker_priv$bootstrap_effect_from_sample(
-				worker_state$runtime$current_X_full,
-				worker_state$runtime$current_y
-			)
+			X_full_b = worker_state$runtime$current_X_full
+			if (is.null(X_full_b)) return(NA_real_)
+			w_b = as.numeric(worker_state$worker_priv$w)
+			y_b = as.numeric(worker_state$worker_priv$y)
+			if (length(w_b) != nrow(X_full_b) || length(y_b) != nrow(X_full_b)) return(NA_real_)
+			usable = isTRUE(worker_state$runtime$sample_usable)
+			if (!identical(y_b, as.numeric(worker_state$runtime$current_y)) ||
+			    !identical(w_b, as.numeric(X_full_b[, 2L]))) {
+				X_full_b[, 2L] = w_b
+				ctrl = worker_state$screening
+				usable = if (!is.null(ctrl)) {
+					private$bootstrap_sample_is_usable(w_b, y_b,
+						boundary_tol = ctrl$boundary_tol, max_boundary_mass = ctrl$max_boundary_mass,
+						sep_tol = ctrl$sep_tol, min_group_n = ctrl$min_group_n)
+				} else {
+					private$bootstrap_sample_is_usable(w_b, y_b)
+				}
+			}
+			if (!isTRUE(usable)) return(NA_real_)
+			worker_state$worker_priv$bootstrap_effect_from_sample(X_full_b, y_b)
 		},
 		# The generic default (inference_all_abstract_rand.R's
 		# compute_randomization_worker_estimate()) delegates to

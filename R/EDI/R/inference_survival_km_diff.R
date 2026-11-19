@@ -367,7 +367,9 @@ InferenceSurvivalKMDiff = define_inference_class(
 			}
 			msg = paste0(
 				class(self)[1L], ": the jackknife-Wald result is NA because ", why, ". ",
-				"Use compute_bootstrap_confidence_interval() / compute_bootstrap_two_sided_pval() instead. ",
+				if (is.finite(private$cached_values$beta_hat_T %||% NA_real_))
+					"Use compute_bootstrap_confidence_interval() / compute_bootstrap_two_sided_pval() instead. "
+				else "Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time) instead. ",
 				"Suppress with suppressWarnings(expr, classes = \"edi_km_jackknife_na_warning\")."
 			)
 			warning(structure(
@@ -377,12 +379,23 @@ InferenceSurvivalKMDiff = define_inference_class(
 			out
 		},
 		# The median-specific reason a jackknife-Wald result is NA, or NULL when there is none
-		# (finite result, inside resampling, NA median, no cached summary).
+		# (finite result, inside resampling, no cached summary).
 		km_jackknife_na_reason = function(out, unit){
 			if (any(is.finite(out))) return(NULL)
 			if (!is.null(private$active_resampling_operation)) return(NULL)
 			theta_hat = private$cached_values$beta_hat_T
-			if (is.null(theta_hat) || !is.finite(theta_hat)) return(NULL)
+			if (is.null(theta_hat)) return(NULL)
+			# v1.0.6-TODO-144: the full-data difference in medians is NA (a median is not
+			# reached; shared() raised edi_km_median_not_reached_warning on the first fit).
+			# Say so in median terms rather than the generic "estimate not available".
+			if (!is.finite(theta_hat)) {
+				return(paste0(
+					"the full-data difference in medians is NA (typically because a ",
+					if (isTRUE(private$has_general_censoring)) "Turnbull" else "Kaplan-Meier",
+					" survival curve never falls to 0.5, so its median is not reached; see the ",
+					"edi_km_median_not_reached_warning from the estimate)"
+				))
+			}
 			key = tryCatch(private$jackknife_cache_key(private$normalize_jackknife_unit(unit)), error = function(e) NULL)
 			s = if (is.null(key)) NULL else private$cached_values$jackknife_summary[[key]]
 			if (is.null(s)) return(NULL)
@@ -391,12 +404,27 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (any(!is.finite(jack))) {
 				return(paste0(
 					sum(!is.finite(jack)), " of ", length(jack), " leave-one-out estimates are NA ",
-					"(deleting a unit left an arm whose Kaplan-Meier curve never falls to 0.5, so its median is not reached)"
+					"(deleting a unit left an arm whose ",
+					if (isTRUE(private$has_general_censoring)) "Turnbull" else "Kaplan-Meier",
+					" curve never falls to 0.5, so its median is not reached)"
 				))
 			}
 			m = length(jack)
 			bias = (m - 1) * (mean(jack) - theta_hat)
 			se = sqrt((m - 1) / m * sum((jack - mean(jack))^2))
+			# v1.0.6-TODO-144: under interval censoring the Turnbull median is the midpoint of
+			# one Turnbull interval, so deleting one unit rarely moves it and the
+			# leave-one-out medians are often all equal (jackknife SE 0).
+			if (is.finite(se) && se <= 0) {
+				return(paste0(
+					"all ", m, " leave-one-out estimates (differences in medians) are equal (", format(signif(jack[1L], 4)), "), ",
+					"so the jackknife standard error is 0",
+					if (isTRUE(private$has_general_censoring)) paste0(
+						"; under interval censoring the Turnbull median is the midpoint of one Turnbull interval ",
+						"(e.g. between two visits), and deleting one unit rarely moves it to another"
+					) else ""
+				))
+			}
 			if (!is.finite(bias) || !is.finite(se) || abs(bias) <= 2 * se) return(NULL)
 			paste0(
 				"the jackknife bias estimate (", formatC(bias, digits = 3, format = "fg"), ") is more than twice the jackknife ",
@@ -439,6 +467,8 @@ InferenceSurvivalKMDiff = define_inference_class(
 				assert_interval_installed(class(self)[1L])
 				private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(private$y_L, private$y_R, private$w, "median", y = private$y)
 				private$cached_values$s_beta_hat_T = NA_real_
+				# v1.0.6-TODO-144: this branch returned before the not-reached warning below.
+				if (!is.finite(private$cached_values$beta_hat_T)) private$warn_km_median_not_reached_once()
 				return(invisible(NULL))
 			}
 
@@ -512,7 +542,22 @@ InferenceSurvivalKMDiff = define_inference_class(
 		# draws are counted by the resampling code, not warned one by one).
 		warn_km_median_not_reached_once = function(){
 			if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+			# v1.0.6-TODO-144: under left/interval censoring private$y is NA for every
+			# censored row, so describe each arm from its Turnbull NPMLE instead.
+			turnbull_arm_note = function(w_val, label){
+				iv = turnbull_effective_interval(private$y_L, private$y_R, private$y)
+				idx = which(private$w == w_val)
+				s = if (length(idx)) turnbull_npmle_group_lowest_survival(iv$y_L[idx], iv$y_R[idx]) else NULL
+				if (is.null(s)) return(paste0("the ", label, " arm has too few usable (y_L, y_R) intervals for a Turnbull estimate"))
+				if (s$min_surv <= 0.5 + sqrt(.Machine$double.eps)) return(NULL)
+				paste0(
+					"the ", label, " arm's Turnbull (NPMLE) survival curve never falls to 0.5 (lowest survival ",
+					format(signif(s$min_surv, 3)), "; ", s$n_events, " of ", s$n,
+					" subjects have an event time bracketed by a finite interval), so its median is not reached"
+				)
+			}
 			arm_note = function(w_val, label){
+				if (isTRUE(private$has_general_censoring)) return(turnbull_arm_note(w_val, label))
 				idx = which(private$w == w_val & is.finite(private$y))
 				if (!length(idx)) return(paste0("the ", label, " arm has no subjects with a usable response"))
 				dead = private$dead[idx]

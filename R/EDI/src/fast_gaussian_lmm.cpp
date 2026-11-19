@@ -70,7 +70,7 @@ struct LMMData {
 
         // Build group list; all obs in a matched pair share the same case weight
         const bool have_weights = ((int)obs_weights.size() == n);
-        int prev = -1, gi = 0;
+        int prev = -1;
         for (int i = 0; i < n; ++i) {
             int g = gid[ord[i]];
             if (g != prev) {
@@ -80,7 +80,6 @@ struct LMMData {
                 info.w     = have_weights ? obs_weights[ord[i]] : 1.0;
                 grps.push_back(info);
                 prev = g;
-                gi++;
             } else {
                 grps.back().size++;
                 // This model is a closed-form solution specific to KK-design

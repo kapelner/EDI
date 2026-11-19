@@ -52,6 +52,7 @@ Wei, L. J. (1977). "A class of designs for sequential clinical trials."
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-draw_ws_according_to_design'><code>DesignSeqOneByOne$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
 </ul>
 </details>
@@ -67,7 +68,6 @@ Wei, L. J. (1977). "A class of designs for sequential clinical trials."
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>

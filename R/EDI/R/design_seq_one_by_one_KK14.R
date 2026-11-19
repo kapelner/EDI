@@ -89,6 +89,8 @@ DesignSeqOneByOneKK14 = define_design_class(
 		#'   closer matches). See class documentation for the exact threshold formula.
 		#' @param t_0_pct The fraction of \code{n} subjects to randomize into the
 		#'   reservoir before matching begins (default 0.35).
+		#'  With \code{n = NULL} there is no planned sample size, so \code{t_0_pct} is not used: matching begins once the
+		#'   covariate model matrix exists (more than p + 2 subjects have arrived).
 		#' @param morrison Currently unused by this class's matching/assignment logic;
 		#'   reserved for future use.
 		#' @param p Currently unused by this class's matching/assignment logic;
@@ -219,7 +221,11 @@ DesignSeqOneByOneKK14 = define_design_class(
 			private$lambda
 		},
 		too_early_to_match = function(){
-			private$t <= private$t_0_pct * private$n ||
+			# The t_0_pct burn-in is a fraction of the planned n. With n = NULL there is no
+			# planned n (private$n is NULL, and the comparison was logical(0), which crashed
+			# ||; v1.0.6-TODO-76), so the burn-in lasts only until the covariate model matrix
+			# exists (t > p + 2 subjects, see DesignSeqOneByOne$add_one_subject()).
+			(isTRUE(private$fixed_sample) && private$t <= private$t_0_pct * private$n) ||
 				is.null(private$X) ||
 				ncol(as.matrix(private$X)) == 0L
 		}

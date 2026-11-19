@@ -52,7 +52,7 @@
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -116,7 +116,7 @@
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_complete_blocking_design","DesignFixedBinaryMatch","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_matching_design","DesignFixedBinaryMatch","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","set_m","DesignFixedBinaryMatch","class_local",1,"m",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -181,7 +181,7 @@
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","is_complete_blocking_design","DesignFixedBlockedCluster","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","set_m","DesignFixedBlockedCluster","class_local",1,"m",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -245,7 +245,7 @@
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","is_complete_blocking_design","DesignFixedBlocking","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBlocking","r6_public_method","DesignFixedBlocking","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBlocking","r6_public_method","DesignFixedBlocking","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","set_m","DesignFixedBlocking","class_local",1,"m",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -302,7 +302,7 @@
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedCluster","r6_public_method","DesignFixedCluster","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedCluster","r6_public_method","DesignFixedCluster","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -358,7 +358,7 @@
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -413,7 +413,7 @@
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedGreedy","r6_public_method","DesignFixedGreedy","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedGreedy","r6_public_method","DesignFixedGreedy","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -472,7 +472,7 @@
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -534,7 +534,7 @@
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","is_complete_blocking_design","DesignFixediBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixediBCRD","r6_public_method","DesignFixediBCRD","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixediBCRD","r6_public_method","DesignFixediBCRD","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","set_m","DesignFixediBCRD","class_local",1,"m",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -600,7 +600,7 @@
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_complete_blocking_design","DesignFixedMatchingGreedyPairSwitching","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_matching_design","DesignFixedMatchingGreedyPairSwitching","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","set_m","DesignFixedMatchingGreedyPairSwitching","class_local",1,"m",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -664,7 +664,7 @@
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","prepare_for_resampling_replay","DesignFixedOptimal","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -726,7 +726,7 @@
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_complete_blocking_design","DesignFixedOptimalBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","set_m","DesignFixedOptimalBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -784,7 +784,7 @@
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","is_matching_design","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","randomization_family","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3890,7 +3890,7 @@
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","get_supported_testing_types","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","get_testing_type","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","get_treatment","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","initialize","InferenceCountZeroInflatedNegBin","class_local",6,"des_obj;model_formula;model_formula_zero;optimization_alg;use_rcpp;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","initialize","InferenceCountZeroInflatedNegBin","class_local",7,"des_obj;model_formula;model_formula_zero;optimization_alg;smart_cold_start_default;use_rcpp;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","select_optimal_b_subsampling","InferenceCountZeroAugmentedPoissonAbstract","inherited",11,"alpha;B;b_grid;b_pow_of_n_grid;min_finite_fraction;objective;scaling;show_progress;subsampling_type;target;volatility_window",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","select_optimal_m_out_of_n_bootstrap","InferenceCountZeroAugmentedPoissonAbstract","inherited",11,"alpha;B;bootstrap_type;m_grid;m_pow_of_n_grid;min_finite_fraction;objective;scaling;show_progress;target;volatility_window",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -3983,7 +3983,7 @@
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","get_supported_testing_types","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","get_testing_type","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","get_treatment","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","initialize","InferenceCountZeroInflatedPoisson","class_local",6,"des_obj;model_formula;model_formula_zero;optimization_alg;use_rcpp;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","initialize","InferenceCountZeroInflatedPoisson","class_local",7,"des_obj;model_formula;model_formula_zero;optimization_alg;smart_cold_start_default;use_rcpp;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","select_optimal_b_subsampling","InferenceCountZeroAugmentedPoissonAbstract","inherited",11,"alpha;B;b_grid;b_pow_of_n_grid;min_finite_fraction;objective;scaling;show_progress;subsampling_type;target;volatility_window",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountZeroAugmentedPoissonAbstract","inherited",11,"alpha;B;bootstrap_type;m_grid;m_pow_of_n_grid;min_finite_fraction;objective;scaling;show_progress;target;volatility_window",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -9449,7 +9449,7 @@
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesign","r6_public_method","ObservationalDesign","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"ObservationalDesign","r6_public_method","ObservationalDesign","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9511,7 +9511,7 @@
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_complete_blocking_design","ObservationalDesignBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","set_m","ObservationalDesignBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -9577,7 +9577,7 @@
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_complete_blocking_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_matching_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","overwrite_all_subject_assignments","Design","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","set_m","ObservationalDesignMatching","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE

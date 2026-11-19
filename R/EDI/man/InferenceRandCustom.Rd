@@ -10,7 +10,7 @@ user-supplied statistic, without writing an \code{Inference} subclass.
 The statistic function is called once per permutation as
 \code{fn(y, w, dead)} -- plain numeric/integer vectors: the current
 (possibly permuted) response, treatment assignment, and event indicator.
-It must return one scalar. For maximum speed, supply
+It must return one scalar (a value of any other length is an error). For maximum speed, supply
 \code{custom_randomization_statistic_cpp} instead: C++ source defining a
 function of \code{(NumericVector y, IntegerVector w)} or
 \code{(NumericVector y, IntegerVector w, IntegerVector dead)} returning a

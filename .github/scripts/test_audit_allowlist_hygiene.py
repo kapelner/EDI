@@ -30,6 +30,9 @@ PATHS = ('id,source,class_regex,row_regex,column_regex,kinds,tracked_in,reason,c
 STALE = ('response_type,class,function_run,before_timestamp,tracked_in,reason\n'
          'count,IncidFoo,compute_x,2026-09-18,todo:R/package_metadata/future_release_plans/release_v1_0_5.md:TODO-168,"ticked"\n'
          'count,IncidFoo,compute_x,2026-09-18,commit:abc1234,"historical"\n')
+UNTESTED = ('match,reason\n'
+            'unt-0123456789ab,"v1.0.5-TODO-168: ticked, goes"\n'
+            'R/EDI/R/foo_win.R,"v1.0.6-TODO-2: open, stays"\n')
 HELPER = ('# Tracked as v1.0.5 TODO-168 (release_v1_0_5.md).\n'
           'worker_invariance_known_failures = c("InferenceIncidFoo|incidence|bootstrap_ci")\n')
 V105 = "> **Status: CLOSED to new TODOs (owner, 2026-11-12): soon to be released.**\n\n- [x] TODO-168: fixed.\n"
@@ -52,6 +55,7 @@ class Hygiene(unittest.TestCase):
             f"{PT}/calibration/calibration_fast_tier_accepted.csv": FAST,
             f"{PT}/path_audits_regression_allowlist.csv": PATHS,
             f"{PT}/stale_ok_row_rules.csv": STALE,
+            "R/package_metadata/audits/untested_code_allowlist.csv": UNTESTED,
         }
         for p, t in files.items():
             (self.repo / p).parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +84,8 @@ class Hygiene(unittest.TestCase):
         self.assertIn(("no-longer-triggers", "d_nomatch"), k)
         self.assertIn(("todo-ticked", "count / IncidFoo / compute_x / 2026-09-18"), k)
         self.assertIn(("embedded-todo-ticked", "worker_invariance_known_failures"), k)
+        self.assertIn(("todo-ticked", "unt-0123456789ab"), k)
+        self.assertNotIn("foo_win", " ".join(u for _, u in k))
         units = " ".join(u for _, u in k)
         self.assertNotIn("a_open", units)
         self.assertNotIn("c_news", units)                       # NEWS citations are not TODOs
@@ -100,7 +106,10 @@ class Hygiene(unittest.TestCase):
         self.assertIn("d_nomatch", paths)
         self.assertEqual((self.repo / PT / "stale_ok_row_rules.csv").read_text(), STALE)
         self.assertEqual((self.repo / "R/EDI/tests/testthat/helper-workers.R").read_text(), HELPER)
-        self.assertEqual(len(parts["applied"]), 3)
+        unt = (self.repo / "R/package_metadata/audits/untested_code_allowlist.csv").read_text()
+        self.assertNotIn("unt-0123456789ab", unt)
+        self.assertIn("foo_win", unt)
+        self.assertEqual(len(parts["applied"]), 4)
         self.assertTrue(all(p["applied_file"] and p["applied_text"] == "" for p in parts["proposed"]))
         self.assertTrue(any("reclassify" in m for m in parts["mechanical"]))
 

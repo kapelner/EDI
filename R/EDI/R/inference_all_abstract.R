@@ -6,6 +6,29 @@
 #' contains data for a fully completed experiment (i.e. all treatment
 #' assignments were allocated and all responses were collected).
 #'
+#' @section Perfect predictors among the covariates:
+#' At construction (or, if too few responses are recorded yet, lazily at the first
+#' fit) the object checks whether the response, on a scale suited to its type, is an
+#' exact linear function of the treatment and the covariates: \code{y} (continuous),
+#' \code{log y} over exact event times with every censored time's interval containing
+#' the fitted time (survival), \code{logit(y)} over interior values (proportion),
+#' \code{y} or \code{log1p(y)} (count), the 0/1 response (incidence) or the category
+#' codes (ordinal). The check is a least-squares residual check (residual sum of
+#' squares about 0 relative to the total), skipped when there are fewer than 5
+#' residual degrees of freedom. An exact fit on the treatment alone is a real
+#' treatment effect and is left alone. Otherwise the smallest set of covariate
+#' columns whose removal breaks the exact fit is dropped from the covariates this
+#' object uses (the treatment is never dropped; with several smallest sets, their
+#' union is dropped), and one warning of class \code{edi_perfect_predictor_warning}
+#' (fields \code{dropped}, \code{scales}) names them: in a randomized experiment this
+#' almost always means leakage (the outcome, or a variable measured after treatment,
+#' among the covariates). Every later estimate, interval, test and resampling
+#' replicate uses the reduced covariates. Only linear relations on that scale are
+#' caught. Separation (some combination of treatment and covariates splitting the
+#' outcomes) can happen by chance, so it is never handled here: classes warn about it
+#' but keep the covariates. Classes whose fit does not use the covariates skip the
+#' check.
+#'
 #' @keywords internal
 Inference = R6::R6Class("Inference",
 	lock_objects = FALSE,
@@ -176,6 +199,10 @@ Inference = R6::R6Class("Inference",
 			private$cached_values$m_cache = list()
 			private$cached_values$likelihood_test_eval_cache = list()
 			private$install_weighted_refit_isolation()
+			# v1.0.6-TODO-158: drop covariates that predict the response exactly given
+			# treatment (leakage), once, before any fit. Pending (re-run lazily from
+			# get_X()) when too few responses are recorded yet.
+			edi_perfect_predictor_check(self, private)
 			if (private$verbose){
 				cat(paste0(
 					"Initialized inference methods for a ",
@@ -396,7 +423,13 @@ Inference = R6::R6Class("Inference",
 		#'
 		#' @return A numeric matrix of covariates or \code{NULL}.
 		get_covariates = function(){
-			private$des_obj$get_X()
+			X = private$des_obj$get_X()
+			# v1.0.6-TODO-158: columns dropped as perfect predictors are not used by inference.
+			drop = private$perfect_predictor_dropped
+			if (length(drop) && !is.null(X) && !is.null(colnames(X)) && any(colnames(X) %in% drop)) {
+				X = X[, !(colnames(X) %in% drop), drop = FALSE]
+			}
+			X
 		},
 		#' @description Return a data frame with response, treatment, censoring status, and covariates.
 		#'
@@ -706,6 +739,12 @@ Inference = R6::R6Class("Inference",
 		y_R = NULL,
 		y_temp = NULL,
 		X = NULL,
+		# v1.0.6-TODO-158 perfect-predictor check: NULL (not run), "pending" (too few
+		# responses; re-run lazily), "done"; the unreduced covariates; the dropped names.
+		perfect_predictor_state = NULL,
+		perfect_predictor_full_X = NULL,
+		perfect_predictor_n_recorded = NULL,
+		perfect_predictor_dropped = character(0),
 		model_formula = NULL,
 		smart_cold_start_default = NULL,
 		optimization_alg = NULL,
@@ -1225,6 +1264,8 @@ Inference = R6::R6Class("Inference",
 			X_full
 		},
 		get_X = function(){
+			# v1.0.6-TODO-158: lazy perfect-predictor check when responses were missing at construction.
+			if (identical(private$perfect_predictor_state, "pending")) edi_perfect_predictor_check(self, private, lazy = TRUE)
 			if (!is.null(private$X)) return(private$X)  # transient bootstrap override
 			# Sequential designs can retain the previous matrix while adding a
 			# subject marks it stale.  Inference construction must not capture that
@@ -1526,4 +1567,236 @@ edi_build_summary_table = function(self, private, est_ret = NULL){
 	stat = est / se
 	tab = matrix(c(est, se, stat, pfun(stat)), nrow = 1L, dimnames = list("treatment", cn))
 	tab
+}
+
+# ---------------------------------------------------------------------------
+# v1.0.6-TODO-158: perfect predictors among the inference covariates.
+#
+# A covariate (or combination) that makes a type-appropriate transform of y an
+# exact linear function of w and the covariates is almost always leakage (the
+# outcome, or a post-treatment variable, among the covariates). The check is one
+# least-squares residual check per transform, flagged when RSS <= tol * TSS. The
+# smallest set of X columns whose removal breaks every exact fit is dropped from
+# the inference's covariates (never w), with one edi_perfect_predictor_warning.
+# Separation (the likelihood's maximum at infinite coefficients) is not handled
+# here: it can happen by chance, so it only warns elsewhere and never drops.
+# ---------------------------------------------------------------------------
+EDI_PERFECT_PREDICTOR_MIN_RESID_DF = 5L        # residual-df guard against saturation
+EDI_PERFECT_PREDICTOR_REL_TOL = 1e-10          # RSS / TSS at or below this is "exact"
+EDI_PERFECT_PREDICTOR_MAX_SUBSET_FITS = 2000L  # cap on the minimal-set search
+
+#' Response transforms for the perfect-predictor check (v1.0.6-TODO-158)
+#'
+#' One entry per transform: \code{rows} (rows with a usable value), \code{z}
+#' (the transform on those rows), \code{scale} (label for the warning) and, for
+#' censored survival rows, \code{cens_rows}, \code{lower}, \code{upper} (the
+#' log-time interval each censored row's fitted value must fall in).
+#' @keywords internal
+#' @noRd
+edi_perfect_predictor_targets = function(private, response_type){
+	y = suppressWarnings(as.numeric(private$y))
+	ok = is.finite(y)
+	tgt = function(rows, z, scale, ...) list(rows = rows, z = z, scale = scale, ...)
+	switch(response_type,
+		survival = {
+			if (isTRUE(private$has_general_censoring)) {
+				yL = suppressWarnings(as.numeric(private$y_L)); yR = suppressWarnings(as.numeric(private$y_R))
+				if (length(yL) != length(y)) yL = rep(NA_real_, length(y))
+				if (length(yR) != length(y)) yR = rep(NA_real_, length(y))
+				exact = ok & y > 0
+				cens = !exact & (!is.na(yL) | !is.na(yR))
+				lower = ifelse(is.na(yL) | yL <= 0, -Inf, log(pmax(yL, .Machine$double.xmin)))
+				upper = ifelse(is.na(yR) | !is.finite(yR), Inf, log(pmax(yR, .Machine$double.xmin)))
+			} else {
+				d = suppressWarnings(as.numeric(private$dead))
+				if (length(d) != length(y)) d = rep(1, length(y))
+				exact = ok & y > 0 & !is.na(d) & d == 1
+				cens = ok & !is.na(d) & d == 0
+				lower = ifelse(ok & y > 0, log(pmax(y, .Machine$double.xmin)), -Inf)
+				upper = rep(Inf, length(y))
+			}
+			rows = which(exact)
+			list(tgt(rows, log(y[rows]), "log(y) over exact event times",
+				cens_rows = which(cens), lower = lower[cens], upper = upper[cens]))
+		},
+		proportion = {
+			rows = which(ok & y > 0 & y < 1)
+			list(tgt(rows, stats::qlogis(y[rows]), "logit(y) over interior values"))
+		},
+		count = {
+			rows = which(ok & y >= 0)
+			list(tgt(rows, y[rows], "y"), tgt(rows, log1p(y[rows]), "log1p(y)"))
+		},
+		incidence = list(tgt(which(ok), y[ok], "the 0/1 response")),
+		ordinal = list(tgt(which(ok), y[ok], "the category codes")),
+		list(tgt(which(ok), y[ok], "y"))
+	)
+}
+
+#' Exact-fit test of one target on [1, w, X[, cols]] (v1.0.6-TODO-158)
+#'
+#' Returns \code{NA} below the residual-df guard, \code{TRUE} for an exact fit
+#' (and, for survival, every censored row's fitted log time inside its interval),
+#' else \code{FALSE}.
+#' @keywords internal
+#' @noRd
+edi_perfect_predictor_is_exact = function(target, X, w, cols){
+	rows = target$rows
+	z = target$z
+	if (length(rows) < 3L) return(NA)
+	tss = sum((z - mean(z))^2)
+	if (!is.finite(tss)) return(NA)
+	A = cbind(1, w[rows], X[rows, cols, drop = FALSE])
+	q = qr(A)
+	if (length(rows) - q$rank < EDI_PERFECT_PREDICTOR_MIN_RESID_DF) return(NA)
+	if (!(tss > 0)) return(FALSE)
+	rss = sum(qr.resid(q, z)^2)
+	if (!is.finite(rss) || rss > EDI_PERFECT_PREDICTOR_REL_TOL * tss) return(FALSE)
+	cr = target$cens_rows
+	if (length(cr)) {
+		b = qr.coef(q, z)
+		b[is.na(b)] = 0
+		pred = as.numeric(cbind(1, w[cr], X[cr, cols, drop = FALSE]) %*% b)
+		atol = sqrt(EDI_PERFECT_PREDICTOR_REL_TOL) * max(1, stats::sd(z))
+		if (any(!is.finite(pred)) || any(pred < target$lower - atol) || any(pred > target$upper + atol)) return(FALSE)
+	}
+	TRUE
+}
+
+#' Find perfect-predictor columns of X (v1.0.6-TODO-158)
+#'
+#' Returns \code{NULL} when the check cannot run (too few residual degrees of
+#' freedom for every transform), else a list with \code{drop} (column indices,
+#' possibly empty) and \code{scales} (the transforms that fit exactly).
+#' Candidates are the columns with a nonzero coefficient in the minimum-norm
+#' exact solution; subsets of them are tried by increasing size, and the union of
+#' all breaking sets of the smallest size is dropped (with ties, e.g.
+#' \code{y = x1 + x2}, dropping only one would leave the rest of the leak in).
+#' @keywords internal
+#' @noRd
+edi_find_perfect_predictors = function(targets, X, w){
+	p = ncol(X)
+	all_cols = seq_len(p)
+	full = vapply(targets, function(t) edi_perfect_predictor_is_exact(t, X, w, all_cols), logical(1))
+	if (all(is.na(full))) return(NULL)
+	# An exact fit driven by w alone is a real treatment effect, not leakage.
+	w_only = vapply(targets, function(t) isTRUE(edi_perfect_predictor_is_exact(t, X, w, integer(0))), logical(1))
+	flagged = which(!is.na(full) & full & !w_only)
+	if (!length(flagged)) return(list(drop = integer(0), scales = character(0)))
+	cand = integer(0)
+	for (k in flagged) {
+		t = targets[[k]]
+		A = cbind(1, w[t$rows], X[t$rows, , drop = FALSE])
+		sv = svd(A)
+		d = sv$d
+		keep = d > max(d) * 1e-9
+		b = sv$v[, keep, drop = FALSE] %*% (crossprod(sv$u[, keep, drop = FALSE], t$z) / d[keep])
+		scale_b = abs(b[-(1:2)]) * apply(A[, -(1:2), drop = FALSE], 2, stats::sd)
+		cand = union(cand, which(is.finite(scale_b) & scale_b > 1e-8 * max(stats::sd(t$z), .Machine$double.eps)))
+	}
+	cand = sort(cand)
+	if (!length(cand)) cand = all_cols
+	breaks = function(S) {
+		cols = setdiff(all_cols, S)
+		all(vapply(targets[flagged], function(t) !isTRUE(edi_perfect_predictor_is_exact(t, X, w, cols)), logical(1)))
+	}
+	n_fits = 0L
+	for (k in seq_along(cand)) {
+		sets = if (k == 1L) as.list(cand) else utils::combn(cand, k, simplify = FALSE)
+		if (n_fits + length(sets) > EDI_PERFECT_PREDICTOR_MAX_SUBSET_FITS) break
+		n_fits = n_fits + length(sets)
+		hit = Filter(breaks, sets)
+		if (length(hit)) return(list(drop = sort(unique(unlist(hit))), scales = vapply(targets[flagged], `[[`, "", "scale")))
+	}
+	# Search too large: drop every candidate (removing them all breaks the fit
+	# whenever any subset does).
+	list(drop = if (breaks(cand)) cand else integer(0), scales = vapply(targets[flagged], `[[`, "", "scale"))
+}
+
+
+#' Run the perfect-predictor check on an Inference object (v1.0.6-TODO-158)
+#'
+#' Called once at the end of \code{Inference$initialize()} and, while the state
+#' is \code{"pending"} (too few responses for the residual-df guard), lazily from
+#' \code{private$get_X()} until enough responses are recorded. Never runs inside
+#' a resampling operation or a weighted refit; copies (\code{duplicate()},
+#' bootstrap workers, subset inferences) inherit the state and the reduced
+#' \code{private$X}. Skipped for classes whose fit never reads the covariates.
+#' @keywords internal
+#' @noRd
+edi_perfect_predictor_check = function(self, private, lazy = FALSE){
+	if (lazy) {
+		if (!is.null(private$active_resampling_operation) || isTRUE(private$weighted_refit_depth > 0L)) return(invisible(NULL))
+		n_rec = sum(is.finite(suppressWarnings(as.numeric(private$y))))
+		if (identical(n_rec, private$perfect_predictor_n_recorded)) return(invisible(NULL))
+	}
+	private$perfect_predictor_state = "done"
+	if (class(self)[1L] %in% EDI_INFERENCE_CLASSES_IGNORING_COVARIATES) return(invisible(NULL))
+	X = if (!is.null(private$perfect_predictor_full_X)) private$perfect_predictor_full_X else private$X
+	if (is.null(X) || !is.matrix(X) && !is.data.frame(X) || ncol(X) == 0L) return(invisible(NULL))
+	Xm = suppressWarnings(as.matrix(X))
+	if (!is.numeric(Xm) || nrow(Xm) != length(private$y)) return(invisible(NULL))
+	w = suppressWarnings(as.numeric(private$w))
+	if (length(w) != nrow(Xm)) return(invisible(NULL))
+	# Rows with a non-finite treatment or covariate are left out of the check.
+	bad = !is.finite(w) | rowSums(!is.finite(Xm)) > 0L
+	targets = edi_perfect_predictor_targets(private, private$des_obj$get_response_type())
+	targets = lapply(targets, function(t) {
+		keep = !bad[t$rows]
+		t$z = t$z[keep]; t$rows = t$rows[keep]
+		if (length(t$cens_rows)) {
+			kc = !bad[t$cens_rows]
+			t$cens_rows = t$cens_rows[kc]; t$lower = t$lower[kc]; t$upper = t$upper[kc]
+		}
+		t
+	})
+	res = tryCatch(edi_find_perfect_predictors(targets, Xm, w), error = function(e) list(drop = integer(0)))
+	if (is.null(res)) {
+		# Too few responses: saturation, not leakage. Re-check lazily if more arrive.
+		private$perfect_predictor_state = "pending"
+		private$perfect_predictor_n_recorded = sum(is.finite(suppressWarnings(as.numeric(private$y))))
+		return(invisible(NULL))
+	}
+	if (!length(res$drop)) return(invisible(NULL))
+	nm = colnames(Xm)
+	if (is.null(nm)) nm = paste0("x", seq_len(ncol(Xm)))
+	dropped = nm[res$drop]
+	if (is.null(private$perfect_predictor_full_X)) private$perfect_predictor_full_X = X
+	private$X = X[, -res$drop, drop = FALSE]
+	private$perfect_predictor_dropped = dropped
+	if (lazy) {
+		# Anything already derived from the full covariates is stale.
+		private$cached_hardened_X_cov = NULL
+		private$cached_design_matrix = NULL
+		private$reduced_design_keep_cache = NULL
+		private$cached_reduced_X = NULL
+	}
+	warning(structure(
+		class = c("edi_perfect_predictor_warning", "warning", "condition"),
+		list(message = paste0(
+			class(self)[1L], ": covariate(s) ", paste(dropped, collapse = ", "),
+			" predict the response exactly given treatment (", paste(unique(res$scales), collapse = " and "),
+			" is an exact linear function of the treatment and these covariates). In a randomized experiment ",
+			"this almost always means leakage: the outcome, or a variable measured after treatment, is among ",
+			"the covariates. They were dropped from the covariates this object uses; every estimate, interval, ",
+			"test and resampling result is for the model without them. ",
+			"Suppress with suppressWarnings(expr, classes = \"edi_perfect_predictor_warning\")."),
+			call = NULL, dropped = dropped, scales = unique(res$scales))))
+	invisible(NULL)
+}
+
+#' Remove perfect-predictor columns from a component matrix (v1.0.6-TODO-158)
+#'
+#' Classes that build extra covariate matrices from the design's imputed
+#' covariates and their own component formulas (hurdle, zero-inflated,
+#' zero-one-inflated beta) call this so columns the perfect-predictor check
+#' dropped stay dropped there too. Identity when nothing was dropped.
+#' @keywords internal
+#' @noRd
+edi_drop_perfect_predictor_cols = function(private, M){
+	drop = private$perfect_predictor_dropped
+	if (!length(drop) || is.null(M) || is.null(colnames(M))) return(M)
+	hit = colnames(M) %in% drop
+	if (!any(hit)) return(M)
+	M[, !hit, drop = FALSE]
 }

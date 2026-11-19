@@ -3,24 +3,6 @@
 using namespace Rcpp;
 using namespace Eigen;
 
-// Helper: Find which columns have variation (not all same value)
-static std::vector<int> which_cols_vary(const MatrixXd& X) {
-	std::vector<int> varying_cols;
-	int n = X.rows();
-	int p = X.cols();
-
-	for (int j = 0; j < p; ++j) {
-		double first_val = X(0, j);
-		for (int i = 1; i < n; ++i) {
-			if (X(i, j) != first_val) {
-				varying_cols.push_back(j);
-				break;
-			}
-		}
-	}
-	return varying_cols;
-}
-
 // Helper: Extract columns by index
 static MatrixXd extract_cols(const MatrixXd& X, const std::vector<int>& cols) {
 	if (cols.empty()) {
@@ -29,15 +11,6 @@ static MatrixXd extract_cols(const MatrixXd& X, const std::vector<int>& cols) {
 	MatrixXd result(X.rows(), cols.size());
 	for (size_t j = 0; j < cols.size(); ++j) {
 		result.col(j) = X.col(cols[j]);
-	}
-	return result;
-}
-
-// Helper: Extract row as vector
-static VectorXd extract_row_cols(const MatrixXd& X, int row, const std::vector<int>& cols) {
-	VectorXd result(cols.size());
-	for (size_t j = 0; j < cols.size(); ++j) {
-		result(j) = X(row, cols[j]);
 	}
 	return result;
 }

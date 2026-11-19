@@ -102,6 +102,31 @@ turnbull_npmle_group_stat = function(y_L, y_R, requested_stat = c("median", "res
 	as.numeric(area)
 }
 
+# v1.0.6-TODO-144: one arm's Turnbull NPMLE summary for the "median not reached"
+# warning: the lowest survival the NPMLE reaches at a finite time (S just after the
+# last Turnbull interval with a finite right end; mass on an interval ending at Inf is
+# never "used up" at a finite time), the number of usable subjects and the number whose
+# event is bracketed by a finite interval (exact or finite y_R). The median rule in
+# turnbull_npmle_group_stat() is NA exactly when min_surv > 0.5. NULL when icfit()
+# fails or fewer than 2 rows are usable. Same row filter as turnbull_npmle_group_stat(),
+# without its warning (that function has already warned for the same rows).
+#' @keywords internal
+#' @noRd
+turnbull_npmle_group_lowest_survival = function(y_L, y_R) {
+	usable = is.finite(y_L) & y_L >= 0 & !is.na(y_R) & y_R >= y_L
+	if (sum(usable) < 2L) return(NULL)
+	y_L = y_L[usable]
+	y_R = y_R[usable]
+	fit = tryCatch(interval::icfit(y_L, y_R), error = function(e) NULL)
+	if (is.null(fit) || is.null(fit$intmap) || is.null(fit$pf)) return(NULL)
+	ord = order(fit$intmap[1, ])
+	R_k = as.numeric(fit$intmap[2, ord])
+	surv_after = 1 - cumsum(as.numeric(fit$pf)[ord])
+	finite_k = which(is.finite(R_k))
+	min_surv = if (length(finite_k)) max(0, min(surv_after[finite_k])) else 1
+	list(min_surv = min_surv, n = length(y_L), n_events = sum(is.finite(y_R)))
+}
+
 #' @param y optional exact responses (NA for censored); exact events are
 #'   folded in as [y, y]. @param tau optional shared horizon; default is the
 #'   smaller of the two arms' maximum follow-up times.

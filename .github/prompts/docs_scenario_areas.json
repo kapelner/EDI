@@ -19,11 +19,12 @@
   ],
   "defaults": {
     "model": "claude-opus-5-5",
-    "effort": null,
+    "effort": "high",
     "max_turns": 250,
-    "max_budget_usd": 15,
+    "max_budget_usd": 30,
     "minutes": 80,
-    "max_areas_per_run": 8
+    "max_areas_per_run": 8,
+  "rerun_unchanged_after_days": 42
   },
   "common_paths": [
     "R/EDI/vignettes/EDI.Rmd",

@@ -741,6 +741,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# (v1.0.6-TODO-140); silent inside resampling (edi_warn_procedure_na()).
 			warn_studentized_na = function(reason) edi_warn_procedure_na(self, private,
 				procedure = "bootstrap p-value", reason = reason, detail = bootstrap_studentized_se_na_detail())
+			# The other NA returns warn the same way (v1.0.6-TODO-145).
+			warn_pval_na = function(reason, detail = NULL) edi_warn_procedure_na(self, private,
+				procedure = "bootstrap p-value", reason = reason, detail = detail)
 			if (type %in% c("studentized", "bootstrap-t")) {
 				boot_stats = private$approximate_bootstrap_statistics_beta_hat_T(
 					B = B,
@@ -768,11 +771,14 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					}
 				}
 				if (!is.null(boot_stats)) warn_studentized_na("bootstrap_too_few_finite_standard_errors")
+				else warn_pval_na("bootstrap_too_few_finite_estimates",
+					bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
 				return(NA_real_)
 			}
 			if (length(boot_distr) == 0L) return(NA_real_)
 			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_extreme_finite_estimates", "estimate")
+				warn_pval_na("bootstrap_extreme_finite_estimates", bootstrap_extreme_na_detail())
 				return(NA_real_)
 			}
 			if (type == "percentile") {
@@ -785,6 +791,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				)))
 				if (!is.finite(pval)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
+					warn_pval_na("bootstrap_pvalue_unavailable")
 					return(NA_real_)
 				}
 				pval
@@ -797,6 +804,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				pval = min(1, max(2 / n_bs, mean(D_boot >= D_obs)))
 				if (!is.finite(pval)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
+					warn_pval_na("bootstrap_pvalue_unavailable")
 					return(NA_real_)
 				}
 				pval
@@ -848,6 +856,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					error = function(e) {
 						if (isTRUE(private$harden)) {
 							edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
+							warn_pval_na("bootstrap_pvalue_unavailable", paste0("The BCa p-value failed: ", conditionMessage(e)))
 							return(NA_real_)
 						}
 						stop(e)
@@ -856,6 +865,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				if (!is.finite(pval) && isTRUE(private$harden)) {
 					if (!isTRUE(self$is_nonestimable()) && !edi_has_procedure_failure(private, "bootstrap")) {
 						edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
+						# only here: the other BCa NA paths (jackknife gate, boundary) already warned or recorded a reason
+						warn_pval_na("bootstrap_pvalue_unavailable")
 					}
 					return(NA_real_)
 				}
@@ -961,7 +972,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 				stop("Bootstrap confidence interval returned NA bounds")
 			}
-			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
 				if (isTRUE(private$harden)) {
 					return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_finite_estimates", stage = "estimate"))
 				}
@@ -1199,9 +1210,42 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		bootstrap_confidence_interval_extreme = function(ci, est = NA_real_, max_abs = private$bootstrap_extreme_estimate_threshold, theta = NULL){
 			ci = as.numeric(ci)
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) return(FALSE)
+			on_link_scale = isTRUE(private$bootstrap_estimand_on_link_scale())
+			# v1.0.6-TODO-160 (2): a raw ratio estimand (g-computation risk ratio) is judged on
+			# log(ratio) with the link-scale rule, so a legitimately skewed ratio interval such as
+			# [0.5, 6] is not rejected by the outcome-SD width cap on the ratio scale, while a
+			# ratio interval reaching e^-10 or e^10 is. Only with replicates (theta) and positive
+			# bounds; otherwise the previous ratio-scale check runs unchanged.
+			# v1.0.6-TODO-175 (2): the log(ratio) rule no longer needs replicates, so theta-free
+			# callers (the risk-ratio subsampling / m-out-of-n pivots, the m-selection objective)
+			# judge an interval such as [3e-5, 2.83] on the log scale too. Those pivots pass no
+			# replicates on purpose: their b- / m-size replicates are sqrt(n / b) more spread out
+			# than the n-scale interval, so the spread rule would keep [1e-4, 26]-style intervals.
+			ratio_on_log = FALSE
+			if (!on_link_scale && all(ci[1:2] > 0) && isTRUE(private$bootstrap_estimand_is_raw_ratio())) {
+				ci = log(ci[1:2])
+				est = as.numeric(est)[1L]
+				est = if (is.finite(est) && est > 0) log(est) else NA_real_
+				if (!is.null(theta)) {
+					theta = suppressWarnings(as.numeric(theta))
+					theta = log(theta[is.finite(theta) & theta > 0])
+				}
+				on_link_scale = TRUE
+				ratio_on_log = TRUE
+			}
 			max_abs = as.numeric(max_abs)[1L]
 			if (!is.finite(max_abs) || max_abs <= 0) max_abs = EDI_SEPARATION_THRESHOLD
 			if (any(abs(ci[1:2]) > max_abs)) return(TRUE)
+			# v1.0.6-TODO-160 (1): on the link scale a bound beyond +-bootstrap_extreme_link_scale_max_abs
+			# (a ratio of e^10, about 22,000) is always extreme, whatever the outcome SD. Before,
+			# a large outcome SD (counts with SD 20) put the width cap below at ~100 log units, so
+			# degenerate log-rate-ratio intervals such as [-25.8, -5.0] passed. Only when
+			# replicates are passed (theta), so callers without them keep the previous behavior;
+			# a raw ratio moved to log(ratio) always gets it (v1.0.6-TODO-175 (2)).
+			if (on_link_scale && (!is.null(theta) || ratio_on_log)) {
+				link_max_abs = as.numeric(private$bootstrap_extreme_link_scale_max_abs)[1L]
+				if (is.finite(link_max_abs) && any(abs(ci[1:2]) > link_max_abs)) return(TRUE)
+			}
 			scale_ref = max(1, abs(as.numeric(est)[1L]), na.rm = TRUE)
 			width = abs(diff(ci[1:2]))
 			scaled_max_width = max_abs * scale_ref
@@ -1217,7 +1261,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# link-scale estimand (a 5.6-wide log-OR CI from 10 clusters was rejected). For those,
 			# an interval over the cap is kept when it is narrow relative to the replicates' own
 			# robust spread and stays out of separation territory; otherwise the cap stands.
-			!private$bootstrap_link_scale_ci_plausible(ci, width, theta)
+			!private$bootstrap_link_scale_ci_plausible(ci, width, theta, on_link_scale = on_link_scale)
 		},
 		# v1.0.6-TODO-157: TRUE when compute_estimate() is a log ratio (odds, rate, risk, hazard,
 		# time) or a link-scale coefficient (probit/cloglog/cauchit/stereotype/logit effect), read
@@ -1234,6 +1278,29 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			grepl("^log_(hazard|odds|rate|risk|time)_ratio|link_effect|^probit_effect|^logit_effect", tag)
 		},
+		# v1.0.6-TODO-160/175: TRUE for a raw ratio estimand that the extreme checks judge on
+		# log(ratio). "RR" (risk1 / risk0) is the tag of InferenceIncidGCompRiskRatio and
+		# InferenceIncidKKGCompRiskRatio, whose get_estimand_type() is also "RR".
+		bootstrap_estimand_is_raw_ratio = function(){
+			if (isTRUE(private$bootstrap_estimand_on_link_scale())) return(FALSE)
+			identical(tryCatch(as.character(private$get_estimand_type())[1L], error = function(e) NA_character_), "RR")
+		},
+		# v1.0.6-TODO-175 (1): the replicate guard of the bootstrap CI paths. For a raw ratio it
+		# runs on log(ratio), as it already does for every log-ratio estimand (log OR, log rate
+		# ratio), so one replicate with a near-zero control risk (RR > 1e6) no longer rejects the
+		# whole bootstrap; a degenerate interval is still caught by
+		# bootstrap_confidence_interval_extreme() (+-10 on log(ratio)). The p-value paths keep the
+		# raw-scale guard: their shift / symmetric statistics use the raw replicate mean, which
+		# such a replicate does distort.
+		bootstrap_ci_estimates_extreme = function(theta, est = NA_real_){
+			if (isTRUE(private$bootstrap_estimand_is_raw_ratio())) {
+				theta = suppressWarnings(as.numeric(theta))
+				theta = log(theta[is.finite(theta) & theta > 0])
+				est = as.numeric(est)[1L]
+				est = if (is.finite(est) && est > 0) log(est) else NA_real_
+			}
+			private$bootstrap_estimates_extreme(theta, est = est)
+		},
 		# v1.0.6-TODO-157: whether a link-scale interval wider than the outcome-SD cap is still a
 		# plausible interval rather than a degenerate one. Both must hold:
 		# * width <= bootstrap_extreme_ci_width_spread_multiple robust SDs of the replicates
@@ -1247,12 +1314,14 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		# keep the previous behavior.
 		bootstrap_extreme_ci_width_spread_multiple = 10,
 		bootstrap_extreme_link_scale_max_abs = 10,
-		bootstrap_link_scale_ci_plausible = function(ci, width, theta = NULL){
+		# on_link_scale: whether ci and theta are on the link scale (v1.0.6-TODO-160 passes TRUE
+		# for a raw ratio already moved to log(ratio)).
+		bootstrap_link_scale_ci_plausible = function(ci, width, theta = NULL, on_link_scale = private$bootstrap_estimand_on_link_scale()){
 			if (is.null(theta)) return(FALSE)
 			theta = suppressWarnings(as.numeric(theta))
 			theta = theta[is.finite(theta)]
 			if (length(theta) < 20L) return(FALSE)
-			if (!isTRUE(private$bootstrap_estimand_on_link_scale())) return(FALSE)
+			if (!isTRUE(on_link_scale)) return(FALSE)
 			max_abs = as.numeric(private$bootstrap_extreme_link_scale_max_abs)[1L]
 			if (!is.finite(max_abs) || any(abs(ci[1:2]) > max_abs)) return(FALSE)
 			spread = stats::mad(theta)
@@ -2160,7 +2229,21 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
 				ctx = private$cached_values$ci_call_ctx
-				if (!is.null(ctx) && isTRUE(ctx$all_finite)) edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
+				if (!is.null(ctx) && isTRUE(ctx$all_finite)) {
+					edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
+				} else {
+					# v1.0.6-TODO-162: with some non-finite draws (e.g. a cluster resample with no treated
+					# or no control cluster) the specific warning above was skipped, and
+					# missing_bootstrap_ci() then saw this recorded reason (keep-first) and did not warn
+					# either, so the NA was silent. Warn here with the reason and the finite-draw count.
+					edi_warn_procedure_na(self, private, procedure = "bootstrap confidence interval (type = \"bca\")",
+						reason = reason, detail = paste0(
+							"Only ", length(boot_distr), if (!is.null(ctx)) paste0(" of ", ctx$B) else "",
+							" bootstrap draws were finite (the others were not finite, e.g. a resample with no treated ",
+							"or no control unit), and the BCa adjustment on those draws ",
+							if (grepl("adjustment_on_boundary$", reason)) "falls on the most extreme draws. " else "is unstable. ",
+							"Increase B or use type = \"percentile\"."))
+				}
 				c(NA_real_, NA_real_)
 			})
 		},
@@ -2274,6 +2357,18 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		}
 	))
 )
+
+# Details for bootstrap / Bayesian-bootstrap p-values that are NA (v1.0.6-TODO-145).
+bootstrap_too_few_finite_na_detail = function(n_finite, B, min_usable) {
+	paste0("Only ", n_finite, " of ", B, " replicate estimates were finite; at least ", min_usable,
+		" are needed (min_number_usable_samples). The estimator fails on most resamples of this data; ",
+		"try a more stable estimator, a larger B, or an asymptotic or randomization p-value.")
+}
+bootstrap_extreme_na_detail = function() {
+	paste0("The finite replicate estimates are implausibly far from the original estimate (a diverged fit ",
+		"on some resamples), so no p-value is reported. Try a more stable estimator, or an asymptotic or ",
+		"randomization p-value.")
+}
 
 # Detail for a studentized bootstrap p-value that is NA for missing/unstable SEs (v1.0.6-TODO-140).
 bootstrap_studentized_se_na_detail = function() {

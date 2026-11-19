@@ -388,6 +388,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				}
 				if (private$bootstrap_estimates_extreme(boot_stats$theta, est = est)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_extreme_finite_estimates", "estimate")
+					edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+						reason = "bayesian_bootstrap_extreme_finite_estimates", detail = bootstrap_extreme_na_detail())
 					return(NA_real_)
 				}
 				t_obs = abs(est - delta) / se_hat
@@ -406,10 +408,16 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_finite_estimates", "estimate")
+				# v1.0.6-TODO-145: warn instead of a silent NA (silent inside resampling).
+				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+					reason = "bayesian_bootstrap_too_few_finite_estimates",
+					detail = bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
 				return(NA_real_)
 			}
 			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_extreme_finite_estimates", "estimate")
+				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
+					reason = "bayesian_bootstrap_extreme_finite_estimates", detail = bootstrap_extreme_na_detail())
 				return(NA_real_)
 			}
 			if (type == "percentile") {
@@ -427,15 +435,24 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(min(1, max(2 / n_bs, mean(D_boot >= D_obs))))
 			}
 			if (type == "bca") {
+				# v1.0.6-TODO-165: an unavailable BCa p-value warns once instead of a silent NA
+				# (silent inside resampling). The jackknife-gate and boundary NAs inside
+				# pval_bayesian_bca() record a reason and warn already, so they are skipped here.
+				warn_bca_na = function(detail = NULL) edi_warn_procedure_na(self, private,
+					procedure = "Bayesian bootstrap p-value", reason = "bayesian_bootstrap_bca_pvalue_unavailable", detail = detail)
 				p_value = tryCatch(
 					private$pval_bayesian_bca(boot_distr, est, delta, weighting_unit_type = weighting_unit_type),
 					error = function(e) {
 						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_pvalue_unavailable", "se")
-						NA_real_
+						warn_bca_na(paste0("The BCa p-value failed: ", conditionMessage(e)))
+						structure(NA_real_, edi_bca_warned = TRUE)
 					}
 				)
-				if (!is.finite(p_value) && isTRUE(private$harden) && !isTRUE(self$is_nonestimable()) && !edi_has_procedure_failure(private, "bayesian_bootstrap")) {
-					edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_pvalue_unavailable", "se")
+				bca_warned = isTRUE(attr(p_value, "edi_bca_warned"))
+				p_value = as.numeric(p_value)
+				if (!is.finite(p_value) && !bca_warned && !isTRUE(self$is_nonestimable()) && !edi_has_procedure_failure(private, "bayesian_bootstrap")) {
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_pvalue_unavailable", "se")
+					warn_bca_na()
 				}
 				return(p_value)
 			}
@@ -544,7 +561,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
 			}
-			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
 			}
 			if (type == "wald") {

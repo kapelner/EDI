@@ -50,10 +50,15 @@ test_that("Bayesian bootstrap: basic matches the same reflection; wald is est * 
 	expect_true(all(is.na(few$p$compute_rr_bayesian_bootstrap_log_confidence_interval(0.1, B = 2))))
 })
 
-test_that("jackknife log SE is sqrt(((k-1)/k) * sum((log j - mean)^2)) over the positive finite jackknife replicates", {
+test_that("jackknife log SE is sqrt(((k-1)/k) * sum((log j - mean)^2)) over the jackknife replicates", {
 	jack <- exp(rnorm(40, 0.25, 0.1)); lj <- log(jack)
-	f <- mk(jack = c(jack, NA, 0, -1))
+	f <- mk(jack = jack)
 	expect_equal(f$p$compute_rr_jackknife_log_se(), sqrt((39 / 40) * sum((lj - mean(lj))^2)), tolerance = 1e-10)
+	# v1.0.6-TODO-137: failed (non-finite) or non-positive replicates are no longer dropped silently.
+	g <- mk(jack = c(jack, NA)); expect_true(is.na(g$p$compute_rr_jackknife_log_se()))
+	expect_identical(g$p$cached_values$procedure_failure_reason$jackknife, "jackknife_nonfinite_replicate_estimates")
+	h <- mk(jack = c(jack, 0)); expect_true(is.na(h$p$compute_rr_jackknife_log_se()))
+	expect_identical(h$p$cached_values$procedure_failure_reason$jackknife, "jackknife_nonpositive_risk_ratio_replicates")
 })
 
 test_that("jackknife log SE is NA (and flagged) with fewer than two usable replicates or zero spread", {
@@ -63,7 +68,7 @@ test_that("jackknife log SE is NA (and flagged) with fewer than two usable repli
 	# cache_nonestimable_se() flagging the object nonestimable.
 	one <- mk(jack = c(1.2, NA, 0)); expect_true(is.na(one$p$compute_rr_jackknife_log_se()))
 	expect_false(isTRUE(one$inf$is_nonestimable("any")))
-	expect_identical(one$p$cached_values$procedure_failure_reason$jackknife, "jackknife_too_few_positive_risk_ratio_estimates")
+	expect_identical(one$p$cached_values$procedure_failure_reason$jackknife, "jackknife_too_few_deletion_units")   # v1.0.6-TODO-137: shared < 5 units guard
 	same <- mk(jack = rep(1.4, 10)); expect_true(is.na(same$p$compute_rr_jackknife_log_se()))
 	expect_false(isTRUE(same$inf$is_nonestimable("any")))
 	expect_identical(same$p$cached_values$procedure_failure_reason$jackknife, "jackknife_log_risk_ratio_standard_error_unavailable")

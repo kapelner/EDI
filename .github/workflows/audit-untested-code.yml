@@ -1,0 +1,55 @@
+# Untested-code audit (weekly, Tuesday 09:07 UTC; owner request 2026-11-18).
+# Reads coverage, never re-measures it for the ranking: the newest `coverage-lines` artifact of
+# test-coverage-R.yaml on main (covr's R lines plus the gcov lines of R/EDI/src) and the newest
+# `coverage-python` artifact (pytest --cov from test-coverage-python.yml). Uncovered regions are
+# ranked by risk: public methods (compute_*, design entry points) first, then error and guard
+# branches, then code changed in the last 90 days, then code a current-release TODO fix changed.
+# Not ranked: nocov lines, platform branches, the coverage registry's measurement artifacts,
+# -O2 line noise, and rows of R/package_metadata/audits/untested_code_allowlist.csv (each must cite an
+# open release TODO).
+# Claude (Opus, 3 regions per agent, at most 12 a run, read-only): a test, or unreachable /
+# intended / bug. The finish stage builds EDI in place with covr's --coverage flags (EDI_UNITY=0),
+# runs each test under pkgload::load_all(compile = FALSE), and keeps it only if it passes, asserts a
+# value and executes at least half of its region (covr tracing for R, gcov for C++). Kept tests go
+# into ONE PR (label `audit-untested-code`) under R/package_tests/testthat_bulk/. A test that exposes
+# a bug is reported, never committed; unreachable regions go to the dead-code audit.
+# Skipped (no Claude) when scripts/significant_changes.py finds no code or test change since the
+# last run. State: untested-code/ on the audit-notes branch (regions.json, unreachable.json).
+# PRs opened with GITHUB_TOKEN run no other workflows: the owner merges with the admin bypass.
+# Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one every batch is NOT RUN.
+# Module: .github/scripts/audits/untested_code.py; prompt: .github/prompts/audit_untested_code.md.
+# Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
+
+name: audit · weekly · untested-code
+
+on:
+  schedule:
+    - cron: "7 9 * * 2"     # weekly, Tuesday 09:07 UTC (after the 02:07 nightly coverage run)
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "auto (skip when no code changed), all (run even with no code change), none (ranking only)"
+        type: choice
+        options: [auto, all, none]
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read      # the prepare job downloads the coverage artifacts
+    uses: ./.github/workflows/audit.yml
+    with:
+      audit: untested-code
+      scope: ${{ inputs.scope || 'auto' }}
+      prepare_timeout: 20
+      finish_install_edi: true
+      finish_coverage_build: true
+      r_packages: any::covr
+      finish_timeout: 200
+    secrets: inherit

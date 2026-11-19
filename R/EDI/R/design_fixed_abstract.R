@@ -171,20 +171,9 @@ DesignFixed = R6::R6Class("DesignFixed",
 			private$y_L = as.numeric(y_Ls)
 			private$y_R = as.numeric(y_Rs)
 			private$y_i_t_i = as.list(seq_len(private$t))
-		},
-		#' @description Overwrite all subject assignments for a fixed design.
-		#'
-		#' @param w A \{0,1\} vector of subject assignments (1 = treated, 0 = control).
-		overwrite_all_subject_assignments = function(w){
-			if (should_run_asserts()) {
-				assertIntegerish(w, lower = 0, upper = 1, any.missing = FALSE, len = private$t)
-				if (any(!(w %in% c(0L, 1L)))) {
-					stop("overwrite_all_subject_assignments: w must contain only 0 (control) or 1 (treated).")
-				}
-			}
-			assert_overwritten_w_always(w, private$t)
-			private$w = as.numeric(w)
 		}
+		# overwrite_all_subject_assignments() is inherited from Design (one shared body,
+		# v1.0.6-TODO-154).
 	),
 	private = list(
 		draw_ws_raw = function(r = 100){

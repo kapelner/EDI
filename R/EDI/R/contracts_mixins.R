@@ -392,6 +392,7 @@ EDI_COMPONENT_SPECS = list(
 			"is_resampling_control_condition", "resampling_error_to_na",
 			"bootstrap_outcome_scale", "bootstrap_confidence_interval_extreme",
 			"bootstrap_estimand_on_link_scale", "bootstrap_link_scale_ci_plausible",
+			"bootstrap_estimand_is_raw_ratio", "bootstrap_ci_estimates_extreme",
 			"supports_reusable_bootstrap_worker",
 			"validate_bootstrap_worker_state", "create_reusable_bootstrap_worker",
 			"load_bootstrap_draw_into_worker", "load_non_param_bootstrap_draw_into_worker",

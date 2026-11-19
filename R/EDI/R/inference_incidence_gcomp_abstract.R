@@ -323,8 +323,17 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bootstrap_too_few_finite_estimates", stage = "estimate"))
 			}
+			# v1.0.6-TODO-175 (3): the same replicate and interval checks as the other bootstrap
+			# CI types (both judge a risk ratio on log(RR)); before, a degenerate basic interval
+			# such as [1.4e-8, 20] or [0.04, 7.6e7] was returned silently.
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
+				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_finite_estimates", stage = "estimate"))
+			}
 			q = stats::quantile(log(boot_distr), probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
 			ci[] = exp(2 * log(est) - q)
+			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
+				return(private$missing_bootstrap_ci(alpha, "bootstrap_extreme_confidence_interval", stage = "estimate"))
+			}
 			ci
 		},
 		compute_rr_bayesian_bootstrap_log_confidence_interval = function(alpha = 0.05, B = 501, type = "basic", na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
@@ -343,6 +352,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
 			}
+			# v1.0.6-TODO-175 (3): same checks as the generic Bayesian-bootstrap CI types.
+			if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
+				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
+			}
 			log_boot = log(boot_distr)
 			if (identical(type, "wald")) {
 				se_log = stats::sd(log_boot)
@@ -353,54 +366,23 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				q = stats::quantile(log_boot, probs = c(1 - alpha / 2, alpha / 2), names = FALSE, type = 8)
 				ci[] = exp(2 * log(est) - q)
 			}
+			if (private$bootstrap_confidence_interval_extreme(ci, est = est, theta = boot_distr)) {
+				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_confidence_interval",
+					stage = if (identical(type, "wald")) "se" else "estimate"))
+			}
 			ci
 		},
+		# v1.0.6-TODO-137: shared with the KK/non-KK sibling; the helpers in
+		# inference_all_abstract_jackknife.R apply the compute_jackknife_summary()
+		# guards and warn on every NA.
 		compute_rr_jackknife_log_se = function(unit = "auto"){
-			unit = private$normalize_jackknife_unit(unit)
-			if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) return(NA_real_)
-			private$assert_jackknife_supported(unit = unit)
-			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
-			jack = jack[is.finite(jack) & jack > 0]
-			n_units = length(jack)
-			if (n_units <= 1L) {
-				edi_record_procedure_failure(self, private, "jackknife_too_few_positive_risk_ratio_estimates", "se")
-				return(NA_real_)
-			}
-			log_jack = log(jack)
-			var_j = ((n_units - 1) / n_units) * sum((log_jack - mean(log_jack))^2)
-			if (!is.finite(var_j) || var_j <= 0) {
-				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_standard_error_unavailable", "se")
-				return(NA_real_)
-			}
-			sqrt(var_j)
+			edi_rr_jackknife_log_summary(self, private, unit = unit)$se_log
 		},
 		compute_rr_jackknife_wald_two_sided_pval = function(delta = 1, unit = "auto"){
-			if (!is.finite(delta) || delta <= 0) {
-				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_null_unavailable", "se")
-				return(NA_real_)
-			}
-			est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				private$cache_nonestimable_estimate("jackknife_original_risk_ratio_unavailable")
-				return(NA_real_)
-			}
-			se_log = private$compute_rr_jackknife_log_se(unit = unit)
-			if (!is.finite(se_log) || se_log <= 0) return(NA_real_)
-			2 * stats::pnorm(-abs((log(est) - log(delta)) / se_log))
+			edi_rr_jackknife_wald_two_sided_pval(self, private, delta = delta, unit = unit)
 		},
 		compute_rr_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(est) || est <= 0) {
-				private$cache_nonestimable_estimate("jackknife_original_risk_ratio_unavailable")
-				return(ci)
-			}
-			se_log = private$compute_rr_jackknife_log_se(unit = unit)
-			if (!is.finite(se_log) || se_log <= 0) return(ci)
-			z = stats::qnorm(1 - alpha / 2)
-			ci[] = exp(log(est) + c(-1, 1) * z * se_log)
-			ci
+			edi_rr_jackknife_wald_confidence_interval(self, private, alpha = alpha, unit = unit)
 		},
 		# Log-scale PRW subsampling/m-out-of-n pivot for the risk-ratio estimand,
 		# mirroring compute_rr_bootstrap_basic_confidence_interval()'s log-scale

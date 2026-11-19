@@ -474,14 +474,14 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 					X_cov = private$get_X()
 				} else {
 					X_imp = private$des_obj$get_X_imp()
-					X_cov = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else create_model_matrix_from_features(model_formula, X_imp)
+					X_cov = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
 				}
 			} else {
 				if (identical(model_formula, ~ .)) {
 					X_cov_all = private$get_X()
 				} else {
 					X_imp = private$des_obj$get_X_imp()
-					X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else create_model_matrix_from_features(model_formula, X_imp)
+					X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
 				}
 				X_cov = if (is.null(X_cov_all) || !length(selected_colnames)) matrix(NA_real_, nrow = private$n, ncol = 0) else as.matrix(X_cov_all[, intersect(selected_colnames, colnames(X_cov_all)), drop = FALSE])
 			}
@@ -600,6 +600,24 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			X = worker_state$runtime$X
 			X_zero_one = worker_state$runtime$X_zero_one
 			y = as.numeric(worker_state$worker_priv$y)
+			j_treat = worker_state$spec$j_treat
+			# Fit the worker's CURRENT w, not the treatment column snapshotted by
+			# load_bootstrap_sample_into_worker(). The bootstrap randomization test
+			# reuses this estimator, and its loader replaces the worker's w with a
+			# fresh design draw (and y with the sharp-null responses) after the row
+			# snapshot was taken. Fitting the snapshot's observed w against the null
+			# y made every BRT "null" draw an ordinary bootstrap replicate centred at
+			# the estimate (rand p 0.01 vs BRT p 0.85; v1.0.6-TODO-167, same bug as
+			# v1.0.6-TODO-150). On the plain bootstrap path w equals the snapshot
+			# column, so results there are unchanged.
+			w = as.numeric(worker_state$worker_priv$w)
+			if (length(w) != nrow(X) || length(y) != nrow(X)) return(fallback())
+			if (!identical(w, as.numeric(X[, j_treat])) || !identical(w, as.numeric(X_zero_one[, j_treat]))) {
+				X[, j_treat] = w
+				X_zero_one[, j_treat] = w
+				# The rank certificate in the loader was for the observed column.
+				if (qr(X)$rank < ncol(X) || qr(X_zero_one)$rank < ncol(X_zero_one)) return(fallback())
+			}
 			start_len = ncol(X) + 1L + 2L * ncol(X_zero_one)
 			res = tryCatch(
 				fast_zero_one_inflated_beta_cpp(
@@ -614,8 +632,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 				),
 				error = function(e) NULL
 			)
-			j_treat = worker_state$spec$j_treat
-			if (is.null(res) || length(res$b) < j_treat) return(fallback())
+			if (is.null(res)|| length(res$b) < j_treat) return(fallback())
 			if (!is.finite(res$b[j_treat])) return(fallback(known_failed_full_fit = TRUE))
 			if (!identical(worker_state$worker$get_estimand(), "marginal_mean_diff")) {
 				return(as.numeric(res$b[j_treat]))

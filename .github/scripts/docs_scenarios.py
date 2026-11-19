@@ -162,19 +162,45 @@ def significant(repo, base, head, paths):
     return sc.significant_changes(str(repo), base, head, pathspecs(paths))
 
 
-def due_reason(repo, area, cfg, rec, head):
-    """(due, reason, changed_paths) for one area."""
+STALE_PREFIX = "unchanged for "
+
+
+def days_since(iso_ts, now=None):
+    """Whole days since an ISO-8601 UTC timestamp (as stored in state.json), or None if unparsable."""
+    if not iso_ts:
+        return None
+    try:
+        then = dt.datetime.fromisoformat(str(iso_ts).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=dt.timezone.utc)
+    now = now or dt.datetime.now(dt.timezone.utc)
+    return (now - then).days
+
+
+def due_reason(repo, area, cfg, rec, head, now=None):
+    """(due, reason, changed_paths) for one area.
+
+    Owner decision 2026-11-18: besides running when something relevant changed, every area is re-run once
+    its last successful run is `defaults.rerun_unchanged_after_days` old (42 = 6 weeks), so the stored
+    learnings get a chance to go deeper even in areas nobody touches.
+    """
     last = (rec or {}).get("last_run_sha")
     if not last:
         return True, "first run (no successful run recorded)", []
     if not commit_exists(repo, last):
         return True, f"last-run commit {last[:8]} is not in history", []
-    if last == head:
-        return False, f"already run at {head[:8]}", []
-    changed = significant(repo, last, head, area_paths(area, cfg, repo))
+    changed = [] if last == head else significant(repo, last, head, area_paths(area, cfg, repo))
     if changed:
         more = f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""
         return True, f"{len(changed)} path(s) changed since {last[:8]}: " + ", ".join(changed[:3]) + more, changed
+    rerun_days = (cfg.get("defaults") or {}).get("rerun_unchanged_after_days")
+    age = days_since((rec or {}).get("last_run_at"), now)
+    if rerun_days and age is not None and age >= rerun_days:
+        return True, f"{STALE_PREFIX}{age} days (periodic re-run every {rerun_days} days)", []
+    if last == head:
+        return False, f"already run at {head[:8]}", []
     return False, f"nothing relevant changed since {last[:8]}", []
 
 
@@ -192,8 +218,13 @@ def choose(cfg, state, due, requested):
             raise SystemExit(f"unknown area(s) {bad}; known: {', '.join(areas)}")
     recs = state.get("areas", {})
     order = {x: k for k, x in enumerate(areas)}  # ties (e.g. never run) keep the config's order
-    ids.sort(key=lambda i: (bool(recs.get(i, {}).get("last_run_at")), recs.get(i, {}).get("last_run_at") or "",
-                            order[i]))
+    # Never run first, then areas with relevant changes, then periodic re-runs of unchanged areas; within each,
+    # longest since the last run first. So a busy week's changes are never pushed out by the periodic re-runs.
+    def stale_only(i):
+        entry = due.get(i) or ()
+        return len(entry) > 1 and str(entry[1]).startswith(STALE_PREFIX)
+    ids.sort(key=lambda i: (bool(recs.get(i, {}).get("last_run_at")), stale_only(i),
+                            recs.get(i, {}).get("last_run_at") or "", order[i]))
     deferred = []
     cap = cfg.get("defaults", {}).get("max_areas_per_run")
     if requested in ("changed", "", None) and cap and len(ids) > cap:

@@ -37,6 +37,7 @@ on:
       - "audit · weekly · results-freshness"
       - "audit · weekly · test-suite-health"
       - "audit · weekly · todo-status"
+      - "audit · weekly · untested-code"
     types: [completed]
   schedule:
     - cron: "7 8 * * *"

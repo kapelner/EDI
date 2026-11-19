@@ -273,6 +273,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   model_formula_zero = NULL,
   use_rcpp = TRUE,
   verbose = FALSE,
+  smart_cold_start_default = NULL,
   optimization_alg = NULL
 )}
     \if{html}{\out{</div>}}
@@ -287,6 +288,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
       \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use our internal Rcpp
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
       \item{\code{optimization_alg}}{Optimization algorithm. Default is dispatched via policy.}
     }
     \if{html}{\out{</div>}}

@@ -70,26 +70,34 @@
 #' it to the currently loaded version the first time it is read, rather than
 #' erroring on the missing field.
 #'
-#' \strong{Randomization inference and the seed.} A seeded design's
-#' \code{draw_ws_according_to_design()} calls \code{maybe_set_seed()}, i.e.
-#' \code{set.seed()} on the global RNG, and does not restore the caller's
-#' stream. Randomization p-values/CIs draw their permutations from a
-#' \code{duplicate()} (which has no seed) under the inference object's
-#' \code{set_seed()}, falling back to this design's \code{seed}, inside a
-#' \code{.Random.seed} save/restore; see
-#' \code{Inference$set_seed()} and \code{clear_randomization_cache()}.
+#' \strong{What \code{seed} guarantees.} A fixed design applies the seed with
+#' \code{set.seed()} on the global RNG at the start of every draw
+#' (\code{assign_w_to_all_subjects()}, \code{draw_ws_according_to_design()}),
+#' so the same seed always gives the same allocation and a repeated call
+#' repeats the first draw (the caller's stream is not restored). A sequential
+#' design (v1.0.6) seeds each assignment from (\code{seed}, the subject's index
+#' \code{t}) and runs it with the session's \code{.Random.seed} saved and
+#' restored; its \code{draw_ws_according_to_design()} likewise runs under a seed
+#' derived from (\code{seed}, \code{"redraw"}). Its allocation therefore depends
+#' only on the seed and the subjects' data (and, for KK21, the responses recorded
+#' so far): random numbers used between assignments do not change it, and the
+#' caller's stream is untouched. With \code{seed = NULL} a sequential design
+#' draws every assignment from the session's stream.
 #'
-#' \strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
-#' once per call, inside \code{maybe_set_seed()} (at construction for sequential designs, on each draw for fixed ones), and is
-#' \emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
-#' after a reload therefore draws from whatever the global
-#' \code{.Random.seed} happens to be in the new session, not a deterministic
-#' continuation of the original stream. This is almost certainly the right
-#' behavior for a real trial (bit-for-bit-reproducible continuation across a
-#' process restart is not a property a production trial should have), but it
-#' means a same-seed reload-and-continue is \emph{not} expected to reproduce
-#' the same draws as an uninterrupted run with that seed -- do not rely on
-#' that for testing.
+#' \strong{Randomization inference and the seed.} Randomization p-values/CIs
+#' draw their permutations from a \code{duplicate()} (which has no seed) under
+#' the inference object's \code{set_seed()}, falling back to this design's
+#' \code{seed}, inside a \code{.Random.seed} save/restore, for fixed and
+#' sequential designs alike; see \code{Inference$set_seed()} and
+#' \code{clear_randomization_cache()}.
+#'
+#' \strong{Save and reload.} A seeded sequential design saved with
+#' \code{saveRDS()} keeps its seed, so after \code{readRDS()} the next
+#' assignments are exactly those of an uninterrupted run, with no user code.
+#' A sequential design with \code{seed = NULL} draws from whatever the global
+#' \code{.Random.seed} is in the new session; to continue such a trial exactly,
+#' save \code{.Random.seed} with the design and assign it back to the global
+#' environment before the next assignment; see \code{vignette("reproducibility")}.
 #'
 #' \strong{Known non-serializable case.} A \code{DesignFixedOptimal}
 #' constructed with \code{objective = "custom"} from a raw
@@ -386,21 +394,18 @@ Design = R6::R6Class("Design",
 					stop("y_R must be strictly greater than y_L.")
 				}
 			}
-			if (private$fixed_sample | t <= length(private$y)){
-				private$y[t] = if (has_y) y else NA_real_
-				private$y_original[t] = if (has_y) y else NA_real_
-				private$y_L[t] = if (has_y) NA_real_ else y_L
-				private$y_R[t] = if (has_y) NA_real_ else y_R
-			} else if (t == length(private$y) + 1){
-				private$y = c(private$y, if (has_y) y else NA_real_)
-				private$y_original = c(private$y_original, if (has_y) y else NA_real_)
-				private$y_L = c(private$y_L, if (has_y) NA_real_ else y_L)
-				private$y_R = c(private$y_R, if (has_y) NA_real_ else y_R)
-			} else {
-				if (should_run_asserts()) {
-					stop("You cannot add a response for a subject that has not yet arrived when the sample size is not fixed in advance.")
-				}
+			# Any arrived subject may get its response in any order, with or without a fixed n
+			# (v1.0.6-TODO-78): indexed assignment pads y, y_original, y_L and y_R with NA up to t
+			# (they start as NULL when n = NULL). Only a subject that has not arrived yet is
+			# refused; always on, since storing it would leave y longer than w.
+			if (!isTRUE(private$fixed_sample) && t > private$t){
+				stop("You cannot add a response for subject ", t, " as only ", private$t,
+					" subject(s) have arrived so far.", call. = FALSE)
 			}
+			private$y[t] = if (has_y) y else NA_real_
+			private$y_original[t] = if (has_y) y else NA_real_
+			private$y_L[t] = if (has_y) NA_real_ else y_L
+			private$y_R[t] = if (has_y) NA_real_ else y_R
 			private$y_i_t_i[[t]] = private$t
 		},
 		#' @description For non-CARA designs, add all subject responses.
@@ -490,6 +495,19 @@ Design = R6::R6Class("Design",
 		#'
 		#' @param w A \{0,1\} vector of subject assignments (1 = treated, 0 = control).
 		overwrite_all_subject_assignments = function(w) {
+			# One body for both families (v1.0.6-TODO-154): DesignFixed no longer overrides it.
+			# The w being overwritten is the whole trial's, so all subjects must be in: for
+			# a fixed design add_all_subjects_to_experiment() sets t = n, and for a sequential
+			# design with n given every subject must have arrived. A mid-trial overwrite would
+			# feed the design's later assignments (Efron's bias, KK's matched partners) a w
+			# the design never drew. An open-ended sequential design (no n) is complete at t.
+			if (private$t == 0L){
+				stop("overwrite_all_subject_assignments: no subjects have been added to the experiment yet.", call. = FALSE)
+			}
+			if (private$fixed_sample && private$t < private$n){
+				stop("overwrite_all_subject_assignments: only ", private$t, " of the n = ", private$n,
+					" subjects have arrived; w can be overwritten only once all subjects are in.", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				assertIntegerish(w, lower = 0, upper = 1, any.missing = FALSE, len = private$t)
 			}
@@ -505,7 +523,9 @@ Design = R6::R6Class("Design",
 		#' @description Asserts if all subjects arrived.
 		assert_all_subjects_arrived = function(){
 			if (should_run_asserts()) {
-				if (private$fixed_sample & private$t < private$n){
+				# && with the fixed_sample test first: with n = NULL, private$n is NULL and `&` gave
+				# logical(0), so if() errored "argument is of length zero" (v1.0.6-TODO-77).
+				if (isTRUE(private$fixed_sample) && private$t < private$n){
 					stop("This experiment is incomplete as all n subjects haven't arrived yet.")
 				}
 			}
@@ -523,7 +543,8 @@ Design = R6::R6Class("Design",
 		#'
 		#' @return  \code{TRUE} if experiment is complete, \code{FALSE} otherwise.
 		check_experiment_completed = function(){
-			if (private$fixed_sample & private$t < private$n){
+			# An open-ended design (n = NULL) is complete once every enrolled subject has a response (v1.0.6-TODO-77).
+			if (isTRUE(private$fixed_sample) && private$t < private$n){
 				FALSE
 			} else if (sum(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R))) != length(private$w)){
 				FALSE
@@ -1087,7 +1108,10 @@ Design = R6::R6Class("Design",
 		permutations_cache   = list(),
 		lin_centered_covariates = NULL,
 		draw_bootstrap_indices = function(bootstrap_type = NULL){
-			list(i_b = sample_int_replace_cpp(private$n, private$n), m_vec_b = NULL)
+			# get_n(), not private$n: with n = NULL private$n is NULL and the C++ call errored
+			# "Expecting a single value" (v1.0.6-TODO-77). get_n() is private$n when n is fixed.
+			n = self$get_n()
+			list(i_b = sample_int_replace_cpp(n, n), m_vec_b = NULL)
 		},
 		prob_T = NULL,
 		response_type = NULL,

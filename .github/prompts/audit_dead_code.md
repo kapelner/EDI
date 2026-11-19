@@ -42,6 +42,13 @@ A candidate is **not** dead if any of these reaches it:
   directly, the function is used and only the `[[Rcpp::export]]` may be unneeded: say so in `text` and
   mark it `unsure` unless the export is clearly unused from R (then `confirmed`, with that wording).
 
+**Regions** (`id` `region:unt-<hex>`, kind `unreachable region (untested-code audit)`): not a whole
+function but lines inside one, which no test executes and which the untested-code audit's agent found
+no public path to (its reasoning is in `note`). Confirm only if no input, argument combination,
+design, response type or state reachable through the exported API gets there (a branch whose
+condition the code above it already rules out, a guard for a state the constructor forbids). It is a
+false positive if you find such a path: give the call that reaches it.
+
 Search for the name yourself (Grep, including partial names and string forms) before you confirm.
 Test files that only test the candidate itself do not make it used, but say so in `text` (the test
 would go with it).

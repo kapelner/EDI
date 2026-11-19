@@ -11,6 +11,10 @@ compile, no R):
   free function defined at file scope in R/EDI/src with no reference in R/EDI/src, python/cpp or R/benchmark
   other than its definition and its declarations.
 
+- Regions: code regions the untested-code audit (untested_code.py) could not reach through the public
+  API, read from `untested-code/unreachable.json` on the audit-notes branch (unit `region:unt-<hex>`).
+  The agent checks each one like any candidate: a path that reaches it makes it a false positive.
+
 Claude stage: one unit per candidate. The agent rules out false positives (R6 methods called by
 name, .Call targets, names built with paste() and called through do.call() or get(), Python
 bindings under python/cpp, macros) and confirms the rest.
@@ -18,6 +22,7 @@ bindings under python/cpp, macros) and confirms the rest.
 The PR rewrites CANDIDATES_FILE with the confirmed candidates. It removes no code. Deleting a line
 of that file on the PR branch rejects the candidate, so it is not raised again.
 """
+import json
 import os
 import re
 
@@ -289,11 +294,38 @@ def cpp_candidates(ctx, r_idx=None):
 
 # ---------------------------------------------------------------- stages
 
+UNTESTED_UNREACHABLE = "untested-code/unreachable.json"
+
+
+def untested_candidates(ctx):
+    """Regions the untested-code audit judged unreachable from the public API, as candidates."""
+    root = getattr(ctx.notes, "root", None)
+    if root is None:
+        return {}
+    try:
+        data = json.loads((root / UNTESTED_UNREACHABLE).read_text())
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for rid, v in (data.items() if isinstance(data, dict) else []):
+        f = v.get("file") or ""
+        if not f or not v.get("first_line"):
+            continue
+        a, b = v["first_line"], v.get("last_line") or v["first_line"]
+        out[f"region:{rid}"] = {
+            "lang": "R" if f.endswith(R_EXT) else "C++", "name": f"{v.get('fn') or 'top level'} lines {a}-{b}",
+            "kind": "unreachable region (untested-code audit)", "file": f, "line": a,
+            "note": (f"The untested-code audit found no public path to lines {a}-{b}: {v.get('text', '')} "
+                     f"Evidence: {v.get('evidence', '')}").strip()[:1500]}
+    return out
+
+
 def candidates(ctx):
     if getattr(ctx, "_dead_code_candidates", None) is None:
         r_idx = word_index(r_uses(ctx))
         c = r_candidates(ctx, r_idx)
         c.update(cpp_candidates(ctx, r_idx))
+        c.update(untested_candidates(ctx))
         ctx._dead_code_candidates = c
     return ctx._dead_code_candidates
 
@@ -335,7 +367,9 @@ def units(ctx):
         snip = snippet(ctx, c["file"], c["line"])
         context = {k: v for k, v in c.items() if v not in (None, "")}
         context["definition"] = snip
-        context["searched"] = (f"mechanical word search found no reference in: {', '.join(R_USE_DIRS)}, "
+        context["searched"] = ("the untested-code audit's agent, reading the code (no test reached these lines)"
+                               if uid.startswith("region:") else
+                               f"mechanical word search found no reference in: {', '.join(R_USE_DIRS)}, "
                                "R/EDI/man \\examples" if c["lang"] == "R"
                                else f"mechanical word search found no call site in: {', '.join(CPP_DIRS)}"
                                + (f"; and none for its R wrapper in {', '.join(R_USE_DIRS)}" if c.get("r_name") else ""))

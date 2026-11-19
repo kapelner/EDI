@@ -199,7 +199,12 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 		preferred_num_bins_for_continuous_covariate = NULL,
 		B_target = NULL,
 		exact_num_blocks = FALSE,
-		equal_block_sizes = TRUE,
+		# FALSE unless the class's constructor takes equal_block_sizes and the user asks for it
+		# (DesignFixedBlocking defaults it to TRUE). Classes without the argument, notably
+		# DesignFixedBlockedCluster, whose randomization unit is the cluster, accept unequal
+		# strata (v1.0.6-TODO-73: the old TRUE default rejected real cluster trials and told
+		# the user to set an argument the class does not have).
+		equal_block_sizes = FALSE,
 		blocking_capable = FALSE,
 		cmh_se_w_mat = NULL,
 		get_strata_keys = function(){
@@ -286,13 +291,20 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 			if (isTRUE(private$equal_block_sizes)) {
 				block_counts = as.integer(table(keys))
 				if (length(block_counts) > 1L && any(block_counts != block_counts[1L])) {
-					stop("equal_block_sizes = TRUE but the strata produced unequal block sizes (",
+					# Name only the arguments this class's constructor takes (v1.0.6-TODO-73).
+					ctor_args = names(formals(self$initialize))
+					advice = if (all(c("equal_block_sizes", "B_target") %in% ctor_args)) {
+						paste0("Because strata_cols was named without B_target, all of it is used and the ",
+							"block sizes are determined by the data. Set equal_block_sizes = FALSE to allow ",
+							"unequal blocks, or adjust the strata_cols / covariate binning (or pass an ",
+							"explicit B_target) so that every block has the same size.")
+					} else {
+						"Adjust the blocking covariates or their binning so that every block has the same size."
+					}
+					stop("This design requires equal block sizes but the strata produced unequal block sizes (",
 						paste(sort(unique(block_counts)), collapse = ", "),
 						") for n = ", n, " (", length(block_counts), " blocks from strata_cols = ",
-						paste(strata_cols, collapse = ", "), "). Because strata_cols was named without ",
-						"B_target, all of it is used and the block sizes are determined by the data. ",
-						"Set equal_block_sizes = FALSE to allow unequal blocks, or adjust the strata_cols / ",
-						"covariate binning (or pass an explicit B_target) so that every block has the same size.")
+						paste(strata_cols, collapse = ", "), "). ", advice)
 				}
 			}
 			if (isTRUE(private$exact_num_blocks)) {

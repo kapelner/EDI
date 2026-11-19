@@ -414,7 +414,11 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   fresh assignments from the design.
 		#'
 		#' @param B  					Number of bootstrap randomization draws. Default 501.
-		#' @param delta  				The null treatment effect. Default 0.
+		#' @param delta  				The sharp-null shift of the responses (on the
+		#'   \code{transform_responses} scale), not a value of the estimand. Default 0, the null
+		#'   of no effect for every class, including ratio estimands (risk ratio 1, log risk ratio
+		#'   0); the studentized types center their pivot at the estimand's no-effect value (1 for
+		#'   the raw risk-ratio g-computation classes).
 		#' @param transform_responses  Type of response transformation for the sharp null shift.
 		#'   The default "none" resolves by response type (logit for proportion, log for count
 		#'   and survival, identity otherwise), matching \code{compute_rand_two_sided_pval}.
@@ -514,6 +518,14 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#' @return 	A two-sided p-value.
 		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
+			# v1.0.6-TODO-151: same incidence guard as compute_rand_two_sided_pval()
+			# (v1.0.6-TODO-81/110). A nonzero delta shifted the 0/1 responses additively
+			# (e.g. to 0.2/1.2), which is no sharp null on any scale, and a risk-ratio
+			# class's delta = 1.2 was silently that shift, not the null RR = 1.2.
+			if (isTRUE(delta != 0) &&
+					private$des_obj_priv_int$response_type == "incidence") {
+				stop("bootstrap randomization tests with delta nonzero not supported for incidence", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE); assertCount(B, positive = TRUE); assertFlag(na.rm)
@@ -574,7 +586,16 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					# SE unavailable: fall through to percentile
 				} else {
 					symmetric_pivot = identical(type_lc, "symmetric-percentile-t")
-					return(private$compute_two_sided_brt_pval_studentized(t, brt_stats$t0, brt_stats$se0, delta, se_obs_stud, symmetric = symmetric_pivot))
+					# v1.0.6-TODO-151: `delta` is the sharp-null shift on the response scale, and
+					# delta = 0 (no effect) is the only value allowed for incidence. The pivot must be
+					# centered at the matching null of the estimand; that is delta itself except for
+					# the raw risk-ratio g-computation classes, whose estimate is RR and whose
+					# no-effect null is RR = 1 (`default_null_value()`; 0 for their RD siblings).
+					stud_center = delta
+					if (identical(as.numeric(delta), 0) && private$has_private_method("default_null_value")) {
+						stud_center = private$default_null_value()
+					}
+					return(private$compute_two_sided_brt_pval_studentized(t, brt_stats$t0, brt_stats$se0, stud_center, se_obs_stud, symmetric = symmetric_pivot))
 				}
 			}
 			# Smoothed BRT p-value: kernel noise per draw reduces null-distribution discreteness.
@@ -611,7 +632,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
 				if (!isTRUE(na.rm) && any(!is.finite(t0s_sm))) return(NA_real_)
-				return(private$compute_two_sided_randomization_pval_from_t0s(t0s_sm, t))
+				return(private$compute_two_sided_randomization_pval_from_t0s(t0s_sm, t, procedure = "randomization-bootstrap p-value"))
 			}
 			# SMC early-stopping: evaluate the null distribution in batches; stop once the
 			# Clopper-Pearson 99% band around the p-value clears the mc_stop_threshold on
@@ -656,7 +677,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)
 			if (!isTRUE(na.rm) && any(!is.finite(t0s))) return(NA_real_)
-			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
+			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value")
 		}
 	),
 	private = list(
@@ -974,19 +995,23 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				full_key = paste(B_int, delta_key, transform_arg, draws_id, sep = "|")
 				full_distr = private$get_cached_resampling_distribution("rand_bootstrap", full_key)
 				if (!is.null(full_distr) && length(full_distr) >= B_int) {
-					return(private$compute_two_sided_randomization_pval_from_t0s(full_distr, t))
+					return(private$compute_two_sided_randomization_pval_from_t0s(full_distr, t, procedure = "randomization-bootstrap p-value"))
 				}
 			}
 			target = 0L
 			repeat {
 				target = min(B_int, target + batch_size)
 				t0s = private$get_brt_distribution_prefix(draws, target, delta, transform_arg, y0_full, zero_one_logit_clamp)
-				p_hat = private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
-				if (target >= B_int || !is.finite(p_hat)) return(p_hat)
+				if (target >= B_int) return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value"))
+				# v1.0.6-TODO-166: a prefix with too few finite draws is not a final
+				# answer; draw the next batch instead of returning NA (the full B draws
+				# may have enough). The second check is the finite-draw minimum of
+				# compute_two_sided_randomization_pval_from_t0s(), applied here so a
+				# short prefix neither warns nor records a hardened failure.
 				n_valid = sum(is.finite(t0s))
-				if (n_valid >= min_draws_mc) {
-					if (private$sequential_mc_band_excludes_threshold(t0s, t, threshold, conf_level)) return(p_hat)
-				}
+				if (n_valid < min_draws_mc || n_valid < max(10L, as.integer(length(t0s) * 0.10))) next
+				p_hat = private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value")
+				if (is.finite(p_hat) && private$sequential_mc_band_excludes_threshold(t0s, t, threshold, conf_level)) return(p_hat)
 			}
 		},
 		# One null draw returning c(t0, se0): same setup as run_rand_bootstrap_iteration but

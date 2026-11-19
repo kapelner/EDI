@@ -61,3 +61,13 @@ jobs:
           files: python/coverage.xml
           flags: python
           fail_ci_if_error: false
+
+      # Read by the weekly untested-code audit (.github/scripts/audits/untested_code.py), which takes
+      # the newest one from a main-branch run (build-wheels.yml calls this workflow on main pushes).
+      - name: Keep coverage.xml for the untested-code audit
+        if: always() && hashFiles('python/coverage.xml') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-python
+          path: python/coverage.xml
+          retention-days: 30

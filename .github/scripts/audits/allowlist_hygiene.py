@@ -43,6 +43,8 @@ REMOVABLE = {
         "key": ("response_type", "design", "prob_T", "inference_class", "method", "formula", "n", "metric")},
     f"{PT}/path_audits_regression_allowlist.csv": {
         "cite": "tracked_in", "class_regex": "class_regex", "key": ("id",)},
+    # Untested-code audit (audits/untested_code.py): regions left uncovered on purpose.
+    "R/package_metadata/audits/untested_code_allowlist.csv": {"cite": "reason-lead", "key": ("match",)},
 }
 # Entries are reported, never removed: the file's header says to reclassify a `todo:` rule to
 # `commit:` when its TODO lands, and delete it only once nothing is left to prune.

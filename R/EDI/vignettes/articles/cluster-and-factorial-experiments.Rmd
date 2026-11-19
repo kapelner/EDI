@@ -287,11 +287,11 @@ clusters within each stratum keeps the arms balanced on the stratum.
 block, `prob_T` of the clusters are treated, and each cluster must lie within a single
 block (the design errors otherwise).
 
-Here 32 schools sit in four districts, eight per district. One current restriction
-applies: **every block must have the same number of subjects**. The design has no
-`equal_block_sizes` argument, so with blocks of different sizes it errors the first
-time the blocks are used. This example gives every school 20 students so that each
-district has 160.
+Here 32 schools sit in four districts, eight per district. Blocks and clusters need
+not have the same number of subjects: the unit randomized is the cluster, so each
+block simply treats `prob_T` of its own clusters (rounded at random when that is not a
+whole number), whatever the school and district sizes. This example gives every
+school 20 students only to keep the simulation simple.
 
 ```{r blocked-cluster}
 set.seed(20261118)

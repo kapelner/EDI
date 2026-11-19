@@ -41,8 +41,10 @@ test_that("rep 4 `~.`: the null MLE at delta = 0 is a KKT boundary fit and the s
 	# was NA (finite-difference score / Hessian crossed the barrier)
 	expect_no_warning(p <- quiet(o$compute_score_two_sided_pval(0)), class = "edi_lik_test_unavailable_warning")
 	expect_equal(p, 0.83246, tolerance = 1e-4)  # 0.83250 after a CI call (warm-start history, < 5e-5)
-	expect_equal(o$compute_lik_ratio_two_sided_pval(0), 0.8243701533, tolerance = 1e-7)  # unchanged
-	expect_equal(o$compute_gradient_two_sided_pval(0), 0.8201867737, tolerance = 1e-7)   # unchanged
+	# 1e-5, not 1e-7: the fits stop at the kernel's convergence tolerance, and since
+	# v1.0.6-TODO-142 (2026-11-18) a different start path moved these by ~2e-6.
+	expect_equal(o$compute_lik_ratio_two_sided_pval(0), 0.8243701533, tolerance = 1e-5)
+	expect_equal(o$compute_gradient_two_sided_pval(0), 0.8201867737, tolerance = 1e-5)
 	expect_false(o$is_nonestimable())
 })
 
@@ -97,6 +99,7 @@ test_that("interior control (rep 1 `~.`, no row near the bound): values unchange
 	# 42638595069); a real change to the interior path moves them far more.
 	expect_equal(o$compute_estimate(), -0.004658453139, tolerance = 1e-7)
 	expect_equal(o$compute_score_two_sided_pval(0), 0.975450830601, tolerance = 1e-7)
-	expect_equal(o$compute_gradient_two_sided_pval(0), 0.975452687456, tolerance = 1e-7)
+	# 1e-6: moved by 1.3e-7 with the v1.0.6-TODO-142 start change (2026-11-18).
+	expect_equal(o$compute_gradient_two_sided_pval(0), 0.975452687456, tolerance = 1e-6)
 	expect_equal(unname(o$compute_score_confidence_interval()), c(-0.2957914445, 0.2845605486), tolerance = 1e-7)
 })

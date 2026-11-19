@@ -363,6 +363,9 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 		owns_state = blocking_state,
 		requires_state = c("t", "Xraw", "y"),
 		requires_public_methods = "get_X_raw",
+		# get_strata_keys() reads the host constructor's formals so its unequal-blocks
+		# error names only arguments the class takes (v1.0.6-TODO-73).
+		optional_public_methods = "initialize",
 		requires_private_methods = "has_private_method",
 		optional_private_methods = "get_or_compute_block_ids",
 		provides_capabilities = "blocking",

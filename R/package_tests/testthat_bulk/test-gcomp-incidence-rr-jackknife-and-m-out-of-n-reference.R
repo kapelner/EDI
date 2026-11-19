@@ -56,7 +56,7 @@ test_that("jackknife RR: a null value <= 0 is unavailable, an unusable original 
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", k$p)
 	k$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") c(1.2, NA, -1)   # one usable positive value
 	expect_true(is.na(k$p$compute_rr_jackknife_log_se("auto")))
-	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_too_few_positive_risk_ratio_estimates")   # TODO-116: procedure failure, Wald intact
+	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_too_few_deletion_units")   # TODO-116: procedure failure, Wald intact; v1.0.6-TODO-137: shared < 5 units guard
 	l <- rr_fx()
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", l$p)
 	l$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") rep(1.3, 10)     # zero spread

@@ -43,7 +43,7 @@ test_that("Design$add_all_subject_responses() (sequential base): the same exclus
 	for (i in 1:3) des2$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 	expect_error(
 		des2$add_all_subject_responses(ys = c(1, NA, 3)),
-		"Each subject needs either ys or both y_Ls and y_Rs\\."
+		"Subject 2 has no response: each subject needs either ys or both y_Ls and y_Rs"
 	)
 })
 
@@ -58,7 +58,7 @@ test_that("DesignFixed's own add_all_subject_responses(): the identical exclusiv
 	des2$add_all_subjects_to_experiment(data.frame(x1 = rnorm(3))); des2$assign_w_to_all_subjects()
 	expect_error(
 		des2$add_all_subject_responses(ys = c(1, NA, 3)),
-		"Each subject needs either ys or both y_Ls and y_Rs\\."
+		"Subject 2 has no response: each subject needs either ys or both y_Ls and y_Rs"
 	)
 })
 

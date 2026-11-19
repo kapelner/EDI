@@ -72,6 +72,13 @@ on:
         description: The finish stage also builds and installs EDI (e.g. to run tests an agent wrote)
         type: boolean
         default: false
+      finish_coverage_build:
+        description: >-
+          With finish_install_edi, build EDI in place with covr's --coverage flags and EDI_UNITY=0, so
+          the finish stage can measure which lines a test runs (gcov per object; pkgload::load_all with
+          compile = FALSE loads that build). Needs covr in r_packages.
+        type: boolean
+        default: false
       prepare_timeout:
         type: number
         default: 90
@@ -318,8 +325,20 @@ jobs:
           if (!identical(sha, pinned)) cat(sprintf("::warning::roxygen2 on the runner is commit %s but ROXYGEN2_REF pins %s\n", sha, ref)) else cat("roxygen2 commit", sha, "matches ROXYGEN2_REF\n")
           EOF
       - name: Build and install EDI from this commit
-        if: inputs.finish_install_edi
+        if: inputs.finish_install_edi && !inputs.finish_coverage_build
         run: R CMD INSTALL --no-test-load R/EDI
+      # In place (objects, .gcno files and EDI.so stay in R/EDI/src) with the coverage shards' flags
+      # (configure_coverage_compiler.R: covr's --coverage, -O2), one object per .cpp.
+      - name: Build and install EDI from this commit, instrumented for coverage
+        if: inputs.finish_install_edi && inputs.finish_coverage_build
+        env:
+          EDI_UNITY: 0
+        run: |
+          Rscript -e 'source("R/package_tests/ci/configure_coverage_compiler.R"); flags = configure_coverage_compiler(); st = withr::with_makevars(flags, assignment = "+=", system2(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", "--no-test-load", "R/EDI"))); if (!identical(as.integer(st), 0L)) quit(status = 1)'
+          echo "$(find R/EDI/src -maxdepth 1 -name "*.gcno" | wc -l) instrumented objects"
+          # configure rewrote the tracked src/Makevars for EDI_UNITY=0; the build is done, so put it
+          # back, or the PR (publish runs `git add -A`) would carry it.
+          git diff --quiet -- R/EDI || { git diff --stat -- R/EDI; git checkout -- R/EDI; }
       - name: Apply the findings and write the report
         id: finish
         run: |

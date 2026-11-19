@@ -176,7 +176,9 @@ non-negative, one-tailed-by-construction statistic (squared difference, chi-squa
   or count, \code{InferencePropGCompMeanDiff}, \code{InferenceOrdinalRidit},
   \code{InferenceOrdinalJonckheereTerpstraTest}) refuses this method with an error
   instead of returning bounds on another scale; its randomization p-value and
-  randomization-bootstrap CI remain available. The same refusal applies on
+  randomization-bootstrap CI remain available (a class with no randomization
+  bootstrap, such as \code{InferenceRandCustom}, keeps only the p-value at
+  \code{delta = 0}). The same refusal applies on
   survival responses to classes whose estimate is a raw-scale (time-unit) mean
   difference or Hodges-Lehmann shift, since the survival search inverts a
   log-time shift.

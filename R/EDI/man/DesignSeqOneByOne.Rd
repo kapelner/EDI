@@ -19,6 +19,22 @@ that assume a fixed sample size require the final size to be chosen independentl
 of accumulating outcomes.
 }
 
+\section{Seed and reproducibility}{
+
+With a non-\code{NULL} \code{seed}, each assignment draws its randomness from a
+seed derived from (\code{seed}, the subject's index \code{t}), with the session's
+random-number state saved before the draw and restored after it. So the
+allocation depends only on the seed and the subjects' covariates (and, for the
+KK21 designs, the responses recorded so far); random numbers used between
+assignments do not change it, a trial saved with \code{saveRDS()} continues
+after \code{readRDS()} exactly as an uninterrupted run would, and neither
+construction nor assignment moves the caller's own stream.
+\code{draw_ws_according_to_design()} on a seeded design likewise runs under a
+seed derived from (\code{seed}, \code{"redraw"}), so repeated calls return the
+same draws, as on a fixed design. With \code{seed = NULL} (the default) every
+assignment draws from the session's stream, as before.
+}
+
 \examples{
 # DesignSeqOneByOne is abstract and cannot be instantiated directly;
 # construct a concrete subclass instead, e.g.:
@@ -36,6 +52,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-DesignSeqOneByOne-add_one_subject}{\code{DesignSeqOneByOne$add_one_subject()}}
     \item \href{#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign}{\code{DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()}}
     \item \href{#method-DesignSeqOneByOne-assign_wt}{\code{DesignSeqOneByOne$assign_wt()}}
+    \item \href{#method-DesignSeqOneByOne-draw_ws_according_to_design}{\code{DesignSeqOneByOne$draw_ws_according_to_design()}}
     \item \href{#method-DesignSeqOneByOne-print_current_subject_assignment}{\code{DesignSeqOneByOne$print_current_subject_assignment()}}
     \item \href{#method-DesignSeqOneByOne-clone}{\code{DesignSeqOneByOne$clone()}}
   }
@@ -52,7 +69,6 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
@@ -129,7 +145,10 @@ does not provide a stopping rule.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
-      \item{\code{seed}}{Integer seed for reproducibility.}
+      \item{\code{seed}}{Integer seed for reproducibility, or \code{NULL} (the default)
+to draw from the session's stream. With a seed, each assignment is drawn
+under a seed derived from (\code{seed}, subject index) and the session's
+stream is restored afterwards; see the "Seed and reproducibility" section.}
       \item{\code{...}}{Extra arguments passed to the \code{Design} superclass.}
     }
     \if{html}{\out{</div>}}
@@ -190,6 +209,34 @@ does not provide a stopping rule.}
   }
   \subsection{Returns}{
     The treatment assignment (0 or 1).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DesignSeqOneByOne-draw_ws_according_to_design"></a>}}
+\if{latex}{\out{\hypertarget{method-DesignSeqOneByOne-draw_ws_according_to_design}{}}}
+\subsection{\code{DesignSeqOneByOne$draw_ws_according_to_design()}}{
+  Draw treatment assignment vectors according to the design (the
+  sequential rule replayed over the enrolled subjects). With a non-\code{NULL}
+  \code{seed} the draws run under a seed derived from (\code{seed}, \code{"redraw"})
+  with the session's random-number state saved and restored, so repeated calls
+  return the same draws and the caller's stream is untouched; with
+  \code{seed = NULL} they come from the session's stream.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{DesignSeqOneByOne$draw_ws_according_to_design(r = 1L)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of vectors to draw. Default is 1.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A matrix with one row per enrolled subject and \code{r} columns of
+  \{0,1\} entries (1 = treated, 0 = control).
   }
 }
 

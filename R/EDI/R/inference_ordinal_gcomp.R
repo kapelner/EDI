@@ -109,7 +109,22 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				private$fit_warm_start_type = saved_fit_warm_start_type
 				private$fit_warm_start_fisher = saved_fit_warm_start_fisher
 			}, add = TRUE)
-			as.numeric(private$weighted_gcomp_md_from_row_weights(row_weights))[1L]
+			md_w = private$weighted_gcomp_md_from_row_weights(row_weights, with_se = !isTRUE(estimate_only))
+			se_w = suppressWarnings(as.numeric(attr(md_w, "se", exact = TRUE) %||% NA_real_)[1L])
+			md_w = as.numeric(md_w)[1L]
+			# v1.0.6-TODO-149: the Bayesian-bootstrap studentized path reads this draw's SE
+			# from last_weighted_refit$s_beta_hat_T, which the isolation wrapper
+			# (run_isolated_weighted_refit) snapshots from cached_values after this call
+			# returns. The restore above would hand it the unweighted cache, so while that
+			# wrapper is active (it rolls the cache back itself) put this draw's own
+			# estimate and SE on top of the restored cache.
+			if (private$weighted_refit_depth > 0L) {
+				on.exit({
+					private$cached_values$beta_hat_T = md_w
+					private$cached_values$s_beta_hat_T = if (length(se_w) == 1L && is.finite(se_w) && se_w > 0) se_w else NA_real_
+				}, add = TRUE)
+			}
+			md_w
 		},
 		#' @description Computes a \eqn{1-\alpha} confidence interval for the
 		#'   G-Comp mean difference using the delta-method standard error (see
@@ -347,7 +362,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				)$md
 			)
 		},
-		weighted_gcomp_md_from_row_weights = function(row_weights){
+		weighted_gcomp_md_from_row_weights = function(row_weights, with_se = FALSE){
 			X_full = private$build_design_matrix()
 			reduced = private$reduce_design_matrix_preserving_treatment(X_full)
 			if (is.null(reduced$X) || !is.finite(reduced$j_treat)) return(NA_real_)
@@ -417,7 +432,32 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				error = function(e) NULL
 			)
 			if (is.null(res)) return(NA_real_)
-			as.numeric(res$md)
+			md = as.numeric(res$md)
+			if (isTRUE(with_se)) {
+				# v1.0.6-TODO-149: delta-method SE of the weighted mean difference, the
+				# weighted analogue of shared()'s model-based SE. The weighted fit's vcov
+				# is the inverse weighted observed information; weights are treated as
+				# frequency weights rescaled to mean one over all rows (as
+				# gcomp_weighted_logistic_sandwich_vcov() does), so the result does not
+				# depend on their overall scale and unit weights reproduce the
+				# unweighted se_md.
+				attr(md, "se") = NA_real_
+				w_all = as.numeric(row_weights)
+				w_all[!is.finite(w_all) | w_all < 0] = 0
+				w_scale = mean(w_all)
+				theta = c(alpha_hat, coef_hat)
+				vcov_raw = if (!is.null(mod$vcov)) tryCatch(as.matrix(mod$vcov), error = function(e) NULL) else NULL
+				if (is.finite(w_scale) && w_scale > 0 && !is.null(vcov_raw) &&
+					nrow(vcov_raw) == length(theta) && ncol(vcov_raw) == length(theta) && all(is.finite(vcov_raw))) {
+					grad = tryCatch(private$compute_md_gradient(X_fit_ok, theta, length(alpha_hat), j_treat),
+						error = function(e) NULL)
+					if (!is.null(grad) && all(is.finite(grad))) {
+						var_md = as.numeric(crossprod(grad, (vcov_raw * w_scale) %*% grad))
+						if (is.finite(var_md) && var_md > 0) attr(md, "se") = sqrt(var_md)
+					}
+				}
+			}
+			md
 		},
 		has_finite_md_se = function(){
 			se = private$cached_values$se_md

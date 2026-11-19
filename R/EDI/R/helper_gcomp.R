@@ -171,3 +171,51 @@ gcomp_weighted_logistic_sandwich_vcov = function(X_fit, y, coef_hat, row_weights
 	dimnames(vcov_mat) = list(names(coef_hat), names(coef_hat))
 	vcov_mat
 }
+
+#' Weighted cluster-robust sandwich covariance of a logistic working model fitted
+#' with bootstrap row weights.
+#'
+#' The KK-pair analogue of \code{gcomp_weighted_logistic_sandwich_vcov()}: bread
+#' \eqn{(\sum_i w_i \mu_i(1-\mu_i) x_i x_i^\top)^{-1}}, meat
+#' \eqn{\sum_g s_g s_g^\top} with cluster score
+#' \eqn{s_g = \sum_{i \in g} \sqrt{w_i} (y_i - \mu_i) x_i}, no small-sample factor.
+#' The square root makes the meat linear in the weight when it is constant within a
+#' cluster (\eqn{w_g s_g s_g^\top}, as for the pair-level Bayesian/nonparametric
+#' bootstrap weights): a cluster drawn k times adds k copies of its outer product,
+#' the frequency-weight convention of \code{gcomp_weighted_logistic_sandwich_vcov()}.
+#' The weights are rescaled to mean one over all rows, so unit weights reproduce
+#' \code{gcomp_logistic_cluster_post_fit_cpp()}'s covariance (v1.0.6-TODO-149: the
+#' Bayesian-bootstrap studentized path needs a per-draw standard error).
+#'
+#' @return The \eqn{p \times p} covariance matrix (named like \code{coef_hat}), or
+#'   \code{NULL} when it cannot be formed.
+#' @keywords internal
+#' @noRd
+gcomp_weighted_logistic_cluster_sandwich_vcov = function(X_fit, y, coef_hat, row_weights, cluster_id, clip_eps = .Machine$double.eps){
+	w = as.numeric(row_weights)
+	y = as.numeric(y)
+	if (length(w) != nrow(X_fit) || length(y) != nrow(X_fit) || length(cluster_id) != nrow(X_fit) ||
+		length(coef_hat) != ncol(X_fit)) return(NULL)
+	w[!is.finite(w) | w < 0] = 0
+	w_mean = mean(w)
+	if (!is.finite(w_mean) || w_mean <= 0) return(NULL)
+	w = w / w_mean
+	ok = w > 0 & is.finite(y) & !is.na(cluster_id)
+	if (sum(ok) <= ncol(X_fit)) return(NULL)
+	X = X_fit[ok, , drop = FALSE]
+	w = w[ok]
+	y = y[ok]
+	cl = cluster_id[ok]
+	mu = stats::plogis(as.numeric(X %*% as.numeric(coef_hat)))
+	mu = pmin(pmax(mu, clip_eps), 1 - clip_eps)
+	info = crossprod(X, X * (w * mu * (1 - mu)))
+	scores = rowsum(X * (sqrt(w) * (y - mu)), group = cl, reorder = FALSE)
+	meat = crossprod(scores)
+	bread = tryCatch(solve(info), error = function(e) NULL)
+	if (is.null(bread) || any(!is.finite(bread))) return(NULL)
+	vcov_mat = bread %*% meat %*% bread
+	vcov_mat = (vcov_mat + t(vcov_mat)) / 2
+	if (any(!is.finite(vcov_mat))) return(NULL)
+	dimnames(vcov_mat) = list(names(coef_hat), names(coef_hat))
+	vcov_mat
+}

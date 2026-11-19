@@ -128,6 +128,29 @@ class Skip(unittest.TestCase):
         d = tmp_repo()
         self.assertFalse(ds.due_reason(d, AREA, CFG, {"last_run_sha": head(d)}, head(d))[0])
 
+    def test_unchanged_area_rerun_after_42_days(self):
+        # Owner decision 2026-11-18: unchanged areas re-run every 6 weeks.
+        import datetime as _dt
+        d = tmp_repo()
+        cfg = {**CFG, "defaults": {**CFG.get("defaults", {}), "rerun_unchanged_after_days": 42}}
+        now = _dt.datetime(2026, 12, 31, tzinfo=_dt.timezone.utc)
+        recent = {"last_run_sha": head(d), "last_run_at": "2026-12-01T00:00:00Z"}
+        old = {"last_run_sha": head(d), "last_run_at": "2026-11-01T00:00:00Z"}
+        self.assertFalse(ds.due_reason(d, AREA, cfg, recent, head(d), now=now)[0])
+        due, why, _ = ds.due_reason(d, AREA, cfg, old, head(d), now=now)
+        self.assertTrue(due)
+        self.assertTrue(why.startswith(ds.STALE_PREFIX))
+        # without the setting, an unchanged area is never re-run
+        self.assertFalse(ds.due_reason(d, AREA, {**CFG, "defaults": {}}, old, head(d), now=now)[0])
+
+    def test_changed_areas_before_periodic_reruns(self):
+        cfg = {"defaults": {"max_areas_per_run": 1}, "areas": [{"id": "a"}, {"id": "b"}]}
+        state = {"areas": {"a": {"last_run_at": "2026-01-01T00:00:00Z"}, "b": {"last_run_at": "2026-06-01T00:00:00Z"}}}
+        due = {"a": (True, ds.STALE_PREFIX + "300 days", []), "b": (True, "1 path(s) changed", ["x"])}
+        chosen = ds.choose(cfg, state, due, "changed")
+        first = chosen[0] if isinstance(chosen, tuple) else chosen
+        self.assertEqual(list(first)[:1], ["b"])
+
     def test_choose_orders_and_caps(self):
         cfg = {"defaults": {"max_areas_per_run": 2}, "areas": [{"id": "a"}, {"id": "b"}, {"id": "c"}, {"id": "d"}]}
         state = {"areas": {"a": {"last_run_at": "2026-11-01"}, "b": {"last_run_at": "2026-10-01"}}}

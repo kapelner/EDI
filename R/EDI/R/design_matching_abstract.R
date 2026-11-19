@@ -87,11 +87,11 @@ DESIGN_MATCHING_STRUCTURE_PRIVATE = list(
 			)
 		},
 		compute_matching_cluster_ids = function(m_vec = private$m){
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
+			if (is.null(m_vec)) m_vec = rep(NA_integer_, self$get_n())
 			m_vec_int = as.integer(m_vec)
 			m_vec_int[is.na(m_vec_int)] = 0L
 			des_m = private$m
-			if (is.null(des_m)) des_m = rep(NA_integer_, private$n)
+			if (is.null(des_m)) des_m = rep(NA_integer_, self$get_n())
 			des_m_int = as.integer(des_m)
 			des_m_int[is.na(des_m_int)] = 0L
 			if (!is.null(private$cluster_id) && identical(m_vec_int, des_m_int)){

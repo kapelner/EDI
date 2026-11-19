@@ -125,6 +125,8 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'   matches. If unspecified, default is 10\%.
 		#' @param t_0_pct  The percentage of total sample size n where matching begins. If unspecified,
 		#'   default is 35\%.
+		#'  With \code{n = NULL} there is no planned sample size, so \code{t_0_pct} is not used: matching begins once the
+		#'   covariate model matrix exists (more than p + 2 subjects have arrived).
 		#' @param morrison        Reserved for Morrison's (2025) alternative matching-threshold
 		#'   calibration, which is not implemented yet: the value is recorded but no code path
 		#'   reads it, and \code{morrison = TRUE} gives a warning and runs the standard

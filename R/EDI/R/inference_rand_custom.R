@@ -6,7 +6,7 @@
 #' The statistic function is called once per permutation as
 #' \code{fn(y, w, dead)} -- plain numeric/integer vectors: the current
 #' (possibly permuted) response, treatment assignment, and event indicator.
-#' It must return one scalar. For maximum speed, supply
+#' It must return one scalar (a value of any other length is an error). For maximum speed, supply
 #' \code{custom_randomization_statistic_cpp} instead: C++ source defining a
 #' function of \code{(NumericVector y, IntegerVector w)} or
 #' \code{(NumericVector y, IntegerVector w, IntegerVector dead)} returning a
@@ -179,11 +179,25 @@ InferenceRandCustom = define_inference_class(
 		},
 		evaluate_stat = function(y, w, dead, cpp_fn_override = NULL){
 			cpp_fn = if (!is.null(cpp_fn_override)) cpp_fn_override else private$compiled_cpp_stat_fn
-			if (!is.null(cpp_fn)) {
+			val = if (!is.null(cpp_fn)) {
 				arity = length(formals(cpp_fn))
-				return(as.numeric(if (arity >= 3L) cpp_fn(y, as.integer(w), as.integer(dead)) else cpp_fn(y, as.integer(w)))[1L])
+				if (arity >= 3L) cpp_fn(y, as.integer(w), as.integer(dead)) else cpp_fn(y, as.integer(w))
+			} else {
+				private$custom_randomization_statistic_function(y, w, dead)
 			}
-			as.numeric(private$custom_randomization_statistic_function(y, w, dead))[1L]
+			# v1.0.6-TODO-83: a statistic returning several values used to be cut to its
+			# first element with no error. Checked on every call, so the observed-data
+			# call in fit() (made before any draw) is the one the user sees.
+			if (length(val) != 1L) {
+				stat_arg = if (is.null(cpp_fn)) "custom_randomization_statistic_function" else "custom_randomization_statistic_cpp"
+				stop(
+					"InferenceRandCustom: the custom statistic (", stat_arg, ") must return one number, ",
+					"but it returned ", length(val), " values (class ", class(val)[1L], "). ",
+					"Return a single summary, e.g. mean(y[w == 1]) - mean(y[w == 0]).",
+					call. = FALSE
+				)
+			}
+			as.numeric(val)
 		},
 		# Ported from the removed InferenceExtCustomRandomizationStatistic$
 		# evaluate_lightweight_custom_randomization_statistic(), minus the

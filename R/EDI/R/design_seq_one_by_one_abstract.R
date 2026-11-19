@@ -13,6 +13,20 @@
 #' that assume a fixed sample size require the final size to be chosen independently
 #' of accumulating outcomes.
 #'
+#' @section Seed and reproducibility:
+#' With a non-\code{NULL} \code{seed}, each assignment draws its randomness from a
+#' seed derived from (\code{seed}, the subject's index \code{t}), with the session's
+#' random-number state saved before the draw and restored after it. So the
+#' allocation depends only on the seed and the subjects' covariates (and, for the
+#' KK21 designs, the responses recorded so far); random numbers used between
+#' assignments do not change it, a trial saved with \code{saveRDS()} continues
+#' after \code{readRDS()} exactly as an uninterrupted run would, and neither
+#' construction nor assignment moves the caller's own stream.
+#' \code{draw_ws_according_to_design()} on a seeded design likewise runs under a
+#' seed derived from (\code{seed}, \code{"redraw"}), so repeated calls return the
+#' same draws, as on a fixed design. With \code{seed = NULL} (the default) every
+#' assignment draws from the session's stream, as before.
+#'
 #' @keywords internal
 #' @examples
 #' # DesignSeqOneByOne is abstract and cannot be instantiated directly;
@@ -36,7 +50,10 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @param verbose Whether to print progress messages.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
-		#' @param seed Integer seed for reproducibility.
+		#' @param seed Integer seed for reproducibility, or \code{NULL} (the default)
+		#'   to draw from the session's stream. With a seed, each assignment is drawn
+		#'   under a seed derived from (\code{seed}, subject index) and the session's
+		#'   stream is restored afterwards; see the "Seed and reproducibility" section.
 		#' @param ... Extra arguments passed to the \code{Design} superclass.
 		initialize = function(
 				response_type,
@@ -50,7 +67,9 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 				...
 			) {
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed, ...)
-			private$maybe_set_seed()
+			# v1.0.6-TODO-177: no set.seed() here any more. A seeded sequential design
+			# seeds each assignment from (seed, t) inside add_one_subject_to_experiment_and_assign(),
+			# so construction leaves the caller's stream alone.
 			private$equal_block_sizes = FALSE
 		},
 		#' @description Add subject-specific measurements for the next subject entrant.
@@ -220,7 +239,13 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		add_one_subject_to_experiment_and_assign = function(x_new){
 			private$check_version_compat()
 			self$add_one_subject(x_new)
-			w_t = self$assign_wt()
+			# v1.0.6-TODO-177: with a seed, subject t's draw comes from (seed, t) with the
+			# session's RNG state saved and restored, so it does not depend on anything
+			# else drawn in the session (or on a saveRDS()/readRDS() in between). Only this
+			# entry point is seeded: the replays inside draw_ws_raw() call assign_wt()
+			# directly and keep drawing from the one stream their caller set up.
+			w_t = if (is.null(private$seed)) self$assign_wt() else
+				private$with_derived_seed(private$t, self$assign_wt())
 			if (private$fixed_sample){
 				private$w[private$t] = w_t
 			} else {
@@ -237,6 +262,20 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		assign_wt = function(){
 			stop("Must be implemented by subclass.")
 		},
+		#' @description Draw treatment assignment vectors according to the design (the
+		#'   sequential rule replayed over the enrolled subjects). With a non-\code{NULL}
+		#'   \code{seed} the draws run under a seed derived from (\code{seed}, \code{"redraw"})
+		#'   with the session's random-number state saved and restored, so repeated calls
+		#'   return the same draws and the caller's stream is untouched; with
+		#'   \code{seed = NULL} they come from the session's stream.
+		#'
+		#' @param r Number of vectors to draw. Default is 1.
+		#' @return A matrix with one row per enrolled subject and \code{r} columns of
+		#'   \{0,1\} entries (1 = treated, 0 = control).
+		draw_ws_according_to_design = function(r = 1L){
+			if (is.null(private$seed)) return(super$draw_ws_according_to_design(r))
+			private$with_derived_seed("redraw", super$draw_ws_according_to_design(r))
+		},
 		#' @description Prints the current subject's assignment.
 		print_current_subject_assignment = function(){
 			cat("Subject number", private$t, "is assigned to", ifelse(private$w[private$t] == 1, "TREATMENT", "CONTROL"), "via design", class(self)[1], "\n")
@@ -244,7 +283,31 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	),
 	private = list(
 		equal_block_sizes = FALSE,
+		# v1.0.6-TODO-177: evaluate `expr` (a promise, forced after seeding) under
+		# set.seed() of the seed derived from this design's seed and `key` (a subject
+		# index, or "redraw"), with the session's .Random.seed -- or its absence --
+		# saved before and restored after, even if `expr` errors.
+		with_derived_seed = function(key, expr){
+			had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			on.exit({
+				if (had_seed) {
+					assign(".Random.seed", old_seed, envir = .GlobalEnv)
+				} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+					rm(".Random.seed", envir = .GlobalEnv)
+				}
+			}, add = TRUE)
+			set.seed(seq_design_draw_seed(private$seed, key))
+			expr
+		},
 		draw_ws_raw = function(r = 100){
+			# v1.0.6-TODO-42: the replay below rebuilds private$w subject by subject (the
+			# assign_wt() rules read the running w), so put the realized allocation back
+			# afterwards, even if a replay errors. Without this a redraw on a live design
+			# (e.g. InferenceIncidCMH's SE path on an Urn design) left the last replayed
+			# vector in place of the subjects' real assignments.
+			w_realized = private$w
+			on.exit(private$w <- w_realized, add = TRUE)
 			w_mat = matrix(NA_real_, nrow = private$t, ncol = r)
 			for (j in 1 : r){
 				if (private$fixed_sample) {
@@ -261,3 +324,17 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		}
 	)
 )
+
+# v1.0.6-TODO-177: deterministic seed in [0, 2^31 - 1) for one seeded draw of a
+# sequential design, from the design's seed and a key (the subject index t, or
+# "redraw"): seed per draw index, the rule EDI already uses so results do not depend
+# on the thread count. Same polynomial string hash as comprehensive_tests.R's
+# coverage_truth_seed() (exact in doubles since h < 2^31); set.seed() then scrambles
+# the integer, so neighbouring keys give unrelated streams.
+seq_design_draw_seed = function(seed, key){
+	h = 0
+	for (code in utf8ToInt(paste("EDI_seq_one_by_one", format(seed, scientific = FALSE, trim = TRUE), key, sep = "||"))) {
+		h = (h * 31 + code) %% 2147483647
+	}
+	as.integer(h)
+}

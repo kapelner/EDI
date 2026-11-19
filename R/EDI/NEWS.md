@@ -2,6 +2,22 @@
 
 ## Changes that alter results
 
+* Weibull AFT fits no longer fail on covariates left on their raw scale
+  (v1.0.6-TODO-163). With columns such as age in years or lymph-node counts
+  next to the intercept, the likelihood was badly conditioned and the fitter
+  (`fast_weibull_regression_cpp()` and its left-/interval-censoring sibling)
+  stopped at the iteration limit far from the optimum, so
+  `InferenceSurvivalWeibullRegr` dropped covariates with an
+  `edi_covariate_dropped_warning` and reported the reduced model. On the colon
+  cancer trial of the case-study article it dropped six of eleven covariates.
+  The fitter now standardizes badly scaled columns internally and maps the
+  coefficients, covariance, information, score and gradient norm back to the
+  original scale, so those fits keep every covariate and agree with
+  `survival::survreg()`. Fits on well-scaled covariates (every column near unit
+  scale) are unchanged; fits on badly scaled covariates change, including the
+  Weibull classes built on the same fitter (KK marginal Weibull, GLMM Weibull
+  frailty) and the Weibull randomization-bootstrap kernel.
+
 * `InferencePropGCompMeanDiff`'s nonparametric bootstrap (confidence interval,
   p-value and `approximate_bootstrap_distribution_beta_hat_T()`) no longer
   depends on the number of cores (v1.0.6-TODO-22). Each worker chunk drew its
@@ -190,6 +206,58 @@
   rejected, and intervals that were accepted before are unchanged
   (v1.0.6-TODO-157).
 
+* `InferenceSurvivalWeibullRegr`: when the Weibull fit fails to converge on
+  unscaled covariates (for example `survival::colon`), it now refits on
+  standardized columns instead of dropping covariates; results match
+  `survival::survreg()`. Fits that already converged are unchanged
+  (v1.0.6-TODO-161).
+
+* The g-computation risk-ratio jackknife-Wald p-value and interval
+  (`InferenceIncidGCompRiskRatio`, `InferenceIncidKKGCompRiskRatio`) now use the
+  shared jackknife guards. Fewer than 5 deletion units, failed or zero
+  leave-one-unit-out risk ratios, and extreme replicates now give `NA` with an
+  `edi_procedure_na_warning` naming the reason, where before the result was a
+  finite value (with 3 units, or intervals from 1e-13 to 1e14) or a silent
+  `NA`. Results with 5 or more units and no failure are unchanged
+  (v1.0.6-TODO-137).
+
+* `InferencePropGCompMeanDiff`: the bootstrap randomization test
+  (`compute_rand_bootstrap_two_sided_pval()`,
+  `compute_rand_bootstrap_confidence_interval()`) built its null distribution
+  from ordinary bootstrap refits on the observed assignment, so it was centred
+  at the estimate and its p-values were near 1 even for strong effects. It now
+  refits each fresh design assignment under the sharp null (v1.0.6-TODO-150).
+
+* The bootstrap and Bayesian-bootstrap "extreme interval" check now always
+  rejects a log-ratio or link-scale interval with a bound beyond +/-10 (a ratio
+  of about 22,000), whatever the outcome's SD; large-SD counts used to let
+  degenerate log-rate-ratio intervals such as [-25.8, -5.0] through. The
+  g-computation risk ratio (`InferenceIncidGCompRiskRatio`,
+  `InferenceIncidKKGCompRiskRatio`) is now checked on log(RR) with the same
+  rule, so skewed but legitimate intervals such as [0.76, 6.5] are kept and
+  degenerate ones reaching about 1e-10 are rejected (v1.0.6-TODO-160).
+
+* Sequential designs (`DesignSeqOneByOne*`) with a non-NULL `seed` now draw
+  each subject's assignment from a seed derived from (`seed`, subject index)
+  and restore the session's random-number state afterwards. Allocations depend
+  only on the seed and the subjects' data; random numbers used between
+  assignments no longer change them; a trial saved with `saveRDS()` continues
+  exactly after `readRDS()` without saving `.Random.seed`; and constructing or
+  assigning no longer resets the session's stream.
+  `draw_ws_according_to_design()` on a seeded sequential design is seeded too,
+  so repeated calls return the same draws, as on fixed designs. Seeded
+  sequential allocations differ from earlier versions; `seed = NULL` is
+  unchanged (v1.0.6-TODO-177).
+
+* The studentized and symmetric-percentile-t bootstrap randomization p-values
+  of `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio` now
+  center at the no-effect risk ratio 1. They centered at 0, so under a true
+  null the test almost never rejected (rejection rate 0.000 at 0.05, now
+  0.055). `compute_rand_bootstrap_two_sided_pval()` now refuses a nonzero
+  `delta` on incidence responses, as `compute_rand_two_sided_pval()` already
+  did; it used to shift the 0/1 responses and return a meaningless p-value
+  (v1.0.6-TODO-151).
+
 ## New features
 
 * The randomization test (`compute_rand_two_sided_pval()` with a nonzero
@@ -346,6 +414,68 @@
   p-value, a silent `NA`). Right-censored data are unaffected
   (v1.0.6-TODO-141).
 
+* `DesignFixedBlockedCluster` now accepts blocks with different numbers of
+  subjects or clusters; it used to error and suggest an `equal_block_sizes`
+  argument it does not have. The unequal-blocks error of the other blocking
+  designs now names only arguments the class takes (v1.0.6-TODO-73).
+* `InferenceCountZeroInflatedPoisson` and `InferenceCountZeroInflatedNegBin`
+  now accept `smart_cold_start_default`, like their hurdle siblings
+  (v1.0.6-TODO-153). `InferenceIncidRiskDiff` records a class-specific
+  non-estimability reason when one is set (v1.0.6-TODO-156).
+* `InferenceSurvivalKMDiff` on left- or interval-censored data now warns
+  (`edi_km_median_not_reached_warning`) when an arm's Turnbull median is not
+  reached, naming the arm and its lowest survival and suggesting
+  `InferenceSurvivalRestrictedMeanDiff`; its jackknife-Wald `NA` now gives the
+  median-specific `edi_km_jackknife_na_warning` (v1.0.6-TODO-144).
+* The reproducibility vignette and the `Design` documentation now state what a
+  design's `seed` guarantees: fixed designs re-seed on every draw, while
+  sequential designs seed once at construction, so an exact continuation after
+  a restart needs the saved `.Random.seed` (v1.0.6-TODO-79).
+
+* `InferenceRandCustom` now errors when the custom statistic returns other
+  than exactly one value, instead of silently keeping the first
+  (v1.0.6-TODO-83); its refusal of randomization intervals on count and
+  proportion responses no longer points to a randomization-bootstrap interval
+  the class does not have (v1.0.6-TODO-84).
+
+* A plain-bootstrap BCa interval that is `NA` because the adjusted tail falls
+  on the boundary now warns when some bootstrap draws were non-finite (for
+  example a cluster resample with no treated or no control cluster). It was
+  silently `NA NA` before, including on `DesignFixedCluster` with 5 or more
+  clusters. Finite intervals are unchanged (v1.0.6-TODO-162).
+
+* Randomization, bootstrap and Bayesian-bootstrap p-values that return `NA`
+  (too few finite draws or replicates, implausibly extreme replicates, or a BCa
+  p-value that cannot be computed) now warn once with the reason
+  (`edi_procedure_na_warning`) instead of returning a silent `NA`. Randomization
+  interval searches no longer repeat the p-value warning for every `delta` they
+  try; the interval warns once if it ends `NA`. Values are unchanged
+  (v1.0.6-TODO-136, v1.0.6-TODO-145).
+
+* Inference objects now detect covariates that make the response (on a scale
+  suited to its type) an exact linear function of treatment and covariates,
+  which in a randomized experiment almost always means leakage. They drop those
+  columns from every fit and resampling replicate and raise one
+  `edi_perfect_predictor_warning` naming them. Results on data without a
+  perfect predictor are unchanged (v1.0.6-TODO-158).
+
+* Sequential designs created with `n = NULL` now work: KK14/KK21/KK21stepwise
+  no longer crash once covariates are available (with no planned `n`, matching
+  starts once the covariate model matrix exists), such designs can be analyzed
+  (including the bootstrap) once every enrolled subject has a response, and
+  responses can be added in any order. A response for a subject who has not
+  arrived is refused with a clear message (v1.0.6-TODO-76, v1.0.6-TODO-77,
+  v1.0.6-TODO-78).
+
+* `InferenceOrdinalGCompMeanDiff`, `InferenceIncidKKGCompRiskDiff` and
+  `InferenceIncidKKGCompRiskRatio`: the studentized (bootstrap-t) Bayesian
+  bootstrap no longer returns `NA`; weighted refits now supply a weighted
+  delta-method standard error (weighted inverse information for the ordinal
+  model, a weighted matched-pair cluster sandwich for KK), equal to the usual
+  standard error at unit weights. The KK classes' studentized nonparametric
+  bootstrap and studentized bootstrap randomization test now also use the real
+  standard error (v1.0.6-TODO-149).
+
 ## Breaking changes
 
 * Argument checks are stricter (v1.0.6-TODO-100, v1.0.6-TODO-106). Calls that
@@ -374,6 +504,12 @@
     `p_best`/`weights`, and the 0/1 `w` passed to
     `overwrite_all_subject_assignments()`) now run even with assertions turned
     off for speed.
+
+* `overwrite_all_subject_assignments()` now has one implementation for fixed
+  and sequential designs and stops with a clear error if called before any
+  subjects are added or, for a sequential design with `n`, before all `n`
+  subjects have arrived (an overwrite mid-trial fed later sequential assignments
+  a `w` the design never drew) (v1.0.6-TODO-154).
 
 # EDI 1.0.4
 

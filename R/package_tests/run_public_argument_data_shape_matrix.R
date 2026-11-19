@@ -34,17 +34,13 @@ data_shape_failing_outcomes = c("silent_na", "recorded_na", "unclear_error", "no
 
 # Failures already filed as open release TODOs. A row matches when every given field matches its
 # regular expression (fixture_id, target = Class::method, argument_signature, receiver_args,
-# error_message). A clear error can still be listed: TODO-73's message names an argument the class
-# does not take, so it is a wrong error, not a clear one. Keep each row tied to an open TODO
+# error_message). A clear error can still be listed when it is the wrong error (for example a message
+# that names an argument the class does not take). Keep each row tied to an open TODO
 # (calibration-acceptance rule); delete it when the TODO closes.
 data_shape_known_issues = function() {
 	rows = list(
-		list(todo = "v1.0.6-TODO-73", fixture_id = "^data_shape__fixed_blocked_cluster__.*__unequal__", error_message = "equal_block_sizes"),
 		list(todo = "v1.0.6-TODO-74", fixture_id = "^data_shape__fixed_blocked_cluster__", target = "::compute_jackknife_wald_confidence_interval$"),
-		list(todo = "v1.0.6-TODO-76", fixture_id = "^data_shape__seq_kk21__[a-z]+__null_", error_message = "missing value where TRUE/FALSE needed|invalid 'x' type"),
-		list(todo = "v1.0.6-TODO-77", fixture_id = "__null_(mid|end)__", error_message = "argument is of length zero"),
-		list(todo = "v1.0.6-TODO-82", target = "^InferenceRandCustom::", argument_signature = "na\\.rm=FALSE", receiver_args = "sometimes_na"),
-		list(todo = "v1.0.6-TODO-83", target = "^InferenceRandCustom::", receiver_args = "custom_stat_(r|cpp)_vector")
+		list(todo = "v1.0.6-TODO-82", target = "^InferenceRandCustom::", argument_signature = "na\\.rm=FALSE", receiver_args = "sometimes_na")
 	)
 	rows
 }

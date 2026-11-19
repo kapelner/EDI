@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": ["units_checked", "findings"],
+  "properties": {
+    "units_checked": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "ids of every region you reached an outcome on"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit", "outcome", "text", "evidence", "test_name", "test_file_slug", "test_code",
+                     "reference", "failure_contains"],
+        "properties": {
+          "unit": {"type": "string", "description": "the region id from the batch file (unt-...)"},
+          "outcome": {
+            "type": "string",
+            "enum": ["test", "unreachable", "intended", "bug"],
+            "description": "test: a passing test that runs the region; unreachable: no public path; intended: should stay uncovered; bug: a test that fails on the current code"
+          },
+          "text": {"type": "string", "description": "one to three sentences: what the region does and how the test reaches it, or why it cannot be reached, or what is wrong"},
+          "evidence": {"type": "string", "description": "the path from a public entry point to the region (or the reason none exists), as file:line steps"},
+          "test_name": {"type": "string", "description": "the test_that description; empty for unreachable and intended"},
+          "test_file_slug": {"type": "string", "description": "kebab-case words naming the behaviour the test proves (ends in -reference or -contracts); never a TODO number; empty for unreachable and intended"},
+          "test_code": {"type": "string", "description": "the body of the test_that block, without the test_that line, the closing brace or library() calls; empty for unreachable and intended"},
+          "reference": {"type": "string", "description": "the independent reference the assertions compare against (closed form, plain-R definition, another package), or the documented error or NA contract for a guard"},
+          "failure_contains": {"type": "string", "description": "for bug only: text that must appear in the failure message; otherwise an empty string"}
+        }
+      }
+    }
+  }
+}

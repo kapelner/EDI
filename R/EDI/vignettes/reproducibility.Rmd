@@ -20,37 +20,140 @@ page is the single place that explains which mechanism applies where, so
 individual class/function documentation can link here instead of repeating
 it. See `vignette("notation-glossary")` for the symbols referenced below.
 
-## The default case: `seed` sets R's own RNG state once
+## What a design's `seed` guarantees: fixed vs sequential designs
 
-Every `Design` constructor accepts a `seed` argument. Internally this does
-**not** call `set.seed()` immediately; it stores `private$seed` and calls
-`private$maybe_set_seed()` — `if (!is.null(private$seed)) set.seed(private$seed)`
-— once, immediately before each call that consumes randomness
-(`draw_ws_raw()`/`assign_w_to_all_subjects()`). This means:
+Every `Design` constructor accepts a `seed` argument and stores it. *How* it
+is applied differs between the two design families, and so does what the seed
+guarantees.
 
-- Two designs constructed with the same `seed` and then drawn from once each
-  produce identical allocations.
-- Calling a draw method a second time on the *same* object re-seeds again
-  (since `maybe_set_seed()` runs before every draw), so it reproduces the
-  **first** draw again rather than advancing to a fresh one — draws are not
-  incremented automatically across repeated calls on one object. If you want
-  `r` independent replicate columns, request them in one call
-  (`draw_ws_according_to_design(r)`), not via `r` separate single-draw calls.
-- `seed = NULL` (the default) leaves R's ambient RNG state untouched — draws
-  consume whatever state R's global stream happens to be in, exactly like any
-  other call to `sample()`/`runif()`.
+**Fixed designs (`DesignFixed*`): the seed is applied at the start of every
+draw.** `private$maybe_set_seed()`, which is
+`if (!is.null(private$seed)) set.seed(private$seed)`, runs inside each call that
+draws an allocation (`assign_w_to_all_subjects()`,
+`draw_ws_according_to_design()`). It sets R's global generator and does not
+restore the caller's previous state. Therefore:
 
-This is the mechanism behind the overwhelming majority of `Design` subclasses
-(`DesignFixedBernoulli`, `DesignFixedFactorial`, `DesignFixedBlocking`, the
-`DesignSeqOneByOne*` family, etc.). Three design families implement "seed means
-R's `set.seed()` governs the draw" via a different, local-generator mechanism,
-documented in detail below: `DesignFixedGreedy`,
-`DesignFixedGreedyDOptimal`, and `DesignFixedOptimal` (per-chain generators
-for its annealing solver plus an R-level mirror coin; see its own subsection
-below). The OpenMP kernels derive their local stream from each logical draw
+- Two designs constructed with the same `seed` and data produce identical
+  allocations, whatever the global RNG state was and whatever ran in between.
+- Calling a draw method a second time on the *same* object re-seeds, so it
+  repeats the **first** draw rather than advancing to a fresh one. If you
+  want `r` different replicate columns, request them in one call
+  (`draw_ws_according_to_design(r)`), not via `r` single-draw calls.
+- Each draw leaves R's global stream at the state right after that seeded
+  draw, so code after it in your session sees the same random numbers every
+  time.
+
+**Sequential designs (`DesignSeqOneByOne*`): each assignment is seeded from
+the seed and the subject's index.** Subject `t`'s assignment
+(`add_one_subject_to_experiment_and_assign()`) runs under `set.seed()` of a
+seed derived from (`seed`, `t`), with the session's `.Random.seed` saved
+before and restored after. Construction does not touch the generator.
+Therefore:
+
+- The allocation depends only on the seed and the subjects' data (the
+  covariates and, for the KK21 designs, the responses recorded before each
+  assignment). Random-number use between assignments (a `runif()`, another
+  design's draw, an unseeded bootstrap) does not change it.
+- Your own random-number stream is left exactly as it was: the same
+  `runif()` sequence comes out with or without assignments in between.
+- The seed is stored in the design, so a design saved with `saveRDS()` and
+  reloaded with `readRDS()` continues exactly as an uninterrupted run would,
+  with no extra code.
+- `draw_ws_according_to_design()` on a seeded sequential design runs under a
+  seed derived from (`seed`, `"redraw"`), also inside a save/restore, so
+  repeated calls return the same draws (as on a fixed design) and do not move
+  your stream.
+
+This applies to every sequential design, including those whose per-subject
+draw runs in C++ (Atkinson, Pocock-Simon, the KK matching kernels): they draw
+from R's generator, or seed a local one from a single R draw, so the
+per-subject seed governs them too. Since v1.0.6; before that the sequential
+seed was applied once, in the constructor, and every later assignment drew
+from the global stream wherever it was.
+
+**`seed = NULL`** (the default, both families) leaves R's ambient RNG state
+untouched: draws consume whatever state R's global stream happens to be in,
+exactly like any other call to `sample()`/`runif()`.
+
+The chunk below checks each of these statements.
+
+```{r seed-fixed-vs-sequential, eval = TRUE}
+library(EDI)
+set.seed(1)
+n = 20
+X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+
+# Fixed design: the seed is applied at the start of every draw.
+fixed = DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 42, verbose = FALSE)
+fixed$add_all_subjects_to_experiment(X)
+a = fixed$draw_ws_according_to_design(1)
+invisible(runif(3))                    # unrelated random-number use in between
+b = fixed$draw_ws_according_to_design(1)
+identical(a, b)                        # the second call re-seeds and repeats the first draw
+
+# Sequential design: each assignment is seeded from (seed, subject index).
+enroll_all = function(extra_draws = 0) {
+  des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "continuous", seed = 42, verbose = FALSE)
+  for (i in 1:n) {
+    invisible(runif(extra_draws))      # random-number use between assignments
+    des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  }
+  des$get_w()
+}
+identical(enroll_all(), enroll_all(3)) # three runif() draws before each assignment: same allocation
+
+# The session's own stream is untouched by seeded assignments.
+set.seed(7); u_alone = runif(2)
+set.seed(7); u_around = c(runif(1), {enroll_all(); runif(1)})
+identical(u_alone, u_around)
+```
+
+A seeded sequential trial can be saved and continued in another session
+without saving anything but the design:
+
+```{r seed-sequential-reload, eval = TRUE}
+des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "continuous", seed = 42, verbose = FALSE)
+for (i in 1:10) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+trial_file = tempfile(fileext = ".rds")
+saveRDS(des, trial_file)
+for (i in 11:n) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+uninterrupted = des$get_w()
+
+set.seed(999)                          # stands in for a new session's state
+resumed = readRDS(trial_file)
+for (i in 11:n) resumed$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+identical(resumed$get_w(), uninterrupted)
+```
+
+With `seed = NULL`, a sequential design draws each assignment from the
+session's stream. To pause such a trial and continue it exactly, save the
+generator state next to the design and restore it before the next assignment:
+
+```{r seed-sequential-unseeded-reload, eval = TRUE}
+set.seed(42)
+des0 = DesignSeqOneByOneBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+for (i in 1:10) des0$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+trial_file0 = tempfile(fileext = ".rds")
+saveRDS(list(design = des0, rng = .Random.seed), trial_file0)
+for (i in 11:n) des0$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+uninterrupted0 = des0$get_w()
+
+set.seed(999)                          # a new session's state
+saved = readRDS(trial_file0)
+assign(".Random.seed", saved$rng, envir = globalenv())
+for (i in 11:n) saved$design$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+identical(saved$design$get_w(), uninterrupted0)
+```
+
+Several fixed designs do their heavy random work in C++ on local generators
+(`DesignFixedGreedy`, `DesignFixedGreedyDOptimal`, and `DesignFixedOptimal`,
+which uses per-chain generators for its annealing solver plus an R-level
+mirror coin; each has a subsection below). They take their master seed from R's
+stream after `maybe_set_seed()`, so the constructor's `seed` still governs the
+draw. The OpenMP kernels derive their local stream from each logical draw
 index, so a fixed seed gives the same result at every configured thread count.
-Every concrete design is seed-reproducible; the package currently has no
-exceptions.
+Every concrete design is seed-reproducible in the sense above: a fixed design
+on every draw, a sequential design on every assignment.
 
 ## `DesignFixedOptimal`: deterministic solves, seeded coin and chains
 
@@ -178,9 +281,10 @@ permutation-drawing logic; it duplicates the design object
   caller's RNG stream untouched. (The duplicated design itself has no seed, so
   before this was wired in the draws came from whatever the global stream held
   at the first call.) With neither seed set the draws come from the global
-  stream at the first call, as before. The draw mechanism is the underlying
-  `Design` subclass's, which is seed-reproducible for every concrete design
-  (see above).
+  stream at the first call, as before. Because the effective seed is set
+  right before the duplicate draws, this holds for sequential designs as well
+  as fixed ones: a randomization p-value on a sequential trial does not depend
+  on where the global stream was when the trial ended.
 - **Draw reuse / caching:** the generated permutation matrix is cached on the
   design, keyed on `r`, the effective seed and a stable signature of the
   design's structural parameters (class, `n`, `prob_T`, `m`, `strata_cols`).
@@ -195,9 +299,44 @@ permutation-drawing logic; it duplicates the design object
 - **Custom permutations.** `permutations = list(w_mat = <n x r numeric 0/1
   matrix>, m_mat = NULL)` can be passed to the randomization methods to
   supply the draws directly (bypassing both the draw and the cache).
-- **Caveat.** A *seeded* design's `draw_ws_according_to_design()` (reached via
-  `maybe_set_seed()`) calls `set.seed()` on the global RNG and does not
-  restore it, so it overwrites the caller's stream.
+- **Caveat.** Calling `draw_ws_according_to_design()` yourself on a *seeded
+  fixed* design runs `maybe_set_seed()`, i.e. `set.seed()` on the global RNG,
+  and does not restore it, so it overwrites the caller's stream. On a seeded
+  sequential design the same call runs under a seed derived from the design's
+  seed and restores the caller's stream; on an unseeded sequential design it
+  draws from, and advances, the caller's stream.
+
+## An inference object's own seed
+
+`set_seed()` on an inference object (or its constructor's `seed`) governs that
+object's resampling: the randomization draws above and the bootstrap. Each
+such call sets the seed inside a save/restore of the caller's `.Random.seed`,
+so the result is the same whatever the global state was, and the caller's
+stream is left exactly as it was. This is the same for fixed and sequential
+designs. Compare runs at the same `num_cores` setting. Without an inference
+seed, the bootstrap draws from the global stream (so `set.seed()` before the
+call reproduces it), and an inference object reuses its own bootstrap
+distribution on later calls with the same `B` instead of drawing again.
+
+```{r seed-inference, eval = TRUE}
+saved$design$add_all_subject_responses(rnorm(n))
+inf = InferenceAllSimpleMeanDiffPooledVar$new(saved$design, verbose = FALSE)
+inf$set_seed(3)
+p_first = inf$compute_rand_two_sided_pval(r = 199, show_progress = FALSE)
+ci_first = inf$compute_bootstrap_confidence_interval(B = 499, type = "percentile",
+                                                     show_progress = FALSE)
+
+# A fresh object with the same seed, after unrelated random-number use.
+invisible(runif(10))
+stream_before = .Random.seed
+inf2 = InferenceAllSimpleMeanDiffPooledVar$new(saved$design, verbose = FALSE)
+inf2$set_seed(3)
+inf2$clear_randomization_cache()       # force a fresh draw of the permutations
+identical(p_first, inf2$compute_rand_two_sided_pval(r = 199, show_progress = FALSE))
+identical(ci_first, inf2$compute_bootstrap_confidence_interval(B = 499, type = "percentile",
+                                                               show_progress = FALSE))
+identical(stream_before, .Random.seed) # the caller's stream was not touched
+```
 
 ## Bootstrap resampling
 
@@ -346,11 +485,12 @@ comparisons:
    live-stream continuation both assume the Mersenne-Twister + Inversion
    normal-sampling kind specifically.
 2. Pass an explicit `seed` to the `Design`/`SimulationFramework` constructor
-   rather than relying on ambient RNG state, and do not call any other
-   RNG-consuming code between construction and the draw you want to
-   reproduce (anything that advances R's global stream in between —
-   including, per above, a *second* call to a draw method on the same
-   object — changes what gets drawn next).
+   (and `set_seed()` on inference objects) rather than relying on ambient RNG
+   state. For fixed and seeded sequential designs that is enough (a seeded
+   sequential design also continues exactly after a reload). A sequential
+   design with `seed = NULL` draws from the global stream, so reproducing it
+   needs the same random-number use before each assignment, and a design
+   reloaded from disk needs its saved `.Random.seed` restored (see above).
 3. For parallel `SimulationFramework` runs, `num_cores` and the fork/`mirai`
    backend choice do not need to match the original run for reproducibility
    (per-unit seed derivation makes them irrelevant) — only `seed` and the

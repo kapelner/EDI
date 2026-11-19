@@ -80,6 +80,7 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-draw_ws_according_to_design'><code>DesignSeqOneByOne$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
 </ul>
 </details>
@@ -95,7 +96,6 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
@@ -190,7 +190,9 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 matching-acceptance test is (default 0.1; smaller values accept fewer,
 closer matches). See class documentation for the exact threshold formula.}
       \item{\code{t_0_pct}}{The fraction of \code{n} subjects to randomize into the
-reservoir before matching begins (default 0.35).}
+ reservoir before matching begins (default 0.35).
+With \code{n = NULL} there is no planned sample size, so \code{t_0_pct} is not used: matching begins once the
+ covariate model matrix exists (more than p + 2 subjects have arrived).}
       \item{\code{morrison}}{Currently unused by this class's matching/assignment logic;
 reserved for future use.}
       \item{\code{p}}{Currently unused by this class's matching/assignment logic;

@@ -73,7 +73,7 @@ test_that("add_all_subject_responses enforces the same contract vector-wise", {
 
 	expect_error(des$add_all_subject_responses(ys, y_Ls = replace(yL, 2, NA), y_Rs = yR), "must be supplied together")
 	expect_error(des$add_all_subject_responses(replace(ys, 2, 9), yL, yR), "not both")
-	expect_error(des$add_all_subject_responses(replace(ys, 1, NA), yL, yR), "Each subject needs either")
+	expect_error(des$add_all_subject_responses(replace(ys, 1, NA), yL, yR), "Subject 1 has no response: each subject needs either")
 	expect_error(des$add_all_subject_responses(ys, replace(yL, 2, -1), yR), "y_L must be finite and >= 0")
 	expect_error(des$add_all_subject_responses(ys, replace(yL, 2, 9), yR), "strictly greater")
 

@@ -19,10 +19,6 @@ using namespace Eigen;
 
 namespace {
 
-double clamp_exp_arg_hnb(double eta) {
-	return std::min(eta, 700.0);
-}
-
 class TruncatedNegBinCount;
 
 void validate_truncated_negbin_inputs(const Eigen::Ref<const MatrixXd>& X,

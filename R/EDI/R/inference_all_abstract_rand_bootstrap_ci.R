@@ -138,6 +138,9 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			)
 			missing_ci = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
+				# v1.0.6-TODO-165: warn once instead of a silent NA (silent inside resampling).
+				edi_warn_procedure_na(self, private, procedure = "randomization-bootstrap confidence interval",
+					reason = reason, detail = rand_bootstrap_ci_na_detail(reason))
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
@@ -191,10 +194,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					}
 				}, error = function(e) NULL)
 				if (!is.null(ci_closed)) {
-					if (length(ci_closed) != 2L) {
-						edi_record_procedure_failure(self, private, "rand_bootstrap_ci_closed_form_unavailable", "se")
-						ci_closed = c(NA_real_, NA_real_)
-					}
+					if (length(ci_closed) != 2L) return(missing_ci("rand_bootstrap_ci_closed_form_unavailable"))
 					names(ci_closed) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 					return(ci_closed)
 				}
@@ -270,7 +270,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 						show_progress = FALSE, rand_bootstrap_draws = draws,
 						zero_one_logit_clamp = zero_one_logit_clamp
 					)
-					pval = private$compute_two_sided_randomization_pval_from_t0s(t0s_d, t_obs_sm)
+					pval = edi_muffle_rand_pval_na_warnings(private$compute_two_sided_randomization_pval_from_t0s(t0s_d, t_obs_sm, procedure = "randomization-bootstrap p-value"))
 					smooth_pval_cache[[ck]] = pval
 					pval
 				}
@@ -325,10 +325,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				private$invert_rand_bootstrap_test_bisection(l, est, alpha, pval_epsilon, TRUE, show_progress, evaluate_pval, ci_timeout_deadline),
 				private$invert_rand_bootstrap_test_bisection(est, u, alpha, pval_epsilon, FALSE, show_progress, evaluate_pval, ci_timeout_deadline)
 			)
-			if (length(ci) != 2L || !all(is.finite(ci[1:2]))) {
-				edi_record_procedure_failure(self, private, "rand_bootstrap_ci_bisection_failed", "se")
-				ci = c(NA_real_, NA_real_)
-			}
+			if (length(ci) != 2L || !all(is.finite(ci[1:2]))) return(missing_ci("rand_bootstrap_ci_bisection_failed"))
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		}
@@ -407,8 +404,9 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		compute_rand_bootstrap_ci_pval_cached = function(delta, B, transform_arg, draws, resolution, ci_pval_cache, zero_one_logit_clamp = .Machine$double.eps){
 			cache_key = private$normalize_delta_for_cache(delta, resolution)
 			if (!is.null(ci_pval_cache[[cache_key]])) return(ci_pval_cache[[cache_key]])
+			# v1.0.6-TODO-136: one p-value per delta, so its NA warning is muffled here.
 			pval = tryCatch(
-				as.numeric(self$compute_rand_bootstrap_two_sided_pval(
+				edi_muffle_rand_pval_na_warnings(as.numeric(self$compute_rand_bootstrap_two_sided_pval(
 					B = B,
 					delta = delta,
 					transform_responses = transform_arg,
@@ -416,7 +414,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					show_progress = FALSE,
 					rand_bootstrap_draws = draws,
 					zero_one_logit_clamp = zero_one_logit_clamp
-				)),
+				))),
 				error = function(e) NA_real_
 			)
 			pval = if (length(pval) == 0L) NA_real_ else pval[1]
@@ -499,3 +497,20 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		}
 	)
 )
+
+# Detail for a randomization-bootstrap CI that is NA (v1.0.6-TODO-165). The per-delta p-value
+# warnings are muffled during the search, so the CI warns once itself, like the plain rand CI.
+rand_bootstrap_ci_na_detail = function(reason) {
+	switch(as.character(reason)[1L],
+		rand_bootstrap_ci_estimate_unavailable =
+			"The point estimate is not finite, so there is no centre for the interval search.",
+		rand_bootstrap_ci_studentized_se_unavailable =
+			"The original standard error is missing or not positive, so the null draws cannot be studentized; use type = \"percentile\".",
+		rand_bootstrap_ci_too_few_finite_null_draws =
+			"Fewer than two null-distribution draws at delta = 0 are finite. Check compute_rand_bootstrap_two_sided_pval() at delta = 0, or use a bootstrap or asymptotic interval.",
+		rand_bootstrap_ci_closed_form_unavailable =
+			"The closed-form inversion of the affine null draws did not give two bounds.",
+		paste0("The search for the interval's bounds could not find deltas whose randomization-bootstrap ",
+			"p-values cross alpha (typically too few finite null-distribution draws at the deltas tried). ",
+			"Check compute_rand_bootstrap_two_sided_pval() at delta = 0, or use a bootstrap or asymptotic interval."))
+}

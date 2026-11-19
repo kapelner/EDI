@@ -40,7 +40,11 @@ test_that("sign-check replicate: the null fit at delta = 0.49 converges and CI e
 	expect_true(isTRUE(f$converged))
 	expect_lt(max(spec$X %*% f$b), 1)
 	ci <- suppressWarnings(o$compute_gradient_confidence_interval())
-	expect_equal(ci[[2]], 0.4780708, tolerance = 1e-4)
+	# 0.4585320 since v1.0.6-TODO-142 (2026-11-18: infeasible kernel starts are pulled into the
+	# mean support); it was 0.4780708. Checked against an independent optim() fit: the full and
+	# null log-likelihoods match to 1e-5, and the likelihood-ratio p-value from them is 0.056 at
+	# 0.4585 but 0.021 at 0.4781, so the 95% limit is near 0.46 and the old endpoint was too wide.
+	expect_equal(ci[[2]], 0.4585320, tolerance = 1e-4)
 	for (d in ci) {
 		p <- suppressWarnings(InferenceIncidBinomialIdentityRiskDiff$new(des, model_formula = ~ .)$compute_gradient_two_sided_pval(delta = d))
 		expect_equal(p, 0.05, tolerance = 2e-3)

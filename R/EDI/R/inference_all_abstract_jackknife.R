@@ -291,8 +291,10 @@ EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
 # recorded (the public methods overwrite it with the generic
 # "jackknife_estimate_unavailable" right after this call), or fallback_reason. Silent during
 # resampling (see edi_warn_procedure_na()).
-edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackknife_estimate_unavailable"){
-	why = private$cached_values$procedure_failure_reason$jackknife
+edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackknife_estimate_unavailable", reason = NULL){
+	# `reason`: the caller knows the reason it just recorded (the g-computation
+	# risk-ratio path, v1.0.6-TODO-137), so a stale cached reason cannot be named.
+	why = reason %||% private$cached_values$procedure_failure_reason$jackknife
 	if (!is.character(why) || !length(why) || is.na(why[1L])) why = private$cached_values$nonestimable_reason
 	if (!is.character(why) || !length(why) || is.na(why[1L])) why = fallback_reason
 	why = why[1L]
@@ -322,7 +324,106 @@ edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackk
 			"of freedom, so the standard error is too unstable for a normal-reference Wald test or interval. ",
 			"Use a randomization test (compute_rand_two_sided_pval()) or the model-based standard error."),
 		jackknife_original_estimate_unavailable = "The full-data estimate is not available.",
+		jackknife_original_risk_ratio_unavailable = paste0("The full-data risk-ratio estimate is not finite and ",
+			"positive, so its log (the scale of the jackknife-Wald test and interval) is undefined."),
+		jackknife_nonpositive_risk_ratio_replicates = paste0("Some leave-one-unit-out risk ratios are 0 or negative ",
+			"(e.g. no events left in one arm), so their log is undefined and the log-scale jackknife standard error ",
+			"cannot be formed."),
+		jackknife_log_risk_ratio_standard_error_unavailable = paste0("The leave-one-unit-out log risk ratios have ",
+			"no spread, so the jackknife standard error is 0."),
+		jackknife_log_risk_ratio_null_unavailable = "The null risk ratio (delta) must be finite and positive.",
 		NULL
 	)
 	edi_warn_procedure_na(self, private, procedure = method, reason = why, detail = detail)
+}
+
+# v1.0.6-TODO-137: jackknife-Wald inference for a risk-ratio estimand on the log
+# scale, shared by the incidence g-computation classes
+# (inference_incidence_gcomp_abstract.R and inference_incidence_KK_gcomp_abstract.R,
+# whose private compute_rr_jackknife_* methods delegate here). It applies the
+# same guards, in the same order, as compute_jackknife_summary(): full-data
+# estimate, full-data separation, at least two replicates, at least
+# EDI_JACKKNIFE_MIN_DELETION_UNITS units, every replicate finite, no extreme
+# replicate (bootstrap_estimates_extreme() on the risk-ratio scale), and no
+# extreme summary (on the log scale, where the SE is used). Replicates are no
+# longer dropped silently: a non-finite or non-positive replicate makes the
+# result NA. Returns list(log_est, se_log, reason); reason is NULL on success,
+# NA when the block-size guard already warned, else the recorded reason.
+edi_rr_jackknife_log_summary = function(self, private, unit = "auto"){
+	fail = function(reason, record = TRUE){
+		if (record) private$cache_procedure_failure("jackknife", reason)
+		list(log_est = NA_real_, se_log = NA_real_, reason = reason)
+	}
+	unit = private$normalize_jackknife_unit(unit)
+	if (private$mark_jackknife_nonestimable_if_block_unsupported(unit = unit)) {
+		return(list(log_est = NA_real_, se_log = NA_real_, reason = NA_character_))
+	}
+	private$assert_jackknife_supported(unit = unit)
+	est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
+	if (!is.finite(est) || est <= 0) {
+		private$cache_nonestimable_estimate("jackknife_original_risk_ratio_unavailable")
+		return(fail("jackknife_original_risk_ratio_unavailable", record = FALSE))
+	}
+	if (isTRUE(private$jackknife_full_fit_is_separated())) return(fail("jackknife_full_data_separation"))
+	jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
+	n_units = length(jack)
+	if (n_units <= 1L) return(fail("jackknife_too_few_replicate_estimates"))
+	if (n_units < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
+		private$cached_values$jackknife_n_deletion_units = list(n = n_units, unit = private$resolve_jackknife_unit(unit))
+		return(fail("jackknife_too_few_deletion_units"))
+	}
+	if (any(!is.finite(jack))) return(fail("jackknife_nonfinite_replicate_estimates"))
+	if (any(jack <= 0)) return(fail("jackknife_nonpositive_risk_ratio_replicates"))
+	if (private$bootstrap_estimates_extreme(jack, est = est)) return(fail("jackknife_extreme_finite_estimates"))
+	log_est = log(est)
+	log_jack = log(jack)
+	log_bar = mean(log_jack)
+	var_j = ((n_units - 1) / n_units) * sum((log_jack - log_bar)^2)
+	if (!is.finite(var_j) || var_j <= 0) return(fail("jackknife_log_risk_ratio_standard_error_unavailable"))
+	se_log = sqrt(var_j)
+	bias_log = (n_units - 1) * (log_bar - log_est)
+	theta_j_log = log_est - bias_log
+	if (!is.finite(theta_j_log) || !is.finite(se_log) ||
+	    abs(theta_j_log) > private$bootstrap_extreme_estimate_threshold ||
+	    se_log > private$bootstrap_extreme_estimate_threshold ||
+	    abs(bias_log) > 2 * se_log) {
+		return(fail("jackknife_extreme_summary"))
+	}
+	list(log_est = log_est, se_log = se_log, reason = NULL)
+}
+
+# Warns (unless the block-size guard already did) for a failed edi_rr_jackknife_log_summary().
+edi_rr_jackknife_warn = function(self, private, method, summary){
+	if (is.character(summary$reason) && !is.na(summary$reason)) {
+		edi_warn_jackknife_na(self, private, method, reason = summary$reason)
+	}
+	invisible(NULL)
+}
+
+edi_rr_jackknife_wald_two_sided_pval = function(self, private, delta = 1, unit = "auto"){
+	method = "compute_jackknife_wald_two_sided_pval()"
+	if (length(delta) != 1L || !is.finite(delta) || delta <= 0) {
+		edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_null_unavailable", "se")
+		edi_warn_jackknife_na(self, private, method, reason = "jackknife_log_risk_ratio_null_unavailable")
+		return(NA_real_)
+	}
+	s = edi_rr_jackknife_log_summary(self, private, unit = unit)
+	if (!is.null(s$reason)) {
+		edi_rr_jackknife_warn(self, private, method, s)
+		return(NA_real_)
+	}
+	2 * stats::pnorm(-abs((s$log_est - log(delta)) / s$se_log))
+}
+
+edi_rr_jackknife_wald_confidence_interval = function(self, private, alpha = 0.05, unit = "auto"){
+	ci = c(NA_real_, NA_real_)
+	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	s = edi_rr_jackknife_log_summary(self, private, unit = unit)
+	if (!is.null(s$reason)) {
+		edi_rr_jackknife_warn(self, private, "compute_jackknife_wald_confidence_interval()", s)
+		return(ci)
+	}
+	z = stats::qnorm(1 - alpha / 2)
+	ci[] = exp(s$log_est + c(-1, 1) * z * s$se_log)
+	ci
 }

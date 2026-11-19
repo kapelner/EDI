@@ -6,6 +6,14 @@ inference_uses_model_scale_randomization_transform = function(inf_obj) {
 	inference_model_scale_randomization_transform_for(class(inf_obj), capabilities)
 }
 
+# Detail for a randomization CI that is NA (v1.0.6-TODO-136).
+rand_ci_na_detail = function() {
+	paste0("The search for the interval's bounds could not find deltas whose randomization p-values ",
+		"cross alpha (typically too few finite null-distribution draws at the deltas tried, or ",
+		"compute_rand_two_sided_pval() is NA). Check compute_rand_two_sided_pval() at delta = 0, or ",
+		"use a bootstrap or asymptotic interval.")
+}
+
 # Same decision from a class lineage and a capability vector, without an
 # object (TODO-119 capability audit, 2026-10-22): lets
 # get_effective_capabilities() decide the randomization-CI scale mismatch from
@@ -168,7 +176,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   or count, \code{InferencePropGCompMeanDiff}, \code{InferenceOrdinalRidit},
 		#'   \code{InferenceOrdinalJonckheereTerpstraTest}) refuses this method with an error
 		#'   instead of returning bounds on another scale; its randomization p-value and
-		#'   randomization-bootstrap CI remain available. The same refusal applies on
+		#'   randomization-bootstrap CI remain available (a class with no randomization
+		#'   bootstrap, such as \code{InferenceRandCustom}, keeps only the p-value at
+		#'   \code{delta = 0}). The same refusal applies on
 		#'   survival responses to classes whose estimate is a raw-scale (time-unit) mean
 		#'   difference or Hodges-Lehmann shift, since the survival search inverts a
 		#'   log-time shift.
@@ -317,10 +327,16 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			# TODO-119: refuse when the shift scale is not the estimand's scale.
 			scale_mismatch = inference_randomization_ci_scale_mismatch(class(self), resp_type, is_glm)
 			if (!is.null(scale_mismatch)) {
+				# v1.0.6-TODO-84: name only what this class can still run. A class with no
+				# randomization bootstrap (e.g. InferenceRandCustom) keeps only the p-value.
+				still_available = if (is.function(self$compute_rand_bootstrap_confidence_interval)) {
+					"The randomization p-value and the randomization-bootstrap CI remain available."
+				} else {
+					"The randomization p-value at delta = 0 (compute_rand_two_sided_pval()) remains available."
+				}
 				stop(
 					"Randomization confidence intervals are not supported for ", class(self)[1L],
-					" with ", resp_type, " responses: ", scale_mismatch, ". The randomization p-value and the ",
-					"randomization-bootstrap CI remain available. See TODO-119 in ",
+					" with ", resp_type, " responses: ", scale_mismatch, ". ", still_available, " See TODO-119 in ",
 					"R/package_metadata/future_release_plans/release_v1_0_5.md.",
 					call. = FALSE
 				)
@@ -376,6 +392,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				}
 				if (identical(fallback_mode, "na") || length(fallback_ci) < 2L || !all(is.finite(fallback_ci[1:2]))) {
 					edi_record_procedure_failure(self, private, "rand_ci_search_bounds_failed", "se")
+					# v1.0.6-TODO-136: the per-delta p-value warnings are muffled during the search, so the CI warns once.
+					edi_warn_procedure_na(self, private, procedure = "randomization confidence interval",
+						reason = "rand_ci_search_bounds_failed", detail = rand_ci_na_detail())
 					ci = c(NA_real_, NA_real_)
 				} else {
 					ci = sort(fallback_ci[1:2])
@@ -400,6 +419,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					ci = sort(fallback_ci[1:2])
 				} else {
 					edi_record_procedure_failure(self, private, "rand_ci_bisection_failed", "se")
+					edi_warn_procedure_na(self, private, procedure = "randomization confidence interval",
+						reason = "rand_ci_bisection_failed", detail = rand_ci_na_detail())
 					ci = c(NA_real_, NA_real_)
 				}
 			}
@@ -446,15 +467,17 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			old_mc_control = obj_private$randomization_mc_control
 			obj_private$randomization_mc_control = ci_search_control
 			on.exit({ obj_private$randomization_mc_control = old_mc_control }, add = TRUE)
+			# v1.0.6-TODO-136: one p-value per delta, so its NA warning is muffled here;
+			# compute_rand_confidence_interval() warns once if the CI itself ends NA.
 			pval = tryCatch(
-				as.numeric(inf_obj$compute_rand_two_sided_pval(
+				edi_muffle_rand_pval_na_warnings(as.numeric(inf_obj$compute_rand_two_sided_pval(
 					r,
 					delta = delta,
 					transform_responses = transform_responses,
 					na.rm = FALSE,
 					show_progress = FALSE,
 					permutations = permutations
-				)),
+				))),
 				error = function(e) NA_real_
 			)
 			if (length(pval) == 0L) pval = NA_real_ else pval = pval[1]

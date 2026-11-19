@@ -21,3 +21,4 @@ check_survfit.R
 ^tests/\.prepush_errors$
 ^tests/\.prepush_test_stdout\.log$
 ^tests/prepush_test_timings\.csv$
+^figure$

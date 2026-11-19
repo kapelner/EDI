@@ -51,7 +51,10 @@ test_that("assert_y enforces each response type's domain (and is skipped when as
 	expect_error(p$assert_y(c(-0.1, 2.5), "survival"))
 	expect_silent(p$assert_y(c(1, 2, 4), "ordinal"))
 	expect_error(p$assert_y(c(0, 2), "ordinal"))
-	expect_silent(p$assert_y(c(-5, 2.2, NA), "continuous"))          # no domain check for continuous
+	expect_silent(p$assert_y(c(-5, 2.2), "continuous"))              # no range check for continuous
+	# Every caller drops NA rows before assert_y(), so an NA here is a bug and is rejected
+	# like the incidence NA above (checkmate explicit defaults, v1.0.6-TODO-100/-106).
+	expect_error(p$assert_y(c(-5, 2.2, NA), "continuous"), "missing")
 	withr::local_options(edi.run_asserts = FALSE)
 	expect_silent(p$assert_y(c(-1, 9), "incidence"))
 })

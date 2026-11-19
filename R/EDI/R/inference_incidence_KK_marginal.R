@@ -92,7 +92,7 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 		#' @description Compute the KK marginal incidence asymptotic two-sided
 		#'   p-value using the cached marginal effect and design-aware standard
 		#'   error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Numeric. Null treatment effect value (default 0).
+		#' @param delta Numeric. Null value of the log risk ratio (default 0, i.e. risk ratio 1).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)

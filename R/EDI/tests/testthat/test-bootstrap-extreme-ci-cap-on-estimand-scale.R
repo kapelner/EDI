@@ -127,3 +127,142 @@ test_that("the predicate: spread and magnitude rules apply only over the cap and
 	logit$set_estimand("marginal_mean_diff")
 	expect_false(logit$.__enclos_env__$private$bootstrap_estimand_on_link_scale())
 })
+
+# v1.0.6-TODO-160 (owner decision 2026-11-18): (1) for link-scale estimands a bound beyond
+# +-bootstrap_extreme_link_scale_max_abs (10) is always extreme when replicates are passed, whatever
+# the outcome SD (counts with SD 20 put the outcome-SD cap at ~100 log units, so degenerate
+# log-rate-ratio intervals passed); (2) the raw g-computation risk ratio is judged on log(RR) with
+# the link-scale rule instead of the outcome-SD cap on the ratio scale. Without replicates
+# (subsampling, m-out-of-n) both behave as before.
+
+fixed_design_160 = function(n, response_type, seed, yfun){
+	set.seed(seed)
+	X = data.frame(x = rnorm(n))
+	des = DesignFixediBCRD$new(n = n, response_type = response_type, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(yfun(des$get_w(), X))
+	des
+}
+
+# Large-SD counts with a treated arm of zeros and one 1: replicates without that subject run to
+# about -25 on the log-rate-ratio scale.
+degenerate_big_sd_counts_160 = function(){
+	fixed_design_160(30L, "count", 3L, function(w, X){
+		y = stats::rnbinom(30L, mu = 30, size = 2)
+		y[w == 1] = 0L
+		y[which(w == 1)[1L]] = 1L
+		y
+	})
+}
+
+ci_and_reason_160 = function(f){
+	set.seed(42)
+	reason = NULL
+	ci = withCallingHandlers(f(),
+		edi_procedure_na_warning = function(cond){ reason <<- cond$reason; invokeRestart("muffleWarning") },
+		warning = function(cond) invokeRestart("muffleWarning"))
+	list(ci = unname(ci), reason = reason)
+}
+
+test_that("link-scale bounds beyond +-10 are extreme with replicates, whatever the outcome SD", {
+	des = degenerate_big_sd_counts_160()
+	p = InferenceCountPoisson$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_true(p$bootstrap_estimand_on_link_scale())
+	expect_gt(p$bootstrap_outcome_scale(), 20)  # old cap 5 x SD is over 100 log units
+	set.seed(5)
+	theta = rnorm(500, -8, 6)
+	expect_true(p$bootstrap_confidence_interval_extreme(c(-25.8, -5), est = -8, theta = theta))
+	expect_true(p$bootstrap_confidence_interval_extreme(c(-1, 10.5), est = 2, theta = theta))
+	# Within +-10: unchanged (under the outcome-SD cap).
+	expect_false(p$bootstrap_confidence_interval_extreme(c(-9.5, -4), est = -6, theta = theta))
+	# Without replicates (subsampling / m-out-of-n callers): previous behavior.
+	expect_false(p$bootstrap_confidence_interval_extreme(c(-25.8, -5), est = -8))
+})
+
+test_that("degenerate Poisson and NegBin percentile intervals on large-SD counts are rejected with the warning", {
+	des = degenerate_big_sd_counts_160()
+	for (gen in list(InferenceCountPoisson, InferenceCountNegBin)) {
+		inf = gen$new(des, verbose = FALSE)
+		inf$num_cores = 1L
+		r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "percentile", show_progress = FALSE))
+		expect_true(all(is.na(r$ci)))
+		expect_identical(r$reason, "bootstrap_extreme_confidence_interval")
+	}
+	# A regular large-SD count fixture keeps its interval.
+	des = fixed_design_160(40L, "count", 2L, function(w, X) stats::rnbinom(40L, mu = exp(3 + 0.4 * w), size = 2))
+	inf = InferenceCountPoisson$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "percentile", show_progress = FALSE))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+	expect_true(all(abs(r$ci) < 2))
+})
+
+test_that("the g-computation risk ratio is judged on log(RR): a skewed interval is kept, a degenerate one rejected", {
+	des = fixed_design_160(30L, "incidence", 6L, function(w, X) stats::rbinom(30L, 1, stats::plogis(-1.2 + 1.2 * w)))
+	for (gen in list(InferenceIncidGCompRiskRatio, InferenceIncidGCompRiskDiff)) {
+		p = gen$new(des, verbose = FALSE)$.__enclos_env__$private
+		expect_false(p$bootstrap_estimand_on_link_scale())
+	}
+	p = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)$.__enclos_env__$private
+	set.seed(6)
+	theta = exp(rnorm(500, log(1.7), 0.6))
+	# [0.5, 6] is 5.5 wide on the ratio scale (over the old cap of 5) but log(12) = 2.5 on log(RR).
+	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7, theta = theta))
+	# Without replicates the old ratio-scale check is unchanged.
+	expect_true(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7))
+	# A bound at a ratio beyond e^-10: degenerate, although only 0.97 wide on the ratio scale.
+	expect_true(p$bootstrap_confidence_interval_extreme(c(4.9e-10, 0.97), est = 0.2, theta = c(rep(1e-10, 100), theta)))
+	# A non-positive bound has no log: the ratio-scale check runs as before.
+	expect_false(p$bootstrap_confidence_interval_extreme(c(-0.2, 3), est = 1.2, theta = theta))
+	# A risk difference is unchanged (outcome-scale cap).
+	pd = InferenceIncidGCompRiskDiff$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_true(pd$bootstrap_confidence_interval_extreme(c(-3, 3), est = 0, theta = rnorm(500)))
+
+	# End to end: the Bayesian-bootstrap percentile interval reaches past 6 and is now kept.
+	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_bayesian_bootstrap_confidence_interval(B = 201, show_progress = FALSE))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+	expect_gt(r$ci[2L] - r$ci[1L], 5)
+	expect_gt(r$ci[1L], 0)
+
+	# Treated arm with a single event: replicates without it give RR ~ 1e-10.
+	des0 = fixed_design_160(40L, "incidence", 7L, function(w, X){
+		y = stats::rbinom(40L, 1, 0.4)
+		y[w == 1] = 0L
+		y[which(w == 1)[1L]] = 1L
+		y
+	})
+	inf = InferenceIncidGCompRiskRatio$new(des0, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "percentile", show_progress = FALSE))
+	expect_true(all(is.na(r$ci)))
+	expect_identical(r$reason, "bootstrap_extreme_confidence_interval")
+})
+
+test_that("the KK g-computation risk ratio uses the same log(RR) rule", {
+	set.seed(10)
+	n_pairs = 12L
+	n = 2L * n_pairs
+	x = rnorm(n)
+	des = DesignFixedBinaryMatch$new(n = n, response_type = "incidence", m = rep(seq_len(n_pairs), each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x))
+	w = rep(c(0, 1), n_pairs)
+	des$overwrite_all_subject_assignments(w)
+	des$add_all_subject_responses(rbinom(n, 1, plogis(-0.5 + 1.5 * w + 0.4 * x)))
+	inf = suppressWarnings(InferenceIncidKKGCompRiskRatio$new(des, model_formula = ~ x, verbose = FALSE))
+	inf$num_cores = 1L
+	p = inf$.__enclos_env__$private
+	set.seed(6)
+	theta = exp(rnorm(500, log(1.7), 0.6))
+	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7, theta = theta))
+	expect_true(p$bootstrap_confidence_interval_extreme(c(1e-6, 30000), est = 2, theta = theta))
+	# Was rejected on the ratio scale (about 37 wide); about 3.2 wide on log(RR).
+	r = ci_and_reason_160(function() inf$compute_bayesian_bootstrap_confidence_interval(B = 201, show_progress = FALSE))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+	expect_gt(r$ci[2L] - r$ci[1L], 5)
+})
