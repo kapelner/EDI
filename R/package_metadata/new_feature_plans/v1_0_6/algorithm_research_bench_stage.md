@@ -85,6 +85,9 @@ and they go to triage unbenchmarked, as now.
    compiled-code audit uses 2%; 10% was proposed.)
 2. **`not faster` is an automatic `reject`** (owner, 2026-11-19), recorded as approved, with the
    numbers. A later run reopens it only with new evidence, for example different sizes.
+   Exception (owner, 2026-11-19): when the bench spec does not measure what the TODO is for, the
+   owner can keep the finding. Kept so far: jackknife (v1.1.0-TODO-207) and Weibull AFT #1
+   (v1.1.0-TODO-213), whose Phase 0 specs (run 44048167550) timed something else.
 3. **The refactor of `compiled_code_verify.py`** (design 3), which is shared with the
    compiled-code audit.
 
