@@ -206,14 +206,23 @@ RobustModelResult fast_robust_regression_internal(
             if (ww.size() != n) throw std::invalid_argument("warm_start_weights must have length equal to nrow(X)");
             res.w = ww;
         } else {
-            const Eigen::ArrayXd u = r.array() / res.scale;
+            // Fused, allocation-free weight update (same per-element arithmetic
+            // as the former u / abs_u / tmp array temporaries).
+            const double scale_i = res.scale;
+            const double* rp = r.data();
+            double* wp = res.w.data();
             if (method == "M") {
-                const Eigen::ArrayXd abs_u = u.abs();
-                res.w = (abs_u <= c).select(1.0, c / abs_u).matrix();
+                for (int i = 0; i < n; ++i) {
+                    const double abs_u = std::abs(rp[i] / scale_i);
+                    wp[i] = (abs_u <= c) ? 1.0 : c / abs_u;
+                }
             } else {
-                const Eigen::ArrayXd abs_u = u.abs();
-                const Eigen::ArrayXd tmp = 1.0 - (u / c_bisquare).square();
-                res.w = (abs_u <= c_bisquare).select(tmp.square(), 0.0).matrix();
+                for (int i = 0; i < n; ++i) {
+                    const double u = rp[i] / scale_i;
+                    const double us = u / c_bisquare;
+                    const double t = 1.0 - us * us;
+                    wp[i] = (std::abs(u) <= c_bisquare) ? t * t : 0.0;
+                }
             }
         }
 
