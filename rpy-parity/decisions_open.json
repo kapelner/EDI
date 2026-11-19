@@ -1,16 +1,23 @@
 {
- "rpy-parity-d1f65c8c0": {
-  "first_seen": "2026-11-17T22:51:10+00:00",
-  "key": "return_mismatch",
-  "last_seen": "2026-11-19T21:29:41+00:00",
-  "text": "`python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta` (return_mismatch): The R export sets `min_eigenvalue_information` in both return branches (`.set(\"min_eigenvalue_information\", fit.min_eigenvalue_information)`). The Python binding builds its dict from params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm only, so it drops that field. The docstring's 'Unlike R ...' sentence lists the omitted fields (vcov, information matrices, the split of params) but does not name this one. Suggested: Either add `out[\"min_eigenvalue_information\"] = fit.min_eigenvalue_information;` to the binding and its docstring, or state in the 'Unlike R ...' sentence that this diagnostic is not returned. A human should decide which. It is a convergence diagnostic that the kernel already computes.",
-  "unit": "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta"
+ "rpy-parity-d1793c59d": {
+  "first_seen": "2026-11-19T21:52:21+00:00",
+  "key": "argument_mismatch",
+  "last_seen": "2026-11-19T21:52:21+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (argument_mismatch): The fixed_idx docstring says only \"Optional indices of fixed parameters.\" The kernel's make_fixed_param_spec treats them as 1-based and raises on 0 or out-of-range values (\"fixed_idx entries must be one-based indices\"). R's roxygen says \"1-indexed into the joint parameter vector, X's coefficients first\". The sibling fast_zero_one_inflated_beta docstring states the 1-based rule, so the Python user of this binding has no hint of it. Suggested: Reword the fixed_idx entry to \"Optional 1-based indices into params of parameters to hold fixed (as in R); params is [beta_cond, beta_zi]. 0 or an out-of-range index raises.\" The old line is not unique in the file, so it needs a manual edit.",
+  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
  },
  "rpy-parity-d385cd179": {
   "first_seen": "2026-11-19T21:29:41+00:00",
   "key": "behaviour_mismatch",
-  "last_seen": "2026-11-19T21:29:41+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (behaviour_mismatch): The docstring says: \"If the optimizer throws an exception internally, this does not propagate a Python error: it returns {\\\"converged\\\": False, \\\"gradient_norm\\\": nan} with no other fields.\" The binding calls fast_zap_internal directly with no try/catch, and nothing in the optimizer helpers catches either. fast_zap_internal itself throws std::invalid_argument (bad warm_start_params length or non-finite values, bad warm_start_fisher_info), and those exceptions reach Python as errors. The catch-and-return-diagnostic behaviour exists only in the R export fast_zero_augmented_poisson_cpp (catch blocks around lines 618-622). R's fallback list also differs from the docstring: it includes params, neg_loglik and exception_message. Suggested: Delete the three-line sentence (docstring lines 529-531, and the matching text in _core.pyi). The sentence copies R's behaviour and does not apply to the Python binding. Alternatively, add a try/catch in the binding that returns the same fallback dict as R, if parity is wanted. This is not a one-line docstring edit, so it needs a human.",
+  "last_seen": "2026-11-19T21:52:21+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (behaviour_mismatch): The docstring says: \"If the optimizer throws an exception internally, this does not propagate a Python error: it returns {\\\"converged\\\": False, \\\"gradient_norm\\\": nan} with no other fields.\" The binding calls fast_zap_internal directly with no try/catch, so an exception (for example std::invalid_argument for a wrong-length warm_start_params, or an optimizer failure) reaches Python as an error. The failed-fit list (converged=FALSE, exception_message, and so on) exists only in the R export fast_zero_augmented_poisson_cpp, in its try/catch around fast_zap_internal. Suggested: Either remove the sentence from the docstring (the docstring is wrong), or add a try/catch in the binding that returns the documented dict. The sentence spans three literal lines, so it cannot be fixed as a one-line docstring edit.",
+  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
+ },
+ "rpy-parity-d385cd179-2": {
+  "first_seen": "2026-11-19T21:52:21+00:00",
+  "key": "behaviour_mismatch",
+  "last_seen": "2026-11-19T21:52:21+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (behaviour_mismatch): The smart_cold_start parameter text says \"use an initial OLS-based guess\". The main description (and the R roxygen) says \"model-specific heuristic start\". The kernel's zap_smart_cold_start uses a Poisson start on the nonzero rows for the count block and a logistic start on (y == 0) for the zero block, not OLS. The returned dict also includes dispersion_at_poisson_boundary, which the docstring does not list. Suggested: Change \"OLS-based guess\" to \"model-specific heuristic (Poisson and logistic) guess\" for this binding, and add a Returns section listing params, neg_loglik, num_iter, hit_iteration_cap, converged, gradient_norm and dispersion_at_poisson_boundary. Also note that the Python dict has no vcov, which R returns unless estimate_only.",
   "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
  }
 }
