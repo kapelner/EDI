@@ -1,0 +1,163 @@
+{
+ "rd-m010f0cb6": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed # of #: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = #) arm has no subjects with a usable response. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed 1 of 5: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = 0) arm has no subjects with a usable response. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
+  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
+ },
+ "rd-m12b86fed": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`InferenceIncidKKGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidKKGCompRiskDiff: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidKKGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidKKGCompRiskDiff: fitted probabilities numerically 0 or 1 occurred (3 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceIncidKKGCompRiskDiff.Rd"
+ },
+ "rd-m191feae4": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceIncidLogBinomial.Rd`: with \\donttest, seed # of #: warning: InferenceIncidLogBinomial: the maximum-likelihood estimate is on the boundary of the parameter space (# subject(s) at fitted probability exp(X b) = #). The Wald p-value and confidence interval are NA here (the inverse information is too small at the boundary); score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidLogBinomial.Rd`: with \\donttest, seed 2 of 5: warning: InferenceIncidLogBinomial: the maximum-likelihood estimate is on the boundary of the parameter space (1 subject(s) at fitted probability exp(X b) = 1). The Wald p-value and confidence interval are NA here (the inverse information is too small at the boundary); score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
+  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
+ },
+ "rd-m2bd1de76": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ },
+ "rd-m2bd1de76-2": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ },
+ "rd-m4a8b7df8": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceIncidKKGEE.Rd`: with \\donttest, seed # of #: warning: InferenceIncidKKGEE: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidKKGEE.Rd`: with \\donttest, seed 4 of 5: warning: InferenceIncidKKGEE: fitted probabilities numerically 0 or 1 occurred (10 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
+  "unit": "R/EDI/man/InferenceIncidKKGEE.Rd"
+ },
+ "rd-m4d351226": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`SimulationFrameworkReport.Rd`: with \\donttest, seeds #, # of #: warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`SimulationFrameworkReport.Rd`: with \\donttest, seeds 2, 4 of 5: warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = 201: the nominal tail is only ~5.1 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
+  "unit": "R/EDI/man/SimulationFrameworkReport.Rd"
+ },
+ "rd-m501dc218": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-donttest-time:`InferenceSuite.Rd`: the \\donttest part took about # s (reported over # s; R CMD check --as-cran runs it)",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceSuite.Rd`: the \\donttest part took about 178 s (reported over 60 s; R CMD check --as-cran runs it)",
+  "unit": "R/EDI/man/InferenceSuite.Rd"
+ },
+ "rd-m5931fcc2": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "unit": "R/EDI/man/SimulationFramework.Rd"
+ },
+ "rd-m5931fcc2-2": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "unit": "R/EDI/man/SimulationFramework.Rd"
+ },
+ "rd-m7dd06479": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`InferenceIncidGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskDiff: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskDiff: fitted probabilities numerically 0 or 1 occurred (4 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceIncidGCompRiskDiff.Rd"
+ },
+ "rd-m92159203": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "spelling:unknown word `undercovers`: InferenceIncidGCompRiskRatio.Rd:#, InferenceIncidKKGCompRiskRatio.Rd:#",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "unknown word `undercovers`: InferenceIncidGCompRiskRatio.Rd:63, InferenceIncidKKGCompRiskRatio.Rd:56",
+  "unit": "R/EDI/man/InferenceIncidGCompRiskRatio.Rd"
+ },
+ "rd-m9f9a6668": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ },
+ "rd-m9f9a6668-2": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ },
+ "rd-made61b89": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`SimulationFrameworkReport.Rd`: the published reference page shows `#> Warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`SimulationFrameworkReport.Rd`: the published reference page shows `#> Warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = 201: the nominal tail is only ~5.1 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
+  "unit": "R/EDI/man/SimulationFrameworkReport.Rd"
+ },
+ "rd-mb172773e": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`tune_EDI_for_this_machine.Rd`: with \\donttest, seeds #, #, #, #, # of #: warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\"). | InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`tune_EDI_for_this_machine.Rd`: with \\donttest, seeds 1, 2, 3, 4, 5 of 5: warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\"). | InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
+  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ },
+ "rd-mbf5e5040": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceIncidLogBinomial.Rd`: with \\donttest, seeds #, # of #: warning: InferenceIncidLogBinomial: dropped covariate(s) x# and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidLogBinomial.Rd`: with \\donttest, seeds 4, 5 of 5: warning: InferenceIncidLogBinomial: dropped covariate(s) x1 and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").",
+  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
+ },
+ "rd-mc147aea5": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed # of #: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = #) arm's Kaplan-Meier curve never falls to # (lowest survival #, # events among # subjects), so its median is not reached. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed 5 of 5: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = 0) arm's Kaplan-Meier curve never falls to 0.5 (lowest survival    1, 0 events among 1 subjects), so its median is not reached. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
+  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
+ },
+ "rd-mc17edbaa": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`InferenceIncidBinomialIdentityRiskDiff.Rd`: with \\donttest, seeds #, # of #: warning: InferenceIncidBinomialIdentityRiskDiff: the maximum-likelihood estimate is on the boundary of the parameter space (# subject(s) at fitted probability # or #). Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidBinomialIdentityRiskDiff.Rd`: with \\donttest, seeds 2, 5 of 5: warning: InferenceIncidBinomialIdentityRiskDiff: the maximum-likelihood estimate is on the boundary of the parameter space (1 subject(s) at fitted probability 0 or 1). Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
+  "unit": "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd"
+ },
+ "rd-md6bbb35a": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) x# and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) x1 and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
+  "unit": "R/EDI/man/InferenceIncidLogRegr.Rd"
+ },
+ "rd-me75a6988": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`InferenceIncidKKCondLogitGLMMOneLik.Rd`: the published reference page shows `#> Warning: number of rows of result is not a multiple of vector length (arg #)`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidKKCondLogitGLMMOneLik.Rd`: the published reference page shows `#> Warning: number of rows of result is not a multiple of vector length (arg 1)`",
+  "unit": "R/EDI/man/InferenceIncidKKCondLogitGLMMOneLik.Rd"
+ },
+ "rd-mf3027550": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-warning:`SimulationFramework.Rd`: with \\donttest, seeds #, #, #, #, # of #: warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`SimulationFramework.Rd`: with \\donttest, seeds 1, 2, 3, 4, 5 of 5: warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
+  "unit": "R/EDI/man/SimulationFramework.Rd"
+ },
+ "rd-mf3816359": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "published-example-output:`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (2 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceIncidLogRegr.Rd"
+ }
+}

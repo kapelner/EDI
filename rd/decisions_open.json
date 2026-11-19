@@ -1,143 +1,24 @@
 {
- "rd-d034e570f": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_effective_capabilities.Rd` (return-mismatch): The roxygen block (R/EDI/R/inference_class_registry.R:2806-2836) has no @return. The function returns a character vector of capability names (inference_class_registry.R:2872 and the code after it), so the page should say so.",
-  "unit": "R/EDI/man/get_effective_capabilities.Rd"
- },
- "rd-d03c60d44": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceOrdinalGCompMeanDiff.Rd` (unclear): The class description says the Wald-style methods \"silently fall back\" to a bootstrap, then says \"(with a warning)\". The code warns at inference_ordinal_gcomp.R:127-130, so \"silently\" is wrong and the sentence contradicts itself.\n  - now: \u201call silently fall back to a nonparametric bootstrap interval/p-value instead (with a warning), rather than returning \\code{NA}.\u201d\n  - suggested: \u201call fall back to a nonparametric bootstrap interval/p-value instead (with a warning), rather than returning \\code{NA}.\u201d",
-  "unit": "R/EDI/man/InferenceOrdinalGCompMeanDiff.Rd"
- },
- "rd-d04f84526": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`compute_survival_strata_ids_cpp.Rd` (unclear): The description calls the result 'a single all-subject stratum identifier', which is unclear. The code (R/EDI/src/survival_strata_ids.cpp:40-110) returns one integer stratum id per row of X. The id is built from the selected columns, and it falls back to all 1s when no column qualifies. Selection also requires finite values and at least 2 distinct levels, and the cut to `max_strata_cols` follows a sort order (candidate_less) that is not documented. The @return should say `strata_id` is an integer vector of length nrow(X), `selected_cols` holds the selected column indices (check whether they are 0- or 1-based), and `num_strata` is the number of strata (1 if none were selected). The source is C++, so it is not auto-editable.",
-  "unit": "R/EDI/man/compute_survival_strata_ids_cpp.Rd"
- },
- "rd-d05f62bb0": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceMLEorKMSummaryTable.Rd` (unclear): The `compute_asymp_two_sided_pval` `@param delta` text is garbled: 'For any treatment effect at all this is set to zero (the default)' does not say what delta means. The code (lines 63-70) only supports delta == 0. For any other delta it returns NA_real_, or stops with 'TO-DO' when asserts are on. The page never says this.\n  - now: \u201cFor any treatment effect at all this is set to zero (the default).\u201d\n  - suggested: \u201cThe default of zero tests for any treatment effect at all; only zero is currently supported.\u201d",
-  "unit": "R/EDI/man/InferenceMLEorKMSummaryTable.Rd"
- },
- "rd-d062a5dcf": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_coxph_regression_cpp.Rd` (unclear): The description calls the R wrapper's fallback \"an survival-free-of-Rcpp fallback path via glmnet\". The phrase is garbled. The fallback is also not survival-free: it calls survival::Surv (helper_glm_fit.R:1438). Suggest: \"with a glmnet-based fallback path used when use_rcpp = FALSE\" (helper_glm_fit.R:150-152).\n  - now: \u201c\\code{\\link{fast_coxph_regression}} is the R-level wrapper around this backend (with an \\pkg{survival}-free-of-Rcpp fallback path via \\pkg{glmnet}).\u201d\n  - suggested: \u201c\\code{\\link{fast_coxph_regression}} is the R-level wrapper around this backend (with a non-Rcpp fallback path via \\pkg{glmnet}).\u201d",
-  "unit": "R/EDI/man/fast_coxph_regression_cpp.Rd"
- },
- "rd-d0ca3f308": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var_cpp.Rd` (return-mismatch): The \\value section has two conflicting parts. The stale block at helper_glm_fit.R:261-268 lists `neg_ll` (the real name is `neg_loglik`) and describes `coefficients` as 'obtained Poisson regression coefficients'. It leaves out std_errs, information_invertible and fisher_information. The accurate RcppExports.R:598-605 description follows it. Remove the @return and @param stubs in the helper_glm_fit.R:256-271 block (or the whole stub) so only the accurate text remains.",
-  "unit": "R/EDI/man/fast_beta_regression_with_var_cpp.Rd"
- },
- "rd-d0cede6b3": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropZeroOneInflatedBetaRegr.Rd` (unclear): The @details (lines 15-16) says \"uses treatment alone in the univariate class and treatment plus covariates in the multivariate class\". This page documents a single class, `InferencePropZeroOneInflatedBetaRegr`. The R6 constructor takes `model_formula`, and the only grep hits for the class name are in unrelated files. No separate univariate or multivariate class is documented, so this looks like leftover text from an older class split.",
-  "unit": "R/EDI/man/InferencePropZeroOneInflatedBetaRegr.Rd"
- },
- "rd-d0d8301bf": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceSuite.Rd` (unclear): The run_all_inference description says the plots visualizations and their HTML embedding 'are not yet implemented' and that 'pdf output is not yet a parameter of this method' (inference_suite.R:4521-4524). The signature has `plots` and `pdf` (line 4860), both are documented as @params, and the @return documents plots and files$pdf. The sentence is stale and contradicts the rest of the page.",
-  "unit": "R/EDI/man/InferenceSuite.Rd"
- },
- "rd-d0d8301bf-2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceSuite.Rd` (unclear): The class-level docs refer to the user-facing 'Discovery' rules, and the unavailable_due_to_missing_packages field text says 'see the class-level docs' \"Discovery\" rules'. The class page has no section titled Discovery (inference_suite.R:4267-4297 uses 'Compatibility rules'). Several help texts also cite internal plan files (fix_inference_hierarchy.md, inference_suite_inspect.md) that readers of the installed package cannot open.",
-  "unit": "R/EDI/man/InferenceSuite.Rd"
- },
- "rd-d173963ae": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC.Rd` (unclear): The '\\strong{Legacy class.} Not fully tested in comprehensive_tests.R.' paragraph (inference_survival_GLMM_weibull_frailty_loggamma.R:542) sits after the references inside the @references tag, so it renders as part of the References section, after the Oakes DOI. It belongs in the description or details, before @references.",
-  "unit": "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC.Rd"
- },
- "rd-d178d4b47": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceSurvivalGehanWilcox.Rd` (unclear): The sign interpretation of compute_estimate() looks inverted. The estimate is mean_t - mean_c of weighted martingale residuals M = delta - Lambda_0(t) (inference_survival_gehan_wilcox.R:241-250). A positive M means more events than expected, so a positive estimate means treatment subjects had more early events than expected (worse survival). The doc at lines 70-72 says 'fewer early events than expected'.\n  - now: \u201cPositive values indicate that treatment subjects experienced fewer early events than expected.\u201d\n  - suggested: \u201cPositive values indicate that treatment subjects experienced more early events than expected.\u201d",
-  "unit": "R/EDI/man/InferenceSurvivalGehanWilcox.Rd"
- },
- "rd-d17cdb18b": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "grammar",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCountKKHurdlePoissonOneLik.Rd` (grammar): The text says \"nonparametric-bootstrap bootstrap distribution\", which repeats the word bootstrap (inference_count_KK_cond_poisson.R:1533-1536).\n  - now: \u201cThe Wald confidence interval and p-value fall back to the nonparametric-bootstrap bootstrap distribution when the model-based standard error is unavailable or non-finite (e.g. a boundary/separation fit).\u201d\n  - suggested: \u201cThe Wald confidence interval and p-value fall back to the nonparametric-bootstrap distribution when the model-based standard error is unavailable or non-finite (e.g. a boundary/separation fit).\u201d\n  - not applied automatically: the changed words straddle a line break",
-  "unit": "R/EDI/man/InferenceCountKKHurdlePoissonOneLik.Rd"
- },
- "rd-d1906fb70": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropGCompMeanDiff.Rd` (unclear): Lines 27-29 say \"up to eight progressively more conservative fallback strategies are tried\". The `variance_fallback_methods` default (lines 124-129) lists eight methods in total, and the first, \"robust\", is the primary strategy. That leaves seven fallbacks. The count should be seven, or the sentence should say eight strategies including the primary.",
-  "unit": "R/EDI/man/InferencePropGCompMeanDiff.Rd"
- },
- "rd-d1d9bc399": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_cauchit_regression_cpp.Rd` (return-mismatch): @return lists `iterations`, but the returned component is `num_iter` (fast_ordinal_cauchit_regression.cpp:174 and 206). The same stale name is in the with_var page (line 348). The text also says neg_loglik, the information matrices and ssq_b_j are returned only \"when the fit converged\". The code returns them whenever estimate_only is FALSE (lines 204-214). Only `vcov` depends on convergence, and when it does not converge the list entry is a NULL placeholder (line 218). The list also includes hit_iteration_cap, gradient_norm and min_eigenvalue_information, which are not mentioned.",
-  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_cpp.Rd"
- },
- "rd-d238adbb2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_optimization_dispatch_policy.Rd` (unclear): The last sentence of @details says 'most matched (...) models default to \"newton_raphson\"' with a parenthetical saying only InferenceCountKKGLMM does, and the code (globals.R:1130-1136, 1156) sets every other matched/KK class (KK*GLMM, KKHurdlePoisson*, KKCondPoissonOneLik, KKCondLogitGLMMOneLik) to \"lbfgs\". 'Most matched models' is contradicted by the code, and the parenthetical is hard to parse. Suggest: 'stratified Cox PH and InferenceCountKKGLMM default to \"newton_raphson\", while the other matched-design (KK) classes default to \"lbfgs\".'\n  - now: \u201cmodels default to \\code{\"lbfgs\"}, and stratified Cox PH and most matched (\\code{InferenceCountKKGLMM} only; other \\code{KK*GLMM} classes use \\code{\"lbfgs\"}) models default to \\code{\"newton_raphson\"}.\u201d\n  - suggested: \u201cmodels default to \\code{\"lbfgs\"}, and stratified Cox PH and \\code{InferenceCountKKGLMM} default to \\code{\"newton_raphson\"}; other matched-design classes use \\code{\"lbfgs\"}.\u201d",
-  "unit": "R/EDI/man/get_optimization_dispatch_policy.Rd"
- },
  "rd-d245172a3": {
   "first_seen": "2026-11-18T00:07:35+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceRandCI.Rd` (param-mismatch): The @param transform_responses text says 'the default \"log\"' for survival responses, but the signature default is \"none\" (inference_all_abstract_rand_ci.R:53, and inference_all_abstract_rand.R:343). 'none' is presumably resolved by response type, as the sibling page InferenceRandBootstrap states. The text should say the default \"none\" resolves to \"log\" for survival.\n  - now: \u201cFor survival responses the default \\code{\"log\"} multiplies the recorded times of the units treated under each reference allocation by \\eqn{e^\\delta}, event and censoring times alike, with censoring indicators unchanged -- the rank-based AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei and Ying 2003); see \\code{compute_rand_confidence_interval()} for the assumptions.\u201d\n  - suggested: \u201cFor survival responses the default \\code{\"none\"} resolves to \\code{\"log\"}, which multiplies the recorded times of the units treated under each reference allocation by \\eqn{e^\\delta}, event and censoring times alike, with censoring indicators unchanged -- the rank-based AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei and Ying 2003); see \\code{compute_rand_confidence_interval()} for the assumptions.\u201d",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceRandCI.Rd` (param-mismatch): The `ci_search_control` text gives the search radius as `max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y))`. The code adds a floor of 1 as a third argument to `max()` (inference_all_abstract_rand_ci.R:659: `max(se_mult * se_guess, scale_mult * response_scale, 1)`). The page therefore understates the minimum radius.",
   "unit": "R/EDI/man/InferenceRandCI.Rd"
  },
- "rd-d25e79f3c": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d2736efbc": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_zero_augmented_poisson_cpp.Rd` (unclear): The @param is_hurdle and smart_cold_start text says \"See Details\", but the page has no Details section. The distinction is in the Description and the \"Fixed parameters, warm starts\" section (R/EDI/R/RcppExports.R:4036 and 4042). The same applies to fast_zero_one_inflated_beta_cpp (RcppExports.R:4137). The source is C++ //' comments, so this is not auto-editable.",
-  "unit": "R/EDI/man/fast_zero_augmented_poisson_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd` (unclear): The class description says \"The hurdle and count submodels may use different covariate formulas (model_formula/model_formula_zero)\". This is a zero-inflated model, not a hurdle model. The arguments show that model_formula_zero is the zero-inflation submodel, so \"hurdle\" is the wrong term here (R/EDI/R/inference_count_zero_inflated.R:10-11, 129-130).\n  - now: \u201cThe hurdle and count submodels may use different covariate formulas (\\code{model_formula}/\\code{model_formula_zero}).\u201d\n  - suggested: \u201cThe zero-inflation and count submodels may use different covariate formulas (\\code{model_formula}/\\code{model_formula_zero}).\u201d",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-d265760b3": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_identity_binomial_regression_cpp.Rd` (unclear): The description says the fit is an \"estimate only\" fit, but the page and its @return say nothing about the extra convergence fields. The C++ also returns kkt_converged and n_active_bounds (fast_log_binomial_regression.cpp:496-504, shared impl). Minor: the seealso entry fast_log_binomial_regression_cpp is the only one without \\link, so the page does not link to its log-link analog. Low priority.",
-  "unit": "R/EDI/man/fast_identity_binomial_regression_cpp.Rd"
- },
- "rd-d283394d7": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d29f67403": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`transform_cont_y_based_on_response_type.Rd` (param-mismatch): The `count_shift` text says the constant is added \"after zero-centering\". The code (simulations_framework.R:174) computes `round(y_cont - min(y_cont) + count_shift)`, which shifts the minimum to 0, not the mean. The constant is added after min-shifting.\n  - now: \u201cNumeric scalar. Constant added to counts after zero-centering.\u201d\n  - suggested: \u201cNumeric scalar. Constant added to counts after shifting the minimum to zero.\u201d",
-  "unit": "R/EDI/man/transform_cont_y_based_on_response_type.Rd"
- },
- "rd-d2abf56ca": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_cauchit_regression_cpp.Rd` (unclear): The @param X says \"(no intercept column needed; see Details)\", but the page has no Details section; the relevant text is in the description and the \"Fixed parameters, warm starts, and optimization\" section. The section text says iteration stops when \"the parameter/gradient change falls below tol\". The code passes `tol` to optimize_fixed_likelihood as the gradient-norm tolerance (fast_ordinal_cauchit_regression.cpp:162), and @param tol says only \"Convergence tolerance\", so the stopping criterion is stated inconsistently.",
-  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceContinKKGLMM.Rd` (param-mismatch): compute_asymp_confidence_interval (lines 189-209) and compute_asymp_two_sided_pval (lines 211-231) are described as always Wald, but both dispatch on private$testing_type. They use the score, gradient, likelihood-ratio and Bartlett variants as well as Wald, which the class description itself says are available when use_rcpp = TRUE. The method descriptions should say the interval and p-value follow the active testing type, with Wald as the default.",
+  "unit": "R/EDI/man/InferenceContinKKGLMM.Rd"
  },
  "rd-d2e80265b": {
   "first_seen": "2026-11-18T20:33:38+00:00",
@@ -152,34 +33,6 @@
   "last_seen": "2026-11-18T20:33:38+00:00",
   "text": "`KKLWACoxIVWCPartialLikelihoodSource.Rd` (param-mismatch): @param delta of compute_asymp_two_sided_pval does not say that only delta = 0 is supported. A non-zero delta calls stop(\"Testing non-zero delta is not yet implemented for this class.\") when assertions are on, and returns NA_real_ otherwise (R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R:84-91). The sentence \"For any treatment effect at all this is set to zero\" is also unclear. Suggested text: \"The null log-hazard ratio to test against; only 0 (the default, testing for any treatment effect) is currently supported.\"",
   "unit": "R/EDI/man/KKLWACoxIVWCPartialLikelihoodSource.Rd"
- },
- "rd-d2fe0d978": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_continuation_ratio_regression_with_var_cpp.Rd` (unclear): The inherited @param y (\"need not be pre-coded 1:K (see Details)\") and @param optimization_alg (\"see Details\") point to Details. This page's Details cover only variance computation and the degenerate case, so neither the category coding nor the algorithm options are described. Point them to fast_continuation_ratio_regression_cpp instead.",
-  "unit": "R/EDI/man/fast_continuation_ratio_regression_with_var_cpp.Rd"
- },
- "rd-d31400c4e": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_probit_regression_with_var_cpp.Rd` (return-mismatch): @return lists `iterations` (RcppExports.R:3406), but fast_probit_regression.cpp sets `num_iter` (e.g. line 607). This page is not editable because its text comes from C++ comments.",
-  "unit": "R/EDI/man/fast_probit_regression_with_var_cpp.Rd"
- },
- "rd-d328e3124": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_poisson_regression_cpp.Rd` (unclear): @param warm_start_weights says \"see Details\" (helper_glm_fit.R:490), but the page has no Details section. The explanation is in the \"Fixed parameters, warm starts\" section. The sibling pages (lines 562, 644, 779) say \"see ...fast_poisson_regression_cpp Details\", which has the same problem.\n  - now: \u201cAccepted but unused; see Details.\u201d\n  - suggested: \u201cAccepted but unused; see the \"Fixed parameters, warm starts\" section.\u201d",
-  "unit": "R/EDI/man/fast_poisson_regression_cpp.Rd"
- },
- "rd-d32d23729": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var_cpp.Rd` (param-mismatch): The usage has `warm_start_fisher_info` (RcppExports.R:616), but the roxygen block at RcppExports.R:585-597 has no @param for it, so the argument is undocumented. Add one, as in fast_beta_regression_cpp (RcppExports.R:486-488). Not editable here (C++ source).",
-  "unit": "R/EDI/man/fast_beta_regression_with_var_cpp.Rd"
  },
  "rd-d338b10f6": {
   "first_seen": "2026-11-18T20:33:38+00:00",
@@ -198,50 +51,36 @@
  "rd-d3554783c": {
   "first_seen": "2026-11-18T00:07:35+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var.Rd` (param-mismatch): @param warm_start_fisher_info (helper_glm_fit.R:1266-1267) says it is used to warm-start the optimizer, but the function body never passes it on. The call at helper_glm_fit.R:1298 passes only warm_start_beta, so the argument is silently ignored. Fix the code or document that it is currently unused.",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_beta_regression_with_var.Rd` (param-mismatch): `@param warm_start_fisher_info` (helper_glm_fit.R:1227-1228) says it warm-starts the optimizer's curvature, but the body never passes it on. The call to `fast_beta_regression_with_var_cpp` at helper_glm_fit.R:1263 passes only `warm_start_beta`. The C++ backend does accept `warm_start_fisher_info` (fast_beta_regression.cpp:622), so the argument is silently ignored. Either pass it through or document it as unused.",
   "unit": "R/EDI/man/fast_beta_regression_with_var.Rd"
  },
- "rd-d3b34f748": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`BaiAdjustedTSource.Rd` (param-mismatch): @param estimate_only of compute_estimate says \"If TRUE, skip variance component calculations\", but the argument is never used in the method body (R/EDI/R/inference_continuous_KK_bai_abstract.R:79-109). Variance is computed through private$shared() whenever convex_flag is TRUE and both estimates exist, whatever estimate_only is. The doc should say the argument is currently ignored, or the code should honour it.",
+ "rd-d35ff28d5": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_coxph_regression_cpp.Rd` (return-mismatch): The @return list omits two fields the function returns: `hit_iteration_cap` and `min_eigenvalue_information`. Both are set on the estimate_only and full paths in R/EDI/src/fast_coxph_regression.cpp:886-907. The documented items otherwise match. The docs say `vcov` is omitted under estimate_only, and the C++ does omit it there.",
+  "unit": "R/EDI/man/fast_coxph_regression_cpp.Rd"
+ },
+ "rd-d3fb367d1": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceSurvivalLogRank.Rd` (example-weak): The class example (inference_survival_log_rank.R:47-74) builds interval-censored data and then only prints the inference object. It never calls compute_estimate(), a p-value or an interval, so it does not show the log-rank estimate or test the page describes. Adding `infer$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` would show them.",
+  "unit": "R/EDI/man/InferenceSurvivalLogRank.Rd"
+ },
+ "rd-d439ad4ec": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`BaiAdjustedTSource.Rd` (unclear): The @param delta text 'For any treatment effect at all this is set to zero (the default)' is garbled. It should say that delta = 0 tests for any treatment effect (inference_continuous_KK_bai_abstract.R:152-153).\n  - now: \u201cFor any treatment effect at all this is set to zero (the default).\u201d\n  - suggested: \u201cTo test for any treatment effect at all, set this to zero (the default).\u201d",
   "unit": "R/EDI/man/BaiAdjustedTSource.Rd"
- },
- "rd-d3db8a47f": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var.Rd` (return-mismatch): The @return lists b, ssq_b_j and ssq_b_2 but omits `phi`, which is returned (helper_glm_fit.R:1301, 1310, 1324). The ssq_b_j text says it is `NA` when a fallback without a variance estimate was used, and refers to Details. Neither is accurate: both fallbacks (betareg via vcov(fit), and OLS via fast_ols_with_var_cpp) return a variance, and the Details section does not discuss variance NA. `phi` is NA_real_ only in the OLS fallback. Update the @return text.",
-  "unit": "R/EDI/man/fast_beta_regression_with_var.Rd"
- },
- "rd-d3e47394e": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_regression_cpp.Rd` (unclear): The @param X text says \"see Details\", but no Details section exists on this page (RcppExports.R:2911). Source is C++ //' comments (editable = false).",
-  "unit": "R/EDI/man/fast_ordinal_regression_cpp.Rd"
- },
- "rd-d434363cc": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_continuation_ratio_regression_weighted_cpp.Rd` (unclear): The inherited @param y says \"(see Details)\" and @param optimization_alg says \"see Details\", but this page has no Details section. Readers cannot find the category-coding or algorithm options. Not editable here (RcppExports.R:727-742 inherits from fast_continuation_ratio_regression_cpp); the source needs a Details section or a pointer to that page.",
-  "unit": "R/EDI/man/fast_continuation_ratio_regression_weighted_cpp.Rd"
- },
- "rd-d458a42a0": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_neg_bin_cpp.Rd` (return-mismatch): The \\value section ends with a stray second description, \"A list containing coefficients, theta, and convergence status.\" This is the leftover @return from the C++ block (RcppExports.R:2266), next to the detailed \\describe list from helper_glm_fit.R:309-324. The \\describe list also omits min_eigenvalue_information and dispersion_at_poisson_boundary, which fast_negbin_regression.cpp:561-562 returns. The converged text refers to `tol`, which is not an argument (it is `eps_g`).",
-  "unit": "R/EDI/man/fast_neg_bin_cpp.Rd"
  },
  "rd-d46a02fe4": {
   "first_seen": "2026-11-18T00:07:35+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCountHurdlePoisson.Rd` (unclear): The compute_estimate description (inference_count_hurdle.R:120) says to see \"the class-level @details\" for the formula. The class block has no @details section (lines 1-78), and the literal tag text appears in the rendered help. The marginal-mean formula is in the class description paragraph \"Marginal (unconditional-mean) estimand\".\n  - now: \u201csee the class-level \\code{@details} for the formula.\u201d\n  - suggested: \u201csee the class description for the formula.\u201d",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd` (unclear): In the class description the clause 'under the default \\code{estimand = \"conditional\"}' (inference_count_hurdle.R:14) trails the sentence about the unconditional mean. It reads as if it modifies the hurdle-crossing probability. It should attach to the reported treatment effect. The next sentence ('Wald, gradient ... under that estimand') then refers back to an estimand the reader has not been clearly given.\n  - now: \u201cThe reported treatment effect is the coefficient from the conditional (truncated, \\eqn{Y > 0}) count component, on the log-rate scale, \\strong{conditional on clearing the hurdle}: it is not the effect on the unconditional mean \\eqn{E[Y]}, which also depends on how treatment shifts the hurdle-crossing probability, under the default \\code{estimand = \"conditional\"}.\u201d\n  - suggested: \u201cUnder the default \\code{estimand = \"conditional\"}, the reported treatment effect is the coefficient from the conditional (truncated, \\eqn{Y > 0}) count component, on the log-rate scale, \\strong{conditional on clearing the hurdle}: it is not the effect on the unconditional mean \\eqn{E[Y]}, which also depends on how treatment shifts the hurdle-crossing probability.\u201d",
   "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
  "rd-d4885013b": {
@@ -258,13 +97,6 @@
   "text": "`InferenceAbstractKKOrdinalCLMM.Rd` (param-mismatch): The @param delta of compute_asymp_two_sided_pval() says \"Null treatment effect value (default 0)\" and gives no hint that only delta = 0 is supported. For delta != 0 the code calls stop(\"TO-DO\") when asserts are on and otherwise returns NA_real_ (inference_ordinal_KK_clmm_abstract.R:129-136). The page should say that nonzero delta is not implemented.\n  - now: \u201cNumeric. Null treatment effect value (default 0).\u201d\n  - suggested: \u201cNumeric. Null treatment effect value (default 0); only 0 is supported, and a nonzero value returns NA (or errors when assertions are enabled).\u201d",
   "unit": "R/EDI/man/InferenceAbstractKKOrdinalCLMM.Rd"
  },
- "rd-d4acadbec": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_neg_bin_weighted_cpp.Rd` (return-mismatch): @return lists `iterations`, but the returned list has `num_iter` (fast_negbin_regression.cpp:632). It also leaves out hit_iteration_cap, gradient_norm, min_eigenvalue_information and dispersion_at_poisson_boundary (lines 633-636). The source is RcppExports.R:2304-2307, generated from the //' block at fast_negbin_regression.cpp:593-596.",
-  "unit": "R/EDI/man/fast_neg_bin_weighted_cpp.Rd"
- },
  "rd-d4bae0cd0": {
   "first_seen": "2026-11-18T20:33:38+00:00",
   "key": "return-mismatch",
@@ -272,144 +104,25 @@
   "text": "`InferenceAllSimpleAverageDiff.Rd` (return-mismatch): The compute_estimate @return (man-roxygen/simple-mean-diff-compute-estimate.R:8) says \"The setting-appropriate (see description) numeric estimate\". The description mentions no settings. The method returns a single number: the difference in arm means, or NA_real_ if either arm is empty (inference_all_average_diff.R:72-75, 80). The text is vague and its pointer leads nowhere.\n  - now: \u201cThe setting-appropriate (see description) numeric estimate of the treatment effect\u201d\n  - suggested: \u201cThe difference in sample means (treated minus control) as a single number, or \\code{NA_real_} if either arm has no observations.\u201d",
   "unit": "R/EDI/man/InferenceAllSimpleAverageDiff.Rd"
  },
- "rd-d4d634228": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "example",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceIncidBinomialIdentityRiskDiff.Rd`: proposed example NOT applied, it does not pass the check (default part under 4 s, CPU/elapsed at most 2.5, every seed clean): (no \\donttest), seed 4 of 5: warning: InferenceIncidBinomialIdentityRiskDiff: the maximum-likelihood estimate is on the boundary of the parameter space (1 subject(s) at fitted probability 0 or 1). Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").. Cause given: A tiny sample (n = 10) with a covariate gives a boundary MLE, which warns.\n\n```r\nseq_des = DesignSeqOneByOneBernoulli$new(n = 40, response_type = 'incidence')\nfor (i in 1:40) {\n  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))\n}\nseq_des$add_all_subject_responses(rbinom(40, 1, 0.5))\ninf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)\ninf$compute_estimate()\n```",
-  "unit": "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd"
- },
- "rd-d4e6a2b13": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`compute_survival_stat_diff_rand_bootstrap_parallel_cpp.Rd` (param-mismatch): Only `do_rmst` and `rmst_tau` are documented. `y0`, `dead`, `i_mat`, `w_mat`, `delta`, `noise_mat` and `num_cores` have no @param (R/EDI/R/RcppExports.R:3797-3806; the usage at line 3807 lists all nine). There is also no @return for the returned numeric vector (the C++ signature returns NumericVector, RcppExports.cpp:3213). The title is the whole multi-line description. The `rmst_tau` text cites a bare 'TODO-108', which has no release and so is ambiguous. The source is C++ `//'` comments, so it is not auto-editable.",
-  "unit": "R/EDI/man/compute_survival_stat_diff_rand_bootstrap_parallel_cpp.Rd"
- },
- "rd-d4f79dd92": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_adjacent_category_logit_with_var_cpp.Rd` (other): A stray leading roxygen block (@title/@description/@param X,y,maxit at R/EDI/src/fast_adjacent_category_logit.cpp, exported to RcppExports.R:315-319) is not terminated. The real title and description text is therefore swallowed into the `maxit` argument text (Rd lines 26-33). The page title and description are the stale short ones, and X and y are documented as 'A numeric matrix of predictors.' only. Delete the old @title/@description/@param X/y/maxit lines in the C++ comments so the second block (title, description, @details, @inheritParams) is the only one. Not editable here (C++ source).",
-  "unit": "R/EDI/man/fast_adjacent_category_logit_with_var_cpp.Rd"
- },
- "rd-d508253bc": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCountQuasiPoisson.Rd` (param-mismatch): The @param alpha text says \"Confidence level.\", but the default is 0.05 and the method computes a 1-alpha interval. So alpha is the significance level (inference_count_quasipoisson.R:203-204). The Poisson page calls it \"Significance level\".\n  - now: \u201cConfidence level.\u201d\n  - suggested: \u201cSignificance level. Default 0.05.\u201d",
-  "unit": "R/EDI/man/InferenceCountQuasiPoisson.Rd"
- },
- "rd-d520c980c": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d5d7760f8": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceIncidLogRegr.Rd` (unclear): The compute_estimate description says \"see the class-level \\code{@details} for the formula\", but the class block has no @details tag. The formula is in the Estimand paragraph of the description, and the help page shows the literal text \"@details\". Point to the class description's Estimand section instead.\n  - now: \u201csee the class-level \\code{@details} for the formula\u201d\n  - suggested: \u201csee the Estimand paragraph of the class description for the formula\u201d",
-  "unit": "R/EDI/man/InferenceIncidLogRegr.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_robust_regression_cpp.Rd` (unclear): The page says \"see Details\" (the `smart_cold_start` and `method` params, R/EDI/R/RcppExports.R:3550 and 3552). The page has no Details section. The method and algorithm description is in the description paragraph, and the only named section is \"Fixed parameters, warm starts\". The reference points nowhere. The roxygen comes from C++ comments, so this is not auto-editable. Fix it by changing \"see Details\" to \"see the Description\", or by adding a `@details` tag.",
+  "unit": "R/EDI/man/fast_robust_regression_cpp.Rd"
  },
- "rd-d52296d57": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_coxph_regression.Rd` (param-mismatch): @param optimization_alg says \"newton_raphson\" is the default, but the wrapper's signature default is \"lbfgs\" (helper_glm_fit.R:1407, and normalized with default = \"lbfgs\" at :1408). The \"newton_raphson\" default is the C++ backend's, not this wrapper's.\n  - now: \u201cOptimization algorithm: \\code{\"newton_raphson\"} (default) or \\code{\"lbfgs\"}.\u201d\n  - suggested: \u201cOptimization algorithm: \\code{\"lbfgs\"} (default) or \\code{\"newton_raphson\"}.\u201d",
-  "unit": "R/EDI/man/fast_coxph_regression.Rd"
- },
- "rd-d537bb168": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`mn_constrained_mle_pc_cpp.Rd` (other): The page documents none of the arguments (x_t, n_t, x_c, n_c, delta) and has no @return. The function returns the constrained MLE of p_C, a single double (R/EDI/src/miettinen_nurminen_speedups.cpp:18-62). It returns the midpoint of the feasible range when that range is empty. The bisection is capped at 60 iterations. Editing requires the C++ //' block.",
-  "unit": "R/EDI/man/mn_constrained_mle_pc_cpp.Rd"
- },
- "rd-d53ecbddb": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_cpp.Rd` (return-mismatch): The \\value section has the stale block at helper_glm_fit.R:244-250 listing `neg_ll` ('at the final iteration'), but the function returns `neg_loglik` (RcppExports.R:492-496). The page prints two contradictory value paragraphs. The stale block also omits fisher_information. Remove the stale @return in the helper_glm_fit.R:239-254 stub.",
-  "unit": "R/EDI/man/fast_beta_regression_cpp.Rd"
- },
- "rd-d542b0531": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_log_binomial_regression_cpp.Rd` (param-mismatch): The usage has smart_cold_start and estimate_only (RcppExports.R:1569), but neither has an @param. warm_start_beta says \"smart_cold_start is ignored\" yet the reader cannot find what that argument is. estimate_only is documented nowhere.",
-  "unit": "R/EDI/man/fast_log_binomial_regression_cpp.Rd"
- },
- "rd-d557119cb": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`ObservationalDesignBlocks.Rd` (unclear): The Details heading \"No auto-derived n.\" contradicts its own text, which says n IS derived, always as length(m) (R/EDI/R/design_observational_blocks.R:22-24, 74). The heading should say something like \"n is not a constructor argument.\" \n  - now: \u201c\\strong{No auto-derived n.}\u201d\n  - suggested: \u201c\\strong{No separate n.}\u201d",
-  "unit": "R/EDI/man/ObservationalDesignBlocks.Rd"
- },
- "rd-d561e7af3": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_beta_regression_hessian_cpp.Rd` (unclear): The description's last clause, \"for use by get_beta_regression_score_cpp's sibling relationship in optimizer/inference code that needs both quantities at the same point\", is garbled: the score function does not use the Hessian. The source is the C++ //' comments (R/EDI/R/RcppExports.R:409-410), so it is not editable here; edit the C++ source comment.",
-  "unit": "R/EDI/man/get_beta_regression_hessian_cpp.Rd"
- },
- "rd-d5a16cebd": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_digamma_vec_cpp.Rd` (other): The description says small arguments use a \"recurrence (reflection) shift\", but fast_digamma (fast_gamma_functions.h:37) uses only the upward recurrence, with no reflection formula. The @param x text says \"no domain validation is performed\", but for x <= 0 the code defers to R::digamma (or returns NaN under EDI_CORE_ONLY) (fast_gamma_functions.h:29-35). Not editable here (comes from //' comments in fast_math_utils.cpp).",
-  "unit": "R/EDI/man/fast_digamma_vec_cpp.Rd"
- },
- "rd-d5c25fcb6": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceRandCustom.Rd` (unclear): The method name \\code{compute_rand_confidence_ interval()} is split across two roxygen lines (inference_rand_custom.R:3-4). In the generated Rd the line break becomes a space, so the page shows 'compute_rand_confidence_ interval()'. Put the name on one line.\n  - now: \u201cRuns a randomization test (and, via \\code{compute_rand_confidence_ interval()}, a randomization confidence interval) for an arbitrary user-supplied statistic, without writing an \\code{Inference} subclass.\u201d\n  - suggested: \u201cRuns a randomization test (and, via \\code{compute_rand_confidence_interval()}, a randomization confidence interval) for an arbitrary user-supplied statistic, without writing an \\code{Inference} subclass.\u201d",
-  "unit": "R/EDI/man/InferenceRandCustom.Rd"
- },
- "rd-d5d9f8526": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceRandBootstrapCI.Rd` (unclear): The class description says the interval inherits the test's 'asymptotic validity', but InferenceRandBootstrap (inference_all_abstract_rand_bootstrap.R:90-146) says asymptotic validity is unproven and that p-values and intervals rest on an unproven argument. The two pages contradict each other.\n  - now: \u201cSee \\code{\\link{InferenceRandBootstrap}} for the statistical justification of the test being inverted; the resulting interval inherits its unconditional, superpopulation interpretation and asymptotic validity.\u201d\n  - suggested: \u201cSee \\code{\\link{InferenceRandBootstrap}} for the statistical justification of the test being inverted; the resulting interval inherits its unconditional, superpopulation interpretation and its unproven asymptotic validity.\u201d",
-  "unit": "R/EDI/man/InferenceRandBootstrapCI.Rd"
- },
- "rd-d5f0b9861": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceContinKKGLMM.Rd` (other): The compute_estimate_with_bootstrap_weights description (lines 139-141) says the weighted-constant branch returns `df = Inf` \"to signal a degenerate/skipped bootstrap replicate rather than refitting\". The code sets `private$cached_values$df = Inf` on every path (lines 157, 172, 185), including normal Rcpp and glmmTMB refits. `Inf` is just the normal-reference df, not a degenerate-replicate signal. The description is misleading.",
-  "unit": "R/EDI/man/InferenceContinKKGLMM.Rd"
- },
- "rd-d6073f110": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`SurvivalKKRankRegrIVWCSource.Rd` (unclear): The `delta` param text 'For any treatment effect at all this is set to zero (the default)' is hard to follow and does not say that only delta = 0 is supported. The code (inference_survival_KK_rank_regr_ivwc_abstract.R:95-102) returns the Wald p-value only when delta == 0. Otherwise it stops when asserts are on, or returns NA_real_ when they are off. Suggest: 'The null treatment effect to test against. Only 0 (the default) is currently supported; a non-zero value raises an error, or returns NA when assertions are disabled.'\n  - now: \u201cThe null difference to test against. For any treatment effect at all this is set to zero (the default).\u201d\n  - suggested: \u201cThe null difference to test against. Only zero (the default) is currently supported.\u201d",
-  "unit": "R/EDI/man/SurvivalKKRankRegrIVWCSource.Rd"
- },
- "rd-d60b0a291": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropKKQuantileRegrIVWC.Rd` (unclear): Lines 17-19 say \"At beta_T = 1 ... the population treatment effect on the logit scale is exactly 1, so no skip_ci is needed.\" This is a tautology. `skip_ci` appears nowhere else in R/EDI/R (one grep hit, this line), so it names no real argument. It looks like a copy-paste leftover from another class and should be removed or rewritten.",
-  "unit": "R/EDI/man/InferencePropKKQuantileRegrIVWC.Rd"
- },
- "rd-d624ea244": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_lbeta_vec_cpp.Rd` (unclear): The @param b text says b is \"recycled against a elementwise\" and also \"must be the same length as a ... does not perform R-style recycling\". These contradict each other. The C++ (R/EDI/src/fast_math_utils.cpp:164-169) loops over a.size() and indexes b[i] with no length check or recycling. Replace \"recycled against a elementwise\" with \"paired with a elementwise\". Text comes from C++ //' comments, so it is not auto-editable.",
-  "unit": "R/EDI/man/fast_lbeta_vec_cpp.Rd"
- },
- "rd-d68d9f434": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d5e3c85bf": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "example-weak",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var.Rd` (example-weak): The example (helper_glm_fit.R:1290-1292) uses a 10 x 10 X with 10 observations and j = 2 by default. The model is saturated, so it either errors into the fallback chain with warnings or gives a meaningless ssq_b_j. It does not demonstrate the variance of the treatment coefficient. Use n = 100 with an intercept plus a few covariates.",
-  "unit": "R/EDI/man/fast_beta_regression_with_var.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`DesignSeqOneByOneKK14.Rd` (example-weak): The example creates a design with n = 6 but adds only one subject (lines 57-59). That subject falls in the burn-in, so it is randomized and no matching-on-the-fly happens. The example never shows the opposite-treatment pairing that the page is about. Add all 6 subjects in a loop. Matching will not necessarily occur even then, since it only starts after 35% of n, and in a few draws no match is accepted.",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK14.Rd"
  },
  "rd-d69b9567c": {
   "first_seen": "2026-11-18T20:33:38+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceContinKKGLMM.Rd` (unclear): Lines 3-5 say the matched-pair strata enter \"as a subject-level random intercept (1 | group_id)\". The intercept is per matched-pair group, not per subject. `shared_rcpp` builds `group_id` from the pair id `private$m` (lines 261-266), and each reservoir subject gets its own singleton group. The initialize description (lines 66-73) correctly calls it a pair-level intercept. \"Subject-level\" contradicts this.\n  - now: \u201cThe matched-pair strata enter as a subject-level random intercept \\code{(1 | group_id)}, accounting for within-pair correlation.\u201d\n  - suggested: \u201cThe matched-pair strata enter as a group-level random intercept \\code{(1 | group_id)}, accounting for within-pair correlation.\u201d",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceContinKKGLMM.Rd` (unclear): The description of compute_estimate_with_bootstrap_weights says that with effectively constant weights the method \"returns `df = Inf` to signal a degenerate/skipped bootstrap replicate\". The code (inference_continuous_KK_glmm.R:153-160) returns the unweighted beta_hat_T. It only sets the cached `df` to Inf and clears the cached summary table. Nothing is signalled to the caller as a skipped replicate, so the sentence misstates the return value and purpose.",
   "unit": "R/EDI/man/InferenceContinKKGLMM.Rd"
  },
  "rd-d73074464": {
@@ -419,292 +132,96 @@
   "text": "`InferenceAllSimpleAverageDiff.Rd` (param-mismatch): The `model_formula` parameter is documented as \"Optional formula for covariate adjustment\" (man-roxygen/simple-mean-diff-initialize.R:4-7). The estimator is explicitly unadjusted, and compute_estimate/shared use only `private$y` and `private$w` (inference_all_average_diff.R:70-75, 242-256). A covariate formula has no effect on the estimate or SE, which contradicts the class description (\"no covariate adjustment\", lines 342-345).",
   "unit": "R/EDI/man/InferenceAllSimpleAverageDiff.Rd"
  },
- "rd-d73ca2f46": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`generate_covariate_dataset.Rd` (other): Details say covariates should lie roughly in [-1, 1] \"matching Friedman's original specification\". Friedman's (1991) benchmark uses covariates uniform on [0, 1]. The code comment at R/EDI/R/simulations_framework.R:124 repeats the same claim. Also, the default cov_draw_method is rnorm, which is not on that range.\n  - now: \u201cThis function assumes each covariate lies roughly in \\eqn{[-1, 1]}, matching Friedman's original specification; covariates drawn or supplied on a very different scale will not reproduce the intended signal shape.\u201d\n  - suggested: \u201cThis function assumes each covariate lies roughly in \\eqn{[0, 1]}, matching Friedman's original specification; covariates drawn or supplied on a very different scale will not reproduce the intended signal shape.\u201d",
-  "unit": "R/EDI/man/generate_covariate_dataset.Rd"
+ "rd-d732891cf": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceSurvivalKMDiff.Rd`: could not find exactly one @examples block for it in R/EDI/R/inference_survival_km_diff.R (2 found). Cause: Bernoulli assignment with n = 10 can leave a control arm empty or with a single subject, so its KM median is not reached and the estimator warns.\n\n```r\nseq_des = DesignSeqOneByOneiBCRD$new(n = 10, response_type = 'survival')\nfor (i in 1:10) {\n  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))\n}\nseq_des$add_all_subject_responses(runif(10))\ninf = InferenceSurvivalKMDiff$new(seq_des)\ninf$compute_estimate()\n```",
+  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
  },
- "rd-d75d53c04": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d73e06b18": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCountRobustPoisson.Rd` (param-mismatch): The @param alpha text says \"Confidence level.\", but the default is 0.05 and the interval is 1-alpha (inference_count_robust_poisson.R:153,158). So alpha is the significance level.\n  - now: \u201cConfidence level.\u201d\n  - suggested: \u201cSignificance level. Default 0.05.\u201d",
-  "unit": "R/EDI/man/InferenceCountRobustPoisson.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceContinLin.Rd` (param-mismatch): The `alpha` parameter is documented as \"The confidence level. The default is 0.05.\" It is a significance level, so the interval's confidence level is 1 - alpha. The assert at inference_continuous_lin.R:218 bounds it to (0, 1), and 0.05 as a confidence level would be nonsensical. The sibling pages (quantile and robust regression) say \"The confidence level in the computed confidence interval is 1 - alpha.\"\n  - now: \u201cThe confidence level. The default is 0.05.\u201d\n  - suggested: \u201cThe confidence level in the computed confidence interval is 1 - \\code{alpha}. The default is 0.05.\u201d",
+  "unit": "R/EDI/man/InferenceContinLin.Rd"
  },
- "rd-d785edaeb": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d8b7235fc": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_adjacent_category_logit_with_var_cpp.Rd` (return-mismatch): \\value lists the returned components but omits num_iter, hit_iteration_cap, gradient_norm and min_eigenvalue_information, which the C++ function also returns (fast_adjacent_category_logit.cpp:539-552). The page text also says ssq_b_1 is NA only if the coefficient is fixed or its variance is non-finite or non-positive. It is also NA when the free-parameter covariance is not all finite, or when X has no columns (fast_adjacent_category_logit.cpp:528). The text comes from C++ comments, so it is reported but no sentence fix is proposed.",
+  "unit": "R/EDI/man/fast_adjacent_category_logit_with_var_cpp.Rd"
+ },
+ "rd-d8f503e67": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceNonParamBootstrap.Rd` (unclear): The @param alpha text says \"The confidence level 1 - alpha\", which reads as if alpha itself were the confidence level. alpha is the significance level and the interval has confidence level 1 - alpha (default 0.05 gives 95%). Source: inference_all_abstract_non_param_boot.R:881.\n  - now: \u201cThe confidence level 1 - \\code{alpha}. Default 0.05.\u201d\n  - suggested: \u201cThe significance level; the interval has confidence level 1 - \\code{alpha}. Default 0.05.\u201d",
+  "unit": "R/EDI/man/InferenceNonParamBootstrap.Rd"
+ },
+ "rd-d9129d27d": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "example-weak",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_with_var_cpp.Rd` (example-weak): The example builds a 10 x 10 design matrix for 10 observations (RcppExports.R:611-615). The model has as many covariates as rows, so it is saturated. The information matrix is singular and the variance output is NaN or meaningless, which does not show the page's purpose, the vcov and std_errs. Use e.g. X = cbind(1, matrix(rnorm(200), 100, 2)) and y = plogis(X %*% c(0,.5,-.5) + rnorm(100, sd = .3)) clipped away from 0 and 1. Not editable here (C++ source).",
-  "unit": "R/EDI/man/fast_beta_regression_with_var_cpp.Rd"
- },
- "rd-d7a86f4e9": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_probit_regression_cpp.Rd` (unclear): The @param X text says \"see Details\", but no Details section exists on this page (RcppExports.R:2745). Point it to the description instead. Source is C++ //' comments (editable = false).",
-  "unit": "R/EDI/man/fast_ordinal_probit_regression_cpp.Rd"
- },
- "rd-d7c62205a": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_cauchit_regression_with_var_cpp.Rd` (return-mismatch): The @return text names the variance component ssq_b_2 (RcppExports.R:2445), while the sibling main functions (cloglog, probit, logit, RcppExports.R:2533/2768/2933) name it ssq_b_j. The cloglog C++ returns ssq_b_j from the main function (fast_ordinal_cloglog_regression.cpp:214) and ssq_b_2 from the with_var wrapper. The pages do not say that the two names differ, so readers will be confused. This also applies to the cloglog and probit with_var pages.",
-  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_with_var_cpp.Rd"
- },
- "rd-d7da628a6": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropBetaRegr.Rd` (unclear): The compute_estimate description says \"see the class-level \\code{@details} for the formula\". The class documentation has no @details section, and a reader of the help page never sees roxygen tags. The marginal-mean-difference formula is in the class description's \"Estimand\" paragraph (R/EDI/R/inference_proportion_beta.R:34-56). The reference to \"@details\" at line 161 should name that paragraph.\n  - now: \u201csee the class-level \\code{@details} for the formula\u201d\n  - suggested: \u201csee the \"Estimand\" paragraph of the class description for the formula\u201d",
-  "unit": "R/EDI/man/InferencePropBetaRegr.Rd"
- },
- "rd-d7f04a88d": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "grammar",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropQuantileRegr.Rd` (grammar): Line 75 has a doubled period and a redundant repeat of the default: \"The quantile to estimate (default 0.5).. Default 0.5.\"\n  - now: \u201cThe quantile to estimate (default 0.5).. Default 0.5.\u201d\n  - suggested: \u201cThe quantile to estimate. Default 0.5.\u201d\n  - not applied automatically: more than one sentence",
-  "unit": "R/EDI/man/InferencePropQuantileRegr.Rd"
- },
- "rd-d7f04a88d-2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "grammar",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropQuantileRegr.Rd` (grammar): Line 76 has a doubled period: \"Whether to print progress messages.. Default FALSE.\"\n  - now: \u201cWhether to print progress messages.. Default FALSE.\u201d\n  - suggested: \u201cWhether to print progress messages. Default FALSE.\u201d\n  - not applied automatically: more than one sentence",
-  "unit": "R/EDI/man/InferencePropQuantileRegr.Rd"
- },
- "rd-d7fe150f9": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`SurvivalKKStratCoxIVWCSource.Rd` (unclear): The `delta` @param says \"For any treatment effect at all this is set to zero (the default).\" This is garbled. It should say that to test for any treatment effect at all, delta is set to zero. The code (inference_survival_KK_strat_cox.R:74-80) also only supports delta == 0 and stops on non-zero values when asserts are on, so the text should say so.\n  - now: \u201cFor any treatment effect at all this is set to zero (the default).\u201d\n  - suggested: \u201cTo test for any treatment effect at all, set this to zero (the default); non-zero values are not yet implemented for this class.\u201d",
-  "unit": "R/EDI/man/SurvivalKKStratCoxIVWCSource.Rd"
- },
- "rd-d80a6938a": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ols_with_var_cpp.Rd` (return-mismatch): @return says \"the last four only present when the LDLT solve succeeds\". On the QR fallback, fast_ols.cpp:196-200 returns b, converged and sigma2_hat. Only XtX, ssq_b_j and ssq_b_2 are omitted, so \"last three\". The description above (helper_glm_fit.R:407-410) correctly names three.\n  - now: \u201cA list containing the following components (the last four only present when the \\code{LDLT} solve succeeds):\u201d\n  - suggested: \u201cA list containing the following components (the last three only present when the \\code{LDLT} solve succeeds):\u201d",
-  "unit": "R/EDI/man/fast_ols_with_var_cpp.Rd"
- },
- "rd-d84453fb4": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`transform_cont_y_based_on_response_type.Rd` (unclear): The description says the logic is \"identical to the logic used within SimulationFramework but not used within SimulationFramework\", which contradicts itself (R/EDI/R/simulations_framework.R:138-140). It should say whether SimulationFramework calls this helper or only duplicates its logic.\n  - now: \u201cA helper function to transform a latent continuous signal to the scale appropriate for a given \\code{response_type}, identical to the logic used within \\code{SimulationFramework} but not used within \\code{SimulationFramework}.\u201d\n  - suggested: \u201cA helper function to transform a latent continuous signal to the scale appropriate for a given \\code{response_type}; it duplicates the logic used within \\code{SimulationFramework}, but \\code{SimulationFramework} does not call it.\u201d",
-  "unit": "R/EDI/man/transform_cont_y_based_on_response_type.Rd"
- },
- "rd-d84c1096a": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`ols_hc2_post_fit_cpp.Rd` (unclear): The sentence contrasting HC2 with 'the plain HC0 sandwich (gcomp_logistic_post_fit_cpp's logistic analogue, or this function's own uncorrected r_i^2 meat)' is hard to follow. gcomp_logistic_post_fit_cpp is a g-computation helper, not an HC0 OLS sandwich, and the 'uncorrected meat' is not something this function computes (R/EDI/src/robust_post_fit_speedups.cpp:254-294 only builds the HC2 meat). Replace the parenthetical with a plain statement that HC0 uses r_i^2 without the 1 - h_ii division.",
-  "unit": "R/EDI/man/ols_hc2_post_fit_cpp.Rd"
- },
- "rd-d84c1096a-2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`ols_hc2_post_fit_cpp.Rd` (unclear): The claim 'HC2 is unbiased under homoskedasticity for balanced designs' is too narrow. HC2 is unbiased for the covariance under homoskedasticity for any design, because E[r_i^2] = sigma^2 (1 - h_ii). Restricting it to balanced designs misleads the reader. Evidence: the description at R/EDI/R/RcppExports.R:5114.",
-  "unit": "R/EDI/man/ols_hc2_post_fit_cpp.Rd"
- },
- "rd-d886350d2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_poisson_regression_weighted_cpp.Rd` (return-mismatch): @return lists `iterations` (helper_glm_fit.R:792), but the C++ returns `num_iter` (fast_poisson_regression.cpp:471). `hit_iteration_cap` (line 472) is returned but not documented.",
-  "unit": "R/EDI/man/fast_poisson_regression_weighted_cpp.Rd"
- },
- "rd-d89778b88": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`SurvivalGLMMWeibullFrailtyNormalOneLikSource.Rd` (param-mismatch): `@param alpha Confidence level.` is wrong: `alpha` is the significance level (the interval has confidence 1 - alpha, default 0.05). It is passed to compute_z_or_t_ci_from_s_and_df(alpha) (inference_survival_GLMM_weibull_frailty_normal.R:503-508). A user reading 'Confidence level' would pass 0.95.\n  - now: \u201cConfidence level.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - \\code{alpha}. Default 0.05.\u201d",
-  "unit": "R/EDI/man/SurvivalGLMMWeibullFrailtyNormalOneLikSource.Rd"
- },
- "rd-d8b478a26": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferencePropZeroOneInflatedBetaRegr.Rd` (param-mismatch): The `model_formula_zero_one` param (line 124-125) and the @details (lines 16-18) say it defaults to `~ .`, so treatment plus all covariates enter the inflation submodels. The signature default is NULL (line 128). The code (lines 137-139) uses `model_formula` when one is supplied and `~ .` only when `model_formula` is also NULL. A user who passes `model_formula` therefore gets that formula in the zero/one submodels as well.\n  - now: \u201cDefaults to \\code{~ .}, meaning treatment plus all available covariates.\u201d\n  - suggested: \u201cIf \\code{NULL} (default), uses \\code{model_formula} when it is supplied and otherwise \\code{~ .}, meaning treatment plus all available covariates.\u201d",
-  "unit": "R/EDI/man/InferencePropZeroOneInflatedBetaRegr.Rd"
- },
- "rd-d8da0eba7": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCountKKCondPoissonOneLik.Rd` (other): The KK14 reference (inference_count_KK_cond_poisson.R:2379-2381) gives the title \"Matching on-the-fly: A group sequential covariate balanced randomization procedure\" with arXiv:1305.6259. The same KK14 reference in inference_count_KK_combined.R:33-35 gives the title \"Matching on-the-fly: Sequential allocation with higher power and efficiency\" (Biometrics 70(2), 378-388). The two titles differ for the same work, so one is wrong. Use the Biometrics citation with its DOI, as the GLMM page does.",
-  "unit": "R/EDI/man/InferenceCountKKCondPoissonOneLik.Rd"
- },
- "rd-d93e24af0": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`expand_adjacent_category_data_cpp.Rd` (return-mismatch): @return says each subject contributes 0, 1, or 2 stacked rows, but the page requires y in 1:K. Every such subject sits at level j or j+1 for at least one cut, so each contributes 1 or 2 rows, never 0, when K >= 2. The 0 case only occurs for out-of-range y. This file is generated from C++ comments (editable = false), so the fix belongs in the C++ source.",
-  "unit": "R/EDI/man/expand_adjacent_category_data_cpp.Rd"
- },
- "rd-d96710847": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`print.EDIInferenceSuiteResults.Rd` (unclear): The roxygen block (inference_suite.R:5295-5306) has no short title paragraph. Its whole long description is one paragraph, so roxygen uses all of it as the \\title (the mechanical checkRd finding on the title's trailing period comes from this). Add a one-line title, for example 'Print an InferenceSuite results table', followed by a blank #' line, so the description becomes a separate paragraph.",
-  "unit": "R/EDI/man/print.EDIInferenceSuiteResults.Rd"
- },
- "rd-d98c30e08": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCustomBoot.Rd` (unclear): The compute_estimate description calls the estimator a 'custom asymptotic estimator' (inference_custom_extensions.R:253-256). This class is the bootstrap extension, and compute_estimate calls self$fit(). It looks copied from InferenceCustomAsymp.",
-  "unit": "R/EDI/man/InferenceCustomBoot.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_neg_bin_with_var_cpp.Rd` (example-weak): The example uses X = matrix(rnorm(100), 10, 10) and y = rpois(10, 2), which is 10 observations for 10 coefficients plus a dispersion parameter. The model is saturated, so the returned vcov is not a meaningful variance estimate. That is the quantity this page is about (R/EDI/R/RcppExports.R:2316-2319). A design with an intercept, a treatment column and a few covariates, with n well above p, would show a usable vcov.",
+  "unit": "R/EDI/man/fast_neg_bin_with_var_cpp.Rd"
  },
  "rd-d9b5b6562": {
   "first_seen": "2026-11-18T00:07:35+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceCustomRand.Rd` (unclear): The compute_estimate description calls the estimator a 'custom bootstrap estimator' (inference_custom_extensions.R:188-190). This class is the randomization extension, and compute_estimate calls self$fit(). It looks copied from InferenceCustomBoot.",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceCustomRand.Rd` (unclear): The description of compute_estimate ends with \"See InferenceCustomRand and InferenceRand\". It cross-links to the very class whose page it sits on. This is only a minor oddity, so it is optional (R/EDI/R/inference_custom_extensions.R:188-191).",
   "unit": "R/EDI/man/InferenceCustomRand.Rd"
  },
- "rd-d9cbc0153": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d9f1e5345": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_cold_start_dispatch_policy.Rd` (unclear): At R/EDI/R/globals.R:1185-1190, the paragraph \"These TRUE/FALSE defaults are empirical performance judgments...\" sits inside @return (it follows the return description with no tag between). It is a caveat, not part of the return value, and belongs in @details or a @section. The page presents it as part of the value.",
-  "unit": "R/EDI/man/get_cold_start_dispatch_policy.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceRandBootstrap.Rd` (unclear): The 'Design restriction' section says the bootstrap randomization test is not supported for DesignSeqOneByOne designs, including the KK matching-on-the-fly designs. Only the Bernoulli design and the fixed matched-pairs DesignFixedBinaryMatch are exceptions. The details then say the pair-aware resampler is 'already active for every BRT draw on a matching-capable design'. They also say the construction avoids bespoke combinatorics for the KK14/KK21/KK21stepwise designs. A reader cannot tell whether BRT runs on the on-the-fly KK designs, so the page contradicts itself (inference_all_abstract_rand_bootstrap.R:49-57 vs 83-87 and 127-153). It should say these paragraphs describe the design's behavior or apply only to DesignFixedBinaryMatch.",
+  "unit": "R/EDI/man/InferenceRandBootstrap.Rd"
  },
- "rd-d9d40d7c5": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`zhang_combine_exact_pvals.Rd` (return-mismatch): The page has no `@return`. The function returns the combined p-value when both components are usable (m > 0 and nRT, nRC > 0, finite and positive p). It returns the single usable component p-value when only one is usable, and NA_real_ when neither is (R/EDI/R/inference_helpers_zhang.R:20-41). The page's title and description also describe the whole helper family (bisection solver and so on), but the page documents only this one function.",
-  "unit": "R/EDI/man/zhang_combine_exact_pvals.Rd"
+ "rd-da0a51d2b": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_neg_bin_cpp.Rd` (example-weak): The example fits a 10 x 10 random design to 10 counts (R/EDI/R/RcppExports.R:2346-2349). The model has more parameters than observations, so the dispersion and coefficients are not identifiable. It does not show a typical fit, such as an intercept column plus a treatment column with n much greater than p. The Rd description also still has a stray one-line 'High-performance negative binomial regression fitting.' paragraph (RcppExports.R:2325) that adds nothing.",
+  "unit": "R/EDI/man/fast_neg_bin_cpp.Rd"
  },
- "rd-d9db23ccd": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_log_binomial_regression_weighted_cpp.Rd` (param-mismatch): The usage has smart_cold_start and estimate_only (RcppExports.R:1647), but neither has an @param. @return says the list has the same components as the unweighted function, but with estimate_only = TRUE the list is reduced (fast_log_binomial_regression.cpp:731) and has other names (num_iter, hit_iteration_cap, kkt_converged, n_active_bounds).",
-  "unit": "R/EDI/man/fast_log_binomial_regression_weighted_cpp.Rd"
- },
- "rd-d9f23bfc1": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_log_binomial_regression_weighted_hessian_cpp.Rd` (return-mismatch): The roxygen block has two @return tags (R/EDI/R/RcppExports.R:1399 and :1405). The second, 'A numeric matrix representing the weighted Hessian.', duplicates the first and gives the \\value section two paragraphs. The fix belongs in the C++ //' comment source, since the page is not editable from R.",
-  "unit": "R/EDI/man/get_log_binomial_regression_weighted_hessian_cpp.Rd"
- },
- "rd-d9f8e1b4f": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_weibull_regression_cpp.Rd` (return-mismatch): The @return text (RcppExports.R:3873) says the list contains `coefficients`, `log_sigma` and convergence status. The C++ result (fast_weibull_regression.cpp:287-294, 306-315) returns `b` (estimate_only) or `params` (full fit), plus `neg_loglik`/`neg_ll`, `converged`, and for a full fit a variance matrix and information matrix. There is no `coefficients` element. The `@param warm_start_params` text says 'coefficients' but the argument is the full [beta, log_sigma] vector, as the wrapper's own doc says.",
-  "unit": "R/EDI/man/fast_weibull_regression_cpp.Rd"
- },
- "rd-da0467a54": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_negbin_regression.Rd` (return-mismatch): @return says `b` is the coefficient vector \"(and `log_theta`)\". The wrapper returns `as.numeric(res$b)` (helper_glm_fit.R:1498), and the C++ `b` is `params.head(p)` (fast_negbin_regression.cpp:313). It holds the regression coefficients only, with no log_theta; the dispersion is a separate component that the wrapper drops.\n  - now: \u201c\\item{b}{A numeric vector of the estimated negative binomial regression coefficients \\eqn{\\hat\\beta} (and \\code{log_theta}), from whichever (possibly covariate-reduced) fit in the retry sequence ultimately succeeded.}\u201d\n  - suggested: \u201c\\item{b}{A numeric vector of the estimated negative binomial regression coefficients \\eqn{\\hat\\beta}, from whichever (possibly covariate-reduced) fit in the retry sequence ultimately succeeded.}\u201d",
-  "unit": "R/EDI/man/fast_negbin_regression.Rd"
- },
- "rd-da1aec622": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-db3022df1": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`compute_bai_distr_parallel_cpp.Rd` (unclear): The @param text is too thin to use. `halves_idx` is 'Integer matrix of half-sample indices' and `convex_flag` is 'Logical flag for convex combination'. Neither says what the halves are, whether indices are 1-based, or what is being combined. The title 'Fast Bai Adjusted T Statistic for Multiple Permutations' gives no description. This is a low-priority documentation gap. The source is C++ `//'` comments, so it is not auto-editable.",
-  "unit": "R/EDI/man/compute_bai_distr_parallel_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceCountPoisson.Rd` (unclear): The compute_estimate() description sends the reader to 'the class-level \\code{@details}' (inference_count_poisson.R:176). The class block has no @details tag, and the rendered page has no section by that name. The formula is in the 'Estimand.' paragraph of the class description.\n  - now: \u201csee the class-level \\code{@details} for the formula.\u201d\n  - suggested: \u201csee the \"Estimand\" paragraph of the class description for the formula.\u201d",
+  "unit": "R/EDI/man/InferenceCountPoisson.Rd"
  },
- "rd-da2d95427": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_quasipoisson_regression_with_var_cpp.Rd` (return-mismatch): @return lists `iterations` (helper_glm_fit.R:660), but the C++ returns `num_iter` (fast_poisson_regression.cpp:608). `hit_iteration_cap` (line 609) is returned but not documented.",
-  "unit": "R/EDI/man/fast_quasipoisson_regression_with_var_cpp.Rd"
+ "rd-db55b9ac4": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_neg_bin_weighted_cpp.Rd` (example-weak): The example uses a 10 x 10 random X with 10 counts and all weights equal to 1 (R/EDI/R/RcppExports.R:2392-2395). The model is saturated, and the unit weights do not show what the weights argument does. Non-uniform weights, for example some zero or 2, on a design with n greater than p, would show the page's feature.",
+  "unit": "R/EDI/man/fast_neg_bin_weighted_cpp.Rd"
  },
- "rd-da71572b9": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-db5888ad8": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceRand.Rd` (unclear): Line 73: the `zero_one_logit_clamp` param ends mid-thought: \"The clamping amount for exact 0 and 1 values when logging\". It also sits after `@return`, which is odd but harmless. It should say what is being logged, i.e. the logit transform, and that exact 0 and 1 are clamped by this amount.",
-  "unit": "R/EDI/man/InferenceRand.Rd"
- },
- "rd-da9558619": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceContinKKOLSIVWC.Rd` (other): The description says `likelihood_tier = \"none\"`, but the class metadata sets `likelihood_tier = \"quasi\"` (inference_continuous_KK_ols_ivwc.R:285 vs. the doc at lines 252-254). The same R file's wording ('estimating-equation ... not a fitted likelihood') matches \"quasi\". Change the quoted tier to \"quasi\".\n  - now: \u201c\\code{likelihood_tier = \"none\"}: this is an estimating-equation (least squares) estimator, not a fitted likelihood, so only Wald-type asymptotic inference is available (no likelihood-ratio or score test).\u201d\n  - suggested: \u201c\\code{likelihood_tier = \"quasi\"}: this is an estimating-equation (least squares) estimator, not a fitted likelihood, so only Wald-type asymptotic inference is available (no likelihood-ratio or score test).\u201d",
-  "unit": "R/EDI/man/InferenceContinKKOLSIVWC.Rd"
- },
- "rd-db1390df8": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_identity_binomial_regression_weighted_cpp.Rd` (param-mismatch): The usage has smart_cold_start and estimate_only (RcppExports.R:1818), but neither has an @param. @return claims the full component list (mu_hat, working_weights, iterations, fisher_information), which estimate_only = TRUE does not return (same shared implementation, fast_log_binomial_regression.cpp:731).",
-  "unit": "R/EDI/man/fast_identity_binomial_regression_weighted_cpp.Rd"
- },
- "rd-db3803b13": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_weibull_regression.Rd` (param-mismatch): The @param X text (helper_glm_fit.R:989-990) says an intercept column is assumed already included in X if desired. The code at helper_glm_fit.R:1029-1031 (use_rcpp = TRUE) prepends an intercept whenever the first column is not all 1s. The @details (966-968) says so, and the survreg path strips it. The param text contradicts the behavior: X should be documented as not needing an intercept.",
-  "unit": "R/EDI/man/fast_weibull_regression.Rd"
- },
- "rd-db6c64fbf": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`create_model_matrix_from_features.Rd` (return-mismatch): When `data` has zero columns the function returns `matrix(NA, nrow = nrow(data), ncol = 0)` (R/EDI/R/helper_model_matrix.R:71), a logical matrix. The @return (lines 57-59) says 'A numeric matrix'. The details (line 16) say 'a numeric nrow(data) x 0 matrix (logical storage)', which contradicts itself. The details also say `model.matrix` may drop incomplete rows (lines 38-39), so the returned matrix does not always have `nrow(data)` rows as the @return claims. Suggested fix: say the zero-column case returns a logical-storage matrix, and that rows can drop when `data` still has NAs.\n  - now: \u201c(1) If \\code{data} has zero columns, returns a numeric \\code{nrow(data) x 0} matrix (logical storage) immediately (no covariates to expand).\u201d\n  - suggested: \u201c(1) If \\code{data} has zero columns, returns a logical-storage \\code{nrow(data) x 0} matrix immediately (no covariates to expand).\u201d",
-  "unit": "R/EDI/man/create_model_matrix_from_features.Rd"
- },
- "rd-db6eb198b": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_weibull_regression_general_cpp.Rd` (return-mismatch): The @return text (helper_glm_fit.R:225-233, and RcppExports.R:3940) lists `coefficients`, `log_sigma`, `vcov` and `neg_ll`. The C++ result (fast_weibull_regression.cpp:287-315) has `b` and `log_sigma` when estimate_only is TRUE. Otherwise it has `params`, `neg_loglik`, `neg_ll`, `converged` and more. No `coefficients` element exists, and the wrapper helper_glm_fit.R:1053-1055 reads `res$b` and `res$params`. The 'including the intercept' wording is also not a property of this function.",
-  "unit": "R/EDI/man/fast_weibull_regression_general_cpp.Rd"
- },
- "rd-dbaa893df": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceMLEorKMSummaryTable.Rd` (return-mismatch): The `compute_estimate` description says 'estimate for mean difference', and its @return says '(see description)'. The description gives no setting-specific detail. The code (lines 30-34, 101-111) returns the cached treatment coefficient from the model or KM summary, or NA_real_ if it is missing. It is not always a mean difference (survival and log-scale models give other quantities).\n  - now: \u201cComputes the appropriate estimate for mean difference\u201d\n  - suggested: \u201cComputes the treatment-effect estimate (the treatment coefficient) from the fitted model or Kaplan-Meier summary\u201d",
-  "unit": "R/EDI/man/InferenceMLEorKMSummaryTable.Rd"
- },
- "rd-dbe189802": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_log_binomial_regression_cpp.Rd` (return-mismatch): @return lists b, mu_hat, working_weights, iterations, converged and fisher_information. With estimate_only = TRUE the C++ (fast_log_binomial_regression.cpp:496-504) returns only b, converged, hit_iteration_cap, num_iter, kkt_converged and n_active_bounds. The page also never says that the iteration count is named num_iter, not iterations.",
-  "unit": "R/EDI/man/fast_log_binomial_regression_cpp.Rd"
- },
- "rd-dbe257916": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`var_cpp.Rd` (unclear): The page does not say which variance it computes or what it returns for short input. The C++ (R/EDI/src/_helper_functions.cpp:75-82) returns the sample variance (denominator n-1) and NA when length(x) <= 1. The `@return` could state this.\n  - now: \u201cThe variance of the vector.\u201d\n  - suggested: \u201cThe sample variance (denominator n - 1) of the vector, or NA if it has length 1 or less.\u201d",
-  "unit": "R/EDI/man/var_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`edi_rebind_lazy_components_after_clone.Rd` (unclear): The description first says the helper is a no-op kept for one release, then says it \"repoints any already-installed lazy-component method ... at the clone's leaf enclosing environment\". These contradict each other. The code comment at contracts_mixins.R:2903-2910 says it must be a no-op for methods already closed over one of the clone's enclosing envs. The body (contracts_mixins.R:2918-2957) still repoints methods that are closed over neither, including compute_estimate_with_bootstrap_weights and weighted_refit_impl. The text should say it is a no-op for methods already bound to one of the clone's own enclosing environments, and that it only repoints the remaining ones.",
+  "unit": "R/EDI/man/edi_rebind_lazy_components_after_clone.Rd"
  },
  "rd-dbed36379": {
   "first_seen": "2026-11-18T20:33:38+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`DesignFixedMatchingGreedyPairSwitching.Rd` (unclear): The Constraints paragraph says \"n/2 matched pairs are formed regardless of parity\" without saying whose parity. Pairing needs even n (helper_matching.R:14-16 errors on odd n), so a reader can take it to mean odd n also works. The intended meaning is probably that n/2 pairs form whether n/2 is odd or even, and only this class adds the divisible-by-4 requirement.\n  - now: \u201c\\code{n/2} matched pairs are formed regardless of parity, but the additional divisible-by-4 requirement is enforced by this class specifically (unlike \\code{\\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires even \\code{n}).\u201d\n  - suggested: \u201c\\code{n/2} matched pairs are formed whenever \\code{n} is even, but the additional divisible-by-4 requirement is enforced by this class specifically (unlike \\code{\\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires even \\code{n}).\u201d",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`DesignFixedMatchingGreedyPairSwitching.Rd` (unclear): The Constraints paragraph (lines 46-51) says \"n/2 matched pairs are formed regardless of parity\". n/2 is not an integer for odd n, and the same paragraph says n must be divisible by 4 and that even n is required for DesignFixedBinaryMatch. The wording contradicts itself. Say that DesignFixedBinaryMatch needs even n (n/2 pairs) and that this class additionally requires n divisible by 4.",
   "unit": "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd"
  },
- "rd-dc1b774cb": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_probit_regression_cpp.Rd` (return-mismatch): The `estimate_only` description and @return (RcppExports.R:3352-3354) name `iterations`, but fast_probit_regression.cpp returns `num_iter` (lines 443 and 461). This page is not editable because its text comes from C++ comments.",
-  "unit": "R/EDI/man/fast_probit_regression_cpp.Rd"
- },
- "rd-dc2172fd1": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`get_weibull_regression_general_score_cpp.Rd` (unclear): The description says exactly one of y[i] or (y_L[i], y_R[i]) must be finite per subject, but the @param y_R text says Inf marks right-censored subjects. A right-censored subject therefore has a non-finite y_R, which contradicts the rule. The wording should say that y_L must be finite and y_R may be Inf. The same description is repeated in the Hessian page (RcppExports.R:3900-3904). Source is C++ comments (editable=false), so this is for a human. Evidence: R/EDI/R/RcppExports.R:3882-3891.",
-  "unit": "R/EDI/man/get_weibull_regression_general_score_cpp.Rd"
+ "rd-dc7de612b": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "grammar",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidExactZhang.Rd` (grammar): The initialize description is ungrammatical: the list \"Bernoulli-capable or matching-capable, an uncensored incidence response\" mixes a requirement on des_obj with a requirement on the response. It is in R/EDI/man-roxygen/exact-zhang-initialize.R:2-3 (the template used by R/EDI/R/inference_incidence_exact_zhang.R:168-170). Suggested: \"Requires \\code{des_obj} to be Bernoulli-capable or matching-capable, with an uncensored incidence response.\"\n  - now: \u201cRequires \\code{des_obj} to be Bernoulli-capable or matching-capable, an uncensored incidence response.\u201d\n  - suggested: \u201cRequires \\code{des_obj} to be Bernoulli-capable or matching-capable, with an uncensored incidence response.\u201d\n  - not applied automatically: its source file is not editable",
+  "unit": "R/EDI/man/InferenceIncidExactZhang.Rd"
  },
  "rd-dc9e99adb": {
   "first_seen": "2026-11-18T00:07:35+00:00",
@@ -713,62 +230,6 @@
   "text": "`InferenceAllSimpleMeanDiffPooledVar.Rd` (param-mismatch): The `model_formula` parameter is documented as \"Optional formula for covariate adjustment\" (man-roxygen/simple-mean-diff-pooled-var-initialize.R:9-12). The class is an unadjusted difference in means: the estimate and SE use only `private$y` and `private$w` (inference_all_average_diff.R:70-75; pooled_var.R:164-179), so no covariate adjustment ever happens. The text should say the formula is accepted but does not change the estimate or SE.",
   "unit": "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd"
  },
- "rd-dcbcb58ae": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_weighted_cpp.Rd` (param-mismatch): @param estimate_only says 'If TRUE, skip Fisher information calculation' (RcppExports.R:554), but fast_beta_regression_cpp documents the same argument as 'may skip work not needed'. The two pages disagree on whether fisher_information is guaranteed absent. The @return also lists fisher_information unconditionally. Make the weighted page state what is returned when estimate_only = TRUE. Not editable here (C++ source).",
-  "unit": "R/EDI/man/fast_beta_regression_weighted_cpp.Rd"
- },
- "rd-dccf9633d": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`StandardModelCacheSource.Rd` (unclear): `@param alpha Significance level 1 - \\code{alpha}. Default 0.05.` is self-referential and garbled. It defines alpha as '1 - alpha'. It should say that alpha is the significance level and the interval has confidence 1 - alpha (inference_all_abstract_asymp_lik_std_mod_cache.R:15).\n  - now: \u201cSignificance level 1 - \\code{alpha}. Default 0.05.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - \\code{alpha}. Default 0.05.\u201d",
-  "unit": "R/EDI/man/StandardModelCacheSource.Rd"
- },
- "rd-dce7a1474": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_weibull_regression_general_cpp.Rd` (param-mismatch): The @param optimization_alg text in helper_glm_fit.R:223 says the default is \"newton_raphson\", but the function signature (RcppExports.R:3943) defaults to \"lbfgs\". The page also has two different @param optimization_alg entries, since the RcppExports block (3938) adds another. Page text is not editable via this roxygen, since the page is built from C++ comments.",
-  "unit": "R/EDI/man/fast_weibull_regression_general_cpp.Rd"
- },
- "rd-dceb9e9de": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`compute_stereotype_logit_distr_parallel_cpp.Rd` (param-mismatch): The `y` param says the response is 'pre-null-shifted for treated', but the C++ shifts it itself: R/EDI/src/fast_stereotype_logit.cpp:1245 sets `y_shifted[i] = (w_col[i]==1) ? y[i] + delta : y[i]` for each draw. A caller who pre-shifts `y` would apply the shift twice. The `y` text should say the unshifted response is passed and `delta` is added to treated subjects inside. The source is C++ `//'` comments, so it is not auto-editable.",
-  "unit": "R/EDI/man/compute_stereotype_logit_distr_parallel_cpp.Rd"
- },
- "rd-dcfe52b8c": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression_cpp.Rd` (example-weak): The example fits a 10 x 10 matrix to 10 rows (RcppExports.R:510-513). The model is saturated, with as many columns as observations and no intercept. It shows a degenerate fit, not typical use. Use n = 100 with an intercept and 2-3 covariates. Not editable here (C++ source).",
-  "unit": "R/EDI/man/fast_beta_regression_cpp.Rd"
- },
- "rd-dd22f1a2c": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`SurvivalKKStratCoxOneLikPartialLikelihoodSource.Rd` (param-mismatch): The `alpha` @param of compute_asymp_confidence_interval says \"Confidence level.\", with a default of 0.05. The code (inference_survival_KK_strat_cox.R:464-484) passes alpha to the CI routines as a miscoverage rate, so the interval has 1 - alpha coverage. A \"confidence level\" of 0.05 would be nonsensical. The sibling IVWC page says \"confidence level ... is 1 - alpha\".\n  - now: \u201cConfidence level.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - alpha.\u201d",
-  "unit": "R/EDI/man/SurvivalKKStratCoxOneLikPartialLikelihoodSource.Rd"
- },
- "rd-dd9063b00": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`pocock_simon_redraw_w_cpp.Rd` (other): The description says the redraw consumes R's uniform stream 'in exactly the same order a subject-by-subject loop calling pocock_simon_assign_cpp would have'. That is not true. pocock_simon_assign_cpp draws one seed from R and runs its own RRng (pocock_simon_assign.cpp:304, and its @note says it does not continue R's stream bit-for-bit). The redraw instead continues R's live .Random.seed (pocock_simon_assign.cpp:356). The two functions give different random draws for the same R seed. The page's own @note and the assign_cpp @note contradict the description. Text comes from C++ //' comments (pocock_simon_assign.cpp:327-329), so a human must edit it.",
-  "unit": "R/EDI/man/pocock_simon_redraw_w_cpp.Rd"
- },
- "rd-dd9314ddc": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`exact_jonckheere_terpstra_pval_cpp.Rd` (param-mismatch): The description defines L_k as 'the number of subjects at strictly lower levels', but the code uses only lower-level controls: `lower_controls = total_seen - treated_seen` (R/EDI/src/fast_jonckheere_terpstra.cpp:97-98). With all subjects counted, the formula in the docs would not give the Mann-Whitney U. L_k should read 'the number of control (w == 0) subjects at strictly lower levels'.",
-  "unit": "R/EDI/man/exact_jonckheere_terpstra_pval_cpp.Rd"
- },
  "rd-ddbfd009e": {
   "first_seen": "2026-11-18T20:33:38+00:00",
   "key": "example-weak",
@@ -776,89 +237,40 @@
   "text": "`InferenceAllSimpleMeanDiffPooledVar.Rd` (example-weak): The example (lines 220-229) only calls `compute_estimate()`. That is the same unadjusted mean difference as InferenceAllSimpleAverageDiff, so it shows nothing about the page's subject, the pooled-variance t interval and p-value. The whole block is in \\donttest although it ran in about 0.001 s, so CRAN runs nothing. Suggest adding `inf$compute_asymp_confidence_interval()` and `inf$compute_asymp_two_sided_pval()`, and moving the example out of \\donttest, since it is fast.",
   "unit": "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd"
  },
- "rd-ddccc3293": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-ddc9f82e3": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_probit_regression_cpp.Rd` (unclear): The smart_cold_start param says 'use an OLS-based initial guess (see Details)', but the page has no Details section. The OLS start is described under 'Fixed parameters, warm starts'. The same applies to warm_start_weights ('see Details'). The text comes from C++ comments (RcppExports.R:3426, 3434), so it is not auto-editable.",
+  "unit": "R/EDI/man/fast_probit_regression_cpp.Rd"
+ },
+ "rd-ddfdf0daa": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_identity_binomial_regression_with_var_cpp.Rd` (param-mismatch): smart_cold_start is in the usage (RcppExports.R:1780) but has no @param. warm_start_beta refers to it as if it were documented.",
-  "unit": "R/EDI/man/fast_identity_binomial_regression_with_var_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_ordinal_cauchit_regression_with_var_cpp.Rd` (param-mismatch): The inherited section 'Fixed parameters, warm starts, and optimization' says optimization runs 'for up to maxit iterations or until the gradient norm falls below tol'. This function has no maxit or tol arguments (R/EDI/R/RcppExports.R:2538; R/EDI/src/fast_ordinal_cauchit_regression.cpp:260-278). They are hard-coded to 100 and 1e-6 in the call to the internal fitter. Text is inherited from the _cpp page via @inheritSection and comes from C++ comments, so it is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_with_var_cpp.Rd"
  },
- "rd-ddda89977": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_neg_bin_with_var_cpp.Rd` (return-mismatch): The \\value section holds two conflicting descriptions. The stale block at helper_glm_fit.R:336-349 (copied from the Poisson page) describes \"Poisson regression coefficients\" and a `neg_ll` component. The function never returns `neg_ll`: R/EDI/src/fast_negbin_regression.cpp:500-512 returns b, theta_hat, logLik, converged, num_iter, hit_iteration_cap, gradient_norm, min_eigenvalue_information, dispersion_at_poisson_boundary, information_invertible, hess_fisher_info_matrix and vcov. The second block (RcppExports.R:2233-2239, from fast_negbin_regression.cpp:445-451) lists `iterations`, which is really `num_iter`. It also omits min_eigenvalue_information, dispersion_at_poisson_boundary, hit_iteration_cap and gradient_norm. Delete the stale block in helper_glm_fit.R and fix the C++ @return.",
-  "unit": "R/EDI/man/fast_neg_bin_with_var_cpp.Rd"
- },
- "rd-dde8c6198": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_neg_bin_with_var_cpp.Rd` (param-mismatch): `estimate_only` appears in \\usage (RcppExports.R:2249) but has no @param. The C++ roxygen (fast_negbin_regression.cpp:430-444) never documents it. The wrapper passes it to fast_neg_bin_internal, where estimate_only=TRUE zeroes XtWX (fast_negbin_regression.cpp:315), which would make the returned vcov meaningless.",
-  "unit": "R/EDI/man/fast_neg_bin_with_var_cpp.Rd"
- },
- "rd-dded7ea41": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceIncidWald.Rd` (unclear): The class description says 'the reservoir/covariate structure is ignored'. 'Reservoir' is a KK-design term that has no meaning for this unadjusted two-proportion Wald class. It likely refers to covariates or matching structure (inference_incid_wald.R:13).",
-  "unit": "R/EDI/man/InferenceIncidWald.Rd"
- },
- "rd-de771cd69": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`exact_jonckheere_terpstra_pval_cpp.Rd` (unclear): The Complexity paragraph (helper_glm_fit.R:2463-2469) says the DP state space is O(n_treat*n_control) but also that the enumeration 'is exponential in the number of distinct levels/group sizes'. These claims are hard to reconcile. The recursion visits every allocation of treated counts across the levels, but the stat_prob table has only 2*n_treat*n_control+1 entries (fast_jonckheere_terpstra.cpp:219). State which one governs run time. Also 'group sizes' is hard to square with 'exponential'.",
-  "unit": "R/EDI/man/exact_jonckheere_terpstra_pval_cpp.Rd"
- },
- "rd-deae64301": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_negbin_regression.Rd` (unclear): @return for `fisher_information` and the `warm_start_params` text say the warm-started single fit \"bypasses\" the QR-dropping retry sequence. If that fit errors, the code falls through to the QR-dropping path (helper_glm_fit.R:1497-1501), so the bypass is only on success. The description at 1452-1454 says this correctly, but the @param does not.",
+ "rd-deb8ff434": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`fast_negbin_regression.Rd` (example-weak): The example uses matrix(rnorm(100), 10, 10) with y = rpois(10, 2) (R/EDI/R/helper_glm_fit.R, the @examples of the block at 1407-1455). That is 10 observations for 10 columns, so the wrapper's QR-based covariate dropping is likely to be triggered or the fit is saturated. The example does not show the intercept and treatment columns that the wrapper always keeps, or a clean fit with a few covariates.",
   "unit": "R/EDI/man/fast_negbin_regression.Rd"
  },
- "rd-deb872f85": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`zhang_combine_exact_pvals.Rd` (param-mismatch): `@param method` lists only Fisher or Stouffer, but the `switch()` at R/EDI/R/inference_helpers_zhang.R:21-33 also accepts `min_p`, which returns 1 - (1 - min(p_M, p_R))^2. Any other string makes `switch()` return NULL invisibly, and the doc doesn't say so.\n  - now: \u201cCombination method (Fisher or Stouffer).\u201d\n  - suggested: \u201cCombination method: \"Fisher\", \"Stouffer\" or \"min_p\".\u201d",
-  "unit": "R/EDI/man/zhang_combine_exact_pvals.Rd"
- },
- "rd-dee65f01b": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`dot-normalize_optimizer_algorithm.Rd` (unclear): The @param allow_irls text says '\"irls\" is a valid choice (and the default default) for this model'. 'the default default' is garbled, and the code (helper_glm_fit.R:134) makes irls the default of `default` only when allow_irls = TRUE. Suggested wording: '(and the default optimizer)'.\n  - now: \u201cLogical. Whether \\code{\"irls\"} is a valid choice (and the default default) for this model; \\code{FALSE} restricts the allowed set to \\code{c(\"lbfgs\", \"newton_raphson\")}.\u201d\n  - suggested: \u201cLogical. Whether \\code{\"irls\"} is a valid choice (and the default) for this model; \\code{FALSE} restricts the allowed set to \\code{c(\"lbfgs\", \"newton_raphson\")}.\u201d",
-  "unit": "R/EDI/man/dot-normalize_optimizer_algorithm.Rd"
- },
- "rd-df02f529d": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`mn_z_statistic_cpp.Rd` (return-mismatch): @return says only 'The asymptotic z statistic.' The function returns NA_REAL when n_t or n_c is 0, when delta is outside (-1, 1), or when the constrained variance is non-positive (R/EDI/src/miettinen_nurminen_speedups.cpp:81-92). The sibling mn_pvalue_cpp documents these NA cases, but this page does not.",
-  "unit": "R/EDI/man/mn_z_statistic_cpp.Rd"
+ "rd-debdce966": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
+  "key": "example",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceIncidLogBinomial.Rd`: proposed example NOT applied, it does not pass the check (default part under 4 s, CPU/elapsed at most 2.5, every seed clean): with \\donttest, seed 2 of 5: warning: InferenceIncidLogBinomial: dropped covariate(s) x1 and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").. Cause given: With only 10 subjects, a covariate and a 50% event rate, the log-binomial MLE hits the exp(Xb)=1 boundary or the covariate fit fails, so warnings are raised.\n\n```r\nseq_des = DesignSeqOneByOneBernoulli$new(n = 60, response_type = 'incidence')\nfor (i in 1:60) {\n  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))\n}\nseq_des$add_all_subject_responses(rbinom(60, 1, 0.2))\n\\donttest{\ninf = InferenceIncidLogBinomial$new(seq_des)\ninf$compute_estimate()\n}\n```",
+  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
  },
  "rd-df0d4ecba": {
   "first_seen": "2026-11-18T20:33:38+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAbstractKKModifiedPoisson.Rd` (param-mismatch): The @param subject_or_block_weights is described as \"Row weights for bootstrap\", but the code treats it as subject- or block-level weights and expands them to row weights with expand_subject_or_block_weights_to_row_weights() (inference_incidence_KK_marginal.R:24).\n  - now: \u201cNumeric vector. Row weights for bootstrap.\u201d\n  - suggested: \u201cNumeric vector. Subject- or block-level bootstrap weights (expanded internally to row weights).\u201d",
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`InferenceAbstractKKModifiedPoisson.Rd` (param-mismatch): The `subject_or_block_weights` param is documented as \"Numeric vector. Row weights for bootstrap.\", but the body (inference_incidence_KK_marginal.R:24) passes it through expand_subject_or_block_weights_to_row_weights() to build the row weights, so it holds one weight per subject or matched block, not per row.",
   "unit": "R/EDI/man/InferenceAbstractKKModifiedPoisson.Rd"
- },
- "rd-df196a4cd": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression.Rd` (unclear): The Details say the C++ backend falls back 'if that fails to converge or errors'. The code (helper_glm_fit.R:1216-1219) only reacts to an error inside tryCatch and never checks `converged`. A non-converged fit is returned as a normal result with no fallback. Reword to say fallback happens only when the backend errors.\n  - now: \u201cIf that fails to converge or errors, the function falls back to \\pkg{betareg}, which is listed in Suggests and is not installed automatically with \\pkg{EDI}.\u201d\n  - suggested: \u201cIf that errors, the function falls back to \\pkg{betareg}, which is listed in Suggests and is not installed automatically with \\pkg{EDI}.\u201d",
-  "unit": "R/EDI/man/fast_beta_regression.Rd"
- },
- "rd-df196a4cd-2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_beta_regression.Rd` (unclear): The `warm_start_fisher_info` text and the model description are fine, but the example (helper_glm_fit.R:1209-1211) uses X = matrix(rnorm(500), 100, 5) with no intercept column and y = runif(100). The page's own docs say to include an intercept if desired. The example is acceptable but does not show the logit-of-mean convention or the returned phi and fisher_information. Consider adding an intercept column.",
-  "unit": "R/EDI/man/fast_beta_regression.Rd"
  },
  "rd-df47a6b80": {
   "first_seen": "2026-11-18T20:33:38+00:00",
@@ -867,53 +279,11 @@
   "text": "`InferenceAsymp.Rd` (unclear): The `alpha` parameter is described as \"Significance level 1 - alpha\" (line 17). That is self-referential. In the code (lines 22 and 136-139), `alpha` is the significance level and the interval has confidence level 1 - alpha. The sibling `compute_wald_confidence_interval` (line 85) says \"Significance level.\" and the simple-mean-diff templates say \"the interval has confidence level 1 - alpha\".\n  - now: \u201cSignificance level 1 - \\code{alpha}.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - \\code{alpha}.\u201d",
   "unit": "R/EDI/man/InferenceAsymp.Rd"
  },
- "rd-df4a54282": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceOrdinalJonckheereTerpstraTest.Rd` (example-weak): The example (inference_ordinal_jonckheere_terpstra_test.R:27-41) builds the object and prints it. It never calls the JT estimate or the asymptotic or exact p-value that the page describes. Adding calls such as infer$compute_estimate() and infer$compute_exact_two_sided_pval_for_treatment_effect() would show the page's own functionality. The example runs in about 0.2 s.",
-  "unit": "R/EDI/man/InferenceOrdinalJonckheereTerpstraTest.Rd"
- },
- "rd-df79de9c6": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-dfd87987b": {
+  "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`InferenceSurvivalStratCoxPHRegr.Rd` (param-mismatch): The @param optimization_alg text says the default is \"newton_raphson\", but initialize() declares optimization_alg = \"lbfgs\" (R/EDI/R/inference_survival_strat_cox.R:215). The roxygen line is at :212.\n  - now: \u201cOptimization algorithm: \\code{\"newton_raphson\"} (default) or \\code{\"lbfgs\"}.\u201d\n  - suggested: \u201cOptimization algorithm: \\code{\"lbfgs\"} (default) or \\code{\"newton_raphson\"}.\u201d",
-  "unit": "R/EDI/man/InferenceSurvivalStratCoxPHRegr.Rd"
- },
- "rd-dfa79244f": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_neg_bin_cpp.Rd` (param-mismatch): The \\arguments are a mix of two blocks: the generic C++ ones (X, y, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info) and the detailed R ones for the rest. This leaves vague text: \"Optional indices of fixed parameters\", \"Optimization algorithm\". The text for `eps_f` (\"Convergence tolerance for function value\") is wrong because `eps_f` is never used: fast_neg_bin_cpp passes only eps_g to fast_neg_bin_internal (fast_negbin_regression.cpp:544-552). The text for `y` (\"A numeric vector of responses\") hides that it is coerced to integer counts (line 537). The C++ roxygen block (RcppExports.R:2253-2266) is the source.",
-  "unit": "R/EDI/man/fast_neg_bin_cpp.Rd"
- },
- "rd-dfd893ebc": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "other",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`newcombe_paired_ci_cpp.Rd` (other): The page has only a title. It has no description, @param (n11, n10, n01, n00, alpha) or @return, so the cell meanings are undocumented. In the code (R/EDI/src/newcombe_speedups.cpp:113-139) n11 is the both-event cell, n10 and n01 are the discordant cells, and n00 is the neither-event cell. It returns a length-2 vector of lower and upper bounds for p1 - p2, where p1 = (n11+n10)/n and p2 = (n11+n01)/n. It returns c(NA, NA) when the total count is 0, and it applies a phi-correlation correction. The roxygen is in a C++ //' block, so a human needs to edit it.",
-  "unit": "R/EDI/man/newcombe_paired_ci_cpp.Rd"
- },
- "rd-dfe1c70bc": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_regression_with_var_cpp.Rd` (return-mismatch): @return lists `iterations` (RcppExports.R:3014), but fast_ordinal_regression.cpp returns `num_iter` (lines 214 and 229). This page is not editable because its text comes from C++ comments.",
-  "unit": "R/EDI/man/fast_ordinal_regression_with_var_cpp.Rd"
- },
- "rd-dff9eb3a5": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_cloglog_regression_cpp.Rd` (unclear): The @param X text says \"see Details\", but the page has no Details section (the description is the only prose and the other section is \"Fixed parameters, warm starts, and optimization\"). Same wording at RcppExports.R:2745 (probit) and RcppExports.R:2911 (logit); source is C++ //' comments, so fix it there.",
-  "unit": "R/EDI/man/fast_ordinal_cloglog_regression_cpp.Rd"
- },
- "rd-dff9eb3a5-2": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-18T00:07:35+00:00",
-  "text": "`fast_ordinal_cloglog_regression_cpp.Rd` (unclear): The phrase \"continuation-ratio-free\" (RcppExports.R:2491) is unclear jargon. It is not a standard term, and the sentence also claims the cloglog link suits categories \"skewed toward the lower categories\" without saying why. Reword it to say that the cumulative cloglog model corresponds to a grouped proportional-hazards model.",
-  "unit": "R/EDI/man/fast_ordinal_cloglog_regression_cpp.Rd"
+  "last_seen": "2026-11-19T13:45:04+00:00",
+  "text": "`Inference.Rd` (param-mismatch): The `get_covariates()` description says it returns the design object's model-matrix covariates. The code (inference_all_abstract.R:425-432) also removes the columns dropped by the perfect-predictor check (`private$perfect_predictor_dropped`). The docs do not say so, although the class-level section says the dropped columns are no longer used. A user-defined subclass that reads this accessor would therefore see fewer columns than the design object holds.",
+  "unit": "R/EDI/man/Inference.Rd"
  }
 }
