@@ -308,12 +308,21 @@ test_that("risk-ratio subsampling / m-out-of-n intervals are judged on log(RR) w
 	expect_false(p$bootstrap_confidence_interval_extreme(c(0.73, 2.67), est = 1.5))
 	# Over the log-scale width cap without replicates to vouch for it: still extreme.
 	expect_true(p$bootstrap_confidence_interval_extreme(c(0.01, 200), est = 1.5))
-	# The m-out-of-n interval [3e-5, 2.83] on this fixture was accepted.
+	# The m-out-of-n interval [3e-5, 2.83] on this fixture was accepted. Its lower bound came from
+	# degenerate resamples (an arm with no events, or a separated fit: log RR* ~ -20). Since
+	# v1.0.6-TODO-191 those draws are unusable: about 10% of them here, under the default 95%
+	# usable-draw minimum, so the interval is NA for that reason before the extreme check runs;
+	# with the degenerate draws dropped (cap lowered) the interval is plausible.
 	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
 	inf$num_cores = 1L
 	r = ci_and_reason_160(function() inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 201, show_progress = FALSE))
 	expect_true(all(is.na(r$ci)))
-	expect_identical(r$reason, "m_out_of_n_extreme_confidence_interval")
+	expect_identical(r$reason, "m_out_of_n_too_few_usable_draws_fraction")
+	r = ci_and_reason_160(function() inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 201, show_progress = FALSE,
+		min_fraction_usable_samples = 0))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+	expect_true(r$ci[1L] > 0.3 && r$ci[2L] < 20)
 	r = ci_and_reason_160(function() inf$compute_subsampling_confidence_interval(B = 201, show_progress = FALSE))
 	expect_true(all(is.finite(r$ci)))
 	expect_null(r$reason)

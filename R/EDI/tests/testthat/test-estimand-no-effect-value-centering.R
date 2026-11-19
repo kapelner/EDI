@@ -78,13 +78,19 @@ for (cl in nonzero_null_classes) {
 		skip_on_cran()
 		inf = rr_fixture(cl)
 		B = 49L
+		# v1.0.6-TODO-191: subsampling / m-out-of-n RR draws with an empty or all-event arm or a
+		# separated fit are unusable, and below 95% usable draws the p-value is NA by design. On
+		# this n = 60 fixture over 5% of the size-17 draws are degenerate (7 of 49 for the non-KK
+		# class), so drop the cap here. This test is about the default null (delta = RR = 1), not the usable-draw rule, which
+		# test-gcomp-risk-ratio-subsampling-degenerate-draws.R covers.
+		frac = 0
 		calls = list(
 			asymp = function(d) if (is.null(d)) inf$compute_asymp_two_sided_pval() else inf$compute_asymp_two_sided_pval(delta = d),
 			jackknife = function(d) if (is.null(d)) inf$compute_jackknife_wald_two_sided_pval() else inf$compute_jackknife_wald_two_sided_pval(delta = d),
 			bootstrap = function(d) { set.seed(3); inf$compute_bootstrap_two_sided_pval(delta = d, B = B, na.rm = TRUE, show_progress = FALSE) },
 			bayes = function(d) { set.seed(3); inf$compute_bayesian_bootstrap_two_sided_pval(delta = d, B = B, na.rm = TRUE, show_progress = FALSE) },
-			subsampling = function(d) { set.seed(3); inf$compute_subsampling_two_sided_pval(delta = d, B = B, show_progress = FALSE) },
-			m_out_of_n = function(d) { set.seed(3); inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = d, B = B, show_progress = FALSE) }
+			subsampling = function(d) { set.seed(3); inf$compute_subsampling_two_sided_pval(delta = d, B = B, show_progress = FALSE, min_fraction_usable_samples = frac) },
+			m_out_of_n = function(d) { set.seed(3); inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = d, B = B, show_progress = FALSE, min_fraction_usable_samples = frac) }
 		)
 		for (nm in names(calls)) {
 			p_default = suppressWarnings(calls[[nm]](NULL))

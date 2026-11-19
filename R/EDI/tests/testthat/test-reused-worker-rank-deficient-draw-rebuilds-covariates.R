@@ -118,7 +118,9 @@ for (rt in names(rank_deficient_kk_classes)) local({
 test_that("InferenceSurvivalStratCoxPHRegr leave-one-block-out jackknife is finite when the formula names the strata", {
 	inf = InferenceSurvivalStratCoxPHRegr$new(rank_deficient_blocking_design("survival"), verbose = FALSE)
 	inf$num_cores = 1L
-	jack = inf$approximate_jackknife_distribution_beta_hat_T()
+	# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
+	# its stratum, so leave-one-block-out is asked for explicitly.
+	jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = "block")
 	expect_length(jack, 3L)
 	expect_true(all(is.finite(jack)))
 })

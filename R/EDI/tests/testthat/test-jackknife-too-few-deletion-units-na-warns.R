@@ -61,27 +61,31 @@ for (G in 2:4) local({
 	test_that(paste0("leave-one-block-out with ", G, " blocks: every jackknife output is NA and warns with the reason"), {
 		inf = InferenceAllSimpleAverageDiff$new(fx_jk_few_units_blocking(G), verbose = FALSE)
 		inf$num_cores = 1L
+		# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject
+		# within its stratum, so leave-one-block-out is asked for explicitly.
 		p = inf$.__enclos_env__$private
 		wald_ci = inf$compute_asymp_confidence_interval()
-		jack = inf$approximate_jackknife_distribution_beta_hat_T()
+		jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = "block")
 		expect_length(jack, G)
 		expect_true(all(is.finite(jack)))
-		expect_warning(se <- inf$compute_jackknife_std_error(), "jackknife_too_few_deletion_units",
+		expect_warning(se <- inf$compute_jackknife_std_error(unit = "block"), "jackknife_too_few_deletion_units",
 			class = "edi_procedure_na_warning")
 		expect_true(is.na(se))
-		expect_warning(est <- inf$compute_jackknife_estimate(), "only [0-9]+ deletion units",
+		expect_warning(est <- inf$compute_jackknife_estimate(unit = "block"), "only [0-9]+ deletion units",
 			class = "edi_procedure_na_warning")
 		expect_true(is.na(est))
-		expect_warning(b <- inf$compute_jackknife_bias_estimate(), "jackknife_too_few_deletion_units",
+		expect_warning(b <- inf$compute_jackknife_bias_estimate(unit = "block"), "jackknife_too_few_deletion_units",
 			class = "edi_procedure_na_warning")
 		expect_true(is.na(b))
-		expect_warning(pv <- inf$compute_jackknife_wald_two_sided_pval(), "jackknife_too_few_deletion_units",
+		expect_warning(pv <- inf$compute_jackknife_wald_two_sided_pval(unit = "block"), "jackknife_too_few_deletion_units",
 			class = "edi_procedure_na_warning")
 		expect_true(is.na(pv))
-		expect_warning(ci <- inf$compute_jackknife_wald_confidence_interval(), "jackknife_too_few_deletion_units",
+		expect_warning(ci <- inf$compute_jackknife_wald_confidence_interval(unit = "block"), "jackknife_too_few_deletion_units",
 			class = "edi_procedure_na_warning")
 		expect_true(all(is.na(ci)))
-		expect_identical(p$cached_values$jackknife_n_deletion_units, list(n = G, unit = "block"))
+		rec = p$cached_values$jackknife_n_deletion_units
+		expect_identical(rec[c("n", "unit")], list(n = G, unit = "block"))
+		expect_null(rec$df)  # set only for the stratified units (v1.0.6-TODO-4)
 		# The model-based Wald state is untouched.
 		expect_identical(inf$compute_asymp_confidence_interval(), wald_ci)
 		expect_true(all(is.finite(wald_ci)))
@@ -100,9 +104,9 @@ test_that("the v1.0.6-TODO-127 case (2 strata, OLS) is NA with a warning instead
 	inf = InferenceContinOLS$new(des, verbose = FALSE)
 	inf$num_cores = 1L
 	# Before the guard this was finite (0.776 here) and came with no warning.
-	old_se = with_jk_min_units(2L, InferenceContinOLS$new(des, verbose = FALSE)$compute_jackknife_std_error())
+	old_se = with_jk_min_units(2L, InferenceContinOLS$new(des, verbose = FALSE)$compute_jackknife_std_error(unit = "block"))
 	expect_true(is.finite(old_se))
-	expect_warning(se <- inf$compute_jackknife_std_error(), "jackknife_too_few_deletion_units",
+	expect_warning(se <- inf$compute_jackknife_std_error(unit = "block"), "jackknife_too_few_deletion_units",
 		class = "edi_procedure_na_warning")
 	expect_true(is.na(se))
 })
@@ -140,10 +144,17 @@ test_that("at or above the threshold every jackknife output is identical to the 
 # is a skewness estimated from the G jackknife replicates (identically 0 at G = 2) and the
 # bootstrap resamples only those G units, so below EDI_JACKKNIFE_MIN_DELETION_UNITS the BCa CI
 # and p-value (plain and Bayesian) are NA with exactly one edi_procedure_na_warning.
-bca_outputs = function(des, bayes = FALSE, seed = 11L){
+bca_outputs = function(des, bayes = FALSE, seed = 11L, block_unit = FALSE){
 	run_one = function(f){
 		inf = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 		inf$num_cores = 1L
+		if (block_unit) {
+			# v1.0.6-TODO-4 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now
+			# one subject within its stratum; pin it to the whole block, the few-units case.
+			p = inf$.__enclos_env__$private
+			unlockBinding("resolve_jackknife_unit", p)
+			p$resolve_jackknife_unit = function(unit = "auto") if (identical(unit, "auto")) "block" else unit
+		}
 		inf$set_seed(seed)
 		ws = list()
 		val = withCallingHandlers(f(inf), warning = function(w){
@@ -167,12 +178,15 @@ bca_outputs = function(des, bayes = FALSE, seed = 11L){
 	}
 }
 
+# v1.0.6-TODO-4 (5bdb9dfb): plain BCa on DesignFixedBlocking now takes its acceleration from
+# one-subject-within-stratum deletions (n units), so the plain path pins the unit to the block
+# (bca_outputs(block_unit = TRUE)); the Bayesian path still weights whole blocks.
 for (G in 2:4) local({
 	G = G
 	test_that(paste0("BCa with ", G, " blocks: plain and Bayesian CI and p-value are NA and warn exactly once"), {
 		des = fx_jk_few_units_blocking(G)
 		for (bayes in c(FALSE, TRUE)) {
-			out = bca_outputs(des, bayes = bayes)
+			out = bca_outputs(des, bayes = bayes, block_unit = !bayes)
 			reason = paste0(if (bayes) "bayesian_" else "", "bootstrap_bca_jackknife_too_few_deletion_units")
 			for (what in names(out)) {
 				info = paste(if (bayes) "bayesian" else "plain", what)
@@ -187,7 +201,9 @@ for (G in 2:4) local({
 			}
 		}
 		# The plain-bootstrap message names the jackknife unit.
-		expect_match(conditionMessage(bca_outputs(des)$ci$warnings[[1L]]), "unit = \"block\"", fixed = TRUE)
+		expect_match(conditionMessage(bca_outputs(des, block_unit = TRUE)$ci$warnings[[1L]]), "unit = \"block\"", fixed = TRUE)
+		# On the blocking design itself plain BCa now has n = 40 deletion units and is not gated.
+		expect_true(all(is.finite(bca_outputs(des)$ci$val)))
 	})
 })
 

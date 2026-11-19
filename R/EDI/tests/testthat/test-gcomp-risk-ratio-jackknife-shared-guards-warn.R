@@ -45,16 +45,22 @@ gcomp_rr_jk_new = function(kind, estimand, units, seed){
 	inf
 }
 
+# v1.0.6-TODO-4 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now one subject
+# within its stratum, so the plain (blocking) cases ask for leave-one-block-out explicitly; the KK
+# cases keep the automatic unit (one matched pair).
+jk_unit = function(kind) if (kind == "plain") "block" else "auto"
+
 for (kind in c("plain", "KK")) for (estimand in c("RD", "RR")) local({
 	kind = kind
 	estimand = estimand
 	test_that(paste0(kind, " g-computation ", estimand, " with 3 deletion units: jackknife-Wald p-value and CI are NA and warn"), {
 		inf = gcomp_rr_jk_new(kind, estimand, 3L, seed = 2L)
+		u = jk_unit(kind)
 		for (k in 1:2) {   # every call warns, not only the first
-			expect_warning(pv <- inf$compute_jackknife_wald_two_sided_pval(), "jackknife_too_few_deletion_units",
+			expect_warning(pv <- inf$compute_jackknife_wald_two_sided_pval(unit = u), "jackknife_too_few_deletion_units",
 				class = "edi_procedure_na_warning")
 			expect_true(is.na(pv))
-			expect_warning(ci <- inf$compute_jackknife_wald_confidence_interval(), "only 3 deletion units",
+			expect_warning(ci <- inf$compute_jackknife_wald_confidence_interval(unit = u), "only 3 deletion units",
 				class = "edi_procedure_na_warning")
 			expect_true(all(is.na(ci)))
 			expect_identical(names(ci), c("2.5%", "97.5%"))
@@ -67,11 +73,12 @@ test_that("plain and KK g-computation RR/RD with 6 deletion units and no failure
 	cases = list(list(kind = "plain", seed = 2L), list(kind = "KK", seed = 4L))
 	for (cs in cases) for (estimand in c("RD", "RR")) {
 		inf = gcomp_rr_jk_new(cs$kind, estimand, 6L, seed = cs$seed)
-		expect_silent(pv <- inf$compute_jackknife_wald_two_sided_pval())
-		expect_silent(ci <- inf$compute_jackknife_wald_confidence_interval())
+		u = jk_unit(cs$kind)
+		expect_silent(pv <- inf$compute_jackknife_wald_two_sided_pval(unit = u))
+		expect_silent(ci <- inf$compute_jackknife_wald_confidence_interval(unit = u))
 		expect_true(is.finite(pv))
 		expect_true(all(is.finite(ci)))
-		jack = inf$approximate_jackknife_distribution_beta_hat_T()
+		jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = u)
 		expect_length(jack, 6L)
 		if (estimand == "RR") {
 			# The pre-v1.0.6-TODO-137 formula: log(est) +/- z * SE of the log replicates.

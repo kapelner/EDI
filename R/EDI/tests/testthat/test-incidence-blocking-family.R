@@ -71,13 +71,15 @@ test_that("jackknife for blocking designs uses leave-one-block-out resampling", 
 	manual_est <- n_blocks * full_est - (n_blocks - 1) * jack_bar
 	manual_se <- sqrt(((n_blocks - 1) / n_blocks) * sum((jack_vals - jack_bar)^2))
 
-	expect_equal(inf_cmh$compute_jackknife_estimate(), manual_est, tolerance = 1e-12)
-	expect_equal(inf_cmh$compute_jackknife_std_error(), manual_se, tolerance = 1e-12)
-	expect_true(is.finite(inf_cmh$compute_jackknife_wald_two_sided_pval()))
-	expect_true(all(is.finite(inf_cmh$compute_jackknife_wald_confidence_interval())))
+	# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
+	# its stratum, so leave-one-block-out is asked for explicitly.
+	expect_equal(inf_cmh$compute_jackknife_estimate(unit = "block"), manual_est, tolerance = 1e-12)
+	expect_equal(inf_cmh$compute_jackknife_std_error(unit = "block"), manual_se, tolerance = 1e-12)
+	expect_true(is.finite(inf_cmh$compute_jackknife_wald_two_sided_pval(unit = "block")))
+	expect_true(all(is.finite(inf_cmh$compute_jackknife_wald_confidence_interval(unit = "block"))))
 
-	expect_equal(inf_robins$compute_jackknife_estimate(), manual_est, tolerance = 1e-12)
-	expect_equal(inf_robins$compute_jackknife_std_error(), manual_se, tolerance = 1e-12)
-	expect_true(is.finite(inf_robins$compute_jackknife_wald_two_sided_pval()))
-	expect_true(all(is.finite(inf_robins$compute_jackknife_wald_confidence_interval())))
+	expect_equal(inf_robins$compute_jackknife_estimate(unit = "block"), manual_est, tolerance = 1e-12)
+	expect_equal(inf_robins$compute_jackknife_std_error(unit = "block"), manual_se, tolerance = 1e-12)
+	expect_true(is.finite(inf_robins$compute_jackknife_wald_two_sided_pval(unit = "block")))
+	expect_true(all(is.finite(inf_robins$compute_jackknife_wald_confidence_interval(unit = "block"))))
 })
