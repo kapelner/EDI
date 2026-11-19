@@ -22,7 +22,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		#'   by inverting the corresponding test. For purely Wald asymptotic dispatch,
 		#'   see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#'
-		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
+		#' @param alpha Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		#'
 		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){

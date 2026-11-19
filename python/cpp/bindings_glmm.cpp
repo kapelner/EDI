@@ -449,12 +449,14 @@ void bind_glmm(py::module_& m) {
                                        std::optional<Eigen::VectorXd> fixed_values,
                                        std::string optimization_alg,
                                        std::optional<Eigen::MatrixXd> warm_start_fisher_info,
-                                       int n_gh) {
+                                       int n_gh,
+                                       std::optional<Eigen::VectorXd> weights_disc,
+                                       std::optional<Eigen::VectorXd> weights_conc) {
         edi::ResultMap res = fast_clogit_plus_glmm_internal(
             X_disc, y_disc, X_conc, y_conc, group_conc, has_discordant, has_concordant,
             warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g,
             fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
-            std::nullopt, std::nullopt, n_gh);
+            weights_disc, weights_conc, n_gh);
         return edi::to_py_dict(res);
     },
     py::arg("X_disc"), py::arg("y_disc"), py::arg("X_conc"), py::arg("y_conc"), py::arg("group_conc"),
@@ -470,6 +472,8 @@ void bind_glmm(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("n_gh") = 20,
+    py::arg("weights_disc") = py::none(),
+    py::arg("weights_conc") = py::none(),
     "Jointly fits a single shared beta across two structurally different\n"
     "binary-outcome likelihoods for a KK matched-pair-plus-reservoir design,\n"
     "combined into one log-likelihood and optimized together (the binary-\n"
@@ -530,7 +534,9 @@ void bind_glmm(py::module_& m) {
     "eps_g : float, default 1e-5\n"
     "    Convergence tolerance for the gradient.\n"
     "fixed_idx : ndarray of int, optional\n"
-    "    Optional indices of fixed parameters.\n"
+    "    Optional 1-based indices of fixed parameters into the parameter vector\n"
+    "    [beta, log_sigma] when has_concordant is True, or [beta] otherwise.\n"
+    "    0 or an out-of-range index raises.\n"
     "fixed_values : ndarray, optional\n"
     "    Optional values for fixed parameters.\n"
     "optimization_alg : str, default \"lbfgs\"\n"
@@ -539,5 +545,11 @@ void bind_glmm(py::module_& m) {
     "    Optional initial Fisher information matrix for the first iteration.\n"
     "n_gh : int, default 20\n"
     "    Number of Gauss-Hermite quadrature nodes used to integrate out the random\n"
-    "    intercept.");
+    "    intercept.\n"
+    "weights_disc : ndarray, optional\n"
+    "    Optional nonnegative weights, one per discordant pair row of X_disc (R\n"
+    "    passes Bayesian-bootstrap row weights here). None means unit weights.\n"
+    "weights_conc : ndarray, optional\n"
+    "    Optional nonnegative weights, one per concordant/reservoir row of X_conc.\n"
+    "    None means unit weights.");
 }

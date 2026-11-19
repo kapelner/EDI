@@ -14,7 +14,7 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		#'   the estimate. Likelihood-backed subclasses may override the dispatch; see
 		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}.
 		#'
-		#' @param alpha  				Significance level 1 - \code{alpha}. Default 0.05.
+		#' @param alpha  				Significance level; the interval has confidence level 1 - \code{alpha}. Default 0.05.
 		#'
 		#' @return 	A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){

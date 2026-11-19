@@ -522,12 +522,11 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 		# eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
 		# distribution_beta_hat_T)) }` restatement -- verified no-op, same as
 		# every other KK leaf this stretch and the identical fix in
-		# inference_survival_GLMM_weibull_frailty_loggamma.R: this class already splices
-		# `InferenceMixinKKPassThrough$public` via
-		# `as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(...)))`
-		# below, so the raw source's own
-		# `approximate_bootstrap_distribution_beta_hat_T` is already present
-		# without this explicit re-evaluated copy.
+		# inference_survival_GLMM_weibull_frailty_loggamma.R: the KK
+		# pass-through `approximate_bootstrap_distribution_beta_hat_T` now
+		# arrives through the component's `dependencies = "KKPassThrough"` (the
+		# raw `modifyList` splice was removed; see the header above), so no
+		# explicit re-evaluated copy is needed here.
 	),
 	private = list(
 		is_a_kk_weibull_frailty_one_lik = function() TRUE,

@@ -218,15 +218,16 @@ SimpleMeanDifferencePooledVarSource = list(
 #'   pooled-variance two-sample t-test used here.
 #'
 #' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
-#' for (i in 1:10) {
+#' set.seed(1)
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = 'continuous')
+#' for (i in 1:20) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rnorm(10))
+#' seq_des$add_all_subject_responses(rnorm(20))
 #' inf = InferenceAllSimpleMeanDiffPooledVar$new(seq_des)
 #' inf$compute_estimate()
-#' }
+#' inf$compute_asymp_confidence_interval()
+#' inf$compute_asymp_two_sided_pval()
 #' @name InferenceAllSimpleMeanDiffPooledVar
 #' @eval rd_small_sample_section("InferenceAllSimpleMeanDiffPooledVar")
 #' @export

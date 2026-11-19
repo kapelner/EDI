@@ -172,8 +172,8 @@ InferenceCountPoisson = define_inference_class(
 		#'   \eqn{\hat\beta_T}, the treatment log-rate-ratio. Under
 		#'   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"} (set
 		#'   via \code{set_estimand()}), returns the g-computation marginal
-		#'   rate difference/log-rate-ratio instead — see the class-level
-		#'   \code{@details} for the formula. The underlying model fit is
+		#'   rate difference/log-rate-ratio instead — see the "Estimand"
+		#'   paragraph of the class description for the formula. The underlying model fit is
 		#'   identical either way (a pure post-fit transform of the same
 		#'   cached fit, no refit).
 		#' @param estimate_only If TRUE, skip standard-error computation and
@@ -624,6 +624,9 @@ InferenceCountPoisson = define_inference_class(
 		# it has 2 to EDI_JACKKNIFE_MIN_DELETION_UNITS - 1 blocks (one block already gets the delete-1
 		# jackknife: build_jackknife_deletion_draws() falls back to observations), and the estimand is the conditional
 		# log-rate ratio (the refits below are of that coefficient). NULL otherwise or on any failure. Cached.
+		# Since v1.0.6-TODO-4 the automatic unit on DesignFixedBlocking is "observation_within_block" (this same
+		# stratified jackknife, done by compute_jackknife_summary()) and on DesignSeqOneByOneSPBR "permuted_block",
+		# so this fallback now serves only the designs still on unit "block" (e.g. DesignSeqOneByOneRandomBlockSize).
 		design_stratified_jackknife = function(){
 			cached = private$cached_values$design_stratified_jackknife
 			if (!is.null(cached)) return(if (isFALSE(cached)) NULL else cached)

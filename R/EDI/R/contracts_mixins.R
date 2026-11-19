@@ -407,6 +407,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_jackknife_distribution_with_reused_workers",
 			"bootstrap_sample_indices", "renumber_match_ids",
 			"get_cluster_jackknife_ids", "build_jackknife_deletion_draws",
+			"jackknife_stratified_layout", "jackknife_replicate_strata",
 			"bootstrap_subset_inference", "bootstrap_replication_stats",
 			"approximate_bootstrap_statistics_beta_hat_T",
 			"finalize_bootstrap_statistics_matrix",
@@ -2833,7 +2834,9 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #' Re-bind already-installed lazy-component methods on a freshly cloned
 #' \code{Inference} object to that clone's own \code{self}/\code{private}
 #'
-#' Since 2026-10-22 (TODO-125) this is a no-op kept for one release:
+#' Since 2026-10-22 (v1.0.5-TODO-125) this is a no-op for methods already
+#' bound to one of the clone's own enclosing environments (kept for one
+#' release), and only repoints the remaining ones as described below:
 #' \code{install_lazy_inference_component()} now closes each installed
 #' method over the calling stub's own R6 enclosing environment, which R6's
 #' \code{clone()} remaps by itself. Before that, installed methods were
@@ -2843,10 +2846,11 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #' environments, so a clone kept calling back into the ORIGINAL object's
 #' data (e.g. a Bayesian-bootstrap worker clone silently reading the
 #' pre-clone object's \code{current_bayesian_bootstrap_context}, always
-#' \code{NULL}, instead of its own). This helper repoints any
-#' already-installed lazy-component method (public and private) that is not
-#' closed over one of the clone's own enclosing environments at the clone's
-#' leaf enclosing environment; state fields (\code{owns_state}) are left
+#' \code{NULL}, instead of its own). This helper repoints only those
+#' already-installed lazy-component methods (public and private) that are not
+#' closed over one of the clone's own enclosing environments (for example
+#' \code{compute_estimate_with_bootstrap_weights} or \code{weighted_refit_impl}
+#' when bound elsewhere) at the clone's leaf enclosing environment; state fields (\code{owns_state}) are left
 #' untouched since \code{clone()} already copies their current values
 #' correctly.
 #'

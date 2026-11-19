@@ -370,14 +370,15 @@ Eigen::MatrixXd get_beta_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd
 //'
 //' \strong{Reported likelihood and information.} \code{neg_loglik} is the exact beta
 //' negative log-likelihood re-evaluated at the fitted parameters (not merely the
-//' optimizer's internal objective trace); \code{fisher_information} is the
-//' \eqn{X^\top W X}-style working-weights curvature matrix from the fit
-//' (\code{fit.XtWX}) — the same expected-information approximation classical IRLS
-//' uses for GLM standard errors, and exactly what
-//' \code{\link{fast_beta_regression_with_var_cpp}} inverts to produce \code{vcov} —
-//' rather than a fresh evaluation of the exact observed-information Hessian from
-//' \code{\link{get_beta_regression_hessian_cpp}}. It is also suitable for
-//' warm-starting a subsequent fit via \code{warm_start_fisher_info}.
+//' optimizer's internal objective trace); \code{fisher_information} is the exact
+//' observed-information matrix (the analytic Hessian of the negative
+//' log-likelihood over \code{c(beta, log(phi))}) evaluated at the fitted
+//' parameters and stored as \code{fit.XtWX} — the same matrix
+//' \code{\link{get_beta_regression_hessian_cpp}} returns with its sign flipped,
+//' and exactly what \code{\link{fast_beta_regression_with_var_cpp}} inverts to
+//' produce \code{vcov}. It is a zero matrix when \code{estimate_only = TRUE}. It is
+//' also suitable for warm-starting a subsequent fit via
+//' \code{warm_start_fisher_info}.
 //'
 //' @param X A numeric matrix of predictors, \eqn{n \times p}; include an explicit
 //'   intercept column if desired (the model has no implicit intercept).
@@ -571,11 +572,11 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //' Fits the same beta regression model as \code{\link{fast_beta_regression_cpp}}
 //' (see that page for the full model, parameterization, and optimizer contract) and
 //' additionally computes the variance-covariance matrix and standard errors of the
-//' fitted parameters, via the same working-weights (\eqn{X^\top W X}) curvature
-//' matrix documented there.
+//' fitted parameters, via the same observed-information matrix (stored as
+//' \code{fit.XtWX}) documented there.
 //'
 //' @details
-//' \strong{Variance computation.} The fit's working-information matrix
+//' \strong{Variance computation.} The fit's observed-information matrix
 //' (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
 //' restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
 //' invertibility check guards the same plain matrix inverse used previously, so
@@ -605,7 +606,7 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
 //'   \code{information_invertible} (whether the free information block passed
 //'   the invertibility check), and
-//'   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
+//'   \code{fisher_information} (the observed-information matrix \code{vcov} was
 //'   inverted from).
 //' @seealso \code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
 //'   the full model/parameterization documentation;

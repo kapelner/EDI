@@ -55,7 +55,9 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the estimated treatment effect (log-hazard ratio).
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @param estimate_only If TRUE, omit only the final combined standard error;
+		#'   the matched and reservoir component variances are still fitted because
+		#'   they set the combination weights.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
@@ -74,8 +76,8 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 		#' @description Compute the LWA Cox asymptotic p-value for the treatment
 		#'   log-hazard ratio using the cluster-robust partial-likelihood standard
 		#'   error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta                                   The null difference to test against. For
-		#'   any treatment effect at all this is set to zero (the default).
+		#' @param delta                                   The null log-hazard ratio to test against;
+		#'   only 0 (the default, testing for any treatment effect) is currently supported.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)

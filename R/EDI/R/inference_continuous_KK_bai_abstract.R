@@ -149,8 +149,8 @@ BaiAdjustedTSource = list(
 		#'   \code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}}
 		#'   methods.
 		#'
-		#' @param delta   The null difference to test against. For any treatment effect at all
-		#'   this is set to zero (the default).
+		#' @param delta   The null difference to test against. To test for any treatment
+		#'   effect at all, set this to zero (the default).
 		#'
 		#' @return 	The approximate frequentist p-value
 		#'

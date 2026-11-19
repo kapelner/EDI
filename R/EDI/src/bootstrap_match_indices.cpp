@@ -21,9 +21,11 @@ inline bool kk_is_success(double y_i) {
 
 } // namespace
 
-// Portable core (EDI_CORE_ONLY-safe): identical logic to bootstrap_m_indices_cpp
-// below, but takes the seed as an explicit parameter instead of drawing it
-// from R's RNG internally.
+// Portable core: identical logic to bootstrap_m_indices_cpp below, but takes
+// the seed as an explicit parameter instead of drawing it from R's RNG
+// internally. The function body has no R dependency, but this file is not
+// EDI_CORE_ONLY-safe: it includes <RcppEigen.h> unconditionally and has no
+// EDI_CORE_ONLY guard (unlike bootstrap_indices.cpp).
 Eigen::MatrixXi bootstrap_m_indices_internal(
 	const Eigen::Ref<const Eigen::VectorXi>& m_vec,
 	const Eigen::Ref<const Eigen::VectorXi>& i_reservoir,

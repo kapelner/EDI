@@ -3050,9 +3050,13 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 #' left/right edges aligned via `rbind(..., size = "first")` so the two
 #' x-axes line up even though they're free/independent). Uses only `grid`
 #' and `gtable` (a hard dependency of `ggplot2`, so no new package) -- no
-#' `patchwork`/`cowplot`. The forest panel gets `n_rows` "null" height
-#' units vs. a fixed 2 for the box panel, so the box stays a thin strip and
-#' the forest's per-row spacing scales with row count exactly as before.
+#' `patchwork`/`cowplot`. Panel heights are absolute inches, not "null"
+#' units: the forest panel is `(max(n_rows, 1) + 1) *
+#' EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN` and the box panel is
+#' `EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN` (or
+#' `EDI_INFERENCE_SUITE_DOTS_PANEL_HEIGHT_IN` when `has_boxplot = FALSE`),
+#' so the box stays a thin strip and every forest row has a fixed height.
+#' With `box = NULL` the forest grob alone is returned.
 #'
 #' The result is a grob, not a ggplot: draw it with
 #' `run_all_inference_draw_plot()` (`grid.newpage()` + `grid.draw()` --
@@ -3445,11 +3449,10 @@ inference_class_wordify = function(label) {
 #' Short, human-readable display label for inference class `name`: strips
 #' the shared `"Inference"` prefix, strips one leading
 #' `EDI_INFERENCE_CLASS_PREFIXES` response-family segment if present,
-#' collapses a trailing `KK14`/`KK21` design-variant suffix to a bare `KK`
-#' (safe because those variants are mutually exclusive per design -- see
-#' `is_inference_class_compatible_with_design_metadata()`'s KK-matching
-#' gate -- so they never collide within one results table), then
-#' word-splits the remainder via `inference_class_wordify()`. Falls back to
+#' keeps any trailing `KK14`/`KK21` design-variant suffix as is (it is
+#' deliberately not collapsed to a bare `KK`; see the comment in the
+#' function body), then word-splits the remainder via
+#' `inference_class_wordify()`. Falls back to
 #' the `"Inference"`-stripped name alone (word-split) if no known prefix
 #' matches, rather than guessing at an unfamiliar naming convention. Purely
 #' cosmetic: never touches `results_table$inference_class` itself, which
@@ -3539,13 +3542,14 @@ inference_class_short_label = function(name, tau = NA_real_) {
 	# (that word is never stripped).
 	rest = sub("OneLik$", "", rest)
 	words = strsplit(inference_class_wordify(rest), " ", fixed = TRUE)[[1]]
-	# "Mean" -> "Average" (per user request, 2026-08-24): the class-name
+	# "Mean" -> "Avg" (per user request, 2026-08-24): the class-name
 	# word "Mean" (e.g. "SimpleMeanDiff") reads as if it names the same
 	# thing as the "mean_difference" *estimand* -- but a class name
 	# describes its estimator, not its estimand, and those are not the
 	# same kind of claim (a class could target the mean_difference estimand
-	# via a non-mean-based estimator). "Average" avoids that false
-	# equivalence while still being immediately readable.
+	# via a non-mean-based estimator). "Avg" avoids that false
+	# equivalence while still being immediately readable ("Average" is
+	# shortened to "Avg" too).
 	# "KM" -> "Kaplan-Meier" (per user request, 2026-08-24): the bare
 	# acronym reads as unclear/ambiguous on its own (unlike KK/OLS/GEE/etc,
 	# which are unambiguous within this package's vocabulary), so it's
@@ -4267,10 +4271,13 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #'   \code{is_inference_class_compatible_with_design_metadata()}, also used by
 #'   \code{\link[EDI:Design]{Design}}'s own
 #'   \code{applicable_inference_class_names()}): a candidate class is
-#'   excluded if it is abstract or not exported; if it declares no compatible
-#'   response types, or none match \code{des_obj}'s response type; if its name
-#'   contains \code{"KK"} (a matched-design-only class) but \code{des_obj} does
-#'   not support KK matching; if the class's \code{requires_blocking_design()}
+#'   excluded if its name contains \code{"IVWC"} (the legacy KK estimators,
+#'   superseded by their \code{OneLik} variants); if it is abstract or not
+#'   exported; if it declares no compatible response types, or none match
+#'   \code{des_obj}'s response type; if its registered
+#'   \code{requires_kk_matching_design} metadata is \code{TRUE} (a
+#'   matched-design-only class) but \code{des_obj} does not support KK
+#'   matching; if the class's \code{requires_blocking_design()}
 #'   is \code{TRUE} (currently only \code{InferenceIncidExtendedRobins} --
 #'   \code{InferenceIncidCMH} works on both blocking and non-blocking designs
 #'   via different standard-error estimators, so it is \strong{not} excluded)
@@ -4283,8 +4290,7 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #'   metadata (see \code{infer_inference_requires_blocking_design()}/
 #'   \code{infer_inference_supports_general_censoring()} in
 #'   \code{inference_class_registry.R}). Ordinary right-censoring alone never
-#'   excludes a class. The KK-name-pattern rule is still hardcoded in this
-#'   class rather than looked up from a central registry.
+#'   excludes a class.
 #'
 #'   A class that is design-compatible but whose registered
 #'   \code{required_packages} are not all installed is excluded from

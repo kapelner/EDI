@@ -164,7 +164,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			private$cached_values[[cache_name]] = candidates
 			candidates
 		},
-		# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).
+		# Extracts the term's coefficient from a fitted aftsrr model; NA_real_ if absent.
 		extract_term_estimate = function(mod, term_name = "w"){
 			coefs = tryCatch(stats::coef(mod), error = function(e) NULL)
 			if (is.null(coefs) || is.null(names(coefs)) || !(term_name %in% names(coefs))){

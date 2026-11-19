@@ -175,11 +175,20 @@ void bind_proportion(py::module_& m) {
     "    \"cold start\") with no prior knowledge. Ignored if a warm start is\n"
     "    provided.\n"
     "fixed_idx : ndarray of int, optional\n"
-    "    Optional indices of fixed parameters.\n"
+    "    Optional 1-based indices into params of parameters to hold fixed (as in\n"
+    "    R). 0 or an out-of-range index raises.\n"
     "fixed_values : ndarray, optional\n"
     "    Optional values for fixed parameters.\n"
     "optimization_alg : str, default \"lbfgs\"\n"
     "    Optimization algorithm.\n"
     "warm_start_fisher_info : ndarray, optional\n"
-    "    Optional initial Fisher information matrix for the first iteration.");
+    "    Optional initial Fisher information matrix for the first iteration.\n\n"
+    "The solver's iteration cap and tolerance are fixed (1500 iterations,\n"
+    "gradient-norm tolerance 1e-6) and are not arguments, as in R.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict with params, neg_loglik, num_iter, hit_iteration_cap, converged and\n"
+    "gradient_norm. Unlike R's fast_zero_one_inflated_beta_cpp, it returns no\n"
+    "vcov or information matrices and does not split params into b, log_phi\n"
+    "and the zero/one-inflation blocks.");
 }

@@ -394,7 +394,8 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp( const Eigen::Map<Eigen::Matri
 //' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If
 //'   provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
-//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess (see Details).
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess (see the section
+//'   "Fixed parameters, warm starts").
 //' @param maxit Maximum number of iterations (IRLS path only).
 //' @param tol Convergence tolerance.
 //' @param fixed_idx Optional indices of fixed parameters.
@@ -402,7 +403,8 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp( const Eigen::Map<Eigen::Matri
 //' @param optimization_alg Optimization algorithm: any value other than
 //'   \code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
 //'   likelihood minimization.
-//' @param warm_start_weights Accepted but unused; see Details.
+//' @param warm_start_weights Accepted but unused; see the section "Fixed parameters,
+//'   warm starts".
 //' @param warm_start_fisher_info Optional initial curvature matrix for the first
 //'   IRLS iteration (IRLS path only).
 //' @param estimate_only If \code{TRUE}, skip the post-fit weight/curvature computation

@@ -128,14 +128,18 @@ edi_tuning_verify_warm_start_deviation = function(dev, operation, tol = EDI_TUNI
 }
 
 #' Verify one parallel-crossover deviation: does the point estimate agree
-#' under serial and `num_cores`?
+#' across two independent fits?
+#'
+#' Builds two identical synthetic experiments (same seed, \code{crossover_n})
+#' and compares the point estimate of a fresh fit on each. It does not set
+#' or vary the core count: both fits run under whatever core setting is
+#' already active, so this checks only that the point estimate is
+#' reproducible, not that serial and \code{num_cores} runs agree.
 #'
 #' Deliberately does \strong{not} compare the resampling operation's CI --
 #' a forked worker uses a different RNG stream than the serial path, so
 #' its CI is expected to differ even when everything is working correctly;
-#' comparing it would manufacture false disagreements. The point estimate
-#' is core-count-independent and is the actual invariant this axis needs
-#' to hold.
+#' comparing it would manufacture false disagreements.
 #'
 #' @inheritParams edi_tuning_verify_cold_start_deviation
 #' @keywords internal

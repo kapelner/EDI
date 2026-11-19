@@ -704,13 +704,11 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 		# `approximate_bootstrap_distribution_beta_hat_T = function(...) {
 		# eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
 		# distribution_beta_hat_T)) }` restatement -- verified no-op, same as
-		# every other KK leaf this stretch: this class already splices
-		# `InferenceMixinKKPassThrough$public` via
-		# `as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(...)))`
-		# below, so the raw source's own
-		# `approximate_bootstrap_distribution_beta_hat_T` (same body, same
-		# R6-construction-time environment rebinding) is already present
-		# without this explicit re-evaluated copy.
+		# every other KK leaf this stretch: the KK pass-through
+		# `approximate_bootstrap_distribution_beta_hat_T` now arrives through
+		# the component's `dependencies = "KKPassThrough"` (the raw
+		# `modifyList` splice was removed 2026-08-23; see the header above),
+		# so no explicit re-evaluated copy is needed here.
 		#' @description Duplicates this subclass while preserving fit caches; see
 		#'   \code{\link[EDI:Inference]{Inference}}.
 		#' @param verbose Whether the duplicate should be verbose.

@@ -55,8 +55,16 @@
 #'   T-squared distribution} for the matching-test statistic, and
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance}.
 #' @examples
-#' seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = 'continuous')
-#' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' set.seed(1)
+#' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'continuous')
+#' for (i in 1:20) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' # treatment assignments; matching begins after the burn-in, and a subject
+#' # matched to an earlier reservoir subject gets the opposite treatment
+#' seq_des$get_w()
+#' # matched pairs share a cluster id; reservoir subjects are singletons
+#' seq_des$get_matching_cluster_ids()
 #' @export
 DesignSeqOneByOneKK14 = define_design_class(
 	classname = "DesignSeqOneByOneKK14",

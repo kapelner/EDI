@@ -17,7 +17,8 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 		},
 		#' @description Recomputes the KK marginal incidence estimate under
 		#'   Bayesian-bootstrap weights.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
+		#' @param subject_or_block_weights Numeric vector. Subject- or block-level
+		#'   bootstrap weights (expanded internally to row weights).
 		#' @param estimate_only Logical. If TRUE, skip the weighted cluster-robust
 		#'   sandwich variance calculation.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

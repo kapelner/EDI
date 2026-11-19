@@ -323,9 +323,9 @@ RobustModelResult fast_robust_regression_internal(
 //' @param y A numeric vector of responses.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
-//'   is supplied, use an OLS (QR) initial guess; see Details.
+//'   is supplied, use an OLS (QR) initial guess; see the section "Fixed parameters, warm starts".
 //' @param method Robust estimation method: \code{"M"} for Huber weighting, anything else
-//'   (default \code{"MM"}) for Tukey bisquare weighting; see Details.
+//'   (default \code{"MM"}) for Tukey bisquare weighting; see the Description.
 //' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 //' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 //' @param maxit Maximum number of IRLS iterations.

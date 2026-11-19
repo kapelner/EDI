@@ -155,7 +155,9 @@ SurvivalKKStratCoxIVWCSource = list(
 			private$cached_values$KKstats
 		},
 		max_abs_reasonable_coef = 1e4,
-		# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).
+		# Ladder of design-matrix candidates (w first): the full matrix alone when not
+		# hardening, else the hardened-QR matrix, then increasingly aggressive
+		# correlated-column dropping.
 		cox_design_candidates = function(w, X){
 			X_full = matrix(w, ncol = 1)
 			colnames(X_full) = "w"

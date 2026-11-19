@@ -226,7 +226,9 @@ List fast_ordinal_cauchit_regression_cpp(const Rcpp::NumericMatrix& X,
 //' and variance-covariance matrix are always computed. It additionally guards the
 //' degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
 //' fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
-//' an empty list.
+//' an empty list. This function has no \code{maxit} or \code{tol} arguments: the
+//' \code{maxit} and \code{tol} in the section below are fixed at 100 and
+//' \code{1e-6}.
 //'
 //' @inheritSection fast_ordinal_cauchit_regression_cpp Fixed parameters, warm starts, and optimization
 //'

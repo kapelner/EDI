@@ -87,7 +87,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		},
 		#' @description Recomputes the KK ordinal CLMM treatment estimate under
 		#'   Bayesian-bootstrap weights.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
+		#' @param subject_or_block_weights Numeric vector. Subject- or block-level
+		#'   bootstrap weights (expanded internally to row weights).
 		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
@@ -120,7 +121,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		#' @description Compute the ordinal CLMM asymptotic two-sided p-value for the
 		#'   treatment coefficient using the fitted-model standard error. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Numeric. Null treatment effect value (default 0).
+		#' @param delta Numeric. Null treatment effect value (default 0); only 0 is
+		#'   supported, and a nonzero value returns \code{NA} (or errors when
+		#'   assertions are enabled).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)

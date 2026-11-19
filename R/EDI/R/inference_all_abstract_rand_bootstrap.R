@@ -54,7 +54,11 @@ assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 #' is unproven. Calling a restricted method reports that the method is not supported,
 #' and \code{supports()} returns \code{FALSE} for \code{randomization_bootstrap} and
 #' \code{randomization_bootstrap_ci}. KK estimators still offer it on the fixed
-#' matched-pairs design \code{DesignFixedBinaryMatch}.
+#' matched-pairs design \code{DesignFixedBinaryMatch}. Where the Details below
+#' mention the matching-on-the-fly designs (\code{DesignSeqOneByOneKK14}/\code{KK21}/
+#' \code{KK21stepwise}), they describe how the construction would apply in
+#' principle; in this package the BRT does not run on those designs, and the
+#' pair-aware resampling applies to \code{DesignFixedBinaryMatch}.
 #'
 #' @details
 #' \strong{Motivating heuristic: the sharp null makes the science table fully known.}
@@ -140,8 +144,9 @@ assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 #'     i.i.d. \emph{and matched pairs as intact units} — preserving each pair's true,
 #'     historically realized within-pair covariate distance rather than fabricating an
 #'     artificial zero-distance one. This is the correct fix for the naive-duplicate-row
-#'     concern, and it is already active for every BRT draw on a matching-capable design
-#'     (\code{InferenceRandBootstrap} inherits \code{bootstrap_sample_indices()} from the
+#'     concern, and it is already active for every BRT draw on a supported
+#'     matching-capable design (currently \code{DesignFixedBinaryMatch}; see
+#'     "Design restriction") (\code{InferenceRandBootstrap} inherits \code{bootstrap_sample_indices()} from the
 #'     same chain, so no separate wiring is needed). \strong{What remains open, narrower
 #'     than the naive concern above:} reservoir subjects are still resampled i.i.d.
 #'     independently of the intact pairs, so a single reservoir subject can still appear

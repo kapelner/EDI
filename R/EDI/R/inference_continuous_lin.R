@@ -212,7 +212,8 @@ InferenceContinLin = define_inference_class(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   \eqn{t}/\eqn{z} interval contract. Fits the model first if not already
 		#'   cached.
-		#' @param alpha The confidence level. The default is 0.05.
+		#' @param alpha The confidence level in the computed confidence interval is
+		#'   1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)

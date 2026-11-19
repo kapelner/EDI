@@ -8,9 +8,10 @@
 #' shift} at quantile \code{tau}; by default \code{tau = 0.5}, so this is a median
 #' log-odds-ratio shift.
 #'
-#' Fitting is via \code{\link[quantreg]{rq}} (method \code{"br"}, the Barrodale-Roberts
-#' simplex algorithm, for the point estimate; the default Frisch-Newton-adjacent
-#' interior-point path for the variance-computing fit) on \code{logit(y) ~ w + covariates}
+#' Fitting is via \pkg{quantreg} (method \code{"fn"}, the Frisch-Newton interior-point
+#' algorithm, for both the estimate-only \code{rq.fit} call and the variance-computing
+#' \code{\link[quantreg]{rq}} fit; the Bayesian-bootstrap reweighted fit uses
+#' \code{rq}'s default \code{"br"} method) on \code{logit(y) ~ w + covariates}
 #' with no intercept column (the design matrix already carries one). Standard errors use
 #' \pkg{quantreg}'s Powell (1991) kernel sandwich \code{"nid"} estimator (heteroskedasticity-
 #' and design-robust, valid under non-i.i.d. errors) when available, falling back to the

@@ -462,9 +462,12 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
 //' @export
 //' @keywords internal
 //' @examples
-//' X = matrix(rnorm(100), 10, 10)
-//' y = rpois(10, 2)
-//' fast_neg_bin_with_var_cpp(X, y)
+//' set.seed(1)
+//' n = 100
+//' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+//' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
+//' fit = fast_neg_bin_with_var_cpp(X, y)
+//' fit$vcov
 // [[Rcpp::export]]
 List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		SEXP y,
@@ -520,7 +523,6 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 }
 
 //' @title Fast Negative Binomial Regression (C++)
-//' @description High-performance negative binomial regression fitting.
 //' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 //'   explicit intercept column if desired (no implicit intercept).
 //' @param y A numeric vector of non-negative observed counts, length \eqn{n};
@@ -542,8 +544,10 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 //' @export
 //' @keywords internal
 //' @examples
-//' X = matrix(rnorm(100), 10, 10)
-//' y = rpois(10, 2)
+//' set.seed(1)
+//' n = 100
+//' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+//' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
 //' fast_neg_bin_cpp(X, y)
 // [[Rcpp::export]]
 List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
@@ -615,9 +619,13 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
 //' @export
 //' @keywords internal
 //' @examples
-//' X = matrix(rnorm(100), 10, 10)
-//' y = rpois(10, 2)
-//' fast_neg_bin_weighted_cpp(X, y, weights = rep(1, 10))
+//' set.seed(1)
+//' n = 100
+//' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+//' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
+//' # e.g. bootstrap-style weights: some rows dropped (0), some doubled (2)
+//' w = sample(c(0, 1, 2), n, replace = TRUE)
+//' fast_neg_bin_weighted_cpp(X, y, weights = w)
 // [[Rcpp::export]]
 List fast_neg_bin_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP weights, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
 	NumericVector weights_r_coerced(weights); Eigen::Map<const Eigen::VectorXd> weights_vec_coerced(weights_r_coerced.begin(), weights_r_coerced.size());

@@ -186,11 +186,15 @@ NULL
 #'   omitted/not computed when \code{estimate_only = TRUE}.}
 #' \item{neg_ll}{The negative Cox partial log-likelihood at the final iteration.}
 #' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of optimizer iterations performed.}
+#' \item{num_iter}{The number of optimizer iterations performed.}
+#' \item{hit_iteration_cap}{Logical; \code{TRUE} if the optimizer stopped at
+#'   \code{maxit} without meeting the convergence tolerance.}
 #' \item{fisher_information}{The Hessian of the negative partial log-likelihood at
 #'   the fitted coefficients (the observed information matrix).}
 #' \item{gradient_norm}{The norm of the score (gradient) vector at convergence, a
 #'   diagnostic of how tightly the convergence criterion was met.}
+#' \item{min_eigenvalue_information}{The smallest eigenvalue of the information
+#'   matrix at the fitted coefficients, a diagnostic of near-singularity.}
 #' }
 #'
 #' @seealso \code{\link{build_cox_data_cache_cpp}} for the full Cox partial-likelihood
@@ -1224,8 +1228,9 @@ fast_beta_regression = function(X, y, start_phi = 10, optimization_alg = "lbfgs"
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or
 #'   \code{"newton_raphson"}; see \code{\link{.normalize_optimizer_algorithm}}.
 #' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}.
-#' @param warm_start_fisher_info Optional initial Fisher Information matrix, used to
-#'   warm-start curvature information for the optimizer.
+#' @param warm_start_fisher_info Currently unused: accepted for interface
+#'   compatibility but not passed to the C++ fitter, which is warm-started from
+#'   \code{warm_start_beta} only.
 #'
 #' @return  A list containing the following components:
 #' \item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
@@ -1449,8 +1454,11 @@ fast_coxph_regression = function(X, y, dead, use_rcpp = TRUE, estimate_only = FA
 #' @importFrom	stats glm.fit
 #' @importFrom	MASS negative.binomial
 #' @examples
-#' X = matrix(rnorm(100), 10, 10)
-#' y = rpois(10, 2)
+#' set.seed(1)
+#' n = 100
+#' # intercept, treatment indicator, and two covariates
+#' X = cbind(1, rbinom(n, 1, 0.5), matrix(rnorm(n * 2), n, 2))
+#' y = rnbinom(n, mu = exp(0.5 + 0.4 * X[, 2] + 0.2 * X[, 3]), size = 2)
 #' fast_negbin_regression(X, y)
 #' @export
 fast_negbin_regression <- function(X, y, optimization_alg = "lbfgs", warm_start_params = NULL, warm_start_fisher_info = NULL) {

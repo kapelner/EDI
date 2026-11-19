@@ -2,6 +2,12 @@
 
 ## Changes that alter results
 
+* `InferenceCountPoisson`: on a stratified design with 2 to 4 strata, the design-conservative p-value and interval no longer fall back to the raw Poisson test (anti-conservative under overdispersion, size 0.08-0.11 in the calibration study) when the leave-one-block-out jackknife is NA. They now use a stratified delete-1 jackknife standard error pooled within strata (v1.1.0-TODO-218). The ZINB fits (`InferenceCountZeroInflatedNegBin` and the zero-augmented family's ZINB path) now check each fit that looks wrong (zero-inflation at the boundary, a zero-inflation coefficient beyond +/-10, or a large gradient norm) and keep the lowest-likelihood refit, so randomization draws warm-started from the full-data fit no longer return a wrong treatment estimate and the randomization test is no longer oversized (v1.1.0-TODO-217).
+
+* `InferenceIncidBinomialIdentityRiskDiff` and `InferenceIncidLogBinomial` no longer silently drop covariates when the default cold start lies outside the mean support (v1.0.6-TODO-142). The least-squares start could give a fitted probability outside [0, 1], so the kernel stopped after one iteration and the class reported a reduced model. The start is now pulled 90% of the way to the support boundary, toward the intercept-only fit; feasible starts are untouched. Estimates, intervals and p-values change on data where the old fit failed, including some bootstrap and jackknife replicates. Bootstrap subset copies made outside an active resampling operation (for example the outer loop of `ci_calibrated_bootstrap()`) now follow the same warm-start policy as copies made inside one, instead of inheriting the parent's warm start.
+
+* Randomization p-values (`compute_rand_two_sided_pval()`, their Monte Carlo bands, the studentized randomization-bootstrap p-values and the closed-form randomization-bootstrap CI) now count a redrawn statistic as a tie in both tails when it is within `sqrt(.Machine$double.eps)` times max(|observed|, largest |redraw|) of the observed one. Before, the tolerance was 1e-8 times |observed|, so an observed statistic of exactly 0 never caught ties at about 1e-17 (an enumerated 12-subject `InferenceOrdinalRidit` test gave p = 0.9935 instead of 1). P-values with such ties can only rise. Also: `InferenceIncidExactZhang$compute_exact_confidence_interval()` (and the `type = "Zhang"` randomization CI for incidence) now starts its endpoint search from a point the combined test accepts, so the interval inverts the test it reports; with every subject matched it used to always contain 0, and on KK designs at large n coverage was 0.85-0.88.
+
 * Under `set_estimand("marginal_mean_diff")` / `"marginal_ratio"`, the
   randomization and bootstrap-randomization tests of `InferencePropBetaRegr`,
   `InferenceCountPoisson`, `InferenceCountQuasiPoisson`,
@@ -648,6 +654,8 @@
 
 ## Breaking changes
 
+* `DesignFixedRerandomization$new()` now requires an acceptance rule, exactly one of `obj_val_cutoff` and `prop_acceptable`, and stops if neither is given. Before, giving neither accepted every candidate draw, so the design was complete randomization with a fixed number treated. Pass e.g. `prop_acceptable = 0.1` (keep the best 10% of draws by Mahalanobis distance); `obj_val_cutoff = Inf` reproduces the old behaviour exactly. `SimulationFramework` supplies `prop_acceptable = 0.1` when the design is given without a rule.
+
 * Argument checks are stricter (v1.0.6-TODO-100, v1.0.6-TODO-106). Calls that
   used to be accepted and gave `NA`, a silently wrong value or a confusing later
   error now stop with a checkmate error naming the argument:
@@ -680,6 +688,10 @@
   subjects are added or, for a sequential design with `n`, before all `n`
   subjects have arrived (an overwrite mid-trial fed later sequential assignments
   a `w` the design never drew) (v1.0.6-TODO-154).
+
+## Documentation
+
+* Corrected documentation claims: `SimulationFramework` draws covariates with `cov_draw_method` (default `stats::rnorm`), not Uniform(0, 1); `InferenceSurvivalRestrictedMeanDiff` integrates the Kaplan-Meier curve exactly (a sum of rectangles), not by the trapezoid rule; and `fast_cpoisson_combined_with_var_cpp()` documents its `tol`, `hessian` and estimate-only return accurately.
 
 # EDI 1.0.4
 

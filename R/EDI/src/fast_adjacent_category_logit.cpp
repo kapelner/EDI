@@ -455,8 +455,10 @@ List fast_adjacent_category_logit_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP
 //' coefficient on the \strong{first} column of \code{X} — by the package's usual
 //' convention, the treatment-effect column — extracted directly from the free-parameter
 //' covariance block rather than requiring the caller to index into the full
-//' \code{vcov} matrix; it is \code{NA} if that coefficient was fixed
-//' (via \code{fixed_idx}) or if its estimated variance is non-finite or non-positive.
+//' \code{vcov} matrix; it is \code{NA} if \code{X} has no columns, if that
+//' coefficient was fixed (via \code{fixed_idx}), if the free-parameter covariance
+//' block is not all finite, or if its estimated variance is non-finite or
+//' non-positive.
 //'
 //' @inheritParams fast_adjacent_category_logit_cpp
 //' @return A list with all the components of
@@ -464,9 +466,11 @@ List fast_adjacent_category_logit_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP
 //'   \code{params}, \code{neg_loglik}, \code{converged}), plus \code{ssq_b_1}
 //'   (equivalently \code{ssq_b_j}, the variance of the first covariate's
 //'   coefficient), \code{vcov} (the full parameter variance-covariance matrix, or
-//'   \code{NULL} if not converged), and \code{fisher_information} (the full observed
+//'   \code{NULL} if not converged), \code{fisher_information} (the full observed
 //'   information matrix at the fitted parameters, over all parameters regardless of
-//'   \code{fixed_idx}).
+//'   \code{fixed_idx}), and the optimizer diagnostics \code{num_iter},
+//'   \code{hit_iteration_cap}, \code{gradient_norm} and
+//'   \code{min_eigenvalue_information}.
 //' @seealso \code{\link{fast_adjacent_category_logit_cpp}} for the estimate-only
 //'   variant and the full model/parameterization documentation.
 //' @export

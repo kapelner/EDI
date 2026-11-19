@@ -5,6 +5,7 @@
 #'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
 #'   for the shared estimate-contract this participates in.
 #'
-#' @return    The setting-appropriate (see description) numeric estimate of the treatment effect
+#' @return    The difference in sample means (treated minus control) as a single
+#'   number, or \code{NA_real_} if either arm has no observations.
 #'
 #' @param estimate_only If TRUE, skip variance component calculations.

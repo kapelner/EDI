@@ -6,12 +6,12 @@
 #' count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
 #' w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 #' submodels may use different covariate formulas
-#' (\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
-#' effect is the coefficient from the conditional (truncated, \eqn{Y > 0})
-#' count component, on the log-rate scale, \strong{conditional on clearing
-#' the hurdle}: it is not the effect on the unconditional mean \eqn{E[Y]},
-#' which also depends on how treatment shifts the hurdle-crossing
-#' probability, under the default \code{estimand = "conditional"}.
+#' (\code{model_formula}/\code{model_formula_hurdle}). Under the default
+#' \code{estimand = "conditional"}, the reported treatment effect is the
+#' coefficient from the conditional (truncated, \eqn{Y > 0}) count component,
+#' on the log-rate scale, \strong{conditional on clearing the hurdle}: it is
+#' not the effect on the unconditional mean \eqn{E[Y]}, which also depends on
+#' how treatment shifts the hurdle-crossing probability.
 #' \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
 #' likelihood-ratio tests are available for the count submodel's treatment
 #' coefficient under that estimand, and so is a score test.

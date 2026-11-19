@@ -1,10 +1,10 @@
 #' @description Initialize a simple mean-difference inference object.
 #' @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned
 #'   and response y is recorded within.
-#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-#'   the formula from the design object is used and its pre-computed design matrix is
-#'   reused. If a formula is provided, a new design matrix is constructed from the
-#'   design's imputed covariates.
+#' @param model_formula   Optional covariate formula. It is accepted for interface
+#'   consistency but does not change the estimate or standard error, which use only
+#'   the responses and treatment assignments (no covariate adjustment). If \code{NULL}
+#'   (default), the formula from the design object is used.
 #' @param verbose Whether to print progress messages. Default \code{FALSE}.
 #' @param max_resample_attempts Maximum number of times a single bootstrap replicate
 #'   may be redrawn when the drawn sample fails validity screening. If all attempts

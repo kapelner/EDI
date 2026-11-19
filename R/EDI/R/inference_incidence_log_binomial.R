@@ -783,11 +783,14 @@ IncidenceLogBinomialLikelihoodSource = list(
 #'
 #' @examples
 #' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
+#' # a low event rate and n = 100 keep the log-binomial fit off the
+#' # exp(Xb) = 1 boundary
+#' set.seed(1)
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 100, response_type = 'incidence')
+#' for (i in 1:100) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' seq_des$add_all_subject_responses(rbinom(100, 1, 0.2))
 #' inf = InferenceIncidLogBinomial$new(seq_des)
 #' inf$compute_estimate()
 #' }

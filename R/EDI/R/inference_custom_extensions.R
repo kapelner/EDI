@@ -187,7 +187,6 @@ InferenceCustomRand = define_inference_class(
 		},
 		#' @description Compute the treatment-effect estimate by delegating to the
 		#'   user-supplied custom estimator (the \code{$fit()} callback). See
-		#'   \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} and
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		#' @return The treatment estimate.

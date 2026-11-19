@@ -7,7 +7,8 @@
 #' @details
 #' \strong{Model.} Two robust M/MM-estimator regressions are fit independently:
 #' one on the within-pair outcome differences for matched pairs (with covariate
-#' differences as predictors, no intercept), and one on the reservoir subjects
+#' differences as predictors and an intercept that estimates the treatment
+#' effect), and one on the reservoir subjects
 #' (raw covariates plus a treatment indicator). Each yields a treatment-effect
 #' estimate \eqn{\hat\beta_{T,k}} and estimated variance. The two are combined
 #' by inverse-variance weighting into a single \eqn{\hat\beta_T}, the same
