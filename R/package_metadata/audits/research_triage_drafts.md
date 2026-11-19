@@ -100,107 +100,107 @@ Proposed defers: plausible but low value now (cold path, small share of runtime,
 estimator change not wanted yet). No TODO is drafted; each comes back for triage on its revisit date
 (the inventory check flags a defer once its date is due).
 
-### BLDM + complete Karmarkar-Karp for p = 1 optimal allocation  `balanced-allocation-optimization#43925959437.1`
+### BLDM + complete Karmarkar-Karp for p = 1 optimal allocation  `balanced-allocation-optimization#43925959437.1`  → **v1.2.0-TODO-209** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-23._
 Plausible but narrow: only p = 1 and the |sum difference| kinds, with an exponential certification tail near n = 50-60. The exact enumeration solver for n <= ~30 (algorithm_choice_audit.md TODO-20, in v1.2.0-TODO-23) covers the MILP range first; revisit for n > 30, p = 1 after it lands.
 
-### Low-rank convex MIQCP via the CRAN scip package for DesignFixedOptimal  `balanced-allocation-optimization#43925959437.2`
+### Low-rank convex MIQCP via the CRAN scip package for DesignFixedOptimal  `balanced-allocation-optimization#43925959437.2`  → **v1.2.0-TODO-210** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-23._
 New optional dependency, no benchmark, applies_at_edi_sizes unknown. The MILP is used only up to n = 20 (EDI_OPTIMAL_DEFAULT_LINEARIZATION_MAX_N, helper_optimal_milp_solvers.R:25), which the planned exact enumerator (audit TODO-20, v1.2.0-TODO-23) supersedes up to ~30; the MIQP formulation is already noted in catalog §12 TODO-2.
 
-### HiGHS instead of GLPK as the MILP backend for optimal designs  `balanced-allocation-optimization#43925959437.3`
+### HiGHS instead of GLPK as the MILP backend for optimal designs  `balanced-allocation-optimization#43925959437.3`  → **v1.2.0-TODO-211** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-23._
 Unquantified, new dependency, and the source itself says results depend on the formulation; GLPK runs only at n <= 20 (helper_optimal_milp_solvers.R:25), where audit TODO-20's enumerator (v1.2.0-TODO-23) is the planned replacement. Revisit as one arm of that benchmark if MILPs are still used beyond the enumeration cap.
 
-### Vectorize the per-row rbeta loop in the ZOIB parametric-bootstrap simulator  `beta-regression-mle#43925959437.2`
+### Vectorize the per-row rbeta loop in the ZOIB parametric-bootstrap simulator  `beta-regression-mle#43925959437.2`  → **v1.2.0-TODO-212** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Real but small: the loop at inference_proportion_zero_one_inflated_beta.R:791-801 draws u as a vector first and interleaves no other RNG, so a vectorized rbeta should be identical(); but it saves only O(n) interpreted iterations next to a C++ ZOIB refit per replicate. Fold into the ZOIB BB TODO (finding beta-regression-mle#43925959437.1) if that is approved, gated on identical() under a fixed seed.
 
-### Route fractional-logit estimate_only glm.fit branch to C++ IRLS  `binary-glm-mle#43925959437.2`
+### Route fractional-logit estimate_only glm.fit branch to C++ IRLS  `binary-glm-mle#43925959437.2`  → **v1.2.0-TODO-213** (approved 2026-11-19)
 _Revisit 2027-05-01._
 The glm.fit(quasibinomial) branch (inference_proportion_fractional_logit.R:165) runs only when harden = FALSE, and harden defaults to TRUE (:140) with no internal caller setting it FALSE, so this is a cold opt-in path; the default path already uses fast_logistic_regression_cpp (:257).
 
-### HiGHS as an open-source MILP backend for optimal blocks  `blocking-partition#43925959437.3`
+### HiGHS as an open-source MILP backend for optimal blocks  `blocking-partition#43925959437.3`  → **v1.2.0-TODO-214** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-23._
 Unquantified for this model; ROI.plugin.highs MILP support is unconfirmed by the finding itself, and it adds a dependency. roi_solver is a closed set (helper_optimal_milp_solvers.R:30). Relevant only beyond the small-n range that the reformulation/DP work in v1.2.0-TODO-23 targets.
 
-### Dense bitset instead of unordered_set in sample_group_units  `bootstrap-index-generation#43925959437.1`
+### Dense bitset instead of unordered_set in sample_group_units  `bootstrap-index-generation#43925959437.1`  → **v1.2.0-TODO-215** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Bit-identical but negligible end to end (the finding says so); rejection + unordered_set is at exchangeable_resampling_draws.cpp:81. The partial Fisher-Yates half (catalog §7 TODO-2) is unscheduled and changes the stream. Revisit only if profiling shows subsampling draws matter.
 
-### Batched bounded random integers (Brackett-Rozinsky & Lemire) for bootstrap indices  `bootstrap-index-generation#43925959437.2`
+### Batched bounded random integers (Brackett-Rozinsky & Lemire) for bootstrap indices  `bootstrap-index-generation#43925959437.2`  → **v1.2.0-TODO-216** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-11._
 Unquantified at EDI sizes, needs 64-bit words while RRng is 32-bit MT19937, changes seed-pinned streams, and index generation is small next to per-replicate refits. Belongs with the RNG-throughput measurement (performance_profiling_and_upgrades.md TODO-149, in v1.2.0-TODO-11).
 
-### C++ partial Fisher-Yates kernel for block_ra_batch  `complete-randomization-draws#43925959437.1`
+### C++ partial Fisher-Yates kernel for block_ra_batch  `complete-randomization-draws#43925959437.1`  → **v1.2.0-TODO-217** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-22._
 block_ra_batch is already vectorized R (design_fixed_blocking.R:16, used by blocking/cluster/optimal-blocks designs), so the old replicate(randomizr) cost that audit TODO-21 (v1.2.0-TODO-22) targeted is mostly gone; the remaining constant-factor gain is unmeasured and changes seed-pinned draws. Profile first under that item.
 
-### Batched bounded random integers for Fisher-Yates shuffles  `complete-randomization-draws#43925959437.2`
+### Batched bounded random integers for Fisher-Yates shuffles  `complete-randomization-draws#43925959437.2`  → **v1.2.0-TODO-218** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-11._
 Same as the bootstrap-index finding: measured only with 64-bit generators, changes the seed-pinned R/Python stream, and the shuffle is rarely dominant (rerandomization spends O(np) per draw on balance). Revisit with the RNG-throughput item (performance TODO-149 in v1.2.0-TODO-11).
 
-### Exponential-cone interior-point (ECOS/Clarabel) solver for log/identity-binomial MLE  `constrained-binomial-mle#43925959437.1`
+### Exponential-cone interior-point (ECOS/Clarabel) solver for log/identity-binomial MLE  `constrained-binomial-mle#43925959437.1`  → **v1.2.0-TODO-219** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-23._
 A robustness idea with a new solver dependency and no measured gain over EDI's own active-set projection and KKT gate; probably slower per fit than IRLS. It is a candidate arm for the log-binomial constrained solver in algorithm_choice_audit.md TODO-32 (v1.2.0-TODO-23), not its own item.
 
-### Factor the information matrix once (reuse FullPivLU or LDLT) for vcov  `covariance-from-information#43925959437.1`
+### Factor the information matrix once (reuse FullPivLU or LDLT) for vcov  `covariance-from-information#43925959437.1`  → **v1.2.0-TODO-220** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-11._
 Microseconds per fit at p <= 20, and the FullPivLU check plus inverse() pair is deliberate for bit-compatibility (comment at helper_functions_core.h:724-748). Tracked under performance_profiling_and_upgrades.md TODO-155 (v1.2.0-TODO-11); try lu.inverse() there with a vcov-fixture A/B.
 
-### Tail-accurate cell-probability differences per link (rms celldiff) instead of F(u)-F(l) floored at 1e-12  `cumulative-link-ordinal-mle#43925959437.3`
+### Tail-accurate cell-probability differences per link (rms celldiff) instead of F(u)-F(l) floored at 1e-12  `cumulative-link-ordinal-mle#43925959437.3`  → **v1.2.0-TODO-221** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Robustness only, no speed gain; the cancellation and the 1e-12 floor (ordinal_fixed_link_helpers.h:258,285,343) are already recorded as a catalog section 2 incidental that 'only matters from extreme starts', and no fit failure has been traced to it. Revisit if a near-separated ordinal replicate failure is traced to the floor (it would then be a v1.0.6 false-convergence item).
 
-### fastglm::fastglm_ordinal(nonparallel=) instead of VGAM::vglm for partial proportional odds  `cumulative-link-ordinal-mle#43925959437.4`
+### fastglm::fastglm_ordinal(nonparallel=) instead of VGAM::vglm for partial proportional odds  `cumulative-link-ordinal-mle#43925959437.4`  → **v1.2.0-TODO-222** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Low confidence: no timings, fractional-weight behaviour undocumented (weights are frequency counts), estimator equivalence unknown, and fastglm_ordinal is a brand-new release (CRAN 0.1.4, 2026-11-11). It would add a dependency, so it would belong in v1.2.0+ with an owner decision; vglm is called at inference_ordinal_partial_proportional_odds.R:574,607. Revisit once the package has matured.
 
-### Cancellation-free centred form of the LMM per-group quadratic form W_g  `dense-linear-algebra#43925959437.2`
+### Cancellation-free centred form of the LMM per-group quadratic form W_g  `dense-linear-algebra#43925959437.2`  → **v1.2.0-TODO-223** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Robustness only, low confidence, and it matters only at v_b/v_e of about 1e6 or more; W_g = Q_g - (v_b/a_g) S_g^2 is at fast_gaussian_lmm.cpp:109-118 / :158. The natural time to change it is the profiled-LMM rewrite (audit TODO-32, v1.2.0-TODO-23), which reworks neg_ll_and_grad anyway.
 
-### Single forced-front pivoted QR or column-append QR updates in qr_reduce_preserve_cols_cpp  `design-matrix-preprocessing#43925959437.2`
+### Single forced-front pivoted QR or column-append QR updates in qr_reduce_preserve_cols_cpp  `design-matrix-preprocessing#43925959437.2`  → **v1.2.0-TODO-224** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-22._
 Already listed in audit TODO-29 ('qr_reduce_preserve_cols single factorization', v1.2.0-TODO-22, low-priority linear algebra). The keep-set is cached, so the path is cold, and a different pivot could change the keep-set on near-collinear designs; no new reason to raise its priority.
 
-### p-value-only Fisher exact path (zhang_exact_fisher_pval_cpp or conf.int=FALSE)  `exact-conditional-tests#43925959437.1`
+### p-value-only Fisher exact path (zhang_exact_fisher_pval_cpp or conf.int=FALSE)  `exact-conditional-tests#43925959437.1`  → **v1.2.0-TODO-225** (approved 2026-11-19)
 _Revisit 2027-05-01._
 pval_exact_fisher (inference_indicidence_exact_fisher.R:109) is only reached from the user-level p-value at a given delta (:78); the CI comes from one fisher.test call, not from inversion, so there is no repeated-call hot path. Low value; the conf.int = FALSE change is trivial when the file is next touched.
 
-### Exact finite sums for integer/half-integer df upper chi-square tail  `gamma-family-functions#43925959437.1`
+### Exact finite sums for integer/half-integer df upper chi-square tail  `gamma-family-functions#43925959437.1`  → **v1.2.0-TODO-226** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Catalog verdict for fast_gamma_functions.h fast_pchisq_upper is Keep (catalog line 1024), and the finding expects negligible end-to-end gain since each p-value follows a refit; the accuracy benefit is unquantified. Could ride with the accuracy batch (audit TODO-22, v1.1.0-TODO-50) if that is reopened.
 
-### Cache the multgee uniform local-odds-ratio structure across ladder rungs and draws  `gee-fit#43925959437.1`
+### Cache the multgee uniform local-odds-ratio structure across ladder rungs and draws  `gee-fit#43925959437.1`  → **v1.2.0-TODO-227** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-2._
 Low confidence: the LOR estimation's share of an ordLORgee call is unmeasured, and the cache couples EDI to multgee's LORterm layout. The native ordinal GEE kernel that replaces multgee::ordLORgee is already scheduled (v1.2.0-TODO-2), which supersedes an interim cache.
 
-### O(n) closed-form Hodges-Lehmann variance from centred group sums  `hodges-lehmann-estimation#43925959437.1`
+### O(n) closed-form Hodges-Lehmann variance from centred group sums  `hodges-lehmann-estimation#43925959437.1`  → **v1.2.0-TODO-228** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Exact and more stable, but the only caller is compute_wilcox_matching_ivwc_bootstrap_parallel_cpp (fast_wilcox_hl.cpp:574-576), used by the legacy InferenceAllKKWilcoxIVWC (inference_all_KK_wilcox_ivwc.R:467). Low value; do it when that file is next touched for the HL SE scale fix.
 
-### Linearized (CV3L) jackknife from per-unit scores/information as an opt-in  `jackknife-replicates#43925959437.2`
+### Linearized (CV3L) jackknife from per-unit scores/information as an opt-in  `jackknife-replicates#43925959437.2`  → **v1.2.0-TODO-229** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Estimator change (first-order approximation; BCa a-hat and jackknife SE move), low confidence, and it needs per-unit score and information contributions that most EDI specs do not expose (the same obstacle the catalog records for the infinitesimal jackknife, line ~1676). The 'v1.0.6-TODO-7' the finding cites is unrelated (ModifiedPoisson ~1 at large n). Revisit after the exact LS jackknife lands and if per-unit hooks are added.
 
-### Distinct-y frequency table for the NB theta score/information sums in KK21 tstats  `kk21-covariate-weights#43925959437.1`
+### Distinct-y frequency table for the NB theta score/information sums in KK21 tstats  `kk21-covariate-weights#43925959437.1`  → **v1.2.0-TODO-230** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Exact regrouping, but the theta step is one Newton step per outer iteration (kk21_weights.cpp:553-564, digamma/trigamma per obs) while the IRLS beta loop (<=25 its) dominates; only reached when count_use_speedup=FALSE. Unquantified, low confidence; revisit with a profile.
 
-### Minimax (fdlibm-style) polynomial in s^2 for fast_log1pexp instead of 10-term Taylor  `link-function-evaluation#43925959437.1`
+### Minimax (fdlibm-style) polynomial in s^2 for fast_log1pexp instead of 10-term Taylor  `link-function-evaluation#43925959437.1`  → **v1.2.0-TODO-231** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Marginal speed (about 3 FMAs per element while exp dominates) and the current series already meets its claimed <5e-12 abs error (inventory row fast_log1pexp, 'Keep'). Worth doing only as an accuracy item; the citation fix for catalog P11 (algorithm_choice_audit_catalog.md:1474) can be done anytime.
 
-### Factor X_pos once for both hurdle-NB OLS start columns  `mle-starting-values#43925959437.2`
+### Factor X_pos once for both hurdle-NB OLS start columns  `mle-starting-values#43925959437.2`  → **v1.2.0-TODO-233** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Real but tiny: fast_hurdle_negbin.cpp:167 and :170 each run a ColPivQR on X_pos, saving one O(np^2) factorization in a start grid of a whole iterative fit. Bit-identical; bundle with the next edit to the start code (e.g. v1.2.0-TODO-11's performance TODO-155 work) rather than ship alone.
 
-### Exact quadratic jump-point inversion for studentized BRT pivots (Zhu & Liu 2024)  `monte-carlo-test-inversion-ci#43925959437.2`
+### Exact quadratic jump-point inversion for studentized BRT pivots (Zhu & Liu 2024)  `monte-carlo-test-inversion-ci#43925959437.2`  → **v1.2.0-TODO-234** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Applies only to OLS / mean-diff / Lin studentized BRT pivots, which fall back to bisection in invert_rand_bootstrap_test_bisection (inventory 'Keep-tracked'); low confidence, no EDI-size benchmark, and the reference code is unlicensed (implement from the paper). Revisit after v1.2.0-TODO-21's harness exists.
 
-### ITP (n0=0) instead of bisection in zhang_bisect_ci_boundary  `monte-carlo-test-inversion-ci#43925959437.5`
+### ITP (n0=0) instead of bisection in zhang_bisect_ci_boundary  `monte-carlo-test-inversion-ci#43925959437.5`  → **v1.2.0-TODO-235** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Each p(delta) evaluation is O(d+S) arithmetic, so even 20 -> 8-10 evaluations saves microseconds; the inventory already lists three conflicting verdicts for zhang_bisect_ci_boundary ('Keep', 'Adopt-with-caveat', 'Prototype') that should be reconciled first (the 'step function' rationale is the part to correct).
 
@@ -208,43 +208,43 @@ Each p(delta) evaluation is O(d+S) arithmetic, so even 20 -> 8-10 evaluations sa
 _Revisit 2027-05-01._
 A new, different interval (wider at small B), not a faster way to compute the current one; it needs an owner decision on a new CI type and a coverage A/B, and the studentized variant is an unreviewed 2026 preprint. Revisit after v1.2.0-TODO-21's harness lands.
 
-### XPtr compiled custom distance and hoisted buffers for the R-callback distance matrix  `pairwise-distance-matrix#43925959437.1`
+### XPtr compiled custom distance and hoisted buffers for the R-callback distance matrix  `pairwise-distance-matrix#43925959437.1`  → **v1.2.0-TODO-236** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Adds API surface; the matrix is computed once per design and the ompr MILP dominates (finding tradeoffs; inventory distance_matrix_custom_cpp_impl 'Keep (inherent to a black-box R fn)'). Low value now.
 
-### Portnoy-Koenker/CFM preprocessing for bootstrap quantile-regression refits  `quantile-rank-regression#43925959437.2`
+### Portnoy-Koenker/CFM preprocessing for bootstrap quantile-regression refits  `quantile-rank-regression#43925959437.2`  → **v1.2.0-TODO-237** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Exact (same estimates), but the cited gains are against Stata simplex at k = 20 and the paper reports no gain for a single fit at n = 500, k = 8; EDI's quantile classes have small p, and the inventory verdict for inference_continuous_quantile_regr.R is 'Keep br at EDI sizes'. Revisit after the rq.fit/C++ quantile work (v1.2.0-TODO-1, v1.2.0-TODO-22 / audit TODO-19) if profiling shows replicate QR fits dominate at n >= 1,000.
 
-### Batched bounded integers (Brackett-Rozinsky & Lemire) for Fisher-Yates shuffles  `random-number-generation#43925959437.2`
+### Batched bounded integers (Brackett-Rozinsky & Lemire) for Fisher-Yates shuffles  `random-number-generation#43925959437.2`  → **v1.2.0-TODO-238** (approved 2026-11-19)
 _Revisit 2027-05-01._
 bounded_rand (RNG.h:324-336) is already Lemire's method (inventory verdict 'Keep (best-known method)'); the batched variant changes every seed-pinned shuffle for a gain bounded by the RNG share, which is unmeasured and, per the finding above, likely smaller than the per-draw MT seeding cost. Revisit together with the RNG-stream TODO if that benchmark shows word generation matters.
 
-### Early-abandon partial sums in rerandomization acceptance check  `rerandomization-sampling#43925959437.1`
+### Early-abandon partial sums in rerandomization acceptance check  `rerandomization-sampling#43925959437.1`  → **v1.2.0-TODO-239** (approved 2026-11-19)
 _Revisit 2027-05-01._
 The gain is bounded by the O(np) GEMV share of a candidate (rerandomization_helpers.cpp:236-238), and the per-draw MT seeding (finding random-number-generation .1) is likely the larger cost at EDI sizes. Accumulating f in a different order can also flip decisions exactly at the cutoff, which changes seed-pinned draws. Revisit after the RNG setup benchmark.
 
-### nth_element sample quantile for intercept-only sign-flip refits instead of rq(yd ~ 1)  `resampling-refit-loop#43925959437.1`
+### nth_element sample quantile for intercept-only sign-flip refits instead of rq(yd ~ 1)  `resampling-refit-loop#43925959437.1`  → **v1.2.0-TODO-240** (approved 2026-11-19)
 _Revisit 2027-05-01; related to v1.2.0-TODO-22._
 The rq.fit replacement is already scheduled as audit TODO-19 (catalog section 9 TODO-6b) under v1.2.0-TODO-22, but the code path (qr_intercept_pairs, inference_all_KK_quantile_regr_ivwc_abstract.R:402-407) is hosted only by the legacy KK quantile IVWC classes (inference_continuous_KK_quantile_regr_ivwc.R:69, inference_proportion_KK_quantile_regr_ivwc.R:64), which are never published. Fold the p == 0 nth_element special case into v1.2.0-TODO-22 if that work touches this file.
 
-### Closed-form MN constrained MLE (cubic) plus Brent on z(delta) for the risk-difference CI  `risk-difference-ci#43925959437.1`
+### Closed-form MN constrained MLE (cubic) plus Brent on z(delta) for the risk-difference CI  `risk-difference-ci#43925959437.1`  → **v1.2.0-TODO-241** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Catalog section 6 candidate 3 rates it 'Adopt, low priority': mn_ci_cpp/mn_pvalue_cpp are called once per CI/p-value (inference_incidence_miettinen_nurminen_univ.R:155,172), not inside resampling, and absolute cost is microseconds. No release TODO schedules it; brent_ci_inversion.md (v1.1.0-TODO-17w) does not yet name mn_ci_internal. Fold into that plan when it lands, using lrstat remlRiskDiff as the reference.
 
-### Finite-termination active-set Newton for the Huber M-estimator  `robust-m-regression#43925959437.1`
+### Finite-termination active-set Newton for the Huber M-estimator  `robust-m-regression#43925959437.1`  → **v1.2.0-TODO-242** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Same estimator and same O(np^2) per step; the finding's own source says Huber IRLS converges in 4-5 iterations, so the saving at n <= 1000, p <= 10 is likely small. Robust-regression performance work is already a v1.2.0 lane (v1.2.0-TODO-3, robust_regression_perf_optimization_spec.md); revisit there if profiling shows IRLS iterations dominate KK randomization draws.
 
-### pxp Bell-McCaffrey df and kxk meat reduction for CR2 (estimatr 2.0)  `sandwich-variance#43925959437.1`
+### pxp Bell-McCaffrey df and kxk meat reduction for CR2 (estimatr 2.0)  `sandwich-variance#43925959437.1`  → **v1.2.0-TODO-243** (approved 2026-11-19)
 _Revisit 2027-05-01._
 Same CR2 estimator, but cluster_robust_cr2_variance (helper_robust_sandwich.R:116-157) runs once per fit, only on cluster-randomized designs (callers inference_continuous_ols.R:399, inference_continuous_lin.R:392), and its O(nG^2) crossprod is milliseconds at n <= 1000. Revisit if the CR2 SE is put inside studentized bootstrap or randomization loops.
 
-### Boos-Zhang 1/B extrapolation of coverage/power in the simulation engine  `simulation-study-engine#43925959437.1`
+### Boos-Zhang 1/B extrapolation of coverage/power in the simulation engine  `simulation-study-engine#43925959437.1`  → **v1.2.0-TODO-244** (approved 2026-11-19)
 _Revisit 2027-05-01._
 This changes what the simulation report states (an extrapolated B = infinity summary) rather than speeding any EDI algorithm, and it needs nested sub-B bookkeeping in every bootstrap/randomization cell; the inventory verdict for result_key_store is Keep. Plausibly useful for the monthly calibration study (v1.2.0-TODO-36), so revisit when that study's compute budget is set.
 
-### missForestPredict warm-started periodic refits and per-arrival predict  `missing-covariate-imputation#43925959437.2`
+### missForestPredict warm-started periodic refits and per-arrival predict  `missing-covariate-imputation#43925959437.2`  → **v1.2.0-TODO-232** (approved 2026-11-19)
 _Revisit 2027-07-01._
 New dependency, a different imputer (estimator change), unquantified gain, and only needed if the missRanger predict path in v1.2.0-TODO-23 (audit TODO-30) proves insufficient. Revisit after that prototype reports.
 
