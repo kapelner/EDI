@@ -2830,7 +2830,7 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 }
 
 #' Re-bind already-installed lazy-component methods on a freshly cloned
-#' \code{Inference} object to that clone's own \code{self}/\code{private}.
+#' \code{Inference} object to that clone's own \code{self}/\code{private}
 #'
 #' Since 2026-10-22 (TODO-125) this is a no-op kept for one release:
 #' \code{install_lazy_inference_component()} now closes each installed

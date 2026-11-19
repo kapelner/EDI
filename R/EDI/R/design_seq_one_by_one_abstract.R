@@ -336,7 +336,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 # "redraw"): seed per draw index, the rule EDI already uses so results do not depend
 # on the thread count. Same polynomial string hash as comprehensive_tests.R's
 # coverage_truth_seed() (exact in doubles since h < 2^31); set.seed() then scrambles
-# the integer, so neighbouring keys give unrelated streams.
+# the integer, so neighboring keys give unrelated streams.
 seq_design_draw_seed = function(seed, key){
 	h = 0
 	for (code in utf8ToInt(paste("EDI_seq_one_by_one", format(seed, scientific = FALSE, trim = TRUE), key, sep = "||"))) {

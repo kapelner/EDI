@@ -93,7 +93,7 @@ reported non-estimable by the fit-usability check, and in roughly 10-12\%
 of the reported results the rank-deficiency fallback had dropped the
 covariate, leaving a treatment-only model. Both came from the category
 loadings: the ordered-score MLE is often on the boundary (a loading merged
-with a neighbouring category), where the information has a flat loading
+with a neighboring category), where the information has a flat loading
 direction, and the cold start (at \eqn{\beta = 0}, where the loadings
 carry no information) usually stopped at such a point short of the MLE.
 Since EDI 1.0.5 the full-data fit also starts from the adjacent-category

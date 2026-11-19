@@ -1,5 +1,5 @@
 # Null fit when beta_T is the only Cox parameter (TODO-121, as TODO-115 for the
-# clogit sibling): no optimisation, b = delta. The partial likelihood uses the
+# clogit sibling): no optimization, b = delta. The partial likelihood uses the
 # Breslow rule, the same as the C++ fitter that produced the full fit.
 kk_cox_fully_fixed_null_fit = function(X, y, dead, strata, delta){
 	delta = as.numeric(delta)[1L]

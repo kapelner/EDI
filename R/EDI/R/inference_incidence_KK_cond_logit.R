@@ -1,5 +1,5 @@
 # Null fit when every parameter is fixed (beta_T is the only column, TODO-115):
-# no optimisation, b = delta. Minimal fit object for the LR/score code.
+# no optimization, b = delta. Minimal fit object for the LR/score code.
 kk_clogit_fully_fixed_null_fit = function(delta){
 	delta = as.numeric(delta)[1L]
 	if (!is.finite(delta)) return(NULL)
@@ -621,7 +621,7 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #' pools them by inverse-variance weighting; here the treatment coefficient
 #' is a single joint MLE. \code{likelihood_tier = "partial"}: the matched-pair
 #' piece is a conditional likelihood (the pair intercepts are conditioned
-#' away, not modelled), so the joint objective is not a full model
+#' away, not modeled), so the joint objective is not a full model
 #' likelihood; it still exposes likelihood-ratio, score, and gradient
 #' inference plus a parametric likelihood bootstrap in addition to Wald.
 #'

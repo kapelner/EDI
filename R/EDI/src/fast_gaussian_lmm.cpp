@@ -554,7 +554,7 @@ List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, con
 // Given fixed log_sigma_e and log_sigma_b (from a prior full fit), solve for
 // beta via GLS without any L-BFGS optimization.  ~100x faster than full MLE.
 // Valid for permutation tests (VC fixed at null-fit MLE — exact test by
-// exchangeability) and for non-studentised bootstrap (VC approximated).
+// exchangeability) and for non-studentized bootstrap (VC approximated).
 //
 // GLS normal equations with V_g = v_e*I + v_b*J:
 //   A     = sum_g gw * [ X_g'X_g - c_g * sx_g sx_g' ]   (common 1/v_e factor dropped; it cancels in A^{-1} b)

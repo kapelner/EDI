@@ -77,7 +77,7 @@ InferenceIncidKKCondLogitGLMMIVWC = R6::R6Class("InferenceIncidKKCondLogitGLMMIV
 #'
 #' \strong{Caveat: two estimands are pooled.} Conditional logit estimates a
 #' pair-conditional log odds ratio. Logistic regression on the reservoir
-#' estimates a log odds ratio given only the modelled covariates. Because the
+#' estimates a log odds ratio given only the modeled covariates. Because the
 #' odds ratio is non-collapsible, these are the same number only if the linear
 #' logistic model in \eqn{x} is correct, i.e. no outcome-relevant variation is
 #' left between pairs beyond what \eqn{\beta_x^\top x} explains. With residual

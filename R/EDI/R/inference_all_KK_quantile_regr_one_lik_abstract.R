@@ -6,7 +6,7 @@
 #' Column layout of X_stack: [beta_0 | beta_T | beta_xs (p cols)]
 #' Pair rows:      [0 | 1   | Xd_k] -> Q_tau(yd_k) = beta_T + Xd_k' beta_xs
 #' Reservoir rows: [1 | w_i | X_i]  -> Q_tau(y_i)  = beta_0 + w_i*beta_T + X_i'*beta_xs
-#' Fitting a single rq() on the stacked dataset minimises the combined check-function loss.
+#' Fitting a single rq() on the stacked dataset minimizes the combined check-function loss.
 #'
 #' Special cases:
 #' Pairs only:     beta_0 column is all-zero and dropped; layout [beta_T | beta_xs].

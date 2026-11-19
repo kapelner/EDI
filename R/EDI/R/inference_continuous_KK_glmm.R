@@ -76,17 +76,17 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
-		#' @param use_rcpp Logical. If \code{TRUE} (default), use the optimised Rcpp
+		#' @param use_rcpp Logical. If \code{TRUE} (default), use the optimized Rcpp
 		#'   Gaussian LMM implementation (no external package required). If \code{FALSE},
 		#'   use \pkg{glmmTMB}.
 		#' @param use_gls_fast_path Logical. If \code{TRUE} (default), use a fast GLS
-		#'   estimator (no optimisation) for \code{estimate_only} calls during
+		#'   estimator (no optimization) for \code{estimate_only} calls during
 		#'   randomisation inference once variance components are cached from a prior
 		#'   full fit.  Statistically exact: fixing VC at the null-fit MLE and
 		#'   permuting only the treatment assignment gives a valid permutation test by
 		#'   exchangeability.  Set \code{FALSE} to always run full L-BFGS.
 		#' @param use_gls_fast_path_bootstrap Logical. If \code{TRUE}, also use the
-		#'   fast GLS estimator for non-studentised bootstrap draws
+		#'   fast GLS estimator for non-studentized bootstrap draws
 		#'   (\code{estimate_only = TRUE} weighted calls).  Asymptotically valid by
 		#'   the plug-in principle (VC orthogonal to beta_T in the Fisher information),
 		#'   but not exact in finite samples.  Default \code{FALSE}.
@@ -443,7 +443,7 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 			j_T_r = which(colnames(X_fit) == "w")
 			if (length(j_T_r) == 0L) j_T_r = 2L
 
-			# GLS fast path for non-studentised bootstrap (opt-in, default FALSE).
+			# GLS fast path for non-studentized bootstrap (opt-in, default FALSE).
 			# Asymptotically valid via plug-in principle; not exact in finite samples.
 			if (estimate_only && isTRUE(private$use_gls_fast_path_bootstrap) && !is.null(private$cached_vc_params)) {
 				gls_b = tryCatch(

@@ -64,7 +64,7 @@ subset, or a \code{prior_precision}.
 
 \strong{Unequal arms.} Any \code{prob_T} in \eqn{(0, 1)} is supported; the search
 keeps the treated count fixed at \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)},
-and drawing errors if that leaves no treated or no control subject. The kernel centres
+and drawing errors if that leaves no treated or no control subject. The kernel centers
 \eqn{X}, so \eqn{M(2w - 1) = 2Mw}, a fixed positive multiple of the half
 treated-minus-control mean difference at every \eqn{n_T}: both objectives keep their
 balance meaning without any change to the swap update.

@@ -123,7 +123,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   randomization test: the interval is the set of \eqn{\delta} for which the two-sided
 		#'   randomization p-value of the sharp null "treatment effect \eqn{= \delta}" is at
 		#'   least \code{alpha}. For each candidate \eqn{\delta} the control potential
-		#'   outcomes are first imputed under that sharp null by removing the hypothesised
+		#'   outcomes are first imputed under that sharp null by removing the hypothesized
 		#'   effect from the units that were actually treated; then, for each reference
 		#'   allocation \eqn{w_b}, the effect is applied to the units treated under
 		#'   \eqn{w_b} — on the response type's scale (additive for continuous responses,

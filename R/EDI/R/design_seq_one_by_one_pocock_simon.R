@@ -37,7 +37,7 @@
 #' @references Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
 #'   with balancing for prognostic factors in the controlled clinical trial."
 #'   \emph{Biometrics}, 31(1), 103-115, \doi{10.2307/2529712}. See also
-#'   \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimisation
+#'   \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimization
 #'   (clinical trials)} for orientation.
 #' @examples
 #' seq_des = DesignSeqOneByOnePocockSimon$new(strata_cols = 'x1', n = 6, response_type = 'continuous')

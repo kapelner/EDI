@@ -188,10 +188,10 @@ DesignFixedOptimalBlocks = define_design_class(
 			#'       significantly faster than \code{"greedy"} (e.g., ~10x faster
 			#'       for \eqn{n=200, p=10, B=10}) while achieving a better
 			#'       within-block distance objective (e.g., ~4\% lower).}
-			#'     \item{\code{"greedy"}}{Greedy nearest-neighbour matching
+			#'     \item{\code{"greedy"}}{Greedy nearest-neighbor matching
 			#'       via \code{blockTools::block}.  Requires the \pkg{blockTools}
 			#'       package.  Fast even for large \eqn{n}.}
-			#'     \item{\code{"ompr"}}{Exact mixed-integer programme solved with
+			#'     \item{\code{"ompr"}}{Exact mixed-integer program solved with
 			#'       GLPK via \pkg{ompr}.  Globally optimal but scales as
 			#'       \eqn{O(n^2 B)} in variables and is only practical for small
 			#'       \eqn{n}.}
@@ -424,7 +424,7 @@ DesignFixedOptimalBlocks = define_design_class(
 			id_cols   = grep("^Treatment", colnames(assg_df), value = TRUE)
 			block_ids = integer(n)
 			# Only complete rows become blocks 1..B; blockTools' incomplete row (and any
-			# complete row beyond the B-th) is left at 0 for the nearest-neighbour fallback
+			# complete row beyond the B-th) is left at 0 for the nearest-neighbor fallback
 			# below. Complete rows are numbered consecutively: blockTools does not always
 			# put its incomplete row last (seen on bootstrap resamples with duplicated
 			# rows, 2026-10-23), and indexing labels by row position then left one label

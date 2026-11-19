@@ -3,7 +3,7 @@
 \name{edi_rebind_lazy_components_after_clone}
 \alias{edi_rebind_lazy_components_after_clone}
 \title{Re-bind already-installed lazy-component methods on a freshly cloned
-\code{Inference} object to that clone's own \code{self}/\code{private}.}
+\code{Inference} object to that clone's own \code{self}/\code{private}}
 \usage{
 edi_rebind_lazy_components_after_clone(i, source_private = NULL)
 }

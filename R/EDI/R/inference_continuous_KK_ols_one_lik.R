@@ -15,7 +15,7 @@
 # higher-order-accurate, Bartlett factor) -- first full (non-Cox-partial)
 # one-likelihood KK class migrated this stretch.
 # Null fit when beta_T is the only column of the stacked design (TODO-122):
-# every parameter is fixed, no optimisation, b = delta. The C++ solver
+# every parameter is fixed, no optimization, b = delta. The C++ solver
 # (fast_ols_with_var_cpp) throws "at least one parameter must remain free".
 kk_ols_fully_fixed_null_fit = function(delta, y, X){
 	delta = as.numeric(delta)[1L]

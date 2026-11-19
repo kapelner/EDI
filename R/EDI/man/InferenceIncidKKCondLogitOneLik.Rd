@@ -17,7 +17,7 @@ which instead fits the matched and reservoir pieces separately and
 pools them by inverse-variance weighting; here the treatment coefficient
 is a single joint MLE. \code{likelihood_tier = "partial"}: the matched-pair
 piece is a conditional likelihood (the pair intercepts are conditioned
-away, not modelled), so the joint objective is not a full model
+away, not modeled), so the joint objective is not a full model
 likelihood; it still exposes likelihood-ratio, score, and gradient
 inference plus a parametric likelihood bootstrap in addition to Wald.
 

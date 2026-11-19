@@ -361,7 +361,7 @@ EDI_SIMD
 
 // Exact/right-censored Weibull AFT negative log-likelihood.  This is shared
 // by the public Weibull kernel and the KK21 survival-weight kernels so their
-// optimisation target cannot drift apart.  Parameters are [beta, log(sigma)].
+// optimization target cannot drift apart.  Parameters are [beta, log(sigma)].
 class WeibullAFTLikelihood {
 private:
     const Eigen::Ref<const Eigen::VectorXd> m_y;

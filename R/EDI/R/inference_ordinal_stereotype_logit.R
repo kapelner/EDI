@@ -82,7 +82,7 @@
 # phi_j = sum_{r <= j-2} exp(gamma_r) / (1 + sum_r exp(gamma_r)), so phi is ordered
 # by construction and the ordered-score MLE is on the boundary whenever the
 # unconstrained scores are not monotone: some gamma combination runs to +-Inf
-# (phi_k merged with a neighbour, or with 0 / 1) and its information is ~0.
+# (phi_k merged with a neighbor, or with 0 / 1) and its information is ~0.
 # That is a nuisance at its boundary, not covariate rank deficiency. Flat
 # directions are eigen-directions of the gamma block with eigenvalue <=
 # tol * max diag; the reduced information keeps every alpha/beta and the
@@ -858,7 +858,7 @@ OrdinalStereotypeLikelihoodSource = list(
 #' of the reported results the rank-deficiency fallback had dropped the
 #' covariate, leaving a treatment-only model. Both came from the category
 #' loadings: the ordered-score MLE is often on the boundary (a loading merged
-#' with a neighbouring category), where the information has a flat loading
+#' with a neighboring category), where the information has a flat loading
 #' direction, and the cold start (at \eqn{\beta = 0}, where the loadings
 #' carry no information) usually stopped at such a point short of the MLE.
 #' Since EDI 1.0.5 the full-data fit also starts from the adjacent-category

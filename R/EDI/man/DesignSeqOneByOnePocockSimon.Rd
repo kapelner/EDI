@@ -46,7 +46,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
 Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
   with balancing for prognostic factors in the controlled clinical trial."
   \emph{Biometrics}, 31(1), 103-115, \doi{10.2307/2529712}. See also
-  \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimisation
+  \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimization
   (clinical trials)} for orientation.
 }
 \section{Super classes}{
