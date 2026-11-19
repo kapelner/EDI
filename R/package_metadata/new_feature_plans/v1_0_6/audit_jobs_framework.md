@@ -148,7 +148,7 @@ todo/
 
 ## Part 2: the Rd audit
 
-**Frequency: weekly, Saturday 06:00 UTC** (after the 02:30 nightly has finished, so the two do not compete for
+**Frequency: weekly, Saturday 06:07 UTC** (after the 02:07 nightly has finished, so the two do not compete for
 runners).
 
 ### Mechanical checks (every Rd file, every week)
@@ -219,7 +219,7 @@ Example timings are kept in the manifest, so the PR can also report an example t
 
 ## Part 3: the TODO-status audit (audit 6)
 
-**Frequency: weekly, Wednesday 06:00 UTC.** Mid-week, so the ticks are current before the owner's planning.
+**Frequency: weekly, Wednesday 06:07 UTC.** Mid-week, so the ticks are current before the owner's planning.
 
 ### Scope
 
@@ -324,24 +324,24 @@ function and apply rules on top of `audit_common.py`.
 
 | Audit | Frequency | Claude | Model | Notes |
 |---|---|---|---|---|
-| Rd audit (Part 2) | weekly, Sat 06:00 UTC | changed + 1/8 rotation | Sonnet | first |
-| TODO-status audit (Part 3) | weekly, Wed 06:00 UTC | changed + 4/12-week rotation | Opus for the current and next release; Sonnet for v1.2.0 and later | second |
-| Privacy check on public files | weekly, Mon 06:00 UTC | only borderline hits | Sonnet | word list kept in the private repo and passed as a secret, so the list itself is never public |
-| README / vignette / article drift | weekly, Thu 06:00 UTC | changed docs + rotation | Sonnet | runs every chunk, then checks prose numbers against output |
-| Test-suite health | weekly, Tue 06:00 UTC | none at first | — | tests with no expectations, permanent skips, never-hit functions, tests that flip between nightlies |
+| Rd audit (Part 2) | weekly, Sat 06:07 UTC | changed + 1/8 rotation | Sonnet | first |
+| TODO-status audit (Part 3) | weekly, Wed 06:07 UTC | changed + 4/12-week rotation | Opus for the current and next release; Sonnet for v1.2.0 and later | second |
+| Privacy check on public files | weekly, Mon 06:07 UTC | only borderline hits | Sonnet | word list kept in the private repo and passed as a secret, so the list itself is never public |
+| README / vignette / article drift | weekly, Thu 06:07 UTC | changed docs + rotation | Sonnet | runs every chunk, then checks prose numbers against output |
+| Test-suite health | weekly, Tue 06:07 UTC | none at first | — | tests with no expectations, permanent skips, never-hit functions, tests that flip between nightlies |
 | Docs claims vs behaviour | monthly, 2nd Saturday | rotation over all exported classes | Opus | pulls testable claims from roxygen, checks a test covers each |
 | R ↔ Python parity | monthly, 3rd Saturday; also after a `python/` or kernel change | changed bindings | Sonnet | defaults, argument names, docstrings vs R |
 | Dependency and license drift | monthly, 1st Monday | only summarising | Sonnet | must skip the dataset rows deliberately pinned to old releases |
-| CRAN check-results watcher | daily, 07:00 UTC | none | — | reads CRAN's check page for EDI; opens or updates ONE issue (label `cran-check`) when any platform shows a NOTE, WARNING or ERROR, and closes it when clean. An issue, not a PR: there is nothing to write. CRAN sets a fix deadline, so this is the time-critical one |
-| Allowlist and baseline hygiene | weekly, Mon 07:00 UTC | none at first | — | allowlist and accepted-row entries (path audits, `comprehensive_results_audit_baseline.csv`, calibration acceptances) whose cited TODO is ticked or missing, or that no longer trigger; the PR removes them. Reads the TODO audit's verdicts |
-| Generated-file drift | weekly, Tue 07:00 UTC | none | — | regenerates `RcppExports`, the Rd files and the committed reports that can be rebuilt without timing (not the benchmark reports), and reports any difference from what is committed; the PR is the regenerated files |
-| NEWS and version consistency | weekly, Thu 07:00 UTC | commits since the last release tag | Sonnet | behaviour-changing commits with no NEWS entry (Claude judges "behaviour-changing"; the PR drafts the entry under "Needs a human"); version numbers that disagree across `DESCRIPTION`, the Python package, the citation file and the README (mechanical) |
-| CI self-check | weekly, Fri 06:00 UTC | none | — | action versions behind their latest major, scheduled workflows GitHub disabled (it does so after 60 days of repo inactivity), run time per job against its 8-week median, bot PRs and `audit/*` / `algorithm-research/*` branches open over 4 weeks; one issue (label `ci-self-check`) |
-| Python dependency vulnerabilities | weekly, Fri 07:00 UTC | none | — | `pip-audit` on the Python package's dependencies; one issue (label `python-vulnerabilities`) |
+| CRAN check-results watcher | daily, 07:07 UTC | none | — | reads CRAN's check page for EDI; opens or updates ONE issue (label `cran-check`) when any platform shows a NOTE, WARNING or ERROR, and closes it when clean. An issue, not a PR: there is nothing to write. CRAN sets a fix deadline, so this is the time-critical one |
+| Allowlist and baseline hygiene | weekly, Mon 07:07 UTC | none at first | — | allowlist and accepted-row entries (path audits, `comprehensive_results_audit_baseline.csv`, calibration acceptances) whose cited TODO is ticked or missing, or that no longer trigger; the PR removes them. Reads the TODO audit's verdicts |
+| Generated-file drift | weekly, Tue 07:07 UTC | none | — | regenerates `RcppExports`, the Rd files and the committed reports that can be rebuilt without timing (not the benchmark reports), and reports any difference from what is committed; the PR is the regenerated files |
+| NEWS and version consistency | weekly, Thu 07:07 UTC | commits since the last release tag | Sonnet | behaviour-changing commits with no NEWS entry (Claude judges "behaviour-changing"; the PR drafts the entry under "Needs a human"); version numbers that disagree across `DESCRIPTION`, the Python package, the citation file and the README (mechanical) |
+| CI self-check | weekly, Fri 06:07 UTC | none | — | action versions behind their latest major, scheduled workflows GitHub disabled (it does so after 60 days of repo inactivity), run time per job against its 8-week median, bot PRs and `audit/*` / `algorithm-research/*` branches open over 4 weeks; one issue (label `ci-self-check`) |
+| Python dependency vulnerabilities | weekly, Fri 07:07 UTC | none | — | `pip-audit` on the Python package's dependencies; one issue (label `python-vulnerabilities`) |
 | Dead code | monthly, 2nd Monday | candidates only | Sonnet | exported R functions with no caller, test or example; C++ functions nothing reaches (call graph of the linked objects). Claude rules out the false positives (R6 methods called by name, `.Call` targets). The PR lists candidates; it removes nothing. v1.0.6-TODO-43's three dead C++ paths were found by hand |
 | Reference check | monthly, 3rd Monday | changed references + 1/6 rotation | Sonnet | each DOI in `REFERENCES.md` and the roxygen `@references` resolves (Crossref) to the paper the text names: title, authors, year. The nightly link job checks only that the DOI resolves |
 | Compiled-code audit (Part 5) | monthly, 4th Saturday; also when a hot function's assembly changes | flagged hot loops only | Opus | at most 3 verified suggestions per run |
-| Results freshness | weekly, Sun 06:00 UTC | none | — | comprehensive-test and calibration CSV rows generated before the class or kernel behind them last changed. Each results file gets a manifest (row group → class, commit, generated_at), and the class → files map reuses `benchmark_gate.py`'s file rules. One issue (label `results-freshness`) listing the stale row groups and the regeneration command for each; it opens no PR, because regenerating is a campaign, not an edit |
+| Results freshness | weekly, Sun 06:07 UTC | none | — | comprehensive-test and calibration CSV rows generated before the class or kernel behind them last changed. Each results file gets a manifest (row group → class, commit, generated_at), and the class → files map reuses `benchmark_gate.py`'s file rules. One issue (label `results-freshness`) listing the stale row groups and the regeneration command for each; it opens no PR, because regenerating is a campaign, not an edit |
 | Numerical-robustness review | monthly, 1st Saturday | kernels changed since the last run + 1/6 rotation | Opus | the bug patterns that have actually happened here: `converged = TRUE` set without checking the convergence criterion, unguarded `log(0)` / `exp` overflow / division by a near-zero information, NA returned where a value is defined, a null refit with a single cold start. A finding counts only if the agent writes a failing test for it; the job runs the test on the PR branch and keeps the finding only if it fails. The PR adds the failing tests (marked `skip("v<version>-TODO-<n>")` once the owner opens a TODO) |
 | Thread and random-number review | monthly, 3rd Sunday | parallel and resampling code changed since the last run + 1/6 rotation | Opus | random streams seeded per thread instead of per draw index, shared mutable state inside parallel loops, results that depend on the worker count. Same rule as above: a finding needs a test that shows the result changing with `set_num_cores()`. The existing worker-count invariance tests (v1.1.0 TODO-48) are the template |
 | Source comment rot | monthly, 4th Sunday | changed source files + 1/8 rotation | Sonnet | code comments that contradict the code beside them (a stated default, tolerance, formula or "never"/"always" that the code does not do); `TODO` / `FIXME` / `XXX` notes in `R/EDI/R` and `R/EDI/src` with no release TODO citing them. The PR fixes the comments; a contradiction where the code may be the wrong side goes under "Needs a human" |
@@ -349,7 +349,7 @@ function and apply rules on top of `audit_common.py`.
 | Untested code | weekly, Tue 09:07 UTC | the top 12 uncovered regions not yet attempted (3 per agent) | Opus | owner request 2026-11-18. Reads coverage, never re-measures it for the ranking: the newest `coverage-lines` artifact of `test-coverage-R.yaml` on main (covr R lines plus the gcov lines of `R/EDI/src`; written by `audits/untested_code_export.R` in the merge job) and the newest `coverage-python` artifact (`pytest --cov`, uploaded by `test-coverage-python.yml`). Regions (runs of uncovered lines in one function) carried to HEAD through `git diff`, ids `unt-<hex>` from file, function and code text, so they survive line moves. Ranked by risk: exported functions and documented public R6 methods (+ `compute_*` / design entry points), Rcpp-exported kernels, error and guard branches, code changed in the last 90 days, code a current-release TODO fix changed (commit message or a SHA the release file names); size only breaks ties; at most 2 regions per function and 3 per file a run. Not ranked: `nocov`, platform branches, the registry's measurement artifacts and `codecov.yml` ignores, isolated `-O2` C++ lines, and rows of `R/package_metadata/audits/untested_code_allowlist.csv`, each of which must lead with an open release TODO (allowlist hygiene removes rows whose TODO is closed). Outcomes test / unreachable / intended / bug. The finish stage builds EDI in place with covr's `--coverage` flags (`EDI_UNITY=0`, new `finish_coverage_build` input of `audit.yml`), runs each test under `pkgload::load_all(compile = FALSE)` and keeps it only if it passes, asserts a value and runs at least half of its region (covr tracing of the loaded namespace for R, which also attributes composed classes; gcov for C++). One PR with the kept tests; bug tests reported, never committed; unreachable regions feed the dead-code audit (`untested-code/unreachable.json`). A failed region is retried after 4 weeks, twice, then becomes a decision. Skipped when `significant_changes.py` finds no code or test change. Future work: a mutation-testing pass over the kept tests (do they fail when the covered line changes?) |
 | Algorithm audit (exists) | monthly (unchanged) | — | — | stays as it is; may move onto `audit_common.py` later |
 
-All schedules avoid 02:30–05:00 UTC, when the nightly runs.
+All schedules avoid 02:07–05:00 UTC, when the nightly runs.
 
 **Not here: two checks the owner moved to the push CI on 2026-11-17**, both in
 `.github/workflows/R-CMD-check.yaml`:
@@ -375,7 +375,7 @@ keeps the other gates honest, and it needs the TODO audit), then the rest.
 
 ## Part 5: the compiled-code audit
 
-**Frequency: monthly, 4th Saturday 06:00 UTC, and whenever the assembly of a hot function changes** (checked
+**Frequency: monthly, 4th Saturday 06:07 UTC, and whenever the assembly of a hot function changes** (checked
 weekly by hash; the Claude stage runs only for the changed functions).
 
 It asks "is this algorithm compiled well?". The algorithm audit asks "is there a better algorithm?". Findings
