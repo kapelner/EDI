@@ -744,6 +744,12 @@ estimands and response-type work.
   gated on deciding whether its bootstrap/permutation null-calibration
   cost is worth it; Stage 1's `vote_fraction` field already shipped in
   v1.1.0.
+- **[Cheap bootstrap intervals](R/package_metadata/future_release_plans/release_v1_4_0.md)** —
+  an opt-in bootstrap CI type (Lam 2022) that is valid with only a handful
+  of resamples (B ≈ 5–10), for classes whose refits are too slow for the
+  usual B = 501; also a cheap subsampling variant and the studentized
+  cheap bootstrap. A new interval alongside percentile, BCa and
+  bootstrap-t, not a replacement for them.
 
 ### InferenceSuite summaries
 

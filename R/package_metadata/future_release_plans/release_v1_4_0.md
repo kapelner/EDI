@@ -337,3 +337,18 @@ equivalence`).
   - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).
+
+- [ ] TODO-20 (added 2026-11-19, owner): **Cheap bootstrap CI type (Lam 2022).**
+  - A new opt-in bootstrap interval, ψ̂ ± t_{B,1−α/2}·S with S² = (1/B) Σ_b (ψ*_b − ψ̂)², valid with very few
+    resamples (B ≈ 5–10, even B = 1). It is a different interval from the existing percentile, BCa and
+    bootstrap-t intervals (wider at small B), not a faster way to compute them, so existing defaults are unchanged.
+  - Target users: classes whose refits are expensive (GLMM, survival, ordinal), where B = 501 is impractical.
+  - Also cover the subsampling / m-out-of-n variant (Lam's cheap subsampling), and track the Studentized Cheap
+    Bootstrap (He, Lam & Yan, arXiv 2606.25968, 2026) as the companion to the (θ*, se*) studentized path.
+  - Validate coverage against the B = 501 percentile, BCa and bootstrap-t intervals in the A/B harness before
+    shipping.
+  - Refs: Lam (2022), "A cheap bootstrap method for fast inference", arXiv 2202.00090; Lam & Liu (ICML 2023)
+    finite-sample coverage bounds.
+  - Source: algorithm research run 43925959437, findings `nonparametric-bootstrap-distribution#43925959437.1`
+    and `subsampling-m-out-of-n#43925959437.1` (both triaged as "not a speedup"; the owner kept the idea as a
+    feature).
