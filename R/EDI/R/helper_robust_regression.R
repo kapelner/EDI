@@ -64,7 +64,7 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 #'     fast closed-form-gradient Weibull fit (\code{\link{fast_weibull_regression}})
 #'     is attempted first; if it succeeds and returns a finite log-likelihood, its
 #'     coefficients and \eqn{\log(\hat\sigma)} are passed to \code{survreg} as the
-#'     \code{init} vector, which typically converges the true MLE in a single
+#'     \code{init} vector, which typically converges to the true MLE in a single
 #'     \code{survreg} call. If this warm-started fit is unavailable, fails, or
 #'     produces \code{NA} coefficients, fitting falls through to the general
 #'     random-restart loop below (for all other \code{dist} values, this warm

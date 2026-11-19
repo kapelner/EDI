@@ -328,8 +328,10 @@ edi_tuning_machine_looks_busy = function(load_ratio_threshold = 0.5, calib_cv_th
 #' # high-effect-size families across every axis is still open, see
 #' # edi_tuning_effort_presets()'s docs) -- this keeps the example a
 #' # few-second sanity check instead of a multi-minute benchmark run.
+#' # InferenceCountPoisson is used because its synthetic count data fit
+#' # cleanly (no separation warnings) at this small n.
 #' res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE, force = TRUE,
-#'                                  axes = "cold_start", families = "InferenceIncidLogRegr",
+#'                                  axes = "cold_start", families = "InferenceCountPoisson",
 #'                                  n_grid = 50L, reps = 1L)
 #' print(res)
 #' }

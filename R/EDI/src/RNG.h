@@ -109,7 +109,7 @@ public:
 	// read straight out of R's live `.Random.seed` -- rather than from an
 	// integer seed run through the scrambling loop. Used to continue R's
 	// actual live stream bit-for-bit from wherever it currently is, instead
-	// of starting a fresh independent stream. mti is clamped into [0, N] the
+	// of starting a fresh independent stream. mti <= 0 is reset to N the
 	// same way R's FixupSeeds(kind, initial=0) does for a non-initial load
 	// (accepts a corrupted/out-of-range mti no more charitably than R does).
 	RRng(std::int32_t mti, const std::array<Int32, N>& mt) : mt_(mt) {

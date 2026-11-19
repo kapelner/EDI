@@ -26,7 +26,7 @@ sim <- SimulationFramework$new(
     asymp_ci = list(),
     asymp_pval = list(),
     boot_ci = list(type = "percentile"),
-    boot_pval = list()
+    boot_pval = list(type = "percentile")
   ),
   n = 20L, Nrep_W = 5L, betaT = 1,
   results_filename = tempfile(fileext = ".csv"),

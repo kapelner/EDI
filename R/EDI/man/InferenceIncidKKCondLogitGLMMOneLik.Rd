@@ -94,12 +94,12 @@ The procedure list is by declared capability; an object can still report a proce
 }
 
 \examples{
+seq_des = DesignSeqOneByOneKK14$new(n = 30, response_type = 'incidence')
 \donttest{
-seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
-for (i in 1:10) {
+for (i in 1:30) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
-seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+seq_des$add_all_subject_responses(rbinom(30, 1, 0.5))
 inf = InferenceIncidKKCondLogitGLMMOneLik$new(seq_des)
 inf$compute_estimate()
 }

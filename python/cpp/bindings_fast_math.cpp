@@ -145,7 +145,7 @@ void bind_fast_math(py::module_& m) {
     "Parameters\n----------\n"
     "p : array_like\n    Probabilities in (0, 1); behavior at exactly 0, 1, or outside that\n"
     "    range follows the Acklam approximation's own boundary handling, not\n"
-    "    necessarily -inf/inf/nan exactly as scipy would return.\n\n"
+    "    just an approximation: p == 0 gives -inf, p == 1 gives inf, and p outside [0, 1] or nan gives nan, as scipy does.\n\n"
     "Returns\n-------\nndarray\n    Standard normal quantiles, same shape as p.");
 
     m.def("fast_log_pnorm", [](const Eigen::Ref<const Eigen::VectorXd>& x) {

@@ -23,7 +23,7 @@
 #' @details
 #' \strong{Level bookkeeping.} \code{private$ensure_factor_metadata()} maintains a
 #' mapping from each observed level of each \code{strata_cols} column to a row index
-#' in \code{private$counts} (an (total levels across all covariates) x 2 matrix of
+#' in \code{private$counts} (a (total levels across all covariates) x 2 matrix of
 #' running treated/control counts), growing both the level map and \code{counts} as
 #' new levels are encountered; missing values are treated as their own level
 #' (distinct from a literal category named \code{"NA"}).

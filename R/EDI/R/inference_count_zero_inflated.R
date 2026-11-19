@@ -276,7 +276,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' \eqn{\mathrm{Var}(Y_i \mid \text{not structural zero}) = \mu_i + \mu_i^2 /
 #' \theta}. Unlike a hurdle model, zero counts can arise from either the
 #' structural-zero mechanism or from an ordinary negative-binomial draw of
-#' \eqn{0}. The hurdle and count submodels may use different covariate
+#' \eqn{0}. The zero-inflation and count submodels may use different covariate
 #' formulas (\code{model_formula}/\code{model_formula_zero}). The reported
 #' treatment effect is the coefficient from the conditional count component,
 #' on the log-rate scale, \strong{conditional on the response coming from the

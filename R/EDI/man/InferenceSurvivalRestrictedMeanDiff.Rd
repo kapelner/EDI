@@ -21,7 +21,7 @@ example the planned follow-up) is still recommended: the default horizon is
 itself data-dependent. Each RMST is the area under its
 Kaplan-Meier survival curve up to that horizon
 (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
-computed by trapezoidal integration of the step-function KM curve. The
+computed by exact integration of the step-function KM curve (a sum of rectangles). The
 standard error of the difference comes from the Greenwood-type variance of
 each arm's RMST, combined across the two (independent) arms via
 \code{get_restricted_mean_se_diff()}. When that standard error is

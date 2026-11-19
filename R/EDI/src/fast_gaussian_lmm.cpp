@@ -111,7 +111,7 @@ struct LMMData {
 //
 // Analytical gradients:
 //   ∂/∂β       = -(1/v_e)·X^T·r + (v_b/v_e) Σ_g (S_g/a_g)·Σ_{j∈g} x_j
-//   ∂/∂log_σ_e = Σ_g(m_g-1) + v_e·Σ_g(1/a_g) - (1/v_e)·Σ_g W_g
+//   ∂/∂log_σ_e = Σ_g(m_g-1) + v_e·Σ_g(1/a_g) + v_b·Σ_g(S_g²/a_g²) - (1/v_e)·Σ_g W_g
 //   ∂/∂log_σ_b = Σ_g(m_g·v_b/a_g) - v_b·Σ_g(S_g²/a_g²)
 //
 // where W_g = Q_g - (v_b/a_g)·S_g²

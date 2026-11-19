@@ -228,7 +228,7 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #' results are available through \code{SimulationFrameworkReport}.
 #'
 #' @details
-#' Covariates are drawn independently from \eqn{\mathrm{Uniform}(0, 1)}.
+#' Covariates are drawn independently using \code{cov_draw_method} (default \code{stats::rnorm}).
 #' \itemize{
 #'   \item \code{cond_exp_func_model = "linear"}: the base continuous signal is
 #'     \eqn{y = X\beta} where \eqn{\beta} is evenly spaced from 1 to \eqn{-1}.
@@ -270,8 +270,8 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #' # n/Nrep_W/num_boot/B_boot/r_rand are kept small so this example runs in a
 #' # few seconds; a real simulation would use much larger values (this
 #' # class's defaults, or larger still) for adequately precise estimates.
-#' # Percentile bootstrap CIs are requested because the default BCa interval
-#' # needs a larger B_boot than is used here.
+#' # Percentile bootstrap CIs and p-values are requested because the default BCa
+#' # interval needs a larger B_boot than is used here.
 #' sim = SimulationFramework$new(
 #'   response_type = "continuous",
 #'   design_classes_and_params = list(
@@ -286,7 +286,7 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #'     asymp_ci = list(),
 #'     asymp_pval = list(),
 #'     boot_ci = list(type = "percentile"),
-#'     boot_pval = list(),
+#'     boot_pval = list(type = "percentile"),
 #'     rand_pval = list()
 #'   ),
 #'   n = 20, p = 3, Nrep_W = 2L, betaT = 1, B_boot = 50L, r_rand = 101L,

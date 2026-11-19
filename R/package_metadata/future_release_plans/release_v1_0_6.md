@@ -2427,7 +2427,7 @@ docs-claims audit.
      estimator than the one reported, so this only labels the problem.
   Options 1 and 2 are "Changes that alter results" NEWS entries. Whichever is chosen, check the other KK IVWC
   classes for the same `estimate_only` vs full-call split (the 2026-11-07 Stereotype bug was the same kind).
-- [ ] TODO-133 (added 2026-11-18, agent; found by the v1.0.6-TODO-128 agent): **`InferenceSurvivalKKStratCoxPHIVWC`'s
+- [x] TODO-133 (added 2026-11-18, agent; found by the v1.0.6-TODO-128 agent): **`InferenceSurvivalKKStratCoxPHIVWC`'s *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_survival_KK_strat_cox.R:284; R/EDI/R/inference_survival_KK_strat_cox.R:255; R/EDI/R/inference_survival_KK_strat_cox.R:311; R/EDI/tests/testthat/test-kk-strat-cox-ivwc-reservoir-fallback-usability.R; R/EDI/NEWS.md:441)*
   reservoir treatment-only fallback is never checked.** When no candidate reservoir fit is usable, the
   `if (is.null(res))` fallback is accepted without `rcpp_cox_fit_is_usable`, letting unconverged/infinite-coefficient
   fits through (with 1 treated reservoir subject, old slow path gave -21.65; `coxph` warns "coefficient may be
@@ -2446,7 +2446,7 @@ docs-claims audit.
   whenever a non-empty reservoir is dropped on a direct call (`nRT + nRC > 0`), naming the empty arm or the unusable
   fit; never inside resampling. Two tests updated (empty-arm test now expects the warning; the TODO-128 test muffles
   it where it isn't the subject); both pass with 0 warnings. NEWS line updated.
-- [ ] TODO-134 (added 2026-11-18, agent; found by the v1.0.6-TODO-127 agent): **`InferencePropGCompMeanDiff`
+- [x] TODO-134 (added 2026-11-18, agent; found by the v1.0.6-TODO-127 agent): **`InferencePropGCompMeanDiff` *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_proportion_gcomp.R:1116; R/EDI/R/inference_incidence_gcomp_abstract.R:939; R/EDI/R/helper_gcomp.R:149; R/EDI/R/inference_proportion_gcomp.R:986; R/EDI/R/inference_incidence_gcomp_abstract.R:98; R/package_metadata/future_release_plans/release_v1_0_6.md:2677; R/EDI/tests/testthat/...)*
   studentized bootstrap and Bayesian-bootstrap CIs/p-values are NA on every design** (warned:
   `bootstrap_too_few_finite_standard_errors`, `bayesian_bootstrap_too_few_finite_standard_errors`; ~65k comprehensive
   NA rows). (1) Nonparametric: `bootstrap_replication_stats()` (`inference_all_abstract_non_param_boot.R` ~L1823) reads
@@ -2463,7 +2463,7 @@ docs-claims audit.
   (different causes): OrdinalGCompMeanDiff Bayesian studentized (needs a weighted proportional-odds sandwich) and its
   `get_standard_error()` erroring; KK g-comp RD/RR Bayesian studentized (needs a weighted KK-pair sandwich):
   v1.0.6-TODO-149. Leads: v1.0.6-TODO-150, -151.
-- [ ] TODO-135 (added 2026-11-18, agent; found by the v1.0.6-TODO-127 agent): **A jackknife with very few deletion
+- [x] TODO-135 (added 2026-11-18, agent; found by the v1.0.6-TODO-127 agent): **A jackknife with very few deletion *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_jackknife.R:287; R/EDI/R/inference_all_abstract_jackknife.R:235; R/EDI/R/inference_all_abstract_non_param_boot.R:2390; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:868; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:152; R/EDI/tests/testthat/te...)*
   units returns a finite but meaningless SE with no warning.** With 2 strata, leave-one-block-out gives SE 0.0176
   against a Wald SE of 0.0316 (p ~ 4.6e-16). Add a minimum-units guard to the generic jackknife driver
   (`inference_all_abstract_jackknife.R`): NA with an `edi_procedure_na_warning` (or a warning and the value) below a
@@ -2486,7 +2486,7 @@ docs-claims audit.
   effects: a 4-cluster `DesignFixedCluster` BCa was a silent `NA NA` before (now warned; whether 5+ clusters can still
   give a silent NA is untested); small KK designs with < 5 matched sets now get NA BCa. Found while rendering:
   v1.0.6-TODO-161. NEWS added. Roxygen updated (comment lines).
-- [ ] TODO-136 (added 2026-11-18, coordinator; found by the v1.0.6-TODO-124 agent): **A randomization p-value that is NA
+- [x] TODO-136 (added 2026-11-18, coordinator; found by the v1.0.6-TODO-124 agent): **A randomization p-value that is NA *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_rand.R:848; R/EDI/R/inference_all_abstract_rand.R:49; R/EDI/tests/testthat/test-rand-and-bootstrap-pval-silent-na-warns.R; R/EDI/NEWS.md:520)*
   because too few draws are finite does not warn**; `compute_two_sided_randomization_pval_from_t0s()`
   (`inference_all_abstract_rand.R` ~L846) only records `randomization_too_few_finite_estimates`. Warn via
   `edi_warn_procedure_na()` from that one shared helper, but make sure it does not fire repeatedly inside the
@@ -2499,7 +2499,7 @@ docs-claims audit.
   per-delta rand / rand-bootstrap p-value NA warnings inside the CI searches (13 warnings -> 1), and the rand CI warns
   once itself when it ends NA (search-bounds / bisection failure). Test `test-rand-and-bootstrap-pval-silent-na-warns.R`
   (43); 47 rand/bootstrap/Bayesian files pass; NA-gate smoke passes. NEWS added. Left: v1.0.6-TODO-165, -166.
-- [ ] TODO-137 (added 2026-11-18, agent; found by the v1.0.6-TODO-135 agent): **The g-computation risk-ratio jackknife
+- [x] TODO-137 (added 2026-11-18, agent; found by the v1.0.6-TODO-135 agent): **The g-computation risk-ratio jackknife *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_jackknife.R:352; R/EDI/R/inference_incidence_gcomp_abstract.R:383; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:345; R/EDI/tests/testthat/test-gcomp-risk-ratio-jackknife-shared-guards-warn.R; R/EDI/NEWS.md:222)*
   path bypasses the jackknife guards.** `inference_incidence_gcomp_abstract.R` and
   `inference_incidence_KK_gcomp_abstract.R` build their own log-scale SE from the replicates, rejecting only
   `n_units <= 1`, so they skip the v1.0.6-TODO-135 minimum-units guard and return NA without a warning on several
@@ -2516,7 +2516,7 @@ docs-claims audit.
   with a reason; 57 of 60 snapshot cases with 5+ units byte-identical. Test
   `test-gcomp-risk-ratio-jackknife-shared-guards-warn.R` (92); 51 files pass; two bulk tests updated deliberately. NEWS
   under "Changes that alter results".
-- [ ] TODO-138 (added 2026-11-18, owner request; found by the v1.0.6-TODO-119 agent): **When separation forces a
+- [x] TODO-138 (added 2026-11-18, owner request; found by the v1.0.6-TODO-119 agent): **When separation forces a *(ticked by the TODO audit 2026-11-19: R/EDI/R/helper_robust_sandwich.R:726; R/EDI/R/inference_all_abstract.R:1394; R/EDI/R/inference_proportion_gcomp.R:1101; R/EDI/R/helper_robust_sandwich.R:774; R/EDI/R/helper_robust_sandwich.R:728; R/EDI/tests/testthat/test-covariate-dropped-warning.R; R/EDI/R/inference_incidence_probit.R:343; R/ED...)*
   hardened refit, `InferenceIncidProbitRegr` silently drops the separated covariate; it must warn.** On
   `data_shape__fixed_blocking__incidence__fixed__equal__none__no__strong` the full probit fit diverges (`glm` probit:
   w = 11.9, stratumhigh = -8.3), coefficients above `max_abs_reasonable_coef = 10` make the hardened QR step drop
@@ -2537,7 +2537,7 @@ docs-claims audit.
   `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate(estimate_only = TRUE)` returns -1.642 while the SE path returns
   NA. Fix: in `R/EDI/src` (zero events -> not converged; needs the owner's targeted compile) and/or an R-side
   zero-events guard on the matched half.
-- [ ] TODO-140 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **The studentized bootstrap p-value is a
+- [x] TODO-140 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **The studentized bootstrap p-value is a *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_non_param_boot.R:773; R/EDI/R/inference_all_abstract_non_param_boot.R:819; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:361; studentized bootstrap p-value warns when SEs are missing (KMDiff, RestrictedMeanDiff); R/EDI/NEWS.md:473)*
   silent NA when standard errors are missing.** In `compute_bootstrap_two_sided_pval()`
   (`inference_all_abstract_non_param_boot.R` ~L752-756) the too-few-usable-draws branch only records
   `bootstrap_too_few_finite_standard_errors`; the CI path warns. Seen on KMDiff and RestrictedMeanDiff with interval
@@ -2549,7 +2549,7 @@ docs-claims audit.
   `bootstrap_pvalue_unavailable`, and the Bayesian `..._extreme_finite_estimates` / `..._too_few_finite_estimates`
   p-value returns: v1.0.6-TODO-145.
 
-- [ ] TODO-141 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **Bayesian bootstrap under general
+- [x] TODO-141 (added 2026-11-18, agent; found by the v1.0.6-TODO-90 agent): **Bayesian bootstrap under general *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:13; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:108; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:3; R/EDI/R/inference_survival_rmst.R:57; R/EDI/R/inference_survival_log_rank.R:14; R/EDI/R/inference_survival_gehan_wilcox.R:21; R/E...)*
   censoring fails inside every draw for RestrictedMeanDiff, GehanWilcox, LogRank and Weibull** (their interval-
   censored fits take no weights), returning NA with `edi_bootstrap_nonfinite_na_warning`: warned but misleading.
   Refuse up front with a clear "not supported under left/interval censoring" error, as KMDiff now does
@@ -2589,7 +2589,7 @@ docs-claims audit.
   `test-bootstrap-subset-warm-start-policy-and-binomial-infeasible-start.R` (2 tests skip until compiled). (3) ZIP not
   fixed: owner decision (zero-part separation; LBFGS candidate from pscl's start, separation detection, or leave to
   v1.1.0's multistart work). Optional: raise the binomial kernels' default maxit (100); ~12 of 400 log cases need ~125.
-- [ ] TODO-143 (added 2026-11-18, agent; unverified lead from the v1.0.6-TODO-131 agent): **In the slow
+- [x] TODO-143 (added 2026-11-18, agent; unverified lead from the v1.0.6-TODO-131 agent): **In the slow *(ticked by the TODO audit 2026-11-19: R/package_metadata/future_release_plans/release_v1_0_6.md:2596; R/EDI/R/inference_all_abstract_rand_bootstrap.R:1224; R/EDI/R/inference_all_abstract_rand_bootstrap.R:885; R/EDI/R/contracts_mixins.R:452; R/EDI/R/inference_all_abstract_rand.R:1114; R/EDI/tests/testthat/test-rand-bootstrap-shifts-ce...)*
   randomization-bootstrap path with general censoring and `delta != 0`, `y_L`/`y_R` may not be shifted along with
   `y_sim`.** Verify, and shift the bounds consistently if so.
   Status 2026-11-18 (agent, uncommitted): real, in both the worker and the slow path (and the studentized path). The
@@ -2613,7 +2613,7 @@ docs-claims audit.
   other five refuse it for unrelated reasons). Test `test-rand-test-and-ci-shift-censoring-bounds-under-null.R` (34);
   one testthat and two bulk tests updated deliberately; article paragraph in `censored-survival-outcomes.Rmd`. NEWS
   under "New features".
-- [ ] TODO-144 (added 2026-11-18, agent; found by the KMDiff article agent): **On interval-censored data,
+- [x] TODO-144 (added 2026-11-18, agent; found by the KMDiff article agent): **On interval-censored data, *(ticked by the TODO audit 2026-11-19: R/EDI/R/helper_inference_survival_turnbull.R:115; R/EDI/R/inference_survival_km_diff.R:550; R/EDI/R/inference_survival_km_diff.R:376; interval-censored KMDiff jackknife NA gives the median-specific warning; interval-censored KMDiff warns from the Turnbull NPMLE when a median is not reached; R/EDI...)*
   `InferenceSurvivalKMDiff` returns an NA estimate with no warning when a Turnbull median is not reached.**
   `shared()`'s general-censoring branch (`inference_survival_km_diff.R` ~L421-435) returns before
   `warn_km_median_not_reached_once()` (~L445), and that helper reads `private$y` (all NA under interval censoring), so
@@ -2626,7 +2626,7 @@ docs-claims audit.
   (arm, lowest survival, RMST suggestion), once per object, silent in resampling; median-specific jackknife reasons.
   Values unchanged. Test `test-km-diff-interval-censored-median-not-reached-warns.R` (28). NEWS added. Roxygen
   sentence on the jackknife methods needs updating.
-- [ ] TODO-145 (added 2026-11-18, agent; found by the v1.0.6-TODO-140 agent): **Remaining silent-NA returns in the
+- [x] TODO-145 (added 2026-11-18, agent; found by the v1.0.6-TODO-140 agent): **Remaining silent-NA returns in the *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_non_param_boot.R:774; R/EDI/R/inference_all_abstract_non_param_boot.R:781; R/EDI/R/inference_all_abstract_non_param_boot.R:794; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:412; R/EDI/R/inference_all_abstract_bayesian_bootstrap.R:419; the p-value helper is si...)*
   bootstrap p-values:** non-studentized `bootstrap_too_few_finite_estimates` (with `na.rm = TRUE`),
   `bootstrap_extreme_finite_estimates`, `bootstrap_pvalue_unavailable`, and the Bayesian p-value's
   `bayesian_bootstrap_extreme_finite_estimates` / `bayesian_bootstrap_too_few_finite_estimates`. Warn via
@@ -2638,7 +2638,7 @@ docs-claims audit.
   per-delta rand / rand-bootstrap p-value NA warnings inside the CI searches (13 warnings -> 1), and the rand CI warns
   once itself when it ends NA (search-bounds / bisection failure). Test `test-rand-and-bootstrap-pval-silent-na-warns.R`
   (43); 47 rand/bootstrap/Bayesian files pass; NA-gate smoke passes. NEWS added. Left: v1.0.6-TODO-165, -166.
-- [ ] TODO-146 (added 2026-11-18, owner request; unverified lead from the v1.0.6-TODO-143 agent): **Smoothed bootstrap
+- [x] TODO-146 (added 2026-11-18, owner request; unverified lead from the v1.0.6-TODO-143 agent): **Smoothed bootstrap *(ticked by the TODO audit 2026-11-19: R/package_metadata/future_release_plans/release_v1_0_6.md:2645; R/EDI/R/inference_all_abstract_rand_bootstrap.R:12; R/EDI/R/inference_all_abstract_rand_bootstrap.R:23; smoothed BRT p-value and CI are refused under left/interval censoring; R/EDI/NEWS.md:188)*
   randomization test under left/interval censoring: the smoothing noise is added to `y` but not to `y_L`/`y_R`.**
   First check whether smoothing can run under general censoring at all; if it can, decide how bounds should move
   (consistently with `y`, or refuse smoothing under general censoring) and fix; if it can't, record the evidence.
@@ -2683,7 +2683,7 @@ docs-claims audit.
   Likely fix: log-scale noise for survival (also in the C++ kernels' noise_mat handling, so a targeted compile); check
   the other survival classes' smoothed BRT on right-censored data too.
 
-- [ ] TODO-149 (added 2026-11-18, agent; found by the v1.0.6-TODO-134 agent): **Remaining G-computation studentized
+- [x] TODO-149 (added 2026-11-18, agent; found by the v1.0.6-TODO-134 agent): **Remaining G-computation studentized *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_ordinal_gcomp.R:444; R/EDI/R/inference_ordinal_gcomp.R:124; R/package_metadata/future_release_plans/release_v1_0_6.md:2694; R/EDI/R/helper_gcomp.R:194; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:528; R/EDI/R/inference_incidence_KK_gcomp_abstract.R:858; R/EDI/tests/testthat/...)*
   gaps.** (1) `InferenceOrdinalGCompMeanDiff`: the Bayesian studentized bootstrap is NA because
   `compute_estimate_with_bootstrap_weights()` has no weighted SE (needs a weighted proportional-odds sandwich); also its
   `get_standard_error()` errors with "attempt to apply non-function". (2) `InferenceIncidKKGCompRiskDiff`/`RiskRatio`:
@@ -2702,7 +2702,7 @@ docs-claims audit.
   it private (agent's recommendation) or drop `Wald` to match the sibling classes.
   Decided (owner, 2026-11-18): keep `InferenceOrdinalGCompMeanDiff`'s `get_standard_error()` private (it composes
   `Wald`); no change.
-- [ ] TODO-150 (added 2026-11-18, agent; lead from the v1.0.6-TODO-134 agent): **`InferencePropGCompMeanDiff`
+- [x] TODO-150 (added 2026-11-18, agent; lead from the v1.0.6-TODO-134 agent): **`InferencePropGCompMeanDiff` *(ticked by the TODO audit 2026-11-19: R/package_metadata/future_release_plans/release_v1_0_6.md:2700; R/EDI/R/inference_proportion_gcomp.R:527; R/EDI/tests/testthat/test-prop-gcomp-rand-bootstrap-null-uses-fresh-assignment.R:22; R/EDI/NEWS.md:224)*
   bootstrap randomization (BRT) percentile p-values look wrong:** 0.78-0.90 at z ~ 3.2 where the randomization test
   gives p = 0.02 (incidence RD in the same setting gives 0.039). Predates TODO-134. Investigate.
 
@@ -2713,7 +2713,7 @@ docs-claims audit.
   draw for draw at delta 0 and 0.3; null size 5.7% at 0.05 (300 sets); strong effect rejected 100%. Plain bootstrap
   and jackknife unchanged. Test `test-prop-gcomp-rand-bootstrap-null-uses-fresh-assignment.R`. NEWS under "Changes that
   alter results". Comprehensive rows for this class's BRT p-values/CIs are stale. Same bug in ZOIB: v1.0.6-TODO-167.
-- [ ] TODO-151 (added 2026-11-18, agent; lead from the v1.0.6-TODO-134 agent; minor): **The risk-ratio classes'
+- [x] TODO-151 (added 2026-11-18, agent; lead from the v1.0.6-TODO-134 agent; minor): **The risk-ratio classes' *(ticked by the TODO audit 2026-11-19: R/package_metadata/future_release_plans/release_v1_0_6.md:2712; R/EDI/R/inference_all_abstract_rand_bootstrap.R:595; R/EDI/R/inference_all_abstract_rand_bootstrap.R:527; R/EDI/tests/testthat/test-risk-ratio-rand-bootstrap-null-centering.R:39; R/EDI/R/inference_all_abstract_rand_bootstrap.R:419; R...)*
   `compute_rand_bootstrap_two_sided_pval()` defaults to `delta = 0`, which means "RR = exp(0)?" only if delta is on the
   log scale.** Check the scale the RR classes shift on and make the default null correspond to RR = 1 (document it).
   HALTED 2026-11-18 (agent stopped by the weekly usage limit, resets 2026-11-20 05:00 Asia/Jerusalem; partial
@@ -2738,7 +2738,7 @@ docs-claims audit.
   replicates chain warm starts only when `likelihood_concave` is TRUE, and the ZIP ridge note in that learning. Repro
   scripts were in the TODO-142 agent's scratch (`zipstarts2.R`, `zipsweep.R`), which may be cleared.
 
-- [ ] TODO-157 (added 2026-11-18, owner decision; from v1.0.6-TODO-113): **Measure the bootstrap "extreme interval"
+- [x] TODO-157 (added 2026-11-18, owner decision; from v1.0.6-TODO-113): **Measure the bootstrap "extreme interval" *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_non_param_boot.R:1264; R/EDI/R/inference_all_abstract_non_param_boot.R:1319; R/EDI/R/inference_all_abstract_non_param_boot.R:1270; PropOddsRegr on the 10-cluster fixture: the wide log-OR percentile interval is no longer rejected; R/EDI/tests/testthat/test-bootstrap-...)*
   cutoff on each estimand's own scale.** `bootstrap_confidence_interval_extreme()` in
   `R/EDI/R/inference_all_abstract_non_param_boot.R` rejects an interval wider than
   `bootstrap_extreme_ci_width_threshold = 5` times `bootstrap_outcome_scale()`, i.e. in outcome-SD units, but the check
@@ -2765,7 +2765,7 @@ docs-claims audit.
 Found 2026-11-18 by the first local run of the code-duplication audit (`.github/scripts/audits/code_duplication.py`),
 which ranks near-identical code whose copies differ in a few lines. Suspects only: none confirmed with a repro yet.
 
-- [ ] TODO-153 (added 2026-11-18, owner request): **`InferenceCountZeroInflatedPoisson` does not accept
+- [x] TODO-153 (added 2026-11-18, owner request): **`InferenceCountZeroInflatedPoisson` does not accept *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_count_zero_inflated.R:136; R/EDI/R/inference_count_zero_inflated.R:358; R/EDI/tests/testthat/test-zero-inflated-smart-cold-start-and-risk-diff-nonestimable-reason.R:28; R/EDI/NEWS.md:490; R/package_tests/public_api_inventory.csv:3986; R/package_tests/public_api_inventory.csv:3893)*
   `smart_cold_start_default`.** Its hurdle sibling (`inference_count_hurdle.R` ~L80-236) takes it in `initialize()`
   and forwards it, and their shared abstract accepts it, but `inference_count_zero_inflated.R` (~L85-255) does not, so
   ZIP users cannot set it. Confirm with a call, add the argument and forwarding (match the hurdle class), test. Check
@@ -2773,7 +2773,7 @@ which ranks near-identical code whose copies differ in a few lines. Suspects onl
   Status 2026-11-18 (agent, uncommitted): confirmed and fixed for ZIP and ZINB (`smart_cold_start_default = NULL`,
   forwarded; defaults identical). Test `test-zero-inflated-smart-cold-start-and-risk-diff-nonestimable-reason.R`.
   Owner: regenerate `public_api_inventory.csv` and `comprehensive_suite_registry.csv` (initialize formals drift).
-- [ ] TODO-154 (added 2026-11-18, owner request): **`overwrite_all_subject_assignments()` differs between
+- [x] TODO-154 (added 2026-11-18, owner request): **`overwrite_all_subject_assignments()` differs between *(ticked by the TODO audit 2026-11-19: R/package_metadata/future_release_plans/release_v1_0_6.md:2773; R/EDI/R/design_abstract.R:497; R/EDI/R/design_fixed_abstract.R:175; R/EDI/tests/testthat/test-overwrite-assignments-shared-fixed-and-sequential.R:23; R/EDI/NEWS.md:654)*
   `design_abstract.R` (~L405-498) and `design_fixed_abstract.R` (~L89-187).** Only the fixed copy calls
   `assert_fixed_sample()`; the fixed copy also checks that `w` is 0/1, though v1.0.6-TODO-106 added an always-on
   0/1/NA/length check (`assert_overwritten_w_always()`) that may already cover the abstract copy. Decide whether the
@@ -2810,7 +2810,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
 `y` on the covariates alone: with `y = x + tau w` exactly and `tau != 0`, `x` alone does not fit perfectly but
 `w + x` does.
 
-- [ ] TODO-158 (added 2026-11-18, owner request): **Detect perfect predictors in the inference covariates, drop them
+- [x] TODO-158 (added 2026-11-18, owner request): **Detect perfect predictors in the inference covariates, drop them *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract.R:205; R/EDI/R/inference_all_abstract.R:1643; R/EDI/R/inference_all_abstract.R:1596; R/EDI/R/inference_all_abstract.R:1677; R/EDI/R/inference_all_abstract.R:1775; a combination leak (y = x1 + x2 + tau w) drops both columns, never w; R/EDI/R/inference_count_hurdle.R:...)*
   and warn.** Decided (owner, 2026-11-18): in the top `Inference` class's constructor, check whether `y ~ w + X` fits
   with zero residual variance; if so, find the smallest set of columns whose removal restores a nonzero residual (it can be a
   combination, e.g. `y = x1 + x2`) and raise one classed warning (e.g. `edi_perfect_predictor_warning`) naming them and
@@ -2871,7 +2871,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   same kernel, so note it in `python/CHANGELOG.md`. Check seeded allocations are unchanged on data with no perfect
   predictor.
 
-- [ ] TODO-160 (added 2026-11-18, agent; found by the v1.0.6-TODO-157 agent): **Gaps left in the bootstrap
+- [x] TODO-160 (added 2026-11-18, agent; found by the v1.0.6-TODO-157 agent): **Gaps left in the bootstrap *(ticked by the TODO audit 2026-11-19: R/EDI/R/inference_all_abstract_non_param_boot.R:1245; degenerate Poisson and NegBin percentile intervals on large-SD counts are rejected with the warning; R/EDI/R/inference_all_abstract_non_param_boot.R:1225; the g-computation risk ratio is judged on log(RR): a skewed interval is kept, a degenera...)*
   extreme-interval check.** (1) For log-scale estimands with a large outcome SD (e.g. counts with SD 20) the old
   outcome-SD cap is ~100 log units and never binds, so degenerate Poisson/NegBin intervals there are not caught;
   tightening it would change intervals accepted today (owner decision). (2) The raw risk ratio from
@@ -2887,7 +2887,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   KK [1.56, 38.7] now kept). Paths without replicates (subsampling, m-out-of-n) unchanged. 4 tests added to
   `test-bootstrap-extreme-ci-cap-on-estimand-scale.R` (55 pass); bootstrap test files pass. NEWS under "Changes that
   alter results". Follow-ups: v1.0.6-TODO-175; unrelated bulk failures seen: v1.0.6-TODO-176.
-- [ ] TODO-161 (added 2026-11-18, coordinator; found while strict-rendering articles): **`articles/case-study.Rmd` fails
+- [x] TODO-161 (added 2026-11-18, coordinator; found while strict-rendering articles): **`articles/case-study.Rmd` fails *(ticked by the TODO audit 2026-11-19: 2557834b; R/EDI/R/inference_survival_weibull.R:45; R/EDI/R/inference_survival_weibull.R:431; Weibull fit on unscaled colon covariates keeps every covariate and matches survreg; R/EDI/NEWS.md:213)*
   the strict article gate: `InferenceSurvivalWeibullRegr` drops covariates (differ, extent, surg, ...) and refits in
   chunk `others`,** raising the new `edi_covariate_dropped_warning` (v1.0.6-TODO-138). The warning is working as
   intended, but dropping that many covariates on the article's real data may be a Weibull fit problem (cold start,
@@ -2903,7 +2903,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   83 of 84 survival fixtures byte-identical; the one change was a previously wrong reduced-model fit, now matching
   survreg. Strict render of `case-study.Rmd` PASS (71 s). Test `test-weibull-unscaled-covariates-fit-converges.R`.
   NEWS under "Changes that alter results". Root cause in C++: v1.0.6-TODO-164.
-- [ ] TODO-162 (added 2026-11-18, agent; lead from the v1.0.6-TODO-135 follow-up): **`InferenceAllSimpleAverageDiff`
+- [x] TODO-162 (added 2026-11-18, agent; lead from the v1.0.6-TODO-135 follow-up): **`InferenceAllSimpleAverageDiff` *(ticked by the TODO audit 2026-11-19: R/EDI/NEWS.md:512; R/EDI/R/inference_all_abstract_non_param_boot.R:2242; BCa CI on the boundary with some non-finite bootstrap draws is NA with a warning)*
   BCa on `DesignFixedCluster` returned `NA NA` with no warning at 4 clusters** (B = 201); now warned by the new
   minimum, but the cause was never found. Check whether 5+ clusters can still give a silent BCa NA, and fix the cause.
 

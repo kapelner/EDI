@@ -222,7 +222,7 @@ classes changed since the last campaign.
   Confirm the compressed sizes.
 - [ ] **Phase 1: runner deadline.** `COMPREHENSIVE_DEADLINE_MINUTES` in `comprehensive_tests.R`, with a
   reference test that a deadline-stopped run resumed to completion gives the same rows as an uninterrupted one.
-- [ ] **Phase 2: planner and ledger.** `plan_comprehensive_study.R` (units, packing, wave selection) and the
+- [x] **Phase 2: planner and ledger.** `plan_comprehensive_study.R` (units, packing, wave selection) and the *(ticked by the TODO audit 2026-11-19: R/package_tests/cloud/plan_comprehensive_study.R:47; R/package_tests/cloud/plan_comprehensive_study.R:14; .github/workflows/comprehensive-study.yml:17; R/package_tests/testthat_bulk/test-comprehensive-study-planner-reference.R:59; R/package_tests/testthat_bulk/test-comprehensive-study-planner-ref...)*
   ledger format, with tests on a toy roster.
 - [ ] **Phase 3: workflow.** `_study-build.yml` extracted; `comprehensive-study.yml` with the job graph above;
   first run restricted to one response type and one dataset.
