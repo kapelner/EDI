@@ -1124,6 +1124,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-report-empty-results-no-
 R/package_tests/testthat_bulk/test-simulation-framework-response-type-constructor-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-helpers-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2794,6 +2795,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-report-empty-results-no-
 R/package_tests/testthat_bulk/test-simulation-framework-response-type-constructor-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,coverage,240,bootstrap
