@@ -763,7 +763,7 @@ void bind_count(py::module_& m) {
     "part (see that function's docstring for how it combines with a hurdle\n"
     "logistic part), also exposed standalone here. The joint parameter\n"
     "vector is [beta, log(theta)] (theta optimized on the log scale for\n"
-    "positivity, reported back as theta_hat=exp(...)); several candidate\n"
+    "positivity, returned as params[p]=log(theta), no theta_hat key); several candidate\n"
     "starting points (OLS-based beta plus a method-of-moments and a\n"
     "model-specific theta heuristic) are tried with fallback if the primary\n"
     "start fails to converge. No R-side roxygen documents this raw kernel\n"

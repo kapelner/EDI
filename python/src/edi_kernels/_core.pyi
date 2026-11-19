@@ -487,7 +487,7 @@ def fast_identity_binomial_regression(X: typing.Annotated[numpy.typing.NDArray[n
     """
 def fast_identity_binomial_regression_with_var(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], j: typing.SupportsInt | typing.SupportsIndex = 2, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-06, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast identity-link binomial regression with full variance-covariance matrix (ssq_b_j is the variance of parameter index j).
+    Fast identity-link binomial regression with a targeted variance only, no full vcov matrix (ssq_b_j is the variance of parameter index j).
     
     Parameters
     ----------
@@ -568,7 +568,7 @@ def fast_log_binomial_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.
     """
 def fast_log_binomial_regression_with_var(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], j: typing.SupportsInt | typing.SupportsIndex = 2, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-06, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast log-binomial regression with full variance-covariance matrix (ssq_b_j is the variance of parameter index j).
+    Fast log-binomial regression with a targeted variance only, no full vcov (ssq_b_j is the variance of parameter index j).
     
     Parameters
     ----------
