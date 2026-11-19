@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import compiled_code_verify as cv  # noqa: E402
 
-MIN_GAIN = 0.10  # plan owner decision 1 (proposed): "faster" needs >= 10% at the interval's upper end
+MIN_GAIN = 0.05  # owner 2026-11-19: "faster" needs >= 5% at the interval's upper end; "not faster" is a reject
 TIERS = {"exact": 0.0, "closed_form": cv.FLOAT_TIER}
 REQUIRED = ("finding_id", "setup", "current", "candidate", "tier")
 

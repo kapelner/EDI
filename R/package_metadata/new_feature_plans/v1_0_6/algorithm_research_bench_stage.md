@@ -70,8 +70,8 @@ and they go to triage unbenchmarked, as now.
    - **Main findings section:** `faster` findings, the bench table in each finding, and findings
      with no bench code, which stay marked unverified.
    - **`<details>` blocks:**
-     - `not faster`. Each also gets a `research_triage.csv` row: `reject`, `proposed`, with the
-       numbers in the reason. Without that row, next month's agents re-report the finding,
+     - `not faster`. Each also gets a `research_triage.csv` row: `reject`, `approved` (an
+       automatic reject, owner 2026-11-19), with the numbers in the reason. Without that row, next month's agents re-report the finding,
        because they skip only what is recorded (the compiled-code audit likewise records a closed
        proposal as rejected).
      - `not benchmarked`, with the reason.
@@ -80,12 +80,11 @@ and they go to triage unbenchmarked, as now.
 
 ## Owner decisions
 
-1. **`min_gain` for research findings.** The compiled-code audit uses 2% at the interval's upper
-   end, and the triage drafts used "≥ 1.5×". Proposed: report the ratio, and call a finding
-   `faster` at 10%. A smaller real gain is still worth recording, but not worth a TODO.
-2. **Whether `not faster` becomes an automatic `reject` (proposed) or a `defer`.** Proposed:
-   `reject`, with the numbers. A later run reopens it only with new evidence, for example
-   different sizes.
+1. **`min_gain` for research findings.** Decided (owner, 2026-11-19): `faster` needs 5% at the
+   95% interval's upper end (`MIN_GAIN = 0.05`); the report still shows every ratio. (The
+   compiled-code audit uses 2%; 10% was proposed.)
+2. **`not faster` is an automatic `reject`** (owner, 2026-11-19), recorded as approved, with the
+   numbers. A later run reopens it only with new evidence, for example different sizes.
 3. **The refactor of `compiled_code_verify.py`** (design 3), which is shared with the
    compiled-code audit.
 
