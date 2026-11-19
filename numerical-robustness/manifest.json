@@ -1,6 +1,6 @@
 {
- "last_run": "2026-11-18T20:31:15+00:00",
- "open_pr": 64,
+ "last_run": "2026-11-19T13:33:16+00:00",
+ "open_pr": 71,
  "units": {
   "R/EDI/R/design_fixed_greedy_d_optimal.R": {
    "audited_at": "2026-11-17T10:58:16+00:00",
@@ -244,7 +244,7 @@
    "audited_at": "2026-11-18T20:31:15+00:00",
    "deps": "e5b1aeed8ec7a0d6",
    "hash": "6ad34f55e5f3a5a5",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44358298658"
   },
   "R/EDI/R/inference_count_composite_likelihood.R": {
@@ -454,14 +454,14 @@
    "audited_at": "2026-11-18T20:31:15+00:00",
    "deps": "af3d6cb0b293b636",
    "hash": "4c17f19adbfeffca",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44358298658"
   },
   "R/EDI/R/inference_ordinal_gcomp.R": {
    "audited_at": "2026-11-18T20:31:15+00:00",
    "deps": "0fd613a507a5343d",
    "hash": "d919452b91e0b916",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44358298658"
   },
   "R/EDI/R/inference_ordinal_ordered_probit.R": {
@@ -496,8 +496,218 @@
    "audited_at": "2026-11-18T20:31:15+00:00",
    "deps": "2cc658dd503ac276",
    "hash": "433076fc2090b0ad",
-   "open_findings": 1,
+   "open_findings": 0,
    "run": "44358298658"
+  },
+  "R/EDI/R/inference_proportion_KK_combined.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "114062c65d6e0834",
+   "hash": "52b50532f6f29977",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_proportion_beta.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "b9461eabd0a71383",
+   "hash": "ffb1717c4addc5de",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_proportion_fractional_logit.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "3228a0983dcb4dab",
+   "hash": "bdd56bfa6764665d",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_proportion_gcomp.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "cdd35f787c71177b",
+   "hash": "ff1372e20d490960",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_proportion_zero_one_inflated_beta.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "a18848982d574cf4",
+   "hash": "ba718638c54563f9",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_suite.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "e3b0c44298fc1c14",
+   "hash": "1a88fecb303234ee",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "6246f82124b89fc9",
+   "hash": "36e0e1536ed5090e",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "f77059b20ccffe3b",
+   "hash": "d94c33f52d2c6a6a",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "70183a116804a879",
+   "hash": "7bcce53d8d16c59b",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "7a680a5c9ef19ebb",
+   "hash": "d1c099f6607b0677",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_KK_strat_cox.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "fa5383d0801822da",
+   "hash": "08d32199bc011b10",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_KK_weibull_marginal.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "f7dac3c28b38898b",
+   "hash": "2126c5c6de5f39eb",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_coxph.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "e0f1d381c5a2712b",
+   "hash": "deeb54c9494d8a81",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_dep_cens_transform.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "26eb37a95ffb0e91",
+   "hash": "20d19c41f42b0068",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_gehan_wilcox.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "44259a3183c7111a",
+   "hash": "75a7f8e00a90c7bc",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_log_rank.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "0b95bd9f6db428a3",
+   "hash": "c34120d293ced0a0",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_strat_cox.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "ef85608937f4a169",
+   "hash": "6bb6f2c45f709efd",
+   "open_findings": 1,
+   "run": "44511253430"
+  },
+  "R/EDI/R/inference_survival_weibull.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "8eea9994762da605",
+   "hash": "8eebf90fb3af1c20",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/local_machine_tuning.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "e3b0c44298fc1c14",
+   "hash": "cac468f8a4795d0f",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/R/local_machine_tuning_axes.R": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": "e3b0c44298fc1c14",
+   "hash": "d859719bc7acaf74",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/RNG.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "2c0db7ee9a7e587b",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_glmm_engine.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "186d6821570cb874",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_glmm_links.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "0c3a5d50549ad999",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_helper_functions.cpp": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "8b84b7e6429e4a4b",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_helper_functions.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "a7ea7db03f3c568a",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_helper_functions_core.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "669f97d6ecc3e508",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/_negbin_boundary_convergence.h": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "679f7d2681d19a95",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/atkinson_assign.cpp": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "c3565ee6ed000e91",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/beta_regression_helpers.cpp": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "1b87ad6c7d51f617",
+   "open_findings": 0,
+   "run": "44511253430"
+  },
+  "R/EDI/src/binary_match_search.cpp": {
+   "audited_at": "2026-11-19T13:33:16+00:00",
+   "deps": null,
+   "hash": "b3b95a1b3366f747",
+   "open_findings": 0,
+   "run": "44511253430"
   }
  }
 }
