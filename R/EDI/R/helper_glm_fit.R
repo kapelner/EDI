@@ -1228,9 +1228,10 @@ fast_beta_regression = function(X, y, start_phi = 10, optimization_alg = "lbfgs"
 #' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or
 #'   \code{"newton_raphson"}; see \code{\link{.normalize_optimizer_algorithm}}.
 #' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}.
-#' @param warm_start_fisher_info Currently unused: accepted for interface
-#'   compatibility but not passed to the C++ fitter, which is warm-started from
-#'   \code{warm_start_beta} only.
+#' @param warm_start_fisher_info Optional initial information matrix for the
+#'   first optimizer iteration, passed to the C++ fitter. It must be
+#'   \code{(ncol(X) + 1) x (ncol(X) + 1)}, ordered as \code{c(beta, log(phi))}.
+#'   \code{NULL} (the default) starts from the fitter's own initial curvature.
 #'
 #' @return  A list containing the following components:
 #' \item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
@@ -1265,7 +1266,7 @@ fast_beta_regression_with_var = function(X, y, start_phi = 10, j = 2, optimizati
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")
 	y = sanitize_beta_response(y)
 	tryCatch({
-	mod = fast_beta_regression_with_var_cpp(X, y, start_phi = start_phi, optimization_alg = optimization_alg, warm_start_beta = warm_start_beta)
+	mod = fast_beta_regression_with_var_cpp(X, y, start_phi = start_phi, optimization_alg = optimization_alg, warm_start_beta = warm_start_beta, warm_start_fisher_info = warm_start_fisher_info)
 	list(
 		b = mod$coefficients,
 		phi = mod$phi,
