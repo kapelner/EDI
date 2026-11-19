@@ -3346,3 +3346,35 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   estimate matches a direct weighted `betareg` fit, and a forced-fallback test for each `helper_glm_fit.R` path.
   Then rerun the Phase 0 bench spec for `beta-regression-mle#43925959437.1`, whose current side is this code (see
   v1.1.0-TODO-197). Related: the open owner decision from the 2026-11-17 re-review to delete or fix the ZOIB wrapper.
+
+- [ ] TODO-198 (added 2026-11-19, agent, owner request; found by the Rd audit, PR #65): **The published reference page
+  of `InferenceIncidKKCondLogitGLMMOneLik` shows `Warning: number of rows of result is not a multiple of vector length
+  (arg 1)`.** That is R's recycling warning from `cbind`/`rbind` or a matrix fill whose pieces have different lengths,
+  raised somewhere in the example's fit (KK14, n = 10, two covariates, Bernoulli(0.5) responses; the clogit plus
+  reservoir-logit path since v1.0.5-TODO-187). A silent recycling usually means a vector built with the wrong length
+  (for example per-pair versus per-subject, or the reservoir rows dropped from one piece), so the estimate may be
+  wrong, not just noisy. Find the call (`options(warn = 2)` on the example, then `traceback()`), fix the lengths, and
+  add a test that the example's data fit without warnings and match a direct `survival::clogit` + `glm` fit. Check
+  the IVWC sibling, which shares the abstract class.
+
+- [ ] TODO-199 (added 2026-11-19, agent, owner request; found by the Rd audit, PR #65): **The `InferenceSuite`
+  example's `\donttest` block takes about 138 s.** `R CMD check --as-cran` runs `\donttest` examples, and CRAN asks for
+  examples that finish in seconds (the audit flags anything over 60 s). Shrink the example (fewer classes, smaller n,
+  a subset of procedures, or no resampling), or move the full run to a vignette and keep a short call that shows the
+  API. Done when the Rd audit reports the block under 60 s and the page still shows a meaningful result.
+
+- [ ] TODO-200 (added 2026-11-19, agent, owner request; found by the Rd audit, PR #65, which runs each complete
+  example block under up to 5 seeds): **Examples that warn under some seeds.** EDI's warnings are correct in each case;
+  the examples use data too small or settings too coarse for what they show:
+  (1) `InferenceIncidBinomialIdentityRiskDiff` (seeds 2, 5) and `InferenceIncidLogBinomial` (seed 2): boundary MLE
+  warning; `InferenceIncidLogBinomial` (seeds 4, 5): covariate dropped and refit;
+  (2) `InferenceIncidKKGEE` (seed 4): fitted probabilities 0 or 1, separation, sandwich SE degenerate;
+  (3) `InferenceSurvivalKMDiff` (seeds 1, 5): control arm has no usable response or its median is not reached;
+  (4) `SimulationFramework` (all 5 seeds, `InferenceContinOLS` BCa at B = 50) and `SimulationFrameworkReport`
+  (seeds 2, 4, BCa at B = 201): BCa adjustment on the boundary, p-value NA;
+  (5) `tune_EDI_for_this_machine` (all 5 seeds): `InferenceIncidLogRegr` drops covariate `z` and reports separation.
+  Fix the example data, not the warnings: larger n or a less extreme design for (1)-(3); `type = "percentile"` or
+  B >= 501 for (4) where the run time allows; for (5), less separable synthetic incidence data in the tuner's fixture
+  (coordinate with the proportion-fixture item in this file, which edits the same generator family). Done when every
+  example runs warning-free under the audit's 5 seeds, or a warning that is the point of the example is wrapped in
+  `suppressWarnings(..., classes = ...)` with a comment saying why.
