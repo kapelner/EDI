@@ -57,3 +57,54 @@ test_that("the LR confidence interval is the inversion of the class's own LR tes
 		expect_equal(suppressWarnings(fresh$compute_lik_ratio_two_sided_pval(delta = end)), 0.05, tolerance = 0.005)
 	}
 })
+
+# docs-claims audit, finding docs-claims-d7b766030: Wald / score / gradient / LR availability,
+# the treatment-only non-estimable reason when every covariate is dropped, and the Monte-Carlo
+# Bartlett-corrected LR p-value.
+stereotype_small_fixture <- function(seed = 1L, n = 120L) {
+	set.seed(seed)
+	trt <- rep(0:1, n / 2L)
+	x1 <- rnorm(n)
+	y <- as.integer(cut(qlogis(runif(n)) + 0.8 * trt + 0.5 * x1, c(-Inf, -1, 0, 1, Inf)))
+	des <- DesignFixedBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
+	# xdup is an exact copy of the treatment column, so rank-deficiency dropping removes it.
+	des$add_all_subjects_to_experiment(data.frame(x1 = x1, xdup = trt))
+	des$overwrite_all_subject_assignments(trt)
+	des$add_all_subject_responses(y)
+	des
+}
+
+test_that("converged stereotype fit advertises wald/score/gradient/lik_ratio and returns valid gradient and Wald p-values", {
+	skip_on_cran()
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(stereotype_small_fixture(11L), model_formula = ~ x1, verbose = FALSE)
+	inf$num_cores <- 1L
+	expect_true(is.finite(inf$compute_estimate()))
+	expect_true(all(c("wald", "score", "gradient", "lik_ratio") %in% inf$get_supported_testing_types()))
+	for (pv in c(inf$compute_gradient_two_sided_pval(delta = 0), inf$compute_wald_two_sided_pval(delta = 0))) {
+		expect_true(is.finite(pv) && pv >= 0 && pv <= 1)
+	}
+})
+
+test_that("with 3+ categories a fit whose only covariate is dropped (collinear with treatment) is non-estimable as treatment-only", {
+	skip_on_cran()
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(stereotype_small_fixture(1L), model_formula = ~ xdup, verbose = FALSE)
+	expect_true(is.na(inf$compute_estimate()))
+	expect_true(inf$is_nonestimable())
+	# Observed reason on this data: "stereotype_treatment_only_fit_at_loading_boundary" (5 of 8
+	# seeds tried; the other 3 give the documented reason). generate_mod() only assigns the
+	# documented reason after the hardened refit returns a usable treatment-only fit; when that
+	# refit is rejected at a loading boundary the boundary reason wins instead.
+	skip("v1.0.6-TODO-257: all-covariates-dropped fit reports stereotype_treatment_only_fit_at_loading_boundary, not the documented stereotype_treatment_only_fit_not_identified")
+	expect_identical(inf$.__enclos_env__$private$cached_values$nonestimable_reason,
+		"stereotype_treatment_only_fit_not_identified")
+})
+
+test_that("compute_lik_ratio_bartlett_two_sided_pval() returns a valid p-value on a covariate-adjusted stereotype fit", {
+	skip_on_cran()
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(stereotype_small_fixture(11L), model_formula = ~ x1, verbose = FALSE)
+	inf$num_cores <- 1L
+	expect_true(is.finite(inf$compute_estimate()))
+	inf$set_seed(5L)
+	pv <- inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0, B = 9)
+	expect_true(is.finite(pv) && pv >= 0 && pv <= 1)
+})

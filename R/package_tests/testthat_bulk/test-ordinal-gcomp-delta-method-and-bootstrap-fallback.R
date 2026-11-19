@@ -116,3 +116,44 @@ test_that("bootstrap-weighted replicates run side-effect-free and reproduce the 
 	expect_identical(priv$best_X_colnames, cols_before)
 	expect_equal(f$inf$compute_estimate(), est_before)
 })
+
+# docs-claims audit, finding docs-claims-d1275549d: the Wald aliases carry their own copy of
+# the bootstrap-fallback branch (inference_ordinal_gcomp.R compute_wald_*), so exercise them
+# directly with a non-finite delta-method SE.
+test_that("compute_wald_confidence_interval / compute_wald_two_sided_pval also fall back to the bootstrap when the SE is non-finite", {
+	f <- ordinal_gcomp_asymp_fixture(42)
+	f$inf$compute_estimate()
+	priv <- f$inf$.__enclos_env__$private
+	priv$cached_values$se_md <- NA_real_
+	priv$cached_values$s_beta_hat_T <- NA_real_
+
+	set.seed(321)
+	expect_warning(
+		wald_ci <- f$inf$compute_wald_confidence_interval(alpha = 0.2),
+		"falling back to bootstrap"
+	)
+	set.seed(321)
+	expected_ci <- f$inf$compute_bootstrap_confidence_interval(alpha = 0.2, na.rm = TRUE)
+	expect_equal(wald_ci, expected_ci)
+
+	set.seed(7)
+	expect_warning(
+		wald_p <- f$inf$compute_wald_two_sided_pval(),
+		"falling back to bootstrap"
+	)
+	set.seed(7)
+	expected_p <- f$inf$compute_bootstrap_two_sided_pval(na.rm = TRUE)
+	expect_equal(wald_p, expected_p)
+	expect_true(is.finite(wald_p) && wald_p >= 0 && wald_p <= 1)
+})
+
+# docs-claims audit, finding docs-claims-d1275549d: initialize requires an ordinal response.
+test_that("InferenceOrdinalGCompMeanDiff rejects a design whose response is not ordinal", {
+	set.seed(5)
+	n <- 20L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$overwrite_all_subject_assignments(rep(0:1, n / 2L))
+	des$add_all_subject_responses(rnorm(n))
+	expect_error(InferenceOrdinalGCompMeanDiff$new(des, verbose = FALSE), "ordinal")
+})

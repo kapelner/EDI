@@ -71,3 +71,77 @@ test_that("weighted partial odds MASS fallback preserves a common armwise odds s
                log(3), tolerance = 5e-4)
   expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
 })
+
+# docs-claims audit, finding docs-claims-d38c37c85: "unavailable packages are silently skipped in
+# favor of the next fallback" -- simulate real package absence through the package-availability
+# check (check_package_installed() wraps requireNamespace()) instead of stubbing the fitters.
+ppo_absent_pkg_fixture <- function(nonparallel = character(0), disable_fast = FALSE) {
+  set.seed(31)
+  n <- 90L
+  x1 <- rnorm(n)
+  trt <- rep(0:1, length.out = n)
+  y <- as.integer(cut(qlogis(runif(n)) + 0.7 * trt + 0.5 * x1, c(-Inf, -0.7, 0.7, Inf)))
+  des <- DesignFixedBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(x1 = x1))
+  des$overwrite_all_subject_assignments(trt)
+  des$add_all_subject_responses(y)
+  gen <- if (disable_fast) {
+    R6::R6Class("InferenceOrdinalPartialProportionalOddsRegr",
+      inherit = InferenceOrdinalPartialProportionalOddsRegr, parent_env = asNamespace("EDI"),
+      lock_objects = FALSE, private = list(fit_fast_proportional_odds = function(...) NULL))
+  } else InferenceOrdinalPartialProportionalOddsRegr
+  inf <- gen$new(des, model_formula = ~ x1, nonparallel = nonparallel, verbose = FALSE)
+  list(inf = inf, y = y, trt = trt, x1 = x1)
+}
+
+test_that("with VGAM unavailable, a non-parallel fit silently falls through to ordinal::clm", {
+  skip_if_not_installed("ordinal")
+  asked <- character(0)
+  local_mocked_bindings(check_package_installed = function(package_name) {
+    asked <<- c(asked, package_name); !identical(package_name, "VGAM")
+  }, .package = "EDI")
+  f <- ppo_absent_pkg_fixture(nonparallel = "x1")
+  expect_no_error(est <- f$inf$compute_estimate())
+  expect_true(all(c("VGAM", "ordinal") %in% asked))
+  dat <- data.frame(y = ordered(f$y), treatment = f$trt, x1 = f$x1)
+  ref <- suppressWarnings(ordinal::clm(y ~ treatment, nominal = ~ x1, data = dat, link = "logit"))
+  expect_equal(est, unname(coef(ref)[["treatment"]]), tolerance = 1e-4)
+  expect_true(is.finite(f$inf$compute_asymp_two_sided_pval()))
+})
+
+test_that("with VGAM and ordinal both unavailable, a parallel fit silently falls through to MASS::polr", {
+  asked <- character(0)
+  local_mocked_bindings(check_package_installed = function(package_name) {
+    asked <<- c(asked, package_name); !(package_name %in% c("VGAM", "ordinal"))
+  }, .package = "EDI")
+  f <- ppo_absent_pkg_fixture(disable_fast = TRUE)
+  expect_no_error(est <- f$inf$compute_estimate())
+  expect_true(all(c("VGAM", "ordinal") %in% asked))
+  ref <- suppressWarnings(MASS::polr(ordered(f$y) ~ f$trt + f$x1, method = "logistic", Hess = TRUE))
+  expect_equal(est, unname(coef(ref)[1]), tolerance = 1e-4)
+  expect_equal(f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T, sqrt(vcov(ref)[1, 1]), tolerance = 1e-3)
+})
+
+# docs-claims audit, finding docs-claims-d38c37c85: when every weighted backend fails, the weighted
+# refit falls back to weighted_ordinal_bootstrap_surrogate_fit(..., method = "logistic").
+test_that("weighted refit falls back to the logistic surrogate when every weighted backend fails, with NA SE", {
+  fixture <- partial_odds_fallback_fixture()
+  p <- fixture$private
+  unlockBinding("fit_polr_weighted", p)
+  p$fit_polr_weighted <- function(...) NULL
+  p$current_bayesian_bootstrap_context <- p$build_bayesian_bootstrap_context()
+  set.seed(8)
+  weights <- sample(1:4, 40L, replace = TRUE)
+  got <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
+  y <- c(rep(1:3, c(5, 10, 5)), rep(1:3, c(2, 8, 10)))
+  sur <- weighted_ordinal_bootstrap_surrogate_fit(
+    X = cbind(treatment = rep(c(0, 1), each = 20L)), y = y, row_weights = weights, method = "logistic")
+  expect_equal(got, sur$beta_hat)
+  expect_true(is.finite(got))
+  expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
+  # The docs call this surrogate a "plain weighted binary-logistic surrogate fit ... that does not
+  # model the ordinal structure at all", but weighted_ordinal_bootstrap_surrogate_fit(method =
+  # "logistic") is a weighted MASS::polr proportional-odds fit (fit_type "polr_logistic").
+  skip("v1.0.6-TODO-256: surrogate is weighted polr (proportional odds), not a binary-logistic fit as documented")
+  expect_false(startsWith(sur$fit_type, "polr"))
+})

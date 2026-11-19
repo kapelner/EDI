@@ -60,3 +60,50 @@ test_that("compute_estimate_with_bootstrap_weights() is non-estimable when no ma
 	expect_true(is.na(res))
 	expect_identical(p$cached_values$nonestimable_reason, "ordinal_paired_sign_test_no_discordant_pairs")
 })
+
+# docs-claims audit, finding docs-claims-d442518ff: weighted vote per pair using the mean pair
+# weight; s_beta_hat_T is NA; no discordant weighted vote gives estimate 0 with NA SE.
+test_that("weighted refit: non-uniform weights give the hand-computed weighted vote share minus 0.5, NA SE", {
+	set.seed(1)
+	n <- 30L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	X <- data.frame(x1 = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	set.seed(2)
+	des$add_all_subject_responses(sample(1:5, n, replace = TRUE))
+	inf <- InferenceOrdinalPairedSignTest$new(des, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	inf$compute_estimate()
+	ctx <- p$build_bayesian_bootstrap_context()
+	p$current_bayesian_bootstrap_context <- ctx
+	set.seed(9)
+	uw <- rexp(ctx$n_units) + 0.05
+	rw <- uw[ctx$row_to_unit]
+	m <- p$m; w <- p$w; y <- p$y
+	pos_w <- 0; neg_w <- 0
+	for (pid in sort(unique(m[m > 0]))) {
+		idx <- which(m == pid)
+		it <- idx[w[idx] == 1][1]; ic <- idx[w[idx] == 0][1]
+		pw <- mean(rw[c(it, ic)])
+		d <- y[it] - y[ic]
+		if (d > 0) pos_w <- pos_w + pw
+		if (d < 0) neg_w <- neg_w + pw
+	}
+	expected <- pos_w / (pos_w + neg_w) - 0.5
+	expect_false(isTRUE(all.equal(expected, inf$compute_estimate())))  # weights matter here
+	got <- inf$compute_estimate_with_bootstrap_weights(uw)
+	expect_equal(got, expected, tolerance = 1e-12)
+	expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
+})
+
+test_that("weighted refit with every pair tied gives estimate 0 and NA SE", {
+	des <- paired_sign_fixture(seed = 4L)
+	inf <- InferenceOrdinalPairedSignTest$new(des, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	ctx <- p$build_bayesian_bootstrap_context()
+	p$current_bayesian_bootstrap_context <- ctx
+	set.seed(10)
+	got <- inf$compute_estimate_with_bootstrap_weights(rexp(ctx$n_units) + 0.05)
+	expect_identical(got, 0)
+	expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
+})

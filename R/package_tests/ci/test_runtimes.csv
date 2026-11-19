@@ -836,6 +836,7 @@ R/package_tests/testthat_bulk/test-ordinal-cloglog-stereotype-simulate-under-lik
 R/package_tests/testthat_bulk/test-ordinal-cloglog-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-cond-clogit-shared-multi-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-continuation-ratio-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-cumulative-link-and-adjcat-likelihood-tests-available.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-delta-method-and-bootstrap-fallback.R,correctness,1.3,measured_with_30_percent_headroom
@@ -869,6 +870,7 @@ R/package_tests/testthat_bulk/test-ordinal-kk-glmm-rcpp-failed-and-variance-none
 R/package_tests/testthat_bulk/test-ordinal-kk-glmm-rcpp-nonestimable-extreme-and-boundary-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-logit-kernel-polr-fit-covariance-fixed-coefficients-estimate-only-and-iteration-cap-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-estimate-se-reservoir-and-design-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2549,6 +2551,7 @@ R/package_tests/testthat_bulk/test-ordinal-cloglog-stereotype-simulate-under-lik
 R/package_tests/testthat_bulk/test-ordinal-cloglog-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-cond-clogit-shared-multi-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-continuation-ratio-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-cumulative-link-and-adjcat-likelihood-tests-available.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-delta-method-and-bootstrap-fallback.R,coverage,240,bootstrap
@@ -2582,6 +2585,7 @@ R/package_tests/testthat_bulk/test-ordinal-kk-glmm-rcpp-failed-and-variance-none
 R/package_tests/testthat_bulk/test-ordinal-kk-glmm-rcpp-nonestimable-extreme-and-boundary-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-logit-kernel-polr-fit-covariance-fixed-coefficients-estimate-only-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-estimate-se-reservoir-and-design-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,coverage,240,bootstrap

@@ -78,3 +78,37 @@ test_that("weighted superiority: weighted share of treated-above-control pairs w
 	expect_equal(g$p$weighted_superiority(y, w, rn), {ii <- setdiff(it, 2); cc <- outer(y[ii], y[ic], ">") + 0.5 * outer(y[ii], y[ic], "=="); sum(cc * outer(rw[ii], rw[ic])) / sum(outer(rw[ii], rw[ic]))}, tolerance = 1e-12)
 	expect_true(is.na(g$p$weighted_superiority(y, w, ifelse(w == 1, 0, 1)))); expect_true(is.na(g$p$weighted_superiority(y, rep(1L, n), rw)))
 })
+
+# docs-claims audit, finding docs-claims-dd4b8123f: ordinal-response requirement, and the public
+# compute_estimate_with_bootstrap_weights() (-1/2 centering, subject-to-row weight expansion,
+# NA standard error regardless of estimate_only).
+test_that("InferenceOrdinalJonckheereTerpstraTest requires an ordinal response", {
+	set.seed(5)
+	n <- 20L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$overwrite_all_subject_assignments(rep(0:1, n / 2L))
+	des$add_all_subject_responses(rnorm(n))
+	expect_error(InferenceOrdinalJonckheereTerpstraTest$new(des, verbose = FALSE), "ordinal")
+})
+
+test_that("public weighted estimate is the weighted concordance minus 1/2 with NA SE; unit weights reproduce compute_estimate()", {
+	y <- c(1, 2, 2, 3, 1, 3, 2, 4, 3, 1); w <- c(1, 1, 0, 0, 1, 0, 0, 1, 1, 0)
+	g <- mk(y, w)
+	g$p$current_bayesian_bootstrap_context <- g$p$build_bayesian_bootstrap_context()
+	ctx <- g$p$current_bayesian_bootstrap_context
+	uw <- seq(0.3, 2.1, length.out = ctx$n_units)
+	rw <- uw[ctx$row_to_unit]
+	it <- which(w == 1); ic <- which(w == 0)
+	comp <- outer(y[it], y[ic], ">") + 0.5 * outer(y[it], y[ic], "==")
+	wp <- outer(rw[it], rw[ic], "*")
+	expected <- sum(comp * wp) / sum(wp) - 0.5
+	for (eo in c(FALSE, TRUE)) {
+		got <- g$inf$compute_estimate_with_bootstrap_weights(uw, estimate_only = eo)
+		expect_equal(got, expected, tolerance = 1e-12)
+		expect_equal(got, g$p$weighted_superiority(g$p$y, g$p$w, rw) - 0.5, tolerance = 1e-12)
+		expect_identical(g$p$last_weighted_refit$s_beta_hat_T, NA_real_)
+	}
+	expect_false(isTRUE(all.equal(expected, g$inf$compute_estimate())))
+	expect_equal(g$inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units)), g$inf$compute_estimate(), tolerance = 1e-12)
+})

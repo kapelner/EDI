@@ -116,3 +116,76 @@ test_that("randomization-bootstrap kernel declines for a shifted null and for sm
 	expect_null(f$p$compute_fast_rand_bootstrap_distr(f$y, list(), 0.5, "none"))
 	expect_null(f$p$compute_fast_rand_bootstrap_distr(f$y, list(list(smooth_noise = c(0.1, 0.2))), 0, "none"))
 })
+
+# docs-claims audit, finding docs-claims-da2b1f69e: default reference, max_resample_attempts,
+# and the ordinal-response requirement.
+rid_des <- function(seed = 3L, n = 60L) {
+	set.seed(seed)
+	des <- DesignFixediBCRD$new(n = n, response_type = "ordinal", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$overwrite_all_subject_assignments(rep(0:1, length.out = n))
+	w <- des$get_w()
+	des$add_all_subject_responses(as.integer(pmin(sample(1:4, n, TRUE, prob = c(.4, .3, .2, .1)) + w * (runif(n) < .3), 4L)))
+	des
+}
+
+test_that("reference defaults to \"control\"", {
+	des <- rid_des()
+	se_of <- function(inf) { inf$compute_estimate(); inf$.__enclos_env__$private$cached_values$s_beta_hat_T }
+	def <- InferenceOrdinalRidit$new(des, verbose = FALSE)
+	ctl <- InferenceOrdinalRidit$new(des, reference = "control", verbose = FALSE)
+	pooled <- InferenceOrdinalRidit$new(des, reference = "pooled", verbose = FALSE)
+	expect_identical(def$.__enclos_env__$private$reference, "control")
+	expect_equal(def$compute_estimate(), ctl$compute_estimate())
+	expect_equal(se_of(def), se_of(ctl))
+	expect_false(isTRUE(all.equal(se_of(def), se_of(pooled))))
+})
+
+test_that("max_resample_attempts must be a positive integer and bounds the per-replicate redraws", {
+	des <- rid_des()
+	expect_error(InferenceOrdinalRidit$new(des, max_resample_attempts = 0L))
+	expect_error(InferenceOrdinalRidit$new(des, max_resample_attempts = 1.5))
+	expect_identical(InferenceOrdinalRidit$new(des, verbose = FALSE)$.__enclos_env__$private$max_resample_attempts, 50L)
+
+	# One treated subject in n = 10: about 35% of resamples lose the treated arm.
+	n <- 10L
+	tiny <- DesignFixedBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
+	tiny$add_all_subjects_to_experiment(data.frame(x = seq_len(n)))
+	tiny$overwrite_all_subject_assignments(c(1L, rep(0L, n - 1L)))
+	tiny$add_all_subject_responses(c(3L, 1L, 2L, 3L, 1L, 2L, 2L, 1L, 3L, 2L))
+	one <- InferenceOrdinalRidit$new(tiny, max_resample_attempts = 1L, verbose = FALSE)
+	many <- InferenceOrdinalRidit$new(tiny, max_resample_attempts = 50L, verbose = FALSE)
+
+	# The private non-KK resampling kernel honours the cap: one attempt leaves NA replicates,
+	# fifty attempts leave none.
+	p1 <- one$.__enclos_env__$private
+	set.seed(1)
+	d1 <- p1$compute_fast_bootstrap_distr(40L, n, p1$y, p1$dead, p1$w)
+	expect_gt(sum(is.na(d1)), 0L)
+	p50 <- many$.__enclos_env__$private
+	set.seed(1)
+	d50 <- p50$compute_fast_bootstrap_distr(40L, n, p50$y, p50$dead, p50$w)
+	expect_identical(sum(is.na(d50)), 0L)
+
+	# The public bootstrap records failed draws as NA ...
+	set.seed(1)
+	b1 <- one$approximate_bootstrap_distribution_beta_hat_T(B = 40, show_progress = FALSE)
+	expect_gt(sum(is.na(b1)), 0L)
+	# ... but never redraws: compute_fast_bootstrap_distr() above is not called by the public
+	# bootstrap for a non-KK design, so max_resample_attempts = 50 gives the same NA replicates
+	# (14 of 40 here) as max_resample_attempts = 1.
+	set.seed(1)
+	b50 <- many$approximate_bootstrap_distribution_beta_hat_T(B = 40, show_progress = FALSE)
+	skip("v1.0.6-TODO-258: public bootstrap ignores max_resample_attempts (no redraws; 14/40 NA with 50 attempts)")
+	expect_identical(sum(is.na(b50)), 0L)
+})
+
+test_that("InferenceOrdinalRidit requires an ordinal response", {
+	set.seed(5)
+	n <- 20L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$overwrite_all_subject_assignments(rep(0:1, n / 2L))
+	des$add_all_subject_responses(rnorm(n))
+	expect_error(InferenceOrdinalRidit$new(des, verbose = FALSE), "ordinal")
+})

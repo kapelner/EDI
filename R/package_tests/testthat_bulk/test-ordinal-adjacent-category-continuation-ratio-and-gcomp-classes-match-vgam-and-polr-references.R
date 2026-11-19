@@ -59,3 +59,21 @@ test_that("the acat and cratio estimates have the sign of the treatment effect a
 	expect_true(ac > 0 && cr > 0 && po > 0)
 	expect_gt(abs(ac - po), 0.05); expect_gt(abs(cr - po), 0.05)
 })
+
+# docs-claims audit, finding docs-claims-d7481796d: LR, score, gradient and Wald tests are all
+# available for the continuation-ratio class when the model converges.
+test_that("continuation-ratio class advertises and runs Wald/score/gradient/LR tests; LR matches vglm(cratio)", {
+	f <- fx()
+	inf <- new_inf("InferenceOrdinalContRatioRegr", f$des)
+	expect_true(is.finite(inf$compute_estimate()))
+	expect_true(all(c("wald", "score", "gradient", "lik_ratio") %in% inf$get_supported_testing_types()))
+	pv <- c(wald = inf$compute_wald_two_sided_pval(delta = 0),
+		score = inf$compute_score_two_sided_pval(delta = 0),
+		gradient = inf$compute_gradient_two_sided_pval(delta = 0),
+		lik_ratio = inf$compute_lik_ratio_two_sided_pval(delta = 0))
+	expect_true(all(is.finite(pv) & pv >= 0 & pv <= 1))
+	full <- VGAM::vglm(y ~ w + x, family = VGAM::cratio(parallel = TRUE), data = f$d)
+	null <- VGAM::vglm(y ~ x, family = VGAM::cratio(parallel = TRUE), data = f$d)
+	lr_ref <- pchisq(2 * (as.numeric(VGAM::logLik(full)) - as.numeric(VGAM::logLik(null))), df = 1, lower.tail = FALSE)
+	expect_equal(unname(pv["lik_ratio"]), lr_ref, tolerance = 1e-3)
+})
