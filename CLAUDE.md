@@ -137,3 +137,12 @@ list rather than a release file, name the plan instead (`multistart_nonconcave_l
 
 Existing references in the older styles (`release_v1_0_6.md → TODO-30`, `v1.0.5 TODO-110`) can stay as they are.
 Use the new form for anything you write or edit.
+
+## Ignore the four stuck "queued" Actions runs from 2026-11-11
+
+Four workflow runs created 2026-11-11 20:33 UTC sit in `queued` forever and cannot be removed:
+43096786689 (loc-badge), 43096786691 (test-coverage), 43096786700 (test-bulk-non-cran) and
+43096786772 (test-coverage-R-advanced). Cancel and force-cancel return HTTP 409 ("not been queued
+yet") and delete returns HTTP 403. They hold no runner and no concurrency slot. Owner ruling
+2026-11-19: ignore them. Leave them out of reports on stuck, duplicate or queued jobs, and don't try
+to cancel or delete them again; only GitHub Support could remove them.
