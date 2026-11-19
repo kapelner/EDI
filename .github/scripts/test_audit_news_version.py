@@ -60,6 +60,12 @@ class NewsVersion(unittest.TestCase):
         self.assertEqual(nv.core("1.0.4.9000"), (1, 0, 4))
         self.assertEqual(nv.last_release_tag(self.repo), ("v1.0.4", (1, 0, 4)))
 
+    def test_development_heading_is_not_unreadable(self):
+        """NEWS.md's `# EDI (development version)` heading is the next, unnumbered version."""
+        self.commit("R/EDI/NEWS.md", "# EDI (development version)\n\n* x.\n\n" + FILES["R/EDI/NEWS.md"], "news")
+        kinds = {(f["unit"], f["kind"]) for f in nv.mechanical(self.ctx)}
+        self.assertNotIn(("R/EDI/NEWS.md", "version-unreadable"), kinds)
+
     def test_behind_tag_and_news(self):
         self.git("tag", "v1.0.5")
         sha = self.commit("R/EDI/src/k.cpp", "int k;\n", "fix kernel")

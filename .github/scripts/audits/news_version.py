@@ -136,11 +136,14 @@ def mechanical(ctx):
         return [{"unit": DESCRIPTION, "kind": "version-missing", "text": f"`{DESCRIPTION}` has no Version field."}]
     for path, v, rule in version_sources(ctx):
         c = core(v)
+        if c is None and rule == "not-behind" and v.startswith("(development"):
+            continue  # "# EDI (development version)": the next version, not yet numbered
         if c is None:
             out.append({"unit": path, "kind": "version-unreadable", "text": f"`{path}`: cannot read version `{v}`."})
         elif rule == "equal" and c != d:
             out.append({"unit": path, "kind": "version-mismatch",
-                        "text": f"`{path}` says {v}; `{DESCRIPTION}` says {desc}."})
+                        "text": f"`{path}` says {v}; `{DESCRIPTION}` says {desc}. "
+                                "DESCRIPTION is the single source: run `python3 scripts/sync_version.py`."})
         elif rule == "not-behind" and c < d:
             out.append({"unit": path, "kind": "version-behind",
                         "text": f"`{path}`'s top section is {v}, behind `{DESCRIPTION}`'s {desc}."})

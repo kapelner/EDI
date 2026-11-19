@@ -146,3 +146,12 @@ Four workflow runs created 2026-11-11 20:33 UTC sit in `queued` forever and cann
 yet") and delete returns HTTP 403. They hold no runner and no concurrency slot. Owner ruling
 2026-11-19: ignore them. Leave them out of reports on stuck, duplicate or queued jobs, and don't try
 to cancel or delete them again; only GitHub Support could remove them.
+
+## One source of truth for the version: `R/EDI/DESCRIPTION`
+
+Owner ruling 2026-11-19. Change the version only in `R/EDI/DESCRIPTION`, then run
+`python3 scripts/sync_version.py`. It rewrites every copy: `CITATION.cff`, `python/CITATION.cff`,
+`codemeta.json`, `python/pyproject.toml` (a `.postN` suffix is kept while X.Y.Z matches),
+`R/EDI/inst/CITATION`, and the BibTeX `version = {…}` in the READMEs. Never hand-edit a copy. The
+pre-push hook runs `sync_version.py --check` and refuses a push while any copy disagrees. `NEWS.md`
+and `python/CHANGELOG.md` are not copies; their top section may already name the next version.
