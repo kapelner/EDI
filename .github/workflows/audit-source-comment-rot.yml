@@ -1,4 +1,4 @@
-# Source comment rot audit: monthly, 4th Sunday 06:00 UTC (a weekly Sunday cron; the gate keeps
+# Source comment rot audit: monthly, 4th Sunday 06:07 UTC (a weekly Sunday cron; the gate keeps
 # the 4th). Unit: one source file in R/EDI/R or R/EDI/src.
 # Mechanical: TODO / FIXME / XXX notes that no release TODO cites.
 # Claude (Sonnet, changed files + an 8-week rotation, 5 files per agent, at most 12 batches):
@@ -16,7 +16,7 @@ name: audit · monthly · source-comment-rot
 
 on:
   schedule:
-    - cron: "0 6 * * 0"
+    - cron: "7 6 * * 0"
   workflow_dispatch:
     inputs:
       scope:
