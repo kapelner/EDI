@@ -1,0 +1,44 @@
+{
+ "news-version-m1b63b4d5": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-mismatch:`CITATION.cff` says #.#; `R/EDI/DESCRIPTION` says #.#.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`CITATION.cff` says 1.0.2; `R/EDI/DESCRIPTION` says 1.0.4.",
+  "unit": "CITATION.cff"
+ },
+ "news-version-m36060aa3": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-mismatch:`python/README.md` says #.#; `R/EDI/DESCRIPTION` says #.#.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`python/README.md` says 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4.",
+  "unit": "python/README.md"
+ },
+ "news-version-m8cbb45a7": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-mismatch:`codemeta.json` says #.#; `R/EDI/DESCRIPTION` says #.#.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`codemeta.json` says 1.0.2; `R/EDI/DESCRIPTION` says 1.0.4.",
+  "unit": "codemeta.json"
+ },
+ "news-version-m9d436894": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-mismatch:`python/CITATION.cff` says #.#; `R/EDI/DESCRIPTION` says #.#.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`python/CITATION.cff` says 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4.",
+  "unit": "python/CITATION.cff"
+ },
+ "news-version-ma6638d7e": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-unreadable:`R/EDI/NEWS.md`: cannot read version `(development`.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`R/EDI/NEWS.md`: cannot read version `(development`.",
+  "unit": "R/EDI/NEWS.md"
+ },
+ "news-version-me099a237": {
+  "first_seen": "2026-11-19T16:32:59+00:00",
+  "key": "version-mismatch:`python/README_PYPI.md` says #.#; `R/EDI/DESCRIPTION` says #.#.",
+  "last_seen": "2026-11-19T16:32:59+00:00",
+  "text": "`python/README_PYPI.md` says 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4.",
+  "unit": "python/README_PYPI.md"
+ }
+}
