@@ -444,36 +444,36 @@ removes. Unverified ideas never appear as changes. Detector findings with no kep
 
 ## TODOs
 
-- [ ] TODO-1: `audit-notes` orphan branch + `audit_common.py` (manifest, hashing, rotation, `scope` input,
+- [x] TODO-1: `audit-notes` orphan branch + `audit_common.py` (manifest, hashing, rotation, `scope` input, *(ticked by the TODO audit 2026-11-19: .github/scripts/audit_run.py:444; .github/workflows/audit.yml:144; .github/scripts/audit_common.py:145; .github/scripts/audit_common.py:72; .github/scripts/audit_common.py:110; .github/scripts/audit_common.py:210; .github/workflows/audit.yml:43; .github/scripts/audit_common.py:147; .github/workfl...)*
   fail-open) + tests.
 - [ ] TODO-2: PR handling in `audit_common.py`: single open PR per audit, rebase onto `main`, closed-PR
   harvesting into `findings.jsonl` / `decisions.md` + tests.
-- [ ] TODO-3: Rd mechanical stage (checkRd, xrefs, codoc, examples with time limits and CRAN timing,
+- [x] TODO-3: Rd mechanical stage (checkRd, xrefs, codoc, examples with time limits and CRAN timing, *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/rd_check.R:35; .github/scripts/audits/rd_check.R:137; .github/scripts/audits/rd_check.R:186; .github/scripts/audits/rd.py:136; .github/scripts/audits/rd_check.R:51; .github/scripts/audits/rd_check.R:215; R/EDI/inst/WORDLIST:1)*
   spelling + seeded `inst/WORDLIST`).
-- [ ] TODO-4: Rd Claude stage: prompt, schema, batching, roxygen-source mapping, apply rules, one roxygen run.
+- [x] TODO-4: Rd Claude stage: prompt, schema, batching, roxygen-source mapping, apply rules, one roxygen run. *(ticked by the TODO audit 2026-11-19: .github/prompts/audit_rd.md; .github/prompts/audit_rd.schema.json; .github/scripts/audits/rd.py:42; .github/scripts/audits/_doc_audit_shared.py:135; .github/scripts/audits/rd.py:616; .github/scripts/audits/rd.py:740; .github/scripts/audits/_doc_audit_shared.py:358)*
 - [ ] TODO-5: `audit-rd.yml`, first `all` run, owner review.
-- [ ] TODO-6: TODO-status audit: unit parser for release and plan files (checkbox, id, moved pointers,
+- [x] TODO-6: TODO-status audit: unit parser for release and plan files (checkbox, id, moved pointers, *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/todo_status.py:78; .github/scripts/audits/todo_status.py:60; .github/scripts/test_audit_todo_status.py:166; .github/scripts/audits/todo_status.py:273; .github/scripts/audits/todo_status.py:304; .github/prompts/audit_todo_status.md:34; .github/prompts/audit_todo_status.schem...)*
   owner-closed markers), dependency rules (commit citations, named files), prompt and schema with
   per-part evidence, tick/untick apply rules.
 - [ ] TODO-7: `audit-todo.yml`, first `all` run, owner review.
 - [ ] TODO-8: runbook section for both jobs.
-- [ ] TODO-9: issue-reporting mode in `audit_common.py` (one issue per audit, updated in place, closed when
+- [x] TODO-9: issue-reporting mode in `audit_common.py` (one issue per audit, updated in place, closed when *(ticked by the TODO audit 2026-11-19: .github/scripts/audit_common.py:34; .github/scripts/audit_common.py:507; .github/scripts/audit_run.py:355; .github/scripts/audits/cran_watcher.py:1; .github/workflows/audit-cran-watcher.yml; .github/scripts/test_audit_cran_watcher.py)*
   clean) + the CRAN check-results watcher.
-- [ ] TODO-10: allowlist and baseline hygiene (after TODO-7: it reads the TODO audit's verdicts).
-- [ ] TODO-11: generated-file drift; NEWS and version consistency.
-- [ ] TODO-12: CI self-check; Python dependency vulnerabilities.
-- [ ] TODO-13: dead code; reference check.
+- [x] TODO-10: allowlist and baseline hygiene (after TODO-7: it reads the TODO audit's verdicts). *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/allowlist_hygiene.py:24; .github/scripts/audits/allowlist_hygiene.py:76; .github/scripts/audits/allowlist_hygiene.py:210; .github/workflows/audit-allowlist-hygiene.yml:16; test_audit_allowlist_hygiene.py)*
+- [x] TODO-11: generated-file drift; NEWS and version consistency. *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/generated_drift.py:1; .github/workflows/audit-generated-drift.yml:16; test_audit_generated_drift.py; .github/scripts/audits/news_version.py:1; .github/workflows/audit-news-version.yml:15; test_audit_news_version.py)*
+- [x] TODO-12: CI self-check; Python dependency vulnerabilities. *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/ci_self_check.py:1; .github/workflows/audit-ci-self-check.yml:14; test_audit_ci_self_check.py; .github/scripts/audits/python_vulns.py:1; .github/workflows/audit-python-vulns.yml:13; test_audit_python_vulns.py)*
+- [x] TODO-13: dead code; reference check. *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/dead_code.py:1; .github/workflows/audit-dead-code.yml:19; test_audit_dead_code.py; .github/scripts/audits/reference_check.py:1; .github/workflows/audit-reference-check.yml:18; test_audit_reference_check.py)*
 - [ ] TODO-14: compiled-code audit, stages 1-2 (hot-function profile, detectors, assembly-hash cache). Run
   it once and review the detector output before building stages 3-4.
 - [x] TODO-15: compiled-code audit, stages 3-4 (Claude proposals, benchmark and results verification, PR).
   Stage 4 done 2026-11-17 as above; it has not run on GitHub yet.
-- [ ] TODO-16: the remaining Part 4 audits: privacy check, README / vignette drift, test-suite health, docs
+- [x] TODO-16: the remaining Part 4 audits: privacy check, README / vignette drift, test-suite health, docs *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/privacy.py:1; .github/workflows/audit-privacy.yml:16; test_audit_privacy.py; .github/scripts/audits/readme_drift.py:1; .github/workflows/audit-readme-drift.yml:18; test_audit_readme_drift.py; .github/scripts/audits/test_suite_health.py:1; .github/workflows/audit-test-suite-...)*
   claims vs behaviour, R ↔ Python parity, dependency and license drift.
 - [ ] TODO-17: results freshness (manifest per results file; needs the class → files rules shared with
   `benchmark_gate.py`, so factor them into a module both import).
-- [ ] TODO-18: numerical-robustness review and thread and random-number review (both keep a finding only when
+- [x] TODO-18: numerical-robustness review and thread and random-number review (both keep a finding only when *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/numerical_robustness.py:30; .github/workflows/audit-numerical-robustness.yml; test_audit_numerical_robustness.py; .github/scripts/audits/thread_rng.py:31; .github/workflows/audit-thread-rng.yml; test_audit_thread_rng.py; .github/scripts/audits/numerical_robustness.py:19; .g...)*
   the agent's test fails on the PR branch).
-- [ ] TODO-19: source comment rot.
+- [x] TODO-19: source comment rot. *(ticked by the TODO audit 2026-11-19: .github/scripts/audits/source_comment_rot.py:26; .github/prompts/audit_source_comment_rot.md; .github/workflows/audit-source-comment-rot.yml; test_audit_source_comment_rot.py)*
 - [ ] TODO-20: code duplication (built 2026-11-18, not yet run on GitHub): owner review of the first issue and the
   first PR comment, then decide on `FAIL_ON_DIVERGENCE`.
 - [ ] TODO-21: untested code (built 2026-11-18, not yet run on GitHub): owner review of the first PR (are the
