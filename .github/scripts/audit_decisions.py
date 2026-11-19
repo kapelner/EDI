@@ -12,6 +12,11 @@ stage writes ({id: {text, first_seen, last_seen, unit, key}}). A decision leaves
 no longer finds it (the audit drops it from that file), when an unticked TODO in a release file
 cites its id, or when its id is in R/package_metadata/audits/dismissed_decisions.md. The last two
 are re-read here, so citing or dismissing takes effect at the next update, not the next audit run.
+
+The docs-scenario job (docs_scenarios.py) is not a framework audit and keeps its own finding list,
+`docs-scenarios/findings.jsonl` on the same branch, with ids `ds-<area>-<run>-f<n>`. Its open findings
+get a third heading here; their status is re-derived the way that job does it (cited by an unticked
+release TODO: filed; listed in the dismissed file: dismissed).
 """
 import argparse
 import json
@@ -22,6 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import audit_common as ac  # noqa: E402
+import docs_scenarios as ds  # noqa: E402
 
 LABEL = "audit-decisions"
 TITLE = "Open audit decisions"
@@ -53,6 +59,25 @@ def load_open(repo, ref=NOTES_REF, name="decisions_open.json"):
     return out
 
 
+def load_docs_scenarios(repo, ref=NOTES_REF):
+    """The docs-scenario job's open findings, as {"docs-scenarios": {id: record}} (empty if none)."""
+    r = subprocess.run(["git", "show", f"{ref}:{ds.NOTES_DIR}/findings.jsonl"], cwd=repo, capture_output=True,
+                       text=True)
+    rows = []
+    for line in (r.stdout if not r.returncode else "").splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    rows = ds.refresh_statuses(repo, rows)
+    counts = {"cited": sum(1 for x in rows if x["status"] in ("filed", "closed")),
+              "dismissed": sum(1 for x in rows if x["status"] == "dismissed")}
+    recs = {x["id"]: {"text": f"[{x.get('area', '')}] " + (f"{x['kind']}: " if x.get("kind") else "")
+                      + str(x.get("title", "")), "first_seen": x.get("date", "")}
+            for x in rows if x["status"] == "open"}
+    return ({ds.NOTES_DIR: recs} if recs else {}), counts
+
+
 def select(by_audit, cited, dismissed):
     """Drop cited and dismissed ids. Returns ({audit: [(id, record)] oldest first}, {"cited", "dismissed"})."""
     out, counts = {}, {"cited": 0, "dismissed": 0}
@@ -77,7 +102,8 @@ def clip(text, cap):
     return text[:cap].rsplit(" ", 1)[0] + " …"
 
 
-def render(selected, counts, generated_at, repo="", run_url="", cap=None, mech=None, mcounts=None):
+def render(selected, counts, generated_at, repo="", run_url="", cap=None, mech=None, mcounts=None, docs=None,
+           dcounts=None):
     mech, mcounts = mech or {}, mcounts or {}
     total = sum(len(v) for v in selected.values())
     notes = f"https://github.com/{repo}/blob/audit-notes" if repo else ""
@@ -117,7 +143,32 @@ def render(selected, counts, generated_at, repo="", run_url="", cap=None, mech=N
             lines.append(f"- `{did}` · since {str(rec.get('first_seen', ''))[:10]} · {first}" + sep + rest)
         lines += ["", "</details>"]
     lines += render_mechanical(mech, mcounts, notes, cap)
+    lines += render_docs(docs or {}, dcounts or {}, notes, cap)
     return "\n".join(lines) + "\n"
+
+
+def render_docs(docs, dcounts, notes, cap):
+    """The "Docs-scenario findings" section: the docs-only scenario job's open findings."""
+    items = sorted((docs.get(ds.NOTES_DIR) or {}).items(), key=lambda x: (str(x[1].get("first_seen", "")), x[0]))
+    extra = []
+    if dcounts.get("cited"):
+        extra.append(f"{dcounts['cited']} cited by a release TODO")
+    if dcounts.get("dismissed"):
+        extra.append(f"{dcounts['dismissed']} dismissed")
+    lines = ["", "# Docs-scenario findings", "",
+             f"**{len(items)} open finding(s)** from `.github/workflows/audit-docs-scenarios.yml`"
+             + (f"; not listed: {', '.join(extra)}" if extra else "") + ". Each leaves the list when a release "
+             "TODO cites its `ds-<area>-<run>-f<n>` id (filed) or the id is listed in "
+             f"`{ac.DISMISSED_FILE}`."]
+    if not items:
+        return lines
+    if notes:
+        lines += ["", f"Full records: [`{ds.NOTES_DIR}/findings.jsonl`]({notes}/{ds.NOTES_DIR}/findings.jsonl)"]
+    lines += ["", "<details><summary>" + f"{len(items)} finding(s)" + "</summary>", ""]
+    for fid, rec in items:
+        lines.append(f"- `{fid}` · since {str(rec.get('first_seen', ''))[:10]} · "
+                     + clip(str(rec.get("text", "")).strip(), cap).replace("\n", " "))
+    return lines + ["", "</details>"]
 
 
 def render_mechanical(mech, mcounts, notes, cap):
@@ -152,17 +203,20 @@ def render_mechanical(mech, mcounts, notes, cap):
     return lines
 
 
-def render_fitting(selected, counts, generated_at, repo="", run_url="", mech=None, mcounts=None):
+def render_fitting(selected, counts, generated_at, repo="", run_url="", mech=None, mcounts=None, docs=None,
+                   dcounts=None):
     """The full list if it fits; else the largest per-item text cap that does."""
-    body = render(selected, counts, generated_at, repo, run_url, mech=mech, mcounts=mcounts)
+    body = render(selected, counts, generated_at, repo, run_url, mech=mech, mcounts=mcounts, docs=docs,
+                  dcounts=dcounts)
     if len(body) <= MAX_BODY:
         return body
-    every = [r for v in selected.values() for _, r in v] + [r for v in (mech or {}).values() for _, r in v]
+    every = ([r for v in selected.values() for _, r in v] + [r for v in (mech or {}).values() for _, r in v]
+             + [r for v in (docs or {}).values() for r in v.values()])
     lo, hi = MIN_CAP, max((len(str(r.get("text", ""))) for r in every), default=MIN_CAP)
-    best = render(selected, counts, generated_at, repo, run_url, MIN_CAP, mech, mcounts)
+    best = render(selected, counts, generated_at, repo, run_url, MIN_CAP, mech, mcounts, docs, dcounts)
     while lo <= hi:
         mid = (lo + hi) // 2
-        b = render(selected, counts, generated_at, repo, run_url, mid, mech, mcounts)
+        b = render(selected, counts, generated_at, repo, run_url, mid, mech, mcounts, docs, dcounts)
         if len(b) <= MAX_BODY:
             best, lo = b, mid + 1
         else:
@@ -203,7 +257,8 @@ def main(argv=None):
     cited, dismissed = ac.cited_decisions(a.checkout), ac.dismissed_decisions(a.checkout)
     selected, counts = select(load_open(a.checkout, a.notes_ref), cited, dismissed)
     mech, mcounts = select(load_open(a.checkout, a.notes_ref, "mechanical_open.json"), cited, dismissed)
-    body = render_fitting(selected, counts, now, a.repo or "", run_url, mech, mcounts)
+    docs, dcounts = load_docs_scenarios(a.checkout, a.notes_ref)
+    body = render_fitting(selected, counts, now, a.repo or "", run_url, mech, mcounts, docs, dcounts)
     Path(a.out).write_text(body)
     if a.publish:
         print(f"issue #{publish(a.repo, body)}")

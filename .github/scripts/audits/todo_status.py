@@ -778,7 +778,12 @@ def apply(ctx, results, mech):
                     parts.append(f"{p.get('status', '?')}: {_clean(p.get('part'), 160)}"
                                  + (f" ({refs})" if refs else ""))
                 partly.append(f"{label}: partly done. {summary}" + ("<br>" + "<br>".join(parts) if parts else ""))
-            else:   # not done, unclear
+            elif verdict == "unclear":
+                # The agent could not tell from the code: a decision for the owner (tick it, reword it so
+                # a reader can check it, or dismiss the id), kept until a re-read gives a clear verdict.
+                human.append(ac.decision(f"{label}: status unclear from the code. {summary} Tick or reword the "
+                                         "TODO, or dismiss this id.", unit=uid, key="unclear"))
+            else:   # not done: the TODO itself tracks the work
                 if old != verdict:
                     changed_info.append(f"{label}: `{verdict}`" + (f" (was `{old}`)" if old else "")
                                         + f". {summary}")
@@ -787,7 +792,7 @@ def apply(ctx, results, mech):
         (ctx.notes.dir / "verdicts.json").write_text(json.dumps(verdicts, indent=1, sort_keys=True) + "\n")
     except OSError:
         pass
-    # Changed `not done` / `unclear` verdicts and `partly done` progress notes are information, not
+    # Changed `not done` verdicts and `partly done` progress notes are information, not
     # decisions (the TODO already tracks the work): they go in the collapsed "For information" block,
     # which comes last, so a report over GitHub's body limit is cut there first (audit_common.fit_body).
     info = changed_info + partly

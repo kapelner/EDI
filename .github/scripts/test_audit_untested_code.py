@@ -408,6 +408,13 @@ class Selection(Fixture):
         out = uc.units(self.ctx)
         self.assertFalse(any(k for k, v in out.items() if v["context"]["file"].startswith("python/")))
         self.assertEqual(len(self.ctx._unt["python_regions"]), 1)
+        # In the report: a tracked mechanical finding keyed by region id, not a "For information" line.
+        parts = uc.apply(self.ctx, [], [], verifier=lambda c, t: {}, availability=lambda: (True, ""))
+        py = [x for x in parts["mechanical"] if isinstance(x, dict)]
+        self.assertEqual([(x["unit"], x["kind"]) for x in py], [(uc.PY_UNIT, "python-region")])
+        self.assertEqual(py[0]["key"], self.ctx._unt["python_regions"][0]["id"])
+        self.assertIn(uc.PY_UNIT, parts["mechanical_scope_units"])
+        self.assertFalse(any("Python region" in x for x in parts["info"]))
 
 
 # ---------------------------------------------------------------- verification and apply

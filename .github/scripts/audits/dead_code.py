@@ -429,7 +429,16 @@ def apply(ctx, results, mech):
         line = listed.get(u) or candidate_line(u, c, text)
         lines[u] = line
         proposed.append({"unit": u, "kind": "dead-code", "text": finding_text(c),
-                         "applied_file": CANDIDATES_FILE, "applied_text": f"- `{u}` "})
+                         "applied_file": CANDIDATES_FILE, "applied_text": f"- `{u}` ",
+                         "merged_status": "listed"})   # merging lists it; nothing is removed
+    # Every listed candidate is also a decision for the owner (remove the code, or dismiss the id), so
+    # it reaches the audit-decisions issue and can be cited or dismissed. It leaves the list when the
+    # code is gone (no longer a candidate) or its line is deleted in an audit PR (rejected).
+    for u in sorted(lines):
+        c = cands[u]
+        loc = f"`{c['file']}:{c['line']}`" if c.get("file") else "definition not found"
+        human.append(ac.decision(f"Confirmed dead code, `{c['name']}` ({c['kind']}, {loc}): remove it, or "
+                                 "dismiss this id if it must stay.", unit=u, key="confirmed"))
     for f in unsure:
         c = cands[f["unit"]]
         text = re.sub(r"\s+", " ", f.get("text", "")).strip()

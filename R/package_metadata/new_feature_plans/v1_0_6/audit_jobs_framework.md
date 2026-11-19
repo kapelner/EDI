@@ -125,6 +125,18 @@ todo/
   and the text with numbers masked, so a moving line number, duration or count keeps the id. Before this,
   mechanical findings were only re-listed in each PR body, with no way to cite or dismiss them (PR #65
   listed 125).
+- **Every audit's findings reach that lifecycle** (owner, 2026-11-19). A module's apply() may return a
+  mechanical line as a dict `{text, unit, kind, key}` (its own unit, and a key that survives rewording),
+  and `mechanical_not_run: True` when its checks did not run. Audits that used to keep findings outside it:
+  dead-code lists each confirmed candidate as a decision (`key "confirmed"`) as well as in
+  `dead_code_candidates.md`, and a merged PR marks the candidate `listed`, not `fixed` (`merged_status`);
+  compiled-code's detector findings with no proposal are a decision on every run (`key "detectors"`), and
+  "newly hot" is a sticky mechanical kind; todo-status's `unclear` verdicts are decisions (`key "unclear"`);
+  untested-code's Python regions are mechanical findings keyed by region id; test-suite-health no longer
+  writes `test_suite_health.md` (deleting a line there was a second way to reject) and its findings are
+  mechanical, keyed without line numbers; generated-drift's generator warnings are keyed by generator. The
+  docs-scenario job keeps its own `findings.jsonl` (same cite and dismiss rules, ids `ds-...`), and its open
+  findings get their own heading in the `audit-decisions` issue.
 
 ### Secrets, models and cost guard
 

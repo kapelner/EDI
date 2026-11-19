@@ -16,8 +16,11 @@ Static checks over R/EDI/tests/testthat and R/package_tests/testthat_bulk:
 The R files are only parsed (test_suite_health.R, getParseData); nothing loads EDI.
 
 The PR renames TODO-numbered test files (the TODO moves into a top comment in the v<version>-TODO-<n>
-form) and rewrites FINDINGS_FILE with the other findings. It removes and skips nothing. Deleting a line
-of FINDINGS_FILE on the PR branch rejects that finding, so it is not raised again.
+form). It removes and skips nothing. Every other finding is a mechanical finding with the framework's
+lifecycle (owner 2026-11-19): it stays in the report and in the audit-decisions issue until a run no
+longer finds it, an open release TODO cites its `test-suite-health-m<hex>` id, or
+R/package_metadata/audits/dismissed_decisions.md lists it. The findings file this audit used to write
+(FINDINGS_FILE, where deleting a line rejected a finding) was a second lifecycle; a run deletes it.
 """
 import csv
 import datetime as dt
@@ -334,6 +337,8 @@ def mechanical(ctx):
         info["parsed"] = f"{len(tests)} test files parsed, {len(helpers)} R files read for helpers"
     except (RuntimeError, OSError, ValueError) as e:
         info["parsed"] = f"NOT RUN: the R parser failed ({e})"
+        # The static checks did not run, so their earlier findings must not count as fixed.
+        out.append({"unit": None, "kind": "not-run", "text": f"Static checks not run: the R parser failed ({e})."})
 
     slug = os.environ.get("GITHUB_REPOSITORY")
     cache_path = ctx.notes.dir / NOTES_CACHE
@@ -423,24 +428,16 @@ def rename_test(ctx, finding):
     return line, {**finding, "applied_file": new, "applied_text": comment}
 
 
-# ---------------------------------------------------------------- findings file
+# ---------------------------------------------------------------- findings
 
-def finding_line(f):
-    return f"- `{f['unit']}`: {f['text']}"
-
-
-def render_findings_file(findings):
-    md = ["# Test-suite health: open findings", "",
-          "Written by the test-suite-health audit (`.github/workflows/audit-test-suite-health.yml`) and "
-          "rewritten on each run. To reject a finding, delete its line in the audit PR: the audit will not "
-          "raise it again. Fix a finding in the test itself; the line goes away on the next run.", ""]
-    if not findings:
-        md += ["No open findings.", ""]
-    for kind, title in KIND_TITLES.items():
-        rows = sorted({finding_line(f) for f in findings if f["kind"] == kind})
-        if rows:
-            md += [f"## {title} ({len(rows)})", ""] + rows + [""]
-    return "\n".join(md)
+def mech_line(f):
+    """A finding as a report line with its own unit and a key that ignores line numbers and counts, so it
+    keeps its `test-suite-health-m<hex>` id while the file around it changes."""
+    loc = f" (line {f['line']})" if f.get("line") else ""
+    detail = f" ({f['detail']})" if f.get("detail") else ""
+    return {"text": f"{KIND_TITLES.get(f['kind'], f['kind'])}: `{f['unit']}`{loc}: {f['text']}{detail}",
+            "unit": f["unit"] or "", "kind": f["kind"],
+            "key": f"{f['unit']}|" + re.sub(r"\d+(?:\.\d+)?", "#", str(f["text"]))}
 
 
 def apply(ctx, results, mech):
@@ -461,25 +458,18 @@ def apply(ctx, results, mech):
             else:
                 human.append(extra)
     listed = [f for f in mech if f["kind"] != "todo-in-name"]
-    old_file = ctx.read(FINDINGS_FILE)
-    new_file = render_findings_file(listed)
-    if listed or old_file is not None:
-        if new_file != old_file:
-            ctx.path(FINDINGS_FILE).parent.mkdir(parents=True, exist_ok=True)
-            ctx.path(FINDINGS_FILE).write_text(new_file)
-        for f in listed:
-            proposed.append({**f, "applied_file": FINDINGS_FILE, "applied_text": finding_line(f)})
-    mechanical = []
-    for f in listed:
-        loc = f" (line {f['line']})" if f.get("line") else ""
-        detail = f" ({f['detail']})" if f.get("detail") else ""
-        mechanical.append(f"{KIND_TITLES.get(f['kind'], f['kind'])}: `{f['unit']}`{loc}: {f['text']}{detail}")
+    if ctx.read(FINDINGS_FILE) is not None:
+        ctx.path(FINDINGS_FILE).unlink()
+        applied.append(f"`{FINDINGS_FILE}` deleted: its findings are now tracked in the report and the "
+                       "audit-decisions issue (cite or dismiss their ids)")
+    mechanical = [f["text"] if f["kind"] == "not-run" else mech_line(f) for f in listed]
     counts = {}
     for f in mech:
         counts[f["kind"]] = counts.get(f["kind"], 0) + 1
     summary = [f"Static checks: {info.get('parsed', 'not recorded')}.",
                f"Bulk-run history: {info.get('history', 'not recorded')}.",
                "Findings by kind: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none") + ".",
-               f"Findings other than renames are listed in `{FINDINGS_FILE}`; nothing is skipped or removed."]
+               "Findings other than renames are listed below as mechanical findings; nothing is skipped or "
+               "removed."]
     return {"summary": "\n".join(summary), "applied": applied, "mechanical": mechanical, "human": human,
             "proposed": proposed}

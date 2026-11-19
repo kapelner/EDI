@@ -269,16 +269,15 @@ class Stages(unittest.TestCase):
         self.assertEqual(cc.applied_marker("a;\nb;", "a;\nc_longer;", "a;\nb;"), "c_longer;")
         self.assertEqual(cc.applied_marker("b;", "a;", "a;\nb;"), "a;")
 
-    def test_detector_findings_listed_once(self):
+    def test_detector_findings_are_decisions_every_run(self):
         parts = cc.apply(self.ctx, [], [])
-        self.assertEqual(len(parts["info"]), 1)                    # information, not a decision
-        self.assertEqual(ac.texts(parts["human"]), [])
-        self.assertIn("Detector findings in `work`", parts["info"][0])
-        self.assertEqual(cc.apply(self.ctx, [], [])["info"], [])  # unchanged: not listed again
-        hot = json.loads(json.dumps(HOT))
-        hot["hot"][0]["detectors"]["allocation_in_loop"] = {"_Znwm@plt": 1}
-        (self.work / cc.WORK_SUB / "hot.json").write_text(json.dumps(hot))
-        self.assertEqual(len(cc.apply(self.ctx, [], [])["info"]), 1)  # changed: listed again
+        self.assertEqual(parts["info"], [])
+        self.assertEqual(len(parts["human"]), 1)                   # a decision: citable, dismissable
+        d = parts["human"][0]
+        self.assertIn("Detector findings in `work`", d["text"])
+        self.assertEqual((d["unit"], d["key"]), ("R/EDI/src/fast_work.cpp::work", "detectors"))
+        self.assertEqual(len(cc.apply(self.ctx, [], [])["human"]), 1)  # unchanged: still listed
+        self.assertIn("became_hot", cc.SPEC["mechanical_sticky_kinds"])
 
     def test_proposal_that_does_not_apply(self):
         r = self.results()

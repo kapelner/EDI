@@ -67,6 +67,9 @@ SPEC = {
     "max_turns": 50,
     "tools": "Read,Glob,Grep",
     "pr_draft": True,         # the verify jobs mark the PR ready after the benchmark check
+    # "newly hot" compares with a profile the run then overwrites, so it is reported once: it stays
+    # open until cited or dismissed rather than counting as fixed on the next run.
+    "mechanical_sticky_kinds": ["became_hot"],
 }
 
 # Short runs of the nightly benchmark sections (benchmark_sections.R): one shard of each response
@@ -623,7 +626,6 @@ def applied_marker(old, new, original):
 def apply(ctx, results, mech):
     res = _load_stage(ctx) or {"hot": [], "notes": [], "errors": []}
     human, info, mechanical_lines = [], [], [m.get("text", "") for m in mech]
-    notes_dir = ctx.notes.dir
     hot_by_unit = {unit_id(h["source_file"], h["function"]): h for h in res.get("hot", []) if h.get("function") and h.get("source_file")}
     proposals_for = set()
     followup, proposed, applied = [], [], []
@@ -665,25 +667,21 @@ def apply(ctx, results, mech):
         fdir = Path(ctx.workdir) / FOLLOWUP_SUB
         fdir.mkdir(parents=True, exist_ok=True)
         (fdir / "proposals.json").write_text(json.dumps(followup, indent=1))
-    # Detector findings with no proposal: once, then only when they change.
-    rep_path = notes_dir / "reported_detectors.json"
-    try:
-        reported = json.loads(rep_path.read_text())
-    except (OSError, ValueError):
-        reported = {}
+    # Detector findings with no proposal this run: a decision for the owner on every run (owner
+    # 2026-11-19), keyed on the function, so it reaches the audit-decisions issue and stays until the
+    # detectors no longer fire, an open release TODO cites its id, or dismissed_decisions.md lists it.
     for h in res.get("hot", []):
         if h.get("skip") or not h.get("detectors"):
             continue
         uid = unit_id(h["source_file"], h["function"])
-        dh = ac.text_hash(h["detectors"], h.get("vec_missed"), h.get("inline_missed"))
-        if uid in proposals_for or reported.get(uid) == dh:
+        if uid in proposals_for:
             continue
-        reported[uid] = dh
         det = "; ".join(f"{k}: " + ", ".join(f"{t} x{n}" for t, n in sorted(v.items())[:6])
                         for k, v in sorted(h["detectors"].items()))
-        info.append(f"Detector findings in `{short_name(h['function'])}` (`{h['source_file']}:{h['start_line']}`, "
-                     f"{h['share']}% of EDI.so samples), no proposal kept: {det}")
-    rep_path.write_text(json.dumps(reported, indent=1, sort_keys=True) + "\n")
+        human.append(ac.decision(
+            f"Detector findings in `{short_name(h['function'])}` (`{h['source_file']}:{h['start_line']}`, "
+            f"{h['share']}% of EDI.so samples), no proposal kept: {det}. Open a TODO citing this id to work "
+            "on it, or dismiss it.", unit=uid, key="detectors"))
     hot = res.get("hot", [])
     summary = (f"{len(hot)} hot function(s) cover {round(sum(h['share'] for h in hot), 1)}% of the EDI.so "
                f"samples ({res.get('library_share', 0)}% more is Eigen/std/Rcpp template code, not audited); "

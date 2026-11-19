@@ -180,8 +180,9 @@ def apply(ctx, results, mech):
             before.append((status, path))
     if before:
         return {"summary": "The work tree was not clean before the generators ran; nothing was regenerated.",
-                "human": [f"`{p}` ({s})" for s, p in before[:20]], "applied": [], "mechanical": [],
-                "proposed": []}
+                "human": [ac.decision(f"`{p}` ({s})", unit=p, key="unclean") for s, p in before[:20]],
+                "applied": [], "mechanical": [], "proposed": [],
+                "mechanical_not_run": True}     # no generator ran: earlier warnings are not fixed
     runs = run_generators(ctx)
     rejected = {h["id"] for h in ctx.notes.findings() if h.get("status") == "rejected"}
     applied, human, mechanical, proposed, notes = [], [], [], [], []
@@ -189,27 +190,32 @@ def apply(ctx, results, mech):
     failed = set()
     for gen, (code, text) in runs.items():
         warn, more = log_warnings(text)
+        # Each warning is tracked under its generator (the unit), keyed on its text with numbers masked,
+        # so it keeps its `generated-drift-m<hex>` id from run to run and can be cited or dismissed.
         for w in warn:
-            mechanical.append(f"{GENERATORS[gen]}: {w}")
+            mechanical.append({"text": f"{GENERATORS[gen]}: {w}", "unit": gen, "kind": "generator-warning",
+                               "key": re.sub(r"\d+(?:\.\d+)?", "#", re.sub(r"\s+", " ", w).strip())})
         if more:
-            mechanical.append(f"{GENERATORS[gen]}: {more} more problem line(s) in the run log")
+            mechanical.append({"text": f"{GENERATORS[gen]}: {more} more problem line(s) in the run log",
+                               "unit": gen, "kind": "generator-warning", "key": "more problem lines"})
         if code:
             failed.add(gen)
             tail = " / ".join(l.strip() for l in text.strip().splitlines()[-3:])[:400]
-            human.append(f"{GENERATORS[gen]} failed (exit {code}): {tail}; its outputs were not applied")
+            human.append(ac.decision(f"{GENERATORS[gen]} failed (exit {code}): {tail}; its outputs were not "
+                                     "applied", unit=gen, key="failed"))
 
     changes = changed_files(repo)
     rd_total = len(list((repo / "R/EDI/man").glob("*.Rd"))) or 1
     rd_changed = [p for s, p in changes if owner_of(p) == "roxygen" and p.endswith(".Rd")]
     rd_blocked = len(rd_changed) > MAX_RD_SHARE * rd_total
     if rd_blocked:
-        human.append(f"roxygen2 {roxygen_version(ctx)} on the runner changes {len(rd_changed)} of {rd_total} Rd "
+        human.append(ac.decision(f"roxygen2 {roxygen_version(ctx)} on the runner changes {len(rd_changed)} of {rd_total} Rd "
                      "files, which looks like a different roxygen2 version from the one the committed files "
                      "were written with, not drift. Nothing under man/ or NAMESPACE was applied; regenerate "
                      "locally with `Rscript fast_roxygenize.R` from R/ if the change is wanted."
                      + (f" The pinned build is {pin} (ROXYGEN2_REF in {AUDIT_WORKFLOW}); check that the "
                         "runner installed that commit and that it is the one the committed Rd files were "
-                        "written with." if (pin := pinned_roxygen2_ref(repo)) else ""))
+                        "written with." if (pin := pinned_roxygen2_ref(repo)) else ""), unit="roxygen", key="version-mismatch"))
 
     for status, path in changes:
         gen = owner_of(path)
@@ -219,7 +225,8 @@ def apply(ctx, results, mech):
             continue
         if gen is None:
             revert(repo, status, path)
-            human.append(f"`{path}` changed although no generator here should write it; reverted")
+            human.append(ac.decision(f"`{path}` changed although no generator here should write it; reverted",
+                                     unit=path, key="unowned-change"))
             continue
         if gen in failed or (rd_blocked and gen == "roxygen" and (path.endswith(".Rd") or path.endswith("NAMESPACE"))):
             revert(repo, status, path)

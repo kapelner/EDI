@@ -285,21 +285,24 @@ class Apply(unittest.TestCase):
         self.assertIn("R/helper.R", parts["applied"][0])          # other referrers are named
         self.assertEqual(len(ac.texts(parts["human"])), 2)                  # alpha: no release; delta: name taken
         self.assertTrue(any("is taken" in h for h in ac.texts(parts["human"])))
-        findings_file = (self.repo / tsh.FINDINGS_FILE).read_text()
+        self.assertFalse((self.repo / tsh.FINDINGS_FILE).exists())    # no second lifecycle file
         for p in parts["proposed"]:
             self.assertIn(p["applied_text"], (self.repo / p["applied_file"]).read_text())
-        self.assertIn("test-delta.R :: empty", findings_file)
-        self.assertNotIn("todo110", findings_file)
+        self.assertEqual(len(parts["proposed"]), 1)                     # the rename only
         self.assertEqual(len(parts["mechanical"]), 1)
+        m = parts["mechanical"][0]
+        self.assertEqual((m["unit"], m["kind"]), (d + "test-delta.R :: empty", "no-expectation"))
+        self.assertIn("(line 3)", m["text"])
+        self.assertNotIn("3", m["key"].split("|", 1)[1])                # line numbers do not change the id
 
-    def test_findings_file_untouched_when_nothing_to_say(self):
+    def test_old_findings_file_is_deleted(self):
+        parts = tsh.apply(self.ctx, [], [])
+        self.assertEqual(parts["applied"], [])
+        (self.repo / tsh.FINDINGS_FILE).parent.mkdir(parents=True, exist_ok=True)
+        (self.repo / tsh.FINDINGS_FILE).write_text("old\n")
         parts = tsh.apply(self.ctx, [], [])
         self.assertFalse((self.repo / tsh.FINDINGS_FILE).exists())
-        self.assertEqual(parts["applied"], [])
-        # Once the file exists, a clean run says so.
-        (self.repo / tsh.FINDINGS_FILE).write_text("old\n")
-        tsh.apply(self.ctx, [], [])
-        self.assertIn("No open findings", (self.repo / tsh.FINDINGS_FILE).read_text())
+        self.assertIn("deleted", parts["applied"][0])
 
 
 if __name__ == "__main__":

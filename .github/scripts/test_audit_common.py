@@ -109,6 +109,10 @@ class Findings(unittest.TestCase):
         hist, lines = ac.harvest_pr(hist, "MERGED", 7, lambda p: "this is good text")
         self.assertEqual([h["status"] for h in hist], ["fixed", "rejected", "proposed"])
         self.assertEqual(len(lines), 1)
+        listed, _ = ac.harvest_pr([{"id": "5", "pr": 9, "status": "proposed", "applied_file": "a.R",
+                                    "applied_text": "good", "merged_status": "listed"}], "MERGED", 9,
+                                  lambda p: "good")
+        self.assertEqual(listed[0]["status"], "listed")     # a merge that only records it is not "fixed"
         hist2, lines2 = ac.harvest_pr([{"id": "4", "pr": 8, "status": "proposed", "applied_file": "b"}],
                                       "CLOSED", 8, lambda p: "")
         self.assertEqual(hist2[0]["status"], "rejected")
@@ -302,6 +306,35 @@ class MechanicalLifecycle(EndToEnd):
                                                 set(), set(), T, not_run=True)
         self.assertEqual(fixed, [])
         self.assertTrue(set(first) <= set(kept))
+
+    def test_dict_lines_carry_unit_and_key(self):
+        T = "2026-11-19T00:00:00+00:00"
+        line = {"text": "roxygen: @param y at a.R:12 not documented", "unit": "roxygen",
+                "kind": "generator-warning", "key": "@param y at a.R:# not documented"}
+        first, out, _, _ = ac.track_mechanical("gd", [line], [], {}, set(), set(), set(), T)
+        (mid, rec), = first.items()
+        self.assertEqual(rec["unit"], "roxygen")
+        self.assertIn(f"`{mid}`", out[0])
+        # reworded text, same key: same id, and not counted as fixed
+        nxt, _, _, fixed = ac.track_mechanical("gd", [dict(line, text="roxygen: @param y (a.R:14) undocumented")],
+                                               [], first, set(), set(), set(), T)
+        self.assertEqual(list(nxt), [mid])
+        self.assertEqual(fixed, [])
+
+    def test_apply_can_say_the_checks_did_not_run(self):
+        mod = ('SPEC = {"name": "demo", "report": "issue"}\n'
+               'from pathlib import Path\n'
+               'def apply(ctx, results, mech):\n'
+               '    if (Path(ctx.repo) / "skip").exists():\n'
+               '        return {"mechanical": [], "mechanical_not_run": True}\n'
+               '    return {"mechanical": [{"text": "w1", "unit": "g", "kind": "warn", "key": "w1"}]}\n')
+        (self.tmp / "mods/audits/demo.py").write_text(mod)
+        first, _, _ = self.finish()
+        self.assertEqual(len(first), 1)
+        (self.repo / "skip").write_text("")
+        kept, report, _ = self.finish()
+        self.assertEqual(set(kept), set(first))             # not run: not counted as fixed
+        self.assertNotIn("counted as fixed", report)
 
     def test_incremental_scope_keeps_unchecked_units(self):
         prev = {}

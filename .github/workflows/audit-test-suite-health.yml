@@ -4,8 +4,8 @@
 # never lift, test files named for a TODO number, and test files that flip between pass and fail
 # in the last 8 weeks of test-bulk-non-cran.yml runs. The R files are only parsed; EDI is not built.
 # Reports with ONE pull request (label `audit-test-suite-health`): it renames TODO-numbered test
-# files and lists the other findings in R/package_metadata/audits/test_suite_health.md. It removes
-# and skips nothing.
+# files; the other findings are mechanical findings, tracked in the report and the audit-decisions
+# issue until fixed, cited by an open release TODO or dismissed. It removes and skips nothing.
 # Module: .github/scripts/audits/test_suite_health.py.
 # Plan: R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md (Part 4).
 

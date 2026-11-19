@@ -152,6 +152,10 @@ class Apply(Fixture):
         self.assertIn("R:unused_fn", body2)
         self.assertIn("never_called", body2)
         self.assertEqual(len(parts2["proposed"]), 1)
+        # Every listed candidate is a decision (citable / dismissable), kept or newly confirmed.
+        conf = sorted(d["unit"] for d in parts2["human"] if isinstance(d, dict) and d.get("key") == "confirmed")
+        self.assertEqual(conf, ["R:unused_fn", "cpp:R/EDI/src/k.cpp::never_called"])
+        self.assertEqual(parts2["proposed"][0]["merged_status"], "listed")   # a merge lists, not fixes
 
         # The owner deleted the unused_fn line in the PR: rejected, so it leaves the file.
         f = ac.normalise_finding("dead-code", p, "claude")

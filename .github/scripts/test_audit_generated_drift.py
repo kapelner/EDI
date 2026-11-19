@@ -83,7 +83,10 @@ class Repo(unittest.TestCase):
         self.assertEqual(len(parts["applied"]), 4)
         self.assertTrue(any("code.R" in h for h in ac.texts(parts["human"])))
         self.assertFalse(any("Rplots" in h and "DESCRIPTION" in h for h in ac.texts(parts["human"])))
-        self.assertTrue(any("@param y" in m for m in parts["mechanical"]))
+        warn = [m for m in parts["mechanical"] if "@param y" in m["text"]]
+        self.assertTrue(warn)
+        self.assertEqual((warn[0]["unit"], warn[0]["kind"]), ("roxygen", "generator-warning"))
+        self.assertFalse(any(c.isdigit() for c in warn[0]["key"]))   # line numbers do not change the id
         self.assertIn("version line", parts["summary"])
         by = {p["unit"]: p for p in parts["proposed"]}
         self.assertEqual(by["R/EDI/man/topic1.Rd"]["applied_text"], "\\title{New}")

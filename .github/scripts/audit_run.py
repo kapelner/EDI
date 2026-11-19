@@ -229,9 +229,9 @@ def cmd_finish(a):
     proposed = [ac.normalise_finding(spec["name"], f, f.get("source", "claude"))
                 for f in parts.pop("proposed", [])]
     proposed = ac.drop_rejected(proposed, history)
-    # A finding already settled as fixed (e.g. a dead-code candidate listed by a merged PR) is not
+    # A finding already settled (e.g. a dead-code candidate listed by a merged PR) is not
     # open again just because an agent re-confirms it; counting it kept the unit re-read every run.
-    settled = {h["id"] for h in history if h.get("status") in ("fixed", "rejected")}
+    settled = {h["id"] for h in history if h.get("status") in ("fixed", "listed", "rejected")}
     known = {h["id"] for h in history}
     stamp = ac.now_utc().isoformat(timespec="seconds")
     for f in proposed + mech:
@@ -289,7 +289,8 @@ def cmd_finish(a):
         spec["name"], parts.get("mechanical") or [], mech, prev_mech, set(plan["units"]),
         ac.cited_decisions(a.repo), ac.dismissed_decisions(a.repo), stamp,
         scope_units=parts.pop("mechanical_scope_units", None),
-        not_run=any(f.get("kind") in ac.MECH_NOT_RUN_KINDS for f in mech),
+        not_run=(any(f.get("kind") in ac.MECH_NOT_RUN_KINDS for f in mech)
+                 or bool(parts.pop("mechanical_not_run", False))),
         sticky=ac.MECH_STICKY_KINDS | set(spec.get("mechanical_sticky_kinds") or ()))
     mpath.write_text(json.dumps(open_mech, indent=1, sort_keys=True) + "\n")
     if parts["mechanical"] or mcounts["cited"] or mcounts["dismissed"]:

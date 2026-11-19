@@ -1165,7 +1165,7 @@ def choose(ctx, res):
         out[r["id"]] = {"hash": r["id"], "priority": -int(r["score"] * 100),
                         "context": region_context(ctx, r, res["sources"], state.get(r["id"]))}
     res["waiting"] = waiting
-    res["python_regions"] = py[:20]
+    res["python_regions"] = py      # every one: each is a tracked mechanical finding
     return out
 
 
@@ -1182,6 +1182,9 @@ def diversify(regions, n, per_fn=MAX_PER_FUNCTION, per_file=MAX_PER_FILE):
         if len(out) >= n:
             break
     return out
+
+
+PY_UNIT = "python-regions"     # the unit of every Python-region mechanical finding (keyed by region id)
 
 
 def decision_id_of(region):
@@ -1644,9 +1647,6 @@ def apply(ctx, results, mech, verifier=None, availability=None):
                        f"{sum(res['excluded'].values())} not ranked ("
                        + ", ".join(f"{v} {k}" for k, v in sorted(res["excluded"].items())) + f"); "
                        f"{res['dropped_lines']} measured line(s) dropped because the code changed since the measurement.")
-        for r in res.get("python_regions") or []:
-            info.append(f"Python region (not sent to an agent; write a pytest by hand): `{r['file']}:{r['first']}-{r['last']}` "
-                        f"{r['fn'] or ''} [{r['id']}]")
         if top:
             info.append("Top of the ranking: " + "; ".join(
                 f"`{r['file']}:{r['first']}` {r['fn'] or ''} ({r['score']})" for r in top))
@@ -1656,8 +1656,17 @@ def apply(ctx, results, mech, verifier=None, availability=None):
         summary.append(f"Regions due this run: {res['waiting']} (at most {TOP_N} go to the agents).")
     summary.append("Outcomes: " + ", ".join(f"{v} {k}" for k, v in counts.items() if v) + "." if any(counts.values())
                    else "Outcomes: none this run.")
-    return {"summary": "\n".join(summary), "applied": applied, "mechanical": [x["text"] for x in mech],
-            "human": human, "info": info, "proposed": proposed}
+    # Python regions are not sent to an agent: each is a mechanical finding ("write a pytest by hand"),
+    # tracked by region id, so it can be cited or dismissed and counts as fixed once covered. A run that
+    # did not rank the regions (no code change, no coverage input) carries the earlier ones.
+    mech_lines = [x["text"] for x in mech]
+    for r in res.get("python_regions") or []:
+        mech_lines.append({"text": f"Python region with no test (write a pytest by hand): "
+                                   f"`{r['file']}:{r['first']}-{r['last']}` {r['fn'] or ''}".rstrip(),
+                           "unit": PY_UNIT, "kind": "python-region", "key": r["id"]})
+    scope = {"coverage-input", ALLOWLIST} | ({PY_UNIT} if "python_regions" in res else set())
+    return {"summary": "\n".join(summary), "applied": applied, "mechanical": mech_lines,
+            "mechanical_scope_units": sorted(scope), "human": human, "info": info, "proposed": proposed}
 
 
 # ---------------------------------------------------------------- CLI: the ranking alone

@@ -28,11 +28,13 @@ class Repo(unittest.TestCase):
         rel = self.repo / "R/package_metadata/future_release_plans/release_v1_0_6.md"
         rel.parent.mkdir(parents=True)
         rel.write_text("# v1.0.6\n\n- [ ] **TODO-1** fix the page (audit decision rd-d00000002)\n"
-                       "- [x] **TODO-2** done (audit decision rd-d00000003)\n")
+                       "- [x] **TODO-2** done (audit decision rd-d00000003)\n"
+                       "- [ ] TODO-3 docs gap (ds-designs-77-f2)\n")
         dis = self.repo / ac.DISMISSED_FILE
         dis.parent.mkdir(parents=True)
         dis.write_text("# Dismissed\n\n- `rd-d00000004`: the docs are right (2026-11-18)\n"
-                       "- `rd-m00000004`: intended (2026-11-19)\n")
+                       "- `rd-m00000004`: intended (2026-11-19)\n"
+                       "- `ds-designs-77-f3`: not a docs gap (2026-11-19)\n")
         run("add", "-A")
         run("commit", "-qm", "main")
         run("checkout", "-q", "--orphan", "audit-notes")
@@ -48,6 +50,10 @@ class Repo(unittest.TestCase):
             (self.repo / audit / "decisions_open.json").write_text(json.dumps(recs))
         (self.repo / "rd" / "mechanical_open.json").write_text(json.dumps({
             "rd-m00000011": rec("`B.Rd`: checkRd: title ends in a period"), "rd-m00000004": rec("dismissed")}))
+        (self.repo / "docs-scenarios").mkdir()
+        (self.repo / "docs-scenarios" / "findings.jsonl").write_text("".join(json.dumps(
+            {"id": f"ds-designs-77-f{n}", "area": "designs", "title": f"gap {n}", "kind": "docs-gap",
+             "date": "2026-11-16", "status": "open"}) + "\n" for n in (1, 2, 3)))
         run("add", "-A")
         run("commit", "-qm", "notes")
         run("update-ref", "refs/remotes/origin/audit-notes", "HEAD")
@@ -82,6 +88,15 @@ class Repo(unittest.TestCase):
         self.assertIn("**3 open decision(s)**", body)          # decisions unchanged
         self.assertNotIn("rd-m00000004", body)                # dismissed
         self.assertIn("not listed: 1 dismissed", body)
+
+    def test_docs_scenarios_section(self):
+        docs, dcounts = ad.load_docs_scenarios(self.repo)
+        self.assertEqual(list(docs["docs-scenarios"]), ["ds-designs-77-f1"])   # f2 filed, f3 dismissed
+        self.assertEqual(dcounts, {"cited": 1, "dismissed": 1})
+        body = ad.render({}, {}, "2026-11-18T09:00:00+00:00", "o/r", docs=docs, dcounts=dcounts)
+        self.assertIn("# Docs-scenario findings", body)
+        self.assertIn("- `ds-designs-77-f1` · since 2026-11-16 · [designs] docs-gap: gap 1", body)
+        self.assertIn("not listed: 1 cited by a release TODO, 1 dismissed", body)
 
     def test_main_writes_out(self):
         out = self.repo / "out.md"

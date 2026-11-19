@@ -272,7 +272,9 @@ def harvest_pr(history, pr_state, merged, file_reader):
 
     pr_state: "MERGED", "CLOSED" or "OPEN". A merged PR's finding is fixed if the text it
     applied (`applied_text` in `applied_file`) is on main, else the owner removed it on the
-    branch: rejected. A PR closed without merging rejects all its findings.
+    branch: rejected. A PR closed without merging rejects all its findings. A finding whose PR only
+    records it (a dead-code candidate listed, nothing removed) sets `merged_status` ("listed"), so a
+    merge does not call it fixed.
     Returns (updated history, decision lines for the rejected).
     """
     lines = []
@@ -286,7 +288,7 @@ def harvest_pr(history, pr_state, merged, file_reader):
             ok = h["applied_text"] in body
         else:
             ok = pr_state == "MERGED" and not h.get("applied_file")
-        h["status"] = "fixed" if ok else "rejected"
+        h["status"] = (h.get("merged_status") or "fixed") if ok else "rejected"
         h["settled_at"] = now_utc().isoformat(timespec="seconds")
         if not ok:
             lines.append(f"- `{h.get('unit', '')}`: {h.get('text', '')} "
@@ -438,9 +440,10 @@ def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, sta
                      not_run=False, sticky=()):
     """The decisions lifecycle for the "mechanical" part of a report.
 
-    lines: the report's mechanical lines (str). mech: this run's mechanical findings (dicts with text,
-    unit, kind), used to give a line its unit and kind; a line with no match gets unit "" and is keyed
-    on its text. A previous finding this run did not report again is fixed, except: when `not_run`
+    lines: the report's mechanical lines: a str, or a dict {text, unit, kind, key} for a line a module's
+    apply() adds itself. mech: this run's mechanical findings (dicts with text, unit, kind), used to give
+    a str line its unit and kind; a line with no match gets unit "" and is keyed on its text. A dict
+    line's `key`, when given, replaces the text-based key (so its id survives a reworded text). A previous finding this run did not report again is fixed, except: when `not_run`
     (a check failed or was skipped) everything is carried; when the module's mechanical stage is
     incremental (`scope_units`: the units it checked; None = every unit) findings on unchecked units are
     carried; and findings of a `sticky` kind stay until cited or dismissed.
@@ -451,6 +454,11 @@ def track_mechanical(audit, lines, mech, prev, plan_units, cited, dismissed, sta
         by_text.setdefault(f.get("text", ""), f)
     items = []
     for t in lines or []:
+        if isinstance(t, dict):
+            kind = t.get("kind")
+            key = f"{kind or 'finding'}:{t['key']}" if t.get("key") else mech_key(kind, t["text"])
+            items.append({"text": t["text"], "unit": t.get("unit") or "", "key": key})
+            continue
         f = by_text.get(t) or {}
         items.append({"text": t, "unit": f.get("unit") or "", "key": mech_key(f.get("kind"), t)})
     if not_run:

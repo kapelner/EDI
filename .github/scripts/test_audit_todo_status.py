@@ -363,6 +363,14 @@ class Apply(unittest.TestCase):
         saved = json.loads((self.ctx.notes.dir / "verdicts.json").read_text())
         self.assertEqual(saved[u10]["verdict"], "not done")
 
+    def test_unclear_verdict_is_a_decision_every_run(self):
+        u10 = f"{REL}/release_v1_0_6.md::TODO-10"
+        f10 = {"unit": u10, "kind": "unclear", "text": "Cannot tell.", "parts": [], "searched": [], "gap": ""}
+        for _ in range(2):                                   # listed again on the next run, not just once
+            parts = self.run_apply([f10], [u10])
+            self.assertEqual([(d["unit"], d["key"]) for d in parts["human"]], [(u10, "unclear")])
+            self.assertEqual(parts["info"], [])
+
     def test_report_over_the_body_limit_keeps_changed_verdicts(self):
         # Run 44048336759 (2026-11-17): 69 `partly done` lines of ~1,000 characters plus 41 changed
         # `not done` / `unclear` lines made a 94,359-character report, and `gh pr create` failed with
