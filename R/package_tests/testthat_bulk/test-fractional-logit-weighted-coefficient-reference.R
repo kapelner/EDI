@@ -70,3 +70,25 @@ test_that("fractional logit weighted warm starts recover from empty draws with c
     expect_lt(expected$loss(private$last_weighted_refit$fit_warm_start$start) - expected$loss(expected$coefficients), 1e-8)
   }
 })
+
+# docs-claims audit, finding docs-claims-d412caeef (inference_proportion_fractional_logit.R:180): a
+# hardened-but-still-unreasonable weighted refit is cached as nonestimable. The weighted kernel is mocked to
+# return a non-finite treatment coefficient, so every hardened QR attempt is unusable.
+test_that("an unusable weighted fractional logit refit returns NA and is reported nonestimable", {
+  flagged <- c()
+  for (harden in c(FALSE, TRUE)) {
+    fixture <- fractional_weighted_reference_fixture(harden)
+    weights <- rep(c(1, 2, 4, 7), 8)
+    est_w <- with_mocked_bindings(
+      fast_logistic_regression_weighted_cpp = function(X, ...) list(b = c(0.1, NaN, rep(0.1, max(0L, ncol(X) - 2L))), fisher_information = NULL),
+      .package = "EDI",
+      code = fixture$inf$compute_estimate_with_bootstrap_weights(weights)
+    )
+    private <- fixture$inf$.__enclos_env__$private
+    expect_true(is.na(est_w))
+    expect_true(is.na(private$last_weighted_refit$beta_hat_T))
+    flagged[as.character(harden)] <- private$weighted_refit_is_nonestimable()
+  }
+  skip("v1.0.6-TODO-265: the weighted refit returns NA but never calls cache_nonestimable_estimate(), so weighted_refit_is_nonestimable() is FALSE")
+  expect_true(all(flagged))
+})

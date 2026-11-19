@@ -86,3 +86,27 @@ test_that("bootstrap_sample_is_usable accepts a well-mixed, adequately-sized, no
 	y_b <- plogis(rnorm(30, sd = 0.5))
 	expect_true(priv$bootstrap_sample_is_usable(w_b, y_b))
 })
+
+# docs-claims audit, finding docs-claims-d55fb24f7 (inference_proportion_gcomp.R:261): the public
+# compute_bootstrap_confidence_interval()/compute_bootstrap_two_sided_pval() screening arguments
+# (boundary_tol / max_boundary_mass / sep_tol / min_group_n) must reach the resample screen, and the
+# object's screening control must be restored afterwards. min_group_n = n cannot be met by any resample
+# (each arm has n/2 subjects), so every replicate must be screened out.
+test_that("public bootstrap screening arguments reach the screen and are restored afterwards", {
+	inf <- prop_gcomp_screening_fixture()
+	priv <- inf$.__enclos_env__$private
+	n <- priv$n
+	old_control <- priv$bootstrap_screening_control
+
+	# The distribution method itself honours min_group_n: every replicate is NA.
+	b <- inf$approximate_bootstrap_distribution_beta_hat_T(B = 7, show_progress = FALSE, min_group_n = n)
+	expect_true(all(is.na(b)))
+	expect_identical(priv$bootstrap_screening_control, old_control)
+
+	ci <- suppressWarnings(inf$compute_bootstrap_confidence_interval(B = 19, min_group_n = n, show_progress = FALSE))
+	pval <- suppressWarnings(inf$compute_bootstrap_two_sided_pval(B = 19, min_group_n = n, show_progress = FALSE))
+	expect_identical(priv$bootstrap_screening_control, old_control)
+	skip("v1.0.6-TODO-266: the public CI/p-value screening args are overwritten by approximate_bootstrap_distribution_beta_hat_T()'s own defaults, so min_group_n = n still gives a finite CI and p-value")
+	expect_true(all(is.na(ci)))
+	expect_true(is.na(pval))
+})

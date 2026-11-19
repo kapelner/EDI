@@ -154,3 +154,33 @@ test_that("estimate_only=TRUE with harden=FALSE uses the fast glm.fit-based path
 	# se_md is explicitly left NA on this fast path.
 	expect_true(is.na(f$inf$.__enclos_env__$private$cached_values$se_md))
 })
+
+# docs-claims audit, finding docs-claims-d55fb24f7 (inference_proportion_gcomp.R:85): the variance strategies
+# are tried in order and the first finite, positive variance is used. A non-finite robust covariance makes
+# robust and stabilized_robust fail, so model_based is next; a negative-definite robust covariance makes
+# robust fail but stabilized_robust (PSD projection) succeed.
+test_that("variance fallback cascade: an earlier strategy that fails hands over to the next one in order", {
+	f <- prop_gcomp_asymp_fixture(99)
+	p <- f$inf$.__enclos_env__$private
+	fit <- glm.fit(f$X, f$y, family = quasibinomial())
+	b <- fit$coefficients
+	names(b) <- colnames(f$X)
+	comps <- p$compute_standardized_effect_components(f$X, b, 2L)
+
+	res_na <- p$resolve_effect_variance(f$X, b, 2L, matrix(NA_real_, 3, 3), comps)
+	expect_identical(res_na$method, "model_based")
+	mu <- pmin(1 - 1e-6, pmax(1e-6, fitted(fit)))
+	X1 <- f$X; X1[, 2] <- 1
+	X0 <- f$X; X0[, 2] <- 0
+	m1 <- plogis(X1 %*% b); m0 <- plogis(X0 %*% b)
+	grad <- as.numeric(crossprod(X1, m1 * (1 - m1))) / f$n - as.numeric(crossprod(X0, m0 * (1 - m0))) / f$n
+	expect_equal(res_na$var_md, as.numeric(t(grad) %*% solve(crossprod(f$X, f$X * mu * (1 - mu))) %*% grad), tolerance = 1e-6)
+
+	res_neg <- p$resolve_effect_variance(f$X, b, 2L, -diag(3), comps)
+	expect_identical(res_neg$method, "stabilized_robust")
+
+	# Restricting the list skips earlier strategies: with stabilized_robust removed, model_based is used.
+	f2 <- prop_gcomp_asymp_fixture(99, variance_fallback_methods = c("robust", "model_based"))
+	p2 <- f2$inf$.__enclos_env__$private
+	expect_identical(p2$resolve_effect_variance(f$X, b, 2L, -diag(3), comps)$method, "model_based")
+})

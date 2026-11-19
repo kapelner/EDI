@@ -141,3 +141,37 @@ test_that("marginal estimand randomization inference produces finite draws", {
 	expect_gte(pv, 0)
 	expect_lte(pv, 1)
 })
+
+# docs-claims audit, finding docs-claims-d218ace01 (inference_proportion_zero_one_inflated_beta.R:195): under
+# the conditional estimand the score, gradient, likelihood-ratio and Bartlett testing types run for the
+# asymptotic CI and p-value. The LR p-value is checked against an independent likelihood-ratio statistic: the
+# ZOIB likelihood factorizes into the zero/one part (no beta_T) and the interior beta-regression part, so
+# 2 * (llfull - llnull) equals the betareg LR on the interior rows. The Bartlett CI inverts the corrected test
+# over a grid of nulls (about 15 s here), so only its p-value is run.
+test_that("conditional score/gradient/LR/Bartlett testing types give a finite CI around the estimate and a valid p-value", {
+	skip_if_not_installed("betareg")
+	seq_des = simulate_zoib_design(3L, n = 120L)
+	est = InferencePropZeroOneInflatedBetaRegr$new(seq_des)$compute_estimate()
+	supported = InferencePropZeroOneInflatedBetaRegr$new(seq_des)$get_supported_testing_types()
+	expect_true(all(c("score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx") %in% supported))
+	pvals = c()
+	for (tt in c("score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx")) {
+		inf = InferencePropZeroOneInflatedBetaRegr$new(seq_des)
+		inf$set_testing_type(tt)
+		pv = inf$compute_asymp_two_sided_pval()
+		expect_true(is.finite(pv) && pv >= 0 && pv <= 1, info = tt)
+		pvals[tt] = pv
+		if (tt != "lik_ratio_bartlett_approx") {
+			ci = inf$compute_asymp_confidence_interval()
+			expect_true(all(is.finite(ci)), info = tt)
+			expect_lt(ci[1], est)
+			expect_gt(ci[2], est)
+		}
+	}
+	y = seq_des$get_y()
+	mid = y > 0 & y < 1
+	dat = data.frame(y = y, w = seq_des$get_w(), x1 = seq_des$get_X()[, "x1"])[mid, ]
+	ll_full = as.numeric(logLik(betareg::betareg(y ~ w + x1, data = dat)))
+	ll_null = as.numeric(logLik(betareg::betareg(y ~ x1, data = dat)))
+	expect_equal(unname(pvals["lik_ratio"]), stats::pchisq(2 * (ll_full - ll_null), df = 1, lower.tail = FALSE), tolerance = 1e-3)
+})

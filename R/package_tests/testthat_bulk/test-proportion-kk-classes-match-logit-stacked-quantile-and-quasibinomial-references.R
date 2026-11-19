@@ -68,3 +68,60 @@ test_that("KK GEE and KK GLMM classes are on the logit-link scale, close to the 
 		expect_gt(abs(est - beta_scale), 0.01)
 	}
 })
+
+# docs-claims audit, finding docs-claims-d10536fd2 (inference_proportion_KK_combined.R:109): the estimate
+# maximizes the joint conditional-logit (discordant pairs) plus random-intercept GLMM (concordant pairs and
+# reservoir) likelihood with a shared beta_T. Proportion pairs are never discordant (|y_T - y_C| = 1 cannot
+# happen in (0, 1)), so the whole likelihood is the GLMM term: groups = matched pairs plus one singleton group
+# per reservoir subject, Bernoulli-form log-likelihood y * eta - log(1 + exp(eta)) integrated over
+# b ~ N(0, sigma^2). It is rebuilt here in R with 40-node Gauss-Hermite quadrature and maximized with optim.
+# A strong pair effect (x 4) keeps sigma_hat inside the [-8, 8] log-sigma box. The likelihood is flat in
+# beta_T to about 1e-4 in nll near the optimum, so beta_T is compared at 1e-3 (it is 0.02 from the plain
+# quasi-binomial glm, so the check still tells the joint fit from the glm).
+test_that("KK GLMM estimate maximizes the random-intercept joint likelihood rebuilt in R", {
+	set.seed(4)
+	n <- 60L
+	des <- DesignSeqOneByOneKK14$new(response_type = "proportion", n = n, verbose = FALSE)
+	X <- data.frame(x = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	w <- des$get_w()
+	m <- des$.__enclos_env__$private$m[seq_len(n)]
+	u <- ifelse(m > 0, rnorm(max(m))[pmax(m, 1)], 0) * 4
+	mu <- plogis(-0.2 + 0.5 * w + 0.4 * X$x + u)
+	y <- rbeta(n, mu * 4, (1 - mu) * 4)
+	des$add_all_subject_responses(y)
+
+	inf <- InferencePropKKGLMM$new(des, verbose = FALSE)
+	est <- inf$compute_estimate()
+	p <- inf$.__enclos_env__$private
+	expect_false(p$prepare_clogit_plus_glmm_data()$has_discordant)
+
+	gh <- local({
+		k <- 40L
+		J <- matrix(0, k, k)
+		for (i in seq_len(k - 1L)) { v <- sqrt(i / 2); J[i, i + 1L] <- v; J[i + 1L, i] <- v }
+		e <- eigen(J, symmetric = TRUE)
+		list(x = e$values, logw = log(sqrt(pi) * e$vectors[1, ]^2 / sqrt(pi)))
+	})
+	grp <- factor(ifelse(m > 0, m, max(m) + seq_len(n)))
+	Xm <- cbind(1, w, X$x)
+	nll <- function(par) {
+		eta <- as.numeric(Xm %*% par[1:3])
+		E <- outer(eta, sqrt(2) * exp(par[4]) * gh$x, "+")
+		L <- sweep(rowsum(y * E - log1p(exp(E)), grp, reorder = FALSE), 2, gh$logw, "+")
+		mx <- apply(L, 1, max)
+		-sum(mx + log(rowSums(exp(L - mx))))
+	}
+	opt <- optim(c(0, 0, 0, 0), nll, method = "L-BFGS-B", lower = c(-Inf, -Inf, -Inf, -8), upper = c(Inf, Inf, Inf, 8),
+		control = list(factr = 1e2, maxit = 2000))
+	expect_identical(opt$convergence, 0L)
+	expect_gt(opt$par[4], -7) # sigma_hat interior, so the random intercept matters
+
+	# Same objective: the R likelihood at EDI's parameters equals EDI's reported neg_loglik.
+	expect_equal(nll(p$cached_mod$params), p$cached_mod$neg_loglik, tolerance = 1e-8)
+	# EDI's fit is at the maximum.
+	expect_lt(abs(p$cached_mod$neg_loglik - opt$value), 1e-3)
+	expect_lt(abs(est - opt$par[2]), 1e-3)
+	qb <- unname(coef(glm(y ~ w + X$x, family = quasibinomial))[2])
+	expect_gt(abs(est - qb), 0.01)
+})

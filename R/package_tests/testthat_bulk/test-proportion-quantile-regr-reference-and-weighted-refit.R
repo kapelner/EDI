@@ -125,3 +125,51 @@ test_that("tau must lie strictly inside (0, 1)", {
 	expect_error(InferencePropQuantileRegr$new(f$des, tau = 0, verbose = FALSE), "tau")
 	expect_error(InferencePropQuantileRegr$new(f$des, tau = 1, verbose = FALSE), "tau")
 })
+
+# docs-claims audit, finding docs-claims-d0ce3c5ff (inference_proportion_quantile_regr.R:101): the
+# quantreg fit-failure branch of compute_estimate() (fit_quantile_model() returning NULL) gives NA_real_,
+# for both the estimate-only rq.fit() call and the full rq() call, and the asymptotic CI/p-value are NA.
+test_that("a failing quantreg fit gives NA_real_ estimate, NA asymptotic CI and NA p-value", {
+	skip_if_not_installed("quantreg")
+	f <- prop_quantile_fixture()
+	ok <- InferencePropQuantileRegr$new(f$des, tau = 0.5, verbose = FALSE)$compute_estimate()
+	expect_true(is.finite(ok))
+	with_mocked_bindings(
+		rq = function(...) stop("mocked rq failure"),
+		rq.fit = function(...) stop("mocked rq.fit failure"),
+		.package = "quantreg",
+		code = {
+			inf <- InferencePropQuantileRegr$new(f$des, tau = 0.5, verbose = FALSE)
+			est <- inf$compute_estimate()
+			ci <- inf$compute_asymp_confidence_interval()
+			pval <- inf$compute_asymp_two_sided_pval()
+			inf_eo <- InferencePropQuantileRegr$new(f$des, tau = 0.5, verbose = FALSE)
+			est_eo <- inf_eo$compute_estimate(estimate_only = TRUE)
+		}
+	)
+	expect_identical(est, NA_real_)
+	expect_identical(est_eo, NA_real_)
+	expect_length(ci, 2L)
+	expect_true(all(is.na(ci)))
+	expect_true(is.na(pval))
+})
+
+# docs-claims audit, finding docs-claims-d0ce3c5ff (inference_proportion_quantile_regr.R:27): only
+# uncensored responses are supported, checked by assertNoCensoring() at construction. A proportion
+# design cannot record a censored response at all, so the constructor check is reached by making the
+# design report censoring.
+test_that("censored responses are rejected: by the proportion design API and by the constructor check", {
+	skip_if_not_installed("quantreg")
+	d <- DesignFixediBCRD$new(n = 4L, response_type = "proportion", verbose = FALSE)
+	d$add_all_subjects_to_experiment(data.frame(x1 = 1:4))
+	d$overwrite_all_subject_assignments(c(0, 1, 0, 1))
+	expect_error(
+		d$add_all_subject_responses(ys = c(NA, 0.2, 0.3, 0.4), y_Ls = c(0.1, NA, NA, NA), y_Rs = c(0.5, NA, NA, NA)),
+		"censored observations are only available for survival"
+	)
+
+	f <- prop_quantile_fixture()
+	unlockBinding("any_censoring", f$des)
+	f$des$any_censoring <- function() TRUE
+	expect_error(InferencePropQuantileRegr$new(f$des, verbose = FALSE), "only available for uncensored responses")
+})
