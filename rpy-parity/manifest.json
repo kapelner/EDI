@@ -1,6 +1,6 @@
 {
- "issue_hash": "79725b8147c8d108",
- "last_run": "2026-11-19T13:46:07+00:00",
+ "issue_hash": "df8747bf28e9d18b",
+ "last_run": "2026-11-19T14:06:09+00:00",
  "open_pr": null,
  "units": {
   "python/cpp/bindings_binary.cpp::<name>": {
@@ -109,11 +109,11 @@
    "run": "44048317273"
   },
   "python/cpp/bindings_count.cpp::fast_zinb": {
-   "audited_at": "2026-11-19T13:46:07+00:00",
+   "audited_at": "2026-11-19T14:06:09+00:00",
    "deps": "c6f8305df75415d4",
    "hash": "e3f2b858797a5341",
    "open_findings": 1,
-   "run": "44535214364"
+   "run": "44539362531"
   },
   "python/cpp/bindings_count.cpp::fast_zinb_with_var": {
    "audited_at": "2026-11-17T10:19:35+00:00",
@@ -228,11 +228,11 @@
    "run": "44048317273"
   },
   "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm": {
-   "audited_at": "2026-11-19T13:46:07+00:00",
+   "audited_at": "2026-11-19T14:06:09+00:00",
    "deps": "9650eff57c582789",
    "hash": "fc44fac0dedb4aa4",
-   "open_findings": 1,
-   "run": "44535214364"
+   "open_findings": 2,
+   "run": "44539362531"
   },
   "python/cpp/bindings_glmm.cpp::fast_gaussian_lmm": {
    "audited_at": "2026-11-19T13:14:13+00:00",
@@ -368,11 +368,11 @@
    "run": "44173500242"
   },
   "python/cpp/bindings_proportion.cpp::fast_zero_one_inflated_beta": {
-   "audited_at": "2026-11-19T13:46:07+00:00",
+   "audited_at": "2026-11-19T14:06:09+00:00",
    "deps": "694715cf1e158326",
    "hash": "3cf2385e56d79949",
-   "open_findings": 1,
-   "run": "44535214364"
+   "open_findings": 2,
+   "run": "44539362531"
   },
   "python/cpp/bindings_survival.cpp::fast_clayton_weibull_aft_optim": {
    "audited_at": "2026-11-17T19:13:08+00:00",
