@@ -145,9 +145,12 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 	private = list(
 		draw_ws_raw = function(r = 100){
 			private$ensure_factor_metadata()
-			n = self$get_n()
+			# v1.0.6-TODO-183: replay the enrolled subjects only. Looping over all n
+			# preallocated rows errored mid-trial (the unfilled rows have no stratum), and
+			# each subject's draw depends only on the subjects before it.
+			n = private$t
 			x_levels_matrix = matrix(NA_integer_, nrow = n, ncol = length(private$strata_cols))
-			for (i in 1 : n){
+			for (i in seq_len(n)){
 				x_levels_matrix[i, ] = private$get_subject_levels_idx(i)
 			}
 			generate_permutations_pocock_simon_cpp(

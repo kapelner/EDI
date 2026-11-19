@@ -751,16 +751,22 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# when materialize_w = TRUE, a fresh assignment vector w_b drawn from the design run on
 		# the resampled covariates. Materialization is serial so that all delta evaluations in
 		# the CI inversion share common random numbers; with materialize_w = FALSE the fresh w
-		# is drawn inside each (possibly parallel) iteration instead.
+		# is drawn inside each (possibly parallel) iteration instead, from the same per-draw
+		# w_seed (v1.0.6-TODO-53), so it does not depend on which process or core runs it.
 		generate_rand_bootstrap_draws = function(B, bootstrap_type = NULL, materialize_w = TRUE){
 			B = as.integer(B)
-			# A materialized assignment is replayed by its own seed below.  Draw the
+			# Every assignment, materialized or lazy, is replayed by its own seed.  Draw the
 			# whole batch without replacement so two BRT replicates cannot silently
 			# receive an identical design replay (the parametric-bootstrap runners
-			# follow the same per-replicate-seed contract).
-			w_seeds = if (isTRUE(materialize_w) && B > 0L) {
+			# follow the same per-replicate-seed contract). A lazy draw used to take its w
+			# from whatever RNG stream the executing worker held, so the draws changed
+			# with set_num_cores() (v1.0.6-TODO-53).
+			w_seeds = if (B > 0L) {
 				sample.int(.Machine$integer.max, B, replace = FALSE)
 			} else integer()
+			# Fork workers run L'Ecuyer-CMRG streams, so a lazy replay must also use the
+			# generating session's RNG kind (see rand_bootstrap_lazy_draw_w()).
+			rng_kind = RNGkind()
 			draws = lapply(seq_len(B), function(b) {
 				boot_draw = private$bootstrap_sample_indices(private$n, bootstrap_type)
 				draw = if (is.list(boot_draw)) {
@@ -768,9 +774,8 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				} else {
 					list(i_b = as.integer(boot_draw), m_vec_b = NULL, w_b = NULL)
 				}
-				if (isTRUE(materialize_w)) {
-					draw$w_seed = w_seeds[[b]]
-				}
+				draw$w_seed = w_seeds[[b]]
+				draw$w_rng_kind = rng_kind
 				draw
 			})
 			if (isTRUE(materialize_w) && B > 0L) {
@@ -847,8 +852,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				as.numeric(draw$w_b)
 			} else {
 				if (is.null(des_obj)) stop("Reusable BRT worker has no design object to draw assignments from.")
-				des_obj$prepare_for_resampling_replay()
-				as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
+				rand_bootstrap_lazy_draw_w(des_obj, draw)
 			}
 			if (length(w_new) != length(draw$i_b)) stop("Fresh assignment length does not match the bootstrap sample size.")
 			response_type_sim = if (!is.null(des_priv)) des_priv$response_type else private$des_obj_priv_int$response_type
@@ -1026,8 +1030,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			w_new = if (!is.null(draw$w_b)) {
 				as.numeric(draw$w_b)
 			} else {
-				sub_des$prepare_for_resampling_replay()
-				as.numeric(sub_des$draw_ws_according_to_design(1L)[, 1L])
+				rand_bootstrap_lazy_draw_w(sub_des, draw)
 			}
 			if (length(w_new) != length(draw$i_b)) return(c(t0 = NA_real_, se0 = NA_real_))
 			sub_des_priv$w = w_new
@@ -1162,8 +1165,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			w_new = if (!is.null(draw$w_b)) {
 				as.numeric(draw$w_b)
 			} else {
-				sub_des$prepare_for_resampling_replay()
-				as.numeric(sub_des$draw_ws_according_to_design(1L)[, 1L])
+				rand_bootstrap_lazy_draw_w(sub_des, draw)
 			}
 			if (length(w_new) != length(draw$i_b)) return(NA_real_)
 			sub_des_priv$w = w_new
@@ -1227,3 +1229,30 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		}
 	)
 )
+
+# Draws a bootstrap-randomization replicate's fresh assignment lazily (materialize_w =
+# FALSE), replaying the draw's own w_seed under the RNG kind it was generated with, then
+# restoring the caller's RNG kind and stream. Without the seed the w came from whatever
+# stream the executing process held (the parent, or a fork worker's L'Ecuyer-CMRG
+# stream), so the draws changed with set_num_cores() (v1.0.6-TODO-53).
+rand_bootstrap_lazy_draw_w = function(des_obj, draw){
+	seed = draw[["w_seed"]]
+	if (!is.null(seed)) {
+		old_kind = RNGkind()
+		had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		old_seed = if (had_seed) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+		on.exit({
+			suppressWarnings(RNGkind(old_kind[1L], old_kind[2L], old_kind[3L]))
+			if (had_seed) {
+				assign(".Random.seed", old_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+		}, add = TRUE)
+		kind = draw[["w_rng_kind"]] %||% old_kind
+		suppressWarnings(RNGkind(kind[1L], kind[2L], kind[3L]))
+		set.seed(seed)
+	}
+	des_obj$prepare_for_resampling_replay()
+	as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
+}

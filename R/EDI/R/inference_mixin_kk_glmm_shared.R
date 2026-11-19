@@ -215,7 +215,7 @@ InferenceMixinKKGLMMShared = list(
 			if (!check_package_installed("glmmTMB")){
 				return(NULL)
 			}
-			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
 			y_dat = private$y
 			if (identical(private$glmm_response_type(), "ordinal")) {
 				y_dat = ordered(y_dat, levels = sort(unique(y_dat)))
@@ -270,7 +270,7 @@ InferenceMixinKKGLMMShared = list(
 			)
 			fixed_terms = setdiff(colnames(dat), c("y", "group_id", ".bootstrap_weight__"))
 			glmm_formula = stats::as.formula(paste("y ~", paste(c(fixed_terms, "(1 | group_id)"), collapse = " + ")))
-			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
 			tryCatch({
 				utils::capture.output(mod <- suppressMessages(suppressWarnings(
 					glmmTMB::glmmTMB(

@@ -631,12 +631,14 @@ InferenceRand = R6::R6Class("InferenceRand",
 			chunk_id = ceiling(seq_len(nsim) / ceiling(nsim / chunk_n))
 			chunks = split(seq_len(nsim), chunk_id)
 			contract = private$get_resampling_draw_contract("rand")
-			# Chain warm starts across permutations only when every local optimum of
-			# the likelihood is global (registry `likelihood_concave` TRUE or NA).
-			# For a nonconcave likelihood, one replicate that lands on a wrong local
-			# optimum would seed the next, so every replicate starts from the
-			# full-data MLE instead.
-			chain_warm_start = !private$rand_likelihood_is_nonconcave()
+			# Every permutation's fit starts from the worker's base warm start (the
+			# full-data MLE); warm starts are never chained from one permutation to the
+			# next. Chaining (previously done for concave likelihoods) made each null
+			# fit's start, and so its converged iterate, depend on how the permutations
+			# were split into num_cores chunks, so the seeded randomization distribution
+			# changed with set_num_cores() (v1.0.6-TODO-61). For nonconcave likelihoods
+			# it could also carry a wrong local optimum forward (2026-11-16, see
+			# rand_likelihood_is_nonconcave() and v1.0.6-TODO-30).
 			# Serial dispatch (chunk_n == 1L, the common case: num_cores = 1 is
 			# InferenceSuite's default) is where `create_bootstrap_worker_state()`'s
 			# `self$duplicate()` + design `duplicate()` becomes the dominant cost when
@@ -694,36 +696,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 						)
 						as.numeric(estimate_draw(worker_state))[1L]
 					}, error = function(e) NA_real_)
-					# Sequential null anchoring (concave likelihoods only, see
-					# chain_warm_start above): after each successful permutation, update
-					# base_fit_warm_start to the converged parameters so the next permutation
-					# starts from the current null-distribution point rather than the MLE.
-					# Iterative models (logistic, Poisson, NegBin, ordinal, survival, etc.) call
-					# set_fit_warm_start() inside their fitting function, which writes the converged
-					# params to inf_priv$fit_warm_start.  We copy that here.
-					# Cold objects (fit_warm_start_enabled = FALSE) have set_fit_warm_start() as a
-					# no-op, so inf_priv$fit_warm_start stays NULL and no update occurs.
-					if (chain_warm_start && is.finite(out[k])) {
-						inf_priv_seq = if (!is.null(worker_state$worker_inf)) {
-							worker_state$worker_inf$.__enclos_env__$private
-						} else if (!is.null(worker_state$worker_priv)) {
-							worker_state$worker_priv
-						} else if (!is.null(worker_state$worker)) {
-							worker_state$worker$.__enclos_env__$private
-						} else NULL
-						if (!is.null(inf_priv_seq)) {
-							new_ws = inf_priv_seq$fit_warm_start
-							if (!is.null(new_ws) && length(new_ws) > 0L && all(is.finite(new_ws))) {
-								worker_state$base_fit_warm_start        = new_ws
-								worker_state$base_fit_warm_start_type   = inf_priv_seq$fit_warm_start_type
-								# Do NOT carry fit_warm_start_fisher: the Fisher information is
-								# X_full'WX_full where X_full = [1 | w | X_cov].  The treatment
-								# column w changes every permutation, invalidating all cross-terms
-								# involving w.  Force a fresh recompute from the new design matrix.
-								worker_state$base_fit_warm_start_fisher = NULL
-							}
-						}
-					}
 				}
 				check_deadline()
 				out

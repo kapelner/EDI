@@ -153,6 +153,27 @@
 	fit
 }
 
+# v1.0.6-TODO-172: centre and scale the covariate columns (all but column 1 =
+# treatment) before any stereotype fit, using the same rule as the other ordinal
+# classes (ordinal_center_scale_plan(): nothing changes when every column is
+# already well scaled). The C++ solver's convergence test is not scale-aware:
+# with age x 1000 every covariate was dropped and the estimate was NA, and the
+# raw colon data gave beta_T 0.443 against 0.475 on scaled data. The stereotype
+# model logit_j = alpha_j + phi_j x'beta is closed under x -> (x - m) / sc (alpha_j
+# absorbs phi_j m'beta, beta_s = beta * sc), so the fitted model, beta_T, its SE
+# and every likelihood statistic are unchanged; only the nuisance alpha / beta
+# are reparameterized. ordinal_fit_scaled()'s linear map cannot be used here:
+# the alpha shift depends on the loadings phi(gamma). Scaling the design once
+# is exact because every stereotype fit starts from data-only starts (no warm
+# start crosses fits, TODO-175/178) and the only fixed parameters are beta_T
+# and the loadings gamma, which the map leaves unchanged.
+.stereotype_center_scale_design = function(X){
+	if (!is.matrix(X) || ncol(X) < 2L) return(X)
+	plan = ordinal_center_scale_plan(X)
+	if (is.null(plan)) return(X)
+	sweep(sweep(X, 2L, plan$m, "-"), 2L, plan$sc, "/")
+}
+
 .stereotype_full_data_multistart = function(
 	X, y, primary_fit, estimate_only, fit_is_usable,
 	fit_cpp = fast_stereotype_logit_cpp,
@@ -482,7 +503,7 @@ OrdinalStereotypeLikelihoodSource = list(
 		get_bootstrap_worker_spec = function(){
 			private$shared(estimate_only = FALSE)
 			list(
-				X_full = private$build_design_matrix(),
+				X_full = .stereotype_center_scale_design(private$build_design_matrix()),
 				best_X_cols = private$best_Xmm_colnames,
 				fit_fun = function(X_fit, keep){
 					K = length(sort(unique(private$y)))
@@ -495,6 +516,17 @@ OrdinalStereotypeLikelihoodSource = list(
 						warm_start_params = NULL,
 						warm_start_fisher_info = NULL
 					)
+					# Same deterministic multistart as generate_mod() (v1.0.6-TODO-172):
+					# with the centred/scaled design a lone cold start can stop in a
+					# worse local optimum (b_T 1.93, nll 178.99 vs the class's 3.32,
+					# nll 171.84 on the reference fixture), so the worker would not
+					# reproduce the class estimator.
+					if (!is.null(res) && !is.null(res$params) && all(is.finite(res$params))) {
+						res = .stereotype_full_data_multistart(
+							X = X_fit, y = private$y, primary_fit = res,
+							estimate_only = TRUE, fit_is_usable = private$stereotype_fit_is_usable
+						)
+					}
 					res$ssq_b_j = NA_real_
 					if (!private$stereotype_fit_is_usable(res)) return(NULL)
 					res
@@ -504,7 +536,7 @@ OrdinalStereotypeLikelihoodSource = list(
 		generate_mod = function(estimate_only = FALSE){
 			private$cached_values$generate_mod_nonestimable_reason = NULL
 			boundary_rejected = FALSE
-			X_full = private$build_design_matrix()
+			X_full = .stereotype_center_scale_design(private$build_design_matrix())
 			# Owner ruling 2026-11-08: with 3+ categories a treatment-only fit
 			# (`~ 1`, or every covariate dropped) is always non-estimable. The
 			# model is then saturated in the 2 x K table and the loadings are not

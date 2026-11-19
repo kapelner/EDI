@@ -80,6 +80,22 @@ InferenceMarginalEstimand = R6::R6Class("InferenceMarginalEstimand",
 					)
 				}
 			}
+			# v1.0.6-TODO-184: the resampling distribution caches (randomization,
+			# bootstrap, BRT, ...) are keyed by draw settings only, not by estimand,
+			# so after a switch a cached distribution of the old estimand's
+			# statistic was reused against the new estimand's estimate (ZOIB: rand p
+			# 0.63 after switching vs 0.26 on a fresh object). Drop them on a change,
+			# along with the cached reusable workers, which are duplicates holding
+			# the old estimand (ZOIB BRT p 0.61 vs 0.40 fresh).
+			if (!identical(old_estimand, estimand) && is.list(private$cached_values)) {
+				for (contract in EDI_RESAMPLING_DRAW_CONTRACTS) {
+					private$cached_values[[contract$cache_name]] = NULL
+				}
+				for (nm in c("t0s_rand", "t0s_rand_slopes", "t0s_rand_permutation_signature",
+						"reusable_bootstrap_worker", "reusable_rand_worker")) {
+					private$cached_values[[nm]] = NULL
+				}
+			}
 			invisible(self)
 		},
 		#' @description Gets the current target estimand.

@@ -244,7 +244,17 @@ void bind_count(py::module_& m) {
     "    Optional initial Fisher information matrix for the first iteration.\n"
     "estimate_only : bool, default False\n"
     "    If True, skip variance-component calculations and return only the point\n"
-    "    estimate.");
+    "    estimate.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    With estimate_only=False the Python wrapper also returns 'vcov', the\n"
+    "    inverse of the information matrix XtWX over the free coefficients (nan\n"
+    "    rows and columns for fixed_idx coefficients; all nan if singular), and\n"
+    "    'ssq_b_2' = vcov[1, 1], matching R's fast_poisson_regression_with_var_cpp\n"
+    "    (read vcov[j-1, j-1] for its ssq_b_j).\n"
+    "    The C++ never fills dispersion for this model, so the wrapper does not\n"
+    "    return that key.");
 
     m.def("fast_neg_bin", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                               const Eigen::Ref<const Eigen::VectorXi>& y,
@@ -330,7 +340,18 @@ void bind_count(py::module_& m) {
     "    If True, skip variance computation and return only coefficients.\n"
     "weights : ndarray, optional\n"
     "    Optional nonnegative row weights for a weighted fit (routes to the\n"
-    "    R-side fast_neg_bin_weighted_cpp backend when provided).");
+    "    R-side fast_neg_bin_weighted_cpp backend when provided).\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    With estimate_only=False the Python wrapper also returns 'vcov', the\n"
+    "    inverse of the information matrix XtWX over the free coefficients (nan\n"
+    "    rows and columns for fixed_idx coefficients; all nan if singular), and\n"
+    "    'ssq_b_2' = vcov[1, 1], matching R's fast_neg_bin_with_var_cpp\n"
+    "    (read vcov[j-1, j-1] for its ssq_b_j).\n"
+    "    Here vcov covers [beta, log(theta)] (XtWX is (p+1) x (p+1)); its\n"
+    "    log(theta) row and column are nan when dispersion_at_poisson_boundary\n"
+    "    is True.");
 
     m.def("fast_zinb", [](const Eigen::Ref<const Eigen::MatrixXd>& Xc,
                            const Eigen::Ref<const Eigen::MatrixXd>& Xz,

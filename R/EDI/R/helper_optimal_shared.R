@@ -105,12 +105,27 @@ build_optimal_design_P_H = function(X, interest, prior_precision, standardize_co
 		# allocations are bit-identical to the pre-merge classes).
 		Z0 = cbind(1, X)
 		Z0_qr = qr(Z0)
+		rank_deficient = Z0_qr$rank < ncol(Z0)
 		Q = qr.Q(Z0_qr)
-		# P = Z0 (Z0'Z0)^-1 Z0'
+		# v1.0.6-TODO-57: when Z0 is rank deficient (e.g. a covariate collinear
+		# with the intercept), keep only the first rank columns of the pivoted
+		# Q; the trailing columns span an arbitrary direction outside col(Z0).
+		# Full-rank Z0 keeps every column, so its P is bit-identical.
+		if (rank_deficient) {
+			Q = Q[, seq_len(Z0_qr$rank), drop = FALSE]
+		}
+		# P = Z0 (Z0'Z0)^-1 Z0' (the projection onto col(Z0))
 		P = Q %*% t(Q)
 		if (need_H) {
 			R = qr.R(Z0_qr)
-			M = tryCatch(solve(t(R) %*% R), error = function(e) MASS::ginv(t(R) %*% R))
+			# R is in pivoted column order; undo the pivot so R'R = Z0'Z0 in
+			# Z0's own column order (a no-op when no column was pivoted).
+			R = R[, order(Z0_qr$pivot), drop = FALSE]
+			M = if (rank_deficient) {
+				MASS::ginv(t(R) %*% R)
+			} else {
+				tryCatch(solve(t(R) %*% R), error = function(e) MASS::ginv(t(R) %*% R))
+			}
 			if (subset_interest) {
 				# A_s: H_S = (Z0 V S)(Z0 V S)' over the selected columns
 				ZV = Z0 %*% M

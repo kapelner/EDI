@@ -118,7 +118,16 @@ void bind_continuous(py::module_& m) {
     "estimate_only : bool, default True\n"
     "    If True, skip computing XtWX (the crossproduct needed for standard errors)\n"
     "    and return only the coefficient vector -- faster when only a point estimate\n"
-    "    is needed.");
+    "    is needed.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    'b' and, with estimate_only=False, 'XtWX' plus 'sigma2_hat' (residual\n"
+    "    sum of squares / (n - number of free coefficients)), 'vcov' (sigma2_hat\n"
+    "    times the inverse of X^T X over the free coefficients; nan rows and\n"
+    "    columns for fixed_idx coefficients) and 'ssq_b_2' = vcov[1, 1],\n"
+    "    matching R's fast_ols_with_var_cpp (read vcov[j-1, j-1] for its\n"
+    "    ssq_b_j). The variance keys are added by the Python wrapper.");
 
     m.def("fast_robust_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                         const Eigen::Ref<const Eigen::VectorXd>& y,

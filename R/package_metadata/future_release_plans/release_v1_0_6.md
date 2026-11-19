@@ -854,7 +854,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     numbers. Only if the current form is kept, the one-shot affine breakpoint inversion
     (closed_form_ci_from_affine_null_draws, c_b = 1) becomes a v1.1.0 speed item.
   - Done when: the reservoir p-value is shown valid or fixed, with coverage within MC error of 95%.
-- [ ] TODO-42 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+- [x] TODO-42 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
   `sequential-biased-coin-designs#43925959437.1`, see `audits/research_triage_drafts.md`): **Sequential designs:
   draw_ws_raw overwrites the live design's w (CMH SE path)**
   - Related: v1.2.0-TODO-22.
@@ -863,6 +863,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     changes, fix by saving/restoring private$w (and t-dependent state) in draw_ws_raw or by drawing on a duplicate.
   - Done when: a regression test shows get_w() and downstream estimates unchanged after the CMH SE call, or the check
     closes with evidence that no reachable path mutates a live design.
+  Done 2026-11-19 (agent, uncommitted): the generic `draw_ws_raw()` replay (used only by Urn and
+  `DesignCustomSequential`) now saves `private$w` and restores it via `on.exit()`. All 11 sequential designs checked:
+  no private field changes after redraws (seeded/unseeded, completed and mid-trial); CMH SE path leaves state
+  unchanged. New `test-sequential-design-redraw-leaves-design-state-unchanged.R`; 49 related files (2,633
+  expectations) pass; negative control fails as expected. Follow-ups found: v1.0.6-TODO-183.
 - [ ] TODO-43 (added 2026-11-17, agent, owner request; from the dead code behind three rejected findings of the
   algorithm-research triage of run 43925959437, see the Rejected section of `audits/research_triage_drafts.md`; each
   "no caller" claim was checked against the code on 2026-11-17): **Remove three dead C++ code paths.**
@@ -1061,7 +1066,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - **NEWS entry needed:** user-visible estimates change for every `use_rcpp = TRUE` robust fit with `method = "M"`
     (KK IVWC/OneLik, `InferenceContinRobustRegr`, the robust rand/bootstrap kernel) and all kernel robust SEs grow by
     kappa (M and MM); KK robust classes may now return NA for an unconverged Rcpp fit instead of the unconverged value.
-- [ ] TODO-51 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+- [x] TODO-51 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **Breslow hazard floors tiny risk-set sums at an absolute 1e-10.** `.breslow_hazard()`
   (`R/EDI/R/helper_survival_fits.R:596`) floors each rescaled risk-set sum at 1e-10, so when a late risk set holds
   only subjects whose linear predictor is more than about 23 below the maximum the hazard increment is wrong by orders
@@ -1069,6 +1074,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   the sums on the log scale. The failing test is
   `R/package_tests/testthat_bulk/test-breslow-hazard-low-relative-risk-risk-set.R` (skipped, citing this TODO); done
   when the fix lands and the skip is removed.
+  Done 2026-11-19 (agent, uncommitted): `.breslow_hazard()` drops the `max(R_k, 1e-10)` floor; plain `d_k / R_k`
+  unless `R_k` underflows, then a log-scale rescale by the risk set's own max (Inf beyond double range). Repro cumhaz
+  `1, 1e10, 2e10` -> exact `1, 5.34e12, 1.60e13`. Instrumented check on 3000 datasets: 146 changed, all where the floor
+  bound, 0 otherwise. New `test-breslow-hazard-no-absolute-floor-on-risk-set-sum.R` (58); bulk test un-skipped; 1686
+  survival expectations pass. Left alone: `.cox_simulate_*` `exp(eta - max(eta))` underflows only beyond ~745.
 - [ ] TODO-52 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **Ratio annealing can return an infeasible allocation.** The A-optimal "ratio" annealing
   kernel (`R/EDI/src/design_optimal_annealing_search.cpp:77`) scores a chain's random start as (w'Hw+1)/(n_T-w'Pw)
@@ -1077,7 +1087,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   denominators as Inf and redraw infeasible starts. The failing test is
   `R/package_tests/testthat_bulk/test-annealing-ratio-infeasible-start-not-returned.R` (skipped, citing this TODO);
   done when the fix lands and the skip is removed.
-- [ ] TODO-53 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+- [x] TODO-53 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Smoothed bootstrap-randomization p-value depends on the core count.**
   `compute_rand_bootstrap_two_sided_pval(type = "smoothed")` (`R/EDI/R/inference_all_abstract_rand_bootstrap.R:579`)
   draws each draw's assignment lazily inside the worker from that process's RNG stream, so with an unseeded design the
@@ -1086,20 +1096,31 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   see v1.1.0-TODO-48. The failing test is
   `R/package_tests/testthat_bulk/test-rand-bootstrap-smoothed-lazy-assignment-core-count-invariance.R` (skipped,
   citing this TODO); done when the fix lands and the skip is removed.
-- [ ] TODO-54 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  Done 2026-11-19 (agent, uncommitted): lazy draws now carry a `w_seed` and the RNG kind; new
+  `rand_bootstrap_lazy_draw_w()` replays them and restores the caller's RNG state (fork workers run L'Ecuyer, so
+  `set.seed` alone wasn't enough). Repro smoothed p 0.1106 / 0.1407 -> 0.0804 / 0.0804. Materialized paths unchanged
+  at 1 core; lazy paths change by Monte Carlo noise. 1-core vs 2-core (fork) now bit-identical; new `test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R` (22); bulk test un-skipped (callr-based bulk tests need a reinstall).
+- [x] TODO-54 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **Mahalanobis objective silently dropped for badly scaled covariates.**
   `prepare_optimal_objective_matrices()` (`R/EDI/R/helper_optimal_milp_solvers.R:106`) declares Sigma singular when
   `rcond(Sigma) < 1e-12`, which is not scale-invariant, so full-rank covariates on very different scales fall back to
   the l1 objective (`mahal_fell_back = TRUE`). Test singularity on the correlation matrix (or standardized columns).
   The failing test is `R/package_tests/testthat_bulk/test-optimal-mahal-objective-badly-scaled-covariates.R` (skipped,
   citing this TODO); done when the fix lands and the skip is removed.
-- [ ] TODO-55 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  Done 2026-11-19 (agent, uncommitted): `prepare_optimal_objective_matrices()` judges singularity by non-finite or
+  relatively constant column SDs and `rcond(cov2cor(Sigma)) < 1e-12` (scale-invariant); Q still from `chol` of the raw
+  Sigma. Objective matrices bit-identical on 40 well-scaled / collinear random X. New
+  `test-optimal-mahal-objective-scale-invariant-singularity.R`; bulk test un-skipped; 946 optimal-design expectations
+  pass.
+- [x] TODO-55 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **Sequential-MC randomization p-value is NA when `mc_batch_size` < 10.**
   `compute_two_sided_pval_with_sequential_mc` (`R/EDI/R/inference_all_abstract_rand.R:938`) returns the NA from the
   first batch's prefix (fewer than the 10 finite draws required) instead of drawing the next batch. Continue drawing
   until 10 finite draws exist, or reject `mc_batch_size < 10` in `normalize_randomization_ci_search_control`. The
   failing test is `R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R` (skipped, citing this
   TODO); done when the fix lands and the skip is removed.
+  Done 2026-11-19 with v1.0.6-TODO-166 (same cause): the `skip()` in
+  `testthat_bulk/test-rand-pval-sequential-mc-small-batch.R` is removed and the test passes.
 - [ ] TODO-56 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **KK GLMM null simulation swaps the two variance components.** `simulate_under_lik_null()`
   (`R/EDI/R/inference_continuous_KK_glmm.R:503`) reads the null fit as c(beta, log_sigma_b, log_sigma_e), but
@@ -1108,33 +1129,55 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   affected calibration rows. The failing test is
   `R/package_tests/testthat_bulk/test-contin-kk-glmm-null-simulation-variance-component-order.R` (skipped, citing this
   TODO); done when the fix lands and the skip is removed.
-- [ ] TODO-57 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+- [x] TODO-57 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **D/A-optimal projection is wrong when a covariate is collinear with the intercept.**
   `R/EDI/R/helper_optimal_shared.R:107` builds P = QQ' from `qr.Q(qr(cbind(1, X)))` without truncating to the QR rank,
   so for X = [x1, x1 + 1] P projects onto an extra arbitrary direction (trace 3, not 2) and the search optimizes the
   wrong criterion. Keep only the first `qr$rank` columns (pivoted). The failing test is
   `R/package_tests/testthat_bulk/test-greedy-d-optimal-projection-rank-deficient-intercept-collinear.R` (skipped,
   citing this TODO); done when the fix lands and the skip is removed.
-- [ ] TODO-58 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  Done 2026-11-19 (agent, uncommitted): `build_optimal_design_P_H()` (non-Bayesian branch) keeps only
+  `Q[, seq_len(qr$rank)]`, un-pivots R before building M (a second defect: pivoted QR misaligned the subset-interest
+  H), and goes straight to `MASS::ginv` when rank deficient. Full-rank `[1, X]`: bit-identical P/H and same-seed
+  allocations (18 comparisons, GreedyDOptimal and Optimal). New `test-optimal-projection-rank-deficient-design-matrix.R`
+  (14); bulk test un-skipped; a bulk reference test that copied the bug fixed; 52 optimal/greedy files pass. The
+  Bayesian (ridge) branch has the same pivot-free code but doesn't take this QR path when tau > 0.
+- [x] TODO-58 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **CR2 cluster-robust variance is NULL for small-unit responses.**
   `cluster_robust_cr2_variance()` (`R/EDI/R/helper_robust_sandwich.R:155`) returns NULL when the variance is below the
   absolute `.Machine$double.eps`, so y * 1e-8 is called not estimable and OLS/Lin silently fall back to the
   homoskedastic SE on a cluster design. Use a floor relative to the scale of y (or the residuals). The failing test is
   `R/package_tests/testthat_bulk/test-cr2-cluster-robust-variance-small-scale-response.R` (skipped, citing this TODO);
   done when the fix lands and the skip is removed.
-- [ ] TODO-59 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  Done 2026-11-19 (agent, uncommitted): `cluster_robust_cr2_variance()` replaced the absolute `ssq < eps` floor with a
+  noise floor relative to the scale of y and the fit (`n * (100 eps max|y|)^2 * (X'X)^-1_jj`). Matches clubSandwich CR2
+  variance and Satterthwaite df to ~1e-15 at scales 1e-12..1e8; 1,200 perfect-fit cases still NULL. New
+  `test-cr2-cluster-robust-variance-scale-equivariant.R` (26); bulk test un-skipped; sandwich / cluster files pass.
+- [x] TODO-59 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **Wilcoxon Hodges-Lehmann estimate is NA when each arm is constant.** `shared()`
   (`R/EDI/R/inference_all_simple_wilcox.R:337`) turns `wilcox.test(conf.int = TRUE)`'s all-ties error into a
   non-estimable NA estimate, although the HL estimate is defined (the estimate_only path returns it). Compute the
   estimate without `conf.int` when the CI fails, and report the CI as unavailable. The failing test is
   `R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-hl-estimate.R` (skipped, citing this TODO); done
   when the fix lands and the skip is removed.
-- [ ] TODO-60 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+  Done 2026-11-19 (agent, uncommitted): when both arms are constant, the estimate is `yT - yC` on both paths (matches
+  `stats::wilcox.test(exact = TRUE)`), the ties-corrected p-value is computed (equals stats; 1 at the shift), and the
+  CI is NA with `edi_wilcox_ci_unavailable_warning` (reason `wilcox_ci_each_arm_constant`, recorded as a Wald
+  procedure failure, not nonestimable): rank-test inversion only gives the point [d, d]. Helpers are file-level to keep
+  the migration-baseline private counts. New `test-simple-wilcox-constant-arms-estimate-pval-and-ci.R` (30); bulk test
+  un-skipped; Wilcox golden and routing tests pass. Class docs could mention the constant-arms CI (not roxygenized).
+- [x] TODO-60 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **KK21 proportion speedup loses all weights when a response is 0 or 1.** `compute_weights`
   (`R/EDI/R/design_seq_one_by_one_KK21.R:380`) takes `log(ys / (1 - ys))` unclamped, so one response of exactly 0 or 1
   makes every t-statistic non-finite and matching silently becomes unweighted. Clamp as `KK21_stepwise.R:272-274`
   does. The failing test is `R/package_tests/testthat_bulk/test-kk21-proportion-speedup-boundary-response-logit.R`
   (skipped, citing this TODO); done when the fix lands and the skip is removed.
+  Done 2026-11-19 (agent, uncommitted): KK21's proportion speedup now uses the package `logit()` (clamped to
+  [eps, 1 - eps], as KK21stepwise does) instead of a raw `log(y / (1 - y))`. Repro weights 2.2e-16, 2.2e-16 -> 0.202,
+  0.635; interior-response designs identical on 20 seeds. New
+  `test-kk21-proportion-speedup-boundary-response-clamped.R`; bulk test un-skipped; 30 KK21 files (1262) pass.
+  Open design question (both KK21 classes): the eps clamp makes a 0/1 response a +/-36 logit outlier for the OLS
+  t-statistics; a milder clamp such as (y(n-1)+0.5)/n would keep more signal.
 - [ ] TODO-61 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Randomization distribution of warm-started fits depends on the core count.** The reused-worker
   randomization path (`R/EDI/R/inference_all_abstract_rand.R:672`) chains warm starts within each of `num_cores`
@@ -1143,7 +1186,13 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   the chunking (e.g. the full-data MLE, or chunk boundaries fixed independently of cores); see v1.1.0-TODO-48. The
   failing test is `R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R`
   (skipped, citing this TODO); done when the fix lands and the skip is removed.
-- [ ] TODO-62 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+  Fixed 2026-11-19 (agent, uncommitted; PENDING OWNER SIGN-OFF): removed warm-start chaining between permutations in
+  `compute_randomization_distr_via_reused_worker_states`; every permutation starts from the full-data fit. This
+  reverses the 2026-11-16 ruling that concave classes chain (the option this TODO's own text suggests). No measurable
+  slowdown (Poisson, NegBin, PropOdds). 1-core values change at tolerance level (Poisson 1e-10, HurdlePoisson 2e-5).
+  `rand_likelihood_is_nonconcave()` is now unused by this loop (still referenced by a test and the call-graph
+  baseline). 1-core vs 2-core (fork) now bit-identical; new `test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R` (22); bulk test un-skipped (callr-based bulk tests need a reinstall).
+- [x] TODO-62 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Hurdle negbin bootstrap-weighted fits depend on the core count.**
   `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_count_hurdle.R:442`)
   passes `glmmTMBControl(parallel = self$num_cores)`, so TMB's thread-split likelihood sums differ by thread count and
@@ -1151,6 +1200,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   parallel loops; see v1.1.0-TODO-48 and the next TODO. The failing test is
   `R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R` (skipped, citing this
   TODO); done when the fix lands and the skip is removed.
+  Done 2026-11-19 (agent, uncommitted): glmmTMB `parallel = 1L` (TMB sums per-thread likelihoods in a
+  thread-count-dependent order; 3e-11 differences). Same fix applied to `inference_count_KK_cond_poisson.R` and
+  `inference_mixin_kk_glmm_shared.R` (two sites). 1-core output unchanged to 17 digits. 1-core vs 2-core (fork) now bit-identical; new `test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R` (22); bulk test un-skipped (callr-based bulk tests need a reinstall).
 - [ ] TODO-63 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **KK21 stepwise errors when every response so far is identical.** With constant responses so
   far (e.g. all count responses 0) `kk21_stepwise_continuous_weights_cpp` returns all NA, `na0()` makes them 0, and
@@ -1167,13 +1219,15 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   TODO-63 bulk test's skip removed (3/3); 59 KK21/KK golden files pass. Not changed: with several covariates, one that
   predicts y exactly gets weight ~0 in the stepwise kernel (eps in non-stepwise); a C++ change if wanted. NEWS line
   pending.
-- [ ] TODO-64 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
+- [x] TODO-64 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Zero-augmented Poisson fits depend on the core count.** `fit_zero_augmented_model()`
   (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1094`) passes `glmmTMBControl(parallel =
   self$num_cores)`, so the coefficients of InferenceCountHurdlePoisson and the other zero-augmented subclasses (and
   their `use_rcpp = FALSE` fits) change in the low bits with `set_num_cores()`. Same fix as the previous TODO. The
   failing test is `R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R`
   (skipped, citing this TODO); done when the fix lands and the skip is removed.
+  Done 2026-11-19 with v1.0.6-TODO-62 (same cause; glmmTMB `parallel = 1L` in
+  `inference_count_zero_augmented_poisson_abstract.R`).
 - [ ] TODO-65 (added 2026-11-17, agent, owner request; from GitHub issue #20, the CI self-check audit): **Bump
   outdated GitHub Actions and fix the self-check's zero-median false positives.**
   - Bump to the latest major: `actions/cache` v5 -> v6 (calibration-study, comprehensive-study, nightly,
@@ -1577,7 +1631,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   carry the v1.0.6-TODO-82 known row (na.rm, owner-decided docs-only); retire that row when -82 closes. Related, not
   fixed: on survival the custom rand CI inverts a log-time shift although the class doc says "additive on the
   response scale" (v1.0.6-TODO-80).
-- [ ] TODO-85 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **The
+- [x] TODO-85 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **The
   `fast_gaussian_lmm` docstring says X has "no intercept column", but it needs one.**
   `python/src/edi_kernels/_core.pyi` (~L324, and the binding docstring it mirrors) says so, but the R class
   `InferenceContinKKGLMM` passes (intercept, w, covariates), and the PyPI README example includes an intercept.
@@ -1585,6 +1639,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   coefficient is 1.7279, a different model. Fix the stub and binding docstrings (and check the other "no
   intercept column" claims in the stub, ~L178 and ~L206, against what each R caller passes); add a test that
   the documented X layout reproduces the R class's estimate.
+  Done 2026-11-19 (agent, uncommitted): the "no intercept column" claim was wrong for four GLMMs
+  (`fast_gaussian_lmm`, `fast_poisson_glmm`, `fast_logistic_glmm`, `fast_hurdle_poisson_glmm`); fixed in `_core.pyi`
+  and the binding docstrings (`cpp/bindings_glmm.cpp`, text only; reaches `help()` with the next wheel). The ordinal and
+  Cox "no intercept" claims are correct. New `tests/test_glmm_x_includes_intercept.py` (matches the R class's
+  estimate).
 - [ ] TODO-86 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Python
   kernels don't check that `w` is 0/1.** With `y = [1, 2, 3.5, 4, 2.2, 3.1]`, `dead` all 1 and
   `w = [1, 2, 1, 2, 1, 2]` (and likewise with -1/1 coding), `wilcox_hl_point_estimate`, `get_survival_stat_diff`
@@ -1595,7 +1654,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   test of all treatment-vector kernels under 1/2 and -1/1 coding.
   Status 2026-11-18: that test is in `python/tests/test_input_checks.py` and passes (6 kernels x 2 codings x checks
   on/off); close with TODO-101.
-- [ ] TODO-87 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Variance
+- [x] TODO-87 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent): **Variance
   outputs are missing from the Python kernels.** `fast_ols(estimate_only=False)` returns only `b` and `XtWX`
   (R's `fast_ols_with_var_cpp` also returns `ssq_b_j` and `sigma2_hat`); `fast_logistic_regression` always
   returns `ssq_b_j`/`ssq_b_2`/`sigma2_hat` as `nan` (the fields exist but are never filled, which invites
@@ -1603,6 +1662,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   ordinal links). Fix: either bind the `_with_var` kernels or fill the variance fields, and never return
   always-`nan` fields (drop them or document them); update the stub, README and `python/CHANGELOG.md`, and
   extend the rpy-parity audit's list so this gap is tracked. Python package; needs a wheel rebuild.
+  Done 2026-11-19 (agent, uncommitted; pure Python, no new pybind outputs): new `python/src/edi_kernels/_variance.py`,
+  run by `wrap_kernel()` when `estimate_only=False`, adds `vcov` / `ssq_b_2` (and `sigma2_hat` for OLS) to OLS,
+  logistic, probit, Poisson and NegBin (log theta row dropped at the Poisson boundary); always-NaN keys the C++ never
+  set are removed (logged under Changed in `python/CHANGELOG.md`: may break code that checks they exist). Matches R's
+  `*_with_var_cpp` to ~1e-14. New `tests/test_glm_variance_outputs.py`; 821 Python tests pass against the Nov 9 built
+  extension. Docstrings and READMEs updated. Follow-up: v1.0.6-TODO-188.
 - [ ] TODO-88 (added 2026-11-17, agent, owner request; found by the edi-from-python article agent):
   **`min_eigenvalue_information` is always NaN in Cox regression, in R and Python.** In
   `R/EDI/src/fast_coxph_regression.cpp` the field is NaN-initialized (`CoxFitResult`, ~L261), copied (~L512) and
@@ -2420,30 +2485,12 @@ docs-claims audit.
   randomization CI search (which calls the p-value many times; check whether `active_resampling_operation` is set
   there) — warn once per user-facing call.
 
-<<<<<<< HEAD
   Status 2026-11-18 (agent, resumed, uncommitted): v1.0.6-TODO-136 and -145 fixed together. Every listed silent-NA
   p-value return warns once (`edi_warn_procedure_na()`, silent in resampling); values and reasons unchanged. The rand
   CI search does not set `active_resampling_operation`, so new `edi_muffle_rand_pval_na_warnings()` drops only the
   per-delta rand / rand-bootstrap p-value NA warnings inside the CI searches (13 warnings -> 1), and the rand CI warns
   once itself when it ends NA (search-bounds / bisection failure). Test `test-rand-and-bootstrap-pval-silent-na-warns.R`
   (43); 47 rand/bootstrap/Bayesian files pass; NA-gate smoke passes. NEWS added. Left: v1.0.6-TODO-165, -166.
-- [ ] TODO-147 (added 2026-11-18, agent, owner decision; from the docs-claims audit): **`InferenceIncidExactZhang`'s
-  point estimate ignores the matched pairs on KK designs.** `compute_estimate()`
-  (`R/EDI/R/inference_incidence_exact_zhang.R` ~L24) is `zhang_incid_treatment_estimate()`
-  (`R/EDI/R/inference_helpers_zhang.R` ~L96): the Haldane-Anscombe log odds ratio of `n11`, `n10`, `n01`, `n00`.
-  With a match structure, `zhang_get_exact_stats()` fills those from `compute_zhang_match_data_cpp()`, which counts
-  the reservoir only, so the estimate is always 0 when every subject is matched. The docs
-  (`inference_incidence_exact_zhang.R` ~L120, `man-roxygen/exact-zhang-compute-estimate.R`) say it uses the pooled
-  2x2 table across all subjects. Owner decision (2026-11-18): the estimate must use all subjects, as documented.
-  Build the pooled table (each matched subject's own treatment and outcome, plus the reservoir) and use it in
-  `compute_estimate()`; check whether `zhang_incid_mle_ci()` (the CI search bracket) and
-  `zhang_ci_inside_point()` (`est_R`) should use the pooled or the reservoir table, since the exact p-value still
-  combines the matched and reservoir parts separately. Test: on a KK design with every subject matched the estimate is
-  not identically 0 and equals the pooled-table formula; with no matching it is unchanged. Add a NEWS entry under
-  "Changes that alter results". (audit decision `docs-claims-d42892ef3`)
-
-=======
->>>>>>> 9c631e113630cf5f349077d3413f60c4192fd174
 - [ ] TODO-137 (added 2026-11-18, agent; found by the v1.0.6-TODO-135 agent): **The g-computation risk-ratio jackknife
   path bypasses the jackknife guards.** `inference_incidence_gcomp_abstract.R` and
   `inference_incidence_KK_gcomp_abstract.R` build their own log-scale SE from the replicates, rejecting only
@@ -2566,14 +2613,11 @@ docs-claims audit.
   ifelse(y_R > 9, 9, y_L), y_Rs = ifelse(y_R > 9, Inf, y_R)`), `InferenceSurvivalKMDiff$new(des_9)$compute_estimate()`.
   Also: on interval data the KMDiff jackknife-Wald NA gives the generic `edi_procedure_na_warning` rather than the
   median-specific `edi_km_jackknife_na_warning`.
-<<<<<<< HEAD
   Status 2026-11-18 (agent, uncommitted): fixed. New `turnbull_npmle_group_lowest_survival()`
   (`helper_inference_survival_turnbull.R`); the general-censoring branch warns when a Turnbull median is not reached
   (arm, lowest survival, RMST suggestion), once per object, silent in resampling; median-specific jackknife reasons.
   Values unchanged. Test `test-km-diff-interval-censored-median-not-reached-warns.R` (28). NEWS added. Roxygen
   sentence on the jackknife methods needs updating.
-=======
->>>>>>> 9c631e113630cf5f349077d3413f60c4192fd174
 - [ ] TODO-145 (added 2026-11-18, agent; found by the v1.0.6-TODO-140 agent): **Remaining silent-NA returns in the
   bootstrap p-values:** non-studentized `bootstrap_too_few_finite_estimates` (with `na.rm = TRUE`),
   `bootstrap_extreme_finite_estimates`, `bootstrap_pvalue_unavailable`, and the Bayesian p-value's
@@ -2879,26 +2923,44 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   change results for fits that converge today (within optimizer tolerance); check other C++ GLM kernels for the same
   conditioning problem. Also untested: the retry on interval-censored unscaled data.
 
-- [ ] TODO-165 (added 2026-11-18, agent; left by the v1.0.6-TODO-136/-145 agent): **Remaining silent NAs in the
+- [x] TODO-165 (added 2026-11-18, agent; left by the v1.0.6-TODO-136/-145 agent): **Remaining silent NAs in the
   randomization-bootstrap CI and the Bayesian BCa p-value.** The randomization-bootstrap CI's own NA returns
   (`missing_ci()` reasons, `rand_bootstrap_ci_bisection_failed`) don't warn (its per-delta warnings are now muffled,
   so the CI must warn once itself, like the plain rand CI); and `bayesian_bootstrap_bca_pvalue_unavailable` is silent.
-
-- [ ] TODO-166 (added 2026-11-18, agent; unverified lead from the v1.0.6-TODO-136/-145 agent): **Sequential Monte Carlo
+  Done 2026-11-19 (agent, uncommitted): `missing_ci()` in `inference_all_abstract_rand_bootstrap_ci.R` records the
+  reason and warns once (also covers the bisection and closed-form failures); the Bayesian BCa branch warns
+  `bayesian_bootstrap_bca_pvalue_unavailable` (now also when `harden = FALSE`), skipping NAs `pval_bayesian_bca()`
+  already warned about. Values and reasons unchanged; silent while resampling. Test
+  `test-rand-bootstrap-ci-and-bayesian-bca-silent-na-warns.R` (55); 83 rand/boot/Bayesian files pass; NA-gate smoke
+  passes. No allowlist change needed now; after the digest is regenerated these NAs move to the report-only
+  "warned" gate. Follow-ups: v1.0.6-TODO-185.
+- [x] TODO-166 (added 2026-11-18, agent; unverified lead from the v1.0.6-TODO-136/-145 agent): **Sequential Monte Carlo
   p-values stop at the first NA batch prefix.** `compute_two_sided_pval_with_sequential_mc()` (used by the rand CI
   search when r >= 200) returns as soon as one batch prefix gives NA, so a first 25-draw batch with fewer than 10
   finite draws ends the p-value NA even when all r draws would have enough; the randomization-bootstrap sequential-MC
   loop does the same. Reproduce on real data, then continue to the next batch instead of stopping.
-
-- [ ] TODO-167 (added 2026-11-18, agent; found by the v1.0.6-TODO-150 agent): **`InferencePropZeroOneInflatedBetaRegr`'s
+  Done 2026-11-19 (agent, together with v1.0.6-TODO-55; R source committed by the owner in `3dabce47`, tests
+  uncommitted): real. Both sequential-MC loops now draw the next batch when a prefix has too few finite draws instead
+  of returning NA; once all r/B draws are in, the p-value is computed as before. New `keep_nonfinite_cache` argument
+  of `get_randomization_distribution_prefix()` stops a fixed all-NA first batch being re-drawn forever. Real data
+  (MASS::birthwt `ptl`, n = 16, HurdlePoisson): seq-MC p NA -> 0.683; no-NA cases byte-identical (OLS, Poisson,
+  NegBin rand / rand-bootstrap CIs). New `test-sequential-mc-pval-continues-past-nonfinite-prefix.R` (11); 33
+  rand files pass. Follow-up: v1.0.6-TODO-186. Minor, unchanged: the rand-bootstrap seq-MC path ignores `na.rm`.
+- [x] TODO-167 (added 2026-11-18, agent; found by the v1.0.6-TODO-150 agent): **`InferencePropZeroOneInflatedBetaRegr`'s
   bootstrap randomization null is built from the observed assignment** (same bug as v1.0.6-TODO-150):
   `compute_bootstrap_worker_estimate` (`inference_proportion_zero_one_inflated_beta.R` ~L583-635) takes X from the
   `runtime$X` snapshot (treatment column from `w[i_b]`) while `y` is the live sharp-null `worker_priv$y`. On data with
   0/1 values: rand p 0.020, BRT p 0.869, null mean 0.614 vs estimate 0.598. Fix: overwrite treatment column 2 of
   `runtime$X` and `runtime$X_zero_one` with `worker_priv$w` (as TODO-150 did); check worker = slow path and null size.
   These two are the only classes with a `runtime` snapshot env.
-
-
+  Done 2026-11-19 (agent; source fix committed by the owner in `3dabce47`, test uncommitted): the worker writes the live
+  `worker_priv$w` into the treatment column of local copies of `runtime$X` / `runtime$X_zero_one` (rank rechecked;
+  full-fit fallback). Repro: BRT p 0.85 -> 0.020 (rand 0.010). Null size (200 datasets): BRT 6.0% / 11.0% at
+  0.05 / 0.10, rand 5.5% / 9.0%. Worker equals its own full fit exactly; vs the slow path within ~5e-4 (older warm-start
+  and fixed-variance-component differences). No other class has the bug (14 overrides checked; only PropGComp, fixed
+  in v1.0.6-TODO-150, and ZOIB snapshot runtime X). New test
+  `test-zoib-rand-bootstrap-null-uses-fresh-assignment.R`. Comprehensive / argument-combination ZOIB BRT rows are now
+  stale. Follow-up: v1.0.6-TODO-184.
 - [ ] TODO-168 (added 2026-11-18, owner request; from v1.0.6-TODO-149): **Investigate the low coverage of the
   `InferenceIncidKKGCompRiskRatio` studentized Bayesian-bootstrap interval.** The v1.0.6-TODO-149 coverage check
   (B = 101, n = 60, 100 reps, 2 cores; Monte Carlo SE ~0.022) gave 0.90 for KK RR against 0.95 nominal (KK RD 0.95,
@@ -2908,7 +2970,16 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   log-RR scale (as the jackknife and asymptotic RR paths already do) and back-transformed, and with the truth
   computed for the same standardization; check the plain (non-KK) `InferenceIncidGCompRiskRatio` too. If the log scale
   fixes it, studentize RR on the log scale.
-
+  Investigated 2026-11-19 (agent; no package change; scratch in
+  /tmp/claude-1000/-home-kapelner-workspace-EDI/354c53b6-c792-4138-93ba-8154526e6c02/scratchpad/t168/): KK n = 60,
+  1000 reps, B = 999: raw studentized 0.889 (MCSE 0.010), log-RR studentized 0.899, symmetric log-RR studentized
+  0.930, percentile 0.940, log Wald 0.943; plain (non-KK) class 0.886; KK n = 200 0.928. Not the truth (population vs
+  sample-standardized differ by <= 0.004) and not KK-specific: a small-sample property of the Bayesian bootstrap-t (the
+  pivot's upper quantile is compressed because large estimates come with large replicate SEs; misses are one-sided,
+  5.5-7% below the lower bound). The 2 non-finite intervals come from a real bug, filed as v1.0.6-TODO-192.
+  OWNER DECISION: (a) switch to a symmetric studentized interval on log RR (0.93 KK, 0.91 plain) and/or (b) document
+  the small-sample undercoverage and point to log Wald / percentile / log basic. Agent recommends (b), plus (a) if a
+  log-scale studentized RR path is wanted for consistency.
 - [ ] TODO-169 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **The L-BFGS wrapper declares convergence too early.** `optimize_likelihood_lbfgs`
   (`R/EDI/src/_helper_functions_core.h` ~L1361-1394) sets `past = 1`, `delta = tol` and then
   `converged = gradient_norm < tol || niter < maxit`, so any stop before the cap, including LBFGSpp's one-step
@@ -2943,7 +3014,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   quantile regression, proportion quantile, g-computation, ...). Center/scale before the rank test or use a
   scale-invariant tolerance, and warn whenever a column is dropped. Repro data for all of these: `survival::colon`, `etype == 2`, `rx` in Obs/Lev+5FU, complete cases (n = 594), X = cbind(1, w, age, sex, obstruct, perfor, adhere, nodes, differ, extent, surg); variants: raw, `scale()`d, age x 1000, age + 1e5.
 
-- [ ] TODO-172 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **`InferenceOrdinalGCompMeanDiff` and `InferenceOrdinalStereotypeLogitRegr` bypass the ordinal column-scaling
+- [x] TODO-172 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **`InferenceOrdinalGCompMeanDiff` and `InferenceOrdinalStereotypeLogitRegr` bypass the ordinal column-scaling
   wrapper.** The six PO/probit/cloglog/cauchit/adjacent-category/continuation-ratio classes fit through
   `ordinal_fit_scaled()` / `ordinal_center_scale_plan()` (`R/EDI/R/inference_ordinal_proportional_odds.R`
   ~L426-520) and are scale-invariant, but the g-computation class calls the raw kernel
@@ -2953,7 +3024,15 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   0.1929); stereotype gives 0.443 raw against 0.475 scaled, and at age x 1000 drops every covariate and returns NA
   (note its likelihood is multimodal, see the stereotype learning). Route both through the wrapper, transforming
   warm starts and fixed parameters as the wrapper does. Repro data for all of these: `survival::colon`, `etype == 2`, `rx` in Obs/Lev+5FU, complete cases (n = 594), X = cbind(1, w, age, sex, obstruct, perfor, adhere, nodes, differ, extent, surg); variants: raw, `scale()`d, age x 1000, age + 1e5.
-
+  Done 2026-11-19 (agent, uncommitted): g-comp routes all five kernel calls through `ordinal_fit_scaled()` (as
+  PropOddsRegr does); stereotype gets `.stereotype_center_scale_design()` (same `ordinal_center_scale_plan()` rule,
+  applied once to the design: the wrapper's linear map doesn't fit the loading-dependent intercept shift; exact because
+  all fits use data-only starts). Colon data: estimate and SE identical raw / scaled / x1000 / +1e5 (g-comp 0.1930,
+  matches an `ordinal::clm` g-computation; stereotype 0.4752, matches a 12-start optim). The stereotype bootstrap
+  worker spec now uses the full multistart (only a bulk test calls it). New
+  `test-ordinal-gcomp-and-stereotype-covariate-scale-invariance.R` (23); 51 unit + 162 bulk ordinal/gcomp/migration
+  files pass (except v1.0.6-TODO-190's ZOIB golden). Comprehensive rows for both classes on poorly scaled datasets
+  are now stale.
 - [ ] TODO-173 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **`fast_probit_regression_cpp` reports `converged = FALSE` even on a well-conditioned, fully converged fit.**
   On the scaled colon design (y = status) it returns `converged = FALSE` with gradient norm 1.5e-8 and the correct
   coefficients (matching `glm(binomial(link = "probit"))`). Find why the flag is never set (Newton path, probably the
@@ -2969,7 +3048,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   The probe ran these through KK designs with `private$X` overridden to keep the matching fixed across variants,
   because KK14 matching is itself scale-dependent.
 
-- [ ] TODO-175 (added 2026-11-18, agent; from v1.0.6-TODO-160): **Remaining raw-ratio-scale guards for the
+- [x] TODO-175 (added 2026-11-18, agent; from v1.0.6-TODO-160): **Remaining raw-ratio-scale guards for the
   g-computation risk ratio.** (1) The non-parametric percentile/BCa paths for `InferenceIncidGCompRiskRatio` often
   return NA earlier via `bootstrap_extreme_finite_estimates`: one replicate with near-zero control risk gives an RR
   above 1e6 and rejects the whole bootstrap (n = 30, rare-control fixtures), while the Bayesian path on the same data
@@ -2977,7 +3056,16 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   fixture is [3e-5, 2.83] and is accepted because theta-free callers skip the log(RR) rule; pass log-scale information
   there. (3) `compute_rr_bootstrap_basic_confidence_interval` and `compute_rr_bayesian_bootstrap_log_confidence_interval`
   never call the extreme check; decide whether they should.
-
+  Done 2026-11-19 (agent; R source committed by the owner in `3dabce47`, two test files uncommitted): (1) the CI
+  replicate guard runs on log(RR) (p-value paths keep the raw-scale guard on purpose: their statistics use the raw
+  replicate mean); (2) theta-free RR callers (subsampling / m-out-of-n) get the log(RR) rule (+/-10 bound and the
+  log-scale width cap of 5); passing subsample replicates as theta was tried and reverted (they are ~sqrt(n/b) wider);
+  (3) the basic bootstrap RR interval and the Bayesian basic/Wald RR paths now run the guard and the check. 165-call
+  comparison: only 7 RR rows changed (e.g. small-n GCompRR percentile now [0.668, 8.13] instead of NA; m-out-of-n
+  [3e-5, 2.83] now NA); 3 degenerate basic intervals now NA. 87 expectations in the extreme-cap test; 51/52 boot files
+  (the 1 is a sandbox socket error); 135 bulk files pass after the pivot-reference test set `harden = FALSE`.
+  Open owner choice: theta-free RR intervals are also held to the log-scale width cap of 5 (bounds more than ~148x
+  apart are rejected, as for log-OR subsampling); the alternative is the +/-10 bound only.
 - [x] TODO-176 (added 2026-11-18, coordinator; seen by the v1.0.6-TODO-160 agent): **Two bulk tests fail after this
   round's changes, unrelated to TODO-160.** (1) `R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R`:
   private-owner counts are +4 (e.g. 340 vs 336), the four `perfect_predictor_*` fields added by v1.0.6-TODO-158;
@@ -3029,9 +3117,149 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   First-ranked real gap: `design_seq_one_by_one_abstract.R:190-201` (Pocock-Simon preallocated path when a later
   subject's columns/levels differ) never runs in the suite. Estimated cost ~$6-12/week.
 
-- [ ] TODO-179 (added 2026-11-19, owner request; lead from the v1.0.6-TODO-151 agent): **Do estimands with a no-effect
+- [x] TODO-179 (added 2026-11-19, owner request; lead from the v1.0.6-TODO-151 agent): **Do estimands with a no-effect
   value other than 0 have mis-centered tests?** TODO-151 found the studentized BRT centered the raw risk ratio at 0
   instead of 1. Estimands whose no-effect value is 0.5 (`mann_whitney_effect`), or any other non-zero no-effect value,
   may have the same problem in the studentized / symmetric-percentile-t BRT, Wald / asymptotic p-values with
   `delta = 0`, or bootstrap p-values. List every estimand type and its no-effect value, check each test path's
   default center, and fix any that center at 0 by mistake (`default_null_value()`).
+  Done 2026-11-19 (agent, uncommitted; no source change): only the `RR` tag has a nonzero no-effect value, and every RR
+  p-value path already defaults to RR = 1 (the studentized BRT was the one exception, fixed in v1.0.6-TODO-151).
+  Stochastic-superiority estimands (Ridit, JT, sign test) are reported as theta - 0.5, so 0 is correct; MarginalEstimand
+  `"marginal_ratio"` is a log ratio. Null size simulated (200 datasets) on every path for GCompRR, KKGCompRR, Ridit, JT,
+  SignTest: consistent with correct centering. Guard test `test-estimand-no-effect-value-centering.R` (51): a new
+  estimand tag must be classified. Follow-up: v1.0.6-TODO-191.
+- [ ] TODO-180 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, run 44358518303):
+  **The slow path and the reusable-worker path disagree for general-censoring survival classes.**
+  `R/EDI/tests/testthat/test-rand-test-and-ci-shift-censoring-bounds-under-null.R:73` fails on every platform. The
+  sanitizer legs (valgrind, ASAN/UBSAN), which run more tests, also fail
+  `test-rand-bootstrap-shifts-censoring-bounds-under-null.R:64,67` and
+  `test-bootstrap-subset-copy-drops-parent-row-caches.R:68` on interval-censored data. The class named in the failure
+  is `InferenceSurvivalWeibullRegr`, and the two paths differ by about 1e-5. The likely cause is the Weibull optimizer
+  stopping early from different warm starts, which v1.0.6-TODO-163 (column scaling and a Newton polish in
+  `fast_weibull_regression.cpp`) should fix. Re-run these three files on a build with TODO-163. If they still fail,
+  find which class and path differ, and either make the worker path start from the same point as the slow path or
+  loosen the tolerance only where the difference is optimizer precision. Valgrind and ASAN/UBSAN reported no memory
+  errors.
+- [ ] TODO-181 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, sanitizer legs):
+  **Two argument-validation tests don't skip classes whose optional packages aren't installed.**
+  `R/EDI/tests/testthat/test-inference-args-reject-na.R:113,163` and
+  `test-inference-args-reject-nonscalar-nonfinite.R:116` fail 8 times each on the valgrind and ASAN/UBSAN legs with
+  "has no fixture", because the fixtures (`na_arg_fixtures`, line 18) can't build these classes:
+  `InferenceContinKKQuantileRegrIVWC`, `InferenceContinKKQuantileRegrOneLik`, `InferenceContinQuantileRegr`,
+  `InferencePropKKQuantileRegrIVWC`, `InferencePropKKQuantileRegrOneLik`, `InferencePropQuantileRegr`,
+  `InferenceOrdinalKKGEE` and `InferenceSurvivalKKRankRegrIVWC`. Those images likely lack the Suggests packages the
+  classes need (quantreg, geepack, ...). Confirm which package is missing, then skip a class whose required package
+  is not installed (`skip_if_not_installed()` or a per-class `requireNamespace()` check) instead of failing. This is a
+  test bug, not a package bug.
+- [ ] TODO-182 (added 2026-11-19, agent, owner request; found by the nightly run 44358510753 on 4ce2b712):
+  **The nightly silent-NA gate fails for `InferenceAllSimpleAverageDiff$compute_bootstrap_confidence_interval`.**
+  On the smoke fixtures the same BCa-boundary NA comes with a warning in some calls and silently in others (5
+  continuous cases, 1 incidence), so the `silent_na_output` hard gate fails. Reproduced by re-running the gate on
+  4ce2b712 with the run's artifact CSVs. Suspected cause: a warn-once flag or a cache hit that returns the cached NA
+  without re-raising the warning (not confirmed). Make every NA that this method returns come with its warning (or a
+  `procedure_failure_reason`), and add a test that calls it twice on the same object and expects the warning both
+  times.
+
+- [x] TODO-183 (added 2026-11-19, agent; found by the v1.0.6-TODO-42 agent): **Mid-trial redraws on sequential designs
+  are inconsistent.** (1) `DesignSeqOneByOnePocockSimon$draw_ws_raw()` loops over all `n` preallocated rows, so
+  before every subject is enrolled it errors ("Unknown strata level encountered for Pocock-Simon column s: NA"; repro:
+  `strata_cols = "s"`, `n = 30`, enroll 20, `draw_ws_according_to_design(2)`). (2) After 20 of 30 subjects, Efron and
+  iBCRD redraws return `n` = 30 rows while Bernoulli, Urn, Atkinson, SPBR, RandomBlockSize and the KK designs return
+  `t` = 20; pick one (likely `t`, the enrolled subjects) and make all designs agree. (3) The generic replay calls
+  `assign_wt()` with `private$t` fixed at the final `t`, so a custom sequential `assignment_rule()` that reads `t` or
+  the current subject's row sees the wrong subject during a redraw; advance `t` during the replay and restore it.
+  Done 2026-11-19 (agent, uncommitted): (1) Pocock-Simon `draw_ws_raw()` builds strata over the `t` enrolled
+  subjects; (2) Efron calls its kernel with `t`; iBCRD still draws full-`n` sequences (it balances toward the planned
+  n) and keeps the first `t` rows, so all 11 designs return `t` rows, as the roxygen already says; (3) the generic
+  replay advances `private$t` and restores it via `on.exit`. Completed-trial redraws identical (8 comparisons). Redraw
+  test extended (Pocock-Simon mid-trial, row counts for all 11, custom rule reading `t`); one Efron bulk reference
+  test updated to enroll first; 76 files / 3,496 expectations pass. Follow-up: v1.0.6-TODO-187.
+- [x] TODO-184 (added 2026-11-19, agent; found by the v1.0.6-TODO-167 agent): **ZOIB randomization statistic ignores
+  `estimand = "marginal_mean_diff"`.** `InferencePropZeroOneInflatedBetaRegr`'s
+  `compute_treatment_estimate_during_randomization_inference` (`inference_proportion_zero_one_inflated_beta.R`
+  ~L497-524) always returns the conditional coefficient `res$b[2]`, so under the marginal estimand the BRT slow path
+  draws on the conditional scale (0.2-0.4 off the worker on the repro). The plain randomization test and CI for the
+  marginal estimand probably use the same function and would also run on the conditional scale; check. Repro:
+  `make(0.8)` in the TODO-167 agent's scratch `t167/eq.R`, `inf$set_estimand("marginal_mean_diff")`, compare
+  `run_rand_bootstrap_iteration` with worker draws.
+  Done 2026-11-19 (agent, uncommitted): under `marginal_mean_diff` the ZOIB randomization statistic refits all
+  parameters and returns the marginal functional (conditional path byte-identical); `set_estimand()` drops resampling
+  caches and reusable workers when the estimand changes (was reusing the old estimand's: rand p 0.63 vs fresh 0.26);
+  rand and rand-bootstrap CIs are refused under any non-conditional estimand
+  (`inference_stop_rand_ci_non_conditional_estimand()`, `edi_rand_ci_estimand_scale_mismatch_refused`). Repro worker
+  vs slow path 0.22 -> 6e-4; null size under marginal (200 datasets): BRT 6.0% / 10.5%, rand 5.5% / 10.5%. New
+  `test-zoib-marginal-estimand-randomization-statistic.R` (10). Left: roxygen for the CI refusal;
+  `get_effective_capabilities()` still advertises the two CIs after switching to a marginal estimand. Follow-ups:
+  v1.0.6-TODO-189, -190.
+- [ ] TODO-185 (added 2026-11-19, agent; found by the v1.0.6-TODO-165 agent): **Two leftovers from the silent-NA work.**
+  (1) The Bayesian-bootstrap p-value's normal-approximation branch still returns a silent NA for
+  `bayesian_bootstrap_standard_error_unavailable`; same one-line `edi_warn_procedure_na()` fix. (2) Computing the
+  null draws resets `private$active_resampling_operation` to NULL instead of restoring the previous value, so a flag set
+  by an outer resampling call is lost after an inner one; check whether any outer operation then warns where it
+  should be silent, and restore the previous value if so.
+
+- [ ] TODO-186 (added 2026-11-19, agent; found by the v1.0.6-TODO-166 agent): **`InferenceCountHurdlePoisson`'s
+  randomization null distribution collapses to a constant.** On MASS::birthwt (`ptl`, n = 16, covariates
+  age/lwt/smoke/ht/ui) every randomization replicate is nearly the same value instead of responding to the permuted
+  assignment: after the observed estimate is computed, replicates equal it (t = 0.00508, replicate 5-95% range
+  0.00507-0.00508); a fresh one-shot run gives a different constant (~0.25) and a different number of finite draws,
+  so seq-MC and one-shot p-values disagree with no NA (0.18 vs 0.033). Likely stale warm-start / cached state reused
+  across replicates (cf. the zero-inflation-ridge warm-start learning). Repro: the TODO-166 agent's scratch
+  `probe5.R`, `probe6.R` in /tmp/claude-1000/-home-kapelner-workspace-EDI/354c53b6-c792-4138-93ba-8154526e6c02/scratchpad/.
+  Check HurdleNegBin and the other zero-augmented classes too. Coordinate with v1.0.6-TODO-62 (hurdle core-count).
+
+- [ ] TODO-187 (added 2026-11-19, agent; found by the v1.0.6-TODO-183 agent; owner decision, changes results):
+  **`DesignSeqOneByOneiBCRD` with `n = NULL` has the wrong randomization distribution.** With no planned `n`,
+  `assign_wt()` falls back to a Bernoulli coin, but the redraw still calls `generate_permutations_ibcrd_cpp(t)`, which
+  forces exact balance at `t`: enroll 21 subjects, `colSums(draw_ws_according_to_design(500))` is always 11. Likely fix:
+  when `private$n` is NULL, redraw with `generate_permutations_bernoulli_cpp(t, r, prob_T)`. Repro: the TODO-183
+  agent's `$TMPDIR/t183/ibcrd_nulln.R`. Related: v1.0.6-TODO-76 (`n = NULL` behaviour of sequential designs).
+
+- [ ] TODO-188 (added 2026-11-19, agent; found by the v1.0.6-TODO-87 agent; needs a wheel rebuild): **Python
+  `fast_neg_bin` returns `neg_loglik = nan` and an empty `mu`.** The NB internal stores the log-likelihood in
+  `res.sigma2_hat` (R's `fast_neg_bin_with_var_cpp` returns `logLik = res.sigma2_hat`), but
+  `python/cpp/bindings_count.cpp` returns `res.neg_ll`, which is never set; `mu` comes back with shape (0,). Fix in the
+  binding (e.g. `out["neg_loglik"] = std::isfinite(res.neg_ll) ? res.neg_ll : -res.sigma2_hat;`, and fill `mu`), add
+  a test against R, rebuild the wheel.
+
+- [ ] TODO-189 (added 2026-11-19, agent; found by the v1.0.6-TODO-184 agent): **Randomization statistic stays
+  conditional under `marginal_mean_diff` in other classes.** Marginal estimate vs randomization statistic:
+  `InferencePropBetaRegr` 0.170 vs 0.718, `InferenceCountPoisson` / `QuasiPoisson` 0.773 vs 0.309,
+  `InferenceCountHurdlePoisson` 0.751 vs 0.204, `InferenceCountZeroInflatedPoisson` 0.755 vs 0.229,
+  `InferenceIncidLogRegr` 0.160 vs 0.667 (`InferenceIncidBinomialIdentityRiskDiff` is fine). Their rand p-values are
+  valid sharp-null tests but don't match the estimate, and their BRT may compare a conditional observed statistic with
+  marginal null draws (as ZOIB did). Apply the TODO-184 pattern per class (marginal functional in
+  `compute_treatment_estimate_during_randomization_inference`, worker and slow path agree), and make
+  `get_effective_capabilities()` estimand-aware. Repro: the TODO-184 agent's `t184/others.R` in
+  /tmp/claude-1000/-home-kapelner-workspace-EDI/354c53b6-c792-4138-93ba-8154526e6c02/scratchpad/.
+
+- [ ] TODO-190 (added 2026-11-19, coordinator; seen by the v1.0.6-TODO-184 agent): **`test-zoib-jackknife-reusable-worker-migration-golden.R`
+  fails 6 expectations** (`beta_x` missing from the worker's columns, L126; the jackknife extreme-summary NA no longer
+  produced, L262-267). The test sets no estimand and uses no randomization path; suspected cause is another uncommitted
+  change (v1.0.6-TODO-158 perfect-predictor column handling, or -167 / -175). Bisect against `git show HEAD:` copies
+  (no `git stash`: shared checkout), then fix the test if the new behaviour is intended or the code if it is a
+  regression.
+
+- [ ] TODO-191 (added 2026-11-19, agent; found by the v1.0.6-TODO-179 agent; owner decision on the fix): **Risk-ratio
+  subsampling and m-out-of-n p-values almost never reject.** Null size at n = 80 (200 datasets):
+  `InferenceIncidGCompRiskRatio` subsampling 0.005, m-out-of-n 0.000 (`InferenceIncidKKGCompRiskRatio` 0.015 / 0.000;
+  the RD sibling 0.065 / 0.070). With the default b = 21 of 80, subsamples with a zero-event arm or near separation
+  give log RR ~ +/-20, so the pivot sqrt(b)(log RR* - log RR_hat) in `compute_rr_resampling_pivot()`
+  (`inference_incidence_gcomp_abstract.R` ~L403) spans ~+/-98 and nearly every p-value is large; the matching CIs are
+  very wide. Options: larger default b / m for ratio estimands, drop degenerate subsamples, or a studentized pivot.
+  Repro: `/tmp/claude-1000/t179/dbg.R` (seed 1005).
+
+- [ ] TODO-192 (added 2026-11-19, agent; found by the v1.0.6-TODO-168 agent): **The KK g-computation weighted refit
+  poisons its own warm-start chain.** `compute_weighted_gcomp_estimate` (`inference_incidence_KK_gcomp_abstract.R`
+  ~L452-487) stores every replicate's coefficients in `private$gcomp_boot_beta` as the next warm start without checking
+  `mod$converged` or `coefficients_are_usable()`. One diverged fit (repro: rep 102, `set.seed(100102)`, warm start
+  (-0.70, 2.24, 3.18, -1.38) -> `converged = FALSE`, b ~ 1e9 after 100 IRLS iterations; cold start converges to glm's
+  answer) makes every later replicate garbage (RR exactly 1, NA SE). In a 1000-rep study 104 datasets were hit; they
+  covered 0.82 vs 0.90 and caused the non-finite intervals. Affects every Bayesian-bootstrap type for KK RR and RD.
+  Fix: accept a fit only if converged and usable; otherwise retry from `get_fit_warm_start_for_length("beta", p)`,
+  then cold; never cache a failed fit (set NULL, return NA). Same `converged` check plus a cold retry before the
+  covariate-drop loop in the plain class (`inference_incidence_gcomp_abstract.R` ~L537-575). Working version: the
+  agent's `t168/patch.R` (all 999 replicates kept, ~3x faster). Regression test with the rep-102 data. C++ follow-up
+  (weighted logistic IRLS runs to |b| ~ 1e9 with no step-halving) belongs with v1.0.6-TODO-169/170.
+

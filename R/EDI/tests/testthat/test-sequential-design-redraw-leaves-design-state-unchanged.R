@@ -5,6 +5,10 @@
 # and left the last replayed vector in place of the subjects' real assignments, so
 # InferenceIncidCMH's SE path (which redraws from the design) silently changed the
 # allocation every later inference saw.
+# v1.0.6-TODO-183: mid-trial redraws are consistent: every sequential design returns one
+# row per enrolled subject (t, not the planned n), Pocock-Simon no longer errors before
+# the last subject arrives, and the generic replay advances private$t so a custom
+# assignment_rule() that reads t sees the subject being replayed.
 
 redraw_classes = c("DesignSeqOneByOneBernoulli", "DesignSeqOneByOneEfron", "DesignSeqOneByOneAtkinson",
 	"DesignSeqOneByOnePocockSimon", "DesignSeqOneByOneUrn", "DesignSeqOneByOneiBCRD",
@@ -80,10 +84,9 @@ test_that("redraws leave a completed sequential design's state unchanged", {
 
 test_that("a redraw mid-trial does not change the rest of a seeded sequential trial", {
 	t_mid = 20L
-	# Pocock-Simon is left out: its redraw cannot run on a partly enrolled design yet
-	# (it reads all n rows of the preallocated covariates, and the unfilled rows have
-	# no stratum), a separate issue from this one.
-	for (cls in setdiff(redraw_classes, "DesignSeqOneByOnePocockSimon")) {
+	# Pocock-Simon included since v1.0.6-TODO-183 (its redraw used to read all n
+	# preallocated rows and error on the unfilled ones).
+	for (cls in redraw_classes) {
 		set.seed(1)
 		des = redraw_enroll(redraw_make(cls, 11L), seq_len(t_mid), redraw_data$y)
 		set.seed(1)
@@ -120,4 +123,39 @@ test_that("InferenceIncidCMH's SE path leaves the sequential design and later in
 		expect_identical(InferenceIncidCMH$new(des, se_est_num_vectors = 50L, verbose = FALSE)$compute_estimate(), est0, info = cls)
 	}
 	expect_true("DesignSeqOneByOneUrn" %in% cmh_checked)
+})
+
+test_that("every sequential design redraws one row per enrolled subject, mid-trial and complete", {
+	t_mid = 20L
+	for (cls in redraw_classes) for (seed in list(NULL, 11L)) {
+		info = paste(cls, "seed =", format(seed))
+		set.seed(1)
+		des = redraw_enroll(redraw_make(cls, seed), seq_len(t_mid), redraw_data$y)
+		w_mid = des$draw_ws_according_to_design(3L)
+		expect_equal(dim(w_mid), c(t_mid, 3L), info = info)
+		expect_true(all(w_mid %in% c(0, 1)), info = info)
+		redraw_enroll(des, (t_mid + 1L) : redraw_n, redraw_data$y)
+		expect_equal(dim(des$draw_ws_according_to_design(2L)), c(redraw_n, 2L), info = info)
+	}
+})
+
+test_that("the generic replay shows assign_wt() the subject being replayed and restores t", {
+	CustomSeqParity = R6::R6Class("CustomSeqParity",
+		inherit = get("DesignCustomSequential", envir = asNamespace("EDI")),
+		public = list(
+			# Treat even-numbered subjects and subjects with positive x1: reads both t
+			# and subject t's covariate row.
+			assignment_rule = function() as.numeric(private$t %% 2 == 0 || private$Xraw$x1[private$t] > 0)
+		)
+	)
+	t_mid = 12L
+	des = CustomSeqParity$new(n = redraw_n, response_type = "continuous", verbose = FALSE)
+	redraw_enroll(des, seq_len(t_mid), redraw_data$y)
+	expected = as.numeric(seq_len(t_mid) %% 2 == 0 | redraw_data$X$x1[seq_len(t_mid)] > 0)
+	expect_identical(des$get_w()[seq_len(t_mid)], expected)
+	before = redraw_state(des)
+	w_mat = suppressWarnings(des$draw_ws_according_to_design(2L))
+	expect_equal(unname(w_mat), cbind(expected, expected, deparse.level = 0))
+	expect_same_state(before, redraw_state(des), "custom sequential")
+	expect_identical(des$get_t(), t_mid)
 })

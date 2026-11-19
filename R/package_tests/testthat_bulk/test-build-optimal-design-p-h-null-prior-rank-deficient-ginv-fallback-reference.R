@@ -47,7 +47,10 @@ test_that("MASS::ginv() is invoked exactly once for a rank-deficient X, and P/H 
 	qrZ <- qr(Z0)
 	Q <- qr.Q(qrZ); R <- qr.R(qrZ)
 	M_ref <- MASS::ginv(t(R) %*% R)
-	P_ref <- Q %*% t(Q)
+	# v1.0.6-TODO-57: P projects onto col(Z0), i.e. only the first rank(Z0) columns of Q
+	# (the full Q Q' added an arbitrary extra direction for a rank-deficient Z0).
+	expect_equal(qrZ$rank, 2L)
+	P_ref <- Q[, 1:2] %*% t(Q[, 1:2])
 	H_ref <- Z0 %*% (M_ref %*% M_ref) %*% t(Z0)
 	expect_equal(ph$P, P_ref, tolerance = 1e-8, check.attributes = FALSE)
 	expect_equal(ph$H, H_ref, tolerance = 1e-6, check.attributes = FALSE)

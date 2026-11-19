@@ -354,7 +354,8 @@ jobs:
           if [ -n "$OUT" ]; then
             printf '%s' "$OUT" > "research/$TASK.json"
           else
-            echo "agent produced no structured output (step outcome: $OUTCOME)" > "research/$TASK.notrun"
+            # the API's reason (e.g. 429 usage_limit_reached) when the transcript has one
+            python3 .github/scripts/agent_failure.py "$TRANSCRIPT" --outcome "$OUTCOME" > "research/$TASK.notrun"
           fi
           # what the agent actually searched, from its transcript (owner, 2026-11-16)
           mkdir -p transcript
@@ -415,7 +416,8 @@ jobs:
           python3 .github/scripts/algorithm_audit_drift.py --research-batches --out batches.json
           status=$(python3 .github/scripts/algorithm_audit_research_apply.py --dir research \
             --tasks "${{ needs.plan.outputs.task_list }}" --batches batches.json \
-            --run-id "$GITHUB_RUN_ID" --pr-body pr_body.md)
+            --run-id "$GITHUB_RUN_ID" --pr-body pr_body.md --notrun-out notrun_count)
+          echo "notrun=$(cat notrun_count 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
           echo "status=$status" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
           # validate what was written; the result goes into the PR body (required checks do not
@@ -475,3 +477,13 @@ jobs:
           fi
           gh pr create --base main --head "$branch" --label "$LABEL" \
             --title "Algorithm research $DATE" --body-file pr_body.md
+
+      # Last, so the tasks that did run still reach a PR: a task whose agent produced nothing (API
+      # quota or rate limit, crash) fails the run instead of leaving it green (2026-11-18: 54 of 90).
+      - name: Fail if any task did not run
+        if: ${{ always() && steps.apply.outputs.notrun != '' && steps.apply.outputs.notrun != '0' }}
+        env:
+          NOTRUN: ${{ steps.apply.outputs.notrun }}
+        run: |
+          echo "::error::$NOTRUN research task(s) did not run; see 'Tasks that did not run' in the findings file."
+          exit 1

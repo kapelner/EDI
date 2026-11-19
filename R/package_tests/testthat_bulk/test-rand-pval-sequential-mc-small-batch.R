@@ -8,10 +8,9 @@
 # Where: R/EDI/R/inference_all_abstract_rand.R:938 (kind: na_where_defined).
 # On commit 4fc58cd063bc this test failed with: Expected `is.finite(p)` to be TRUE. Differences:
 # `actual`: FALSE `expected`: TRUE
-# Tracked by v1.0.6-TODO-55; remove the skip() when that fix lands.
+# Tracked by v1.0.6-TODO-55 (fixed with v1.0.6-TODO-166: short prefixes now draw the next batch).
 
 test_that("sequential-MC randomization p-value is finite when mc_batch_size is below the 10-draw minimum", {
-	skip("known bug, v1.0.6-TODO-55")
 		set.seed(1)
 		n = 20L
 		des = DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 1L)

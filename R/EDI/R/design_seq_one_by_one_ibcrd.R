@@ -121,11 +121,16 @@ DesignSeqOneByOneiBCRD = define_design_class(
 	),
 	private = list(
 		draw_ws_raw = function(r = 100){
-			generate_permutations_ibcrd_cpp(
+			# v1.0.6-TODO-183: one row per enrolled subject (t), like every other
+			# sequential design. The rule balances toward the planned n, so draw full
+			# n-subject sequences and keep their first t rows (the law of the subjects
+			# enrolled so far); a no-op once the trial is complete.
+			w_mat = generate_permutations_ibcrd_cpp(
 				as.integer(self$get_n()),
 				as.integer(r),
 				as.numeric(private$prob_T)
 			)$w_mat
+			w_mat[seq_len(private$t), , drop = FALSE]
 		}
 	)
 )

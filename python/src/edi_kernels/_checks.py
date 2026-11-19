@@ -468,15 +468,27 @@ _F = TypeVar("_F", bound=Callable[..., Any])
 
 
 def wrap_kernel(fn: _F) -> _F:
-    """Return ``fn`` behind a checking wrapper with the same name, docstring and (static) type."""
+    """Return ``fn`` behind a checking wrapper with the same name, docstring and (static) type.
+
+    Kernels listed in ``edi_kernels._variance.POST`` also get their variance outputs filled in
+    from the returned information matrix after the call (v1.0.6-TODO-87).
+    """
+    from ._variance import POST
+
     name = fn.__name__
     if name not in KERNELS:
         raise KeyError(f"{name} has no entry in edi_kernels._checks.KERNELS")
+    post = POST.get(name)
 
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         check_call(name, args, kwargs)
-        return fn(*args, **kwargs)
+        out = fn(*args, **kwargs)
+        if post is None:
+            return out
+        bound = dict(zip(KERNELS[name].params, args))
+        bound.update(kwargs)
+        return post(out, bound)
 
     # Pickle and help() look the function up by module + qualname: point them at the wrapper.
     wrapper.__module__ = "edi_kernels"

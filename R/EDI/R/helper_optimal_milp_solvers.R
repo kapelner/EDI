@@ -103,7 +103,17 @@ prepare_optimal_objective_matrices = function(X_raw, objective){
 		# R's chol() can return a rounding-level positive pivot on an exactly
 		# singular Sigma where the greedy kernel's Eigen LLT fails, so guard
 		# with an explicit conditioning check rather than chol() success alone.
-		ch = if (rcond(Sigma) < 1e-12) NULL else tryCatch(chol(Sigma), error = function(e) NULL)
+		# The check runs on the correlation matrix, not Sigma: rcond() is not
+		# invariant to column scaling, so full-rank covariates on very
+		# different scales (e.g. 1e-7 vs 1) must not count as singular
+		# (v1.0.6-TODO-54). A column that is constant up to rounding relative
+		# to its own magnitude (so collinear with the intercept) still falls
+		# back; that test is scale-invariant too.
+		col_sd_S = sqrt(diag(Sigma))
+		col_mag = apply(abs(X_raw), 2, max)
+		Sigma_singular = any(!is.finite(col_sd_S)) || any(col_sd_S <= 1e-10 * col_mag) ||
+			rcond(stats::cov2cor(Sigma)) < 1e-12
+		ch = if (Sigma_singular) NULL else tryCatch(chol(Sigma), error = function(e) NULL)
 		if (!is.null(ch)) {
 			M = forwardsolve(t(ch), t(Xc)) / n
 			return(list(kind = "quadratic", Q = 4 * crossprod(M), mahal_fell_back = FALSE))

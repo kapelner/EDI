@@ -69,6 +69,8 @@ test_that("for prob_T != 0.5 the kernel follows the sequential design's raw-coun
 
 test_that("DesignSeqOneByOneEfron$draw_ws_raw draws with the design's own coin probabilities", {
 	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 30L, weighted_coin_prob = 1, verbose = FALSE)
+	# v1.0.6-TODO-183: redraws have one row per enrolled subject, so enroll all 30 first.
+	for (i in seq_len(30L)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = i))
 	p <- des$.__enclos_env__$private
 	set.seed(7); W <- p$draw_ws_raw(r = 60L)
 	expect_equal(dim(W), c(30L, 60L))

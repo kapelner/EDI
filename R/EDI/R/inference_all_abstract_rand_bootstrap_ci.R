@@ -108,6 +108,8 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			if (any(class(self) %in% EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES)) {
 				inference_stop_rand_bootstrap_ci_scale_mismatch(class(self)[1L])
 			}
+			# v1.0.6-TODO-184: a marginal estimand is not on the shift scale either.
+			inference_stop_rand_ci_non_conditional_estimand(self, "Randomization-bootstrap confidence intervals")
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")

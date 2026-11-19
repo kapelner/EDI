@@ -152,7 +152,14 @@ cluster_robust_cr2_variance = function(X, y, coef_hat, cluster, j) {
 	}
 	vcov = XtX_inv %*% meat %*% XtX_inv
 	ssq = as.numeric(vcov[j, j])
-	if (!is.finite(ssq) || ssq < .Machine$double.eps) return(NULL)
+	# Not estimable when the variance is at the floating-point noise floor of the fit (a perfect fit, whose
+	# residuals are rounding error). The floor is relative to the scale of y and the fitted values, so the
+	# variance stays equivariant under rescaling y (v1.0.6-TODO-58: the old absolute .Machine$double.eps
+	# floor called y * 1e-8 not estimable). Rounding error in each residual is about eps * max|y|, and the
+	# CR2 sandwich of residuals bounded by r has variance at most about n * r^2 * (X'X)^{-1}_jj.
+	fit_scale = max(abs(y), abs(y - e))
+	noise_ssq = n * (100 * .Machine$double.eps * fit_scale)^2 * abs(XtX_inv[j, j])
+	if (!is.finite(ssq) || ssq <= noise_ssq || ssq <= 0) return(NULL)
 	df = G - 1L
 	K = crossprod(Umat)
 	df_sat = sum(diag(K))^2 / sum(K^2)

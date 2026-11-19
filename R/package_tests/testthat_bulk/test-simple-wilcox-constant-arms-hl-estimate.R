@@ -7,10 +7,10 @@
 # Where: R/EDI/R/inference_all_simple_wilcox.R:337 (kind: na_where_defined).
 # On commit 4fc58cd063bc this test failed with: Expected `inf$compute_estimate()` to equal 1.
 # Differences: 1/1 mismatches [1] NA - 1 == NA
-# Tracked by v1.0.6-TODO-59; remove the skip() when that fix lands.
+# Fixed by v1.0.6-TODO-59 (2026-11-19): the estimate is now returned; see
+# R/EDI/tests/testthat/test-simple-wilcox-constant-arms-estimate-pval-and-ci.R.
 
 test_that("Hodges-Lehmann estimate is returned when each arm is constant", {
-	skip("known bug, v1.0.6-TODO-59")
 		set.seed(1)
 		n = 20L
 		des = DesignFixedBernoulli$new(response_type = "continuous", n = n, seed = 1L, verbose = FALSE)

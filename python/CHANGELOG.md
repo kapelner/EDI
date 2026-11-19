@@ -46,9 +46,27 @@ or permutation function is exposed in Python.
   checkmate rules in `R/package_tests/checkmate_argument_contracts.csv`.
   No C++ changed (the wrappers are pure Python; users get them with the next
   wheel). Calls that were already valid give the same results.
+- Variance outputs for `fast_ols`, `fast_logistic_regression`,
+  `fast_probit_regression`, `fast_poisson_regression` and `fast_neg_bin`
+  (v1.0.6-TODO-87). With `estimate_only=False` each now also returns
+  `vcov` (the coefficient covariance matrix; for `fast_neg_bin` over
+  `[beta, log(theta)]`) and `ssq_b_2` (the variance of coefficient 2, usually
+  the treatment), and `fast_ols` also returns `sigma2_hat`. These are the
+  numbers R's `*_with_var_cpp` twins return (checked against EDI 1.0.4 to
+  8 significant digits); read `vcov[j - 1, j - 1]` for R's `ssq_b_j`.
+  Fixed coefficients (`fixed_idx`) have `nan` rows and columns, and a
+  singular information matrix gives an all-`nan` `vcov` instead of an
+  error. The Python wrappers compute them from the `XtWX`, `b`, `X` and `y`
+  the kernels already return, so no C++ changed and no new binding was
+  needed.
 
 ### Changed
 
+- `fast_logistic_regression` and `fast_probit_regression` no longer return
+  `ssq_b_j`, `dispersion` and `sigma2_hat`, and `fast_poisson_regression` no
+  longer returns `dispersion`: the C++ never filled them, so they were always
+  `nan` (v1.0.6-TODO-87). `ssq_b_2` is now filled (see Added) and is left
+  out when `estimate_only=True`.
 - `fast_wilcox_hl`: the Hodges-Lehmann variance is recalibrated. The
   rank-sum variance was too small by a factor of 2 pi / 3 in the balanced
   case, and the matched-pairs Walsh variance now carries the same factor.
@@ -154,6 +172,14 @@ or permutation function is exposed in Python.
 
 ### Documentation
 
+- `fast_gaussian_lmm`, `fast_poisson_glmm`, `fast_logistic_glmm` and
+  `fast_hurdle_poisson_glmm`: the docstrings said `X` has "no intercept
+  column", but these models need one (beta_0 is the intercept; the R classes
+  pass columns intercept, treatment, covariates). Leaving it out fits a
+  different model (v1.0.6-TODO-85). The `.pyi` stub is fixed now; the
+  compiled docstrings are fixed in the binding sources and ship with the
+  next wheel. The ordinal and Cox kernels really do take `X` without an
+  intercept, and their docstrings are unchanged.
 - Docstrings and the `.pyi` stubs describe the ridit orientation, the
   Clayton `log_theta` cap, `information_invertible`, and the 1-based
   `fixed_idx` convention. The `.pyi` stub now shows `fast_poisson_glmm`'s
@@ -172,6 +198,10 @@ or permutation function is exposed in Python.
 
 ### Tests
 
+- `test_glmm_x_includes_intercept.py` checks that `fast_gaussian_lmm` with
+  the documented `X` layout reproduces `InferenceContinKKGLMM`'s estimate, and
+  `test_glm_variance_outputs.py` checks the new variance outputs against R's
+  `*_with_var_cpp` kernels.
 - New or updated Python tests cover the Clayton/Weibull AFT optimizer,
   dependent-censoring transform, logistic and Poisson GLMMs, logistic
   regression, ordinal CLMM, ridit analysis, general Weibull regression,

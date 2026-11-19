@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import algorithm_audit_drift as drift  # noqa: E402
 import algorithm_audit_research_report as report  # noqa: E402
 import algorithm_audit_search_log as search_log_mod  # noqa: E402
+import agent_failure  # noqa: E402
 
 FINDINGS_DIR = drift.META / "audits" / "research_findings"
 
@@ -296,6 +297,7 @@ def main():
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--run-id", default="local")
     ap.add_argument("--pr-body", required=True)
+    ap.add_argument("--notrun-out", help="file to write the number of tasks that did not run to")
     a = ap.parse_args()
     tasks = [t for t in a.tasks.split(",") if t]
     batches = json.loads(Path(a.batches).read_text()) if a.batches else None
@@ -304,6 +306,12 @@ def main():
     flagged, text = report.render(Path(a.dir), tasks, batches, drift.load_taxonomy(), shards,
                                   run_id=a.run_id, log=drift.load_research_log(),
                                   triage=drift.load_triage())
+    # Tasks whose agent produced nothing (API quota or rate limit, crash): said at the top of the PR
+    # body and written to --notrun-out so the workflow fails at its end (2026-11-18: 54 of 90 were
+    # refused with 429 usage_limit_reached and the run was green).
+    notrun = [(t, report.load(Path(a.dir), t)[1]) for t in tasks if report.load(Path(a.dir), t)[0] is None]
+    if a.notrun_out:
+        Path(a.notrun_out).write_text(str(len(notrun)))
     applied, held, skipped = apply(Path(a.dir), tasks, a.date, a.offline)
     logged = update_research_log(Path(a.dir), tasks, a.date, a.run_id)
     terms_added, terms_held = add_proposed_terms(Path(a.dir), tasks)
@@ -336,7 +344,16 @@ def main():
     search_log.write_text(search_log_mod.render(a.dir, [t for t in tasks if not drift.is_inventory_task(t)]))
     n_find = sum(1 for line in findings.splitlines()
                  if line.startswith("### ") and " → " in line)
-    Path(a.pr_body).write_text(
+    warn = ""
+    if notrun:
+        reasons = sorted({why for _, why in notrun})
+        quota = agent_failure.refused_by_quota(reasons)
+        warn = (f"> [!WARNING]\n> **{len(notrun)} of {len(tasks)} task(s) did not run** (listed under \"Tasks that "
+                "did not run\" in the findings file); their problems keep their research-log entries and are "
+                "re-researched next run. The workflow run is marked failed.\n")
+        warn += (f"> The API refused them (quota or rate limit): {quota[0]}\n\n" if quota
+                 else "".join(f"> - {r}\n" for r in reasons[:5]) + "\n")
+    Path(a.pr_body).write_text(warn +
         f"Research run {a.date}: findings in `{out.relative_to(drift.ROOT)}`; what each agent "
         f"actually searched in `{search_log.relative_to(drift.ROOT)}`.\n\n"
         f"- Faster-algorithm findings: {n_find} (unverified web claims; promote a confirmed one to a "

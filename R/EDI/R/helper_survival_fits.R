@@ -587,13 +587,27 @@
 	y_o = y[o]; dead_o = dead[o] > 0.5; risk_o = risk[o]
 	event_times = unique(y_o[dead_o])
 	if (length(event_times) == 0L) return(list(times = numeric(0), cumhaz = numeric(0)))
+	eta_o = eta[o]
+	eta_max = max(eta)
 	cumhaz = numeric(length(event_times))
 	h_acc = 0
 	for (k in seq_along(event_times)){
 		at_risk = y_o >= event_times[k]
 		R_k = sum(risk_o[at_risk])
 		d_k = sum(dead_o[y_o == event_times[k]])
-		h_acc = h_acc + d_k / max(R_k, 1e-10)
+		# v1.0.6-TODO-51: no absolute floor on R_k. The rescaled sum is exact
+		# whenever it is a normal double, so use it directly (byte-identical to
+		# the old path whenever the old 1e-10 floor did not bind). Only when it
+		# underflows (late risk set far below the global maximum linear
+		# predictor) rescale by the risk set's own maximum on the log scale:
+		# d_k / R_k = d_k * exp(eta_max - m_k) / sum(exp(eta - m_k)).
+		if (is.na(R_k) || R_k >= .Machine$double.xmin){
+			h_acc = h_acc + d_k / R_k
+		} else {
+			eta_k = eta_o[at_risk]
+			m_k = max(eta_k)
+			h_acc = h_acc + if (is.finite(m_k)) d_k * exp(eta_max - m_k) / sum(exp(eta_k - m_k)) else Inf
+		}
 		cumhaz[k] = h_acc
 	}
 	list(times = event_times, cumhaz = cumhaz)

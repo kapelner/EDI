@@ -264,6 +264,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					call. = FALSE
 				)
 			}
+			# v1.0.6-TODO-184: a marginal estimand is not on the shift scale.
+			inference_stop_rand_ci_non_conditional_estimand(self, "Randomization confidence intervals")
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)

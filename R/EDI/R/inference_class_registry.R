@@ -160,6 +160,33 @@ inference_stop_rand_bootstrap_ci_scale_mismatch = function(class_name) {
 	))
 }
 
+# v1.0.6-TODO-184: under a marginal estimand (set_estimand(), e.g.
+# "marginal_mean_diff" on the response's natural scale) the randomization CI
+# and the randomization-bootstrap CI still impose the sharp null as a shift on
+# the transform scale (logit for proportion, log for count), so the inverted
+# delta bounds are not bounds on the marginal estimand. Measured on ZOIB
+# (n = 80, interior y): marginal estimate 0.17, Wald CI [0.11, 0.23], but the
+# randomization p-value is >= 0.05 only for logit shifts near 0.6-1.0, and the
+# search returned [0.12, 0.22], which is neither. Refuse under any
+# non-conditional estimand; the p-values at delta = 0 stay valid (their
+# statistic follows the estimand).
+inference_stop_rand_ci_non_conditional_estimand = function(inf, ci_name) {
+	if (!is.function(inf$get_estimand)) return(invisible(NULL))
+	estimand = inf$get_estimand()
+	if (is.null(estimand) || identical(estimand, "conditional")) return(invisible(NULL))
+	stop(structure(
+		class = c("edi_rand_ci_estimand_scale_mismatch_refused", "error", "condition"),
+		list(call = NULL, message = paste0(
+			ci_name, " are not supported for ", class(inf)[1L], " under estimand = \"", estimand,
+			"\": the interval inverts a sharp-null shift on the response-transformation scale ",
+			"(logit for proportion, log for count), so its bounds are not on the scale of the ",
+			"marginal estimand. Use compute_asymp_confidence_interval() or ",
+			"compute_bootstrap_confidence_interval(), or set_estimand(\"conditional\"). The ",
+			"randomization and randomization-bootstrap p-values at delta = 0 remain available."
+		))
+	))
+}
+
 # TODO-119 capability audit (2026-10-22): survival-only classes whose own
 # compute_rand_confidence_interval() override always refuses (LogRank /
 # GehanWilcox / RestrictedMeanDiff / KMDiff stop() on the unit mismatch;

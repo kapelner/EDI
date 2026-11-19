@@ -308,17 +308,23 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			# vector in place of the subjects' real assignments.
 			w_realized = private$w
 			on.exit(private$w <- w_realized, add = TRUE)
-			w_mat = matrix(NA_real_, nrow = private$t, ncol = r)
-			for (j in 1 : r){
+			# v1.0.6-TODO-183: advance private$t through the replay so an assign_wt() /
+			# custom assignment_rule() that reads t (or subject t's row) sees the subject
+			# being replayed, not the last enrolled one; restore it afterwards.
+			t_enrolled = private$t
+			on.exit(private$t <- t_enrolled, add = TRUE)
+			w_mat = matrix(NA_real_, nrow = t_enrolled, ncol = r)
+			for (j in seq_len(r)){
 				if (private$fixed_sample) {
 					private$w = rep(NA_real_, private$n)
 				} else {
-					private$w = rep(NA_real_, private$t)
+					private$w = rep(NA_real_, t_enrolled)
 				}
-				for (t in 1 : private$t){
+				for (t in seq_len(t_enrolled)){
+					private$t = t
 					private$w[t] = self$assign_wt()
 				}
-				w_mat[, j] = private$w[1:private$t]
+				w_mat[, j] = private$w[seq_len(t_enrolled)]
 			}
 			w_mat
 		}

@@ -160,6 +160,12 @@ log/identity links) instead split this into two separate functions — a
 point-estimate-only kernel and a `*_with_var` sibling — rather than an
 `estimate_only` flag; those are shown as separate calls below.
 
+For `fast_ols`, `fast_logistic_regression`, `fast_probit_regression`,
+`fast_poisson_regression` and `fast_neg_bin`, `estimate_only=False` returns
+the coefficient covariance matrix `vcov` and `ssq_b_2` (the variance of
+coefficient 2, usually the treatment), the same numbers as R's
+`*_with_var_cpp` twins; read `vcov[j - 1, j - 1]` for R's `ssq_b_j`.
+
 Full per-argument documentation for every function is available via
 `help(edi_kernels.<function>)` — every kernel has a real docstring with a
 `Parameters` section, and the package ships a `py.typed` marker + type stub
@@ -208,6 +214,7 @@ y = X @ [1.0, 0.5, -0.3] + rng.normal(size=n)
 fit = fast_ols(X, y, estimate_only=True)
 # continuous -- OLS: point estimate + model-based variance (SEs/p-values)
 fit = fast_ols(X, y, estimate_only=False)
+# -> fit["vcov"] (sigma2_hat * (X^T X)^-1), fit["sigma2_hat"], fit["ssq_b_2"] (= vcov[1, 1])
 
 # continuous -- robust (M-estimator) regression: point estimate only
 fit = fast_robust_regression(X, y, estimate_only=True)
@@ -247,6 +254,7 @@ y_bin = rng.binomial(1, p).astype(float)
 fit = fast_logistic_regression(X, y_bin, estimate_only=True)
 # incidence -- logistic regression: point estimate + variance
 fit = fast_logistic_regression(X, y_bin, estimate_only=False)
+# -> fit["vcov"] (inverse Fisher information) and fit["ssq_b_2"]; likewise probit, Poisson, neg. binomial
 
 # incidence -- probit regression: point estimate only
 fit = fast_probit_regression(X, y_bin, estimate_only=True)

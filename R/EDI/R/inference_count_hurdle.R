@@ -439,7 +439,9 @@ InferenceCountHurdleNegBin = define_inference_class(
 						family = glmmTMB::truncated_nbinom2(link = "log"),
 						data = dat,
 						weights = row_weights,
-						control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
+						# One TMB thread: a thread-split likelihood sum changes the fit with
+						# set_num_cores() (v1.0.6-TODO-62); EDI parallelizes the replicates itself.
+						control = glmmTMB::glmmTMBControl(parallel = 1L)
 					)
 				)),
 				error = function(e) NULL

@@ -247,6 +247,7 @@ jobs:
         env:
           OUT: ${{ steps.claude.outputs.structured_output }}
           OUTCOME: ${{ steps.claude.outcome }}
+          TRANSCRIPT: ${{ steps.claude.outputs.execution_file }}
           AUDIT_SECRET_TERMS: ${{ secrets.AUDIT_PRIVACY_TERMS }}
         run: |
           if [ -n "$OUT" ]; then
@@ -263,7 +264,8 @@ jobs:
           open(f"results/{os.environ['BATCH']}.json", "w").write(text)
           PY
           else
-            echo "agent produced no structured output (step outcome: $OUTCOME)" > "results/$BATCH.notrun"
+            # the API's reason (e.g. 429 usage_limit_reached) when the transcript has one
+            python3 .github/scripts/agent_failure.py "$TRANSCRIPT" --outcome "$OUTCOME" > "results/$BATCH.notrun"
           fi
       - uses: actions/upload-artifact@v7
         if: always()
@@ -366,3 +368,13 @@ jobs:
         run: |
           python3 .github/scripts/audit_run.py save-notes --notes "$RUNNER_TEMP/notes" \
             --message "${{ inputs.audit }} audit: run ${GITHUB_RUN_ID} at ${GITHUB_SHA::8}"
+      # Last, so the batches that did run are applied, published and saved first: a batch the agent
+      # never ran (API quota or rate limit, crash) fails the run instead of leaving it green
+      # (2026-11-18 campaign: 8 batches refused with 429 usage_limit_reached, all runs green).
+      - name: Fail if any batch did not run
+        if: always() && steps.finish.outputs.notrun != '' && steps.finish.outputs.notrun != '0'
+        env:
+          NOTRUN: ${{ steps.finish.outputs.notrun }}
+        run: |
+          echo "::error::$NOTRUN batch(es) did not run; their units stay due for the next run. Reasons are under 'batches NOT RUN' in the report."
+          exit 1

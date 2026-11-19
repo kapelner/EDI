@@ -258,6 +258,57 @@
   did; it used to shift the 0/1 responses and return a meaningless p-value
   (v1.0.6-TODO-151).
 
+* `InferencePropZeroOneInflatedBetaRegr`'s bootstrap randomization test now
+  builds its null from the fresh design draw. Its reused-worker fast path had
+  fitted the observed treatment column against the sharp-null responses, so
+  the null draws were centred at the estimate (p about 0.85 where the
+  randomization test gave 0.01). Its bootstrap-randomization p-values and CIs
+  change; plain bootstrap results do not (v1.0.6-TODO-167).
+
+* For `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio`, the
+  bootstrap stability checks now judge the risk ratio on log(RR) everywhere: a
+  few replicates with near-zero control risk no longer make the percentile/BCa
+  interval NA; subsampling and m-out-of-n intervals reaching a ratio beyond
+  e^10 (e.g. [3e-5, 2.8]) are now NA with a warning; and the basic bootstrap
+  and basic/Wald Bayesian-bootstrap intervals now run the extreme-interval
+  check, so degenerate intervals such as [1.4e-8, 20] are no longer returned
+  silently (v1.0.6-TODO-175).
+
+* `InferencePropZeroOneInflatedBetaRegr` under `estimand =
+  "marginal_mean_diff"`: the randomization and randomization-bootstrap
+  p-values now use the marginal mean difference as their statistic; they used
+  the conditional coefficient, and the randomization-bootstrap p-value compared
+  it against marginal null draws. Switching estimands with `set_estimand()`
+  now discards cached resampling distributions and workers from the previous
+  estimand, for every class with a marginal estimand. Randomization and
+  randomization-bootstrap confidence intervals are refused under any marginal
+  estimand (error class `edi_rand_ci_estimand_scale_mismatch_refused`),
+  because they invert a logit or log shift whose bounds are not on the
+  estimand's scale (v1.0.6-TODO-184).
+
+* `InferenceOrdinalGCompMeanDiff` and `InferenceOrdinalStereotypeLogitRegr`
+  now centre and scale covariates internally like the other ordinal classes,
+  so their estimates no longer depend on covariate units or offsets. The
+  g-computation mean difference could be badly off (0.26 vs 0.19 on the
+  `colon` data), and the stereotype fit could stop at a worse optimum or drop
+  every covariate and return NA (v1.0.6-TODO-172).
+
+* Seeded randomization-bootstrap p-values that draw each replicate's
+  assignment lazily (`type = "smoothed"`, and the percentile path for classes
+  without a fast kernel or reusable worker) no longer depend on
+  `set_num_cores()`: each draw now replays its own seed. Results at
+  `num_cores = 1` change by Monte Carlo noise on these paths
+  (v1.0.6-TODO-53).
+* Randomization distributions of iteratively fitted models no longer chain
+  warm starts between permutations: every permutation starts from the
+  full-data fit, so seeded results no longer depend on `set_num_cores()`.
+  `num_cores = 1` values change at the optimizer-tolerance level
+  (v1.0.6-TODO-61).
+* glmmTMB fits (hurdle negative binomial, the zero-augmented Poisson family,
+  the KK GLMM classes) now run TMB on one thread, so their estimates and every
+  bootstrap replicate no longer depend on `set_num_cores()`
+  (v1.0.6-TODO-62, v1.0.6-TODO-64).
+
 ## New features
 
 * The randomization test (`compute_rand_two_sided_pval()` with a nonzero
@@ -475,6 +526,70 @@
   standard error at unit weights. The KK classes' studentized nonparametric
   bootstrap and studentized bootstrap randomization test now also use the real
   standard error (v1.0.6-TODO-149).
+
+* `draw_ws_according_to_design()` on a sequential design that uses the generic
+  replay (`DesignSeqOneByOneUrn` and custom sequential designs) no longer
+  overwrites the subjects' realized assignments. A redraw, including the one
+  inside `InferenceIncidCMH`'s standard error, used to leave a redrawn vector
+  in `get_w()`, changing every later inference and the rest of a running
+  trial (v1.0.6-TODO-42).
+
+* The randomization-bootstrap confidence interval now warns once
+  (`edi_procedure_na_warning`, with the reason) when it returns NA: estimate or
+  studentized SE unavailable, too few finite null draws, or a search-bounds,
+  bisection or closed-form failure. An unavailable Bayesian-bootstrap BCa
+  p-value now warns instead of returning a silent NA (v1.0.6-TODO-165).
+
+* Sequential Monte Carlo randomization and randomization-bootstrap p-values
+  (used by the randomization CI searches when r >= 200) no longer return NA
+  when an early batch has fewer than 10 finite null draws, including whenever
+  `mc_batch_size` < 10; they now draw the next batch. Results are unchanged
+  when every draw is finite (v1.0.6-TODO-166, v1.0.6-TODO-55).
+
+* The CR2 cluster-robust standard error used by `InferenceContinOLS` and
+  `InferenceContinLin` on cluster designs no longer falls back silently to the
+  independent-subjects SE when the response is measured in small units (e.g.
+  y * 1e-8): the not-estimable floor is now relative to the scale of the
+  response, and the variance matches `clubSandwich::vcovCR(type = "CR2")` at
+  every scale (v1.0.6-TODO-58).
+
+* `DesignFixedOptimal` with `objective = "mahal_dist"` no longer silently
+  falls back to the `abs_sum_diff` objective when full-rank covariates are on
+  very different scales; the singularity check now uses the correlation
+  matrix, so it is scale-invariant (v1.0.6-TODO-54).
+
+* `DesignFixedGreedyDOptimal` and `DesignFixedOptimal` (objective `"D"` /
+  `"A"`, no `prior_precision`) now build the correct criterion when a
+  covariate is collinear with the intercept (e.g. `x2 = x1 + 1`, or indicators
+  that sum to 1). The projection matrix used to include an arbitrary extra
+  direction, and the A-criterion's interest columns could be misaligned after
+  QR pivoting, so the search optimized the wrong objective. Designs where
+  `[1, X]` has full rank are unchanged (v1.0.6-TODO-57).
+
+* `InferenceAllSimpleWilcox` now returns the Hodges-Lehmann estimate (the arm
+  difference) and the ties-corrected rank-sum p-value when each arm is
+  constant, instead of an NA estimate. The rank-test confidence interval does
+  not exist there, so it is returned as NA with a classed
+  `edi_wilcox_ci_unavailable_warning` (v1.0.6-TODO-59).
+
+* Cox-model parametric-bootstrap and simulation paths no longer understate
+  the Breslow baseline hazard when a late risk set holds only subjects with
+  very low relative risk: the absolute 1e-10 floor on the rescaled risk-set
+  sum is removed, with a log-scale rescale used only on underflow. Results on
+  ordinary data are unchanged (v1.0.6-TODO-51).
+
+* Redraws on a sequential design that is still enrolling are now consistent:
+  `DesignSeqOneByOnePocockSimon` no longer errors before the last subject
+  arrives; Efron and iBCRD redraws return one row per enrolled subject like
+  every other sequential design (they returned the planned `n`); and custom
+  sequential designs see the subject being replayed during a redraw. Redraws
+  on a completed trial are unchanged (v1.0.6-TODO-183).
+
+* `DesignSeqOneByOneKK21` with `response_type = "proportion"` and the default
+  `proportion_use_speedup = TRUE` no longer loses all covariate weights
+  (silently matching unweighted) when a response is exactly 0 or 1: the logit
+  is now clamped as in `DesignSeqOneByOneKK21stepwise`. Designs whose
+  responses are all inside (0, 1) are unchanged (v1.0.6-TODO-60).
 
 ## Breaking changes
 

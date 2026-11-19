@@ -102,8 +102,11 @@ DesignSeqOneByOneEfron = define_design_class(
 	private = list(
 		weighted_coin_prob = NULL,
 		draw_ws_raw = function(r = 100){
+			# v1.0.6-TODO-183: one row per enrolled subject (t), like every other
+			# sequential design; the coin depends only on the running counts, so a t-row
+			# replay has the law of the first t subjects. Identical to n once complete.
 			generate_permutations_efron_cpp(
-				as.integer(self$get_n()),
+				as.integer(private$t),
 				as.integer(r),
 				as.numeric(private$prob_T),
 				as.numeric(private$weighted_coin_prob)

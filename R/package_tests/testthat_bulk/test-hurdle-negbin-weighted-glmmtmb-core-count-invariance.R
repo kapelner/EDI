@@ -10,10 +10,9 @@
 # Where: R/EDI/R/inference_count_hurdle.R:442 (kind: core_count_dependence).
 # On commit 4fc58cd063bc this test failed with: Expected `r1$est` to be identical to `r2$est`.
 # Differences: Objects equal but not identical
-# Tracked by v1.0.6-TODO-62; remove the skip() when that fix lands.
+# Regression test for v1.0.6-TODO-62 (fixed 2026-11-19; the skip() was removed).
 
 test_that("hurdle negbin bootstrap-weighted estimates do not depend on the core count", {
-	skip("known bug, v1.0.6-TODO-62")
 		n = 200L
 		set.seed(20261117)
 		X = data.frame(x1 = rnorm(n), x2 = rnorm(n))

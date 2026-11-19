@@ -507,7 +507,15 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			start_len = ncol(X) + 1L + 2L * ncol(X_zero_one)
 			vc_start = ncol(X) + 1L
 			n_vc = 1L + 2L * ncol(X_zero_one)
-			has_vc = !is.null(private$cached_vc_params) && length(private$cached_vc_params) == n_vc && all(is.finite(private$cached_vc_params))
+			# v1.0.6-TODO-184: under estimand = "marginal_mean_diff" the statistic is
+			# the g-computation mean difference, which depends on the zero/one
+			# coefficients (including their treatment coefficients). Holding those at
+			# the observed fit would freeze the inflation part of the statistic across
+			# permutations, so the marginal path refits every parameter (as
+			# compute_estimate() and the bootstrap worker do). The conditional path
+			# keeps its fixed log(phi) / zero/one values, unchanged.
+			is_marginal = identical(self$get_estimand(), "marginal_mean_diff")
+			has_vc = !is_marginal && !is.null(private$cached_vc_params) && length(private$cached_vc_params) == n_vc && all(is.finite(private$cached_vc_params))
 			res = tryCatch(
 				fast_zero_one_inflated_beta_cpp(
 					X, X_zero_one, private$y,
@@ -521,7 +529,19 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			)
 			if (is.null(res) || length(res$b) < 2 || !is.finite(res$b[2])) return(NA_real_)
 			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = res$fisher_information)
-			as.numeric(res$b[2])
+			if (!is_marginal) return(as.numeric(res$b[2]))
+			# v1.0.6-TODO-184: return the statistic on the estimand's own scale (the
+			# randomization test, the BRT slow path and the BRT worker all compare
+			# against compute_estimate(), which is the marginal mean difference here).
+			p = ncol(X)
+			q = ncol(X_zero_one)
+			params = as.numeric(res$params)
+			if (length(params) != p + 1L + 2L * q) return(NA_real_)
+			point = tryCatch(
+				private$zoib_marginal_mean_diff_functional(params, X, X_zero_one, p, q),
+				error = function(e) NA_real_
+			)
+			if (is.finite(point)) as.numeric(point) else NA_real_
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

@@ -236,8 +236,12 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				cbind(treatment = private$w, X_cov)
 			}
 			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X_fit)
+			# v1.0.6-TODO-172: every proportional-odds fit goes through the shared
+			# column-scaling wrapper (as InferenceOrdinalPropOddsRegr does), so the
+			# estimate does not depend on covariate location/scale; warm starts
+			# stay in the original parameterization.
 			fit = tryCatch(
-				fast_ordinal_regression_cpp(
+				ordinal_fit_scaled(fast_ordinal_regression_cpp,
 					X = X_fit, y = as.numeric(private$y),
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
@@ -282,10 +286,13 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			X_full = private$build_design_matrix()
 			X_fit = X_full[, -1, drop = FALSE]
 			j_treat = 1
+			# v1.0.6-TODO-172: shared column-scaling wrapper (see
+			# ordinal_fit_scaled()); the fit, vcov and Fisher information come back
+			# in the original parameterization.
 			fit = tryCatch(
 				if (estimate_only) {
 					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					fast_ordinal_regression_cpp(
+					ordinal_fit_scaled(fast_ordinal_regression_cpp,
 						X = X_fit,
 						y = as.numeric(private$y),
 						warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
@@ -293,7 +300,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 						smart_cold_start = private$smart_cold_start_default
 					)
 				} else {
-					fast_ordinal_regression_with_var_cpp(X = X_fit, y = as.numeric(private$y))
+					ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp, X = X_fit, y = as.numeric(private$y))
 				},
 				error = function(e) NULL
 			)
@@ -375,7 +382,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			n_params = ncol(X_fit_ok) + length(sort(unique(y_ok))) - 1L
 			try_weighted_fit = function(start_params = NULL, start_fisher = NULL){
 				tryCatch(
-					fast_ordinal_regression_weighted_cpp(
+					ordinal_fit_scaled(fast_ordinal_regression_weighted_cpp,
 						X = X_fit_ok,
 						y = y_ok,
 						weights = as.numeric(row_weights[ok]),
@@ -395,7 +402,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			)
 			if (is.null(start_candidates[[1L]]$params)) {
 				unweighted_fit = tryCatch(
-					fast_ordinal_regression_cpp(
+					ordinal_fit_scaled(fast_ordinal_regression_cpp,
 						X = X_fit_ok,
 						y = y_ok,
 						warm_start_params = NULL,

@@ -330,7 +330,17 @@ void bind_binary(py::module_& m) {
     "warm_start_fisher_info : ndarray, optional\n"
     "    Optional initial Fisher information matrix.\n"
     "estimate_only : bool, default False\n"
-    "    If True, skip variance computation and return only coefficients.");
+    "    If True, skip variance computation and return only coefficients.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    With estimate_only=False the Python wrapper also returns 'vcov', the\n"
+    "    inverse of the information matrix XtWX over the free coefficients (nan\n"
+    "    rows and columns for fixed_idx coefficients; all nan if singular), and\n"
+    "    'ssq_b_2' = vcov[1, 1], matching R's fast_logistic_regression_with_var_cpp\n"
+    "    (read vcov[j-1, j-1] for its ssq_b_j).\n"
+    "    The C++ never fills ssq_b_j, dispersion or sigma2_hat for this model, so\n"
+    "    the wrapper does not return those keys.");
 
     m.def("fast_probit_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                         const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -420,7 +430,17 @@ void bind_binary(py::module_& m) {
     "warm_start_fisher_info : ndarray, optional\n"
     "    Optional initial Fisher information matrix.\n"
     "estimate_only : bool, default False\n"
-    "    If True, skip variance computation and return only coefficients.");
+    "    If True, skip variance computation and return only coefficients.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    With estimate_only=False the Python wrapper also returns 'vcov', the\n"
+    "    inverse of the information matrix XtWX over the free coefficients (nan\n"
+    "    rows and columns for fixed_idx coefficients; all nan if singular), and\n"
+    "    'ssq_b_2' = vcov[1, 1], matching R's fast_probit_regression_with_var_cpp\n"
+    "    (read vcov[j-1, j-1] for its ssq_b_j).\n"
+    "    The C++ never fills ssq_b_j, dispersion or sigma2_hat for this model, so\n"
+    "    the wrapper does not return those keys.");
 
     bind_constrained_binomial(m, "fast_log_binomial_regression", "fast_log_binomial_regression_with_var",
         BinomialConstrainedLink::kLog,

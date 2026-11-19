@@ -1,3 +1,34 @@
+#' TRUE when both arms are non-empty and each is constant (finite values), the
+#' case where stats::wilcox.test(conf.int = TRUE) cannot invert the rank-sum test
+#' (v1.0.6-TODO-59).
+#' @keywords internal
+#' @noRd
+wilcox_each_arm_constant = function(yT, yC){
+	yT = as.numeric(yT); yC = as.numeric(yC)
+	length(yT) > 0L && length(yC) > 0L && all(is.finite(yT)) && all(is.finite(yC)) &&
+		all(yT == yT[1L]) && all(yC == yC[1L])
+}
+
+#' Classed warning for the Wilcoxon CI that does not exist when each arm is
+#' constant (v1.0.6-TODO-59).
+#' @keywords internal
+#' @noRd
+warn_wilcox_ci_each_arm_constant = function(class_name = "InferenceAllSimpleWilcox"){
+	warning(structure(
+		class = c("edi_wilcox_ci_unavailable_warning", "warning", "condition"),
+		list(
+			message = paste0(
+				class_name, ": each arm is constant, so every pairwise difference equals ",
+				"the Hodges-Lehmann estimate and the rank-sum test cannot be inverted into a confidence ",
+				"interval; returning NA (the estimate and p-value are still reported)."
+			),
+			call = NULL,
+			reason = "wilcox_ci_each_arm_constant"
+		)
+	))
+	invisible(NULL)
+}
+
 #' Simple Wilcoxon inference component source.
 #'
 #' @noRd
@@ -104,6 +135,12 @@ SimpleWilcoxSource = list(
 			yT = as.numeric(private$y[private$w == 1])
 			yC = as.numeric(private$y[private$w == 0])
 			if (length(yT) == 0L || length(yC) == 0L) return(c(NA_real_, NA_real_))
+			# v1.0.6-TODO-59: no test-inversion interval exists when each arm is constant
+			# (see shared()); say so instead of handing back a silent NA.
+			if (wilcox_each_arm_constant(yT, yC)) {
+				warn_wilcox_ci_each_arm_constant(class(self)[1L])
+				return(c(NA_real_, NA_real_))
+			}
 			mod = tryCatch(
 				stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE, conf.level = 1 - alpha),
 				error = function(e) {
@@ -327,13 +364,42 @@ SimpleWilcoxSource = list(
 				private$cache_nonestimable_estimate("wilcox_empty_treatment_arm")
 				return(invisible(NULL))
 			}
+			each_arm_constant = wilcox_each_arm_constant(yT, yC)
 			mod = tryCatch(
-				stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE),
+				withCallingHandlers(
+					stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE),
+					warning = function(wn) {
+						# With each arm constant, stats warns "cannot compute confidence interval
+						# when all observations are tied" (twice) and then errors; the classed
+						# warning from compute_asymp_confidence_interval() replaces both.
+						if (each_arm_constant && grepl("all observations are tied", conditionMessage(wn), fixed = TRUE)) invokeRestart("muffleWarning")
+					}
+				),
 				error = function(e) {
 					if (is_edi_control_condition(e)) stop(e)
 					NULL
 				}
 			)
+			if (is.null(mod) && each_arm_constant){
+				# v1.0.6-TODO-59: with each arm constant every pairwise difference equals
+				# yT[1] - yC[1], so the Hodges-Lehmann estimate is defined and the rank-sum
+				# test is still defined (ties-corrected), but the test-inversion CI is not:
+				# the rank statistic only takes its extreme values off delta = yT[1] - yC[1]
+				# and is all-tied at it, so the inverted interval collapses to that point.
+				# Keep the estimate and p-value; report the CI (and its back-solved SE) as
+				# unavailable, recorded as a procedure failure, not a nonestimable fit.
+				mod = tryCatch(
+					stats::wilcox.test(yT, yC, exact = FALSE),
+					error = function(e) {
+						if (is_edi_control_condition(e)) stop(e)
+						NULL
+					}
+				)
+				if (!is.null(mod)) {
+					mod$conf.int = c(NA_real_, NA_real_)
+					private$cache_procedure_failure("wald", "wilcox_ci_each_arm_constant")
+				}
+			}
 			if (is.null(mod)){
 				private$cache_nonestimable_estimate("wilcox_fit_unavailable")
 				return(invisible(NULL))

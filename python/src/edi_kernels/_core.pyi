@@ -324,7 +324,8 @@ def fast_gaussian_lmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     Parameters
     ----------
     X : ndarray
-        Numeric matrix of predictors (no intercept column).
+        Numeric matrix of predictors, including an intercept column (the
+        kernel does not add one); InferenceContinKKGLMM passes (intercept, w, covariates).
     y : ndarray
         Numeric vector of continuous responses.
     group_id : ndarray of int
@@ -413,7 +414,8 @@ def fast_hurdle_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.floa
     Parameters
     ----------
     X : ndarray
-        Numeric matrix of predictors (no intercept column).
+        Numeric matrix of predictors, including an intercept column (the
+        kernel does not add one); InferenceCountKKHurdlePoissonOneLik passes (intercept, w, covariates).
     y : ndarray
         Numeric vector of count responses.
     group_id : ndarray of int
@@ -612,7 +614,8 @@ def fast_logistic_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], 
     Parameters
     ----------
     X : ndarray
-        Numeric matrix of predictors (no intercept column).
+        Numeric matrix of predictors, including an intercept column (the
+        kernel does not add one); the model is X beta + u_i with beta_0 the intercept.
     y : ndarray
         Numeric vector of binary (0/1) responses.
     group_id : ndarray of int
@@ -675,6 +678,15 @@ def fast_logistic_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.floa
         Optional initial Fisher information matrix.
     estimate_only : bool, default False
         If True, skip variance computation and return only coefficients.
+    Returns
+    -------
+    dict
+        With estimate_only=False the wrapper also returns 'vcov', the inverse of
+        the information matrix XtWX over the free coefficients (nan rows and
+        columns for fixed_idx coefficients; all nan if singular), and 'ssq_b_2'
+        = vcov[1, 1], matching R's fast_logistic_regression_with_var_cpp (read vcov[j-1, j-1] for
+        its ssq_b_j). The C++ never fills ssq_b_j,
+        dispersion or sigma2_hat for this model, so those keys are not returned.
     """
 def fast_logrank_stats(time: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], w: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> dict:
     """
@@ -723,10 +735,20 @@ def fast_neg_bin(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n
     weights : ndarray, optional
         Optional nonnegative row weights for a weighted fit (routes to the
         R-side fast_neg_bin_weighted_cpp backend when provided).
+    Returns
+    -------
+    dict
+        With estimate_only=False the wrapper also returns 'vcov', the inverse of
+        the information matrix XtWX over the free coefficients (nan rows and
+        columns for fixed_idx coefficients; all nan if singular), and 'ssq_b_2'
+        = vcov[1, 1], matching R's fast_neg_bin_with_var_cpp (read vcov[j-1, j-1] for
+        its ssq_b_j). Here vcov covers [beta, log(theta)]
+        (XtWX is (p+1) x (p+1)); its log(theta) row and column are nan when
+        dispersion_at_poisson_boundary is True.
     """
 def fast_ols(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, estimate_only: bool = True) -> dict:
     """
-    Fast closed-form OLS regression (coefficients only unless estimate_only=False, which also returns XtWX). No R-side roxygen documents this raw kernel directly (fast_ols_cpp has none); parameters follow the same fixed_idx/fixed_values convention used throughout this module.
+    Fast closed-form OLS regression (coefficients only unless estimate_only=False, which also returns XtWX and the variance outputs listed under Returns). No R-side roxygen documents this raw kernel directly (fast_ols_cpp has none); parameters follow the same fixed_idx/fixed_values convention used throughout this module.
     
     Parameters
     ----------
@@ -746,6 +768,15 @@ def fast_ols(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", 
         If True, skip computing XtWX (the crossproduct needed for standard errors)
         and return only the coefficient vector -- faster when only a point estimate
         is needed.
+    Returns
+    -------
+    dict
+        'b' and, with estimate_only=False, 'XtWX' plus 'sigma2_hat' (residual
+        sum of squares / (n - number of free coefficients)), 'vcov' (sigma2_hat
+        times the inverse of X^T X over the free coefficients; nan rows and
+        columns for fixed_idx coefficients) and 'ssq_b_2' = vcov[1, 1],
+        matching R's fast_ols_with_var_cpp (read vcov[j-1, j-1] for its
+        ssq_b_j).
     """
 def fast_ordinal_cauchit_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-06, optimization_alg: str = 'lbfgs', fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
@@ -978,7 +1009,8 @@ def fast_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     Parameters
     ----------
     X : ndarray
-        Numeric matrix of predictors (no intercept column).
+        Numeric matrix of predictors, including an intercept column (the
+        kernel does not add one); InferenceCountKKGLMM passes (intercept, w, covariates).
     y : ndarray
         Numeric vector of count responses.
     group_id : ndarray of int
@@ -1047,6 +1079,15 @@ def fast_poisson_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float
     estimate_only : bool, default False
         If True, skip variance-component calculations and return only the point
         estimate.
+    Returns
+    -------
+    dict
+        With estimate_only=False the wrapper also returns 'vcov', the inverse of
+        the information matrix XtWX over the free coefficients (nan rows and
+        columns for fixed_idx coefficients; all nan if singular), and 'ssq_b_2'
+        = vcov[1, 1], matching R's fast_poisson_regression_with_var_cpp (read vcov[j-1, j-1] for
+        its ssq_b_j). The C++ never fills dispersion
+        for this model, so that key is not returned.
     """
 def fast_probit_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'irls', warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
@@ -1080,6 +1121,15 @@ def fast_probit_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
         Optional initial Fisher information matrix.
     estimate_only : bool, default False
         If True, skip variance computation and return only coefficients.
+    Returns
+    -------
+    dict
+        With estimate_only=False the wrapper also returns 'vcov', the inverse of
+        the information matrix XtWX over the free coefficients (nan rows and
+        columns for fixed_idx coefficients; all nan if singular), and 'ssq_b_2'
+        = vcov[1, 1], matching R's fast_probit_regression_with_var_cpp (read vcov[j-1, j-1] for
+        its ssq_b_j). The C++ never fills ssq_b_j,
+        dispersion or sigma2_hat for this model, so those keys are not returned.
     """
 def fast_qnorm(p: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
     """

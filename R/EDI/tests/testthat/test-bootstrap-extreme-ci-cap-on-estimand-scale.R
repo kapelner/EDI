@@ -133,7 +133,7 @@ test_that("the predicate: spread and magnitude rules apply only over the cap and
 # the outcome SD (counts with SD 20 put the outcome-SD cap at ~100 log units, so degenerate
 # log-rate-ratio intervals passed); (2) the raw g-computation risk ratio is judged on log(RR) with
 # the link-scale rule instead of the outcome-SD cap on the ratio scale. Without replicates
-# (subsampling, m-out-of-n) both behave as before.
+# (subsampling, m-out-of-n) (1) behaves as before; v1.0.6-TODO-175 extended (2) to them.
 
 fixed_design_160 = function(n, response_type, seed, yfun){
 	set.seed(seed)
@@ -210,8 +210,9 @@ test_that("the g-computation risk ratio is judged on log(RR): a skewed interval 
 	theta = exp(rnorm(500, log(1.7), 0.6))
 	# [0.5, 6] is 5.5 wide on the ratio scale (over the old cap of 5) but log(12) = 2.5 on log(RR).
 	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7, theta = theta))
-	# Without replicates the old ratio-scale check is unchanged.
-	expect_true(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7))
+	# Without replicates the log(RR) rule now applies too (v1.0.6-TODO-175 (2)); before, the
+	# ratio-scale check rejected this interval.
+	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7))
 	# A bound at a ratio beyond e^-10: degenerate, although only 0.97 wide on the ratio scale.
 	expect_true(p$bootstrap_confidence_interval_extreme(c(4.9e-10, 0.97), est = 0.2, theta = c(rep(1e-10, 100), theta)))
 	# A non-positive bound has no log: the ratio-scale check runs as before.
@@ -265,4 +266,107 @@ test_that("the KK g-computation risk ratio uses the same log(RR) rule", {
 	expect_true(all(is.finite(r$ci)))
 	expect_null(r$reason)
 	expect_gt(r$ci[2L] - r$ci[1L], 5)
+})
+
+# v1.0.6-TODO-175 (from v1.0.6-TODO-160): the remaining raw-ratio-scale guards of the g-computation
+# risk ratio. (1) The replicate guard of the bootstrap CI paths runs on log(RR), so one replicate
+# with RR > 1e6 (near-zero control risk) no longer rejects the whole bootstrap; (2) callers without
+# replicates (the risk-ratio subsampling / m-out-of-n pivots) get the log(RR) rule; (3) the log-scale
+# basic bootstrap and basic / Wald Bayesian-bootstrap risk-ratio intervals now run both checks.
+
+incid_rr_fixture_175 = function(n, seed, yfun) fixed_design_160(n, "incidence", seed, yfun)
+
+test_that("the risk-ratio replicate guard of the bootstrap CI paths runs on log(RR)", {
+	des = incid_rr_fixture_175(30L, 6L, function(w, X) stats::rbinom(30L, 1, stats::plogis(-1.2 + 1.2 * w)))
+	p = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_true(p$bootstrap_estimand_is_raw_ratio())
+	set.seed(6)
+	theta = c(exp(rnorm(500, log(1.7), 0.6)), 5e6)
+	expect_true(p$bootstrap_estimates_extreme(theta, est = 1.7))      # raw scale: one replicate rejects all
+	expect_false(p$bootstrap_ci_estimates_extreme(theta, est = 1.7))  # log(RR): kept
+	pd = InferenceIncidGCompRiskDiff$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_false(pd$bootstrap_estimand_is_raw_ratio())
+	expect_true(pd$bootstrap_ci_estimates_extreme(c(rnorm(500), 5e6), est = 0))
+	po = InferenceIncidLogRegr$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_false(po$bootstrap_estimand_is_raw_ratio())
+
+	# End to end (n = 30): percentile and BCa were NA (bootstrap_extreme_finite_estimates).
+	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	for (type in c("percentile", "bca")) {
+		r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = type, show_progress = FALSE))
+		expect_true(all(is.finite(r$ci)))
+		expect_null(r$reason)
+		expect_true(r$ci[1L] > 0.3 && r$ci[2L] < 20)
+	}
+})
+
+test_that("risk-ratio subsampling / m-out-of-n intervals are judged on log(RR) without replicates", {
+	des = incid_rr_fixture_175(60L, 5L, function(w, X) stats::rbinom(60L, 1, stats::plogis(-0.3 + 0.8 * w + 0.5 * X$x)))
+	p = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)$.__enclos_env__$private
+	expect_true(p$bootstrap_confidence_interval_extreme(c(3e-5, 2.83), est = 1.5))
+	expect_false(p$bootstrap_confidence_interval_extreme(c(0.73, 2.67), est = 1.5))
+	# Over the log-scale width cap without replicates to vouch for it: still extreme.
+	expect_true(p$bootstrap_confidence_interval_extreme(c(0.01, 200), est = 1.5))
+	# The m-out-of-n interval [3e-5, 2.83] on this fixture was accepted.
+	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 201, show_progress = FALSE))
+	expect_true(all(is.na(r$ci)))
+	expect_identical(r$reason, "m_out_of_n_extreme_confidence_interval")
+	r = ci_and_reason_160(function() inf$compute_subsampling_confidence_interval(B = 201, show_progress = FALSE))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+})
+
+test_that("log-scale basic and Bayesian basic / Wald risk-ratio intervals run the extreme checks", {
+	# Control arm with two events: the basic interval was [1.4e-8, 20], returned silently.
+	des = incid_rr_fixture_175(40L, 8L, function(w, X){
+		y = stats::rbinom(40L, 1, 0.5)
+		y[w == 0] = 0L
+		y[which(w == 0)[1:2]] = 1L
+		y
+	})
+	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "basic", show_progress = FALSE))
+	expect_true(all(is.na(r$ci)))
+	expect_identical(r$reason, "bootstrap_extreme_confidence_interval")
+	# The Bayesian log-scale intervals on the same data are plausible and kept.
+	for (type in c("basic", "wald")) {
+		r = ci_and_reason_160(function() inf$compute_bayesian_bootstrap_confidence_interval(B = 201, type = type, show_progress = FALSE))
+		expect_true(all(is.finite(r$ci)))
+		expect_null(r$reason)
+	}
+	# A regular fixture keeps its basic intervals.
+	des = incid_rr_fixture_175(60L, 5L, function(w, X) stats::rbinom(60L, 1, stats::plogis(-0.3 + 0.8 * w + 0.5 * X$x)))
+	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "basic", show_progress = FALSE))
+	expect_true(all(is.finite(r$ci)))
+	expect_null(r$reason)
+	expect_equal(r$ci, c(0.8058, 2.5675), tolerance = 1e-3)
+	# A degenerate Bayesian Wald interval is rejected by the same rule.
+	p = inf$.__enclos_env__$private
+	expect_true(p$bootstrap_confidence_interval_extreme(exp(log(1.5) + c(-1, 1) * 1.96 * 6), est = 1.5,
+		theta = exp(rnorm(200, log(1.5), 6))))
+})
+
+test_that("the KK risk-ratio basic bootstrap interval runs the extreme check", {
+	set.seed(10)
+	n_pairs = 12L
+	n = 2L * n_pairs
+	x = rnorm(n)
+	des = DesignFixedBinaryMatch$new(n = n, response_type = "incidence", m = rep(seq_len(n_pairs), each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x))
+	w = rep(c(0, 1), n_pairs)
+	des$overwrite_all_subject_assignments(w)
+	des$add_all_subject_responses(rbinom(n, 1, plogis(-0.5 + 1.5 * w + 0.4 * x)))
+	inf = suppressWarnings(InferenceIncidKKGCompRiskRatio$new(des, model_formula = ~ x, verbose = FALSE))
+	inf$num_cores = 1L
+	expect_true(inf$.__enclos_env__$private$bootstrap_estimand_is_raw_ratio())
+	# Was [7.6e-9, 12.2], returned silently.
+	r = ci_and_reason_160(function() inf$compute_bootstrap_confidence_interval(B = 201, type = "basic", show_progress = FALSE))
+	expect_true(all(is.na(r$ci)))
+	expect_identical(r$reason, "bootstrap_extreme_confidence_interval")
 })

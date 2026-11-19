@@ -389,7 +389,10 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(log(ys + 1))))
 			}
 			if (private$response_type == "proportion" && private$proportion_use_speedup){
-				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(log(ys / (1 - ys)))))
+				# logit() clamps 0 and 1 to eps / 1 - eps (as KK21stepwise does), so a
+				# boundary response cannot turn every t-statistic non-finite; interior
+				# values are unchanged bit for bit (v1.0.6-TODO-60).
+				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(logit(ys))))
 			}
 			if (private$response_type == "survival"){
 				if (private$survival_use_speedup_for_no_censoring && all(deads == 1)){

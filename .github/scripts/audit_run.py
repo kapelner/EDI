@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import audit_common as ac  # noqa: E402
+import agent_failure  # noqa: E402
 
 BOT_NAME = "github-actions[bot]"
 BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
@@ -193,6 +194,20 @@ def load_results(results_dir, plan):
     return results, notrun
 
 
+def not_run_banner(notrun, n_batches):
+    """A warning at the top of the report (and so of the PR or issue body) when batches did not run."""
+    reasons = sorted({n["reason"] for n in notrun})
+    quota = agent_failure.refused_by_quota(reasons)
+    lines = ["> [!WARNING]",
+             f"> **{len(notrun)} of {n_batches or '?'} batch(es) did not run**; their units were not read "
+             f"and stay due for the next run. The run is marked failed."]
+    if quota:
+        lines.append("> The API refused them (quota or rate limit). Re-run after the limit resets: " + quota[0])
+    else:
+        lines += [f"> - {r}" for r in reasons[:5]]
+    return "\n".join(lines) + "\n\n"
+
+
 def cmd_finish(a):
     module, spec, notes, ctx = context(a)
     work = Path(a.work)
@@ -270,12 +285,15 @@ def cmd_finish(a):
         "mechanical findings": len(mech),
     }
     report = ac.render_report(spec, parts, coverage, ctx.run_url)
+    if notrun:
+        report = not_run_banner(notrun, len(plan.get("batches") or [])) + report
     (work / "report.md").write_text(report)
     (work / "proposed.json").write_text(json.dumps([f["id"] for f in proposed if f.get("applied_file")]))
     changed = tidy.get("committed", False) or subprocess.run(
         ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=a.repo).stdout.strip() != ""
     findings = ac.has_findings(parts)
-    out(a.github_output, changed="true" if changed else "false", findings="true" if findings else "false")
+    out(a.github_output, changed="true" if changed else "false", findings="true" if findings else "false",
+        notrun=str(len(notrun)))
     print(report)
     return 0
 

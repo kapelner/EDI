@@ -1091,7 +1091,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 				formula_zi = ~0
 				private$cached_values$zero_inflation_fallback = TRUE
 			}
-			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
+			# One TMB thread: a thread-split likelihood sum changes the fit with
+			# set_num_cores() (v1.0.6-TODO-64); EDI parallelizes the replicates itself.
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L)
 			tryCatch(
 				suppressWarnings(suppressMessages(
 					glmmTMB::glmmTMB(

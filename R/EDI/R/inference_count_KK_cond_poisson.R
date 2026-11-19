@@ -464,7 +464,7 @@ CountKKHurdlePoissonIVWCSource = list(
 				pred_df,
 				pair_group = factor(group_id)
 			)
-			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
 			formula_cond = private$build_glmm_formula(dat)
 			mod = tryCatch(
 				suppressWarnings(suppressMessages(
