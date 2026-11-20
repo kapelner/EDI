@@ -4996,3 +4996,26 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   `.github/scripts/test_check_wheel_isa.py`. Wired into `build-wheels.yml` (Linux x86-64 wheels, after cibuildwheel) and
   the docs-scenarios `build-wheel` job. CPU baseline stated in `python/README.md` and `README_PYPI.md`; changelog in
   `python/CHANGELOG.md`. Local `build/<wheel tag>/` dirs cache the old OFF value: delete them before rebuilding.
+
+- [x] TODO-286 (added 2026-11-20, done 2026-11-20; ds-custom-statistic-44358267779-f1, -f5, -f6):
+  **`InferenceRandCustom` nonzero-delta nulls mixed scales.** Its fast path `compute_fast_randomization_distr()`
+  re-added the null shift to every draw as `y + delta * w`, but `y` arrives with delta removed on the
+  `transform_responses` scale (`setup_randomization_template_and_shifts()`; `compute_rand_two_sided_pval()` maps
+  `"none"` to logit for proportion and log for count and survival). So on survival, count and proportion responses,
+  and with `"log"`/`"logit"` on continuous ones, each draw combined a log/logit removal with an additive re-add and
+  the reference distribution matched no sharp null (proportion draws left [0, 1]). Separately, the survival
+  randomization CI passed log times to the user's statistic under an additive shift (`is_glm` is FALSE for this
+  class), so it was not the inversion of the class's own p-value and a raw-time statistic such as `survreg` failed.
+  Fix: the fast path re-applies delta with `shift_randomization_responses()` (the base-class helper; the two
+  duplicated inline copies in `compute_fast_randomization_distr_via_reused_worker()` now call it too, pure
+  refactor); a private hook `randomization_ci_shifts_raw_survival_times()` makes the survival CI use the `"log"`
+  shift of raw times, and the delta-scale search seed is the mean log-time difference there. Before/after with a
+  custom statistic equal to a built-in's (n = 60, r = 20 shared draws, delta = 0.3): max |draw difference| vs
+  `InferenceSurvivalWeibullRegr` 0.142 -> 3e-5 (survreg tolerance), vs `InferenceCountPoisson` 0.206 -> 4e-11, vs
+  `InferencePropFractionalLogit` error -> 1e-11; count p-value 0.020 vs built-in 0.040 -> equal; survival CI error
+  (survreg on log times) -> [-0.5422, 0.4387] vs built-in [-0.5419, 0.4389]. Continuous `"none"` unchanged.
+  Tests: `R/package_tests/testthat_bulk/test-rand-custom-null-shift-scale-by-response-type.R` (commit 6166f9b5). Docs: the
+  `InferenceRandCustom` roxygen (Rd not regenerated) and the custom-statistic article now state the shift scale per
+  response type instead of the f6d20e4d "not valid" warning. Not fixed, same additive pattern in C++-kernel fast
+  paths: `InferenceAllSimpleMeanDiff` (`compute_simple_mean_diff_parallel_cpp`, ignores `transform_responses`) and
+  `InferenceAllSimpleWilcox` (`transform_code = 0L` hard-coded) on survival/count/proportion at nonzero delta.
