@@ -4759,6 +4759,65 @@ itself still needs a look.
     KK21 count weight comparisons and the affected package_tests CSVs.
   - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
 
+### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
+
+The docs-scenario audit (`.github/workflows/audit-docs-scenarios.yml`, run 44358267779, 2026-11-18) followed the
+custom-statistic article and help pages against installed 1.0.4. Findings and repros:
+`git show origin/audit-notes:docs-scenarios/runs/2026-11-18-run44358267779/custom-statistic/findings.md`. The docs half of
+f2 and f11 was fixed in f6d20e4d; f1, f5 and f6 (the null shift re-added on the wrong scale) are handled in a separate
+entry.
+
+- [ ] TODO-277 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f2): **`transform_responses`
+  accepts any string.** `"bogus"`, `"sqrt"` and `"identity"` silently act as `"none"` (additive shift); `"logit"` is
+  accepted on a continuous response with negative values. Fix: `match.arg(transform_responses, c("none", "log",
+  "logit"))` in every public entry point that takes it (`compute_rand_two_sided_pval`, `compute_rand_confidence_interval`,
+  `approximate_randomization_distribution_beta_hat_T`, in `inference_all_abstract_rand.R` /
+  `inference_all_abstract_rand_ci.R`), and refuse `"log"`/`"logit"` when the response is outside the transform's domain
+  (y <= 0 for log; y outside [0, 1] for logit) with a message naming the offending values. Test: each bad value errors;
+  the three valid values still give today's results.
+
+- [ ] TODO-278 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f3): **`r` from 1 to 9 gives a
+  silent NA p-value.** The argument check is `r >= 1`, but at least `max(10, floor(r/10))` finite reference statistics
+  are required, so r < 10 always returns NA (and `compute_rand_confidence_interval(r = 9)` returns `NA NA`) with no
+  warning. The same silent NA happens whenever too many draws are non-finite. Fix: require `r >= 10` in the argument
+  check, and warn (naming the number of finite draws and the minimum) whenever the NA comes from too few finite draws.
+  Test: r = 9 errors; r = 200 with a statistic that is non-finite on most draws warns.
+
+- [ ] TODO-279 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f4): **The RandCustom CI
+  refusal for count and proportion responses names a CI the class does not have.** The message says "the randomization
+  p-value and the randomization-bootstrap CI remain available", but `InferenceRandCustom` has no bootstrap CI (its help and
+  `capabilities()` list only the randomization test and CI), and it ends with a pointer to an internal TODO that is not
+  shipped. Fix: name only what this class can call (the randomization p-value) and point to the built-in classes for the
+  response type; drop the internal pointer. Re-check this message after the null-shift scale fix (the separate f1/f5/f6
+  entry), which may make the count and proportion randomization CI valid and the refusal unnecessary.
+
+- [ ] TODO-280 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f8): **Multi-line C++ source
+  gets "not a character".** `custom_randomization_statistic_cpp = c("double f(...,", "...) { return 1; }")` errors with
+  "... not a character", although it is one. Fix: accept a character vector by `paste(x, collapse = "\n")`; keep the error
+  for non-character input, and say what it actually got (`class(x)`, `length(x)`). Also document the two other accepted
+  input kinds the message lists (a compiled Rcpp function from `Rcpp::cppFunction()`, an `RcppXPtrUtils::cppXPtr()`
+  pointer), which the help does not mention. Test: the two-line source compiles and gives the same p-value as the
+  one-string form.
+
+- [ ] TODO-281 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f10): **An
+  `InferenceCustomRand` subclass whose `fit()` calls a user helper returns NA p-values and CIs with 2 cores, silently.**
+  With `set_num_cores(1)` (or the helper inlined into `fit()`) the same class gives 0.274, matching `InferenceRandCustom`.
+  The helper is a global-environment function not exported to the worker processes, so every worker fit errors, the
+  errors are swallowed and every draw is NA. Two fixes, both needed: (1) export the subclass's free variables (or the
+  enclosing environment of `fit`) to the workers, or run user-defined `fit()` in the main session as `InferenceRandCustom`
+  does for its R statistic; (2) never turn all-failed worker draws into a silent NA: warn with the first worker error
+  message. Test: the repro from the finding gives the 1-core p-value with 2 cores; a `fit()` that always errors in workers
+  warns with its message.
+
+- [ ] TODO-282 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f11): **Malformed
+  `permutations` input is accepted or fails with an unrelated error.** A bare n x r matrix gives "$ operator is invalid
+  for atomic vectors"; `list(w_mat = P)` with fewer than r columns gives "subscript out of bounds"; draws of the wrong
+  length (40 rows for n = 50) are recycled and return a p-value; 1/2-coded draws return NA. The format is now documented
+  (f6d20e4d: a list with `w_mat`, an n x r 0/1 matrix, optional `m_mat`). Fix: validate in one helper used by every
+  entry point that takes `permutations`: accept a bare matrix as `list(w_mat = .)`; require n rows, at least r columns,
+  values in {0, 1}, no NA; and say which rule failed. Test: each malformed case errors with its rule; the valid list still
+  gives 0.304 on the finding's repro.
+
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
 Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the campaign's `summary/triage.csv`: one TODO per failing class x procedure x metric. Review each: edit, merge or delete it, and move kept ones into the implementation list.
