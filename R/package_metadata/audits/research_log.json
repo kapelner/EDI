@@ -12093,18 +12093,18 @@
    ]
   },
   "subsampling-m-out-of-n": {
-   "last_researched": "2026-11-16",
-   "run": "43925959437",
+   "last_researched": "2026-11-20",
+   "run": "44683751221",
    "methods": {
     "m-out-of-n-subsampling": {
-     "conclusion": "faster_option_found",
-     "note": "Re-reviewed today's earlier result (no code commits since). EDI's cost is B·fit(m) or B·fit(b). Nothing found computes the same √m-scaled or FPC-scaled subsampling distribution with fewer refits. The new 2025–2026 work changes the estimator: adaptive BLB (arXiv 2608.16892), amortized neural inference (arXiv 2607.16666, all rights reserved), Politis's scalable subsampling with non-random subsamples (arXiv 2112.06434, aimed at massive n), and optimal subsampling bootstrap under a compute budget (arXiv 2302.07533, massive n). The previous finding still stands: Lam's cheap bootstrap is an estimator change. Partial Fisher–Yates for the draw primitive is already catalogued (catalog TODO-2), and the dqrng vignette confirms that design (bitset rejection or partial Fisher–Yates by selection rate). Draws are not the bottleneck next to refits.",
-     "last_researched": "2026-11-16"
+     "conclusion": "no_faster_acceptable_found",
+     "note": "Since 2026-11-16 the code changes (72ea20ba, 5bdb9dfb, dd255899, 97e466f1, fe905ca8) are robustness refactors only: a shared resampling_centered_pivot_for_inference, the ratio usable-fraction gate (v1.0.6-TODO-230), deadline checks, re-throwing control conditions, and assertion tightening. The cost stays B·fit(m) or B·fit(b). Checked for anything new: Ohlendorff et al. 'Cheap subsampling' has a new version, v4 (arXiv 2501.10289, 2026-10-01). Lam & Wang's cheap bootstrap for SGD appeared in JMLR 27 (2026). The previous result's list still holds: scalable subsampling (Biometrika 2024), adaptive BLB (2608.16892), and the Ma–Leng–Wang optimal subsampling bootstrap for massive n. moonboot 2.0.1 (2025-12-08) and dqrng 0.4.1 add no new sampling algorithm. Nothing computes the same √m- or FPC-scaled subsampling distribution with fewer refits. Cheap bootstrap / cheap subsampling is the same idea as earlier finding #43925959437.1 (triage: investigate, v1.4.0-TODO-20). It is not re-reported: the v4 preprint is supporting material for that TODO, not a change to it. Partial Fisher–Yates for the draw primitive remains catalog TODO-2. I mark this no_faster_acceptable_found because the only faster candidate changes the estimator and is already on the roadmap.",
+     "last_researched": "2026-11-20"
     },
     "minimum-volatility": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "EDI evaluates a 9-point grid at B=251, about 2.3k refits of size m<n. Each grid point re-calls set.seed(private$seed), so the grid already uses common random numbers when a seed is set. The alternatives are no cheaper: Bickel–Sakov is similar or higher cost (BLB paper: 'significantly greater computation'); the Jach–McElroy–Politis KS criterion uses the same grid of distributions, with only a different statistic; moonboot's Sherman double bootstrap is costlier. Adaptive BLB's AMSE-plus-stability exponent selection (2608.16892) is tied to BLB. Nothing new since today's previous result changes this.",
-     "last_researched": "2026-11-16"
+     "note": "Commit 97e466f1 only makes control conditions (timeouts) abort the grid. The grid is unchanged: 9 points, n^0.5 to n^0.9, B = 251. Checked: the Jach–McElroy–Politis KS criterion (as applied in arXiv 2309.04926) uses the same grid of subsampling distributions with a different statistic, so it costs the same. moonboot's m selectors (R Journal RJ-2025-031: Bickel–Sakov, Götze–Račkauskas, Sherman–Carlstein double bootstrap) are similar or higher in cost. Ma–Leng–Wang hyperparameter selection under a compute budget targets BLB or subsampled double bootstrap at massive n. blocklength (HHJ, Politis–White, Lahiri plug-ins) targets time-series block length. No 2025–2026 work on minimum volatility itself turned up. The catalog already lists fixed m = n^0.7 as the cheap, non-adaptive alternative.",
+     "last_researched": "2026-11-20"
     }
    },
    "findings": [
@@ -12127,6 +12127,19 @@
    ],
    "implementations": [
     {
+     "name": "blocklength",
+     "url": "https://cran.r-project.org/package=blocklength",
+     "license": "GPL (>= 2)",
+     "license_source": "https://cran.r-project.org/package=blocklength",
+     "gpl3_compatible": "yes",
+     "language": "R",
+     "methods": [
+      "minimum-volatility"
+     ],
+     "relevance": "Block-length selectors (HHJ subsampling CV, Politis-White, Lahiri) for dependent data; a comparison point, not a faster replacement for iid subsample-size choice",
+     "last_seen": "2026-11-20"
+    },
+    {
      "name": "boot",
      "url": "https://cran.r-project.org/package=boot",
      "license": "Unlimited",
@@ -12136,8 +12149,8 @@
      "methods": [
       "m-out-of-n-subsampling"
      ],
-     "relevance": "Standard bootstrap; no m option, so it can serve only as an n-out-of-n baseline",
-     "last_seen": "2026-11-16"
+     "relevance": "Standard bootstrap with no m option; an n-out-of-n baseline only",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "Bootstrap_Backprop",
@@ -12150,7 +12163,7 @@
       "m-out-of-n-subsampling"
      ],
      "relevance": "Amortized alternative (estimator change); not reusable",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "dqrng",
@@ -12162,8 +12175,8 @@
      "methods": [
       "m-out-of-n-subsampling"
      ],
-     "relevance": "Design of its without-replacement sampler (bitset or partial F-Y) informs catalog TODO-2. AGPL terms apply if code is copied, so reimplement it rather than copy.",
-     "last_seen": "2026-11-16"
+     "relevance": "Its without-replacement sampler design informs catalog TODO-2. AGPL terms would apply to copied code, so reimplement rather than copy. 0.4.1 has no sampling changes",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "moonboot",
@@ -12176,34 +12189,39 @@
       "m-out-of-n-subsampling",
       "minimum-volatility"
      ],
-     "relevance": "Reference implementation of m-out-of-n CIs and m/tau estimation to test EDI against",
-     "last_seen": "2026-11-16"
+     "relevance": "Reference implementation of m-out-of-n CIs and m/tau estimation to test EDI against (R Journal DOI 10.32614/RJ-2025-031)",
+     "last_seen": "2026-11-20"
     }
    ]
   },
   "survival-frailty-copula-mle": {
-   "last_researched": "2026-11-16",
-   "run": "43925959437",
+   "last_researched": "2026-11-20",
+   "run": "44683751221",
    "methods": {
     "analytic-derivatives": {
+     "conclusion": "faster_option_found",
+     "note": "The likelihoods and gradients stay closed form at O(np), and no faster way to compute them was found. What is new is commit 5bdb9dfb (v1.0.6-TODO-132, 2026-11-19). It switched the IVWC frailty and Clayton fits in compute_treatment_estimate_during_randomization_inference and shared() to estimate_only = FALSE, so every resampling replicate now computes the FD observed information: central differences, 2(p+2) gradient evaluations, in fast_weibull_frailty.cpp:236/402, and forward differences, p+3 evaluations, for Clayton. The catalog's NEW-fd-hessian 'Keep' reason ('once per fit, not per iteration') assumed the Hessian stayed out of the resampling loop, and that no longer holds. There are two improvements: (1) difference only the free coordinates when fixed_idx pins the variance components (bit-identical SE); (2) a closed-form GH observed information (Pan & Thompson 2003; Charvat 2023 for LAGHQ). See the finding.",
+     "last_researched": "2026-11-20"
+    },
+    "boundary-reduced-refit": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Clayton and dep-cens likelihoods are closed form and O(np) per evaluation. I checked again for new work: CopulaCenR rc_par_copula uses pracma numerical grad/hessian with BFGS, which is slower than EDI's analytic gradient. Petti et al. 2022 give analytic score/Hessian for copula additive models (GJRM), the same cost class. The 2026 dep-cens GMM preprint (arXiv 2604.04032) is an estimator change. No faster way to compute the same likelihood. The FD Hessian runs once per fit (catalog NEW-fd-hessian).",
-     "last_researched": "2026-11-16"
+     "note": "dep_cens_fit_retry runs only after the multistart fails: one cold refit plus at most one refit with atanh(rho) pinned at the +/-3 clamp, O(2 iters n p) on a rare path. The literature on correlation near the boundary (Terza-style reparameterization for censored bivariate normal) and the glmmTMB guidance on dropping degenerate components both amount to the same reduced refit. A true bound-constrained L-BFGS-B is the only alternative, is already listed in catalog NEW-nonconcave-dependence-mle, and gives no speed gain. Nothing faster.",
+     "last_researched": "2026-11-20"
     },
     "gauss-hermite-quadrature": {
      "conclusion": "faster_option_found",
-     "note": "The previous AGQ finding (Stringer arXiv 2310.01589 exact AQ gradient) still stands. The change is a problem-specific route found this run for the Weibull normal-frailty kernel. A Weibull AFT with a N(0,σu²) intercept on log time is exactly a PH shared frailty with a normal random intercept b=-u/σε. Charvat (Am. Stat. 2023, doi 10.1080/00031305.2022.2110939) gives the cluster modes in closed form with Lambert W0 (LAGHQ), so there is no nested mode solve and the gradient and Hessian are closed form. Charvat's own GPL(>=2) package mexhaz imports lamW. Separately, the conditional integrand depends on each cluster only through D_g=Σδ_i and H_g=Σexp(base_wi). The fixed-node kernel can therefore be collapsed to O(n p + G K) with the same estimator. This is stronger than the catalog's TODO-4 (O(nK+np)). Two findings below.",
-     "last_researched": "2026-11-16"
+     "note": "Both earlier findings (#43925959437.1 cluster-total collapse, #43925959437.2 LAGHQ) stand and are triaged 'investigate' (v1.2.0-TODO-22, v1.2.0-TODO-11). I re-checked Charvat 2023 (doi 10.1080/00031305.2022.2110939) and mexhaz on CRAN (2.6, 2024-06-28, unchanged), and searched again for non-adaptive GH frailty work with closed-form derivatives; nothing newer. GLMMadaptive 0.9-9 was published 2026-11-17, but its NEWS gives no entry for it. No new evidence changes the triaged findings, so they are not re-reported. The new Hessian finding uses this kernel's posterior moments.",
+     "last_researched": "2026-11-20"
     },
     "lbfgs": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "LBFGSpp: no new release with a performance claim found (latest notes are v0.3.0: More-Thuente, Nocedal-Wright default). marqLevAlg (R Journal 2021, doi 10.32614/RJ-2021-089), used by frailtypack, claims robustness and parallel speed-up, not fewer evaluations than quasi-Newton at small p. Frailty and copula packages (MultiFrailty: maxLik NR/BFGS; extrafrail: EM; CopulaCenR: BFGS with numeric derivatives) are not faster than C++ L-BFGS with an analytic gradient. For the frailty kernel, LAGHQ's closed-form Hessian would make Newton possible; that is covered by the GHQ finding.",
-     "last_researched": "2026-11-16"
+     "note": "LBFGS++ latest is v0.4.0, which adds final_approx_hessian accessors and makes no speed claim. MultiFrailty 0.1.0 (2026-08-07) uses maxLik NR/BFGS with numDeriv, and CopulaCenR 1.2.4 is unchanged. Neither is faster than C++ L-BFGS with an analytic gradient. The warm-start and initial-Hessian literature found nothing new for resampling refits.",
+     "last_researched": "2026-11-20"
     },
     "multistart": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "The previous result's only finding (cloglog multistart concavity) applies to the ordinal cloglog entries, not to this problem's entries, so it is not re-reported here. For Clayton and dep-cens, the likelihood is truly nonconcave in the dependence parameter. Searches found MLSL/clustering multistart (arXiv 2108.13504) and multi-restart practice in copula papers, but no source showing fewer local solves at 3 starts and small p. The 1-D profile and L-BFGS-B options are already rejected in catalog NEW-nonconcave-dependence-mle. Keep.",
-     "last_researched": "2026-11-16"
+     "note": "The commits since 2026-11-16 do not change the start ladders. Searches found only general multistart guidance (clustered starts, Knitro and estimagic), nothing showing fewer local solves at 3-4 starts and small p for copula or dependent-censoring likelihoods. The 2026 GMM preprint (arXiv 2604.04032) is an estimator change. Keep.",
+     "last_researched": "2026-11-20"
     }
    },
    "findings": [
@@ -12230,6 +12248,19 @@
      "confidence": "medium",
      "suggested_action": "Add Charvat 2023 LAGHQ to v1.0.5 TODO-153 (performance_profiling_and_upgrades.md) as the AGQ route for fast_weibull_frailty.cpp, and name the file in its scope. Prototype it after the collapse finding, check mexhaz for the formulas, then A/B against K=50 non-adaptive GH for σu up to e^1.5.",
      "id": "survival-frailty-copula-mle#43925959437.2"
+    },
+    {
+     "methods": [
+      "analytic-derivatives"
+     ],
+     "candidate": "(1) Exact and cheap: in the FD Hessian, difference only the free coordinates (fixed_spec.free_idx). Central-difference column i depends only on perturbing parameter i, and the symmetrized free block uses only free rows and columns, so the inverted block and the SE are bit-identical. The frailty replicate cost drops from 2(p+2) to 2p gradient evaluations, and Clayton from p+3 to p+1. (2) Larger: a closed-form observed information for the GH frailty likelihood. It is the posterior-weighted complete-data Hessian minus the posterior score covariance (Louis identity), per Pan & Thompson 2003, who give the closed-form score and observed information for GH-approximated GLMMs. With the cluster-total collapse of finding #43925959437.1, this is O(np^2 + GK) and costs about one gradient pass. If LAGHQ (#43925959437.2) is adopted, Charvat 2023 gives the closed-form Hessian directly. Same estimator and same beta; SEs, and hence the IVW pooled estimate, change only at FD-error level (more accurate).",
+     "claimed_speedup": "Not quantified by any source. Theoretical: at p=2, option (1) cuts the frailty Hessian from 8 to 4 gradient evaluations and Clayton from 5 to 3. Option (2) cuts the frailty Hessian to about 1-2 gradient-equivalents. Against a warm-started L-BFGS replicate of an estimated 20-40 evaluations, that is roughly 10-25% of per-replicate time for the frailty IVWC classes (my estimate, unmeasured).",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "yes",
+     "confidence": "medium",
+     "suggested_action": "Reopen catalog NEW-fd-hessian (its Keep reason no longer holds after v1.0.6-TODO-132). First restrict FD to free_idx in WeibullFrailtyNormalLikelihood::hessian, ClaytonWeibullLikelihood::hessian and DepCensTransformLikelihood::hessian, and test that the SE is bit-identical. Then fold an analytic GH information into v1.2.0-TODO-22 alongside the cluster-total collapse, and benchmark per-replicate time for the frailty IVWC randomization test at n=50-500 pairs.",
+     "new_evidence": "Catalog NEW-fd-hessian chose Keep because the Hessian 'runs once per fit, not per iteration'. Commit 5bdb9dfb (2026-11-19, v1.0.6-TODO-132) and 72ea20ba (2026-11-20) made every IVWC resampling and randomization replicate a full fit with vcov (estimate_only = FALSE), so the FD Hessian is now inside the resampling loop.",
+     "id": "survival-frailty-copula-mle#44683751221.1"
     }
    ],
    "sources": [
@@ -12238,7 +12269,9 @@
     "https://cran.r-project.org/package=BH",
     "https://cran.r-project.org/package=lamW",
     "https://cran.r-project.org/package=mexhaz",
+    "https://doi.org/10.1007/s001800300132",
     "https://doi.org/10.1080/00031305.2022.2110939",
+    "https://ideas.repec.org/a/spr/compst/v18y2003i1d10.1007_s001800300132.html",
     "https://ideas.repec.org/a/taf/amstat/v77y2023i1p41-50.html"
    ],
    "implementations": [
@@ -12253,7 +12286,7 @@
       "gauss-hermite-quadrature"
      ],
      "relevance": "AGQ reference implementation (Bayesian focus)",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "BH (Boost.Math lambert_w0)",
@@ -12266,7 +12299,7 @@
       "LAGHQ"
      ],
      "relevance": "Header-only W0 for the C++ kernel",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "CopulaCenR",
@@ -12279,8 +12312,8 @@
       "analytic-derivatives",
       "lbfgs"
      ],
-     "relevance": "Clayton-Weibull copula MLE for bivariate right-censored data (BFGS, numeric derivatives); test reference for the Clayton fit",
-     "last_seen": "2026-11-16"
+     "relevance": "Clayton-Weibull copula MLE for bivariate right-censored data; a test reference for the Clayton fit.",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "GLMMadaptive",
@@ -12290,11 +12323,10 @@
      "gpl3_compatible": "yes",
      "language": "R",
      "methods": [
-      "gauss-hermite-quadrature",
-      "multistart"
+      "gauss-hermite-quadrature"
      ],
-     "relevance": "AGQ with infrequent mode updates; an A/B reference",
-     "last_seen": "2026-11-16"
+     "relevance": "An AGQ reference implementation (0.9-9, 2026-11-17) to A/B the frailty quadrature against.",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "lamW",
@@ -12307,7 +12339,7 @@
       "LAGHQ"
      ],
      "relevance": "Lambert W0 evaluation for closed-form cluster modes",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "mexhaz",
@@ -12320,8 +12352,22 @@
       "gauss-hermite-quadrature",
       "LAGHQ"
      ],
-     "relevance": "By the LAGHQ author; imports lamW, so likely the reference implementation of Lambert-W AGHQ for normal-intercept frailty. Can be ported or used as a test reference.",
-     "last_seen": "2026-11-16"
+     "relevance": "By Charvat, the LAGHQ author, and imports lamW; a reference for the closed-form gradient and Hessian of normal-intercept frailty.",
+     "last_seen": "2026-11-20"
+    },
+    {
+     "name": "MultiFrailty",
+     "url": "https://cran.r-project.org/package=MultiFrailty",
+     "license": "GPL-3",
+     "license_source": "https://cran.r-project.org/package=MultiFrailty",
+     "gpl3_compatible": "yes",
+     "language": "R",
+     "methods": [
+      "lbfgs",
+      "gauss-hermite-quadrature"
+     ],
+     "relevance": "Weibull baseline with several frailty families via maxLik; an external A/B reference, not faster.",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "parfm",
@@ -12334,38 +12380,38 @@
       "gauss-hermite-quadrature"
      ],
      "relevance": "Parametric Weibull and gamma/lognormal frailty fits. Usable only as an external test reference; GPL-2-only, so no code reuse.",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     }
    ]
   },
   "weibull-aft-mle": {
-   "last_researched": "2026-11-16",
-   "run": "43925959437",
+   "last_researched": "2026-11-20",
+   "run": "44683751221",
    "methods": {
     "analytic-derivatives": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "WeibullAFTLikelihood / WeibullAFTLikelihoodGeneral: closed-form O(np) NLL/gradient and O(np^2) Hessian as a weighted crossprod. That is the floor per evaluation. AD (TMB/RTMB, Stan math) automates the same derivatives and cannot beat hand-coded closed forms; this run's search found no Weibull-specific AD benchmark (TMB paper arXiv 1509.00660 compares only against numerical derivatives). No code commits since 2026-11-16.",
-     "last_researched": "2026-11-16"
+     "note": "WeibullAFTLikelihood / WeibullAFTLikelihoodGeneral are unchanged in substance since 2026-11-16. The only commits were a comment spelling fix and 6a3651ee, which unrolls two off-diagonal columns at a time in score_weighted_crossprod_colwise_assign; results are bit-identical, with lower add latency. Closed-form O(np) NLL/gradient plus an O(np^2) crossprod Hessian is already the floor. This run found no TMB/RTMB or dfr.dist evidence that AD beats hand-coded closed forms: the dfr.dist vignette favours an analytic score plus an AD Hessian over full AD, and EDI already has both derivatives analytic.",
+     "last_researched": "2026-11-20"
     },
     "lbfgs": {
-     "conclusion": "no_faster_acceptable_found",
-     "note": "L-BFGS default in fast_weibull_regression_internal / left_interval variant (and the R wrapper). Making Newton the default, with the analytic Hessian (newton_then_lbfgs), is already Prototype v1.0.5 TODO-3 (catalog §5 'Weibull AFT optimizer choice'), so it is not re-reported. This run checked LBFGSpp (MIT; no new release info) and survival NEWS up to 3.8-12 (no survreg changes). The general Newton vs quasi-Newton sources found give no new evidence beyond what TODO-3 already assumes.",
-     "last_researched": "2026-11-16"
+     "conclusion": "faster_option_found",
+     "note": "New since 2026-11-16 (commit 3dabce47, v1.0.6-TODO-163): fit_weibull_aft_with_column_scaling standardizes badly scaled columns, runs the default L-BFGS, then adds up to 5 full Newton polish steps with the analytic Hessian and LLT. The code comment says L-BFGS stops on its relative function-decrease rule 'while coefficients are still ~1e-3 off'. So on standardized data EDI now pays for an L-BFGS run (catalog: 15-40 iterations) plus Newton steps. The standardization also removes the ill-conditioning that was the main risk of Newton-first. This is new evidence for the catalog's existing Prototype (v1.0.5 TODO-3, Newton default); see the finding. LBFGSpp: no release after v0.4.0.",
+     "last_researched": "2026-11-20"
     },
     "multistart": {
-     "conclusion": "faster_option_found",
-     "note": "Re-checked the code at commit 8b718ae1. robust_survreg_with_surv_object still sets init = rep(0, p+1) (helper_robust_regression.R ~line 153) and jitters with unscaled rnorm. This overrides survreg's own default start: the survival manual (fetched this run) says init=NULL is the default and each survreg.distributions entry has an init(x, weights) function that gives the mean/variance start 'used for initial values in the iteration'. The previous finding stands; no new multistart literature specific to AFT changes it.",
-     "last_researched": "2026-11-16"
+     "conclusion": "no_faster_acceptable_found",
+     "note": "Re-checked at 3915dfb2: robust_survreg_with_surv_object still sets init = rep(0, p+1) (helper_robust_regression.R:153) and jitters with unscaled rnorm (:201). The only change is a maxiter comment. The earlier finding weibull-aft-mle#43925959437.1 is already triaged investigate (v1.1.0-TODO-213) and nothing changes it, so it is not re-filed. survreg's documented init(x, weights) start (checked again this run) still supports it. arXiv 2102.07356 (noniterative auxiliary estimating equations) offers only a GMM start, not the MLE, and adds nothing beyond the moment start already proposed.",
+     "last_researched": "2026-11-20"
     },
     "newton-raphson": {
-     "conclusion": "faster_option_found",
-     "note": "The Newton–Raphson algorithm is the right one for p ≤ ~10, and survreg's Newton is unchanged through survival 3.8-12 (NEWS). The previous survreg.fit interim fast-path finding for weighted_weibull_bootstrap_surrogate_fit still stands, with one new caveat: the survival manual lists survreg.fit only under 'Internal survival functions', and its arguments 'are not guaranteed to stay the same from release to release'. That needs a version guard and the formula fallback. Trust-region Newton and Burridge reparametrization give robustness, not speed, and Burridge is already in the catalog.",
-     "last_researched": "2026-11-16"
+     "conclusion": "no_faster_acceptable_found",
+     "note": "No new faster method. survreg's Newton is unchanged through survival 3.8-12 (NEWS fetched: only a robust-variance fix for case weights in 3.8-0 and a doc note in 3.8-5). Rfast2 censweib.reg (Newton-Raphson, C++, GPL >= 2) is another implementation, not a faster algorithm. The survreg.fit interim (weibull-aft-mle#43925959437.2) is already investigate under v1.1.0-TODO-63 and is not re-filed. New code: weibull_fit_standardized_retry (R, 2557834b) now overlaps the C++ internal standardization. It runs only after a failed fit, so it is not a hot path, but the two could be merged.",
+     "last_researched": "2026-11-20"
     },
     "sandwich-estimator": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Pair-cluster meat via rowsum of per-observation scores plus crossprod, O(np^2), is minimal. CR2 / bias-corrected variants (clubSandwich, arXiv 2203.02560 for marginal Cox) would be estimator changes, not speedups. No new evidence.",
-     "last_researched": "2026-11-16"
+     "note": "The rowsum-of-scores plus crossprod pair-cluster meat is O(np^2) and minimal; the code is unchanged. This run's search found only CR2/jackknife variants (MacKinnon-Nielsen-Webb arXiv 2301.04527, linear models), which would be estimator changes. The survival 3.8-0 robust-variance fix with case weights matters only for validating the survreg fallback with weights.",
+     "last_researched": "2026-11-20"
     }
    },
    "findings": [
@@ -12392,25 +12438,39 @@
      "confidence": "low",
      "suggested_action": "Add as an interim sub-item beside the coxph.fit interim in bayesian_bootstrap_performance.md item 2, guarded by a fallback. Benchmark per-draw time first; prefer going straight to the native C++ weighted kernel if that is near.",
      "id": "weibull-aft-mle#43925959437.2"
+    },
+    {
+     "methods": [
+      "lbfgs"
+     ],
+     "candidate": "On the standardized scale, run the existing damped Newton (newton_then_lbfgs) from the smart cold start and drop the L-BFGS phase plus separate polish; keep L-BFGS only as Newton's existing fallback. The standardization now removes the conditioning problem that was the main risk of Newton-first. Apply the same in the BRT kernel, with the smart or observed-MLE start that the catalog already lists. This is new code-level evidence for the catalog's Prototype v1.0.5 TODO-3, not a new idea.",
+     "claimed_speedup": "Not quantified by a source. The catalog's own estimate is L-BFGS 15-40 iterations versus Newton 4-8. The current path adds up to 5 Newton steps on top of L-BFGS. arXiv 2310.01589 reports, in another model, that Newton iterations from an L-BFGS endpoint are usually needed only once, which supports Newton converging quickly near the optimum. Expected gain is modest (perhaps 1.2-2x per fit at p <= 10), multiplied in bootstrap and randomization loops.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "yes",
+     "confidence": "low",
+     "suggested_action": "Attach to the existing v1.0.5 TODO-3 prototype. Benchmark the standardized-scale newton_then_lbfgs path against lbfgs+polish (iterations, wall time, failure rate) on survival::colon and the simulation DGPs, including compute_weibull_rand_bootstrap_parallel_cpp with a smart start.",
+     "id": "weibull-aft-mle#44683751221.1"
     }
    ],
    "sources": [
+    "https://arxiv.org/html/2310.01589",
     "https://cran.r-project.org/web/packages/survival/news.html",
-    "https://cran.r-project.org/web/packages/survival/refman/survival.html"
+    "https://cran.r-project.org/web/packages/survival/refman/survival.html",
+    "https://doi.org/10.48550/arXiv.2310.01589"
    ],
    "implementations": [
     {
      "name": "eha",
      "url": "https://cran.r-project.org/package=eha",
-     "license": "GPL (>= 2)",
+     "license": "GPL-2 | GPL-3",
      "license_source": "https://cran.r-project.org/package=eha",
      "gpl3_compatible": "yes",
      "language": "R/C",
      "methods": [
       "newton-raphson"
      ],
-     "relevance": "Alternate parametric AFT (aftreg) for cross-validation of estimates",
-     "last_seen": "2026-11-16"
+     "relevance": "aftreg parametric AFT; independent cross-check of estimates",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "flexsurv",
@@ -12423,21 +12483,21 @@
       "multistart"
      ],
      "relevance": "General parametric survival via optim; cross-check only, not faster",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "icenReg",
      "url": "https://cran.r-project.org/package=icenReg",
-     "license": "LGPL (>= 2.0, < 3)",
+     "license": "LGPL-2 | LGPL-2.1",
      "license_source": "https://cran.r-project.org/package=icenReg",
      "gpl3_compatible": "yes",
-     "language": "R/C++ (Rcpp, RcppEigen)",
+     "language": "R/C++",
      "methods": [
-      "analytic-derivatives",
-      "newton-raphson"
+      "newton-raphson",
+      "analytic-derivatives"
      ],
-     "relevance": "Parametric interval-censored AFT; test fixture for WeibullAFTLikelihoodGeneral",
-     "last_seen": "2026-11-16"
+     "relevance": "Parametric interval-censored AFT (ic_par); reference to test WeibullAFTLikelihoodGeneral against",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "LBFGSpp",
@@ -12450,7 +12510,20 @@
       "lbfgs"
      ],
      "relevance": "Header-only L-BFGS/L-BFGS-B with More-Thuente line search; what EDI already builds on",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
+    },
+    {
+     "name": "Rfast2 (censweib.reg)",
+     "url": "https://cran.r-project.org/package=Rfast2",
+     "license": "GPL (>= 2.0)",
+     "license_source": "https://cran.r-project.org/package=Rfast2",
+     "gpl3_compatible": "yes",
+     "language": "R/C++",
+     "methods": [
+      "newton-raphson"
+     ],
+     "relevance": "C++ Newton-Raphson censored Weibull regression; a speed and accuracy benchmark comparator for the right-censored kernel",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "sandwich",
@@ -12463,7 +12536,7 @@
       "sandwich-estimator"
      ],
      "relevance": "Reference cluster-robust meat to validate EDI's rowsum/crossprod sandwich",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "survival (survreg)",
@@ -12477,68 +12550,56 @@
       "sandwich-estimator"
      ],
      "relevance": "Reference Weibull AFT Newton–Raphson and cluster-robust sandwich; EDI's fallback and validation target",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     }
    ]
   },
   "zero-inflated-count-mle": {
-   "last_researched": "2026-11-16",
-   "run": "43925959437",
+   "last_researched": "2026-11-20",
+   "run": "44683751221",
    "methods": {
     "analytic-derivatives": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Closed-form NLL, gradient and observed information at O(n·k) and O(n·k²) already use distinct-y lgamma/digamma tables and do the minimum work for an exact Hessian. Checked since the previous result: an AD-vs-hand-coded search found no evidence that TMB, CppAD or Stan AD beats hand-coded gradients on small models; Stan Math (arXiv 1509.07164) reports gradient cost of about 20× a plain evaluation. The expected_hessian functions (ZAP, ZOIB) are dead code. Nothing new.",
-     "last_researched": "2026-11-16"
+     "note": "Unchanged. Re-searched AD vs hand-coded derivatives (RTMB/LaMa vignettes; a 2026 arXiv structural-estimation paper, 2606.04356, finds AD can be slower than manual derivatives). Nothing beats EDI's closed-form O(n·k) score and O(n·k²) observed information with distinct-y special-function tables. The ZAP/ZOIB expected_hessian functions are still dead code.",
+     "last_researched": "2026-11-20"
     },
     "closed-form": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Trivial: closed-form ZIP θ→∞ limit (softplus/log-add-exp), O(n k), one pass; nothing faster.",
-     "last_researched": "2026-11-16"
+     "note": "Trivial: the closed-form ZIP θ→∞ limit (softplus/log-add-exp) is a single O(n k) pass; nothing faster.",
+     "last_researched": "2026-11-20"
     },
     "finite-differences": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "The ZipLimitLikelihood FD Hessian is fallback-only. It costs 2k analytic-gradient evaluations, O(nk²), the same order as an analytic Hessian. The FD-vs-analytic search found only general accuracy notes (4–5 digits) and nothing ZIP-specific or faster. An analytic ZIP Hessian would improve accuracy, not speed.",
-     "last_researched": "2026-11-16"
+     "note": "Unchanged. The ZipLimitLikelihood FD Hessian is fallback-only and costs O(nk²), the same order as an analytic Hessian. A search on complex-step/AD replacements found nothing ZIP-specific and no speed gain, only accuracy notes (AD-based ZIP Hessians in deep-inference, an econometrics AD-vs-FD study).",
+     "last_researched": "2026-11-20"
     },
     "laplace-approximation-tmb": {
      "conclusion": "faster_option_found",
-     "note": "Re-checked in the code at commit 8b718ae: both weighted glmmTMB replicate calls (inference_count_hurdle.R:436-443, inference_count_zero_augmented_poisson_abstract.R:1097-1104) still pass no se argument, so sdreport runs on estimate-only replicates. The earlier finding stands. glmmTMB on CRAN is still 1.1.15.2 (2026-09-29). TMB-users threads say DATA_UPDATE has been replaced by RTMB::DataEval, which is not thread-safe and is not reachable through glmmTMB. New: fastglm 0.1.4's fastglm_hurdle (NB with Brent θ) and fastglm_zi accept prior weights and fit in milliseconds (CRAN benchmarks vignette). They are a ready GPL-compatible reference and stopgap for the weighted C++ kernels in catalog §10 TODO-3. In the R Journal glmmTMB paper's own NB benchmark, the IRLS-class fitters (mgcv 0.03×, gamlss 0.24× of glmmTMB time) were far faster than TMB.",
-     "last_researched": "2026-11-16"
+     "note": "Updated from the code diff. Commits 3395b6c3 and 3dabce47 (2026-11-19) changed both weighted glmmTMB replicate calls to glmmTMBControl(parallel = 1L), for determinism (v1.0.6-TODO-62/64). That covers the 'parallel=1' half of finding #43925959437.1. Both calls (inference_count_hurdle.R:537-546, inference_count_zero_augmented_poisson_abstract.R:1179-1189) still pass no se argument, so sdreport still runs on estimate-only replicates. glmmTMB on CRAN is still 1.1.15.2 (2026-09-29, AGPL-3); its refman now documents a per-fit use_rtmb switch (RTMB backend), with no speed claim. RTMB 2.0 (2026-09-17) NEWS has no DataEval or thread-safety change. Finding .2 (weighted C++ kernels, fastglm oracle) is unchanged and under investigate (v1.2.0-TODO-23), so it is not re-reported.",
+     "last_researched": "2026-11-20"
     },
     "lbfgs": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Updated with numbers. The previous low-confidence finding (fastglm_zi SQUAREM-EM as a possibly faster method) is now quantified by the fastglm CRAN benchmarks vignette. SQUAREM-EM is only 3.7–4.6× faster than pscl::zeroinfl for ZIP (n=1e3–1e5, p=2) and about 2× for ZINB (n=1e4). pscl is R-level optim BFGS. EDI already runs C++ L-BFGS with analytic gradients, so EM shows no speed advantage. It also only agrees with pscl to about 1e-5. Keep it as an A/B comparator for em_algorithm_zero_inflated_mixtures.md TODO-5, but it is not a speedup finding. The hurdle-Poisson block-separate Newton/IRLS (catalog §3 TODO-3) and the conditional-likelihood start and α-parametrization (TODO 1/4) are already recorded. LBFGSpp shows no new release (0.4.0).",
-     "last_researched": "2026-11-16"
+     "note": "Unchanged. New comparator found: fasthurdle (GitHub mkanai/fasthurdle, v1.2.0, 2026) uses C++ BFGS via roptim with an analytic Hessian for scores. It claims 2.2–6.6× over pscl::hurdle at n=1e3–1e5, the same class as EDI's C++ L-BFGS with analytic gradients, so it is not faster than EDI. fastglm is still 0.1.4 (2026-11-11 republication, GPL-2|GPL-3), with SQUAREM-EM at about 4× over pscl, already judged no faster. The r-help guidance (BFGS default; EM more robust but slower) is consistent with EDI's design.",
+     "last_researched": "2026-11-20"
     },
     "likelihood-factorization": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "The hurdle factorization (logistic plus truncated NB) is the standard method. It is confirmed again by the Stata Journal notes, statsmodels HurdleCountModel (separate fits only) and fastglm_hurdle (independent parts). Nothing faster exists for a separable likelihood.",
-     "last_researched": "2026-11-16"
+     "note": "Unchanged. pscl/countreg hurdle docs still describe two separate optim fits, and fasthurdle and fastglm_hurdle also fit the parts independently. Nothing is faster for an exactly separable likelihood.",
+     "last_researched": "2026-11-20"
     },
     "newton-raphson": {
      "conclusion": "no_faster_acceptable_found",
-     "note": "Block-separable hurdle-NB Newton with count-only null refits. The comparators checked are slower or equivalent: countreg zerotrunc (BFGS), fastglm alternating IRLS plus Brent θ (its vignette shows alternation can stall when θ drifts to a boundary), and pscl optim. No newer method was found.",
-     "last_researched": "2026-11-16"
+     "note": "Unchanged. The search on damped/trust-region Newton vs alternating IRLS+Brent θ for the hurdle-NB found only fastglm's alternating scheme, which is no faster than EDI's block-separable Newton with count-only null refits. No newer method was found.",
+     "last_researched": "2026-11-20"
     },
     "truncated-series-summation": {
-     "conclusion": "faster_option_found",
-     "note": "Still dead code (no caller). The earlier finding stands. New supporting source: the trigamma-free approach of Yu, Dousti Mousavi & Yang (arXiv 2306.04798, Statistical Papers 2024) computes the trigamma expectations in NB/ZINB Fisher information efficiently, with error bounds. It is an alternative to the per-y Hessian series.",
-     "last_researched": "2026-11-16"
+     "conclusion": "no_faster_acceptable_found",
+     "note": "TruncatedNegBinCount::expected_hessian is still dead code. The earlier finding #43925959437.3 was rejected because it is dead code (v1.0.6-TODO-43). There is no new evidence: the trigamma-free method (arXiv 2306.04798) and a Jeffreys-prior ZT-NB information derivation (arXiv 2401.03649) do not touch a live path, so there is no speedup to claim.",
+     "last_researched": "2026-11-20"
     }
    },
    "findings": [
-    {
-     "methods": [
-      "laplace-approximation-tmb"
-     ],
-     "candidate": "Pass se = !estimate_only, and optionally glmmTMBControl(conv_check='skip', eigval_check=FALSE), on estimate-only replicates. Keep parallel=1 inside an already-parallel replicate loop.",
-     "claimed_speedup": "Not quantified. The glmmTMB manual documents se as 'whether to return standard errors' with no timing.",
-     "keeps_estimator": "yes",
-     "applies_at_edi_sizes": "unknown",
-     "confidence": "medium",
-     "suggested_action": "Re-reported from 2026-11-16, still unfixed at 8b718ae. Add se = !estimate_only at both weighted glmmTMB call sites and time one B=200 run before and after.",
-     "id": "zero-inflated-count-mle#43925959437.1"
-    },
     {
      "methods": [
       "laplace-approximation-tmb"
@@ -12562,6 +12623,19 @@
      "confidence": "low",
      "suggested_action": "Delete the dead expected_hessian, or rewrite it with a tail-series or trigamma-free method if it is ever needed.",
      "id": "zero-inflated-count-mle#43925959437.3"
+    },
+    {
+     "methods": [
+      "laplace-approximation-tmb"
+     ],
+     "candidate": "Pass se = !estimate_only to glmmTMB() at both weighted call sites. Optionally also pass conv_check = 'skip' on estimate-only replicates. The parallel = 1L half of the earlier candidate is already done.",
+     "claimed_speedup": "Not quantified. The glmmTMB refman documents se only as 'whether to return standard errors', and says eigval_check 'may be very slow' with many fixed effects.",
+     "keeps_estimator": "yes",
+     "applies_at_edi_sizes": "unknown",
+     "confidence": "medium",
+     "suggested_action": "Under v1.1.0-TODO-214: parallel = 1L has landed, so only se = !estimate_only remains. Add it at inference_count_hurdle.R:537 and inference_count_zero_augmented_poisson_abstract.R:1182, then time a B=200 run.",
+     "new_evidence": "2026-11-19 commits 3395b6c3/3dabce47 set glmmTMBControl(parallel = 1L) at both call sites, which completes part of the finding. se is still not passed at commit 3915dfb2, so the remaining action is narrower.",
+     "id": "zero-inflated-count-mle#43925959437.1"
     }
    ],
    "sources": [
@@ -12579,7 +12653,7 @@
     {
      "name": "fastglm (fastglm_hurdle, fastglm_zi, fastglm_truncated)",
      "url": "https://cran.r-project.org/package=fastglm",
-     "license": "GPL (>= 2)",
+     "license": "GPL-2 | GPL-3",
      "license_source": "https://cran.r-project.org/package=fastglm",
      "gpl3_compatible": "yes",
      "language": "R/C++",
@@ -12589,8 +12663,22 @@
       "laplace-approximation-tmb",
       "newton-raphson"
      ],
-     "relevance": "Weighted C++ hurdle/ZI/truncated-NB fitters: a test oracle and benchmark comparator for weighted EDI kernels (catalog §10 TODO-3) and for the EM A/B.",
-     "last_seen": "2026-11-16"
+     "relevance": "Weighted C++ ZI/hurdle fitters; test oracle for weighted EDI kernels (v1.2.0-TODO-23).",
+     "last_seen": "2026-11-20"
+    },
+    {
+     "name": "fasthurdle",
+     "url": "https://github.com/mkanai/fasthurdle",
+     "license": "GPL-2.0",
+     "license_source": "https://github.com/mkanai/fasthurdle",
+     "gpl3_compatible": "no",
+     "language": "R/C++",
+     "methods": [
+      "lbfgs",
+      "likelihood-factorization"
+     ],
+     "relevance": "Benchmark comparator for hurdle fits (2–7× over pscl). The repo states GPL-2.0 with no 'or later' visible, so don't copy code; use it only as an external comparator.",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "glmmTMB",
@@ -12602,8 +12690,8 @@
      "methods": [
       "laplace-approximation-tmb"
      ],
-     "relevance": "Currently used per bootstrap replicate. AGPL terms apply to a combined work; EDI only calls it, as an optional dependency.",
-     "last_seen": "2026-11-16"
+     "relevance": "Current per-replicate weighted fitter. EDI calls it as an optional dependency, so the AGPL terms apply only to a combined work.",
+     "last_seen": "2026-11-20"
     },
     {
      "name": "LBFGS++",
@@ -12616,7 +12704,7 @@
       "lbfgs"
      ],
      "relevance": "Header-only L-BFGS/L-BFGS-B; a candidate for the α=1/θ box-constrained reparametrization (catalog §3 TODO 4).",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "pscl (hurdle, zeroinfl)",
@@ -12630,7 +12718,7 @@
       "lbfgs"
      ],
      "relevance": "Reference results to test against. CRAN states GPL-2 (only), so do not copy code; calling it for tests is fine.",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     },
     {
      "name": "statsmodels (HurdleCountModel, ZeroInflatedNegativeBinomialP)",
@@ -12644,7 +12732,7 @@
       "analytic-derivatives"
      ],
      "relevance": "Python reference for separate hurdle fits and ZINB score/Hessian, for cross-checks from EDI's Python wheel.",
-     "last_seen": "2026-11-16"
+     "last_seen": "2026-11-20"
     }
    ]
   }
