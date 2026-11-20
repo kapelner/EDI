@@ -528,7 +528,7 @@ void bind_count(py::module_& m) {
     "switched per observation by is_hurdle, jointly optimizing\n"
     "[beta_cond, beta_zi]. If the optimizer throws an exception internally,\n"
     "this does not propagate a Python error: it returns\n"
-    "{\"converged\": False, \"gradient_norm\": nan} with no other fields.\n"
+    "the usual dict with converged=False, neg_loglik=nan, num_iter=maxit.\n"
     "smart_cold_start=True (default, no warm_start_params) uses a\n"
     "model-specific heuristic start; otherwise all parameters start at zero\n"
     "except the first conditional-model coefficient, initialized to\n"
