@@ -1213,7 +1213,8 @@
    ],
    "software": [
     "mexhaz",
-    "CopulaCenR"
+    "CopulaCenR",
+    "MultiFrailty"
    ]
   },
   "weibull-aft-mle": {
@@ -1244,6 +1245,9 @@
     "mixture model EM vs direct maximization",
     "ZIP ZINB fitting algorithm",
     "fastglm_zi fastglm_hurdle fastglm_truncated"
+   ],
+   "software": [
+    "fasthurdle (R, C++ BFGS hurdle with hurdle_scan)"
    ]
   },
   "dense-linear-algebra": {
@@ -1424,7 +1428,8 @@
     "closed-form score",
     "analytic Hessian",
     "expected Fisher information",
-    "observed information closed form"
+    "observed information closed form",
+    "Louis missing-information identity"
    ],
    "broader": [
     "likelihood evaluation",
@@ -1435,7 +1440,8 @@
     "block-diagonal information",
     "expected vs observed information",
     "vectorized NLL evaluation",
-    "exact-width cell probability difference (celldiff)"
+    "exact-width cell probability difference (celldiff)",
+    "FD Hessian restricted to free (non-fixed) coordinates"
    ],
    "software": [
     "TMB",
@@ -3105,7 +3111,8 @@
     "nested Laplace",
     "sparse Hessian Laplace",
     "nlminb outer optimizer",
-    "RTMB DataEval (successor of DATA_UPDATE)"
+    "RTMB DataEval (successor of DATA_UPDATE)",
+    "glmmTMBControl(use_rtmb=) RTMB backend"
    ],
    "software": [
     "glmmTMB",
@@ -3162,7 +3169,8 @@
     "Fisher-scoring polish after quasi-Newton",
     "ML degree of variance component models",
     "initial Hessian from cached observed information (warm_start_fisher_info)",
-    "fingerprint resampling (start values predicted from score at original optimum)"
+    "fingerprint resampling (start values predicted from score at original optimum)",
+    "internal column standardization with Newton polish after L-BFGS"
    ],
    "software": [
     "LBFGSpp",
@@ -3399,7 +3407,8 @@
    ],
    "broader": [
     "resampling methods",
-    "cheap bootstrap"
+    "cheap bootstrap",
+    "cheap subsampling"
    ],
    "narrower": [
     "without-replacement subsampling",
@@ -3539,7 +3548,8 @@
    "synonyms": [
     "minimum volatility method",
     "block size selection",
-    "Kolmogorov-Smirnov subsample size selection (Jach-McElroy-Politis)"
+    "Kolmogorov-Smirnov subsample size selection (Jach-McElroy-Politis)",
+    "Bickel-Sakov adaptive choice of m"
    ],
    "broader": [
     "tuning parameter selection"
@@ -3547,7 +3557,9 @@
    "narrower": [
     "rolling SD over m grid"
    ],
-   "software": []
+   "software": [
+    "blocklength"
+   ]
   },
   "model-simplification-surrogate": {
    "title": "Simpler surrogate model in resampling",
@@ -3665,7 +3677,8 @@
     "METOD early-terminated multistart",
     "MLE existence check via overlap linear program",
     "profiled 1-D variance-ratio search (replaces multistart for LMM null refits)",
-    "variable projection over loadings (profile out linear parameters, concave inner fit)"
+    "variable projection over loadings (profile out linear parameters, concave inner fit)",
+    "noniterative auxiliary estimating equations (start values)"
    ],
    "software": [
     "optimx",
@@ -3752,7 +3765,8 @@
     "FastSurvival::coxph_fast",
     "survival::survreg.fit",
     "RcppTrust",
-    "coxstream"
+    "coxstream",
+    "Rfast2::censweib.reg"
    ]
   },
   "noncentral-hypergeometric-enumeration": {
