@@ -164,7 +164,32 @@ if(NOT EXISTS ${EDI_LBFGSPP_SHIM_DIR}/optimization)
     file(CREATE_LINK ${EDI_LBFGSPP_INCLUDE_DIR} ${EDI_LBFGSPP_SHIM_DIR}/optimization SYMBOLIC)
 endif()
 
-option(EDI_PY_PORTABLE "Drop -march=native for portable/cross-compiled wheels" OFF)
+# Portable by default, mirroring R/EDI/configure's EDI_PORTABLE=1 default
+# (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). The old default (OFF,
+# i.e. -march=native) made every plain `pip wheel ./python`, `pip install .`
+# and sdist install target the build host's CPU. The docs-scenarios audit
+# built its wheel that way on one GitHub runner (AVX-512) and imported it on
+# another (AMD EPYC 7763, AVX2 only): `import edi_kernels` died with SIGILL,
+# because even PyInit__core is vectorized with the host ISA under
+# -march=native. piwheels also publishes the wheels it builds from the sdist,
+# so a native default leaked there too. Portable means no -march at all: the
+# compiler's own baseline (x86-64 / SSE2 on x86, the distro default on ARM),
+# the same baseline as the cibuildwheel wheels on PyPI.
+# Native (-march=native -mtune=native) is opt-in, the same way as on the R
+# side: pass -DEDI_PY_PORTABLE=OFF (pip: --config-settings=
+# cmake.define.EDI_PY_PORTABLE=OFF) or set EDI_PORTABLE=0 in the
+# environment. An explicit -DEDI_PY_PORTABLE always wins over the env var.
+# A native build only runs on CPUs like the one that built it; never ship one.
+set(EDI_PY_PORTABLE_DEFAULT ON)
+if(DEFINED ENV{EDI_PORTABLE} AND "$ENV{EDI_PORTABLE}" STREQUAL "0")
+    set(EDI_PY_PORTABLE_DEFAULT OFF)
+endif()
+option(EDI_PY_PORTABLE "Portable build (no -march=native); OFF opts into a host-tuned build" ${EDI_PY_PORTABLE_DEFAULT})
+if(EDI_PY_PORTABLE)
+    message(STATUS "edi_kernels: portable build (no -march=native).")
+else()
+    message(STATUS "edi_kernels: NATIVE build (-march=native): the result only runs on CPUs like this one.")
+endif()
 
 # Building every R/EDI/src kernel with EDI_CORE_ONLY defined swaps out the
 # Rcpp/R-specific include branches (RcppEigen.h, Rmath.h, R_ext/BLAS.h) for

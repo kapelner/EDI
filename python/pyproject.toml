@@ -157,15 +157,19 @@ wheel.packages = ["src/edi_kernels"]
 [tool.scikit-build.sdist.force-include]
 "../R/EDI/src" = "vendor/EDI_src"
 
-[tool.scikit-build.cmake.define]
-EDI_PY_PORTABLE = "OFF"
-
+# EDI_PY_PORTABLE is deliberately NOT defined here: CMakeLists.txt defaults
+# it to ON (portable, no -march=native), mirroring R/EDI/configure's
+# EDI_PORTABLE=1 default. This used to pin it OFF, so every plain
+# `pip wheel ./python` / `pip install .` / sdist install was -march=native,
+# and a wheel built on an AVX-512 machine died with SIGILL on import on an
+# AVX2-only one (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). For a
+# host-tuned local build, opt in with
+# `--config-settings=cmake.define.EDI_PY_PORTABLE=OFF` or `EDI_PORTABLE=0`.
+#
 # Wheels built by cibuildwheel (see below) leave this machine, so they must
-# never bake in -march=native. This does NOT change the default for a plain
-# local `pip install .` (still OFF, i.e. -march=native, for local-dev
-# speed) -- cibuildwheel overrides it per-build via `config-settings`
-# below, per this doc's own "Building portable wheels" checklist, which
-# explicitly prefers that over flipping the pyproject.toml-wide default.
+# never bake in -march=native. cibuildwheel still pins ON explicitly via
+# `config-settings` below, so a native opt-in in the environment
+# (EDI_PORTABLE=0) can never leak into a released wheel.
 [tool.cibuildwheel]
 build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 skip = ["*-win32", "*-manylinux_i686", "*-musllinux*"]

@@ -42,6 +42,14 @@ The kernels this package exposes are the `fast_*` functions listed under
 pip install edi_kernels
 ```
 
+**CPU requirements.** The prebuilt wheels on PyPI, and any wheel or source
+install built with the default settings, target the compiler's baseline for
+the platform: plain x86-64 (SSE2) on Intel/AMD, so any 64-bit x86 CPU works
+and no AVX, AVX2 or AVX-512 is required. The bundled OpenBLAS picks faster
+kernels for your CPU at run time. A host-tuned build (`-march=native`) is
+opt-in for a source install, see the project README; it only runs on CPUs
+like the one that built it.
+
 ## Speed gains
 
 Point-estimate timings (median of 30 cold runs) for every bound kernel that

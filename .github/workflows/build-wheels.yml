@@ -90,6 +90,18 @@ jobs:
         with:
           package-dir: python
 
+      # cibuildwheel's test-command imports each wheel on the machine that built it, so it can
+      # never catch a wheel that needs a newer CPU than the runner it will be imported on
+      # (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284: an AVX-512 build died with SIGILL on
+      # an AVX2-only runner). Disassemble the x86-64 Linux extensions instead and fail on any
+      # instruction above the portable baseline. Linux only: binutils' objdump is preinstalled
+      # there; the macOS/Windows wheels take the same EDI_PY_PORTABLE=ON flags.
+      - name: Check wheels target the portable x86-64 baseline (no AVX/AVX-512)
+        if: runner.os == 'Linux'
+        run: |
+          python3 .github/scripts/test_check_wheel_isa.py
+          python3 .github/scripts/check_wheel_isa.py wheelhouse/*x86_64*.whl
+
       - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}

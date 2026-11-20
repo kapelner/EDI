@@ -151,6 +151,11 @@ jobs:
       # link back to python/ and R/EDI/src.
       - name: Build the edi_kernels wheel from this commit
         run: python -m pip wheel ./python --no-deps -w "$RUNNER_TEMP/wheel"
+      # The scenario job imports this wheel on a different runner, whose CPU can lack what this
+      # one has (v1.0.6-TODO-284: an AVX-512 build died with SIGILL on an AVX2-only runner). The
+      # build is portable by default now; this fails the job if that ever regresses.
+      - name: Check the wheel targets the portable x86-64 baseline
+        run: python3 .github/scripts/check_wheel_isa.py "$RUNNER_TEMP"/wheel/*.whl
       - uses: actions/upload-artifact@v7
         with:
           name: docs-scenarios-wheel

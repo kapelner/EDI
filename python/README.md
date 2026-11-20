@@ -130,6 +130,29 @@ speed-gains table above since there's nothing to compare to:
 pip install .
 ```
 
+**CPU requirements.** The default build is portable: no `-march` flag, so
+the extension targets the compiler's baseline (plain x86-64 with SSE2 on
+Intel/AMD) and runs on any 64-bit x86 CPU, with no AVX, AVX2 or AVX-512
+needed. The PyPI wheels are built the same way. This matches the R
+package, whose `configure` also defaults to `EDI_PORTABLE=1`.
+
+A host-tuned build (`-march=native -mtune=native`) is opt-in and is faster
+on the machine that built it, but the result only runs on CPUs with the same
+instruction sets. A wheel built natively on an AVX-512 machine dies with
+`Illegal instruction` (SIGILL) at `import edi_kernels` on an AVX2-only CPU,
+so never copy a native build to another machine or publish one:
+
+```bash
+pip install . --config-settings=cmake.define.EDI_PY_PORTABLE=OFF   # or: EDI_PORTABLE=0 pip install .
+```
+
+CMake caches this setting in the build directory (`build/<wheel tag>/`), so
+delete that directory when you switch between portable and native builds.
+To check a built wheel or extension, run
+`python3 .github/scripts/check_wheel_isa.py dist/*.whl` from the repository
+root. It disassembles the extension with `objdump` and fails on any AVX or
+AVX-512 instruction. CI runs it on every Linux x86-64 wheel.
+
 ## Usage
 
 Every bound kernel returns a `dict` (see `python/cpp/result_map_pybind.h`)

@@ -4980,3 +4980,19 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   NOT ticked: the RBS cell is nominal, but the SPBR cell stays at ~0.062 (this change does not reach it, since SPBR has
   8-9 blocks per stratum). OWNER DECISION: accept SPBR at 0.062 (open a TODO per the calibration rule), raise the
   threshold (e.g. 10 would switch SPBR here too: obs_within_block 0.055), or investigate SPBR separately.
+
+- [x] TODO-284 (added 2026-11-20, done 2026-11-20; ds-python-kernels-44358267779-f1): **`import edi_kernels` died with
+  SIGILL on an AVX2-only CPU.** Cause: `python/CMakeLists.txt` defaulted `EDI_PY_PORTABLE` to OFF (`-march=native
+  -mtune=native`) and `python/pyproject.toml` pinned OFF for every non-cibuildwheel build, so a plain `pip wheel
+  ./python`, `pip install .` and every sdist install (piwheels too) targeted the build host. The docs-scenarios
+  `build-wheel` job built that way on one ubuntu-latest runner and the `scenario` job imported the wheel on another (AMD
+  EPYC 7763, no AVX-512). Even `PyInit__core` is vectorized under `-march=native` (45 ymm instructions in a local native
+  build), so the crash comes at import, not at a kernel call. The PyPI wheels (cibuildwheel, `EDI_PY_PORTABLE=ON`) were
+  never affected: the 1.0.2 cp312 manylinux `_core` has 0 zmm and 0 ymm instructions, so no `.postN` re-release is
+  needed. Fix: portable is the default (no `-march`, the compiler's x86-64/SSE2 baseline), mirroring
+  `R/EDI/configure`'s `EDI_PORTABLE=1`; native is opt-in with `-DEDI_PY_PORTABLE=OFF` or `EDI_PORTABLE=0`, and
+  cibuildwheel still pins ON. Guard: `.github/scripts/check_wheel_isa.py` disassembles the extension with `objdump` and
+  fails on any AVX/AVX2/FMA/BMI or AVX-512 instruction (`--allow-avx2` rejects only AVX-512); unit tests in
+  `.github/scripts/test_check_wheel_isa.py`. Wired into `build-wheels.yml` (Linux x86-64 wheels, after cibuildwheel) and
+  the docs-scenarios `build-wheel` job. CPU baseline stated in `python/README.md` and `README_PYPI.md`; changelog in
+  `python/CHANGELOG.md`. Local `build/<wheel tag>/` dirs cache the old OFF value: delete them before rebuilding.

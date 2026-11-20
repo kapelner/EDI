@@ -133,6 +133,9 @@ or permutation function is exposed in Python.
 
 ### Fixed
 
+- `fast_neg_bin` now returns the negative log-likelihood (`neg_loglik`, equal to
+  -`logLik` from R's `fast_neg_bin_cpp`) and the fitted means `mu = exp(X b)`;
+  both were previously `nan` / empty (v1.0.6-TODO-188).
 - `fast_clayton_weibull_aft_optim`: the dependence parameter is capped at
   `log_theta = 6` (`log_theta_at_upper_bound` reports a capped optimum), a
   stale-gradient bug is fixed, and the likelihood ratios are overflow-safe.
@@ -195,6 +198,18 @@ or permutation function is exposed in Python.
 - OpenMP kernels no longer call `omp_set_num_threads`; they scope the thread
   count to each parallel region, so the global OpenMP setting is not changed
   by a kernel call. Numerical results are unaffected.
+- The default build is now portable: no `-march=native` unless you opt in
+  with `-DEDI_PY_PORTABLE=OFF` (pip:
+  `--config-settings=cmake.define.EDI_PY_PORTABLE=OFF`) or `EDI_PORTABLE=0`,
+  the same default as the R package. Before, a plain `pip wheel` or
+  `pip install .`, and every install from the sdist, built for the build
+  machine's CPU. A wheel built that way on an AVX-512 machine crashed
+  `import edi_kernels` with SIGILL on an AVX2-only CPU
+  (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). The PyPI wheels were
+  already portable and are not affected. CI now disassembles every Linux
+  x86-64 wheel and fails on any AVX or AVX-512 instruction
+  (`.github/scripts/check_wheel_isa.py`). The READMEs state the CPU
+  baseline: any 64-bit x86 CPU.
 
 ### Tests
 
