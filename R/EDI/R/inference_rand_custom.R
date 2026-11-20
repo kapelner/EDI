@@ -167,7 +167,7 @@ InferenceRandCustom = define_inference_class(
 			se = sqrt(sum(c(v1, v0), na.rm = TRUE))
 			list(est = est, se = se)
 		},
-		# v1.0.6-TODO-285: the survival randomization CI inverts this class's own
+		# v1.0.6-TODO-286: the survival randomization CI inverts this class's own
 		# compute_rand_two_sided_pval(delta) (the statistic sees raw times; delta
 		# multiplies the treated times by exp(delta)) instead of evaluating the
 		# user's statistic on log times under an additive shift.
@@ -262,7 +262,7 @@ InferenceRandCustom = define_inference_class(
 			# shifts()); each permuted assignment must re-impose delta on its own
 			# treated units on that same scale. Ignoring delta made the null
 			# distribution identical for every delta. Re-adding it additively
-			# whatever the transform (as this did until v1.0.6-TODO-285) mixed a
+			# whatever the transform (as this did until v1.0.6-TODO-286) mixed a
 			# log/logit removal with an additive re-add on survival, count and
 			# proportion responses (and on "log"/"logit" continuous), so no sharp
 			# null was tested. shift_randomization_responses() is the helper every

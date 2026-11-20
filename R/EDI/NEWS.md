@@ -613,7 +613,7 @@
   classes do. The survival randomization CI now evaluates the statistic on the raw
   times and inverts the class's own p-value, so it is an interval for the log time
   ratio (it used to pass log times to the statistic). Continuous responses under
-  the default are unchanged (v1.0.6-TODO-285).
+  the default are unchanged (v1.0.6-TODO-286).
 
 * `ObservationalDesignBlocks` with fewer than 5 blocks now jackknifes one
   subject at a time within blocks (treated as strata) instead of leaving out

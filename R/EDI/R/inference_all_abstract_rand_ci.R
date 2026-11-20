@@ -365,7 +365,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			temp_inf = if (resp_type %in% c("count", "proportion", "survival")) self$duplicate() else self
 			transform_arg = "none"
-			# v1.0.6-TODO-285: a class whose statistic is defined on raw survival times
+			# v1.0.6-TODO-286: a class whose statistic is defined on raw survival times
 			# (InferenceRandCustom) inverts its own p-value -- "log" shift of the raw
 			# times -- rather than seeing log times under an additive shift. Only the
 			# transform choice changes here; the TODO-119 scale check above still uses
