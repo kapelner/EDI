@@ -604,6 +604,17 @@
 
 ## Bug fixes
 
+* `InferenceRandCustom` at a nonzero `delta` now tests a coherent sharp null on
+  survival, count and proportion responses, and with `transform_responses = "log"`
+  or `"logit"`. Each draw used to re-add `delta` additively although it had been
+  removed on the log (survival, count) or logit (proportion) scale, so the
+  reference distribution matched no null (proportion draws could leave [0, 1]).
+  The draws now re-apply `delta` on the same scale, exactly as the built-in
+  classes do. The survival randomization CI now evaluates the statistic on the raw
+  times and inverts the class's own p-value, so it is an interval for the log time
+  ratio (it used to pass log times to the statistic). Continuous responses under
+  the default are unchanged (v1.0.6-TODO-285).
+
 * `ObservationalDesignBlocks` with fewer than 5 blocks now jackknifes one
   subject at a time within blocks (treated as strata) instead of leaving out
   whole blocks, which gave NA (v1.0.6-TODO-231).

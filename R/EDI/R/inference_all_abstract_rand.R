@@ -803,41 +803,23 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (!is.null(worker_des_priv)) {
 						worker_des_priv$w = as.integer(perm_data$w)
 						worker_des_priv$m = if (!is.null(perm_data$m_vec)) perm_data$m_vec else base_m
-						y_sim = base_y
-						if (delta != 0) {
-							resp_type = worker_des_priv$response_type
-							if (transform_responses == "logit") {
-								y_sim[perm_data$w == 1] = inv_logit(logit(y_sim[perm_data$w == 1], zero_one_logit_clamp) + delta, zero_one_logit_clamp)
-							} else if (transform_responses == "log" && resp_type == "survival") {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] * exp(delta)
-							} else if (transform_responses == "log" && resp_type == "count") {
-								y_sim[perm_data$w == 1] = as.integer(round(y_sim[perm_data$w == 1] * exp(delta)))
-							} else if (transform_responses == "log" && resp_type != "count") {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] * exp(delta)
-							} else {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] + delta
-							}
-						}
+						y_sim = private$shift_randomization_responses(
+							y = base_y, w = perm_data$w, delta = delta,
+							transform_responses = transform_responses,
+							response_type = worker_des_priv$response_type,
+							inverse = FALSE, zero_one_logit_clamp = zero_one_logit_clamp
+						)
 						worker_des_priv$y = y_sim
 						private$sync_randomization_worker_state(worker_des, worker)
 					} else {
 						w_priv$w = as.integer(perm_data$w)
 						w_priv$m = if (!is.null(perm_data$m_vec)) perm_data$m_vec else base_m
-						y_sim = base_y
-						if (delta != 0) {
-							resp_type = w_priv$des_obj_priv_int$response_type
-							if (transform_responses == "logit") {
-								y_sim[perm_data$w == 1] = inv_logit(logit(y_sim[perm_data$w == 1], zero_one_logit_clamp) + delta, zero_one_logit_clamp)
-							} else if (transform_responses == "log" && resp_type == "survival") {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] * exp(delta)
-							} else if (transform_responses == "log" && resp_type == "count") {
-								y_sim[perm_data$w == 1] = as.integer(round(y_sim[perm_data$w == 1] * exp(delta)))
-							} else if (transform_responses == "log" && resp_type != "count") {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] * exp(delta)
-							} else {
-								y_sim[perm_data$w == 1] = y_sim[perm_data$w == 1] + delta
-							}
-						}
+						y_sim = private$shift_randomization_responses(
+							y = base_y, w = perm_data$w, delta = delta,
+							transform_responses = transform_responses,
+							response_type = w_priv$des_obj_priv_int$response_type,
+							inverse = FALSE, zero_one_logit_clamp = zero_one_logit_clamp
+						)
 						w_priv$y = y_sim
 					}
 					w_priv$cached_values = private$build_fast_randomization_worker_cache(
@@ -1120,6 +1102,19 @@ InferenceRand = R6::R6Class("InferenceRand",
 			estimator = private[["compute_bootstrap_worker_estimate"]]
 			estimator(worker_state)
 		},
+		# The one place the sharp-null shift is applied to a response vector. With
+		# inverse = TRUE it removes delta from the treated units of `w` (this is how
+		# setup_randomization_template_and_shifts() builds y_delta); with inverse =
+		# FALSE it re-imposes delta on the treated units of a draw's assignment.
+		# Every randomization path (the reused-worker loops, the per-draw worker
+		# loaders, and fast paths that evaluate a statistic in R on y_delta, e.g.
+		# InferenceRandCustom) must re-impose with this helper and the same
+		# transform_responses that produced y_delta, so the re-add inverts the
+		# removal: "logit" shifts on the logit scale (clamped by
+		# zero_one_logit_clamp), "log" multiplies by exp(delta) (rounded for
+		# count), anything else ("none", "already_transformed", ...) is additive.
+		# The "none" -> per-response-type default mapping happens upstream, in
+		# compute_rand_two_sided_pval(), before y_delta is built.
 		shift_randomization_responses = function(y, w, delta, transform_responses, response_type, inverse = FALSE, zero_one_logit_clamp = .Machine$double.eps){
 			if (delta == 0) return(y)
 			y_shifted = y

@@ -404,17 +404,27 @@ inf_surv$set_seed(1)
 inf_surv$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
 ```
 
-Use a nonzero `delta` and `compute_rand_confidence_interval()` with **continuous
-responses only**. The interval is for an additive shift of the response, which has
-a clear meaning for a continuous outcome but not for the other types. EDI refuses
-the interval for incidence, count and proportion responses, and refuses a nonzero
-`delta` for incidence. For count, proportion and survival responses a nonzero
-`delta` p-value is returned, but it does not test a coherent hypothesis: EDI removes
-the shift from the treated responses on the log (or logit) scale and adds it back to
-each draw's treated responses additively. On survival responses EDI does not refuse
-the interval (`supports("randomization_ci")` is `TRUE`) and returns bounds, but they
-come from those same mixed-scale tests, so they are not an interval for any effect;
-ignore them and report the `delta = 0` p-value. For an effect
+A nonzero `delta` shifts the treated responses on a scale that depends on the
+response type (under the default `transform_responses = "none"`). EDI removes the
+shift from the observed treated responses and re-imposes it on each draw's treated
+responses on that same scale, and your statistic always sees the responses on their
+own scale:
+
+- **continuous**: additive, $y_i(1) = y_i(0) + \delta$ (the section above);
+- **survival**: $\delta$ is a log time ratio, $y_i(1) = y_i(0)\,e^{\delta}$, with
+  censoring times scaled alike and `dead` unchanged.
+  `compute_rand_confidence_interval()` returns an interval for $\delta$;
+  exponentiate its bounds for an interval for the time ratio $e^{\delta}$;
+- **count**: $\delta$ is a log rate ratio (treated counts multiplied by
+  $e^{\delta}$, then rounded);
+- **proportion**: $\delta$ is a shift on the logit scale;
+- **incidence**: a nonzero `delta` is refused.
+
+`transform_responses = "log"` or `"logit"` picks the multiplicative or logit-scale
+shift explicitly. The randomization interval is refused for incidence, count and
+proportion responses, because its bounds would not be on the scale of the
+statistic's raw-scale estimate; there, use the p-value at the `delta` you want to
+test. For an effect
 estimate with an interval on those outcomes, use the matching built-in class from
 the cookbooks ([incidence](cookbook-incidence.html), [count](cookbook-count.html),
 [proportion](cookbook-proportion.html), [survival](cookbook-survival.html),

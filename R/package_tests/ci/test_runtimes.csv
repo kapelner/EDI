@@ -1041,6 +1041,7 @@ R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-custom-null-shift-scale-by-response-type.R,correctness,40,bootstrap
 R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,correctness,1.6,measured_with_30_percent_headroom
@@ -2790,6 +2791,7 @@ R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-custom-null-shift-scale-by-response-type.R,coverage,80,bootstrap
 R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,coverage,240,bootstrap

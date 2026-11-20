@@ -24,14 +24,14 @@
 #' available -- there is no package point-estimator, Wald path, or bootstrap
 #' machinery on this class, so no other action needs disabling.
 #'
-#' The confidence interval inverts tests under an additive shift \eqn{\delta}
-#' of the treated responses, so it is a confidence interval for the additive
-#' effect \eqn{\delta} on the response scale, whatever the statistic's own
-#' units (a t statistic, or \code{-10 * mean difference}, give the same
-#' interval). The search is centred on the observed difference in mean
-#' response, not on the statistic's observed value. The statistic must respond
-#' to the shift (be monotone in \eqn{\delta}); if the test rejects every
-#' \eqn{\delta} tried the CI errors instead of returning a rejected band.
+#' The confidence interval inverts the randomization test over the shift
+#' \eqn{\delta} (see below for its scale by response type), whatever the
+#' statistic's own units (a t statistic, or \code{-10 * mean difference}, give the
+#' same interval). The search is centred on the observed difference in mean
+#' response on the shift scale, not on the statistic's observed value. The
+#' statistic must respond to the shift (be monotone in \eqn{\delta}); if the test
+#' rejects every \eqn{\delta} tried the CI errors instead of returning a rejected
+#' band.
 #'
 #' Draws on which the statistic returns \code{NA}, \code{NaN} or an infinite
 #' value are dropped silently (whatever \code{na.rm} is) and the p-value is
@@ -40,23 +40,31 @@
 #' required, otherwise the p-value is \code{NA}. See
 #' \code{InferenceRand$compute_rand_two_sided_pval()}.
 #'
-#' \strong{Nonzero \code{delta} and the randomization CI by response type.} Each
-#' reference draw re-applies \eqn{\delta} to the draw's treated units additively
-#' (\eqn{y + \delta w}), whatever \code{transform_responses} is, after the shift was
-#' removed from the observed treated units on the \code{transform_responses} scale.
-#' On continuous responses (default \code{"none"}, an additive shift) both steps
-#' agree, so a nonzero \code{delta} tests the additive sharp null and
-#' \code{compute_rand_confidence_interval()} is an interval for the additive effect.
-#' On count, proportion and survival responses \code{compute_rand_two_sided_pval()}
-#' resolves the default to \code{"log"} or \code{"logit"}, so the removal is
-#' multiplicative (or on the logit scale) while the re-application is additive: a
-#' nonzero-\code{delta} p-value there is computed without error but does not test a
-#' coherent sharp null. The randomization CI is refused for incidence, count and
-#' proportion responses. On survival responses it is not refused
-#' (\code{supports("randomization_ci")} is \code{TRUE}) and returns bounds, but they
-#' come from the same mixed-scale nulls, with the search centred on the raw-time
-#' difference in means, so they are not a valid interval for any effect. On those
-#' response types use only the \code{delta = 0} p-value.
+#' \strong{The scale of \code{delta} by response type.} A nonzero \code{delta}
+#' tests the sharp null that treatment moves every subject's response by
+#' \eqn{\delta} on the \code{transform_responses} scale. The shift is removed from
+#' the observed treated units and re-imposed on each draw's treated units on that
+#' same scale, and the statistic always sees responses on their own scale. Under
+#' the default \code{transform_responses = "none"}:
+#' \itemize{
+#'   \item continuous: additive, \eqn{y_i(1) = y_i(0) + \delta};
+#'     \code{compute_rand_confidence_interval()} is an interval for the additive effect.
+#'   \item survival: \eqn{\delta} is a log time ratio, \eqn{y_i(1) = y_i(0) e^\delta}
+#'     (censoring times are scaled alike, event indicators unchanged);
+#'     \code{compute_rand_confidence_interval()} is an interval for \eqn{\delta}, so
+#'     exponentiate its bounds for an interval for the time ratio \eqn{e^\delta}.
+#'   \item count: \eqn{\delta} is a log rate ratio, the treated counts multiplied by
+#'     \eqn{e^\delta} and rounded to integers.
+#'   \item proportion: \eqn{\delta} is a shift on the logit scale (responses clamped by
+#'     \code{zero_one_logit_clamp}).
+#'   \item incidence: a nonzero \code{delta} is refused.
+#' }
+#' \code{transform_responses = "log"} or \code{"logit"} selects the multiplicative or
+#' logit-scale shift explicitly (on continuous responses too, which then must be
+#' positive, or in (0, 1), for the null to make sense). The randomization CI is
+#' refused for incidence, count and proportion responses (its bounds would not be
+#' on the scale of this class's raw-scale estimate); on those types use the
+#' p-value, at \code{delta = 0} or at a chosen \code{delta}.
 #'
 #' @param des_obj A Design object whose subjects are assigned and responses
 #'   recorded.
@@ -141,11 +149,14 @@ InferenceRandCustom = define_inference_class(
 	private = list(
 		custom_randomization_statistic_function = NULL,
 		# The statistic is in arbitrary units, so the randomization-CI search
-		# (which inverts an additive shift delta of y) must be centred on the
-		# observed difference in mean response and scaled by its Welch SE, not on
-		# the statistic's own value.
+		# must be centred on the observed difference in mean response on the
+		# shift scale and scaled by its Welch SE, not on the statistic's own
+		# value. On survival responses the shift is a log-time ratio (see
+		# randomization_ci_shifts_raw_survival_times()), so the centre is the
+		# difference in mean log time.
 		get_randomization_ci_delta_scale_seed = function(){
 			y = as.numeric(private$y)
+			if (identical(private$des_obj_priv_int$response_type, "survival")) y = log(pmax(.Machine$double.eps, y))
 			w = as.numeric(private$w)
 			y1 = y[w == 1]
 			y0 = y[w == 0]
@@ -156,6 +167,11 @@ InferenceRandCustom = define_inference_class(
 			se = sqrt(sum(c(v1, v0), na.rm = TRUE))
 			list(est = est, se = se)
 		},
+		# v1.0.6-TODO-285: the survival randomization CI inverts this class's own
+		# compute_rand_two_sided_pval(delta) (the statistic sees raw times; delta
+		# multiplies the treated times by exp(delta)) instead of evaluating the
+		# user's statistic on log times under an additive shift.
+		randomization_ci_shifts_raw_survival_times = function() TRUE,
 		compiled_cpp_stat_fn = NULL,
 		compiled_cpp_stat_src = NULL,
 		# Ported unchanged from the removed InferenceRand$set_custom_
@@ -241,16 +257,28 @@ InferenceRandCustom = define_inference_class(
 			# compiled_cpp_stat_src rather than dereferencing an XPtr serialized
 			# from the main process (same rationale as the ported code above).
 			cpp_fn_override = if (!is.null(private$compiled_cpp_stat_src)) cached_cpp_compile(private$compiled_cpp_stat_src) else NULL
-			# `y` arrives already shifted to the delta-null (treated responses minus
-			# delta, see setup_randomization_template_and_shifts()); each permuted
-			# assignment must add delta back onto its own treated units, exactly as
-			# the built-in fast paths do (e.g. compute_simple_mean_diff_parallel_cpp).
-			# Ignoring delta made the null distribution identical for every delta, so
-			# the CI inversion returned garbage for any non-zero effect.
+			# `y` arrives with delta already removed from the observed treated units
+			# on the transform_responses scale (setup_randomization_template_and_
+			# shifts()); each permuted assignment must re-impose delta on its own
+			# treated units on that same scale. Ignoring delta made the null
+			# distribution identical for every delta. Re-adding it additively
+			# whatever the transform (as this did until v1.0.6-TODO-285) mixed a
+			# log/logit removal with an additive re-add on survival, count and
+			# proportion responses (and on "log"/"logit" continuous), so no sharp
+			# null was tested. shift_randomization_responses() is the helper every
+			# base-class path uses, so the re-add inverts the removal exactly.
 			delta = as.numeric(delta)[1L]
+			response_type = private$des_obj_priv_int$response_type
 			vapply(seq_len(ncol(w_mat)), function(j) {
 				wj = w_mat[, j]
-				private$evaluate_stat(if (isTRUE(delta != 0)) y + delta * wj else y, wj, dead, cpp_fn_override)
+				y_draw = if (isTRUE(delta != 0)) {
+					private$shift_randomization_responses(
+						y = y, w = wj, delta = delta, transform_responses = transform_responses,
+						response_type = response_type, inverse = FALSE,
+						zero_one_logit_clamp = zero_one_logit_clamp
+					)
+				} else y
+				private$evaluate_stat(y_draw, wj, dead, cpp_fn_override)
 			}, numeric(1L))
 		}
 		# Deliberately NOT implementing compute_fast_rand_bootstrap_distr,
