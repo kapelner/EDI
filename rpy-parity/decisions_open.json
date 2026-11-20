@@ -1,1 +1,9 @@
-{}
+{
+ "rpy-parity-d05501562": {
+  "first_seen": "2026-11-20T14:02:42+00:00",
+  "key": "other",
+  "last_seen": "2026-11-20T14:02:42+00:00",
+  "text": "`python/cpp/bindings_survival.cpp::fast_stratified_coxph_regression` (other): The stratified docstring is out of date against the kernel and against its unstratified sibling. (1) estimate_only: \"If True, skip variance-covariance computation and return only coefficients.\" The kernel's estimate_only branch also returns converged, neg_ll, num_iter, hit_iteration_cap, fisher_information, gradient_norm and min_eigenvalue_information; only vcov is omitted. The unstratified docstring was already corrected to \"only vcov is omitted\". (2) optimization_alg: the description says \"Fit via Newton-Raphson, same as fast_coxph_regression\", and maxit says \"Maximum number of Newton-Raphson iterations\". The binding passes optimization_alg through to cox_fit, so \"lbfgs\" runs L-BFGS. (3) tol says only \"Convergence tolerance.\" In the kernel it is the |old_ll - ll| change in the objective for newton_raphson and the gradient norm for lbfgs, as the unstratified docstring states. Suggested: Copy the unstratified wording into the stratified docstring. Say that only vcov is omitted for estimate_only. Say that optimization_alg='lbfgs' selects L-BFGS. Describe tol as the objective-change criterion for newton_raphson and the gradient norm for lbfgs. Make maxit cover both algorithms. Also say that fixed_idx is 1-based, as the unstratified docstring does. The lines to edit are not unique in the file (271/493/554 repeat), so a human needs to apply this.",
+  "unit": "python/cpp/bindings_survival.cpp::fast_stratified_coxph_regression"
+ }
+}
