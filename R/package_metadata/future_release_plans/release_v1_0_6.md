@@ -1530,6 +1530,23 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   registration. Equal-size allocations identical (same w and digest). Test
   `test-blocked-cluster-unequal-block-sizes.R` (112); cluster article paragraph updated; known_todo row removed;
   `test-design-inference.R` CMH pattern updated by the coordinator. NEWS added.
+  - Also reported by the docs-scenario audit: ds-clusters-blocking-44358267779-f1 (2026-11-18, unequal blocks error
+    and the message names `equal_block_sizes`/`B_target`, which the class does not take).
+  - Also reported by the docs-scenario audit: ds-factorial-44358267779-f6 (2026-11-18, on `DesignFixedBlocking`
+    with `B_target = 2` given, the unequal-block error still says "strata_cols was named without B_target" and
+    advises passing `B_target`; the help says the check fires when subjects are added, but it fires at
+    assignment).
+  - Checked 2026-11-20 on HEAD (`load_all(compile = FALSE)` and the installed build of 15:04): the blocked-cluster
+    part is fixed. The clusters-blocking F1 repro (24 schools, districts of 106/131/184/216 pupils) and this
+    entry's own repro assign without error, w is constant within every school, and each district gets half its
+    schools treated (North 4/4, South 3/3, East 3/3, West 2/2). Left open: the factorial F6 repro still fails on
+    HEAD. `DesignFixedBlocking(strata_cols = "B", B_target = 2)` with blocks of 100/98 errors at
+    `assign_w_to_all_subjects()` with "Because strata_cols was named without B_target ... (or pass an explicit
+    B_target)" (`R/EDI/R/design_blocking_abstract.R` ~L293-300 picks the advice from the constructor's formals,
+    not from whether `B_target` was passed). Fix: choose the clause by whether `B_target` was given, drop the
+    `B_target` advice when the strata are categorical (it cannot equalise 100/98), and make the help say the
+    check fires at assignment (or move it to `add_all_subjects_to_experiment()`). Tick this entry when that is
+    done.
 - [ ] TODO-74 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent): **The
   jackknife silently returns `c(NA, NA)` on `DesignFixedBlockedCluster`.**
   `compute_jackknife_wald_confidence_interval()` gives `NA, NA` with no warning for `unit = "auto"`,
@@ -1546,6 +1563,13 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   Update 2026-11-18 (v1.0.6-TODO-108 agent): not fixed (cluster-unit jackknife on blocked designs still unimplemented),
   but `mark_jackknife_nonestimable_if_block_unsupported()` now warns and names `unit = "block"`, and the BCa CI that
   hits the same refusal now warns too. `cluster-and-factorial-experiments.Rmd` text updated to "with a warning".
+  - Also reported by the docs-scenario audit: ds-clusters-blocking-44358267779-f3 (2026-11-18, on
+    `DesignFixedBlockedCluster` the advice runs in a circle: the cluster-independence warning recommends the
+    jackknife with `unit = "cluster"`, which is NA and says to use `unit = "block"`, which is NA with 4 units
+    and says to use "the model-based standard error", the SE the first warning called too narrow; the reason
+    "blocks hold more than one subject" does not explain refusing leave-one-cluster-out). Filed here rather than as
+    a new entry because this entry's fix (make the warning name a unit that works on the design) covers it; the
+    "model-based SE" advice of the too-few-units message must also not be given on a cluster design.
 - [ ] TODO-75 (added 2026-11-17, agent, owner request; found by the reporting-an-analysis article agent): **The
   BCa bootstrap p-value returns `NA`, with no warning, exactly when the evidence is strongest**: when the null
   value lies outside the whole bootstrap distribution. BCa is the default p-value type, so the default call
@@ -1602,6 +1626,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   Decided (owner, 2026-11-18): KK designs with `n = NULL` start matching once the covariate model matrix exists (no
   requirement for `n`). `t_0_pct` roxygen in KK14 / KK21 / KK21stepwise now says so (coordinator; not yet
   roxygenized).
+  - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f2 (2026-11-18, KK14/KK21 with
+    `n = NULL` fail at the 5th assignment and leave t advanced with no w stored; the half-added subject is the
+    missing rollback of v1.0.6-TODO-316).
 - [ ] TODO-77 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **No sequential design with `n = NULL` can be analyzed.** `check_experiment_completed()` and
   `assert_all_subjects_arrived()` (`R/design_abstract.R` ~L482 and ~L500) evaluate
@@ -1620,6 +1647,8 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   data-shape matrix n = NULL cells 0 failing (354 cases), fixed-n sequential 0 failing (357); known_todo rows -76/-77
   removed; n = NULL fixtures now add responses in reverse order (so TODO-78 is exercised). KK roxygen for `t_0_pct`
   should mention n = NULL (suggested text in the agent report). NEWS added.
+  - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f1 (2026-11-18, with `n = NULL`
+    every completeness check and every Inference constructor fails with "argument is of length zero").
 - [ ] TODO-78 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **With `n = NULL`, responses must be added in enrollment order, and the error message is wrong.**
   `add_one_subject_response()` (`R/design_abstract.R` ~L370-382) only appends to `y` when the sample size is not
@@ -1637,6 +1666,8 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   data-shape matrix n = NULL cells 0 failing (354 cases), fixed-n sequential 0 failing (357); known_todo rows -76/-77
   removed; n = NULL fixtures now add responses in reverse order (so TODO-78 is exercised). KK roxygen for `t_0_pct`
   should mention n = NULL (suggested text in the agent report). NEWS added.
+  - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f6 (2026-11-18, with `n = NULL` an
+    out-of-order outcome for an enrolled subject is refused as "not yet arrived").
 - [ ] TODO-79 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **`vignettes/reproducibility.Rmd` overstates re-seeding for sequential designs.** Around L23-37 it says
   `maybe_set_seed()` runs "immediately before each call that consumes randomness" and that calling a draw method
@@ -3066,6 +3097,12 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   results on well-scaled data are unchanged. C++ change: compile only that file (kernel-swap check), never a full
   build. Then make the article render without the warning (`articles-strict`).
   - Done 2026-11-18: `R/EDI/src/fast_weibull_regression.cpp` standardizes badly scaled columns internally (`make_weibull_column_scaling()`, `fit_weibull_aft_with_column_scaling()`, shared by the right- and left/interval-censoring kernels and the randomization-bootstrap kernel) and maps params, vcov, information, score and gradient back; a guarded Newton polish (at most 5 steps) finishes the fit when the transform is active. On the colon data both algorithms converge and match `survreg` (treatment 0.3809608, SE 0.1117923). Test: `test-weibull-aft-unscaled-covariates-converges.R`. Verified by a single-file kernel swap into the installed EDI (139 Weibull test files: identical results except the new file, which fails on the old kernel). Python wheel not built.
+  - Also reported by the docs-scenario audit: ds-survival-censoring-44358267779-f1 (2026-11-18, on installed 1.0.4
+    the default L-BFGS fit stopped short of the MLE: 0.4776586 vs survreg 0.4771847, n = 80 right-censored).
+    Verified fixed on HEAD 2026-11-20 (`load_all(compile = FALSE)`): the finding's repro gives 0.47718467 for both,
+    and the exported `fast_weibull_regression(optimization_alg = "lbfgs")` matches survreg to 8 digits on the
+    same kind of data. Not yet pinned by a test on this repro or on the interval-censored article data
+    (`ic-weibull`, 0.4430507).
 
 - [ ] TODO-164 (added 2026-11-18, agent; from v1.0.6-TODO-161): **The Weibull C++ kernel (`fast_weibull_regression_cpp`)
   fails to converge on unscaled covariates** (lbfgs and newton both hit `maxit = 100` on `survival::colon`; survreg
@@ -4719,6 +4756,11 @@ itself still needs a look.
   regen pending), tests: `test-ibcrd-tie-rounding-redraw-count.R` (updated + grid test),
   `test-rerandomization-prop-acceptable-odd-n-treated-count.R` (new). Open: comprehensive results rows for these two
   designs on odd-n datasets drift and need the next regeneration.
+  - Also reported by the docs-scenario audit: ds-fixed-designs-44358267779-f2 (2026-11-18, with `prop_acceptable`
+    the realized allocation is the best of 1 / prop_acceptable draws while the reference keeps the best r of
+    r / prop_acceptable, so the randomization test over-rejects, 7.25% at 5%). Not fixed by this entry, which
+    changed only treated-count rounding: re-run 2026-11-20 on HEAD, 31.7% of realized allocations vs 0% of
+    reference draws lie above the base 1% quantile (KS D = 0.317), as in the audit. Filed as v1.0.6-TODO-294.
 - [ ] TODO-235 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-217 agent): **KK IVWC leftovers after the
   Bayesian-bootstrap fix.** (1) OWNER DECISION: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s own Bayesian-bootstrap
   hook is a marginal-Weibull surrogate, not the IVW estimator (bootstrap mean 0.55 vs estimate 0.63): refuse it like
@@ -4817,6 +4859,418 @@ entry.
   entry point that takes `permutations`: accept a bare matrix as `list(w_mat = .)`; require n rows, at least r columns,
   values in {0, 1}, no NA; and say which rule failed. Test: each malformed case errors with its rule; the valid list still
   gives 0.304 on the finding's repro.
+
+### Docs-scenario findings, run 44358267779, 2026-11-20 (TODO-290..320)
+
+The docs-scenario audit (`.github/workflows/audit-docs-scenarios.yml`, run 44358267779, 2026-11-18) also followed the
+sequential-designs, fixed-designs, clusters-blocking, factorial, survival-censoring and missing-data articles and help
+pages against installed 1.0.4. Findings and repros: `git show
+origin/audit-notes:docs-scenarios/runs/2026-11-18-run44358267779/<area>/findings.md`; "Repro: <area> F<k>" below
+names the block in that file. Findings an existing entry already covers are cited there instead: sequential-designs
+f1/f2/f6 (v1.0.6-TODO-77/-76/-78), clusters-blocking f1 and factorial f6 (v1.0.6-TODO-73), clusters-blocking f3
+(v1.0.6-TODO-74), survival-censoring f1 (v1.0.6-TODO-163, verified fixed on HEAD 2026-11-20) and fixed-designs f2
+(cited at v1.0.6-TODO-234, which did not fix it, and filed as v1.0.6-TODO-294). Code locations marked "suspected"
+were found by reading, not by running a fix.
+
+- [ ] TODO-290 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f3): **KK14/KK21
+  constructors accept `lambda` and `t_0_pct` outside [0, 1].** `lambda = -1`, `1.5`, `2` or `NA` constructs silently;
+  KK14 then fails at the first post-burn-in assignment (a third of the way into the trial) with "NaNs produced" and
+  "missing value where TRUE/FALSE needed" (`qf()` in `DesignSeqOneByOneKK14`, `R/EDI/R/design_seq_one_by_one_KK14.R`
+  ~L188), and KK21 with "'probs' outside [0,1]". `t_0_pct = -0.2` and `1.5` are accepted; 1.5 gives a design that
+  never matches (0 pairs of 30) with no warning. The constructor stores both unchecked (`private$lambda = ...`,
+  `private$t_0_pct = ...`, ~L129-130; KK21 passes them to `super$initialize()`). Fix: in the KK14 constructor (shared
+  by KK21/KK21stepwise) `assertNumber(lambda, lower = 0, upper = 1)` with 0 < lambda < 1 and `assertNumber(t_0_pct,
+  lower = 0, upper = 1)`, with messages naming the argument, like Efron's `weighted_coin_prob` check. Test: each bad
+  value errors at `$new()` on all three KK classes; the defaults still give today's allocations. Repro:
+  sequential-designs F3.
+
+- [ ] TODO-291 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f4): **High priority:
+  `InferenceContinKKGLMM`'s parametric bootstrap swaps the two variance components, so its CI is ~70x narrower than
+  Wald and its p-value sits at the 2/(B+1) floor.** Audit (KK14, n = 60, 26 pairs): Wald CI [-0.238, 0.679], p = 0.347;
+  parametric-bootstrap CI [0.214, 0.227] (B = 199) and p = 0.01; replicate SD ~0.003 against a model SE of 0.23;
+  `InferenceSuite` reports the `param_boot_direct` row as "ok". Re-run on HEAD 2026-11-20 with `load_all(compile =
+  FALSE)`: Wald [0.585, 1.056], bootstrap [0.810, 0.830], still collapsed. Cause (confirmed by reading):
+  `simulate_under_lik_null()` (`R/EDI/R/inference_continuous_KK_glmm.R` ~L499) reads `sigma_u = exp(b[p + 1])` and
+  `sigma_e = exp(b[p + 2])`, but `fast_gaussian_lmm_cpp` returns `b = c(beta, log_sigma_e, log_sigma_b)`
+  (`R/EDI/src/fast_gaussian_lmm.cpp` ~L538-544): the residual SD is used for the pair effect and the (often near-zero)
+  pair SD for the residual, so within-pair noise vanishes from the simulated data. The comment above the code has the
+  same wrong order. The likelihood-ratio bootstrap (0.345) uses the same simulator but its statistic is less
+  sensitive to the noise scale. Fix: swap the two indices (and the comment); check the other KK GLMM simulators
+  (count, proportion, ordinal) and any other reader of `fast_gaussian_lmm_cpp()$b` for the same layout mistake. Test:
+  on the finding's repro, the replicate SD is within 25% of the Wald SE and the bootstrap CI covers the Wald CI's
+  midpoint; a small null simulation of the bootstrap p-value holds its size. NEWS: changes results. Repro:
+  sequential-designs F4.
+
+- [ ] TODO-292 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f5):
+  **`InferenceSuite$run_all_inference()` with `max_secs_per_class` and `num_cores = 2` prints the report and then
+  fails with "arguments imply differing number of rows: 1, 0", losing every result.** The same call with `num_cores =
+  1L`, or without `max_secs_per_class`, returns 3 rows; in a 13-class run 2 min 13 s of results were lost, and a forked
+  worker printed "write error, closing pipe to the master". The error comes from the `results_table` build
+  (`R/EDI/R/inference_suite.R` ~L5348, `data.frame(inference_class = r$inference_class, ...)`), so one row has a
+  length-0 field. Suspected: a row produced on the fork-timeout path lacks a field, e.g.
+  `run_all_inference_fork_timeout_row()` (~L1431) sets no `tau`, so `r$tau` is NULL. Fix: build every row from one
+  constructor that fills every column (NA for missing), and make the table builder use `%||% NA` for each field so a
+  bad row cannot drop the whole report. Test: the finding's repro (`classes = "InferenceContinRobustRegr"`, 2 cores,
+  `max_secs_per_class = 20`) returns `results_table` with the same rows as 1 core; a forced timeout row has every
+  column. Repro: sequential-designs F5.
+
+- [ ] TODO-293 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f1): **High priority:
+  after `compute_rand_two_sided_pval()`, `InferenceAllSimpleMeanDiffPooledVar`'s asymptotic p-value and CI are
+  silently `NA`.** On a fresh object the p-value is 0.9359437 (matches `t.test(var.equal = TRUE)`); after one
+  `compute_rand_two_sided_pval(r = 101)` it is `NA` and the CI `NA NA`, with no warning, while `is_nonestimable()` is
+  FALSE and `compute_estimate()` still returns the number. In a 200-replicate loop all 200 asymptotic p-values were
+  NA. Same on iBCRD and Rerandomization; `InferenceAllSimpleAverageDiff` and `InferenceContinOLS` are not affected.
+  Suspected cause: `compute_direct_pooled_t_components()` (`R/EDI/R/inference_all_simple_mean_diff_pooled_var.R`
+  ~L157) only calls `compute_estimate()` when `cached_values$beta_hat_T` is NULL and then reads
+  `cached_values$yTs`/`yCs`; the parent's fast estimate path (`R/EDI/R/inference_all_average_diff.R` ~L142-145, used
+  by the randomization machinery) caches `beta_hat_T` without `yTs`/`yCs`, so `n_t = n_c = 0` and the NA branch is
+  cached. Fix: compute the pooled components from `private$y`/`private$w` directly (or recompute `yTs`/`yCs` when
+  missing, as `inference_all_average_diff.R` ~L242 does), and never cache NA components when the inputs are valid.
+  Test: every procedure order (rand p, rand CI, bootstrap, then asymptotic, and the reverse) gives the fresh-object
+  asymptotic p and CI. Repro: fixed-designs F1.
+
+- [ ] TODO-294 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f2): **The realized
+  `DesignFixedRerandomization` allocation with `prop_acceptable` comes from a different law than its randomization
+  reference, and the randomization test over-rejects (7.25% at nominal 5%).** `assign_w_to_all_subjects()` takes r = 1,
+  i.e. the best of `round(1 / prop_acceptable)` = 100 draws, while `draw_ws_according_to_design(501)` keeps the best
+  501 of 50,100 (`draw_ws_raw()`, `R/EDI/R/design_fixed_rerandomization.R` ~L212-230). Audit (n = 40, two covariates,
+  `prop_acceptable = 0.01`): 31.7% of realized allocations have M(w) above the base distribution's 1% quantile, 0% of
+  the reference draws do (KS D = 0.317); randomization test size 7.25% over 800 null trials (MCSE 0.77%), 5.88% with
+  `obj_val_cutoff` at the same quantile. v1.0.6-TODO-234 only changed treated-count rounding; re-run on HEAD
+  2026-11-20 (`load_all(compile = FALSE)`): realized outside 0.3167, reference outside 0, KS D 0.3167, unchanged.
+  Fix (owner to choose; changes realized allocations): (a) define `prop_acceptable` as a fixed cutoff, the
+  `prop_acceptable` quantile of M(w) estimated once from a large base sample (cached, seeded) and then used as
+  `obj_val_cutoff` for both the realized and the reference draws; or (b) make the reference draws exchangeable with
+  the realized one by drawing each reference allocation as best of `round(1 / prop_acceptable)` independently. Either
+  way update the roxygen paragraph that calls the two "equivalent in the large-draw limit". Test: on the finding's
+  repro, the realized and reference M(w) distributions agree (KS p > 0.01 over 300 seeds), and a 400-trial null
+  simulation of the randomization test is within 2 MCSE of 0.05. NEWS: changes results. Repro: fixed-designs F2.
+
+- [ ] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
+  and `DesignFixedGreedyDOptimal` at their defaults return different allocations for the same seed when covariates
+  have ties.** The help ("Same draws as DesignFixedGreedyDOptimal at the defaults") promises identical allocations;
+  with weight rounded to 0.1 and age in whole weeks only 10 of 20 draws agree (none are mirrors), the realized
+  allocation differs too, and the Mahalanobis imbalances differ by up to 3.9e-5, so the searches end at different
+  local optima. With untied continuous covariates all 20 agree. Suspected: the two swap searches
+  (`R/EDI/R/design_fixed_greedy.R` and `R/EDI/R/design_fixed_greedy_d_optimal.R`, and their C++ kernels) break ties
+  between equal-improvement swaps differently, or compute the objective with different rounding so "equal" swaps
+  compare differently. Fix: give both the same deterministic tie-break (lowest index pair) on the same objective
+  computation, or, if that is not worth it, document that the identity holds only without ties. Test: the finding's
+  tied-covariate repro gives 20 of 20 identical draws (or the doc change). Repro: fixed-designs F3.
+
+- [ ] TODO-296 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f4):
+  **`DesignFixedOptimal(objective = "abs_sum_diff")` with the default `solver = "auto"` hangs at n = 40 with no
+  message.** n = 16 solves in 0.35 s, n = 24 in 3.7 s, n = 40 (`prob_T = 0.3`) had not returned after 400 s;
+  `solver = "annealing"` takes 0.01 s. `solver = "auto"` always sends `abs_sum_diff` to the exact MILP
+  (`optimal_solve_auto()`, `R/EDI/R/helper_optimal_annealing.R` / `milp_solve_l1()` in
+  `R/EDI/R/helper_optimal_milp_solvers.R`, called from `R/EDI/R/design_fixed_optimal.R` ~L530) with no time limit, unlike
+  the quadratic criteria, which switch to annealing above `linearization_max_n = 20` with a message. Fix: give the
+  MILP a time limit (`solver_args$time_limit`, default e.g. 30 s, passed to GLPK's `tm_limit`) and on timeout fall back
+  to annealing with a message that says the result is not certified optimal (and set the certificate accordingly);
+  document the limit in "Solvers and certificates". Test: n = 40 with the default solver returns within the limit with
+  the fallback message; n = 16 still returns the certified MILP optimum. Repro: fixed-designs F4.
+
+- [ ] TODO-297 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f5):
+  **`DesignFixedOptimal$get_optimization_diagnostics()$objective_value` is M/4 for "mahal_dist" and M/2 for
+  "abs_sum_diff", not the documented M(w).** Hand-computed M(w) = 0.0005879 vs `objective_value` 0.000147; sum of
+  |standardized mean differences| 0.02651 vs 0.0133. The C++ scaling is documented as internal in
+  `?DesignFixedRerandomization` (and `design_fixed_rerandomization.R` ~L236-239 converts the user cutoff with the same
+  factors 4 and 2), but `design_fixed_optimal.R` ~L614 reports `res$objective_value` unconverted. Fix: report
+  `objective_value` on the user M(w) scale (multiply by 4 / 2 for those two objectives, check the other objectives),
+  and say in the roxygen which scale it is. Test: on the finding's repro, `objective_value` equals the hand-computed
+  M(w) for both objectives to 1e-10. NEWS: changes reported diagnostics. Repro: fixed-designs F5.
+
+- [ ] TODO-298 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f6,
+  ds-clusters-blocking-44358267779-f5): **Every fixed design accepts the default `n = NULL`, then
+  `add_all_subjects_to_experiment()` errors although `X_all` gives n.** Bernoulli, iBCRD, Rerandomization, Greedy,
+  GreedyDOptimal, BinaryMatch, Optimal, Blocking, Cluster and BlockedCluster all construct with `n = NULL` and then stop
+  with "This type of design currently only works with fixed sample, i.e., you must specify n upon initialization"
+  (`assert_fixed_sample()`, `R/EDI/R/design_abstract.R` ~L569, called from `add_all_subjects_to_experiment()` in
+  `R/EDI/R/design_fixed_abstract.R` ~L65). On `DesignFixedCluster` a later `assign_w_to_all_subjects()` then errors
+  "argument is of length zero". The help shows `n = NULL` as the default and calls `n` only "The sample size". Fix
+  (owner to choose): infer `n = nrow(X_all)` in `add_all_subjects_to_experiment()` when `n` is NULL (set
+  `fixed_sample = TRUE` and size the internal vectors then; constructors that need n earlier, e.g. Optimal or
+  Rerandomization caches, must be checked), or require `n` in every fixed-design constructor with an error at
+  `$new()`, and drop the `= NULL` default from the usage. Either way `assign_w_to_all_subjects()` before subjects are
+  added must give a clear error. Test: for every fixed design, `$new()` without `n` then `add_all_subjects_to_experiment(X)`
+  works (or `$new()` errors), and the realized allocation equals the one with `n = nrow(X)` for the same seed. Repro:
+  fixed-designs F6, clusters-blocking F5.
+
+- [ ] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
+  `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` returns cached draws of another
+  `bootstrap_type`, and the cache leaks into `compute_bootstrap_confidence_interval()`.** On one object, a
+  `"resample_blocks"` call after a `"within_blocks"` call (same seed) returns an object `identical()` to the first (SD
+  0.531); a fresh object gives SD 0.430. In a 24-school trial NULL / `"within_blocks"` / `"resample_blocks"` all gave SD
+  1.4726 on one object, while a fresh `"resample_blocks"` gave 2.22 (hand-coded block bootstrap 2.09). The percentile CI
+  (B = 601, seed 1) was (-2.598, 3.575) on a fresh object and (-2.252, 5.679) after a `"resample_blocks"` diagnostic call,
+  so the reported interval depends on an earlier call. Cause (confirmed by reading): the cache key is `as.character(B)`
+  only (`R/EDI/R/inference_all_abstract_non_param_boot.R` ~L522, `get_cached_resampling_distribution("non_param_boot",
+  cache_key)`), ignoring `bootstrap_type` and the seed. Fix: key the cache on B and the resolved bootstrap type (and
+  check whether the seed belongs in the key too); make `compute_bootstrap_confidence_interval()` / p-value read only
+  draws of the default type, never a diagnostic call's draws. Check the other resampling caches keyed by B alone.
+  Test: the finding's repro gives `identical(a, b) == FALSE` and `identical(b, c) == TRUE`; the CI is the same with or
+  without a prior `approximate_bootstrap_distribution_beta_hat_T()` call. NEWS: changes results. Repro:
+  clusters-blocking F2.
+
+- [ ] TODO-300 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f4):
+  **`assign_w_to_all_subjects(w_precomputed = )` accepts a 1/2-coded vector, keeps it, and inference then returns NA
+  with no warning.** On `DesignFixedCluster`, `w_precomputed = wcl + 1` is accepted silently, `table(get_w())` shows 1
+  and 2, and `InferenceAllSimpleAverageDiff` gives an NA estimate and NA randomization p-value (OLS happens to give the
+  right slope, 2.946, so it is easy to miss). `DesignFixed$assign_w_to_all_subjects()`
+  (`R/EDI/R/design_fixed_abstract.R` ~L49-51) assigns `as.numeric(w_precomputed)` with no check. Fix: validate
+  `w_precomputed` there (shared by every fixed design): numeric or logical, length n, no NA, values in {0, 1}, both arms
+  present, with a message naming the rule that failed. Test: 1/2 coding, wrong length, NA, a single arm, and a factor
+  each error; a valid 0/1 vector still gives today's results. Repro: clusters-blocking F4.
+
+- [ ] TODO-301 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f6):
+  **`DesignFixedCluster$assign_w_to_all_subjects(w_precomputed = )` accepts an assignment that varies within
+  clusters.** `w_precomputed = rbinom(n, 1, 0.5)` is accepted with no warning; both arms appear inside every school;
+  `InferenceContinOLS` then reports a CR2 interval and a randomization p-value whose reference draws (whole schools)
+  cannot produce the observed assignment. The help says every subject in a cluster gets the same assignment. Fix: in
+  the cluster designs' `assign_w_to_all_subjects()` (`DesignFixedCluster`, `DesignFixedBlockedCluster`), after the
+  0/1 check of v1.0.6-TODO-300, error when `w_precomputed` is not constant within `cluster_col`, naming the first
+  offending clusters. Test: a within-cluster-varying vector errors on both classes; a cluster-constant one is
+  accepted. Repro: clusters-blocking F6.
+
+- [ ] TODO-302 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f7): **On a
+  blocked-cluster trial, `compute_bootstrap_confidence_interval(type = "prepivoted" | "double-bootstrap" |
+  "calibrated")` returns `c(NA, NA)` with only "bootstrap_ci_unavailable", although `get_supported_bootstrap_ci_types()`
+  lists them and the percentile CI is finite (-0.712, 2.654).** On another blocked-cluster data set the same types are
+  finite, so it depends on the data in a way the user cannot see; on `DesignFixedCluster` (672 pupils) prepivoted and
+  double-bootstrap took ~1.9 min each at B = 41 with 2 cores, which the help does not warn about. The bare reason comes
+  from `missing_bootstrap_ci()` (`R/EDI/R/inference_all_abstract_non_param_boot.R` ~L1091-1106). Fix: find which inner
+  step fails for these three types on the finding's data (inner bootstrap with too few blocks, or non-finite inner
+  replicates) and give each a specific reason and advice, as the BCa reasons do; document the reasons and the cost
+  (B x B_inner fits) in the help. Test: the finding's repro gives a classed warning with a specific reason for each
+  type (or a finite CI, if the cause is a bug). Repro: clusters-blocking F7.
+
+- [ ] TODO-303 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f1,
+  ds-factorial-44358267779-f2): **Randomization tests refuse every incidence analysis on `DesignFixedFactorial` and
+  `DesignFixedBlocking` although `supports("randomization_test")` is TRUE, and the "Use Zhang method" advice then
+  fails.** Every incidence class tried (RiskDiff, AverageDiff, LogRegr, GCompRiskDiff, CMH, NewcombeRiskDiff) stops with
+  "Randomization tests are not supported for incidence. Use Zhang method." (`R/EDI/R/inference_all_abstract_rand.R`
+  ~L427, guarded by `supports_rand_pval_for_incidence()` ~L326; same text in `inference_mixin_kk_gee_shared.R` ~L153),
+  while `supports("randomization_test")` is TRUE. Following the advice, `type = "Zhang"` errors "Randomization type
+  dispatch is only supported for incidence outcomes." on an incidence outcome
+  (`assert_no_incidence_only_randomization_args()`, `R/EDI/R/inference_all_abstract_rand_ci.R` ~L463-466, which
+  fires whenever `type` is non-NULL on this path), and GCompRiskDiff / NewcombeRiskDiff give "unused argument (type =
+  "Zhang")"; `InferenceIncidExactZhang` is not applicable to these designs. The factorial article says these designs
+  work with every inference class and uses `compute_rand_two_sided_pval()` on the blocked main-effect design. Fix: (1)
+  make `supports("randomization_test")` return what `supports_rand_pval_for_incidence()` returns, so capabilities and
+  the suite agree; (2) say in the refusal why the plain permutation test is not offered for incidence on this design
+  and name what works here (e.g. `InferenceIncidExactFisher` / CMH), mentioning Zhang only when the design is
+  Zhang-eligible; (3) fix the `type` guard message so it names the real reason (Zhang/Fisher dispatch needs a
+  Zhang-eligible design) and list the valid `type` values in the roxygen; (4) state the incidence restriction in the
+  factorial article and `?DesignFixedFactorial`. Owner decision: whether the plain randomization test at delta = 0
+  should simply be allowed for incidence here (v1.0.6-TODO-110 allowed it for custom statistics). Test: on both
+  designs `supports()` and the method agree; the refusal names a class that runs; `type = "Zhang"` on a non-eligible
+  design gives the new message. Repro: factorial F1, F2.
+
+- [ ] TODO-304 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f3): **On the 2 x 2 main-effect
+  design (`DesignFixedBlocking` with 2 blocks) the default BCa bootstrap CI and p-value and every jackknife unit return
+  NA, and the warnings recommend a randomization test that errors for incidence.** BCa gives NA with
+  "bootstrap_bca_jackknife_too_few_deletion_units" (only 2 blocks); its message also says "the bootstrap itself
+  resamples only those units", which contradicts the help (the default bootstrap resamples subjects within blocks; the
+  percentile CI is a sensible 0.151 to 0.370). The jackknife gives NA for `"auto"`/`"block"` (2 units) and for
+  `"observation"` ("not supported on this blocking design because its blocks hold more than one subject; use unit =
+  "block""), so it sends the user to the unit that just failed. Both messages say to use a randomization test, which
+  errors for incidence (v1.0.6-TODO-303). Fix: (1) on a design that resamples within blocks, compute the BCa
+  acceleration from a leave-one-subject-out (within-block) jackknife instead of leave-one-block-out, or fall back to
+  the percentile/BC interval with a warning that says so; (2) correct the "resamples only those units" sentence; (3)
+  make the jackknife and BCa advice name a procedure that runs for the response type at hand (shared with
+  v1.0.6-TODO-74's message fix); (4) the help's "the jackknife (resample within blocks)" must match what happens.
+  Test: the finding's repro gives a finite default bootstrap CI or a warning whose advice runs; no jackknife message
+  points to a unit that also fails. Repro: factorial F3.
+
+- [ ] TODO-305 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f4): **`DesignFixedFactorial`
+  accepts a non-integer number of levels (`list(subject = 2.5)`) and runs it as a two-level factor.** No error or
+  warning; `get_w_factorial()` returns levels 1/2. An unnamed `list(2)` is also accepted and the column is named `Var1`,
+  though the help says the names are the factor names. The constructor only checks `assertList(factors, types =
+  "numeric", min.len = 1)` (`R/EDI/R/design_fixed_factorial.R` ~L72) and builds `expand.grid(lapply(factors,
+  function(l) 1:l))`, so 2.5 becomes 1:2. Fix: require every entry to be an integer >= 2 (`assertIntegerish(l, lower
+  = 2, len = 1)`), require a fully named list with unique non-empty names, and check the product rule on the validated
+  integers. Test: 2.5, 1, 0, NA and an unnamed list each error with a message naming the factor; `list(subject_line =
+  2)` still works. Repro: factorial F4.
+
+- [ ] TODO-306 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f7):
+  **`InferenceIncidExactFisher$compute_estimate()` returns a bare NA when an arm has no events.** Audit (n = 40, the
+  A = 0 arm 0 of 20 events): estimate NA with no warning, while the exact CI is (0.551, Inf) and the p-value 0.009125,
+  both matching `mantelhaen.test(exact = TRUE)`, whose OR is Inf. Checked on HEAD 2026-11-20 (`load_all(compile =
+  FALSE)`): `get_exact_fisher_log_or_estimate()` (`R/EDI/R/inference_indicidence_exact_fisher.R` ~L118-127, added in
+  271a7ea1, 2026-11-17) already marks the fit non-estimable (`is_nonestimable()` TRUE, reason
+  `exact_fisher_conditional_mle_infinite`), but still emits no warning. Fix: route it through the shared
+  non-estimable convention of v1.0.6-TODO-255 (classed `edi_procedure_na_warning` once per object, naming the empty
+  arm, and saying the exact CI and p-value remain valid); document the reason in `?InferenceIncidExactFisher`. Test:
+  the finding's repro warns once with that reason, on `DesignFixedBlocking` and `DesignFixediBCRD`; CI and p-value
+  unchanged. Repro: factorial F7.
+
+- [ ] TODO-307 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f2):
+  **`fast_weibull_regression(use_rcpp = FALSE)` reports "failed to converge" when the real problem is an empty column
+  name.** With `X = cbind(w, d$age)` (column names `"w"`, `""`) the Rcpp path fits, but the survreg path stops with
+  "Weibull regression failed to converge: attempt to use zero-length variable name". The wrapper turns every survreg
+  error into "failed to converge" (`R/EDI/R/helper_glm_fit.R` ~L1061 and ~L1074). Fix: before calling survreg, give
+  empty or duplicated column names safe names (`make.names(..., unique = TRUE)`, mapping the coefficient names back),
+  and only say "failed to converge" for a real non-convergence; pass other errors through with their own message.
+  Test: the finding's matrix fits on both paths with the same coefficients (1e-6). Repro: survival-censoring F2.
+
+- [ ] TODO-308 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f3): **An exact event
+  time of 0 is accepted, and `InferenceSurvivalWeibullRegr` then returns NA estimate, CI and p-value with no
+  warning.** `add_all_subject_responses(ys = y)` with `y[1] = 0` passes `assert_y()` (`R/EDI/R/design_abstract.R`
+  ~L1148-1151, `assertNumeric(y, lower = 0, ...)` for survival); Weibull then gives NA, only `is_nonestimable()` /
+  reason `"model_fit_unavailable"` hint at it, and the reason does not mention the zero time. Cox, log-rank and RMST give
+  finite results. Fix (owner to choose): refuse an exact time of 0 at entry (require y > 0; a time-0 event is
+  left-censored, `y_L = 0, y_R = <first assessment>`, which the message should say), or keep accepting it and have the
+  parametric classes (Weibull, other AFT/frailty models) refuse with a reason naming the zero times. Test: the
+  finding's repro errors at entry with that advice (or warns with the new reason); positive times unchanged. Repro:
+  survival-censoring F3.
+
+- [ ] TODO-309 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f4):
+  **`InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` returns NA while `compute_asymp_confidence_interval()` is
+  finite, and the warning's `na.rm = TRUE` cannot be passed.** Audit: CI (2.246, 8.740); p-value NA because 2 of 501
+  bootstrap replicates were non-finite; `compute_asymp_two_sided_pval(na.rm = TRUE)` gives "unused argument"; only
+  `compute_bootstrap_two_sided_pval(na.rm = TRUE)` gives 0.004008. The help says both asymptotic methods fall back to
+  the bootstrap. `compute_asymp_two_sided_pval()` (`R/EDI/R/inference_survival_km_diff.R` ~L259-265) calls
+  `compute_bootstrap_two_sided_pval(delta)` with the default `na.rm = FALSE`, while the CI fallback drops non-finite
+  replicates. Fix: make the two fallbacks treat non-finite replicates the same way (drop them, subject to the
+  valid-fraction guard of v1.0.6-TODO-12), and when NA is still returned, word the
+  warning for the method the user called (no advice to pass an argument it does not take). Test: the finding's repro
+  gives a finite asymptotic p-value consistent with the CI; on interval-censored data too. Repro: survival-censoring F4.
+
+- [ ] TODO-310 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f5): **On
+  interval-censored data `InferenceSurvivalCoxPHRegr` lists score / gradient / lik_ratio as supported but gives NA, a
+  relabelled Wald interval, or an error.** `get_supported_testing_types()` returns all four types;
+  `compute_lik_ratio_two_sided_pval()` returns NA with a warning naming an internal ("get_likelihood_test_spec()
+  returned NULL") and advising `testing_type = "wald"`, which the constructor does not take (the setter is
+  `set_testing_type()`); `compute_score_confidence_interval()` returns the Wald interval with a warning;
+  `set_testing_type("score")` is accepted and only the next `compute_asymp_two_sided_pval()` errors. The help says
+  score/gradient/LR/Bartlett "raise an informative error for such data". Fix (`R/EDI/R/inference_survival_coxph.R`,
+  `get_supported_testing_types_impl` and the `icenReg` dispatch ~L360-395): on left-/interval-censored data return
+  only `"wald"`, make `set_testing_type()` refuse the others at once, and make the score/gradient/LR methods raise the
+  documented error naming `set_testing_type()` (no relabelled Wald interval). Test: on the finding's data each of these
+  calls gives the documented error; right-censored data keeps all four types. Repro: survival-censoring F5.
+
+- [ ] TODO-311 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f6): **User-facing
+  messages point to repo-internal documents that are not shipped.** Audit: `InferenceSurvivalStratCoxPHRegr$new()` and
+  `InferenceSurvivalDepCensTransformRegr$new()` on interval-censored data say "see interval_censored_survival_response.md";
+  `InferenceSurvivalCoxPHRegr$compute_rand_confidence_interval()` points to
+  `R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_construction_audit.md`; neither file is installed.
+  `grep -nE '"[^"]*(package_metadata|[A-Za-z_]+\.md|TODO-[0-9]+)[^"]*"'` over `R/EDI/R/*.R` and `R/EDI/src/*` (comment
+  lines excluded) finds, 2026-11-20:
+  - `R/EDI/R/inference_all_abstract.R:116`: "see interval_censored_survival_response.md" (StratCox, DepCensTransformRegr).
+  - `R/EDI/R/inference_all_abstract_rand_ci.R:279`: "R/package_metadata/new_feature_plans/v1_0_5/randomization_ci_construction_audit.md, section A."
+  - `R/EDI/R/inference_all_abstract_rand_ci.R:337`: "See R/package_metadata/new_feature_plans/v1_1_0/incidence_randomization_cis.md."
+  - `R/EDI/R/inference_all_abstract_rand_ci.R:357-358`: "See TODO-119 in R/package_metadata/future_release_plans/release_v1_0_5.md." (the
+    RandCustom refusal of v1.0.6-TODO-279).
+  - `R/EDI/R/inference_class_registry.R:325`: the same "See TODO-119 in ... release_v1_0_5.md." (registry refusal text).
+  - `R/EDI/R/inference_class_registry.R:1184`: "(multimodal_log_liks.md)" (stereotype non-regularity note).
+  - `R/EDI/R/helper_optimal_shared.R:39`: "DesignFixedGreedyDOptimal plan (see fix_design_hierarchy.md)" (an error).
+  - `R/EDI/R/inference_procedure_regime.R:134`: "(TODO-192 regime note)" in a regime description string.
+  Fix: replace each pointer with an installed help topic or article section (e.g. "Which classes accept interval
+  censoring" in the censored-survival article, `?InferenceRand`), or drop it; keep internal references in comments.
+  Add a source test that fails on any string literal in `R/` naming `package_metadata`, a `.md` file other than
+  `REFERENCES.md`, or a `TODO-<n>`, so new ones cannot land. Repro: survival-censoring F6.
+
+- [ ] TODO-312 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f8):
+  **`run_all_inference()` prints `p = NA` for every estimand that has only one inference class.** Right-censored n =
+  100: every "(1 inferences)" line (Gehan-Wilcoxon, log-rank martingale, mean, RMST) shows `p = NA` while the class's
+  own p-value is finite in the table (Gehan 0.561); every "(2 inferences)" line is finite; no warning. On an
+  interval-censored trial all five lines were NA while the overall combined p (0.0173) was finite. The lines come from
+  the per-estimand block in `R/EDI/R/inference_suite.R` (~L4340-4377), which calls
+  `run_all_inference_combine_pvalues(groups[[g]])`; suspected: that combiner returns NA for a single p-value. Fix: a
+  one-element group reports its own p-value (and the printed line says it is a single class). Also in the same run a
+  Kaplan-Meier row showed `se NA, pval NA` with status "ok": a row whose p-value is NA should not be "ok" without a
+  reason. Test: the finding's repro shows each single-class estimand's own p-value; a NA-p row carries a non-"ok" status
+  or a message. Repro: survival-censoring F8.
+
+- [ ] TODO-313 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f9): **On
+  interval-censored data `InferenceSurvivalCoxPHRegr`'s Wald CI and p-value depend on the global RNG state even after
+  `set_seed()`.** Same object seed 123: global seed 1 gives (-1.0867, -0.3260), p 0.000272; global seed 2 gives
+  (-1.0931, -0.3196), p 0.000344; seed 1 again reproduces the first. On the audit's trial this moved the Wald p across
+  0.05 (0.0437, 0.0571, 0.0689 in the suite). The result is cached, so a later `set_seed()` has no effect. The SEs come
+  from `icenReg::ic_sp(model = "ph")`'s internal bootstrap (`icen_bs_samples = 200L`,
+  `R/EDI/R/inference_survival_coxph.R` ~L466-475), which draws from the global stream. Fix: run the `ic_sp()` call
+  under the object's seed (derive a seed from `private$seed`, save and restore the session RNG, as
+  `with_derived_seed()` does for designs), and document in the help that this path's SE is bootstrap-based. Test: the
+  finding's repro gives identical results for global seeds 1 and 2 under the same object seed, and different results
+  for different object seeds. Repro: survival-censoring F9.
+
+- [ ] TODO-314 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f1): **A `model_formula`
+  naming a covariate that `"impute"` silently removed (an all-NA column) gives NA estimates with an unrelated `cbind`
+  warning.** `x3 = NA_real_` for every subject is dropped from `get_X()` with no message (even `verbose = TRUE`); then
+  `InferenceContinOLS$new(des, model_formula = ~ x1 + x3)` gives estimate NA, CI `NA NA`, `is_nonestimable()` FALSE, and
+  only "number of rows of result is not a multiple of vector length" from `cbind(...)`; `InferenceContinLin` gives NA
+  with reason `linear_model_design_unusable`. For an unknown name or a `drop_column`-removed column the constructor
+  already stops with "model_formula contains variables not present in the available covariates"
+  (`R/EDI/R/helper_additional_asserts.R` ~L38). Suspected: the formula check runs against the raw column names, while
+  the all-NA column is dropped later inside the imputation step (`R/EDI/R/design_abstract.R`, `"impute"` branch
+  ~L1180-1215). Fix: run the formula check against the columns that survive imputation and say why a column is gone
+  ("x3 is NA for every subject and was removed before imputation"); with `verbose = TRUE`, or always, warn when
+  imputation drops an all-NA column. Test: the finding's repro errors at `$new()` naming x3 for both classes. Repro:
+  missing-data F1.
+
+- [ ] TODO-315 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f2): **With
+  `missingness_method = "error"`, covariate-adaptive sequential designs enroll subjects with NA covariates and fail later
+  on a subject whose data are complete.** `DesignSeqOneByOneAtkinson` (p = 2) assigns subjects 1 to 4 although subject 1
+  has `x2 = NA`; subject 5 fails with "Missing values detected in covariate(s): x2"; KK14/Atkinson with 3 covariates fail
+  at t = 6. The message does not name the subject, and after it the trial cannot enroll anyone. The check lives in the
+  lazy model-matrix build (`R/EDI/R/design_abstract.R` ~L1170-1177), which a sequential design first runs only when it
+  needs covariates (after its burn-in). Fix: under `"error"`, check `anyNA(x_new)` in `add_one_subject()`
+  (`R/EDI/R/design_seq_one_by_one_abstract.R` ~L79) before the subject is stored, and name the subject index and
+  columns; also for `add_all_subjects_to_experiment()`. Test: the finding's repro errors at t = 1 naming subject 1 and
+  x2; the design is unchanged after the error (see v1.0.6-TODO-316). Repro: missing-data F2.
+
+- [ ] TODO-316 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f3): **High priority: a
+  refused `add_one_subject_to_experiment_and_assign()` still enrolls the subject: `get_t()` goes up and `w` is left
+  NA.** After two refused calls `get_t()` is 6 and `get_w()[1:6]` is `0 1 0 0 NA NA`; each retry adds another
+  unassigned subject, so the design is corrupted and cannot be repaired by retrying. Cause (confirmed by reading):
+  `add_one_subject_to_experiment_and_assign()` (`R/EDI/R/design_seq_one_by_one_abstract.R` ~L239-258) calls
+  `self$add_one_subject(x_new)` (which stores the row and increments `t`) before `assign_wt()`, and nothing rolls back
+  when `assign_wt()` errors. The KK `n = NULL` corruption of ds-sequential-designs-44358267779-f2 (v1.0.6-TODO-76: t =
+  5, w length 4, then `get_block_ids()` fails) is the same missing rollback. Fix: snapshot the mutable state (t, Xraw
+  row, w, block/match state, model-matrix cache flags) before `add_one_subject()` and restore it in an `on.exit()` /
+  `tryCatch()` when assignment fails, or validate everything that can fail before mutating. Test: inject a failing
+  `assign_wt()` (and the finding's "error" repro); after the error `get_t()`, `get_w()`, `get_X_raw()` and the KK
+  match state equal their values before the call, and a corrected retry gives the allocation an uninterrupted run
+  gives. Repro: missing-data F3.
+
+- [ ] TODO-317 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f4): **An `Inf` covariate is
+  accepted at enrollment, and inference later fails with `qr.default` "NA/NaN/Inf in foreign function call".**
+  `add_all_subjects_to_experiment()` with `X$x2[3] = Inf` is accepted silently and `get_X()[3, ]` shows `Inf`;
+  `InferenceContinOLS$compute_estimate()` then errors in `qr.default(X_mat)`. Responses are checked for finiteness
+  (`assert_y()`), covariates are not; NaN is treated as missing and imputed. Fix: in `add_one_subject()` and
+  `add_all_subjects_to_experiment()` refuse `Inf`/`-Inf` in numeric covariates with a message naming column and rows
+  (owner may prefer treating them as missing under `"impute"`, but say so in a message either way). Test: Inf in a
+  fixed and a sequential design errors at entry naming x2 and row 3. Repro: missing-data F4.
+
+- [ ] TODO-318 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f5): **When `"drop_column"`
+  removes every covariate, covariate-balancing designs run silently without covariates.** `dim(get_X())` is `40 0`
+  and `DesignFixedRerandomization(prop_acceptable = 0.01)` and KK14 assign with no warning, even with `verbose = TRUE`;
+  in a 60-farm trial the rerandomized Mahalanobis imbalance on the true covariates was 0.092 under `drop_column`
+  against 0.019 under `impute`. `draw_ws_raw()` simply falls back to unrestricted draws when `ncol(private$X) == 0`
+  (`R/EDI/R/design_fixed_rerandomization.R` ~L206-207; KK, Greedy, Atkinson and Optimal have similar paths). Fix: when a
+  design that uses covariates for assignment ends up with zero columns after the missingness step, warn once (classed
+  `edi_no_covariates_left_warning`) naming the dropped columns and suggesting `"impute"`. Test: the finding's repro
+  warns for Rerandomization and KK14; a design with covariates left does not. Repro: missing-data F5.
+
+- [ ] TODO-319 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f7): **In sequential designs
+  `get_X_raw()` and `get_X()` reorder the covariate columns when the first subject has missing values.** Input `a b c`
+  with the first subject missing `a` and `c` gives `names(get_X_raw())` = `b a c` and `colnames(get_X())` starting `b a
+  c`; values stay aligned by name, but positional indexing (`get_X()[, 1]`, `get_covariates()` in an extension class)
+  gets the wrong covariate. Fixed designs keep the input order. Suspected: `add_one_subject()`
+  (`R/EDI/R/design_seq_one_by_one_abstract.R` ~L79) builds the first row's schema from its non-missing columns first
+  and appends the all-NA ones (logical-typed) afterwards. Fix: fix the column order from `names(x_new)` of the first
+  subject (and keep it as later subjects arrive), whatever their missingness. Test: the finding's repro gives `a b c`
+  for both getters; allocations unchanged. Repro: missing-data F7.
+
+- [ ] TODO-320 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f8): **`get_summary()` on
+  `InferenceContinOLS` prints only the treatment row, though the docs promise the full coefficient table for
+  model-based classes.** On complete data the output is a single `treatment` row (estimate -0.0535, SE 0.265); no
+  intercept or covariate rows, so a user cannot see what imputed covariates or `*_is_missing` indicators contribute.
+  `get_summary()` (`R/EDI/R/inference_all_abstract.R` ~L320) builds the table via `edi_build_summary_table()`; suspected:
+  the OLS fast path caches only the treatment coefficient and SE, not the full coefficient vector and covariance with
+  names, so the one-row fallback is used. Fix: have the OLS fit cache the named coefficient vector and its covariance
+  (it already computes them), and check the other model-based classes for the same gap. Test: the finding's repro
+  shows rows for the intercept, treatment, x1 and x2 matching `summary(lm())` to 1e-8. Repro: missing-data F8.
 
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
