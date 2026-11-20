@@ -296,6 +296,17 @@ IncidenceLogBinomialLikelihoodSource = list(
 			}
 			TRUE
 		},
+		# v1.0.6-TODO-220 (2): the SE of the Wald CI / p-value of compute_asymp_*()
+		# (one source of truth), i.e. the inverse expected information X'WX of the
+		# IRLS fit (glm()'s convention, owner decision 2026-11-19). The inherited
+		# StandardModelCache method returned the observed information of the
+		# likelihood-test spec instead (1% to 11% apart), so compute_wald_*(),
+		# the Wald fallback, CI-inversion seeds and InferenceSuite's se column
+		# disagreed with the default Wald interval.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			private$cached_values$s_beta_hat_T
+		},
 		get_complexity_tier = function() "heavy",
 		# TODO-128 (2026-10-22): jackknife and nonparametric-bootstrap workers
 		# warm-start from the full-data fit (cached_mod), not from whatever
@@ -705,6 +716,16 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' log-linear risk model to be correctly specified over the covariate range
 #' observed.
 #'
+#' \strong{Wald standard error.} The Wald standard error is the inverse of the
+#' expected (Fisher) information \eqn{X^\top W X},
+#' \eqn{W = \mathrm{diag}\{\hat\mu_i / (1 - \hat\mu_i)\}}, of the
+#' Fisher-scoring fit, as \code{glm()} reports for a non-canonical link; it is
+#' not the observed information, which the score test uses (a documented
+#' exception to the package's observed-information rule for Wald standard
+#' errors). The same standard error is used by every Wald interval and p-value
+#' (\code{compute_asymp_*()} and \code{compute_wald_*()}) and by
+#' \code{InferenceSuite}'s \code{se} column.
+#'
 #' \strong{Wald at a boundary MLE.} When the full-data MLE has a subject at
 #' fitted probability \eqn{\exp(X\hat\beta) = 1} (a linear predictor within
 #' \eqn{10^{-6}} of 0), the Wald p-value and Wald confidence interval
@@ -780,8 +801,9 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
-#' and is not used. If fewer than 80\% of the \code{B} draws are usable (degenerate and failed draws
-#' both count against it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+#' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
+#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
 #' \eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at

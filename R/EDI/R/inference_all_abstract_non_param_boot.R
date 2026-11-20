@@ -193,6 +193,21 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   estimates required after filtering. Default 5.
 		#' @param bootstrap_type Optional empirical-resampling scheme.
 		#' @param scaling Scaling sequence for centered m-out-of-n pivots.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B}
+		#'   resamples that must be usable, for a ratio estimand
+		#'   (\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+		#'   \code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+		#'   \code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+		#'   treatment arm with no events; on the logit scale also only events; for a
+		#'   count a zero total; or a separated logistic fit) or its fit fails. Below this
+		#'   fraction the method returns \code{NA} with reason
+		#'   \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
+		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
+		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+		#'   rule (at least half of the resamples finite).
 		#'
 		#' @details The default \code{m = NULL} follows the intermediate-sequence
 		#'   convention from the m-out-of-n bootstrap literature:
@@ -203,8 +218,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
-			private$compute_m_out_of_n_bootstrap_two_sided_pval_impl(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling)
+		compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
+			private$compute_m_out_of_n_bootstrap_two_sided_pval_impl(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Computes a basic m-out-of-n bootstrap confidence interval.
 		#'
@@ -222,6 +238,21 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   estimates required after filtering. Default 5.
 		#' @param bootstrap_type Optional empirical-resampling scheme.
 		#' @param scaling Scaling sequence for centered m-out-of-n pivots.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B}
+		#'   resamples that must be usable, for a ratio estimand
+		#'   (\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+		#'   \code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+		#'   \code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+		#'   treatment arm with no events; on the logit scale also only events; for a
+		#'   count a zero total; or a separated logistic fit) or its fit fails. Below this
+		#'   fraction the method returns \code{NA} with reason
+		#'   \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
+		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
+		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+		#'   rule (at least half of the resamples finite).
 		#'
 		#' @details The \code{NULL} default is grounded in the standard m-out-of-n
 		#'   asymptotic condition \eqn{m \to \infty} and \eqn{m / n \to 0}. The
@@ -232,8 +263,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
-			private$compute_m_out_of_n_bootstrap_confidence_interval_impl(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling)
+		compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
+			private$compute_m_out_of_n_bootstrap_confidence_interval_impl(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Selects an m-out-of-n bootstrap size by minimum volatility.
 		#'
@@ -315,6 +347,21 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   estimates required after filtering. Default 5.
 		#' @param subsampling_type Optional empirical-resampling scheme.
 		#' @param scaling Scaling sequence for centered subsampling pivots.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B}
+		#'   subsamples that must be usable, for a ratio estimand
+		#'   (\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+		#'   \code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+		#'   \code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+		#'   treatment arm with no events; on the logit scale also only events; for a
+		#'   count a zero total; or a separated logistic fit) or its fit fails. Below this
+		#'   fraction the method returns \code{NA} with reason
+		#'   \code{"subsampling_too_few_usable_draws_fraction"} and one
+		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
+		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+		#'   rule (at least half of the subsamples finite).
 		#'
 		#' @details The default \code{b = NULL} follows the intermediate-sequence
 		#'   convention from the Politis/Romano/Wolf subsampling literature:
@@ -325,8 +372,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_subsampling_two_sided_pval = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
-			private$compute_subsampling_two_sided_pval_impl(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling)
+		compute_subsampling_two_sided_pval = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
+			private$compute_subsampling_two_sided_pval_impl(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Computes a basic PRW subsampling confidence interval.
 		#'
@@ -344,6 +392,21 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   estimates required after filtering. Default 5.
 		#' @param subsampling_type Optional empirical-resampling scheme.
 		#' @param scaling Scaling sequence for centered subsampling pivots.
+		#' @param min_fraction_usable_samples Minimum fraction of the \code{B}
+		#'   subsamples that must be usable, for a ratio estimand
+		#'   (\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+		#'   \code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+		#'   \code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+		#'   treatment arm with no events; on the logit scale also only events; for a
+		#'   count a zero total; or a separated logistic fit) or its fit fails. Below this
+		#'   fraction the method returns \code{NA} with reason
+		#'   \code{"subsampling_too_few_usable_draws_fraction"} and one
+		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
+		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+		#'   rule (at least half of the subsamples finite).
 		#'
 		#' @details The \code{NULL} default is grounded in the standard
 		#'   Politis/Romano/Wolf asymptotic condition \eqn{b \to \infty} and
@@ -355,8 +418,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
-			private$compute_subsampling_confidence_interval_impl(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling)
+		compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
+			private$compute_subsampling_confidence_interval_impl(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		#' @description Selects a PRW subsampling size by minimum volatility.
 		#'

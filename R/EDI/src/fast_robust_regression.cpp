@@ -175,7 +175,12 @@ RobustModelResult fast_robust_regression_internal(
         res.scale = scale_est;
     }
 
-    if (res.scale < 1e-10) res.scale = 1e-10;
+    // "MM" (fixed scale) floors the scale so the weights never divide by zero.
+    // "M" leaves the start scale unclamped so the exact-fit stop at the top of
+    // iteration 1 can fire: with a start whose MAD is 0, MASS::rlm returns the
+    // start and reports convergence, and so must this loop (v1.0.6-TODO-273).
+    // A tiny positive MAD is used as is, as rlm does and as later iterations do.
+    if (!update_scale_each_iter && res.scale < 1e-10) res.scale = 1e-10;
 
     // 3. IRLS loop
     res.w = Eigen::VectorXd::Ones(n);
@@ -193,10 +198,16 @@ RobustModelResult fast_robust_regression_internal(
             res.scale = mad_scale(r);
         }
         if (update_scale_each_iter && res.scale <= 0.0) {
-            // Exact fit (MAD 0): MASS::rlm stops here and reports convergence.
+            // Exact fit (MAD 0): MASS::rlm stops here, returns the current
+            // coefficients and reports convergence. At iteration 1 no WLS step
+            // has run yet, so the information matrix is built from the current
+            // weights (all 1, as rlm's returned w) (v1.0.6-TODO-273).
             res.scale = 1e-10;
             res.converged = true;
-            if (!estimate_only && XtWX.rows() > 0) res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
+            if (!estimate_only) {
+                if (XtWX.rows() == 0) XtWX = weighted_crossprod(X_free, res.w);
+                res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
+            }
             break;
         }
         
@@ -263,14 +274,15 @@ RobustModelResult fast_robust_regression_internal(
 
     // NOT redefined to gradient-norm-based (optimizer_diagnostics_report.md
     // TODO-4): this IRLS loop is a fixed-point iteration on reweighted least
-    // squares with a coefficient-relative-change stopping criterion, not a
-    // gradient-based optimizer -- there is no already-computed M-estimator
-    // score/gradient here to reuse "for free" (TODO-1's threading principle),
-    // and fabricating one would be new computation, not a diagnostics-layer
-    // exposure. `hit_iteration_cap` is still meaningful without touching
-    // `converged`'s definition: TRUE iff the loop ran out of `maxit`
-    // iterations without either converging or hitting the numerical-failure
-    // exit above.
+    // squares, not a gradient-based optimizer. Its stopping rules are "M": the
+    // exact-fit stop (MAD scale 0) or MASS::rlm's relative residual-vector
+    // change <= tol; "MM": relative coefficient change < tol. There is no
+    // already-computed M-estimator score/gradient here to reuse "for free"
+    // (TODO-1's threading principle), and fabricating one would be new
+    // computation, not a diagnostics-layer exposure. `hit_iteration_cap` is
+    // still meaningful without touching `converged`'s definition: TRUE iff the
+    // loop ran out of `maxit` iterations without either converging (by any
+    // rule above) or hitting the numerical-failure exit above.
     res.hit_iteration_cap = !res.converged && !numerical_failure;
     // Reuses XtWX (free-parameter-space, last iteration's value) -- no new
     // computation. Independent of the convergence-criterion decision above:
@@ -279,6 +291,90 @@ RobustModelResult fast_robust_regression_internal(
     // (optimizer_diagnostics_report.md TODO-1).
 
     return res;
+}
+
+// Post-fit pieces of the R export fast_robust_regression_cpp that are not
+// estimate_only: fills res.XtWX when the IRLS loop stopped before building it,
+// and returns the sandwich variance of coefficient j (1-based), or nullopt
+// (R: NA) when j indexes a fixed coefficient or the fit neither converged nor
+// exhausted maxit. Shared with the Python binding
+// (python/cpp/bindings_continuous.cpp) so both return the same ssq_b_j and
+// fisher_information (audit decision rpy-parity-dd699435e).
+std::optional<double> fast_robust_regression_ssq_b_j_internal(
+    RobustModelResult& res,
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::VectorXd>& y_vec,
+    const std::string& method,
+    double c,
+    int j,
+    int maxit,
+    const FixedParamSpec& fixed_spec
+) {
+    if (!res.converged && res.XtWX.rows() == 0) {
+        Eigen::MatrixXd XtWX_free = weighted_crossprod(res.X_free, res.w);
+        res.XtWX = expand_free_covariance(X.cols(), fixed_spec, XtWX_free, false);
+    }
+
+    int n = X.rows();
+    int p = X.cols();
+    Eigen::VectorXd r = y_vec - X * res.b;
+    
+    std::optional<double> ssq_j;
+    if (res.converged || res.num_iter == maxit) {
+        Eigen::VectorXd psi_r(n);
+        Eigen::ArrayXd psi_prime(n);
+        const Eigen::ArrayXd u = r.array() / res.scale;
+        if (method == "M") {
+            const Eigen::ArrayXd abs_u = u.abs();
+            const Eigen::ArrayXd sign_u = (u > 0.0).select(
+                Eigen::ArrayXd::Ones(n),
+                -Eigen::ArrayXd::Ones(n)
+            );
+            psi_r = (abs_u <= c).select(r.array(), c * res.scale * sign_u).matrix();
+            psi_prime = (abs_u <= c).template cast<double>();
+        } else {
+            const double c_b = 4.685;
+            const Eigen::ArrayXd abs_u = u.abs();
+            const Eigen::ArrayXd u_scaled_sq = (u / c_b).square();
+            const Eigen::ArrayXd tmp = 1.0 - u_scaled_sq;
+            psi_r = (abs_u <= c_b).select(r.array() * tmp.square(), 0.0).matrix();
+            psi_prime = (abs_u <= c_b).select(tmp * (1.0 - 5.0 * u_scaled_sq), 0.0);
+        }
+        
+        double m = psi_prime.sum() / n;
+        // Huber's (1981) small-sample correction kappa = 1 + p Var(psi') / (n mean(psi')^2),
+        // as MASS:::summary.rlm applies it (Var with denominator n - 1). Without it the
+        // SE was low by the factor 1 / kappa and the KK IVWC inverse-variance weights
+        // disagreed with the MASS::rlm path (v1.0.6-TODO-50).
+        const double p_free_d = double(fixed_spec.free_idx.size());
+        const double var_psi_prime = (n > 1) ? (psi_prime - m).square().sum() / double(n - 1) : 0.0;
+        const double kappa = 1.0 + p_free_d * var_psi_prime / (double(n) * m * m);
+        double sum_psi_sq = psi_r.squaredNorm();
+        double factor = (n / (double(n - fixed_spec.free_idx.size()))) * sum_psi_sq / (n * m * m) * kappa * kappa;
+
+        if (j > 0 && j <= p) {
+            const int j0 = j - 1;
+            int free_j = -1;
+            for (int jj = 0; jj < fixed_spec.free_idx.size(); ++jj) {
+                if (fixed_spec.free_idx[jj] == j0) {
+                    free_j = jj;
+                    break;
+                }
+            }
+            if (free_j >= 0) {
+                double inv_diag = res.XtX_inv_diag_j;
+                if (!std::isfinite(inv_diag)) {
+                    Eigen::MatrixXd XtX = symmetric_crossprod(res.X_free);
+                    inv_diag = compute_diagonal_inverse_entry(XtX, free_j + 1);
+                }
+                if (std::isfinite(inv_diag)) {
+                    ssq_j = factor * inv_diag;
+                }
+            }
+        }
+    }
+
+    return ssq_j;
 }
 
 #ifndef EDI_CORE_ONLY
@@ -396,69 +492,9 @@ List fast_robust_regression_cpp(
             .set("min_eigenvalue_information", res.min_eigenvalue_information));
     }
 
-    if (!res.converged && res.XtWX.rows() == 0) {
-        Eigen::MatrixXd XtWX_free = weighted_crossprod(res.X_free, res.w);
-        res.XtWX = expand_free_covariance(X.cols(), fixed_spec, XtWX_free, false);
-    }
-
-    int n = X.rows();
-    int p = X.cols();
-    Eigen::VectorXd r = y_vec - X * res.b;
-    
-    double ssq_j = NA_REAL;
-    if (res.converged || res.num_iter == maxit) {
-        Eigen::VectorXd psi_r(n);
-        Eigen::ArrayXd psi_prime(n);
-        const Eigen::ArrayXd u = r.array() / res.scale;
-        if (method == "M") {
-            const Eigen::ArrayXd abs_u = u.abs();
-            const Eigen::ArrayXd sign_u = (u > 0.0).select(
-                Eigen::ArrayXd::Ones(n),
-                -Eigen::ArrayXd::Ones(n)
-            );
-            psi_r = (abs_u <= c).select(r.array(), c * res.scale * sign_u).matrix();
-            psi_prime = (abs_u <= c).template cast<double>();
-        } else {
-            const double c_b = 4.685;
-            const Eigen::ArrayXd abs_u = u.abs();
-            const Eigen::ArrayXd u_scaled_sq = (u / c_b).square();
-            const Eigen::ArrayXd tmp = 1.0 - u_scaled_sq;
-            psi_r = (abs_u <= c_b).select(r.array() * tmp.square(), 0.0).matrix();
-            psi_prime = (abs_u <= c_b).select(tmp * (1.0 - 5.0 * u_scaled_sq), 0.0);
-        }
-        
-        double m = psi_prime.sum() / n;
-        // Huber's (1981) small-sample correction kappa = 1 + p Var(psi') / (n mean(psi')^2),
-        // as MASS:::summary.rlm applies it (Var with denominator n - 1). Without it the
-        // SE was low by the factor 1 / kappa and the KK IVWC inverse-variance weights
-        // disagreed with the MASS::rlm path (v1.0.6-TODO-50).
-        const double p_free_d = double(fixed_spec.free_idx.size());
-        const double var_psi_prime = (n > 1) ? (psi_prime - m).square().sum() / double(n - 1) : 0.0;
-        const double kappa = 1.0 + p_free_d * var_psi_prime / (double(n) * m * m);
-        double sum_psi_sq = psi_r.squaredNorm();
-        double factor = (n / (double(n - fixed_spec.free_idx.size()))) * sum_psi_sq / (n * m * m) * kappa * kappa;
-
-        if (j > 0 && j <= p) {
-            const int j0 = j - 1;
-            int free_j = -1;
-            for (int jj = 0; jj < fixed_spec.free_idx.size(); ++jj) {
-                if (fixed_spec.free_idx[jj] == j0) {
-                    free_j = jj;
-                    break;
-                }
-            }
-            if (free_j >= 0) {
-                double inv_diag = res.XtX_inv_diag_j;
-                if (!R_finite(inv_diag)) {
-                    Eigen::MatrixXd XtX = symmetric_crossprod(res.X_free);
-                    inv_diag = compute_diagonal_inverse_entry(XtX, free_j + 1);
-                }
-                if (R_finite(inv_diag)) {
-                    ssq_j = factor * inv_diag;
-                }
-            }
-        }
-    }
+    std::optional<double> ssq_j_opt = fast_robust_regression_ssq_b_j_internal(
+        res, X, y_vec, method, c, j, maxit, fixed_spec);
+    double ssq_j = ssq_j_opt.has_value() ? *ssq_j_opt : NA_REAL;
 
     return edi::to_rcpp_list(edi::ResultMap()
         .set("coefficients", res.b)

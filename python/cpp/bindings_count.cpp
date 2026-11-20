@@ -5,6 +5,7 @@
 #include <pybind11/stl.h>
 #include "_helper_functions_core.h"
 #include "result_map_pybind.h"
+#include <cmath>
 #include <optional>
 #include <string>
 
@@ -272,12 +273,22 @@ void bind_count(py::module_& m) {
             X, y, warm_start_params, smart_cold_start, maxit, eps_g,
             fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only,
             weights.has_value() ? &(*weights) : nullptr);
+        // v1.0.6-TODO-188: fast_neg_bin_internal never fills res.mu or
+        // res.neg_ll; it stores the (weighted) log-likelihood -fit.value in
+        // res.sigma2_hat, which R's fast_neg_bin*_cpp return as $logLik.
+        // R returns no fitted means, so mu here is exp(X b), the NB2 mean at
+        // the fitted coefficients (exp(X %*% b) on the R side).
+        Eigen::VectorXd mu = res.mu;
+        if (mu.size() != X.rows() && res.b.size() == X.cols()) {
+            mu = (X * res.b).array().cwiseMin(700.0).exp().matrix();
+        }
+        const double neg_loglik = std::isfinite(res.neg_ll) ? res.neg_ll : -res.sigma2_hat;
         py::dict out;
         out["b"] = res.b;
-        out["mu"] = res.mu;
+        out["mu"] = mu;
         out["XtWX"] = res.XtWX;
         out["converged"] = res.converged;
-        out["neg_loglik"] = res.neg_ll;
+        out["neg_loglik"] = neg_loglik;
         out["dispersion"] = res.dispersion;
         out["num_iter"] = res.num_iter;
         out["hit_iteration_cap"] = res.hit_iteration_cap;
@@ -344,6 +355,10 @@ void bind_count(py::module_& m) {
     "Returns\n"
     "-------\n"
     "dict\n"
+    "    'neg_loglik' is the (weighted) negative log-likelihood at the fit,\n"
+    "    i.e. -logLik of R's fast_neg_bin_cpp, constants included; 'mu' is the\n"
+    "    fitted mean exp(X b) (R returns no fitted means). Both are filled for\n"
+    "    estimate_only=True as well.\n"
     "    With estimate_only=False the Python wrapper also returns 'vcov', the\n"
     "    inverse of the information matrix XtWX over the free coefficients (nan\n"
     "    rows and columns for fixed_idx coefficients; all nan if singular), and\n"

@@ -8,6 +8,8 @@
 #include <pybind11/stl.h>
 #include "_helper_functions_core.h"
 #include <optional>
+#include <limits>
+#include <string>
 
 namespace py = pybind11;
 
@@ -53,6 +55,20 @@ RobustModelResult fast_robust_regression_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info,
     bool estimate_only,
     int variance_j
+);
+
+// Defined in R/EDI/src/fast_robust_regression.cpp and shared with the R export
+// fast_robust_regression_cpp: fills res.XtWX if the IRLS loop did not, and
+// returns the sandwich variance of coefficient j (nullopt when R returns NA).
+std::optional<double> fast_robust_regression_ssq_b_j_internal(
+    RobustModelResult& res,
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::VectorXd>& y_vec,
+    const std::string& method,
+    double c,
+    int j,
+    int maxit,
+    const FixedParamSpec& fixed_spec
 );
 
 double wilcox_hl_point_estimate_result(
@@ -153,6 +169,16 @@ void bind_continuous(py::module_& m) {
         out["converged"] = res.converged;
         out["num_iter"] = res.num_iter;
         out["hit_iteration_cap"] = res.hit_iteration_cap;
+        out["min_eigenvalue_information"] = res.min_eigenvalue_information;
+        // Same post-fit fields as R's fast_robust_regression_cpp (audit
+        // decision rpy-parity-dd699435e); R's NA ssq_b_j is NaN here.
+        if (!estimate_only) {
+            FixedParamSpec fixed_spec = make_fixed_param_spec(X.cols(), fixed_idx, fixed_values);
+            std::optional<double> ssq_j = fast_robust_regression_ssq_b_j_internal(
+                res, X, y, method, c, j, maxit, fixed_spec);
+            out["ssq_b_j"] = ssq_j.has_value() ? *ssq_j : std::numeric_limits<double>::quiet_NaN();
+            out["fisher_information"] = res.XtWX;
+        }
         return out;
     },
     py::arg("X"), py::arg("y"),
@@ -186,8 +212,8 @@ void bind_continuous(py::module_& m) {
     "    Robust estimation method: \"M\" (single-stage Huber M-estimation) or \"MM\"\n"
     "    (Tukey bisquare weighting, constant fixed at 4.685, with a fixed MAD-based scale).\n"
     "j : int, default 2\n"
-    "    1-based index of the coefficient for which to return an individual variance\n"
-    "    (not returned by this binding; j currently has no effect on the result).\n"
+    "    1-based index of the coefficient whose sandwich variance is returned as\n"
+    "    'ssq_b_j' (ignored when estimate_only=True).\n"
     "c : float, default 1.345\n"
     "    Huber tuning constant (used for the M-step; the Tukey bisquare tuning\n"
     "    constant used when method is MM is fixed internally at 4.685).\n"
@@ -206,7 +232,17 @@ void bind_continuous(py::module_& m) {
     "    Optional initial Fisher information matrix for the first IRLS iteration.\n"
     "estimate_only : bool, default False\n"
     "    If True, skip variance-component calculations and return only the point\n"
-    "    estimate.");
+    "    estimate.\n\n"
+    "Returns\n"
+    "-------\n"
+    "dict\n"
+    "    'coefficients', 'scale', 'converged', 'num_iter', 'hit_iteration_cap' and\n"
+    "    'min_eigenvalue_information' (nan unless the fit did not converge), and,\n"
+    "    with estimate_only=False, 'ssq_b_j' (the Huber-sandwich variance of\n"
+    "    coefficient j with MASS::rlm's small-sample correction; nan where R\n"
+    "    returns NA: j indexes a fixed coefficient, or the fit neither converged\n"
+    "    nor used all maxit iterations) and 'fisher_information' (X^T W X at the\n"
+    "    final IRLS weights). Same fields as R's fast_robust_regression_cpp.");
 
     m.def("wilcox_hl_point_estimate", &wilcox_hl_point_estimate_result,
     py::arg("y"), py::arg("w"),

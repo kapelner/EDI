@@ -68,19 +68,19 @@ test_that("the randomization-inference estimate path is shift-invariant", {
 	expect_equal(est[2], est[1], tolerance = 5e-3)
 })
 
-test_that("ordinal_fit_scaled maps params, Fisher information and vcov back exactly", {
+test_that("ordinal_fit_scaled maps params, observed information and vcov back exactly", {
 	fit_scaled <- get("ordinal_fit_scaled", envir = asNamespace("EDI"))
 	f <- uc107_fixture(InferenceOrdinalPropOddsRegr, 3)
 	X <- cbind(treatment = f$w, x1 = f$x1)
 	y <- as.numeric(f$y)
 	r <- fit_scaled(fast_ordinal_regression_with_var_cpp, X, y, force = TRUE)
 	H <- -get_ordinal_regression_hessian_cpp(X, y, r$params)
-	expect_lt(max(abs(H - r$fisher_information)) / max(abs(H)), 1e-8)
+	expect_lt(max(abs(H - r$observed_information)) / max(abs(H)), 1e-8)
 	expect_lt(max(abs(solve(H) - r$vcov)) / max(abs(r$vcov)), 1e-8)
 	# a warm start given in the original parameterization is mapped forward
 	# (not skipped) and reproduces the same optimum
 	r2 <- fit_scaled(fast_ordinal_regression_with_var_cpp, X, y, force = TRUE,
-		warm_start_params = r$params, warm_start_fisher_info = r$fisher_information)
+		warm_start_params = r$params, warm_start_fisher_info = r$observed_information)
 	expect_equal(r2$params, r$params, tolerance = 2e-3)
 	# fixing the treatment coefficient works in the scaled space too
 	jt <- length(r$params) - ncol(X) + 1L

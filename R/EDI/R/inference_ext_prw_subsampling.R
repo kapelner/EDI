@@ -141,7 +141,7 @@ InferenceExtPRWSubsampling = list(
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_subsampling_two_sided_pval_impl = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
+		compute_subsampling_two_sided_pval_impl = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -149,7 +149,7 @@ InferenceExtPRWSubsampling = list(
 				assertChoice(type, c("centered"))
 			}
 			setup = private$resampling_centered_pivot_for_inference("subsampling", "pval", B = B, size = b, alpha = NULL, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling)
+				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
 			# v1.0.6-TODO-230: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
@@ -183,7 +183,7 @@ InferenceExtPRWSubsampling = list(
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_subsampling_confidence_interval_impl = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
+		compute_subsampling_confidence_interval_impl = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -191,7 +191,7 @@ InferenceExtPRWSubsampling = list(
 				assertChoice(type, c("basic"))
 			}
 			setup = private$resampling_centered_pivot_for_inference("subsampling", "ci", B = B, size = b, alpha = alpha, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling)
+				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
 			ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$est, n_units = pivot$n_units, scaling = scaling)
@@ -298,59 +298,74 @@ InferenceExtPRWSubsampling = list(
 		subsampling_cache_key = function(B, b, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
 			paste(as.integer(B), as.integer(b), subsampling_type %||% "NULL", private$resampling_scaling_key(scaling), center, sep = "|")
 		},
-		subsampling_centered_pivot = function(B, b, unit_info, show_progress = TRUE, subsampling_type = NULL, scaling = "sqrt_n"){
+		subsampling_centered_pivot = function(B, b, unit_info, show_progress = TRUE, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			private$check_bootstrap_replicate_deadline("subsampling centered pivot")
 			cache_key = private$subsampling_cache_key(B = B, b = b, subsampling_type = subsampling_type, scaling = scaling, center = "full_estimate")
-			cached = private$get_cached_centered_resampling_pivot("subsampling", cache_key)
-			if (!is.null(cached)) return(cached)
-			# Control conditions (timeouts, interrupts) re-throw, as in the m-out-of-n pivot (v1.0.6-TODO-194).
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
-			if (!is.finite(est)) {
-				return(list(ok = FALSE, reason = "subsampling_original_estimate_unavailable"))
+			pivot = private$get_cached_centered_resampling_pivot("subsampling", cache_key)
+			if (is.null(pivot)) {
+				# Builds the pivot from fresh draws; a failure (ok = FALSE) is returned uncached.
+				pivot = (function(){
+					# Control conditions (timeouts, interrupts) re-throw, as in the m-out-of-n pivot (v1.0.6-TODO-194).
+					est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
+					if (!is.finite(est)) {
+						return(list(ok = FALSE, reason = "subsampling_original_estimate_unavailable"))
+					}
+					sub = self$approximate_subsampling_distribution_beta_hat_T(
+						B = B,
+						b = b,
+						show_progress = show_progress,
+						subsampling_type = subsampling_type,
+						scaling = scaling
+					)
+					finite = sub[is.finite(sub)]
+					# Fraction-based failure gate (2026-09-06): see the identical
+					# comment in inference_ext_m_out_of_n_bootstrap.R's
+					# m_out_of_n_bootstrap_centered_pivot() -- same rationale, same
+					# fix, kept consistent across both resampling families. A class with a
+					# degenerate-draw rule uses min_fraction_usable_samples instead
+					# (subsampling_centered_pivot(); v1.0.6-TODO-269).
+					has_ratio_rule = !is.null(edi_ratio_resampling_degenerate_rule(self, private))
+					if (!has_ratio_rule && length(sub) > 0L && length(finite) / length(sub) < 0.5) {
+						return(list(ok = FALSE, reason = "subsampling_high_replicate_failure_rate"))
+					}
+					# Finite-population correction (2026-09-07): unlike m-out-of-n
+					# bootstrap (draws with replacement, no FPC needed), PRW
+					# subsampling draws b units without replacement from the n
+					# exchangeable units. Sampling without replacement shrinks the
+					# variance of the subsample statistic by a factor of
+					# approximately (1 - b/n) relative to the i.i.d./with-replacement
+					# case the sqrt(b)-scaling formula assumes, so the raw centered
+					# pivot is too narrow and Type-I error is inflated (confirmed via
+					# simulation: ~9.75% vs nominal 5% at b/n ~ 0.4). Dividing by
+					# sqrt(1 - b/n) restores the pivot to the with-replacement scale
+					# the shared CI/p-value machinery in
+					# inference_ext_exchangeable_resampling_units.R expects.
+					fpc = 1 / sqrt(max(1 - as.numeric(b) / as.numeric(unit_info$n_units), .Machine$double.eps))
+					pivot = list(
+						ok = TRUE,
+						reason = NA_character_,
+						est = est,
+						finite = finite,
+						centered_scaled = fpc * private$resampling_scaling_factor(b, scaling) * (finite - est),
+						b = as.integer(b),
+						n_units = unit_info$n_units,
+						scaling = scaling,
+						n_draws = length(sub),
+						n_degenerate = sum(is.nan(sub))
+					)
+					pivot
+				})()
+				if (!isTRUE(pivot$ok)) return(pivot)
+				private$set_cached_centered_resampling_pivot("subsampling", cache_key, pivot)
 			}
-			sub = self$approximate_subsampling_distribution_beta_hat_T(
-				B = B,
-				b = b,
-				show_progress = show_progress,
-				subsampling_type = subsampling_type,
-				scaling = scaling
-			)
-			finite = sub[is.finite(sub)]
-			# v1.0.6-TODO-230: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
-			# ratio_resampling_min_fraction_usable of the B subsamples to be usable.
-			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "subsampling", sub)
+			# v1.0.6-TODO-230 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# min_fraction_usable_samples of the B subsamples to be usable. Checked after the cache so a
+			# pivot built under one cap is judged under the cap of each call.
+			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "subsampling",
+				n_total = pivot$n_draws %||% length(pivot$finite), n_usable = length(pivot$finite),
+				n_degenerate = pivot$n_degenerate %||% 0L, min_fraction = min_fraction_usable_samples)
 			if (!is.null(too_few_usable)) return(too_few_usable)
-			# Fraction-based failure gate (2026-09-06): see the identical
-			# comment in inference_ext_m_out_of_n_bootstrap.R's
-			# m_out_of_n_bootstrap_centered_pivot() -- same rationale, same
-			# fix, kept consistent across both resampling families.
-			if (length(sub) > 0L && length(finite) / length(sub) < 0.5) {
-				return(list(ok = FALSE, reason = "subsampling_high_replicate_failure_rate"))
-			}
-			# Finite-population correction (2026-09-07): unlike m-out-of-n
-			# bootstrap (draws with replacement, no FPC needed), PRW
-			# subsampling draws b units without replacement from the n
-			# exchangeable units. Sampling without replacement shrinks the
-			# variance of the subsample statistic by a factor of
-			# approximately (1 - b/n) relative to the i.i.d./with-replacement
-			# case the sqrt(b)-scaling formula assumes, so the raw centered
-			# pivot is too narrow and Type-I error is inflated (confirmed via
-			# simulation: ~9.75% vs nominal 5% at b/n ~ 0.4). Dividing by
-			# sqrt(1 - b/n) restores the pivot to the with-replacement scale
-			# the shared CI/p-value machinery in
-			# inference_ext_exchangeable_resampling_units.R expects.
-			fpc = 1 / sqrt(max(1 - as.numeric(b) / as.numeric(unit_info$n_units), .Machine$double.eps))
-			pivot = list(
-				ok = TRUE,
-				reason = NA_character_,
-				est = est,
-				finite = finite,
-				centered_scaled = fpc * private$resampling_scaling_factor(b, scaling) * (finite - est),
-				b = as.integer(b),
-				n_units = unit_info$n_units,
-				scaling = scaling
-			)
-			private$set_cached_centered_resampling_pivot("subsampling", cache_key, pivot)
+			pivot
 		},
 		subsampling_sample_indices = function(b, subsampling_type = NULL){
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)

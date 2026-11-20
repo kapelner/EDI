@@ -298,6 +298,37 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     // would have fired first otherwise -- so this blanket rule needs no
     // special-casing, matching the template's analysis.
     res.converged = (res.gradient_norm < tol);
+    // v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): scale-aware
+    // fallback. With a large-scale or offset covariate (colon age + 1e5) IRLS
+    // reaches the optimum but rounding keeps |score| above the absolute tol, so a
+    // correct fit was reported converged = FALSE and the classes dropped
+    // covariates. When the gradient test fails, the fit is still converged if
+    // the Newton decrement score' (X'WX)^{-1} score at the returned beta is
+    // within glm()'s relative deviance tolerance (newton_decrement_converged()
+    // in _helper_functions_core.h, the rule shared with the logistic IRLS and the
+    // L-BFGS / Newton wrappers). Not on a degenerate fit (some row with positive
+    // weight has mu < 1e-10, i.e. eta < -23: a zero cell driving eta to -Inf),
+    // where a small decrement is not an optimum. Coefficients are unchanged.
+    if (!res.converged && p_free > 0 && beta_free.allFinite() && std::isfinite(current_nll)) {
+        const VectorXd eta_c = eta_fixed + X_f * beta_free;
+        const VectorXd mu_c = eta_c.array().cwiseMin(700.0).exp().matrix();
+        bool degenerate = !mu_c.allFinite();
+        for (int i = 0; i < n && !degenerate; ++i) {
+            if (mu_c[i] < 1e-10 && (!use_weights || weights[i] > 0.0)) degenerate = true;
+        }
+        if (!degenerate) {
+            VectorXd diff_c = y - mu_c;
+            VectorXd w_c = mu_c;
+            if (use_weights) {
+                diff_c.array() *= weights.array();
+                w_c.array() *= weights.array();
+            }
+            const VectorXd score_c = X_f.transpose() * diff_c;
+            const MatrixXd info_c = weighted_crossprod(X_f, w_c);
+            res.converged = newton_decrement_converged(score_c, info_c,
+                                                       compute_neg_loglik(beta_free), tol);
+        }
+    }
     res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
     // Reuses XtWX_free, already built above (the last iteration's Fisher
     // information in free-parameter space) -- no new computation

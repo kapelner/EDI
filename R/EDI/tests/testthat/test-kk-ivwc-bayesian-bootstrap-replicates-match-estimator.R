@@ -63,7 +63,9 @@ fixed_cases = list(
 	list(gen = "InferenceContinKKOLSIVWC", rt = "continuous"),
 	list(gen = "InferenceIncidKKCondLogitIVWC", rt = "incidence"),
 	list(gen = "InferenceAllKKMeanDiffIVWC", rt = "continuous"),
-	list(gen = "InferenceIncidKKNewcombeRiskDiff", rt = "incidence")
+	list(gen = "InferenceIncidKKNewcombeRiskDiff", rt = "incidence"),
+	# v1.0.6-TODO-235 (2): weighted quantreg::rq() refits of both halves.
+	list(gen = "InferenceContinKKQuantileRegrIVWC", rt = "continuous")
 )
 
 for (case in fixed_cases) {
@@ -118,7 +120,6 @@ test_that("KK RankRegr IVWC: Bayesian-bootstrap replicates are weighted aftsrr r
 refused = list(
 	InferenceBaiAdjustedTKK14 = "continuous",
 	InferenceBaiAdjustedTKK21 = "continuous",
-	InferenceContinKKQuantileRegrIVWC = "continuous",
 	InferenceContinKKRobustRegrIVWC = "continuous",
 	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "survival",
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "survival",
@@ -128,7 +129,7 @@ refused = list(
 )
 
 test_that("KK compound classes without a weighted refit refuse the Bayesian bootstrap", {
-	for (nm in c(names(refused), "InferencePropKKQuantileRegrIVWC")) {
+	for (nm in names(refused)) {
 		expect_true("bayesian_bootstrap" %in% EDI_INFERENCE_EXCLUDED_CAPABILITIES[[nm]], info = nm)
 	}
 	for (nm in names(refused)) {

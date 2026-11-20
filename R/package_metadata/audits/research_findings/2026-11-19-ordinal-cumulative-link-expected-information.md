@@ -204,3 +204,51 @@ observed-information power matches its anti-conservative size.
 - `expected_hessian()` in `ordinal_fixed_link_helpers.h` reads `p[0]` when K = 1 (n_alpha = 0,
   empty vector). It is unreachable today, because nothing calls it. Guard it if it is ever
   exported.
+
+## 7. Follow-up (v1.0.6-TODO-215 items 2 and 3, 2026-11-20, agent, uncommitted)
+
+**Item 2 (C++ field name; PATCHED, needs owner build).** The four kernels (`fast_ordinal_regression.cpp`
+and `ordinal_fixed_link_internal.h`) no longer return `fisher_information`; they return the observed
+information as `observed_information` / `information` (`information_type = "observed"`), as before. Filling
+the field from `expected_hessian()` was not chosen: every R caller passed that field to the next fit's
+warm start, so it would have changed warm-start trajectories (and so results at the solver tolerance), and
+it would add an expected-information pass to every bootstrap / randomization fit. The R callers (cumulative-
+link classes, likelihood-test specs, PropOdds weighted refit, PartialPO fast path, ordinal G-computation,
+ordinal KK combined weighted refit) now read `observed_information`, which is the same matrix on the old
+build. `expected_hessian()` no longer reads `p[0]` when K = 1 (it now returns a zero matrix; the old code
+fails `_GLIBCXX_ASSERTIONS`); for K = 2..5 and all four links its output is `identical()` to before.
+Python's `fast_ordinal_*` dicts share these kernels and lose the `fisher_information` key too.
+
+**Item 3 (PartialPO information).** Derivation, with clm's `nominal` parameterization
+logit P(Y <= k | x) = alpha_k + x_np' gamma_k - x_par' beta, params = (alpha, beta, gamma_1, ..., gamma_{K-1}):
+v_ik = dz_ik / dparams has 1 at alpha_k, -x_par at beta and x_np in the gamma_k block;
+g_ik = f_ik v_ik - f_i,k-1 v_i,k-1 (f_i0 = f_iK = 0);
+
+    expected  I = sum_i sum_k g_ik g_ik' / pi_ik
+    observed  J = sum_i [ g g' / pi^2 - (f'_iy v_iy v_iy' - f'_i,y-1 v_i,y-1 v_i,y-1') / pi ],  f' = f (1 - 2F).
+
+Implemented as `ordinal_partial_po_information()` (`inference_ordinal_partial_proportional_odds.R`), not wired
+into the class. Checks (test `test-ordinal-partial-po-information-observed-matches-clm-expected-matches-vgam.R`):
+J equals -numDeriv Hessian (<= 1e-6 relative) and gives `ordinal::clm`'s treatment SE; I gives
+`VGAM::vglm(cumulative())`'s SE (VGAM's vcov is Fisher scoring's expected information); with no nonparallel
+columns J equals the PropOdds kernel Hessian and I equals `ordinal_cumlink_expected_information()`.
+
+**What the class publishes today.** The class has no likelihood tests (`likelihood_tier = "none"`), so a
+Fisher information would have no consumer. Its Wald SE comes from the backend that fitted: the fast solver
+(observed) with no nonparallel columns; VGAM (EXPECTED) with nonparallel columns; clm (observed) when VGAM
+fails or is degenerate (non-finite log-likelihood). Under the owner rule of item 1 (Wald = observed), the
+VGAM path is the exception. Size of moving it to observed (J at the VGAM MLE), treatment SE ratio J / VGAM,
+K = 4, one nonparallel covariate, 5 data sets per n, VGAM and clm at the same MLE:
+
+| n | median abs. change | max abs. change |
+|---|---|---|
+| 60 | 0.44% | 0.6% |
+| 100 | 0.76% | 0.96% |
+| 300 | 0.19% | 0.50% |
+| 1000 | 0.05% | 0.22% |
+
+(2 of 5 n = 60 data sets had a degenerate VGAM fit with NaN log-likelihood; the class already falls through
+to clm, observed, there.) Estimates do not change. Open owner decision: (a) compute J at the VGAM MLE and
+publish that SE (recommended: one R pass per fit, matches clm and the item-1 rule, unifies the three
+backends); (b) put clm ahead of VGAM in the cascade (changes estimates when the two optimizers disagree);
+(c) keep VGAM's expected SE as a documented exception, like probit / log-binomial in item 1.

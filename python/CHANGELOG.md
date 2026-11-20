@@ -62,6 +62,9 @@ or permutation function is exposed in Python.
 
 ### Changed
 
+- The `fast_ordinal_*` cumulative-link kernels no longer return a
+  `fisher_information` key: it held the observed Hessian. Use
+  `observed_information` / `information` (v1.0.6-TODO-215).
 - `fast_logistic_regression` and `fast_probit_regression` no longer return
   `ssq_b_j`, `dispersion` and `sigma2_hat`, and `fast_poisson_regression` no
   longer returns `dispersion`: the C++ never filled them, so they were always
@@ -133,6 +136,11 @@ or permutation function is exposed in Python.
 
 ### Fixed
 
+- Likelihood kernels that use the shared L-BFGS / Newton wrapper (NegBin,
+  Poisson, probit, beta, ZINB and others) and the Poisson and probit IRLS
+  kernels use a scale-aware convergence rule, so ill-conditioned or large-scale
+  designs no longer stop early or report a correct fit as unconverged
+  (v1.0.6-TODO-169, v1.0.6-TODO-170).
 - `fast_neg_bin` now returns the negative log-likelihood (`neg_loglik`, equal to
   -`logLik` from R's `fast_neg_bin_cpp`) and the fitted means `mu = exp(X b)`;
   both were previously `nan` / empty (v1.0.6-TODO-188).

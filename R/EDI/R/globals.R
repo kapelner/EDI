@@ -311,8 +311,11 @@ kk_ivwc_pool_halves = function(beta_m, ssq_m, beta_r, ssq_r) {
 # Weighted Cox fit of one KK half over a ladder of design-matrix candidates (treatment
 # first). Returns list(beta, ssq) for the first usable candidate, else NULL. `strata`
 # gives a stratified fit (pair strata); `cluster` gives the robust (Lin-Wei / LWA)
-# variance. The weighted partial likelihood is survival::coxph(weights = ), the same
-# Efron-ties likelihood as the unweighted C++ fitter.
+# variance. The weighted partial likelihood is survival::coxph(weights = ) with
+# ties = "breslow", the same tie rule as the unweighted C++ fitter
+# (fast_coxph_regression.cpp: each tied set shares one risk-set denominator).
+# v1.0.6-TODO-271: this used coxph()'s default Efron ties before, so on tied data
+# the replicates fit a different partial likelihood from the estimate.
 kk_ivwc_weighted_cox_half = function(time, dead, X_candidates, row_weights, strata = NULL, cluster = NULL, max_abs = 1e4) {
   if (!length(time) || sum(dead[is.finite(row_weights) & row_weights > 0]) == 0) return(NULL)
   for (X_fit in X_candidates) {
@@ -345,7 +348,12 @@ kk_ivwc_row_weights = function(w_info, n) {
   as.numeric(rw)
 }
 
-weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, strata = NULL, cluster = NULL, warm_start_beta = NULL) {
+# `ties` defaults to "breslow", the rule of every EDI Cox point estimate (C++
+# fitter and the pinned R fallbacks), so a weighted replicate fits the same
+# partial likelihood as the estimate it resamples (v1.0.6-TODO-271). The
+# package-wide ties choice is v1.1.0-TODO-61.
+weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, strata = NULL, cluster = NULL, warm_start_beta = NULL, ties = "breslow") {
+  ties = match.arg(ties, c("breslow", "efron"))
   X = as.matrix(X)
   row_weights = as.numeric(row_weights)
   ok = is.finite(time) & is.finite(dead) & is.finite(row_weights) & row_weights > 0
@@ -381,7 +389,8 @@ weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, stra
     args = list(
       formula = stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
       data = dat,
-      weights = dat$.wgt__
+      weights = dat$.wgt__,
+      ties = ties
     )
     if (!is.null(init)) args$init = init
     tryCatch(
@@ -392,8 +401,8 @@ weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, stra
   # Interim fast path (bayesian_bootstrap_performance.md TODO-6.1): for the
   # unstratified, unclustered fit call survival::coxph.fit() directly on the
   # prebuilt matrix. This skips the per-draw formula/model-frame build and the
-  # unused concordance computation; it is the same Efron-ties partial
-  # likelihood with the same default control as survival::coxph(). Any error,
+  # unused concordance computation; it is the same partial likelihood (same
+  # `ties`) with the same default control as survival::coxph(). Any error,
   # missing or non-finite treatment coefficient falls through to the original
   # formula path below.
   fit = NULL
@@ -406,7 +415,7 @@ weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, stra
         init = if (is.null(cox_init)) rep(0, ncol(X_fit)) else cox_init,
         control = survival::coxph.control(),
         weights = as.numeric(row_weights[ok]),
-        method = "efron",
+        method = ties,
         rownames = NULL
       )),
       error = function(e) NULL

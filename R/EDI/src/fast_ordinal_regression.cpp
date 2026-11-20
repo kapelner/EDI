@@ -231,7 +231,6 @@ edi::ResultMap fast_ordinal_regression_internal(
         .set("gradient_norm", fit.gradient_norm)
         .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("observed_information", H)
-        .set("fisher_information", H)
         .set("information", H)
         .set("information_type", std::string("observed"));
 
@@ -312,8 +311,8 @@ edi::ResultMap fast_ordinal_regression_internal(
 //'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
 //'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 //'   when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
-//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-//'   observed-information matrix), \code{information_type} (always \code{"observed"}),
+//'   \code{observed_information}/\code{information} (both the same
+//'   observed-information matrix; no expected-information field is returned), \code{information_type} (always \code{"observed"}),
 //'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
 //'   column — conventionally the treatment effect, since \code{X} carries no separate
 //'   intercept column here), and \code{vcov} (the full parameter covariance matrix) — the
@@ -375,8 +374,8 @@ List fast_ordinal_regression_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numer
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 //'   \code{converged}, \code{num_iter}, \code{neg_loglik},
-//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-//'   observed-information matrix), \code{information_type} (\code{"observed"}),
+//'   \code{observed_information}/\code{information} (both the same
+//'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
 //'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
 //'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
 //' @seealso \code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
@@ -437,8 +436,8 @@ List fast_ordinal_regression_weighted_cpp(const Rcpp::NumericMatrix& X, const Rc
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 //'   \code{converged}, \code{num_iter}, \code{neg_loglik},
-//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-//'   observed-information matrix), \code{information_type} (\code{"observed"}),
+//'   \code{observed_information}/\code{information} (both the same
+//'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
 //'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
 //'   column — conventionally the treatment effect), and \code{vcov} — the latter two are
 //'   \code{NA}/omitted if the free-parameter information matrix is not invertible.

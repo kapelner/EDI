@@ -5139,6 +5139,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// zhang_minlike_pval_vec_cpp
+NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const NumericVector& deltas);
+RcppExport SEXP _EDI_zhang_minlike_pval_vec_cpp(SEXP cjSEXP, SEXP xSEXP, SEXP deltasSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type cj(cjSEXP);
+    Rcpp::traits::input_parameter< int >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type deltas(deltasSEXP);
+    rcpp_result_gen = Rcpp::wrap(zhang_minlike_pval_vec_cpp(cj, x, deltas));
+    return rcpp_result_gen;
+END_RCPP
+}
+// zhang_minlike_tail_bound_cpp
+double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta, int direction);
+RcppExport SEXP _EDI_zhang_minlike_tail_bound_cpp(SEXP cjSEXP, SEXP xSEXP, SEXP deltaSEXP, SEXP directionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type cj(cjSEXP);
+    Rcpp::traits::input_parameter< int >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< int >::type direction(directionSEXP);
+    rcpp_result_gen = Rcpp::wrap(zhang_minlike_tail_bound_cpp(cj, x, delta, direction));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_zhang_match_data_cpp
 List compute_zhang_match_data_cpp(const NumericMatrix& X, const NumericVector& y, const IntegerVector& w, const IntegerVector& m_vec);
 RcppExport SEXP _EDI_compute_zhang_match_data_cpp(SEXP XSEXP, SEXP ySEXP, SEXP wSEXP, SEXP m_vecSEXP) {
@@ -5499,6 +5526,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_which_cols_vary_cpp", (DL_FUNC) &_EDI_which_cols_vary_cpp, 1},
     {"_EDI_zhang_exact_binom_pval_cpp", (DL_FUNC) &_EDI_zhang_exact_binom_pval_cpp, 3},
     {"_EDI_zhang_exact_fisher_pval_cpp", (DL_FUNC) &_EDI_zhang_exact_fisher_pval_cpp, 5},
+    {"_EDI_zhang_minlike_pval_vec_cpp", (DL_FUNC) &_EDI_zhang_minlike_pval_vec_cpp, 3},
+    {"_EDI_zhang_minlike_tail_bound_cpp", (DL_FUNC) &_EDI_zhang_minlike_tail_bound_cpp, 4},
     {"_EDI_compute_zhang_match_data_cpp", (DL_FUNC) &_EDI_compute_zhang_match_data_cpp, 4},
     {"_EDI_compute_matching_wy_stats_cpp", (DL_FUNC) &_EDI_compute_matching_wy_stats_cpp, 3},
     {NULL, NULL, 0}

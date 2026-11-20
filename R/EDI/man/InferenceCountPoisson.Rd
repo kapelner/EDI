@@ -61,7 +61,7 @@ it rejected a true null 17-19\% of the time at a nominal 5\% in a simulation,
 against about 3-5\% with the fallback. On
 \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}} and current
 \code{DesignSeqOneByOneRandomBlockSize} objects the automatic unit is the permuted
-block, or this same within-stratum jackknife when any stratum has fewer than 5
+block, or this same within-stratum jackknife when any stratum has fewer than 10
 permuted blocks (v1.0.6-TODO-270), so no fallback is needed there.
 
 \strong{Estimand.} Composes

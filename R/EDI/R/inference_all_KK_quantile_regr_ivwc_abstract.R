@@ -66,6 +66,46 @@
 	invisible(NULL)
 }
 
+# v1.0.6-TODO-235 (2): row selection and scaling for a weighted (Bayesian-bootstrap)
+# quantile half. Rows with a zero, negative or non-finite weight carry no information
+# and are dropped: quantreg::rq() would keep them as all-zero rows of the LP, and its
+# "nid" sparsity estimate (bandwidth from the row count) would still count them. A
+# weight below 1e-10 times the mean positive weight is treated the same way, so a tiny
+# weight gives the same replicate as a zero one (under Dirichlet weights this happens
+# with probability about 1e-10 per unit). The kept weights are rescaled to mean 1: the
+# rq coefficients do not depend on the scale (the check loss is homogeneous in the
+# weights), and uniform weights reproduce the unweighted fit and its standard errors.
+kk_quantile_weighted_rows = function(weights, n_rows, rel_tol = 1e-10){
+	weights = as.numeric(weights)
+	if (length(weights) != n_rows) stop("KK quantile IVWC weighted refit: ", length(weights),
+		" weights for ", n_rows, " rows.", call. = FALSE)
+	pos = is.finite(weights) & weights > 0
+	keep = if (any(pos)) which(pos & weights > rel_tol * mean(weights[pos])) else integer(0)
+	w = weights[keep]
+	list(keep = keep, weights = if (length(w)) w / mean(w) else w)
+}
+
+# Weighted interquartile range for the IQR standard-error fallback. Sorted point i
+# (weight w_i, cumulative weight S_i, total W) sits at probability
+# (S_i - w_i / 2 - w_1 / 2) / (W - w_1 / 2 - w_n / 2), which is (i - 1) / (n - 1) at
+# uniform weights, so the result equals stats::IQR() (type 7) there.
+kk_quantile_weighted_iqr = function(x, weights){
+	ok = is.finite(x) & is.finite(weights) & weights > 0
+	x = x[ok]
+	weights = weights[ok]
+	n = length(x)
+	if (n < 2L) return(NA_real_)
+	o = order(x)
+	x = x[o]
+	weights = weights[o]
+	S = cumsum(weights)
+	denom = S[n] - weights[1L] / 2 - weights[n] / 2
+	if (!is.finite(denom) || denom <= 0) return(NA_real_)
+	p = (S - weights / 2 - weights[1L] / 2) / denom
+	q = stats::approx(p, x, xout = c(0.25, 0.75), ties = "ordered", rule = 2)$y
+	q[2L] - q[1L]
+}
+
 #' KK inverse-variance-weighted-combined quantile-regression inference component source.
 #'
 #' @noRd
@@ -235,10 +275,47 @@ KKQuantileRegrIVWCSource = list(
 			}
 			invisible(NULL)
 		},
-		quantile_for_matched_pairs = function(){
+		# v1.0.6-TODO-235 (2): the Bayesian-bootstrap replicate. Both halves are refit by
+		# weighted quantile regression, quantreg::rq(weights = ), under the draw's
+		# Dirichlet weights (pair weight = mean of its two subjects' row weights; reservoir
+		# subjects keep their own), each half takes its standard error from that weighted
+		# fit (rq "nid" sandwich, then "iid", then the weighted-IQR fallback), and the two
+		# are pooled by inverse variance with the same one-half fallbacks as shared().
+		compute_weighted_estimate_ivwc = function(w_info, estimate_only = FALSE){
+			row_weights = kk_ivwc_row_weights(w_info, private$n)
+			if (weights_are_effectively_constant(row_weights)) {
+				return(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L])
+			}
+			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			res_m = list(beta = NA_real_, ssq = NA_real_)
+			res_r = list(beta = NA_real_, ssq = NA_real_)
+			if (KKstats$m > 0) {
+				# KKstats rows are the pairs in increasing pair id, as w_info$pair_ids.
+				res_m = private$quantile_for_matched_pairs(weights = w_info$pair_weights)
+			}
+			if (KKstats$nRT > 0 && KKstats$nRC > 0) {
+				res_r = private$quantile_for_reservoir(weights = w_info$reservoir_weights)
+			}
+			pooled = kk_ivwc_pool_halves(res_m$beta, res_m$ssq, res_r$beta, res_r$ssq)
+			private$cached_values$beta_hat_T = pooled$beta
+			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
+			pooled$beta
+		},
+		# `weights` (v1.0.6-TODO-235): one weight per matched pair, in increasing pair id
+		# (the KKstats row order), for the Bayesian-bootstrap replicate. NULL is the
+		# unweighted fit. Pairs with a zero weight are dropped (see kk_quantile_weighted_rows()).
+		quantile_for_matched_pairs = function(weights = NULL){
 			yd = private$transform_y_fn_list$fn(private$cached_values$KKstats$yTs_matched) -
 			     private$transform_y_fn_list$fn(private$cached_values$KKstats$yCs_matched)
 			Xd = private$cached_values$KKstats$X_matched_diffs
+			rq_w = NULL
+			if (!is.null(weights)) {
+				rows = kk_quantile_weighted_rows(weights, length(yd))
+				yd = yd[rows$keep]
+				Xd = as.matrix(Xd)[rows$keep, , drop = FALSE]
+				rq_w = rows$weights
+			}
 			m  = length(yd)
 			tau = private$tau
 			# QR-reduce Xd to full rank (same logic as OLS compound)
@@ -249,14 +326,14 @@ KKQuantileRegrIVWCSource = list(
 			# Underdetermined: fall back to intercept-only quantile regression
 			if (m <= p_kept + 1){
 				fit0 = tryCatch(
-					suppressWarnings(quantreg::rq(yd ~ 1, tau = tau)),
+					suppressWarnings(quantreg::rq(yd ~ 1, tau = tau, weights = rq_w)),
 					error = function(e) NULL
 				)
 				if (is.null(fit0) || m < 2){
 					return(list(beta = NA_real_, ssq = NA_real_))
 				}
 				beta = unname(coef(fit0)[1])
-				se = private$iqr_se(yd, m)
+				se = private$iqr_se(yd, m, rq_w)
 				if (!is.finite(se) || se <= 0){
 					return(list(beta = beta, ssq = NA_real_))
 				}
@@ -268,7 +345,7 @@ KKQuantileRegrIVWCSource = list(
 			dat = as.data.frame(Xd)
 			dat$yd__ = yd
 			fit = tryCatch(
-				suppressWarnings(quantreg::rq(yd__ ~ ., tau = tau, data = dat)),
+				suppressWarnings(quantreg::rq(yd__ ~ ., tau = tau, data = dat, weights = rq_w)),
 				error = function(e) NULL
 			)
 			if (is.null(fit)){
@@ -276,15 +353,26 @@ KKQuantileRegrIVWCSource = list(
 			}
 			se = private$extract_se_from_rq(fit, "(Intercept)")
 			if (!is.finite(se) || se <= 0){
-				se = private$iqr_se(yd, m)
+				se = private$iqr_se(yd, m, rq_w)
 			}
 			beta = tryCatch(coef(fit)[["(Intercept)"]], error = function(e) NA_real_)
 			list(beta = beta, ssq = if (is.finite(se) && se > 0) se^2 else NA_real_)
 		},
-		quantile_for_reservoir = function(){
+		# `weights` (v1.0.6-TODO-235): one weight per reservoir subject, in KKstats row
+		# order, for the Bayesian-bootstrap replicate; NULL is the unweighted fit.
+		quantile_for_reservoir = function(weights = NULL){
 			y_r = private$transform_y_fn_list$fn(private$cached_values$KKstats$y_reservoir)
 			w_r = private$cached_values$KKstats$w_reservoir
 			X_r = as.matrix(private$cached_values$KKstats$X_reservoir)
+			rq_w = NULL
+			if (!is.null(weights)) {
+				rows = kk_quantile_weighted_rows(weights, length(y_r))
+				y_r = y_r[rows$keep]
+				w_r = w_r[rows$keep]
+				X_r = X_r[rows$keep, , drop = FALSE]
+				rq_w = rows$weights
+				if (!any(w_r == 1) || !any(w_r == 0)) return(list(beta = NA_real_, ssq = NA_real_))
+			}
 			tau = private$tau
 			# Build full design matrix and QR-reduce, always preserving treatment column
 			X_full  = cbind(1, w_r, X_r)
@@ -300,7 +388,7 @@ KKQuantileRegrIVWCSource = list(
 			dat = as.data.frame(X_full)
 			dat$yr__ = y_r
 			fit = tryCatch(
-				suppressWarnings(quantreg::rq(yr__ ~ . - 1, tau = tau, data = dat)),
+				suppressWarnings(quantreg::rq(yr__ ~ . - 1, tau = tau, data = dat, weights = rq_w)),
 				error = function(e) NULL
 			)
 			if (is.null(fit)){
@@ -308,10 +396,10 @@ KKQuantileRegrIVWCSource = list(
 			}
 			se   = private$extract_se_from_rq(fit, "trt__")
 			if (!is.finite(se) || se <= 0){
-				nRT = private$cached_values$KKstats$nRT
-				nRC = private$cached_values$KKstats$nRC
-				se_T = private$iqr_se(y_r[w_r == 1], nRT)
-				se_C = private$iqr_se(y_r[w_r == 0], nRC)
+				nRT = sum(w_r == 1)
+				nRC = sum(w_r == 0)
+				se_T = private$iqr_se(y_r[w_r == 1], nRT, rq_w[w_r == 1])
+				se_C = private$iqr_se(y_r[w_r == 0], nRC, rq_w[w_r == 0])
 				if (is.finite(se_T) && is.finite(se_C) && se_T > 0 && se_C > 0){
 					se = sqrt(se_T^2 + se_C^2)
 				}
@@ -320,9 +408,11 @@ KKQuantileRegrIVWCSource = list(
 			list(beta = beta, ssq = if (is.finite(se) && se > 0) se^2 else NA_real_)
 		},
 		# IQR-based SE for a sample quantile: CLT approximation SE = IQR/(2*qnorm(0.75)) / sqrt(n)
-		iqr_se = function(x, n){
+		# With `weights` (Bayesian-bootstrap replicate) the IQR is the weighted one of
+		# kk_quantile_weighted_iqr(), which equals stats::IQR() at uniform weights.
+		iqr_se = function(x, n, weights = NULL){
 			if (n < 2) return(NA_real_)
-			iqr = stats::IQR(x)
+			iqr = if (is.null(weights)) stats::IQR(x) else kk_quantile_weighted_iqr(x, weights)
 			if (!is.finite(iqr) || iqr <= 0) return(NA_real_)
 			iqr / (2 * stats::qnorm(0.75)) / sqrt(n)
 		},

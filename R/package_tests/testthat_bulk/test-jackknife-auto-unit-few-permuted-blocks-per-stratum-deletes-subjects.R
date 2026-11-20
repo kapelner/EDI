@@ -3,7 +3,7 @@ library(EDI)
 
 # v1.0.6-TODO-270 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and DesignSeqOneByOneRandomBlockSize the
 # automatic jackknife unit is the permuted block only when every stratum holds at least
-# EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM (5) permuted-block units; with fewer in any stratum it is one
+# EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM (10; owner decision 2026-11-20, first 5) permuted-block units; with fewer in any stratum it is one
 # subject within its stratum ("observation_within_block", Wolter 2007, Sec. 4.5). With 3-4 blocks in the smallest
 # stratum the permuted-block jackknife-Wald test was too liberal (InferenceCountPoisson, RandomBlockSize, prob_T 0.2,
 # n 200, ~1: size 0.082 against 0.055 deleting single subjects). An explicit unit = "permuted_block" is unchanged.
@@ -51,35 +51,35 @@ min_blocks_per_stratum <- function(inf) {
 	min(tabulate(lay$strata))
 }
 
-test_that("the threshold is a named constant equal to 5", {
-	expect_identical(EDI:::EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM, 5L)
+test_that("the threshold is a named constant equal to 10", {
+	expect_identical(EDI:::EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM, 10L)
 })
 
-test_that("SPBR: 5 full blocks in the smallest stratum keeps the permuted block", {
-	inf <- jk_inf(spbr_des(20L, 28L))
+test_that("SPBR: 10 full blocks in the smallest stratum keeps the permuted block", {
+	inf <- jk_inf(spbr_des(40L, 44L))
 	p <- inf$.__enclos_env__$private
-	expect_identical(min_blocks_per_stratum(inf), 5L)
+	expect_identical(min_blocks_per_stratum(inf), 10L)
 	expect_identical(p$resolve_jackknife_unit("auto"), "permuted_block")
-	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(), 12L)
+	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(), 21L)
 	expect_identical(inf$compute_jackknife_std_error(), inf$compute_jackknife_std_error(unit = "permuted_block"))
 })
 
-test_that("SPBR: 4 blocks (one with a merged partial block) in a stratum switches to one subject within its stratum", {
-	inf <- jk_inf(spbr_des(19L, 28L))
+test_that("SPBR: 9 blocks (one with a merged partial block) in a stratum switches to one subject within its stratum", {
+	inf <- jk_inf(spbr_des(39L, 44L))
 	p <- inf$.__enclos_env__$private
-	expect_identical(min_blocks_per_stratum(inf), 4L)
+	expect_identical(min_blocks_per_stratum(inf), 9L)
 	expect_identical(p$resolve_jackknife_unit("auto"), "observation_within_block")
 	lay <- p$jackknife_stratified_layout("auto")
 	expect_identical(lay, p$jackknife_stratified_layout("observation_within_block"))
-	expect_length(lay$delete, 47L)
-	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(), 47L)
+	expect_length(lay$delete, 83L)
+	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(), 83L)
 	se_auto <- inf$compute_jackknife_std_error()
 	expect_identical(se_auto, inf$compute_jackknife_std_error(unit = "observation_within_block"))
 	expect_identical(inf$compute_jackknife_wald_two_sided_pval(), inf$compute_jackknife_wald_two_sided_pval(unit = "observation_within_block"))
-	# t reference df = sum_h (n_h - 1) with subjects as units: 18 + 27.
-	expect_equal(p$compute_jackknife_summary("auto")$df, 45)
+	# t reference df = sum_h (n_h - 1) with subjects as units: 38 + 43.
+	expect_equal(p$compute_jackknife_summary("auto")$df, 81)
 	# The explicit permuted-block unit is unchanged, and the summaries are cached under the resolved unit.
-	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(unit = "permuted_block"), 11L)
+	expect_length(inf$approximate_jackknife_distribution_beta_hat_T(unit = "permuted_block"), 20L)
 	se_pb <- inf$compute_jackknife_std_error(unit = "permuted_block")
 	expect_false(isTRUE(all.equal(se_auto, se_pb)))
 	expect_identical(p$jackknife_cache_key("auto"), "observation_within_block")
@@ -92,25 +92,25 @@ test_that("SPBR: a stratum with only a partial block counts as one unit and also
 	expect_identical(inf$.__enclos_env__$private$resolve_jackknife_unit("auto"), "observation_within_block")
 })
 
-test_that("RandomBlockSize: 5 recorded blocks in the smallest stratum keeps the permuted block; 4 switches", {
-	at <- jk_inf(rbs_des(20L, 28L))
-	expect_identical(min_blocks_per_stratum(at), 5L)
+test_that("RandomBlockSize: 10 recorded blocks in the smallest stratum keeps the permuted block; 9 switches", {
+	at <- jk_inf(rbs_des(40L, 44L))
+	expect_identical(min_blocks_per_stratum(at), 10L)
 	expect_identical(at$.__enclos_env__$private$resolve_jackknife_unit("auto"), "permuted_block")
-	expect_length(at$approximate_jackknife_distribution_beta_hat_T(), 12L)
-	below <- jk_inf(rbs_des(19L, 28L))
+	expect_length(at$approximate_jackknife_distribution_beta_hat_T(), 21L)
+	below <- jk_inf(rbs_des(39L, 44L))
 	p <- below$.__enclos_env__$private
-	expect_identical(min_blocks_per_stratum(below), 4L)
+	expect_identical(min_blocks_per_stratum(below), 9L)
 	expect_identical(p$resolve_jackknife_unit("auto"), "observation_within_block")
-	expect_length(below$approximate_jackknife_distribution_beta_hat_T(), 47L)
+	expect_length(below$approximate_jackknife_distribution_beta_hat_T(), 83L)
 	expect_identical(below$compute_jackknife_std_error(), below$compute_jackknife_std_error(unit = "observation_within_block"))
-	expect_length(below$approximate_jackknife_distribution_beta_hat_T(unit = "permuted_block"), 11L)
+	expect_length(below$approximate_jackknife_distribution_beta_hat_T(unit = "permuted_block"), 20L)
 })
 
 test_that("RandomBlockSize with random block sizes: the switch follows the recorded block count", {
 	seen <- character(0)
-	for (seed in 1:6) for (n_a in c(14L, 40L)) {
-		inf <- jk_inf(rbs_des(n_a, 40L, seed = seed, block_sizes = c(2L, 4L, 6L)))
-		expected <- if (min_blocks_per_stratum(inf) < 5L) "observation_within_block" else "permuted_block"
+	for (seed in 1:6) for (n_a in c(14L, 80L)) {
+		inf <- jk_inf(rbs_des(n_a, 80L, seed = seed, block_sizes = c(2L, 4L, 6L)))
+		expected <- if (min_blocks_per_stratum(inf) < 10L) "observation_within_block" else "permuted_block"
 		unit <- inf$.__enclos_env__$private$resolve_jackknife_unit("auto")
 		expect_identical(unit, expected)
 		seen <- c(seen, unit)
@@ -119,9 +119,9 @@ test_that("RandomBlockSize with random block sizes: the switch follows the recor
 })
 
 test_that("RandomBlockSize without strata: one stratum, so the switch looks at the total block count", {
-	many <- jk_inf(rbs_des(10L, 10L, strata = FALSE))
+	many <- jk_inf(rbs_des(20L, 20L, strata = FALSE))
 	expect_identical(many$.__enclos_env__$private$resolve_jackknife_unit("auto"), "permuted_block")
-	expect_length(many$approximate_jackknife_distribution_beta_hat_T(), 5L)
+	expect_length(many$approximate_jackknife_distribution_beta_hat_T(), 10L)
 	few <- jk_inf(rbs_des(8L, 8L, strata = FALSE))
 	p <- few$.__enclos_env__$private
 	expect_identical(p$resolve_jackknife_unit("auto"), "observation_within_block")

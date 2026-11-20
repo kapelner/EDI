@@ -27,8 +27,8 @@ test_that("thresholds, coefficients and log-likelihood equal polr(logistic); neg
 test_that("with_var: vcov equals polr's covariance (thresholds first) and is the inverse of the observed information", {
 	Vp <- vcov(pr)[c(3:5, 1:2), c(3:5, 1:2)]
 	expect_equal(unname(rv$vcov), unname(Vp), tolerance = 5e-3)
-	expect_equal(unname(rv$fisher_information), unname(-numDeriv::hessian(ll, as.numeric(rv$params))), tolerance = 1e-3)
-	expect_equal(unname(rv$vcov), unname(solve(rv$fisher_information)), tolerance = 1e-8)
+	expect_equal(unname(rv$observed_information), unname(-numDeriv::hessian(ll, as.numeric(rv$params))), tolerance = 1e-3)
+	expect_equal(unname(rv$vcov), unname(solve(rv$observed_information)), tolerance = 1e-8)
 	expect_equal(rv$ssq_b_j, unname(rv$vcov[Kc, Kc]), tolerance = 1e-8)
 })
 

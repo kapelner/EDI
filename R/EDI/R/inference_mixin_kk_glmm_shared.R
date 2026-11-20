@@ -166,10 +166,15 @@ InferenceMixinKKGLMMShared = list(
 			}
 			candidates
 		},
+		# v1.0.6-TODO-220 (2): the SE of the Wald CI / p-value of compute_asymp_*()
+		# (one source of truth). It used to come from the likelihood-test spec's
+		# information, which is not the Wald SE: InferenceContinKKGLMM's spec
+		# zeroes the beta x variance-parameter blocks for the score test
+		# (v1.0.5 TODO-167) while the Wald SE inverts the full observed Hessian
+		# (4.5% apart near sigma_b = 0), and InferenceCountKKGLMM's Wald SE is
+		# raised to the jackknife SE when that is larger (up to 26% apart).
 		get_standard_error = function(){
 			private$shared(estimate_only = FALSE)
-			se = private$compute_standard_error_from_information_matrix()
-			if (is.finite(se)) return(se)
 			private$cached_values$s_beta_hat_T
 		},
 		get_degrees_of_freedom = function(){

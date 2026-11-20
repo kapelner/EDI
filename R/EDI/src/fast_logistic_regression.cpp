@@ -236,6 +236,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
         double neg_ll_prev = std::numeric_limits<double>::quiet_NaN();
         Eigen::VectorXd beta_prev(p_free);
         Eigen::VectorXd step_prev(p_free);
+        bool last_step_pending = false;  // a safeguarded step was taken but not yet checked
         auto acceptable = [&](double v) {
             return std::isfinite(v) && v <= neg_ll_prev + 1e-10 * (std::abs(neg_ll_prev) + 0.1);
         };
@@ -270,6 +271,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
                     }
                 }
                 neg_ll_prev = neg_ll_curr;
+                last_step_pending = false;
             }
 
             // Fast vectorized plogis
@@ -311,6 +313,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
             if (safeguarded) {
                 beta_prev = beta_free;
                 step_prev = delta;
+                last_step_pending = true;
             }
             beta_free += delta;
             if (delta.norm() < tol) {
@@ -329,6 +332,45 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
                 if (use_weights) diff_final.array() *= weights.array();
                 last_grad_norm = (X_free.transpose() * diff_final).norm();
                 break;
+            }
+        }
+
+        // Check the last step (v1.0.6-TODO-272). The descent check above runs at the top of
+        // the next iteration, so the step taken at iter = maxit - 1 (or the tiny step of the
+        // step-size exit) was never checked; from a far warm start a capped fit returned a
+        // negative log-likelihood orders of magnitude above its start. Apply the same
+        // halving rule to it here. A last step that already decreases the objective (h == 0)
+        // leaves every output exactly as before; otherwise the fit state (mu, XtWX, score,
+        // gradient norm) is rebuilt at the returned coefficients.
+        if (safeguarded && iterations > 0 && !stalled && last_step_pending) {
+            eta.noalias() = eta_fixed;
+            eta.noalias() += X_free * beta_free;
+            double neg_ll_curr = logistic_irls_neg_ll(eta, y, weights, use_weights);
+            int h = 0;
+            while (!acceptable(neg_ll_curr) && h < max_step_halvings) {
+                step_prev *= 0.5;
+                beta_free = beta_prev + step_prev;
+                eta.noalias() = eta_fixed;
+                eta.noalias() += X_free * beta_free;
+                neg_ll_curr = logistic_irls_neg_ll(eta, y, weights, use_weights);
+                ++h;
+            }
+            total_step_halvings += h;
+            if (h > 0) {
+                if (!acceptable(neg_ll_curr)) {
+                    beta_free = beta_prev;
+                    eta.noalias() = eta_fixed;
+                    eta.noalias() += X_free * beta_free;
+                    stalled = true;
+                }
+                mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
+                w.array() = mu.array() * (1.0 - mu.array());
+                if (use_weights) w.array() *= weights.array();
+                w.array() = w.array().max(1e-10);
+                diff.array() = y.array() - mu.array();
+                if (use_weights) diff.array() *= weights.array();
+                score_weighted_crossprod_colwise_assign(X_free, diff, w, score_free, XtWX);
+                last_grad_norm = score_free.norm();
             }
         }
     };

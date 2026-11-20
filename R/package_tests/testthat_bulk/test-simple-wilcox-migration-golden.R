@@ -69,6 +69,29 @@ expect_simple_wilcox_golden = function(label, method, args, expected, tolerance 
 	expect_equal(actual, expected, tolerance = tolerance, info = label)
 }
 
+# v1.0.6-TODO-212: the jackknife is never supported for the Hodges-Lehmann
+# Wilcoxon classes (jackknife_always_nonestimable()). Each jackknife method
+# returns NA and signals exactly one classed `edi_unsupported_procedure`
+# warning carrying the documented reason. The former goldens compared that NA
+# with NA (and let the warnings leak, or suppressed them on the KK side), so
+# they could not catch a regression; this asserts the contract instead.
+expect_wilcox_jackknife_unsupported = function(label, obj, method, args, reason, expected_length = 1L) {
+	signals = list()
+	actual = withCallingHandlers(
+		do.call(obj[[method]], args),
+		edi_unsupported_procedure = function(w) {
+			signals[[length(signals) + 1L]] <<- w
+			invokeRestart("muffleWarning")
+		}
+	)
+	expect_length(signals, 1L)
+	expect_identical(signals[[1L]]$reason, reason, info = label)
+	expect_identical(obj$.__enclos_env__$private$cached_values$unsupported_procedure_reason, reason, info = label)
+	expect_length(actual, expected_length)
+	expect_true(all(is.na(actual)), info = label)
+	expect_false(obj$is_nonestimable("any"), info = label)
+}
+
 expect_kk_wilcox_golden = function(label, method, args, expected, tolerance = 1e-8) {
 	des = kk_wilcox_golden_design()
 	obj = InferenceAllKKWilcoxIVWC$new(des)
@@ -263,30 +286,17 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		list(delta = 0, B = 12L, show_progress = FALSE),
 		0.16666666666666666
 	)
-	expect_simple_wilcox_golden(
-		"jackknife estimate",
-		"compute_jackknife_estimate",
-		list(),
-		NA_real_
-	)
-	expect_simple_wilcox_golden(
-		"jackknife standard error",
-		"compute_jackknife_std_error",
-		list(),
-		NA_real_
-	)
-	expect_simple_wilcox_golden(
-		"jackknife confidence interval",
-		"compute_jackknife_wald_confidence_interval",
-		list(alpha = 0.2),
-		c(NA_real_, NA_real_)
-	)
-	expect_simple_wilcox_golden(
-		"jackknife p-value",
-		"compute_jackknife_wald_two_sided_pval",
-		list(delta = 0),
-		NA_real_
-	)
+	# v1.0.6-TODO-212: unsupported-procedure contract, not NA-equals-NA goldens.
+	for (jk in list(
+		list("jackknife estimate", "compute_jackknife_estimate", list(), 1L),
+		list("jackknife bias estimate", "compute_jackknife_bias_estimate", list(), 1L),
+		list("jackknife standard error", "compute_jackknife_std_error", list(), 1L),
+		list("jackknife confidence interval", "compute_jackknife_wald_confidence_interval", list(alpha = 0.2), 2L),
+		list("jackknife p-value", "compute_jackknife_wald_two_sided_pval", list(delta = 0), 1L)
+	)) {
+		expect_wilcox_jackknife_unsupported(jk[[1L]], InferenceAllSimpleWilcox$new(simple_wilcox_golden_design()), jk[[2L]], jk[[3L]],
+			"wilcox_hl_jackknife_not_supported", expected_length = jk[[4L]])
+	}
 })
 
 test_that("migrated KK Wilcoxon golden outputs are stable", {
@@ -360,30 +370,17 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design())$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 9L, show_progress = FALSE),
 		"not supported for DesignSeqOneByOne designs"
 	)
-	expect_kk_wilcox_golden(
-		"jackknife estimate",
-		"compute_jackknife_estimate",
-		list(),
-		NA_real_
-	)
-	expect_kk_wilcox_golden(
-		"jackknife standard error",
-		"compute_jackknife_std_error",
-		list(),
-		NA_real_
-	)
-	expect_kk_wilcox_golden(
-		"jackknife confidence interval",
-		"compute_jackknife_wald_confidence_interval",
-		list(alpha = 0.2),
-		c(NA_real_, NA_real_)
-	)
-	expect_kk_wilcox_golden(
-		"jackknife p-value",
-		"compute_jackknife_wald_two_sided_pval",
-		list(delta = 0),
-		NA_real_
-	)
+	# v1.0.6-TODO-212: unsupported-procedure contract, not NA-equals-NA goldens.
+	for (jk in list(
+		list("jackknife estimate", "compute_jackknife_estimate", list(), 1L),
+		list("jackknife bias estimate", "compute_jackknife_bias_estimate", list(), 1L),
+		list("jackknife standard error", "compute_jackknife_std_error", list(), 1L),
+		list("jackknife confidence interval", "compute_jackknife_wald_confidence_interval", list(alpha = 0.2), 2L),
+		list("jackknife p-value", "compute_jackknife_wald_two_sided_pval", list(delta = 0), 1L)
+	)) {
+		expect_wilcox_jackknife_unsupported(jk[[1L]], InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design()), jk[[2L]], jk[[3L]],
+			"kk_wilcox_hl_jackknife_not_supported", expected_length = jk[[4L]])
+	}
 })
 
 test_that("KK Wilcoxon randomization bootstrap golden on a binary-match design", {

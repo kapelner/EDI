@@ -344,8 +344,8 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 		# refuses and these classes opt out (supports_bayesian_bootstrap() = FALSE).
 		InferenceBaiAdjustedTKK14 = "bayesian_bootstrap",
 		InferenceBaiAdjustedTKK21 = "bayesian_bootstrap",
-		InferenceContinKKQuantileRegrIVWC = "bayesian_bootstrap",
-		InferencePropKKQuantileRegrIVWC = "bayesian_bootstrap",
+		# (v1.0.6-TODO-235 (2): the two KK quantile IVWC classes were here; they now
+		# refit both halves by weighted quantreg::rq() and support it again.)
 		InferenceContinKKRobustRegrIVWC = "bayesian_bootstrap",
 		InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "bayesian_bootstrap",
 		# v1.0.6-TODO-235 (1): its own weighted hook was a marginal-Weibull surrogate.

@@ -414,7 +414,15 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #' logit/probit, not a bug. When the full-data MLE is on the boundary (some
 #' fitted probability equal to 0 or 1), the object warns once
 #' (\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
-#' errors and intervals may be unreliable. Validity requires the additive risk-difference
+#' errors and intervals may be unreliable. The Wald standard error is the
+#' inverse of the expected (Fisher) information \eqn{X^\top W X},
+#' \eqn{W = \mathrm{diag}\{1 / (\hat\mu_i (1 - \hat\mu_i))\}}, of the
+#' Fisher-scoring fit, as \code{glm()} reports for a non-canonical link; it is
+#' not the observed information, which the score test uses (a documented
+#' exception to the package's observed-information rule for Wald standard
+#' errors). The same standard error is used by every Wald interval and
+#' p-value (\code{compute_asymp_*()} and \code{compute_wald_*()}) and by
+#' \code{InferenceSuite}'s \code{se} column. Validity requires the additive risk-difference
 #' model to be correctly specified over the covariate range actually observed
 #' (an identity-link fit can be well-behaved in-sample yet imply
 #' out-of-range probabilities for other covariate values).
@@ -482,15 +490,20 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #'
 #' @examples
 #' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'incidence')
-#' for (i in 1:30) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' set.seed(1)
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 100, response_type = 'incidence')
+#' for (i in 1:100) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rbinom(1, 1, 0.5)))
 #' }
-#' # alternating 0/1 responses: both arms always contain events and non-events,
-#' # so the fit stays in the interior of the parameter space
-#' seq_des$add_all_subject_responses(rep(c(0, 1), 15))
+#' # true risk 0.3 + 0.2 * w + 0.1 * x1 stays in [0.3, 0.6], well inside (0, 1),
+#' # and a binary covariate keeps every fitted probability inside the four
+#' # treatment-by-x1 cells, so the identity-link MLE stays off the boundary
+#' w = seq_des$get_w()
+#' x1 = seq_des$get_X()[, 1]
+#' seq_des$add_all_subject_responses(rbinom(100, 1, 0.3 + 0.2 * w + 0.1 * x1))
 #' inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
-#' inf$compute_estimate()
+#' inf$compute_estimate()   # true risk difference 0.2
+#' inf$compute_asymp_confidence_interval()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @eval rd_small_sample_section("InferenceIncidBinomialIdentityRiskDiff")
@@ -636,16 +649,13 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		# Standard error of beta_hat_T under the current estimand. Calls
 		# self$compute_estimate() first so the estimand-aware cache is always
 		# current regardless of call order.
+		# v1.0.6-TODO-220 (2): this is the same SE as the Wald CI / p-value of
+		# compute_asymp_*() (one source of truth): the conditional SE is the
+		# inverse expected information X'WX of the IRLS fit (glm()'s convention,
+		# owner decision 2026-11-19), not the observed information of the
+		# likelihood-test spec, which it used to return (0.5% to 13% apart).
 		get_standard_error = function(){
 			self$compute_estimate(estimate_only = FALSE)
-			if (!identical(self$get_estimand(), "conditional")) {
-				return(private$cached_values$s_beta_hat_T)
-			}
-			private$shared(estimate_only = FALSE)
-			if (isTRUE(private$supports_information_preference())) {
-				se = tryCatch(private$compute_standard_error_from_information_matrix(), error = function(e) NA_real_)
-				if (is.finite(se)) return(se)
-			}
 			private$cached_values$s_beta_hat_T
 		},
 		# Degrees of freedom under the current estimand. Calls

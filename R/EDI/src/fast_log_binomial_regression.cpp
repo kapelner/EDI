@@ -217,6 +217,32 @@ constexpr double kKktLambdaRelTol = 1e-3;
 // kCycleGuardStartIter iterations, or that never reverse, are bit-identical.
 constexpr int kCycleGuardStartIter = 20;
 
+// v1.0.6-TODO-267: Fisher scoring can also crawl toward an interior MLE. With a
+// row close to (not on) a mean bound, e.g. an identity-link y = 1 row at
+// mu = 0.9996 (working weight ~2300 against an observed curvature ~1), the
+// expected information overstates the curvature in that direction by three
+// orders of magnitude, each Fisher step closes only a small fraction of the
+// remaining distance, and the fit runs into maxit with converged = FALSE. On
+// draw 27 of the v1.0.6-TODO-205 randomization fixture (n = 20, `~ x1`) the
+// cold fit needed 2817 iterations at tol 1e-12, so at the default maxit = 100
+// InferenceIncidBinomialIdentityRiskDiff dropped x1 and reported 0.0833 instead
+// of the MLE 0.1666. From iteration kObservedNewtonStartIter on, a fit that has
+// not converged, has no row held on a bound and whose observed-information
+// Newton increment stays strictly inside the mean support at the full step
+// takes that increment (same line search) instead of the Fisher step, which
+// converges quadratically there (draw 27: 23 iterations). Otherwise it keeps
+// the Fisher step, whose huge weights next to a bound act as a barrier. Two
+// wider variants were tried and rejected on a 9,600-call kernel sweep: always
+// taking the Newton step (it ran rows into bounds the MLE does not hold and
+// then accepted points up to 0.06 in log-likelihood short of the MLE), and
+// taking it while rows were held (the projected Newton step converged on the
+// wrong face, three rows held instead of two, and the KKT gate then returned
+// converged = FALSE where Fisher scoring had reached the MLE). With these
+// guards no fit in the sweep lost log-likelihood or convergence. The
+// convergence checks are unchanged; fits that converge within
+// kObservedNewtonStartIter iterations are bit-identical.
+constexpr int kObservedNewtonStartIter = 20;
+
 struct BoundKktVerdict {
   bool ok = true;
   int n_active = 0;
@@ -309,6 +335,7 @@ struct ObservedNewtonStep {
   bool ok = false;
   Eigen::VectorXd d;        // projected Newton increment for the free coefficients
   double decrement = 0.0;   // g' d, scaled to the feasible part of d (see below)
+  double t_feasible = 0.0;  // largest multiple of d that stays in the mean support (uncapped)
 };
 
 inline ObservedNewtonStep observed_newton_step(const Eigen::MatrixXd& X_free,
@@ -352,7 +379,7 @@ inline ObservedNewtonStep observed_newton_step(const Eigen::MatrixXd& X_free,
   // t (2 - t). At a boundary MLE whose bound rows the projection does not hold
   // (within ~1e-5 rather than 1e-6 of the bound) this is ~0, not the full g' d.
   const Eigen::VectorXd delta_eta = X_free * out.d;
-  double t = 1.0;
+  double t = std::numeric_limits<double>::infinity();
   for (int i = 0; i < n; ++i) {
     if (obs_weights != nullptr && !((*obs_weights)[i] > 0.0)) continue;
     const double de = delta_eta[i];
@@ -365,6 +392,8 @@ inline ObservedNewtonStep observed_newton_step(const Eigen::MatrixXd& X_free,
     }
   }
   t = std::max(t, 0.0);
+  out.t_feasible = t;
+  t = std::min(t, 1.0);
   out.decrement = t * (2.0 - t) * g.dot(out.d);
   out.ok = all_finite_vec(out.d) && std::isfinite(out.decrement);
   return out;
@@ -616,6 +645,12 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     // observed information (Fisher scoring if it is singular).
     ObservedNewtonStep newton_step;
     if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type);
+    // v1.0.6-TODO-267: see kObservedNewtonStartIter.
+    if (!observed_newton_mode && iter >= kObservedNewtonStartIter &&
+        collect_near_bound_rows(eta, link_type) == 0) {
+      newton_step = observed_newton_step(X_free, eta, y, link_type);
+      if (!(newton_step.t_feasible > 1.0)) newton_step.ok = false;
+    }
     const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
       ldlt, X_free, eta, beta_free_target - beta_free, link_type);
 
@@ -898,6 +933,12 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     // v1.0.6-TODO-221: see the unweighted fitter.
     ObservedNewtonStep newton_step;
     if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type, &obs_weights);
+    // v1.0.6-TODO-267: see kObservedNewtonStartIter.
+    if (!observed_newton_mode && iter >= kObservedNewtonStartIter &&
+        collect_near_bound_rows(eta, link_type, &obs_weights) == 0) {
+      newton_step = observed_newton_step(X_free, eta, y, link_type, &obs_weights);
+      if (!(newton_step.t_feasible > 1.0)) newton_step.ok = false;
+    }
     const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
       ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
     const Eigen::VectorXd delta_eta = X_free * delta_beta;

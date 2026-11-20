@@ -355,7 +355,7 @@ InferenceExtExchangeableResamplingUnits = list(
 		# Returns list(pivot = <pivot>) on success, or list(value = <NA p-value
 		# or NA CI>) with the failure already recorded, exactly as each caller
 		# recorded it before.
-		resampling_centered_pivot_for_inference = function(family, target, B, size, alpha = NULL, show_progress = TRUE, min_number_usable_samples = 5L, resampling_type = NULL, scaling = "sqrt_n"){
+		resampling_centered_pivot_for_inference = function(family, target, B, size, alpha = NULL, show_progress = TRUE, min_number_usable_samples = 5L, resampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			m_out_of_n = identical(family, "m_out_of_n")
 			is_ci = identical(target, "ci")
 			private$check_bootstrap_replicate_deadline(paste(
@@ -389,9 +389,9 @@ InferenceExtExchangeableResamplingUnits = list(
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
 			size = private$resolve_resampling_size(size, unit_info$n_units, if (m_out_of_n) "m" else "b")
 			pivot = if (m_out_of_n) {
-				private$m_out_of_n_bootstrap_centered_pivot(B = B, m = size, unit_info = unit_info, show_progress = show_progress, bootstrap_type = resampling_type, scaling = scaling)
+				private$m_out_of_n_bootstrap_centered_pivot(B = B, m = size, unit_info = unit_info, show_progress = show_progress, bootstrap_type = resampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			} else {
-				private$subsampling_centered_pivot(B = B, b = size, unit_info = unit_info, show_progress = show_progress, subsampling_type = resampling_type, scaling = scaling)
+				private$subsampling_centered_pivot(B = B, b = size, unit_info = unit_info, show_progress = show_progress, subsampling_type = resampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			}
 			# v1.0.6-TODO-230: too few usable draws for a ratio estimand is recorded and warned
 			# even unhardened (the risk-ratio pivots do the same).
@@ -454,7 +454,8 @@ InferenceExtExchangeableResamplingUnits = list(
 #'     worker applies it itself; the debug and non-reused paths call it here).}
 #' }
 #' Additive estimands (\code{"marginal_mean_diff"}, the g-computation risk difference)
-#' have no rule. The cap on the usable fraction is \code{ratio_resampling_min_fraction_usable}.
+#' have no rule. The cap on the usable fraction is the \code{min_fraction_usable_samples} argument of
+#' the public subsampling / m-out-of-n methods, default \code{ratio_resampling_min_fraction_usable}.
 #'
 #' @keywords internal
 #' @noRd
@@ -505,7 +506,9 @@ edi_ratio_resampling_degenerate_rule = function(self, private){
 #' class with a degenerate-draw rule (v1.0.6-TODO-230). Same value and reasoning as the
 #' g-computation risk ratio's \code{min_fraction_usable_samples} default (owner decision
 #' 2026-11-19): degenerate draws pile up in the data sets with an extreme estimate, so a
-#' stricter cap (0.95) returned \code{NA} on most data sets a test should reject.
+#' stricter cap (0.95) returned \code{NA} on most data sets a test should reject. It is the
+#' default of the public methods' \code{min_fraction_usable_samples} (user-settable since
+#' v1.0.6-TODO-269).
 #'
 #' @keywords internal
 #' @noRd
@@ -538,16 +541,15 @@ edi_mark_degenerate_resampling_draw = function(self, private, operation, theta, 
 #' The pivot-level cap (v1.0.6-TODO-230): \code{NULL} when the draws are acceptable, else the
 #' failure list (\code{ok = FALSE}, a reason and a warning detail) for the generic subsampling /
 #' m-out-of-n centered pivots. Applies only to classes with a degenerate-draw rule; there a
-#' failed fit (\code{NA}) and a degenerate draw (\code{NaN}) both count as unusable.
+#' failed fit (\code{NA}) and a degenerate draw (\code{NaN}) both count as unusable. Takes the
+#' draw counts (stored on the cached pivot) so the check runs on every call, whatever
+#' \code{min_fraction} the cached pivot was first built with (v1.0.6-TODO-269).
 #'
 #' @keywords internal
 #' @noRd
-edi_ratio_resampling_usable_fraction_failure = function(self, private, family, draws){
+edi_ratio_resampling_usable_fraction_failure = function(self, private, family, n_total, n_usable, n_degenerate, min_fraction = ratio_resampling_min_fraction_usable){
 	if (is.null(edi_ratio_resampling_degenerate_rule(self, private))) return(NULL)
-	n_total = length(draws)
-	n_usable = sum(is.finite(draws))
-	if (!n_total || !bootstrap_valid_fraction_too_low(n_usable, n_total, ratio_resampling_min_fraction_usable)) return(NULL)
-	n_degenerate = sum(is.nan(draws))
+	if (!n_total || !bootstrap_valid_fraction_too_low(n_usable, n_total, min_fraction)) return(NULL)
 	what = if (identical(family, "subsampling")) "subsamples" else "m-out-of-n resamples"
 	list(
 		ok = FALSE,
@@ -556,11 +558,11 @@ edi_ratio_resampling_usable_fraction_failure = function(self, private, family, d
 			format(round(100 * n_usable / n_total, 1), nsmall = 1), "%; ", n_degenerate,
 			" degenerate: a treatment arm with no events (on the logit scale also only events; for a count a zero total) or a separated logistic fit; ",
 			n_total - n_usable - n_degenerate, " failed). At least ",
-			format(100 * ratio_resampling_min_fraction_usable), "% are needed. A degenerate draw's log ratio sits ",
+			format(100 * min_fraction), "% are needed (min_fraction_usable_samples = ", format(min_fraction), "). A degenerate draw's log ratio sits ",
 			"where the fitter stopped (about +/-20), not in the sampling law the pivot needs, and keeping ",
 			"only the usable draws would describe only the resamples where the estimator worked. ",
-			"Use the ordinary bootstrap (compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval()) ",
-			"or a larger ", if (identical(family, "subsampling")) "b" else "m", ".")
+			"Use the ordinary bootstrap (compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval()), ",
+			"a larger ", if (identical(family, "subsampling")) "b" else "m", " or a lower min_fraction_usable_samples.")
 	)
 }
 

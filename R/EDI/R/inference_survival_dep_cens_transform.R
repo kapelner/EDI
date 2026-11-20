@@ -54,8 +54,12 @@ SurvivalDepCensTransformSource = list(
 			}
 			X_fit = private$build_design_matrix()[, -1, drop = FALSE]
 			colnames(X_fit)[1L] = "treatment"
+			# The estimate here is not a Cox fit, so no tie rule matches it; keep the
+			# surrogate's historical Efron ties (v1.0.6-TODO-271 moved the Cox classes
+			# to Breslow; the package-wide ties choice is v1.1.0-TODO-61).
 			fit = weighted_cox_bootstrap_surrogate_fit(
 				private$y, private$dead, X_fit, row_weights,
+				ties = "efron",
 				warm_start_beta = private$get_fit_warm_start_for_length("params", ncol(X_fit)) %||% private$get_fit_warm_start_for_length("beta", ncol(X_fit))
 			)
 			private$cached_values$beta_hat_T = if (is.null(fit)) NA_real_ else as.numeric(fit$beta_hat)

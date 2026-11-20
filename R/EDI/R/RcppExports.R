@@ -2501,8 +2501,8 @@ get_ordinal_cauchit_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
 #'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
 #'   when \code{estimate_only = FALSE} (the default), additionally
-#'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
-#'   (all the same observed-information matrix), \code{information_type} (always
+#'   \code{neg_loglik}, \code{observed_information}/\code{information}
+#'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 #'   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
 #'   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
 #'   carries no separate intercept column here; the thresholds \code{alpha} play that
@@ -2550,8 +2550,8 @@ fast_ordinal_cauchit_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #'   \code{estimate_only = FALSE}: \code{b}, \code{alpha}, \code{params}, \code{n_params},
 #'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
 #'   \code{gradient_norm}, \code{min_eigenvalue_information},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}), \code{vcov},
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
 #'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
 #'   non-positive). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
@@ -2640,8 +2640,8 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
 #'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
-#'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
-#'   (all the same observed-information matrix), \code{information_type} (always
+#'   \code{neg_loglik}, \code{observed_information}/\code{information}
+#'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 #'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 #'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 #'   conventionally the treatment effect, since \code{X} carries no separate intercept
@@ -2685,8 +2685,8 @@ fast_ordinal_cloglog_regression_cpp <- function(X, y, warm_start_params = NULL, 
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 #'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
 #'   \code{gradient_norm}, \code{min_eigenvalue_information},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}), \code{vcov},
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
 #'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
 #'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is
@@ -2879,8 +2879,8 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
 #'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
-#'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
-#'   (all the same observed-information matrix), \code{information_type} (always
+#'   \code{neg_loglik}, \code{observed_information}/\code{information}
+#'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 #'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 #'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 #'   conventionally the treatment effect, since \code{X} carries no separate intercept
@@ -2920,8 +2920,8 @@ fast_ordinal_probit_regression_cpp <- function(X, y, warm_start_params = NULL, s
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 #'   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
 #'   \code{gradient_norm}, \code{min_eigenvalue_information},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}), \code{vcov},
 #'   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
 #'   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
 #'   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is \code{NaN}) if the fit did
@@ -3043,8 +3043,8 @@ get_ordinal_regression_hessian_cpp <- function(X, y, params) {
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
 #'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
 #'   when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (always \code{"observed"}),
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (always \code{"observed"}),
 #'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
 #'   column — conventionally the treatment effect, since \code{X} carries no separate
 #'   intercept column here), and \code{vcov} (the full parameter covariance matrix) — the
@@ -3088,8 +3088,8 @@ fast_ordinal_regression_cpp <- function(X, y, warm_start_params = NULL, smart_co
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 #'   \code{converged}, \code{num_iter}, \code{neg_loglik},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (\code{"observed"}),
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
 #'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
 #'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
 #' @seealso \code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
@@ -3127,8 +3127,8 @@ fast_ordinal_regression_weighted_cpp <- function(X, y, weights, warm_start_param
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
 #'   \code{converged}, \code{num_iter}, \code{neg_loglik},
-#'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-#'   observed-information matrix), \code{information_type} (\code{"observed"}),
+#'   \code{observed_information}/\code{information} (both the same
+#'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
 #'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
 #'   column — conventionally the treatment effect), and \code{vcov} — the latter two are
 #'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
@@ -5428,6 +5428,14 @@ zhang_exact_binom_pval_cpp <- function(d_plus, d_minus, delta_0) {
 
 zhang_exact_fisher_pval_cpp <- function(n11, n10, n01, n00, delta_0) {
     .Call(`_EDI_zhang_exact_fisher_pval_cpp`, n11, n10, n01, n00, delta_0)
+}
+
+zhang_minlike_pval_vec_cpp <- function(cj, x, deltas) {
+    .Call(`_EDI_zhang_minlike_pval_vec_cpp`, cj, x, deltas)
+}
+
+zhang_minlike_tail_bound_cpp <- function(cj, x, delta, direction) {
+    .Call(`_EDI_zhang_minlike_tail_bound_cpp`, cj, x, delta, direction)
 }
 
 compute_zhang_match_data_cpp <- function(X, y, w, m_vec) {

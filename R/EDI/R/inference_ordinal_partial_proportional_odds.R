@@ -19,7 +19,32 @@
 #' fallback requires its corresponding package to be installed; unavailable
 #' packages are silently skipped in favor of the next fallback.
 #'
-#' @references Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
+#' @details
+#' \strong{Information source of the Wald standard error.} The Wald standard
+#' error, p-value and confidence interval always use the \emph{observed}
+#' information (the negative Hessian of the log-likelihood at the estimate;
+#' Efron and Hinkley, 1978), whichever backend fitted: the fast solver and
+#' \code{ordinal::clm} report it directly, and for a \code{VGAM::vglm} fit
+#' (whose own covariance is the \emph{expected} information from Fisher
+#' scoring) it is computed analytically at VGAM's estimate. The estimate is
+#' VGAM's either way. Before v1.0.6 the VGAM path reported VGAM's
+#' expected-information standard error; on simulated data (40 data sets per
+#' \eqn{n}, one nonparallel covariate, four categories) the
+#' observed-information treatment SE differs from it by a median of
+#' 0.1--0.8\% (at most 5.7\%) at \eqn{n = 40}--\eqn{60}, 0.3\% (at most
+#' 1.6\%) at \eqn{n = 100} and 0.2\% (at most 0.9\%) at \eqn{n = 300}, with
+#' every estimate unchanged. If the observed information at
+#' VGAM's estimate is not positive definite (VGAM did not stop at a maximum of
+#' the likelihood), the VGAM fit has no standard error and the cascade moves
+#' on to \code{ordinal::clm} for the estimate and its (observed-information)
+#' standard error; the expected information is never used as a substitute.
+#' Bootstrap-weighted refits report no standard error on any backend.
+#'
+#' @references Efron, B., and Hinkley, D. V. (1978). "Assessing the Accuracy
+#'   of the Maximum Likelihood Estimator: Observed Versus Expected Fisher
+#'   Information." \emph{Biometrika}, 65(3), 457-483,
+#'   \doi{10.1093/biomet/65.3.457}, for the observed-information standard
+#'   error. Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
 #'   Odds Models for Ordinal Response Variables." \emph{Journal of the Royal
 #'   Statistical Society, Series C (Applied Statistics)}, 39(2), 205-217,
 #'   \doi{10.2307/2347760}, for the partial (non-parallel-covariate)
@@ -481,7 +506,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			if (is.null(res) || length(res$b) < 1 || !is.finite(res$b[1]) || (!is.null(res$converged) && !isTRUE(res$converged))){
 				return(NULL)
 			}
-			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = res$fisher_information)
+			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = res$observed_information)
 
 			se_beta = if (is.finite(res$ssq_b_j) && res$ssq_b_j > 0) {
 				sqrt(res$ssq_b_j)
@@ -590,14 +615,21 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			)
 			if (is.null(mod)) return(NULL)
 
-			private$finalize_vgam_fit(
-				private$extract_common_treatment_fit(
-					mod,
-					coef_getter = VGAM::Coef,
-					vcov_getter = VGAM::vcov
-				),
-				mod
+			out = private$extract_common_treatment_fit(
+				mod,
+				coef_getter = VGAM::Coef,
+				vcov_getter = VGAM::vcov
 			)
+			# VGAM's vcov is the expected information (Fisher scoring). The
+			# published Wald SE is the observed information at VGAM's estimate,
+			# as for the fast solver and clm (v1.0.6-TODO-215 item 3, owner
+			# decision 2026-11-20). If the observed information is not positive
+			# definite (VGAM did not stop at a maximum) the SE is NA, and a
+			# caller that needs an SE falls through to clm.
+			if (!is.null(out)) {
+				out$se = ordinal_partial_po_vgam_observed_se(mod, dat, all_terms, nonparallel_covars)
+			}
+			private$finalize_vgam_fit(out, mod)
 		},
 		fit_vgam_weighted = function(dat, parallel_covars, nonparallel_covars){
 			if (!check_package_installed("VGAM")) return(NULL)
@@ -777,3 +809,129 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+# Observed or expected (Fisher) information of the partial proportional-odds
+# cumulative-logit model, in ordinal::clm's `nominal` parameterization
+# (v1.0.6-TODO-215 item 3):
+#
+#   logit P(Y <= k | x) = alpha_k + x_np' gamma_k - x_par' beta,  k = 1..K-1,
+#
+# params = c(alpha_1..alpha_{K-1}, beta (ncol(X_par)), gamma_1, ..., gamma_{K-1})
+# with each gamma_k of length ncol(X_np). With z_ik the linear predictor,
+# v_ik = dz_ik / dparams and g_ik = f(z_ik) v_ik - f(z_i,k-1) v_i,k-1 the
+# gradient of pi_ik = F(z_ik) - F(z_i,k-1), the expected information is
+# sum_i sum_k g_ik g_ik' / pi_ik and the observed information is
+# sum_i [g g' / pi^2 - (f'(z_iy) v_iy v_iy' - f'(z_i,y-1) v_i,y-1 v_i,y-1') / pi]
+# at the observed category y = y_i (f' = f (1 - 2F) for the logit). The
+# treatment SE from the expected information equals VGAM::vglm()'s
+# (cumulative(), Fisher scoring) and the one from the observed information
+# equals ordinal::clm()'s, at a common MLE. The category probabilities use the
+# same 1e-12 floor as the fast solver. Returns NULL for fewer than two
+# categories, a length mismatch or non-finite parameters. The class uses the
+# observed information for its VGAM-path Wald SE
+# (ordinal_partial_po_vgam_observed_se()).
+#' @keywords internal
+#' @noRd
+ordinal_partial_po_information = function(X_par, X_np, y, params, type = c("observed", "expected")) {
+	type = match.arg(type)
+	X_par = as.matrix(X_par)
+	n = nrow(X_par)
+	X_np = if (is.null(X_np) || length(X_np) == 0L) matrix(0, n, 0L) else as.matrix(X_np)
+	params = as.numeric(params)
+	p = ncol(X_par)
+	q = ncol(X_np)
+	lev = sort(unique(as.numeric(y)))
+	K = length(lev)
+	n_alpha = K - 1L
+	n_par = n_alpha + p + n_alpha * q
+	if (n_alpha < 1L || nrow(X_np) != n || length(params) != n_par || any(!is.finite(params))) return(NULL)
+	yi = match(as.numeric(y), lev)
+	beta = params[n_alpha + seq_len(p)]
+	G = matrix(params[n_alpha + p + seq_len(n_alpha * q)], nrow = q, ncol = n_alpha)
+	Z = matrix(params[seq_len(n_alpha)], n, n_alpha, byrow = TRUE) - as.numeric(X_par %*% beta)
+	if (q > 0L) Z = Z + X_np %*% G
+	Fz = stats::plogis(Z)
+	fz = Fz * (1 - Fz)
+	Fext = cbind(0, Fz, 1)
+	fext = cbind(0, fz, 0)
+	fpext = cbind(0, fz * (1 - 2 * Fz), 0)
+	# v_k = dz_.k / dparams (n x n_par); the same for every row except the
+	# covariate blocks
+	V = lapply(seq_len(n_alpha), function(k){
+		M = matrix(0, n, n_par)
+		M[, k] = 1
+		M[, n_alpha + seq_len(p)] = -X_par
+		if (q > 0L) M[, n_alpha + p + (k - 1L) * q + seq_len(q)] = X_np
+		M
+	})
+	grad_pi = function(k, rows){
+		out = matrix(0, length(rows), n_par)
+		if (k <= n_alpha) out = out + fext[rows, k + 1L] * V[[k]][rows, , drop = FALSE]
+		if (k >= 2L) out = out - fext[rows, k] * V[[k - 1L]][rows, , drop = FALSE]
+		out
+	}
+	info = matrix(0, n_par, n_par)
+	for (k in seq_len(K)) {
+		rows = if (type == "expected") seq_len(n) else which(yi == k)
+		if (!length(rows)) next
+		pk = pmax(Fext[rows, k + 1L] - Fext[rows, k], 1e-12)
+		g = grad_pi(k, rows)
+		if (type == "expected") {
+			info = info + crossprod(g / sqrt(pk))
+			next
+		}
+		info = info + crossprod(g / pk)
+		if (k <= n_alpha) {
+			Vk = V[[k]][rows, , drop = FALSE]
+			info = info - crossprod(Vk, Vk * (fpext[rows, k + 1L] / pk))
+		}
+		if (k >= 2L) {
+			Vl = V[[k - 1L]][rows, , drop = FALSE]
+			info = info + crossprod(Vl, Vl * (fpext[rows, k] / pk))
+		}
+	}
+	info
+}
+
+# Treatment SE from the observed information of a VGAM::vglm(cumulative())
+# partial-PO fit, at VGAM's estimate (v1.0.6-TODO-215 item 3, owner decision
+# 2026-11-20). VGAM orders its coefficients as the K-1 intercepts, then each
+# term of `all_terms` in order: one coefficient for a parallel term, K-1 for a
+# nonparallel one; it models logit P(Y <= k) = a_k + b'x + g_k'x_np, so
+# alpha = a, beta = -b and gamma_k = g_k in ordinal_partial_po_information()'s
+# parameterization. Returns NA when the coefficients cannot be mapped, the
+# information is not finite, or it is not positive definite (Cholesky fails),
+# i.e. VGAM did not stop at a maximum of the log-likelihood.
+#' @keywords internal
+#' @noRd
+ordinal_partial_po_vgam_observed_se = function(mod, dat, all_terms, nonparallel_covars){
+	cf = tryCatch(as.numeric(VGAM::Coef(mod)), error = function(e) NULL)
+	y = as.integer(dat$y)
+	K = length(unique(y))
+	M = K - 1L
+	np = all_terms %in% nonparallel_covars
+	if (is.null(cf) || M < 1L || length(cf) != M + sum(!np) + M * sum(np) || any(!is.finite(cf))) return(NA_real_)
+	X_terms = as.matrix(dat[, all_terms, drop = FALSE])
+	alpha = cf[seq_len(M)]
+	pos = M
+	beta = numeric(0)
+	G = matrix(0, M, 0L)
+	for (t in seq_along(all_terms)) {
+		if (np[t]) {
+			G = cbind(G, cf[pos + seq_len(M)])
+			pos = pos + M
+		} else {
+			beta = c(beta, -cf[pos + 1L])
+			pos = pos + 1L
+		}
+	}
+	params = c(alpha, beta, as.vector(t(G)))
+	info = ordinal_partial_po_information(X_terms[, !np, drop = FALSE], X_terms[, np, drop = FALSE], y, params, "observed")
+	if (is.null(info) || any(!is.finite(info))) return(NA_real_)
+	R = tryCatch(chol(info), error = function(e) NULL)
+	if (is.null(R)) return(NA_real_)
+	j_treat = M + which(all_terms[!np] == "treatment")
+	if (length(j_treat) != 1L) return(NA_real_)
+	v = chol2inv(R)[j_treat, j_treat]
+	if (is.finite(v) && v > 0) sqrt(v) else NA_real_
+}

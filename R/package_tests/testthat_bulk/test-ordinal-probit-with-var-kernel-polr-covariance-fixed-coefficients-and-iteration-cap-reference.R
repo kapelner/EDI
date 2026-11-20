@@ -26,8 +26,8 @@ test_that("vcov equals polr's covariance (thresholds first, then coefficients); 
 
 test_that("information is the observed information: -numerical Hessian of the direct likelihood; vcov is its inverse; neg_loglik is the direct likelihood", {
 	expect_identical(rv$information_type, "observed")
-	expect_equal(unname(rv$fisher_information), unname(-numDeriv::hessian(ll, rv$params)), tolerance = 1e-3)
-	expect_equal(unname(rv$vcov), unname(solve(rv$fisher_information)), tolerance = 1e-8)
+	expect_equal(unname(rv$observed_information), unname(-numDeriv::hessian(ll, rv$params)), tolerance = 1e-3)
+	expect_equal(unname(rv$vcov), unname(solve(rv$observed_information)), tolerance = 1e-8)
 	expect_equal(rv$neg_loglik, -ll(rv$params), tolerance = 1e-8)
 	expect_equal(rv$neg_loglik, -as.numeric(logLik(pr)), tolerance = 1e-5)
 })

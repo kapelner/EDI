@@ -22,12 +22,14 @@ fixture); test_matches_r_fixture_default_smart_cold_start below is the new
 test that checks Python's now-fixed default against a fresh R fixture
 computed with smart_cold_start omitted (i.e. R's own default, FALSE).
 
-Also note: res["neg_loglik"] is always NaN for this kernel -- ModelResult's
-neg_ll field is never populated in R/EDI/src/fast_negbin_regression.cpp (R's
-own equivalent value lives in a separately-computed $logLik field that
-never flows through the ModelResult struct the Python binding reads from).
-Not a binding bug; this test does not assert on it. res["dispersion"]
-carries the real value (R's $theta_hat).
+res["neg_loglik"] and res["mu"]: until v1.0.6-TODO-188 the binding returned
+res.neg_ll, which fast_neg_bin_internal never sets (it keeps the
+log-likelihood in res.sigma2_hat, which R returns as $logLik), so
+neg_loglik was NaN and mu had shape (0,). The binding now returns
+neg_loglik = -$logLik and mu = exp(X b) (R returns no fitted means; the
+R-side equivalent is exp(X %*% b)). PATCHED, needs owner wheel rebuild: the
+tests in the TODO-188 block below fail against a wheel built before the fix.
+res["dispersion"] carries R's $theta_hat.
 
 The expected values below were computed once via:
     EDI:::fast_neg_bin_cpp(X, as.integer(y), estimate_only = FALSE, smart_cold_start = TRUE)
@@ -124,3 +126,59 @@ def test_estimate_only_true_still_returns_b():
     res = fast_neg_bin(X, y, estimate_only=True, smart_cold_start=True)
 
     assert res["b"] == pytest.approx(R_B, abs=1e-6, rel=1e-6)
+
+
+# v1.0.6-TODO-188: neg_loglik and mu. R reference, EDI 1.0.5 source loaded with
+# pkgload::load_all("R/EDI", compile = FALSE), computed 2026-11-20 on the same
+# fixture via
+#   r <- EDI:::fast_neg_bin_with_var_cpp(X, y)            # default start
+#   r$logLik; exp(X %*% r$b)[1:5]; sum(exp(X %*% r$b))
+# r$logLik equals sum(dnbinom(y, size = r$theta_hat, mu = exp(X %*% r$b), log = TRUE))
+# to all printed digits, so it is the full log-likelihood (constants included).
+R_LOGLIK_DEFAULT = -339.948271823945
+R_MU_HEAD_DEFAULT = np.array([2.07190750063714, 2.07913574568202, 1.29193228869451,
+                              1.23692392086066, 1.32599092972169])
+R_MU_SUM_DEFAULT = 351.919480436027
+#   EDI:::fast_neg_bin_cpp(X, y, smart_cold_start = TRUE, estimate_only = FALSE)$logLik
+R_LOGLIK_SMART = -339.948271787222
+#   w <- the weights from _weights() below
+#   EDI:::fast_neg_bin_weighted_cpp(X, y, weights = w)
+R_LOGLIK_WEIGHTED = -341.369117036619
+R_B_WEIGHTED = np.array([0.3701083211288, 0.411451369397426, -0.0997686733118449])
+R_MU_SUM_WEIGHTED = 362.316309172961
+
+
+def _weights(n):
+    return np.random.default_rng(188).uniform(0.5, 1.5, n)
+
+
+def test_neg_loglik_and_mu_match_r():
+    X, y = _synthetic_data()
+    res = fast_neg_bin(X, y, estimate_only=False)
+
+    assert np.isfinite(res["neg_loglik"])
+    assert res["neg_loglik"] == pytest.approx(-R_LOGLIK_DEFAULT, abs=1e-8, rel=1e-10)
+    assert res["mu"].shape == (X.shape[0],)
+    assert res["mu"][:5] == pytest.approx(R_MU_HEAD_DEFAULT, rel=1e-8)
+    assert res["mu"].sum() == pytest.approx(R_MU_SUM_DEFAULT, rel=1e-8)
+    assert res["mu"] == pytest.approx(np.exp(X @ res["b"]), rel=1e-12)
+
+
+def test_neg_loglik_smart_cold_start_and_estimate_only():
+    X, y = _synthetic_data()
+    res = fast_neg_bin(X, y, estimate_only=False, smart_cold_start=True)
+    assert res["neg_loglik"] == pytest.approx(-R_LOGLIK_SMART, abs=1e-8, rel=1e-10)
+
+    # estimate_only skips the Hessian only; R returns the same $logLik either way.
+    res_eo = fast_neg_bin(X, y, estimate_only=True)
+    assert res_eo["neg_loglik"] == pytest.approx(-R_LOGLIK_DEFAULT, abs=1e-8, rel=1e-10)
+    assert res_eo["mu"].shape == (X.shape[0],)
+
+
+def test_neg_loglik_and_mu_weighted_match_r():
+    X, y = _synthetic_data()
+    res = fast_neg_bin(X, y, weights=_weights(X.shape[0]))
+
+    assert res["b"] == pytest.approx(R_B_WEIGHTED, abs=1e-7, rel=1e-7)
+    assert res["neg_loglik"] == pytest.approx(-R_LOGLIK_WEIGHTED, abs=1e-7, rel=1e-9)
+    assert res["mu"].sum() == pytest.approx(R_MU_SUM_WEIGHTED, rel=1e-7)

@@ -113,7 +113,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 						error = function(e) NULL
 					)
 					if (is.null(res) || length(res) == 0) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
+					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), observed_information = res$observed_information)
 				},
 				extract_start = function(fit){
 					as.numeric(fit$params)
@@ -124,13 +124,13 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 				observed_information = function(fit){
 					-get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
 				},
-				# Expected information (v1.0.6-TODO-201); the C++ fit's own
-				# fisher_information field is the observed Hessian.
+				# Expected information (v1.0.6-TODO-201); the C++ fit returns only
+				# the observed information (v1.0.6-TODO-215).
 				fisher_information = function(fit){
 					ordinal_cumlink_expected_information(X_fit, y, fit$params, "cauchit")
 				},
 				information = function(fit){
-					fit$information %||% fit$fisher_information %||% -get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
+					fit$information %||% fit$observed_information %||% -get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
 				},
 				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
 			)
@@ -153,7 +153,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 							estimate_only = TRUE
 						)
 						if (is.null(res) || length(res) == 0) return(NULL)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = warm_fisher)
+						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = warm_fisher)
 					} else {
 						res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_with_var_cpp,
 							X_fit, private$y,
@@ -162,7 +162,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 							smart_cold_start = private$smart_cold_start_default
 						)
 						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
@@ -177,7 +177,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 				}
 			)
 			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$fisher_information)
+				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
 				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
 				if (!estimate_only) {
 					n_alpha = length(attempt$fit$params) - ncol(attempt$X)

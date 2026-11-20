@@ -3210,6 +3210,30 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   shared internal column scaling for all kernels, reusing the approach of v1.0.6-TODO-163 (Weibull). Repro data for all of these: `survival::colon`, `etype == 2`, `rx` in Obs/Lev+5FU, complete cases (n = 594), X = cbind(1, w, age, sex, obstruct, perfor, adhere, nodes, differ, extent, surg); variants: raw, `scale()`d, age x 1000, age + 1e5.
   Test each affected kernel against its reference fitter (glm.nb, pscl, betareg, glmer, ...) on raw and rescaled
   data. Probe scripts: the session scratchpad `scaling_probe/` (not committed).
+  -- Shared L-BFGS rule PATCHED, needs owner build (agent, 2026-11-20, uncommitted, with v1.0.6-TODO-170):
+  `_helper_functions_core.h` now has one scale-aware rule, `newton_decrement()` / `newton_decrement_within_tol()`:
+  converged iff lambda^2 = g' H^-1 g <= tol * (2 |negLL| + 0.1) (glm's relative deviance tolerance, same as the
+  logistic and log-binomial fixes), computed on the column-equilibrated Hessian. `optimize_likelihood_lbfgs` no longer
+  treats "stopped before the cap" as converged: a run the gradient test rejects is finished by
+  `lbfgs_finish_with_newton_decrement()` (damped Newton on the functor's Hessian, expected information if the observed
+  one is not PD, numeric Hessian for functors without one; never past maxit), and a run that ends non-finite retries the
+  same finish from the start. The old verdict stands only where no Hessian is PD (boundary fits). Fits that already pass
+  are bit-identical. `ProbitLbfgsObjective` got an analytic `hessian()` (Fisher information). Kernel-swap evidence
+  (colon, treatment coefficient): `fast_neg_bin_cpp` lbfgs raw -0.2478 -> -0.21105 (glm.nb -0.21106), age x 1000 / + 1e5
+  0 -> -0.21107, smart-cold-start x 1000 / + 1e5 NaN -> -0.21125; Poisson lbfgs x 1000 / + 1e5 0 -> -0.159529 (= glm);
+  probit lbfgs x 1000 / + 1e5 -0.149 -> -0.311169 (glm -0.311180); `fast_beta_regression_cpp` raw -0.0539 and x 1000
+  -0.0949 -> -0.0632 (betareg -0.06319); ZINB raw -0.2189 -> -0.2111 (pscl -0.2126). Ordinary fits (60 random designs per
+  kernel/optimizer; 40 for beta and ZINB): unchanged except 3 NegBin-lbfgs, 3 beta and 9 ZINB fits that moved by
+  <= 1.4e-3 toward the MLE (negLL never worse); no fit flipped to converged = FALSE. Cost: one Hessian (plus a few Newton
+  steps) on L-BFGS exits whose gradient exceeds tol. Behavior change: an L-BFGS fit that hits maxit is now judged by the
+  rule without extra steps (`fast_poisson_regression_cpp(optimization_alg = "lbfgs")` and probit lbfgs on raw colon still
+  report converged = FALSE at the 100-iteration cap, as before). Still open: ZINB with a large-scale covariate in the
+  zero-inflation design (x 1000: -0.042 vs pscl -0.2125; + 1e5: 0) -- eta_zi reaches -1e4, so the zi block of the
+  Hessian is 0, no PD Hessian, and the old verdict stands; the other kernels in the list (ZIP/hurdle, ZOIB,
+  dependent-censoring, GLMMs, Weibull frailty, CLMM) share the new wrapper but were not re-probed (hurdle NegBin cannot
+  be kernel-swapped alone: it links the logistic internal). Python: `python/cpp` includes the same header, so the wheel
+  picks this up on its next build. Test (72 expectations pass under the swap; 25 fail on the installed build):
+  `R/package_tests/testthat_bulk/test-count-probit-kernels-scale-aware-convergence-colon.R`.
 
 - [ ] TODO-170 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **IRLS and Newton use an absolute gradient tolerance, so a correct fit on large-scale covariates is reported
   as not converged and the class drops covariates.** With age + 1e5, `fast_logistic_regression_cpp` and
@@ -3225,6 +3249,21 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   Colon age + 1e5: `fast_logistic_regression_cpp` / `_weighted_cpp` converged FALSE -> TRUE, treatment -0.5030643 = glm.
   Still open: Poisson IRLS (`fast_poisson_regression_cpp`), NegBin Newton (`fast_neg_bin_cpp`), probit/modified-Poisson/
   risk-difference kernels, and the class-level covariate drops (re-run the four class repros after the build).
+  -- Poisson IRLS, NegBin Newton and probit IRLS PATCHED, needs owner build (agent, 2026-11-20, uncommitted): the
+  shared rule above (`newton_decrement_converged()`) is the fallback when the gradient test fails in
+  `fast_poisson_regression.cpp` IRLS (not when some mu < 1e-10) and `fast_probit_regression.cpp` IRLS (not when some
+  |eta| >= 8, the pnorm clamp), and on the step-size / stalled / capped exits of the shared `optimize_likelihood_newton`
+  (`likelihood_newton_decrement_converged()`; NegBin Newton, Poisson Newton, every Newton user). Declaration only;
+  coefficients unchanged. Kernel swap, colon: Poisson IRLS + 1e5 converged FALSE -> TRUE; Poisson Newton raw / x 1000
+  FALSE -> TRUE and + 1e5 0 -> -0.159529; NegBin Newton x 1000 FALSE -> TRUE, + 1e5 0 -> -0.21107; probit IRLS FALSE ->
+  TRUE on raw, scaled, x 1000 and + 1e5 (it missed the absolute 1e-8 at gradient 3e-7 even on raw data: 20 of 60 random
+  ordinary probit fits were reported converged = FALSE, all TRUE now, coefficients identical). Modified Poisson uses the
+  Poisson kernel; risk difference uses OLS, so nothing to change there. Class repros under the swap
+  (`compute_estimate()`): InferenceCountNegBin x 1000 kept 0/8 covariates -> 8/8 (-0.21106); InferenceIncidProbitRegr,
+  InferenceIncidModifiedPoisson and InferenceCountPoisson keep all covariates at x 1000. At age + 1e5 Probit (2/9 kept),
+  ModifiedPoisson (5/9) and NegBin (0/8) still drop covariates although the kernels converge: that is the R-side
+  `qr()` rank check in `fit_with_hardened_qr_column_dropping` / `fast_negbin_regression`, i.e. v1.0.6-TODO-171, not
+  this item. Re-run the four class repros after the owner build.
 
 - [ ] TODO-171 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **The shared design-matrix rank check silently drops an innocent column at large covariate offsets.**
   `drop_linearly_dependent_cols` (`R/EDI/R/helper_model_matrix.R` ~L89-110, called from `create_design_matrix`,
@@ -3469,12 +3508,23 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   `round()` (half to even) but `generate_permutations_ibcrd_cpp()` uses `std::round` (half away), so e.g. n = 21,
   prob_T = 0.5 realizes 10 treated while every redraw has 11 (wrong randomization distribution for half of the odd n
   at the default prob_T); needs its own TODO and an owner decision on which rounding wins.
-- [ ] TODO-188 (added 2026-11-19, agent; found by the v1.0.6-TODO-87 agent; needs a wheel rebuild): **Python
+- [x] TODO-188 (added 2026-11-19, agent; found by the v1.0.6-TODO-87 agent; needs a wheel rebuild): **Python
   `fast_neg_bin` returns `neg_loglik = nan` and an empty `mu`.** The NB internal stores the log-likelihood in
   `res.sigma2_hat` (R's `fast_neg_bin_with_var_cpp` returns `logLik = res.sigma2_hat`), but
   `python/cpp/bindings_count.cpp` returns `res.neg_ll`, which is never set; `mu` comes back with shape (0,). Fix in the
   binding (e.g. `out["neg_loglik"] = std::isfinite(res.neg_ll) ? res.neg_ll : -res.sigma2_hat;`, and fill `mu`), add
   a test against R, rebuild the wheel.
+  Done 2026-11-20 (agent, uncommitted; PATCHED, needs owner wheel rebuild): `python/cpp/bindings_count.cpp`'s
+  `fast_neg_bin` now returns `neg_loglik = res.neg_ll` if finite, else `-res.sigma2_hat` (= -R's `$logLik`, the full
+  weighted NB log-likelihood, constants included), and `mu = exp(X b)` when the kernel leaves it empty (R returns no
+  fitted means); both are filled under `estimate_only = TRUE` too. No `R/EDI/src` change. The other count bindings
+  do not have the pattern: ZINB / ZAP go through `likelihood_fit_result_to_dict` (`fit.value`); hurdle NB, truncated
+  NB and cpoisson return the shared `ResultMap`; Poisson sets `neg_ll` / `mu` itself and leaves them NaN / empty
+  only under `estimate_only`, exactly as R's `fast_poisson_regression_cpp` does. Three R-pinned tests added to
+  `python/tests/test_fast_neg_bin.py` (default, smart start, estimate_only, weighted); they fail on the current
+  wheel (NaN) and the expected values equal the NB2 NLL recomputed in Python from the current wheel's `b` and
+  `theta` to all 15 digits. Not fixed here: `fast_beta_regression` (another binding file) has the same NaN
+  `neg_loglik` note in `python/tests/test_fast_beta_regression.py`.
 
 - [x] TODO-189 (added 2026-11-19, agent; found by the v1.0.6-TODO-184 agent): **Randomization statistic stays
   conditional under `marginal_mean_diff` in other classes.** Marginal estimate vs randomization statistic:
@@ -4152,7 +4202,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   Item (1) decided and done (owner, 2026-11-19; coordinator, uncommitted): the orphan scripts `R/benchmark/heavy_paths.R`
   and `R/benchmark/heavy_only.R` were deleted (nothing referenced them).
   Closed 2026-11-20 (coordinator): items (1) and (2) are both done.
-- [ ] TODO-212 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-204 agent): **Vacuous NA-equals-NA goldens and
+- [x] TODO-212 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-204 agent): **Vacuous NA-equals-NA goldens and
   fixture follow-ups.** (1) Several migration goldens compare NA with NA because r or B = 9 is below the 10-finite-draw
   minimum, so they can't catch a regression: simple mean difference (rand p-value, bootstrap CI, bootstrap p-value),
   simple Wilcoxon (rand p-value, rand-bootstrap p-value), `test-incid-risk-diff-migration-golden.R` (rand and
@@ -4175,6 +4225,13 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   through (not in this TODO's list).
   Item (3) decided and done (owner, 2026-11-19; coordinator, uncommitted): `EDI_TUNING_SCHEMA_VERSION` bumped 1 -> 2 in
   `R/EDI/R/local_machine_tuning_persistence.R`, so saved v1 policies are ignored and users re-tune once.
+  Wilcoxon jackknife goldens DONE 2026-11-20 (agent, uncommitted): in `test-simple-wilcox-migration-golden.R` the four
+  simple-Wilcoxon jackknife NA goldens (which leaked four `wilcox_hl_jackknife_not_supported` warnings) and the four KK
+  Wilcoxon ones (NA vs NA under `suppressWarnings`) are replaced by `expect_wilcox_jackknife_unsupported()`, which
+  asserts the unsupported-procedure contract for all five jackknife methods (bias estimate added): exactly one classed
+  `edi_unsupported_procedure` warning with the documented reason (`wilcox_hl_jackknife_not_supported` /
+  `kk_wilcox_hl_jackknife_not_supported`), the cached reason, an NA result of the right length, and
+  `is_nonestimable("any")` still FALSE. File passes with NOT_CRAN=true: 93 expectations, 0 failures, 0 warnings.
 - [x] TODO-213 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-187 agent; OWNER DECISION, changes results):
   **`DesignSeqOneByOneiBCRD`'s realized assignment and its randomization redraws round the treated count differently.**
   When `n * prob_T` ends in .5, `assign_wt()` uses R's `round()` (half to even) but `generate_permutations_ibcrd_cpp()`
@@ -4263,6 +4320,39 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   0.5% / 7.7% higher on the test fixture). In those two, and in `InferenceContinKKGLMM` / `InferenceCountKKGLMM`,
   `get_standard_error()` (observed information matrix) differs from the public Wald SE, so the Wald fallback, seeds and
   `InferenceSuite`'s `se` column disagree with the reported Wald CI. That was already true before this change.
+  Item (2) DONE 2026-11-20 (agent, uncommitted; PATCHED, needs owner build): the four cumulative-link kernels
+  (`fast_ordinal_regression.cpp`, `ordinal_fixed_link_internal.h`) no longer return `fisher_information`; the observed
+  information stays as `observed_information` / `information` (`information_type = "observed"`). Renamed rather than
+  filled from `expected_hessian()`: every R caller fed the field to the next fit's warm start, so filling it would have
+  moved warm-start trajectories, and it would add an expected-information pass to every resampling fit. The R
+  readers (four cumulative-link classes and their likelihood-test spec, PropOdds weighted refit, PartialPO fast path,
+  ordinal G-computation, ordinal KK combined weighted refit) now read `observed_information`, the same matrix on the
+  old build. `expected_hessian()` (`ordinal_fixed_link_helpers.h`) no longer reads `p[0]` when K = 1 (returns zeros;
+  the old code fails `_GLIBCXX_ASSERTIONS`), and is `identical()` to before for K = 2..5 x 4 links. Kernel swap of the
+  four .cpp files: kernel outputs identical apart from the dropped field; an 18-cell class battery (6 classes x 3 data
+  sets: estimate, Wald / score / gradient / LR p and CI, bootstrap, randomization) is `identical()` between swapped
+  HEAD kernels and swapped patched kernels (sourceCpp's -O3 -march=native build differs from the portable .so in a
+  few last-digit CI endpoints and one randomization draw, for HEAD and patched code alike). Python's
+  `fast_ordinal_*` dicts lose the `fisher_information` key too (no Python test or stub used it). Roxygen in the four
+  .cpp files and RcppExports.R edited; Rd not regenerated. Test
+  `test-ordinal-cumulative-link-kernels-return-observed-information-only.R` (48; 9 field assertions fail on the old
+  build, all pass swapped); five kernel reference tests switched to `observed_information`.
+  Item (3) derivation DONE 2026-11-20 (agent, uncommitted); the SE source is an OPEN OWNER DECISION. Observed and
+  expected information of the partial-PO cumulative logit in clm's `nominal` parameterization:
+  `ordinal_partial_po_information()` (`inference_ordinal_partial_proportional_odds.R`, not wired in). Observed equals
+  -numDeriv Hessian and gives `ordinal::clm`'s treatment SE; expected gives `VGAM::vglm(cumulative())`'s (VGAM's vcov
+  is Fisher scoring's expected information); with no nonparallel columns they reduce to the PropOdds kernel Hessian and
+  `ordinal_cumlink_expected_information()`. Test `test-ordinal-partial-po-information-observed-matches-clm-expected-matches-vgam.R`
+  (12). The class has no likelihood tests (`likelihood_tier = "none"`), so a Fisher information has no consumer; the
+  real issue is that its published Wald SE is EXPECTED on the VGAM path (any nonparallel column), against the item-1
+  rule, while the fast-solver and clm fallback paths are observed. Moving the VGAM path to observed changes the
+  treatment SE by a median 0.4-0.8% (max 1.0%) at n = 60-100, 0.2% (max 0.5%) at n = 300, 0.05% (max 0.2%) at
+  n = 1000; estimates do not change. Options: (a) publish the observed SE computed at the VGAM MLE (recommended: one R
+  pass per fit, matches clm, follows item 1, makes the three backends agree); (b) put clm ahead of VGAM (moves
+  estimates when the optimizers disagree); (c) keep VGAM's expected SE as a documented exception. Tables in the
+  research note (section 7). Also found, not changed: in the four cumulative-link classes `standard_model_cache_shared()`
+  overwrites the params + information warm start that `generate_mod()` just set with `type = "beta"`, `b = c(0, beta_T)`
+  and no information, so later refits cannot use a full-length warm start (pre-existing; proposed as a new TODO).
 - [ ] TODO-216 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-206 agent): **Near-zero-width Zhang exact CIs
   on KK21stepwise.** Two fresh comprehensive rows (`InferenceIncidExactZhang`, KK21stepwise `~.`, pima, beta 0.5): rep 6
   [0.1933261, 0.1933269] with p = 0.002, rep 14 [-0.2623787, -0.2623780]. Unverified guess: the combined (matched +
@@ -4418,7 +4508,19 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   Also (coordinator, 2026-11-19, from the v1.0.6-TODO-214 agent): the rand-bootstrap sequential-MC path does not apply
   `min_fraction_usable_samples` (v1.0.6-TODO-12) with `na.rm = TRUE`; treat a short prefix as "draw more" and apply
   the check at the full B draws.
-- [ ] TODO-220 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-215 agent): **Wald SEs that are not observed
+  DONE 2026-11-20 (agent, uncommitted; R only): `compute_two_sided_brt_pval_with_sequential_mc()`
+  (`inference_all_abstract_rand_bootstrap.R`) takes `min_fraction_usable_samples` from the public p-value. With
+  `na.rm = TRUE` a batch prefix whose valid fraction is below it is not a stopping point (next batch); at the full B
+  draws, and on the cached-full-distribution shortcut, the one-shot check applies (same max(10, 10%) floor first) and
+  the loop returns NA marked `too_few_valid_fraction`, which the caller records / warns through the existing
+  `brt_valid_fraction_short()` (reason `rand_bootstrap_too_few_valid_replicates_fraction`, one
+  `edi_procedure_na_warning`). A prefix that clears the check can still stop early (roxygen of `na.rm` /
+  `min_fraction_usable_samples` updated; Rd not regenerated). Results change only where the old path stopped early
+  on a prefix below the cap or returned a p-value from B draws below it. Test
+  `test-rand-bootstrap-sequential-mc-applies-min-fraction-usable-samples.R` (15 pass); the v1.0.6-TODO-166 test
+  `test-sequential-mc-pval-continues-past-nonfinite-prefix.R` now passes `min_fraction_usable_samples = 0` to the
+  private loop (its fixture is 75% valid; it tests the finite-draw floor), 11 pass.
+- [x] TODO-220 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-215 agent): **Wald SEs that are not observed
   information, and SE paths that disagree.** (1) OWNER DECISION: `InferenceIncidProbitRegr` exposes only expected
   information (its C++ `ssq` and all three spec closures, including `observed_information`, are X'WX), and
   `InferenceIncidBinomialIdentityRiskDiff` / `InferenceIncidLogBinomial` take their public Wald SE from the IRLS
@@ -4429,7 +4531,21 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   0.2948), so the Wald fallback, CI-inversion seeds and `InferenceSuite`'s `se` column disagree with the Wald CI the
   user sees; make them use the same SE.
   Item (1) decided 2026-11-19 (owner): keep `glm()`'s convention (expected information) for these three classes; the
-  documented exception to the v1.0.6-TODO-215 observed-information rule stays. Item (2) remains open.
+  documented exception to the v1.0.6-TODO-215 observed-information rule stays. Item (2) done 2026-11-20 (see below).
+  Item (2) DONE 2026-11-20 (agent, uncommitted; R only). Measured on 3 fixtures per class: `get_standard_error()`
+  (also behind `compute_wald_*()`, which therefore disagreed with `compute_asymp_*()`) vs the Wald SE: identity
+  0.0935 vs 0.0825, log-binomial 0.339 vs 0.305, Contin KK GLMM 0.2077 vs 0.2170 (sigma_b near 0: the spec's
+  block-diagonal TODO-167 information vs the full observed Hessian), Count KK GLMM 0.187 vs 0.236 (model SE vs the
+  jackknife-raised Wald SE of `.inflate_kk_onelik_standard_error_with_jackknife()`). Fix: `get_standard_error()` returns
+  the cached Wald SE in all four (identity class body; new private override in `IncidenceLogBinomialLikelihoodSource`,
+  registered in `contracts_mixins.R`; the shared KK GLMM mixin, so `InferenceOrdinalKKGLMM` too, which already agreed).
+  The Wald SE was kept in each case (expected X'WX for the binomials per item (1); full observed Hessian for the LMM per
+  the TODO-215 rule; max(model, jackknife) for the Poisson GLMM), so `compute_asymp_*()` is unchanged; what moves is
+  `compute_wald_*()`, the Wald fallback, CI-inversion seeds and `InferenceSuite`'s `se` column. Roxygen: a
+  "Wald standard error" paragraph in each class (Rd not regenerated). Test
+  `test-binomial-and-kk-glmm-standard-error-paths-match-wald-interval.R` (81 pass). The new CI-inversion seed moved one
+  pinned LogBinomial score-CI end by 1.4e-7 (root-finding tolerance), so
+  `test-log-binomial-null-mle-boundary-kkt-score-reference.R` now uses 1e-6 there, with a comment.
 - [x] TODO-221 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-209 agent): **Constrained binomial kernels can
   declare convergence short of the MLE near a mean bound.** From a start within ~1e-6 of a mean bound (mu = 0 or 1 for
   identity, mu = 1 for log), the huge working weights make Newton increments tiny, so the relative-change test and the
@@ -4761,7 +4877,7 @@ itself still needs a look.
     r / prop_acceptable, so the randomization test over-rejects, 7.25% at 5%). Not fixed by this entry, which
     changed only treated-count rounding: re-run 2026-11-20 on HEAD, 31.7% of realized allocations vs 0% of
     reference draws lie above the base 1% quantile (KS D = 0.317), as in the audit. Filed as v1.0.6-TODO-294.
-- [ ] TODO-235 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-217 agent): **KK IVWC leftovers after the
+- [x] TODO-235 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-217 agent): **KK IVWC leftovers after the
   Bayesian-bootstrap fix.** (1) OWNER DECISION: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s own Bayesian-bootstrap
   hook is a marginal-Weibull surrogate, not the IVW estimator (bootstrap mean 0.55 vs estimate 0.63): refuse it like
   the Normal IVWC class, or build a weighted fit. (2) The quantile IVWC classes could get their Bayesian bootstrap back
@@ -4785,6 +4901,23 @@ itself still needs a look.
   called approximate_jackknife_distribution_beta_hat_T() with the default unit; v1.0.6-TODO-4 made that
   "observation_within_block" on DesignFixedBlocking (60 replicates, intended). 98d90465 changed the test to
   unit = "block", which returns 3 (checked directly: "block" 3, default 60). The file passes (load_all, 0 failures).
+  Item (2) 2026-11-20 (agent D, uncommitted): DONE. `InferenceContinKKQuantileRegrIVWC` and
+  `InferencePropKKQuantileRegrIVWC` support the Bayesian bootstrap again. The `KKQuantileRegrIVWC` component gains
+  private `compute_weighted_estimate_ivwc()` (registered in `contracts_mixins.R`): both halves are refit by
+  `quantreg::rq(weights = )` (pair weight = mean of its row weights; reservoir rows keep theirs; logit scale for the
+  proportion class), each half's SE comes from its weighted fit ("nid", then "iid", then a weighted-IQR fallback that
+  equals `stats::IQR()` at uniform weights), pooled by `kk_ivwc_pool_halves()`. Zero weights, and weights below 1e-10
+  times the mean, drop the row (rq would otherwise keep near-empty rows in its "nid" bandwidth); kept weights are
+  rescaled to mean 1. Both classes lose their `supports_bayesian_bootstrap() = FALSE` override and their
+  `EDI_INFERENCE_EXCLUDED_CAPABILITIES` entries; roxygen "No Bayesian bootstrap" paragraph replaced by a method
+  description (Rd pending roxygenize). No registry-baseline delta (`compute_weighted_estimate_ivwc` is already an
+  allowed addition; methods stay bound on the class host). Evidence: near-uniform replicate equals the estimate;
+  replicate matches an independent weighted-rq reference to 1e-8; serial 100-rep simulation (n = 60, normal errors,
+  B = 100) gave BB percentile coverage 0.98 (asymptotic 0.93), BB CIs about 22% wider. Tests: new
+  `test-kk-quantile-ivwc-weighted-rq-bayesian-bootstrap.R`; Contin class added to the fixed cases of
+  `test-kk-ivwc-bayesian-bootstrap-replicates-match-estimator.R`; the two bulk `*-weighted-passthrough-reference.R`
+  files now check the weighted-rq reference instead of the refusal. Drift CSVs (`capability_matrix.*` etc.) left to
+  the pre-push regeneration.
 - [ ] TODO-236 (added 2026-11-19, owner; from the algorithm-research triage of run 44358397244, finding
   `kk21-covariate-weights#44358397244.1`, checked against the code; CHANGES RESULTS): **KK21 negative-binomial theta
   Newton step has the wrong sign.**
@@ -4800,6 +4933,67 @@ itself still needs a look.
   - Changes KK21 count-design weights (the `count_use_speedup = FALSE` negbin path): add a NEWS bullet and rerun the
     KK21 count weight comparisons and the affected package_tests CSVs.
   - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
+
+### Bugs found by the algorithm-audit re-review of drift issue #55, 2026-11-20 (TODO-271..276)
+
+The 2026-11-20 re-review of the 26 drifted algorithm-audit rows (`new_feature_plans/v1_0_5/algorithm_choice_audit.md`,
+"Re-review log", entry "2026-11-20: drift issue #55") kept every row's decision but found these. Only TODO-271 and
+TODO-273 were confirmed by reading the code; the rest are suspected and need a reproducer first.
+
+- [ ] TODO-271 (added 2026-11-20, coordinator; algorithm-audit row L, confirmed by reading): **KK Cox IVWC Bayesian
+  bootstraps fit Efron ties while the estimate uses Breslow.** `kk_ivwc_weighted_cox_half()` (`R/EDI/R/globals.R:316`)
+  fits each weighted half with `survival::coxph(weights = )`, which defaults to Efron, and the comment above it
+  (`globals.R:313-315`) says this is "the same Efron-ties likelihood as the unweighted C++ fitter". The C++ fitter is
+  Breslow. On tied event times the Bayesian-bootstrap replicates of `InferenceSurvivalKKStratCoxIVWC` and the KK LWA
+  Cox IVWC class therefore fit a different partial likelihood from the reported estimate (uniform weights
+  short-circuit to `compute_estimate()`, so only the replicates are affected). The non-KK Cox Bayesian bootstraps have
+  the same mismatch; v1.1.0-TODO-61 covers the package-wide ties choice, so this TODO is the interim fix only.
+  - Fix: pass `ties = "breslow"` in `kk_ivwc_weighted_cox_half()` (and any other weighted `coxph` call feeding a
+    Breslow estimate), and correct the comment.
+  - Test: on a tied-time fixture, a weighted replicate with all weights 1 matches `compute_estimate()`, and with
+    non-uniform weights it matches `survival::coxph(..., ties = "breslow", weights = w)`.
+  - Changes Bayesian-bootstrap draws on tied data for these classes: NEWS bullet ("Changes that alter results").
+  - Done when: every weighted Cox replicate path uses the estimate's ties rule, the comment is true, the test passes.
+- [ ] TODO-272 (added 2026-11-20, coordinator; algorithm-audit row A, suspected): **Logistic IRLS never checks the
+  step taken at the last iteration.** In `R/EDI/src/fast_logistic_regression.cpp` `run_irls` (~L240-330) the
+  safeguarded pass runs its descent check at the top of the next iteration, so the step taken at `iter = maxit - 1`
+  is accepted unchecked. A fit that stops at the cap (not converged, e.g. under separation) can return a worse
+  iterate than the best one it visited. Also, non-converging fits now run IRLS twice (plain, then safeguarded).
+  - First reproduce: a fixture that hits `maxit` and returns a log-likelihood below one it reached earlier.
+  - Fix: check the last step before returning (step-halve or keep the best iterate); consider skipping the plain pass
+    when its failure is already predictable.
+  - Done when: a capped fit never returns a worse log-likelihood than its best iterate, with a test, or the
+    reproducer shows it cannot happen and the item is closed with that note.
+- [ ] TODO-273 (added 2026-11-20, coordinator; algorithm-audit row X, confirmed by reading, minor): **Robust M fit
+  takes an extra step on an exact fit.** `R/EDI/src/fast_robust_regression.cpp:177` clamps the initial scale to
+  1e-10, so the exact-fit stop (`res.scale <= 0.0`, :195) cannot fire at iteration 1. When the OLS start has MAD 0,
+  `MASS::rlm` returns the start and reports convergence, while EDI takes one more WLS step. The comment above
+  `hit_iteration_cap` (~:268) still describes a coefficient-change stop. Not covered by v1.0.6-TODO-50.
+  - Fix: test the unclamped scale for the exact-fit stop (or clamp after it) and update the comment.
+  - Done when: on an exact-fit fixture the coefficients and `converged` match `MASS::rlm`, with a test.
+- [ ] TODO-274 (added 2026-11-20, coordinator; algorithm-audit row K, suspected): **KK GEE separation rule can blank
+  the SE of a fit that is not separated.** The logit-link check in `R/EDI/R/inference_mixin_kk_gee_shared.R:493`
+  (added for v1.0.6-TODO-118) reports SE, p and CI as NA when any single fitted |eta| reaches qlogis(1 - 1e-8). One
+  high-leverage point can reach that without separation. It is the same heuristic as plain logistic
+  (v1.0.6-TODO-109), but no TODO covers the GEE use.
+  - First reproduce: a non-separated KK GEE fixture with one extreme fitted probability; compare with a separation
+    test (e.g. `detectseparation`, or the LP check the logistic path uses, if any).
+  - Done when: the rule fires only on a separated fit (or the docs state it is a heuristic and when it misfires),
+    with a test on both kinds of fixture.
+- [ ] TODO-275 (added 2026-11-20, coordinator; algorithm-audit row Z, suspected, low): **Log-binomial IRLS loop can
+  in principle run past `maxit`.** Both loops in `R/EDI/src/fast_log_binomial_regression.cpp` (:535, :818) run while
+  `iter < maxit || kkt_confirm_pending`. A later small step near a bound can set `kkt_confirm_pending` again (:690),
+  so if the observed-information check kept failing the loop would not stop at `maxit`. The relative-step criterion
+  should nearly always pass, and this has not been shown. Belongs with v1.0.6-TODO-221's KKT gate.
+  - Fix: cap the extra confirmation iterations (e.g. `iter < maxit + k`) and report non-convergence past that.
+  - Done when: the loop has a hard bound, with a test that forces the pending flag and checks it stops.
+- [ ] TODO-276 (added 2026-11-20, coordinator; algorithm-audit row I, suspected, probably unreachable): **Rerandomization
+  objective divides by a zero SD.** `compute_objective_vals_cpp` (`R/EDI/src/rerandomization_helpers.cpp:110-114`,
+  division at :153) divides by `sd_all[j]` in abs mode without the zero-variance guard the search kernel has (:209).
+  A constant covariate column would give Inf/NaN objective values. Overlaps v1.4.0-TODO-11h; take whichever lands
+  first.
+  - Fix: skip (or treat as zero contribution) columns with `sd_all[j] == 0`, as the search kernel does.
+  - Done when: a constant column gives finite objective values matching the search kernel, with a test.
 
 ### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
 
@@ -5379,10 +5573,27 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Failing expectations: `expect_true(all(is.na(ci)))` and `expect_true(is.na(pval))`, skipped at `R/package_tests/testthat_bulk/test-proportion-gcomp-bootstrap-sample-screening-contract.R:109`.
   - Candidate fix (code): give `approximate_bootstrap_distribution_beta_hat_T`'s screening args a NULL default and override the control only when they are supplied, or have the wrappers pass them through.
   - Done when: fix it and remove the skip().
-- [ ] TODO-267 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-221 agent): **`InferenceIncidBinomialIdentityRiskDiff`
+- [x] TODO-267 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-221 agent): **`InferenceIncidBinomialIdentityRiskDiff`
   returns half the MLE on one fixture draw.** On draw 27 of the v1.0.6-TODO-205 fixture the class gives 0.0833 while
   the MLE is 0.1666, after the kernel reports converged = FALSE. Check whether a covariate drop or a fallback path
   produces this value, and whether a non-converged fit should return NA with a recorded reason instead.
+  DONE 2026-11-20 (agent, uncommitted; PATCHED, needs owner build). Cause: not a wrong face or a start; Fisher
+  scoring crawls toward an interior MLE with a y = 1 row at mu = 0.99956 (working weight ~2300 vs observed curvature
+  ~1), so the cold fit needs 2817 iterations at tol 1e-12 and hit maxit = 100 (converged = FALSE); the class's
+  hardened refit then dropped x1 (`edi_covariate_dropped_warning`) and returned the unadjusted 0.0833. The covariate
+  drop is the documented fallback, so non-converged fits keep it (no NA). Fix (`fast_log_binomial_regression.cpp`,
+  both impls, all four kernels): from iteration `kObservedNewtonStartIter` = 20, a fit with no row held on a bound
+  steps with the observed-information Newton increment when its full step stays strictly inside the mean support,
+  else keeps the Fisher step; convergence checks unchanged. Draw 27: converged in 23 iterations at the MLE 0.1666128.
+  Rejected on the sweep: always taking the Newton step (181 fits ended lower, up to 0.06 in log-likelihood) and taking
+  it while rows were held (wrong face, 3 converged fits turned converged = FALSE). Kernel-swap sweep (4 kernels x 20
+  fixtures x 40 draws x 3 starts: cold, warm beta, warm beta + Fisher; 9,600 calls): 8,063 `identical()`; 1,377
+  changed but converged both ways, all within 1e-8 or better in log-likelihood (max gain 4e-3); 109 newly converged;
+  0 newly failed, 0 worse; no fit converging within 20 iterations changed. Test
+  `test-identity-binomial-slow-fisher-scoring-interior-mle-reaches-mle.R` (12 pass swapped; 9 failures on the installed
+  kernel); 33 related kernel / class test files pass swapped (806 expectations). Downstream: stored resampling rows of
+  `InferenceIncidBinomialIdentityRiskDiff` / `InferenceIncidLogBinomial` can move; fold into v1.0.6-TODO-209 item (4)'s
+  regeneration.
 - [ ] TODO-268 (added 2026-11-20, agent; found fixing the bulk CI run 44616748908): **`InferenceContinRobustRegr`
   with `use_rcpp = FALSE` and the default `method = "MM"` returns a silent NA on an exact fit.** On a noise-free
   y = 3 + 2w (n = 40, one covariate x1 unrelated to y) `MASS::rlm(method = "MM")` errors ("incompatible dimensions",
@@ -5392,12 +5603,28 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   nonestimable reason (and the usual warning) when every fit attempt fails, or fall back to an M start. The bulk test
   `test-continuous-robust-regr-se-floor-nonestimable-guard-reference.R` uses `method = "M"` for the rlm backend until
   then.
-- [ ] TODO-269 (added 2026-11-20, coordinator; owner decision on v1.0.6-TODO-230, "yes, later"): **User-settable usable-draw
+- [x] TODO-269 (added 2026-11-20, coordinator; owner decision on v1.0.6-TODO-230, "yes, later"): **User-settable usable-draw
   cap on the generic ratio subsampling / m-out-of-n paths.** v1.0.6-TODO-230 fixed the 0.8 cap for
   `InferenceIncidLogRegr`, `InferenceIncidKKGEE`, `InferenceIncidModifiedPoisson`, `InferenceIncidLogBinomial` and
   `InferenceCountPoisson` as the constant `ratio_resampling_min_fraction_usable`. Expose it as
   `min_fraction_usable_samples` on the generic subsampling / m-out-of-n public methods (in
   `inference_all_abstract_non_param_boot.R`), as the g-comp RR methods already do, and document it there.
+  DONE 2026-11-20 (agent, uncommitted; R only): the four public methods (`compute_subsampling_two_sided_pval`,
+  `compute_subsampling_confidence_interval`, `compute_m_out_of_n_bootstrap_two_sided_pval`,
+  `compute_m_out_of_n_bootstrap_confidence_interval`) take `min_fraction_usable_samples = 0.8`, validated with
+  `assert_min_fraction_usable_samples()` and threaded through the `_impl`s and
+  `resampling_centered_pivot_for_inference()` to the centered pivots. The cap check moved after the pivot cache (the
+  pivot stores `n_draws` / `n_degenerate`), so a pivot built under one cap is judged under the cap of each call
+  (before, a failing pivot was not cached, so the fixed cap needed no care). For a class with a degenerate-draw rule
+  the cap replaces the fixed 50% "high_replicate_failure_rate" gate (redundant at 0.8; a cap below 0.5 now works);
+  classes without a rule ignore the argument and keep the 50% gate. Default results unchanged. Docs: `@param` on the
+  four methods, the four unused `nonparamboot-subsampling-*` / `nonparamboot-m-out-of-n-*` templates, and the
+  "Subsampling and m-out-of-n" sections of LogRegr, ModifiedPoisson, LogBinomial, CountPoisson and the KK combined
+  (KKGEE) class (Rd not regenerated). Contracts: 380 rows in `checkmate_argument_contracts.csv` and 1520 in
+  `public_argument_contract_registry.csv` (95 classes x 4 methods; the g-comp classes already had theirs), taken from
+  a scratch regeneration, only the new rows merged in. No new private methods. Test
+  `test-ratio-subsampling-m-out-of-n-min-fraction-usable-samples-argument.R` (114 pass: formals, validation, default
+  = explicit 0.8, NA below / value above the cap, cap < 0.5, cached pivot re-judged, OLS ignores it).
 - [ ] TODO-270 (added 2026-11-20, coordinator; from the v1.1.0-TODO-218 verification): **Permuted-block jackknife with
   few units per stratum is oversized.** Since 72ea20ba (v1.0.6-TODO-231 (3)) `DesignSeqOneByOneRandomBlockSize`
   resolves the automatic jackknife unit to "permuted_block", like SPBR. With few permuted blocks per stratum the
@@ -5435,6 +5662,12 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   8-9 blocks per stratum). OWNER DECISION: accept SPBR at 0.062 (open a TODO per the calibration rule), raise the
   threshold (e.g. 10 would switch SPBR here too: obs_within_block 0.055), or investigate SPBR separately.
 
+- [ ] TODO-283 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-188 agent; needs a wheel rebuild): **Python
+  `fast_beta_regression` returns `neg_loglik = nan`.** Same pattern as v1.0.6-TODO-188: the binding reads
+  `ModelResult.neg_ll`, which `R/EDI/src/fast_beta_regression.cpp` never sets (R computes `$neg_loglik` separately).
+  `python/tests/test_fast_beta_regression.py` documents it as "not a binding bug"; fix the binding (or set `neg_ll` in
+  the kernel), pin the value against R, and drop that note.
+
 - [x] TODO-284 (added 2026-11-20, done 2026-11-20; ds-python-kernels-44358267779-f1): **`import edi_kernels` died with
   SIGILL on an AVX2-only CPU.** Cause: `python/CMakeLists.txt` defaulted `EDI_PY_PORTABLE` to OFF (`-march=native
   -mtune=native`) and `python/pyproject.toml` pinned OFF for every non-cibuildwheel build, so a plain `pip wheel
@@ -5450,6 +5683,19 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   `.github/scripts/test_check_wheel_isa.py`. Wired into `build-wheels.yml` (Linux x86-64 wheels, after cibuildwheel) and
   the docs-scenarios `build-wheel` job. CPU baseline stated in `python/README.md` and `README_PYPI.md`; changelog in
   `python/CHANGELOG.md`. Local `build/<wheel tag>/` dirs cache the old OFF value: delete them before rebuilding.
+- [ ] TODO-285 (added 2026-11-20; nightly run 44715037976, benchmark (procedures) canary): **The Zhang exact CI's
+  convex-hull scan costs about 2x the v1.0.4 CI.** The v1.0.6-TODO-233 hull (scan of the p-value breakpoints plus a
+  200-point grid past the bisection endpoint) made the n = 1000 Bernoulli benchmark row 8.6x slower (1.71 -> 14.87 ms
+  on CI). Partly fixed 2026-11-20, same endpoints (720 random Bernoulli/KK CIs x 3 combination methods x 2 alphas
+  bit-identical; 917 Zhang test expectations pass): `zhang_pval_exact_combined_vec()` no longer uses
+  `apply`/`sweep`, and the scan stops at `zhang_hull_scan_cut()`, where a monotone upper bound on the combined p-value
+  (`zhang_pval_exact_tail_bound()`: log-concave components, so past the mode p <= tail x (1 + K - x)) is already below
+  alpha; the points kept are the old scan's own points. Locally 40 -> 16 ms vs 7.9 ms before the hull. Still over the
+  canary's 1.25x, so the row is in `R/benchmark/benchmark_regression_allowlist.csv` citing this TODO. Left: the scan's
+  `exp` over a K x (breakpoints + grid) matrix (K = 326 outcomes, ~93 points) and 62 -> ~24 bound evaluations; a C++
+  vectorised minimum-likelihood kernel (needs a targeted compile) or scanning only the breakpoints when one component
+  is present (the p-value is quasi-convex between breakpoints then) would bring it near 1x. Remove the allowlist row
+  when fixed, and in any case at the v1.0.6 release, when the canary's baseline includes the hull.
 
 - [x] TODO-286 (added 2026-11-20, done 2026-11-20; ds-custom-statistic-44358267779-f1, ds-custom-statistic-44358267779-f5, ds-custom-statistic-44358267779-f6):
   **`InferenceRandCustom` nonzero-delta nulls mixed scales.** Its fast path `compute_fast_randomization_distr()`
@@ -5473,3 +5719,17 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   response type instead of the f6d20e4d "not valid" warning. Not fixed, same additive pattern in C++-kernel fast
   paths: `InferenceAllSimpleMeanDiff` (`compute_simple_mean_diff_parallel_cpp`, ignores `transform_responses`) and
   `InferenceAllSimpleWilcox` (`transform_code = 0L` hard-coded) on survival/count/proportion at nonzero delta.
+
+- [ ] TODO-321 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-215 agent): **Cumulative-link ordinal warm start
+  is overwritten.** In the four cumulative-link classes (PropOdds, OrderedProbit, Cauchit, Cloglog),
+  `standard_model_cache_shared()` replaces the full warm start that `generate_mod()` just stored with
+  `b = c(0, beta_T)` and no information matrix, so later refits (bootstrap, randomization, CI inversion) never get a
+  full-length warm start. Check whether this costs iterations or changes any refit's optimum, and keep the full start.
+
+- [ ] TODO-322 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-169/170 agent): **ZINB with a large-scale
+  zero-inflation covariate, and the unprobed users of the new convergence rule.** (1) ZINB with a covariate at x 1000 in
+  the zero-inflation design gives -0.042 vs pscl -0.2125 (0 at + 1e5) on `colon`: the zero part saturates, its Hessian
+  block is 0, so the new Newton-decrement rule cannot finish the fit and the old verdict stands. (2) ZIP / hurdle, ZOIB,
+  the GLMMs, Weibull frailty and CLMM share the patched wrapper in `_helper_functions_core.h` but were not re-probed
+  (hurdle NegBin cannot be kernel-swapped alone); probe them on raw / x 1000 / + 1e5 designs after the owner build.
+  (3) Poisson and probit L-BFGS on raw `colon` still report not converged at the default 100-iteration cap.

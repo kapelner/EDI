@@ -34,9 +34,16 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
-#' \strong{No Bayesian bootstrap.} Its halves' standard errors have no weighted refit yet, so this class does not
-#' offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
-#' Its other resampling methods are unaffected.
+#' \strong{Bayesian bootstrap.} Each Bayesian-bootstrap replicate is a weighted refit of
+#' this estimator: under the draw's Dirichlet weights (a matched pair's weight is the mean
+#' of its two subjects' row weights) both halves are refit by weighted
+#' quantile regression (\code{quantreg::rq(weights = )}) (on the logit scale). Each half's standard error comes
+#' from its weighted fit (the \code{"nid"} sandwich, then \code{"iid"}, then a weighted-IQR
+#' fallback) and the two halves are pooled by inverse variance exactly as in
+#' \code{compute_estimate()}. Units with a zero weight, or one below \eqn{10^{-10}} times the
+#' mean weight, are dropped from the refit; the
+#' remaining weights are rescaled to mean 1 (the coefficients do not depend on the scale, and
+#' uniform weights then reproduce the unweighted fit and its standard errors).
 #'
 #' @examples
 #' if (requireNamespace("quantreg", quietly = TRUE)) {
@@ -65,13 +72,9 @@ InferencePropKKQuantileRegrIVWC = define_inference_class(
 		"Wald",
 		"KKQuantileRegrIVWC"
 	),
-	private = list(
-		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
-		# estimator the replicate fell through to the KK compound's generic
-		# mean-difference fallback, a different estimator from compute_estimate();
-		# its halves' standard errors (rq sparsity, then an IQR fallback) have no weighted refit here yet.
-		supports_bayesian_bootstrap = function() FALSE
-	),
+	# v1.0.6-TODO-235 (2): the Bayesian bootstrap is back (v1.0.6-TODO-217 had opted
+	# out); the KKQuantileRegrIVWC component's compute_weighted_estimate_ivwc() refits
+	# both halves by weighted quantreg::rq().
 	metadata = list(likelihood_tier = "none"),
 	overrides = list(
 		public = c(
@@ -85,7 +88,6 @@ InferencePropKKQuantileRegrIVWC = define_inference_class(
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
-			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

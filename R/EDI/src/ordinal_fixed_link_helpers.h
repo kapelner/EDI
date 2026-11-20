@@ -439,7 +439,12 @@ public:
 
             // 3. Accumulate: I += \sum_k (1/pi_k) * grad_pi_k * grad_pi_k^T
             for (int k = 0; k < m_K; ++k) {
-                double pi_k = (k == 0) ? p[0] : ((k == m_K - 1) ? (1.0 - p[k - 1]) : (p[k] - p[k - 1]));
+                // Upper and lower cumulative probabilities of category k. With
+                // K = 1 there are no thresholds (p is empty), so the single
+                // category has pi = 1 - 0 and p is never read.
+                const double p_upper = (k == m_K - 1) ? 1.0 : p[k];
+                const double p_lower = (k == 0) ? 0.0 : p[k - 1];
+                double pi_k = p_upper - p_lower;
                 pi_k = std::max(pi_k, 1e-12);
                 const double inv_pi = 1.0 / pi_k;
                 const double* gk = grad_pi[k].data();

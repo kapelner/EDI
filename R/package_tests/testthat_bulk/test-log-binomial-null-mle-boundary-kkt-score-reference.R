@@ -101,5 +101,7 @@ test_that("interior control (rep 1 `~.`, no row near the bound): values unchange
 	expect_equal(o$compute_score_two_sided_pval(0), 0.975450830601, tolerance = 1e-7)
 	# 1e-6: moved by 1.3e-7 with the v1.0.6-TODO-142 start change (2026-11-18).
 	expect_equal(o$compute_gradient_two_sided_pval(0), 0.975452687456, tolerance = 1e-6)
-	expect_equal(unname(o$compute_score_confidence_interval()), c(-0.2957914445, 0.2845605486), tolerance = 1e-7)
+	# 1e-6: the lower end moved by 1.4e-7 (root-finding tolerance) when v1.0.6-TODO-220 (2) made the
+	# CI-inversion seed the Wald SE (expected information) instead of the observed-information SE (2026-11-20).
+	expect_equal(unname(o$compute_score_confidence_interval()), c(-0.2957914445, 0.2845605486), tolerance = 1e-6)
 })

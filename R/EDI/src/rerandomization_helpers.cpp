@@ -98,20 +98,30 @@ Rcpp::NumericVector compute_objective_vals_cpp(
         Rcpp::stop("objective must be 'abs_sum_diff' or 'mahal_dist'");
     }
 
-    std::vector<double> sum_all(p, 0.0), sumsq_all(p, 0.0);
+    std::vector<double> sum_all(p, 0.0);
     for (int i = 0; i < n; i++)
-        for (int j = 0; j < p; j++) {
-            double x = X(i, j);
-            sum_all[j]   += x;
-            sumsq_all[j] += x * x;
-        }
+        for (int j = 0; j < p; j++) sum_all[j] += X(i, j);
 
-    std::vector<double> sd_all;
+    // v1.0.6-TODO-276: same scaling rule as rerandomization_search_cpp. The SD is
+    // over all n rows (n - 1 denominator) from centered sums, and a zero-variance
+    // column (var < 1e-24) is left unscaled (inv_sd = 1), so it adds ~0 instead of
+    // 0/0 = NaN. A constant column reaches here through a design_formula term such
+    // as I(x^0); unguarded, every value was NaN and order() kept the first r draws
+    // unfiltered. The uncentered sumsq - sum^2/n form also left cancellation
+    // residue on a constant column, which could slip past the threshold.
+    std::vector<double> inv_sd_all;
     if (abs_mode) {
-        sd_all.resize(p);
+        inv_sd_all.resize(p);
+        const int denom = std::max(1, n - 1);
         for (int j = 0; j < p; j++) {
-            double var = (sumsq_all[j] - sum_all[j] * sum_all[j] / n) / (n - 1);
-            sd_all[j] = std::sqrt(std::max(var, 0.0));
+            const double mean_j = sum_all[j] / n;
+            double ss = 0.0;
+            for (int i = 0; i < n; i++) {
+                const double d = X(i, j) - mean_j;
+                ss += d * d;
+            }
+            const double var = ss / denom;
+            inv_sd_all[j] = (var < 1e-24) ? 1.0 : 1.0 / std::sqrt(var);
         }
     }
 
@@ -151,7 +161,7 @@ Rcpp::NumericVector compute_objective_vals_cpp(
 
         if (abs_mode) {
             double v = 0.0;
-            for (int j = 0; j < p; j++) v += std::fabs(diff[j] / sd_all[j]);
+            for (int j = 0; j < p; j++) v += std::fabs(diff[j] * inv_sd_all[j]);
             vals[row] = v;
         } else {
             double v = 0.0;

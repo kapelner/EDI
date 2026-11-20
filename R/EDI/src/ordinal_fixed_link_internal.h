@@ -162,7 +162,6 @@ edi::ResultMap fixed_link_ordinal_internal(
         .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("ssq_b_j", ssq_b_2)
         .set("observed_information", H_full)
-        .set("fisher_information", H_full)
         .set("information", H_full)
         .set("information_type", std::string("observed"));
     if (have_vcov) {

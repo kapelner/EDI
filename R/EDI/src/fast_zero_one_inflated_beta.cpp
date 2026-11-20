@@ -1,5 +1,6 @@
 #ifdef EDI_CORE_ONLY
 #include "_helper_functions_core.h"
+#include "result_map.h"
 #else
 #include "_helper_functions.h"
 #include "result_map_rcpp.h"
@@ -485,6 +486,84 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
 	return optimize_fixed_likelihood(fun, params, fixed_spec, 1500, 1e-6, optimization_alg, "lbfgs", 0, info_start_ptr);
 }
 
+// The full result of a zero-one-inflated beta fit: the unpacked parameter
+// blocks and, unless estimate_only, the variance and information matrices.
+// Shared by the R export fast_zero_one_inflated_beta_cpp and the Python
+// binding (python/cpp/bindings_proportion.cpp) so both return the same
+// fields (audit decision rpy-parity-d1f65c8c0). vcov_missing fills the vcov
+// when the observed information is non-finite or its free block is singular:
+// R passes NA_REAL, Python passes NaN.
+edi::ResultMap fast_zero_one_inflated_beta_result_internal(
+		const Eigen::Ref<const Eigen::MatrixXd>& X,
+		const Eigen::Ref<const Eigen::MatrixXd>& X_zero_one,
+		const Eigen::Ref<const Eigen::VectorXd>& y_eigen,
+		std::optional<Eigen::VectorXd> warm_start_params,
+		bool smart_cold_start,
+		std::optional<Eigen::VectorXi> fixed_idx,
+		std::optional<Eigen::VectorXd> fixed_values,
+		std::string optimization_alg,
+		std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+		bool estimate_only,
+		double vcov_missing) {
+	int p = X.cols();
+	int p_zero_one = X_zero_one.cols();
+
+	LikelihoodFitResult fit = fast_zero_one_inflated_beta_internal(
+		X, X_zero_one, y_eigen, warm_start_params, smart_cold_start,
+		fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info);
+	Eigen::VectorXd params = fit.params;
+
+	if (estimate_only) {
+		return edi::ResultMap()
+			.set("b", params.head(p))
+			.set("log_phi", params[p])
+			.set("zero_one_b0", params.segment(p + 1, p_zero_one))
+			.set("zero_one_b1", params.tail(p_zero_one))
+			.set("params", params)
+			.set("neg_loglik", fit.value)
+			.set("converged", fit.converged)
+			.set("num_iter", fit.niter)
+			.set("hit_iteration_cap", fit.hit_iteration_cap)
+			.set("gradient_norm", fit.gradient_norm)
+			.set("min_eigenvalue_information", fit.min_eigenvalue_information);
+	}
+
+	FixedParamSpec fixed_spec = make_fixed_param_spec(params.size(), fixed_idx, fixed_values);
+	ZeroOneInflatedBeta fun(y_eigen, X, X_zero_one);
+	Eigen::MatrixXd observed_information = fun.hessian(params);
+
+	int dim = params.size();
+	Eigen::MatrixXd vcov_mat = Eigen::MatrixXd::Constant(dim, dim, vcov_missing);
+	if (observed_information.rows() == dim && observed_information.cols() == dim && observed_information.allFinite()){
+		Eigen::MatrixXd H_free = subset_matrix(observed_information, fixed_spec.free_idx, fixed_spec.free_idx);
+		Eigen::FullPivLU<Eigen::MatrixXd> lu(H_free);
+		if (lu.isInvertible()){
+			Eigen::MatrixXd inv_free = lu.inverse();
+			vcov_mat = expand_free_covariance(dim, fixed_spec, inv_free, true);
+		}
+	}
+
+	Eigen::MatrixXd neg_observed_information = -observed_information;
+	return edi::ResultMap()
+		.set("b", params.head(p))
+		.set("log_phi", params[p])
+		.set("zero_one_b0", params.segment(p + 1, p_zero_one))
+		.set("zero_one_b1", params.tail(p_zero_one))
+		.set("params", params)
+		.set("vcov", vcov_mat)
+		.set("neg_loglik", fit.value)
+		.set("converged", fit.converged)
+		.set("num_iter", fit.niter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
+		.set("observed_information", observed_information)
+		.set("fisher_information", observed_information)
+		.set("information", observed_information)
+		.set("information_type", std::string("observed"))
+		.set("hessian", neg_observed_information);
+}
+
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
 Eigen::VectorXd get_zero_one_inflated_beta_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen::MatrixXd>& X_zero_one, SEXP y, const Eigen::Map<Eigen::VectorXd>& params){
@@ -599,70 +678,14 @@ List fast_zero_one_inflated_beta_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const
 
     
 
-	int p = X.cols();
-	int p_zero_one = X_zero_one.cols();
-
-	LikelihoodFitResult fit = fast_zero_one_inflated_beta_internal(
+	return edi::to_rcpp_list(fast_zero_one_inflated_beta_result_internal(
 		X, X_zero_one, y_vec_coerced,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
 		nullable_to_optional<Eigen::VectorXd>(fixed_values),
 		optimization_alg,
-		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-	Eigen::VectorXd params = fit.params;
-
-	if (estimate_only) {
-		return edi::to_rcpp_list(edi::ResultMap()
-			.set("b", params.head(p))
-			.set("log_phi", params[p])
-			.set("zero_one_b0", params.segment(p + 1, p_zero_one))
-			.set("zero_one_b1", params.tail(p_zero_one))
-			.set("params", params)
-			.set("neg_loglik", fit.value)
-			.set("converged", fit.converged)
-			.set("num_iter", fit.niter)
-			.set("hit_iteration_cap", fit.hit_iteration_cap)
-			.set("gradient_norm", fit.gradient_norm)
-			.set("min_eigenvalue_information", fit.min_eigenvalue_information));
-	}
-
-	FixedParamSpec fixed_spec = make_fixed_param_spec(
-		params.size(),
-		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-		nullable_to_optional<Eigen::VectorXd>(fixed_values));
-	ZeroOneInflatedBeta fun(y_vec_coerced, X, X_zero_one);
-	Eigen::MatrixXd observed_information = fun.hessian(params);
-
-	int dim = params.size();
-	Eigen::MatrixXd vcov_mat = Eigen::MatrixXd::Constant(dim, dim, NA_REAL);
-	if (observed_information.rows() == dim && observed_information.cols() == dim && observed_information.allFinite()){
-		Eigen::MatrixXd H_free = subset_matrix(observed_information, fixed_spec.free_idx, fixed_spec.free_idx);
-		Eigen::FullPivLU<Eigen::MatrixXd> lu(H_free);
-		if (lu.isInvertible()){
-			Eigen::MatrixXd inv_free = lu.inverse();
-			vcov_mat = expand_free_covariance(dim, fixed_spec, inv_free, true);
-		}
-	}
-
-	Eigen::MatrixXd neg_observed_information = -observed_information;
-	return edi::to_rcpp_list(edi::ResultMap()
-		.set("b", params.head(p))
-		.set("log_phi", params[p])
-		.set("zero_one_b0", params.segment(p + 1, p_zero_one))
-		.set("zero_one_b1", params.tail(p_zero_one))
-		.set("params", params)
-		.set("vcov", vcov_mat)
-		.set("neg_loglik", fit.value)
-		.set("converged", fit.converged)
-		.set("num_iter", fit.niter)
-		.set("hit_iteration_cap", fit.hit_iteration_cap)
-		.set("gradient_norm", fit.gradient_norm)
-		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
-		.set("observed_information", observed_information)
-		.set("fisher_information", observed_information)
-		.set("information", observed_information)
-		.set("information_type", std::string("observed"))
-		.set("hessian", neg_observed_information));
+		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
+		estimate_only, NA_REAL));
 }
 #endif // EDI_CORE_ONLY

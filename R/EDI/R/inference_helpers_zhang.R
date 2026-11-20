@@ -45,6 +45,30 @@ zhang_combine_exact_pvals = function(p_M, p_R, m, nRT, nRC, method){
 	}
 }
 
+# zhang_combine_exact_pvals() elementwise over vectors p_M, p_R (same values, one
+# call instead of one per delta; v1.0.6-TODO-285).
+zhang_combine_exact_pvals_vec = function(p_M, p_R, m, nRT, nRC, method){
+	has_M = m > 0              & is.finite(p_M) & p_M > 0
+	has_R = nRT > 0 & nRC > 0  & is.finite(p_R) & p_R > 0
+	out = rep(NA_real_, length(p_M))
+	only_M = has_M & !has_R
+	only_R = has_R & !has_M
+	out[only_M] = p_M[only_M]
+	out[only_R] = p_R[only_R]
+	both = has_M & has_R
+	if (any(both)){
+		pM = p_M[both]
+		pR = p_R[both]
+		out[both] = switch(method,
+			Fisher = stats::pchisq(-2 * (base::log(pM) + base::log(pR)), df = 4, lower.tail = FALSE),
+			Stouffer = 2 * stats::pnorm(-base::abs((stats::qnorm(1 - pM / 2) + stats::qnorm(1 - pR / 2)) / base::sqrt(2))),
+			min_p = 1 - (1 - base::pmin(pM, pR))^2,
+			stop("unknown combination method: ", method)
+		)
+	}
+	out
+}
+
 zhang_bisect_ci_boundary = function(p_fn, inside, outside, pval_th, tol){
 	# A finite Wald-derived initial endpoint is merely a starting scale, not a
 	# valid inversion bracket.  Exact zero-cell tables in particular can have an
@@ -153,7 +177,7 @@ zhang_exact_pval_breakpoints = function(exact_stats){
 # the breakpoint itself: there the tie is counted and the test accepts, so the
 # closed endpoint is the breakpoint (at p0 = 0.5 the binomial's tie with its mirror
 # outcome put endpoints at about -1e-7 where the test accepts delta = 0).
-zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoints, p_vec = NULL, n_grid = 200L){
+zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoints, p_vec = NULL, n_grid = 200L, p_bound = NULL){
 	p_at = function(delta){
 		p = tryCatch(p_fn(delta), error = function(e) NA_real_)
 		if (is.na(p) || !is.finite(p)) 0 else p
@@ -173,14 +197,26 @@ zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoin
 				zhang_bisect_ci_boundary(p_fn, inside = t_far, outside = t_far + direction, pval_th = pval_th, tol = tol),
 				direction, pval_th, breakpoints))
 		}
+		# The scan need not reach t_far: past t_cut an upper bound on the p-value
+		# (zhang_pval_exact_tail_bound()) is already below pval_th, and that bound only
+		# falls further out, so nothing there is accepted. Typically t_cut is a few
+		# standard errors past r, while the outermost breakpoint can be much farther
+		# (an 8.6x slower nightly benchmark row at n = 1000 without the cut). The points
+		# kept are the full scan's own points up to t_cut, plus t_cut, so the scan finds
+		# the same farthest accepted point and the endpoint does not change.
 		scan = c(beyond, seq(r, t_far, length.out = n_grid + 1L)[-1L])
+		if (!is.null(p_bound)) {
+			t_cut = zhang_hull_scan_cut(p_bound, r, t_far, direction, pval_th)
+			scan = c(scan[direction * (scan - t_cut) < 0], t_cut)
+		}
 		scan = scan[order(direction * scan)]
 		p_scan = if (is.null(p_vec)) vapply(scan, p_at, numeric(1)) else p_vec(scan)
 		acc = which(p_scan >= pval_th)
 		if (length(acc) > 0L) {
 			a = max(acc)
-			# t_far (the last scan point) is rejected, so a < length(scan).
-			r = zhang_bisect_bracket(p_at, scan[a], scan[a + 1L], pval_th, width_tol)
+			# The last scan point (t_far, or t_cut whose bound rejects) is rejected, so
+			# normally a < length(scan); if rounding says otherwise, bracket with t_far.
+			r = zhang_bisect_bracket(p_at, scan[a], if (a < length(scan)) scan[a + 1L] else t_far, pval_th, width_tol)
 		}
 	}
 	zhang_snap_endpoint(p_at, r, direction, pval_th, breakpoints)
@@ -189,38 +225,81 @@ zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoin
 # The combined exact p-value at many deltas at once, for the hull scan of
 # zhang_ci_hull_endpoint(): the same minimum-likelihood sums as
 # zhang_exact_binom_pval_cpp() / zhang_exact_fisher_pval_cpp() (including their
-# 1e-7 relative tie tolerance), as matrices over outcomes x deltas. It only
-# decides which scan points are accepted; every endpoint is still refined with the
-# scalar kernels. A non-finite value counts as 0 (rejected), as in p_at().
+# 1e-7 relative tie tolerance), per component from zhang_minlike_pval_vec_cpp()
+# (O(K) per delta; it replaced an outcomes x deltas matrix in R, v1.0.6-TODO-285,
+# with bit-identical values). It only decides which scan points are accepted;
+# every endpoint is still refined with the scalar kernels. A non-finite value
+# counts as 0 (rejected), as in p_at().
 zhang_pval_exact_combined_vec = function(exact_stats, deltas, combination_method){
-	rel_tol_log = log1p(1e-7)
-	minlike = function(logw, x){
-		# logw: outcomes x deltas, unnormalised log probabilities.
-		mx = apply(logw, 2L, max)
-		lp = sweep(logw, 2L, mx + log(colSums(exp(sweep(logw, 2L, mx)))))
-		obs = lp[x, ]
-		pmin(1, colSums(exp(lp) * (sweep(lp, 2L, obs + rel_tol_log) <= 0)))
-	}
 	nd = length(deltas)
+	comps = zhang_exact_pval_components(exact_stats)
+	p_M = if (!is.null(comps$M)) zhang_minlike_pval_vec_cpp(comps$M$cj, comps$M$x, deltas) else rep(NA_real_, nd)
+	p_R = if (!is.null(comps$R)) zhang_minlike_pval_vec_cpp(comps$R$cj, comps$R$x, deltas) else rep(NA_real_, nd)
+	p = zhang_combine_exact_pvals_vec(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
+	p[!is.finite(p)] = 0
+	p
+}
+
+# The two exact components as outcome distributions in delta: unnormalised log
+# weights cj + (j - 1) * delta over outcomes j = 1..K (the matched-pair binomial
+# over d_plus, the reservoir's noncentral hypergeometric over n11; a constant shift
+# of the outcome index cancels on normalising) and the observed outcome's index x.
+# NULL for a component that is absent, as in zhang_pval_exact_combined_vec().
+zhang_exact_pval_components = function(exact_stats){
+	out = list(M = NULL, R = NULL)
 	k = exact_stats$d_plus + exact_stats$d_minus
-	has_M = exact_stats$m > 0L && k > 0L
-	p_M = if (has_M) {
-		j = 0:k
-		minlike(lchoose(k, j) + outer(j, deltas), exact_stats$d_plus + 1L)
-	} else rep(NA_real_, nd)
-	has_R = exact_stats$nRT > 0L && exact_stats$nRC > 0L &&
-		exact_stats$n11 + exact_stats$n01 > 0L && exact_stats$n10 + exact_stats$n00 > 0L
-	p_R = if (has_R) {
+	if (exact_stats$m > 0L && k > 0L) {
+		out$M = list(cj = lchoose(k, 0:k), x = exact_stats$d_plus + 1L)
+	}
+	if (exact_stats$nRT > 0L && exact_stats$nRC > 0L &&
+		exact_stats$n11 + exact_stats$n01 > 0L && exact_stats$n10 + exact_stats$n00 > 0L) {
 		row1 = exact_stats$n11 + exact_stats$n01
 		row2 = exact_stats$n10 + exact_stats$n00
 		col1 = exact_stats$n11 + exact_stats$n10
 		xs = max(0L, col1 - row2):min(row1, col1)
-		minlike(lchoose(row1, xs) + lchoose(row2, col1 - xs) + outer(xs, deltas), exact_stats$n11 - xs[1L] + 1L)
-	} else rep(NA_real_, nd)
-	p = vapply(seq_len(nd), function(i) zhang_combine_exact_pvals(p_M[i], p_R[i], exact_stats$m,
-		exact_stats$nRT, exact_stats$nRC, combination_method), numeric(1))
-	p[!is.finite(p)] = 0
-	p
+		out$R = list(cj = lchoose(row1, xs) + lchoose(row2, col1 - xs), x = exact_stats$n11 - xs[1L] + 1L)
+	}
+	out
+}
+
+# An upper bound on the combined exact p-value at delta, valid going outward in
+# `direction` (+1 right, -1 left) and nonincreasing that way. Each component's
+# weights are log-concave in the outcome (binomial and hypergeometric
+# coefficients are), so once the mode at delta is on the far side of x (mode >= x
+# going right) every outcome on x's own side is less likely than x and counted,
+# and each of the other K - x outcomes counted is at most P(x) (1 + 1e-7) <= the
+# tail P(J <= x); the minimum-likelihood p-value is then at most
+# P(J <= x) (1 + (K - x) (1 + 1e-7)). Before that the bound is 1. The mode only
+# moves outward with delta and the tail only shrinks (monotone likelihood ratio),
+# so the bound is nonincreasing. The combination methods are increasing in each
+# component; the max with the single components covers the fallback of
+# zhang_combine_exact_pvals() to the other component when one underflows to 0.
+zhang_pval_exact_tail_bound = function(comps, delta, direction, exact_stats, combination_method){
+	# Per component in C++ (zhang_minlike_tail_bound_cpp(), v1.0.6-TODO-285).
+	bM = if (is.null(comps$M)) NA_real_ else zhang_minlike_tail_bound_cpp(comps$M$cj, comps$M$x, delta, direction)
+	bR = if (is.null(comps$R)) NA_real_ else zhang_minlike_tail_bound_cpp(comps$R$cj, comps$R$x, delta, direction)
+	g = zhang_combine_exact_pvals(bM, bR, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
+	max(c(g, bM, bR), na.rm = TRUE)
+}
+
+# Where the hull scan can stop: a point t_cut between r and t_far (r excluded)
+# whose p_bound is below pval_th, found by bisection on the nonincreasing bound;
+# t_far itself when the bound there still reaches pval_th.
+zhang_hull_scan_cut = function(p_bound, r, t_far, direction, pval_th, n_iter = 12L){
+	if (p_bound(t_far, direction) >= pval_th) return(t_far)
+	lo = r
+	hi = t_far
+	for (iter in seq_len(n_iter)){
+		mid = (lo + hi) / 2
+		if (p_bound(mid, direction) >= pval_th) lo = mid else hi = mid
+	}
+	hi
+}
+
+# p_bound(delta, direction) for zhang_ci_hull_endpoint(), over this table's components.
+zhang_pval_exact_tail_bound_fn = function(exact_stats, combination_method){
+	comps = zhang_exact_pval_components(exact_stats)
+	function(delta, direction) zhang_pval_exact_tail_bound(comps, delta, direction, exact_stats, combination_method)
 }
 
 # An endpoint within 1e-6 of a breakpoint the test accepts, with the test rejecting
@@ -393,7 +472,8 @@ zhang_compute_ci_bounds_parallel = function(inf_obj, inside, lo_bound, hi_bound,
 		}
 		zhang_ci_hull_endpoint(p_fn, inside = spec$inside, outside = spec$outside, pval_th = alpha, tol = pval_epsilon,
 			breakpoints = zhang_exact_pval_breakpoints(exact_stats),
-			p_vec = function(d) zhang_pval_exact_combined_vec(exact_stats, d, combination_method))
+			p_vec = function(d) zhang_pval_exact_combined_vec(exact_stats, d, combination_method),
+			p_bound = zhang_pval_exact_tail_bound_fn(exact_stats, combination_method))
 	}, n_cores = n_cores_ci, budget = child_budget,
 	export_list = list(
 		inf_template = inf_template,
@@ -511,9 +591,10 @@ zhang_ci_exact_combined = function(inf_obj, alpha, pval_epsilon, combination_met
 	} else {
 		breakpoints = zhang_exact_pval_breakpoints(exact_stats)
 		p_vec = function(d) zhang_pval_exact_combined_vec(exact_stats, d, combination_method)
+		p_bound = zhang_pval_exact_tail_bound_fn(exact_stats, combination_method)
 		c(
-			zhang_ci_hull_endpoint(p_fn, inside = inside, outside = lo_bound, pval_th = alpha, tol = pval_epsilon, breakpoints = breakpoints, p_vec = p_vec),
-			zhang_ci_hull_endpoint(p_fn, inside = inside, outside = hi_bound, pval_th = alpha, tol = pval_epsilon, breakpoints = breakpoints, p_vec = p_vec)
+			zhang_ci_hull_endpoint(p_fn, inside = inside, outside = lo_bound, pval_th = alpha, tol = pval_epsilon, breakpoints = breakpoints, p_vec = p_vec, p_bound = p_bound),
+			zhang_ci_hull_endpoint(p_fn, inside = inside, outside = hi_bound, pval_th = alpha, tol = pval_epsilon, breakpoints = breakpoints, p_vec = p_vec, p_bound = p_bound)
 		)
 	}
 }

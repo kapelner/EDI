@@ -18,11 +18,11 @@
 #'     one permuted block (\code{"permuted_block"}), as recorded when the design drew it
 #'     (block sizes are random), with the same rule for a stratum's trailing unfilled block;
 #'     a design object saved before EDI 1.0.6 has no such record and uses \code{"block"};
-#'   \item on both of these designs, when any stratum holds fewer than 5 permuted-block
+#'   \item on both of these designs, when any stratum holds fewer than 10 permuted-block
 #'     units, one subject grouped by its stratum (\code{"observation_within_block"})
-#'     instead: with 3-4 blocks in a stratum the permuted-block jackknife-Wald test
-#'     rejected a true null too often (size 0.082 at a nominal 0.05, against 0.055
-#'     deleting single subjects; v1.0.6-TODO-270);
+#'     instead: with few blocks in a stratum the permuted-block jackknife-Wald test
+#'     rejected a true null too often (about 0.06 at a nominal 0.05 with 3-9 blocks in
+#'     the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.6-TODO-270);
 #'   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
 #'     grouped by its stratum (\code{"observation_within_block"});
 #'   \item \code{\link[EDI:ObservationalDesignBlocks]{ObservationalDesignBlocks}}: one whole
@@ -437,9 +437,10 @@ EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
 # Sec. 4.5). With 3-4 blocks in the smallest stratum the permuted-block
 # jackknife-Wald test was too liberal even with its t reference
 # (InferenceCountPoisson, RandomBlockSize, prob_T 0.2, n 200, ~1: size 0.082
-# [0.066, 0.101], against 0.055 deleting single subjects). 5 matches
-# EDI_JACKKNIFE_MIN_DELETION_UNITS.
-EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM = 5L
+# [0.066, 0.101], against 0.055 deleting single subjects). Owner decision
+# 2026-11-20: 10, not 5, so SPBR at prob_T 0.2, n 200 (6-10 blocks in the
+# smallest stratum, size about 0.062 with the permuted block) switches too.
+EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM = 10L
 
 # v1.0.6-TODO-4: jackknife bias and variance from the replicate estimates `jack`
 # (theta_(i), one per deletion unit) and the full-data estimate `theta_hat`.

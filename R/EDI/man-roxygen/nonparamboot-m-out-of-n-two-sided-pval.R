@@ -13,6 +13,12 @@
 #'   estimates required after filtering. Default 5.
 #' @param bootstrap_type Optional empirical-resampling scheme.
 #' @param scaling Scaling sequence for centered m-out-of-n pivots.
+#' @param min_fraction_usable_samples Ratio estimands only (\code{InferenceIncidLogRegr},
+#'   \code{InferenceIncidKKGEE}, \code{InferenceIncidModifiedPoisson},
+#'   \code{InferenceIncidLogBinomial}, \code{InferenceCountPoisson}): minimum fraction of the
+#'   \code{B} resamples that must be usable (not degenerate, fit not failed). Below it the method
+#'   returns \code{NA} with reason \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
+#'   \code{edi_procedure_na_warning}. Default 0.8 (v1.0.6-TODO-230 / 269). Other classes ignore it.
 #'
 #' @details The default \code{m = NULL} follows the intermediate-sequence
 #'   convention from the m-out-of-n bootstrap literature:

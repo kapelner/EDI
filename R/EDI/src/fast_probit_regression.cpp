@@ -80,6 +80,27 @@ public:
         grad.noalias() = -m_X.transpose() * gen_res;
         return f;
     }
+
+    // v1.0.6-TODO-169 (PATCHED, needs owner build): Fisher information X'WX,
+    // used by the shared L-BFGS finish (lbfgs_finish_with_newton_decrement in
+    // _helper_functions_core.h) for its scale-aware convergence rule and
+    // Fisher-scoring polish. Without it the wrapper falls back to a central
+    // difference of the gradient, which is useless at age + 1e5 (the step is
+    // 1e-4 * |beta_j|), and the early relative-decrease stop stood
+    // (treatment -0.149 vs the MLE -0.311).
+    Eigen::MatrixXd hessian(const Eigen::VectorXd& beta) {
+        const Eigen::VectorXd eta = m_X * beta + m_eta_fixed;
+        Eigen::VectorXd w(m_n);
+        for (int i = 0; i < m_n; ++i) {
+            const double ei = eta[i];
+            const double wi = m_use_weights ? m_weights[i] : 1.0;
+            const double phi = dnorm_fast(ei);
+            const double Phi = pnorm_fast(ei);
+            const double vm = std::max(1e-15, Phi * (1.0 - Phi));
+            w[i] = wi * (phi * phi / vm);
+        }
+        return m_X.transpose() * w.asDiagonal() * m_X;
+    }
 };
 
 } // namespace
@@ -226,6 +247,41 @@ ModelResult fast_probit_regression_internal(
         // the template's analysis.
         res.gradient_norm = last_grad_norm;
         res.converged = (last_grad_norm < tol);
+        // v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): scale-aware
+        // fallback, as in the logistic IRLS. With a large-scale or offset
+        // covariate (colon age + 1e5) the fit reaches the optimum but rounding
+        // keeps |score| above the absolute tol, and InferenceIncidProbitRegr then
+        // dropped covariates. When the gradient test fails, the fit is still
+        // converged if the Newton decrement score' (X'WX)^{-1} score at the
+        // returned beta is within glm()'s relative deviance tolerance
+        // (newton_decrement_converged() in _helper_functions_core.h). Not when
+        // some row with positive weight has |eta| >= 8 (pnorm_fast()'s clamp,
+        // where the likelihood is flat: separation or a runaway step), so those
+        // keep the gradient verdict. Coefficients are unchanged.
+        if (!res.converged && p_free > 0 && beta_free.allFinite()) {
+            const Eigen::VectorXd eta_c = X_free * beta_free + eta_fixed;
+            Eigen::VectorXd gen_res_c(n), w_c(n);
+            bool clamped = !eta_c.allFinite();
+            double nl_c = 0.0;
+            for (int i = 0; i < n && !clamped; ++i) {
+                const double wi = use_weights ? weights_eigen[i] : 1.0;
+                const double ei = eta_c[i];
+                if (wi > 0.0 && std::fabs(ei) >= 8.0) { clamped = true; break; }
+                const double phi = dnorm_fast(ei);
+                const double Phi = pnorm_fast(ei);
+                const double Phi_inv = 1.0 - Phi;
+                const double vm = std::max(1e-15, Phi * Phi_inv);
+                w_c[i] = wi * (phi * phi / vm);
+                gen_res_c[i] = wi * probit_gen_residual_optimized(y_eigen[i], phi, Phi, Phi_inv);
+                if (wi > 0.0) nl_c -= wi * (y_eigen[i] > 0.5 ? std::log(Phi) : std::log1p(-Phi));
+            }
+            if (!clamped) {
+                Eigen::VectorXd score_c(p_free);
+                Eigen::MatrixXd info_c(p_free, p_free);
+                score_weighted_crossprod_colwise_assign(X_free, gen_res_c, w_c, score_c, info_c);
+                res.converged = newton_decrement_converged(score_c, info_c, nl_c, tol);
+            }
+        }
         res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
         // Reuses XtWX (free-parameter-space, before the zero-padding
         // expand_free_covariance below would introduce for any fixed

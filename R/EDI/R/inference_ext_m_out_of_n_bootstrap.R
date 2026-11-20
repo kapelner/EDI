@@ -146,7 +146,7 @@ InferenceExtMOutOfNBootstrap = list(
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_m_out_of_n_bootstrap_two_sided_pval_impl = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
+		compute_m_out_of_n_bootstrap_two_sided_pval_impl = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -154,7 +154,7 @@ InferenceExtMOutOfNBootstrap = list(
 				assertChoice(type, c("centered"))
 			}
 			setup = private$resampling_centered_pivot_for_inference("m_out_of_n", "pval", B = B, size = m, alpha = NULL, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling)
+				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
 			# v1.0.6-TODO-230: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
@@ -187,7 +187,7 @@ InferenceExtMOutOfNBootstrap = list(
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_m_out_of_n_bootstrap_confidence_interval_impl = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
+		compute_m_out_of_n_bootstrap_confidence_interval_impl = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				assertCount(B, positive = TRUE)
@@ -195,7 +195,7 @@ InferenceExtMOutOfNBootstrap = list(
 				assertChoice(type, c("basic"))
 			}
 			setup = private$resampling_centered_pivot_for_inference("m_out_of_n", "ci", B = B, size = m, alpha = alpha, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling)
+				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
 			ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$est, n_units = pivot$n_units, scaling = scaling)
@@ -261,54 +261,70 @@ InferenceExtMOutOfNBootstrap = list(
 		m_out_of_n_bootstrap_cache_key = function(B, m, bootstrap_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
 			paste(as.integer(B), as.integer(m), bootstrap_type %||% "NULL", private$resampling_scaling_key(scaling), center, sep = "|")
 		},
-		m_out_of_n_bootstrap_centered_pivot = function(B, m, unit_info, show_progress = TRUE, bootstrap_type = NULL, scaling = "sqrt_n"){
+		m_out_of_n_bootstrap_centered_pivot = function(B, m, unit_info, show_progress = TRUE, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap centered pivot")
 			cache_key = private$m_out_of_n_bootstrap_cache_key(B = B, m = m, bootstrap_type = bootstrap_type, scaling = scaling, center = "full_estimate")
-			cached = private$get_cached_centered_resampling_pivot("m_out_of_n_boot", cache_key)
-			if (!is.null(cached)) return(cached)
-			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
-			if (!is.finite(est)) {
-				return(list(ok = FALSE, reason = "m_out_of_n_original_estimate_unavailable"))
+			pivot = private$get_cached_centered_resampling_pivot("m_out_of_n_boot", cache_key)
+			if (is.null(pivot)) {
+				# Builds the pivot from fresh draws; a failure (ok = FALSE) is returned uncached.
+				pivot = (function(){
+					est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
+					if (!is.finite(est)) {
+						return(list(ok = FALSE, reason = "m_out_of_n_original_estimate_unavailable"))
+					}
+					boot = self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T(
+						B = B,
+						m = m,
+						show_progress = show_progress,
+						bootstrap_type = bootstrap_type,
+						scaling = scaling
+					)
+					finite = boot[is.finite(boot)]
+					# Fraction-based failure gate (2026-09-06): min_number_usable_samples
+					# at the two call sites only checks the ABSOLUTE count of finite
+					# replicates (default 5) -- with B in the hundreds, even a large
+					# majority of resampled fits failing/degenerating still clears
+					# that bar, so the resulting pivot silently gets built from a
+					# small, unrepresentative surviving subset. Found on
+					# InferenceIncidKKGEE under model_formula = ~. (7 covariates,
+					# m sized only to p_eff + 2): ~24% of resampled GEE refits failed
+					# to converge at that m, and the surviving-subset pivot produced
+					# a degenerate two-sided p-value (~0% rejection under BOTH H0 and
+					# H1). Requiring a majority of replicates to succeed converts
+					# this from a silently wrong, falsely-precise p-value into an
+					# honest non-estimable result.
+					# A class with a degenerate-draw rule (ratio estimands) uses
+					# min_fraction_usable_samples instead (m_out_of_n_bootstrap_centered_pivot();
+					# v1.0.6-TODO-269; default 0.8, stricter than this gate).
+					has_ratio_rule = !is.null(edi_ratio_resampling_degenerate_rule(self, private))
+					if (!has_ratio_rule && length(boot) > 0L && length(finite) / length(boot) < 0.5) {
+						return(list(ok = FALSE, reason = "m_out_of_n_high_replicate_failure_rate"))
+					}
+					pivot = list(
+						ok = TRUE,
+						reason = NA_character_,
+						est = est,
+						finite = finite,
+						centered_scaled = private$resampling_scaling_factor(m, scaling) * (finite - est),
+						m = as.integer(m),
+						n_units = unit_info$n_units,
+						scaling = scaling,
+						n_draws = length(boot),
+						n_degenerate = sum(is.nan(boot))
+					)
+					pivot
+				})()
+				if (!isTRUE(pivot$ok)) return(pivot)
+				private$set_cached_centered_resampling_pivot("m_out_of_n_boot", cache_key, pivot)
 			}
-			boot = self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T(
-				B = B,
-				m = m,
-				show_progress = show_progress,
-				bootstrap_type = bootstrap_type,
-				scaling = scaling
-			)
-			finite = boot[is.finite(boot)]
-			# v1.0.6-TODO-230: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
-			# ratio_resampling_min_fraction_usable of the B resamples to be usable.
-			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "m_out_of_n", boot)
+			# v1.0.6-TODO-230 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# min_fraction_usable_samples of the B resamples to be usable. Checked after the cache so a
+			# pivot built under one cap is judged under the cap of each call.
+			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "m_out_of_n",
+				n_total = pivot$n_draws %||% length(pivot$finite), n_usable = length(pivot$finite),
+				n_degenerate = pivot$n_degenerate %||% 0L, min_fraction = min_fraction_usable_samples)
 			if (!is.null(too_few_usable)) return(too_few_usable)
-			# Fraction-based failure gate (2026-09-06): min_number_usable_samples
-			# at the two call sites only checks the ABSOLUTE count of finite
-			# replicates (default 5) -- with B in the hundreds, even a large
-			# majority of resampled fits failing/degenerating still clears
-			# that bar, so the resulting pivot silently gets built from a
-			# small, unrepresentative surviving subset. Found on
-			# InferenceIncidKKGEE under model_formula = ~. (7 covariates,
-			# m sized only to p_eff + 2): ~24% of resampled GEE refits failed
-			# to converge at that m, and the surviving-subset pivot produced
-			# a degenerate two-sided p-value (~0% rejection under BOTH H0 and
-			# H1). Requiring a majority of replicates to succeed converts
-			# this from a silently wrong, falsely-precise p-value into an
-			# honest non-estimable result.
-			if (length(boot) > 0L && length(finite) / length(boot) < 0.5) {
-				return(list(ok = FALSE, reason = "m_out_of_n_high_replicate_failure_rate"))
-			}
-			pivot = list(
-				ok = TRUE,
-				reason = NA_character_,
-				est = est,
-				finite = finite,
-				centered_scaled = private$resampling_scaling_factor(m, scaling) * (finite - est),
-				m = as.integer(m),
-				n_units = unit_info$n_units,
-				scaling = scaling
-			)
-			private$set_cached_centered_resampling_pivot("m_out_of_n_boot", cache_key, pivot)
+			pivot
 		},
 		resampling_scaling_key = function(scaling){
 			if (is.character(scaling)) return(paste(scaling, collapse = ","))

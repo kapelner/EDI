@@ -252,7 +252,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			if (is.null(fit) || length(fit$b) == 0 || is.null(fit$alpha)){
 				return(NA_real_)
 			}
-			private$set_fit_warm_start(fit$params, "params", fisher = fit$fisher_information)
+			private$set_fit_warm_start(fit$params, "params", fisher = fit$observed_information)
 			res = gcomp_ordinal_proportional_odds_post_fit_cpp(
 				X_fit = X_fit,
 				coef_hat = as.numeric(fit$b),
@@ -326,7 +326,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			if (estimate_only) {
 				private$cached_values$beta_hat_T = private$cached_values$md
 				private$cached_values$s_beta_hat_T = NA_real_
-				private$set_fit_warm_start(fit$params, "params", fisher = fit$fisher_information)
+				private$set_fit_warm_start(fit$params, "params", fisher = fit$observed_information)
 				return(invisible(NULL))
 			}
 			theta = c(alpha_hat, coef_hat)
@@ -414,7 +414,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				if (!is.null(unweighted_fit) && !is.null(unweighted_fit$params)) {
 					start_candidates[[length(start_candidates) + 1L]] = list(
 						params = as.numeric(unweighted_fit$params),
-						fisher = unweighted_fit$fisher_information %||% NULL
+						fisher = unweighted_fit$observed_information %||% NULL
 					)
 				}
 			}
@@ -427,7 +427,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			coef_hat = as.numeric(mod$b)
 			alpha_hat = as.numeric(mod$alpha)
 			if (!length(coef_hat) || !length(alpha_hat) || j_treat < 1L || j_treat > length(coef_hat)) return(NA_real_)
-			private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$fisher_information)
+			private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$observed_information)
 			private$best_X_colnames = setdiff(colnames(X_fit_ok), "treatment")
 			res = tryCatch(
 				gcomp_ordinal_proportional_odds_post_fit_cpp(

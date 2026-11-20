@@ -1352,6 +1352,190 @@ public:
     }
 };
 
+// v1.0.6-TODO-169 / v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): the shared scale-aware convergence rule.
+// The optimizers' gradient test |g| < tol is absolute, so it is not invariant to
+// the scale or location of the covariates: with a column like age x 1000 or
+// age + 1e5, rounding keeps |g| above tol at the optimum (a correct fit is
+// reported as not converged), and L-BFGS, whose relative-decrease stop fires
+// long before the optimum on such ill-conditioned problems, was reported as
+// converged with a large gradient left (fast_neg_bin_cpp on the colon design:
+// treatment -0.2478 vs the MLE -0.211, gradient 4.95). The Newton decrement
+// lambda^2 = g' H^{-1} g (twice the decrease a further Newton step predicts) is
+// invariant to any linear reparametrization of the parameters, so the rule is
+// lambda^2 <= tol * (2 |f| + 0.1), with f the negative log-likelihood: glm()'s
+// relative deviance tolerance, the same rule as the logistic IRLS and
+// log-binomial / identity-binomial fixes (fast_logistic_regression.cpp,
+// fast_log_binomial_regression.cpp). lambda^2 is computed on the
+// column-equilibrated matrix S H S (S = diag(H)^{-1/2}): the same number in
+// exact arithmetic, but the LDLT stays usable when the columns differ in scale
+// by orders of magnitude. No verdict (ok = false) when H is not finite or not
+// numerically positive definite (a boundary or non-identified fit); callers
+// then keep their previous verdict.
+struct NewtonDecrementResult {
+    bool ok = false;
+    double lambda2 = std::numeric_limits<double>::quiet_NaN();
+    Eigen::VectorXd step;   // H^{-1} g (so params - step is the Newton point)
+};
+
+inline NewtonDecrementResult newton_decrement(const Eigen::VectorXd& grad,
+                                              const Eigen::MatrixXd& H) {
+    NewtonDecrementResult out;
+    const int k = static_cast<int>(grad.size());
+    if (k == 0 || H.rows() != k || H.cols() != k || !grad.allFinite() || !H.allFinite()) return out;
+    const Eigen::VectorXd diag = H.diagonal();
+    if (!(diag.minCoeff() > 0.0)) return out;
+    const Eigen::VectorXd s = diag.cwiseSqrt().cwiseInverse();
+    const Eigen::MatrixXd Hs = s.asDiagonal() * (0.5 * (H + H.transpose())) * s.asDiagonal();
+    Eigen::LDLT<Eigen::MatrixXd> ldlt(Hs);
+    if (ldlt.info() != Eigen::Success || !ldlt.isPositive()) return out;
+    const Eigen::VectorXd D = ldlt.vectorD();
+    if (!(D.minCoeff() > 1e-13 * D.maxCoeff())) return out;
+    const Eigen::VectorXd gs = s.cwiseProduct(grad);
+    const Eigen::VectorXd z = ldlt.solve(gs);
+    if (!z.allFinite()) return out;
+    out.step = s.cwiseProduct(z);
+    out.lambda2 = gs.dot(z);
+    out.ok = std::isfinite(out.lambda2) && out.lambda2 >= 0.0;
+    return out;
+}
+
+inline bool newton_decrement_within_tol(double lambda2, double neg_loglik, double tol) {
+    return std::isfinite(lambda2) && std::isfinite(neg_loglik) &&
+           lambda2 <= tol * (2.0 * std::abs(neg_loglik) + 0.1);
+}
+
+// IRLS / Fisher-scoring form: score and information at the returned point.
+// TRUE only when the rule can be evaluated and holds.
+inline bool newton_decrement_converged(const Eigen::VectorXd& score,
+                                       const Eigen::MatrixXd& information,
+                                       double neg_loglik,
+                                       double tol) {
+    const NewtonDecrementResult nd = newton_decrement(score, information);
+    return nd.ok && newton_decrement_within_tol(nd.lambda2, neg_loglik, tol);
+}
+
+template <class T, class = void>
+struct has_hessian_method : std::false_type {};
+
+template <class T>
+struct has_hessian_method<T, decltype(void(
+    std::declval<T&>().hessian(std::declval<const Eigen::VectorXd&>())
+))> : std::true_type {};
+
+// The functor's own Hessian of the objective when it has one, else a central
+// difference of its gradient (the probit / logistic L-BFGS objectives).
+template <class F>
+inline Eigen::MatrixXd objective_hessian_for_convergence(F& fun, const Eigen::VectorXd& params) {
+    if constexpr (has_hessian_method<F>::value) {
+        return fun.hessian(params);
+    } else {
+        return numerical_hessian(fun, params);
+    }
+}
+
+template <class T, class = void>
+struct has_expected_hessian_method : std::false_type {};
+
+template <class T>
+struct has_expected_hessian_method<T, decltype(void(
+    std::declval<T&>().expected_hessian(std::declval<const Eigen::VectorXd&>())
+))> : std::true_type {};
+
+// Newton decrement on the observed Hessian; where that is not positive definite
+// (far from the optimum, e.g. a poor start on badly scaled columns) and the
+// functor has an expected information, on that instead (Fisher scoring: still a
+// descent direction, and the rule is still scale invariant).
+template <class F>
+inline NewtonDecrementResult objective_newton_decrement(F& fun,
+                                                        const Eigen::VectorXd& params,
+                                                        const Eigen::VectorXd& grad) {
+    NewtonDecrementResult nd = newton_decrement(grad, objective_hessian_for_convergence(fun, params));
+    if constexpr (has_expected_hessian_method<F>::value) {
+        if (!nd.ok) nd = newton_decrement(grad, fun.expected_hessian(params));
+    }
+    return nd;
+}
+
+// Generic-functor form: TRUE when the rule holds at params (one gradient and
+// one Hessian evaluation; used only on exits the gradient test rejected, so
+// fits that pass |g| < tol pay nothing).
+template <class F>
+inline bool likelihood_newton_decrement_converged(F& fun,
+                                                  const Eigen::VectorXd& params,
+                                                  double tol) {
+    if (params.size() == 0 || !params.allFinite()) return false;
+    Eigen::VectorXd p = params;
+    Eigen::VectorXd grad(p.size());
+    const double f = fun(p, grad);
+    if (!std::isfinite(f) || !grad.allFinite()) return false;
+    const NewtonDecrementResult nd = objective_newton_decrement(fun, p, grad);
+    return nd.ok && newton_decrement_within_tol(nd.lambda2, f, tol);
+}
+
+// v1.0.6-TODO-169: finish an L-BFGS run that the gradient test rejected. While
+// the Hessian is usable and the rule fails, take damped Newton steps (step
+// halving on the objective, within the iteration budget) and declare convergence
+// as soon as the rule or the gradient test holds. Newton is invariant to the
+// column scaling that stalls L-BFGS, so on the colon probes this reaches the
+// MLE in a few steps. A start where the rule cannot be evaluated (Hessian not
+// positive definite) keeps `fallback_verdict`, the wrapper's previous verdict
+// (stopped before the cap), so boundary fits behave as before. A start that
+// already passes is returned unchanged (bit for bit).
+template <class F>
+inline void lbfgs_finish_with_newton_decrement(F& fun,
+                                               LikelihoodFitResult& fit,
+                                               Eigen::VectorXd grad,
+                                               double tol,
+                                               bool fallback_verdict,
+                                               int max_steps) {
+    // At most 50 Newton steps, and never past the caller's iteration budget
+    // (max_steps = maxit - iterations used; 0 at the cap, where the rule only
+    // judges the returned point and nothing moves).
+    const int kMaxPolish = std::max(0, std::min(50, max_steps));
+    if (fit.params.size() == 0 || !fit.params.allFinite() || !std::isfinite(fit.value) ||
+        grad.size() != fit.params.size() || !grad.allFinite()) {
+        fit.converged = false;
+        return;
+    }
+    Eigen::VectorXd params = fit.params;
+    double value = fit.value;
+    bool converged = false;
+    int n_steps = 0;
+    for (int it = 0; it <= kMaxPolish; ++it) {
+        edi_check_R_user_interrupt_every(it);
+        const NewtonDecrementResult nd = objective_newton_decrement(fun, params, grad);
+        if (!nd.ok) {
+            if (it == 0) converged = fallback_verdict;
+            break;
+        }
+        if (newton_decrement_within_tol(nd.lambda2, value, tol)) { converged = true; break; }
+        if (it == kMaxPolish) break;
+        double t = 1.0;
+        bool accepted = false;
+        while (t > 1e-4) {
+            Eigen::VectorXd cand = params - t * nd.step;
+            Eigen::VectorXd g_c(cand.size());
+            const double v_c = fun(cand, g_c);
+            if (std::isfinite(v_c) && g_c.allFinite() && v_c < value) {
+                params = cand;
+                value = v_c;
+                grad = g_c;
+                accepted = true;
+                break;
+            }
+            t *= 0.5;
+        }
+        if (!accepted) break;
+        ++n_steps;
+        if (grad.norm() < tol) { converged = true; break; }
+    }
+    fit.params = params;
+    fit.value = value;
+    fit.gradient_norm = grad.norm();
+    fit.niter += n_steps;
+    fit.converged = converged;
+}
+
 template <typename LikelihoodFunctor>
 inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
                                                      Eigen::VectorXd params,
@@ -1389,8 +1573,33 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
         // exhausting the iteration budget -- kept as an OR'd fallback so a
         // fit isn't misclassified as unconverged just because the gradient
         // check alone is stricter than what LBFGS can practically achieve.
+        //
+        // v1.0.6-TODO-169 (2026-11-20): "stopped before the cap" is no longer
+        // convergence by itself. The relative-decrease stop (past = 1,
+        // delta = tol) also fires far from the optimum on an ill-conditioned
+        // problem (large-scale or offset covariates), and those fits were
+        // reported converged with a large gradient left. A run the gradient
+        // test rejects is now finished by lbfgs_finish_with_newton_decrement():
+        // converged iff the scale-aware Newton-decrement rule holds, after
+        // damped Newton steps if needed. The old `niter < maxit` verdict is
+        // kept only where the Hessian is not positive definite at the stop
+        // (the rule cannot judge it). Fits that pass the rule at LBFGSpp's
+        // stop are returned unchanged.
         bool lbfgs_own_converged = (fit.niter < maxit);
         fit.converged = (fit.gradient_norm < tol) || lbfgs_own_converged;
+        if (!(fit.gradient_norm < tol)) {
+            const LikelihoodFitResult lbfgs_only = fit;
+            try {
+                lbfgs_finish_with_newton_decrement(fun, fit, solver.final_grad(), tol, lbfgs_own_converged,
+                                                   maxit - fit.niter);
+#ifndef EDI_CORE_ONLY
+            } catch (Rcpp::internal::InterruptedException&) {
+                throw;
+#endif
+            } catch (...) {
+                fit = lbfgs_only;
+            }
+        }
         fit.hit_iteration_cap = !lbfgs_own_converged && !fit.converged;
 #ifndef EDI_CORE_ONLY
     } catch (Rcpp::internal::InterruptedException&) {
@@ -1401,6 +1610,35 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
         fit.converged = false;
         fit.hit_iteration_cap = false;
         fit.niter = maxit;
+    }
+    // v1.0.6-TODO-169: an L-BFGS run that ends non-finite (LBFGSpp's line
+    // search throwing, or iterating into NaN: fast_neg_bin_cpp's smart cold
+    // start with age x 1000 or age + 1e5 ran all maxit iterations to NaN) used
+    // to come back NaN. Try the damped-Newton finish from the start point
+    // instead (scale invariant; 2 steps to the MLE there). It replaces the
+    // failure only if the rule holds; otherwise the failure stands as before.
+    if (!fit.converged && (!std::isfinite(fit.value) || !fit.params.allFinite())) {
+        try {
+            Eigen::VectorXd p0 = params;
+            Eigen::VectorXd g0(p0.size());
+            const double f0 = fun(p0, g0);
+            if (std::isfinite(f0) && g0.allFinite()) {
+                LikelihoodFitResult rescue;
+                rescue.params = p0;
+                rescue.value = f0;
+                rescue.niter = 0;
+                lbfgs_finish_with_newton_decrement(fun, rescue, g0, tol, false, maxit);
+                if (rescue.converged) {
+                    rescue.hit_iteration_cap = false;
+                    fit = rescue;
+                }
+            }
+#ifndef EDI_CORE_ONLY
+        } catch (Rcpp::internal::InterruptedException&) {
+            throw;
+#endif
+        } catch (...) {
+        }
     }
     return fit;
 }
@@ -1524,8 +1762,12 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
             fit.gradient_norm = last_grad_norm;
             // TODO-123: also accept a step-size exit whose gradient is within
             // the Hessian-scaled tolerance (false non-convergence at the optimum).
+            // v1.0.6-TODO-170: or the scale-aware Newton-decrement rule (a fit
+            // at the optimum on large-scale covariates, where rounding keeps the
+            // absolute gradient above both tolerances). Declaration only.
             fit.converged = (last_grad_norm < tol) ||
-                            newton_stalled_at_optimum(fun, params, last_grad_norm, tol);
+                            newton_stalled_at_optimum(fun, params, last_grad_norm, tol) ||
+                            likelihood_newton_decrement_converged(fun, params, tol);
             fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
             return fit;
         }
@@ -1542,8 +1784,15 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
     // TODO-123: a line-search failure (stalled) exactly at the optimum is
     // converged when the gradient passes the Hessian-scaled rule. params and
     // last_grad_norm refer to the same point on that exit (params not updated).
+    // v1.0.6-TODO-170: a stalled or capped exit at the optimum also passes on
+    // the scale-aware Newton-decrement rule (declaration only; params are the
+    // returned point). It judges the point, not the exit: a FullPivLU
+    // "singular" exit on badly scaled columns (age + 1e5) passes when the
+    // equilibrated Hessian is positive definite and the decrement is small;
+    // a non-finite point or a non-PD Hessian fails it.
     fit.converged = (last_grad_norm < tol) ||
-                    (stalled && newton_stalled_at_optimum(fun, params, last_grad_norm, tol));
+                    (stalled && newton_stalled_at_optimum(fun, params, last_grad_norm, tol)) ||
+                    (std::isfinite(last_grad_norm) && likelihood_newton_decrement_converged(fun, params, tol));
     fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
     fit.gradient_norm = last_grad_norm;
     return fit;

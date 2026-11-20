@@ -74,7 +74,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 							estimate_only = TRUE
 						)
 						if (is.null(res) || length(res) == 0) return(NULL)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = ws_fisher)
+						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
 					} else {
 						res = ordinal_fit_scaled(fast_ordinal_probit_regression_with_var_cpp,
 							X_fit, private$y,
@@ -83,7 +83,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 							smart_cold_start = private$smart_cold_start_default
 						)
 						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
@@ -98,7 +98,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				}
 			)
 			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$fisher_information)
+				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
 				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
 				if (!estimate_only) {
 					n_alpha = length(attempt$fit$params) - ncol(attempt$X)
@@ -441,9 +441,10 @@ ordinal_cumlink_expected_information = function(X, y, params, link, eta_sign = -
 
 # get_likelihood_test_spec(): the score / gradient / LR spec on the columns the
 # full fit kept, from the class's fitter, score and Hessian. `link` names the
-# cumulative link for the expected (Fisher) information; the C++ fits'
-# `fisher_information` field is the observed Hessian (information_type
-# "observed"), so it is not used as Fisher information here (v1.0.6-TODO-201).
+# cumulative link for the expected (Fisher) information, which is computed in R
+# (v1.0.6-TODO-201); the C++ fits return only the observed information
+# (`observed_information` / `information`, information_type "observed";
+# v1.0.6-TODO-215).
 #' @keywords internal
 #' @noRd
 ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn, link) {
@@ -470,7 +471,7 @@ ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessi
 				error = function(e) NULL
 			)
 			if (is.null(res) || length(res) == 0) return(NULL)
-			list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
+			list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), observed_information = res$observed_information)
 		},
 		extract_start = function(fit){
 			as.numeric(fit$params)
@@ -485,7 +486,7 @@ ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessi
 			ordinal_cumlink_expected_information(X_fit, y, fit$params, link)
 		},
 		information = function(fit){
-			fit$information %||% fit$fisher_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))
+			fit$information %||% fit$observed_information %||% -hessian_fn(X_fit, y, as.numeric(fit$params))
 		},
 		neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
 	)

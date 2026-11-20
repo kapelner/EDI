@@ -19,11 +19,22 @@
 #' rather than a Laplace approximation.
 #'
 #' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
-#' (model-based standard error) and likelihood-ratio testing types are
+#' (see \strong{Wald standard error} below) and likelihood-ratio testing types are
 #' available. The likelihood-ratio, score and gradient CIs/p-values are the
 #' GLMM's own model-based tests, as in the other KK GLMM classes; they are not
 #' widened against the Wald result (before 1.0.5 each reported the larger
 #' p-value / wider interval of the model test and the Wald test).
+#'
+#' \strong{Wald standard error.} The model standard error is from the inverse
+#' of the observed information (the negative Hessian of the quadrature
+#' marginal log-likelihood in \eqn{(\beta, \log\sigma_b)} at the MLE; with
+#' \code{use_rcpp = FALSE}, \pkg{glmmTMB}'s). Outside resampling it is then
+#' replaced by the delete-one jackknife standard error (automatic unit) when
+#' that is larger, so the Wald standard error is the larger of the two (on
+#' three simulated n = 60 KK14 fits 9\% to 26\% above the model value). The same
+#' standard error is used by every Wald interval and p-value
+#' (\code{compute_asymp_*()} and \code{compute_wald_*()}) and by
+#' \code{InferenceSuite}'s \code{se} column.
 #'
 #' \strong{Assumptions.} Count response modeled as conditionally Poisson given
 #' the random intercept (equidispersion conditional on \eqn{b_i}); pair-level

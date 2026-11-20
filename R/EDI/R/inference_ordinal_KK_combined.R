@@ -141,7 +141,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 				error = function(e) NULL
 			)
 			if (!is.null(mod) && !is.null(mod$params)) {
-				private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$fisher_information)
+				private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$observed_information)
 			}
 			beta_hat_T = if (is.null(mod) || length(mod$b) < 1L) NA_real_ else as.numeric(mod$b[1L])
 			private$cached_values$beta_hat_T = beta_hat_T

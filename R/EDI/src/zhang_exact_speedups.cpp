@@ -107,6 +107,105 @@ double zhang_exact_fisher_pval_cpp(int n11, int n10, int n01, int n00, double de
   return fisher_noncentral_two_sided_pval(n11, n10, n01, n00, delta_0);
 }
 
+// One exact component of the Zhang test as an outcome distribution in delta:
+// unnormalised log weights cj[i] + i * delta over outcomes i = 0..K-1, observed
+// outcome at 1-based index x (zhang_exact_pval_components() in R). Returns the
+// two-sided minimum-likelihood p-value at every delta: the probability of the
+// outcomes with P(i) <= P(x) (1 + 1e-7), the same rule as
+// zhang_exact_binom_pval_cpp() / zhang_exact_fisher_pval_cpp(). The normalising
+// constant cancels in that comparison, so it uses the log weights directly. Per
+// delta: one pass for the maximum, one for the exp sums. Sums are long double, as
+// in R's colSums(), so the result equals the R matrix version it replaced
+// (zhang_pval_exact_combined_vec(), v1.0.6-TODO-285) bit for bit; a term with
+// exp() below the smallest subnormal is exactly 0 there and is skipped here.
+// Non-finite delta gives NA (rejected by the caller).
+// [[Rcpp::export]]
+NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const NumericVector& deltas) {
+  const R_xlen_t K = cj.size();
+  const R_xlen_t nd = deltas.size();
+  NumericVector out(nd, NA_REAL);
+  if (K == 0 || x < 1 || x > K) {
+    return out;
+  }
+  const double rel_tol_log = std::log1p(1e-7);
+  const double exp_zero_below = -746.0;  // exp(z) == 0 in double for z < -745.14
+  std::vector<double> lw(static_cast<std::size_t>(K));
+  for (R_xlen_t d = 0; d < nd; ++d) {
+    const double delta = deltas[d];
+    if (!R_finite(delta)) {
+      continue;
+    }
+    double mx = R_NegInf;
+    for (R_xlen_t i = 0; i < K; ++i) {
+      const double v = cj[i] + static_cast<double>(i) * delta;
+      lw[static_cast<std::size_t>(i)] = v;
+      if (v > mx) {
+        mx = v;
+      }
+    }
+    const double cut = lw[static_cast<std::size_t>(x - 1)] + rel_tol_log;
+    long double num = 0.0L;
+    long double den = 0.0L;
+    for (R_xlen_t i = 0; i < K; ++i) {
+      const double v = lw[static_cast<std::size_t>(i)];
+      const double z = v - mx;
+      if (z < exp_zero_below) {
+        continue;
+      }
+      const double e = std::exp(z);
+      den += e;
+      if (v <= cut) {
+        num += e;
+      }
+    }
+    out[d] = std::min(1.0, static_cast<double>(num) / static_cast<double>(den));
+  }
+  return out;
+}
+
+// Upper bound on one component's minimum-likelihood p-value at delta, valid going
+// outward in `direction` (+1 right, -1 left); see zhang_pval_exact_tail_bound() in
+// R for the argument. Same arithmetic as the R version it replaced
+// (v1.0.6-TODO-285): 1 while the mode of the weights is on x's own side, else
+// P(tail on x's side) * (1 + n_other (1 + 1e-7)) * (1 + 1e-6), capped at 1.
+// [[Rcpp::export]]
+double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta, int direction) {
+  const R_xlen_t K = cj.size();
+  if (K == 0 || x < 1 || x > K || !R_finite(delta) || direction == 0) {
+    return 1.0;
+  }
+  std::vector<double> lw(static_cast<std::size_t>(K));
+  R_xlen_t mode = 0;
+  for (R_xlen_t i = 0; i < K; ++i) {
+    lw[static_cast<std::size_t>(i)] = cj[i] + static_cast<double>(i) * delta;
+    if (lw[static_cast<std::size_t>(i)] > lw[static_cast<std::size_t>(mode)]) {
+      mode = i;  // first maximum, as which.max()
+    }
+  }
+  const R_xlen_t x0 = static_cast<R_xlen_t>(x) - 1;
+  if ((direction > 0 && mode < x0) || (direction < 0 && mode > x0)) {
+    return 1.0;
+  }
+  const double top = lw[static_cast<std::size_t>(mode)];
+  long double total = 0.0L;
+  long double side = 0.0L;
+  for (R_xlen_t i = 0; i < K; ++i) {
+    const double z = lw[static_cast<std::size_t>(i)] - top;
+    if (z < -746.0) {
+      continue;
+    }
+    const double e = std::exp(z);
+    total += e;
+    if (direction > 0 ? i <= x0 : i >= x0) {
+      side += e;
+    }
+  }
+  const double n_other = static_cast<double>(direction > 0 ? K - x : x - 1);
+  const double b = static_cast<double>(side) / static_cast<double>(total) *
+    (1.0 + n_other * (1.0 + 1e-7)) * (1.0 + 1e-6);
+  return std::min(1.0, b);
+}
+
 // [[Rcpp::export]]
 List compute_zhang_match_data_cpp(const NumericMatrix& X,
                                   const NumericVector& y,

@@ -71,7 +71,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				private$cached_values$df = NA_real_
 				return(NA_real_)
 			}
-			private$set_fit_warm_start(res$params, "params", fisher = res$fisher_information)
+			private$set_fit_warm_start(res$params, "params", fisher = res$observed_information)
 			private$cached_values$beta_hat_T = as.numeric(res$b[1L])
 			ssq = res$ssq_b_j
 			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
@@ -128,7 +128,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 							),
 							error = function(e) NULL
 						)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = ws_fisher)
+						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
 					} else {
 						res = tryCatch(
 							ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp,
@@ -144,7 +144,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 						if (!is.null(res) && !is.null(res$converged) && !isTRUE(res$converged)) {
 							res = ordinal_po_refit_centered_scaled(X_fit, private$y, private$smart_cold_start_default)
 						}
-						list(converged = res$converged, b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						list(converged = res$converged, b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
@@ -160,7 +160,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				}
 			)
 			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$fisher_information)
+				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
 				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
 				if (!estimate_only) {
 					n_alpha = length(attempt$fit$params) - ncol(attempt$X)

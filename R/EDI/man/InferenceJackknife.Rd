@@ -22,11 +22,11 @@ of the design's randomization structure:
     one permuted block (\code{"permuted_block"}), as recorded when the design drew it
     (block sizes are random), with the same rule for a stratum's trailing unfilled block;
     a design object saved before EDI 1.0.6 has no such record and uses \code{"block"};
-  \item on both of these designs, when any stratum holds fewer than 5 permuted-block
+  \item on both of these designs, when any stratum holds fewer than 10 permuted-block
     units, one subject grouped by its stratum (\code{"observation_within_block"})
-    instead: with 3-4 blocks in a stratum the permuted-block jackknife-Wald test
-    rejected a true null too often (size 0.082 at a nominal 0.05, against 0.055
-    deleting single subjects; v1.0.6-TODO-270);
+    instead: with few blocks in a stratum the permuted-block jackknife-Wald test
+    rejected a true null too often (about 0.06 at a nominal 0.05 with 3-9 blocks in
+    the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.6-TODO-270);
   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
     grouped by its stratum (\code{"observation_within_block"});
   \item other blocking designs: one whole block (\code{"block"});

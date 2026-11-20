@@ -2,13 +2,38 @@
 
 ## Changes that alter results
 
+* Count, probit and other likelihood fits no longer report convergence too
+  early, or a correct fit as unconverged, when the design is ill-conditioned or a
+  covariate has a large scale or offset. The L-BFGS wrapper, Newton and the
+  Poisson and probit IRLS kernels share a scale-aware Newton-decrement rule
+  (glm's relative deviance tolerance); an L-BFGS stop that fails it is finished
+  with damped Newton steps. Example: `InferenceCountNegBin` on `colon` gave
+  -0.248 (reported converged) where `MASS::glm.nb` gives -0.211; it now gives
+  -0.211. Fits that already met the gradient test are unchanged
+  (v1.0.6-TODO-169, v1.0.6-TODO-170).
+
+* `compute_wald_confidence_interval()`, `compute_wald_two_sided_pval()`,
+  `get_standard_error()`, `InferenceSuite`'s `se` column and CI-inversion seeds of
+  `InferenceIncidBinomialIdentityRiskDiff`, `InferenceIncidLogBinomial`,
+  `InferenceContinKKGLMM` and `InferenceCountKKGLMM` now use the same standard
+  error as `compute_asymp_confidence_interval()`; before, they used a different
+  information matrix (or, for the Count KK GLMM, skipped the jackknife
+  inflation), 1% to 26% apart (v1.0.6-TODO-220).
+
+* `compute_rand_bootstrap_two_sided_pval()` with sequential Monte Carlo early
+  stopping now applies `min_fraction_usable_samples` when `na.rm = TRUE`: it no
+  longer stops on a prefix below the cap, and returns NA with reason
+  `rand_bootstrap_too_few_valid_replicates_fraction` when all B draws fall below
+  it (v1.0.6-TODO-219).
+
 * On `DesignSeqOneByOneSPBR` and `DesignSeqOneByOneRandomBlockSize`, when any
-  stratum holds fewer than 5 permuted blocks, the automatic jackknife unit is
+  stratum holds fewer than 10 permuted blocks, the automatic jackknife unit is
   now one subject within its stratum (`"observation_within_block"`, the
   stratified delete-1 jackknife of Wolter 2007, Sec. 4.5) instead of the
-  permuted block. With 3-4 blocks in a stratum the permuted-block
-  jackknife-Wald test was too liberal (InferenceCountPoisson on
-  RandomBlockSize, prob_T 0.2, n = 200, `~ 1`: size 0.082 at a nominal 0.05).
+  permuted block. With 2-9 blocks in the smallest stratum the permuted-block
+  jackknife-Wald test was too liberal (InferenceCountPoisson, prob_T 0.2,
+  n = 200, `~ 1`: size about 0.06 on both designs at a nominal 0.05, against
+  0.050-0.055 deleting single subjects).
   This changes the automatic jackknife of every class on these designs;
   `unit = "permuted_block"` still deletes permuted blocks (v1.0.6-TODO-270).
 * Jackknife-Wald tests and intervals on the stratified deletion units
@@ -67,6 +92,11 @@
   Bayesian bootstrap: its replicates came from a marginal Weibull fit, not the
   class's Clayton-copula inverse-variance-weighted estimator. It now refuses,
   as the Normal IVWC class does (v1.0.6-TODO-235).
+
+* `InferenceContinKKQuantileRegrIVWC` and `InferencePropKKQuantileRegrIVWC`
+  support the Bayesian bootstrap again: each replicate refits both halves by
+  weighted `quantreg::rq()` under the Dirichlet weights and pools them by
+  inverse variance (v1.0.6-TODO-235).
 
 * KK IVWC Bayesian bootstrap: replicates are now weighted refits of each class's
   own inverse-variance-weighted estimator (stratified Cox, LWA Cox, OLS,
@@ -579,6 +609,11 @@
 
 ## New features
 
+* The generic subsampling and m-out-of-n p-value and CI methods take
+  `min_fraction_usable_samples` (default 0.8), the usable-draw cap for ratio
+  estimands (LogRegr, KKGEE, ModifiedPoisson, LogBinomial, CountPoisson); other
+  classes ignore it (v1.0.6-TODO-269).
+
 * `InferenceSuite$run_all_inference()` gains `r` (draws for the randomization
   and randomization-bootstrap tests and CIs) and `B` (replicates for the
   nonparametric, Bayesian and parametric bootstrap and the parametric-bootstrap
@@ -603,6 +638,17 @@
   on interval-censored data (v1.0.6-TODO-143).
 
 ## Bug fixes
+
+* `InferenceIncidBinomialIdentityRiskDiff` / `InferenceIncidLogBinomial`: the
+  constrained binomial fitters switch to observed-information Newton steps after
+  20 iterations when Fisher scoring is slow near (not on) a mean bound. A fit that
+  used to hit the iteration cap, drop covariates and report a different estimate
+  (0.083 vs the MLE 0.167) now reaches the MLE (v1.0.6-TODO-267).
+
+* The cumulative-link ordinal fitters (`fast_ordinal_regression*_cpp`,
+  `fast_ordinal_{probit,cauchit,cloglog}_regression*_cpp`) no longer return a
+  `fisher_information` field: it held the observed Hessian, not the expected
+  information. Use `observed_information` / `information` (v1.0.6-TODO-215).
 
 * `InferenceRandCustom` at a nonzero `delta` now tests a coherent sharp null on
   survival, count and proportion responses, and with `transform_responses = "log"`

@@ -707,7 +707,9 @@ EDI_COMPONENT_SPECS = list(
 			"set_colnames_safely", "shared", "quantile_for_matched_pairs",
 			"quantile_for_reservoir", "iqr_se", "extract_se_from_rq",
 			"compute_rand_pval_matched_pairs", "compute_rand_pval_reservoir",
-			"qr_intercept_pairs", "qr_trt_coef_reservoir"
+			"qr_intercept_pairs", "qr_trt_coef_reservoir",
+			# v1.0.6-TODO-235 (2): weighted rq refit for the Bayesian bootstrap.
+			"compute_weighted_estimate_ivwc"
 		),
 		# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban semantic
 		# classification through private method-name sniffing"): replaces the
@@ -1838,6 +1840,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_private_methods = c(
 						"is_log_binomial_fit_reasonable",
+						"get_standard_error",
 						"get_complexity_tier",
 						"create_bootstrap_worker_state",
 						"logbin_feasible_warm_start_args",

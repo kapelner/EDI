@@ -85,7 +85,11 @@ test_that("randomization-bootstrap sequential MC continues past non-finite prefi
 	draws = replicate(B, list(w_b = rep(c(1, 0), n / 2L)), simplify = FALSE)
 	brt = function(t, min_draws) {
 		priv$brt_mc_control = smc_control(min_draws = min_draws)
-		priv$compute_two_sided_brt_pval_with_sequential_mc(t, B, 0, "none", d$get_y(), draws, .Machine$double.eps)
+		# 150 of 200 draws are finite, below the min_fraction_usable_samples default (0.95);
+		# this test is about the finite-draw floor, so the fraction check is off
+		# (v1.0.6-TODO-219 applies it on this path).
+		priv$compute_two_sided_brt_pval_with_sequential_mc(t, B, 0, "none", d$get_y(), draws, .Machine$double.eps,
+			min_fraction_usable_samples = 0)
 	}
 	full = priv$compute_two_sided_randomization_pval_from_t0s(null_vals, 0.1)
 	expect_no_warning(p <- brt(0.1, B))

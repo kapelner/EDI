@@ -40,9 +40,9 @@
 #' \eqn{\sum_h (n_h - 1)} degrees of freedom, \eqn{n_h} the number of blocks in stratum
 #' \eqn{h} (v1.0.6-TODO-231). Before EDI 1.0.6 a replicate deleted a whole stratum, which
 #' left only 2-4 replicates on typical data (v1.0.6-TODO-4).
-#' When any stratum holds fewer than 5 permuted-block units, the automatic unit is one subject
+#' When any stratum holds fewer than 10 permuted-block units, the automatic unit is one subject
 #' within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
-#' jackknife with subjects as units): with 3-4 blocks in a stratum the permuted-block
+#' jackknife with subjects as units): with few blocks in a stratum the permuted-block
 #' jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
 #' \code{unit = "permuted_block"} still deletes permuted blocks.
 #'

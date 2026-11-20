@@ -4,7 +4,9 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include "_helper_functions_core.h"
+#include "result_map_pybind.h"
 #include <optional>
+#include <limits>
 #include <string>
 
 namespace py = pybind11;
@@ -33,6 +35,23 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
     std::optional<Eigen::VectorXd> fixed_values,
     std::string optimization_alg,
     std::optional<Eigen::MatrixXd> warm_start_fisher_info
+);
+
+// Defined in R/EDI/src/fast_zero_one_inflated_beta.cpp and shared with the R
+// export fast_zero_one_inflated_beta_cpp, so both return the same fields
+// (audit decision rpy-parity-d1f65c8c0).
+edi::ResultMap fast_zero_one_inflated_beta_result_internal(
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::MatrixXd>& X_zero_one,
+    const Eigen::Ref<const Eigen::VectorXd>& y_eigen,
+    std::optional<Eigen::VectorXd> warm_start_params,
+    bool smart_cold_start,
+    std::optional<Eigen::VectorXi> fixed_idx,
+    std::optional<Eigen::VectorXd> fixed_values,
+    std::string optimization_alg,
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+    bool estimate_only,
+    double vcov_missing
 );
 
 void bind_proportion(py::module_& m) {
@@ -123,18 +142,12 @@ void bind_proportion(py::module_& m) {
                                              std::optional<Eigen::VectorXi> fixed_idx,
                                              std::optional<Eigen::VectorXd> fixed_values,
                                              std::string optimization_alg,
-                                             std::optional<Eigen::MatrixXd> warm_start_fisher_info) {
-        LikelihoodFitResult fit = fast_zero_one_inflated_beta_internal(
+                                             std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+                                             bool estimate_only) {
+        return edi::to_py_dict(fast_zero_one_inflated_beta_result_internal(
             X, X_zero_one, y, warm_start_params, smart_cold_start,
-            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info);
-        py::dict out;
-        out["params"] = fit.params;
-        out["neg_loglik"] = fit.value;
-        out["num_iter"] = fit.niter;
-        out["hit_iteration_cap"] = fit.hit_iteration_cap;
-        out["converged"] = fit.converged;
-        out["gradient_norm"] = fit.gradient_norm;
-        return out;
+            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
+            estimate_only, std::numeric_limits<double>::quiet_NaN()));
     },
     py::arg("X"), py::arg("X_zero_one"), py::arg("y"),
     py::arg("warm_start_params") = py::none(),
@@ -143,6 +156,7 @@ void bind_proportion(py::module_& m) {
     py::arg("fixed_values") = py::none(),
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
+    py::arg("estimate_only") = false,
     "Fits a zero-one-inflated beta regression by maximum likelihood via\n"
     "L-BFGS, for a proportion response on the closed interval [0, 1]\n"
     "(observable exact 0s and 1s, unlike plain beta regression which requires\n"
@@ -182,13 +196,21 @@ void bind_proportion(py::module_& m) {
     "optimization_alg : str, default \"lbfgs\"\n"
     "    Optimization algorithm.\n"
     "warm_start_fisher_info : ndarray, optional\n"
-    "    Optional initial Fisher information matrix for the first iteration.\n\n"
+    "    Optional initial Fisher information matrix for the first iteration.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip the post-fit observed-information / vcov computation.\n\n"
     "The solver's iteration cap and tolerance are fixed (1500 iterations,\n"
     "gradient-norm tolerance 1e-6) and are not arguments, as in R.\n\n"
     "Returns\n"
     "-------\n"
-    "dict with params, neg_loglik, num_iter, hit_iteration_cap, converged and\n"
-    "gradient_norm. Unlike R's fast_zero_one_inflated_beta_cpp, it returns no\n"
-    "vcov or information matrices and does not split params into b, log_phi\n"
-    "and the zero/one-inflation blocks.");
+    "dict with the same fields as R's fast_zero_one_inflated_beta_cpp: b (beta),\n"
+    "log_phi, zero_one_b0 / zero_one_b1 (the zero- and one-inflation\n"
+    "coefficients), params (the full joint vector [b, log_phi, zero_one_b0,\n"
+    "zero_one_b1]), neg_loglik, converged, num_iter, hit_iteration_cap,\n"
+    "gradient_norm and min_eigenvalue_information; unless estimate_only=True,\n"
+    "also vcov (joint variance-covariance matrix of params; all nan where R\n"
+    "returns all NA, i.e. when the observed information is non-finite or its\n"
+    "free block is singular), observed_information, fisher_information and\n"
+    "information (three names for the same observed-information matrix),\n"
+    "information_type ('observed') and hessian (minus that matrix).");
 }

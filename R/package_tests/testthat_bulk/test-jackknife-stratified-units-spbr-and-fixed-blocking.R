@@ -152,7 +152,9 @@ test_that("SPBR: a stratum with only a partial block is one unit", {
 })
 
 test_that("SPBR: jackknife SE and bias are the stratified JKn of the block-deleted replicates", {
-	f <- spbr_fixture(n = 60L, seed = 9L)
+	# v1.0.6-TODO-270: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
+	f <- spbr_fixture(n = 120L, seed = 9L)
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
 	lay <- f$p$jackknife_stratified_layout("auto")
 	theta_hat <- mean_diff(f$y, f$w)
 	loo <- vapply(lay$delete, function(d) mean_diff(f$y[-d], f$w[-d]), numeric(1))
@@ -240,7 +242,8 @@ test_that("RandomBlockSize: assign_wt() records balanced permuted blocks within 
 })
 
 test_that("RandomBlockSize: the jackknife deletes one recorded block, merging a trailing unfilled block", {
-	f <- rbs_fixture()
+	# v1.0.6-TODO-270: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
+	f <- rbs_fixture(n = 120L)
 	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
 	ids <- f$dp$permuted_block_ids
 	keys <- f$dp$permuted_block_keys
@@ -332,7 +335,8 @@ test_that("FixedBlocking BCa interval uses the stratified acceleration", {
 # v1.0.6-TODO-231 (6), owner decision 2026-11-20: the stratified units use t with sum_h (n_h - 1) df;
 # unstratified units keep the normal reference bit for bit.
 test_that("SPBR jackknife-Wald test and interval use t with sum_h (n_h - 1) degrees of freedom", {
-	f <- spbr_fixture(n = 60L, seed = 9L)
+	f <- spbr_fixture(n = 120L, seed = 9L)
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
 	lay <- f$p$jackknife_stratified_layout("auto")
 	df <- sum(table(lay$strata) - 1)
 	est <- f$inf$compute_jackknife_estimate(); se <- f$inf$compute_jackknife_std_error()

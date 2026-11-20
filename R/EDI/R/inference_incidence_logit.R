@@ -500,8 +500,9 @@ IncidenceLogisticLikelihoodSource = list(
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
-#' and is not used. If fewer than 80\% of the \code{B} draws are usable (degenerate and failed draws
-#' both count against it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+#' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
+#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
 #' \eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at

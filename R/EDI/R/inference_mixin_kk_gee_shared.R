@@ -489,10 +489,15 @@ InferenceMixinKKGEEShared = list(
 			# asymptotic p-value and CI) is NA, with one classed warning per
 			# object (silent inside resampling). The estimate is left as is,
 			# matching v1.0.6-TODO-109. Logit link only: other families skip it.
+			# v1.0.6-TODO-274: a fitted |eta| >= qlogis(1 - 1e-8) is only the
+			# screen; one high-leverage subject reaches it in a fit whose
+			# solution exists (estimate 0.67, max |eta| 27). The SE is blanked
+			# only when the exact data check edi_binary_data_separated() on the
+			# fitted design and response confirms separation (or cannot be run).
 			if (private$gee_uses_logit_link()) {
 				eta = private$gee_fitted_linear_predictor(mod)
 				n_extreme = if (length(eta)) edi_logistic_n_fitted_extreme(matrix(eta, ncol = 1L), 1) else NA_integer_
-				if (!is.na(n_extreme) && n_extreme > 0L) {
+				if (!is.na(n_extreme) && n_extreme > 0L && !isFALSE(private$gee_fit_data_separated(mod))) {
 					edi_warn_logistic_separation_once(self, private, matrix(eta, ncol = 1L), 1, advice = paste0(
 						"The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are ",
 						"returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence ",
@@ -526,6 +531,21 @@ InferenceMixinKKGEEShared = list(
 		gee_uses_logit_link = function(){
 			fam = tryCatch(private$gee_family(), error = function(e) NULL)
 			!is.null(fam) && identical(fam$family, "binomial") && identical(fam$link, "logit")
+		},
+		# v1.0.6-TODO-274: exact separation check of the data a GEE fit used
+		# (design incl. intercept, response): TRUE / FALSE, or NA when the
+		# design or response cannot be recovered from the fit.
+		gee_fit_data_separated = function(mod){
+			if (is.null(mod)) return(NA)
+			if (inherits(mod, "geeglm")) {
+				X = tryCatch(stats::model.matrix(mod), error = function(e) NULL)
+				y = tryCatch(as.numeric(mod$y), error = function(e) NULL)
+			} else {
+				X = mod$X_fit
+				y = mod$y_fit
+			}
+			if (is.null(X) || is.null(y)) return(NA)
+			edi_binary_data_separated(X, y)
 		},
 		# v1.0.6-TODO-118: fitted linear predictor X %*% beta of a GEE fit, from
 		# geepack's linear.predictors or the Rcpp result's stored X_fit; NULL if
@@ -615,6 +635,8 @@ InferenceMixinKKGEEShared = list(
 					# v1.0.6-TODO-118: keep the design matrix so the separation
 					# check can form the linear predictor (the Rcpp result has none).
 					res$X_fit = X_rcpp
+					# v1.0.6-TODO-274: and the response, for the exact separation check.
+					res$y_fit = as.numeric(fit_data$y_sorted)
 					return(res)
 				}
 			}
