@@ -17,3 +17,6 @@ dismissed item, with the reason, so the next reader knows why it was let go:
   requires length `n_alpha + p` (`R/EDI/src/fast_continuation_ratio_regression.cpp:172-173`) (2026-11-18)
 - `code-duplication-df63f231e`: the divergence it flags (`InferenceCountZeroInflatedPoisson` / `...NegBin` not
   accepting `smart_cold_start_default`, unlike the hurdle sibling) is fixed by v1.0.6-TODO-153 (2026-11-19)
+- `readme-drift-ma357a968`: the `cluster-warning` chunk in `vignettes/articles/cluster-and-factorial-experiments.Rmd`
+  warns on purpose and is marked `strict_expect_warning = TRUE`, which `scripts/render_articles_strict.R` honours;
+  `readme_drift_run.R` does not read that flag, so this is a false positive (owner, 2026-11-20)

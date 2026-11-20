@@ -4640,6 +4640,20 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Test: for each of the three failure modes, on each KK g-comp class, `compute_estimate()` is NA and
     `is_nonestimable()` is TRUE with the expected reason.
   - Done when: the new tests pass and the existing KK g-comp tests are unchanged.
+  - **Merged 2026-11-20 (owner):** one item for every class that returns NA without flagging it non-estimable.
+    Fix all of these together, with one shared helper or reason-naming convention, and remove each skip():
+    - v1.0.6-TODO-260 (KK g-comp RD/RR): also an all-treated `DesignFixedBinaryMatch` design gives a finite
+      estimate instead of non-estimable (`shared()` must check `w` variation / a missing treatment column); skip at
+      `R/package_tests/testthat_bulk/test-rand-bootstrap-and-kk-gcomp-fallback-branches-reference.R:179`.
+    - v1.0.6-TODO-259 (`InferenceIncidWald` empty arm, `compute_incidence_wald_components()`); skip at
+      `test-incid-wald-welch-ttest-dispatch-reference.R:118`.
+    - v1.0.6-TODO-262 (`InferenceCountPoisson` weighted refit with non-finite beta_T); skip at
+      `test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R:100`.
+    - v1.0.6-TODO-264 (`InferencePropBetaRegr` failed weighted refit, `inference_proportion_beta.R` ~L328); skip at
+      `test-prop-beta-regr-deferred-fit-boundary-responses-and-weighted-refit.R:77`.
+    - v1.0.6-TODO-265 (`InferencePropFractionalLogit` failed weighted refit, ~L216); skip at
+      `test-fractional-logit-weighted-coefficient-reference.R:92`.
+    The details of each stay in its own entry below. Done when all six are fixed and every skip() is gone.
 - [ ] TODO-256 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d38c37c85`): **`InferenceOrdinalPartialProportionalOddsRegr` docs misdescribe the last-resort bootstrap surrogate.**
   The roxygen of `compute_estimate_with_bootstrap_weights` (`R/EDI/R/inference_ordinal_partial_proportional_odds.R:97-101`) says that when every weighted backend fails the fallback is "a plain weighted binary-logistic surrogate fit ... that does not model the ordinal structure at all". `weighted_ordinal_bootstrap_surrogate_fit(method = "logistic")` (`R/EDI/R/globals.R:177-251`) actually fits a weighted `MASS::polr` proportional-odds model (`fit_type` "polr_logistic") and falls back to `lm.wfit`. The value returned is right; only the description is wrong.
   - Failing expectation: `expect_false(startsWith(sur$fit_type, "polr"))`, skipped at `R/package_tests/testthat_bulk/test-partial-odds-backend-fallback-reference.R:145`.
@@ -4655,12 +4669,12 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Failing expectation: `expect_identical(sum(is.na(b50)), 0L)`, skipped at `R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R:179`.
   - Candidate fix (code): wire the redraw loop into the public non-KK bootstrap path, or delete the dead kernel and the parameter. Alternative (doc): say failed draws are NA and the parameter is unused.
   - Done when: fix it and remove the skip().
-- [ ] TODO-259 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d7661f482`): **`InferenceIncidWald` returns NA for an empty arm but never flags it non-estimable.**
+- [ ] TODO-259 (merged into v1.0.6-TODO-255 on 2026-11-20; fix it there. Added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d7661f482`): **`InferenceIncidWald` returns NA for an empty arm but never flags it non-estimable.**
   The docs (`R/EDI/R/inference_incid_wald.R:15`) say the class is non-estimable if either arm has zero subjects. With every subject treated, or every subject control, `compute_estimate()`, the CI and the p-value are NA as expected. But `is_nonestimable("estimate")` is FALSE and `get_nonestimable_reason()` is NULL. The cause is that `compute_incidence_wald_components()` (about lines 127-130) only sets `incidence_wald_se = NA` and never calls `cache_nonestimable_estimate()`.
   - Failing expectation: `expect_true(inf$is_nonestimable("estimate"))`, skipped at `R/package_tests/testthat_bulk/test-incid-wald-welch-ttest-dispatch-reference.R:118`.
   - Candidate fix (code): in the empty-arm branch, call `private$cache_nonestimable_estimate("incidence_wald_empty_arm")`. Alternative (doc): say "returns NA" rather than "non-estimable".
   - Done when: fix it and remove the skip().
-- [ ] TODO-260 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dcb561000`): **KK g-computation incidence classes do not flag a failed fit or a missing treatment arm as non-estimable.**
+- [ ] TODO-260 (merged into v1.0.6-TODO-255 on 2026-11-20; fix it there. Added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dcb561000`): **KK g-computation incidence classes do not flag a failed fit or a missing treatment arm as non-estimable.**
   The docs of `InferenceIncidKKGCompRiskDiff` (`R/EDI/R/inference_incidence_KK_marginal.R:313-316`) say a working model that fails to converge, or a design with no treatment-arm variation, marks the estimate non-estimable via `is_nonestimable()`. `InferenceIncidKKGCompRiskRatio` makes the same promise at `:417`. Two things go wrong for both classes:
   - Failed fit: with `fit_logistic_with_sandwich` injected to return NULL, the estimate is NA but `is_nonestimable("estimate")` is FALSE and the reason is NULL. `set_failed_fit_cache()` (`R/EDI/R/inference_incidence_KK_gcomp_abstract.R:338`, called at :551) writes NA effects and never calls `cache_nonestimable_estimate()`.
   - All subjects treated (`DesignFixedBinaryMatch`, n = 20, seed 3): the estimate is finite (RD -0.163, RR 0.658) and not flagged. The design matrix has no treatment column, but the class still standardizes over the remaining columns.
@@ -4672,7 +4686,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Failing expectation: `expect_true(all(is.na(tbl$ci_method)))`, skipped at `R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R:89`.
   - Candidate fix: code (skip the back-fill when `compute_conf_intervals = FALSE`), or doc (say ci_method keeps the method label while ci_a and ci_b are NA).
   - Done when: fix it and remove the skip().
-- [ ] TODO-262 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dccc6a08a`): **`InferenceCountPoisson` weighted refit with a non-finite treatment coefficient is not cached as non-estimable.**
+- [ ] TODO-262 (merged into v1.0.6-TODO-255 on 2026-11-20; fix it there. Added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-dccc6a08a`): **`InferenceCountPoisson` weighted refit with a non-finite treatment coefficient is not cached as non-estimable.**
   The method docs of `compute_estimate_with_bootstrap_weights` (`R/EDI/R/inference_count_poisson.R:456`) say a hardened weighted fit with a non-finite treatment coefficient "is cached as nonestimable and returns NA". With `fast_poisson_regression_weighted_cpp` mocked to return `b[2] = NA`, the estimate and `last_weighted_refit$s_beta_hat_T` are NA, but `last_weighted_refit$nonestimable` is FALSE and no reason is recorded. The code (about lines 461-512) sets the values to NA and never calls `cache_nonestimable_estimate()`.
   - Failing expectation: `expect_true(f$p$last_weighted_refit$nonestimable)`, skipped at `R/package_tests/testthat_bulk/test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R:100`.
   - Candidate fix (code): call `private$cache_nonestimable_estimate(<reason>)` on that path. Alternative (doc): say it returns NA with an NA SE.
@@ -4682,12 +4696,12 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Failing expectation: `expect_true(is.finite(est))`, skipped at `R/package_tests/testthat_bulk/test-ordinal-kk-glmm-deferred-fit-wald-likelihood-tests-and-polish.R:106`.
   - Candidate fix (code): fit the `use_rcpp = FALSE` path with `ordinal::clmm`, as the weighted helper already does. Alternative (doc): say the path is unavailable, and refuse `use_rcpp = FALSE` at construction.
   - Done when: fix it and remove the skip().
-- [ ] TODO-264 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d3a8c4d21`): **`InferencePropBetaRegr` weighted refit that fails is not cached as non-estimable.**
+- [ ] TODO-264 (merged into v1.0.6-TODO-255 on 2026-11-20; fix it there. Added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d3a8c4d21`): **`InferencePropBetaRegr` weighted refit that fails is not cached as non-estimable.**
   The docs (`R/EDI/R/inference_proportion_beta.R:246-252`) say a hardened but still unreasonable weighted fit "is cached as nonestimable". With `fast_beta_regression_weighted_cpp` returning NaN coefficients and `stats::lm.wfit` failing, the refit returns NA, but `weighted_refit_is_nonestimable()` is FALSE and `last_weighted_refit$nonestimable_reason` is NULL. The failure branch (`:328-333`) only writes NA to `cached_values`, and `fit_ok` checks only finiteness, so there is no unreasonable-fit check at all.
   - Failing expectation: `expect_true(p$weighted_refit_is_nonestimable())`, skipped at `R/package_tests/testthat_bulk/test-prop-beta-regr-deferred-fit-boundary-responses-and-weighted-refit.R:77`.
   - Candidate fix (code): call `private$cache_nonestimable_estimate("weighted_refit_failed")` in that branch. Alternative (doc): say NA is returned and nothing is marked.
   - Done when: fix it and remove the skip().
-- [ ] TODO-265 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d412caeef`): **`InferencePropFractionalLogit` weighted refit that fails is not cached as non-estimable.**
+- [ ] TODO-265 (merged into v1.0.6-TODO-255 on 2026-11-20; fix it there. Added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d412caeef`): **`InferencePropFractionalLogit` weighted refit that fails is not cached as non-estimable.**
   The docs (`R/EDI/R/inference_proportion_fractional_logit.R:180`) make the same promise as v1.0.6-TODO-264. With `fast_logistic_regression_weighted_cpp` mocked to return a NaN treatment coefficient, the refit returns NA for both `harden = FALSE` and `harden = TRUE`, but `weighted_refit_is_nonestimable()` is FALSE and the reason is NULL. The branch at `:216-220` never caches non-estimable.
   - Failing expectation: `expect_true(all(flagged))`, skipped at `R/package_tests/testthat_bulk/test-fractional-logit-weighted-coefficient-reference.R:92`.
   - Candidate fix (code): the same one-line fix as v1.0.6-TODO-264. Alternative (doc).
