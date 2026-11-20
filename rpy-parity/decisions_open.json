@@ -1,16 +1,1 @@
-{
- "rpy-parity-d1793c59d": {
-  "first_seen": "2026-11-19T21:52:21+00:00",
-  "key": "argument_mismatch",
-  "last_seen": "2026-11-20T06:53:08+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (argument_mismatch): Docstring says 'fixed_idx : ndarray of int, optional. Optional indices of fixed parameters.' and does not give the indexing base. make_fixed_param_spec subtracts 1 (`int idx = fixed_idx_r[i] - 1`) and throws 'fixed_idx entries must be one-based indices'. The R roxygen says 'Optional 1-indexed positions of parameters to hold fixed' and 'fixed_idx (1-indexed into the joint parameter vector, X's coefficients first)'. A Python user would likely pass 0-based indices. Suggested: Say in the docstring that fixed_idx is 1-based into [beta_cond, beta_zi]. The line 'Optional indices of fixed parameters.' is repeated across bindings, so this needs a human edit, or a shared-text change.",
-  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
- },
- "rpy-parity-d86b25c63": {
-  "first_seen": "2026-11-20T06:53:08+00:00",
-  "key": "other",
-  "last_seen": "2026-11-20T06:53:08+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (other): The parameter text says 'smart_cold_start: If True, use an initial OLS-based guess when starting from scratch'. The kernel calls edi_opt::zap_smart_cold_start, which fits a Poisson start on the non-zero rows for the count part and a logistic start on (y==0) for the zero-inflation part, not OLS. The R roxygen and the main description in the same docstring say 'model-specific heuristic'. Suggested: Change 'OLS-based guess' to 'Poisson/logistic-based guess' for this binding. The sentence is shared boilerplate that occurs many times, so it cannot be auto-fixed here.",
-  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
- }
-}
+{}
