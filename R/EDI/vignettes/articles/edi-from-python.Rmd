@@ -428,8 +428,12 @@ this article does.
 * **Treatment coding.** R designs return `w` as 0/1, and the Python kernels that take
   a treatment vector (`wilcox_hl_point_estimate`, `get_survival_stat_diff`,
   `fast_logrank_stats`, `fast_ridit_analysis`, and others) expect 0/1 with 1 =
-  treatment. They do not check it. Recode first if your data use 1/2, -1/1 or
-  strings (`w = (arm == "treatment").astype(int)`). In the regression kernels
+  treatment. Since `edi_kernels` 1.0.4 they check it: a `w` (or `dead`) with any
+  value other than 0 and 1 raises `ValueError` naming the argument, even after
+  `edi_kernels.set_checks(False)` (see the package README, "Input checks"). Earlier
+  releases did not check, and returned a silent `nan` or a sign-flipped estimate.
+  Recode first if your data use 1/2, -1/1 or strings
+  (`w = (arm == "treatment").astype(int)`). In the regression kernels
   treatment is just a column of `X`, so any coding fits, but the coefficient then
   means something else: with -1/1 coding it is half the treated-minus-control effect.
 * **Event coding.** Python survival kernels take `dead` (1 = event, 0 = censored).

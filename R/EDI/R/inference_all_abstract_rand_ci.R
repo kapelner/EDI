@@ -49,11 +49,27 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   censoring times alike, with censoring indicators unchanged -- the rank-based
 		#'   AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
 		#'   and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.
+		#'   Allowed values: \code{"none"} (the default), \code{"log"} and \code{"logit"}.
+		#'   \code{"none"} resolves by response type: an additive shift for continuous
+		#'   responses, \code{"logit"} for proportion and \code{"log"} for count and survival.
+		#'   \code{"log"} multiplies the treated responses by \eqn{e^\delta}{exp(delta)}
+		#'   (counts are then rounded); \code{"logit"} adds \eqn{\delta} on the logit scale
+		#'   (see \code{zero_one_logit_clamp}). The value is not validated: the shared
+		#'   shift code treats any other string as an additive shift. With \code{delta = 0}
+		#'   no response is shifted, so the value does not change the result.
 		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
 		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
 		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
 		#' @param show_progress Whether to show progress.
 		#' @param permutations Optional pre-generated assignment draws.
+		#'   \code{NULL} (the default) draws them from the design. Otherwise a list with
+		#'   element \code{w_mat}, a numeric \eqn{n \times r}{n x r} matrix of 0/1 assignment
+		#'   vectors (one column per draw, rows in subject order, 1 = treatment) with at least
+		#'   \code{r} columns, and optionally \code{m_mat}, a matching \eqn{n \times r}{n x r}
+		#'   matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
+		#'   accepted. The draws are not validated (row count, 0/1 coding and column count are
+		#'   not checked), so they must come from the design's own randomization mechanism for
+		#'   the test to be valid.
 		#' @param type Optional incidence-specific exact randomization type.
 		#' @param args_for_type Optional arguments keyed by \code{type}.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging

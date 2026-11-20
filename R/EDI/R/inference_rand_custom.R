@@ -11,7 +11,14 @@
 #' function of \code{(NumericVector y, IntegerVector w)} or
 #' \code{(NumericVector y, IntegerVector w, IntegerVector dead)} returning a
 #' scalar \code{double}, using the same convention as
-#' \code{DesignFixedOptimal}'s \code{custom_objective}.
+#' \code{DesignFixedOptimal}'s \code{custom_objective}. The source is compiled with
+#' \code{Rcpp::cppFunction()}, which adds its own \code{// [[Rcpp::export]]} tag
+#' in front of the first function in the source, so the source must contain exactly
+#' one function, the statistic: no helper functions before it (not even a forward
+#' declaration or an \code{inline} helper; the first one would be taken as the
+#' statistic and fail the argument check) and no \code{// [[Rcpp::export]]} line of
+#' your own (the function would be exported twice and the compile fails). Put helper
+#' logic in a lambda inside the statistic.
 #'
 #' Only a randomization test and randomization confidence interval are
 #' available -- there is no package point-estimator, Wald path, or bootstrap
@@ -32,6 +39,24 @@
 #' \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
 #' required, otherwise the p-value is \code{NA}. See
 #' \code{InferenceRand$compute_rand_two_sided_pval()}.
+#'
+#' \strong{Nonzero \code{delta} and the randomization CI by response type.} Each
+#' reference draw re-applies \eqn{\delta} to the draw's treated units additively
+#' (\eqn{y + \delta w}), whatever \code{transform_responses} is, after the shift was
+#' removed from the observed treated units on the \code{transform_responses} scale.
+#' On continuous responses (default \code{"none"}, an additive shift) both steps
+#' agree, so a nonzero \code{delta} tests the additive sharp null and
+#' \code{compute_rand_confidence_interval()} is an interval for the additive effect.
+#' On count, proportion and survival responses \code{compute_rand_two_sided_pval()}
+#' resolves the default to \code{"log"} or \code{"logit"}, so the removal is
+#' multiplicative (or on the logit scale) while the re-application is additive: a
+#' nonzero-\code{delta} p-value there is computed without error but does not test a
+#' coherent sharp null. The randomization CI is refused for incidence, count and
+#' proportion responses. On survival responses it is not refused
+#' (\code{supports("randomization_ci")} is \code{TRUE}) and returns bounds, but they
+#' come from the same mixed-scale nulls, with the search centred on the raw-time
+#' difference in means, so they are not a valid interval for any effect. On those
+#' response types use only the \code{delta = 0} p-value.
 #'
 #' @param des_obj A Design object whose subjects are assigned and responses
 #'   recorded.

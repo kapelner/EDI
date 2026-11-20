@@ -1075,6 +1075,19 @@
 
 ## Documentation
 
+* Corrected docs from the 2026-11-18 docs-scenario audit: `?DesignFixedBlockedCluster` says blocks
+  may have unequal sizes and which jackknife units return `NA` there, and why;
+  `InferenceIncidLogRegr` (`estimand = "marginal_ratio"`, log scale) and `InferenceIncidGCompRiskRatio`
+  (ratio scale) state the scale of the same marginal risk ratio; `InferenceSurvivalRestrictedMeanDiff` no
+  longer names a nonexistent `DesignFixedBCRD`; the missing-covariates article says the outcome-free
+  imputation ships after the 1.0.4 release; `InferenceRandCustom` documents that C++ source must be a
+  single function without `// [[Rcpp::export]]`, that a nonzero `delta` and the randomization CI are
+  coherent only for continuous responses (on survival the CI is returned but not valid), and the article
+  quotes the real two-argument error, the 2/B p-value floor and the one-number check; the randomization
+  methods document the allowed `transform_responses` values and the `permutations` list format; the
+  Python article now says the kernels check that `w` is 0/1; and the Cox kernels' stubs and README say
+  ties use Breslow's approximation.
+
 * `InferenceCountZeroInflatedPoisson` documents that at small n with continuous
   covariates in the zero-inflation formula the ZIP MLE often does not exist (a
   separated zero-part ridge): some fits can stop at a lower interior local

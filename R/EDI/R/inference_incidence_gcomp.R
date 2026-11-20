@@ -335,7 +335,13 @@ NULL
 #' averaging the model-implied risk over the empirical covariate distribution
 #' under each counterfactual, and taking the ratio — see
 #' \code{\link{gcomp_logistic_point_estimate_cpp}} for the exact standardization
-#' formula (\code{mean1}/\code{mean0}). Bootstrap/jackknife inference on this
+#' formula (\code{mean1}/\code{mean0}). The estimate, its confidence intervals
+#' and \code{delta} are on the \strong{ratio} scale (\code{delta = 1}, the
+#' default, is no effect). \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
+#' with \code{set_estimand("marginal_ratio")} computes the same standardized risk
+#' ratio from the same logistic model but reports its \strong{log} (estimate,
+#' intervals and \code{delta} all on the log scale, \code{delta = 0} no effect),
+#' so its estimate is \code{log()} of this class's. Bootstrap/jackknife inference on this
 #' estimand is generally done on the \strong{log} risk-ratio scale internally
 #' (see \code{$compute_bootstrap_confidence_interval()},
 #' \code{$compute_bayesian_bootstrap_confidence_interval()}, and the

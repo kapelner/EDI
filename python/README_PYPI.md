@@ -325,7 +325,9 @@ y_exact = np.where(dead != 0, y, np.nan)
 y_L = np.where(dead == 0, y, np.nan)
 y_R = np.where(dead == 0, np.inf, np.nan)
 
-# survival -- Cox proportional-hazards regression (unstratified): point estimate only
+# survival -- Cox proportional-hazards regression (unstratified): point estimate only.
+# Tied event times use Breslow's approximation (both Cox kernels), not Efron's, the
+# default of lifelines and R's survival::coxph; statsmodels PHReg(ties="breslow") matches.
 fit = fast_coxph_regression(X, y, dead, estimate_only=True)
 # survival -- Cox PH regression: point estimate + variance
 fit = fast_coxph_regression(X, y, dead, estimate_only=False)

@@ -69,8 +69,25 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param r  					Number of randomization vectors. Default 501.
 		#' @param delta  				The null difference. Default 0.
 		#' @param transform_responses  Type of transformation. Default "none".
+		#'   Allowed values: \code{"none"} (the default), \code{"log"} and \code{"logit"}.
+		#'   Here \code{"none"} is an additive shift for every response type (unlike
+		#'   \code{compute_rand_two_sided_pval()}, which first resolves \code{"none"} to
+		#'   \code{"logit"} for proportion and \code{"log"} for count and survival responses).
+		#'   \code{"log"} multiplies the treated responses by \eqn{e^\delta}{exp(delta)}
+		#'   (counts are then rounded); \code{"logit"} adds \eqn{\delta} on the logit scale
+		#'   (see \code{zero_one_logit_clamp}). The value is not validated: the shared
+		#'   shift code treats any other string as an additive shift. With \code{delta = 0}
+		#'   no response is shifted, so the value does not change the result.
 		#' @param show_progress  		Show progress bar. Default TRUE.
 		#' @param permutations  		Pre-computed permutations. Default NULL.
+		#'   \code{NULL} (the default) draws them from the design. Otherwise a list with
+		#'   element \code{w_mat}, a numeric \eqn{n \times r}{n x r} matrix of 0/1 assignment
+		#'   vectors (one column per draw, rows in subject order, 1 = treatment) with at least
+		#'   \code{r} columns, and optionally \code{m_mat}, a matching \eqn{n \times r}{n x r}
+		#'   matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
+		#'   accepted. The draws are not validated (row count, 0/1 coding and column count are
+		#'   not checked), so they must come from the design's own randomization mechanism for
+		#'   the test to be valid.
 		#' @param debug  				If \code{TRUE}, return a list with the distribution values and
 		#'   per-iteration diagnostics including error messages, warning messages, counts of each,
 		#'   and summary proportions for iterations with errors, warnings, and illegal (non-finite)
@@ -332,6 +349,14 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param r  	Number of randomization vectors.
 		#' @param delta  				Null difference.
 		#' @param transform_responses  Transformation.
+		#'   Allowed values: \code{"none"} (the default), \code{"log"} and \code{"logit"}.
+		#'   \code{"none"} resolves by response type: an additive shift for continuous
+		#'   responses, \code{"logit"} for proportion and \code{"log"} for count and survival.
+		#'   \code{"log"} multiplies the treated responses by \eqn{e^\delta}{exp(delta)}
+		#'   (counts are then rounded); \code{"logit"} adds \eqn{\delta} on the logit scale
+		#'   (see \code{zero_one_logit_clamp}). The value is not validated: the shared
+		#'   shift code treats any other string as an additive shift. With \code{delta = 0}
+		#'   no response is shifted, so the value does not change the result.
 		#' @param na.rm 				Drop non-finite draws. Non-finite reference statistics
 		#'   (draws whose statistic is \code{NA}, \code{NaN} or infinite) are always dropped
 		#'   silently and the p-value is computed over the finite draws only;
@@ -339,6 +364,14 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   Details for the minimum number of finite draws required.
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
+		#'   \code{NULL} (the default) draws them from the design. Otherwise a list with
+		#'   element \code{w_mat}, a numeric \eqn{n \times r}{n x r} matrix of 0/1 assignment
+		#'   vectors (one column per draw, rows in subject order, 1 = treatment) with at least
+		#'   \code{r} columns, and optionally \code{m_mat}, a matching \eqn{n \times r}{n x r}
+		#'   matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
+		#'   accepted. The draws are not validated (row count, 0/1 coding and column count are
+		#'   not checked), so they must come from the design's own randomization mechanism for
+		#'   the test to be valid.
 		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
 		#'   \code{"logit"} response transform: responses are clamped to
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,

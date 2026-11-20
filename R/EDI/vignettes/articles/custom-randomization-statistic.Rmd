@@ -57,7 +57,8 @@ The test then:
 
 The default two-sided p-value doubles the smaller tail:
 $\min\{1, 2\min(\hat P(T_0 \ge t), \hat P(T_0 \le t))\}$ over the draws $T_0$, with a
-floor of $2/r$. The test is valid, meaning it rejects a true $H_0$ at most at the
+floor of $2/B$, where $B$ is the number of draws on which the statistic is finite
+($B = r$ unless some draws are dropped; see Pitfalls). The test is valid, meaning it rejects a true $H_0$ at most at the
 nominal rate up to Monte Carlo error, for **any** statistic you choose, because
 validity comes from the randomization and not from a model. The choice of
 statistic affects only power: how often the test rejects when $H_0$ is false.
@@ -81,7 +82,8 @@ You pass a function of three arguments, `(y, w, dead)`, that returns one number:
 
 EDI calls the function as `fn(y, w, dead)`, so it must accept all three arguments
 even if it uses only two. Write `function(y, w, dead)` or `function(y, w, ...)`;
-`function(y, w)` fails with "unused argument (dead)".
+`function(y, w)` is rejected when the object is created, with "custom_randomization_statistic_function
+must accept three arguments (y, w, dead) or `...`; it has 2."
 
 The function is called once on the observed data, which is what
 `compute_estimate()` returns, and once per reference draw.
@@ -404,9 +406,15 @@ inf_surv$compute_rand_two_sided_pval(r = 1000, show_progress = FALSE)
 
 Use a nonzero `delta` and `compute_rand_confidence_interval()` with **continuous
 responses only**. The interval is for an additive shift of the response, which has
-a clear meaning for a continuous outcome but not for the other types: EDI refuses
-the interval for incidence, count and proportion responses, and a nonzero `delta`
-test is not a coherent hypothesis for those types or for survival. For an effect
+a clear meaning for a continuous outcome but not for the other types. EDI refuses
+the interval for incidence, count and proportion responses, and refuses a nonzero
+`delta` for incidence. For count, proportion and survival responses a nonzero
+`delta` p-value is returned, but it does not test a coherent hypothesis: EDI removes
+the shift from the treated responses on the log (or logit) scale and adds it back to
+each draw's treated responses additively. On survival responses EDI does not refuse
+the interval (`supports("randomization_ci")` is `TRUE`) and returns bounds, but they
+come from those same mixed-scale tests, so they are not an interval for any effect;
+ignore them and report the `delta = 0` p-value. For an effect
 estimate with an interval on those outcomes, use the matching built-in class from
 the cookbooks ([incidence](cookbook-incidence.html), [count](cookbook-count.html),
 [proportion](cookbook-proportion.html), [survival](cookbook-survival.html),
@@ -429,8 +437,13 @@ setting `num_cores` does not split its calls across workers. Three things help:
 - **Write it in C++.** `custom_randomization_statistic_cpp` takes C++ source
   defining a function of `(NumericVector y, IntegerVector w)`, or
   `(NumericVector y, IntegerVector w, IntegerVector dead)`, that returns a
-  `double`. EDI compiles it with Rcpp when the object is created, which takes a
-  few seconds and needs a C++ compiler:
+  `double`. EDI compiles it with `Rcpp::cppFunction()` when the object is created,
+  which takes a few seconds and needs a C++ compiler. The source must hold exactly
+  one function, the statistic: `cppFunction()` adds its own `// [[Rcpp::export]]`
+  tag to the first function it finds, so a helper function placed before the
+  statistic (even a forward declaration) is taken as the statistic and rejected, and
+  an `// [[Rcpp::export]]` line of your own makes the compile fail. Put helper code in
+  a lambda inside the statistic. For example:
 
 ```{r cpp-stat}
 mean_diff_cpp = "
@@ -491,9 +504,9 @@ fail, and prefer a statistic that is defined for every assignment the design can
 produce. If fewer than 10 draws, or fewer than 10% of `r`, give a finite value,
 the p-value is `NA`.
 
-**Return exactly one number.** EDI keeps only the first element of whatever the
-function returns, so a function that accidentally returns a vector gives a test
-of its first element, with no error.
+**Return exactly one number.** A statistic that returns a vector of any other
+length is an error ("the custom statistic ... must return one number"), raised on
+the observed data before any draw.
 
 **Pass `alternative = "greater"` for a non-negative statistic.** Squared
 differences, absolute values, distances and chi-square-type statistics only signal

@@ -103,8 +103,12 @@ identical(imp_1, imp_2)       # same covariates, same imputed values
 identical(u_without, u_with)  # your RNG stream is untouched
 ```
 
-(EDI 1.0.4 and earlier also gave the imputation model the outcome, and did not seed
-it; see the section on why that biases the estimate.)
+(The EDI 1.0.4 release and earlier also gave the imputation model the outcome, and did
+not seed it; see the section on why that biases the estimate. The change ships in the
+first release after 1.0.4 and is listed under "EDI (development version)" in NEWS. A
+development build installed before that release still reports version 1.0.4 but
+already has the change: if `get_X_imp()` gives the same imputed values for two
+different outcome vectors, your build does not use the outcome.)
 
 ## Why single imputation is enough here
 
@@ -149,7 +153,7 @@ random (MAR): the chance that it is missing rises with `x1`, from about 10% to a
 - `impute`: EDI's default;
 - `drop_column`: `x2` left out;
 - `impute_with_y`: `x2` imputed by missRanger with the outcome as an extra predictor,
-  then handed to EDI as if complete (what EDI 1.0.4 and earlier did by default).
+  then handed to EDI as if complete (what the EDI 1.0.4 release and earlier did by default).
 
 ```{r sim-setup}
 one_trial = function(n = 100, tau = 1) {

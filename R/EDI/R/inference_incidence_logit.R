@@ -443,7 +443,14 @@ IncidenceLogisticLikelihoodSource = list(
 #' subject's covariates plugged in once under treatment and once under
 #' control, averaged over the empirical covariate distribution. Under
 #' \code{estimand = "marginal_ratio"}, the log of the corresponding marginal
-#' risk ratio. Because there is no latent submodel for this family (unlike
+#' risk ratio: the estimate, its confidence intervals and \code{delta} are all on
+#' the log scale (\code{delta = 0} is no effect). This is the same standardized
+#' risk ratio that
+#' \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
+#' computes from the same logistic working model, but that class reports it on
+#' the ratio scale (its estimate is \code{exp()} of this one, its intervals are
+#' back-transformed and its \code{delta = 1} is no effect) and its Wald standard
+#' error uses the sandwich rather than the model covariance. Because there is no latent submodel for this family (unlike
 #' e.g. \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
 #' zero/one-inflation mixture), the marginal mean function is exactly the
 #' model's own fitted mean; no separate standardization step beyond the
