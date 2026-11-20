@@ -5451,7 +5451,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   the docs-scenarios `build-wheel` job. CPU baseline stated in `python/README.md` and `README_PYPI.md`; changelog in
   `python/CHANGELOG.md`. Local `build/<wheel tag>/` dirs cache the old OFF value: delete them before rebuilding.
 
-- [x] TODO-286 (added 2026-11-20, done 2026-11-20; ds-custom-statistic-44358267779-f1, -f5, -f6):
+- [x] TODO-286 (added 2026-11-20, done 2026-11-20; ds-custom-statistic-44358267779-f1, ds-custom-statistic-44358267779-f5, ds-custom-statistic-44358267779-f6):
   **`InferenceRandCustom` nonzero-delta nulls mixed scales.** Its fast path `compute_fast_randomization_distr()`
   re-added the null shift to every draw as `y + delta * w`, but `y` arrives with delta removed on the
   `transform_responses` scale (`setup_randomization_template_and_shifts()`; `compute_rand_two_sided_pval()` maps
