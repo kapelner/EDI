@@ -26,7 +26,8 @@ ctrl <- function(...) modifyList(list(mc_enable = TRUE, mc_batch_size = 20L, mc_
 stub_prefix <- function(p, pool) {
 	calls <- 0L
 	unlockBinding("get_randomization_distribution_prefix", p)
-	p$get_randomization_distribution_prefix <- function(r, delta, transform_responses, show_progress, permutations, cache_key, batch_size, zero_one_logit_clamp) {
+	# keep_nonfinite_cache (and any later argument) is accepted and ignored by the stub.
+	p$get_randomization_distribution_prefix <- function(r, delta, transform_responses, show_progress, permutations, cache_key, batch_size, zero_one_logit_clamp, keep_nonfinite_cache = FALSE, ...) {
 		calls <<- calls + 1L
 		pool[seq_len(min(length(pool), calls * batch_size))]
 	}
@@ -117,9 +118,11 @@ test_that("min_draws delays the check: fewer valid draws than mc_min_draws never
 	expect_equal(out, ref_p(pool[seq_len(min(200L, calls() * 20L))], 8))
 })
 
-test_that("a non-finite p-value (no valid draws) ends the loop and is returned", {
+# v1.0.6-TODO-166: a prefix with too few finite draws is not a final answer, so the loop draws on to
+# all r draws (200 / 20 = 10 batches) and only then returns the NA p-value.
+test_that("with no valid draws the loop draws all r and returns NA", {
 	p <- fx(ctrl()); calls <- stub_prefix(p, rep(NA_real_, 200))
 	out <- call_smc(p, t = 1)
 	expect_true(is.na(out))
-	expect_equal(calls(), 1L)
+	expect_equal(calls(), 10L)
 })

@@ -82,7 +82,8 @@ test_that("m-out-of-n RR interval and p-value equal the centred-pivot formulas o
 	expect_equal(names(ci), c("5%", "95%"))
 	expect_lt(ci[[1]], est); expect_gt(ci[[2]], est)
 	t_obs <- sqrt(f$n) * (log(est) - log(1.3))
-	ref_p <- min(1, max(2 / length(cs), 2 * min(mean(cs <= t_obs), mean(cs >= t_obs))))
+	# v1.0.6-TODO-230: symmetric centered p-value for the ratio pivot.
+	ref_p <- min(1, max(1 / length(cs), mean(abs(cs) >= abs(t_obs))))
 	expect_equal(f$p$compute_rr_m_out_of_n_bootstrap_two_sided_pval(1.3, B = 400L, m = m, show_progress = FALSE), ref_p, tolerance = 1e-10)
 })
 

@@ -72,27 +72,27 @@
   "rows": {
     "A": {
       "title": "Convex/concave likelihood optimization",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "B": {
       "title": "Nonconcave mixture likelihoods",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "C": {
       "title": "GLMM/LMM/frailty marginal likelihood (GH quadrature)",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "D": {
       "title": "Randomization/bootstrap CI search",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "E": {
       "title": "Small permutation p-values",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "F": {
       "title": "Design allocation search (DesignFixedOptimal)",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "G": {
       "title": "Matching (pairs, k = 2)",
@@ -100,43 +100,43 @@
     },
     "H": {
       "title": "Sequential nearest-match designs",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "I": {
       "title": "Rerandomization acceptance-rejection",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "J": {
       "title": "Bootstrap resampling loops",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "K": {
       "title": "GEE working-correlation structure",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "L": {
       "title": "Cox partial-likelihood tie handling",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "M": {
       "title": "Deterministic CI inverters (score/gradient/Bartlett-LR)",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "N": {
       "title": "FD derivatives where analytic forms exist",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "O": {
       "title": "Special functions and floating-point accuracy",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-20"
     },
     "P": {
       "title": "Separable / closed-form models fit by a generic optimizer",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "Q": {
       "title": "Sort-and-sweep statistics; presorting in resampling",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "R": {
       "title": "Exact discrete nulls and enumeration",
@@ -148,43 +148,43 @@
     },
     "T": {
       "title": "Forward-stepwise selection (KK21)",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-20"
     },
     "U": {
       "title": "Distances and small dense linear algebra",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-20"
     },
     "V": {
       "title": "Refit economics in CI searches and replicate loops",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "W": {
       "title": "Quantile-regression LP and rank estimators",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "X": {
       "title": "Robust regression",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "Y": {
       "title": "Interval-censored NPMLE",
-      "reviewed": "2026-10-22"
+      "reviewed": "2026-11-20"
     },
     "Z": {
       "title": "Boundary / constrained MLE, cold starts",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "AA": {
       "title": "Nonconcave non-mixture likelihoods",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "AB": {
       "title": "Variance estimators",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     },
     "AC": {
       "title": "Infrastructure algorithms (LPT scheduling, tuning, imputation)",
-      "reviewed": "2026-11-16"
+      "reviewed": "2026-11-20"
     }
   }
 }

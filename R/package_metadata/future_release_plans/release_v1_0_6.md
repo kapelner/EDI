@@ -3478,7 +3478,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   (the NA guard stays covered by the synthetic test); the futile-refit test stubs the detector to keep its 8 failed
   fits, plus a non-vacuity check (`legacy$calls > 51`).
 
-- [ ] TODO-191 (added 2026-11-19, agent; found by the v1.0.6-TODO-179 agent; owner decision on the fix): **Risk-ratio
+- [x] TODO-191 (added 2026-11-19, agent; found by the v1.0.6-TODO-179 agent; owner decision on the fix): **Risk-ratio
   subsampling and m-out-of-n p-values almost never reject.** Null size at n = 80 (200 datasets):
   `InferenceIncidGCompRiskRatio` subsampling 0.005, m-out-of-n 0.000 (`InferenceIncidKKGCompRiskRatio` 0.015 / 0.000;
   the RD sibling 0.065 / 0.070). With the default b = 21 of 80, subsamples with a zero-event arm or near separation
@@ -3509,6 +3509,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   fraction exceeds a cap (0.05 or 0.10). Firth subsample fits are a later option. Do not use a studentized pivot or
   just raise the default b. Document that the ordinary bootstrap is the better choice for RR. Check the same
   mechanism in the OR, KK RR, rate-ratio and hazard-ratio subsampling paths (not verified).
+  Closed 2026-11-20 (coordinator): every item listed as still open moved to v1.0.6-TODO-230 and was done there (cap 0.8, other ratio paths, KK RR size via the symmetric p-value, debug path).
 
   Decided (owner, 2026-11-19): drop degenerate subsamples (an arm with zero or all events, or a separated / non-converged
   fit) and return NA with a recorded reason when their fraction exceeds 5% (same threshold as v1.0.6-TODO-12). Firth
@@ -3598,7 +3599,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   per-file objects exist (never a full build); otherwise the owner builds. First CI run 2026-11-18 (run 44358232233,
   `4ce2b712`): 32 judged (20 refactor, 3 divergence_bug, 9 intentional), 365 not yet judged.
   - `code-duplication-da35f9c8f` (`dup-1adb37d8ab20`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:534-614` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:622-701` (coordinate with v1.0.6-TODO-192, same function) -- DONE (agent, uncommitted; bit-identical): `fit_logistic_with_sandwich()` in both classes is now a thin wrapper over `gcomp_fit_logistic_with_sandwich()` (`helper_gcomp.R`); each class passes its clamp and post-fit (HC0 vs KK cluster) as arguments
-  - `code-duplication-d6b10061f` (`dup-440466dd6dc0`): `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187` -- DONE by v1.0.6-TODO-154 (uncommitted): `DesignFixed`'s override removed, one body in `Design`
+  - `code-duplication-d6b10061f` (`dup-440466dd6dc0`): `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187` -- NOT DONE (corrected 2026-11-20): v1.0.6-TODO-154 merged only `overwrite_all_subject_assignments()`; `DesignFixed` still overrides `add_all_subject_responses` (`R/EDI/R/design_fixed_abstract.R:109` vs `R/EDI/R/design_abstract.R:430`), and the 2026-11-19 run re-flagged the pair as `code-duplication-dc78d3281`
   - `code-duplication-d4e38d855` (`dup-47b3c5848e6a`): `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317` -- DONE (agent, uncommitted)
   - `code-duplication-d23a10708` (`dup-4ca7ca9c9237`): `R/EDI/R/inference_ordinal_ordered_probit.R:100-186` vs `R/EDI/R/inference_ordinal_proportional_odds.R:134-217` -- DONE (agent, uncommitted)
   - `code-duplication-dcdb7e599` (`dup-51b70d0e54ad`): `R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R:367-427` vs `R/EDI/R/inference_proportion_KK_combined.R:164-224` -- DONE (agent, uncommitted)
@@ -3617,6 +3618,75 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - `code-duplication-dd690bfdc` (`dup-b82ef667e0cb`) [C++]: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211` -- DONE (agent, uncommitted; verified by kernel swap): static inline `compound_beta_hat()` in the same file
   - `code-duplication-d730a0bdd` (`dup-b84f50f38a71`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381` -- DONE (agent, uncommitted; verified by kernel swap): same shared template as the cauchit/cloglog item; probit's NaN guard on ssq_b_j and its missing K<2 early return are kept as explicit policy flags (bit-identical), not unified
   - `code-duplication-dee72312b` (`dup-be7f39dede8f`) [C++]: `R/EDI/src/fast_cpoisson_combined.cpp:87-124` vs `R/EDI/src/fast_cpoisson_combined.cpp:346-395` -- DONE (agent, uncommitted; verified by kernel swap): the Newton loop now calls `cpoisson_combined_score_info_cpp_impl()` (new `want_info` flag skips the info on the warm-start iteration)
+  Added 2026-11-20 from run 44511244843 (`0231668c`, 2026-11-19): the run's 67 refactor verdicts not yet cited here
+  (issue #61). Eight are flagged as possible divergence bugs and should be checked before merging.
+  - `code-duplication-d0008dd06` (`dup-cf2587a46833`): `R/EDI/R/inference_count_hurdle.R:80-236` vs `R/EDI/R/inference_count_zero_inflated.R:97-268`
+  - `code-duplication-d045a2ebb` (`dup-4b61e21df5c8`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:44-64` vs `R/EDI/R/inference_ordinal_ordered_probit.R:251-271`
+  - `code-duplication-d0bee2d47` (`dup-40a8fc9297a9`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:1-110` vs `R/EDI/src/fast_logrank.cpp:1-98`
+  - `code-duplication-d0bf7a47c` (`dup-73dca8787a4c`): `R/EDI/R/inference_incidence_binomial_identity.R:628-668` vs `R/EDI/R/inference_proportion_beta.R:368-407`
+  - `code-duplication-d0f32f7c4` (`dup-ae89fd0f2d50`): `R/EDI/R/inference_count_hurdle.R:581-605` vs `R/EDI/R/inference_proportion_zero_one_inflated_beta.R:470-494`
+  - `code-duplication-d114b8d9b` (`dup-89aa9d2539e0`) [C++]: `R/EDI/src/sample_mode.cpp:40-93` vs `R/EDI/src/sample_mode.cpp:94-143`
+  - `code-duplication-d1564c4c6` (`dup-abd094cd763e`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:5-66` vs `R/EDI/R/inference_ordinal_cloglog.R:52-109` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cloglog `initialize` has no `harden` argument; adjacent-category logit has one
+  - `code-duplication-d1d0200db` (`dup-7df0544df4d2`): `R/EDI/R/inference_all_abstract_rand_ci.R:559-594` vs `R/EDI/R/inference_incidence_exact_zhang.R:73-106`
+  - `code-duplication-d1f2bef91` (`dup-b02d9fd25b94`) [C++]: `R/EDI/src/fast_wilcox_hl.cpp:340-356` vs `R/EDI/src/fast_wilcox_hl.cpp:381-397`
+  - `code-duplication-d2067ea8e` (`dup-4387d08426f4`): `R/EDI/R/inference_count_KK_cond_poisson.R:831-877` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1795-1841`
+  - `code-duplication-d22d0b43d` (`dup-bf70b2e02e63`): `R/EDI/R/inference_all_abstract_rand_bootstrap.R:1024-1072` vs `R/EDI/R/inference_all_abstract_rand_bootstrap.R:1159-1212`
+  - `code-duplication-d27b99ba5` (`dup-9319feaf81b4`): `R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R:163-172` vs `R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R:175-184`
+  - `code-duplication-d2c14e342` (`dup-117b65d30af8`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:1024-1064` vs `R/EDI/R/inference_incidence_KK_marginal_abstract.R:66-110`
+  - `code-duplication-d2c94a819` (`dup-018bf5078750`): `R/EDI/R/inference_ext_likelihood_test_memoization.R:192-206` vs `R/EDI/R/inference_ext_likelihood_test_memoization.R:207-221`
+  - `code-duplication-d2cb1831f` (`dup-32b5d56ba802`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-405` vs `R/EDI/src/fast_logistic_glmm.cpp:439-461`
+  - `code-duplication-d32feefe2` (`dup-ee0fda8e5b7b`) [C++]: `R/EDI/src/kk21_weights.cpp:493-599` vs `R/EDI/src/kk21_weights.cpp:972-1076` -- do with v1.0.6-TODO-236, which must edit both Newton loops anyway
+  - `code-duplication-d37d994cc` (`dup-0cae3844f40b`): `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:64-114` vs `R/EDI/R/inference_ext_prw_subsampling.R:59-109` -- v1.0.6-TODO-194 merged only the p-value and CI setups
+  - `code-duplication-d3f8794a9` (`dup-e19765984523`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:654-701` vs `R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R:99-142`
+  - `code-duplication-d4062d188` (`dup-82f8a493e070`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:112-168` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:654-696` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): OLS one-lik `compute_asymp_confidence_interval` `testing_type` switch has no default, returns NULL
+  - `code-duplication-d41dc9935` (`dup-a34c2117a793`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:1-47` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:1-47`
+  - `code-duplication-d48f0b621` (`dup-5b31a3214560`): `R/EDI/R/inference_all_abstract_rand.R:770-785` vs `R/EDI/R/inference_all_abstract_rand.R:790-805`
+  - `code-duplication-d4c0c7f7a` (`dup-c48486186648`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:565-583` vs `R/EDI/src/fast_gaussian_lmm.cpp:636-652`
+  - `code-duplication-d4ceca027` (`dup-d1a3e796a967`): `R/EDI/R/inference_incidence_exact_binomial.R:30-93` vs `R/EDI/R/inference_indicidence_exact_fisher.R:21-77` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): exact-binomial design check runs always, exact-Fisher only under `should_run_asserts()`
+  - `code-duplication-d54d5e887` (`dup-c59fc462a58f`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:85-168` vs `R/EDI/src/fast_logrank.cpp:76-156`
+  - `code-duplication-d56b63aab` (`dup-d3f4295c00b8`): `R/EDI/R/inference_incidence_log_binomial.R:262-291` vs `R/EDI/R/inference_incidence_modified_poisson.R:188-199`
+  - `code-duplication-d5e5b1877` (`dup-5e66d7d6a084`): `R/EDI/R/inference_continuous_quantile_regr.R:230-352` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-172` -- partly done: `code-duplication-d1b25b18a` merged the privates; the public skeleton is still copied
+  - `code-duplication-d63139ea4` (`dup-ccaf9d863fdd`): `R/EDI/R/design_fixed_greedy.R:159-178` vs `R/EDI/R/design_fixed_greedy_d_optimal.R:296-313`
+  - `code-duplication-d6a11e876` (`dup-27d58e66d0f8`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:410-437` vs `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:449-472` -- re-detection of `code-duplication-d593b90a9` (DONE); should drop off the next scan
+  - `code-duplication-d6c8eb597` (`dup-80086ada1649`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:901-1012` vs `R/EDI/R/inference_incidence_gcomp.R:16-155` -- re-detection of `code-duplication-dfe6e2293` (DONE); should drop off the next scan
+  - `code-duplication-d6e5fae59` (`dup-1d2fe9089c45`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:23-69` vs `R/EDI/R/inference_survival_strat_cox.R:239-271`
+  - `code-duplication-d708f1f8e` (`dup-b60c9f7798cf`): `R/EDI/R/inference_ordinal_ordered_probit.R:176-225` vs `R/EDI/R/inference_ordinal_stereotype_logit.R:1337-1386`
+  - `code-duplication-d79480795` (`dup-bd767b3b1e90`): `R/EDI/R/inference_count_KK_cond_poisson.R:1007-1031` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1070-1093`
+  - `code-duplication-d7bfd0139` (`dup-8500784fdfc4`) [C++]: `R/EDI/src/fast_adjacent_category_logit.cpp:393-415` vs `R/EDI/src/fast_adjacent_category_logit.cpp:479-508`
+  - `code-duplication-d7d618301` (`dup-e8c35417c731`) [C++]: `R/EDI/src/fast_gee.cpp:307-351` vs `R/EDI/src/fast_gee.cpp:354-392` -- family parse overlaps v1.0.6-TODO-103; the group sort is not covered there
+  - `code-duplication-d8450dc93` (`dup-38ee54497f68`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:386-512` vs `R/EDI/src/fast_probit_regression.cpp:438-612`
+  - `code-duplication-d872ec3dd` (`dup-03478b9e1cf3`): `R/EDI/R/inference_count_hurdle.R:110-153` vs `R/EDI/R/inference_count_zero_inflated.R:358-393`
+  - `code-duplication-d89e34e9e` (`dup-348cb26a7183`) [C++]: `R/EDI/src/fast_continuation_ratio_regression.cpp:330-364` vs `R/EDI/src/fast_continuation_ratio_regression.cpp:391-433`
+  - `code-duplication-d8aa199fe` (`dup-37d956f7bdfa`): `R/EDI/R/inference_count_KK_cond_poisson.R:760-812` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1750-1799`
+  - `code-duplication-d8f5eab74` (`dup-b026b3ce7998`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-663` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:664-730`
+  - `code-duplication-d912e6d2b` (`dup-6eab11b3bbec`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:562-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:804-868`
+  - `code-duplication-d913fbe2c` (`dup-405743f65354`): `R/EDI/R/inference_ordinal_cauchit.R:137-206` vs `R/EDI/R/inference_ordinal_cloglog.R:287-358`
+  - `code-duplication-d9607a7c1` (`dup-9e2c0a9f8178`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-272` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-301` -- partly done: the RR methods are merged; the RD bootstrap, Bayesian-bootstrap and jackknife wrappers and `compute_treatment_estimate_during_randomization_inference` are still copied
+  - `code-duplication-daf376ace` (`dup-1f433f508026`): `R/EDI/R/inference_incidence_modified_poisson.R:441-486` vs `R/EDI/R/inference_incidence_probit.R:376-421`
+  - `code-duplication-db5595975` (`dup-3fa266e6a729`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:376-441` vs `R/EDI/src/fast_log_binomial_regression.cpp:618-689` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): unweighted log-binomial IRLS takes `warm_start_weights` but never reads it
+  - `code-duplication-db621c738` (`dup-a61a70528060`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:460-581` vs `R/EDI/src/fast_log_binomial_regression.cpp:709-819`
+  - `code-duplication-db68b8e31` (`dup-eb77e907ec3a`): `R/EDI/R/inference_count_zero_inflated.R:120-174` vs `R/EDI/R/inference_count_zero_inflated.R:341-387`
+  - `code-duplication-dba30f68d` (`dup-21b487f963fb`): `R/EDI/R/inference_all_KK_quantile_regr_one_lik_abstract.R:85-134` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:62-137`
+  - `code-duplication-dbc57fae3` (`dup-0bea0bb60720`): `R/EDI/R/contracts_mixins.R:3318-3364` vs `R/EDI/R/design_component_registry.R:183-224`
+  - `code-duplication-dbec652e7` (`dup-395b2ca21302`): `R/EDI/R/contracts_mixins.R:3206-3245` vs `R/EDI/R/design_component_registry.R:241-279`
+  - `code-duplication-dc61886c3` (`dup-7bf412e7eaca`) [C++]: `R/EDI/src/fast_gee.cpp:322-336` vs `python/cpp/bindings_incidence.cpp:63-87` -- overlaps v1.0.6-TODO-103 (one shared GEE family parse)
+  - `code-duplication-dc78d3281` (`dup-c8291bff0887`): `R/EDI/R/design_abstract.R:410-493` vs `R/EDI/R/design_fixed_abstract.R:89-174` -- same pair as `code-duplication-d6b10061f` above, which is NOT done: `add_all_subject_responses` is still overridden in `DesignFixed`
+  - `code-duplication-dc91e2221` (`dup-27fab88a45dc`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:12-69` vs `R/EDI/R/inference_incidence_log_binomial.R:101-157`
+  - `code-duplication-dd45c2fa8` (`dup-11b5cd15f2d7`): `R/EDI/R/inference_ordinal_cauchit.R:134-206` vs `R/EDI/R/inference_ordinal_ordered_probit.R:57-129`
+  - `code-duplication-dd9c46373` (`dup-18a4061ca2d7`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:434-511` vs `R/EDI/src/fast_poisson_regression.cpp:465-540` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): logistic `*_with_var_cpp` hard-codes maxit/tol and omits `mu`; the Poisson one exposes them
+  - `code-duplication-ddad98657` (`dup-bf285fb350be`): `R/EDI/R/inference_all_abstract_rand.R:447-475` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:173-200` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): GEE mixin rand p-value tail takes no `alternative` and skips the cached shift path
+  - `code-duplication-dde2683cb` (`dup-d14222627cd9`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:145-183` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:355-375` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): OLS one-lik likelihood-test p-value copy lacks the base guard and the TODO-116 failure recording
+  - `code-duplication-ddf23fa3c` (`dup-1ba380677ef3`) [C++]: `R/EDI/src/fast_hurdle_negbin.cpp:125-138` vs `R/EDI/src/fast_hurdle_negbin.cpp:146-163`
+  - `code-duplication-de22418b2` (`dup-a7f3006dc4c4`): `R/EDI/R/inference_incidence_binomial_identity.R:649-698` vs `R/EDI/R/inference_proportion_beta.R:391-438`
+  - `code-duplication-de5860b48` (`dup-fd52b678b440`): `R/EDI/R/inference_incidence_binomial_identity.R:530-611` vs `R/EDI/R/inference_proportion_beta.R:153-237`
+  - `code-duplication-de67677f3` (`dup-0803feaefbb3`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:392-466` vs `R/EDI/src/fast_poisson_regression.cpp:425-497`
+  - `code-duplication-de783d17e` (`dup-1ece871a8c89`): `R/EDI/R/helper_matching.R:90-133` vs `R/EDI/R/helper_matching.R:146-169`
+  - `code-duplication-de7e2b41e` (`dup-8f3ba82e1352`) [C++]: `R/EDI/src/robust_post_fit_speedups.cpp:296-339` vs `R/EDI/src/robust_post_fit_speedups.cpp:343-385`
+  - `code-duplication-de9e00e72` (`dup-f24385724a76`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:271-472` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:300-517` -- re-detection of `code-duplication-db001874c` (DONE); should drop off the next scan
+  - `code-duplication-ded18c68a` (`dup-6ca3192b49a2`) [C++]: `R/EDI/src/kk21_weights.cpp:1136-1181` vs `R/EDI/src/kk21_weights.cpp:1241-1287` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): KK21 stepwise: ordinal skips a throwing candidate, negbin sets its stat to 0
+  - `code-duplication-df3056dcc` (`dup-3e3efd5c256a`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:415-485` vs `R/EDI/src/fast_log_binomial_regression.cpp:659-734`
+  - `code-duplication-df815ccee` (`dup-953983a5b28c`): `R/EDI/R/inference_proportion_gcomp.R:724-732` vs `R/EDI/R/inference_proportion_gcomp.R:737-745`
+  - `code-duplication-df90f4d8c` (`dup-281eb5818608`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-651` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:731-783`
 
 - [x] TODO-194 (added 2026-11-19, owner request; from the code-duplication audit, decisions `code-duplication-d3fc63ea7`
   (`dup-eb9320e6bb57`, p-value path) and `code-duplication-d61e30e3a` (`dup-7bbada5cb607`, CI path); one drift on two
@@ -3826,6 +3896,10 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   already treated a non-positive variance as missing. Ordinary fits unchanged (same b and ssq). Kernel swap of the
   three .cpp files. Test `test-ordinal-fixed-link-kernels-edge-cases-agree.R` (12 pass swapped; 13 failures + 1
   error on the old kernels). Rd not regenerated.
+  Confirmed (owner, 2026-11-20): probit on a one-level response returns NA; the old zeros were a bug. Documented in
+  the `InferenceOrdinalOrderedProbitRegr` roxygen (one-level response gives NA; single-level resampling draws are
+  dropped, as for cauchit / cloglog; Rd not regenerated). The Python `fast_ordinal_probit_regression` docstring
+  already says it returns an empty dict for fewer than 2 observed categories, which is now true.
 - [x] TODO-204 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-202 agent): **Unmuffled procedure-NA warnings
   in two tests, and a fixture that is an exact perfect predictor.** (1) `test-rand-pval-affine-reuse-finite-draw-minimum.R`
   (4 warnings) and `R/package_tests/testthat_bulk/test-randomization-pval-from-t0s-too-few-finite-guard-reference.R`
@@ -4022,7 +4096,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   bootstrap / Bayesian-bootstrap / param-boot-direct are quantile CIs with no p-value floor, the Bartlett-approx CI is
   asymptotic after a Monte-Carlo factor, and the rand (r = 501, floor 2/r on finite draws) and rand-bootstrap
   (B = 501) inversions have floors that depend on their search controls, so the bound is not certain.
-- [ ] TODO-211 (added 2026-11-19, coordinator; from the v1.0.6-TODO-210 agent): **Leftovers of the LR-bootstrap minimum-B
+- [x] TODO-211 (added 2026-11-19, coordinator; from the v1.0.6-TODO-210 agent): **Leftovers of the LR-bootstrap minimum-B
   check.** (1) OWNER DECISION: the orphan benchmark scripts `R/benchmark/heavy_paths.R` (PB = 10, now hard-errors) and
   `R/benchmark/heavy_only.R` (PB_H = 5, times the error inside tryCatch) — raise to B >= 39, pass alpha = 0.2, or delete
   (nothing references them). (2) `compute_param_bootstrap_confidence_interval()` (bias-correction family) has no
@@ -4040,6 +4114,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   Item (1) still open (owner decision).
   Item (1) decided and done (owner, 2026-11-19; coordinator, uncommitted): the orphan scripts `R/benchmark/heavy_paths.R`
   and `R/benchmark/heavy_only.R` were deleted (nothing referenced them).
+  Closed 2026-11-20 (coordinator): items (1) and (2) are both done.
 - [ ] TODO-212 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-204 agent): **Vacuous NA-equals-NA goldens and
   fixture follow-ups.** (1) Several migration goldens compare NA with NA because r or B = 9 is below the 10-finite-draw
   minimum, so they can't catch a regression: simple mean difference (rand p-value, bootstrap CI, bootstrap p-value),
@@ -4370,6 +4445,24 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - Done when: the confirmation stage shows the ZINB randomization cells nominal on the R guard. The C++ root fix is
     optional after that; if it is done, remove the R guard and its "Fitting" caveat about extra refits. The campaign's 78 ZINB randomization flags (size 0.075-0.109)
     are not accepted; they wait for that re-run.
+  - **Verified locally 2026-11-19 (agent): the R guard holds; every cell is nominal within MC error.** Committed
+    `fast_zinb_cpp_guarded()` (tree 6ae5d609; the later commit 72ea20ba changes only the ZIP path in that file),
+    `pkgload::load_all(compile = FALSE)`, `compute_rand_two_sided_pval()` with the class defaults and `num_cores = 1`.
+    Data: the count_zinb-like DGP and seeds of the v1.1.0-TODO-217 agent's `sim_rand.R` (seed 9e6 + 1000 n + rep),
+    sharp null, 400 replicates per cell. DesignFixedBlocking is stratified on x4 x x5 (`equal_block_sizes = FALSE`).
+    Size at alpha 0.05 with a Clopper-Pearson 95% interval; NegBin rand on the same data as a reference.
+
+    | design | n | formula | reps (ZINB p finite) | ZINB rand | NegBin rand |
+    |---|---|---|---|---|---|
+    | FixedBernoulli | 50 | `~ .` | 400 (399) | 0.053 [0.033, 0.079] | 0.045 [0.027, 0.070] |
+    | FixedBlocking | 50 | `~ .` | 400 (400) | 0.052 [0.033, 0.079] | 0.060 [0.039, 0.088] |
+    | FixedBernoulli | 200 | `~ 1` | 400 (400) | 0.060 [0.039, 0.088] | 0.040 [0.023, 0.064] |
+    | FixedBlocking | 200 | `~ 1` | 400 (400) | 0.045 [0.027, 0.070] | 0.060 [0.039, 0.088] |
+
+    The pre-guard n = 50 `~ .` FixedBernoulli value on the same datasets was 0.082. The 0.053 here differs from the
+    TODO-217 agent's post-guard 0.045 by 3 of 399 rejections. That run used an earlier tree (before 5bdb9dfb and
+    6ae5d609) and did not set `num_cores`, so the randomization draws may differ; both are within MC error. Scripts and outputs: session scratchpad
+    `verify218_222/` (`v222.R`, `v222_*.rds`, `tables.md`).
 
 ### Code bugs found by the source-comment-rot fixes, 2026-11-19 (TODO-223..229)
 
@@ -4425,7 +4518,7 @@ itself still needs a look.
   - Pass `private$quantile_full_method` (when not `NA`) to the weighted `rq()` call, so each class uses one solver.
   - Done when: the proportion class's weighted fit uses "fn", the continuous class is unchanged, and a test checks
     that unit weights reproduce the point estimate.
-- [ ] TODO-230 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-191 agent): **Ratio subsampling follow-ups.**
+- [x] TODO-230 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-191 agent): **Ratio subsampling follow-ups.**
   (1) OWNER DECISION: the default `min_fraction_usable_samples` cap for the g-comp RR subsampling / m-out-of-n paths.
   At 0.95, 9% (subsampling) / 29% (m-out-of-n) of null datasets return NA, the size among the rest is 0.016 / 0.000, and
   7 / 9 of the 11 datasets where Wald rejects become NA, because degenerate draws pile up where log RR-hat is extreme.
@@ -4435,7 +4528,7 @@ itself still needs a look.
   1.4%; `InferenceIncidLogBinomial` has 2-3% failed (NA) draws instead. (3) `InferenceIncidKKGCompRiskRatio`'s
   subsampling / m-out-of-n size stays low (0.015 / 0.010) for reasons other than degenerate draws. (4) The
   `debug = TRUE` distribution path does not apply the NaN marking. Scripts: /tmp/claude-1000/t191/.
-  -- DONE (1), (2), (4); (3) investigated, cause found, not changed (agent, 2026-11-20, uncommitted; scripts and results
+  -- DONE (1), (2), (4); (3) investigated, cause found (fix below, owner decision 2026-11-20) (agent, 2026-11-20, uncommitted; scripts and results
   in `/tmp/claude-1000/t230/`). (1) Owner decision applied: the g-comp RR subsampling / m-out-of-n
   `min_fraction_usable_samples` default is 0.8 (was 0.95) on the public methods (`inference_incidence_gcomp.R`, also used
   by the KK classes) and the private RR pivot (`helper_gcomp.R`); still user-settable; the bootstrap / Bayesian-bootstrap
@@ -4470,11 +4563,32 @@ itself still needs a look.
   the estimate 0.55 vs 0.22 for non-KK), so the equal-tailed p = 2 min(.) doubles the heavy tail. A symmetric p-value
   (mean(|pivot| >= |t|)) gives 0.045 (subsampling; non-KK 0.055) but m-out-of-n stays 0.015 (its pivot SD is 1.14-1.19x
   the Wald SE, both classes). Changing the p-value type is a methodology change: OWNER DECISION (symmetric centered
-  p-value for ratio pivots, or document). Tests: new `tests/testthat/test-ratio-subsampling-degenerate-draws.R` (36
+  p-value for ratio pivots, or document) -- decided, see the (3) DONE note below. Tests: new `tests/testthat/test-ratio-subsampling-degenerate-draws.R` (36
   pass); updated `test-gcomp-risk-ratio-subsampling-degenerate-draws.R` (37), `test-bootstrap-extreme-ci-cap-on-estimand-scale.R`
   (94), comments in `test-estimand-no-effect-value-centering.R` and `test-risk-ratio-resampling-honours-timeouts-and-list-sizes.R`;
   17 related files incl. the call-graph acceptance and migration baseline pass.
-- [ ] TODO-231 (added 2026-11-19, coordinator; from the v1.0.6-TODO-4 agent): **Stratified jackknife follow-ups.**
+  -- (3) DONE (agent, 2026-11-20, uncommitted; owner decision 2026-11-20: switch to the symmetric centered p-value,
+  consistency across ratio pivots preferred if size holds). `resampling_centered_pval()` gains `symmetric = FALSE`;
+  `TRUE` gives p = mean(|pivot| >= |t_obs|), floored at 1/B. Used by the g-comp RR pivot (`helper_gcomp.R`, both
+  classes) and by the generic subsampling / m-out-of-n p-values of every class with a degenerate-draw rule (LogRegr,
+  KKGEE, ModifiedPoisson, LogBinomial, CountPoisson); additive estimands and every other class keep the equal-tailed
+  2 min(.). Intervals unchanged (basic, equal-tailed), and the size-selection evaluators' diagnostic p-values are
+  unchanged. Null size (n = 80, 200 data sets, B = 199, 80% cap; computed from the stored NaN-marked draws, whose
+  equal-tailed sizes reproduce the package's live values exactly), equal-tailed -> symmetric, subsampling / m-out-of-n:
+  g-comp RR 0.040 -> 0.055 / 0.030 -> 0.035 (Wald 0.055); KK g-comp RR 0.015 -> 0.045 / 0.010 -> 0.015 (Wald 0.050);
+  LogRegr 0 -> 0 / 0 -> 0; ModifiedPoisson 0.020 -> 0.020 / 0.015 -> 0.015; CountPoisson 0.010 -> 0.005 / 0.010 ->
+  0.010; KKGEE 0 -> 0.005 / 0 -> 0; LogBinomial 0.025 -> 0.020 / 0.015 -> 0.020. No class became anti-conservative,
+  so it applies to all ratio pivots. Docs: the two `gcomp-*-two-sided-pval` templates and both g-comp class paragraphs
+  (definition, why, size); a new "Subsampling and m-out-of-n" `@section` in the five generic classes (degenerate rule,
+  80% cap, symmetric p-value, measured size); Rd not regenerated. The generic public method docs live in
+  `inference_all_abstract_non_param_boot.R` (jackknife agent's file) and were not touched. Tests: the symmetric formula
+  in `test-ratio-subsampling-degenerate-draws.R` (41 pass) and `test-gcomp-risk-ratio-subsampling-degenerate-draws.R`
+  (37), and in three bulk references (`test-gcomp-risk-ratio-subsampling-m-out-of-n-pivot-reference.R`,
+  `test-gcomp-incidence-rr-jackknife-and-m-out-of-n-reference.R`,
+  `test-incidence-gcomp-risk-ratio-jackknife-wald-and-subsampling-log-pivot-formulas-reference.R`). Open: the 0.8 cap on
+  the generic paths is not user-settable (owner: later, separate TODO); KK m-out-of-n and LogRegr / KKGEE stay
+  conservative because their small-b pivot is wider than the Wald scale.
+- [x] TODO-231 (added 2026-11-19, coordinator; from the v1.0.6-TODO-4 agent; DONE 2026-11-20 except item (2), the canonical-CSV regeneration, which needs an owner build of EDI first): **Stratified jackknife follow-ups.**
   (1) OWNER DECISION: TODO-4 applies Wolter's JKn formulas to reweighting-equivalent replicates
   theta* = theta-hat + r_h (theta_(h,i) - theta-hat), r_h = n_h(N-1)/(N(n_h-1)), because EDI's replicates are unweighted
   subset refits and the literal (n_h-1)/n_h weight undercovers on SPBR (0.89-0.93 vs 0.92-0.96). Confirm, or switch to the
@@ -4514,7 +4628,23 @@ itself still needs a look.
   jackknife-Wald z 0.930, with t(sum_h (n_h-1) ~ 31 df) 0.943; mean SE 0.078 = SD 0.078; bias negligible
   (4e-4); literal (n_h-1)/n_h 0.915. So no SE bias: the shortfall is the z reference at ~31 df plus SE noise (MC SE
   0.012). OWNER DECISION if wanted: t reference with df = sum_h (n_h - 1) for stratified units (changes results).
-- [ ] TODO-232 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-218 agent's 1200-dataset sweep): **Small ZIP
+  Owner decisions 2026-11-20 applied (agent E, uncommitted; R only). (1) KEEP the bias formula; the caveat (equals the
+  ordinary (N-1)(theta_bar - theta_hat), can over-correct nonlinear estimators when strata differ) is now in the
+  roxygen of the public methods compute_jackknife_bias_estimate() / compute_jackknife_estimate() / the jackknife-Wald
+  p-value and CI, as well as the class Formulas section. (5) DONE: ObservationalDesignBlocks with fewer than
+  EDI_JACKKNIFE_MIN_DELETION_UNITS (5) blocks resolves "auto" to "observation_within_block" (blocks as strata), else
+  "block"; explicit units unchanged; documented in the design's roxygen (new Jackknife paragraph) and the class
+  Deletion units list. (6) DONE: stratified units ("permuted_block", "observation_within_block") use t with
+  df = sum_h (n_h - 1) for the jackknife-Wald p-value and CI (compute_jackknife_summary() now carries df; Inf for every
+  other unit, which keeps pnorm/qnorm bit for bit); also the risk-ratio log-scale jackknife-Wald
+  (edi_rr_jackknife_wald_*() in inference_all_abstract_jackknife.R, used by the g-comp classes; no g-comp file edited).
+  Documented in the jackknife methods and in the SPBR, RandomBlockSize, FixedBlocking and ObservationalDesignBlocks
+  docs. Re-measured (fresh seeds, 400 reps, 2 cores, same DGP): EDI's own jackknife-Wald CI coverage 0.955 / 0.960
+  (two 200-rep halves; pooled with the earlier 400 reps the t interval covers 0.950, z 0.940). Remaining: item (2).
+  Owner decisions 2026-11-20: (1) keep the current bias formula, documented in the roxygen; (5) ObservationalDesignBlocks
+  with fewer than 5 blocks deletes one observation within a block; (6) stratified jackknife Wald uses a t reference with
+  df = sum_h(n_h - 1). (5) and (6) assigned to the TODO-231 agent.
+- [x] TODO-232 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-218 agent's 1200-dataset sweep): **Small ZIP
   fits that stop unflagged below the maximum.** 3 of 1197 fits (n 24-40, 2-7 positive counts) end at a worse
   log-likelihood than `pscl::zeroinfl` by 0.17, 1.3 and 6.6 without any flag (e.g. sweep seed 100888: 0.003 vs pscl
   -23.6); the v1.0.6-TODO-152 pscl-start L-BFGS candidate does not catch them. Find why (start, optimizer stop, or a
@@ -4535,18 +4665,43 @@ itself still needs a look.
   often at n = 400. Seed 101057 now: nll 20.1593, estimate -0.164, separation warning. Cost: a ZIP kernel fit
   (primary + candidates) about 1.8x slower at n <= 100 (80 datasets: 1.31 s -> 2.44 s for 5 passes), in every fit
   including resampling replicates. Roxygen "Separated zero-inflation part" in ZIP updated (not roxygenized). Test:
-  `test-zip-sharpened-start-reaches-ridge.R`. Open (OWNER DECISION): 41 of the 96 still stop unflagged at an interior
-  maximum below a ridge; with continuous covariates in the zero formula the ZIP MLE often does not exist at small n.
-  Options: more candidates (all of x5 / x10 / x20 leave 35 of 96, at ~3x cost), a ridge detector (an LP over which
-  zeros can be separated from every positive, then compare the Poisson fit on the rest), or document and recommend a
-  treatment-only zero formula. Sweep: `/tmp/claude-1000/sweep/` (TODO-218) and the TODO-232 agent's `$TMPDIR/t232/`.
-- [ ] TODO-233 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-216 agent; OWNER DECISION, changes results):
+  `test-zip-sharpened-start-reaches-ridge.R`. Remaining: 41 of the 96 still stop unflagged at an interior maximum
+  below a ridge; with continuous covariates in the zero formula the ZIP MLE often does not exist at small n (more
+  candidates: all of x5 / x10 / x20 still leave 35 of 96, at ~3x cost).
+  Decided (owner, 2026-11-19): document now, no more start candidates; the ridge detector (an LP over which zeros can
+  be separated from every positive, then compare the Poisson fit on the rest) is filed by the coordinator as
+  v1.1.0-TODO-258. Done 2026-11-19 (agent, uncommitted): `InferenceCountZeroInflatedPoisson` roxygen gets a "Small samples with
+  covariates in the zero-inflation formula" paragraph (MLE often does not exist; several starts and a warning on the
+  ridge, but about 41 of 602 unflagged sweep fits still stop at a lower interior maximum without a warning; pscl
+  agreement does not rule it out; count estimate only weakly defined on a ridge; recommend `model_formula_zero = ~ 1`,
+  which keeps the treatment), and the `model_formula_zero` @param points to it. Not roxygenized (parse() only). Sweep: `/tmp/claude-1000/sweep/` (TODO-218) and the TODO-232 agent's `$TMPDIR/t232/`.
+- [x] TODO-233 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-216 agent; OWNER DECISION, changes results):
   **Zhang exact CIs can have gaps.** The combined two-sided exact p-value is not monotone in delta and can jump, so in
   about 2.5% of ordinary `InferenceIncidExactZhang` CIs on matching designs (8 of 323 checked) the accepted set has
   gaps, and the bisection returns only the piece around its starting point. Options: report the convex hull of the
   accepted set (conservative, standard for exact CIs), or keep the connected piece and document it. Also: ties at
   p0 = 0.5 within the binomial's 1e-7 tolerance give a narrow accepted window at exactly delta = 0, so some endpoints
   land at about -1e-7. Scripts: /tmp/claude-1000/z216/.
+  Decided (owner): report the convex hull. DONE 2026-11-20 (agent B, R only, no build). Cause: both components are
+  two-sided minimum-likelihood p-values (as in `binom.test`/`fisher.test`) that jump where an outcome ties the observed
+  one, at the known breakpoints delta = (c(x) - c(j)) / (j - x); beyond the outermost breakpoint each is a one-sided tail
+  and falls monotonically. Fix (`inference_helpers_zhang.R`): new `zhang_exact_pval_breakpoints()`,
+  `zhang_ci_hull_endpoint()` (the unchanged bisection from the start point, then a scan of the breakpoints plus a
+  200-point grid out to just past the outermost breakpoint; the farthest accepted scan point is refined by bisection),
+  `zhang_pval_exact_combined_vec()` (vectorised scan p-value; equals the scalar kernels to 6e-15) and
+  `zhang_snap_endpoint()` (an endpoint within 1e-6 of a breakpoint the test accepts, with rejection just past it, is
+  reported at the breakpoint: the p0 = 0.5 endpoints at -1.08e-7/-1.27e-7 are now exactly 0, consistent with the test
+  accepting delta = 0). Serial and parallel paths share it. Docs: class roxygen, the CI template, `@references`
+  Blaker (2000) and Fay (2010) (DOIs checked on Crossref), `REFERENCES.md` [Blaker2000]/[Fay2010], WORDLIST (Rd not
+  regenerated). Evidence: 1200 synthetic KK CIs (seeds 1-200 x alpha 0.05/0.1 x 3 methods): 15 gapped CIs widened, all
+  now containing every grid-accepted point (2e-3 grid), endpoints at p = alpha or a closed jump; all others within
+  1e-6 of before (the snap; 693 bit-identical). 600 Bernoulli-only CIs: no gaps, all within 1e-6. Cost 1.7x (KK) to 2.8x
+  (Bernoulli) the old CI time, max 2 s. Stored rows: replayed 576 dumped comprehensive fits (KK21stepwise pima 200,
+  other KK/BinaryMatch 23, FixedBinaryMatch 353): only 2 change at the stored 3 decimals, KK21stepwise `~.` pima rep 47
+  beta 0 ([-0.384, 1.474] -> [-0.536, 1.474]) and rep 11 beta 0.5 ([-0.430, 1.263] -> [-0.526, 1.263]); regenerated
+  with receipt runs and merged (`--apply`, backups `.pre_slice_merge_20261120T054751Z.bak` / `T055028Z.bak`). No Bernoulli endpoint in the CSV lies within 2e-6 of a 3-decimal rounding boundary, and
+  no Bernoulli gap was seen, so Bernoulli rows were not rerun. Coverage flags of the 2 rows unchanged (TRUE / NA).
+  Test: `testthat_bulk/test-zhang-exact-ci-convex-hull-of-accepted-set.R` (84); existing Zhang tests pass.
 - [x] TODO-234 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-213 agent; OWNER DECISION, changes realized
   allocations): **Treated-count rounding differs between designs.** (1) `DesignFixediBCRD` rounds a .5 tie up (n = 21,
   prob_T = 0.5 gives 11 treated; realized and redraws agree, from one kernel), while `DesignSeqOneByOneiBCRD` uses R's
@@ -4715,3 +4870,54 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   returns half the MLE on one fixture draw.** On draw 27 of the v1.0.6-TODO-205 fixture the class gives 0.0833 while
   the MLE is 0.1666, after the kernel reports converged = FALSE. Check whether a covariate drop or a fallback path
   produces this value, and whether a non-converged fit should return NA with a recorded reason instead.
+- [ ] TODO-268 (added 2026-11-20, agent; found fixing the bulk CI run 44616748908): **`InferenceContinRobustRegr`
+  with `use_rcpp = FALSE` and the default `method = "MM"` returns a silent NA on an exact fit.** On a noise-free
+  y = 3 + 2w (n = 40, one covariate x1 unrelated to y) `MASS::rlm(method = "MM")` errors ("incompatible dimensions",
+  from its S-estimate start), `fit_rlm_model()` returns NULL, and `set_failed_fit_cache()`
+  (`inference_continuous_robust_regr.R` ~L265) caches NA for the estimate with no nonestimable reason and no warning.
+  `method = "M"` and the Rcpp backend both give 2 and `model_standard_error_unavailable` (the SE floor). Fix: record a
+  nonestimable reason (and the usual warning) when every fit attempt fails, or fall back to an M start. The bulk test
+  `test-continuous-robust-regr-se-floor-nonestimable-guard-reference.R` uses `method = "M"` for the rlm backend until
+  then.
+- [ ] TODO-269 (added 2026-11-20, coordinator; owner decision on v1.0.6-TODO-230, "yes, later"): **User-settable usable-draw
+  cap on the generic ratio subsampling / m-out-of-n paths.** v1.0.6-TODO-230 fixed the 0.8 cap for
+  `InferenceIncidLogRegr`, `InferenceIncidKKGEE`, `InferenceIncidModifiedPoisson`, `InferenceIncidLogBinomial` and
+  `InferenceCountPoisson` as the constant `ratio_resampling_min_fraction_usable`. Expose it as
+  `min_fraction_usable_samples` on the generic subsampling / m-out-of-n public methods (in
+  `inference_all_abstract_non_param_boot.R`), as the g-comp RR methods already do, and document it there.
+- [ ] TODO-270 (added 2026-11-20, coordinator; from the v1.1.0-TODO-218 verification): **Permuted-block jackknife with
+  few units per stratum is oversized.** Since 72ea20ba (v1.0.6-TODO-231 (3)) `DesignSeqOneByOneRandomBlockSize`
+  resolves the automatic jackknife unit to "permuted_block", like SPBR. With few permuted blocks per stratum the
+  jackknife-Wald test is too liberal: InferenceCountPoisson, RandomBlockSize, prob_T 0.2, n = 200, `~1` has size
+  0.082 [0.066, 0.101] (16-20 deletion units, 3-4 in the smallest stratum), against 0.055 with the
+  "observation_within_block" unit; SPBR is about 0.061 pooled over 3000 reps. OWNER DECISION 2026-11-20: option (a).
+  In `resolve_jackknife_unit("auto")` (`inference_all_abstract_non_param_boot.R`), when any stratum has fewer than
+  about 5 permuted-block units, use "observation_within_block" (delete one subject within its stratum, Wolter 2007
+  Sec. 4.5) instead. Option (b), a t reference with (units - strata) df, was not taken. Shared code, so it affects every
+  class that uses the automatic unit. Done when: the threshold is a named constant, documented in the jackknife docs
+  and NEWS ("Changes that alter results"), tested, and the RBS / SPBR cells above are nominal within MC error.
+  Status 2026-11-20 (agent, uncommitted; R only, no build). Implemented: `resolve_jackknife_unit("auto")`
+  (`inference_all_abstract_non_param_boot.R`) on SPBR and RandomBlockSize builds the permuted-block layout and returns
+  "observation_within_block" when any stratum has fewer than `EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM` (5L, next
+  to `EDI_JACKKNIFE_MIN_DELETION_UNITS` in `inference_all_abstract_jackknife.R`) units; explicit units unchanged. Also:
+  RandomBlockSize without `strata_cols` can now reach that unit, and its `get_block_ids()` errors ("'length.out' must
+  be of length 1"), so `jackknife_stratified_layout()` puts all subjects in one stratum there (was a silent fall-back
+  to the plain "observation" unit with the normal reference). Cache keys are the resolved unit already
+  (`jackknife_cache_key()`); InferenceCountPoisson's `use_within_block_jackknife_fallback()` needs "block", so it does
+  not fire on these designs (tested). Docs: InferenceJackknife, SPBR, RandomBlockSize, InferenceCountPoisson roxygen
+  + hand-edited Rd (checkRd clean apart from old non-ASCII notes), REFERENCES.md, NEWS. Tests: new
+  testthat_bulk/test-jackknife-auto-unit-few-permuted-blocks-per-stratum-deletes-subjects.R (52 pass; 4 vs 5 blocks
+  on SPBR and RBS, partial-block stratum, random sizes, no strata, Poisson); two SPBR layout tests in
+  test-jackknife-stratified-units-spbr-and-fixed-blocking.R now ask for unit = "permuted_block" explicitly (their
+  fixture has 2-3 blocks per stratum). Related jackknife tests and the call-graph acceptance test pass.
+  Size (null, n = 200, prob_T 0.2, ~1, calibration DGP/seeds; 95% Clopper-Pearson):
+  Poisson RBS reps 1-1500: class 0.050 [0.040, 0.062]; jackknife-Wald auto 0.051 [0.040, 0.063], explicit
+  permuted_block 0.060 [0.049, 0.073]; switch fired in 95% of reps (smallest stratum 2-6 blocks); CI coverage 0.949.
+  Poisson SPBR reps 1001-2000: 0.062 [0.048, 0.079], unchanged (smallest stratum 6-10 blocks, switch never fires;
+  with reps 1-1000 at 0.063 the 2000-rep pool is ~0.062 [0.052, 0.074]); obs_within_block there 0.055 [0.042, 0.071].
+  OLS (InferenceContinOLS) RBS reps 1-1000: jackknife-Wald auto 0.034 [0.024, 0.047] (permuted_block 0.044
+  [0.032, 0.059]); CI coverage 0.966, so slightly conservative, not broken. Note: with the v1.0.6-TODO-231 (6) t
+  reference already in, the permuted-block size on the RBS cell is 0.060, not the 0.082 measured before it.
+  NOT ticked: the RBS cell is nominal, but the SPBR cell stays at ~0.062 (this change does not reach it, since SPBR has
+  8-9 blocks per stratum). OWNER DECISION: accept SPBR at 0.062 (open a TODO per the calibration rule), raise the
+  threshold (e.g. 10 would switch SPBR here too: obs_within_block 0.055), or investigate SPBR separately.

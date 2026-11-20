@@ -125,3 +125,41 @@ test_that("the ordinary bootstrap and additive estimands keep every draw", {
 	set.seed(1)
 	expect_false(any(is.nan(inf_md$approximate_subsampling_distribution_beta_hat_T(B = 40, show_progress = FALSE))))
 })
+
+# v1.0.6-TODO-230 (owner decision 2026-11-20): ratio subsampling / m-out-of-n p-values are
+# symmetric, mean(|pivot| >= |t_obs|); additive estimands keep the equal-tailed 2 * min(.).
+test_that("symmetric centered p-value: formula, floor, and which classes use it", {
+	inf = InferenceIncidLogRegr$new(make_ratio_design(1005, 80), verbose = FALSE)
+	inf$num_cores = 1L
+	priv = inf$.__enclos_env__$private
+	cs = c(-3, -1, -0.5, 0, 0.5, 1, 2.5, 4)
+	expect_identical(priv$resampling_centered_pval(cs, est = 0.25, delta = 0, n_units = 16, symmetric = TRUE),
+		mean(abs(cs) >= 1))
+	expect_identical(priv$resampling_centered_pval(cs, est = 0.25, delta = 0, n_units = 16),
+		2 * min(mean(cs <= 1), mean(cs >= 1)))
+	expect_identical(priv$resampling_centered_pval(cs, est = 10, delta = 0, n_units = 16, symmetric = TRUE), 1 / 8)
+	# End to end on the logistic regression's own draws (cached distribution reused).
+	set.seed(2)
+	p_sub = inf$compute_subsampling_two_sided_pval(B = 199, show_progress = FALSE)
+	set.seed(2)
+	d = inf$approximate_subsampling_distribution_beta_hat_T(B = 199, show_progress = FALSE)
+	est = inf$compute_estimate()
+	n_units = priv$get_exchangeable_units(unit = "auto", resampling_type = NULL)$n_units
+	b = priv$resolve_resampling_size(NULL, n_units, "b")
+	piv = sqrt(b) * (d[is.finite(d)] - est) / sqrt(1 - b / n_units)
+	expect_equal(p_sub, max(1 / length(piv), mean(abs(piv) >= abs(sqrt(n_units) * est))), tolerance = 1e-12)
+	# The risk difference keeps the equal-tailed rule.
+	inf_rd = InferenceIncidGCompRiskDiff$new(make_ratio_design(1005, 80), verbose = FALSE)
+	inf_rd$num_cores = 1L
+	p_rd = inf_rd$.__enclos_env__$private
+	set.seed(2)
+	pv_rd = inf_rd$compute_subsampling_two_sided_pval(B = 99, show_progress = FALSE)
+	set.seed(2)
+	d_rd = inf_rd$approximate_subsampling_distribution_beta_hat_T(B = 99, show_progress = FALSE)
+	est_rd = inf_rd$compute_estimate()
+	n_rd = p_rd$get_exchangeable_units(unit = "auto", resampling_type = NULL)$n_units
+	b_rd = p_rd$resolve_resampling_size(NULL, n_rd, "b")
+	cs_rd = sqrt(b_rd) * (d_rd[is.finite(d_rd)] - est_rd) / sqrt(1 - b_rd / n_rd)
+	t_rd = sqrt(n_rd) * est_rd
+	expect_equal(pv_rd, min(1, max(2 / length(cs_rd), 2 * min(mean(cs_rd <= t_rd), mean(cs_rd >= t_rd)))), tolerance = 1e-12)
+})

@@ -41,7 +41,8 @@
 #' \strong{Which jackknife.} The design-based half uses the automatic deletion
 #' unit of \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. On a blocking
 #' design whose automatic unit is the whole block (= stratum), such as
-#' \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
+#' a \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}
+#' object saved before EDI 1.0.6,
 #' that jackknife is \code{NA} when there are fewer than 5 blocks, which is the
 #' usual case for a design stratified on one or two factors. The class then uses
 #' the stratified delete-1 ("JKn") jackknife instead (\code{unit =
@@ -53,7 +54,11 @@
 #' Without it the class would report the raw Poisson test alone, which is
 #' anti-conservative under overdispersion: with \code{~ 1} on a 4-stratum design
 #' it rejected a true null 17-19\% of the time at a nominal 5\% in a simulation,
-#' against about 3-5\% with the fallback.
+#' against about 3-5\% with the fallback. On
+#' \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}} and current
+#' \code{DesignSeqOneByOneRandomBlockSize} objects the automatic unit is the permuted
+#' block, or this same within-stratum jackknife when any stratum has fewer than 5
+#' permuted blocks (v1.0.6-TODO-270), so no fallback is needed there.
 #'
 #' \strong{Estimand.} Composes
 #' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
@@ -119,6 +124,22 @@
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @section Subsampling and m-out-of-n:
+#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' \emph{degenerate}: a treatment arm whose counts are all zero. Its log rate ratio then sits where the fitter stopped (about \eqn{\pm 20}),
+#' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
+#' \code{approximate_subsampling_distribution_beta_hat_T()} and
+#' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
+#' and is not used. If fewer than 80\% of the \code{B} draws are usable (degenerate and failed draws
+#' both count against it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+#' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
+#' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
+#' \eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at
+#' least as large in absolute value as \eqn{\sqrt{n}(\hat\theta - \delta)}, floored at \eqn{1/B}, rather
+#' than the equal-tailed \eqn{2\min\{\cdot\}}, because at small \eqn{b} the law of a log ratio is skewed
+#' toward the observed effect and the equal-tailed rule doubles the heavy tail. The interval is the basic
+#' (equal-tailed) one. Null size at \eqn{n = 80} (200 data sets, \code{B = 199}, nominal 0.05, before and
+#' after): Wald 0.020; subsampling 0.010 to 0.005, m-out-of-n 0.000 to 0.010; 0.5\% of data sets are \code{NA} by the 80\% rule. The ordinary bootstrap is the better resampling method for this estimand.
 #' @eval rd_small_sample_section("InferenceCountPoisson")
 #' @export
 InferenceCountPoisson = define_inference_class(
@@ -638,6 +659,9 @@ InferenceCountPoisson = define_inference_class(
 		# jackknife, unit = "observation_within_block" (Wolter 2007, Sec. 4.5; see InferenceJackknife), the
 		# same estimator DesignFixedBlocking uses automatically: strata are fixed by the design, so one subject
 		# at a time is deleted and only the within-stratum spread enters the variance.
+		# Since v1.0.6-TODO-231 / v1.0.6-TODO-270 SPBR and RandomBlockSize resolve "auto" to "permuted_block"
+		# or, with fewer than EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM blocks in a stratum, to
+		# "observation_within_block" itself, so the fallback (which needs "block") does not fire on them.
 		design_jackknife_pval = function(delta = 0){
 			jackknife_p = function(unit) tryCatch({
 				# An NA here falls back to the model result, so its v1.0.6-TODO-113 warning is noise.

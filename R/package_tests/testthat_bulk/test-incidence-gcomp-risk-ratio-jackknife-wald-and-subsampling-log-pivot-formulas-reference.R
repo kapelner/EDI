@@ -55,12 +55,13 @@ test_that("resampling pivot: finite positive draws only, centred on log(est) and
 	expect_false(r$ok); expect_identical(r$reason, "resampling_too_few_finite_estimates")
 })
 
-test_that("subsampling p-value: two-sided empirical tail of the centred pivot at sqrt(n) * (log est - log delta), floored at 2/B", {
+test_that("subsampling p-value: symmetric empirical tail of the centred pivot at sqrt(n) * (log est - log delta), floored at 1/B", {
 	f <- mk(sub = grid)
 	cs <- sqrt(50) * grid
 	for (delta in c(1, 1.2, 0.9)) {
 		t_obs <- sqrt(n) * (log(f$est) - log(delta))
-		ref <- min(1, max(2 / 101, 2 * min(mean(cs <= t_obs), mean(cs >= t_obs))))
+		# v1.0.6-TODO-230: symmetric, mean(|pivot| >= |t_obs|), floored at 1/B.
+		ref <- min(1, max(1 / 101, mean(abs(cs) >= abs(t_obs))))
 		expect_equal(f$p$compute_rr_subsampling_two_sided_pval(delta, B = 101, b = 50L), ref, tolerance = 1e-12, info = delta)
 	}
 	expect_true(is.na(f$p$compute_rr_subsampling_two_sided_pval(0, B = 101))); expect_true(is.na(f$p$compute_rr_subsampling_two_sided_pval(-2, B = 101)))

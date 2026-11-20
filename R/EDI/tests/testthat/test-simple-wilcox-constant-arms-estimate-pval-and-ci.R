@@ -22,9 +22,12 @@ test_that("constant arms: estimate is the arm difference on both paths, fit stay
 	expect_equal(inf$compute_estimate(), 1.5)
 	expect_false(inf$is_nonestimable())
 	expect_equal(inf$compute_estimate(estimate_only = TRUE), 1.5)
-	# stats' exact path (which does not error) gives the same location estimate
+	# stats' exact path gives the same location estimate on R >= 4.6. On R 4.5 (oldrel-1, R-CMD-check
+	# 2026-11-19) it errors too ("missing value where TRUE/FALSE needed" in its root search), so
+	# the cross-check runs only where stats can compute it.
 	yT = rep(2.5, sum(obj$w == 1)); yC = rep(1, sum(obj$w == 0))
-	expect_equal(unname(stats::wilcox.test(yT, yC, conf.int = TRUE, exact = TRUE)$estimate), 1.5)
+	ref = tryCatch(unname(stats::wilcox.test(yT, yC, conf.int = TRUE, exact = TRUE)$estimate), error = function(e) NULL)
+	if (!is.null(ref)) expect_equal(ref, 1.5)
 })
 
 test_that("constant arms: p-value matches stats::wilcox.test(exact = FALSE) and is 1 at the HL shift", {

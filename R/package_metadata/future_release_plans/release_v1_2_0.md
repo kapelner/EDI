@@ -1300,3 +1300,144 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   - Done when: with unit weights the weighted refit equals `compute_estimate()` to optimizer tolerance on the existing
     fixtures (conditional and `marginal_mean_diff`), the doc's note on the separate fits is removed, and timings are
     recorded; or the item closes with the numbers.
+- [ ] TODO-251 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `binary-glm-mle#44618445718.1`): **C++ logistic fits in the KK conditional-logit IVWC
+  Bayesian-bootstrap replicate.** `compute_weighted_estimate_ivwc` (`R/EDI/R/inference_incidence_KK_cond_logit.R`, added in
+  v1.0.6-TODO-217) runs two `stats::glm.fit(family = quasibinomial())` fits per draw (discordant-pair differences and
+  reservoir). Swap both for `fast_logistic_regression_weighted_cpp`, taking ssq from the inverse of the returned
+  `fisher_information`, with `glm.fit` kept as the non-convergence fallback and an explicit rank check that keeps the
+  current NULL when rank < p. Low priority: IVWC classes are legacy. Related to the deferred v1.2.0-TODO-213.
+  - Done when: replicates agree with the current ones on the v1.0.6-TODO-217 fixture (log-OR 2.66) and B = 500 draws
+    are timed before and after, or the item closes with the numbers.
+- [ ] TODO-252 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `atkinson-optimal-biased-coin#44618445718.1`): **Atkinson biased coin in imbalance-vector form.** Atkinson's
+  probability depends only on a = z_t' C_t^-1 v_b (C_t = Z'Z over earlier subjects, w-independent; v_b = running sum of
+  treated z_i), so storing g_t = C_t^-1 z_t and h_t = z_t' C_t^-1 z_t per t makes each (draw, t) step O(p) instead of the
+  current per-step LU and full inverse (`generate_permutations_atkinson_internal`, `compute_atkinson_weight_internal` in
+  `R/EDI/src/generate_permutations.cpp`). Track the invertibility quantity s with the recursive-residual update and
+  recompute it only where `indep_cols` changes. Memory drops to O(np). Apply when implementing the catalog's Schur-form
+  plan (v1.0.5 TODO-5 / TODO-3).
+  - Cross-check probabilities against the current kernel and `covadap::DABCD` on random designs, including binary
+    covariates where s can reach 0.
+  - Done when: assignment probabilities match to 1e-12 with fixed seeds and timings are recorded at n = 200, p = 10,
+    B = 501, or the item closes with the numbers.
+- [ ] TODO-253 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `blocking-partition#44618445718.1`): **Clique-equipartition MIP arm in the optimal-blocks
+  reformulation benchmark.** Brixius (2025, revised 2025), "Optimal Matched Block Design for Multi-Arm Experiments",
+  gives an exact clique-based equipartition MIP for the same objective as `solve_optimal_blocks`
+  (`R/EDI/R/design_fixed_optimal_blocks.R`, label-based McCormick MILP, ~79 s per solve at n = 16, B = 4). Add it as a
+  citation on the catalog's label-free clique-partitioning row, and as a written-out arm (y_ij, triangle rows, size rows)
+  in the v1.2.0-TODO-23 benchmark next to the subset DP and the symmetry-broken label model.
+  - Done when: the arm is benchmarked at n in {12, 16, 20, 24}, comparing objective values (not block ids) and solve
+    times, or the item closes with the numbers.
+- [ ] TODO-254 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `bootstrap-confidence-interval#44618445718.1`): **Exact early stopping of the calibrated double
+  bootstrap's inner loop.** `ci_calibrated_bootstrap` (`R/EDI/R/inference_all_abstract_non_param_boot.R`) runs all 51
+  inner refits for every outer resample and grid alpha. Draw the inner replicates in index-seeded chunks and stop once
+  `covered[b]` is settled at every grid alpha still being scored (Nankervis-style bounds), which leaves alpha_adj and the
+  CI bit-identical for a given seed. Implement with the grid hoist of v1.2.0-TODO-23; estimated 2.5-3.5x fewer inner
+  refits on top of the hoist (unmeasured).
+  - Done when: a regression test shows alpha_adj and the CI bit-identical to the full computation for fixed seeds and
+    refit counts are profiled on the benchmark designs, or the item closes with the numbers.
+- [ ] TODO-255 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `monte-carlo-test-inversion-ci#44618445718.1`; rescoped 2026-11-20): **Zhang exact CI: find the inside point (or prove the
+  set empty) from the breakpoints, replacing `zhang_ci_inside_point_grid`.** Already done, not part of this item: v1.0.6-TODO-233 (owner decision) made
+  `InferenceIncidExactZhang`'s exact CI the convex hull of the accepted set (Blaker 2000; Fay 2010; documented in the
+  class roxygen, NEWS and `REFERENCES.md` [Blaker2000]/[Fay2010]), using the closed-form breakpoints of both
+  minimum-likelihood components (`zhang_exact_pval_breakpoints`, `zhang_ci_hull_endpoint` in
+  `R/EDI/R/inference_helpers_zhang.R`), so the endpoints no longer miss an outer piece of a gapped set. Still open: the
+  start point the endpoint searches begin from (`zhang_ci_inside_point`) comes from 3 candidates, `optimize()`, then a
+  2001-point grid plus 5 local refinements (`zhang_ci_inside_point_grid`, v1.0.6-TODO-216). A grid can miss a very
+  narrow accepted window (TODO-233 found one around delta = 0 at p0 = 0.5) and then report the confidence set as empty
+  (`exact_ci_empty_acceptance_set`) when it is not.
+  - Replace the grid with an exact search: the combined p-value at each breakpoint (ties counted, so at least its limit
+    from either side) plus its maximum within each stretch between consecutive breakpoints, where both components are
+    smooth sums over fixed outcome sets. Score the breakpoints with `zhang_pval_exact_combined_vec` (one vectorised
+    call; at most k + S points). The set is empty only if that maximum is at most alpha.
+  - Expected effect: the CI is identical wherever the current search finds an accepted point; where the grid missed a
+    narrow accepted window, the class now returns a CI instead of NA. That is a documented result change (NEWS entry).
+  - Done when: every CI and empty-set verdict matches the current code on the TODO-216/TODO-233 fixtures except the
+    missed-window cases (each listed, with its new CI), and the start-point search is timed before and after; or the
+    item closes with the findings.
+- [ ] TODO-256 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `quantile-rank-regression#44618445718.1`): **Closed-form quantile regression for covariate-free
+  designs.** When the reduced design is [1, w], the fit is two group tau-quantiles (order statistics; weighted quantiles
+  for Bayesian-bootstrap replicates), O(n) per group instead of an LP solve through quantreg on every randomization draw
+  and replicate (`fit_quantile_model`, `compute_estimate_with_bootstrap_weights`, `shared` in
+  `R/EDI/R/inference_continuous_quantile_regr.R`; `compute_estimate_with_bootstrap_weights` in
+  `inference_proportion_quantile_regr.R`). Fall back to the LP when the solution is not unique (tau * n_g an integer, or
+  ties at the cut), unless br's vertex choice is reproduced and tested. Fits with the native quantile kernel plan.
+  - A/B bit-for-bit against `rq.fit(br)` and `rq(weights)` at n = 20-1000, tau in {0.25, 0.5, 0.75}, odd and even group
+    sizes, tied y.
+  - Done when: the fast path matches on all of those and timings are recorded, or the item closes with the numbers.
+- [ ] TODO-257 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `rerandomization-sampling#44618445718.1`): **Exact small-n rerandomization sampler.** When
+  C(n, n_T) is small (n <= ~20-24), enumerate every assignment in revolving-door Gray-code order with an O(p) incremental
+  balance update, keep the acceptable set, then draw r assignments i.i.d. from it with the draw-indexed seeds: the same
+  law as i.i.d. rejection sampling. Dispatch on C(n, n_T) * p against the expected rejection cost. Affects
+  `rerandomization_search_cpp` (`R/EDI/src/rerandomization_helpers.cpp`) and `generate_rerandomized_w_batch` /
+  `generate_one_rerandomized_w` (`R/EDI/R/design_fixed_rerandomization.R`); reuse the DesignFixedOptimal enumeration
+  kernel if it is built (catalog section 12 table (a)).
+  - Benchmark at n = 12-24, p = 2-10, acceptance 1e-1 to 1e-4.
+  - Done when: the sampler's draws are verified uniform on the acceptable set and the dispatch rule is set from the
+    timings, or the item closes with the numbers.
+- [ ] TODO-258 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `rerandomization-sampling#44618445718.2`; OWNER DECISION 2026-11-20: one kernel, documented draw change): **Route every
+  rerandomization path through `rerandomization_search_cpp`.** Today only even n with prob_T = 0.5 uses the C++ kernel
+  (`R/EDI/src/rerandomization_helpers.cpp`: one master seed from R, then a per-candidate `RRng` stream, OpenMP,
+  thread-count-invariant). Odd n and prob_T != 0.5 run in R on R's own `runif()` stream: `generate_rerandomized_w_batch`
+  (`apply(U, 2, order)` per candidate, O(n log n), serial) and `generate_one_rerandomized_w`
+  (`R/EDI/R/design_fixed_rerandomization.R`). Generalize the kernel to any n_T with d = M s (s_i = 1/n_T treated,
+  -1/n_C control, M = L^-1 X' whitened once; abs_sum_diff standardized with the L1 norm), keeping its Fisher-Yates draws,
+  per-draw-index seeding and thread-invariant merging, and delete both R paths.
+  - Owner decision (2026-11-20): ship as a documented default change, not opt-in. Seeded assignments for odd n or
+    prob_T != 0.5 change; their distribution does not. NEWS ("Changes that alter results"): "For odd n or prob_T != 0.5,
+    `DesignFixedRerandomization`'s seeded rerandomized assignments differ from v1.1; their distribution is unchanged."
+    Regenerate every fixture and cross-platform digest pinned to those draws in the same PR. Ship it in the same release
+    as the non-R RNG streams change (`performance_profiling_and_upgrades.md` TODO-149, in v1.2.0-TODO-11), so seeded
+    streams change once in the 1.x line.
+  - Benchmark against the R path at n = 51-501 (odd), p = 5-20, prob_T in {0.3, 0.5}, acceptance 1e-2 to 1e-3.
+  - Done when: both R paths are gone; draws are reproducible across thread counts; a test checks that the accepted
+    assignments are uniform over the acceptable set (n_T fixed, objective below the cutoff) for odd n and prob_T = 0.3;
+    the NEWS entry, regenerated fixtures and timings are in.
+- [ ] TODO-259 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `robust-m-regression#44618445718.1`): **Accelerate the robust-regression M-path IRLS.** The
+  Huber "M" path in `fast_robust_regression_internal` (`R/EDI/src/fast_robust_regression.cpp`) is a plain fixed-point
+  iteration on (beta, MAD scale), up to 26 iterations with outliers at n ~ 20, run in every KK randomization or
+  bootstrap draw. Wrap it in a safeguarded SQUAREM or damped Anderson step that falls back to the plain step when the
+  merit does not decrease; the fixed point is unchanged. Under the robust-regression lane, v1.2.0-TODO-3.
+  - First log iteration counts in KK randomization draws; prototype only if the median is well above ~10.
+  - Done when: iterations, time and |delta beta| are compared against plain IRLS and `MASS::rlm`, or the item closes
+    with the iteration counts.
+- [ ] TODO-260 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `robust-m-regression#44618445718.2`): **Huber-Dutter H-algorithm step for robust regression.**
+  Each IRLS iteration rebuilds X'WX and refactors it (O(np^2 + p^3)) though the OLS start already factored X. The
+  H-algorithm step beta <- beta + (X'X)^-1 X' sigma psi(r / sigma) reuses that factor, O(np + p^2) per iteration, but
+  converges linearly and may need more iterations (Heng, Zhou & Lange, arXiv 2501.02475). Add a catalog O8 row; prototype
+  for method = "M" only if v1.2.0-TODO-3 profiling targets per-iteration cost.
+  - Done when: iterations and time are compared against the current W-algorithm at n ~ 50-1000, p ~ 2-10, or the item
+    closes with the numbers.
+- [ ] TODO-261 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
+  `stereotype-logit-mle#44618445718.1`): **Variable projection for the stereotype logit fit.** For
+  fixed scores gamma the stereotype model is a concave multinomial logit, so the fit reduces to a (K - 2)-dimensional
+  search over gamma. For K = 3, a deterministic 1-D grid over gamma with warm-started concave inner fits
+  (`fast_stereotype_logit_cpp` with `fixed_idx`), then a free polish, gives the global MLE up to grid resolution with no
+  random starts, versus today's up to 9 nonconcave starts (`.stereotype_full_data_multistart`,
+  `.stereotype_multistart_candidates`, `.stereotype_null_refit_multistart` in
+  `R/EDI/R/inference_ordinal_stereotype_logit.R`; about 3% non-global optima at n = 50). The gain is mainly reliability.
+  - Prototype for K = 3 and A/B against the current multistart on the reference fixtures and simulated nulls (NLL
+    attained, beta_T, wall-clock) before considering it for resampling loops.
+  - Done when: it attains an NLL at least as low on every fixture with timings recorded, or the item closes with the
+    numbers.
+- [ ] TODO-262 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44683751221, finding
+  `survival-frailty-copula-mle#44683751221.1`): **Cheaper Hessians for the frailty and Clayton
+  replicate variances.** Since v1.0.6-TODO-132 every IVWC resampling and randomization replicate of the frailty and
+  copula classes computes its own variance by finite differences over all parameters, even when `fixed_idx` pins the
+  two variance-component parameters and only the free block is inverted (`fast_weibull_frailty.cpp` ~L398-408).
+  (1) Difference only the free coordinates in `WeibullFrailtyNormalLikelihood::hessian`,
+  `ClaytonWeibullLikelihood::hessian` and `DepCensTransformLikelihood::hessian`: bit-identical SE, 2(p+2) -> 2p gradient
+  evaluations (frailty) and p+3 -> p+1 (Clayton). (2) Later: a closed-form observed information for the GH frailty
+  likelihood (Louis identity, Pan & Thompson 2003), folded into v1.2.0-TODO-22 with the cluster-total collapse.
+  Reopens the catalog's NEW-fd-hessian row.
+  - Done when: (1) is merged with a test that the SE is bit-identical, and per-replicate time for the frailty IVWC
+    randomization test is benchmarked at n = 50-500 pairs; (2) is decided with those numbers.

@@ -29,7 +29,7 @@ fx <- function(seed = 31L, n = 60L) {
 
 test_that("mismatched X/y row counts throws the dimension-mismatch error", {
 	d <- fx()
-	expect_error(f(d$X, d$y[1:10]), "X and y must have compatible dimensions")
+	expect_error(f(d$X, d$y[1:10]), "y has 10 entries but X has [0-9]+ rows")
 })
 
 test_that("a non-finite value in X throws the X-finite error", {

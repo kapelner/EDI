@@ -2174,9 +2174,13 @@ zero_augmented_zero_part_separation = function(fit, X, y, Xzi, is_hurdle = FALSE
 		info = as.matrix(zero_info)
 		if (nrow(info) != n_zi || ncol(info) != n_zi) return(out)
 	} else {
+		# ZINB has no Hessian export (get_zinb_hessian_cpp was removed in c251e84d; calling it
+		# errored and every ZINB ridge case was reported as separated without this check), so
+		# use the observed information that fast_zinb_cpp() returns with the fit.
 		H = tryCatch(
-			if (isTRUE(is_zinb)) get_zinb_hessian_cpp(X, as.numeric(y), Xzi, params)
-			else get_zero_augmented_poisson_hessian_cpp(X, as.numeric(y), Xzi, params, isTRUE(is_hurdle)),
+			if (isTRUE(is_zinb)) {
+				if (is.null(fit$observed_information)) NULL else -as.matrix(fit$observed_information)
+			} else get_zero_augmented_poisson_hessian_cpp(X, as.numeric(y), Xzi, params, isTRUE(is_hurdle)),
 			error = function(e) NULL
 		)
 		idx = n_cond + seq_len(n_zi)

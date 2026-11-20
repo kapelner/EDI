@@ -285,7 +285,9 @@ Crossref 2026-11-17.)
   the stratified jackknife of the automatic deletion units
   `"permuted_block"` (`DesignSeqOneByOneSPBR`; `DesignSeqOneByOneRandomBlockSize`
   from its recorded blocks, v1.0.6-TODO-231) and
-  `"observation_within_block"` (`DesignFixedBlocking`), centred at the
+  `"observation_within_block"` (`DesignFixedBlocking`; also SPBR and
+  RandomBlockSize when any stratum has fewer than 5 permuted blocks,
+  `EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM`, v1.0.6-TODO-270), centred at the
   stratum mean of the replicates, with bias sum_h (n_h - 1)(theta_bar_h -
   theta_hat). Wolter's replicates reweight the rest of the stratum by
   n_h/(n_h - 1); EDI's subset refits do not, so each replicate's departure

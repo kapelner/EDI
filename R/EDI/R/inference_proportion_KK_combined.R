@@ -200,9 +200,9 @@ InferencePropKKGLMM = R6::R6Class("InferencePropKKGLMM",
 
 			full_res = tryCatch(
 				fast_clogit_plus_glmm_cpp(
-					X_disc = d_sim$X_disc, y_disc = d_sim$y_disc,
-					X_conc = d_sim$X_conc, y_conc = d_sim$y_conc,
-					group_conc = d_sim$group_conc,
+					X_disc_r = d_sim$X_disc, y_disc_r = d_sim$y_disc,
+					X_conc_r = d_sim$X_conc, y_conc_r = d_sim$y_conc,
+					group_conc_r = d_sim$group_conc,
 					has_discordant = d_sim$has_discordant,
 					has_concordant = d_sim$has_concordant,
 					warm_start_params = params_null,
@@ -220,9 +220,9 @@ InferencePropKKGLMM = R6::R6Class("InferencePropKKGLMM",
 				fit_null = function(d2, start = NULL){
 					res = tryCatch(
 						fast_clogit_plus_glmm_cpp(
-							X_disc = d_sim$X_disc, y_disc = d_sim$y_disc,
-							X_conc = d_sim$X_conc, y_conc = d_sim$y_conc,
-							group_conc = d_sim$group_conc,
+							X_disc_r = d_sim$X_disc, y_disc_r = d_sim$y_disc,
+							X_conc_r = d_sim$X_conc, y_conc_r = d_sim$y_conc,
+							group_conc_r = d_sim$group_conc,
 							has_discordant = d_sim$has_discordant,
 							has_concordant = d_sim$has_concordant,
 							warm_start_params = start %||% full_fit_boot$params,

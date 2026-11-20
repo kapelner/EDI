@@ -17,7 +17,9 @@ robust_fixture <- function(seed = 1L, n = 40L, noise_sd = 0) {
 	des$add_all_subjects_to_experiment(X)
 	des$assign_w_to_all_subjects()
 	w <- des$get_w()
-	y <- 3 + 2 * w + 0.5 * X$x1 + if (noise_sd > 0) rnorm(n, sd = noise_sd) else 0
+	# Noise-free y depends on treatment only: with 0.5 * x1 in it the v1.0.6-TODO-158 perfect-predictor
+	# guard drops x1, the fit is no longer exact and the SE floor is never reached.
+	y <- 3 + 2 * w + (if (noise_sd > 0) 0.5 * X$x1 + rnorm(n, sd = noise_sd) else 0)
 	des$add_all_subject_responses(y)
 	des
 }
@@ -25,11 +27,13 @@ robust_fixture <- function(seed = 1L, n = 40L, noise_sd = 0) {
 test_that("a noise-free (exact linear) response collapses the SE below the floor and is marked nonestimable, for both backends", {
 	des <- robust_fixture()
 	for (use_rcpp in c(TRUE, FALSE)) {
-		inf <- InferenceContinRobustRegr$new(des, use_rcpp = use_rcpp, verbose = FALSE)
+		# MASS::rlm's default MM fails on an exact fit and EDI then returns a silent NA
+		# (v1.0.6-TODO-268), so the rlm backend uses method = "M" here.
+		inf <- InferenceContinRobustRegr$new(des, use_rcpp = use_rcpp, method = if (use_rcpp) "MM" else "M", verbose = FALSE)
 		est <- inf$compute_estimate()
-		expect_equal(est, 2, tolerance = 1e-6, info = use_rcpp)  # the point estimate is still reported
-		expect_identical(inf$get_nonestimable_reason(), "model_standard_error_unavailable", info = use_rcpp)
-		expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T), info = use_rcpp)
+		expect_equal(est, 2, tolerance = 1e-6, info = paste("use_rcpp =", use_rcpp))  # the point estimate is still reported
+		expect_identical(inf$get_nonestimable_reason(), "model_standard_error_unavailable", info = paste("use_rcpp =", use_rcpp))
+		expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T), info = paste("use_rcpp =", use_rcpp))
 	}
 })
 

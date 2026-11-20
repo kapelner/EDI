@@ -2,6 +2,43 @@
 
 ## Changes that alter results
 
+* On `DesignSeqOneByOneSPBR` and `DesignSeqOneByOneRandomBlockSize`, when any
+  stratum holds fewer than 5 permuted blocks, the automatic jackknife unit is
+  now one subject within its stratum (`"observation_within_block"`, the
+  stratified delete-1 jackknife of Wolter 2007, Sec. 4.5) instead of the
+  permuted block. With 3-4 blocks in a stratum the permuted-block
+  jackknife-Wald test was too liberal (InferenceCountPoisson on
+  RandomBlockSize, prob_T 0.2, n = 200, `~ 1`: size 0.082 at a nominal 0.05).
+  This changes the automatic jackknife of every class on these designs;
+  `unit = "permuted_block"` still deletes permuted blocks (v1.0.6-TODO-270).
+* Jackknife-Wald tests and intervals on the stratified deletion units
+  (`"permuted_block"`, `"observation_within_block"`: SPBR, RandomBlockSize,
+  FixedBlocking and few-block `ObservationalDesignBlocks`), including the
+  g-computation risk-ratio log-scale jackknife, use the t distribution with
+  sum_h(n_h - 1) degrees of freedom instead of the normal. SPBR incidence
+  coverage at beta 0 rises from about 0.93 to 0.95. Unstratified units are
+  unchanged (v1.0.6-TODO-231).
+
+* Subsampling and m-out-of-n p-values for ratio estimands
+  (`InferenceIncidGCompRiskRatio`, `InferenceIncidKKGCompRiskRatio`,
+  `InferenceIncidLogRegr`, `InferenceIncidKKGEE`, `InferenceIncidModifiedPoisson`,
+  `InferenceIncidLogBinomial`, `InferenceCountPoisson`) are now symmetric: the
+  share of pivot draws with |T*| >= |t|, not twice the smaller tail. At small
+  subsample sizes the log-ratio draws are skewed toward the observed effect, and
+  the equal-tailed rule doubled that tail, so these tests rarely rejected. Null
+  size at n = 80 rose from 0.040 to 0.055 (g-computation RR subsampling) and
+  from 0.015 to 0.045 (KK). Confidence intervals are unchanged (equal-tailed)
+  (v1.0.6-TODO-230).
+
+* `InferenceIncidExactZhang`'s exact confidence interval is now the convex hull
+  of every effect value the combined exact test accepts (Blaker 2000; Fay 2010).
+  The combined p-value is not monotone, and the interval used to be only the
+  accepted piece around the search start, too narrow in about 1-2% of
+  matching-design cases. An endpoint on one of the p-value's jumps is now
+  reported at the jump itself (e.g. exactly 0 instead of -1e-7); other
+  endpoints move by at most 1e-6. The interval takes 1.7-2.8x as long
+  (v1.0.6-TODO-233).
+
 * The g-computation risk-ratio subsampling and m-out-of-n methods now default to
   `min_fraction_usable_samples = 0.8` (was 0.95). Degenerate draws pile up in
   datasets with an extreme log RR-hat, so at 0.95, 9% (subsampling) and 29%
@@ -567,6 +604,10 @@
 
 ## Bug fixes
 
+* `ObservationalDesignBlocks` with fewer than 5 blocks now jackknifes one
+  subject at a time within blocks (treated as strata) instead of leaving out
+  whole blocks, which gave NA (v1.0.6-TODO-231).
+
 * `approximate_subsampling_distribution_beta_hat_T(debug = TRUE)` and the
   m-out-of-n equivalent now mark degenerate ratio draws NaN like the default
   path, and report `num_degenerate` (v1.0.6-TODO-230).
@@ -1033,6 +1074,13 @@
   a `w` the design never drew) (v1.0.6-TODO-154).
 
 ## Documentation
+
+* `InferenceCountZeroInflatedPoisson` documents that at small n with continuous
+  covariates in the zero-inflation formula the ZIP MLE often does not exist (a
+  separated zero-part ridge): some fits can stop at a lower interior local
+  maximum without a warning, and the count-part estimate is only weakly defined
+  on a ridge. A treatment-only zero formula (`model_formula_zero = ~ 1`) is
+  recommended there (v1.0.6-TODO-232).
 
 * The jackknife documentation explains why the stratified jackknife rescales
   EDI's subset refits to Wolter's reweighted replicates, and that its bias

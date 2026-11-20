@@ -410,11 +410,18 @@ InferenceExtExchangeableResamplingUnits = list(
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		resampling_centered_pval = function(centered_scaled, est, delta, n_units, scaling = "sqrt_n"){
+		# symmetric = TRUE (v1.0.6-TODO-230, owner decision 2026-11-20; ratio estimands only):
+		# p = mean(|pivot| >= |t_obs|) instead of the equal-tailed 2 * min(left, right). On the
+		# log-ratio scale the small-b law of the estimate is skewed toward the observed effect,
+		# and the equal-tailed rule doubles that heavy tail.
+		resampling_centered_pval = function(centered_scaled, est, delta, n_units, scaling = "sqrt_n", symmetric = FALSE){
 			centered_scaled = centered_scaled[is.finite(centered_scaled)]
 			if (!length(centered_scaled)) return(NA_real_)
 			tau_n = private$resampling_scaling_factor(n_units, scaling)
 			t_obs = tau_n * (as.numeric(est)[1L] - as.numeric(delta)[1L])
+			if (isTRUE(symmetric)) {
+				return(min(1, max(1 / length(centered_scaled), mean(abs(centered_scaled) >= abs(t_obs)))))
+			}
 			p_raw = 2 * min(mean(centered_scaled <= t_obs), mean(centered_scaled >= t_obs))
 			min(1, max(2 / length(centered_scaled), p_raw))
 		},

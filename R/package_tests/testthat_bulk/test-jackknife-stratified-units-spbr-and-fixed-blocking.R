@@ -57,11 +57,14 @@ test_that("FixedBlocking: the automatic jackknife deletes one subject and pools 
 	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
 	expect_equal(f$inf$compute_jackknife_bias_estimate(), hand$bias, tolerance = 1e-12)
 	expect_equal(f$inf$compute_jackknife_estimate(), theta_hat - hand$bias, tolerance = 1e-12)
-	z <- qnorm(0.975)
+	# v1.0.6-TODO-231: t reference with df = sum_h (n_h - 1) = 3 * 3 on the stratified units.
+	df <- sum(table(f$blk) - 1)
+	expect_equal(df, 9)
+	z <- qt(0.975, df)
 	expect_equal(unname(f$inf$compute_jackknife_wald_confidence_interval()),
 		theta_hat - hand$bias + c(-1, 1) * z * hand$se, tolerance = 1e-12)
 	expect_equal(f$inf$compute_jackknife_wald_two_sided_pval(),
-		2 * pnorm(-abs((theta_hat - hand$bias) / hand$se)), tolerance = 1e-12)
+		2 * pt(-abs((theta_hat - hand$bias) / hand$se), df), tolerance = 1e-12)
 	# Closed forms: v = ((N-1)/N)^2 sum_h n_h/(n_h-1) sum_i (theta_(h,i) - theta_bar_h)^2 and, with no
 	# singleton stratum, bias = (N - 1)(theta_bar - theta_hat).
 	N <- length(loo)
@@ -109,8 +112,10 @@ test_that("FixedBlocking: too few within-stratum degrees of freedom gives NA wit
 
 test_that("SPBR: the deletion units are the permuted blocks; a trailing partial block is merged", {
 	f <- spbr_fixture()
-	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
-	lay <- f$p$jackknife_stratified_layout("auto")
+	# v1.0.6-TODO-270: 2-3 blocks per stratum here, so "auto" deletes single subjects; the permuted-block
+	# layout itself is checked through the explicit unit.
+	expect_identical(f$p$resolve_jackknife_unit("auto"), "observation_within_block")
+	lay <- f$p$jackknife_stratified_layout("permuted_block")
 	keys <- as.character(f$X$s)
 	strata_order <- unique(keys)
 	expected <- list(); expected_strata <- integer(0)
@@ -139,7 +144,7 @@ test_that("SPBR: a stratum with only a partial block is one unit", {
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	des$add_all_subject_responses(rnorm(n))
 	p <- InferenceAllSimpleAverageDiff$new(des)$.__enclos_env__$private
-	lay <- p$jackknife_stratified_layout("auto")
+	lay <- p$jackknife_stratified_layout("permuted_block")
 	b_units <- lay$delete[lay$strata == match("b", unique(as.character(X$s)))]
 	expect_length(b_units, 1L)
 	expect_identical(b_units[[1L]], which(X$s == "b"))
@@ -322,4 +327,60 @@ test_that("FixedBlocking BCa interval uses the stratified acceleration", {
 	fail <- function(reason) c(NA_real_, NA_real_)
 	expect_identical(p$ci_bca(boot, 0.05, est),
 		p$bca_ci_core(boot, 0.05, est, jack, reason_prefix = "bootstrap_bca_", on_failure = fail, strata = strata))
+})
+
+# v1.0.6-TODO-231 (6), owner decision 2026-11-20: the stratified units use t with sum_h (n_h - 1) df;
+# unstratified units keep the normal reference bit for bit.
+test_that("SPBR jackknife-Wald test and interval use t with sum_h (n_h - 1) degrees of freedom", {
+	f <- spbr_fixture(n = 60L, seed = 9L)
+	lay <- f$p$jackknife_stratified_layout("auto")
+	df <- sum(table(lay$strata) - 1)
+	est <- f$inf$compute_jackknife_estimate(); se <- f$inf$compute_jackknife_std_error()
+	expect_equal(unname(f$inf$compute_jackknife_wald_confidence_interval(alpha = 0.1)),
+		est + c(-1, 1) * qt(0.95, df) * se, tolerance = 1e-12)
+	expect_equal(f$inf$compute_jackknife_wald_two_sided_pval(delta = 0.2), 2 * pt(-abs((est - 0.2) / se), df), tolerance = 1e-12)
+	expect_equal(f$p$compute_jackknife_summary("auto")$df, df)
+})
+
+test_that("unstratified jackknife-Wald keeps the normal reference exactly", {
+	set.seed(3)
+	des <- DesignFixedBernoulli$new(n = 30L, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(30L))); des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(30L))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	est <- inf$compute_jackknife_estimate(); se <- inf$compute_jackknife_std_error()
+	expect_identical(inf$.__enclos_env__$private$compute_jackknife_summary("auto")$df, Inf)
+	z <- stats::qnorm(1 - 0.05 / 2)
+	expect_identical(unname(inf$compute_jackknife_wald_confidence_interval()), c(est - z * se, est + z * se))
+	expect_identical(inf$compute_jackknife_wald_two_sided_pval(), 2 * stats::pnorm(-abs(est / se)))
+	# Explicit "block" on a blocking design (unstratified delete-a-group) also stays normal.
+	f <- fixed_blocking_fixture(sizes = c(4L, 4L, 4L, 4L, 4L, 4L))
+	expect_identical(f$p$compute_jackknife_summary("block")$df, Inf)
+})
+
+# v1.0.6-TODO-231 (5), owner decision 2026-11-20.
+obs_blocks_fixture <- function(n_blocks, per = 12L, seed = 2L) {
+	set.seed(seed)
+	n <- n_blocks * per
+	des <- ObservationalDesignBlocks$new(response_type = "continuous", m = rep(seq_len(n_blocks), each = per))
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects(w_precomputed = rep(c(1, 0), n / 2))
+	des$add_all_subject_responses(rnorm(n) + rep(seq_len(n_blocks), each = per))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	inf$num_cores <- 1L
+	list(des = des, inf = inf, p = inf$.__enclos_env__$private)
+}
+
+test_that("ObservationalDesignBlocks: fewer than 5 blocks -> one subject within its block; 5 or more -> the block", {
+	few <- obs_blocks_fixture(3L)
+	expect_identical(few$p$resolve_jackknife_unit("auto"), "observation_within_block")
+	expect_length(few$inf$approximate_jackknife_distribution_beta_hat_T(), 36L)
+	expect_true(is.finite(few$inf$compute_jackknife_wald_two_sided_pval()))
+	expect_equal(few$p$compute_jackknife_summary("auto")$df, 33)
+	# Explicit units still work.
+	expect_length(few$inf$approximate_jackknife_distribution_beta_hat_T(unit = "block"), 3L)
+	many <- obs_blocks_fixture(6L, per = 4L)
+	expect_identical(many$p$resolve_jackknife_unit("auto"), "block")
+	expect_length(many$inf$approximate_jackknife_distribution_beta_hat_T(), 6L)
+	expect_length(many$inf$approximate_jackknife_distribution_beta_hat_T(unit = "observation_within_block"), 24L)
 })

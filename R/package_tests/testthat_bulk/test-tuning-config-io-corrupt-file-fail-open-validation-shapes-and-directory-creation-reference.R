@@ -20,7 +20,7 @@ test_that("directory resolution: override wins, otherwise the R user config dire
 	expect_identical(Z("edi_tuning_config_dir")(), d)
 	expect_identical(Z("edi_tuning_config_path")(), file.path(d, "machine_policies.rds"))
 	expect_identical(Z("EDI_TUNING_CONFIG_FILENAME"), "machine_policies.rds")
-	expect_identical(SCHEMA, 1L)
+	expect_identical(SCHEMA, 2L)  # bumped 1 -> 2 by v1.0.6-TODO-212 (v1 policies are re-tuned)
 })
 
 test_that("write creates missing nested directories, returns the path invisibly, and overwrites an existing file", {
@@ -59,8 +59,9 @@ test_that("read round-trips arbitrary configs, including nested policy diffs", {
 test_that("validate: requires a list with the current schema_version and a list policy_diffs", {
 	v <- Z("edi_tuning_validate_config")
 	expect_true(v(list(schema_version = SCHEMA, policy_diffs = list())))
-	expect_true(v(list(schema_version = 1, policy_diffs = list(a = 1))))               # numeric 1 coerces to integer 1
-	expect_false(v(list(schema_version = 2L, policy_diffs = list())))
+	expect_true(v(list(schema_version = 2, policy_diffs = list(a = 1))))               # numeric 2 coerces to integer 2
+	expect_false(v(list(schema_version = 1L, policy_diffs = list())))                 # a v1 config is stale (v1.0.6-TODO-212)
+	expect_false(v(list(schema_version = 3L, policy_diffs = list())))
 	expect_false(v(list(schema_version = SCHEMA)))                                     # missing policy_diffs
 	expect_false(v(list(policy_diffs = list())))                                       # missing schema_version
 	expect_false(v(list(schema_version = SCHEMA, policy_diffs = "x")))

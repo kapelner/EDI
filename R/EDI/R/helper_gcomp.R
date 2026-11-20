@@ -515,7 +515,8 @@ gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, s
 		if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, paste0(family, "_too_few_finite_estimates"), "estimate")
 		return(NA_real_)
 	}
-	private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
+	# v1.0.6-TODO-230 (owner decision 2026-11-20): symmetric p-value, mean(|pivot| >= |t_obs|).
+	private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n", symmetric = TRUE)
 }
 
 #' @keywords internal

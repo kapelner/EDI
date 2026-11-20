@@ -44,10 +44,17 @@
 #' \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}}; the variance pools the
 #' replicates' spread within strata (the stratified jackknife of Wolter 2007, Sec. 4.5;
 #' formulas in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). Without
-#' \code{strata_cols} all blocks form one stratum. Before EDI 1.0.6 a replicate deleted a
+#' \code{strata_cols} all blocks form one stratum. The jackknife-Wald test and interval use
+#' the t distribution with \eqn{\sum_h (n_h - 1)} degrees of freedom, \eqn{n_h} the number
+#' of blocks in stratum \eqn{h}. Before EDI 1.0.6 a replicate deleted a
 #' whole stratum (2-4 replicates on typical data, so the jackknife was \code{NA}), and a
 #' design object saved before 1.0.6, which has no block record, still does
 #' (v1.0.6-TODO-231).
+#' When any stratum holds fewer than 5 permuted-block units, the automatic unit is one subject
+#' within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
+#' jackknife with subjects as units): with 3-4 blocks in a stratum the permuted-block
+#' jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
+#' \code{unit = "permuted_block"} still deletes permuted blocks.
 #'
 #' @references Efron, B. (1971). "Forcing a sequential experiment to be balanced."
 #'   \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}, for sequential

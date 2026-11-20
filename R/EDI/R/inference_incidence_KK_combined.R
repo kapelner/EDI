@@ -39,6 +39,22 @@
 #' inf = InferenceIncidKKGEE$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @section Subsampling and m-out-of-n:
+#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' \emph{degenerate}: a treatment arm with no events or only events. Its log odds ratio then sits where the fitter stopped (about \eqn{\pm 20}),
+#' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
+#' \code{approximate_subsampling_distribution_beta_hat_T()} and
+#' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
+#' and is not used. If fewer than 80\% of the \code{B} draws are usable (degenerate and failed draws
+#' both count against it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+#' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
+#' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
+#' \eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at
+#' least as large in absolute value as \eqn{\sqrt{n}(\hat\theta - \delta)}, floored at \eqn{1/B}, rather
+#' than the equal-tailed \eqn{2\min\{\cdot\}}, because at small \eqn{b} the law of a log ratio is skewed
+#' toward the observed effect and the equal-tailed rule doubles the heavy tail. The interval is the basic
+#' (equal-tailed) one. Null size at \eqn{n = 80} (200 data sets, \code{B = 199}, nominal 0.05, before and
+#' after): Wald 0.055; subsampling 0.000 to 0.005, m-out-of-n 0.000 before and after (the pivot is wider than the Wald scale at this size); intervals that were \code{NA} (2\% and 10\%) are now finite. The ordinary bootstrap is the better resampling method for this estimand.
 #' @eval rd_small_sample_section("InferenceIncidKKGEE")
 #' @export
 InferenceIncidKKGEE = define_inference_class(

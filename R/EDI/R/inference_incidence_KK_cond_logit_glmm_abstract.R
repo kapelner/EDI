@@ -167,9 +167,9 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			n_params = if (d$has_concordant) ncol(d$X_conc) + 1L else ncol(d$X_disc)
 			fit = tryCatch(
 				fast_clogit_plus_glmm_cpp(
-					X_disc = d$X_disc, y_disc = d$y_disc,
-					X_conc = d$X_conc, y_conc = d$y_conc,
-					group_conc = d$group_conc,
+					X_disc_r = d$X_disc, y_disc_r = d$y_disc,
+					X_conc_r = d$X_conc, y_conc_r = d$y_conc,
+					group_conc_r = d$group_conc,
 					has_discordant = d$has_discordant,
 					has_concordant = d$has_concordant,
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
@@ -283,9 +283,9 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			n_params = ncol(d$X_conc) + 1L # betas + log_sigma
 			fit = tryCatch(
 				fast_clogit_plus_glmm_cpp(
-					X_disc = d$X_disc, y_disc = d$y_disc,
-					X_conc = d$X_conc, y_conc = d$y_conc,
-					group_conc = d$group_conc,
+					X_disc_r = d$X_disc, y_disc_r = d$y_disc,
+					X_conc_r = d$X_conc, y_conc_r = d$y_conc,
+					group_conc_r = d$group_conc,
 					has_discordant = d$has_discordant,
 					has_concordant = d$has_concordant,
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
@@ -726,9 +726,9 @@ clogit_plus_glmm_likelihood_spec = function(private, ctx, include_d = FALSE) {
 			full_fit = private$cached_mod,
 			fit_null = function(delta, start = NULL){
 				fast_clogit_plus_glmm_cpp(
-					X_disc = d$X_disc, y_disc = d$y_disc,
-					X_conc = d$X_conc, y_conc = d$y_conc,
-					group_conc = d$group_conc,
+					X_disc_r = d$X_disc, y_disc_r = d$y_disc,
+					X_conc_r = d$X_conc, y_conc_r = d$y_conc,
+					group_conc_r = d$group_conc,
 					has_discordant = d$has_discordant,
 					has_concordant = d$has_concordant,
 					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start,

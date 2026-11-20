@@ -92,12 +92,14 @@ for (design in "rbs") {
 		expect_gt(jkn$std_error, hand$model_se)                # overdispersion: design SE > Poisson SE
 
 		p_model <- 2 * pnorm(-abs(hand$estimate / hand$model_se))
-		p_jk <- 2 * pnorm(-abs(jkn$jk_estimate / jkn$std_error))
+		# v1.0.6-TODO-231: the stratified jackknife uses t with sum_h (n_h - 1) df.
+		df_jk <- length(f$strata) - length(unique(f$strata))
+		p_jk <- 2 * pt(-abs(jkn$jk_estimate / jkn$std_error), df_jk)
 		expect_equal(inf$compute_asymp_two_sided_pval(), max(p_model, p_jk), tolerance = 1e-6)
 		ci <- unname(inf$compute_asymp_confidence_interval(0.05))
 		z <- qnorm(0.975)
 		ci_model <- hand$estimate + c(-1, 1) * z * hand$model_se
-		ci_jk <- jkn$jk_estimate + c(-1, 1) * z * jkn$std_error
+		ci_jk <- jkn$jk_estimate + c(-1, 1) * qt(0.975, df_jk) * jkn$std_error
 		expect_equal(ci, c(min(ci_model[1], ci_jk[1]), max(ci_model[2], ci_jk[2])), tolerance = 1e-6)
 	})
 }
@@ -124,7 +126,7 @@ test_that("~1 Poisson on a 4-stratum FixedBlocking design uses the stratified ja
 	bias <- (N - 1) * (mean(loo) - hand$estimate)
 	expect_equal(inf$compute_jackknife_estimate(), hand$estimate - bias, tolerance = 1e-8)
 	p_model <- 2 * pnorm(-abs(hand$estimate / hand$model_se))
-	p_jk <- 2 * pnorm(-abs((hand$estimate - bias) / se_jk))
+	p_jk <- 2 * pt(-abs((hand$estimate - bias) / se_jk), N - length(unique(f$strata)))
 	expect_equal(inf$compute_asymp_two_sided_pval(), max(p_model, p_jk), tolerance = 1e-6)
 })
 

@@ -42,6 +42,11 @@ the replicates' spread within strata (the stratified jackknife of Wolter 2007,
 \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A stratum with one block
 contributes nothing. Before EDI 1.0.6 a replicate deleted a whole stratum, which left
 only 2-4 replicates on typical data (v1.0.6-TODO-4).
+When any stratum holds fewer than 5 permuted-block units, the automatic unit is one subject
+within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
+jackknife with subjects as units): with 3-4 blocks in a stratum the permuted-block
+jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
+\code{unit = "permuted_block"} still deletes permuted blocks.
 }
 \examples{
 seq_des = DesignSeqOneByOneSPBR$new(strata_cols = 'x1', n = 6, response_type = 'continuous')

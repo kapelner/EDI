@@ -474,6 +474,19 @@ NULL
 #' no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
 #' \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
 #' whatever usable draws there are.
+#' \strong{The p-value is symmetric} (since v1.0.6-TODO-230): with the pivot draws
+#' \eqn{T^*_j = \sqrt{b}(\log\widehat{RR}^*_j - \log\widehat{RR})} (\eqn{\sqrt{m}} for m-out-of-n) and
+#' \eqn{t = \sqrt{n}(\log\widehat{RR} - \log\delta)}, it is the share of usable draws with
+#' \eqn{|T^*_j| \ge |t|} (at least \eqn{1/B}), not the equal-tailed
+#' \eqn{2\min\{P(T^* \le t), P(T^* \ge t)\}}. At small \eqn{b} the law of \eqn{\log\widehat{RR}^*} is
+#' skewed toward the observed effect: in a data set with an extreme estimate one arm has few events,
+#' so the draws have a heavy tail on the side of \eqn{t} and almost none on the other side, and the
+#' equal-tailed rule doubles that heavy tail. Null size at \eqn{n = 80} (200 data sets, \code{B = 199},
+#' nominal 0.05, Wald 0.055 / 0.050): \code{InferenceIncidGCompRiskRatio} subsampling 0.040 to 0.055 and
+#' m-out-of-n 0.030 to 0.035; \code{InferenceIncidKKGCompRiskRatio} 0.015 to 0.045 and 0.010 to 0.015
+#' (its m-out-of-n pivot is about 15\% wider than the Wald scale, so it stays conservative). The
+#' confidence intervals are unchanged (basic, equal-tailed quantiles of the same pivot), so a
+#' p-value and an interval can disagree at the boundary.
 #' For the risk ratio the ordinary bootstrap
 #' (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 #' is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}

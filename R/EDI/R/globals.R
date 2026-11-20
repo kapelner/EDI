@@ -18,7 +18,9 @@ edi_package_version = function(){
 # bare symbol against its own `data = dat` argument (dat$.cluster__) via NSE.
 # `id` is the same pattern: .kk_rank_regr_aftsrr_seeded() passes `id = id` to
 # aftgee::aftsrr(), which resolves it as the cluster column dat$id.
-utils::globalVariables(c(".wgt__", ".cluster__", "id"))
+# `wt__` likewise: the Bayesian-bootstrap case-weight column passed as `weights = wt__`
+# (v1.0.6-TODO-217), resolved by aftgee::aftsrr() against `data = dat`.
+utils::globalVariables(c(".wgt__", ".cluster__", "id", "wt__"))
 
 # `i`, `j`, `tvar`, `y`, `w` are ompr MILP modeling-DSL symbols used via NSE
 # inside `ompr::add_variable()`/`ompr::add_constraint()`/`ompr::sum_expr()`

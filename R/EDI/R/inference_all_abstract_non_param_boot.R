@@ -1131,14 +1131,35 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				# SPBR deletes one permuted block at a time and DesignFixedBlocking one subject at
 				# a time, both within strata (the stratified jackknife; see
 				# jackknife_stratified_layout() and edi_jackknife_bias_variance()).
-				if (is(design_obj, "DesignSeqOneByOneSPBR")) {
-					"permuted_block"
-				} else if (is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
-					# v1.0.6-TODO-231: the permuted blocks assign_wt() recorded; a design object
-					# without that record (saved before EDI 1.0.6) keeps the old whole-stratum unit.
-					if (is.null(private$jackknife_stratified_layout("permuted_block"))) "block" else "permuted_block"
+				if (is(design_obj, "DesignSeqOneByOneSPBR") || is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
+					# v1.0.6-TODO-231: on RandomBlockSize the permuted blocks assign_wt() recorded; a design
+					# object without that record (saved before EDI 1.0.6) keeps the old whole-stratum unit.
+					pb_layout = private$jackknife_stratified_layout("permuted_block")
+					if (is.null(pb_layout)) {
+						if (is(design_obj, "DesignSeqOneByOneRandomBlockSize")) "block" else "permuted_block"
+					} else if (min(tabulate(pb_layout$strata)) < EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM) {
+						# v1.0.6-TODO-270 (owner decision 2026-11-20): with few permuted blocks in a stratum
+						# the permuted-block jackknife-Wald test is too liberal (RandomBlockSize, Poisson ~1,
+						# prob_T 0.2, n 200, 3-4 blocks in the smallest stratum: size 0.082, against 0.055
+						# deleting one subject at a time), so delete one subject within its stratum instead
+						# (the stratified JKn jackknife of Wolter 2007, Sec. 4.5).
+						"observation_within_block"
+					} else {
+						"permuted_block"
+					}
 				} else if (is(design_obj, "DesignFixedBlocking")) {
 					"observation_within_block"
+				} else if (is(design_obj, "ObservationalDesignBlocks")) {
+					# v1.0.6-TODO-231 (owner decision 2026-11-20): the user's blocks may be matched sets or
+					# clusters (leave-one-block-out) or a few strata, where leave-one-block-out has fewer than
+					# EDI_JACKKNIFE_MIN_DELETION_UNITS units and is NA; then delete one subject at a time,
+					# pooled within blocks as strata.
+					block_ids = tryCatch(design_obj$get_block_ids(), error = function(e) {
+						if (private$is_resampling_control_condition(e)) stop(e)
+						NULL
+					})
+					n_blocks = length(unique(stats::na.omit(as.integer(block_ids))))
+					if (!is.null(block_ids) && n_blocks < EDI_JACKKNIFE_MIN_DELETION_UNITS) "observation_within_block" else "block"
 				} else {
 					"block"
 				}
@@ -1215,6 +1236,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 				return(list(delete = unname(split(seq_len(n), factor(unit_id, levels = seq_len(next_id)))),
 					strata = unit_stratum))
+			}
+			# v1.0.6-TODO-270: a RandomBlockSize design without strata_cols (one stratum, "overall") can now
+			# resolve "auto" here; its get_block_ids() errors, so treat all subjects as one stratum.
+			if (is(design_obj, "DesignSeqOneByOneRandomBlockSize") && is.null(private$des_obj_priv_int$strata_cols)) {
+				return(list(delete = as.list(seq_len(n)), strata = rep.int(1L, n)))
 			}
 			block_ids = tryCatch(
 				design_obj$get_block_ids(),

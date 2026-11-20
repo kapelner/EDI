@@ -487,6 +487,22 @@ IncidenceLogisticLikelihoodSource = list(
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @section Subsampling and m-out-of-n:
+#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' \emph{degenerate}: a treatment arm with no events or only events, or a (quasi-)separated fit (a fitted probability numerically 0 or 1). Its log odds ratio then sits where the fitter stopped (about \eqn{\pm 20}),
+#' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
+#' \code{approximate_subsampling_distribution_beta_hat_T()} and
+#' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
+#' and is not used. If fewer than 80\% of the \code{B} draws are usable (degenerate and failed draws
+#' both count against it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+#' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
+#' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
+#' \eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at
+#' least as large in absolute value as \eqn{\sqrt{n}(\hat\theta - \delta)}, floored at \eqn{1/B}, rather
+#' than the equal-tailed \eqn{2\min\{\cdot\}}, because at small \eqn{b} the law of a log ratio is skewed
+#' toward the observed effect and the equal-tailed rule doubles the heavy tail. The interval is the basic
+#' (equal-tailed) one. Null size at \eqn{n = 80} (200 data sets, \code{B = 199}, nominal 0.05, before and
+#' after): Wald 0.060; subsampling 0.000, m-out-of-n 0.000 before and after; the intervals that were \code{NA} from the extreme-interval cap (25\% and 54\% of data sets) are now finite. These tests stay conservative because at \eqn{b = 21} the spread of the subsample log odds ratio is about 1.5 times what the \eqn{\sqrt{b}} scaling assumes. The ordinary bootstrap is the better resampling method for this estimand.
 #' @eval rd_small_sample_section("InferenceIncidLogRegr")
 #' @export
 InferenceIncidLogRegr = define_inference_class(

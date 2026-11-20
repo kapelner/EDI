@@ -146,6 +146,15 @@ OrdinalOrderedProbitLikelihoodSource = list(
 #' cutpoints assumption (a single \eqn{\beta_T} shared across all cutpoints)
 #' in addition to the usual latent-normal-index assumption.
 #'
+#' A response with fewer than two observed levels has no cutpoints to fit, so
+#' the estimate (and every test and interval built on it) is \code{NA}.
+#' Bootstrap and other resampling draws whose response has a single level are
+#' unusable and are dropped from the resampling distribution, as for
+#' \code{\link[EDI:InferenceOrdinalCauchitRegr]{InferenceOrdinalCauchitRegr}}
+#' and \code{\link[EDI:InferenceOrdinalCloglogRegr]{InferenceOrdinalCloglogRegr}}.
+#' (Before v1.0.6 this class returned an estimate of 0 in that case, and such
+#' draws entered the bootstrap distribution as exact zeros.)
+#'
 #' @references McCullagh, P. (1980). "Regression Models for Ordinal Data."
 #'   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
 #'   109-127, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the cumulative-link

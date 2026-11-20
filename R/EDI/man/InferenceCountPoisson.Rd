@@ -45,7 +45,8 @@ when robustness to Poisson equidispersion failure is required.
 \strong{Which jackknife.} The design-based half uses the automatic deletion
 unit of \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}. On a blocking
 design whose automatic unit is the whole block (= stratum), such as
-\code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
+a \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}
+object saved before EDI 1.0.6,
 that jackknife is \code{NA} when there are fewer than 5 blocks, which is the
 usual case for a design stratified on one or two factors. The class then uses
 the stratified delete-1 ("JKn") jackknife instead (\code{unit =
@@ -57,7 +58,11 @@ randomized within them. This is the estimator
 Without it the class would report the raw Poisson test alone, which is
 anti-conservative under overdispersion: with \code{~ 1} on a 4-stratum design
 it rejected a true null 17-19\% of the time at a nominal 5\% in a simulation,
-against about 3-5\% with the fallback.
+against about 3-5\% with the fallback. On
+\code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}} and current
+\code{DesignSeqOneByOneRandomBlockSize} objects the automatic unit is the permuted
+block, or this same within-stratum jackknife when any stratum has fewer than 5
+permuted blocks (v1.0.6-TODO-270), so no fallback is needed there.
 
 \strong{Estimand.} Composes
 \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}

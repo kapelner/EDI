@@ -18,8 +18,18 @@
 #'     one permuted block (\code{"permuted_block"}), as recorded when the design drew it
 #'     (block sizes are random), with the same rule for a stratum's trailing unfilled block;
 #'     a design object saved before EDI 1.0.6 has no such record and uses \code{"block"};
+#'   \item on both of these designs, when any stratum holds fewer than 5 permuted-block
+#'     units, one subject grouped by its stratum (\code{"observation_within_block"})
+#'     instead: with 3-4 blocks in a stratum the permuted-block jackknife-Wald test
+#'     rejected a true null too often (size 0.082 at a nominal 0.05, against 0.055
+#'     deleting single subjects; v1.0.6-TODO-270);
 #'   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
 #'     grouped by its stratum (\code{"observation_within_block"});
+#'   \item \code{\link[EDI:ObservationalDesignBlocks]{ObservationalDesignBlocks}}: one whole
+#'     block (\code{"block"}, right for matched sets and clusters) when there are at least
+#'     5 blocks; with fewer, one subject grouped by its block as a stratum
+#'     (\code{"observation_within_block"}), since leave-one-block-out would have too few
+#'     units (v1.0.6-TODO-231);
 #'   \item other blocking designs: one whole block (\code{"block"});
 #'   \item all other designs: one subject (\code{"observation"}).
 #' }
@@ -69,9 +79,14 @@
 #' the within-stratum spread of the replicates enters the variance. A stratum with a
 #' single unit contributes nothing to either sum. The bias-corrected jackknife estimate is
 #' \eqn{\hat\theta} minus the bias, and the jackknife-Wald test and interval use it with
-#' the jackknife standard error and the normal reference. They are \code{NA} when the
-#' variance has fewer than 4 degrees of freedom (\eqn{G - 1}, or
-#' \eqn{\sum_h (n_h - 1)} for the stratified units).
+#' the jackknife standard error. The reference distribution is the normal for the
+#' unstratified units and, since EDI 1.0.6, the t distribution with
+#' \eqn{\sum_h (n_h - 1)} degrees of freedom (the degrees of freedom of the stratified
+#' variance) for the stratified units \code{"permuted_block"} and
+#' \code{"observation_within_block"} (v1.0.6-TODO-231: on SPBR with about 31 degrees of
+#' freedom the normal-reference 95\% interval covered 0.930 and the t interval 0.943).
+#' They are \code{NA} when the variance has fewer than 4 degrees of freedom
+#' (\eqn{G - 1}, or \eqn{\sum_h (n_h - 1)} for the stratified units).
 #'
 #' Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
 #' block, which on these designs is the stratum, so a replicate deleted a whole stratum
@@ -122,6 +137,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		#'
 		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+		#' The estimate is the full-data estimate minus
+		#' \code{$compute_jackknife_bias_estimate()}; see that method for a caveat on the
+		#' stratified units (\code{"permuted_block"}, \code{"observation_within_block"}).
 		#'
 		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
 		#'   \code{"block"}, \code{"cluster"}, \code{"pair"}, \code{"matched_set"},
@@ -138,6 +156,19 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			val
 		},
 		#' @description Computes the jackknife bias estimate.
+		#'
+		#' Unstratified units: \eqn{(G - 1)(\bar\theta - \hat\theta)}. Stratified units
+		#' (\code{"permuted_block"}, \code{"observation_within_block"}): the stratified
+		#' jackknife bias \eqn{\sum_h (n_h - 1)(\bar\theta^*_h - \hat\theta)} (Jones 1974;
+		#' Wolter 2007, Sec. 4.5) applied to EDI's leave-unit-out refits rescaled to their
+		#' first-order reweighted equivalents. That rescaling is exact enough for the variance
+		#' but not for this second-order quantity: the result equals the ordinary
+		#' \eqn{(N - 1)(\bar\theta - \hat\theta)}, which also counts the spread of the outcome
+		#' between strata. It is 0 for a difference in means; for a nonlinear estimator
+		#' (log odds ratio, log hazard ratio, ...) with strongly different strata it can be
+		#' too large (in simulations up to about 0.4 standard errors), and so can the shift of
+		#' \code{$compute_jackknife_estimate()} and of the jackknife-Wald interval centre.
+		#' See \strong{Formulas} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#'
 		#' @param unit Deletion unit. Default `\"auto\"`.
 		#'
@@ -174,6 +205,10 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		#'
 		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+		#' The reference distribution is the normal, except for the stratified units
+		#' (\code{"permuted_block"}, \code{"observation_within_block"}), which use t with
+		#' \eqn{\sum_h (n_h - 1)} degrees of freedom (EDI 1.0.6). The statistic is centred at
+		#' the bias-corrected estimate; see \code{$compute_jackknife_bias_estimate()}.
 		#'
 		#' @param delta Null treatment-effect value. Default 0.
 		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
@@ -202,13 +237,18 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				return(NA_real_)
 			}
 			theta_j = as.numeric(jack_summary$estimate)[1L]
-			2 * stats::pnorm(-abs((theta_j - delta) / se_j))
+			edi_jackknife_wald_pval((theta_j - delta) / se_j, jack_summary$df)
 		},
-		#' @description Computes a normal-approximation confidence interval using the
-		#'   jackknife estimate and jackknife standard error.
+		#' @description Computes a Wald confidence interval using the jackknife estimate
+		#'   and jackknife standard error.
 		#'
 		#' The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 		#' \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+		#' The interval is estimate \eqn{\pm} quantile \eqn{\times} SE with the normal
+		#' quantile, except for the stratified units (\code{"permuted_block"},
+		#' \code{"observation_within_block"}), which use the t quantile with
+		#' \eqn{\sum_h (n_h - 1)} degrees of freedom (EDI 1.0.6). It is centred at the
+		#' bias-corrected estimate; see \code{$compute_jackknife_bias_estimate()}.
 		#'
 		#' @param alpha Significance level. Default 0.05.
 		#' @param unit Deletion unit: \code{"auto"} (default, design-aware), \code{"observation"},
@@ -243,7 +283,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				return(ci)
 			}
 			theta_j = as.numeric(jack_summary$estimate)[1L]
-			z = stats::qnorm(1 - alpha / 2)
+			z = edi_jackknife_wald_quantile(alpha, jack_summary$df)
 			ci[] = c(theta_j - z * se_j, theta_j + z * se_j)
 			ci
 		}
@@ -365,7 +405,10 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
-			summary = list(estimate = theta_j, bias = bias_j, std_error = se_j, distribution = jack)
+			# v1.0.6-TODO-231 (owner decision 2026-11-20): the stratified units' Wald test and interval
+			# use t with sum_h (n_h - 1) degrees of freedom; every other unit keeps the normal (df = Inf).
+			df_j = if (is.null(jack_strata)) Inf else edi_jackknife_effective_units(n_units, jack_strata) - 1L
+			summary = list(estimate = theta_j, bias = bias_j, std_error = se_j, distribution = jack, df = df_j)
 			private$cached_values$jackknife_summary[[cache_key]] = summary
 			summary
 		}
@@ -385,6 +428,18 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 # (Cameron & Miller 2015; Bell & McCaffrey 2002) draws the line at about 5
 # units. Fewer than 5 is therefore NA; 5 or more is unchanged.
 EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
+
+# v1.0.6-TODO-270 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and
+# DesignSeqOneByOneRandomBlockSize the automatic jackknife unit is the permuted
+# block only when every stratum holds at least this many permuted-block units;
+# otherwise resolve_jackknife_unit("auto") deletes one subject within its stratum
+# ("observation_within_block", the stratified JKn jackknife of Wolter 2007,
+# Sec. 4.5). With 3-4 blocks in the smallest stratum the permuted-block
+# jackknife-Wald test was too liberal even with its t reference
+# (InferenceCountPoisson, RandomBlockSize, prob_T 0.2, n 200, ~1: size 0.082
+# [0.066, 0.101], against 0.055 deleting single subjects). 5 matches
+# EDI_JACKKNIFE_MIN_DELETION_UNITS.
+EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM = 5L
 
 # v1.0.6-TODO-4: jackknife bias and variance from the replicate estimates `jack`
 # (theta_(i), one per deletion unit) and the full-data estimate `theta_hat`.
@@ -486,6 +541,19 @@ edi_jackknife_acceleration = function(jack, strata = NULL){
 	}
 	den = 6 * ss^(3/2)
 	if (is.finite(den) && den > 0) num / den else 0
+}
+
+# v1.0.6-TODO-231 (owner decision 2026-11-20): reference distribution of the jackknife-Wald test and
+# interval. df = Inf (every unstratified unit) keeps the normal, with the exact expressions used before
+# (pnorm / qnorm), so those results are unchanged; a finite df (the stratified units, df = sum_h (n_h - 1))
+# uses t_df. With ~31 df on SPBR (n = 148, 4 strata) the z interval covered 0.930 and t_31 0.943.
+edi_jackknife_wald_quantile = function(alpha, df = Inf){
+	df = as.numeric(df %||% Inf)[1L]
+	if (is.finite(df) && df > 0) stats::qt(1 - alpha / 2, df) else stats::qnorm(1 - alpha / 2)
+}
+edi_jackknife_wald_pval = function(stat, df = Inf){
+	df = as.numeric(df %||% Inf)[1L]
+	if (is.finite(df) && df > 0) 2 * stats::pt(-abs(stat), df) else 2 * stats::pnorm(-abs(stat))
 }
 
 # v1.0.6-TODO-4: the unit count compared with EDI_JACKKNIFE_MIN_DELETION_UNITS. With G
@@ -608,7 +676,8 @@ edi_rr_jackknife_log_summary = function(self, private, unit = "auto"){
 	    abs(bias_log) > 2 * se_log) {
 		return(fail("jackknife_extreme_summary"))
 	}
-	list(log_est = log_est, se_log = se_log, reason = NULL)
+	df = if (is.null(jack_strata)) Inf else edi_jackknife_effective_units(n_units, jack_strata) - 1L
+	list(log_est = log_est, se_log = se_log, reason = NULL, df = df)
 }
 
 # Warns (unless the block-size guard already did) for a failed edi_rr_jackknife_log_summary().
@@ -631,7 +700,7 @@ edi_rr_jackknife_wald_two_sided_pval = function(self, private, delta = 1, unit =
 		edi_rr_jackknife_warn(self, private, method, s)
 		return(NA_real_)
 	}
-	2 * stats::pnorm(-abs((s$log_est - log(delta)) / s$se_log))
+	edi_jackknife_wald_pval((s$log_est - log(delta)) / s$se_log, s$df)
 }
 
 edi_rr_jackknife_wald_confidence_interval = function(self, private, alpha = 0.05, unit = "auto"){
@@ -642,7 +711,7 @@ edi_rr_jackknife_wald_confidence_interval = function(self, private, alpha = 0.05
 		edi_rr_jackknife_warn(self, private, "compute_jackknife_wald_confidence_interval()", s)
 		return(ci)
 	}
-	z = stats::qnorm(1 - alpha / 2)
+	z = edi_jackknife_wald_quantile(alpha, s$df)
 	ci[] = exp(s$log_est + c(-1, 1) * z * s$se_log)
 	ci
 }

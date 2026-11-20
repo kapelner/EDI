@@ -152,7 +152,9 @@ InferenceExtPRWSubsampling = list(
 				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
-			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling)
+			# v1.0.6-TODO-230: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
+			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling,
+				symmetric = !is.null(edi_ratio_resampling_degenerate_rule(self, private)))
 		},
 		#' @description Computes a basic PRW subsampling confidence interval.
 		#'

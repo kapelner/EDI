@@ -39,7 +39,8 @@ ref_rr_pval <- function(draws, est, size, n_units, delta) {
 	fin <- draws[is.finite(draws) & draws > 0]
 	cs <- sqrt(size) * (log(fin) - log(est))
 	tobs <- sqrt(n_units) * (log(est) - log(delta))
-	min(1, max(2 / length(cs), 2 * min(mean(cs <= tobs), mean(cs >= tobs))))
+	# v1.0.6-TODO-230: symmetric centered p-value for the ratio pivot.
+	min(1, max(1 / length(cs), mean(abs(cs) >= abs(tobs))))
 }
 
 test_that("m-out-of-n RR interval and p-value match the log-centered reference built from the same draws", {

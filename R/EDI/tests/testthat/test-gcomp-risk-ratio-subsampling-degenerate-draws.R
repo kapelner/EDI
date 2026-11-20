@@ -76,7 +76,7 @@ test_that("RR subsampling drops degenerate draws and the p-value uses the usable
 	n_units = priv$get_exchangeable_units(unit = "auto", resampling_type = NULL)$n_units
 	b = priv$resolve_resampling_size(NULL, n_units, "b")
 	expected = priv$resampling_centered_pval(sqrt(b) * (log(usable) - log(est)), est = log(est), delta = 0,
-		n_units = n_units, scaling = "sqrt_n")
+		n_units = n_units, scaling = "sqrt_n", symmetric = TRUE)  # v1.0.6-TODO-230
 	expect_identical(res$value, expected)
 	expect_length(res$na, 0L)
 	ci = inf$compute_subsampling_confidence_interval(B = 199, show_progress = FALSE)
