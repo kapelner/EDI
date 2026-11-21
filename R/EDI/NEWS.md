@@ -696,6 +696,12 @@
 
 ## Bug fixes
 
+* `InferenceAllSimpleMeanDiffPooledVar`: after a randomization p-value or CI,
+  the asymptotic p-value and CI came back `NA` with no warning, because the
+  randomization path cached the estimate without the per-arm responses the
+  pooled t statistic reads. They are now rebuilt from the data, so the result
+  no longer depends on which procedure ran first (v1.0.6-TODO-293).
+
 * `InferenceIncidBinomialIdentityRiskDiff` / `InferenceIncidLogBinomial`: the
   constrained binomial fitters switch to observed-information Newton steps after
   20 iterations when Fisher scoring is slow near (not on) a mean bound. A fit that
