@@ -1,4 +1,5 @@
 test_file,runtime_tier,estimated_seconds,estimate_source
+R/package_tests/testthat_bulk/test-aa-fork-inference-suite-seeded-runs-reproducible.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-abstract-design-support-assertion-guards.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-abstract-inference-contract-helpers.R,correctness,1,measured_with_30_percent_headroom
@@ -396,6 +397,7 @@ R/package_tests/testthat_bulk/test-gcomp-risk-ratio-resampling-coverage.R,correc
 R/package_tests/testthat_bulk/test-gcomp-risk-ratio-subsampling-m-out-of-n-pivot-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gcomp-rr-resampling-pivot-original-estimate-unavailable-exact-reason-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-gcomp-studentized-bootstrap-standard-errors.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-gee-pairs-singletons-kernel-cluster-size-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gee-pairs-singletons-weighted-kernel-glm-singleton-limit-unit-weights-and-cluster-dropping-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gehan-wilcox-nonzero-delta-not-yet-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -492,6 +494,7 @@ R/package_tests/testthat_bulk/test-inference-hardened-qr-column-dropping-retry-r
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-manifest-cache-populate-clear-lookup-and-registry-parity-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-order-depth-sort-tie-break-and-statuses-filter-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-interval-censored-not-supported-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-likelihood-parameter-layout-live-fits.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-nonestimable-state-thread-policy-and-par-lapply-serial-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,correctness,120,bootstrap
@@ -504,6 +507,7 @@ R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-
 R/package_tests/testthat_bulk/test-inference-registry-capability-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-migration-record-classifiers-counts-and-behavior-record-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-quasi-robust-and-custom-randomization-behavior-records-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-required-packages-registry.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-small-sample-section-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-suite-bootstrap-helper-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-class-predicates-acronym-split-priority-derivation-and-zero-augmented-mle-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -548,6 +552,7 @@ R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-31.R,c
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-32.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-33.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-documented-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-inference-suite-seeded-runs-reproducible.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-supports-capability-argument-validation-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-target-parent-components-and-ancestor-chain-helpers-reference.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-warm-start-state-tiers-and-ci-inversion-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1385,7 +1390,6 @@ R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-aa-fork-inference-suite-seeded-runs-reproducible.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-worker-count-invariance-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-aa-fork-worker-count-invariance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-adj-cat-exp-batch.R,coverage,1,measured_with_30_percent_headroom
@@ -1507,7 +1511,6 @@ R/EDI/tests/testthat/test-gcomp-design-matrix-helpers.R,coverage,1,measured_with
 R/EDI/tests/testthat/test-gcomp-fractional-post-fit-native-result.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gcomp-helper-parity.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gcomp-risk-ratio-subsampling-degenerate-draws.R,coverage,30,bootstrap
-R/EDI/tests/testthat/test-gcomp-studentized-bootstrap-standard-errors.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gcomp-weighted-refit-rejects-diverged-warm-start.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-gee-warm-start.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-gehan-wilcox-fused-martingale.R,coverage,1,measured_with_30_percent_headroom
@@ -1544,15 +1547,12 @@ R/EDI/tests/testthat/test-inference-class-wiring-completeness.R,coverage,30,boot
 R/EDI/tests/testthat/test-inference-dispatch-policy-structure.R,coverage,2.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-factory-transitive-inheritance.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-likelihood-concave-registry.R,coverage,30,bootstrap
-R/EDI/tests/testthat/test-inference-likelihood-parameter-layout-live-fits.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-likelihood-properties-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-migration-harness.R,coverage,1.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-registry-uses-declared-metadata.R,coverage,30,bootstrap
-R/EDI/tests/testthat/test-inference-required-packages-registry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-suite-discovery.R,coverage,3.9,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-suite-param-boot-ci-minimum-B-errors-before-fitting.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-suite-r-and-B-reach-resampling-procedures.R,coverage,30,bootstrap
-R/EDI/tests/testthat/test-inference-suite-seeded-runs-reproducible.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-edge-cases.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-guard.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-inference-typed-guards.R,coverage,30,bootstrap
@@ -1777,6 +1777,7 @@ R/EDI/tests/testthat/test-zip-newton-stall-cold-retry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zip-sharpened-start-reaches-ridge.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zoib-kernel-input-length-validation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zz-mirai-worker-count-invariance-registry.R,coverage,30,bootstrap
+R/package_tests/testthat_bulk/test-aa-fork-inference-suite-seeded-runs-reproducible.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-abstract-design-support-assertion-guards.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-abstract-inference-contract-helpers.R,coverage,1,measured_with_30_percent_headroom
@@ -2174,6 +2175,7 @@ R/package_tests/testthat_bulk/test-gcomp-risk-ratio-resampling-coverage.R,covera
 R/package_tests/testthat_bulk/test-gcomp-risk-ratio-subsampling-m-out-of-n-pivot-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gcomp-rr-resampling-pivot-original-estimate-unavailable-exact-reason-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-gcomp-studentized-bootstrap-standard-errors.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gee-pairs-singletons-kernel-cluster-size-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gee-pairs-singletons-weighted-kernel-glm-singleton-limit-unit-weights-and-cluster-dropping-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gehan-wilcox-nonzero-delta-not-yet-implemented-reference.R,coverage,240,bootstrap
@@ -2270,6 +2272,7 @@ R/package_tests/testthat_bulk/test-inference-hardened-qr-column-dropping-retry-r
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-manifest-cache-populate-clear-lookup-and-registry-parity-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-order-depth-sort-tie-break-and-statuses-filter-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-interval-censored-not-supported-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-likelihood-parameter-layout-live-fits.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-nonestimable-state-thread-policy-and-par-lapply-serial-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,coverage,240,bootstrap
@@ -2282,6 +2285,7 @@ R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-
 R/package_tests/testthat_bulk/test-inference-registry-capability-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-migration-record-classifiers-counts-and-behavior-record-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-registry-quasi-robust-and-custom-randomization-behavior-records-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-required-packages-registry.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-small-sample-section-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-suite-bootstrap-helper-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-class-predicates-acronym-split-priority-derivation-and-zero-augmented-mle-reference.R,coverage,240,bootstrap
@@ -2326,6 +2330,7 @@ R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-31.R,c
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-32.R,coverage,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-case-33.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-run-all-inference-documented-contracts.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-suite-seeded-runs-reproducible.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-supports-capability-argument-validation-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-target-parent-components-and-ancestor-chain-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-warm-start-state-tiers-and-ci-inversion-reference.R,coverage,240,bootstrap

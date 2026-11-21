@@ -62,6 +62,8 @@ SurvivalDepCensTransformSource = list(
 		#' @param weighting_unit_type Unused; accepted for the shared signature.
 		#' @param min_fraction_usable_samples Unused; accepted for the shared signature.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
+			# Same argument checks as the shared method, so a bad delta errors here too.
+			if (should_run_asserts()) assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
 			private$signal_unsupported_procedure("dep_cens_transform_bayesian_bootstrap_not_supported")
 			NA_real_
@@ -77,6 +79,8 @@ SurvivalDepCensTransformSource = list(
 		#' @param min_number_usable_samples Unused; accepted for the shared signature.
 		#' @param weighting_unit_type Unused; accepted for the shared signature.
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			# Same argument checks as the shared method, so a bad alpha errors here too.
+			if (should_run_asserts()) assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
 			private$signal_unsupported_procedure("dep_cens_transform_bayesian_bootstrap_not_supported")
 			ci = c(NA_real_, NA_real_)

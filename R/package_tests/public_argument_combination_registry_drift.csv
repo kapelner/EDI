@@ -2242,6 +2242,8 @@
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::approximate_bootstrap_distribution_beta_hat_T","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::approximate_rand_bootstrap_distribution_beta_hat_T","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::compute_bayesian_bootstrap_confidence_interval","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::compute_bayesian_bootstrap_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::compute_bootstrap_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::compute_gradient_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceSurvivalDepCensTransformRegr::compute_lik_ratio_bartlett_approx_confidence_interval","","registry target has no generated case in current case table"

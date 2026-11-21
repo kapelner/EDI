@@ -2,7 +2,7 @@
 ".normalize_optimizer_algorithm","function","","","","",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "build_cox_data_cache_cpp","function","","","","",3,"dead;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
-"check_package_installed","function","","","","",1,"package_name",FALSE,FALSE,FALSE,TRUE,"",FALSE
+"check_package_installed","function","","","","",1,"package_name",FALSE,FALSE,FALSE,FALSE,"",FALSE
 "clear_local_EDI_optimization","function","","","","",0,"",FALSE,FALSE,FALSE,FALSE,"",FALSE
 "compute_coxph_rand_bootstrap_cpp","function","","","","",6,"dead;delta;i_mat;num_cores;w_mat;y0",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "ContinKKRobustRegrIVWCSource","data","","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",FALSE
@@ -8333,8 +8333,8 @@
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","clone","InferenceSurvivalDepCensTransformRegr","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_asymp_confidence_interval","InferenceSurvivalDepCensTransformRegr","class_local",1,"alpha",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_asymp_two_sided_pval","InferenceSurvivalDepCensTransformRegr","class_local",1,"delta",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_confidence_interval","InferenceSurvivalDepCensTransformRegr","class_local",7,"alpha;B;min_number_usable_samples;na.rm;show_progress;type;weighting_unit_type",FALSE,TRUE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_two_sided_pval","InferenceSurvivalDepCensTransformRegr","class_local",8,"B;delta;min_fraction_usable_samples;min_number_usable_samples;na.rm;show_progress;type;weighting_unit_type",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_confidence_interval","InferenceSurvivalDepCensTransformRegr","class_local",7,"alpha;B;min_number_usable_samples;na.rm;show_progress;type;weighting_unit_type",TRUE,TRUE,TRUE,FALSE,"",TRUE
+"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_two_sided_pval","InferenceSurvivalDepCensTransformRegr","class_local",8,"B;delta;min_fraction_usable_samples;min_number_usable_samples;na.rm;show_progress;type;weighting_unit_type",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bootstrap_confidence_interval","InferenceSurvivalDepCensTransformRegr","class_local",6,"alpha;B;min_number_usable_samples;na.rm;show_progress;type",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bootstrap_confidence_interval_basic","InferenceSurvivalDepCensTransformRegr","class_local",5,"alpha;B;min_number_usable_samples;na.rm;show_progress",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bootstrap_confidence_interval_bca","InferenceSurvivalDepCensTransformRegr","class_local",5,"alpha;B;min_number_usable_samples;na.rm;show_progress",FALSE,TRUE,TRUE,FALSE,"",TRUE
