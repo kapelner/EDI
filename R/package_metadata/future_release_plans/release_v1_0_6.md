@@ -5561,6 +5561,13 @@ were found by reading, not by running a fix.
   should simply be allowed for incidence here (v1.0.6-TODO-110 allowed it for custom statistics). Test: on both
   designs `supports()` and the method agree; the refusal names a class that runs; `type = "Zhang"` on a non-eligible
   design gives the new message. Repro: factorial F1, F2.
+  Investigated 2026-11-21 (agent), needs an owner decision: not changed. The entry's own open question decides the
+  shape of every part: if the plain randomization test at delta = 0 is allowed for incidence on these designs (as
+  v1.0.6-TODO-110 did for custom statistics), parts (1)-(3) reduce to lifting `supports_rand_pval_for_incidence()`'s
+  refusal for delta = 0 and keeping it for nonzero delta, and `supports("randomization_test")` is already right; if it
+  is not allowed, (1) should make `supports()` read `supports_rand_pval_for_incidence()`, (2)/(3) are message changes
+  (name `InferenceIncidExactFisher` / CMH, mention Zhang only on Zhang-eligible designs), and (4) is an article and
+  Rd change. The two branches touch the same lines, so doing either before the ruling would be wasted work.
 
 - [ ] TODO-304 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f3): **On the 2 x 2 main-effect
   design (`DesignFixedBlocking` with 2 blocks) the default BCa bootstrap CI and p-value and every jackknife unit return
@@ -5577,6 +5584,14 @@ were found by reading, not by running a fix.
   v1.0.6-TODO-74's message fix); (4) the help's "the jackknife (resample within blocks)" must match what happens.
   Test: the finding's repro gives a finite default bootstrap CI or a warning whose advice runs; no jackknife message
   points to a unit that also fails. Repro: factorial F3.
+  Investigated 2026-11-21 (agent), needs an owner decision (statistical method): not changed. Part (1) is a choice
+  between computing the BCa acceleration from a leave-one-subject-out jackknife within blocks (which the jackknife
+  currently refuses on blocking designs with blocks of size > 1, `jackknife_block_size_gt_one_unsupported()`, the same
+  refusal as v1.0.6-TODO-74) and falling back to percentile/BC with a warning; both change the default BCa result on
+  blocking designs. Part (2) is in `edi_warn_bca_jackknife_unavailable()` (`inference_all_abstract_non_param_boot.R`
+  ~L2664: "the bootstrap itself resamples only those units"), and parts (2)-(3) depend on the advice chosen for
+  v1.0.6-TODO-74 / -303 (which procedures run for incidence on these designs), so they are best done together after
+  those rulings.
 
 - [x] TODO-305 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f4): **`DesignFixedFactorial`
   accepts a non-integer number of levels (`list(subject = 2.5)`) and runs it as a two-level factor.** No error or
