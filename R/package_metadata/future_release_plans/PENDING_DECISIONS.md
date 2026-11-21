@@ -1,16 +1,17 @@
-# Outstanding owner decisions
+# Pending owner decisions
 
 Every open owner decision in the release TODOs lives here in full: the question, the context, the options with
 their consequences, the evidence and any recommendation. Each has a stable id, `DECISION-v<version>-TODO-<n>`
 (`DECISION-v1.0.6-TODO-294`), named after the TODO that raised it; a TODO with two independent decisions uses
 `...-TODO-<n>a` / `...-TODO-<n>b`. The TODO entry keeps only a pointer line:
 
-`  - Owner decision pending: [DECISION-v1.0.6-TODO-294](DECISIONS.md#DECISION-v1.0.6-TODO-294) (<one-line question>).`
+`  - Owner decision pending: [DECISION-v1.0.6-TODO-294](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-294) (<one-line question>).`
 
-To resolve one: the owner decides; the dated ruling goes into the TODO entry in place of its pointer line; the
-section and its table row are deleted here. Order: releases newest first, and within a release, TODO numbers
-highest first (table and sections alike). Rule: see "Owner decisions go in `DECISIONS.md`" in the repo's
-`CLAUDE.md`.
+To resolve one: the owner decides; the section moves to [COMPLETED_DECISIONS.md](COMPLETED_DECISIONS.md) with the
+ruling, the reasons and the date added; the TODO's pointer line becomes `  - Decided <date> (<who>): <option>; see
+[DECISION-...](COMPLETED_DECISIONS.md#DECISION-...).`; the section and its table row are deleted here. Order: releases
+newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner
+decisions: `PENDING_DECISIONS.md` and `COMPLETED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
 Last updated 2026-11-21.
 

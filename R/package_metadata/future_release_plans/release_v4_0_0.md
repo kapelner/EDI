@@ -56,7 +56,7 @@ depends on it.
   `multivariate_response_modeling.md → TODO-5`;
   requires v2.0.0's Levels 1-2 (`→ TODO-2..4`) and one-`Design`
   named-response architecture to have shipped.
-  - Owner decision pending: [DECISION-v4.0.0-TODO-3](DECISIONS.md#DECISION-v4.0.0-TODO-3) (go or no-go first).
+  - Owner decision pending: [DECISION-v4.0.0-TODO-3](PENDING_DECISIONS.md#DECISION-v4.0.0-TODO-3) (go or no-go first).
 
 ## Standing constraints
 

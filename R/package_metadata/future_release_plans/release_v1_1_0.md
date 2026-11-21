@@ -451,15 +451,15 @@ ticked in their **owning plans**; this list is the release index.
   when decided, check which `estimand` values
   `marginal_estimand_report.md → TODO-3` already landed on so neither
   enum absorbs the other's):
-  - Owner decision pending: [DECISION-v1.1.0-TODO-1](DECISIONS.md#DECISION-v1.1.0-TODO-1) (the ten Phase 0 decisions, in cascade order).
+  - Owner decision pending: [DECISION-v1.1.0-TODO-1](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-1) (the ten Phase 0 decisions, in cascade order).
   ~~11. `local_machine_optimization.md → TODO-1` remaining parts~~ — moved
   to v1.0.0 (2026-08-20, user decision; see `release_v1_0_0.md`'s item 15).
-  ~~12. `randomization_ci_construction_audit.md → TODO-1`~~ — **decided
-      2026-09-06 (user decision: refuse, like the stratified class) and
-      implemented the same day** (see `TODO-17x` below). Cox-family
+  ~~12. `randomization_ci_construction_audit.md → TODO-1`~~ — implemented
+      2026-09-06 (see `TODO-17x` below). Cox-family
       randomization CI on the wrong scale. (A second item, the null
       construction, was withdrawn 2026-09-05: the code already uses
       impute-then-permute, verified by test — see that plan's §B.)
+  - Decided 2026-09-06 (owner): refuse, like the stratified class; see [DECISION-v1.1.0-TODO-1a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-1a).
 - ~~TODO-2: `local_machine_optimization.md → TODO-2`~~ — moved to v1.0.0
   along with the rest of that plan (2026-08-20, user decision; see
   `release_v1_0_0.md`'s item 15). Already shipped in a 1.0.x patch, per
@@ -729,11 +729,9 @@ ticked in their **owning plans**; this list is the release index.
   `uncensored` (R, C++, docs, Python binding), now that left-/
   interval-censoring means `dead` no longer accurately describes the field.
   Wide blast radius (~576 R occurrences, `src/*.cpp`/`*.h`, Python
-  binding). **Scoping decided (2026-08-19, user decision): full rename** —
-  R, C++, and Python binding identifiers/args/columns all renamed from
-  `dead` to `uncensored` (not R-layer-only); no `spec$dead` backward-compat
-  alias — a hard break, since the package is still pre-1.0.0-frozen public
-  API territory for this field. Touched `.cpp`/`.h` files must be
+  binding).
+  - Decided 2026-08-19 (owner): full hard rename in R, C++ and Python, no compat alias; see [DECISION-v1.1.0-TODO-15c](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-15c).
+  Touched `.cpp`/`.h` files must be
   recompiled per this repo's targeted-compile-only rule (never a full
   `R CMD INSTALL`/`pkgbuild::compile_dll()`/`load_all(compile=TRUE)`).
   Additive-adjacent but touches shared survival files, so avoid
@@ -1000,7 +998,7 @@ ticked in their **owning plans**; this list is the release index.
   (`selective_inference_post_selection.md → TODO-7`, unblocked by this
   item). Only the remaining response types (count, proportion, survival,
   ordinal) are left to TODO-9 (its release placement: owner decision
-  pending, [DECISION-v2.0.0-TODO-6h](DECISIONS.md#DECISION-v2.0.0-TODO-6h)).
+  pending, [DECISION-v2.0.0-TODO-6h](PENDING_DECISIONS.md#DECISION-v2.0.0-TODO-6h)).
   **Additive:** a new workflow object beside `InferenceSuite`; no default
   of any existing class changes. Consumes TODO-17z's check results (now `release_v1_3_0.md → TODO-5..6`)
   as assumption gates once both exist; with 17z in v1.2.0 the optional gate
@@ -1287,9 +1285,7 @@ ticked in their **owning plans**; this list is the release index.
   - (7) **`draw_version` (D4):** decision-gated; reproduces earlier
     releases' draws, as R's `RNGversion()` does.
   - **Depends on:** `release_v1_0_5.md → TODO-91, -93, -95`.
-  - **Decision D1 (decided 2026-10-14, implemented in the source tree):**
-    portable build by default for every install, with `EDI_PORTABLE=0` as
-    the opt-in tuned build. See the plan and NEWS.
+  - Decided 2026-10-14 (owner): D1 portable by default, `EDI_PORTABLE=0` opt-in; see [DECISION-v1.1.0-TODO-48](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-48). Implemented in the source tree; see the plan and NEWS.
 
 - [ ] ~~TODO-49~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-31`** (user decision, lighten-1.1.0 pass 2): Batched C++ loop for the custom randomization statistic.
 
@@ -1353,7 +1349,8 @@ ticked in their **owning plans**; this list is the release index.
     drift-workflow run for TODO-7. (TODO-39's gate moved to TODO-61.)
 
 - [ ] TODO-61 (added 2026-10-19 as a bullet of TODO-52, user decision; split into its own TODO 2026-10-22; audit `algorithm_choice_audit.md → TODO-39`, row L): **Cox `ties`: Efron becomes the default, `ties = "breslow"` exposed**
-  - **Owner decision 2026-10-19:** Efron is the default and `ties = "breslow"` stays available (matches `survival::coxph`; more accurate under heavy ties; few users yet, so the default change is cheap now). Not yet implemented: today the kernel is Breslow-only and the R fallbacks are pinned to `ties = "breslow"` (`release_v1_0_5.md → TODO-69`, done, which is the prerequisite).
+  - Decided 2026-10-19 (owner): Efron default, `ties = "breslow"` available; see [DECISION-v1.1.0-TODO-61](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-61).
+  - Not yet implemented: today the kernel is Breslow-only and the R fallbacks are pinned to `ties = "breslow"` (`release_v1_0_5.md → TODO-69`, done, which is the prerequisite).
   - **Scope:**
     1. Efron in `fast_coxph_regression.cpp`: log-likelihood, gradient, Hessian, the neg-ll-only path and the robust sandwich, all on the same form.
     2. A `ties` argument across the Cox family (`"efron"` default, `"breslow"`).
@@ -1900,8 +1897,8 @@ ticked in their **owning plans**; this list is the release index.
     (`todo10_capped_truth_convergence.R`) capped X before matching, so it validated a
     different estimand (pte_example -1.59 vs harness -2.30). Before re-grading, fix
     R7 to match on the full X and rerun its convergence check.
-  - 1.0.5 handling (owner, 2026-10-31): the `~.` arm stays graded against the harness
-    truth and is documented as a known limitation in NEWS. The arm-level exclusion
+  - Decided 2026-10-31 (owner): 1.0.5 keeps grading the `~.` arm, documented as a known limitation; see [DECISION-v1.1.0-TODO-163](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-163).
+  - The arm-level exclusion
     `COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES` (`comprehensive_tests.R`) exists but
     is empty. Expect low-coverage audit findings for this arm until this TODO lands.
   - Scope: do it together with TODO-69 (Firth for the KK-matched Cox classes). Check
@@ -2077,7 +2074,8 @@ ticked in their **owning plans**; this list is the release index.
       ZeroInflatedNegBin, or adjusting for the covariates. Robust score / LR variants (a sandwich-information score
       test, or a Rao-Scott-type LR adjustment by the variance ratio) are an option to share with TODO-174 if wanted.
       No code changed.
-  - **Owner ruling 2026-11-19: inherent (model misspecification), done.** The accepted rows (reason starting `v1.1.0-TODO-216`) stay with that reason. Documented in the class roxygen and `man/InferenceCountZeroInflatedPoisson.Rd` ("Omitted covariates": prefer the sandwich Wald, adjust for covariates, or use ZeroInflatedNegBin), mirroring HurdlePoisson. Robust (sandwich-information) score / LR variants, optional, go with v1.1.0-TODO-174, which has the same cause.
+  - Decided 2026-11-19 (owner): inherent (model misspecification), done; see [DECISION-v1.1.0-TODO-216](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-216).
+  - The accepted rows (reason starting `v1.1.0-TODO-216`) stay with that reason. Documented in the class roxygen and `man/InferenceCountZeroInflatedPoisson.Rd` ("Omitted covariates": prefer the sandwich Wald, adjust for covariates, or use ZeroInflatedNegBin), mirroring HurdlePoisson. Robust (sandwich-information) score / LR variants, optional, go with v1.1.0-TODO-174, which has the same cause.
 
 - [x] TODO-217 (added 2026-11-19, owner; opened for accepted calibration rows): **`InferenceCountZeroInflatedNegBin`: Wald / score / LR / gradient oversized at n = 50.**
   - Why: campaign 2026-11-15-e36c7710 (screening stage, 1000 replicates, waves 12-14): 215 flags at n = 50 on all 19 designs that run it, prob_T 0.2 and 0.5, both formulas; size and 1 - coverage 0.134-0.230, worst for score with `~.` (0.18-0.23), then Wald `~.` (0.15-0.20). None at n = 200 or 1000 except one `~1` score cell at n = 1000 (0.080). Small-sample: a zero-inflation logit plus a NegBin dispersion is many parameters for 50 subjects, and the dispersion is weakly identified.
@@ -2091,7 +2089,8 @@ ticked in their **owning plans**; this list is the release index.
     - Effect on size, class-level `compute_rand_two_sided_pval()` (r = 501): n = 50 `~.`, same 400 datasets: 0.082 before the fix vs 0.045 after (NegBin 0.045, ZIP 0.068 / 0.055). n = 200 `~1`: 0.058-0.060 both before and after (600 and 400 reps; the fix changed the p-value in 299 of 400 reps but not the size). A kernel-level emulation with 200 draws compared the three warm-start policies. n = 200 `~1`, 400 reps: chained 0.072, anchored 0.043, guarded 0.045. n = 1000 `~1`, 300 reps: 0.050 / 0.030 / 0.030. So the campaign's `~1` flags at n = 200 and 1000 fit the e36c7710 chaining (v1.0.6-TODO-30's c28bbb34 gate and v1.0.6-TODO-61 removed it). The n = 50 `~.` flags persist on the current tree and are fixed here. Re-check every n on the confirmation stage at a post-fix sha.
     - Fix (R only, no rebuild): `fast_zinb_cpp_guarded()` and `zinb_neg_loglik_r()` at the end of `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R`. All five ZINB `fast_zinb_cpp()` calls in that file now go through the guard: the full fit, the randomization statistic, the likelihood-test null fits and the parametric-bootstrap full and null fits. A suspect fit is one at the zi boundary, with a zi coefficient beyond +-10, with a gradient norm above 1e-5, or not converged. If the data have zeros and no zi coefficient is fixed, a suspect fit is refit with L-BFGS from the same start and from the cold start, and the lowest-nll fit is kept. Blast radius: ZINB only (ZIP, Hurdle and ZOIB do not call it). The root fix belongs in C++: both acceptance paths should compare nll against an interior refit before accepting. Not built here.
     - A known test changed meaning: `test-count-classes-estimates-match-glm-nb-and-pscl-and-zinb-kernel-reference.R` expected the "no excess zeros" fit to equal glm.nb, but that was the spurious boundary fit. pscl's interior MLE has a lower nll (367.4735 vs 367.5391), and the class now matches pscl. That test was updated. Regression test: `R/package_tests/testthat_bulk/test-zinb-spurious-zero-inflation-boundary-refit.R` (fails before the fix, passes after).
-  - **Owner ruling 2026-11-19 on (a): inherent (small-sample degeneracy at n = 50, not a code bug).** The accepted rows (reason starting `v1.1.0-TODO-217`) stay with that reason. Documented in the class roxygen and `man/InferenceCountZeroInflatedNegBin.Rd` ("Many covariates in small samples": adjust for fewer covariates or prefer the LR test at small n), in the same way as v1.1.0-TODO-216. Part (b), the randomization-test bug, moved to v1.0.6-TODO-222; this TODO is done once that is tracked there.
+  - Decided 2026-11-19 (owner): part (a) inherent (small-sample degeneracy at n = 50); see [DECISION-v1.1.0-TODO-217](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-217).
+  - The accepted rows (reason starting `v1.1.0-TODO-217`) stay with that reason. Documented in the class roxygen and `man/InferenceCountZeroInflatedNegBin.Rd` ("Many covariates in small samples": adjust for fewer covariates or prefer the LR test at small n), in the same way as v1.1.0-TODO-216. Part (b), the randomization-test bug, moved to v1.0.6-TODO-222; this TODO is done once that is tracked there.
 
 - [ ] TODO-218 (added 2026-11-19, owner; opened for accepted calibration rows): **`InferenceCountPoisson` `~1`: every model-based test oversized on the blocking designs (FixedBlocking, SeqOneByOneSPBR, SeqOneByOneRandomBlockSize); cause unknown.**
   - Why: campaign 2026-11-15-e36c7710 (screening stage, 1000 replicates): Wald, score, LR and gradient with `~1` have size and 1 - coverage 0.078-0.106 at n = 200 and 1000, prob_T 0.2 and 0.5, on those three designs only (64 flags). The `~.` cells are nominal there.
@@ -2104,8 +2103,9 @@ ticked in their **owning plans**; this list is the release index.
     - Leads ruled out. Allocation is exact: n = 200 treated 100.0 (sd 0.7-1.1), per-stratum share 0.49-0.51; prob_T 0.2 gives 40.0 treated, share 0.19-0.21; n = 1000 FixedBlocking 500.0, share 0.499-0.501. The strata are the intended x4 x x5 (4 block ids), and no block variable enters the `~1` fit (EDI estimate and SE equal `glm(y ~ w, poisson)`). QuasiPoisson Wald (0.033-0.056) and RobustPoisson Wald (0.035-0.058) are nominal on the same cells in the campaign CSV, and so is rand (0.040-0.061).
     - Fix (`R/EDI/R/inference_count_poisson.R`): new private `design_stratified_jackknife()`. When the automatic jackknife p-value or CI is NA, the design is blocking with auto unit `"block"` and 2-4 blocks, and the estimand is `"conditional"`, the class falls back to the stratified delete-1 jackknife (Shao & Tu 1995 sec. 6.2): delete-1 refits with `fast_poisson_regression_cpp`, variance pooled within blocks, Wald centred at the full estimate, cached per object. `design_jackknife_pval()` and `design_jackknife_ci()` use it. Nothing else changes: unstratified designs, designs with 5 or more blocks, cluster and matching designs, the marginal estimands, and other classes (only this class has the guard) behave as before. No seeded design draws change.
     - Test: `R/package_tests/testthat_bulk/test-count-poisson-stratified-jackknife-guard-few-strata.R` (FixedBlocking and SPBR with 4 strata, exact match to a closed-form stratified jackknife; fallback off on iBCRD, on 8 blocks and for `marginal_mean_diff`): 23 pass. Under `load_all(compile = FALSE)` these also pass: the two existing count-poisson guard/refit tests, count-likelihood-families-focused (855 pass), marginal-estimand SE consistency, recorded-na-reason-warns, procedure-failure-keeps-wald-state, blocking-strata-in-design-formula-bca-jackknife.
-    - Still open: (1) re-run the campaign cells (all 64 flags) on the fix, then prune the accepted rows; (2) Bernoulli / SeqOneByOneBernoulli `~1` at 0.065-0.076 is the delete-1 jackknife-Wald's own small anti-conservatism (0.071 under every variant at n = 1000), not this bug; tracked as v1.1.0-TODO-219; (3) owner decision pending: [DECISION-v1.1.0-TODO-218](DECISIONS.md#DECISION-v1.1.0-TODO-218) (should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit?).
-  - **Owner ruling 2026-11-19: fix accepted.** Reworked the same day to reuse the shared estimator instead of a private copy. v1.0.6-TODO-4 (committed 5bdb9dfb) had already moved DesignFixedBlocking to the stratified delete-1 unit `"observation_within_block"` and SPBR to `"permuted_block"`, so the gap left is blocking designs whose automatic unit is still `"block"` (DesignSeqOneByOneRandomBlockSize and the other blocking designs). `design_jackknife_pval()` / `design_jackknife_ci()` now retry the shared jackknife with `unit = "observation_within_block"` (Wolter 2007, Sec. 4.5, with EDI's reweighting scaling) when the automatic jackknife is NA there and the design has at least 2 blocks (private `use_within_block_jackknife_fallback()`); the private `design_stratified_jackknife()` is gone. Because the shared jackknife refits under the active estimand, the fallback now also covers the marginal estimands. Documented in NEWS ("Changes that alter results"), the class roxygen and `man/InferenceCountPoisson.Rd` ("Which jackknife", with the Wolter reference) and REFERENCES.md. Test `test-count-poisson-stratified-jackknife-guard-few-strata.R` rewritten to the Wolter JKn formula (23 pass); the stubs in `test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R` now take `unit` (26 pass). Still open: re-run the 64 campaign cells on this code, then prune the accepted rows; the agent's simulated sizes used the unscaled formula, which differs from the shared one by a factor of about (n_h/(n_h - 1))^2 in the variance, negligible at these stratum sizes.
+    - Still open: (1) re-run the campaign cells (all 64 flags) on the fix, then prune the accepted rows; (2) Bernoulli / SeqOneByOneBernoulli `~1` at 0.065-0.076 is the delete-1 jackknife-Wald's own small anti-conservatism (0.071 under every variant at n = 1000), not this bug; tracked as v1.1.0-TODO-219; (3) owner decision pending: [DECISION-v1.1.0-TODO-218](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-218) (should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit?).
+  - Decided 2026-11-19 (owner): fix accepted; see [DECISION-v1.1.0-TODO-218a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-218a).
+  - Reworked the same day to reuse the shared estimator instead of a private copy. v1.0.6-TODO-4 (committed 5bdb9dfb) had already moved DesignFixedBlocking to the stratified delete-1 unit `"observation_within_block"` and SPBR to `"permuted_block"`, so the gap left is blocking designs whose automatic unit is still `"block"` (DesignSeqOneByOneRandomBlockSize and the other blocking designs). `design_jackknife_pval()` / `design_jackknife_ci()` now retry the shared jackknife with `unit = "observation_within_block"` (Wolter 2007, Sec. 4.5, with EDI's reweighting scaling) when the automatic jackknife is NA there and the design has at least 2 blocks (private `use_within_block_jackknife_fallback()`); the private `design_stratified_jackknife()` is gone. Because the shared jackknife refits under the active estimand, the fallback now also covers the marginal estimands. Documented in NEWS ("Changes that alter results"), the class roxygen and `man/InferenceCountPoisson.Rd` ("Which jackknife", with the Wolter reference) and REFERENCES.md. Test `test-count-poisson-stratified-jackknife-guard-few-strata.R` rewritten to the Wolter JKn formula (23 pass); the stubs in `test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R` now take `unit` (26 pass). Still open: re-run the 64 campaign cells on this code, then prune the accepted rows; the agent's simulated sizes used the unscaled formula, which differs from the shared one by a factor of about (n_h/(n_h - 1))^2 in the variance, negligible at these stratum sizes.
   - **Verified locally 2026-11-19 (agent): the fallback is nominal where it runs; the cells on the current tree are nominal except two jackknife-unit cells, both outside this fix.** The `InferenceCountPoisson` class itself with `~1` (`pkgload::load_all(compile = FALSE)`), campaign seeds `cal_study_seed("count", n, rep)`, `cal_study_gen_X`, null potential outcomes and `cal_study_run_design` (strata x4 x x5), 2 cores. Wald = `compute_asymp_two_sided_pval()`. Size at alpha 0.05 with a binomial (Clopper-Pearson) 95% interval. Wald, score and LR agree in every cell, because the jackknife p-value is the larger half of max(model p, jackknife p) in every replicate. "Fallback" is the share of replicates where `use_within_block_jackknife_fallback()` was TRUE.
     - Tree. The n = 200 rows ran at 6ae5d609. Commit 72ea20ba (2026-11-20 01:03, v1.0.6-TODO-231) landed before the n = 1000 rows started; it moves DesignSeqOneByOneRandomBlockSize's automatic unit from `"block"` to `"permuted_block"`. On that tree no campaign design reaches the fallback: FixedBlocking uses `"observation_within_block"`, and SPBR and RandomBlockSize use `"permuted_block"`. The RandomBlockSize n = 200 rows were re-run on the current tree (rows marked "re-run").
 
@@ -2181,7 +2181,8 @@ ticked in their **owning plans**; this list is the release index.
   - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. The score excess at moderate n is TODO-166. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: frailty variance collapsing to the boundary at n = 50; SE vs sd(estimate).
   - Fix (candidates): boundary-aware SE or bootstrap SE; may share TODO-166's bootstrap.
-  - Rows repointed 2026-11-12: the 6 score rows (`~.` n = 50; `~1` n = 50 / 200) that cited a bare `TODO-179` now cite this TODO. An earlier session's 2026-11-07 investigation called `~.` n = 50 small-sample and `~1` honest harness misspecification (BinaryMatch pairs on covariates `~1` omits); the `~1` part needs an owner ruling. **Owner ruling 2026-11-12:** the 4 `~1` rows (n = 50 / 200) are inherent misspecification, not a defect; they stay, and their reason says so. The `~.` n = 50 rows remain open here.
+  - Rows repointed 2026-11-12: the 6 score rows (`~.` n = 50; `~1` n = 50 / 200) that cited a bare `TODO-179` now cite this TODO. An earlier session's 2026-11-07 investigation called `~.` n = 50 small-sample and `~1` honest harness misspecification (BinaryMatch pairs on covariates `~1` omits); the `~1` part needed an owner ruling. The `~.` n = 50 rows remain open here.
+  - Decided 2026-11-12 (owner): the 4 `~1` rows are inherent misspecification and stay; see [DECISION-v1.1.0-TODO-184](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-184).
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-184`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
   - **Triage 2026-11-10:** `release_v1_0_6.md → TODO-13` checks this first; a bug found there moves the fix to v1.0.6, otherwise it stays here.
 
@@ -2302,8 +2303,8 @@ classical solver with a warning, never silently.
   cannot stand in: `add_one_subject_to_experiment_and_assign()` calls the
   design's own `assign_wt()` (`design_seq_one_by_one_abstract.R:218-235`), a
   randomization step.
-  - Rename (owner decision 2026-10-25: all three get the `Fixed` prefix and
-    stay fixed designs): `ObservationalDesign` → `FixedObservationalDesign`,
+  - Decided 2026-10-25 (owner): all three get the `Fixed` prefix and stay fixed designs; see [DECISION-v1.1.0-TODO-158](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-158).
+  - Rename: `ObservationalDesign` → `FixedObservationalDesign`,
     `ObservationalDesignBlocks` → `FixedObservationalDesignBlocks`,
     `ObservationalDesignMatching` → `FixedObservationalDesignMatching`. Keep
     each old name as a deprecated alias for one release (warn once, same
@@ -2371,9 +2372,8 @@ classical solver with a warning, never silently.
     free hosted runners, published under `comprehensive/<campaign>/` on the `calibration-results` branch.
   - Never a required check; not part of the pre-push hook.
   - Raw rows and logs are published xz-compressed on the results branch (about 20x and 29x, measured 2026-11-13).
-  - Path-audit gate (owner 2026-11-13): a complete cloud campaign or a complete local regeneration at the release
-    commit, whichever finishes first.
-  - 50 reps (owner 2026-11-13), so coverage can still be assessed from the comprehensive results.
+  - Decided 2026-11-13 (owner): path-audit gate is a complete cloud campaign or local regeneration, whichever finishes first; see [DECISION-v1.1.0-TODO-194a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-194a).
+  - Decided 2026-11-13 (owner): 50 reps; see [DECISION-v1.1.0-TODO-194b](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-194b).
   - The final wave regenerates the path audits and runs `compare_path_audits.R` against the campaign's commit;
     that script's fixed 2-point tolerance becomes an FDR-controlled exact test (plan Design 5, Phase 3b).
   - Start with the plan's Phase 0 (measure cost and compressed sizes).
@@ -2606,8 +2606,8 @@ classical solver with a warning, never silently.
     Sec. 2.3.2: Eq. 12 per-block Robins + Eq. 13) and recorded the owner ruling of 2026-10-28: published estimator,
     inherent at small blocks, fix not applied because it changes default output.
   - The allowlist-hygiene audit (PR #19, 2026-11-17) removed the 24 `calibration_study_accepted.csv` rows citing that
-    closed TODO, so later campaigns would flag these cells again. Owner 2026-11-17: the rows stay for now and cite this
-    TODO; the owner will look into the behaviour later.
+    closed TODO, so later campaigns would flag these cells again.
+  - Decided 2026-11-17 (owner): the rows stay for now and cite this TODO; owner revisits later; see [DECISION-v1.1.0-TODO-215](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-215).
   - Cells: `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`, prob_T 0.5, formulas `~.` and `~1`,
     n = 50 (52), 200, 1000, size and coverage (campaign 2026-11-15-e36c7710).
   - Done when: the owner either keeps the published estimator (record the ruling here, and the rows keep citing a

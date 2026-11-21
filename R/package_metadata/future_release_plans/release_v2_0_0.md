@@ -274,7 +274,7 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
 
 - [ ] TODO-1: **Decision batch** for every gated 2.0.0 track; recorded in
   owning plans.
-  - Owner decision pending: [DECISION-v2.0.0-TODO-1](DECISIONS.md#DECISION-v2.0.0-TODO-1) (the 2.0.0 decision batch for every gated track).
+  - Owner decision pending: [DECISION-v2.0.0-TODO-1](PENDING_DECISIONS.md#DECISION-v2.0.0-TODO-1) (the 2.0.0 decision batch for every gated track).
 - [ ] TODO-2: **Audit-commissioned 2.0.0 plans** (owning plans written
   2026-08-27; each TODO-1 is a decision):
   - [ ] TODO-2a: `cluster_robust_inference_glmm_gee.md → TODO-1..5` —
@@ -335,23 +335,15 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   item like its sibling plans. Stage 1 (plain splitting) is the tractable
   first cut; Stage 2 (data carving, Fithian/Sun/Taylor 2014) is gated on
   Stage 1's measured power cost.
-- [ ] TODO-6f: **SHELVED** (2026-09-09, user decision, resolving the plan's
-  TODO-1 as "no"). `e_value_safe_testing.md` — its sole justification was
-  surviving *adaptive* mid-stream inclusion of more candidate models, but
-  `applicable_design_classes` is discovered structurally and fit once;
-  EDI's workflow never adds candidates mid-stream and none is planned.
-  Without that use case the plan's own Stage 1 is conceded to be a valid
-  but strictly less powerful alternative to CCT, for no benefit. Nothing
-  remains here; the plan doc is kept as a record, not an active item.
-- [ ] TODO-6g: **MOVED to v1.1.0 → `TODO-17z`** (2026-09-05, user
-  decision, resolving the plan's TODO-1(e)). `ModelDiagnostics`' checks
-  are in-sample and need no fold/split substrate, so the declaration
-  contract and pilot batteries ship in 1.x. **Amended 2026-09-10, user
-  decision: no longer "nothing remains here"** — see TODO-6i below, which
-  promotes the per-class rollout ledger to scoped v2.0.0 work.
+- [ ] TODO-6f: **SHELVED**: `e_value_safe_testing.md`. Nothing remains here; the plan doc is
+  kept as a record, not an active item.
+  - Decided 2026-09-09 (owner): shelved (plan TODO-1 answered "no"); see [DECISION-v2.0.0-TODO-6f](COMPLETED_DECISIONS.md#DECISION-v2.0.0-TODO-6f).
+- [ ] TODO-6g: **MOVED to v1.1.0 → `TODO-17z`**; see TODO-6i below for the
+  per-class rollout ledger that stays in v2.0.0.
+  - Decided 2026-09-05 (owner): checks are in-sample, so the contract and pilots ship in 1.x (v1.1.0-TODO-17z); see [DECISION-v2.0.0-TODO-6g](COMPLETED_DECISIONS.md#DECISION-v2.0.0-TODO-6g).
 - [ ] TODO-6i (added 2026-09-10, user decision): **`ModelDiagnostics`
   full-roster rollout + visualization** — `model_diagnostics_framework.md
-  → TODO-7..8`. **Amended 2026-10-22 (user decision):** the pilot was cut to the
+  → TODO-7..8`. The pilot is the
   Incidence GLM family (v1.3.0), so this item also owns the other eight
   pilot families, each with its own known-violation recovery test: Cox,
   Poisson / quasi-Poisson / robust-Poisson, NB / ZINB / hurdle, ordinal
@@ -368,6 +360,7 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   shared report row, optional `plotly`/`DT` interactivity. Depends on the
   declaration contract (`release_v1_3_0.md → TODO-5`) and the Incidence pilot
   actually landing first.
+  - Decided 2026-10-22 (owner): pilot cut to the Incidence GLM family (v1.3.0); the other eight families are here; see [DECISION-v2.0.0-TODO-6i](COMPLETED_DECISIONS.md#DECISION-v2.0.0-TODO-6i).
 - [ ] TODO-6j (added 2026-09-10, user decision): **`DesignDiagnostics`
   (new)** — `design_diagnostics_framework.md → TODO-1..7`. The design-side
   sibling `model_diagnostics_framework.md` itself flagged as out of scope:
@@ -424,7 +417,7 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   every design family, fixed or sequential — it was never blocked on
   TODO-6e's substrate, and there is nothing left here to "build once"
   with it.
-  - Owner decision pending: [DECISION-v2.0.0-TODO-6h](DECISIONS.md#DECISION-v2.0.0-TODO-6h) (response-type coverage alone: keep a 2.0.0 slot, or move to v1.4.0?).
+  - Owner decision pending: [DECISION-v2.0.0-TODO-6h](PENDING_DECISIONS.md#DECISION-v2.0.0-TODO-6h) (response-type coverage alone: keep a 2.0.0 slot, or move to v1.4.0?).
 - [ ] TODO-6l (added 2026-09-16, user decision): **Incidence randomization
   CI, risk-difference estimand family** — `rand_ci_for_incidence.md →
   TODO-1..7`. Independent of every other TODO in this list; additive, no

@@ -595,12 +595,7 @@ Ticked in owning plans; this list is the index.
   `design_optimal_annealing_search.cpp:152-155` already uses for
   `DesignFixedOptimal`'s `custom_objective`. R functions, pre-compiled
   Rcpp functions and Rcpp-typed source strings keep the R loop.
-  - **Decision D1 (resolved 2026-10-13, user decision): option (b).** Source
-    strings may now also use the Eigen-typed `user_compiled_fns.h`
-    signature. Those sources, and XPtrs, get the C++ loop. Existing
-    Rcpp-typed sources are unchanged, so the change is additive. Making the
-    Eigen signature the only one is breaking and is deferred to
-    `release_v2_0_0.md → TODO-7b`.
+  - Decided 2026-10-13 (owner): D1 option (b), Eigen-typed source strings accepted too; see [DECISION-v1.2.0-TODO-31](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-31).
   - **Gate:** bit-for-bit equality with the R loop (2- and 3-argument forms,
     `delta` 0 and non-zero, fork and `mirai` workers). The speedup is
     measured through v1.1.0 TODO-4b's noise-floor harness before any number is
@@ -718,7 +713,7 @@ Ticked in owning plans; this list is the index.
     it: measured 2026-11-09 at n = 1000, 0.2-0.3 s on KK21 / pair-switching / rerandomization and ~10 s on
     Atkinson (first class), ~0.1 s for each later class. `DesignFixedOptimal` has no randomization mechanism
     (deterministic solve), so its randomization cells are not applicable.
-  - **Running:** free GitHub-hosted runners only (owner ruling: no self-hosted or paid runners). One campaign per
+  - **Running:** free GitHub-hosted runners only (no self-hosted or paid runners; decided by the owner, undated, see [DECISION-v1.2.0-TODO-36](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-36)). One campaign per
     month (plus `workflow_dispatch`), pinned to the commit it started on. ~25-30-minute time-boxed shards and
     `max-parallel: 16`, so push CI keeps 4 of the 20 job slots and never waits more than one shard behind. GitHub's
     256-job matrix limit is handled by waves: each wave runs the next unfinished shards, publishes, then dispatches
@@ -1390,12 +1385,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   (`R/EDI/R/design_fixed_rerandomization.R`). Generalize the kernel to any n_T with d = M s (s_i = 1/n_T treated,
   -1/n_C control, M = L^-1 X' whitened once; abs_sum_diff standardized with the L1 norm), keeping its Fisher-Yates draws,
   per-draw-index seeding and thread-invariant merging, and delete both R paths.
-  - Owner decision (2026-11-20): ship as a documented default change, not opt-in. Seeded assignments for odd n or
-    prob_T != 0.5 change; their distribution does not. NEWS ("Changes that alter results"): "For odd n or prob_T != 0.5,
-    `DesignFixedRerandomization`'s seeded rerandomized assignments differ from v1.1; their distribution is unchanged."
-    Regenerate every fixture and cross-platform digest pinned to those draws in the same PR. Ship it in the same release
-    as the non-R RNG streams change (`performance_profiling_and_upgrades.md` TODO-149, in v1.2.0-TODO-11), so seeded
-    streams change once in the 1.x line.
+  - Decided 2026-11-20 (owner): ship as a documented default change, bundled with the RNG streams change; see [DECISION-v1.2.0-TODO-258](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-258).
   - Benchmark against the R path at n = 51-501 (odd), p = 5-20, prob_T in {0.3, 0.5}, acceptance 1e-2 to 1e-3.
   - Done when: both R paths are gone; draws are reproducible across thread counts; a test checks that the accepted
     assignments are uniform over the acceptable set (n_T fixed, objective below the cutoff) for odd n and prob_T = 0.3;

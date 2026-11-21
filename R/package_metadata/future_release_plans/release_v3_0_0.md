@@ -185,7 +185,7 @@ convention rather than inventing a new visual language each.
 ## Implementation TODOs (dependency order; tentative — no decision batch taken yet)
 
 - [ ] TODO-1: **Decision batch**
-  - Owner decision pending: [DECISION-v3.0.0-TODO-1](DECISIONS.md#DECISION-v3.0.0-TODO-1) (pursue Bayesian-Stan, and with which backend, approach and entry order?).
+  - Owner decision pending: [DECISION-v3.0.0-TODO-1](PENDING_DECISIONS.md#DECISION-v3.0.0-TODO-1) (pursue Bayesian-Stan, and with which backend, approach and entry order?).
 - [ ] TODO-2: `finite_mixture_regression.md`'s own "Implementation
   Sequencing" step 1 — audit per-family density-evaluator availability.
 - [ ] TODO-3: Build the generic EM driver + `InferenceMixinFiniteMixtureEM`
@@ -203,7 +203,7 @@ convention rather than inventing a new visual language each.
   three families as step 2 before extending with step 3.
 - [ ] TODO-7 (added 2026-09-10): **Decide `edi_visualization_theme.md`'s
   scheduling**
-  - Owner decision pending: [DECISION-v3.0.0-TODO-7](DECISIONS.md#DECISION-v3.0.0-TODO-7) (ship in v3.0.0, or before / alongside the v2.0.0 TODO-6i/6j/6k plots?).
+  - Owner decision pending: [DECISION-v3.0.0-TODO-7](PENDING_DECISIONS.md#DECISION-v3.0.0-TODO-7) (ship in v3.0.0, or before / alongside the v2.0.0 TODO-6i/6j/6k plots?).
 - [ ] TODO-8 (added 2026-09-10): `survival_curve_visualization.md →
   TODO-1..7`.
 - [ ] TODO-9 (added 2026-09-10): `simulation_framework_visualization.md →
@@ -217,7 +217,7 @@ convention rather than inventing a new visual language each.
   dependent on each other or on anything else in this file.
 - [ ] TODO-11 (added 2026-09-11): `inference_plots.md → TODO-1` — decision
   gate.
-  - Owner decision pending: [DECISION-v3.0.0-TODO-11](DECISIONS.md#DECISION-v3.0.0-TODO-11) (all 19 families / 102 classes, or a prioritized subset first?).
+  - Owner decision pending: [DECISION-v3.0.0-TODO-11](PENDING_DECISIONS.md#DECISION-v3.0.0-TODO-11) (all 19 families / 102 classes, or a prioritized subset first?).
 - [ ] TODO-12 (added 2026-09-11): `inference_plots.md → TODO-2` — build
   the reporting layer + a proving batch of 2-3 families before scaling to
   the rest.
@@ -237,7 +237,7 @@ convention rather than inventing a new visual language each.
 - [ ] TODO-16 (added 2026-09-11): `continuous_treatments.md → TODO-1` —
   decision gate. Genuinely independent of every other item and TODO in
   this file.
-  - Owner decision pending: [DECISION-v3.0.0-TODO-16](DECISIONS.md#DECISION-v3.0.0-TODO-16) (pursue at all, and parametric-only or parametric + GPS first?).
+  - Owner decision pending: [DECISION-v3.0.0-TODO-16](PENDING_DECISIONS.md#DECISION-v3.0.0-TODO-16) (pursue at all, and parametric-only or parametric + GPS first?).
 - [ ] TODO-17 (added 2026-09-11): `continuous_treatments.md → TODO-2` —
   the `treatment_type` root-owned-state type relaxation on `w`
   (`EDI/R/design_fixed_abstract.R:173`, `EDI/R/design_abstract.R:423`,

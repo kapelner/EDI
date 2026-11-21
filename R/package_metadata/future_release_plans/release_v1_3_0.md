@@ -64,7 +64,7 @@ user decision, with the other eight pilot families moving to v2.0.0). The two ha
   `prob_T` capability, new `timing_family`) and the design-side vignette
   update.
 - [ ] TODO-5 (moved 2026-10-20, user decision, from v1.1.0 `TODO-17z` via v1.2.0 `TODO-35`): **`ModelDiagnostics` — contract** (`model_diagnostics_framework.md → TODO-1, 2, 4, 5, 6`). Small and first; every family item below depends on it.
-  - Owner decision pending: [DECISION-v1.3.0-TODO-5](DECISIONS.md#DECISION-v1.3.0-TODO-5) (the plan TODO-1 decision gate: registry field shape, check-result contract, severity taxonomy, pilot ratification).
+  - Owner decision pending: [DECISION-v1.3.0-TODO-5](PENDING_DECISIONS.md#DECISION-v1.3.0-TODO-5) (the plan TODO-1 decision gate: registry field shape, check-result contract, severity taxonomy, pilot ratification).
   - **Declaration contract** (plan TODO-2): an `assumption_checks` registry field naming each check, its applicability, its implementation and its **declared gate-threshold constant** (so a selection pipeline is a pure, pre-specified function). `ModelDiagnostics$new(des_obj)` discovers applicable classes as `InferenceSuite` does; a class with no declared checks is a typed `no_declared_checks` row, never silently omitted; `likelihood_tier = "none"` classes never disqualify. Results are typed (statistic, p-value or flag, severity, optional plot), never free text.
   - **Formula-grid wiring** (plan TODO-4): checks run across `~w`, `~w + .`, `~w * .` and splines, shown per cell.
   - **Shared report surface** (plan TODO-2, with `public_diagnostics_api_spec.md`): one table with `SolverDiagnostics`' rows, so a user sees "converged fine, PH violated" as one row; minimal assumption table and plain HTML (plan TODO-5; the plot layer is v2.0.0).

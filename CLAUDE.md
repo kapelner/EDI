@@ -156,17 +156,23 @@ Owner ruling 2026-11-19. Change the version only in `R/EDI/DESCRIPTION`, then ru
 pre-push hook runs `sync_version.py --check` and refuses a push while any copy disagrees. `NEWS.md`
 and `python/CHANGELOG.md` are not copies; their top section may already name the next version.
 
-## Owner decisions go in `DECISIONS.md`
+## Owner decisions: `PENDING_DECISIONS.md` and `COMPLETED_DECISIONS.md`
 
-Owner ruling 2026-11-21. Every open owner decision lives in full in
-`R/package_metadata/future_release_plans/DECISIONS.md`, as a section under a stable anchor named after the TODO that
-raised it, `DECISION-v<version>-TODO-<n>` (`<a id="DECISION-v1.0.6-TODO-294"></a>`; `...-TODO-<n>a` / `b` when one
-TODO raises two), plus one row in the summary table at the top. A section gives the question in one line, the TODO
-link and title, the context, every option with its consequences, the evidence, any recommendation (whose) and when and
-by whom it was raised. Order: releases newest first, and within a release TODO numbers highest first, in the table and
-the sections (one `## v<version>` heading per release). The TODO entry keeps only a pointer line in place of the
-decision text: `  - Owner decision pending: [DECISION-v1.0.6-TODO-294](DECISIONS.md#DECISION-v1.0.6-TODO-294)
-(<one-line question>).` Whenever you (or an agent you run) leave a TODO open for the owner's choice, or make a
-judgment call the owner should confirm, write the section, the table row and the pointer in the same change. When
-the owner decides, put the dated ruling in the TODO entry in place of the pointer and delete the section and its row.
-When you report decisions to the owner, take them from this file, and check it is current first.
+Owner rulings 2026-11-21. Both files are in `R/package_metadata/future_release_plans/` and use one id per decision,
+named after the TODO that raised it: `DECISION-v<version>-TODO-<n>` (`...-TODO-<n>a` / `b` when one TODO has several),
+as an `<a id="..."></a>` anchor over a `### DECISION-...: <question>` heading, plus a row in the summary table at the
+top. Order in both files: releases newest first, and within a release TODO numbers highest first, in the table and the
+sections (one `## v<version>` heading per release).
+
+- **Pending.** Every open owner decision lives in full in `PENDING_DECISIONS.md`: the question, the TODO link and
+  title, the context, every option with its consequences, the evidence, any recommendation (whose) and when and by
+  whom it was raised. The TODO keeps only `  - Owner decision pending: [DECISION-v1.0.6-TODO-294](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-294)
+  (<one-line question>).` Whenever you (or an agent you run) leave a TODO open for the owner's choice, or make a
+  judgment call the owner should confirm, write the section, the table row and the pointer in the same change.
+- **Ruled.** When the owner decides, move the section to `COMPLETED_DECISIONS.md` and add the Ruling (option, date,
+  who), Why (the owner's words where given, else "No reason recorded."), the rejected options and any revisit-if;
+  add its table row there (| Decision | TODO | Ruling in one line | Date |); replace the TODO's pending pointer with
+  `  - Decided <date> (<who>): <option in a few words>; see [DECISION-v1.0.6-TODO-82](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-82).`;
+  and delete the pending section and its row.
+- Before reopening or re-arguing a choice, check `COMPLETED_DECISIONS.md`. When you report decisions to the owner,
+  take them from `PENDING_DECISIONS.md`, and check it is current first.

@@ -120,7 +120,7 @@ item beyond the shared-machinery core that gates nothing else there.
 
 - [ ] TODO-1: **Phase 0 decisions** still open for this release's gated
   items.
-  - Owner decision pending: [DECISION-v1.4.0-TODO-1](DECISIONS.md#DECISION-v1.4.0-TODO-1) (competing risks, cure fraction, interval-censored second wave, semi-continuous, Weibull-frailty GLMM gates).
+  - Owner decision pending: [DECISION-v1.4.0-TODO-1](PENDING_DECISIONS.md#DECISION-v1.4.0-TODO-1) (competing risks, cure fraction, interval-censored second wave, semi-continuous, Weibull-frailty GLMM gates).
 - [ ] TODO-2: **Survival plumbing sweep** — the `dead → uncensored` rename
   and `competing_risks_response.md → TODO-2` (Wave 0: `event_type`
   storage, replay, save/load) in one pass over the 31 `Surv()` sites and
