@@ -352,6 +352,17 @@ DesignFixedOptimal = define_design_class(
 		#'   achieved objective value, mirror-coin outcome
 		#'   (\code{mirror_feasible}/\code{mirror_tied}/\code{mirror_flipped}),
 		#'   elapsed time, and the solver's own detail fields.
+		#'   \code{objective_value} is on the user scale \eqn{M(w)}: for
+		#'   \code{"mahal_dist"} the squared Mahalanobis distance
+		#'   \eqn{(\bar x_T - \bar x_C)^\top S^{-1} (\bar x_T - \bar x_C)} and for
+		#'   \code{"abs_sum_diff"} the sum of absolute standardized mean differences
+		#'   \eqn{\sum_j |\bar x_{T,j} - \bar x_{C,j}| / s_j} (sample covariance and SDs
+		#'   with divisor \eqn{n - 1}; a \code{"mahal_dist"} solve that fell back to
+		#'   \code{"abs_sum_diff"} reports the latter). Other objectives report the
+		#'   solver's value. \code{objective_value_internal} and solver detail fields
+		#'   such as \code{chain_values} are on the solver's internal scale, which for
+		#'   those two objectives is \eqn{M(w)} times \eqn{4 n_T^2 n_C^2 / n^4} and
+		#'   \eqn{2 n_T n_C / n^2} respectively.
 		#' @return A named list, or \code{NULL} if no solve has run yet.
 		get_optimization_diagnostics = function() private$optimization_diagnostics,
 		#' @description Characterization: \code{FALSE} -- given the observed data
@@ -611,7 +622,9 @@ DesignFixedOptimal = define_design_class(
 					mahal_fell_back = isTRUE(inputs$mahal_fell_back),
 					solver = res$solver,
 					optimum_certificate = res$certificate,
-					objective_value = res$objective_value,
+					objective_value = optimal_objective_value_user_scale(res$objective_value, private$objective,
+						inputs$kind, n, n_T),
+					objective_value_internal = res$objective_value,
 					n = n, n_T = n_T,
 					mirror_coin = isTRUE(private$mirror_coin),
 					mirror_feasible = mirror_feasible,
@@ -648,3 +661,16 @@ DesignFixedOptimal = define_design_class(
 		}
 	)
 )
+
+# v1.0.6-TODO-297: the solvers minimize f(w) = 4 (Xc'w)' S^-1 (Xc'w) / n^2 ("mahal_dist") or
+# (2/n) sum_j |Xstd_j'w| ("abs_sum_diff"; helper_optimal_milp_solvers.R). With n_T treated,
+# Xc'w = (n_T n_C / n)(xbar_T - xbar_C), so the user-scale M(w) is f * n^4 / (4 n_T^2 n_C^2) and
+# f * n^2 / (2 n_T n_C). Other objectives are returned unchanged.
+optimal_objective_value_user_scale = function(f, objective, kind, n, n_T){
+	if (is.null(f) || length(f) != 1L || !is.finite(f)) return(f)
+	n_C = n - n_T
+	if (n_T <= 0 || n_C <= 0) return(f)
+	if (identical(objective, "mahal_dist") && identical(kind, "quadratic")) return(f * n^4 / (4 * n_T^2 * n_C^2))
+	if (objective %in% c("mahal_dist", "abs_sum_diff") && identical(kind, "l1")) return(f * n^2 / (2 * n_T * n_C))
+	f
+}

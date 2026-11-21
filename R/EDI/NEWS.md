@@ -696,7 +696,14 @@
 
 ## Bug fixes
 
+* `DesignFixedOptimal$get_optimization_diagnostics()$objective_value` is now
+  the documented M(w) for `"mahal_dist"` and `"abs_sum_diff"`. It was the
+  solver's internal value, M(w) times 4 n_T^2 n_C^2 / n^4 or 2 n_T n_C / n^2 (a
+  quarter and a half at prob_T = 0.5). The solver value is kept as
+  `objective_value_internal`; allocations are unchanged (v1.0.6-TODO-297).
 * `InferenceSuite$run_all_inference()` with `max_secs_per_class` and more than
+
+
   one core printed the report and then failed with "arguments imply differing
   number of rows", losing every result, whenever a class timed out: the
   timeout row had no `tau`. Such rows now get `NA` there and the results table
@@ -1227,6 +1234,11 @@
   a `w` the design never drew) (v1.0.6-TODO-154).
 
 ## Documentation
+
+* `?DesignFixedGreedy` and `?DesignFixedGreedyDOptimal`: the two classes give
+  the same draws at their defaults only when the covariates have no ties; with
+  ties their searches can break equal-improvement swaps differently
+  (v1.0.6-TODO-295).
 
 * Corrected docs from the 2026-11-18 docs-scenario audit: `?DesignFixedBlockedCluster` says blocks
   may have unequal sizes and which jackknife units return `NA` there, and why;

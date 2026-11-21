@@ -84,7 +84,8 @@ test_that("the exact MILP allocation attains the brute-force optimum, balanced, 
 		expect_equal(diag$objective, obj)
 		expect_equal(diag$kind, inp$kind)
 		expect_equal(diag$solver, "ompr")
-		expect_equal(diag$objective_value, min(brute), tolerance = 1e-7, info = obj)
+		# brute is on the solver's internal scale (v1.0.6-TODO-297 moved objective_value to M(w))
+		expect_equal(diag$objective_value_internal, min(brute), tolerance = 1e-7, info = obj)
 		expect_equal(c(diag$n, diag$n_T), c(10L, 5L))
 		expect_true(diag$mirror_feasible)
 		expect_false(diag$mahal_fell_back)
@@ -135,4 +136,22 @@ test_that("the A-optimality ratio evaluator is (w'Hw + 1) / (n_T - w'Pw)", {
 	expect_true(is.finite(val) && val > 0)
 	den <- 5 - drop(t(w) %*% inp$P %*% w)
 	expect_equal(val, (drop(t(w) %*% inp$H %*% w) + 1) / den, tolerance = 1e-10)
+})
+
+# v1.0.6-TODO-297 (docs-scenarios fixed-designs F5): objective_value was the solver's internal value,
+# M(w)/4 for "mahal_dist" and M(w)/2 for "abs_sum_diff" at prob_T = 0.5 (other factors otherwise).
+test_that("objective_value is the user-scale M(w) for mahal_dist and abs_sum_diff", {
+	set.seed(20261118)
+	n = 40
+	X = data.frame(weight = round(rnorm(n, 25, 3), 1), age = sample(6:12, n, replace = TRUE))
+	for (pT in c(0.5, 0.3)) for (obj in c("mahal_dist", "abs_sum_diff")) {
+		o = DesignFixedOptimal$new(response_type = "continuous", n = n, objective = obj, solver = "annealing",
+			seed = 3, prob_T = pT, verbose = FALSE)
+		o$add_all_subjects_to_experiment(X)
+		o$assign_w_to_all_subjects()
+		w = o$get_w()
+		dm = colMeans(X[w == 1, ]) - colMeans(X[w == 0, ])
+		M = if (obj == "mahal_dist") drop(t(dm) %*% solve(stats::cov(X)) %*% dm) else sum(abs(dm) / apply(X, 2, stats::sd))
+		expect_equal(o$get_optimization_diagnostics()$objective_value, M, tolerance = 1e-10, info = paste(obj, pT))
+	}
 })

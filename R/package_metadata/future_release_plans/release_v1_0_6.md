@@ -5312,7 +5312,7 @@ were found by reading, not by running a fix.
   document the limit in "Solvers and certificates". Test: n = 40 with the default solver returns within the limit with
   the fallback message; n = 16 still returns the certified MILP optimum. Repro: fixed-designs F4.
 
-- [ ] TODO-297 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f5):
+- [x] TODO-297 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f5):
   **`DesignFixedOptimal$get_optimization_diagnostics()$objective_value` is M/4 for "mahal_dist" and M/2 for
   "abs_sum_diff", not the documented M(w).** Hand-computed M(w) = 0.0005879 vs `objective_value` 0.000147; sum of
   |standardized mean differences| 0.02651 vs 0.0133. The C++ scaling is documented as internal in
@@ -5321,6 +5321,20 @@ were found by reading, not by running a fix.
   `objective_value` on the user M(w) scale (multiply by 4 / 2 for those two objectives, check the other objectives),
   and say in the roxygen which scale it is. Test: on the finding's repro, `objective_value` equals the hand-computed
   M(w) for both objectives to 1e-10. NEWS: changes reported diagnostics. Repro: fixed-designs F5.
+  Done 2026-11-21 (agent): the factor is not a constant 4 / 2: the solvers minimize f = 4 (Xc'w)' S^-1 (Xc'w) / n^2 and
+  (2/n) sum_j |Xstd_j'w|, so M(w) = f n^4 / (4 n_T^2 n_C^2) and f n^2 / (2 n_T n_C) (4 and 2 only at n_T = n/2; at
+  prob_T = 0.3, n = 40 the ratios were 5.67 and 2.38). New helper `optimal_objective_value_user_scale()` in
+  `design_fixed_optimal.R` converts `objective_value` (a `"mahal_dist"` solve that fell back to l1 reports the
+  abs_sum_diff M(w)); other objectives are unchanged; the solver value stays as `objective_value_internal`
+  (`chain_values` etc. remain internal); roxygen of `get_optimization_diagnostics()` says which scale (Rd not
+  regenerated). Evidence: hand M(w) / `objective_value` = 1 for both objectives at prob_T 0.5 and 0.3, n = 16 and 40,
+  annealing and the exact MILP (was 4, 2, 5.67, 2.38, 5.42, 2.33). Tests: a new block in
+  `test-fixed-optimal-solver-inputs-and-exact-allocation-reference.R`; three existing assertions that compared
+  `objective_value` with internal solver values now read `objective_value_internal` (`test-design-fixed-optimal.R`,
+  `test-fixed-optimal-solver-inputs-and-exact-allocation-reference.R`,
+  `test-fixed-optimal-design-solve-diagnostics-mirror-coin-and-treated-count-guards-reference.R`). Related, not changed:
+  `DesignFixedRerandomization`'s fixed 4 / 2 cutoff conversion (~L236) is only used for prob_T = 0.5 with even n,
+  where it is right.
 
 - [ ] TODO-298 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f6,
   ds-clusters-blocking-44358267779-f5): **Every fixed design accepts the default `n = NULL`, then

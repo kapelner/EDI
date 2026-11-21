@@ -27,7 +27,7 @@ test_that("the solved allocation has exactly n_T treated subjects and the diagno
 	dg <- d$get_optimization_diagnostics()
 	expect_identical(dg$objective, "mahal_dist"); expect_identical(dg$solver, "annealing"); expect_identical(dg$n, n); expect_identical(dg$n_T, 5L)
 	expect_identical(dg$optimum_certificate, "annealing_converged"); expect_true(is.finite(dg$objective_value)); expect_gte(dg$elapsed_sec, 0)
-	expect_length(dg$chain_values, dg$n_chains); expect_equal(min(dg$chain_values), dg$objective_value, tolerance = 1e-10)
+	expect_length(dg$chain_values, dg$n_chains); expect_equal(min(dg$chain_values), dg$objective_value_internal, tolerance = 1e-10)  # internal scale (v1.0.6-TODO-297)
 	expect_true(all(c("mirror_coin", "mirror_feasible", "mirror_tied", "mirror_flipped") %in% names(dg)))
 })
 

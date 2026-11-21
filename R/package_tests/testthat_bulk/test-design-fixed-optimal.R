@@ -111,7 +111,9 @@ test_that("objective mahal_dist reaches the certified optimum; abs_sum_diff is a
 	priv = des$.__enclos_env__$private
 	prep = EDI:::prepare_optimal_objective_matrices(priv$X[1:10, , drop = FALSE], "mahal_dist")
 	exact = EDI:::milp_solve_quadratic(prep$Q, n_T = 5L)
-	expect_equal(diag$objective_value, exact$objective_value, tolerance = 1e-9)
+	# the solver value is on the internal scale; objective_value is M(w) (v1.0.6-TODO-297)
+	expect_equal(diag$objective_value_internal, exact$objective_value, tolerance = 1e-9)
+	expect_equal(diag$objective_value, exact$objective_value * 10^4 / (4 * 5^2 * 5^2), tolerance = 1e-9)
 
 	des2 = optimal_class_design(seed = 22, objective = "abs_sum_diff")
 	des2$assign_w_to_all_subjects()
