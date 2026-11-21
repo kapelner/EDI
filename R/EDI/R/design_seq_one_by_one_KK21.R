@@ -151,7 +151,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#' @param num_boot the number of bootstrap samples taken to approximate the subject-distance
 		#'   distribution. Default is 500.
 		#' @param count_use_speedup               Should we speed up the estimation of the weights in
-		#'   the response = count case via a continuous regression on log(y + 1).
+		#'   the response = count case via a continuous regression on log(y + 1)
 		#'                                                         instead of a negative binomial
 		#' regression each time? This is at the expense of the weights being less accurate. Default is
 		#' \code{TRUE}.
@@ -173,7 +173,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#' weights being less accurate when censoring is present. Default is \code{TRUE}.
 		#' @param ordinal_use_speedup     Should we speed up the estimation of the weights in the
 		#'   response = ordinal case via a continuous regression on the ordinal levels coerced to
-		#'   numeric.
+		#'   numeric
 		#'                                                         instead of a proportional odds
 		#' model each time? This is at the expense of the weights being less accurate. Default is
 		#' \code{TRUE}.

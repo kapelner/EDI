@@ -264,7 +264,7 @@ covariate features); recorded but not used.}
       \item{\code{num_boot}}{the number of bootstrap samples taken to approximate the subject-distance
 distribution. Default is 500.}
       \item{\code{count_use_speedup}}{Should we speed up the estimation of the weights in
-  the response = count case via a continuous regression on log(y + 1).
+  the response = count case via a continuous regression on log(y + 1)
                                                         instead of a negative binomial
 regression each time? This is at the expense of the weights being less accurate. Default is
 \code{TRUE}.}
@@ -283,7 +283,7 @@ each time, but only when there is no censoring in the data collected so far?
 weights being less accurate when censoring is present. Default is \code{TRUE}.}
       \item{\code{ordinal_use_speedup}}{Should we speed up the estimation of the weights in the
   response = ordinal case via a continuous regression on the ordinal levels coerced to
-  numeric.
+  numeric
                                                         instead of a proportional odds
 model each time? This is at the expense of the weights being less accurate. Default is
 \code{TRUE}.}
