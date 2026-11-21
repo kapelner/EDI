@@ -348,7 +348,7 @@ void bind_count(py::module_& m) {
     "warm_start_fisher_info : ndarray, optional\n"
     "    Optional initial Fisher information matrix for the first iteration.\n"
     "estimate_only : bool, default False\n"
-    "    If True, skip variance computation and return only coefficients.\n"
+    "    If True, skip the XtWX curvature computation (as in R, where fisher_information is then zeros); b, mu, neg_loglik and the convergence fields are still returned.\n"
     "weights : ndarray, optional\n"
     "    Optional nonnegative row weights for a weighted fit (routes to the\n"
     "    R-side fast_neg_bin_weighted_cpp backend when provided).\n\n"

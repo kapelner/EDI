@@ -799,7 +799,7 @@ void bind_ordinal(py::module_& m) {
     "eps_g : float, default 1e-6\n"
     "    Convergence tolerance.\n"
     "warm_start_params : ndarray, optional\n"
-    "    Optional starting values for all parameters [alpha, beta, log_sigma]. If\n"
+    "    Optional starting values for the reparameterized vector [alpha_1, log-diffs, beta, log_sigma]. If\n"
     "    provided, smart_cold_start is ignored.\n"
     "warm_start_beta : ndarray, optional\n"
     "    Optional starting values: beta alone (length ncol(X)) or the full vector. If provided (and\n"
