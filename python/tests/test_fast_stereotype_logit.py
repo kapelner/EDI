@@ -57,12 +57,17 @@ def _synthetic_data():
     return X, y.astype(float)
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 via:
+# R reference, EDI 1.0.4 (dev), recomputed 2026-11-22 via:
 #   EDI:::fast_stereotype_logit_cpp(X, y)
-R_B = np.array([0.622038361219507, -0.769467479276968])
-R_ALPHA = np.array([0.565661075230264, 0.445643401772565])
-R_SCORES_RAW = np.array([29.1213085367216])
-R_NEG_LOGLIK = 403.150901059359
+# after the v1.0.6-TODO-176 in-kernel adjacent-category cold start
+# (fast_stereotype_logit.cpp, 40896b29). The EDI 1.0.0 fixture (b = 0.622,
+# -0.769; scores_raw = 29.12; neg_loglik = 403.150901059359) was a
+# non-optimal boundary stall: the loading had run off toward +Inf from the
+# beta = 0 start. The two-stage start reaches the interior optimum below.
+R_B = np.array([0.867914140067538, -0.978916400905856])
+R_ALPHA = np.array([0.635873731710288, 0.263427925160321])
+R_SCORES_RAW = np.array([0.465011389180751])
+R_NEG_LOGLIK = 396.666813291454
 
 
 def test_matches_r_fixture():
@@ -77,7 +82,8 @@ def test_matches_r_fixture():
     assert res["alpha"] == pytest.approx(R_ALPHA, abs=ATOL, rel=RTOL)
     # scores_raw alone (not b/alpha/neg_loglik, which match to the 1e-9
     # fixture tolerance above) has been observed to differ from the R
-    # fixture by ~9.5e-6 relative (29.121584... vs 29.121309...) on both
+    # fixture by ~9.5e-6 relative (29.121584... vs 29.121309..., at the old
+    # EDI 1.0.0 boundary fit) on both
     # ubuntu and macOS cibuildwheel builds -- reproducible, not flaky, and
     # consistent with this repo's established pattern of small BLAS-backend
     # -dependent floating-point divergence in derived quantities (this
