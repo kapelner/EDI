@@ -26,7 +26,7 @@ up as several runs between the same two files with short gaps between them. This
 A family's id (`dup-<12 hex>`) hashes its two file paths and the normalized text of its two regions,
 not line numbers, so it survives code moving around the file; any edit inside a region makes a new
 id. Its decision id (`code-duplication-d<8 hex>`, from the framework) is what the owner lists in
-R/package_metadata/audits/dismissed_decisions.md to dismiss it.
+R/package_metadata/audits/DISMISSED_DECISIONS.md to dismiss it.
 
 Weekly job (audit-code-duplication.yml): candidates are the divergent families plus long exact
 cross-file clones. Claude triages only candidates with no verdict yet (verdicts are kept in

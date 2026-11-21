@@ -268,7 +268,7 @@ audits' retrying push; each job writes only its own folder):
   appended under a dated heading. The next agent reads it first and is told to go where earlier runs did not.
 - `findings.jsonl`: every finding ever reported, with id `ds-<area>-<run id>-f<n>` and a status re-derived each
   run: `filed` when an unticked TODO in a release file cites the id (`closed` when it is ticked), `dismissed`
-  when `R/package_metadata/audits/dismissed_decisions.md` lists it, otherwise `open`. The agent sees them in
+  when `R/package_metadata/audits/DISMISSED_DECISIONS.md` lists it, otherwise `open`. The agent sees them in
   `known_findings.md` and must not report them again.
 - `runs/<date>-run<id>/<area>/`: that run's summary, findings and learnings update.
 
@@ -277,7 +277,7 @@ audits' retrying push; each job writes only its own folder):
 (date plus run id, so two runs on one day never overwrite each other). Each finding carries its repro; one
 without a runnable repro is listed but not registered. The job never writes to a release file: triage the PR
 by section 6, cite each finding's id in the TODO you file (that marks it `filed`), or dismiss it in
-`dismissed_decisions.md` with a reason. Merge the PR to keep the record. Transcripts (secrets redacted) are
+`DISMISSED_DECISIONS.md` with a reason. Merge the PR to keep the record. Transcripts (secrets redacted) are
 artifacts for 30 days.
 
 **Budget.** Per area: Opus 5.5 at its default effort, at most 250 turns, a `--max-budget-usd` cap of $15 and

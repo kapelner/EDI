@@ -277,7 +277,7 @@ def cmd_finish(a):
         parts["decision_note"] = ac.decision_note(dcounts)
 
     # Mechanical findings get the same lifecycle (owner, 2026-11-19): open until a run no longer finds
-    # them (fixed), an open release TODO cites their `<audit>-m<hex>` id, or dismissed_decisions.md
+    # them (fixed), an open release TODO cites their `<audit>-m<hex>` id, or DISMISSED_DECISIONS.md
     # lists it. A module whose mechanical stage checks only some units sets `mechanical_scope_units`;
     # a not-run finding (ac.MECH_NOT_RUN_KINDS) means nothing is counted as fixed that run.
     mpath = notes.dir / "mechanical_open.json"

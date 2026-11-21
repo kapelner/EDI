@@ -383,7 +383,7 @@ jobs:
           gh label create "$LABEL" --color 5319E7 \
             --description "Docs-only scenario findings (weekly)" 2>/dev/null || true
           {
-            echo "Findings file: \`$file\` ($NEW new). Verify each finding, then file it as a release-prefixed TODO citing its id, or dismiss it in \`R/package_metadata/audits/dismissed_decisions.md\` (runbook section 6). Merge this PR to keep the record."
+            echo "Findings file: \`$file\` ($NEW new). Verify each finding, then file it as a release-prefixed TODO citing its id, or dismiss it in \`R/package_metadata/audits/DISMISSED_DECISIONS.md\` (runbook section 6). Merge this PR to keep the record."
             echo
             head -c 58000 "$RUNNER_TEMP/report.md"
           } > "$RUNNER_TEMP/pr_body.md"

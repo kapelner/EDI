@@ -309,7 +309,7 @@ def settle_open_counts(manifest, settled):
 
 # ---------------------------------------------------------------- decisions for the owner
 
-DISMISSED_FILE = "R/package_metadata/audits/dismissed_decisions.md"
+DISMISSED_FILE = "R/package_metadata/audits/DISMISSED_DECISIONS.md"
 RELEASE_GLOB = "R/package_metadata/future_release_plans/release_v*.md"
 # `<audit>-d<hex>` is a decision for the owner, `<audit>-m<hex>` a mechanical finding (same lifecycle).
 DECISION_ID = re.compile(r"\b([a-z][a-z0-9-]*-[dm][0-9a-f]{8}(?:-\d+)?)\b")

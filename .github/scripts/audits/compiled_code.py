@@ -669,7 +669,7 @@ def apply(ctx, results, mech):
         (fdir / "proposals.json").write_text(json.dumps(followup, indent=1))
     # Detector findings with no proposal this run: a decision for the owner on every run (owner
     # 2026-11-19), keyed on the function, so it reaches the audit-decisions issue and stays until the
-    # detectors no longer fire, an open release TODO cites its id, or dismissed_decisions.md lists it.
+    # detectors no longer fire, an open release TODO cites its id, or DISMISSED_DECISIONS.md lists it.
     for h in res.get("hot", []):
         if h.get("skip") or not h.get("detectors"):
             continue

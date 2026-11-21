@@ -10,7 +10,7 @@ Source: each audit's `<audit>/decisions_open.json` on the `audit-notes` branch (
 heading, its open mechanical findings from `<audit>/mechanical_open.json`, owner 2026-11-19), which its finish
 stage writes ({id: {text, first_seen, last_seen, unit, key}}). A decision leaves the list when a run
 no longer finds it (the audit drops it from that file), when an unticked TODO in a release file
-cites its id, or when its id is in R/package_metadata/audits/dismissed_decisions.md. The last two
+cites its id, or when its id is in R/package_metadata/audits/DISMISSED_DECISIONS.md. The last two
 are re-read here, so citing or dismissing takes effect at the next update, not the next audit run.
 
 The docs-scenario job (docs_scenarios.py) is not a framework audit and keeps its own finding list,

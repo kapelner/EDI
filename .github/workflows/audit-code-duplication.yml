@@ -10,7 +10,7 @@
 # code changed since the last run (scripts/significant_changes.py) and nothing is waiting.
 # Reports in ONE issue (label `audit-code-duplication`); refactor and divergence verdicts are
 # decisions with `code-duplication-d<hex>` ids, dismissed in
-# R/package_metadata/audits/dismissed_decisions.md. Nothing is edited.
+# R/package_metadata/audits/DISMISSED_DECISIONS.md. Nothing is edited.
 # State: code-duplication/ on the audit-notes branch (verdicts.json, manifest.json).
 # The per-push companion (no Claude) is code-duplication-push.yml.
 # Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one, every batch is

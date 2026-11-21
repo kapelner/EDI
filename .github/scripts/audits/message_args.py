@@ -46,7 +46,7 @@ variable first (`msg = paste0(...); stop(msg)`), about 40 of the ~870 calls.
 
 Report: an issue (label `audit-message-args`), one decision per message and name, with a stable id
 (`message-args-d<hex>`) so a false positive is dismissed the framework's way, by listing its id in
-R/package_metadata/audits/dismissed_decisions.md with a reason. Nothing is edited.
+R/package_metadata/audits/DISMISSED_DECISIONS.md with a reason. Nothing is edited.
 """
 import re
 import sys
@@ -780,7 +780,7 @@ def apply(ctx, results, mech):
                f"{len(found)} quoted argument name(s) that the code reaching the message does not accept. "
                "A message that tells the user to set an argument the class does not take fails when they "
                "follow it (v1.0.6-TODO-73). Nothing is edited. A false positive is dismissed by listing its "
-               "id in `R/package_metadata/audits/dismissed_decisions.md` with the reason.")
+               "id in `R/package_metadata/audits/DISMISSED_DECISIONS.md` with the reason.")
     return {"summary": summary, "applied": [], "mechanical": [], "human": human, "proposed": []}
 
 

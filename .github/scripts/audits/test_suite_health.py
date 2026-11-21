@@ -19,7 +19,7 @@ The PR renames TODO-numbered test files (the TODO moves into a top comment in th
 form). It removes and skips nothing. Every other finding is a mechanical finding with the framework's
 lifecycle (owner 2026-11-19): it stays in the report and in the audit-decisions issue until a run no
 longer finds it, an open release TODO cites its `test-suite-health-m<hex>` id, or
-R/package_metadata/audits/dismissed_decisions.md lists it. The findings file this audit used to write
+R/package_metadata/audits/DISMISSED_DECISIONS.md lists it. The findings file this audit used to write
 (FINDINGS_FILE, where deleting a line rejected a finding) was a second lifecycle; a run deletes it.
 """
 import csv

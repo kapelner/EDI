@@ -29,7 +29,7 @@ State (the `audit-notes` branch, folder docs-scenarios/, saved with `audit_run.p
 
 A finding's status is re-derived on every run from the repo: `filed` when an unticked TODO in
 R/package_metadata/future_release_plans/*.md cites its id (`closed` when that TODO is ticked), `dismissed`
-when R/package_metadata/audits/dismissed_decisions.md lists it. The coordinator files TODOs by hand
+when R/package_metadata/audits/DISMISSED_DECISIONS.md lists it. The coordinator files TODOs by hand
 (runbook section 6); this job never writes to a release file.
 
 Skip rule. An area runs when one of its paths changed between its last successful run and HEAD, after
@@ -62,7 +62,7 @@ CONFIG = ".github/prompts/docs_scenario_areas.json"
 PROMPT = ".github/prompts/docs_scenario.md"
 RUNBOOK = "R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md"
 RELEASE_GLOB = "R/package_metadata/future_release_plans/release_v*.md"
-DISMISSED = "R/package_metadata/audits/dismissed_decisions.md"
+DISMISSED = "R/package_metadata/audits/DISMISSED_DECISIONS.md"
 PY_CMAKE = "python/CMakeLists.txt"
 PY_README = "python/README_PYPI.md"
 ARTICLES = "R/EDI/vignettes/articles"

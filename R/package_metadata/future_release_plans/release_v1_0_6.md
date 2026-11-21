@@ -1988,7 +1988,7 @@ TODOs add the missing dimensions.
   its paths since its last successful commit (docs/Rd changes count; comment-only code edits don't); at most 8 areas
   per run; no due area -> no EDI build. State on the `audit-notes` branch under `docs-scenarios/` (state.json,
   learnings/<area>.md read first and appended each run, findings.jsonl with filed/closed/dismissed status re-derived
-  from the release file and dismissed_decisions.md). Agent runs `claude -p` with no source checkout (installed EDI with
+  from the release file and DISMISSED_DECISIONS.md). Agent runs `claude -p` with no source checkout (installed EDI with
   help + vignettes, articles as text, wheel venv for Python). Output: one PR per run with new findings
   (`audit/docs-scenarios/<date>-run<id>`). Agent's estimate: $5-12 per area, ~4 h for an 8-area run. Open: first
   dispatch with `areas: factorial` to test CLI flags, timeouts and build time.
@@ -6216,7 +6216,7 @@ simulation-framework, observational, incidence, count, ordinal and proportion ar
 <area> F<k>" below names the block in that file. Each was re-checked on HEAD (779dc92c..6ed95ff3) on 2026-11-21 by
 reading the code, most also by a small repro under `load_all(compile = FALSE)`. Findings an existing entry covers are
 cited there: observational f1 (v1.0.6-TODO-298), incidence f7 (v1.0.6-TODO-303). Fixed or invalid ones are in
-`R/package_metadata/audits/dismissed_decisions.md` (observational f5-f8, fixed in ba1c3988; incidence f4, fixed in
+`R/package_metadata/audits/DISMISSED_DECISIONS.md` (observational f5-f8, fixed in ba1c3988; incidence f4, fixed in
 ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
 
 - [ ] TODO-338 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`max_secs_per_class` at

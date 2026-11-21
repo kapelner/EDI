@@ -10,7 +10,7 @@
 # Report: the job summary, and for a PR one comment, updated in place on later pushes.
 # Non-blocking. To make a new divergence fail the job, set FAIL_ON_DIVERGENCE to "true" below.
 # An item is silenced for good by listing its `code-duplication-d<hex>` id in
-# R/package_metadata/audits/dismissed_decisions.md. Not in scripts/pre-push, which stays lean.
+# R/package_metadata/audits/DISMISSED_DECISIONS.md. Not in scripts/pre-push, which stays lean.
 # Module: .github/scripts/audits/code_duplication.py (`push`); tests: test_audit_code_duplication.py.
 
 name: code duplication check
