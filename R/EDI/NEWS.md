@@ -696,6 +696,11 @@
 
 ## Bug fixes
 
+* `InferenceIncidExactFisher$compute_estimate()` now warns (class
+  `edi_procedure_na_warning`) when it returns `NA` because an arm has no events
+  and the conditional MLE is infinite, and names the cause; the exact CI and
+  p-value are unchanged (v1.0.6-TODO-306).
+
 * `DesignFixedFactorial` now requires `factors` to be a fully named list of whole
   numbers >= 2. `list(subject = 2.5)` used to run as a two-level factor and an
   unnamed list got the name `Var1` (v1.0.6-TODO-305).

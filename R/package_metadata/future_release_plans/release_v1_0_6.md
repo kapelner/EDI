@@ -5598,7 +5598,7 @@ were found by reading, not by running a fix.
   factorial reference file (2.5, 1, 0, NA, -2, Inf, unnamed and empty-name lists error; `list(subject_line = 2)` runs and
   `get_w_factorial()` is named `subject_line`).
 
-- [ ] TODO-306 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f7):
+- [x] TODO-306 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f7):
   **`InferenceIncidExactFisher$compute_estimate()` returns a bare NA when an arm has no events.** Audit (n = 40, the
   A = 0 arm 0 of 20 events): estimate NA with no warning, while the exact CI is (0.551, Inf) and the p-value 0.009125,
   both matching `mantelhaen.test(exact = TRUE)`, whose OR is Inf. Checked on HEAD 2026-11-20 (`load_all(compile =
@@ -5609,6 +5609,13 @@ were found by reading, not by running a fix.
   arm, and saying the exact CI and p-value remain valid); document the reason in `?InferenceIncidExactFisher`. Test:
   the finding's repro warns once with that reason, on `DesignFixedBlocking` and `DesignFixediBCRD`; CI and p-value
   unchanged. Repro: factorial F7.
+  Done 2026-11-21 (agent): `get_exact_fisher_log_or_estimate()` now also calls `edi_warn_procedure_na()` (class
+  `edi_procedure_na_warning`, reason `exact_fisher_conditional_mle_infinite`) once per fit (flag in
+  `cached_values`), naming the cause ("the control arm has no events", "every treated subject has an event", ... or
+  "the stratified table is separated") and saying the exact CI and p-value remain valid; the reason is documented in
+  the class roxygen (Rd not regenerated). Test: new `test-exact-fisher-infinite-conditional-mle-warns.R` (the F7 repro
+  on `DesignFixedBlocking` and `DesignFixediBCRD`, which is also the ds-incidence f4 shape: one warning, none on a
+  repeat call, p = 0.009 and CI (finite, Inf) unchanged); the 13 fisher-named test files pass.
 
 - [ ] TODO-307 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f2):
   **`fast_weibull_regression(use_rcpp = FALSE)` reports "failed to converge" when the real problem is an empty column

@@ -338,6 +338,7 @@ R/package_tests/testthat_bulk/test-exact-binomial-no-matched-and-no-discordant-p
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,correctness,1.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-binomial-zero-matched-pairs-and-zero-discordant-guards-reference.R,correctness,1.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-fisher-incidence-tables-strata-and-htest-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-exact-fisher-infinite-conditional-mle-warns.R,correctness,5,bootstrap
 R/package_tests/testthat_bulk/test-exact-fisher-no-informative-strata-guard-reference.R,correctness,1.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-only-classes-base-asymp-methods-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-exact-test-source-type-resolution-arg-normalization-and-weighted-estimate-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1849,6 +1850,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-fa
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-link-score-hessian-and-identity-fit-kernels-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-blocked-cluster-bootstrap-prepivoted-ci-finite.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-blocked-cluster-design-cluster-constant-block-balanced-draws-and-argument-validation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-blocked-cluster-unequal-block-sizes.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-blocking-strata-key-construction-reference.R,coverage,240,bootstrap

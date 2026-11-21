@@ -123,6 +123,26 @@ ExactFisherIncidenceSource = list(
 			# exact p-value and CI do not use this estimate and stay available.
 			if (!is.finite(est)) {
 				private$cache_nonestimable_estimate("exact_fisher_conditional_mle_infinite")
+				# v1.0.6-TODO-306: say so (once per object) instead of a bare NA.
+				if (!isTRUE(private$cached_values$exact_fisher_inf_warned)) {
+					private$cached_values$exact_fisher_inf_warned = TRUE
+					y = private$y; w = private$w
+					why = if (sum(y[w == 0] == 1, na.rm = TRUE) == 0) {
+						"the control arm has no events"
+					} else if (sum(y[w == 1] == 1, na.rm = TRUE) == 0) {
+						"the treatment arm has no events"
+					} else if (sum(y[w == 0] == 0, na.rm = TRUE) == 0) {
+						"every control subject has an event"
+					} else if (sum(y[w == 1] == 0, na.rm = TRUE) == 0) {
+						"every treated subject has an event"
+					} else {
+						"the stratified table is separated"
+					}
+					edi_warn_procedure_na(self, private, procedure = "estimate",
+						reason = "exact_fisher_conditional_mle_infinite",
+						detail = paste0("The conditional MLE of the odds ratio is infinite because ", why,
+							". The exact confidence interval and p-value do not use it and remain valid."))
+				}
 				return(NA_real_)
 			}
 			est
@@ -275,6 +295,13 @@ ExactFisherIncidenceSource = list(
 #' treated or no control subjects are dropped before analysis; if no
 #' informative strata remain, this errors rather than returning a degenerate
 #' result.
+#'
+#' When an arm has no events (or only events), or the stratified table is otherwise
+#' separated, the conditional MLE of the odds ratio is infinite: \code{compute_estimate()}
+#' then returns \code{NA}, \code{is_nonestimable()} is \code{TRUE} with reason
+#' \code{"exact_fisher_conditional_mle_infinite"}, and one warning of class
+#' \code{edi_procedure_na_warning} names the cause. The exact confidence interval
+#' (one-sided infinite) and p-value do not use the estimate and remain valid.
 #'
 #' @references Fisher, R. A. (1935). "The Logic of Inductive Inference."
 #'   \emph{Journal of the Royal Statistical Society}, 98(1), 39-82,
