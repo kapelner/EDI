@@ -5408,7 +5408,7 @@ were found by reading, not by running a fix.
   percentile CI after a `"resample_blocks"` diagnostic call [1.527, 2.722] -> [1.176, 3.111], the same as a fresh
   object.
 
-- [ ] TODO-300 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f4):
+- [x] TODO-300 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f4):
   **`assign_w_to_all_subjects(w_precomputed = )` accepts a 1/2-coded vector, keeps it, and inference then returns NA
   with no warning.** On `DesignFixedCluster`, `w_precomputed = wcl + 1` is accepted silently, `table(get_w())` shows 1
   and 2, and `InferenceAllSimpleAverageDiff` gives an NA estimate and NA randomization p-value (OLS happens to give the
@@ -5417,8 +5417,14 @@ were found by reading, not by running a fix.
   `w_precomputed` there (shared by every fixed design): numeric or logical, length n, no NA, values in {0, 1}, both arms
   present, with a message naming the rule that failed. Test: 1/2 coding, wrong length, NA, a single arm, and a factor
   each error; a valid 0/1 vector still gives today's results. Repro: clusters-blocking F4.
+  Done 2026-11-21 (agent): new private `validate_w_precomputed()` in `DesignFixed` (`design_fixed_abstract.R`), called
+  by `assign_w_to_all_subjects()` for every fixed design: numeric or logical (factor/character refused), length n,
+  no NA, only 0/1, both arms present, each with its own message; logical TRUE/FALSE is stored as 1/0. Test: new
+  `test-fixed-design-w-precomputed-validation.R` (1/2 coding, wrong length, NA, one arm, factor, character error;
+  logical and valid 0/1 vectors are stored unchanged). The bulk files that pass `w_precomputed` (14 checked, e.g.
+  `test-fixed-observational-design-contracts.R`, `test-design-inference-introspection-audit.R`) still pass.
 
-- [ ] TODO-301 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f6):
+- [x] TODO-301 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f6):
   **`DesignFixedCluster$assign_w_to_all_subjects(w_precomputed = )` accepts an assignment that varies within
   clusters.** `w_precomputed = rbinom(n, 1, 0.5)` is accepted with no warning; both arms appear inside every school;
   `InferenceContinOLS` then reports a CR2 interval and a randomization p-value whose reference draws (whole schools)
@@ -5427,6 +5433,10 @@ were found by reading, not by running a fix.
   0/1 check of v1.0.6-TODO-300, error when `w_precomputed` is not constant within `cluster_col`, naming the first
   offending clusters. Test: a within-cluster-varying vector errors on both classes; a cluster-constant one is
   accepted. Repro: clusters-blocking F6.
+  Done 2026-11-21 (agent), with v1.0.6-TODO-300: `validate_w_precomputed()` also errors when the design has a
+  `cluster_col` and `w_precomputed` is not constant within it, naming how many clusters vary and up to 5 of them
+  (covers `DesignFixedCluster` and `DesignFixedBlockedCluster`). Test: same file, both classes (two flipped subjects
+  -> "varies within 2 cluster(s)"; a cluster-constant vector is stored as given).
 
 - [ ] TODO-302 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f7): **On a
   blocked-cluster trial, `compute_bootstrap_confidence_interval(type = "prepivoted" | "double-bootstrap" |

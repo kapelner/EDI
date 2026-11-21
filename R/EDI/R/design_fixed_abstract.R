@@ -48,7 +48,8 @@ DesignFixed = R6::R6Class("DesignFixed",
 		#'   costly allocation search, e.g. for \code{DesignFixedGreedy}).
 		assign_w_to_all_subjects = function(w_precomputed = NULL){
 			if (!is.null(w_precomputed)) {
-				private$w[1:self$get_n()] = as.numeric(w_precomputed)
+				w_precomputed = private$validate_w_precomputed(w_precomputed)
+				private$w[1:self$get_n()] = w_precomputed
 			} else {
 				private$w[1:self$get_n()] = private$draw_ws_raw(1)[, 1]
 			}
@@ -176,6 +177,40 @@ DesignFixed = R6::R6Class("DesignFixed",
 		# v1.0.6-TODO-154).
 	),
 	private = list(
+		# v1.0.6-TODO-300 / -301: w_precomputed was stored as.numeric() unchecked, so a 1/2-coded
+		# vector was kept and inference returned NA, and a cluster design accepted an assignment
+		# that varies within clusters.
+		validate_w_precomputed = function(w){
+			n = self$get_n()
+			if (is.factor(w) || !(is.numeric(w) || is.logical(w))) {
+				stop("w_precomputed must be a numeric or logical 0/1 vector, not ", class(w)[1L], ".", call. = FALSE)
+			}
+			if (length(w) != n) {
+				stop("w_precomputed must have length n = ", n, " (got ", length(w), ").", call. = FALSE)
+			}
+			if (anyNA(w)) stop("w_precomputed must not contain NA.", call. = FALSE)
+			w = as.numeric(w)
+			bad = setdiff(unique(w), c(0, 1))
+			if (length(bad)) {
+				stop("w_precomputed must contain only 0 (control) and 1 (treatment); found ",
+					paste(utils::head(sort(bad), 5L), collapse = ", "), ".", call. = FALSE)
+			}
+			if (all(w == 1) || all(w == 0)) {
+				stop("w_precomputed must assign at least one subject to each arm.", call. = FALSE)
+			}
+			cluster_col = private$cluster_col
+			if (!is.null(cluster_col) && cluster_col %in% names(private$Xraw)) {
+				cl = as.character(private$Xraw[[cluster_col]])[seq_len(n)]
+				n_arms = tapply(w, cl, function(v) length(unique(v)))
+				mixed = names(n_arms)[n_arms > 1L]
+				if (length(mixed)) {
+					stop("w_precomputed must give every subject in a cluster the same assignment; it varies within ",
+						length(mixed), " cluster(s) of ", cluster_col, ", e.g. ",
+						paste(utils::head(mixed, 5L), collapse = ", "), ".", call. = FALSE)
+				}
+			}
+			w
+		},
 		draw_ws_raw = function(r = 100){
 			stop("draw_ws_raw must be implemented by a concrete design subclass.")
 		}

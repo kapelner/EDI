@@ -696,6 +696,12 @@
 
 ## Bug fixes
 
+* `assign_w_to_all_subjects(w_precomputed = )` on fixed designs now checks the
+  vector: numeric or logical, length n, no `NA`, only 0 and 1, both arms, and on
+  cluster designs the same value within every cluster. A 1/2-coded vector used
+  to be stored and give `NA` estimates silently (v1.0.6-TODO-300,
+  v1.0.6-TODO-301).
+
 * `DesignFixedBlocking`: the unequal-block-size error no longer says
   `B_target` was not given when it was, and no longer advises `B_target` for
   categorical strata, whose categories fix the block sizes (v1.0.6-TODO-73).
