@@ -9,8 +9,8 @@ holds several rulings. The TODO entry keeps one line in place of the ruling:
 
 When a pending decision is ruled on, its section moves here from `PENDING_DECISIONS.md` with Ruling / Why / date
 added. Before reopening or re-arguing a choice, check this file. Order: releases newest first, and within a release,
-TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md` and
-`COMPLETED_DECISIONS.md`" in the repo's `CLAUDE.md`.
+TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
+`COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
 Last updated 2026-11-21.
 
@@ -37,6 +37,11 @@ Last updated 2026-11-21.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
+| [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-380](release_v1_0_6.md) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-380](release_v1_0_6.md) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-352](release_v1_0_6.md) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-380) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-326](#DECISION-v1.0.6-TODO-326) | [v1.0.6-TODO-326](release_v1_0_6.md) | DepCens Bayesian bootstrap unsupported (warn, NA) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-285](#DECISION-v1.0.6-TODO-285) | [v1.0.6-TODO-285](release_v1_0_6.md) | 1.2-1.3x is close enough; no further speedups; allowlist row stays until the v1.0.6 release | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-270a](#DECISION-v1.0.6-TODO-270a) | [v1.0.6-TODO-270](release_v1_0_6.md) | few permuted blocks per stratum: auto unit switches to observation_within_block | 2026-11-20 |
@@ -383,6 +388,56 @@ Last updated 2026-11-21.
 - **Rejected:** (b) a corrected inversion. (A second item, the null construction, was withdrawn 2026-09-05: the code already uses impute-then-permute, verified by test.)
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-380a"></a>
+### DECISION-v1.0.6-TODO-380a: Name of the opt-in design-conservative Bartlett option
+
+- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **Question:** Following DECISION-v1.0.6-TODO-327, the design-conservative Bartlett version becomes its own option: a new testing type, or an argument on the Bartlett methods?
+- **Options on the table:** (a) a new testing type, e.g. `"lik_ratio_bartlett_approx_design_conservative"` (recommended: works through `set_testing_type()` and `InferenceSuite`); (b) an argument on the Bartlett methods.
+- **Ruling:** (a) the new testing type is named `"lik_ratio_bartlett_approx_design_conservative"`, 2026-11-21, owner
+- **Why:** No reason recorded (the recommendation was a testing type, so it works through `set_testing_type()` and `InferenceSuite`).
+- **Rejected:** (b) an argument on the Bartlett methods.
+
+<a id="DECISION-v1.0.6-TODO-380b"></a>
+### DECISION-v1.0.6-TODO-380b: Does `InferenceCountPoisson` get the same model-only / design-conservative Bartlett split?
+
+- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **Question:** `InferenceCountPoisson`'s `lik_ratio_bartlett_approx` is already wrapped in its design-conservative rule (`R/EDI/R/inference_count_poisson.R:404`), the opposite of the KK count OneLik classes after DECISION-v1.0.6-TODO-327.
+- **Options on the table:** (a) split it the same way (its current Bartlett result becomes the new option, so the default changes and needs a NEWS entry); (b) leave it as is.
+- **Ruling:** (a) same split: its `lik_ratio_bartlett_approx` becomes the model-only Bartlett test and its current result moves to `"lik_ratio_bartlett_approx_design_conservative"`; changes the default Bartlett result, NEWS entry required, 2026-11-21, owner
+- **Why:** No reason recorded (recommended for one rule across the count classes, in line with "the testing type you ask for is the test you get").
+- **Rejected:** (b) leave it as is.
+
+<a id="DECISION-v1.0.6-TODO-380c"></a>
+### DECISION-v1.0.6-TODO-380c: May a testing type silently return another procedure (e.g. Wald falling back to a bootstrap interval)?
+
+- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **Question:** The KK count OneLik classes (and several count-likelihood / survival classes) fall back to the nonparametric-bootstrap interval when the model-based SE is unavailable under `testing_type = "wald"`.
+- **Options on the table:** (a) keep silent fallbacks; (b) a testing type always returns that test: the Wald result, or NA with a recorded `procedure_failure_reason` and a classed warning (v1.0.6-TODO-255 convention), the bootstrap as its own option if still wanted.
+- **Ruling:** (b) a testing type must return that test, never another procedure, 2026-11-21, owner
+- **Why:** Owner principle: "If the user wants wald, we should always give wald." Changes results where a fallback fired, so it needs a NEWS entry.
+- **Rejected:** (a) silent fallbacks.
+
+<a id="DECISION-v1.0.6-TODO-352"></a>
+### DECISION-v1.0.6-TODO-352: Development builds report the last release's version: what version should the development tree carry?
+
+- **TODO:** [v1.0.6-TODO-352](release_v1_0_6.md): **Development builds still report version 1.0.4, so saved designs are stamped with a release whose seeding rule differs.**
+- **Question:** `R/EDI/DESCRIPTION` said 1.0.4 while NEWS.md has a development section and the docs date the sequential seeding rule to v1.0.6, so a trial file stamped "1.0.4" points to the wrong allocation rule.
+- **Options on the table:** (a) a development version above the last release (e.g. 1.0.5.9000), changed only in DESCRIPTION and then `python3 scripts/sync_version.py` (the entry's proposal); (b) set the version to the next release to ship.
+- **Ruling:** (b) set the version to 1.0.5, 2026-11-21, owner
+- **Why:** 1.0.5 is "the next release to ship; release_v1_0_5.md is closed and soon to be released" (owner).
+- **Rejected:** (a) a `.9000` development version.
+
+<a id="DECISION-v1.0.6-TODO-327"></a>
+### DECISION-v1.0.6-TODO-327: KK count OneLik: keep `lik_ratio_bartlett_approx` model-only, or make it design-conservative like `lik_ratio`?
+
+- **TODO:** [v1.0.6-TODO-327](release_v1_0_6.md): **`set_testing_type("lik_ratio_bartlett_*")` makes `compute_asymp_*()` return NULL on `InferenceContinKKOLSOneLik` and `InferenceCountPoisson`.**
+- **Question:** On the KK count OneLik classes `lik_ratio` is design-conservative, but `lik_ratio_bartlett_approx` dispatches to the model-only Bartlett method, giving a narrower CI on the fixture: [-0.262, 0.663] vs [-0.277, 0.695].
+- **Options on the table:** (a) keep Bartlett model-only and document it; (b) make it design-conservative, like `InferenceCountPoisson`.
+- **Ruling:** (a) `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test, documented in the class roxygen; a separate opt-in design-conservative Bartlett option is v1.0.6-TODO-380, 2026-11-21, owner
+- **Why:** No reason recorded here; see the owner principle in DECISION-v1.0.6-TODO-380c.
+- **Rejected:** (b) design-conservative Bartlett by default.
 
 <a id="DECISION-v1.0.6-TODO-326"></a>
 ### DECISION-v1.0.6-TODO-326: DepCens Bayesian bootstrap resamples a Cox log HR: add weights to the dependent-censoring likelihood, or make the method unsupported?
@@ -2259,4 +2314,6 @@ Rulings recorded as sections of the repo's `CLAUDE.md` (pointers only; the text 
 - 2026-11-19 (owner): one source of truth for the version, `R/EDI/DESCRIPTION` + `scripts/sync_version.py`
   (`CLAUDE.md`, "One source of truth for the version").
 - 2026-11-21 (owner): owner decisions live in `PENDING_DECISIONS.md` / `COMPLETED_DECISIONS.md` (`CLAUDE.md`, "Owner
-  decisions: `PENDING_DECISIONS.md` and `COMPLETED_DECISIONS.md`").
+  decisions: `PENDING_DECISIONS.md`, `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`").
+- 2026-11-22 (owner): dismissed audit ids (`rd-d<hex>` / `rd-m<hex>`) go in
+  `R/package_metadata/audits/DISMISSED_DECISIONS.md`, named in the same `CLAUDE.md` section ("Dismissed").

@@ -2034,6 +2034,7 @@ ticked in their **owning plans**; this list is the release index.
     1-1000), DesignFixedBernoulli, null effect, 1000 reps per cell, source tree under `load_all(compile = FALSE)`.
     Script and outputs: `/tmp/claude-1000/-home-kapelner-workspace-EDI/36603969-ed9b-40ba-9f2e-044451c2e3b2/scratchpad/todo216/`
     (`sim.R`, `summarize.R`, `res_n*_p*.rds`). Rejection rates at alpha = 0.05:
+  - Accepted rows completed 2026-11-21 (coordinator, owner request): wave 24 of campaign 2026-11-15-e36c7710 had 434 confirmed failing ZIP gradient / LR / score cells but only 98 rows; 336 rows added (168 size, 168 coverage), level = the worse of the screening and confirmation values + 3 SE. The reason text is this TODO's existing one; the owner ruling above (inherent, rows keep citing this TODO) covers them although the TODO is closed.
 
     | cell | ZIP `~1` score / LR / gradient | ZIP `~1` model-based Wald | ZIP `~1` class Wald (sandwich) | ZIP `~.` score / LR / gradient / Wald | ZINB `~1` Wald / score / LR / gradient |
     |---|---|---|---|---|---|
@@ -2091,6 +2092,7 @@ ticked in their **owning plans**; this list is the release index.
     - A known test changed meaning: `test-count-classes-estimates-match-glm-nb-and-pscl-and-zinb-kernel-reference.R` expected the "no excess zeros" fit to equal glm.nb, but that was the spurious boundary fit. pscl's interior MLE has a lower nll (367.4735 vs 367.5391), and the class now matches pscl. That test was updated. Regression test: `R/package_tests/testthat_bulk/test-zinb-spurious-zero-inflation-boundary-refit.R` (fails before the fix, passes after).
   - Decided 2026-11-19 (owner): part (a) inherent (small-sample degeneracy at n = 50); see [DECISION-v1.1.0-TODO-217](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-217).
   - The accepted rows (reason starting `v1.1.0-TODO-217`) stay with that reason. Documented in the class roxygen and `man/InferenceCountZeroInflatedNegBin.Rd` ("Many covariates in small samples": adjust for fewer covariates or prefer the LR test at small n), in the same way as v1.1.0-TODO-216. Part (b), the randomization-test bug, moved to v1.0.6-TODO-222; this TODO is done once that is tracked there.
+  - Accepted rows completed 2026-11-21 (coordinator, owner request): 19 confirmed n = 50 ZINB likelihood-test cells (10 size, 9 coverage) had no row after wave 24 of campaign 2026-11-15-e36c7710; added with this TODO's reason, level = the worse of the screening and confirmation values + 3 SE. The randomization-test cells are not accepted here; they belong to v1.0.6-TODO-222 (fixed after e36c7710).
 
 - [ ] TODO-218 (added 2026-11-19, owner; opened for accepted calibration rows): **`InferenceCountPoisson` `~1`: every model-based test oversized on the blocking designs (FixedBlocking, SeqOneByOneSPBR, SeqOneByOneRandomBlockSize); cause unknown.**
   - Why: campaign 2026-11-15-e36c7710 (screening stage, 1000 replicates): Wald, score, LR and gradient with `~1` have size and 1 - coverage 0.078-0.106 at n = 200 and 1000, prob_T 0.2 and 0.5, on those three designs only (64 flags). The `~.` cells are nominal there.
@@ -2628,3 +2630,27 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   `InferenceCountZeroInflatedPoisson` roxygen). Detect the ridge directly: solve an LP for which zeros can be separated
   from every positive count, compare against the Poisson fit on the remaining rows, and flag (or return) the ridge fit.
   Sweep scripts: /tmp/claude-1000/t232/ and /tmp/claude-1000/sweep/ (may be gone; rebuild the sweep if so).
+- [ ] TODO-262 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalKKStratCoxPHOneLik`: gradient test oversized at n = 50 on KK21stepwise.**
+  - One cell: SeqOneByOneKK21stepwise `~.` n = 50, size 0.146 (level 0.1). Triage category small-sample.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignSeqOneByOneKK21stepwise' --n 50 --effect null --only InferenceSurvivalKKStratCoxPHOneLik --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cell; if confirmed, fixed or accepted as small-sample with rows citing this TODO.
+- [ ] TODO-263 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24): **Null bias above 0.1 SD at n = 1000 in 17 class x procedure groups (reported, not gated).**
+  The study reports `bias_sd_large_n` but never fails a cell on it; these are the groups over the 0.1 SD line at n = 1000.
+  - `InferenceSurvivalRestrictedMeanDiff`: 22 cells, all at prob_T 0.2 (FixedBernoulli, FixedRerandomization,
+    FixedBlocking, FixedOptimalBlocks, FixedOptimal, FixediBCRD, FixedGreedyDOptimal, SeqOneByOneSPBR, iBCRD, Bernoulli,
+    RandomBlockSize); worst FixedBernoulli@0.2 `~.`: 0.185. The largest and most systematic: look first at the
+    restriction time and the arm-specific KM tail at unequal allocation.
+  - Eight proportion groups on SeqOneByOneSPBR@0.2 only, 0.105-0.120: PropQuantileRegr 0.12, PropFractionalLogit 0.119,
+    AllSimpleAverageDiff 0.114, AllSimpleMeanDiffPooledVar 0.114, PropGCompMeanDiff 0.114, AllSimpleWilcox 0.106,
+    PropBetaRegr 0.105, PropZeroOneInflatedBetaRegr 0.105. One design shared by unrelated estimators points at the
+    design or the proportion DGP at prob_T 0.2 (check the SPBR treated share), not at the classes.
+  - Survival: SurvivalStratCoxPHRegr 0.129 (3 cells: FixedGreedy@0.2, FixedGreedyDOptimal, SeqOneByOneUrn), SurvivalLogRank
+    0.122 (4 cells: FixedGreedy@0.2, FixedGreedyDOptimal), SurvivalWeibullRegr 0.111 (3 cells: SeqOneByOneUrn,
+    FixedGreedyDOptimal).
+  - Others, one or two cells just over the line: IncidModifiedPoisson -0.105 and IncidLogBinomial -0.100
+    (FixedRerandomization@0.2), ContinQuantileRegr 0.105 and ContinRobustRegr 0.103 (SeqOneByOneEfron), PropKKGLMM
+    -0.101 (FixedBinaryMatch `~1`).
+  - Most sit within MC error of 0.1 on 1000 reps; only RestrictedMeanDiff, StratCoxPHRegr and LogRank are clearly over.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedBernoulli@prob_T=0.2' --n 1000 --effect null --only InferenceSurvivalRestrictedMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: each group is explained (estimand mismatch with the DGP truth, design artefact, or a real bias) and
+    either fixed or documented; re-check against the next campaign's `null-bias.md`.

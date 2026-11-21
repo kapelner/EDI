@@ -156,9 +156,9 @@ Owner ruling 2026-11-19. Change the version only in `R/EDI/DESCRIPTION`, then ru
 pre-push hook runs `sync_version.py --check` and refuses a push while any copy disagrees. `NEWS.md`
 and `python/CHANGELOG.md` are not copies; their top section may already name the next version.
 
-## Owner decisions: `PENDING_DECISIONS.md` and `COMPLETED_DECISIONS.md`
+## Owner decisions: `PENDING_DECISIONS.md`, `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`
 
-Owner rulings 2026-11-21. Both files are in `R/package_metadata/future_release_plans/` and use one id per decision,
+Owner rulings 2026-11-21. The first two files are in `R/package_metadata/future_release_plans/` and use one id per decision,
 named after the TODO that raised it: `DECISION-v<version>-TODO-<n>` (`...-TODO-<n>a` / `b` when one TODO has several),
 as an `<a id="..."></a>` anchor over a `### DECISION-...: <question>` heading, plus a row in the summary table at the
 top. Order in both files: releases newest first, and within a release TODO numbers highest first, in the table and the
@@ -174,5 +174,9 @@ sections (one `## v<version>` heading per release).
   add its table row there (| Decision | TODO | Ruling in one line | Date |); replace the TODO's pending pointer with
   `  - Decided <date> (<who>): <option in a few words>; see [DECISION-v1.0.6-TODO-82](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-82).`;
   and delete the pending section and its row.
-- Before reopening or re-arguing a choice, check `COMPLETED_DECISIONS.md`. When you report decisions to the owner,
-  take them from `PENDING_DECISIONS.md`, and check it is current first.
+- **Dismissed.** An audit decision or finding the owner lets go (an id such as `rd-d<hex>` / `rd-m<hex>` from the
+  scheduled `.github/workflows/audit-*.yml` runs) gets one line in `R/package_metadata/audits/DISMISSED_DECISIONS.md`:
+  `- \`<id>\`: reason (date)`. The audits stop listing an id once it is there. It is not for release-TODO
+  decisions: a ruled TODO decision goes to `COMPLETED_DECISIONS.md`, even when the ruling is "don't do it".
+- Before reopening or re-arguing a choice, check `COMPLETED_DECISIONS.md` (and `DISMISSED_DECISIONS.md` for audit
+  ids). When you report decisions to the owner, take them from `PENDING_DECISIONS.md`, and check it is current first.

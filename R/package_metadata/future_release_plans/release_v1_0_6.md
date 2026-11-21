@@ -278,6 +278,10 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Investigate first: why `converged` is TRUE at gradient norm 0.22 (a function-change stop that fires on the flat log-sigma direction?); whether other kernels that share `optimize_fixed_likelihood()` with a log-variance parameter (continuous/count KK GLMM, the GLMM Weibull frailty classes) stop short the same way near sigma = 0.
   - Fix (candidates): gate `converged` on the gradient norm; when log sigma runs toward `-max_abs_log_sigma`, refit with sigma fixed at 0 (the plain GLM) and keep the better likelihood; or profile sigma out at the boundary.
   - Done when: on that fixture the weighted estimate matches the weighted `glm()` / `glmer(nAGQ = 20)` value to 1e-4 relative, `converged` is FALSE whenever the gradient norm is above tolerance, and the test's tolerance is back at 1e-3.
+  - Note (coordinator 2026-11-21): the rand warm-start chaining study found `InferencePropKKGLMM` fits depend on the
+    start by up to 1e-2 (base-start worker 0.39643 vs observed 0.39727 on the original data); same symptom. The
+    v1.0.6-TODO-169/170 shared convergence rule (`_helper_functions_core.h`, owner build pending) may already gate
+    `converged` here; re-check this fixture after the build.
 
 - [ ] TODO-11 (moved 2026-11-10 from `release_v1_1_0.md → TODO-192`, owner approval of the v1.0.6 triage; originally added 2026-11-10, owner; from v1.0.5 TODO-1's closing, `finished_features/v1_0_5/reusable_bootstrap.md` TODO-6): **Realistic proportion data for `tune_EDI_for_this_machine()`.**
   - Problem: the tuner's proportion fixture is noiseless. `inference_migration_complete_design()` (`local_machine_tuning_synthetic_fixtures.R`) sets `y = pmin(0.95, pmax(0.05, plogis(linpred)))` with no noise and no exact 0s or 1s (`edi_tuning_synthetic_experiment()` adds zero mass only for zero-inflated/hurdle count classes). Every proportion fit recovers the true coefficient 0.55 exactly, the precision parameter diverges, and jackknife summaries are degenerate (ZOIB: every warm-started fold returns 0.55, SE ~4e-9; NA at n = 50 and 1000). ZOIB's zero/one submodel is never exercised.
@@ -652,6 +656,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     ignores the boundary.
   - Done when: the cause is found and the n = 1000 cells pass, or the owner accepts them with a reason and rows citing
     this TODO.
+  - Accepted rows completed 2026-11-21 (coordinator, owner request): 2 confirmed score size cells had no row after wave 24 of campaign 2026-11-15-e36c7710; added citing this TODO, level = the worse of the screening and confirmation values + 3 SE.
 - [x] TODO-30 (added 2026-11-16, agent, owner request; found while gating randomization warm-start chaining on
   `likelihood_concave`): **`InferenceCountZeroInflatedPoisson`: randomization replicates are stuck at the full-data
   fit's zero-inflation ridge, so the randomization distribution is wrong.**
@@ -1275,6 +1280,14 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   `rand_likelihood_is_nonconcave()` is now unused by this loop (still referenced by a test and the call-graph
   baseline). 1-core vs 2-core (fork) now bit-identical; new `test-aa-fork-warm-start-lazy-assignment-and-tmb-thread-core-count-invariance.R` (22); bulk test un-skipped (callr-based bulk tests need a reinstall).
   - Decided 2026-11-19 (owner): randomization replicates never chain warm starts, for any class; see [DECISION-v1.0.6-TODO-61](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-61).
+  - 2026-11-21 (agent, owner request): timing study on the slow / non-concave classes (KK GLMMs, CLMM family,
+    Weibull frailty OneLik, stereotype logit, partial PO, ZOIB, KK cond Poisson; n = 150, r = 400, 1 core), see
+    `R/package_metadata/audits/research_findings/2026-11-21-rand-warm-start-chaining-timing.md`. Chaining is at
+    most 1.10x to 1.12x faster (PropKKGLMM, CondLogitGLMM; noise floor about ±15%) and bit-identical for seven
+    classes. Nothing is material, so no decision is raised and the ruling stands. Side findings, not yet TODOs:
+    `InferenceIncidKKCondLogitGLMMOneLik` loses 43 of 400 replicates to NA under the base start (7 chained, 0 cold;
+    the open v1.0.6-TODO-35 question), and its rand-worker statistic differs from a fresh fit on the permuted data
+    (max 0.44). PropKKGLMM start dependence is about 1e-2 (v1.0.6-TODO-10).
 - [x] TODO-62 (added 2026-11-17, agent, owner request; found by the thread-rng review audit, merged as a skipped
   failing test): **Hurdle negbin bootstrap-weighted fits depend on the core count.**
   `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_count_hurdle.R:442`)
@@ -6122,7 +6135,9 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     CI and p-value returned NA with no reason on a fresh object (never computed `beta_hat_T`); fixed. Test:
     `R/package_tests/testthat_bulk/test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R` (every class x
     supported type, Bartlett factor stubbed, ~32 s, 1232 passed).
-    - Owner decision pending: [DECISION-v1.0.6-TODO-327](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-327) (KK count OneLik: keep `lik_ratio_bartlett_approx` model-only, or make it design-conservative like `lik_ratio`?).
+    - **Owner decision 2026-11-21: (a).** `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test;
+      documented in the class roxygen (`R/EDI/R/inference_count_KK_cond_poisson.R`, the OneLik doc and the shared
+      design-conservative paragraph). A separate, opt-in design-conservative Bartlett option is v1.0.6-TODO-380.
 - [x] TODO-328 (added 2026-11-21, agent, owner request; audit decision `code-duplication-ddad98657`, issue #61 triage):
   **`compute_rand_two_sided_pval(alternative = ...)` errors ("unused argument") on 7 classes whose override lacks the
   argument.** The base method gained `alternative` in 3dabce47 and NEWS announces it, but the overrides in
@@ -6405,7 +6420,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   article. Done when: the 31st add errors with t still 30 (Bernoulli, KK14, KK21), and the F3 repro errors at subject
   26 naming the column, with `get_t()` and `get_X_raw()` unchanged.
 
-- [ ] TODO-352 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Development builds still
+- [x] TODO-352 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Development builds still
   report version 1.0.4, so saved designs are stamped with a release whose seeding rule differs (owner decision).**
   Ids: ds-save-load-44883784401-f4.
   `R/EDI/DESCRIPTION:4` says 1.0.4 while NEWS.md has a development section, and the docs date the sequential seeding
@@ -6414,6 +6429,10 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   above the last release (e.g. 1.0.5.9000), changed only in DESCRIPTION and then `python3 scripts/sync_version.py`.
   Done when: `get_edi_version_created()` on a development build never equals a released version, and
   `sync_version.py --check` passes.
+  - **Owner decision 2026-11-21:** set the version to 1.0.5 (the next release to ship; release_v1_0_5.md is closed and
+    soon to be released). Done: `R/EDI/DESCRIPTION` says 1.0.5 and `python3 scripts/sync_version.py` rewrote
+    CITATION.cff, python/CITATION.cff, codemeta.json, python/pyproject.toml, python/README.md and
+    python/README_PYPI.md; `--check` passes. Saved designs from this tree are stamped 1.0.5, not the released 1.0.4.
 
 - [ ] TODO-353 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework` docs:
   `w` coding, a missing `get_errors()`, and what `$run()` returns.**
@@ -6648,6 +6667,87 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   method has allowed draw-based incidence p-values since 2026-10-20, so the refusal looks stale. Test either way.
   - Owner decision pending: [DECISION-v1.0.6-TODO-373](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-373) (drop the stale incidence refusal, or remove `rand` from `InferenceIncidKKGEE`'s supported procedures?).
 
+- [ ] TODO-374 (added 2026-11-21, agent, owner request; found by the R-CMD-check triage of run 44749244495, follow-up to
+  v1.0.6-TODO-169 and v1.0.6-TODO-322): **The Newton-decrement L-BFGS finish exposed two optimizer bugs.** (1)
+  `fast_stereotype_logit_internal`'s cold start (beta = 0, where the loadings carry no information) sent a loading to
+  +-Inf and stopped at a non-optimal boundary point that the old verdict called converged (n = 800, K = 3: neg-loglik
+  755.7 vs the MLE 732.7; K = 5: 392.9 vs 269.8). Fix applied in `R/EDI/src/fast_stereotype_logit.cpp` (~L727): with no
+  `warm_start_params`, K >= 3 and no caller-fixed gamma, fit with gamma held at 0 first, then release it (the in-kernel
+  form of the R layer's `adjcat_two_stage` start, TODO-176). (2) `lbfgs_finish_with_newton_decrement`
+  (`R/EDI/src/_helper_functions_core.h` ~L1507) kept the old verdict only when the Hessian was unusable at the first
+  check, so a boundary fit (Gaussian LMM with the random-effect SD -> 0) whose damped steps improved the objective and
+  then lost positive definiteness was reported as not converged. Fix applied: keep the old verdict whenever the
+  Hessian is unusable. Five tests that still assumed the old behaviour were updated (information reuse, ordinal GLMM
+  polish flags x2, stereotype multistart, stereotype hessian-allocs fixture). Verified 2026-11-21 by kernel swap
+  (stereotype and Gaussian LMM kernels via `sourceCpp`, swapped into the namespace and `package:EDI`):
+  `test-rcpp-fitting-equivalence.R` 81/81, `test-stereotype-logit-hessian-allocs.R` 18/18,
+  `test-gaussian-lmm-hessian-prealloc.R` 19/19, and all 22 stereotype and 3 Gaussian LMM test files 386 pass / 0 fail.
+  Done when, after the owner's rebuild with both patches, R-CMD-check is green on every leg and the v1.0.6-TODO-322 (2)
+  probes of the other kernels sharing the finish (ZIP / hurdle, ZOIB, the GLMMs, Weibull frailty, CLMM) pass; the
+  header change reaches every L-BFGS kernel, and only these two were swapped.
+- [ ] TODO-375 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalWeibullRegr`: Wald / LR / gradient oversized at n = 1000 with `~1`, and score oversized at every n.**
+  - Wald / LR / gradient, size and coverage: 4-5 cells each, all `~1`, n = 1000 (FixedBernoulli, FixediBCRD,
+    FixedRerandomization at prob_T 0.5 and 0.2, SeqOneByOneRandomBlockSize); worst FixedRerandomization `~1` n = 1000:
+    size 0.082 (level 0.05), coverage 0.918.
+  - Score, size and coverage: 9 cells at n = 50, 200 and 1000, `~.` and `~1` (FixedBlocking@0.2, FixedOptimal@0.2,
+    FixedRerandomization, FixedRerandomization@0.2, FixedBernoulli, FixediBCRD, SeqOneByOneiBCRD,
+    SeqOneByOneRandomBlockSize); worst FixedOptimal@0.2 `~.` n = 50: size 0.147 (level 0.1), coverage 0.853.
+  - v1.1.0-TODO-188 covers the score test at n = 50 only; these cells fail at large n too, so they are not small-sample.
+    Since all four tests fail together at n = 1000 with `~1`, check first whether omitting the DGP covariates misspecifies
+    the Weibull model (shape absorbs covariate heterogeneity), as v1.1.0-TODO-174 / -216 found for count models.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedRerandomization' --n 1000 --effect null --only InferenceSurvivalWeibullRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cells; confirmed ones are fixed, or ruled inherent and documented, with
+    calibration_study_accepted.csv rows citing this TODO.
+- [ ] TODO-376 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Wald / LR / gradient oversized at n = 1000 on KK14 (`~1`).**
+  - One cell per test: SeqOneByOneKK14 `~1` n = 1000, size 0.080-0.081 (level 0.0525), coverage 0.919-0.920.
+  - v1.1.0-TODO-184 covers Wald at n = 50 and v1.1.0-TODO-256 / -257 the score test; neither covers large n.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignSeqOneByOneKK14' --n 1000 --effect null --only InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cell (a single flag may clear); if confirmed, fixed or accepted with rows citing
+    this TODO.
+- [ ] TODO-377 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalDepCensTransformRegr`: score test oversized at n = 1000.**
+  - Size: FixedGreedyDOptimal `~.` n = 1000, size 0.075 (level 0.05). Coverage: FixedOptimal@0.2 `~.` n = 50, 0.867
+    (level 0.9), and FixedGreedyDOptimal `~.` n = 1000.
+  - v1.1.0-TODO-183 covers score / LR at n = 50 only (small-sample); the n = 1000 cell is outside it.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedGreedyDOptimal' --n 1000 --effect null --only InferenceSurvivalDepCensTransformRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cells; the n = 50 coverage cell can join v1.1.0-TODO-183 if it confirms.
+- [ ] TODO-378 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalCoxPHRegr` and `InferenceSurvivalStratCoxPHRegr`: randomization test oversized at n = 200.**
+  - CoxPHRegr: FixedGreedy and FixedGreedyDOptimal `~.` n = 200, size up to 0.075 (level 0.05).
+    StratCoxPHRegr: SeqOneByOneEfron `~.` n = 200, size 0.076. Neither class has a calibration TODO.
+  - A randomization test is exact under the design, so a confirmed excess is a bug (check the redraw uses the design's
+    own randomization, and the Monte Carlo p-value's resolution), not small-sample behaviour.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedGreedy' --n 200 --effect null --only InferenceSurvivalCoxPHRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"` (and `--design 'DesignSeqOneByOneEfron' --only InferenceSurvivalStratCoxPHRegr`). Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the three cells; confirmed ones are fixed.
+- [ ] TODO-379 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferencePropQuantileRegr`: Wald oversized at n = 1000, FixedBernoulli prob_T 0.2.**
+  - One cell: FixedBernoulli@0.2 `~.` n = 1000, size 0.076 (level 0.05), coverage 0.924. No calibration TODO covers it.
+  - Investigate first if it confirms: the quantile-regression sandwich / kernel density bandwidth with about 200
+    treated, and the 0/1 boundary of the proportion response.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type proportion --design 'DesignFixedBernoulli@prob_T=0.2' --n 1000 --effect null --only InferencePropQuantileRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cell; if confirmed, fixed or accepted with rows citing this TODO.
+
+- [ ] TODO-380 (added 2026-11-21, owner request; from the v1.0.6-TODO-327 decision): **A separate opt-in
+  design-conservative Bartlett option, and "the testing type you ask for is the test you get".** (1) Owner 2026-11-21:
+  `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test on `InferenceCountKKCondPoissonOneLik`
+  and `InferenceCountKKHurdlePoissonOneLik`. Add a separate option for the design-conservative version (the larger of
+  the Bartlett p-value and the design Wald p-value, the union of the CIs, as `.conservative_kk_onelik_pval` / `_ci`
+  already do for `lik_ratio`), with its CI and p-value branches, a `get_supported_testing_types()` entry, docs, and a
+  test that its interval contains both the model-only Bartlett and the design Wald intervals. (2) **Owner principle:
+  "If the user wants wald, we should always give wald."** A testing type must return that test, never another
+  procedure. Audit and fix the Wald paths that silently return something else: the KK count OneLik classes fall back
+  to the nonparametric-bootstrap interval when the model-based SE is unavailable (`inference_count_KK_cond_poisson.R`
+  ~L856-866, documented ~L1697-1703); the same `compute_bootstrap_confidence_interval(alpha = alpha)` fallback also
+  appears in `inference_all_abstract_count_likelihood.R`, `inference_survival_log_rank.R`,
+  `inference_survival_km_diff.R`, `inference_survival_gehan_wilcox.R` and `inference_survival_rmst.R` (check each is a
+  Wald path). Return the Wald result, or NA with a recorded `procedure_failure_reason` and a classed warning
+  (v1.0.6-TODO-255 convention); offer the bootstrap as its own option if it is still wanted there. This changes results
+  where a fallback fired, so it needs a NEWS entry. Test: with the SE forced unavailable, `testing_type = "wald"` never
+  returns a bootstrap interval.
+  - **Owner decision 2026-11-21:** the new testing type is named `"lik_ratio_bartlett_approx_design_conservative"`.
+  - **Owner decision 2026-11-21:** `InferenceCountPoisson` gets the same split: its `lik_ratio_bartlett_approx`
+    becomes the model-only Bartlett test (today it is wrapped in the design-conservative rule,
+    `R/EDI/R/inference_count_poisson.R:404`), and its current result moves to
+    `"lik_ratio_bartlett_approx_design_conservative"`. This changes `InferenceCountPoisson`'s default Bartlett result;
+    NEWS entry required.
+
 - [ ] TODO-381 (added 2026-11-21, owner request; from the `pkg-size` budget report, issue #66): **The R CMD check
   test phase got 36-60% slower on five of the six CRAN legs.** At commit `626f9964`, `tests_s` against the 8-week
   median: macos-latest-release 11.0 min vs 416 s (+59%), ubuntu-latest-devel 561 vs 351 s (+60%),
@@ -6673,3 +6773,16 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md` for the row: check the change keeps the
   row's chosen algorithm and its comparator agreement, then update the row's `reviewed` date. Done when: the drift
   report lists no commits for row R.
+
+- [ ] TODO-384 (added 2026-11-21, coordinator; found by the rand warm-start chaining study, see
+  `R/package_metadata/audits/research_findings/2026-11-21-rand-warm-start-chaining-timing.md`):
+  **`InferenceIncidKKCondLogitGLMMOneLik` randomization replicates disagree with a fresh fit and go NA silently.**
+  On n = 150 `DesignFixedBinaryMatch` (75 pairs), r = 400, `num_cores = 1`: (1) the reused-worker statistic matches the
+  observed estimate on the original assignment, but on permuted assignments 58 of 60 replicates differ from a fresh
+  `compute_estimate()` on the permuted design (same y, X, pairs) by more than 1e-3, up to 0.44 (correlation 0.90);
+  the same check on `InferenceCountKKGLMM` matches to 3e-9. First suspect: a per-draw cache (clogit / reservoir split,
+  pair data) that the worker does not refresh. (2) With the full-data base warm start (v1.0.6-TODO-61) 43 of 400
+  replicates are NA with no warning (7 with the old chaining, 0 of 60 with warm starts off); `na.rm` drops them and
+  the p-value moves (0.112 vs 0.102). Example: on the mirrored assignment `1 - w` the worker returns NA while a fresh
+  fit gives -0.6247. Fix (1) first, then check whether (2) remains; the randomization p-value of this class is
+  unreliable until then. Test: worker replicate equals a fresh fit on several permuted draws, and no silent NA.

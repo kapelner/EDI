@@ -10,8 +10,8 @@ their consequences, the evidence and any recommendation. Each has a stable id, `
 To resolve one: the owner decides; the section moves to [COMPLETED_DECISIONS.md](COMPLETED_DECISIONS.md) with the
 ruling, the reasons and the date added; the TODO's pointer line becomes `  - Decided <date> (<who>): <option>; see
 [DECISION-...](COMPLETED_DECISIONS.md#DECISION-...).`; the section and its table row are deleted here. Order: releases
-newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner
-decisions: `PENDING_DECISIONS.md` and `COMPLETED_DECISIONS.md`" in the repo's `CLAUDE.md`.
+newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
+`COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
 Last updated 2026-11-21.
 
@@ -35,7 +35,6 @@ Last updated 2026-11-21.
 | [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.6-TODO-367](release_v1_0_6.md) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
 | [DECISION-v1.0.6-TODO-342](#DECISION-v1.0.6-TODO-342) | [v1.0.6-TODO-342](release_v1_0_6.md) | `InferenceSuite`: down-weight or exclude rows that raised a separation / boundary warning? |
 | [DECISION-v1.0.6-TODO-340](#DECISION-v1.0.6-TODO-340) | [v1.0.6-TODO-340](release_v1_0_6.md) | Retag the GLM / count-part coefficients `log_rate_ratio_conditional`? |
-| [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | KK count OneLik: should `lik_ratio_bartlett_approx` stay model-only while `lik_ratio` is design-conservative? |
 | [DECISION-v1.0.6-TODO-317](#DECISION-v1.0.6-TODO-317) | [v1.0.6-TODO-317](release_v1_0_6.md) | `Inf` in a numeric covariate: refuse at entry, or treat as missing under `"impute"`? |
 | [DECISION-v1.0.6-TODO-308](#DECISION-v1.0.6-TODO-308) | [v1.0.6-TODO-308](release_v1_0_6.md) | Exact event time 0: refuse at data entry, or only in the parametric classes? |
 | [DECISION-v1.0.6-TODO-305](#DECISION-v1.0.6-TODO-305) | [v1.0.6-TODO-305](release_v1_0_6.md) | Confirm that a one-level factor next to a two-level one (`list(dose = 1, arm = 2)`) now errors |
@@ -266,18 +265,6 @@ Last updated 2026-11-21.
   marginal estimands (e.g. PoissonKKGEE); (b) keep the current tags. The rest of the fix (treat Quasi / Robust as
   model-scale, drop the internal path from the message) needs no decision.
 - **Raised:** 2026-11-21, docs-scenarios run 44883784401 (ds-inference-suite-44883784401-f2, -f8).
-
-<a id="DECISION-v1.0.6-TODO-327"></a>
-### DECISION-v1.0.6-TODO-327: KK count OneLik: should `lik_ratio_bartlett_approx` stay model-only while `lik_ratio` is design-conservative?
-
-- **TODO:** [v1.0.6-TODO-327](release_v1_0_6.md) (ticked; Bartlett branches added to the asymp CI and p-value
-  switches).
-- **Context:** on the KK count OneLik classes `lik_ratio` is design-conservative, but `lik_ratio_bartlett_approx`
-  dispatches to the model-only Bartlett method, giving a narrower CI on the fixture: [-0.262, 0.663] vs
-  [-0.277, 0.695].
-- **Options:** (a) keep Bartlett model-only and document it; (b) make it design-conservative, like
-  `InferenceCountPoisson`.
-- **Raised:** 2026-11-21, by the agent that fixed v1.0.6-TODO-327 ("open question for the owner").
 
 <a id="DECISION-v1.0.6-TODO-317"></a>
 ### DECISION-v1.0.6-TODO-317: `Inf` in a numeric covariate: refuse at entry, or treat as missing under `"impute"`?

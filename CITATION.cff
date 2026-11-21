@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "EDI: Experimental Design and Inference"
-version: 1.0.4
+version: 1.0.5
 date-released: "2026-10-07"
 identifiers:
   - type: doi

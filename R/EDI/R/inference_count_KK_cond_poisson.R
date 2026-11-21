@@ -1694,6 +1694,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' interval / larger p-value of the two is returned (see
 #' \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
 #' so the model-based test is never anti-conservative relative to the design.
+#' The Bartlett-corrected likelihood-ratio test
+#' (\code{set_testing_type("lik_ratio_bartlett_approx")}) is not combined this
+#' way: it is the model-only Bartlett-corrected test, so its interval can be
+#' narrower than the design-conservative \code{"lik_ratio"} one.
 #' The Wald confidence interval and p-value fall back to the
 #' nonparametric-bootstrap distribution when the model-based standard error is unavailable
 #' or non-finite (e.g. a boundary/separation fit).
@@ -2528,7 +2532,9 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #' design-based quantity computed by treating the estimate as a plug-in
 #' statistic under \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}'s
 #' \eqn{z}/\eqn{t} machinery, so inference never overstates precision
-#' relative to the design alone.
+#' relative to the design alone. The exception is the Bartlett-corrected
+#' likelihood-ratio test (\code{"lik_ratio_bartlett_approx"}), which is the
+#' model-only test and can be narrower than \code{"lik_ratio"}.
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
 #' log-linear (Poisson) mean model \eqn{E[Y \mid w, x] = \exp(\beta_0 +

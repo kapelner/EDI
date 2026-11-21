@@ -1110,6 +1110,13 @@
   `InferenceIncidExtendedRobins`'s asymptotic CI and p-value no longer return
   `NA` when called before `compute_estimate()` (v1.0.6-TODO-327).
 
+* The stereotype logit kernel's cold-start fit could stop at a non-optimal
+  boundary point (a loading at plus or minus infinity) and report it as
+  converged; it now fits the adjacent-category model first and frees the
+  loadings from there. Fits whose variance component reaches its boundary (for
+  example a Gaussian LMM random-effect SD of 0) are no longer reported as not
+  converged by the L-BFGS finishing step (v1.0.6-TODO-374).
+
 * `compute_rand_two_sided_pval()` accepts `alternative` on every class. The
   classes that override the method (`InferenceIncidKKGEE`,
   `InferencePropKKGEE`, `InferenceCountPoissonKKGEE`, `InferenceOrdinalKKGEE`,
