@@ -35,12 +35,12 @@ test_that("DesignFixedGreedy accepts a non-0.5 prob_T (unequal-arm support, 2026
 
 test_that("DesignFixedFactorial rejects a factors argument implying more than 2 total combinations", {
 	expect_error(
-		DesignFixedFactorial$new(n = 12L, factors = list(2, 3), response_type = "continuous", verbose = FALSE),
+		DesignFixedFactorial$new(n = 12L, factors = list(A = 2, B = 3), response_type = "continuous", verbose = FALSE),
 		"DesignFixedFactorial currently only supports exactly two total factor-level combinations",
 		fixed = TRUE
 	)
 })
 
 test_that("DesignFixedFactorial accepts a single two-level factor (implies exactly 2 combinations)", {
-	expect_silent(DesignFixedFactorial$new(n = 12L, factors = list(2), response_type = "continuous", verbose = FALSE))
+	expect_silent(DesignFixedFactorial$new(n = 12L, factors = list(A = 2), response_type = "continuous", verbose = FALSE))  # named: v1.0.6-TODO-305
 })

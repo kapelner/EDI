@@ -696,6 +696,10 @@
 
 ## Bug fixes
 
+* `DesignFixedFactorial` now requires `factors` to be a fully named list of whole
+  numbers >= 2. `list(subject = 2.5)` used to run as a two-level factor and an
+  unnamed list got the name `Var1` (v1.0.6-TODO-305).
+
 * `assign_w_to_all_subjects(w_precomputed = )` on fixed designs now checks the
   vector: numeric or logical, length n, no `NA`, only 0 and 1, both arms, and on
   cluster designs the same value within every cluster. A 1/2-coded vector used

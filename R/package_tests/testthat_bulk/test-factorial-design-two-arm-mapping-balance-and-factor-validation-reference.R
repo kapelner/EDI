@@ -19,9 +19,9 @@ test_that("get_w_factorial() is NULL before assignment and afterwards the combin
 	expect_equal(nrow(gf), 20L); expect_named(gf, "A")
 	expect_equal(as.integer(gf$A), as.integer(w) + 1L)
 	expect_equal(sort(unique(as.integer(gf$A))), 1:2)
-	d2 <- mk(10L, list(dose = 1, arm = 2))                                  # two factors, one with a single level: still exactly two combinations
-	g2 <- d2$get_w_factorial()
-	expect_named(g2, c("dose", "arm")); expect_true(all(g2$dose == 1L)); expect_equal(as.integer(g2$arm), as.integer(d2$get_w()) + 1L)
+	# a single-level factor (list(dose = 1, arm = 2)) used to be accepted as a constant column; since
+	# v1.0.6-TODO-305 every factor needs >= 2 levels
+	expect_error(mk(10L, list(dose = 1, arm = 2)), "factors\\$dose must be a whole number of levels >= 2")
 })
 
 test_that("draw_ws_raw: every column is a balanced permutation of {0, 1} (n / 2 each; floor / ceiling for odd n), columns differ, dimensions r x n", {
@@ -48,4 +48,20 @@ test_that("factors validation: must be a non-empty numeric list with exactly two
 	expect_error(mkd(list()))
 	expect_error(mkd(list(A = "x")))
 	expect_error(mkd(2))
+})
+
+# v1.0.6-TODO-305 (docs-scenarios factorial F4): list(subject = 2.5) ran as a two-level factor and an
+# unnamed list(2) got the column name Var1.
+test_that("factors must be whole numbers of levels >= 2 in a fully named list", {
+	mkd <- function(f) DesignFixedFactorial$new(factors = f, response_type = "continuous", n = 10L, verbose = FALSE)
+	for (bad in list(2.5, 1, 0, NA_real_, -2, Inf)) {
+		expect_error(mkd(list(subject = bad)), "factors\\$subject must be a whole number of levels >= 2", info = format(bad))
+	}
+	expect_error(mkd(list(2)), "fully named list")
+	expect_error(mkd(setNames(list(2), "")), "fully named list")
+	d <- mkd(list(subject_line = 2))
+	X <- data.frame(x = rnorm(10))
+	d$add_all_subjects_to_experiment(X)
+	d$assign_w_to_all_subjects()
+	expect_identical(names(d$get_w_factorial()), "subject_line")
 })

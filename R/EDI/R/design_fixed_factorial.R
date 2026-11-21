@@ -46,8 +46,9 @@ DesignFixedFactorial = define_design_class(
 		#'   class documentation); any other total raises an error.
 		#'
 		#' @param factors         A list where names are factor names and values are number of
-		#'   levels (e.g. list(treatment = 2)). The product of levels across all factors must
-		#'   currently equal exactly 2 (two-arm only).
+		#'   levels (e.g. list(treatment = 2)). Every entry must be named (unique, non-empty
+		#'   names) and be a whole number of levels >= 2. The product of levels across all
+		#'   factors must currently equal exactly 2 (two-arm only).
 		#' @param response_type 	The data type of response values.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
@@ -71,6 +72,21 @@ DesignFixedFactorial = define_design_class(
 			if (should_run_asserts()) {
 				assertList(factors, types = "numeric", min.len = 1)
 			}
+			# v1.0.6-TODO-305: 2.5 levels ran as a two-level factor (1:2.5 is 1:2) and an unnamed
+			# list got the column name Var1. Checked even with asserts off: it decides the design.
+			nms = names(factors)
+			if (is.null(nms) || any(is.na(nms) | !nzchar(nms)) || anyDuplicated(nms)) {
+				stop("factors must be a fully named list with unique, non-empty factor names, e.g. list(subject_line = 2).",
+					call. = FALSE)
+			}
+			for (nm in nms) {
+				l = factors[[nm]]
+				if (!(is.numeric(l) && length(l) == 1L && !is.na(l) && is.finite(l) && l == round(l) && l >= 2)) {
+					stop("factors$", nm, " must be a whole number of levels >= 2 (got ",
+						paste(format(l), collapse = ", "), ").", call. = FALSE)
+				}
+			}
+			factors = lapply(factors, as.integer)
 			# We don't use prob_T in the standard way here, as we have multiple factors
 			# But base Design needs it. We'll set it to 0.5.
 			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)

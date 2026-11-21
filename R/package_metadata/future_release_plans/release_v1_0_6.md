@@ -5578,7 +5578,7 @@ were found by reading, not by running a fix.
   Test: the finding's repro gives a finite default bootstrap CI or a warning whose advice runs; no jackknife message
   points to a unit that also fails. Repro: factorial F3.
 
-- [ ] TODO-305 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f4): **`DesignFixedFactorial`
+- [x] TODO-305 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f4): **`DesignFixedFactorial`
   accepts a non-integer number of levels (`list(subject = 2.5)`) and runs it as a two-level factor.** No error or
   warning; `get_w_factorial()` returns levels 1/2. An unnamed `list(2)` is also accepted and the column is named `Var1`,
   though the help says the names are the factor names. The constructor only checks `assertList(factors, types =
@@ -5587,6 +5587,16 @@ were found by reading, not by running a fix.
   = 2, len = 1)`), require a fully named list with unique non-empty names, and check the product rule on the validated
   integers. Test: 2.5, 1, 0, NA and an unnamed list each error with a message naming the factor; `list(subject_line =
   2)` still works. Repro: factorial F4.
+  Done 2026-11-21 (agent): the `DesignFixedFactorial` constructor (always, not only with asserts on) requires a fully
+  named list with unique non-empty names and every entry a whole number >= 2, with messages naming the factor
+  ("factors$subject must be a whole number of levels >= 2 (got 2.5)."); entries are stored as integers before the
+  product rule. `@param factors` updated (Rd not regenerated). Behaviour change beyond the finding: a single-level
+  factor next to a two-level one (`list(dose = 1, arm = 2)`) was accepted and pinned by
+  `test-factorial-design-two-arm-mapping-balance-and-factor-validation-reference.R`; it now errors, per this entry's
+  "1 errors", and that assertion was changed to expect the error. Two unnamed lists in
+  `test-fixed-design-constructor-two-arm-and-blocking-validation-guards-reference.R` were named. Test: new block in the
+  factorial reference file (2.5, 1, 0, NA, -2, Inf, unnamed and empty-name lists error; `list(subject_line = 2)` runs and
+  `get_w_factorial()` is named `subject_line`).
 
 - [ ] TODO-306 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f7):
   **`InferenceIncidExactFisher$compute_estimate()` returns a bare NA when an arm has no events.** Audit (n = 40, the
