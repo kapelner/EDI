@@ -5213,7 +5213,7 @@ were found by reading, not by running a fix.
   `max_secs_per_class = 20`) returns `results_table` with the same rows as 1 core; a forced timeout row has every
   column. Repro: sequential-designs F5.
 
-- [ ] TODO-293 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f1): **High priority:
+- [x] TODO-293 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f1): **High priority:
   after `compute_rand_two_sided_pval()`, `InferenceAllSimpleMeanDiffPooledVar`'s asymptotic p-value and CI are
   silently `NA`.** On a fresh object the p-value is 0.9359437 (matches `t.test(var.equal = TRUE)`); after one
   `compute_rand_two_sided_pval(r = 101)` it is `NA` and the CI `NA NA`, with no warning, while `is_nonestimable()` is
@@ -5227,6 +5227,13 @@ were found by reading, not by running a fix.
   missing, as `inference_all_average_diff.R` ~L242 does), and never cache NA components when the inputs are valid.
   Test: every procedure order (rand p, rand CI, bootstrap, then asymptotic, and the reverse) gives the fresh-object
   asymptotic p and CI. Repro: fixed-designs F1.
+  Done 2026-11-21 (agent): `compute_direct_pooled_t_components()` now rebuilds `yTs`/`yCs` from `private$y` and
+  `private$w` when the randomization path cached `beta_hat_T` without them (the same guard
+  `InferenceAllSimpleAverageDiff` has); the code and test went in with commit 297cae6d. Test: a new block in
+  `test-pooled-var-mean-diff-pooled-ttest-reference.R` runs rand p, rand CI and bootstrap CI before and after the
+  asymptotic calls and checks p and CI against `t.test(var.equal = TRUE)`. Evidence on the F1 repro: after
+  `compute_rand_two_sided_pval(r = 101)` the asymptotic p was NA and the CI `NA NA`; now 0.9359437 and
+  [-1.393, 1.289], the same as a fresh object and `t.test`.
 
 - [ ] TODO-294 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f2): **The realized
   `DesignFixedRerandomization` allocation with `prop_acceptable` comes from a different law than its randomization
