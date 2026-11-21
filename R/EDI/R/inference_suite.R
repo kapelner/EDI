@@ -1445,6 +1445,7 @@ run_all_inference_fork_timeout_row = function(cls_name, design_family, response_
 		pval            = NA_real_,
 		pval_method     = NA_character_,
 		estimand        = tryCatch(run_all_inference_estimand(cls_name), error = function(e) NA_character_),
+		tau             = NA_real_,  # v1.0.6-TODO-292: a missing tau dropped the whole results_table
 		fit_secs        = as.numeric(max_secs_per_class),
 		warnings        = NA_character_,
 		status          = "timeout",
@@ -5346,16 +5347,22 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				}
 			}
 			results_table = if (length(results)) {
+				# v1.0.6-TODO-292: a row with a NULL or length-0 field (e.g. a fork-timeout row with
+				# no tau) made data.frame() fail with "differing number of rows", losing every
+				# result; such a field becomes NA instead.
+				one = function(x, na) if (length(x) == 1L) x else na
 				do.call(rbind.data.frame, lapply(results, function(r) data.frame(
-					inference_class = r$inference_class, method = r$method, type = r$type %||% NA_character_,
-					cov_model = r$cov_model,
-					response_type = r$response_type,
-					design_family = r$design_family, likelihood_tier = r$likelihood_tier,
-					estimate = r$estimate, se = r$se,
-					ci_a = r$ci_a, ci_b = r$ci_b, ci_method = r$ci_method,
-					pval = r$pval, pval_method = r$pval_method, estimand = r$estimand, tau = r$tau,
-					fit_secs = r$fit_secs, warnings = r$warnings,
-					status = r$status, message = r$message,
+					inference_class = one(r$inference_class, NA_character_), method = one(r$method, NA_character_),
+					type = one(r$type, NA_character_),
+					cov_model = one(r$cov_model, NA_character_),
+					response_type = one(r$response_type, NA_character_),
+					design_family = one(r$design_family, NA_character_), likelihood_tier = one(r$likelihood_tier, NA_character_),
+					estimate = one(r$estimate, NA_real_), se = one(r$se, NA_real_),
+					ci_a = one(r$ci_a, NA_real_), ci_b = one(r$ci_b, NA_real_), ci_method = one(r$ci_method, NA_character_),
+					pval = one(r$pval, NA_real_), pval_method = one(r$pval_method, NA_character_),
+					estimand = one(r$estimand, NA_character_), tau = one(r$tau, NA_real_),
+					fit_secs = one(r$fit_secs, NA_real_), warnings = one(r$warnings, NA_character_),
+					status = one(r$status, NA_character_), message = one(r$message, NA_character_),
 					stringsAsFactors = FALSE
 				)))
 			} else {

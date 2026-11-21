@@ -5215,7 +5215,7 @@ were found by reading, not by running a fix.
   of 0.120, so the Wald SE looks wrong when sigma_b is near 0. The finding's run (older build) had Wald SE 0.230. The
   TODO's "within 25% of the Wald SE" test was therefore written against the OLS SE instead.
 
-- [ ] TODO-292 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f5):
+- [x] TODO-292 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f5):
   **`InferenceSuite$run_all_inference()` with `max_secs_per_class` and `num_cores = 2` prints the report and then
   fails with "arguments imply differing number of rows: 1, 0", losing every result.** The same call with `num_cores =
   1L`, or without `max_secs_per_class`, returns 3 rows; in a 13-class run 2 min 13 s of results were lost, and a forked
@@ -5227,6 +5227,16 @@ were found by reading, not by running a fix.
   bad row cannot drop the whole report. Test: the finding's repro (`classes = "InferenceContinRobustRegr"`, 2 cores,
   `max_secs_per_class = 20`) returns `results_table` with the same rows as 1 core; a forced timeout row has every
   column. Repro: sequential-designs F5.
+  Done 2026-11-21 (agent): `run_all_inference_fork_timeout_row()` now sets `tau = NA_real_`, and the `results_table`
+  builder in `run_all_inference()` maps any NULL or length-0 field to a typed NA, so one bad row cannot drop the
+  report. (The suggested single row constructor for every path was not done; the builder guard covers it.) Test:
+  `test-run-all-inference-fork-timeout-row-and-unavailable-packages-footer-reference.R` (the field set now includes
+  tau; a new end-to-end block runs the F5 repro with `max_secs_per_class = 3` and checks 3 rows with the rand row
+  "timeout"). Evidence on the F5 repro (2 cores, `max_secs_per_class = 20`): before, "arguments imply differing
+  number of rows: 1, 0"; after, 3 rows (wald ok, rand timeout, jackknife ok), as at 1 core apart from the rand row.
+  Found, not changed: at 1 core the rand row took 60.7 s and reported "ok", so `max_secs_per_class` is only enforced
+  on the fork path; and at 2 cores the jackknife row, which ran next to the killed worker, reported "CI (jackknife)
+  failed: ignoring SIGPIPE signal" (its p-value is fine).
 
 - [x] TODO-293 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f1): **High priority:
   after `compute_rand_two_sided_pval()`, `InferenceAllSimpleMeanDiffPooledVar`'s asymptotic p-value and CI are

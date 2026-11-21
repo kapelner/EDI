@@ -696,6 +696,12 @@
 
 ## Bug fixes
 
+* `InferenceSuite$run_all_inference()` with `max_secs_per_class` and more than
+  one core printed the report and then failed with "arguments imply differing
+  number of rows", losing every result, whenever a class timed out: the
+  timeout row had no `tau`. Such rows now get `NA` there and the results table
+  is always built (v1.0.6-TODO-292).
+
 * `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise`
   now reject `lambda` or `t_0_pct` outside [0, 1] (or `NA`) at `$new()`. They used
   to construct and then fail partway through the trial, or never match
