@@ -766,11 +766,17 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 
 #' Weibull Frailty IVWC Inference for KK Designs
 #'
-#' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}}
-#' for the frailty-distribution details and contrast with the gamma-frailty
-#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC]{InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC}}
-#' (Clayton copula) alternative.
+#' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator. The
+#' matched pairs are fit by the AFT model \code{log(T) = X beta + u +
+#' sigma_eps * epsilon}, with \code{epsilon} standard extreme-value (Weibull
+#' margins) and a pair-shared Gaussian random intercept \code{u ~ N(0,
+#' sigma_u^2)}, i.e. a multiplicative log-normal frailty \code{exp(u)} on the
+#' time scale; the pair likelihood has no closed form and is evaluated by
+#' Gauss-Hermite quadrature. The reservoir is fit by a plain Weibull AFT
+#' regression, and the two treatment estimates are combined by inverse-variance
+#' weighting. For the classic gamma-frailty alternative (closed-form, the
+#' Clayton copula with Weibull margins) see
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC]{InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC}}.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' \strong{No Bayesian bootstrap.} The Weibull frailty fitter takes no case weights, so this class does not
@@ -893,11 +899,18 @@ SurvivalGLMMWeibullFrailtyNormalOneLikLeafSource = list(
 
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
-#' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalOneLik]{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}}
-#' for the frailty-distribution details and contrast with the gamma-frailty
-#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}
-#' (Clayton copula) alternative.
+#' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator. Matched
+#' pairs follow the AFT model \code{log(T) = X beta + u + sigma_eps * epsilon},
+#' with \code{epsilon} standard extreme-value (Weibull margins) and a
+#' pair-shared Gaussian random intercept \code{u ~ N(0, sigma_u^2)}, i.e. a
+#' multiplicative log-normal frailty \code{exp(u)} on the time scale; the pair
+#' likelihood has no closed form and is evaluated by Gauss-Hermite quadrature.
+#' The matched-pair and reservoir contributions are fit as one combined
+#' likelihood, not combined by inverse-variance weighting (that variant is
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}}).
+#' For the classic gamma-frailty alternative (closed-form, the Clayton copula
+#' with Weibull margins) see
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}.
 #'
 #' \strong{Small samples.} At n = 50, the score test (with or without
 #' covariates) can reject a true null up to about 9\% of the time at a nominal

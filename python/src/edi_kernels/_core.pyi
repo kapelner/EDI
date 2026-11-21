@@ -31,7 +31,7 @@ def fast_adjacent_category_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.
         "cold start") with no prior knowledge. Ignored if a warm start is
         provided.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -72,7 +72,7 @@ def fast_beta_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     start_phi : float, default 10.0
         Optional starting value for the precision parameter phi.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -159,7 +159,7 @@ def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.fl
     eps_g : float, default 1e-5
         Convergence tolerance for the gradient.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -196,7 +196,7 @@ def fast_continuation_ratio_regression(X: typing.Annotated[numpy.typing.NDArray[
     smart_cold_start : bool, default True
         If True, use an initial OLS-based guess when no warm start is provided.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -264,7 +264,7 @@ def fast_cpoisson_combined(yT_v: typing.Annotated[numpy.typing.NDArray[numpy.flo
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -303,7 +303,7 @@ def fast_dep_cens_transform_optim(X: typing.Annotated[numpy.typing.NDArray[numpy
     reltol : float, default 1e-9
         Relative convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -348,7 +348,7 @@ def fast_gaussian_lmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     eps_g : float, default 1e-6
         Convergence tolerance for the gradient.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -395,7 +395,7 @@ def fast_hurdle_negbin(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], 
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -646,7 +646,7 @@ def fast_logistic_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], 
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -673,7 +673,7 @@ def fast_logistic_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.floa
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "irls"
@@ -729,7 +729,7 @@ def fast_neg_bin(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n
     eps_g : float, default 1e-6
         Convergence tolerance for the gradient.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -807,7 +807,7 @@ def fast_ordinal_cauchit_regression(X: typing.Annotated[numpy.typing.NDArray[num
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -850,7 +850,7 @@ def fast_ordinal_clmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -879,7 +879,7 @@ def fast_ordinal_cloglog_regression(X: typing.Annotated[numpy.typing.NDArray[num
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -926,7 +926,7 @@ def fast_ordinal_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -955,7 +955,7 @@ def fast_ordinal_probit_regression(X: typing.Annotated[numpy.typing.NDArray[nump
     optimization_alg : str, default "lbfgs"
         Optimization algorithm.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     warm_start_fisher_info : ndarray, optional
@@ -988,7 +988,7 @@ def fast_ordinal_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float
     tol : float, default 1e-6
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1039,7 +1039,7 @@ def fast_poisson_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     eps_g : float, default 1e-6
         Convergence tolerance for the gradient.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1116,7 +1116,7 @@ def fast_probit_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "irls"
@@ -1224,7 +1224,7 @@ def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64
     smart_cold_start : bool, default True
         Accepted for interface parity; currently has no effect.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "newton_raphson"
@@ -1268,7 +1268,7 @@ def fast_stratified_coxph_regression(X: typing.Annotated[numpy.typing.NDArray[nu
     tol : float, default 1e-9
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "newton_raphson"
@@ -1305,7 +1305,7 @@ def fast_truncated_negbin_count(X: typing.Annotated[numpy.typing.NDArray[numpy.f
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1344,7 +1344,7 @@ def fast_weibull_frailty(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     eps_g : float, default 1e-6
         Convergence tolerance for the gradient.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1377,7 +1377,7 @@ def fast_weibull_regression_general(X: typing.Annotated[numpy.typing.NDArray[num
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1411,7 +1411,7 @@ def fast_zero_augmented_poisson(X: typing.Annotated[numpy.typing.NDArray[numpy.f
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1444,7 +1444,7 @@ def fast_zero_augmented_poisson_with_var(X: typing.Annotated[numpy.typing.NDArra
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1472,7 +1472,7 @@ def fast_zero_one_inflated_beta(X: typing.Annotated[numpy.typing.NDArray[numpy.f
         "cold start") with no prior knowledge. Ignored if a warm start is
         provided.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1516,7 +1516,7 @@ def fast_zinb(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"
@@ -1548,7 +1548,7 @@ def fast_zinb_with_var(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64],
     tol : float, default 1e-8
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional 1-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"

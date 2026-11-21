@@ -533,6 +533,8 @@ KKWilcoxIVWCSource$private = kk_wilcox_source_private[
 #' computing a (statistically unreliable) delete-1 jackknife of the
 #' Hodges-Lehmann functional.
 #'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
 #' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 #'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
 #'   598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator
@@ -541,8 +543,6 @@ KKWilcoxIVWCSource$private = kk_wilcox_source_private[
 #'   efficiency." \emph{Biometrics}, 70(2), 378-388, \doi{10.1111/biom.12148},
 #'   for the KK matching-on-the-fly design and the inverse-variance combination
 #'   of matched-pair and reservoir estimates.
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
 #' @examples
 #' \donttest{

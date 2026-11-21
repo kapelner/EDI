@@ -261,8 +261,13 @@ add_bounded_response_to_design = function(des, t, bounds) {
 #'     with a finite point estimate.
 #'   \item \strong{coverage}: proportion of reps where \eqn{\beta_T} lies
 #'     inside the CI (\code{NA} when no CI is available for that inference type).
-#'   \item \strong{power}: proportion of p-values \eqn{< \alpha}; equals the
-#'     empirical type-I error rate when \code{betaT = 0}.
+#'   \item \strong{power}: proportion of p-values \eqn{< \alpha} when
+#'     \code{betaT != 0}; reported as \code{NA} when \code{betaT = 0}.
+#'   \item \strong{size}: when \code{betaT = 0}, the same proportion of
+#'     p-values \eqn{< \alpha} (the empirical type-I error rate), with
+#'     \code{size_pval}, an exact binomial test of true size \eqn{= \alpha}.
+#'     For a custom simulation mode, null vs. alternative is decided by the true
+#'     estimand rather than \code{betaT}.
 #' }
 #'
 #' @examples

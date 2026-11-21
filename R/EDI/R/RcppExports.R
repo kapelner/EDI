@@ -621,7 +621,7 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #' @return A list with components \code{coefficients} (\eqn{\hat\beta}),
 #'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
 #'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
-#'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+#'   (\code{sqrt(diag(vcov))}), \code{converged} (logical),
 #'   \code{information_invertible} (whether the free information block passed
 #'   the invertibility check), and
 #'   \code{fisher_information} (the observed-information matrix \code{vcov} was
@@ -1087,8 +1087,9 @@ get_cpoisson_combined_hessian_cpp <- function(yT_v_r, n_k_v_r, X_diff_v_r, y_r_r
 #'
 #' \strong{Estimate-only mode.} If \code{estimate_only = TRUE}, optimization
 #' still runs to convergence but the score/information/variance computation is
-#' skipped entirely, returning \code{b}, \code{params}, the iteration diagnostics, and
-#' \code{converged}.
+#' skipped entirely, returning \code{b}, \code{params}, \code{converged}, and the
+#' iteration diagnostics \code{num_iter}, \code{hit_iteration_cap} and
+#' \code{gradient_norm}.
 #'
 #' @param yT_v_r Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the treated
 #'   member's count for each matched pair.
@@ -1119,7 +1120,10 @@ get_cpoisson_combined_hessian_cpp <- function(yT_v_r, n_k_v_r, X_diff_v_r, y_r_r
 #' @param estimate_only Logical; if \code{TRUE}, skip score/information/variance
 #'   computation after optimization (see Details).
 #' @return A list with components \code{b}/\code{params} (the fitted
-#'   \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical), and,
+#'   \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical),
+#'   \code{num_iter} (Newton iterations run), \code{hit_iteration_cap} (logical;
+#'   \code{TRUE} when the fit stopped at \code{maxit} without converging),
+#'   \code{gradient_norm} (the gradient norm at the last iteration), and,
 #'   unless \code{estimate_only = TRUE}: \code{ssq_b_j} (the variance of
 #'   \eqn{\hat\beta_T}), \code{score} (the score vector at the fitted
 #'   parameters), \code{observed_information}/\code{fisher_information}/
@@ -2472,7 +2476,7 @@ get_ordinal_cauchit_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #' directly (skipping \code{smart_cold_start}); otherwise, when
 #' \code{smart_cold_start = TRUE} (the default), starting values come from an
 #' OLS-based heuristic, and when \code{FALSE}, thresholds start at
-#' \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
+#' \eqn{\tan(\pi((k+1)/K - 1/2))}, \eqn{k = 0, \ldots, K-2} (an inverse-cauchit spacing of the empirical
 #' marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 #' via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 #' iterations or until the gradient norm falls below \code{tol};
@@ -2638,15 +2642,18 @@ get_ordinal_cloglog_regression_hessian_cpp <- function(X, y, params, fixed_idx =
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
-#'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+#'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+#'   when \code{estimate_only = FALSE} (the default), additionally
 #'   \code{neg_loglik}, \code{observed_information}/\code{information}
 #'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 #'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 #'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 #'   conventionally the treatment effect, since \code{X} carries no separate intercept
 #'   column here; the thresholds \code{alpha} play that role; \code{NaN} if it comes out
-#'   non-finite or non-positive). Empty if \code{y} has
+#'   non-finite or non-positive). Only \code{vcov} and \code{ssq_b_j} depend on
+#'   convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+#'   \code{vcov} is \code{NULL}. Empty if \code{y} has
 #'   fewer than 2 distinct levels.
 #' @seealso \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}}, which always computes
 #'   the variance quantities (equivalent to calling this function with
@@ -2851,7 +2858,7 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #' directly (skipping \code{smart_cold_start}); otherwise, when
 #' \code{smart_cold_start = TRUE} (the default), starting values come from an
 #' OLS-based heuristic, and when \code{FALSE}, thresholds start at
-#' \eqn{\Phi^{-1}(k/K)} (inverse-normal spacing of the empirical marginal category
+#' \eqn{\Phi^{-1}((k+1)/K)}, \eqn{k = 0, \ldots, K-2} (inverse-normal spacing of the empirical marginal category
 #' proportions) with \eqn{\beta} at zero. Optimization runs via
 #' \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 #' iterations or until the parameter/gradient change falls below \code{tol};
@@ -2877,15 +2884,19 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #'
 #' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 #'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
-#'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+#'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+#'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+#'   when \code{estimate_only = FALSE} (the default), additionally
 #'   \code{neg_loglik}, \code{observed_information}/\code{information}
 #'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 #'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 #'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 #'   conventionally the treatment effect, since \code{X} carries no separate intercept
-#'   column here; the thresholds \code{alpha} play that role — set to \code{NA} if it comes
-#'   out non-finite or non-positive). Empty if \code{y} has fewer than 2 distinct levels.
+#'   column here; the thresholds \code{alpha} play that role — \code{NaN} if it comes
+#'   out non-finite or non-positive). Only \code{vcov} and \code{ssq_b_j} depend on
+#'   convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+#'   \code{vcov} is \code{NULL}. Empty if \code{y} has fewer than 2
+#'   distinct levels.
 #' @seealso \code{\link{fast_ordinal_probit_regression_with_var_cpp}}, which always computes
 #'   the variance quantities (equivalent to calling this function with
 #'   \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
@@ -3087,11 +3098,13 @@ fast_ordinal_regression_cpp <- function(X, y, warm_start_params = NULL, smart_co
 #' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 #'
 #' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-#'   \code{converged}, \code{num_iter}, \code{neg_loglik},
+#'   \code{converged}, \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm},
+#'   \code{min_eigenvalue_information}, \code{neg_loglik},
 #'   \code{observed_information}/\code{information} (both the same
 #'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
-#'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
-#'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
+#'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — if the
+#'   free-parameter information matrix is not invertible, \code{ssq_b_j} is \code{NaN}
+#'   and \code{vcov} is \code{NULL}.
 #' @seealso \code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
 #'   full model documentation.
 #' @export
@@ -5436,6 +5449,14 @@ zhang_minlike_pval_vec_cpp <- function(cj, x, deltas) {
 
 zhang_minlike_tail_bound_cpp <- function(cj, x, delta, direction) {
     .Call(`_EDI_zhang_minlike_tail_bound_cpp`, cj, x, delta, direction)
+}
+
+zhang_pval_exact_tail_bound_cpp <- function(cjM, xM, cjR, xR, delta, direction, method) {
+    .Call(`_EDI_zhang_pval_exact_tail_bound_cpp`, cjM, xM, cjR, xR, delta, direction, method)
+}
+
+zhang_hull_scan_cut_cpp <- function(cjM, xM, cjR, xR, r, t_far, direction, pval_th, method, n_iter, b_far) {
+    .Call(`_EDI_zhang_hull_scan_cut_cpp`, cjM, xM, cjR, xR, r, t_far, direction, pval_th, method, n_iter, b_far)
 }
 
 compute_zhang_match_data_cpp <- function(X, y, w, m_vec) {

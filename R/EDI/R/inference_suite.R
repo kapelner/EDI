@@ -94,7 +94,9 @@ is_inference_class_compatible_with_design_metadata = function(nm, design_meta) {
 missing_required_packages_for_inference_class = function(nm) {
 	required = get_inference_class_metadata(nm)$required_packages %||% character()
 	if (length(required) == 0L) return(character())
-	Filter(function(pkg) !requireNamespace(pkg, quietly = TRUE), required)
+	# check_package_installed() is the same (memoized) check the classes' own
+	# constructor guards use, so discovery and construction agree.
+	Filter(function(pkg) !check_package_installed(pkg), required)
 }
 
 #' Whether inference class `nm` has a design-*structure* incompatibility with
@@ -4779,7 +4781,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   actually use it) -- some classes accept-and-ignore \code{model_formula}
 		#'   (e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test).
 		#' @param methods \code{NULL} (default), a character vector of method
-		#'   sentinel strings, or (TODO-22) a named list, \code{sentinel} to a
+		#'   sentinel strings, or a named list mapping each \code{sentinel} to a
 		#'   character vector of requested \code{type} values, or \code{NULL},
 		#'   restricting which inference method(s) -- and, for the three
 		#'   resampling sentinels marked "typed" below, which resampling/CI-
@@ -5037,12 +5039,14 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   stacked over its \dQuote{Estimates} box-and-whisker subplot; draw
 		#'   with \code{grid::grid.draw()} or pass to \code{ggplot2::ggsave()} --
 		#'   possibly empty -- rather than a single plot, since the visualization
-		#'   is split one-per-estimand, per user request, 2026-08-19; the former
-		#'   separate \code{estimates} plot became that subplot, 2026-08-21),
+		#'   is split one-per-estimand),
 		#'   \code{files} (\code{list(html, pdf, json)}, each a
 		#'   path or \code{NULL}; \code{pdf} is one multi-page PDF with one page
 		#'   per estimand), \code{timestamp}, \code{total_secs}, and
 		#'   \code{edi_version}.
+		# History: the plot list became one-per-estimand per user request
+		# (2026-08-19), and the former separate `estimates` plot became the
+		# box-and-whisker subplot of each CI forest (2026-08-21).
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
 				methods = NULL, basic_bootstrap = FALSE, compute_conf_intervals = FALSE, output_dir = "~",

@@ -1,8 +1,9 @@
 #' Hurdle Poisson Regression Inference for Count Responses
 #'
 #' Fits a hurdle Poisson regression for count responses: a binary hurdle
-#' submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (fit
-#' jointly with the count submodel) crossed with a zero-truncated Poisson
+#' submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (the
+#' hurdle likelihood factorizes, so this part is fit separately from the count
+#' submodel) crossed with a zero-truncated Poisson
 #' count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
 #' w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 #' submodels may use different covariate formulas
@@ -282,7 +283,8 @@ InferenceCountHurdlePoisson = define_inference_class(
 #'
 #' Fits a hurdle negative binomial regression for count responses: a binary
 #' hurdle submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top}
-#' \gamma^h)} (fit jointly with the count submodel) crossed with a
+#' \gamma^h)} (the hurdle likelihood factorizes, so this part is fit
+#' separately from the count submodel) crossed with a
 #' zero-truncated negative-binomial count submodel for \eqn{Y_i \mid Y_i > 0}:
 #' \eqn{\log E[Y_i \mid Y_i > 0, w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
 #' \gamma}, \eqn{\mathrm{Var}(Y_i \mid Y_i > 0) = \mu_i + \mu_i^2 / \theta}

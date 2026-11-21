@@ -61,10 +61,10 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		#' @description Initialize a Miettinen-Nurminen risk-difference inference object for a
 		#' completed design with an incidence response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with an incidence response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
+		#' @param model_formula Optional formula, accepted for interface consistency
+		#'   with the covariate-adjusted classes. It is ignored: this class is
+		#'   unadjusted and its estimate, confidence interval and p-value use only the
+		#'   treatment assignments and responses.
 		#' @param verbose Whether to print progress messages.
 		#'
 		#' @examples

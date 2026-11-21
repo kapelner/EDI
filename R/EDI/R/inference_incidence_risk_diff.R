@@ -148,12 +148,12 @@ InferenceIncidRiskDiff = define_inference_class(
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Refits the linear-probability model by weighted least squares
-		#'   under subject/block resampling weights (using the native OLS kernel for
-		#'   full-rank draws and \code{stats::lm.wfit()} as the compatibility fallback)
-		#'   (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
-		#'   weights, both expanded to row weights via
-		#'   \code{expand_subject_or_block_weights_to_row_weights()}) and returns the
-		#'   re-estimated treatment coefficient. Rows with non-finite or non-positive
+		#'   under subject/block resampling weights (nonparametric-bootstrap replicate
+		#'   weights or Bayesian-bootstrap Dirichlet weights, both expanded to row
+		#'   weights via \code{expand_subject_or_block_weights_to_row_weights()}) and
+		#'   returns the re-estimated treatment coefficient. Full-rank draws use the
+		#'   native OLS kernel, with \code{stats::lm.wfit()} as the compatibility
+		#'   fallback. Rows with non-finite or non-positive
 		#'   weight are excluded; if too few positive-weight rows remain to identify
 		#'   the design, the replicate estimate is \code{NA_real_}.
 		#' @param subject_or_block_weights Numeric weights, one per subject or per

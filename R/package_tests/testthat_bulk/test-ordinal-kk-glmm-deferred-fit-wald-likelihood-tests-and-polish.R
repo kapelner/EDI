@@ -71,9 +71,12 @@ test_that("Newton polish is skipped when the tolerance already holds and never r
 	f <- f0; inf <- inf0; p <- p0
 	invisible(inf$compute_estimate())
 	diag <- p$cached_values$optimizer_diagnostics
-	# on this fixture the selected L-BFGS point needs the polish, and the accepted result is at the clmm optimum
-	expect_true(diag$newton_polish_attempted)
-	expect_true(diag$newton_polish_accepted)
+	# Before the v1.0.6-TODO-169 Newton-decrement finish in the shared L-BFGS
+	# wrapper the selected L-BFGS point needed the polish here; that finish now
+	# meets the 1e-5 score threshold itself and the polish is skipped. Either
+	# way a polish that runs is accepted and the result is at the clmm optimum.
+	if (isTRUE(diag$newton_polish_attempted)) expect_true(diag$newton_polish_accepted)
+	else expect_false(diag$newton_polish_accepted)
 	expect_lte(diag$neg_loglik, -as.numeric(logLik(ref_clmm)) + 1e-6)
 	# restarted at the converged point the projected score already meets the tolerance: no polish
 	ctx <- p$cached_values$likelihood_test_context

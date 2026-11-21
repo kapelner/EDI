@@ -176,15 +176,18 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
 //'
 //' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
 //'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
-//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{num_iter};
-//'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
+//'   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
+//'   when \code{estimate_only = FALSE} (the default), additionally
 //'   \code{neg_loglik}, \code{observed_information}/\code{information}
 //'   (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
 //'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
 //'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
 //'   conventionally the treatment effect, since \code{X} carries no separate intercept
 //'   column here; the thresholds \code{alpha} play that role; \code{NaN} if it comes out
-//'   non-finite or non-positive). Empty if \code{y} has
+//'   non-finite or non-positive). Only \code{vcov} and \code{ssq_b_j} depend on
+//'   convergence: when the fit did not converge, \code{ssq_b_j} is \code{NaN} and
+//'   \code{vcov} is \code{NULL}. Empty if \code{y} has
 //'   fewer than 2 distinct levels.
 //' @seealso \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}}, which always computes
 //'   the variance quantities (equivalent to calling this function with

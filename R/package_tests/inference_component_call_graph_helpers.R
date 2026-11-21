@@ -581,7 +581,14 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		# v1.0.6-TODO-217 (2026-11-19, addition only): KK IVWC classes' weighted
 		# (Bayesian-bootstrap) refit of their own estimator, which the KK compound
 		# dispatcher calls instead of its removed mean-difference fallback.
-		"compute_weighted_estimate_ivwc"
+		"compute_weighted_estimate_ivwc",
+		# v1.0.6-TODO-286 (2026-11-20, addition only): InferenceRandCustom's flag that its
+		# survival randomization CI shifts raw times (exp(delta) multiplier), read by the
+		# shared randomization-CI code in inference_all_abstract_rand_ci.R.
+		"randomization_ci_shifts_raw_survival_times",
+		# v1.0.6-TODO-274 (2026-11-20, addition only): the KK GEE mixin's exact
+		# separation check that confirms the |eta| screen before the SE is blanked.
+		"gee_fit_data_separated"
 	)
 	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
 	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {

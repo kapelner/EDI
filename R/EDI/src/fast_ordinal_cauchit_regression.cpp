@@ -147,7 +147,7 @@ edi::ResultMap fast_ordinal_cauchit_regression_internal(
 //' directly (skipping \code{smart_cold_start}); otherwise, when
 //' \code{smart_cold_start = TRUE} (the default), starting values come from an
 //' OLS-based heuristic, and when \code{FALSE}, thresholds start at
-//' \eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
+//' \eqn{\tan(\pi((k+1)/K - 1/2))}, \eqn{k = 0, \ldots, K-2} (an inverse-cauchit spacing of the empirical
 //' marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 //' via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 //' iterations or until the gradient norm falls below \code{tol};

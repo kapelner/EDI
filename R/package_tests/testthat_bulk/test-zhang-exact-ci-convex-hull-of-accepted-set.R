@@ -121,7 +121,7 @@ test_that("the vectorised scan p-value equals the scalar kernels, ties at breakp
 		st <- EDI:::zhang_get_exact_stats(inf)
 		d <- c(seq(-4, 4, length.out = 201), EDI:::zhang_exact_pval_breakpoints(st))
 		for (cm in c("Fisher", "Stouffer", "min_p")) {
-			expect_equal(EDI:::zhang_pval_exact_combined_vec(st, d, cm),
+			expect_equal(as.vector(EDI:::zhang_pval_exact_combined_vec(st, d, cm)),
 				vapply(d, function(x) EDI:::zhang_pval_exact_combined(inf, x, cm), numeric(1)), tolerance = 1e-12)
 		}
 	}

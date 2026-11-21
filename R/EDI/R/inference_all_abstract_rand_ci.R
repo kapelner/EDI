@@ -72,7 +72,10 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   the test to be valid.
 		#' @param type Optional incidence-specific exact randomization type.
 		#' @param args_for_type Optional arguments keyed by \code{type}.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 		#'   see \code{InferenceRand$compute_rand_two_sided_pval()}. Use \code{"greater"} for a
 		#'   non-negative, one-tailed-by-construction statistic (squared difference, chi-square).

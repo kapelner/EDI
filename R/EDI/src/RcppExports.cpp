@@ -5166,6 +5166,44 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// zhang_pval_exact_tail_bound_cpp
+double zhang_pval_exact_tail_bound_cpp(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR, double delta, int direction, int method);
+RcppExport SEXP _EDI_zhang_pval_exact_tail_bound_cpp(SEXP cjMSEXP, SEXP xMSEXP, SEXP cjRSEXP, SEXP xRSEXP, SEXP deltaSEXP, SEXP directionSEXP, SEXP methodSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type cjM(cjMSEXP);
+    Rcpp::traits::input_parameter< int >::type xM(xMSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type cjR(cjRSEXP);
+    Rcpp::traits::input_parameter< int >::type xR(xRSEXP);
+    Rcpp::traits::input_parameter< double >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< int >::type direction(directionSEXP);
+    Rcpp::traits::input_parameter< int >::type method(methodSEXP);
+    rcpp_result_gen = Rcpp::wrap(zhang_pval_exact_tail_bound_cpp(cjM, xM, cjR, xR, delta, direction, method));
+    return rcpp_result_gen;
+END_RCPP
+}
+// zhang_hull_scan_cut_cpp
+double zhang_hull_scan_cut_cpp(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR, double r, double t_far, int direction, double pval_th, int method, int n_iter, double b_far);
+RcppExport SEXP _EDI_zhang_hull_scan_cut_cpp(SEXP cjMSEXP, SEXP xMSEXP, SEXP cjRSEXP, SEXP xRSEXP, SEXP rSEXP, SEXP t_farSEXP, SEXP directionSEXP, SEXP pval_thSEXP, SEXP methodSEXP, SEXP n_iterSEXP, SEXP b_farSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type cjM(cjMSEXP);
+    Rcpp::traits::input_parameter< int >::type xM(xMSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type cjR(cjRSEXP);
+    Rcpp::traits::input_parameter< int >::type xR(xRSEXP);
+    Rcpp::traits::input_parameter< double >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type t_far(t_farSEXP);
+    Rcpp::traits::input_parameter< int >::type direction(directionSEXP);
+    Rcpp::traits::input_parameter< double >::type pval_th(pval_thSEXP);
+    Rcpp::traits::input_parameter< int >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< int >::type n_iter(n_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type b_far(b_farSEXP);
+    rcpp_result_gen = Rcpp::wrap(zhang_hull_scan_cut_cpp(cjM, xM, cjR, xR, r, t_far, direction, pval_th, method, n_iter, b_far));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_zhang_match_data_cpp
 List compute_zhang_match_data_cpp(const NumericMatrix& X, const NumericVector& y, const IntegerVector& w, const IntegerVector& m_vec);
 RcppExport SEXP _EDI_compute_zhang_match_data_cpp(SEXP XSEXP, SEXP ySEXP, SEXP wSEXP, SEXP m_vecSEXP) {
@@ -5528,6 +5566,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_zhang_exact_fisher_pval_cpp", (DL_FUNC) &_EDI_zhang_exact_fisher_pval_cpp, 5},
     {"_EDI_zhang_minlike_pval_vec_cpp", (DL_FUNC) &_EDI_zhang_minlike_pval_vec_cpp, 3},
     {"_EDI_zhang_minlike_tail_bound_cpp", (DL_FUNC) &_EDI_zhang_minlike_tail_bound_cpp, 4},
+    {"_EDI_zhang_pval_exact_tail_bound_cpp", (DL_FUNC) &_EDI_zhang_pval_exact_tail_bound_cpp, 7},
+    {"_EDI_zhang_hull_scan_cut_cpp", (DL_FUNC) &_EDI_zhang_hull_scan_cut_cpp, 11},
     {"_EDI_compute_zhang_match_data_cpp", (DL_FUNC) &_EDI_compute_zhang_match_data_cpp, 4},
     {"_EDI_compute_matching_wy_stats_cpp", (DL_FUNC) &_EDI_compute_matching_wy_stats_cpp, 3},
     {NULL, NULL, 0}

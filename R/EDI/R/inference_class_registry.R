@@ -1101,6 +1101,56 @@ infer_inference_likelihood_concave = function(name) {
 	NA
 }
 
+# The Suggests packages without which a class cannot be constructed and fitted
+# (initialize() + compute_estimate()) at its default arguments. The registry's
+# `required_packages` field is read from here, and InferenceSuite / Design
+# discovery excludes a class whose package is missing (reported in
+# `unavailable_due_to_missing_packages`). Derived 2026-11-21 from the classes'
+# own constructor guards (check_package_installed() + stop("Package 'X' is
+# required ...")) and confirmed by constructing and fitting every exported
+# class with all Suggests packages removed from the library path.
+# InferenceOrdinalKKGEE needs geepack only because the shared KK GEE
+# constructor guard checks it (the class fits with multgee::ordLORgee).
+# Tested by test-inference-required-packages-registry.R.
+EDI_INFERENCE_REQUIRED_PACKAGES = list(
+	InferenceContinQuantileRegr = "quantreg",
+	InferencePropQuantileRegr = "quantreg",
+	InferenceContinKKQuantileRegrIVWC = "quantreg",
+	InferenceContinKKQuantileRegrOneLik = "quantreg",
+	InferencePropKKQuantileRegrIVWC = "quantreg",
+	InferencePropKKQuantileRegrOneLik = "quantreg",
+	InferenceOrdinalKKGEE = c("multgee", "geepack"),
+	InferenceSurvivalKKRankRegrIVWC = "aftgee",
+	InferenceBaiAdjustedTKK14 = "nbpMatching",
+	InferenceBaiAdjustedTKK21 = "nbpMatching"
+)
+
+# Suggests packages that inference code checks for, but only on a path a class
+# does not take at its default arguments, so they are not `required_packages`:
+# the class constructs and fits without them and errors (or falls back) only
+# when that path is asked for. Each entry says which path.
+EDI_INFERENCE_OPTIONAL_PATH_PACKAGES = list(
+	glmmTMB = paste(
+		"use_rcpp = FALSE in the KK GLMM, KK conditional-Poisson / hurdle-Poisson and",
+		"zero-augmented Poisson classes; weighted (bootstrap) refits of the hurdle and",
+		"zero-augmented count models"
+	),
+	geepack = "use_rcpp = FALSE, or the fallback after an Rcpp GEE failure, in the KK GEE classes other than InferenceOrdinalKKGEE",
+	ordinal = paste(
+		"use_rcpp = FALSE in the KK CLMM classes; weighted ordinal mixed-model refits;",
+		"alternative fits in InferenceOrdinalPartialProportionalOdds"
+	),
+	VGAM = "alternative fits in InferenceOrdinalPartialProportionalOdds",
+	betareg = "fallback after the Rcpp beta-regression kernel fails (beta and zero-one-inflated beta regression)",
+	glmnet = "fast_coxph_regression(use_rcpp = FALSE)",
+	interval = "interval-censored responses in the log-rank, KM-difference, RMST and Turnbull-based paths",
+	icenReg = "interval-censored responses in InferenceSurvivalCoxPHRegr"
+)
+
+infer_inference_required_packages = function(name) {
+	EDI_INFERENCE_REQUIRED_PACKAGES[[name]] %||% character()
+}
+
 # Further likelihood properties, audited 2026-11-16 alongside `likelihood_concave`.
 # Each concrete "full"/"partial" likelihood class has one entry. Parameter layouts and
 # derivative sources were checked against live fits: each class was fitted on simulated
@@ -3955,7 +4005,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				design_families = "all",
 				compatibility = always_compatible_inference_metadata,
 				likelihood_tier = declared$likelihood_tier %||% infer_inference_likelihood_tier(name),
-				required_packages = character(),
+				required_packages = infer_inference_required_packages(name),
 				capabilities = as.character(declared$capabilities %||% character()),
 				excluded_capabilities = unique(c(
 					EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),

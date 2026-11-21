@@ -987,7 +987,8 @@ IncidKKCondLogitIVWCSource = list(
 #' w^\star = \frac{\hat\sigma^2_r}{\hat\sigma^2_r + \hat\sigma^2_m},}
 #' with combined variance \eqn{\hat\sigma^2_m \hat\sigma^2_r / (\hat\sigma^2_m
 #' + \hat\sigma^2_r)}. This is the classical fixed-effects inverse-variance
-#' meta-analysis pooling formula (see Cochrane Handbook / DerSimonian-Laird),
+#' meta-analysis pooling formula (see the Cochrane Handbook's fixed-effect
+#' inverse-variance method; not the DerSimonian-Laird random-effects method),
 #' applied here to combine the two conditionally-independent likelihood
 #' contributions of a KK design rather than to pool separate studies. When
 #' only one of the two components is estimable the combined estimate falls
@@ -1007,6 +1008,16 @@ IncidKKCondLogitIVWCSource = list(
 #' Fleiss, J.L., Levin, B., Paik, M.C. (2003). \emph{Statistical Methods for
 #' Rates and Proportions}, 3rd ed. Wiley. (conditional logistic regression for
 #' matched pairs)
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 30, response_type = 'incidence')
+#' for (i in 1:30) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(30, 1, 0.5))
+#' inf = InferenceIncidKKCondLogitIVWC$new(seq_des)
+#' inf$compute_estimate()
+#' }
 #' @export
 InferenceIncidKKCondLogitIVWC = define_inference_class(
 	classname = "InferenceIncidKKCondLogitIVWC",

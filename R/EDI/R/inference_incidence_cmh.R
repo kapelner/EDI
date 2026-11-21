@@ -60,22 +60,24 @@ InferenceIncidCMH = define_inference_class(
 		"SimpleMeanDifference"
 	),
 	public = list(
-		#' @description Uses the randomization-CI layer's two-sided p-value contract
-		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-		#'   incidence responses it does not refuse outright; the default p-value
-		#'   comes from the randomization draws, and the Zhang exact randomization
-		#'   test is used only when \code{type = "Zhang"} is passed explicitly
-		#'   (where applicable). This matches this class's pre-migration
-		#'   old-ladder behavior of not refusing (it inherited from
-		#'   \code{InferenceAllSimpleAverageDiff}, whose own pin was already
-		#'   corrected to \code{InferenceRandCI} -- see that file's identical
-		#'   rationale). This class independently composes the same components
-		#'   rather than truly inheriting \code{InferenceAllSimpleAverageDiff}, so it
-		#'   had its own stale copy of the old \code{InferenceRand} pin, which
-		#'   silently regressed Zhang dispatch for the non-blocking balanced-design
-		#'   path -- found via
-		#'   \code{test-incid-cmh-extended-robins-migration-golden.R}'s
-		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
+		#' @description Two-sided randomization p-value for the treatment effect,
+		#'   using the shared contract of
+		#'   \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}. By default the
+		#'   p-value comes from the randomization draws; the Zhang exact
+		#'   randomization test is used only when \code{type = "Zhang"} is passed
+		#'   explicitly (where applicable). See that page for the arguments and the
+		#'   returned scalar p-value.
+		# Implementation note: this pins InferenceRandCI's version, not
+		# InferenceRand's. That matches the pre-migration old-ladder behavior of
+		# not refusing incidence responses (inherited from
+		# InferenceAllSimpleAverageDiff, whose own pin was already corrected to
+		# InferenceRandCI -- see that file's identical rationale). This class
+		# composes the same components rather than inheriting
+		# InferenceAllSimpleAverageDiff, so it had its own stale copy of the old
+		# InferenceRand pin, which silently regressed Zhang dispatch for the
+		# non-blocking balanced-design path -- found via
+		# test-incid-cmh-extended-robins-migration-golden.R's randomization_pval
+		# case going from "ok" to "unsupported".
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Wald confidence interval for the balanced-design/CMH risk-difference
 		#'   estimate \eqn{\hat\tau}, using the randomization-based (blocking-design: exact CMH
@@ -101,12 +103,16 @@ InferenceIncidCMH = define_inference_class(
 			private$get_standard_error()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Initialize Cochran-Mantel-Haenszel incidence inference,
-		#'   validate the stratified binary-response design, and prepare the
-		#'   stratum-adjusted test used by
-		#'   \code{\link[EDI:InferenceIncidCMH]{InferenceIncidCMH}}.
+		#' @description Initialize Cochran-Mantel-Haenszel incidence inference and
+		#'   validate the blocked or balanced binary-response design. The class
+		#'   reports the simple mean-difference estimate with the randomization-based
+		#'   (CMH-variance) standard error and Wald-type inference described in the
+		#'   class details; no separate stratum-adjusted CMH test is run.
 		#' @param des_obj A completed design object.
-		#' @param model_formula Optional formula for covariate adjustment.
+		#' @param model_formula Optional formula, accepted for interface consistency
+		#'   with the covariate-adjusted classes. It is ignored: this class is
+		#'   unadjusted and its estimate, confidence interval and p-value use only the
+		#'   treatment assignments and responses.
 		#' @param se_est_num_vectors For non-block designs, the number of randomization vectors
 		#'   drawn from the design to estimate the standard error. Default \code{5000L}.
 		#' @param verbose Logical. Whether to print progress messages.

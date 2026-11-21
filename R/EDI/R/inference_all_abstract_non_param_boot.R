@@ -499,8 +499,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'       as \code{"within_blocks"}.}
 		#'     \item{\code{"within_blocks"}}{Only legal for blocking-style designs that support
 		#'       block-aware bootstrap resampling:
-		#'       \code{DesignFixedBlocking}, \code{DesignFixedOptimalBlocks},
-		#'       \code{DesignSeqOneByOneSPBR}, and \code{DesignFixedBlockedCluster}.
+		#'       \code{DesignFixedBlocking}, \code{DesignFixedOptimalBlocks}, and
+		#'       \code{DesignFixedBlockedCluster}. (\code{DesignSeqOneByOneSPBR} is a
+		#'       \code{DesignSeqOneByOne} subclass, so the nonparametric bootstrap is not
+		#'       supported on it at all; see the class documentation.)
 		#'       Resamples observational units within each observed block/stratum. For blocked
 		#'       cluster designs this means resampling clusters within strata.}
 		#'     \item{\code{"resample_blocks"}}{Only legal for the same blocking-style designs as

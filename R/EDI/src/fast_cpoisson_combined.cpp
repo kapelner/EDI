@@ -474,8 +474,9 @@ edi::ResultMap fast_cpoisson_combined_internal(
 //'
 //' \strong{Estimate-only mode.} If \code{estimate_only = TRUE}, optimization
 //' still runs to convergence but the score/information/variance computation is
-//' skipped entirely, returning \code{b}, \code{params}, the iteration diagnostics, and
-//' \code{converged}.
+//' skipped entirely, returning \code{b}, \code{params}, \code{converged}, and the
+//' iteration diagnostics \code{num_iter}, \code{hit_iteration_cap} and
+//' \code{gradient_norm}.
 //'
 //' @param yT_v_r Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the treated
 //'   member's count for each matched pair.
@@ -506,7 +507,10 @@ edi::ResultMap fast_cpoisson_combined_internal(
 //' @param estimate_only Logical; if \code{TRUE}, skip score/information/variance
 //'   computation after optimization (see Details).
 //' @return A list with components \code{b}/\code{params} (the fitted
-//'   \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical), and,
+//'   \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical),
+//'   \code{num_iter} (Newton iterations run), \code{hit_iteration_cap} (logical;
+//'   \code{TRUE} when the fit stopped at \code{maxit} without converging),
+//'   \code{gradient_norm} (the gradient norm at the last iteration), and,
 //'   unless \code{estimate_only = TRUE}: \code{ssq_b_j} (the variance of
 //'   \eqn{\hat\beta_T}), \code{score} (the score vector at the fitted
 //'   parameters), \code{observed_information}/\code{fisher_information}/

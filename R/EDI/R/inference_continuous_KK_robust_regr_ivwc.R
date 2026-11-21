@@ -30,6 +30,8 @@
 #' efficiency under exactly-Gaussian errors for resistance to heavy tails and
 #' contamination.
 #'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
 #' @references
 #' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
 #' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
@@ -39,8 +41,6 @@
 #'   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
 #'   \href{https://en.wikipedia.org/wiki/Robust_regression}{Robust regression}
 #'   (orientation).
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
 #' @keywords internal
 # Static leaf source (2026-08-17 migration, same shape as the other four KK

@@ -9,7 +9,15 @@ make_ordinal_data <- function(n, p, K, seed = 42) {
     eta <- X %*% beta
     cuts <- quantile(eta, probs = seq(0, 1, length.out = K + 1))[2:K]
     y <- as.integer(cut(eta + rnorm(n, sd = 0.5), c(-Inf, cuts, Inf)))
-    list(X = X, y = y)
+    # The all-ones column only generates the data: the thresholds alpha_j absorb
+    # it (alpha_j + phi_j * b0), so passing it to the kernel leaves a flat
+    # direction, the Hessian is singular at every point, and whether the
+    # v1.0.6-TODO-169 Newton-decrement rule can judge the fit (and so
+    # `converged`) depends on platform rounding (CI run 44749244495: FALSE on
+    # the ubuntu/windows legs, TRUE on a local x86 build).
+    # InferenceOrdinalStereotypeLogit drops it too
+    # (implicit_intercept = TRUE); see Test 9.
+    list(X = X[, -1, drop = FALSE], y = y)
 }
 
 # Test 1: basic fit matches score near zero
@@ -90,7 +98,7 @@ test_that("ssq_b_1 is finite positive (K=4)", {
     # drops it (implicit_intercept = TRUE) before calling the kernel. Keeping the
     # all-ones column makes the model unidentified: ssq_b_1 is then +-1e13-1e14
     # noise whose sign depends on the platform's floating point.
-    fit <- EDI:::fast_stereotype_logit_with_var_cpp(d$X[, -1, drop = FALSE], d$y)
+    fit <- EDI:::fast_stereotype_logit_with_var_cpp(d$X, d$y)
     expect_true(is.finite(fit$ssq_b_1))
     expect_gt(fit$ssq_b_1, 0)
 })

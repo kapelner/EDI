@@ -373,11 +373,13 @@ List fast_ordinal_regression_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numer
 //' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
 //'
 //' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
-//'   \code{converged}, \code{num_iter}, \code{neg_loglik},
+//'   \code{converged}, \code{num_iter}, \code{hit_iteration_cap}, \code{gradient_norm},
+//'   \code{min_eigenvalue_information}, \code{neg_loglik},
 //'   \code{observed_information}/\code{information} (both the same
 //'   observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
-//'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
-//'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
+//'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — if the
+//'   free-parameter information matrix is not invertible, \code{ssq_b_j} is \code{NaN}
+//'   and \code{vcov} is \code{NULL}.
 //' @seealso \code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
 //'   full model documentation.
 //' @export

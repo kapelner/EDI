@@ -65,7 +65,10 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   interval does not bracket the target p-value. Default 7.
 		#' @param bootstrap_type 		Optional bootstrap-resampling scheme; see
 		#'   \code{approximate_bootstrap_distribution_beta_hat_T} for legal values. Default \code{NULL}.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging.
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param type  				CI type. \code{"percentile"} (default) inverts the raw BRT
 		#'   p-value via bisection (or closed-form for affine statistics).
 		#'   \code{"studentized"} inverts the signed-pivot BRT p-value

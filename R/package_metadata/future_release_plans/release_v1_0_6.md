@@ -3251,6 +3251,13 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   be kernel-swapped alone: it links the logistic internal). Python: `python/cpp` includes the same header, so the wheel
   picks this up on its next build. Test (72 expectations pass under the swap; 25 fail on the installed build):
   `R/package_tests/testthat_bulk/test-count-probit-kernels-scale-aware-convergence-colon.R`.
+  -- Beta and ZINB reference checks added to that test (agent, 2026-11-21, test only): beta regression vs `betareg`
+  on raw / x 1000 / + 1e5 (y = (pmin(nodes, 30) + 0.5) / 31, nodes dropped from X; absolute tolerance 5e-4, new gaps
+  <= 8.4e-5, old 9.3e-3 / 3.2e-2) and ZINB vs `pscl::zeroinfl` on raw (Xzi = intercept, w, age; tolerance 3e-3, new
+  gap 1.5e-3, old 6.3e-3). Kernel swap of `fast_beta_regression.cpp` + `fast_zinb.cpp`: 8/8 new expectations pass;
+  4 fail on the installed build. Not covered: beta on `scale()`d X stops at -0.062202 (gap 9.9e-4) with or without the
+  rule; ZINB raw still reports converged at negLL 1252.196, 2.14 above the MLE (1250.054, reached by pscl and by this
+  kernel on scaled X), so its estimate is close to pscl by luck more than by convergence (belongs with v1.0.6-TODO-322).
 
 - [ ] TODO-170 (added 2026-11-18, agent, owner request; found by the fitter-scaling probe that followed v1.0.6-TODO-163): **IRLS and Newton use an absolute gradient tolerance, so a correct fit on large-scale covariates is reported
   as not converged and the class drops covariates.** With age + 1e5, `fast_logistic_regression_cpp` and
@@ -3420,7 +3427,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   find which class and path differ, and either make the worker path start from the same point as the slow path or
   loosen the tolerance only where the difference is optimizer precision. Valgrind and ASAN/UBSAN reported no memory
   errors.
-- [ ] TODO-181 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, sanitizer legs):
+- [x] TODO-181 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, sanitizer legs):
   **Two argument-validation tests don't skip classes whose optional packages aren't installed.**
   `R/EDI/tests/testthat/test-inference-args-reject-na.R:113,163` and
   `test-inference-args-reject-nonscalar-nonfinite.R:116` fail 8 times each on the valgrind and ASAN/UBSAN legs with
@@ -3431,7 +3438,13 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   classes need (quantreg, geepack, ...). Confirm which package is missing, then skip a class whose required package
   is not installed (`skip_if_not_installed()` or a per-class `requireNamespace()` check) instead of failing. This is a
   test bug, not a package bug.
-- [ ] TODO-182 (added 2026-11-19, agent, owner request; found by the nightly run 44358510753 on 4ce2b712):
+  - **Done 2026-11-21 (agent):** the valgrind and ASAN/UBSAN legs install only hard dependencies, so quantreg,
+    multgee / geepack and aftgee are missing (run 44358518303). Four loops failed (na.R:113,163; nonscalar-nonfinite.R:116,148).
+    New `R/EDI/tests/testthat/helper-inference-fixture-missing-packages.R` reads the missing package from the class's own
+    "Package 'X' is required" error; those classes are reported as a named skip, and a class with no fixture while its
+    packages are installed still fails. Verified normally (0 failed, 0 skipped) and with the packages mocked absent (0
+    failed, CI's 8 classes skipped). The helper moves to the registry under v1.0.6-TODO-335.
+- [x] TODO-182 (added 2026-11-19, agent, owner request; found by the nightly run 44358510753 on 4ce2b712):
   **The nightly silent-NA gate fails for `InferenceAllSimpleAverageDiff$compute_bootstrap_confidence_interval`.**
   On the smoke fixtures the same BCa-boundary NA comes with a warning in some calls and silently in others (5
   continuous cases, 1 incidence), so the `silent_na_output` hard gate fails. Reproduced by re-running the gate on
@@ -3439,6 +3452,13 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   without re-raising the warning (not confirmed). Make every NA that this method returns come with its warning (or a
   `procedure_failure_reason`), and add a test that calls it twice on the same object and expects the warning both
   times.
+  - **Done 2026-11-21 (agent):** already fixed by v1.0.6-TODO-162 (3dabce47). At 4ce2b712 `ci_bca()` warned only when
+    every draw was finite; with n = 8 a resample often has no treated or no control subject, so the NA was silent. Not
+    warn-once or a cache hit (the gate builds a fresh object per case). Re-running the failing cases with the old
+    `ci_bca` gave 6 silent NAs, current code 0. Added
+    `R/package_tests/testthat_bulk/test-bootstrap-bca-ci-na-explained-on-every-repeat-call.R`: the non-finite-draw NA
+    warns on both calls; the all-finite boundary NA warns once per object and then keeps its recorded reason (the
+    documented warn-once policy, unchanged).
 
 - [x] TODO-183 (added 2026-11-19, agent; found by the v1.0.6-TODO-42 agent): **Mid-trial redraws on sequential designs
   are inconsistent.** (1) `DesignSeqOneByOnePocockSimon$draw_ws_raw()` loops over all `n` preallocated rows, so
@@ -4967,7 +4987,7 @@ itself still needs a look.
     KK21 count weight comparisons and the affected package_tests CSVs.
   - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
 
-### Bugs found by the algorithm-audit re-review of drift issue #55, 2026-11-20 (TODO-271..276)
+### Bugs found by the algorithm-audit re-review of drift issue #55, 2026-11-20 (TODO-271..276, TODO-323..324, TODO-326)
 
 The 2026-11-20 re-review of the 26 drifted algorithm-audit rows (`new_feature_plans/v1_0_5/algorithm_choice_audit.md`,
 "Re-review log", entry "2026-11-20: drift issue #55") kept every row's decision but found these. Only TODO-271 and
@@ -5100,6 +5120,62 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
     NEWS bullet under "Changes that alter results". Needs the owner's rebuild before the bulk test passes.
     Not touched: the `mahal_dist` + constant column case stays finite (ridge in `ensure_S_inv_current`, while the
     search kernel falls back to abs mode on a failed LLT), so the two kernels rank by different criteria there.
+
+- [ ] TODO-323 (added 2026-11-21, owner; found by the v1.0.6-TODO-274 agent): **`InferenceOrdinalKKGEE` separation
+  rule can blank the SE of a fit that is not separated.** The same false alarm v1.0.6-TODO-274 fixed for the binary
+  and proportion KK GEE: `R/EDI/R/inference_ordinal_KK_combined.R` (~L284-295) makes the sandwich SE, the asymptotic
+  p-value and the CI NA whenever one subject's largest |cumulative logit| reaches qlogis(1 - 1e-8)
+  (`edi_logistic_n_fitted_extreme`). One high-leverage point can get there without any separation.
+  `edi_binary_data_separated()` (`helper_robust_sandwich.R`) does not carry over as is: for a cumulative-logit model
+  existence of the MLE depends on all cumulative splits jointly (they share the slope), so the exact check needs a
+  different formulation; find and cite the right condition before coding it.
+  - First reproduce: a non-separated ordinal KK GEE fixture with one extreme covariate value whose SE comes back NA,
+    confirmed non-separated independently (e.g. `MASS::polr` / `ordinal::clm` converging with bounded coefficients,
+    or an LP check on each cumulative split).
+  - Fix: keep the |eta| test as the cheap first screen and blank the SE only when an exact check for the
+    cumulative-logit model confirms separation (as v1.0.6-TODO-274 did), or, if no practical exact check exists,
+    document the rule as a heuristic and when it misfires.
+  - Done when: the rule fires only on separated fits (or the docs say it is a heuristic), with a test on a separated
+    and a non-separated high-leverage fixture; NEWS bullet if results change.
+- [ ] TODO-324 (added 2026-11-21, owner; found by the v1.0.6-TODO-276 agent): **Rerandomization `mahal_dist` with a
+  constant covariate column ranks draws differently on the two paths.** With `objective = "mahal_dist"` and a
+  constant column kept by the design formula (e.g. `~ x1 + I(x2^0)`), the `prop_acceptable` path stays finite
+  because `ensure_S_inv_current()` (`R/EDI/R/design_fixed_rerandomization.R` ~L277) adds a 1e-6 ridge to a singular
+  covariance and ranks by that ridged Mahalanobis distance, while the cutoff path `rerandomization_search_cpp`
+  (`R/EDI/src/rerandomization_helpers.cpp` ~L203-210) falls back to the abs objective when its Cholesky fails. So the
+  same design and data are filtered by different criteria depending on whether `prop_acceptable` or
+  `obj_val_cutoff` is set. (The abs_sum_diff paths were made consistent by v1.0.6-TODO-276.)
+  - Decide the rule: drop zero-variance columns before forming the covariance (the Mahalanobis distance of the rest
+    is then well defined and the constant column contributes nothing, matching the abs fix), or use the same ridge,
+    or the same abs fallback, on both paths. Dropping the column is the cleanest; the `abs(det(S)) < 1e-10` test is
+    also scale dependent and should go with it.
+  - Done when: both paths score a draw identically on a fixture with a constant column (and on one with collinear
+    columns), with a test; NEWS bullet under "Changes that alter results" if allocations change.
+
+- [ ] TODO-326 (added 2026-11-21, owner; found while answering the v1.0.6-TODO-271 ties question): **The
+  `InferenceSurvivalDepCensTransformRegr` Bayesian bootstrap resamples a Cox log hazard ratio, not the class's log
+  time ratio.** `compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_survival_dep_cens_transform.R`
+  ~L49-68) replaces every weighted draw with `weighted_cox_bootstrap_surrogate_fit()` (`R/EDI/R/globals.R`), a
+  weighted `survival::coxph` fit, and stores its treatment coefficient as `beta_hat_T`. The class's estimate is the
+  treatment coefficient of the bivariate-normal dependent-censoring log-normal model (a log time ratio, from
+  `fast_dep_cens_transform_optim_cpp`). Under a log-normal AFT the log hazard ratio has roughly the opposite sign and
+  a different scale (about -beta / sigma), and it ignores the dependent censoring the class exists for. Only the
+  constant-weights shortcut (~L51) returns the real estimate, which hides the mismatch on a quick check. The warm
+  start passed to the Cox fit is the dependent-censoring fit's "params" / "beta" vector, also the wrong model. Found
+  by reading the code, not yet reproduced; the Breslow-vs-Efron question (v1.0.6-TODO-271) is moot here.
+  - First reproduce: on the fixture of `test-dep-cens-transform-recovers-log-time-ratio-under-dependent-censoring.R`
+    (true log time ratio 0.5), compare `compute_estimate()` with the mean of Bayesian-bootstrap draws; expect a draw
+    centre near the Cox log HR (negative), not 0.5. Check which public outputs use these draws (Bayesian-bootstrap
+    CI / p-value, and any path that routes through `compute_estimate_with_bootstrap_weights`).
+  - Fix (pick one): (a) add observation weights to the dependent-censoring likelihood (`fast_survival_models_optim.cpp`
+    `DepCensTransformLikelihood` and `fast_dep_cens_transform_optim_cpp`, weights multiplying each row's
+    log-likelihood and gradient) and refit it per draw, warm-started from the full-data params; or (b) if that is too
+    slow or too unstable on small samples, remove `"BayesianBootstrap"` from the class's components so the method
+    errors or is unsupported (as the jackknife and randomization methods already are), with the reason in the docs.
+  - Update the roxygen that calls the surrogate an approximation (~L41-44 and ~L787-789) and its hand-edited Rd.
+  - Done when: the Bayesian-bootstrap draws centre on the class's estimate (test against the known 0.5 fixture and,
+    for (a), a weighted refit with all weights 1 equal to `compute_estimate()` without the shortcut), or the method
+    is unsupported with a test; NEWS bullet under "Changes that alter results".
 
 ### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
 
@@ -5955,3 +6031,95 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   the GLMMs, Weibull frailty and CLMM share the patched wrapper in `_helper_functions_core.h` but were not re-probed
   (hurdle NegBin cannot be kernel-swapped alone); probe them on raw / x 1000 / + 1e5 designs after the owner build.
   (3) Poisson and probit L-BFGS on raw `colon` still report not converged at the default 100-iteration cap.
+  (4) (coordinator 2026-11-21, from the beta/ZINB reference-check agent) ZINB on raw `colon` (Xzi = intercept,
+  treatment, age) reports converged under the patched kernels but stops at negLL 1252.196; pscl and the same kernel on
+  `scale()`d X reach 1250.054. Its treatment coefficient (-0.2111 vs pscl -0.2126) is close only by luck. The reference
+  check in `test-count-probit-kernels-scale-aware-convergence-colon.R` uses tolerance 3e-3; tighten it once this is fixed.
+
+- [ ] TODO-325 (added 2026-11-21, agent, owner request; found by the issue #66 review): **`R CMD check` hangs in
+  "checking examples" on Windows.** Both Windows legs hit the 240-min job timeout on f49c200b (run 44636521403), and
+  Windows devel again on 8d8c5f78 (run 44749244495). In the job logs (135956486361, 136332700594) `EDI-Ex.Rout` stays
+  at 0 bytes after `* checking examples ...` starts, and the Rterm processes use about 1 min of CPU in 3+ hours: blocked
+  (a deadlock or wait), not slow. Windows still finished in 56-90 min on e16dd7ae, so the cause is in the 18 commits of
+  e16dd7ae..f49c200b. Candidate, not bisected: 91b4d62f changed the `InferenceSuite` `\donttest` example to
+  `run_all_inference(methods = c("wald", "rand"), r = 99)` (compare the earlier Windows `\donttest{}` hang,
+  release_v1_0_0.md:541); other R changes in the window are 72ea20ba, 5bdb9dfb and f4f0c7aa. (1) Make the next hang name
+  its example: the Windows `EDI-Ex.Rout` is locked and empty, so have the check leg write each example's name to stderr
+  (or run the examples with unbuffered output) and add a step timeout well under 240 min. (2) Bisect the window on a
+  Windows leg and fix the example or the code it reaches (look first at parallel / fork / daemon paths, which differ on
+  Windows). Done when both Windows legs finish `R CMD check` in under ~90 min again. Costs ~3 h of runner time per
+  Windows leg per push until fixed.
+
+- [ ] TODO-327 (added 2026-11-21, agent, owner request; audit decision `code-duplication-d4062d188`, issue #61 triage):
+  **`set_testing_type("lik_ratio_bartlett_*")` makes `compute_asymp_*()` return NULL on `InferenceContinKKOLSOneLik`
+  and `InferenceCountPoisson`.** Both switch on `testing_type` with no Bartlett branches and no `stop()` default
+  (`R/EDI/R/inference_continuous_KK_ols_one_lik.R:132-141,160-169`, `R/EDI/R/inference_count_poisson.R:267-273,286-292`),
+  although `get_supported_testing_types()` lists the Bartlett types; the CI and p-value are silently `NULL` (verified
+  at runtime). Fix: add the Bartlett branches dispatching to the `*_impl` (as `..._loggamma.R:664-665` does) and a
+  `stop("Unsupported testing_type")` default. Test: for every exported class and every supported testing type, the
+  asymptotic CI is a length-2 numeric and the p-value a length-1 numeric.
+- [ ] TODO-328 (added 2026-11-21, agent, owner request; audit decision `code-duplication-ddad98657`, issue #61 triage):
+  **`compute_rand_two_sided_pval(alternative = ...)` errors ("unused argument") on 7 classes whose override lacks the
+  argument.** The base method gained `alternative` in 3dabce47 and NEWS announces it, but the overrides in
+  `R/EDI/R/inference_mixin_kk_gee_shared.R:125` (the 4 KK GEE classes), `inference_survival_dep_cens_transform.R:121`,
+  `inference_incidence_KK_cond_logit.R:715` and `inference_survival_weibull.R:241` don't take it (verified at runtime).
+  Fix: add `alternative = "two.sided"` with `match.arg` and pass it through to the sequential Monte Carlo and t0s
+  helpers, or have the override delegate its tail to the base method (see v1.0.6-TODO-193). Test: every exported
+  class's `compute_rand_two_sided_pval` has an `alternative` formal, plus one `alternative = "greater"` call per
+  override.
+- [ ] TODO-329 (added 2026-11-21, agent, owner request; audit decision `code-duplication-db5595975`; low priority):
+  **The unweighted log- and identity-binomial kernels ignore `warm_start_weights`.** `fit_constrained_binomial_cpp_impl`
+  (`R/EDI/src/fast_log_binomial_regression.cpp:520-810`) never reads the argument and doesn't check its length; the
+  weighted implementation uses it (L857-873) and the roxygen promises "initial working weights". Fitted values don't
+  change and no R class passes it. Fix: port the weighted path's iteration-0 block and length check, or document the
+  argument as unused and add the length check. Test: a wrong-length vector errors. [C++]
+- [ ] TODO-330 (added 2026-11-21, agent, owner request; mechanical findings `rd-m2fa7c1c1`, `rd-m362b49ad`,
+  `rd-m3ca40610`, `rd-m6949d76a`, `rd-m77d445ee`, `rd-m7f2798f2`, `rd-m8e01cb35`, `rd-m8e01cb35-2`, `rd-m9706d359`,
+  `rd-ma957805a`, `rd-maa4ffcbb`, `rd-maa4ffcbb-2`, `rd-mafc40b7d`, `rd-meda604bf`, `rd-mff4a0118`): **The
+  `InferenceCountZeroInflatedPoisson`, `...ZeroInflatedNegBin`, `...HurdlePoisson`, `...HurdleNegBin` and
+  `InferenceIncidGCompRiskRatio` examples emit separation or boundary warnings**, also on the published reference
+  pages. Choose n, data or a seed so the zero / hurdle part isn't separated on any of the rd audit's 5 seeds, keeping
+  each example under 4 s. Done when the rd audit's example check is clean for these classes.
+- [x] TODO-331 (added 2026-11-21, agent, owner request; audit decision `rd-d3554783c`): **Test that
+  `fast_beta_regression_with_var()` passes `warm_start_fisher_info` to the C++ fitter.** The fix itself is 0e29876e
+  (2026-11-19), which had no test. Added `R/EDI/tests/testthat/test-beta-regression-warm-start-fisher-info-reaches-backend.R`:
+  the matrix reaches the backend unchanged (mocked), a wrong-size matrix is rejected by the C++ size check, and a warm
+  start matches the cold fit. Shown to fail on the pre-fix wrapper. A parse scan of all 92 R functions with a
+  `warm_start_*` argument found none that ignores it.
+- [x] TODO-332 (added 2026-11-21, agent, owner request; audit decision `rd-d4d634228`): **The
+  `InferenceIncidBinomialIdentityRiskDiff` example warned** (`edi_binomial_mle_boundary_warning` on 3 of 30 seeds). It
+  now uses `set.seed(1)`, n = 100, a binary covariate and true risks in [0.3, 0.6], and also shows the asymptotic CI
+  (roxygen in 8d8c5f78; the Rd example block hand-synced, `checkRd` clean). 0 of 50 seeds warn; about 0.1 s per run.
+- [ ] TODO-333 (added 2026-11-21, agent, owner request; audit decisions `rpy-parity-d1f65c8c0`, `rpy-parity-d62675f61`,
+  `rpy-parity-dd699435e`): **Python bindings return less than their R exports.** Code done, not yet verified:
+  (1) `fast_zero_one_inflated_beta` takes `estimate_only` (default `False`) and returns R's fields (`b`, `log_phi`,
+  `zero_one_b0`, `zero_one_b1`, `vcov`, the information matrices, `hessian`, `min_eigenvalue_information`); (2)
+  `fast_robust_regression` returns `min_eigenvalue_information` and, unless `estimate_only`, `ssq_b_j` and
+  `fisher_information`; (3) `fast_clogit_plus_glmm`'s `weights_disc` / `weights_conc` (already in the binding since
+  21e0679a) are now in `_core.pyi` and `_checks.py`. Both sides call new shared helpers in `R/EDI/src`
+  (`fast_zero_one_inflated_beta_result_internal`, `fast_robust_regression_ssq_b_j_internal`; C++ in 8d8c5f78); R
+  output should be unchanged. Done when, after the owner's rebuild, the 5 new pytest cases pass and the R ZOIB and
+  robust-regression tests still pass.
+- [ ] TODO-334 (added 2026-11-21, agent, owner request; audit decision `docs-claims-d70b0515c`, claim 2): **Test
+  `InferenceRandCustom`'s parallel-path contract.** The docs (`R/EDI/R/inference_rand_custom.R:84-86`) say a C++
+  source string works on parallel paths while an external pointer or pre-compiled Rcpp function is valid in the main
+  process only. No test checks either half, and both worker-count invariance helpers skip this class. Test: with a
+  source-string statistic, `compute_rand_two_sided_pval()` under `set.seed()` is identical for `num_cores = 1` and
+  `2`; with an external pointer or pre-compiled function, pin whatever the parallel path does (clear error or
+  main-process fallback), and fix the docs if it differs. Test only.
+- [ ] TODO-335 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **The inference registry's
+  `required_packages` is empty for every class** (`R/EDI/R/inference_class_registry.R:3958`), so
+  `missing_required_packages_for_inference_class()` returns nothing and `InferenceSuite` never excludes a class whose
+  Suggests package is missing (`R/EDI/R/inference_suite.R:94`). Fill it from the classes' own package guards (as
+  `likelihood_concave` is filled from a constant), add a drift test against the guards, and make the v1.0.6-TODO-181
+  test helper read it. In progress (agent, 2026-11-21).
+- [ ] TODO-336 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **`InferenceOrdinalKKGEE`'s
+  missing-geepack error mentions `use_rcpp=FALSE`**, but the class hard-codes it (`R/EDI/R/inference_ordinal_KK_combined.R:87`)
+  and has no such argument; the message comes from the shared mixin guard (`R/EDI/R/inference_mixin_kk_gee_shared.R:287`).
+  Mention `use_rcpp` only for classes that expose it. In progress (agent, 2026-11-21).
+- [x] TODO-337 (added 2026-11-21, agent, owner request): **The docs-scenarios audit stayed green when the API refused
+  its agents.** `docs_scenarios.py collect` now reads the refusal reason from each transcript with the shared
+  `.github/scripts/agent_failure.py` (copied into each area kit); `report` puts "N of M scenario agent(s) did not run"
+  with the API reason at the top of the report, PR body and findings file; and the publish job of
+  `audit-docs-scenarios.yml` fails in its last step, after the partial results are saved. Areas that didn't run stay
+  due. Tests: `DocsScenarios` in `.github/scripts/test_agent_failure.py` (560 `.github/scripts` tests pass; actionlint clean).

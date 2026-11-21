@@ -285,7 +285,11 @@ InferenceMixinKKGEEShared = list(
 			private$use_rcpp = use_rcpp
 			if (should_run_asserts() && !use_rcpp) {
 				if (!check_package_installed("geepack")){
-					stop("Package 'geepack' is required for ", class(self)[1], " when use_rcpp=FALSE. Please install it.")
+					# Name use_rcpp only for a class whose constructor exposes it;
+					# InferenceOrdinalKKGEE passes use_rcpp = FALSE itself and has
+					# no such argument.
+					when_clause = if ("use_rcpp" %in% names(formals(self$initialize))) " when use_rcpp=FALSE" else ""
+					stop("Package 'geepack' is required for ", class(self)[1], when_clause, ". Please install it.")
 				}
 			}
 		},

@@ -74,6 +74,8 @@ ridit_delong_se = function(y, w, reference = "control"){
 #' infer <- InferenceOrdinalRidit$
 #'   new(seq_des, verbose = FALSE)
 #' infer
+#' infer$compute_estimate()
+#' infer$compute_asymp_confidence_interval()
 #'
 InferenceOrdinalRidit = define_inference_class(
 	classname = "InferenceOrdinalRidit",

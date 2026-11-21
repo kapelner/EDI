@@ -295,14 +295,16 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Compute a randomization-based confidence interval for the
-		#'   stratified Cox treatment effect by inverting the class-specific
-		#'   randomization p-value. See
-		#'   \code{InferenceRandCI}.
-		#' @param alpha The significance level (default 0.05).
-		#' @param r Number of vectors to draw.
-		#' @param pval_epsilon The bisection convergence tolerance.
-		#' @param show_progress Whether to show a progress bar.
+		#' @description Not supported: randomization confidence intervals are not
+		#'   available for the stratified Cox model, and calling this method always
+		#'   signals an error. The log-hazard-ratio estimator units are not
+		#'   commensurate with the randomization CI bisection's log-time-ratio
+		#'   (AFT-effect) null search. Use \code{compute_rand_two_sided_pval()} for a
+		#'   randomization test, or an asymptotic or bootstrap interval.
+		#' @param alpha Unused (the method always errors).
+		#' @param r Unused (the method always errors).
+		#' @param pval_epsilon Unused (the method always errors).
+		#' @param show_progress Unused (the method always errors).
 		#' @param ci_search_control Unused.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, ci_search_control = NULL){
 			stop("Randomization confidence intervals are not supported for stratified Cox PH models because the estimator units (Log-Hazard Ratio) are inconsistent with the randomization test's required transformed scale (Log-Time Ratio / AFT effect).")

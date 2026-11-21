@@ -150,8 +150,13 @@ test_that("classes whose own asymptotic methods assert alpha and delta reject le
 		"InferenceOrdinalPartialProportionalOddsRegr", "InferencePropGCompMeanDiff",
 		"InferenceSurvivalKMDiff", "InferenceSurvivalLogRank", "InferenceSurvivalRestrictedMeanDiff"
 	)
+	skipped = character()
 	for (cn in classes) {
 		inf = nsnf_build(cn)
+		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, nsnf_fixtures()))) {
+			skipped[cn] = paste(pk, collapse = ", ")
+			next
+		}
 		expect_false(is.null(inf), info = cn)
 		if (is.null(inf)) next
 		res = nsnf_call(inf, "compute_asymp_confidence_interval", "alpha", c(0.05, 0.1))
@@ -167,6 +172,7 @@ test_that("classes whose own asymptotic methods assert alpha and delta reject le
 	inf = nsnf_build("InferenceAllSimpleMeanDiffPooledVar")
 	expect_true(is.finite(inf$compute_asymp_two_sided_pval(delta = 0.25)))
 	expect_length(inf$compute_asymp_confidence_interval(alpha = 0.1), 2L)
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("tau, acc and root_tolerance reject length-2 or infinite values", {

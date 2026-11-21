@@ -100,8 +100,19 @@
 #'   (2010). "Beta regression in R." \emph{Journal of Statistical Software}, 34(2), 1-24,
 #'   \doi{10.18637/jss.v034.i02}.
 #' @examples
-#' seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = 'continuous')
-#' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' set.seed(1)
+#' n = 30
+#' seq_des = DesignSeqOneByOneKK21$new(n = n, response_type = 'continuous')
+#' # Responses must arrive as subjects enroll: the weights are estimated from the
+#' # responses seen so far, and weighted matching starts once the burn-in
+#' # (t_0_pct = 35\% of n) is over and 2 * (p + 2) responses are in.
+#' for (t in 1 : n) {
+#'   x_t = data.frame(x1 = rnorm(1), x2 = rnorm(1))
+#'   seq_des$add_one_subject_to_experiment_and_assign(x_t)
+#'   seq_des$add_one_subject_response(t, 2 * x_t$x1 + rnorm(1))
+#' }
+#' seq_des$get_covariate_weights()           # x1 (prognostic) should dominate
+#' length(seq_des$get_iteration_weights())   # one weight vector per weighted assignment
 #' @export
 DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 	inherit = DesignSeqOneByOneKK14,

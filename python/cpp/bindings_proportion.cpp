@@ -124,7 +124,7 @@ void bind_proportion(py::module_& m) {
     "start_phi : float, default 10.0\n"
     "    Optional starting value for the precision parameter phi.\n"
     "fixed_idx : ndarray of int, optional\n"
-    "    Optional indices of fixed parameters.\n"
+    "    Optional 1-based indices of fixed parameters.\n"
     "fixed_values : ndarray, optional\n"
     "    Optional values for fixed parameters.\n"
     "optimization_alg : str, default \"lbfgs\"\n"

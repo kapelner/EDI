@@ -241,7 +241,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#' @param rand_bootstrap_draws 	Optional pre-generated draws (as returned by the private
 		#'   method \code{generate_rand_bootstrap_draws}) enabling common random numbers across
 		#'   calls with different \code{delta} values (used by the CI inversion). Default \code{NULL}.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging.
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @return 	When \code{debug = FALSE} (default), a numeric vector of length \code{B}
 		#'   containing the null-distribution draws. When \code{debug = TRUE}, a list with:
 		#'   \code{values}, \code{errors}, \code{warnings}, \code{num_errors}, \code{num_warnings},
@@ -460,7 +463,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{approximate_bootstrap_distribution_beta_hat_T} for legal values. Default \code{NULL}.
 		#' @param rand_bootstrap_draws 	Optional pre-generated draws for common random numbers
 		#'   across \code{delta} values. Default \code{NULL}.
-		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging.
+		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
+		#'   \code{"logit"} response transform: responses are clamped to
+		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param type  				Test statistic type. \code{"percentile"} (default) uses the raw
 		#'   estimator as the BRT test statistic, giving an asymptotic p-value that inherits
 		#'   the unconditional superpopulation validity of the BRT.

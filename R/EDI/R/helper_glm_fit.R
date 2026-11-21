@@ -691,6 +691,10 @@ NULL
 #'   iterations without meeting the gradient-norm convergence criterion.}
 #' \item{gradient_norm}{The norm of the score vector at the returned
 #'   coefficients.}
+#' \item{min_eigenvalue_information}{The smallest eigenvalue of the information
+#'   matrix at the fitted coefficients, a diagnostic of near-singularity.}
+#' \item{num_step_halvings}{The number of IRLS step halvings taken (always 0 on
+#'   the L-BFGS path).}
 #' }
 #' @seealso \code{\link{fast_logistic_regression_cpp}} for the unweighted model
 #'   and full documentation.
@@ -2048,7 +2052,9 @@ clogit_helper = function(y_m, X_m, w_m, strata_m){
 #'   negative log-likelihood), \code{loglik} (its negation), \code{converged}
 #'   (logical, \code{gradient_norm < tol}, uniform across optimizers),
 #'   \code{num_iter}, \code{hit_iteration_cap} (logical, mutually exclusive
-#'   with \code{converged}), and \code{gradient_norm}.
+#'   with \code{converged}), \code{gradient_norm}, and
+#'   \code{min_eigenvalue_information} (the smallest eigenvalue of the
+#'   information matrix, a diagnostic of near-singularity).
 #' @seealso \code{\link{fast_logistic_regression_cpp}} for the estimate-only
 #'   variant and the full model documentation.
 #' @usage fast_logistic_regression_with_var_cpp(

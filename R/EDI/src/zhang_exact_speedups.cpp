@@ -1,5 +1,6 @@
 #include <Rcpp.h>
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <vector>
 
@@ -107,6 +108,39 @@ double zhang_exact_fisher_pval_cpp(int n11, int n10, int n01, int n00, double de
   return fisher_noncentral_two_sided_pval(n11, n10, n01, n00, delta_0);
 }
 
+namespace {
+
+// Adding a term t >= 0 to a long double running sum s > 0 leaves s unchanged when
+// t < ulp(s) / 2, which holds whenever t < s * 2^-(LDBL_MANT_DIG + 1). The log weights
+// of both Zhang components are concave in the outcome (binomial and
+// hypergeometric coefficients are log-concave; the delta term is linear), so past
+// the mode each term is at most the previous one. So once a term past the mode is
+// below this factor times every running sum it would join, it and all later terms
+// are no-ops, and stopping there gives the same sums bit for bit. The factor
+// below has 2^-5 to spare, for rounding of the log weights (about 1e-13
+// absolute), which can make them non-increasing only up to a factor of 1 + 1e-12.
+inline long double ldbl_sum_noop_factor() {
+  return std::ldexp(1.0L, -(LDBL_MANT_DIG + 6));
+}
+
+// A product that R rounds on its own before adding it to something. On a target
+// with fused multiply-add instructions (e.g. -march=native) the compiler may fuse
+// "a + b * c" into one rounding (GCC does by default), which would no longer give
+// R's doubles bit for bit; a volatile round trip prevents that there. Without FMA
+// instructions nothing can be fused and the value passes through unchanged.
+#if defined(__FP_FAST_FMA)
+inline double unfused(double x) {
+  volatile double v = x;
+  return v;
+}
+#else
+inline double unfused(double x) {
+  return x;
+}
+#endif
+
+}  // namespace
+
 // One exact component of the Zhang test as an outcome distribution in delta:
 // unnormalised log weights cj[i] + i * delta over outcomes i = 0..K-1, observed
 // outcome at 1-based index x (zhang_exact_pval_components() in R). Returns the
@@ -116,8 +150,10 @@ double zhang_exact_fisher_pval_cpp(int n11, int n10, int n01, int n00, double de
 // constant cancels in that comparison, so it uses the log weights directly. Per
 // delta: one pass for the maximum, one for the exp sums. Sums are long double, as
 // in R's colSums(), so the result equals the R matrix version it replaced
-// (zhang_pval_exact_combined_vec(), v1.0.6-TODO-285) bit for bit; a term with
-// exp() below the smallest subnormal is exactly 0 there and is skipped here.
+// (zhang_pval_exact_combined_vec(), v1.0.6-TODO-285) bit for bit. Two kinds of
+// term are skipped, both exactly: one with exp() below the smallest subnormal (0
+// there too), and, past the mode, the rest of the outcomes once a term is below
+// 2^-(LDBL_MANT_DIG + 6) times both running sums (see ldbl_sum_noop_factor()).
 // Non-finite delta gives NA (rejected by the caller).
 // [[Rcpp::export]]
 NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const NumericVector& deltas) {
@@ -129,6 +165,7 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
   }
   const double rel_tol_log = std::log1p(1e-7);
   const double exp_zero_below = -746.0;  // exp(z) == 0 in double for z < -745.14
+  const long double noop = ldbl_sum_noop_factor();
   std::vector<double> lw(static_cast<std::size_t>(K));
   for (R_xlen_t d = 0; d < nd; ++d) {
     const double delta = deltas[d];
@@ -136,14 +173,15 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
       continue;
     }
     double mx = R_NegInf;
+    R_xlen_t mode = 0;
     for (R_xlen_t i = 0; i < K; ++i) {
-      // volatile: no fused multiply-add (-march=native builds), so the sum is
-      // rounded as R's cj + outer(j, delta) is.
-      volatile double step = static_cast<double>(i) * delta;
+      // The product rounded on its own, as in R's cj + outer(j, delta).
+      const double step = unfused(static_cast<double>(i) * delta);
       const double v = cj[i] + step;
       lw[static_cast<std::size_t>(i)] = v;
       if (v > mx) {
         mx = v;
+        mode = i;
       }
     }
     const double cut = lw[static_cast<std::size_t>(x - 1)] + rel_tol_log;
@@ -153,9 +191,15 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
       const double v = lw[static_cast<std::size_t>(i)];
       const double z = v - mx;
       if (z < exp_zero_below) {
+        if (i > mode) {
+          break;  // exp() is 0 here and, past the mode, for every later term
+        }
         continue;
       }
       const double e = std::exp(z);
+      if (i > mode && num > 0.0L && e < den * noop && e < num * noop) {
+        break;  // this and every later term leave both sums unchanged
+      }
       den += e;
       if (v <= cut) {
         num += e;
@@ -171,8 +215,9 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
 // R for the argument. Same arithmetic as the R version it replaced
 // (v1.0.6-TODO-285): 1 while the mode of the weights is on x's own side, else
 // P(tail on x's side) * (1 + n_other (1 + 1e-7)) * (1 + 1e-6), capped at 1.
-// [[Rcpp::export]]
-double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta, int direction) {
+namespace {
+
+double minlike_tail_bound(const NumericVector& cj, int x, double delta, int direction) {
   const R_xlen_t K = cj.size();
   if (K == 0 || x < 1 || x > K || !R_finite(delta) || direction == 0) {
     return 1.0;
@@ -180,7 +225,7 @@ double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta
   std::vector<double> lw(static_cast<std::size_t>(K));
   R_xlen_t mode = 0;
   for (R_xlen_t i = 0; i < K; ++i) {
-    volatile double step = static_cast<double>(i) * delta;  // no FMA, as above
+    const double step = unfused(static_cast<double>(i) * delta);
     lw[static_cast<std::size_t>(i)] = cj[i] + step;
     if (lw[static_cast<std::size_t>(i)] > lw[static_cast<std::size_t>(mode)]) {
       mode = i;  // first maximum, as which.max()
@@ -191,24 +236,134 @@ double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta
     return 1.0;
   }
   const double top = lw[static_cast<std::size_t>(mode)];
+  const long double noop = ldbl_sum_noop_factor();
   long double total = 0.0L;
   long double side = 0.0L;
   for (R_xlen_t i = 0; i < K; ++i) {
     const double z = lw[static_cast<std::size_t>(i)] - top;
     if (z < -746.0) {
+      if (i > mode) {
+        break;  // exp() is 0 here and for every later term
+      }
       continue;
     }
     const double e = std::exp(z);
+    const bool on_side = direction > 0 ? i <= x0 : i >= x0;
+    // Past the mode, stop once this and every later term leave both sums
+    // unchanged (ldbl_sum_noop_factor()). Going right those terms are off x's
+    // side (mode >= x0); going left they are on it once i >= x0.
+    if (i > mode && e < total * noop &&
+        (direction > 0 || (side > 0.0L && e < side * noop))) {
+      break;
+    }
     total += e;
-    if (direction > 0 ? i <= x0 : i >= x0) {
+    if (on_side) {
       side += e;
     }
   }
   const double n_other = static_cast<double>(direction > 0 ? K - x : x - 1);
-  volatile double other_mass = n_other * (1.0 + 1e-7);  // no FMA, as above
+  const double other_mass = unfused(n_other * (1.0 + 1e-7));
   const double b = static_cast<double>(side) / static_cast<double>(total) *
     (1.0 + other_mass) * (1.0 + 1e-6);
   return std::min(1.0, b);
+}
+
+// zhang_combine_exact_pvals() in R, for the bounds below; same arithmetic (R's
+// pchisq/qnorm/pnorm, x^2 as x * x). A component is used when present, finite and
+// positive. method: 0 Fisher, 1 Stouffer, 2 min_p.
+double combine_zhang_pvals(double p_M, bool present_M, double p_R, bool present_R, int method) {
+  const bool has_M = present_M && R_finite(p_M) && p_M > 0.0;
+  const bool has_R = present_R && R_finite(p_R) && p_R > 0.0;
+  if (has_M && has_R) {
+    switch (method) {
+      case 0:
+        return R::pchisq(-2.0 * (std::log(p_M) + std::log(p_R)), 4.0, 0, 0);
+      case 1: {
+        const double z_M = R::qnorm(1.0 - p_M / 2.0, 0.0, 1.0, 1, 0);
+        const double z_R = R::qnorm(1.0 - p_R / 2.0, 0.0, 1.0, 1, 0);
+        const double z_combined = (z_M + z_R) / std::sqrt(2.0);
+        return 2.0 * R::pnorm(-std::fabs(z_combined), 0.0, 1.0, 1, 0);
+      }
+      case 2: {
+        const double q = 1.0 - std::min(p_M, p_R);
+        const double q2 = unfused(q * q);
+        return 1.0 - q2;
+      }
+      default:
+        return NA_REAL;
+    }
+  }
+  if (has_M) {
+    return p_M;
+  }
+  if (has_R) {
+    return p_R;
+  }
+  return NA_REAL;
+}
+
+// zhang_pval_exact_tail_bound() in R: the combined bound, and the max with each
+// single component's (the fallback when one component underflows). An absent
+// component is passed as an empty cj. NA when both are absent.
+double combined_tail_bound(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR,
+                           double delta, int direction, int method) {
+  const bool present_M = cjM.size() > 0;
+  const bool present_R = cjR.size() > 0;
+  const double bM = present_M ? minlike_tail_bound(cjM, xM, delta, direction) : NA_REAL;
+  const double bR = present_R ? minlike_tail_bound(cjR, xR, delta, direction) : NA_REAL;
+  const double g = combine_zhang_pvals(bM, present_M, bR, present_R, method);
+  double out = R_NegInf;
+  bool any = false;
+  for (double v : {g, bM, bR}) {
+    if (!ISNAN(v)) {
+      out = any ? std::max(out, v) : v;
+      any = true;
+    }
+  }
+  return any ? out : NA_REAL;
+}
+
+}  // namespace
+
+// One component's tail bound (above), for tests against the R formula.
+// [[Rcpp::export]]
+double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta, int direction) {
+  return minlike_tail_bound(cj, x, delta, direction);
+}
+
+// The combined tail bound of zhang_pval_exact_tail_bound() at one delta
+// (v1.0.6-TODO-285). method: 0 Fisher, 1 Stouffer, 2 min_p.
+// [[Rcpp::export]]
+double zhang_pval_exact_tail_bound_cpp(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR,
+                                       double delta, int direction, int method) {
+  return combined_tail_bound(cjM, xM, cjR, xR, delta, direction, method);
+}
+
+// zhang_hull_scan_cut() in R with the bound above, in one call (v1.0.6-TODO-285):
+// t_far when the bound there (b_far, or computed when NA) reaches pval_th, else
+// n_iter bisection steps between r and t_far on the nonincreasing bound, returning
+// the outer end, whose bound is below pval_th.
+// [[Rcpp::export]]
+double zhang_hull_scan_cut_cpp(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR,
+                               double r, double t_far, int direction, double pval_th, int method,
+                               int n_iter, double b_far) {
+  if (ISNAN(b_far)) {
+    b_far = combined_tail_bound(cjM, xM, cjR, xR, t_far, direction, method);
+  }
+  if (b_far >= pval_th) {
+    return t_far;
+  }
+  double lo = r;
+  double hi = t_far;
+  for (int iter = 0; iter < n_iter; ++iter) {
+    const double mid = (lo + hi) / 2.0;
+    if (combined_tail_bound(cjM, xM, cjR, xR, mid, direction, method) >= pval_th) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return hi;
 }
 
 // [[Rcpp::export]]

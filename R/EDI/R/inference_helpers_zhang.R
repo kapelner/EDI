@@ -148,7 +148,8 @@ zhang_exact_pval_breakpoints = function(exact_stats, comps = zhang_exact_pval_co
 	out = numeric(0)
 	if (!is.null(comps$M)) out = c(out, bp(comps$M))
 	if (!is.null(comps$R)) out = c(out, bp(comps$R))
-	sort(unique(out[is.finite(out)]))
+	# The values are distinct after unique(), so the quicksort gives sort()'s result.
+	sort.int(unique(out[is.finite(out)]), method = "quick")
 }
 
 # One endpoint of the convex hull of the exact confidence set (v1.0.6-TODO-233).
@@ -186,7 +187,7 @@ zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoin
 		if ((is.null(b_far) || b_far >= pval_th) && p_at(t_far) >= pval_th) {
 			return(zhang_snap_endpoint(p_at,
 				zhang_bisect_ci_boundary(p_fn, inside = t_far, outside = t_far + direction, pval_th = pval_th, tol = tol),
-				direction, pval_th, breakpoints))
+				direction, pval_th, breakpoints, p_vec = p_vec))
 		}
 		# The scan need not reach t_far: past t_cut an upper bound on the p-value
 		# (zhang_pval_exact_tail_bound()) is already below pval_th, and that bound only
@@ -195,22 +196,36 @@ zhang_ci_hull_endpoint = function(p_fn, inside, outside, pval_th, tol, breakpoin
 		# (an 8.6x slower nightly benchmark row at n = 1000 without the cut). The points
 		# kept are the full scan's own points up to t_cut, plus t_cut, so the scan finds
 		# the same farthest accepted point and the endpoint does not change.
-		scan = c(beyond, seq(r, t_far, length.out = n_grid + 1L)[-1L])
+		scan = c(beyond, zhang_seq_length_out(r, t_far, n_grid + 1L)[-1L])
 		if (!is.null(p_bound)) {
 			t_cut = zhang_hull_scan_cut(p_bound, r, t_far, direction, pval_th, b_far = b_far)
 			scan = c(scan[direction * (scan - t_cut) < 0], t_cut)
 		}
-		scan = scan[order(direction * scan)]
 		p_scan = if (is.null(p_vec)) vapply(scan, p_at, numeric(1)) else p_vec(scan)
-		acc = which(p_scan >= pval_th)
-		if (length(acc) > 0L) {
-			a = max(acc)
-			# The last scan point (t_far, or t_cut whose bound rejects) is rejected, so
-			# normally a < length(scan); if rounding says otherwise, bracket with t_far.
-			r = zhang_bisect_bracket(p_at, scan[a], if (a < length(scan)) scan[a + 1L] else t_far, pval_th, width_tol)
+		acc = p_scan >= pval_th
+		if (any(acc)) {
+			# The farthest accepted scan point and the next scan point out from it (the
+			# scan in outward order, without sorting it: v1.0.6-TODO-285). The last scan
+			# point (t_far, or t_cut whose bound rejects) is rejected, so normally there is
+			# a next point; if rounding says otherwise, bracket with t_far.
+			out_pos = direction * scan
+			a_pos = max(out_pos[acc])
+			further = out_pos > a_pos
+			r = zhang_bisect_bracket(p_at, direction * a_pos,
+				if (any(further)) direction * min(out_pos[further]) else t_far, pval_th, width_tol)
 		}
 	}
-	zhang_snap_endpoint(p_at, r, direction, pval_th, breakpoints)
+	zhang_snap_endpoint(p_at, r, direction, pval_th, breakpoints, p_vec = p_vec)
+}
+
+# seq(from, to, length.out = n) without seq.default()'s overhead: its own
+# arithmetic for non-integer-valued from != to (the hull scan's case), else seq().
+zhang_seq_length_out = function(from, to, n){
+	if (n > 2L && is.finite(from) && is.finite(to) && from != to && from != floor(from) && to != floor(to)) {
+		c(from, from + seq_len(n - 2L) * ((to - from) / (n - 1L)), to)
+	} else {
+		seq(from, to, length.out = n)
+	}
 }
 
 # The combined exact p-value at many deltas at once, for the hull scan of
@@ -227,7 +242,36 @@ zhang_pval_exact_combined_vec = function(exact_stats, deltas, combination_method
 	p_R = if (!is.null(comps$R)) zhang_minlike_pval_vec_cpp(comps$R$cj, comps$R$x, deltas) else rep(NA_real_, nd)
 	p = zhang_combine_exact_pvals_vec(p_M, p_R, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
 	p[!is.finite(p)] = 0
+	attr(p, "rel_err") = zhang_pval_exact_vec_rel_err(exact_stats, comps, deltas, p_M, p_R)
 	p
+}
+
+# A bound on |p_vec - p_scalar| / p at each delta, where p_vec is
+# zhang_pval_exact_combined_vec() and p_scalar the scalar kernels combined (p_fn()),
+# for zhang_accepts_certified(). Both sum the same outcome probabilities. The
+# reservoir and vector kernels build log weights from log-gamma values, accurate to a
+# few ulps of values up to about N log N (N the number of subjects), so each
+# probability is off by a relative 64 u N log(N + 2) at most (u = machine epsilon),
+# plus 1e-10 for the sums' rounding. The scalar binomial kernel works with
+# p0 = plogis(delta) and 1 - p0 rounded to doubles, which moves each probability by
+# up to k u (1/p0 + 1/(1 - p0)), i.e. k u (2 + 2 cosh(delta)); 8x that is used. The
+# combination methods change a relative error by a small factor near the threshold
+# (at most 1 for Fisher); 100 is used. Observed differences are below 2e-10 even at
+# k = 3000 and |delta| = 8, against a margin of at least 1e-6. Where a component is
+# near underflow (below 1e-280) the combination's fallback to the other component
+# makes the two discontinuous, so the bound is Inf there and p_at() decides.
+zhang_pval_exact_vec_rel_err = function(exact_stats, comps, deltas, p_M, p_R){
+	u = .Machine$double.eps
+	N = 2 * exact_stats$m + exact_stats$nRT + exact_stats$nRC
+	err = rep(1e-10 + 64 * u * N * log(N + 2), length(deltas))
+	if (!is.null(comps$M)) {
+		k = length(comps$M$cj) - 1L
+		err = err + 8 * k * u * (2 + 2 * cosh(deltas))
+	}
+	err = 100 * err
+	tiny = (!is.null(comps$M) & !(p_M >= 1e-280)) | (!is.null(comps$R) & !(p_R >= 1e-280))
+	err[tiny | !is.finite(err)] = Inf
+	err
 }
 
 # The two exact components as outcome distributions in delta: unnormalised log
@@ -264,19 +308,35 @@ zhang_exact_pval_components = function(exact_stats){
 # so the bound is nonincreasing. The combination methods are increasing in each
 # component; the max with the single components covers the fallback of
 # zhang_combine_exact_pvals() to the other component when one underflows to 0.
+# In C++ (zhang_pval_exact_tail_bound_cpp(), v1.0.6-TODO-285), with the same
+# arithmetic as the R version it replaced (zhang_combine_exact_pvals() of the two
+# component bounds, then the max with each).
 zhang_pval_exact_tail_bound = function(comps, delta, direction, exact_stats, combination_method){
-	# Per component in C++ (zhang_minlike_tail_bound_cpp(), v1.0.6-TODO-285).
-	bM = if (is.null(comps$M)) NA_real_ else zhang_minlike_tail_bound_cpp(comps$M$cj, comps$M$x, delta, direction)
-	bR = if (is.null(comps$R)) NA_real_ else zhang_minlike_tail_bound_cpp(comps$R$cj, comps$R$x, delta, direction)
-	g = zhang_combine_exact_pvals(bM, bR, exact_stats$m, exact_stats$nRT, exact_stats$nRC, combination_method)
-	max(c(g, bM, bR), na.rm = TRUE)
+	a = zhang_tail_bound_cpp_args(comps)
+	zhang_pval_exact_tail_bound_cpp(a$cjM, a$xM, a$cjR, a$xR, delta, direction, zhang_combination_method_code(combination_method))
+}
+
+# Components as the C++ bound kernels take them: an absent one as an empty cj.
+zhang_tail_bound_cpp_args = function(comps){
+	list(cjM = if (is.null(comps$M)) numeric(0) else comps$M$cj, xM = if (is.null(comps$M)) 0L else comps$M$x,
+		cjR = if (is.null(comps$R)) numeric(0) else comps$R$cj, xR = if (is.null(comps$R)) 0L else comps$R$x)
+}
+
+zhang_combination_method_code = function(combination_method){
+	code = match(combination_method, c("Fisher", "Stouffer", "min_p")) - 1L
+	if (is.na(code)) stop("unknown combination method: ", combination_method)
+	code
 }
 
 # Where the hull scan can stop: a point t_cut between r and t_far (r excluded)
 # whose p_bound is below pval_th, found by bisection on the nonincreasing bound;
 # t_far itself when the bound there still reaches pval_th. `b_far`, if given, is
-# p_bound(t_far, direction), already computed by the caller.
+# p_bound(t_far, direction), already computed by the caller. A p_bound from
+# zhang_pval_exact_tail_bound_fn() carries a "scan_cut" attribute that does the
+# same bisection in one C++ call (v1.0.6-TODO-285).
 zhang_hull_scan_cut = function(p_bound, r, t_far, direction, pval_th, n_iter = 12L, b_far = NULL){
+	scan_cut = attr(p_bound, "scan_cut")
+	if (!is.null(scan_cut)) return(scan_cut(r, t_far, direction, pval_th, n_iter, b_far))
 	if (is.null(b_far)) b_far = p_bound(t_far, direction)
 	if (b_far >= pval_th) return(t_far)
 	lo = r
@@ -288,20 +348,50 @@ zhang_hull_scan_cut = function(p_bound, r, t_far, direction, pval_th, n_iter = 1
 	hi
 }
 
-# p_bound(delta, direction) for zhang_ci_hull_endpoint(), over this table's components.
+# p_bound(delta, direction) for zhang_ci_hull_endpoint(), over this table's
+# components, with its C++ scan cut (zhang_hull_scan_cut_cpp()) attached.
 zhang_pval_exact_tail_bound_fn = function(exact_stats, combination_method, comps = zhang_exact_pval_components(exact_stats)){
-	function(delta, direction) zhang_pval_exact_tail_bound(comps, delta, direction, exact_stats, combination_method)
+	a = zhang_tail_bound_cpp_args(comps)
+	code = zhang_combination_method_code(combination_method)
+	f = function(delta, direction) zhang_pval_exact_tail_bound_cpp(a$cjM, a$xM, a$cjR, a$xR, delta, direction, code)
+	attr(f, "scan_cut") = function(r, t_far, direction, pval_th, n_iter, b_far)
+		zhang_hull_scan_cut_cpp(a$cjM, a$xM, a$cjR, a$xR, r, t_far, direction, pval_th, code, n_iter,
+			if (is.null(b_far)) NA_real_ else b_far)
+	f
 }
 
 # An endpoint within 1e-6 of a breakpoint the test accepts, with the test rejecting
 # just past that breakpoint, lies on the jump there: return the breakpoint itself.
-zhang_snap_endpoint = function(p_at, r, direction, pval_th, breakpoints, eps = 1e-6){
+# The decisions p_at(.) >= pval_th come from zhang_accepts_certified(), which only
+# calls p_at() where the vectorised p-value cannot settle them (v1.0.6-TODO-285).
+zhang_snap_endpoint = function(p_at, r, direction, pval_th, breakpoints, eps = 1e-6, p_vec = NULL){
 	if (!is.finite(r) || length(breakpoints) == 0L) return(r)
 	near = breakpoints[abs(breakpoints - r) <= eps]
-	for (b in near[order(-direction * near)]){
-		if (p_at(b) >= pval_th && p_at(b + direction * eps) < pval_th) return(b)
+	if (length(near) == 0L) return(r)
+	nn = length(near)
+	if (nn > 1L) near = near[order(-direction * near)]
+	acc = zhang_accepts_certified(p_at, p_vec, c(near, near + direction * eps), pval_th)
+	for (i in seq_len(nn)){
+		if (acc[i] && !acc[nn + i]) return(near[i])
 	}
 	r
+}
+
+# p_at(d) >= pval_th at each d, without calling p_at() where the vectorised p-value
+# settles it. p_vec(d) carries a "rel_err" attribute bounding its relative
+# difference from p_at() (zhang_pval_exact_vec_rel_err()); where |p_vec - pval_th|
+# exceeds that, with a floor of 1e-6, times pval_th, both are on the same side, so
+# the decision is p_vec's; elsewhere p_at() decides. With p_vec NULL, p_at() decides
+# everywhere.
+zhang_accepts_certified = function(p_at, p_vec, d, pval_th){
+	if (is.null(p_vec)) return(vapply(d, function(z) p_at(z) >= pval_th, logical(1)))
+	pv = p_vec(d)
+	rel_err = attr(pv, "rel_err")
+	if (is.null(rel_err)) rel_err = Inf
+	unsure = !(abs(pv - pval_th) > pmax(1e-6, rel_err) * pval_th)
+	out = pv >= pval_th
+	for (i in which(unsure)) out[i] = p_at(d[i]) >= pval_th
+	out
 }
 
 # Haldane-Anscombe log odds ratio of a 2x2 table (n11, n10, n01, n00). Applied to the

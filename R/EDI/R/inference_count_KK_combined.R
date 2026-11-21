@@ -159,7 +159,8 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		},
 		#' @description Wald confidence interval for the treatment log-rate coefficient:
 		#'   \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)}, using the
-		#'   model-based GLMM standard error. See
+		#'   Wald standard error described in the class details (the larger of the
+		#'   model-based and delete-one jackknife standard errors). See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared contract.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
@@ -169,7 +170,9 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
-		#'   \eqn{H_1: \beta_T \neq \code{delta}}, using the model-based GLMM standard error.
+		#'   \eqn{H_1: \beta_T \neq \code{delta}}, using the Wald standard error described in
+		#'   the class details (the larger of the model-based and delete-one jackknife
+		#'   standard errors).
 		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
 		#'   any treatment effect at all.
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}.
@@ -194,10 +197,10 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			self$compute_lik_ratio_two_sided_pval_generic(delta = delta)
 		},
-		#' @description Asymptotic confidence interval, dispatching to
-		#'   \code{compute_wald_confidence_interval()} or \code{compute_lik_ratio_confidence_interval()}
-		#'   depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
-		#'   neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#' @description Asymptotic confidence interval, dispatching on
+		#'   \code{self$get_testing_type()} to \code{compute_wald_confidence_interval()},
+		#'   \code{compute_lik_ratio_confidence_interval()}, or the score or gradient test
+		#'   inversion; any other testing type is an error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   testing-type dispatch contract.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
@@ -214,10 +217,10 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		},
-		#' @description Asymptotic two-sided p-value, dispatching to
-		#'   \code{compute_wald_two_sided_pval()} or \code{compute_lik_ratio_two_sided_pval()}
-		#'   depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
-		#'   neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#' @description Asymptotic two-sided p-value, dispatching on
+		#'   \code{self$get_testing_type()} to \code{compute_wald_two_sided_pval()},
+		#'   \code{compute_lik_ratio_two_sided_pval()}, or the score or gradient test; any
+		#'   other testing type is an error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   testing-type dispatch contract.
 		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
 		#'   any treatment effect at all.
