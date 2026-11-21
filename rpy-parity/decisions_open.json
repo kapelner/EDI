@@ -1,1 +1,51 @@
-{}
+{
+ "rpy-parity-d1b6f8c66": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "other",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm` (other): The docstring has no Returns section. The binding returns the whole edi::ResultMap from fast_clogit_plus_glmm_internal: params, b, beta_T, se_beta_T, ssq_b_j, vcov, score, observed_information, information, information_type, hessian, converged, num_iter, hit_iteration_cap, gradient_norm, neg_loglik, neg_ll, loglik and fisher_information. These have the same meaning as in R's fast_clogit_plus_glmm_cpp. The other bindings in this batch (fast_robust_regression, fast_neg_bin, fast_zero_augmented_poisson) document their return dict. Without a Returns section a Python user cannot tell that beta_T sits at index 0 for a discordant-only fit and index 1 (after the intercept) when has_concordant is True. The kernel's j_beta_T = has_concordant ? 1 : 0 (0-based) shows this. Nor can they tell that estimate_only returns vcov and score as None, and that a failed fit returns a reduced key set without num_iter. Suggested: Add a Returns section covering the key fields (params/b, beta_T and its index rule, se_beta_T, ssq_b_j, vcov, converged, hit_iteration_cap, num_iter, gradient_norm, neg_loglik). A multi-line addition cannot be made as a single-literal-line docstring fix, so this needs a human.",
+  "unit": "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm"
+ },
+ "rpy-parity-d5151968b": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "return_mismatch",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_neg_bin` (return_mismatch): R's fast_neg_bin_cpp returns min_eigenvalue_information (the smallest eigenvalue of the information matrix at the returned parameters). The binding's dict (lines 286-296) has no such key, and the Returns section does not mention the omission. R also returns theta_hat and logLik under different names (dispersion, neg_loglik); that renaming is documented. Suggested: Add out[\"min_eigenvalue_information\"] = res.min_eigenvalue_information to the binding, since the kernel already fills it (fast_negbin_regression.cpp:320). Otherwise state in the docstring that it is omitted.",
+  "unit": "python/cpp/bindings_count.cpp::fast_neg_bin"
+ },
+ "rpy-parity-d81b9603c": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "return_mismatch",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_ordinal.cpp::fast_continuation_ratio_regression` (return_mismatch): The R export returns beta_full, min_eigenvalue_information, X_aug, z and fisher_information (the observed information at the fit). The Python binding builds its dict by hand and returns only b, alpha, params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm. A Python user therefore cannot get the information matrix or vcov that the R result carries. The R export also handles the fewer-than-2-categories case (n_alpha==0) by returning b = zeros(p) and an empty alpha. The Python binding has no such guard and calls params.tail(p) on the empty fit. Suggested: Add fisher_information and min_eigenvalue_information to the Python dict (and the n_alpha==0 early return), or document that they are intentionally dropped.",
+  "unit": "python/cpp/bindings_ordinal.cpp::fast_continuation_ratio_regression"
+ },
+ "rpy-parity-d834bbea1": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "return_mismatch",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson` (return_mismatch): R's fast_zero_augmented_poisson_cpp returns min_eigenvalue_information in every path, including estimate_only (lines 637 and 663). likelihood_fit_result_to_dict (lines 149-158) drops it, and the Returns section lists only params, neg_loglik, num_iter, hit_iteration_cap, converged, gradient_norm and dispersion_at_poisson_boundary. It names vcov as the only omission. LikelihoodFitResult already carries min_eigenvalue_information. Suggested: Add out[\"min_eigenvalue_information\"] = fit.min_eigenvalue_information to likelihood_fit_result_to_dict. Check that the other callers of that helper (line 385, fast_zinb or similar) are happy with the extra key. Otherwise document the omission in the Returns section.",
+  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson"
+ },
+ "rpy-parity-d8906bb83": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "other",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var` (other): The smart_cold_start parameter text says \"If True, use an initial OLS-based guess when starting from scratch.\" The kernel calls edi_opt::zap_smart_cold_start (a Poisson start on the nonzero rows for beta_cond and a logistic start on (y == 0) for beta_zi). The R roxygen says \"a model-specific heuristic\". The sibling binding fast_zero_augmented_poisson documents it correctly as \"use the model-specific heuristic start (Poisson for the count block, logistic for the zero block)\". Suggested: Reword the parameter text at line 651 to: \"If True, use the model-specific heuristic start (Poisson for the count block, logistic for the zero block) when starting from scratch. Ignored if a warm start is provided.\" It is not an automatic docstring fix because the current line is identical to lines 229 and 814, so old_text is not unique in the file. The same wording at line 229 and line 814 should be checked against their own kernels.",
+  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var"
+ },
+ "rpy-parity-ddc02a0dc": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "return_mismatch",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_ordinal.cpp::fast_adjacent_category_logit` (return_mismatch): The R export fast_adjacent_category_logit_cpp sets \"min_eigenvalue_information\" in its result (.set(\"min_eigenvalue_information\", fit.min_eigenvalue_information)). The Python binding builds its dict by hand and drops that field. It returns only b, alpha, params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm. The fast_adjacent_category_logit_with_var_cpp R export also returns min_eigenvalue_information. Python has no counterpart for that function, so a Python user cannot get the information-matrix conditioning diagnostic from either path. Suggested: Add out[\"min_eigenvalue_information\"] = fit.min_eigenvalue_information to the binding, matching the R export. The alternative is a docstring sentence saying the field is omitted.",
+  "unit": "python/cpp/bindings_ordinal.cpp::fast_adjacent_category_logit"
+ },
+ "rpy-parity-dee2100b4": {
+  "first_seen": "2026-11-21T23:15:09+00:00",
+  "key": "other",
+  "last_seen": "2026-11-21T23:15:09+00:00",
+  "text": "`python/cpp/bindings_survival.cpp::fast_dep_cens_transform_optim` (other): Python docstring for estimate_only: \"If True, skip variance-covariance computation and return only coefficients.\" The kernel with estimate_only=true returns more than coefficients. It still returns par/params/b, value/neg_loglik/neg_ll/loglik, niter, hit_iteration_cap, gradient_norm, min_eigenvalue_information and converged. It skips only score, observed_information/information/information_type, hessian, fisher_information and vcov. Suggested: Reword the estimate_only docstring (lines 553-555 of the binding and the matching stub) to say it skips the score/information/vcov computation and returns the fit and optimizer diagnostics only. This was not given as an automatic docstring fix because the old_text line \"    coefficients.\\n\" occurs three times in bindings_survival.cpp (lines 272, 494, 555), so it is not unique.",
+  "unit": "python/cpp/bindings_survival.cpp::fast_dep_cens_transform_optim"
+ }
+}
