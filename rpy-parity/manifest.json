@@ -1,7 +1,7 @@
 {
- "issue_hash": "ff24d579fd75b532",
- "last_run": "2026-11-21T16:01:08+00:00",
- "open_pr": 81,
+ "issue_hash": null,
+ "last_run": "2026-11-21T19:20:56+00:00",
+ "open_pr": null,
  "units": {
   "python/cpp/bindings_binary.cpp::<name>": {
    "audited_at": "2026-11-19T21:52:21+00:00",
@@ -312,11 +312,11 @@
    "run": "44143207023"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm": {
-   "audited_at": "2026-11-21T16:01:08+00:00",
+   "audited_at": "2026-11-21T19:20:56+00:00",
    "deps": "6a4813098cb45b61",
-   "hash": "50eec6803782b3df",
-   "open_findings": 1,
-   "run": "44921972838"
+   "hash": "2785a2e81e299c08",
+   "open_findings": 0,
+   "run": "44940259497"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_cloglog_regression": {
    "audited_at": "2026-11-17T19:13:08+00:00",
@@ -354,11 +354,11 @@
    "run": "44143207023"
   },
   "python/cpp/bindings_ordinal.cpp::fast_stereotype_logit": {
-   "audited_at": "2026-11-21T16:01:08+00:00",
+   "audited_at": "2026-11-21T19:20:56+00:00",
    "deps": "d825f48b2297e547",
-   "hash": "6e8bc3adf35c0538",
-   "open_findings": 3,
-   "run": "44921972838"
+   "hash": "e9b1b6c103ece03c",
+   "open_findings": 0,
+   "run": "44940259497"
   },
   "python/cpp/bindings_proportion.cpp::fast_beta_regression": {
    "audited_at": "2026-11-19T21:29:41+00:00",
@@ -410,11 +410,11 @@
    "run": "44511206611"
   },
   "python/cpp/bindings_survival.cpp::fast_stratified_coxph_regression": {
-   "audited_at": "2026-11-21T16:01:08+00:00",
+   "audited_at": "2026-11-21T19:20:56+00:00",
    "deps": "a1ffb196f6d7d7c5",
    "hash": "8fa16ada5f917043",
-   "open_findings": 1,
-   "run": "44921972838"
+   "open_findings": 0,
+   "run": "44940259497"
   },
   "python/cpp/bindings_survival.cpp::fast_weibull_frailty": {
    "audited_at": "2026-11-17T22:51:10+00:00",

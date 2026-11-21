@@ -1,9 +1,1 @@
-{
- "rpy-parity-d05501562": {
-  "first_seen": "2026-11-20T14:02:42+00:00",
-  "key": "other",
-  "last_seen": "2026-11-21T16:01:08+00:00",
-  "text": "`python/cpp/bindings_survival.cpp::fast_stratified_coxph_regression` (other): The docstring says fixed_idx is \"Optional indices of fixed parameters.\" and does not say they are 1-based. The kernel subtracts 1 (`int idx = fixed_idx_r[i] - 1;`) and rejects entries outside 1..p with \"fixed_idx entries must be one-based indices within the parameter vector\". The sibling fast_coxph_regression docstring at bindings_survival.cpp:200 says \"Optional 1-based indices of fixed parameters.\" A Python user who passes 0-based indices fixes the wrong coefficient, or gets an exception for index 0. Suggested: Change the fixed_idx line of this docstring (line 278) to \"Optional 1-based indices of fixed parameters.\" Lines 347, 433 and 561 carry the same text, so the old_text is not unique in the file. Check whether those three bindings also use make_fixed_param_spec and need the same edit. A human must make the edit because the job's automatic fix needs text that occurs once.",
-  "unit": "python/cpp/bindings_survival.cpp::fast_stratified_coxph_regression"
- }
-}
+{}
