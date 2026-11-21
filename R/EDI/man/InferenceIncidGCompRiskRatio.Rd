@@ -16,7 +16,13 @@ by G-computation: setting every subject's treatment indicator to 1
 averaging the model-implied risk over the empirical covariate distribution
 under each counterfactual, and taking the ratio — see
 \code{\link{gcomp_logistic_point_estimate_cpp}} for the exact standardization
-formula (\code{mean1}/\code{mean0}). Bootstrap/jackknife inference on this
+formula (\code{mean1}/\code{mean0}). The estimate, its confidence intervals
+and \code{delta} are on the \strong{ratio} scale (\code{delta = 1}, the
+default, is no effect). \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
+with \code{set_estimand("marginal_ratio")} computes the same standardized risk
+ratio from the same logistic model but reports its \strong{log} (estimate,
+intervals and \code{delta} all on the log scale, \code{delta = 0} no effect),
+so its estimate is \code{log()} of this class's. Bootstrap/jackknife inference on this
 estimand is generally done on the \strong{log} risk-ratio scale internally
 (see \code{$compute_bootstrap_confidence_interval()},
 \code{$compute_bayesian_bootstrap_confidence_interval()}, and the
@@ -49,10 +55,28 @@ Computes a jackknife-Wald two-sided p-value for the treatment effect.
 Computes a jackknife-Wald confidence interval for the treatment effect.
 
 Computes a PRW subsampling two-sided p-value for the treatment effect.
+  For the risk ratio the p-value is symmetric (v1.0.6-TODO-230): the share of usable
+  pivot draws \eqn{\sqrt{b}(\log\widehat{RR}^* - \log\widehat{RR})} at least as large in absolute value
+  as \eqn{\sqrt{n}(\log\widehat{RR} - \log\delta)}, floored at \eqn{1/B}, because the small-sample
+  law of \eqn{\log\widehat{RR}^*} is skewed toward the observed effect and the equal-tailed rule doubled
+  that heavy tail. Null size at n = 80, nominal 0.05, equal-tailed to symmetric: subsampling 0.040 to
+  0.055 (KK 0.015 to 0.045), m-out-of-n 0.030 to 0.035 (KK 0.010 to 0.015). The risk difference keeps
+  the equal-tailed p-value.
+  See \strong{Subsampling and m-out-of-n} in
+  \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.
 
 Computes a PRW subsampling confidence interval for the treatment effect.
 
 Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
+  For the risk ratio the p-value is symmetric (v1.0.6-TODO-230): the share of usable
+  pivot draws \eqn{\sqrt{m}(\log\widehat{RR}^* - \log\widehat{RR})} at least as large in absolute value
+  as \eqn{\sqrt{n}(\log\widehat{RR} - \log\delta)}, floored at \eqn{1/B}, because the small-sample
+  law of \eqn{\log\widehat{RR}^*} is skewed toward the observed effect and the equal-tailed rule doubled
+  that heavy tail. Null size at n = 80, nominal 0.05, equal-tailed to symmetric: subsampling 0.040 to
+  0.055 (KK 0.015 to 0.045), m-out-of-n 0.030 to 0.035 (KK 0.010 to 0.015). The risk difference keeps
+  the equal-tailed p-value.
+  See \strong{Subsampling and m-out-of-n} in
+  \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.
 
 Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
 }
@@ -114,6 +138,19 @@ rest fell to 0.016 and 0.000 (0.90: \code{NA} for 2\% and 5\%, size 0.031 and 0.
 no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
 \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
 whatever usable draws there are.
+\strong{The p-value is symmetric} (since v1.0.6-TODO-230): with the pivot draws
+\eqn{T^*_j = \sqrt{b}(\log\widehat{RR}^*_j - \log\widehat{RR})} (\eqn{\sqrt{m}} for m-out-of-n) and
+\eqn{t = \sqrt{n}(\log\widehat{RR} - \log\delta)}, it is the share of usable draws with
+\eqn{|T^*_j| \ge |t|} (at least \eqn{1/B}), not the equal-tailed
+\eqn{2\min\{P(T^* \le t), P(T^* \ge t)\}}. At small \eqn{b} the law of \eqn{\log\widehat{RR}^*} is
+skewed toward the observed effect: in a data set with an extreme estimate one arm has few events,
+so the draws have a heavy tail on the side of \eqn{t} and almost none on the other side, and the
+equal-tailed rule doubles that heavy tail. Null size at \eqn{n = 80} (200 data sets, \code{B = 199},
+nominal 0.05, Wald 0.055 / 0.050): \code{InferenceIncidGCompRiskRatio} subsampling 0.040 to 0.055 and
+m-out-of-n 0.030 to 0.035; \code{InferenceIncidKKGCompRiskRatio} 0.015 to 0.045 and 0.010 to 0.015
+(its m-out-of-n pivot is about 15\% wider than the Wald scale, so it stays conservative). The
+confidence intervals are unchanged (basic, equal-tailed quantiles of the same pivot), so a
+p-value and an interval can disagree at the boundary.
 For the risk ratio the ordinary bootstrap
 (\code{compute_bootstrap_two_sided_pval()}, \code{compute_bootstrap_confidence_interval()})
 is the recommended resampling method: the estimator is smooth, the \eqn{n}-out-of-\eqn{n}
@@ -172,12 +209,12 @@ block-marginal effect. See \code{DesignFixedBlocking}.
 }
 
 \examples{
+seq_des = DesignSeqOneByOneBernoulli$new(n = 40, response_type = 'incidence')
 \donttest{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-for (i in 1:10) {
+for (i in 1:40) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+seq_des$add_all_subject_responses(rbinom(40, 1, 0.5))
 inf = InferenceIncidGCompRiskRatio$new(seq_des)
 inf$compute_estimate()
 }

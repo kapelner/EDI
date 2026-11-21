@@ -23,7 +23,7 @@ treatment-dependent scale, by maximum likelihood
 \strong{log-time-ratio} (log acceleration factor): \eqn{\exp(\hat\beta_T)}
 is the estimated multiplicative effect of treatment on survival time (an
 AFT model, not a proportional-hazards model — the Weibull distribution is
-the one location where AFT and proportional-hazards parameterizations
+the one case where AFT and proportional-hazards parameterizations
 coincide, since \eqn{\exp(-\beta_T/\sigma)} also equals the treatment
 hazard ratio). \code{likelihood_tier = "full"}: likelihood-ratio, score,
 gradient, and Wald tests are all available when the model converges, plus

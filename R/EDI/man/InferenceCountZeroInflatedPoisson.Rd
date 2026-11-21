@@ -103,12 +103,9 @@ along a flat ridge. The class then (i) also fits from
 logistic GLM of \eqn{1(y = 0)} for the zero part) with L-BFGS, and again
 from that start with its zero part multiplied by 10, and keeps the fit with
 the lowest negative log-likelihood, which also escapes an interior local
-maximum of the default start. With covariates in the zero formula the
-likelihood can have several interior local maxima besides the ridge, and
-these starts do not always reach the highest (\code{pscl::zeroinfl()} stops
-at the same kind of point; v1.0.6-TODO-232); (ii) reports the
-zero-inflation coefficients as \code{NA} when a fitted zero-inflation probability is
-numerically 0 or 1, or the fit stopped on such a ridge, and says why once per
+maximum of the default start (see "Small samples" below for the limit of
+this); (ii) reports the zero-inflation coefficients as \code{NA} when a
+fitted zero-inflation probability is numerically 0 or 1, or the fit stopped on such a ridge, and says why once per
 object: when the ridge points only toward no inflation (every subject it
 drives to the boundary goes to probability 0, and no fitted zero-inflation
 probability exceeds 5\%; typical of data without excess zeros), with a
@@ -123,6 +120,24 @@ parametric-bootstrap refit from a full-data fit whose zero part is on the
 ridge (a fitted zero-inflation logit of 10 or more in absolute value): such a
 refit could not move its zero part and stopped below the maximum, so it is
 cold-started like a fresh fit (v1.0.6-TODO-30, v1.0.6-TODO-152).
+
+\strong{Small samples with covariates in the zero-inflation formula.} At
+small \eqn{n} with continuous covariates in \code{model_formula_zero} (the
+default, which copies \code{model_formula}), the ZIP maximum-likelihood
+estimate often does not exist: the likelihood is highest on a separated
+zero-part ridge, where the zero-inflation part sorts some zeros away from
+every positive count, and it can also have several interior local maxima.
+EDI tries several starts and warns
+(\code{edi_zero_part_separation_warning}) when the fit reaches the ridge, but
+some fits can still stop at a lower interior local maximum without any
+warning: about 41 of 602 unflagged fits in a 1,197-dataset simulation sweep
+(\eqn{n} = 24 to 400). \code{pscl::zeroinfl()} stops at the same kind of
+point, so agreement with pscl does not rule this out. On a ridge the
+count-part treatment estimate is only weakly defined: different ridges give
+different limits. In this setting use a treatment-only zero-inflation
+formula, \code{model_formula_zero = ~ 1} (the zero part always includes the
+treatment, so this fits an intercept and the treatment), and keep the
+covariates in the count part (v1.0.6-TODO-232).
 }
 \section{Small-sample behaviour}{
 
@@ -194,13 +209,16 @@ block-marginal effect. See \code{DesignFixedBlocking}.
 }
 
 \examples{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'count')
-for (i in 1:10) {
+seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'count')
+for (i in 1:30) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-# the first three counts are fixed at zero so that the data always contain zeros
-seq_des$add_all_subject_responses(c(0, 0, 0, rpois(7, 2)))
-inf = InferenceCountZeroInflatedPoisson$new(seq_des)
+# about 30\% structural zeros in both arms, so the zero part is identified
+y = rpois(30, 3)
+y[rbinom(30, 1, 0.3) == 1] = 0L
+y[1:2] = 0L # a zero-inflated model needs zero counts
+seq_des$add_all_subject_responses(y)
+inf = InferenceCountZeroInflatedPoisson$new(seq_des, model_formula_zero = ~ 1)
 inf$compute_estimate()
 }
 \references{
@@ -364,7 +382,12 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
       \item{\code{des_obj}}{A completed \code{Design} object with a count response.}
       \item{\code{model_formula}}{Optional formula for the count submodel.}
       \item{\code{model_formula_zero}}{Formula for the zero-inflation submodel. If
-\code{NULL} (default), it uses the same formula as \code{model_formula}.}
+\code{NULL} (default), it uses the same formula as \code{model_formula}.
+The treatment is always included. At small \eqn{n} with continuous
+covariates here the maximum-likelihood estimate often does not exist,
+and a fit can stop at an interior local maximum without a warning;
+prefer \code{~ 1} (treatment only) there (see "Small samples with
+covariates in the zero-inflation formula" in the class Details).}
       \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use our internal Rcpp
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
