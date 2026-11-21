@@ -3,6 +3,9 @@
 \name{InferenceIncidWald}
 \alias{InferenceIncidWald}
 \title{Wald Incidence Inference}
+\value{
+A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
+}
 \description{
 Unadjusted incidence inference using the empirical risk difference
 \eqn{\hat\theta = \bar Y_T - \bar Y_C} (sample proportions in the treatment
@@ -87,6 +90,9 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidWald-compute_asymp_confidence_interval}{\code{InferenceIncidWald$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceIncidWald-compute_asymp_two_sided_pval}{\code{InferenceIncidWald$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceIncidWald-compute_rand_two_sided_pval}{\code{InferenceIncidWald$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceIncidWald-initialize}{\code{InferenceIncidWald$new()}}
     \item \href{#method-InferenceIncidWald-clone}{\code{InferenceIncidWald$clone()}}
   }
@@ -95,8 +101,6 @@ inf$compute_estimate()
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
@@ -123,44 +127,106 @@ inf$compute_estimate()
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidWald-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidWald-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceIncidWald$compute_asymp_confidence_interval()}}{
+  Two-proportion Wald confidence interval for the risk difference,
+  \eqn{\hat\theta \pm z_{1-\alpha/2}\,\hat s(\hat\theta)}, with the unpooled
+  standard error given in the class description.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidWald$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector of lower and upper bounds.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidWald-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidWald-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidWald$compute_asymp_two_sided_pval()}}{
+  Two-sided Wald test of \eqn{H_0: \theta = \delta}, using the
+  statistic \eqn{(\hat\theta - \delta) / \hat s(\hat\theta)} referred to the
+  standard normal distribution.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidWald$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect value. The default is 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidWald-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidWald-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidWald$compute_rand_two_sided_pval()}}{
+  Randomization two-sided p-value for the risk difference. For incidence
+  responses the default p-value comes from the randomization draws; the Zhang exact
+  randomization test is used only when \code{type = "Zhang"} is passed explicitly
+  (where applicable).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidWald$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{transform_responses}}{Response transformation to apply during the test. For
+survival responses the default \code{"log"} multiplies the recorded times of the
+units treated under each reference allocation by \eqn{e^\delta}, event and
+censoring times alike, with censoring indicators unchanged -- the rank-based
+AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
+      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{show_progress}}{Whether to show progress.}
+      \item{\code{permutations}}{Optional pre-generated assignment draws.}
+      \item{\code{type}}{Optional incidence-specific exact randomization type.}
+      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidWald-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidWald-initialize}{}}}
 \subsection{\code{InferenceIncidWald$new()}}{
-  Uses the randomization-CI layer's two-sided p-value contract
-  (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-  incidence responses it does not refuse outright; the default p-value
-  comes from the randomization draws, and the Zhang exact randomization
-  test is used only when \code{type = "Zhang"} is passed explicitly
-  (where applicable). This matches this class's pre-migration
-  old-ladder behavior of not refusing (it inherited from
-  \code{InferenceAllSimpleAverageDiff}, whose own pin was already
-  corrected to \code{InferenceRandCI} -- see that file's identical
-  rationale). This class independently composes the same components
-  rather than truly inheriting \code{InferenceAllSimpleAverageDiff}, so it
-  had its own stale copy of the old \code{InferenceRand} pin, which
-  silently regressed Zhang dispatch (`compute_rand_two_sided_pval()`
-  started throwing "Randomization tests are not supported for
-  incidence" for the same designs the old ladder handled correctly) --
-  found via \code{test-incid-wald-migration-golden.R}'s
-  \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
-
-
-  Pins asymptotic CI dispatch to the composed \code{Wald}
-  component's implementation (\code{InferenceAsymp}), which uses
-  \code{private$get_standard_error()} (this class's two-proportion
-  Wald SE) and \code{private$get_degrees_of_freedom()}. Without this
-  explicit pin, the \code{SimpleMeanDifference} component -- composed
-  after \code{Wald} in this class's \code{components} list -- silently
-  wins the assembly-order collision and dispatches its own Welch's
-  t-test on raw \code{y} instead, making the documented Wald formula
-  dead code. See class documentation.
-
-
-  Pins asymptotic p-value dispatch to the composed
-  \code{Wald} component's implementation; see
-  \code{$compute_asymp_confidence_interval()} for the rationale.
-
-
   Initialize Wald risk-difference incidence inference and
   prepare the treatment/control binomial summaries used by
   \code{\link[EDI:InferenceIncidWald]{InferenceIncidWald}} and related
@@ -180,9 +246,6 @@ the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{alpha}}{The confidence level in the computed confidence
-interval is 1 - \code{alpha}. The default is 0.05.}
-      \item{\code{delta}}{Null treatment effect value.}
     }
     \if{html}{\out{</div>}}
   }

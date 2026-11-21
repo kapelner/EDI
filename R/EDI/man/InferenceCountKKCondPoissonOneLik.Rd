@@ -35,7 +35,9 @@ pointwise-wider of the model-based asymptotic quantity and a
 design-based quantity computed by treating the estimate as a plug-in
 statistic under \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}'s
 \eqn{z}/\eqn{t} machinery, so inference never overstates precision
-relative to the design alone.
+relative to the design alone. The exception is the Bartlett-corrected
+likelihood-ratio test (\code{"lik_ratio_bartlett_approx"}), which is the
+model-only test and can be narrower than \code{"lik_ratio"}.
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 

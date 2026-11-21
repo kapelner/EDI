@@ -3,6 +3,9 @@
 \name{InferenceIncidRiskDiff}
 \alias{InferenceIncidRiskDiff}
 \title{Risk Difference Inference for Incidence Responses}
+\value{
+A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
+}
 \description{
 Fits a linear probability model \eqn{E[Y \mid w, x] = \beta_0 + \beta_T w +
 \beta_X^\top x} via ordinary least squares for binary (incidence) responses
@@ -117,6 +120,7 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidRiskDiff-compute_rand_two_sided_pval}{\code{InferenceIncidRiskDiff$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceIncidRiskDiff-initialize}{\code{InferenceIncidRiskDiff$new()}}
     \item \href{#method-InferenceIncidRiskDiff-compute_estimate}{\code{InferenceIncidRiskDiff$compute_estimate()}}
     \item \href{#method-InferenceIncidRiskDiff-compute_asymp_confidence_interval}{\code{InferenceIncidRiskDiff$compute_asymp_confidence_interval()}}
@@ -154,21 +158,57 @@ inf$compute_estimate()
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidRiskDiff-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidRiskDiff$compute_rand_two_sided_pval()}}{
+  Randomization two-sided p-value for the risk difference. For incidence
+  responses the default p-value comes from the randomization draws; the Zhang exact
+  randomization test is used only when \code{type = "Zhang"} is passed explicitly
+  (where applicable).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidRiskDiff$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{transform_responses}}{Response transformation to apply during the test. For
+survival responses the default \code{"log"} multiplies the recorded times of the
+units treated under each reference allocation by \eqn{e^\delta}, event and
+censoring times alike, with censoring indicators unchanged -- the rank-based
+AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
+      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{show_progress}}{Whether to show progress.}
+      \item{\code{permutations}}{Optional pre-generated assignment draws.}
+      \item{\code{type}}{Optional incidence-specific exact randomization type.}
+      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidRiskDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-initialize}{}}}
 \subsection{\code{InferenceIncidRiskDiff$new()}}{
-  Uses the randomization-CI layer's two-sided p-value contract
-  (\code{InferenceRandCI}'s version, not
-  \code{InferenceRand}'s): for incidence responses it does not refuse
-  outright; the default p-value comes from the randomization draws, and
-  the Zhang exact randomization test is used only when
-  \code{type = "Zhang"} is passed explicitly (where applicable). This
-  matches this class's pre-migration old-ladder behavior of not refusing,
-  and deliberately differs from the
-  \code{InferenceAllSimpleAverageDiff}-family precedent of pinning
-  \code{InferenceRand}'s version, which refuses incidence responses.
-
-
   Initialize a risk-difference inference object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -190,17 +230,6 @@ reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
-      \item{\code{r}}{Number of randomization vectors.}
-      \item{\code{delta}}{Null difference.}
-      \item{\code{transform_responses}}{Transformation.}
-      \item{\code{na.rm}}{Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
-them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
-required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.}
-      \item{\code{show_progress}}{Show progress.}
-      \item{\code{permutations}}{Pre-computed permutations.}
-      \item{\code{type}}{Optional exact-inference type for incidence dispatch.}
-      \item{\code{args_for_type}}{Optional arguments for \code{type}.}
-      \item{\code{zero_one_logit_clamp}}{Clamp for exact 0/1 values when logging.}
     }
     \if{html}{\out{</div>}}
   }

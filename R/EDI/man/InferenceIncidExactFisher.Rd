@@ -42,6 +42,14 @@ Computes the log of the (conditional MLE, or common-odds-ratio
   \code{\link[stats]{mantelhaen.test}} (see class documentation for which
   applies and why).
 }
+\details{
+When an arm has no events (or only events), or the stratified table is otherwise
+separated, the conditional MLE of the odds ratio is infinite: \code{compute_estimate()}
+then returns \code{NA}, \code{is_nonestimable()} is \code{TRUE} with reason
+\code{"exact_fisher_conditional_mle_infinite"}, and one warning of class
+\code{edi_procedure_na_warning} names the cause. The exact confidence interval
+(one-sided infinite) and p-value do not use the estimate and remain valid.
+}
 \section{Small-sample behaviour}{
 
 How fast the size (and coverage) error of each procedure is expected to vanish as the

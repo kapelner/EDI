@@ -71,6 +71,10 @@ generic likelihood-based calculation inherited from
 interval / larger p-value of the two is returned (see
 \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
 so the model-based test is never anti-conservative relative to the design.
+The Bartlett-corrected likelihood-ratio test
+(\code{set_testing_type("lik_ratio_bartlett_approx")}) is not combined this
+way: it is the model-only Bartlett-corrected test, so its interval can be
+narrower than the design-conservative \code{"lik_ratio"} one.
 The Wald confidence interval and p-value fall back to the
 nonparametric-bootstrap distribution when the model-based standard error is unavailable
 or non-finite (e.g. a boundary/separation fit).

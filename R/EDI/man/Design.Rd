@@ -79,14 +79,21 @@ erroring on the missing field.
 (\code{assign_w_to_all_subjects()}, \code{draw_ws_according_to_design()}),
 so the same seed always gives the same allocation and a repeated call
 repeats the first draw (the caller's stream is not restored). A sequential
-design (v1.0.6) seeds each assignment from (\code{seed}, the subject's index
+design seeds each assignment from (\code{seed}, the subject's index
 \code{t}) and runs it with the session's \code{.Random.seed} saved and
 restored; its \code{draw_ws_according_to_design()} likewise runs under a seed
 derived from (\code{seed}, \code{"redraw"}). Its allocation therefore depends
 only on the seed and the subjects' data (and, for KK21, the responses recorded
 so far): random numbers used between assignments do not change it, and the
 caller's stream is untouched. With \code{seed = NULL} a sequential design
-draws every assignment from the session's stream.
+draws every assignment from the session's stream. This per-subject seeding
+ships in the first release after 1.0.4 and is listed under "EDI (development
+version)" in NEWS; the EDI 1.0.4 release and earlier applied a sequential
+design's seed once, in the constructor. A development build installed before
+that release still reports version 1.0.4 (in \code{packageVersion("EDI")} and
+in a saved design's \code{get_edi_version_created()}) but already seeds per
+subject, so a design stamped "1.0.4" does not by itself say which rule drew
+its allocation.
 
 \strong{Randomization inference and the seed.} Randomization p-values/CIs
 draw their permutations from a \code{duplicate()} (which has no seed) under

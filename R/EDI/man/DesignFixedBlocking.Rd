@@ -32,8 +32,12 @@ the running block count stays at or below the target (earlier columns take prior
 land on exactly \code{B_target} blocks. \code{equal_block_sizes = TRUE} (the default)
 additionally requires every block to have the same subject count, checked once at
 construction (via \code{n \%\% B_target}) if \code{n} and \code{B_target} are both
-already known, and again when the blocks are formed, at \code{assign_w_to_all_subjects()}
-(not when the subjects are added). An explicit \code{B_target} cannot equalise the
+already known, and again when the blocks are first formed (not when the subjects are
+added): at \code{assign_w_to_all_subjects()} when the design draws \code{w}, or, when
+\code{w} is supplied with \code{w_precomputed}, at the first call that uses the blocks
+(\code{draw_ws_according_to_design()}, a bootstrap or a randomization test or interval).
+With a supplied \code{w} on unequal strata, the estimate, the Wald interval and the
+jackknife interval still run without error; only those later calls stop. An explicit \code{B_target} cannot equalise the
 blocks of a categorical stratum, whose categories fix the block sizes; some downstream inference classes
 (\code{InferenceIncidCMH}, \code{InferenceIncidExtendedRobins}) require equal block
 sizes unconditionally, regardless of this flag. An explicit \code{m} (one block ID per
@@ -249,9 +253,11 @@ exactly `B_target` blocks. Default `FALSE`.}
       \item{\code{equal_block_sizes}}{Whether to require all blocks to have the same number of
 subjects. Default `TRUE`. When `TRUE` and both `n` and `B_target` are known at
 construction time, an error is raised immediately if `n` is not divisible by
-`B_target`. A second check fires when subjects are added: if the covariate-based
-strata produce unequal block sizes the design errors at that point with a message
-suggesting `equal_block_sizes = FALSE`. This is the usual outcome when named
+`B_target`. A second check fires when the blocks are first formed, not when the
+subjects are added: at `assign_w_to_all_subjects()` when the design draws `w`, or,
+for a `w_precomputed` assignment, at the first redraw, bootstrap or randomization
+call. If the covariate-based strata produce unequal block sizes the design errors
+there with a message suggesting `equal_block_sizes = FALSE`. This is the usual outcome when named
 `strata_cols` are used without `B_target` and the strata cells do not divide `n`. Set to
 `FALSE` to allow unequal blocks (note that `InferenceIncidCMH` and
 `InferenceIncidExtendedRobins` still require equal block sizes regardless).}

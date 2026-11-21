@@ -20,11 +20,19 @@ Fits the joint bivariate log-normal event/censoring
   \code{\link[EDI:InferenceSurvivalDepCensTransformRegr]{InferenceSurvivalDepCensTransformRegr}}
   for the model form.
 
-Recomputes the treatment estimate under subject/block-level
-  Bayesian-bootstrap weights, using \code{weighted_cox_bootstrap_surrogate_fit()}
-  — a fast weighted Cox-model surrogate fit — as an approximation to the
-  weighted joint dependent-censoring likelihood, rather than a full
-  weighted refit of the joint bivariate model.
+Reports the Bayesian-bootstrap weighted re-estimate as
+  unavailable for this model. The joint dependent-censoring likelihood
+  takes no observation weights, and the weighted Cox fit formerly used in
+  its place estimates a log hazard ratio under independent censoring, a
+  different quantity from this class's log time ratio (v1.0.6-TODO-326).
+
+Reports the Bayesian-bootstrap two-sided p-value as
+  unavailable for this model (see
+  \code{compute_estimate_with_bootstrap_weights()}).
+
+Reports the Bayesian-bootstrap confidence interval as
+  unavailable for this model (see
+  \code{compute_estimate_with_bootstrap_weights()}).
 
 Reports jackknife bias correction as unavailable for this
   model; leave-one-out bias correction is unstable for the

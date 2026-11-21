@@ -194,7 +194,8 @@ Analogous Python API for conditional logistic regression:
   permutations = NULL,
   type = NULL,
   args_for_type = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
 )}
     \if{html}{\out{</div>}}
   }
@@ -216,6 +217,8 @@ reuse instead of drawing new permutations.}
       \item{\code{zero_one_logit_clamp}}{Clamp applied to responses at the 0/1
 boundary before a logit-scale transform, to avoid infinite values.
 Default \code{.Machine$double.eps}.}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+see \code{InferenceRand$compute_rand_two_sided_pval()}.}
     }
     \if{html}{\out{</div>}}
   }
