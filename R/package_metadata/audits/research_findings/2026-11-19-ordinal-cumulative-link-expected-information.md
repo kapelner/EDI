@@ -252,3 +252,9 @@ to clm, observed, there.) Estimates do not change. Open owner decision: (a) comp
 publish that SE (recommended: one R pass per fit, matches clm and the item-1 rule, unifies the three
 backends); (b) put clm ahead of VGAM in the cascade (changes estimates when the two optimizers disagree);
 (c) keep VGAM's expected SE as a documented exception, like probit / log-binomial in item 1.
+
+**Owner decision 2026-11-20: option (a), implemented 2026-11-21.** The VGAM path now publishes the observed-information
+SE at VGAM's estimate (`ordinal_partial_po_vgam_observed_se()`); a non-PD observed information sends the cascade to
+clm. A larger A/B (40 data sets per n, same design) gives SE changes of median 0.1% / 0.8% / 0.3% / 0.2% and max
+5.0% / 5.7% / 1.6% / 0.9% at n = 40 / 60 / 100 / 300, with every estimate identical; the 5-data-set table above
+understated the small-n maximum.

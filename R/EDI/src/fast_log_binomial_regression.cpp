@@ -243,6 +243,20 @@ constexpr int kCycleGuardStartIter = 20;
 // kObservedNewtonStartIter iterations are bit-identical.
 constexpr int kObservedNewtonStartIter = 20;
 
+// v1.0.6-TODO-275: hard bound on the KKT confirmation iterations past maxit.
+// A small step next to a bound only sets kkt_confirm_pending, and the loop runs
+// one more iteration (even past maxit) so the KKT gate can judge the new point.
+// That iteration either stops or clears the flag and takes the observed-
+// information Newton step whose relative size the check just found > 10 tol;
+// for tol < 0.9 such a step cannot pass the relative-change test
+// (|d| < tol |beta + d| needs tol > 0.9), so it cannot set the flag again and
+// the loop ends at maxit + 1 at most. The flag being re-set on every iteration
+// (tol >= 0.9) is the only unbounded case. Past maxit at most this many
+// confirmation iterations run; a fit still pending then reports
+// converged = FALSE (hit_iteration_cap = TRUE). Fits that stop within maxit + 1
+// iterations are unchanged, bit for bit.
+constexpr int kKktConfirmMaxExtraIter = 3;
+
 struct BoundKktVerdict {
   bool ok = true;
   int n_active = 0;
@@ -561,7 +575,8 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
   int iterations = 0;
   Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
   bool have_prev_step = false;
-  for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
+  // v1.0.6-TODO-275: see kKktConfirmMaxExtraIter (iter - maxit cannot overflow).
+  for (int iter = 0; iter < maxit || (kkt_confirm_pending && iter - maxit < kKktConfirmMaxExtraIter); ++iter) {
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
     const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;
@@ -850,7 +865,8 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
   int iterations = 0;
   Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
   bool have_prev_step = false;
-  for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
+  // v1.0.6-TODO-275: see kKktConfirmMaxExtraIter.
+  for (int iter = 0; iter < maxit || (kkt_confirm_pending && iter - maxit < kKktConfirmMaxExtraIter); ++iter) {
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
     const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;

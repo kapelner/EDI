@@ -119,7 +119,7 @@ def fast_clayton_weibull_aft_optim(X: typing.Annotated[numpy.typing.NDArray[nump
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix for the first iteration.
     """
-def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y_disc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], X_conc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y_conc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_conc: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], has_discordant: bool, has_concordant: bool, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, estimate_only: bool = False, max_abs_log_sigma: typing.SupportsFloat | typing.SupportsIndex = 8.0, maxit: typing.SupportsInt | typing.SupportsIndex = 200, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-05, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, n_gh: typing.SupportsInt | typing.SupportsIndex = 20) -> dict:
+def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y_disc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], X_conc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y_conc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], group_conc: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], has_discordant: bool, has_concordant: bool, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, estimate_only: bool = False, max_abs_log_sigma: typing.SupportsFloat | typing.SupportsIndex = 8.0, maxit: typing.SupportsInt | typing.SupportsIndex = 200, eps_g: typing.SupportsFloat | typing.SupportsIndex = 1e-05, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, n_gh: typing.SupportsInt | typing.SupportsIndex = 20, weights_disc: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, weights_conc: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None) -> dict:
     """
     Fit a combined conditional-logit (discordant pairs) + random-intercept-GLMM (concordant pairs) model via Gauss-Hermite quadrature + L-BFGS, for KK matched-pair-plus-reservoir designs. No R-side roxygen documents this raw kernel directly (fast_clogit_plus_glmm.cpp has none); shared parameter meanings are grounded in R/EDI/man/ documentation for the sibling fast_ordinal_glmm_cpp.
     
@@ -169,6 +169,12 @@ def fast_clogit_plus_glmm(X_disc: typing.Annotated[numpy.typing.NDArray[numpy.fl
     n_gh : int, default 20
         Number of Gauss-Hermite quadrature nodes used to integrate out the random
         intercept.
+    weights_disc : ndarray, optional
+        Optional positive weights, one per discordant pair row of X_disc (R
+        passes Bayesian-bootstrap row weights here). None means unit weights.
+    weights_conc : ndarray, optional
+        Optional positive weights, one per concordant/reservoir row of X_conc.
+        None means unit weights.
     """
 def fast_continuation_ratio_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
@@ -1168,8 +1174,8 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
         Robust estimation method: "M" (single-stage Huber M-estimation) or "MM"
         (Tukey bisquare weighting, constant fixed at 4.685, with a fixed MAD-based scale).
     j : int, default 2
-        1-based index of the coefficient for which to return an individual variance
-        (not returned by this binding; j currently has no effect on the result).
+        1-based index of the coefficient whose sandwich variance is returned as
+        'ssq_b_j' (ignored when estimate_only=True).
     c : float, default 1.345
         Huber tuning constant (used for the M-step; the Tukey bisquare tuning
         constant used when method is MM is fixed internally at 4.685).
@@ -1189,6 +1195,17 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
     estimate_only : bool, default False
         If True, skip variance-component calculations and return only the point
         estimate.
+    
+    Returns
+    -------
+    dict
+        'coefficients', 'scale', 'converged', 'num_iter', 'hit_iteration_cap' and
+        'min_eigenvalue_information' (nan unless the fit did not converge), and,
+        with estimate_only=False, 'ssq_b_j' (the Huber-sandwich variance of
+        coefficient j with MASS::rlm's small-sample correction; nan where R
+        returns NA: j indexes a fixed coefficient, or the fit neither converged
+        nor used all maxit iterations) and 'fisher_information' (X^T W X at the
+        final IRLS weights). Same fields as R's fast_robust_regression_cpp.
     """
 def fast_stereotype_logit(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, smart_cold_start: bool = True, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'newton_raphson', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, estimate_only: bool = False) -> dict:
     """
@@ -1435,7 +1452,7 @@ def fast_zero_augmented_poisson_with_var(X: typing.Annotated[numpy.typing.NDArra
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix for the first iteration.
     """
-def fast_zero_one_inflated_beta(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], X_zero_one: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
+def fast_zero_one_inflated_beta(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], X_zero_one: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """
     Fast zero-one-inflated beta regression via L-BFGS. Returned 'params' packs [beta, log_phi, zero_one_inflation_params]; see R/EDI/src/fast_zero_one_inflated_beta.cpp. Parameters sourced from R/EDI/man/ documentation for fast_zero_one_inflated_beta_cpp.
     
@@ -1462,6 +1479,20 @@ def fast_zero_one_inflated_beta(X: typing.Annotated[numpy.typing.NDArray[numpy.f
         Optimization algorithm.
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix for the first iteration.
+    estimate_only : bool, default False
+        If True, skip the post-fit observed-information / vcov computation.
+    
+    Returns
+    -------
+    dict with the same fields as R's fast_zero_one_inflated_beta_cpp: b (beta),
+    log_phi, zero_one_b0 / zero_one_b1 (the zero- and one-inflation
+    coefficients), params (the full joint vector [b, log_phi, zero_one_b0,
+    zero_one_b1]), neg_loglik, converged, num_iter, hit_iteration_cap,
+    gradient_norm and min_eigenvalue_information; unless estimate_only=True,
+    also vcov (joint variance-covariance matrix of params; all nan where R
+    returns all NA), observed_information, fisher_information and information
+    (three names for the same observed-information matrix), information_type
+    ('observed') and hessian (minus that matrix).
     """
 def fast_zinb(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], Xz: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, maxit: typing.SupportsInt | typing.SupportsIndex = 1000, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', smart_cold_start: bool = True, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """

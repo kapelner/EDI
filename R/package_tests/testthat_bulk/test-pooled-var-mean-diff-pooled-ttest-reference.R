@@ -51,3 +51,43 @@ test_that("Pooled-variance mean-difference CI/p-value are unavailable with fewer
 	expect_true(all(is.na(inf$compute_asymp_confidence_interval())))
 	expect_true(is.na(inf$compute_asymp_two_sided_pval()))
 })
+
+# v1.0.6-TODO-293 (docs-scenarios fixed-designs F1): after a randomization p-value the asymptotic
+# p-value and CI came back NA, because the randomization path cached beta_hat_T without the per-arm
+# responses that the pooled-t components read.
+test_that("Pooled-variance asymptotic p-value and CI do not depend on which procedure ran first", {
+	set.seed(1)
+	n = 20
+	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+	y = X$x1 + rnorm(n)
+	des = DesignFixediBCRD$new(response_type = "continuous", n = n, seed = 1, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(y)
+	w = des$get_w()
+	ref = stats::t.test(y[w == 1], y[w == 0], var.equal = TRUE)
+	fresh = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+	p0 = fresh$compute_asymp_two_sided_pval()
+	ci0 = fresh$compute_asymp_confidence_interval()
+	expect_equal(p0, ref$p.value, tolerance = 1e-10)
+	expect_equal(unname(ci0), as.numeric(ref$conf.int), tolerance = 1e-10)
+	before = list(
+		rand_pval = function(inf) inf$compute_rand_two_sided_pval(r = 101, show_progress = FALSE),
+		rand_ci = function(inf) inf$compute_rand_confidence_interval(r = 101, show_progress = FALSE),
+		bootstrap = function(inf) inf$compute_bootstrap_confidence_interval(B = 51, show_progress = FALSE)
+	)
+	for (nm in names(before)) {
+		inf = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+		inf$set_seed(3)
+		suppressWarnings(before[[nm]](inf))
+		expect_equal(inf$compute_asymp_two_sided_pval(), p0, tolerance = 1e-10, info = nm)
+		expect_equal(inf$compute_asymp_confidence_interval(), ci0, tolerance = 1e-10, info = nm)
+		# and the reverse order: asymptotic first, then the resampling procedure, then asymptotic again
+		inf2 = InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+		inf2$set_seed(3)
+		expect_equal(inf2$compute_asymp_two_sided_pval(), p0, tolerance = 1e-10, info = nm)
+		suppressWarnings(before[[nm]](inf2))
+		expect_equal(inf2$compute_asymp_two_sided_pval(), p0, tolerance = 1e-10, info = nm)
+		expect_equal(inf2$compute_asymp_confidence_interval(), ci0, tolerance = 1e-10, info = nm)
+	}
+})

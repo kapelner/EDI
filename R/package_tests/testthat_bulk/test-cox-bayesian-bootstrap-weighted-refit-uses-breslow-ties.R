@@ -88,7 +88,8 @@ test_that("non-KK and KK one-likelihood Cox replicates with all weights 1 reprod
 	local_mocked_bindings(weights_are_effectively_constant = function(...) FALSE, .package = "EDI")
 	for (cls in c("InferenceSurvivalCoxPHRegr", "InferenceSurvivalStratCoxPHRegr",
 			"InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKLWACoxPHOneLik")) {
-		inf <- get(cls, envir = asNamespace("EDI"))$new(fx$des, verbose = FALSE)
+		# StratCoxPHRegr warns that it ignores the matched pairs of a KK design; expected here.
+		inf <- suppressWarnings(get(cls, envir = asNamespace("EDI"))$new(fx$des, verbose = FALSE))
 		est <- as.numeric(inf$compute_estimate())[1]
 		priv <- inf$.__enclos_env__$private
 		ctx <- priv$build_bayesian_bootstrap_context()

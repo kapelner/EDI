@@ -12,6 +12,53 @@
   The simulator now reads the variance components in the kernel's order
   (v1.0.6-TODO-291, v1.0.6-TODO-56).
 
+* `InferenceOrdinalPartialProportionalOddsRegr`: when a nonparallel covariate
+  makes it fit through `VGAM::vglm`, the Wald standard error, CI and p-value now
+  use the observed information at VGAM's estimate rather than VGAM's expected
+  (Fisher-scoring) information, matching the fast solver and the `ordinal::clm`
+  fallback. Estimates are unchanged; on simulated data the SE moved by a median
+  of 0.1-0.8% at n = 40-300 (at most about 6%). If the observed information is
+  not positive definite, the class falls back to `ordinal::clm`
+  (v1.0.6-TODO-215).
+
+* The C++ robust M fit (`method = "M"`, used by the KK robust-regression classes
+  with `use_rcpp = TRUE`) now stops at once when its OLS start is an exact fit
+  (median absolute residual 0), returning the start as converged, as
+  `MASS::rlm` does. It used to floor the start scale at 1e-10 first, so it took
+  one more weighted step; when the zero-residual points did not pin down every
+  coefficient, that step moved the estimate away from `rlm`'s. Fits whose start
+  has a nonzero MAD are unchanged (v1.0.6-TODO-273).
+* The Bayesian-bootstrap replicates of the Cox classes now use Breslow ties,
+  like their point estimates. The weighted refit behind each replicate called
+  `survival::coxph()` with its default Efron ties, while every EDI Cox
+  estimate uses Breslow, so on tied event times the replicates fit a different
+  partial likelihood from the estimate. This affects
+  `InferenceSurvivalCoxPHRegr`, `InferenceSurvivalStratCoxPHRegr`,
+  `InferenceSurvivalKKStratCoxPHIVWC`, `InferenceSurvivalKKStratCoxPHOneLik`,
+  `InferenceSurvivalKKLWACoxPHIVWC` and `InferenceSurvivalKKLWACoxPHOneLik`.
+  Bayesian-bootstrap draws, intervals and p-values change on tied data; data
+  without ties give the same results. The weighted Cox surrogate of
+  `InferenceSurvivalDepCensTransformRegr` keeps Efron ties, since its estimate
+  is not a Cox fit (v1.0.6-TODO-271).
+
+* `InferenceIncidKKGEE` and `InferencePropKKGEE` no longer return NA for the
+  asymptotic p-value and confidence interval, with a separation warning, just
+  because one subject's fitted probability is within 1e-8 of 0 or 1. A single
+  high-leverage subject can do that in a fit whose solution exists (estimate
+  0.67, p NA before, p 0.45 now). That screen is now confirmed by an exact
+  check that the data are (quasi-)completely separated, and results are NA
+  only then. Separated fits still warn once and return NA (v1.0.6-TODO-274).
+
+* `DesignFixedRerandomization` with `prop_acceptable` and
+  `objective = "abs_sum_diff"` now filters draws when the model matrix has a
+  constant column, e.g. from a `design_formula` term such as `I(x^0)`. The
+  objective divided that column by its zero SD, so every draw scored `NaN` and
+  the design kept the first draws unfiltered (complete randomization). A
+  zero-variance column is now left unscaled and adds nothing, as on the
+  `obj_val_cutoff` paths. The default `~ .` formula drops constant columns, so
+  it was not affected. Other `abs_sum_diff` values can differ in the last
+  digits, since the SD is now computed from centered sums (v1.0.6-TODO-276).
+
 * Count, probit and other likelihood fits no longer report convergence too
   early, or a correct fit as unconverged, when the design is ill-conditioned or a
   covariate has a large scale or offset. The L-BFGS wrapper, Newton and the
@@ -771,6 +818,15 @@
   test fails, it also accepts a scale-aware Newton-decrement criterion, so fits
   with large-offset covariates are no longer reported as not converged. Fits
   that converged before are unchanged (v1.0.6-TODO-192, v1.0.6-TODO-170).
+
+* In that step-halving rerun the step taken at the last allowed iteration is
+  now checked too. A fit that hit `maxit` could return a log-likelihood far
+  below its starting point (e.g. -36768 against -408 from a far warm start at
+  `maxit = 1`); it now never returns a worse fit than it started from. A fit
+  that stops at `maxit` also reports its fitted probabilities, score, gradient
+  norm and Fisher information at the returned coefficients; before, they
+  belonged to the iterate one step earlier, even when the fit was declared
+  converged. Coefficients of converged fits are unchanged (v1.0.6-TODO-272).
 
 * The parametric-bootstrap likelihood-ratio confidence interval's `NA`
   reasons (`lik_ratio_bootstrap_ci_pval_at_estimate_unavailable`,

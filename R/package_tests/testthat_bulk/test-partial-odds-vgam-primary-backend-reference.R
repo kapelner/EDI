@@ -55,7 +55,15 @@ ppo_vgam_reference <- function(y, w, x1, weights = NULL) {
 	# VGAM models logit P(Y <= j) = alpha_j + beta x; negate to the clm/polr
 	# (alpha_j - beta x) convention EDI reports (TODO-107).
 	beta <- -VGAM::Coef(mod)[["treatment"]]
-	se <- suppressWarnings(sqrt(VGAM::vcov(mod)["treatment", "treatment"]))
+	# The class publishes the OBSERVED-information SE at VGAM's estimate
+	# (v1.0.6-TODO-215 item 3, owner decision 2026-11-20); VGAM's own vcov is
+	# the expected information. ordinal::clm (same model, observed Hessian) is
+	# the independent reference for the SE.
+	se <- NA_real_
+	if (is.null(weights) && requireNamespace("ordinal", quietly = TRUE)) {
+		mc <- ordinal::clm(y ~ treatment, nominal = ~ x1, data = dat, link = "logit")
+		se <- sqrt(stats::vcov(mc)["treatment", "treatment"])
+	}
 	list(beta = beta, se = se)
 }
 
@@ -78,6 +86,7 @@ vglm_ref_or_skip <- function(...) {
 }
 
 test_that("unweighted VGAM primary backend matches an independent vglm fit exactly", {
+	skip_if_not_installed("ordinal")
 	fixture <- ppo_vgam_fixture()
 	ref <- suppressWarnings(vglm_ref_or_skip(fixture$y, fixture$w, fixture$x1))
 

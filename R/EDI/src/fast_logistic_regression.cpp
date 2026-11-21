@@ -237,6 +237,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
         Eigen::VectorXd beta_prev(p_free);
         Eigen::VectorXd step_prev(p_free);
         bool last_step_pending = false;  // a safeguarded step was taken but not yet checked
+        bool step_size_exit = false;     // the pass stopped on the step-size rule
         auto acceptable = [&](double v) {
             return std::isfinite(v) && v <= neg_ll_prev + 1e-10 * (std::abs(neg_ll_prev) + 0.1);
         };
@@ -331,6 +332,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
                 diff_final.array() = y.array() - mu.array();
                 if (use_weights) diff_final.array() *= weights.array();
                 last_grad_norm = (X_free.transpose() * diff_final).norm();
+                step_size_exit = true;
                 break;
             }
         }
@@ -339,9 +341,10 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
         // the next iteration, so the step taken at iter = maxit - 1 (or the tiny step of the
         // step-size exit) was never checked; from a far warm start a capped fit returned a
         // negative log-likelihood orders of magnitude above its start. Apply the same
-        // halving rule to it here. A last step that already decreases the objective (h == 0)
-        // leaves every output exactly as before; otherwise the fit state (mu, XtWX, score,
-        // gradient norm) is rebuilt at the returned coefficients.
+        // halving rule to it here. The fit state (mu, XtWX, score, gradient norm) is then
+        // rebuilt at the returned coefficients: at the cap it still described the iterate
+        // before the last step. After a step-size exit whose tiny step needed no halving
+        // (h == 0), every output stays exactly as before.
         if (safeguarded && iterations > 0 && !stalled && last_step_pending) {
             eta.noalias() = eta_fixed;
             eta.noalias() += X_free * beta_free;
@@ -356,7 +359,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
                 ++h;
             }
             total_step_halvings += h;
-            if (h > 0) {
+            if (h > 0 || !step_size_exit) {
                 if (!acceptable(neg_ll_curr)) {
                     beta_free = beta_prev;
                     eta.noalias() = eta_fixed;

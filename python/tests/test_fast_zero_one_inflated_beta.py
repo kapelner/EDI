@@ -92,3 +92,48 @@ def test_result_shape_and_types():
     assert res["params"].shape == (10,)  # 3 + 1 + 3 + 3
     assert isinstance(res["neg_loglik"], float)
     assert res["converged"] is True  # Python-side-only sanity check, see docstring
+
+
+ZOIB_FULL_KEYS = {"b", "log_phi", "zero_one_b0", "zero_one_b1", "params", "vcov", "neg_loglik",
+                  "converged", "num_iter", "hit_iteration_cap", "gradient_norm",
+                  "min_eigenvalue_information", "observed_information", "fisher_information",
+                  "information", "information_type", "hessian"}
+
+
+def test_returns_r_fields_with_vcov_and_unpacked_blocks():
+    """Same fields as R's fast_zero_one_inflated_beta_cpp (audit decision
+    rpy-parity-d1f65c8c0): unpacked blocks, vcov and information matrices."""
+    X, X_zero_one, y = _synthetic_data()
+    res = fast_zero_one_inflated_beta(X, X_zero_one, y)
+
+    assert ZOIB_FULL_KEYS <= set(res)
+    p, q = X.shape[1], X_zero_one.shape[1]
+    params = res["params"]
+    assert res["b"] == pytest.approx(params[:p])
+    assert res["log_phi"] == pytest.approx(params[p])
+    assert res["zero_one_b0"] == pytest.approx(params[p + 1:p + 1 + q])
+    assert res["zero_one_b1"] == pytest.approx(params[p + 1 + q:])
+    k = params.size
+    assert res["vcov"].shape == (k, k)
+    assert np.all(np.isfinite(res["vcov"]))
+    assert np.all(np.diag(res["vcov"]) > 0)
+    assert res["vcov"] == pytest.approx(res["vcov"].T, abs=1e-10)
+    info = res["observed_information"]
+    assert res["fisher_information"] == pytest.approx(info)
+    assert res["information"] == pytest.approx(info)
+    assert res["hessian"] == pytest.approx(-info)
+    assert res["information_type"] == "observed"
+    # vcov is the inverse of the observed information (no fixed parameters).
+    assert res["vcov"] @ info == pytest.approx(np.eye(k), abs=1e-6)
+
+
+def test_estimate_only_skips_variance_but_keeps_estimates():
+    X, X_zero_one, y = _synthetic_data()
+    full = fast_zero_one_inflated_beta(X, X_zero_one, y)
+    est = fast_zero_one_inflated_beta(X, X_zero_one, y, estimate_only=True)
+
+    for key in ("vcov", "observed_information", "fisher_information", "information", "hessian"):
+        assert key not in est
+    for key in ("b", "log_phi", "zero_one_b0", "zero_one_b1", "params", "neg_loglik", "converged"):
+        assert key in est
+    assert est["params"] == pytest.approx(full["params"], abs=1e-12)

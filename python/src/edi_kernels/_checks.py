@@ -293,7 +293,7 @@ KERNELS: Mapping[str, KernelSpec] = {
         (X, Y, WEIGHTS, _pos("start_phi")), XY_W, "fast_beta_regression_cpp"),
     "fast_zero_one_inflated_beta": KernelSpec(
         ("X", "X_zero_one", "y", "warm_start_params", "smart_cold_start", "fixed_idx", "fixed_values",
-         "optimization_alg", "warm_start_fisher_info"),
+         "optimization_alg", "warm_start_fisher_info", "estimate_only"),
         (X, _mat("X_zero_one"), Y), (("X", "X_zero_one", "y"),), "fast_zero_one_inflated_beta_cpp"),
     # ---- ordinal
     "fast_adjacent_category_logit": KernelSpec(_ORD_LOGIT, _ORD_RULES, XY, "fast_adjacent_category_logit_cpp"),
@@ -400,10 +400,12 @@ KERNELS: Mapping[str, KernelSpec] = {
     "fast_clogit_plus_glmm": KernelSpec(
         ("X_disc", "y_disc", "X_conc", "y_conc", "group_conc", "has_discordant", "has_concordant",
          "warm_start_params", "warm_start_beta", "estimate_only", "max_abs_log_sigma", "maxit", "eps_g",
-         "fixed_idx", "fixed_values", "optimization_alg", "warm_start_fisher_info", "n_gh"),
+         "fixed_idx", "fixed_values", "optimization_alg", "warm_start_fisher_info", "n_gh",
+         "weights_disc", "weights_conc"),
         (_mat("X_disc"), _num("y_disc"), _mat("X_conc"), _num("y_conc"), _int("group_conc"), MAX_LOG_SIGMA,
-         MAXIT, EPS_G, N_GH),
-        (("X_disc", "y_disc"), ("X_conc", "y_conc", "group_conc")), "fast_clogit_plus_glmm_cpp"),
+         MAXIT, EPS_G, N_GH, _num("weights_disc", lower=0.0), _num("weights_conc", lower=0.0)),
+        (("X_disc", "y_disc", "weights_disc"), ("X_conc", "y_conc", "group_conc", "weights_conc")),
+        "fast_clogit_plus_glmm_cpp"),
     # ---- fast_math utilities: inline C++ helpers in R (no Rcpp export), so no R twin.
     "fast_pchisq_upper": KernelSpec(("statistic", "df"),
                                     (_num("statistic", finite=False), _num("df", finite=False)),

@@ -17,7 +17,9 @@
 # Findings: one PR per run with R/package_metadata/audits/docs_scenario_findings/<date>-run<id>.md
 # (label `audit-docs-scenarios`); no PR when nothing new. Nothing is ever written to a release file.
 # Needs the ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; without one, every area is reported
-# NOT RUN (never as clean) and its state is not advanced. PRs opened with GITHUB_TOKEN trigger no other
+# NOT RUN (never as clean) and its state is not advanced. Any NOT RUN area (no key, an API refusal such
+# as 429 usage_limit_reached read from the transcript, a crash) is named in a warning at the top of the
+# report and fails the run at its very end, after the partial results are published. PRs opened with GITHUB_TOKEN trigger no other
 # workflows; the owner merges them with the admin bypass, as for the algorithm research PRs.
 #
 # Why the Claude Code CLI and not anthropics/claude-code-action: the agent must run in an empty folder
@@ -393,3 +395,13 @@ jobs:
         run: |
           python3 .github/scripts/audit_run.py save-notes --notes "$RUNNER_TEMP/notes" \
             --message "docs-scenarios: run ${GITHUB_RUN_ID} at ${GITHUB_SHA::8}"
+      # Last, so the areas that did run are reported, opened as a PR and saved first: an agent the API
+      # refused (429 usage_limit_reached etc.; collect records the transcript's reason via
+      # agent_failure.py), that crashed, or that had no key fails the run instead of leaving it green.
+      - name: Fail if any scenario agent did not run
+        if: always() && steps.report.outputs.notrun != '' && steps.report.outputs.notrun != '0'
+        env:
+          NOTRUN: ${{ steps.report.outputs.notrun }}
+        run: |
+          echo "::error::$NOTRUN scenario agent(s) did not run; those areas stay due for the next run. The reasons are in the warning at the top of the report."
+          exit 1

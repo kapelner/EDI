@@ -142,15 +142,20 @@ block-marginal effect. See \code{DesignFixedBlocking}.
 
 \examples{
 \donttest{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'incidence')
-for (i in 1:30) {
-  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+set.seed(1)
+seq_des = DesignSeqOneByOneBernoulli$new(n = 100, response_type = 'incidence')
+for (i in 1:100) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rbinom(1, 1, 0.5)))
 }
-# alternating 0/1 responses: both arms always contain events and non-events,
-# so the fit stays in the interior of the parameter space
-seq_des$add_all_subject_responses(rep(c(0, 1), 15))
+# true risk 0.3 + 0.2 * w + 0.1 * x1 stays in [0.3, 0.6], well inside (0, 1),
+# and a binary covariate keeps every fitted probability inside the four
+# treatment-by-x1 cells, so the identity-link MLE stays off the boundary
+w = seq_des$get_w()
+x1 = seq_des$get_X()[, 1]
+seq_des$add_all_subject_responses(rbinom(100, 1, 0.3 + 0.2 * w + 0.1 * x1))
 inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
-inf$compute_estimate()
+inf$compute_estimate()   # true risk difference 0.2
+inf$compute_asymp_confidence_interval()
 }
 }
 \references{

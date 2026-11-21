@@ -137,7 +137,10 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
     }
     double mx = R_NegInf;
     for (R_xlen_t i = 0; i < K; ++i) {
-      const double v = cj[i] + static_cast<double>(i) * delta;
+      // volatile: no fused multiply-add (-march=native builds), so the sum is
+      // rounded as R's cj + outer(j, delta) is.
+      volatile double step = static_cast<double>(i) * delta;
+      const double v = cj[i] + step;
       lw[static_cast<std::size_t>(i)] = v;
       if (v > mx) {
         mx = v;
@@ -177,7 +180,8 @@ double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta
   std::vector<double> lw(static_cast<std::size_t>(K));
   R_xlen_t mode = 0;
   for (R_xlen_t i = 0; i < K; ++i) {
-    lw[static_cast<std::size_t>(i)] = cj[i] + static_cast<double>(i) * delta;
+    volatile double step = static_cast<double>(i) * delta;  // no FMA, as above
+    lw[static_cast<std::size_t>(i)] = cj[i] + step;
     if (lw[static_cast<std::size_t>(i)] > lw[static_cast<std::size_t>(mode)]) {
       mode = i;  // first maximum, as which.max()
     }
@@ -201,8 +205,9 @@ double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta
     }
   }
   const double n_other = static_cast<double>(direction > 0 ? K - x : x - 1);
+  volatile double other_mass = n_other * (1.0 + 1e-7);  // no FMA, as above
   const double b = static_cast<double>(side) / static_cast<double>(total) *
-    (1.0 + n_other * (1.0 + 1e-7)) * (1.0 + 1e-6);
+    (1.0 + other_mass) * (1.0 + 1e-6);
   return std::min(1.0, b);
 }
 

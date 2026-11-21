@@ -4286,7 +4286,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   g-comp RR subsampling / m-out-of-n arguments added today. `run_all_inference` `r` / `B` are in (assertCount). Most of
   the diff is source line numbers moved by today's uncommitted edits; the downstream argument-combination CSVs were not
   rerun (full `drift_artifacts.sh regenerate` does that at push).
-- [ ] TODO-215 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-201 agent): **Information-source follow-ups.**
+- [x] TODO-215 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-201 agent): **Information-source follow-ups.**
   (1) OWNER DECISION: for every `StandardModelCache` class the public Wald p-value and CI use the C++ `ssq_b_j`
   (observed information) whenever it is finite, while `get_standard_error()` follows the information preference; under
   "fisher" the two disagree (invisible for canonical-link GLMs, visible for the ordinal links after TODO-201). Decide
@@ -4354,6 +4354,22 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   research note (section 7). Also found, not changed: in the four cumulative-link classes `standard_model_cache_shared()`
   overwrites the params + information warm start that `generate_mod()` just set with `type = "beta"`, `b = c(0, beta_T)`
   and no information, so later refits cannot use a full-length warm start (pre-existing; proposed as a new TODO).
+  Owner decision 2026-11-20: option (a). Item (3) DONE 2026-11-21 (agent; R only): when the class fits through
+  `VGAM::vglm`, its Wald SE is now the observed information at VGAM's estimate (new top-level helper
+  `ordinal_partial_po_vgam_observed_se()`, which maps VGAM's coefficients into `ordinal_partial_po_information()`'s
+  parameterization), so VGAM, the fast solver and the clm fallback all publish observed-information SEs. The estimate
+  is still VGAM's. `get_standard_error()`, the Wald / asymp CI and p-value, and `benchmark_asymp_two_sided_pval_breakdown()`
+  all read the same cached SE; the class has no CI inversion, so there are no seeds to align. If the observed
+  information is non-finite or not positive definite (Cholesky fails: VGAM did not stop at a maximum), the VGAM fit
+  gets SE = NA and the cascade moves on to `ordinal::clm` for the estimate and SE; the expected information is never
+  substituted. Bootstrap-weighted VGAM refits still report no SE. A/B on 160 simulated data sets (n = 40, 60, 100,
+  300; one nonparallel covariate, K = 4) against the old expected-information SE: every estimate `identical()` (full
+  and estimate-only paths), so the PD fallback never fired where the old code used VGAM, SE change median 0.1% / 0.8% / 0.3% / 0.2% and max
+  5.0% / 5.7% / 1.6% / 0.9%. Roxygen `@details` (information source, sizes, fallback) and `[EfronHinkley1978]`
+  reference added to the class; Rd not regenerated. No new private methods, so no registry / baseline change. Tests:
+  `test-ordinal-partial-po-information-observed-matches-clm-expected-matches-vgam.R` (21; the pinning test now checks
+  observed = helper at VGAM's estimate = clm, the Wald CI / p-value use that SE, and a mocked non-PD information falls
+  back to clm), `test-partial-odds-vgam-primary-backend-reference.R` (its SE reference is now clm's observed SE).
 - [ ] TODO-216 (added 2026-11-19, coordinator; found by the v1.0.6-TODO-206 agent): **Near-zero-width Zhang exact CIs
   on KK21stepwise.** Two fresh comprehensive rows (`InferenceIncidExactZhang`, KK21stepwise `~.`, pima, beta 0.5): rep 6
   [0.1933261, 0.1933269] with p = 0.002, rep 14 [-0.2623787, -0.2623780]. Unverified guess: the combined (matched +
@@ -4555,7 +4571,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   happens from a warm beta with or without a Fisher matrix; TODO-209's cold restart avoids it on first-step rejection
   only. Use a convergence test that is not fooled by tiny steps (log-likelihood change, scaled gradient / Newton
   decrement as in the logistic fix for v1.0.6-TODO-170). C++, needs owner build.
-  DONE 2026-11-20 (agent, uncommitted; PATCHED, needs owner build). Cause: the loop scores with the expected
+  DONE 2026-11-20 (agent; committed in 72ea20ba; PATCHED, needs owner build). Cause: the loop scores with the expected
   information (w = 1/(mu(1-mu)) identity, mu/(1-mu) log), which is ~1/distance next to a bound, while the observed
   curvature of a row the MLE does not hold there (y = 0 at mu -> 0 or y = 1 at mu -> 1, identity; y = 1 at mu -> 1,
   log) stays O(1); each Fisher step moved such a row ~7% of its distance, so the relative-change test passed.
@@ -4941,7 +4957,7 @@ The 2026-11-20 re-review of the 26 drifted algorithm-audit rows (`new_feature_pl
 "Re-review log", entry "2026-11-20: drift issue #55") kept every row's decision but found these. Only TODO-271 and
 TODO-273 were confirmed by reading the code; the rest are suspected and need a reproducer first.
 
-- [ ] TODO-271 (added 2026-11-20, coordinator; algorithm-audit row L, confirmed by reading): **KK Cox IVWC Bayesian
+- [x] TODO-271 (added 2026-11-20, coordinator; algorithm-audit row L, confirmed by reading): **KK Cox IVWC Bayesian
   bootstraps fit Efron ties while the estimate uses Breslow.** `kk_ivwc_weighted_cox_half()` (`R/EDI/R/globals.R:316`)
   fits each weighted half with `survival::coxph(weights = )`, which defaults to Efron, and the comment above it
   (`globals.R:313-315`) says this is "the same Efron-ties likelihood as the unweighted C++ fitter". The C++ fitter is
@@ -4955,7 +4971,24 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
     non-uniform weights it matches `survival::coxph(..., ties = "breslow", weights = w)`.
   - Changes Bayesian-bootstrap draws on tied data for these classes: NEWS bullet ("Changes that alter results").
   - Done when: every weighted Cox replicate path uses the estimate's ties rule, the comment is true, the test passes.
-- [ ] TODO-272 (added 2026-11-20, coordinator; algorithm-audit row A, suspected): **Logistic IRLS never checks the
+  - Status 2026-11-20 (agent, uncommitted; the code and test landed in 8d8c5f78): confirmed the C++ fitter is Breslow
+    (`fast_coxph_regression.cpp`: each tied set adds `d_k * log(S0)`, one shared risk-set denominator). Every weighted
+    Cox replicate goes through one helper, `weighted_cox_bootstrap_surrogate_fit()` (`globals.R`), which hard-coded
+    Efron on both its `coxph.fit()` fast path and its `coxph()` formula path. It now takes `ties = "breslow"` and
+    passes it to both, so the fix covers the KK IVWC halves (`kk_ivwc_weighted_cox_half()`) and the non-KK and KK
+    one-likelihood Cox replicates alike: `InferenceSurvivalCoxPHRegr`, `InferenceSurvivalStratCoxPHRegr`,
+    `InferenceSurvivalKKStratCoxPHIVWC`, `InferenceSurvivalKKStratCoxPHOneLik`, `InferenceSurvivalKKLWACoxPHIVWC`
+    and `InferenceSurvivalKKLWACoxPHOneLik`. Comments corrected. `InferenceSurvivalDepCensTransformRegr` also uses
+    this helper as a surrogate for a non-Cox estimate; it passes `ties = "efron"` explicitly so its results do not
+    change (owner may prefer Breslow there; v1.1.0-TODO-61 owns the package-wide choice). The log-rank weighted null
+    fit was already Breslow. Test:
+    `R/package_tests/testthat_bulk/test-cox-bayesian-bootstrap-weighted-refit-uses-breslow-ties.R` (tied fixture:
+    helper fast/stratified/clustered paths vs `coxph(ties = "breslow", weights = w)`, unit weights vs the C++ fit,
+    `kk_ivwc_weighted_cox_half()` beta and naive variance, and all six classes' unit-weight replicates vs
+    `compute_estimate()` with the constant-weight shortcut mocked off): 21 passed, 0 failed under
+    `load_all(compile = FALSE)`; with the helper mocked back to Efron the same file has 10+ failures. NEWS bullet added
+    under "Changes that alter results".
+- [x] TODO-272 (added 2026-11-20, coordinator; algorithm-audit row A, suspected): **Logistic IRLS never checks the
   step taken at the last iteration.** In `R/EDI/src/fast_logistic_regression.cpp` `run_irls` (~L240-330) the
   safeguarded pass runs its descent check at the top of the next iteration, so the step taken at `iter = maxit - 1`
   is accepted unchecked. A fit that stops at the cap (not converged, e.g. under separation) can return a worse
@@ -4965,14 +4998,36 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
     when its failure is already predictable.
   - Done when: a capped fit never returns a worse log-likelihood than its best iterate, with a test, or the
     reproducer shows it cannot happen and the item is closed with that note.
-- [ ] TODO-273 (added 2026-11-20, coordinator; algorithm-audit row X, confirmed by reading, minor): **Robust M fit
+  - Status 2026-11-20 (agent, uncommitted; no build): **real.** Far warm starts (n = 30, slope start +-5..40) at
+    maxit 1..6: the old kernel returned a neg_ll above the start in 745 of 2700 fits (seed 1, start (0.3, -25):
+    408.4 -> 36767.6 at maxit = 1, 66070.6 at maxit = 2); 0 with the fix. Fix in `run_irls`: after the loop the
+    safeguarded pass checks a pending last step with the same halving rule (reverting to the previous iterate,
+    `stalled`, if no halving helps), then rebuilds mu / XtWX / score / gradient norm at the returned coefficients
+    (at the cap they described the iterate one step earlier, even on fits the Newton-decrement rule declared
+    converged: Fisher error 0.035 -> 1e-15). Coefficients of all 1234 converged fits in the sweep and of the
+    separation fixture are unchanged. Test `R/package_tests/testthat_bulk/test-logistic-irls-capped-fit-never-worse-than-start.R`
+    (218 expectations) passes with the kernel swapped in via sourceCpp, as does
+    `test-logistic-irls-step-halving-and-scale-aware-convergence.R`; it fails on the installed EDI.so until the
+    owner rebuilds. Not done: skipping the plain pass when its failure is predictable (optional).
+- [x] TODO-273 (added 2026-11-20, coordinator; algorithm-audit row X, confirmed by reading, minor): **Robust M fit
   takes an extra step on an exact fit.** `R/EDI/src/fast_robust_regression.cpp:177` clamps the initial scale to
   1e-10, so the exact-fit stop (`res.scale <= 0.0`, :195) cannot fire at iteration 1. When the OLS start has MAD 0,
   `MASS::rlm` returns the start and reports convergence, while EDI takes one more WLS step. The comment above
   `hit_iteration_cap` (~:268) still describes a coefficient-change stop. Not covered by v1.0.6-TODO-50.
   - Fix: test the unclamped scale for the exact-fit stop (or clamp after it) and update the comment.
   - Done when: on an exact-fit fixture the coefficients and `converged` match `MASS::rlm`, with a test.
-- [ ] TODO-274 (added 2026-11-20, coordinator; algorithm-audit row K, suspected): **KK GEE separation rule can blank
+  - Status 2026-11-20 (agent, uncommitted; no build): the kernel change landed in 8d8c5f78. For `"M"` the start
+    scale is no longer floored (`"MM"` keeps the 1e-10 floor), so the MAD-0 stop fires at iteration 1; that exit
+    builds `fisher_information` from the unit weights, since no WLS step has run. The comment above
+    `hit_iteration_cap` now lists the real stopping rules. New test
+    `R/package_tests/testthat_bulk/test-robust-regression-m-exact-fit-start-stops-like-mass-rlm.R` uses two fixtures
+    whose OLS residuals are exactly 0 under both Eigen and LINPACK QR, on points that do not identify the slope.
+    Under a sourceCpp kernel swap: coefficients 0/0, `converged` TRUE, 1 iteration, matching `rlm`. The old kernel
+    gave slopes 1.67 and -1.0. The 5 existing robust-kernel test files also pass under the swap. The test fails
+    against the installed EDI.so until the owner rebuilds. Not fixed (outside this TODO): when one QR's start is
+    exact and the other's is off by rounding (MAD about 1e-17 rather than 0), the two fits still diverge. Fitting at
+    a near-zero scale is ill-posed anyway.
+- [x] TODO-274 (added 2026-11-20, coordinator; algorithm-audit row K, suspected): **KK GEE separation rule can blank
   the SE of a fit that is not separated.** The logit-link check in `R/EDI/R/inference_mixin_kk_gee_shared.R:493`
   (added for v1.0.6-TODO-118) reports SE, p and CI as NA when any single fitted |eta| reaches qlogis(1 - 1e-8). One
   high-leverage point can reach that without separation. It is the same heuristic as plain logistic
@@ -4981,20 +5036,54 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
     test (e.g. `detectseparation`, or the LP check the logistic path uses, if any).
   - Done when: the rule fires only on a separated fit (or the docs state it is a heuristic and when it misfires),
     with a test on both kinds of fixture.
-- [ ] TODO-275 (added 2026-11-20, coordinator; algorithm-audit row Z, suspected, low): **Log-binomial IRLS loop can
+  Status 2026-11-20 (agent, uncommitted): reproduced and fixed. `DesignSeqOneByOneKK14` incidence, n = 40, one
+  subject with x1 = 25 (y = 1): not separated (Konis LP via lpSolve and the new check agree; glm converges, all
+  |coef| < 5), but max fitted |eta| 22-34, so 5 of 6 seeds gave p NA + separation warning (seed 2: est 0.67; now
+  p 0.45). Fix: new exact check `edi_binary_data_separated()` (`helper_robust_sandwich.R`; Stiemke alternative
+  solved as Lawson-Hanson NNLS, no new dependency, handles fractional y and rank deficiency; 0 mismatches vs the LP
+  on 3,200 random fixtures). `shared_gee_default()` keeps the |eta| screen but blanks the SE only when the check
+  confirms separation (or cannot run: NA falls back to the screen); the Rcpp result now also stores `y_fit`. The
+  plain logistic path only warns (no NA), so it was not changed; `InferenceOrdinalKKGEE` (cumulative-logit screen,
+  `inference_ordinal_KK_combined.R:288`) still uses the screen alone. Test
+  `R/package_tests/testthat_bulk/test-kk-gee-separation-check-ignores-high-leverage-point.R` (38 pass, both
+  fixtures, Rcpp and geepack paths); 10 related KK GEE test files pass. NEWS bullet added.
+- [x] TODO-275 (added 2026-11-20, coordinator; algorithm-audit row Z, suspected, low): **Log-binomial IRLS loop can
   in principle run past `maxit`.** Both loops in `R/EDI/src/fast_log_binomial_regression.cpp` (:535, :818) run while
   `iter < maxit || kkt_confirm_pending`. A later small step near a bound can set `kkt_confirm_pending` again (:690),
   so if the observed-information check kept failing the loop would not stop at `maxit`. The relative-step criterion
   should nearly always pass, and this has not been shown. Belongs with v1.0.6-TODO-221's KKT gate.
   - Fix: cap the extra confirmation iterations (e.g. `iter < maxit + k`) and report non-convergence past that.
   - Done when: the loop has a hard bound, with a test that forces the pending flag and checks it stops.
-- [ ] TODO-276 (added 2026-11-20, coordinator; algorithm-audit row I, suspected, probably unreachable): **Rerandomization
+  Status 2026-11-21 (agent, uncommitted; no build): could not overrun by more than one iteration in practice. For
+  tol < 0.9 it is impossible: the pending iteration either stops or takes the observed-information Newton step that
+  the check just found > 10 tol (relative), and |d| < tol |beta + d| then needs tol > 0.9, so the flag cannot be
+  set twice in a row and num_iter <= maxit + 1. Sweeps (14,400 calls per tol, tol 1e-6 to 1e3, maxit 1-25, cold and
+  warm starts, all four kernels) never exceeded maxit + 1. Fix anyway: both loops now run past maxit only while
+  `iter - maxit < kKktConfirmMaxExtraIter` (= 3); a fit still pending then has converged = FALSE and
+  hit_iteration_cap = TRUE. (A compile-time test seam that forced the flag was removed 2026-11-21 at the owner's
+  request; the cap itself is therefore not exercised by a test.) Kernel swap (sourceCpp, HEAD vs patched): 34,560 calls over the
+  6 entry points (plain, weighted, with_var; maxit 1-100, warm starts, fixed_idx) are all `identical()`.
+  Test `test-constrained-binomial-kernel-kkt-confirmation-iterations-are-bounded.R`: (1) num_iter <= maxit + 1 on
+  the installed kernel (passes on old and new); the seam-based second test was removed with the seam. No NEWS (results unchanged). Needs the
+  owner's build for the bound to ship.
+- [x] TODO-276 (added 2026-11-20, coordinator; algorithm-audit row I, suspected, probably unreachable): **Rerandomization
   objective divides by a zero SD.** `compute_objective_vals_cpp` (`R/EDI/src/rerandomization_helpers.cpp:110-114`,
   division at :153) divides by `sd_all[j]` in abs mode without the zero-variance guard the search kernel has (:209).
   A constant covariate column would give Inf/NaN objective values. Overlaps v1.4.0-TODO-11h; take whichever lands
   first.
   - Fix: skip (or treat as zero contribution) columns with `sd_all[j] == 0`, as the search kernel does.
   - Done when: a constant column gives finite objective values matching the search kernel, with a test.
+  - Status 2026-11-20 (agent, uncommitted; no build): **reachable, not hypothetical.** The default `~ .` formula
+    drops constant columns upstream, but a `design_formula` term such as `I(x2^0)` keeps one in the model matrix;
+    with `prop_acceptable` + `objective = "abs_sum_diff"` every objective value was NaN, so `order()` kept the first
+    `r` candidates unfiltered (silent complete randomization). Fixed in `compute_objective_vals_cpp`: SD from centered
+    sums, `var < 1e-24` → unscaled (inv_sd = 1), the search kernel's rule; dropped the uncentered `sumsq` form.
+    Non-constant values move by ≤ 1e-15 relative. Test:
+    `R/package_tests/testthat_bulk/test-rerandomization-objective-constant-covariate-column.R` (10 pass with the
+    kernel swapped in via sourceCpp, 9 fail on the installed kernel; existing rerandomization tests unchanged).
+    NEWS bullet under "Changes that alter results". Needs the owner's rebuild before the bulk test passes.
+    Not touched: the `mahal_dist` + constant column case stays finite (ridge in `ensure_S_inv_current`, while the
+    search kernel falls back to abs mode on a failed LLT), so the two kernels rank by different criteria there.
 
 ### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
 

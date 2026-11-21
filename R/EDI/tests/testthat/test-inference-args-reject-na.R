@@ -108,8 +108,14 @@ na_arg_unguarded = c(
 test_that("shared resampling / exact / likelihood-ratio entry points reject NA alpha, delta and pval_epsilon", {
 	n_checked = 0L
 	n_missing_msg = 0L
+	skipped = character()
 	for (cn in na_arg_inference_classes()) {
 		inf = na_arg_build(cn)
+		# v1.0.6-TODO-181: a Suggests package the class needs is not installed
+		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, na_arg_fixtures()))) {
+			skipped[cn] = paste(pk, collapse = ", ")
+			next
+		}
 		expect_false(is.null(inf), info = paste(cn, "has no fixture"))
 		if (is.null(inf)) next
 		meths = grep(na_arg_shared_method_regex, names(inf), value = TRUE)
@@ -130,6 +136,7 @@ test_that("shared resampling / exact / likelihood-ratio entry points reject NA a
 	}
 	expect_gt(n_checked, 400L)
 	expect_gt(n_missing_msg, 350L)
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("classes whose own asymptotic methods were tightened reject NA alpha and delta", {
@@ -158,8 +165,13 @@ test_that("classes whose own asymptotic methods were tightened reject NA alpha a
 		"InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKWeibullMarginal",
 		"InferenceSurvivalKMDiff", "InferenceSurvivalLogRank", "InferenceSurvivalRestrictedMeanDiff"
 	)
+	skipped = character()
 	for (cn in classes) {
 		inf = na_arg_build(cn)
+		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, na_arg_fixtures()))) {
+			skipped[cn] = paste(pk, collapse = ", ")
+			next
+		}
 		expect_false(is.null(inf), info = cn)
 		if (is.null(inf)) next
 		res = na_arg_call(inf, "compute_asymp_confidence_interval", "alpha")
@@ -167,6 +179,7 @@ test_that("classes whose own asymptotic methods were tightened reject NA alpha a
 		res = na_arg_call(inf, "compute_asymp_two_sided_pval", "delta")
 		expect_match(res$msg, "missing values", info = paste(cn, "delta"))
 	}
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("tau, acc, delta_0 and root_tolerance reject NA", {

@@ -111,8 +111,14 @@ nsnf_unsupported_msg = "not (supported|implemented)|does not support|Use Zhang"
 test_that("shared resampling / exact / likelihood-ratio entry points reject length-2 and infinite alpha, delta and pval_epsilon", {
 	n_checked = 0L
 	n_checkmate_msg = 0L
+	skipped = character()
 	for (cn in nsnf_inference_classes()) {
 		inf = nsnf_build(cn)
+		# v1.0.6-TODO-181: a Suggests package the class needs is not installed
+		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, nsnf_fixtures()))) {
+			skipped[cn] = paste(pk, collapse = ", ")
+			next
+		}
 		expect_false(is.null(inf), info = paste(cn, "has no fixture"))
 		if (is.null(inf)) next
 		meths = grep(nsnf_shared_method_regex, names(inf), value = TRUE)
@@ -133,6 +139,7 @@ test_that("shared resampling / exact / likelihood-ratio entry points reject leng
 	}
 	expect_gt(n_checked, 600L)
 	expect_gt(n_checkmate_msg, 500L)
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("classes whose own asymptotic methods assert alpha and delta reject length-2 and infinite values", {

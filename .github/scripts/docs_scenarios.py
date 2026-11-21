@@ -55,6 +55,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import agent_failure  # noqa: E402  (next to this file: .github/scripts/, or the kit's tool/ on the agent runner)
+
 CONFIG = ".github/prompts/docs_scenario_areas.json"
 PROMPT = ".github/prompts/docs_scenario.md"
 RUNBOOK = "R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md"
@@ -346,6 +349,8 @@ def cmd_plan(a):
         # DESCRIPTION only: setup-r-dependencies installs EDI's dependencies from it. No other package file.
         shutil.copy(repo / "R/EDI/DESCRIPTION", kit / "pkg" / "DESCRIPTION")
         shutil.copy(Path(__file__), kit / "tool" / "docs_scenarios.py")
+        # collect reads the API's refusal reason from the transcript with it (the agent runner has no checkout)
+        shutil.copy(HERE / "agent_failure.py", kit / "tool" / "agent_failure.py")
         matrix.append({"area": i, "python": bool(area["python"]), "job_minutes": int(area["minutes"]) + 30})
     plan = {"head": head, "requested": a.requested, "areas": ids, "deferred": deferred,
             "due": {k: {"due": v[0], "reason": v[1]} for k, v in due.items()}}
@@ -437,12 +442,21 @@ def cmd_collect(a):
         if p.is_file():
             files[name] = redact(p.read_text(errors="replace"), secrets)[:400_000]
             (dest / name).write_text(files[name])
+    # Why the agent stopped, from its stream-json transcript: an API refusal (429 usage_limit_reached etc.)
+    # ends with `is_error: true` while the step only says "failure" (agent_failure.py, 2026-11-19).
+    stream = next((t for t in (a.transcripts or []) if t.endswith(".jsonl")), "")
+    why = redact(agent_failure.reason(stream, a.outcome), secrets) if stream else ""
+    api = why if why.startswith(agent_failure.QUOTA_MARK) else ""
     if a.notrun:
         status, note = "notrun", a.notrun
     elif files.get("summary.md", "").strip():
         status, note = "ok", f"agent step outcome: {a.outcome or 'unknown'}"
     elif files.get("findings.md", "").strip():
         status, note = "partial", f"no summary.md (agent step outcome: {a.outcome or 'unknown'}); findings kept, area re-runs next week"
+        if api:
+            note += f"; {api}"
+    elif why and not why.startswith("agent produced no structured output"):
+        status, note = "notrun", why
     else:
         status, note = "notrun", f"agent left no summary.md or findings.md (step outcome: {a.outcome or 'unknown'})"
     findings = parse_findings(files.get("findings.md", ""))
@@ -461,6 +475,24 @@ def cmd_collect(a):
 
 def finding_id(area, run_id, n):
     return f"ds-{area}-{run_id}-f{n}"
+
+
+def not_run_banner(notrun, n_areas):
+    """A warning at the top of the report (and so of the PR body and findings file) when agents did not run.
+
+    notrun: [(area, note)]. Parallel to audit_run.not_run_banner, worded for scenario areas.
+    """
+    reasons = sorted({note for _, note in notrun})
+    quota = agent_failure.refused_by_quota(reasons)
+    lines = ["> [!WARNING]",
+             f"> **{len(notrun)} of {n_areas or '?'} scenario agent(s) did not run** "
+             f"({', '.join(f'`{x}`' for x, _ in notrun)}); those areas stay due for the next run. "
+             "The run is marked failed."]
+    if quota:
+        lines.append("> The API refused them (quota or rate limit). Re-run after the limit resets: " + quota[0])
+    else:
+        lines += [f"> - {r}" for r in reasons[:5]]
+    return "\n".join(lines) + "\n\n"
 
 
 def cmd_report(a):
@@ -535,14 +567,18 @@ def cmd_report(a):
         if summ.exists():
             lines += ["", "<details><summary>Agent's summary</summary>", "", summ.read_text().strip(), "", "</details>"]
     report = "\n".join(lines) + "\n"
+    notrun = [(area, res.get("note") or "no output") for area, res, _, _ in sections if res["status"] == "notrun"]
+    if notrun:
+        report = not_run_banner(notrun, len(sections)) + report
     Path(a.report).write_text(report)
     status = "FINDINGS" if new_rows else "NONE"
     if new_rows:
         fdir = repo / a.findings_dir
         fdir.mkdir(parents=True, exist_ok=True)
         (fdir / f"{date}-run{a.run_id}.md").write_text(report)
-    out(a.github_output, status=status, date=date, new=str(len(new_rows)))
-    print(f"{status}: {len(new_rows)} new finding(s), {incomplete_total} without a repro")
+    out(a.github_output, status=status, date=date, new=str(len(new_rows)), notrun=str(len(notrun)))
+    print(f"{status}: {len(new_rows)} new finding(s), {incomplete_total} without a repro, "
+          f"{len(notrun)} of {len(sections)} agent(s) did not run")
     return 0
 
 
