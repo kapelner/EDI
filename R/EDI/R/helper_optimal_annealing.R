@@ -112,14 +112,16 @@ annealing_solve_custom = function(X, custom_objective, n_T, n_chains = 4L, max_i
 # instance past linearization_max_n, or a Dinkelbach run that exhausted
 # max_dinkelbach_iter (where the better of the exhausted run and a fresh
 # annealing run is returned). l1 is a pure linear MILP with no linearization
-# blowup, so it is always solved exactly. Adds solver/certificate fields on
+# blowup, so it is solved exactly, within milp_time_limit seconds (GLPK; after that the
+# better of its incumbent and annealing, v1.0.6-TODO-296). Adds solver/certificate fields on
 # top of the underlying solver's return.
 optimal_solve_auto = function(kind, Q = NULL, A = NULL, P = NULL, H = NULL, n_T,
 		X = NULL, custom_objective = NULL,
 		roi_solver = "glpk",
 		linearization_max_n = EDI_OPTIMAL_DEFAULT_LINEARIZATION_MAX_N,
 		n_chains = 4L, max_iter = 20000L, initial_temp = NULL, cooling_rate = 0.999,
-		max_dinkelbach_iter = 30L, verbose = FALSE){
+		max_dinkelbach_iter = 30L, verbose = FALSE,
+		milp_time_limit = EDI_OPTIMAL_DEFAULT_MILP_TIME_LIMIT){
 	if (!(is.character(kind) && length(kind) == 1L && kind %in% c("quadratic", "l1", "ratio", "custom"))) {
 		stop('kind must be "quadratic", "l1", "ratio", or "custom".')
 	}
@@ -131,7 +133,21 @@ optimal_solve_auto = function(kind, Q = NULL, A = NULL, P = NULL, H = NULL, n_T,
 		return(res)
 	}
 	if (kind == "l1") {
-		res = milp_solve_l1(A, n_T, roi_solver = roi_solver, verbose = verbose)
+		res = milp_solve_l1(A, n_T, roi_solver = roi_solver, verbose = verbose, time_limit = milp_time_limit)
+		if (isTRUE(res$timed_out)) {
+			# v1.0.6-TODO-296: the exact MILP hit solver_args$milp_time_limit; keep the better of its
+			# incumbent and an annealing run, uncertified.
+			message(sprintf(
+				"The abs_sum_diff MILP did not finish within solver_args$milp_time_limit = %g s; falling back to the annealing solver (certificate \"annealing_converged\", not a certified global optimum).",
+				milp_time_limit))
+			ann = annealing_solve_l1(A, n_T, n_chains = n_chains, max_iter = max_iter,
+				initial_temp = initial_temp, cooling_rate = cooling_rate)
+			if (!is.null(res$w) && res$objective_value < ann$objective_value) {
+				ann$w = res$w; ann$objective_value = res$objective_value
+			}
+			ann$solver = "annealing"; ann$milp_timed_out = TRUE
+			return(ann)
+		}
 		res$solver = "ompr"; res$certificate = "global"
 		return(res)
 	}

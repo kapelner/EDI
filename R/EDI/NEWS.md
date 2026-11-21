@@ -696,7 +696,14 @@
 
 ## Bug fixes
 
+* `DesignFixedOptimal(objective = "abs_sum_diff")` with the default
+  `solver = "auto"` could run for many minutes with no message (n = 40). The
+  exact MILP now gets `solver_args$milp_time_limit` seconds (default 30, GLPK);
+  after that the design uses the better of the MILP incumbent and an annealing
+  run and says so, with certificate `"annealing_converged"` (v1.0.6-TODO-296).
 * `DesignFixedOptimal$get_optimization_diagnostics()$objective_value` is now
+
+
   the documented M(w) for `"mahal_dist"` and `"abs_sum_diff"`. It was the
   solver's internal value, M(w) times 4 n_T^2 n_C^2 / n^4 or 2 n_T n_C / n^2 (a
   quarter and a half at prob_T = 0.5). The solver value is kept as

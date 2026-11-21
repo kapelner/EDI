@@ -23,6 +23,9 @@ EDI_OPTIMAL_ROI_SOLVERS = c("glpk", "gurobi", "cplex")
 # and 25, hence 20. Commercial backends (gurobi/cplex) push this out; users
 # override via solver_args$linearization_max_n.
 EDI_OPTIMAL_DEFAULT_LINEARIZATION_MAX_N = 20L
+# solver = "auto" gives the abs_sum_diff MILP this many seconds (GLPK tm_limit) before it falls back to
+# annealing; the MILP alone had not returned after 400 s at n = 40 (v1.0.6-TODO-296).
+EDI_OPTIMAL_DEFAULT_MILP_TIME_LIMIT = 30
 
 # Closed-set validation (fail fast on typos, never pass unchecked names into
 # ROI) plus a lazy requireNamespace() check for the packages the chosen
@@ -128,7 +131,7 @@ prepare_optimal_objective_matrices = function(X_raw, objective){
 
 # min_w sum_j t_j  s.t.  -t_j <= (A w)_j <= t_j, sum(w) = n_T, w binary --
 # the standard absolute-value linearization; pure MILP, GLPK-native.
-milp_solve_l1 = function(A, n_T, roi_solver = "glpk", verbose = FALSE){
+milp_solve_l1 = function(A, n_T, roi_solver = "glpk", verbose = FALSE, time_limit = NULL){
 	assert_optimal_roi_solver(roi_solver)
 	p = nrow(A); n = ncol(A)
 	n_T = assert_optimal_milp_n_T(n_T, n)
@@ -139,7 +142,21 @@ milp_solve_l1 = function(A, n_T, roi_solver = "glpk", verbose = FALSE){
 	model = ompr::add_constraint(model, ompr::sum_expr(w[i], i = 1:n) == n_T)
 	model = ompr::add_constraint(model, ompr::sum_expr(A[j, i] * w[i], i = 1:n) - tvar[j] <= 0, j = 1:p)
 	model = ompr::add_constraint(model, ompr::sum_expr(A[j, i] * w[i], i = 1:n) + tvar[j] >= 0, j = 1:p)
-	result = ompr::solve_model(model, ompr.roi::with_ROI(solver = roi_solver, verbose = verbose))
+	# time_limit (seconds) is passed to GLPK as tm_limit (v1.0.6-TODO-296); other ROI solvers ignore it.
+	use_limit = !is.null(time_limit) && is.finite(time_limit) && identical(roi_solver, "glpk")
+	result = if (use_limit) {
+		ompr::solve_model(model, ompr.roi::with_ROI(solver = roi_solver, verbose = verbose,
+			control = list(tm_limit = as.integer(ceiling(1000 * time_limit)))))
+	} else {
+		ompr::solve_model(model, ompr.roi::with_ROI(solver = roi_solver, verbose = verbose))
+	}
+	if (use_limit && !(ompr::solver_status(result) %in% c("optimal", "success"))) {
+		# GLPK stopped at the limit: return its incumbent, if it has a feasible one, uncertified.
+		w = tryCatch(optimal_milp_extract_w(result, n), error = function(e) NULL)
+		if (is.null(w) || sum(w) != n_T) w = NULL
+		return(list(w = w, objective_value = if (is.null(w)) Inf else sum(abs(A %*% w)),
+			status = "time_limit", timed_out = TRUE))
+	}
 	status = optimal_milp_check_status(result, "abs_sum_diff (l1)")
 	w = optimal_milp_extract_w(result, n)
 	list(w = w, objective_value = sum(abs(A %*% w)), status = status)

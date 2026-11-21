@@ -46,7 +46,10 @@
 #' \strong{Solvers and certificates.} \code{solver = "auto"} (default) uses
 #' the exact \code{"ompr"} MILP path (\code{optimum_certificate = "global"},
 #' a certified global optimum) wherever tractable -- always for
-#' \code{"abs_sum_diff"} (pure linear MILP); up to
+#' \code{"abs_sum_diff"} (pure linear MILP, given \code{solver_args$milp_time_limit}
+#' seconds, default 30, with GLPK; if it has not finished by then the better of its
+#' incumbent and an annealing run is returned with a message and certificate
+#' \code{"annealing_converged"}); up to
 #' \code{solver_args$linearization_max_n} (default 20, set by a GLPK
 #' benchmark: the product linearization adds \eqn{n(n-1)/2} auxiliaries and
 #' branch-and-bound cost climbs steeply past \eqn{n \approx 20}) for the
@@ -178,6 +181,8 @@ DesignFixedOptimal = define_design_class(
 		#'   \code{roi_solver} (\code{"glpk"}/\code{"gurobi"}/\code{"cplex"} --
 		#'   a \emph{closed} set; arbitrary ROI plugin names are rejected),
 		#'   \code{linearization_max_n}, \code{max_dinkelbach_iter},
+		#'   \code{milp_time_limit} (seconds for the \code{"abs_sum_diff"} MILP under
+		#'   \code{solver = "auto"} with GLPK, default 30; \code{Inf} for none),
 		#'   \code{n_chains}, \code{max_iter}, \code{initial_temp},
 		#'   \code{cooling_rate}, and the explicit BRT-replay override
 		#'   \code{brt_solver} with its annealing controls \code{brt_max_iter}
@@ -290,7 +295,7 @@ DesignFixedOptimal = define_design_class(
 				stop("solver_args must be a named list.")
 			}
 			known_solver_args = c(
-				"roi_solver", "linearization_max_n", "max_dinkelbach_iter",
+				"roi_solver", "linearization_max_n", "max_dinkelbach_iter", "milp_time_limit",
 				"n_chains", "max_iter", "initial_temp", "cooling_rate",
 				"brt_max_iter", "brt_n_chains", "brt_solver"
 			)
@@ -306,6 +311,12 @@ DesignFixedOptimal = define_design_class(
 				}
 				if (identical(solver_args$brt_solver, "ompr") && identical(objective, "custom")) {
 					stop('objective = "custom" cannot use solver_args$brt_solver = "ompr" (no structure to linearize).')
+				}
+			}
+			if (!is.null(solver_args$milp_time_limit)) {
+				tl = solver_args$milp_time_limit
+				if (!(is.numeric(tl) && length(tl) == 1L && !is.na(tl) && tl > 0)) {
+					stop("solver_args$milp_time_limit must be a single positive number of seconds (Inf for no limit).")
 				}
 			}
 			if (!is.null(solver_args$roi_solver)) {
@@ -550,7 +561,8 @@ DesignFixedOptimal = define_design_class(
 					initial_temp = arg_or("initial_temp", NULL),
 					cooling_rate = arg_or("cooling_rate", 0.999),
 					max_dinkelbach_iter = arg_or("max_dinkelbach_iter", 30L),
-					verbose = private$verbose
+					verbose = private$verbose,
+					milp_time_limit = arg_or("milp_time_limit", EDI_OPTIMAL_DEFAULT_MILP_TIME_LIMIT)
 				)
 			} else if (identical(private$solver, "ompr") || (brt_mode && identical(arg_or("brt_solver", "annealing"), "ompr"))) {
 				roi_solver = arg_or("roi_solver", "glpk")

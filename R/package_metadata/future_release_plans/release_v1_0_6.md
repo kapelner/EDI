@@ -5300,7 +5300,7 @@ were found by reading, not by running a fix.
   `test-greedy-and-greedy-d-optimal-same-draws-without-ties.R` (untied: 20 of 20 identical; tied: same treated count
   and Mahalanobis imbalances within 1e-3). If exact identity with ties is wanted, that is a C++ follow-up.
 
-- [ ] TODO-296 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f4):
+- [x] TODO-296 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f4):
   **`DesignFixedOptimal(objective = "abs_sum_diff")` with the default `solver = "auto"` hangs at n = 40 with no
   message.** n = 16 solves in 0.35 s, n = 24 in 3.7 s, n = 40 (`prob_T = 0.3`) had not returned after 400 s;
   `solver = "annealing"` takes 0.01 s. `solver = "auto"` always sends `abs_sum_diff` to the exact MILP
@@ -5311,6 +5311,16 @@ were found by reading, not by running a fix.
   to annealing with a message that says the result is not certified optimal (and set the certificate accordingly);
   document the limit in "Solvers and certificates". Test: n = 40 with the default solver returns within the limit with
   the fallback message; n = 16 still returns the certified MILP optimum. Repro: fixed-designs F4.
+  Done 2026-11-21 (agent): new `solver_args$milp_time_limit` (seconds, default 30 =
+  `EDI_OPTIMAL_DEFAULT_MILP_TIME_LIMIT`, `Inf` for none; validated at `$new()`). `optimal_solve_auto()` passes it to
+  `milp_solve_l1()`, which hands GLPK `tm_limit`; on the limit GLPK returns its feasible incumbent (status
+  GLP_FEAS), and the auto path keeps the better of that and an annealing run, with a message, certificate
+  `"annealing_converged"` and `milp_timed_out = TRUE` in the diagnostics. Only GLPK gets the limit (gurobi/cplex
+  ignore it), and only `solver = "auto"` (a forced `solver = "ompr"` still has none). Roxygen ("Solvers and
+  certificates", `solver_args`) updated, Rd not regenerated. Evidence: F4 repro (n = 40, prob_T = 0.3) with
+  `milp_time_limit = 3` returns in 4.4 s with M(w) 0.00631, the same as `solver = "annealing"`; before, no return in
+  400 s (finding). Test: new block in `test-optimal-solve-auto-dinkelbach-exhausted-annealing-fallback-reference.R`
+  (n = 40 with a 2 s limit: message, annealing certificate; n = 16 at the default: "global"; bad limits error).
 
 - [x] TODO-297 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f5):
   **`DesignFixedOptimal$get_optimization_diagnostics()$objective_value` is M/4 for "mahal_dist" and M/2 for

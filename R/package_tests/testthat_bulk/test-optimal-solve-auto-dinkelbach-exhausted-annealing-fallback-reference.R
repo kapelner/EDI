@@ -59,3 +59,34 @@ test_that("when the exhausted MILP's objective_value is NOT lower, annealing's o
 	expect_equal(res$certificate, "annealing_converged")
 	expect_equal(res$solver, "annealing")
 })
+
+# v1.0.6-TODO-296 (docs-scenarios fixed-designs F4): solver = "auto" sent abs_sum_diff to the exact
+# MILP with no time limit; at n = 40 it had not returned after 400 s. It now gets
+# solver_args$milp_time_limit seconds (GLPK) and then falls back to annealing with a message.
+test_that("abs_sum_diff under solver = 'auto' falls back to annealing when the MILP hits milp_time_limit", {
+	skip_if_not_installed("ompr"); skip_if_not_installed("ompr.roi"); skip_if_not_installed("ROI.plugin.glpk")
+	set.seed(20261118)
+	n = 40
+	X = data.frame(weight = round(rnorm(n, 25, 3), 1), age = sample(6:12, n, replace = TRUE))
+	o = DesignFixedOptimal$new(response_type = "continuous", n = n, objective = "abs_sum_diff", prob_T = 0.3,
+		seed = 3, verbose = FALSE, solver_args = list(milp_time_limit = 2))
+	o$add_all_subjects_to_experiment(X)
+	elapsed = system.time(expect_message(o$assign_w_to_all_subjects(), "milp_time_limit"))[["elapsed"]]
+	expect_lt(elapsed, 60)
+	dg = o$get_optimization_diagnostics()
+	expect_identical(dg$solver, "annealing")
+	expect_identical(dg$optimum_certificate, "annealing_converged")
+	expect_true(isTRUE(dg$milp_timed_out))
+	expect_equal(sum(o$get_w()), round(0.3 * n))
+
+	# a small instance still finishes inside the default limit with a certified optimum
+	o16 = DesignFixedOptimal$new(response_type = "continuous", n = 16, objective = "abs_sum_diff", seed = 3, verbose = FALSE)
+	o16$add_all_subjects_to_experiment(X[1:16, ])
+	o16$assign_w_to_all_subjects()
+	expect_identical(o16$get_optimization_diagnostics()$optimum_certificate, "global")
+
+	for (bad in list(0, -1, NA_real_, "30", c(1, 2))) {
+		expect_error(DesignFixedOptimal$new(response_type = "continuous", n = n, objective = "abs_sum_diff",
+			solver_args = list(milp_time_limit = bad)), "milp_time_limit")
+	}
+})
