@@ -136,8 +136,9 @@ des$assign_w_to_all_subjects()
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{factors}}{A list where names are factor names and values are number of
-levels (e.g. list(treatment = 2)). The product of levels across all factors must
-currently equal exactly 2 (two-arm only).}
+levels (e.g. list(treatment = 2)). Every entry must be named (unique, non-empty
+names) and be a whole number of levels >= 2. The product of levels across all
+factors must currently equal exactly 2 (two-arm only).}
       \item{\code{response_type}}{The data type of response values.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}

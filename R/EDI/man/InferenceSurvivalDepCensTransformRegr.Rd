@@ -30,19 +30,19 @@ censoring) are biased. \code{likelihood_tier = "full"}: likelihood-ratio,
 score, gradient, and Wald tests are available when the model converges,
 plus parametric-likelihood-bootstrap calibration of the likelihood-ratio
 test. \strong{Substantial method-support limitations, all deliberate}:
-randomization inference and jackknife bias correction/standard errors are
-hard-unsupported (each randomization draw would require a full
-dependent-censoring likelihood refit, too unstable/slow for the
-comprehensive test suite; jackknife bias correction is unstable for this
-likelihood on small censored samples) — every jackknife/randomization
+randomization inference, the Bayesian bootstrap and jackknife bias
+correction/standard errors are hard-unsupported (each randomization draw would
+require a full dependent-censoring likelihood refit, too unstable/slow for the
+comprehensive test suite; the joint likelihood takes no observation weights,
+and a weighted Cox fit would estimate a log hazard ratio, not this class's log
+time ratio; jackknife bias correction is unstable for this likelihood on small
+censored samples) — every jackknife/randomization/Bayesian-bootstrap
 method returns \code{NA} with a classed \code{edi_unsupported_procedure}
 warning rather than computing a value; the estimate, standard error and
 \code{is_nonestimable()} are left untouched. Nonparametric-bootstrap confidence intervals are
 computed and returned whenever both endpoints are finite; they are never
 replaced based on width, sign, or agreement with a Wald interval. Numerical
-failures return \code{NA}. Bayesian-bootstrap weighted re-estimation
-uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
-as an approximation rather than a full weighted joint-likelihood refit.
+failures return \code{NA}.
 
 Whether \code{compute_rand_two_sided_pval()} is actually
   usable on this instance right now -- \code{FALSE} exactly when it

@@ -59,8 +59,22 @@ or permutation function is exposed in Python.
   error. The Python wrappers compute them from the `XtWX`, `b`, `X` and `y`
   the kernels already return, so no C++ changed and no new binding was
   needed.
+- `fast_zero_one_inflated_beta` now returns what R's export returns: `b`,
+  `log_phi`, `zero_one_b0`, `zero_one_b1`, `vcov`, `observed_information`,
+  `fisher_information`, `information`, `information_type`, `hessian` and
+  `min_eigenvalue_information`. It takes `estimate_only` (default `False`;
+  see Changed) (v1.0.6-TODO-333).
+- `fast_robust_regression` now returns `min_eigenvalue_information` and,
+  unless `estimate_only`, `ssq_b_j` (`nan` where R gives `NA`) and
+  `fisher_information`, as R's export does (v1.0.6-TODO-333).
+- `fast_clogit_plus_glmm`'s `weights_disc` and `weights_conc` arguments are
+  now in the type stub and the input checks (v1.0.6-TODO-333).
 
 ### Changed
+
+- `fast_zero_one_inflated_beta`: a default call (`estimate_only=False`) now
+  also computes the Hessian and the information matrices, so it is slower;
+  `estimate_only=True` keeps the old, estimate-only path (v1.0.6-TODO-333).
 
 - The `fast_ordinal_*` cumulative-link kernels no longer return a
   `fisher_information` key: it held the observed Hessian. Use

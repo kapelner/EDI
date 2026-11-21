@@ -5,7 +5,9 @@ library(EDI)
 #   1. InferenceMixinKKGEEShared's init_kk_gee_shared() (inference_mixin_kk_gee_shared.R), composed
 #      into every "generic" KK-GEE class (InferenceIncidKKGEE/InferenceCountKKGEE/
 #      InferenceOrdinalKKGEE/...): "Package 'geepack' is required for <classname> when use_rcpp=FALSE.
-#      Please install it."
+#      Please install it." The "when use_rcpp=FALSE" clause appears only for a class whose constructor
+#      has a use_rcpp argument. InferenceOrdinalKKGEE has none (it passes use_rcpp = FALSE itself), so
+#      its message is "Package 'geepack' is required for InferenceOrdinalKKGEE. Please install it."
 #   2. InferencePropKKGEE's OWN initialize() (inference_proportion_KK_combined.R, a distinct
 #      fractional-logit GEE implementation that does not compose the shared mixin's initialize
 #      directly): "Package 'geepack' is required for InferencePropKKGEE. Please install it." -- a
@@ -83,4 +85,38 @@ test_that("InferenceOrdinalKKGEE errors at construction when multgee is (mocked 
 		)
 	)
 	expect_false("use_rcpp" %in% names(formals(InferenceOrdinalKKGEE$public_methods$initialize)))
+})
+
+# InferenceOrdinalKKGEE hard-codes use_rcpp = FALSE into the shared mixin, so the mixin's geepack guard
+# always runs for it. Its message used to say "when use_rcpp=FALSE", naming an argument the class does
+# not have; it now omits that clause, and keeps it for the classes that expose use_rcpp (above).
+test_that("InferenceOrdinalKKGEE's geepack error names no use_rcpp argument; a class with use_rcpp keeps the clause", {
+	set.seed(4L)
+	n <- 30L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(sample(1:4, n, replace = TRUE))
+	msg <- with_mocked_bindings(
+		check_package_installed = function(pkg, ...) !identical(pkg, "geepack"),
+		.package = "EDI",
+		code = tryCatch(InferenceOrdinalKKGEE$new(des, verbose = FALSE), error = function(e) e)
+	)
+	expect_s3_class(msg, "simpleError")
+	expect_identical(conditionMessage(msg),
+		"Package 'geepack' is required for InferenceOrdinalKKGEE. Please install it.")
+	expect_false(grepl("use_rcpp", conditionMessage(msg), fixed = TRUE))
+
+	set.seed(5L)
+	des_c <- DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)
+	for (i in seq_len(n)) des_c$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des_c$add_all_subject_responses(rpois(n, 3))
+	expect_true("use_rcpp" %in% names(formals(InferenceCountPoissonKKGEE$public_methods$initialize)))
+	msg_c <- with_mocked_bindings(
+		check_package_installed = function(pkg, ...) !identical(pkg, "geepack"),
+		.package = "EDI",
+		code = tryCatch(InferenceCountPoissonKKGEE$new(des_c, use_rcpp = FALSE, verbose = FALSE), error = function(e) e)
+	)
+	expect_s3_class(msg_c, "simpleError")
+	expect_identical(conditionMessage(msg_c),
+		"Package 'geepack' is required for InferenceCountPoissonKKGEE when use_rcpp=FALSE. Please install it.")
 })

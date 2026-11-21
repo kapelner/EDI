@@ -2052,6 +2052,7 @@ EDI_COMPONENT_SPECS = list(
 					requires_state = "cached_vc_params",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
 						"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
 						"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
 						"compute_jackknife_wald_confidence_interval", "compute_rand_two_sided_pval",

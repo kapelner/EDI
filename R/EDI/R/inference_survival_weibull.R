@@ -238,7 +238,9 @@ SurvivalWeibullLikelihoodSource = list(
 		#' @param show_progress Whether to print a progress bar.
 		#' @param permutations Optional pre-generated permutation matrix.
 		#' @param zero_one_logit_clamp Clamp used for logit-transformed responses.
-		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+		#'   see \code{InferenceRand$compute_rand_two_sided_pval()}.
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			# Pinned like compute_bayesian_bootstrap_two_sided_pval above --
 			# RandomizationTest's compute_rand_two_sided_pval is also a full
 			# self-contained implementation. Pinned from plain InferenceRand
@@ -247,7 +249,8 @@ SurvivalWeibullLikelihoodSource = list(
 			# incidence-only Zhang-dispatch case.
 			private$rand_compute_rand_two_sided_pval(
 				r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
-				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp
+				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative # v1.0.6-TODO-328
 			)
 		}
 	),

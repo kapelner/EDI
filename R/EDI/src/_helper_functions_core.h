@@ -1505,7 +1505,11 @@ inline void lbfgs_finish_with_newton_decrement(F& fun,
         edi_check_R_user_interrupt_every(it);
         const NewtonDecrementResult nd = objective_newton_decrement(fun, params, grad);
         if (!nd.ok) {
-            if (it == 0) converged = fallback_verdict;
+            // The rule cannot judge this point (Hessian not positive definite):
+            // keep the wrapper's previous verdict, also after damped steps that
+            // walked toward a boundary (a variance component -> 0, a loading ->
+            // +-Inf), where the curvature vanishes and the point only improved.
+            converged = fallback_verdict;
             break;
         }
         if (newton_decrement_within_tol(nd.lambda2, value, tol)) { converged = true; break; }

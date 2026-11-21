@@ -122,7 +122,10 @@ InferenceMixinKKGEEShared = list(
 				NA_real_
 			}
 		},
-		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			# v1.0.6-TODO-328: `alternative` as in InferenceRand's method (one-sided
+			# tail from the same draws); this override used to reject it.
+			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
 			if (isTRUE(delta != 0) &&
 					private$des_obj_priv_int$response_type == "incidence" &&
 					is.null(private$custom_randomization_statistic_function)) {
@@ -185,7 +188,8 @@ InferenceMixinKKGEEShared = list(
 				show_progress = show_progress,
 				permutations = permutations,
 				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp
+				zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative
 			)
 			if (!is.null(mc_pval)) return(mc_pval)
 			t0s = private$get_randomization_distribution_prefix(
@@ -197,7 +201,7 @@ InferenceMixinKKGEEShared = list(
 				cache_key = cache_key,
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)
-			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
+			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
 		}
 	),
 	private = list(

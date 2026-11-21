@@ -1,2 +1,2 @@
 pattern,reason
-Exact CI for the log odds ratio .*InferenceIncidExactZhang,v1.0.6-TODO-285: convex-hull CI scan (v1.0.6-TODO-233) is a deliberate ~2x cost over the v1.0.4 bisection-only CI; remove at the v1.0.6 release
+Exact CI for the log odds ratio .*InferenceIncidExactZhang,v1.0.6-TODO-285 (closed 2026-11-21; owner accepted): the convex-hull CI scan (v1.0.6-TODO-233) costs 1.2-1.3x the v1.0.4 bisection-only CI; at the 1.25x threshold so it would fail intermittently; remove at the v1.0.6 release

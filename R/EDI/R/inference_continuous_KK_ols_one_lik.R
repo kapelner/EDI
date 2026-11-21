@@ -137,7 +137,12 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				},
 				score = private$invert_test_pval_confidence_interval(alpha),
 				gradient = private$invert_gradient_ci_uniroot(alpha),
-				lik_ratio = private$invert_lik_ratio_ci_newton(alpha)
+				lik_ratio = private$invert_lik_ratio_ci_newton(alpha),
+				# v1.0.6-TODO-327: the Bartlett types are in get_supported_testing_types()
+				# but had no branch here, so the CI came back NULL.
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+				stop("Unsupported testing_type: ", private$testing_type)
 			)
 		},
 		#' @description Two-sided p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
@@ -165,7 +170,11 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				},
 				score = private$compute_score_two_sided_pval_impl(delta),
 				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta)
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+				stop("Unsupported testing_type: ", private$testing_type)
 			)
 		},
 		#' @description Returns the Gaussian log-likelihood, score, and observed information at the

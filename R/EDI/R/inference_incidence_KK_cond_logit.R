@@ -712,10 +712,13 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 		#' @param zero_one_logit_clamp Clamp applied to responses at the 0/1
 		#'   boundary before a logit-scale transform, to avoid infinite values.
 		#'   Default \code{.Machine$double.eps}.
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+		#'   see \code{InferenceRand$compute_rand_two_sided_pval()}.
 		compute_rand_two_sided_pval = function(
 				r = 501, delta = 0, transform_responses = "none", na.rm = TRUE,
 				show_progress = TRUE, permutations = NULL, type = NULL,
-				args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+				args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps,
+				alternative = "two.sided"){
 			private$shared_combined_likelihood(estimate_only = TRUE)
 			observed = suppressWarnings(as.numeric(private$cached_values$beta_hat_T)[1L])
 			if (isTRUE(self$is_nonestimable("estimate")) || !is.finite(observed)) {
@@ -731,7 +734,8 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 				na.rm = na.rm, show_progress = show_progress,
 				permutations = permutations, type = type,
 				args_for_type = args_for_type,
-				zero_one_logit_clamp = zero_one_logit_clamp
+				zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative # v1.0.6-TODO-328
 			)
 		}
 	),

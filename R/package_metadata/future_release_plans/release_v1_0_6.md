@@ -5164,7 +5164,7 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
   - Done when: both paths score a draw identically on a fixture with a constant column (and on one with collinear
     columns), with a test; NEWS bullet under "Changes that alter results" if allocations change.
 
-- [ ] TODO-326 (added 2026-11-21, owner; found while answering the v1.0.6-TODO-271 ties question): **The
+- [x] TODO-326 (added 2026-11-21, owner; found while answering the v1.0.6-TODO-271 ties question): **The
   `InferenceSurvivalDepCensTransformRegr` Bayesian bootstrap resamples a Cox log hazard ratio, not the class's log
   time ratio.** `compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_survival_dep_cens_transform.R`
   ~L49-68) replaces every weighted draw with `weighted_cox_bootstrap_surrogate_fit()` (`R/EDI/R/globals.R`), a
@@ -5188,6 +5188,17 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
   - Done when: the Bayesian-bootstrap draws centre on the class's estimate (test against the known 0.5 fixture and,
     for (a), a weighted refit with all weights 1 equal to `compute_estimate()` without the shortcut), or the method
     is unsupported with a test; NEWS bullet under "Changes that alter results".
+  Status 2026-11-21 (coordinator, uncommitted; R only, no build). OWNER DECISION: option (b). The class now overrides
+  `compute_bayesian_bootstrap_two_sided_pval()`, `compute_bayesian_bootstrap_confidence_interval()` and
+  `compute_estimate_with_bootstrap_weights()` to warn `edi_unsupported_procedure` (reason
+  "dep_cens_transform_bayesian_bootstrap_not_supported") and return NA / an all-NA named CI, like its jackknife and
+  randomization stubs; the component's `provides_public_methods` (contracts_mixins.R) and the class overrides list
+  name them. Roxygen and the hand-edited Rd say so; NEWS bullet under "Breaking changes". Test
+  testthat_bulk/test-dep-cens-transform-bayesian-bootstrap-methods-not-supported.R (14 pass); the obsolete
+  test-survival-dep-cens-transform-weighted-bootstrap-reference.R (it tested the Cox-surrogate wiring) is deleted and
+  ci/test_runtimes.csv refreshed. Under load_all(compile = FALSE) the other DepCens, mixin-contract, registry and
+  Bayesian-bootstrap test files pass (test-mixin-contracts.R 1678 pass). Not reproduced numerically first (the
+  owner chose (b) on the code reading).
 
 ### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
 
@@ -5467,6 +5478,8 @@ were found by reading, not by running a fix.
   the default reaching a later error; (c) keep `n = NULL` but error at `$new()` with "fixed designs need n (or call
   ...)" -- the same as (b) for users. Recommendation: (a) is what the help suggests a user expects, (b) is the
   smaller change. Not changed.
+  - Also reported by the docs-scenario audit: ds-observational-44883784401-f1 (2026-11-21, `ObservationalDesign`
+    with the default `n = NULL` fails as soon as the data are added; reproduces on HEAD). Fix it here.
 
 - [x] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
   `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` returns cached draws of another
@@ -5571,6 +5584,12 @@ were found by reading, not by running a fix.
   is not allowed, (1) should make `supports()` read `supports_rand_pval_for_incidence()`, (2)/(3) are message changes
   (name `InferenceIncidExactFisher` / CMH, mention Zhang only on Zhang-eligible designs), and (4) is an article and
   Rd change. The two branches touch the same lines, so doing either before the ruling would be wasted work.
+  - Also reported by the docs-scenario audit: ds-incidence-44883784401-f7 (2026-11-21, the same refusal and failing
+    `type = "Zhang"` advice on `DesignFixediBCRD`). Extends the scope: run the test on iBCRD too, and correct the
+    "does not refuse outright" sentence in the @description of `InferenceIncidWald` (`inference_incid_wald.R:51-56`),
+    `InferenceIncidRiskDiff` (`inference_incidence_risk_diff.R:55-60`), `inference_all_average_diff.R:445-447`,
+    `inference_incidence_extended_robins.R:56-58` and `inference_incidence_cmh.R:67`. The guard lines above have
+    drifted: `inference_all_abstract_rand.R:326-347,427`, `inference_all_abstract_rand_ci.R:476-479`.
 
 - [ ] TODO-304 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f3): **On the 2 x 2 main-effect
   design (`DesignFixedBlocking` with 2 blocks) the default BCa bootstrap CI and p-value and every jackknife unit return
@@ -5627,6 +5646,9 @@ were found by reading, not by running a fix.
   arm, and saying the exact CI and p-value remain valid); document the reason in `?InferenceIncidExactFisher`. Test:
   the finding's repro warns once with that reason, on `DesignFixedBlocking` and `DesignFixediBCRD`; CI and p-value
   unchanged. Repro: factorial F7.
+  - Also reported by the docs-scenario audit: ds-incidence-44883784401-f4 (2026-11-21, iBCRD zero cell: NA estimate,
+    reason `exact_fisher_conditional_mle_infinite`, no warning; `inference_indicidence_exact_fisher.R:118-127`). Add
+    its repro to this TODO's test.
   Done 2026-11-21 (agent): `get_exact_fisher_log_or_estimate()` now also calls `edi_warn_procedure_na()` (class
   `edi_procedure_na_warning`, reason `exact_fisher_conditional_mle_infinite`) once per fit (flag in
   `cached_values`), naming the cause ("the control arm has no events", "every treated subject has an event", ... or
@@ -6062,7 +6084,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   `.github/scripts/test_check_wheel_isa.py`. Wired into `build-wheels.yml` (Linux x86-64 wheels, after cibuildwheel) and
   the docs-scenarios `build-wheel` job. CPU baseline stated in `python/README.md` and `README_PYPI.md`; changelog in
   `python/CHANGELOG.md`. Local `build/<wheel tag>/` dirs cache the old OFF value: delete them before rebuilding.
-- [ ] TODO-285 (added 2026-11-20; nightly run 44715037976, benchmark (procedures) canary): **The Zhang exact CI's
+- [x] TODO-285 (added 2026-11-20; nightly run 44715037976, benchmark (procedures) canary): **The Zhang exact CI's
   convex-hull scan costs about 2x the v1.0.4 CI.** The v1.0.6-TODO-233 hull (scan of the p-value breakpoints plus a
   200-point grid past the bisection endpoint) made the n = 1000 Bernoulli benchmark row 8.6x slower (1.71 -> 14.87 ms
   on CI). Partly fixed 2026-11-20, same endpoints (720 random Bernoulli/KK CIs x 3 combination methods x 2 alphas
@@ -6075,7 +6097,42 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   vectorised minimum-likelihood kernel (needs a targeted compile) or scanning only the breakpoints when one component
   is present (the p-value is quasi-convex between breakpoints then) would bring it near 1x. Remove the allowlist row
   when fixed, and in any case at the v1.0.6 release, when the canary's baseline includes the hull.
+  C++ kernels added 2026-11-21 (agent, uncommitted; no build: tested by `sourceCpp` of `zhang_exact_speedups.cpp`
+  into `$TMPDIR` plus a namespace assign, `RcppExports.*` regenerated with `compileAttributes`; **the installed EDI
+  needs a rebuild to pick up the new exports**, and the parallel CI path's workers use the installed package).
+  `zhang_minlike_pval_vec_cpp()` (one component's minimum-likelihood p-value at a vector of deltas, O(K) per delta,
+  long double sums as in `colSums()`, so bit-identical to the R matrix; past the mode it stops once the remaining
+  terms cannot change either long double sum, which is exact by log-concavity) replaces the matrix in
+  `zhang_pval_exact_combined_vec()`, whose combination is now `zhang_combine_exact_pvals_vec()`;
+  `zhang_pval_exact_tail_bound_cpp()` / `zhang_hull_scan_cut_cpp()` do the tail bound and the whole cut bisection
+  in one call each (same arithmetic as the R versions, R's `pchisq`/`qnorm`/`pnorm`). A product R rounds on its own
+  goes through a volatile on FMA targets (`__FP_FAST_FMA`, e.g. -march=native), else the compiler fuses it and the
+  bits differ (seen: 1714 of 3000 vectors off by ~1e-15 before that). R side: the components are built once per
+  CI; `t_far` skips its scalar evaluation when the bound there already rejects; the scan finds the farthest
+  accepted point and the next one out without `order()`; `zhang_exact_pval_breakpoints()` uses a quicksort (values
+  distinct) and the grid uses `seq.default()`'s own formula (`zhang_seq_length_out()`, identical on 50,000 random
+  cases); and the endpoint snap (`zhang_snap_endpoint()`) takes its accept/reject decisions from the vector p-value
+  through `zhang_accepts_certified()`, calling the scalar kernels only where |p_vec - alpha| is within a rigorous
+  bound on the vector-vs-scalar difference (`zhang_pval_exact_vec_rel_err()`, floor 1e-6 relative; observed
+  differences below 2e-10). At n = 1000 Bernoulli both endpoints sit on a breakpoint, so that saves 4 of 63 scalar
+  evaluations (59 now, as before the hull). Endpoints: `cmp.R` (720 random Bernoulli/KK CIs x 3 methods x 2 alphas
+  vs the 72ea20ba hull) 0 diffs, all 720 bit-identical; kernels vs the replaced R code bit-identical on 3000 vectors,
+  60,000 single bounds, 52,488 combined bounds and 8748 cuts, with and without FMA (`-mno-fma`). Tests: all 22
+  Zhang test files pass under `load_all(compile = FALSE)` + the sourced kernels (0 failures; the 2 skips are the
+  files' own `skip()`); new `testthat_bulk/test-zhang-minlike-pval-vector-kernel-and-tail-bound-kernels.R`
+  (bit-identity vs the replaced R code, agreement with the scalar kernels, the rel_err bound, certified decisions,
+  bound validity/monotonicity, the vector combination); the TODO-233 test still compares the vector p-value with the
+  scalar kernels (now `as.vector()`, as the result carries `rel_err`). Timing, n = 1000 Bernoulli Fisher CI, all
+  versions byte-compiled, 100 interleaved rounds on a loaded machine (load ~9): pre-hull a54a263f 7.95 ms median,
+  hull before this (R matrix + R cut) 15.4 ms (1.94x), now 9.6 ms (1.21x by medians, 1.26x median per-round ratio;
+  earlier runs 1.19-1.29x). So at about the canary's 1.25x but not clearly under it: left open and the allowlist row
+  kept. What is left is mostly the hull's own work (two scan kernel calls over 93 points x 326 outcomes, ~7% of the
+  CI; R glue ~10%). Further options: skip outcomes far below the mode with a certified error bound and an exact
+  fallback near alpha (not bit-identical, ~2%), or a scan restricted to breakpoints when one component is present.
 
+  DONE 2026-11-21 (owner decision): 1.2-1.3x the pre-hull CI is close enough; the further options above are not
+  pursued. The benchmark allowlist row stays, since the row sits at about the canary's 1.25x and would fail
+  intermittently; remove it at the v1.0.6 release, when the canary baseline includes the hull.
 - [x] TODO-286 (added 2026-11-20, done 2026-11-20; ds-custom-statistic-44358267779-f1, ds-custom-statistic-44358267779-f5, ds-custom-statistic-44358267779-f6):
   **`InferenceRandCustom` nonzero-delta nulls mixed scales.** Its fast path `compute_fast_randomization_distr()`
   re-added the null shift to every draw as `y + delta * w`, but `y` arrives with delta removed on the
@@ -6131,7 +6188,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   Windows). Done when both Windows legs finish `R CMD check` in under ~90 min again. Costs ~3 h of runner time per
   Windows leg per push until fixed.
 
-- [ ] TODO-327 (added 2026-11-21, agent, owner request; audit decision `code-duplication-d4062d188`, issue #61 triage):
+- [x] TODO-327 (added 2026-11-21, agent, owner request; audit decision `code-duplication-d4062d188`, issue #61 triage):
   **`set_testing_type("lik_ratio_bartlett_*")` makes `compute_asymp_*()` return NULL on `InferenceContinKKOLSOneLik`
   and `InferenceCountPoisson`.** Both switch on `testing_type` with no Bartlett branches and no `stop()` default
   (`R/EDI/R/inference_continuous_KK_ols_one_lik.R:132-141,160-169`, `R/EDI/R/inference_count_poisson.R:267-273,286-292`),
@@ -6139,7 +6196,16 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   at runtime). Fix: add the Bartlett branches dispatching to the `*_impl` (as `..._loggamma.R:664-665` does) and a
   `stop("Unsupported testing_type")` default. Test: for every exported class and every supported testing type, the
   asymptotic CI is a length-2 numeric and the p-value a length-1 numeric.
-- [ ] TODO-328 (added 2026-11-21, agent, owner request; audit decision `code-duplication-ddad98657`, issue #61 triage):
+  - **Done 2026-11-21 (agent):** Bartlett branches plus a `stop()` default added to the asymp CI and p-value switches in
+    `inference_continuous_KK_ols_one_lik.R` and `inference_count_poisson.R`. The sweep found the same gap in
+    `InferenceCountKKCondPoissonOneLik` and `InferenceCountKKHurdlePoissonOneLik` (NULL) and `InferenceCountKKGLMM`
+    ("Unsupported testing_type"), now fixed too. The new loop test also found that `InferenceIncidExtendedRobins`'s asymp
+    CI and p-value returned NA with no reason on a fresh object (never computed `beta_hat_T`); fixed. Test:
+    `R/package_tests/testthat_bulk/test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R` (every class x
+    supported type, Bartlett factor stubbed, ~32 s, 1232 passed). Open question for the owner: on the KK count OneLik
+    classes `lik_ratio` is design-conservative but `lik_ratio_bartlett_approx` dispatches to the model-only Bartlett
+    method (narrower CI on the fixture: [-0.262, 0.663] vs [-0.277, 0.695]).
+- [x] TODO-328 (added 2026-11-21, agent, owner request; audit decision `code-duplication-ddad98657`, issue #61 triage):
   **`compute_rand_two_sided_pval(alternative = ...)` errors ("unused argument") on 7 classes whose override lacks the
   argument.** The base method gained `alternative` in 3dabce47 and NEWS announces it, but the overrides in
   `R/EDI/R/inference_mixin_kk_gee_shared.R:125` (the 4 KK GEE classes), `inference_survival_dep_cens_transform.R:121`,
@@ -6148,6 +6214,12 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   helpers, or have the override delegate its tail to the base method (see v1.0.6-TODO-193). Test: every exported
   class's `compute_rand_two_sided_pval` has an `alternative` formal, plus one `alternative = "greater"` call per
   override.
+  - **Done 2026-11-21 (agent):** `alternative = "two.sided"` with `match.arg` added to the overrides in the KK GEE mixin
+    (passed to the sequential Monte Carlo and t0s helpers; not delegated to the base, whose seeding and incidence rules
+    differ), KK cond-logit OneLik and Weibull (passed to the base method they already call) and the DepCens stub (still
+    NA). A runtime formals check on every exported class found no other override missing it. Two-sided p-values match
+    HEAD to 17 digits on fixed seeds. Test: `R/EDI/tests/testthat/test-rand-pval-alternative-accepted-by-every-override.R`
+    (243 passed). Follow-up filed as v1.0.6-TODO-373.
 - [ ] TODO-329 (added 2026-11-21, agent, owner request; audit decision `code-duplication-db5595975`; low priority):
   **The unweighted log- and identity-binomial kernels ignore `warm_start_weights`.** `fit_constrained_binomial_cpp_impl`
   (`R/EDI/src/fast_log_binomial_regression.cpp:520-810`) never reads the argument and doesn't check its length; the
@@ -6188,19 +6260,470 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   source-string statistic, `compute_rand_two_sided_pval()` under `set.seed()` is identical for `num_cores = 1` and
   `2`; with an external pointer or pre-compiled function, pin whatever the parallel path does (clear error or
   main-process fallback), and fix the docs if it differs. Test only.
-- [ ] TODO-335 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **The inference registry's
+- [x] TODO-335 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **The inference registry's
   `required_packages` is empty for every class** (`R/EDI/R/inference_class_registry.R:3958`), so
   `missing_required_packages_for_inference_class()` returns nothing and `InferenceSuite` never excludes a class whose
   Suggests package is missing (`R/EDI/R/inference_suite.R:94`). Fill it from the classes' own package guards (as
   `likelihood_concave` is filled from a constant), add a drift test against the guards, and make the v1.0.6-TODO-181
-  test helper read it. In progress (agent, 2026-11-21).
-- [ ] TODO-336 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **`InferenceOrdinalKKGEE`'s
+  test helper read it.
+  - **Done 2026-11-21 (agent; source in 83e092b7):** `EDI_INFERENCE_REQUIRED_PACKAGES` in `inference_class_registry.R`
+    fills the field for 10 classes (quantreg: the 6 quantile classes; multgee + geepack: `InferenceOrdinalKKGEE`;
+    aftgee: `InferenceSurvivalKKRankRegrIVWC`; nbpMatching: `InferenceBaiAdjustedTKK14` / `KK21`), confirmed by running
+    every exported class with all Suggests stats packages removed. Packages needed only on non-default paths are in
+    `EDI_INFERENCE_OPTIONAL_PATH_PACKAGES`. `missing_required_packages_for_inference_class()` now uses
+    `check_package_installed()`, so `InferenceSuite` excludes these classes and lists them under
+    `unavailable_due_to_missing_packages`. Drift test: `tests/testthat/test-inference-required-packages-registry.R`
+    (guard-text scan plus a mocked-absent construct-and-fit check); the v1.0.6-TODO-181 helper now reads the registry.
+    Side effect: `classes =` / `exclude_classes =` naming such a class now errors "unknown/inapplicable class(es)".
+    Open follow-up: `InferenceOrdinalKKGEE` fits with multgee only and needs geepack just because of the shared guard.
+- [x] TODO-336 (added 2026-11-21, agent, owner request; found by the v1.0.6-TODO-181 agent): **`InferenceOrdinalKKGEE`'s
   missing-geepack error mentions `use_rcpp=FALSE`**, but the class hard-codes it (`R/EDI/R/inference_ordinal_KK_combined.R:87`)
   and has no such argument; the message comes from the shared mixin guard (`R/EDI/R/inference_mixin_kk_gee_shared.R:287`).
-  Mention `use_rcpp` only for classes that expose it. In progress (agent, 2026-11-21).
+  Mention `use_rcpp` only for classes that expose it.
+  - **Done 2026-11-21 (agent; source in 83e092b7):** the guard adds " when use_rcpp=FALSE" only when the constructor has
+    `use_rcpp`; the error class is unchanged. Both message forms are tested in
+    `R/package_tests/testthat_bulk/test-kk-gee-geepack-package-required-guard-reference.R`.
 - [x] TODO-337 (added 2026-11-21, agent, owner request): **The docs-scenarios audit stayed green when the API refused
   its agents.** `docs_scenarios.py collect` now reads the refusal reason from each transcript with the shared
   `.github/scripts/agent_failure.py` (copied into each area kit); `report` puts "N of M scenario agent(s) did not run"
   with the API reason at the top of the report, PR body and findings file; and the publish job of
   `audit-docs-scenarios.yml` fails in its last step, after the partial results are saved. Areas that didn't run stay
   due. Tests: `DocsScenarios` in `.github/scripts/test_agent_failure.py` (560 `.github/scripts` tests pass; actionlint clean).
+
+### Docs-scenario findings, run 44883784401, 2026-11-21 (TODO-338..372)
+
+The docs-scenario audit (run 44883784401, merged as PR #78) followed the inference-suite, save-load,
+simulation-framework, observational, incidence, count, ordinal and proportion articles and help pages against installed
+1.0.4. Findings and repros: `R/package_metadata/audits/docs_scenario_findings/2026-11-21-run44883784401.md`; "Repro:
+<area> F<k>" below names the block in that file. Each was re-checked on HEAD (779dc92c..6ed95ff3) on 2026-11-21 by
+reading the code, most also by a small repro under `load_all(compile = FALSE)`. Findings an existing entry covers are
+cited there: observational f1 (v1.0.6-TODO-298), incidence f7 (v1.0.6-TODO-303). Fixed or invalid ones are in
+`R/package_metadata/audits/dismissed_decisions.md` (observational f5-f8, fixed in ba1c3988; incidence f4, fixed in
+ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
+
+- [ ] TODO-338 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`max_secs_per_class` at
+  1 core and the inherited `set_num_cores()` cluster in forked suite workers.**
+  Ids: ds-inference-suite-44883784401-f3, ds-inference-suite-44883784401-f11, ds-observational-44883784401-f3.
+  (1) At 1 core the suite uses `setTimeLimit(elapsed =, transient = TRUE)` (`R/EDI/R/inference_suite.R:1692-1693`):
+  a limit that fires inside a per-draw `tryCatch` is swallowed, so a 69 s ZINB is reported `ok` at a 2 s limit, and
+  one that fires in native code halts Rscript past every handler. b9a3519e (v1.0.6-TODO-292) fixed only the fork
+  path; its "found, not changed" note recorded this. (2) After `set_num_cores(2)`, forked children inherit the
+  socket cluster; `configured_worker_fn` in `run_all_inference_fork_dispatch()` (`inference_suite.R:~1535`) resets
+  only the thread env vars, so a child's randomization p-value fails with "ignoring SIGPIPE signal" while the row
+  stays `ok`, and later direct calls in the parent fail too. Fix: when `max_secs_per_class` is set, run every task
+  through the fork dispatcher with kill-by-PID, also at 1 core; in a child, drop the inherited cluster handle without
+  closing the parent's sockets and run inner work serially; a failed p-value never leaves status `ok`. Done when:
+  the inference-suite F3 repro returns timeout rows and never reaches an outer `tryCatch`, and the F11 and
+  observational F3 repros give the same p-values as at 1 core with a working direct call afterwards.
+
+- [ ] TODO-339 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Suite rows for skipped,
+  refused or misspelled procedure types look like successes.**
+  Ids: ds-inference-suite-44883784401-f1, ds-inference-suite-44883784401-f4, ds-inference-suite-44883784401-f7.
+  With `compute_conf_intervals = FALSE`, CI-only bootstrap types (`basic`, `calibrated`, ...) still get rows with
+  `pval = NA`, method columns filled, `status = "ok"`, no message: `inference_suite.R:1022` (and the CI twin ~L925)
+  returns `method = entry$label` instead of NA, and `:1846-1847` back-fills both method columns (v1.0.6-TODO-261 is
+  the `ci_method` half of this; fix both together and remove that TODO's skip). A misspelled type
+  (`bootstrap = "percentil"`) passes `intersect()` at `:542` as zero types, builds a `type = NA` task (`:1255-1258`)
+  and runs the default flavour, `ok`. A refused rand CI (QuasiPoisson/RobustPoisson lose `randomization_ci` on count,
+  registry `:208-225`) returns `method = NA` at `:900`, back-filled to "rand", no message. Fix: don't build tasks for
+  a side that is turned off; error in `run_all_inference()` on a type outside the known vocabularies, listing them
+  (as for sentinels, ~L5116); put the refusal reason in `message` for a capability the class refuses here. Done
+  when: the three repros give no row or an NA-method row with a message, and a typo errors naming the valid types.
+
+- [ ] TODO-340 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Count estimand tags and the
+  QuasiPoisson/RobustPoisson randomization-CI scale.**
+  Ids: ds-inference-suite-44883784401-f2, ds-inference-suite-44883784401-f8.
+  `EDI_INFERENCE_ESTIMAND_TAGS` (`R/EDI/R/inference_class_registry.R:1621-1634`) tags Poisson, Quasi, Robust, NegBin,
+  ZIP and HurdlePoisson `log_rate_ratio_marginal` but HurdleNegBin and ZINB `log_rate_ratio_conditional`, while every
+  object reports `get_estimand() == "conditional"`; Combined Evidence groups by these tags.
+  `inference_model_scale_randomization_transform_for()` (`R/EDI/R/inference_all_abstract_rand_ci.R:21-31`) does not
+  count Quasi/RobustPoisson as model-scale, so their rand-CI refusal says the estimate "is on the raw response scale"
+  (false: it is the same log rate ratio as Poisson, whose rand CI works), and the message appends an internal TODO
+  path (`inference_all_abstract_rand_ci.R:360-361`, `inference_class_registry.R:325`). Fix (owner call on the
+  tags): retag GLM/count-part coefficients `log_rate_ratio_conditional`, keeping `marginal` for true marginal
+  estimands (e.g. PoissonKKGEE); treat Quasi/Robust as model-scale; drop the path from the message (see also
+  v1.0.5-TODO-119's note). Done when: a test asserts every count class's tag agrees with `get_estimand()`, the Quasi
+  rand CI is finite, and no user-facing message contains "package_metadata".
+
+- [ ] TODO-341 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Suite print and Combined
+  Evidence: row-vs-class counts, single-inference groups, the 1e-4 Cauchy floor, mangled numbers.**
+  Ids: ds-inference-suite-44883784401-f5, ds-inference-suite-44883784401-f6, ds-inference-suite-44883784401-f9,
+  ds-ordinal-44883784401-f10.
+  (1) The print header uses `nrow(results_table)` as "class(es)" (`inference_suite.R:5529`), `summary()` mixes
+  class and row counts (~L5577), and `n_used` counts zero-weight rows (`:4286`, footer `:4315`). (2) A group of one
+  prints `p = NA` because `run_all_inference_combine_pvalues()` returns NA for n < 2 (`:4287`), though that p enters
+  the overall combination. (3) The Cauchy combination clips every p to [1e-4, 1 - 1e-4] (`pval_eps`, `:4273`,
+  `:4290`), so the combined p (1.05e-4) exceeds 19 of the 21 inputs; the floor is not in `?InferenceSuite`. (4) Long
+  numbers are hard-wrapped with a hyphen (`:2051-2066`): `-4.22e-06` prints as `-4.22e--` / `06`. Fix: print
+  "k rows / m classes" and label row counts; `n_used` counts weight > 0; a one-row group shows its own p; clip only
+  the upper end (or eps ~1e-300; CCT is stable for small p) or document the floor; never wrap numeric cells. Done
+  when: the F5 repro shows the right counts, a one-row group prints its p, `combined_evidence$pval` matches the
+  Liu-Xie formula on the ordinal F10 table to 1e-8, and a wrap test on "-4.22e-06" gives one intact cell.
+
+- [ ] TODO-342 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **The suite drops a valid
+  exact p-value and CI when only the estimate is non-estimable, and keeps separated fits at full weight.**
+  Ids: ds-incidence-44883784401-f9.
+  `inference_suite.R:1759-1771` sets the row to "nonest" on any `is_nonestimable("any")`, discarding
+  `InferenceIncidExactFisher`'s exact p (6.26e-05) and CI on zero-cell data (its `nonestimable_stage` is
+  "estimate"), while GComp RR (p = 0, CI 2.7e-10 to 7.6e-10) with its own separation warning stays `ok` at full
+  weight. Fix: keep the p/CI cells a class still returns when only the estimate stage is non-estimable; down-weight
+  or exclude rows that raised a separation/boundary warning (owner call on which). Done when: on the incidence F9
+  repro the Fisher row carries its p and CI and the separated rows do not enter the combination at full weight.
+
+- [ ] TODO-343 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **User-facing help names
+  unexported objects and internal developer files.**
+  Ids: ds-inference-suite-44883784401-f10, ds-observational-44883784401-f4.
+  `?InferenceSuite` sends users to the unexported `EDI_INFERENCE_SUITE_METHOD_SENTINELS`,
+  `is_inference_class_compatible_with_design_metadata()`, `infer_inference_requires_blocking_design()` and
+  `inference_class_registry.R` (`inference_suite.R:4432,4451,4790`). Roxygen on the observational path cites
+  `fix_design_hierarchy.md`, internal TODOs and `draw_ws_raw()`: `design_observational.R:84-88`,
+  `design_abstract.R:660-662,768,796`, `design_fixed_binary_match.R:54`, `design_fixed_greedy.R:79`,
+  `design_fixed_greedy_d_optimal.R:159`, `design_class_registry.R:4`, `design_component_registry.R:3`,
+  `design_class_factory.R:4`. Fix: list the sentinels inline (or export a getter), rewrite the `#'` lines to stand
+  alone and keep internal pointers in `#` comments. This extends v1.0.6-TODO-311 (which covers message strings) to
+  roxygen. Done when: a source test fails on any `#'` line naming `package_metadata`, an internal `.md` or
+  `TODO-<n>`, and `man/InferenceSuite.Rd` names no unexported identifier.
+
+- [ ] TODO-344 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`InferenceCountRobustPoisson`
+  returns a named estimate and p-value (`"treatment"`).**
+  Ids: ds-inference-suite-44883784401-f12.
+  `R/EDI/R/inference_all_abstract_count_likelihood.R:138` keeps the name of RobustPoisson's named `b_full`
+  (`inference_count_robust_poisson.R:249`); every other count class returns unnamed numbers. Fix: `as.numeric(...)[1L]`
+  as in `inference_all_abstract_asymp_lik_std_mod_cache.R:264`, same on the p-value path. Done when: a test over
+  all count classes asserts `is.null(names())` on the estimate, CI and p-value.
+
+- [ ] TODO-345 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **A shared warm start makes
+  results depend on call order (NegBin score p) or freezes randomization refits at a separated fit (Poisson family).**
+  Ids: ds-inference-suite-44883784401-f13, ds-count-44883784401-f7.
+  (1) `InferenceCountNegBin`'s score-test null fit starts from the mutable backend warm start
+  (`R/EDI/R/inference_count_negbin.R:384-390`), which the score-CI search updates (`:297`): score p 0.1027268 on a
+  fresh object, 0.1025635 after the CI. (2) When every control count is 0, Poisson, QuasiPoisson and RobustPoisson
+  rand refits warm-start from the separated full fit (`inference_count_poisson.R:748-757`) and stay there: all 49
+  draws equal the observed 22.79, p = 1 for every alternative, no warning. Fix: start the NegBin null fit from a fixed
+  point; drop a warm start on a separation boundary and cold-start (the v1.0.6-TODO-30 pattern for ZIP), and return
+  NA with a warning when all draws are degenerate. Done when: the score p is `identical()` with and without a prior
+  CI, and the count F7 repro gives p near 2/(r+1) (or NA with a warning) for all three classes.
+
+- [ ] TODO-346 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`get_summary()` SEs disagree
+  with the Wald SE for ZIP, HurdlePoisson and KK GLMM, and are all NA for HurdleNegBin.**
+  Ids: ds-count-44883784401-f2, ds-count-44883784401-f3, ds-count-44883784401-f5.
+  ZIP/HurdlePoisson build the summary from the model-based `fit$vcov`
+  (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:349-366`) while `compute_asymp_*` use a sandwich (SE
+  0.3407 vs 0.5518, p 0.093 vs 0.299). `InferenceCountHurdleNegBin` (`inference_count_hurdle.R:375+`) caches no
+  `full_vcov`/`summary_table`, so every SE is NA, the hurdle part is missing and the labels differ. KK GLMM: the Wald
+  docs were fixed in 83e092b7 (rd-dc6614af5: the larger of model and jackknife SE), but `get_summary()` still shows a
+  different SE from the one its Wald CI uses, depending on `use_rcpp`. Fix: fill the summary SE from the vcov the
+  Wald path uses (or label the column) and cache HurdleNegBin's count/hurdle coefficients with `conditional:` /
+  `hurdle:` names; relates to v1.1.0-TODO-56 items 2-3. Done when: for these four classes the summary's treatment SE
+  equals the SE implied by the asymptotic CI and HurdleNegBin's labels match HurdlePoisson's.
+
+- [ ] TODO-347 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Count model formulas:
+  `offset()` is silently dropped, and `~ 1` for the zero/hurdle part is under-documented.**
+  Ids: ds-count-44883784401-f1, ds-count-44883784401-f4.
+  `offset(log_fu)` in `model_formula` is accepted, echoed by `get_model_formula()`, and dropped: Poisson, NegBin and
+  ZIP fits equal the no-offset fits (`assertFormulaContext()`, `R/EDI/R/helper_additional_asserts.R:28-45`; the
+  feature itself is v1.1.0-TODO-17a). `model_formula_zero = ~ 1` fits `~ w`: by design and now said for ZIP
+  (add3f6cb, `inference_count_zero_inflated.R:200-206`), not yet for ZINB (`:496-497`) or HurdlePoisson/HurdleNegBin
+  `model_formula_hurdle` (`inference_count_hurdle.R:148-149,427-428`). Fix: error when `attr(terms(f), "offset")` is
+  non-NULL ("offsets are not supported yet"), outside the `should_run_asserts()` gate; copy the "treatment is always
+  included" sentence to the other three pages. Done when: `~ offset(x) + ...` errors for every count class and all
+  four Rd pages say what `~ 1` fits.
+
+- [ ] TODO-348 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Testing types are listed as
+  supported, then refused or answered with "no error message was recorded".**
+  Ids: ds-count-44883784401-f6, ds-incidence-44883784401-f5.
+  `InferenceCountKKGLMM$get_supported_testing_types()` lists `lik_ratio_bartlett_approx`
+  (`R/EDI/R/inference_all_abstract_asymp_lik.R:552-565`) but its `compute_asymp_*` switch
+  (`inference_count_KK_combined.R:~208-236`) has no case: "Unsupported testing_type". On `InferenceIncidLogRegr` the
+  public `compute_lik_ratio_bartlett_exact_*()` run although `supports_bartlett_likelihood_ratio_exact()` is FALSE
+  (`inference_all_abstract_asymp_lik.R:288-303`) and return NA with the fallback text "no error message was recorded"
+  (`helper_robust_sandwich.R:366-369`); the bad-value error of `set_testing_type()` lists all six types
+  (`normalize_testing_type()`, `:601`) though `:98-108` then refuses bartlett_exact. The ordinal PO/cloglog classes
+  show the same exact-Bartlett NA. Fix: add the bartlett_approx cases to KK GLMM; make the exact methods return NA
+  with a specific reason (or error) when unsupported; list only `get_supported_testing_types_with_bartlett()` in the
+  error. Done when: every class's listed testing types all run through `compute_asymp_*`, and the LogRegr exact
+  warning names the real reason.
+
+- [ ] TODO-349 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`capabilities()` /
+  applicability promise procedures the design refuses (randomization on `ObservationalDesign`, CMH's SE, the
+  bootstrap on KK sequential designs).**
+  Ids: ds-observational-44883784401-f2, ds-observational-44883784401-f12, ds-save-load-44883784401-f1.
+  `get_design_excluded_inference_capabilities()` (`R/EDI/R/inference_class_registry.R:2800-2808`) excludes by the
+  `DesignSeqOneByOne` class name only and never asks `supports_randomization_draw()`, so on `ObservationalDesign`
+  `supports()` says TRUE for randomization test/CI/bootstrap, which then refuse. `InferenceIncidCMH`'s non-blocking SE
+  path draws `w` (`inference_incidence_cmh.R:~197-211`) and hits the observational `draw_ws_raw()` stop
+  (`design_observational.R:110-112`), though CMH is listed as applicable. On KK14/KK21 the bootstrap stops with "This
+  method is not supported for DesignSeqOneByOne designs" (`inference_class_registry.R:2850-2858,2878`; intended, 1b2f1c74),
+  but the KK help's method table lists it and the message names neither the method nor the class. Fix: exclude the
+  randomization capabilities when `!supports_randomization_draw()`; mark CMH incompatible there (or cache a
+  non-estimable SE with a classed warning); name the method, the class and the Bernoulli exception in the refusal and
+  note the restriction in the KK table. Sibling of v1.0.6-TODO-303. Done when: on `ObservationalDesign*` `supports()`
+  is FALSE for these and TRUE on Bernoulli, CMH is absent or NA-with-warning, and the KK14 error names the method
+  and "DesignSeqOneByOneKK14".
+
+- [ ] TODO-350 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`clone(deep = TRUE)` of
+  SPBR, RandomBlockSize and PocockSimon shares per-stratum state with the original.**
+  Ids: ds-save-load-44883784401-f2.
+  `private$strata_states = new.env()` (`design_seq_one_by_one_spbr.R:103,120-129`,
+  `design_seq_one_by_one_random_block_size.R:125,147-165`) is not copied by R6 deep clone, and
+  `pocock_simon_assign_and_update_cpp(private$counts, ...)` (`design_seq_one_by_one_pocock_simon.R:131-142`) updates a
+  shared matrix in place; no design defines `deep_clone`. Reproduced on HEAD: after the clone the original differs
+  from an uninterrupted run in 5/12/11 of 20 assignments. Fix: a private `deep_clone()` (once on `DesignSeqOneByOne`)
+  that copies environments and `counts`, or have the C++ return the updated counts. Check the v1.0.6-TODO-316
+  rollback snapshot, which keeps the same references. Done when: a test over every sequential class shows the copy
+  and the original each match an uninterrupted run.
+
+- [ ] TODO-351 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Sequential designs accept
+  subject n + 1, and a covariate arriving as text retypes the column for every earlier subject.**
+  Ids: ds-save-load-44883784401-f3, ds-save-load-44883784401-f5.
+  `add_one_subject_to_experiment_and_assign()` has no `t < n` guard when `fixed_sample` is set
+  (`R/EDI/R/design_seq_one_by_one_abstract.R:79-89`; `private$w[private$t] = w_t` grows `w`, `:239-262`), and
+  `check_experiment_completed()` tests only `t < n` (`design_abstract.R:545-553`): 31 adds on n = 30 give t = 31,
+  `get_n()` 30, inference on 31. A text value for a numeric covariate warns once (`:153`) and retypes the stored
+  column (`:142-161`); later assignments change and the final analysis is NA with no warning. Fix: error at the
+  (n + 1)th add; on a type change either error or coerce back to the stored type and error if that gives NA (the
+  v1.0.6-TODO-316 rollback then restores state); update the "Fix the covariate list" sentence in the sequential-trial
+  article. Done when: the 31st add errors with t still 30 (Bernoulli, KK14, KK21), and the F3 repro errors at subject
+  26 naming the column, with `get_t()` and `get_X_raw()` unchanged.
+
+- [ ] TODO-352 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Development builds still
+  report version 1.0.4, so saved designs are stamped with a release whose seeding rule differs (owner decision).**
+  Ids: ds-save-load-44883784401-f4.
+  `R/EDI/DESCRIPTION:4` says 1.0.4 while NEWS.md has a development section, and the docs date the sequential seeding
+  rule to v1.0.6 (`R/EDI/R/design_abstract.R:78`, `R/EDI/vignettes/reproducibility.Rmd:70`), so a trial file stamped
+  "1.0.4" points to the wrong allocation rule. Related: v1.0.6-TODO-68. Fix (owner): give development builds a version
+  above the last release (e.g. 1.0.5.9000), changed only in DESCRIPTION and then `python3 scripts/sync_version.py`.
+  Done when: `get_edi_version_created()` on a development build never equals a released version, and
+  `sync_version.py --check` passes.
+
+- [ ] TODO-353 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework` docs:
+  `w` coding, a missing `get_errors()`, and what `$run()` returns.**
+  Ids: ds-simulation-framework-44883784401-f1, ds-simulation-framework-44883784401-f2,
+  ds-simulation-framework-44883784401-f3.
+  `R/EDI/vignettes/notation-glossary.Rmd:41` says hooks get `w` in {-1,+1} and suggests `(w+1)/2`; they get {0,1}
+  (`?SimulationFramework`, `simulations_framework.R:495,509`; the internal comment at `:3178-3180` is also wrong). The
+  `stop_on_error` doc (`:598-603`) says to call `$get_errors()`, which only `SimulationFrameworkReport` has. The
+  `$run()` description (`:848-853`) says it returns a `SimulationFrameworkReport`, while `@return` and the code
+  (`invisible(self)`, `:1236,1972`) return the framework. Fix the three texts (or add a thin `get_errors()`). Done
+  when: a test asserts the hook sees `w` in {0,1}, the documented error call works, and the `$run()` Rd agrees with
+  itself.
+
+- [ ] TODO-354 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Serial `SimulationFramework`
+  runs don't seed replication i with `seed + i`, so results depend on `num_cores` and a resumed run replays old data.**
+  Ids: ds-simulation-framework-44883784401-f4, ds-simulation-framework-44883784401-f5.
+  The serial loop (`R/EDI/R/simulations_framework.R:1881-1970`) seeds once (`:866`); the fork (`:1629,1674`) and
+  mirai (`:1793-1795`) paths seed each replication. With `continue_from_last_result_row = TRUE` the skipped reps never
+  advance the stream, so the "new" reps duplicate the first ones. This is the serial-path item of
+  `optimal_design_finder.md TODO-4` (tracked by v3.0.0-TODO-15); pulled into v1.0.6 because the vignettes promise
+  reproducibility across `num_cores`. Fix: `set.seed(seed + rep)` before each serial rep, as the parallel paths do.
+  Done when: the F4 repro gives identical `get_results()` at 1 and 2 cores, and a serial 3-rep run resumed to 6
+  equals a fresh 6-rep run row for row.
+
+- [ ] TODO-355 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework`
+  constructor accepts bad `alpha` / `sd_noise` and hides a design constructor's own error.**
+  Ids: ds-simulation-framework-44883784401-f6, ds-simulation-framework-44883784401-f7,
+  ds-simulation-framework-44883784401-f8.
+  `alpha` is stored unchecked (`R/EDI/R/simulations_framework.R:755`; a later base-R check complains about `'p'`) and
+  0 gives infinite CIs with coverage NA; a negative `sd_noise` (`:759`) fails later with a missing-outcomes message
+  (note `:3904` treats `sd_noise <= 0` as zero noise for ordinal). A design parameter the constructor rejects is
+  swallowed by `tryCatch(private$.build_design(...), error = function(e) NULL)` (`:2802-2806`) and reported as a
+  design/inference compatibility warning (`:2840-2850`), even with `stop_on_error = TRUE`. Fix: validate
+  `alpha` in (0, 1) and `sd_noise >= 0` at `$new()` naming the argument; keep the caught condition and show it (stop
+  under `stop_on_error = TRUE`). Done when: alpha 0 / 1.5 / NA and `sd_noise = -1` error at `$new()`, and
+  `list(DesignFixediBCRD = list(foo = 1))` with `stop_on_error = TRUE` errors with "unused argument (foo = 1)".
+
+- [ ] TODO-356 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`SimulationFrameworkReport$new(sim, alpha = a)` tests coverage of CIs built at the framework's alpha against
+  `1 - a`.**
+  Ids: ds-simulation-framework-44883784401-f9.
+  `R/EDI/R/simulation_framework_report.R:249` (`alpha_override`) feeds `binom.test(..., p = 1 - alpha)` (`:140-145`),
+  so `coverage_pval` flags correctly calibrated intervals. Fix: test coverage against the alpha the CIs were built at
+  and use the override for power/size only (or warn when they differ), and say so in the `alpha` doc. Done when: a
+  report with alpha = 0.2 on a 0.05 run gives the same `coverage_pval` as the default report.
+
+- [ ] TODO-357 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework` scores
+  `InferenceIncidGCompRiskDiff` against the logit-scale `betaT`.**
+  Ids: ds-simulation-framework-44883784401-f10.
+  The hand-kept `is_mean_diff` list (`R/EDI/R/simulations_framework.R:3231-3240`) has InferenceIncidKKGCompRiskDiff but
+  not InferenceIncidGCompRiskDiff, so coverage is 0 and MSE is wrong. Fix: add it, check the other marginal-difference
+  classes (e.g. BinomialIdentityRiskDiff), or replace the list by a registry flag. Done when: the F10 repro gives a
+  G-comp true estimand equal to Newcombe's (~0.198) and coverage near 0.95, and a test checks every incidence
+  risk-difference class.
+
+- [ ] TODO-358 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`DesignFixedBinaryMatch`
+  accepts a `w_precomputed` that does not treat exactly one member of each pair.**
+  Ids: ds-observational-44883784401-f9.
+  The override (`R/EDI/R/design_fixed_binary_match.R:176-179`) builds the pairs and delegates; ba1c3988's
+  `validate_w_precomputed()` checks clusters but not pairs, so a within-pair randomization test runs on a pair with
+  two treated and one with none. Fix: after the pairs exist, error naming the first offending pairs (the
+  v1.0.6-TODO-301 cluster-check pattern); consider `ObservationalDesignMatching` too. Done when: the observational F9
+  repro errors and a valid one-per-pair `w` is stored unchanged.
+
+- [ ] TODO-359 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the
+  existing-experiment article and `?DesignFixedBlocking` doesn't match the code.**
+  Ids: ds-observational-44883784401-f10, ds-observational-44883784401-f11.
+  With unequal strata and `equal_block_sizes = TRUE` the error comes at the first bootstrap/randomization call
+  (blocks form lazily, `R/EDI/R/design_blocking_abstract.R:~290-325`), not "when subjects are added" (`@param`,
+  `design_fixed_blocking.R:210-218`), "at `assign_w_to_all_subjects()`" (Details, L88-93) or "an inference fit"
+  (`vignettes/articles/analyzing-an-existing-experiment.Rmd:350-353`). The same article (`:145-148`) says BCa is NA
+  with 4 sites; since v1.0.6-TODO-4/-231 the jackknife unit is `observation_within_block` and BCa is finite. Fix:
+  preferably check equal sizes eagerly at the end of `add_all_subjects_to_experiment()` when the blocks are fixed by
+  then; otherwise make the three texts name the real step; rewrite the BCa sentence. Done when: the F10 repro errors
+  at the documented step, and help, article and chunk output agree.
+
+- [ ] TODO-360 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Rd pages: constructor
+  arguments that `$new()` rejects, and a stale risk-ratio scale note.**
+  Ids: ds-incidence-44883784401-f1, ds-incidence-44883784401-f10, ds-ordinal-44883784401-f4.
+  Members pinned as `name = OtherClass$public_methods$name` spill their `@param` tags into the next method's Arguments:
+  `?InferenceIncidWald` documents `alpha`, `delta` (`inference_incid_wald.R:78-85` -> `man/InferenceIncidWald.Rd:183-185`)
+  and `?InferenceIncidRiskDiff` `r`, `delta`, `type`, `permutations`, ... (`inference_incidence_risk_diff.R:65-75`),
+  which `$new()` rejects; the pattern is in ~75 files. PO, cloglog, probit and cauchit document their constructors in
+  `#` not `#'` comments (`inference_ordinal_proportional_odds.R:10-18`, `inference_ordinal_cauchit.R:~10-17`,
+  `inference_ordinal_cloglog.R:~57-64`, `inference_ordinal_ordered_probit.R:~8-14`), so users see `Inference$new()`'s
+  `harden`/`seed`, which they reject. The risk-ratio scale note was fixed in roxygen by f6d20e4d but
+  `man/InferenceIncidLogRegr.Rd:35` was not regenerated, and LogBinomial (`:699`) / ModifiedPoisson (`:385`) don't
+  point to GCompRiskRatio's ratio scale. Fix the roxygen, regenerate the Rd. Done when: a package-wide check that
+  every `$new()` Arguments entry appears in its Usage passes, and all four risk-ratio pages name both scales.
+
+- [ ] TODO-361 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Flagged non-estimable fits
+  return NA (or a 0 estimate) with no warning.**
+  Ids: ds-incidence-44883784401-f2, ds-incidence-44883784401-f6, ds-ordinal-44883784401-f8.
+  `InferenceIncidLogBinomial` with a zero-event arm returns all NA with reason `model_fit_unavailable`
+  (`inference_all_abstract_asymp_lik_std_mod_cache.R:260`), no warning; the KK conditional-logit OneLik
+  (`inference_incidence_KK_cond_logit.R:298`, `extreme_treatment_coefficient`) and GLMM
+  (`inference_incidence_KK_cond_logit_glmm_abstract.R:335,616`) classes do the same on matched pairs with no treated
+  events. With every patient in one category, `InferenceOrdinalRidit` returns 0 / NA / NA with `is_nonestimable()`
+  FALSE (`inference_ordinal_ridit.R:259-290`, in v1.0.6-TODO-255's scope), and `InferenceOrdinalPropOddsRegr` is
+  flagged but reports an estimate of 0. Fix: the v1.0.6-TODO-306 convention package-wide: one classed
+  `edi_procedure_na_warning` per object (outside resampling) naming the reason, raised from the shared non-estimable
+  path (`cache_nonestimable_estimate()`, `inference_all_abstract.R:~1003`), with advice (exact Fisher / risk
+  difference for a zero arm); Ridit flags `ordinal_single_category`; cumulative-link classes return NA when y has
+  < 2 levels. Done when: each repro warns once and returns NA with `is_nonestimable()` TRUE.
+
+- [ ] TODO-362 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Separation not detected:
+  ModifiedPoisson, KK IVWC / KKModifiedPoisson, cumulative-link ordinal, and LogRegr parametric-bootstrap replicates.**
+  Ids: ds-incidence-44883784401-f3, ds-incidence-44883784401-f8, ds-ordinal-44883784401-f9.
+  `InferenceIncidModifiedPoisson` on zero-cell data gives log RR -22.3, CI (-22.85, -21.80), p = 0 with no boundary
+  warning (`inference_incidence_modified_poisson.R:320`; KKModifiedPoisson similar, and KK cond-logit IVWC in
+  incidence F6 gives a CI of about +/-21 500, unflagged). `InferenceOrdinalPropOddsRegr` under quasi-complete
+  separation gives -14.81, CI +/-400, no flag, and its LR CI is NA with no warning (the ticked
+  v1.0.6-TODO-109/118/119/122 covered logit, probit and KK GEE only). `InferenceIncidLogRegr`'s parametric bootstrap
+  keeps near-separated replicates (log OR ~ -25): the bias-corrected estimate flips -2.23 to +1.03, CI upper bound
+  +21, `n_extreme = 0` (`inference_ext_param_bootstrap_estimate.R:52-62,120-133`, threshold 50). Fix: detect an arm
+  with all-zero fitted means / fitted probabilities 0 or 1 (helpers `helper_robust_sandwich.R:~751`), raise the
+  separation warning and `cache_nonestimable_se()`; count separated bootstrap refits in `n_extreme` via a per-class
+  hook; make an NA LR CI warn or return a one-sided interval. Done when: the incidence F3/F6 and ordinal F9 repros
+  warn with NA Wald p and CI, and the incidence F8 repro has `n_extreme > 0` with those replicates excluded.
+
+- [ ] TODO-363 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`InferenceOrdinalPartialProportionalOddsRegr`: a t(n-1) reference for an ML fit, and unknown `nonparallel` names
+  silently ignored.**
+  Ids: ds-ordinal-44883784401-f1, ds-ordinal-44883784401-f2.
+  `df = n - 1` (`R/EDI/R/inference_ordinal_partial_proportional_odds.R:280,343,347,357`) makes the CI and p differ
+  from `InferenceOrdinalPropOddsRegr` on the same fit (p 3.67e-05 vs 1.38e-05) with no non-parallel covariates;
+  `nonparallel` is validated only against "treatment" (`:96-102`) and `intersect()` (`:426,456`) drops a typo. Fix:
+  normal reference (label `Pr(>|z|)`); error on names not among the covariates, listing them. Done when: with
+  `nonparallel = character(0)` PPO's CI and p equal PO's to 1e-8, and `nonparallel = "base_pian"` errors.
+
+- [ ] TODO-364 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Cumulative-link R6 classes
+  stop short of the MLE, and the PPO breakdown benchmark refits and overwrites the cache.**
+  Ids: ds-ordinal-44883784401-f3, ds-ordinal-44883784401-f5.
+  PO, cloglog, probit and cauchit call the kernels with the lbfgs defaults (maxit 100, tol 1e-6) and don't forward
+  `optimization_alg` (`R/EDI/R/inference_ordinal_proportional_odds.R:111-145`, `inference_ordinal_cauchit.R:65-158`;
+  stop rule `src/fast_ordinal_regression.cpp:147-205`): estimates differ from `ordinal::clm` in the 3rd significant
+  digit (cauchit -0.5246 vs -0.5283), so Wald CIs and p are off and `set_optimization_alg("newton_raphson")` does
+  nothing. `benchmark_asymp_two_sided_pval_breakdown()` on PPO refits warm-started (`inference_ordinal_partial_proportional_odds.R:255-290,488-517`),
+  returns a different estimate and leaves it in the cache. Related: v1.0.6-TODO-321. Fix: Newton-polish the lbfgs
+  result (or tighten tol) and forward `optimization_alg`; make the breakdown time the cached path or refit cold
+  without writing the cache. Done when: on the F5 trials all four links match clm to 1e-5, and the breakdown's
+  estimate and p equal the public methods' with the cache unchanged. [C++]
+
+- [ ] TODO-365 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Open-interval checks: a
+  false "Element 1 is not <= 1" message, and two CI overrides with no alpha check.**
+  Ids: ds-ordinal-44883784401-f6, ds-ordinal-44883784401-f7, ds-proportion-44883784401-f3.
+  `checkmate::assertNumeric(x, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps)` prints the bound as
+  "1", so alpha = 1 or `tau = 1` fails with "Element 1 is not <= 1" (e.g. `inference_all_abstract_asymp.R:22`,
+  `inference_proportion_quantile_regr.R:81`, `inference_continuous_quantile_regr.R:257`; ~100 sites in ~66 files).
+  `compute_asymp_confidence_interval()` on PO Wald (`inference_all_abstract_asymp_lik_std_mod_cache.R:20`) and
+  `InferenceOrdinalRidit` (`inference_ordinal_ridit.R:225`) skip the check: alpha = 1.5 gives a reversed interval,
+  alpha < 0 NaN. Fix: one helper `assert_open_unit_interval(x, name)` ("`alpha` must be strictly between 0 and 1
+  (got 1)") used at every alpha/tau/prob site, including the two overrides (or inside
+  `compute_z_or_t_ci_from_s_and_df()`). Done when: alpha 0, 1, 1.5 and tau 1 give that message on every class tried,
+  and a source test bans the old pattern.
+
+- [ ] TODO-366 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`?InferenceOrdinalJonckheereTerpstraTest` misstates the exact-enumeration cap.**
+  Ids: ds-ordinal-44883784401-f12.
+  The help (`R/EDI/R/inference_ordinal_jonckheere_terpstra_test.R:15-17,104-107`) says exact enumeration stops at one
+  million allocations with a warning; `kMaxJTExactLeaves = 1e6` (`src/fast_jonckheere_terpstra.cpp:19-38,211`) counts
+  treated-count tables given the category margins, so 2.5e25 allocations give an exact p with no warning. Fix the
+  text, and state the two-sided convention (2 x min one-sided, which differs from coin on ties). Done when: the Rd
+  matches the C++ and a test pins the 2 x min convention.
+
+- [ ] TODO-367 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Exact 0s and 1s in
+  proportion outcomes: Beta's silent squeeze, QuantileRegr's eps clamp, and the cookbook's open-interval claim.**
+  Ids: ds-proportion-44883784401-f1, ds-proportion-44883784401-f2, ds-proportion-44883784401-f10.
+  `sanitize_beta_response()` (`R/EDI/R/helper_glm_fit.R:1110-1124`) applies the Smithson-Verkuilen squeeze to every
+  y when any is 0 or 1, silently; `?InferencePropBetaRegr` (`inference_proportion_beta.R:21-23`) points to that
+  undocumented function. `InferencePropQuantileRegr` clamps to `.Machine$double.eps` before the logit
+  (`inference_continuous_quantile_regr.R:139`, `helper_math.R:26`), giving a "log-odds shift" of about +/-34 with
+  p ~ 1e-117 at low/high tau, no warning. The proportion cookbook (`vignettes/cookbook-proportion.Rmd:52-53,64`) says
+  fractional logit needs open-interval data and clips y; the class takes [0, 1]. Fix: document the squeeze (formula,
+  Smithson & Verkuilen 2006) and warn once naming the counts and pointing to ZOIB / FractionalLogit; for QuantileRegr
+  use the SV squeeze or warn/error on exact 0/1 (precedent v1.0.6-TODO-60; also the rand kernel's
+  `zero_one_logit_clamp`; results change, owner OK and NEWS); fix the cookbook text and drop the clipping from the
+  fractional-logit chunk. Done when: the F1 and F2 repros warn (no silent +/-34), and cookbook and help agree.
+
+- [ ] TODO-368 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`InferencePropZeroOneInflatedBetaRegr` returns NA with no warning for exact 1s without 0s and an uncentred
+  covariate.**
+  Ids: ds-proportion-44883784401-f4.
+  Reproduced on HEAD (seed 1): raw age gives CI `NA NA`, `is_nonestimable()` TRUE, no warning; centred age gives
+  (0.342, 0.745). Not root-caused (likely an ill-conditioned one-class inflation submodel in
+  `R/EDI/R/inference_proportion_zero_one_inflated_beta.R`); seed 3 also gives a finite CI with `is_nonestimable()`
+  TRUE (stale flag). Fix: standardize covariates inside the joint fit and back-transform, drop an empty boundary
+  submodel, warn when the SE is still unavailable, and keep the flag consistent. Done when: raw and centred
+  covariates give the same CI on the repro's seeds 1-6 and `is_nonestimable()` agrees with the CI.
+
+- [ ] TODO-369 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`InferencePropGCompMeanDiff(variance_fallback_methods = character(0))` loses the point estimate.**
+  Ids: ds-proportion-44883784401-f5.
+  `shared()` (`R/EDI/R/inference_proportion_gcomp.R:1093-1101`) calls `effects_are_usable(..., estimate_only = FALSE)`
+  (`:613-616`), which needs a finite `se_md`; with an empty cascade `set_failed_fit_cache()` wipes `md` (0.1218 with
+  `estimate_only = TRUE`, NA otherwise), no warning. The docs (`:30-36`) promise an NA variance only. Fix: keep `md`
+  and cache a non-estimable SE with a reason (e.g. `variance_cascade_exhausted`) and a warning. Done when: the repro
+  returns 0.1218369 with NA SE/CI and a reason.
+
+- [ ] TODO-370 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+  **`InferencePropZeroOneInflatedBetaRegr` doesn't check the variables in `model_formula_zero_one`.**
+  Ids: ds-proportion-44883784401-f6.
+  `initialize()` (`R/EDI/R/inference_proportion_zero_one_inflated_beta.R:130-142`) only runs `assertFormula()` on it;
+  `~ bogus` returns NA silently, while the same typo in `model_formula` errors. Fix: also call
+  `assertFormulaContext(model_formula_zero_one, ...)` (`helper_additional_asserts.R:28-44`). Done when: the repro errors
+  naming `bogus`.
+
+- [ ] TODO-371 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`InferencePropGCompMeanDiff`'s
+  `"model_based"` variance fallback uses the unscaled Bernoulli information for a fractional response.**
+  Ids: ds-proportion-44883784401-f7.
+  `resolve_effect_variance()` / `model_based_covariance_matrix()` (`R/EDI/R/inference_proportion_gcomp.R:~786-840`,
+  docs `:92-110`) use the binomial Fisher information, which `?InferencePropFractionalLogit` (`:12-20`) calls wrong for
+  a fractional y; on the repro it is 2.5 x the sandwich SE. Fix (results change: owner OK, NEWS): scale by the Pearson
+  dispersion and document it. Done when: the `model_based` SE on the repro is about 0.0507 (quasi-binomial delta
+  method).
+
+- [ ] TODO-372 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **The quantile classes offer a
+  jackknife that is NA on clean data, and the warning blames separation.**
+  Ids: ds-proportion-44883784401-f9.
+  `InferencePropQuantileRegr`'s jackknife is NA on interior data with the generic "separation" reason
+  (`R/EDI/R/inference_all_abstract_jackknife.R:590-591`, trigger `:678`); the delete-1 jackknife is not consistent for
+  sample quantiles anyway. Fix: drop the jackknife capability for the Contin/Prop/KK quantile classes and update the
+  small-sample table, or keep it with a quantile-specific reason; reword the generic text so separation is one
+  possible cause. Done when: the repro either doesn't offer the jackknife or warns without mentioning separation.
+
+- [ ] TODO-373 (added 2026-11-21, agent; found by the v1.0.6-TODO-328 fix): **`InferenceIncidKKGEE` can never return a
+  randomization p-value.** The KK GEE mixin's `compute_rand_two_sided_pval` override
+  (`R/EDI/R/inference_mixin_kk_gee_shared.R` ~L125) stops with "not supported for incidence. Use Zhang method." unless
+  the design is a rerandomization design, but the class accepts only KK designs, so the call always errors. The base
+  method has allowed draw-based incidence p-values since 2026-10-20, so the refusal looks stale. Decide: drop the
+  refusal (use the draw-based path, as the base does) or remove `rand` from the class's supported procedures and say so
+  in its docs. Test either way.

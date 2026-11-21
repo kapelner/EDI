@@ -724,6 +724,40 @@ LikelihoodFitResult fast_stereotype_logit_internal(
 		info_start_ptr = &info_start;
 	}
 
+	// Cold start (no warm_start_params): beta = 0, where the loadings gamma carry
+	// no information, so the first Newton step can send a loading to +-Inf and
+	// the fit stalls at a non-optimal boundary point (n = 800, K = 3: neg-loglik
+	// 755.7 vs the MLE 732.7). Fit the adjacent-category model first (gamma held
+	// at 0, i.e. equally spaced phi; beta is identified there), then release
+	// gamma from that point -- the in-kernel form of the R layer's
+	// adjcat_two_stage start (TODO-176). Skipped when the caller fixes any
+	// gamma, supplies warm_start_params, or K < 3.
+	const int n_gamma = model.num_gamma();
+	bool gamma_fixed_by_caller = false;
+	if (fixed_idx.has_value()) {
+		for (int i = 0; i < fixed_idx->size(); ++i) {
+			if ((*fixed_idx)[i] - 1 >= n_alpha + p) gamma_fixed_by_caller = true;
+		}
+	}
+	if (!warm_start_params.has_value() && n_gamma > 0 && !gamma_fixed_by_caller) {
+		const int n_user_fixed = fixed_idx.has_value() ? static_cast<int>(fixed_idx->size()) : 0;
+		Eigen::VectorXi stage_idx(n_user_fixed + n_gamma);
+		Eigen::VectorXd stage_values(n_user_fixed + n_gamma);
+		for (int i = 0; i < n_user_fixed; ++i) {
+			stage_idx[i] = (*fixed_idx)[i];
+			stage_values[i] = (*fixed_values)[i];
+		}
+		for (int r = 0; r < n_gamma; ++r) {
+			stage_idx[n_user_fixed + r] = n_alpha + p + r + 1;  // one-based
+			stage_values[n_user_fixed + r] = 0.0;
+		}
+		if (n_par - stage_idx.size() > 0) {
+			FixedParamSpec stage_spec = make_fixed_param_spec(n_par, stage_idx, stage_values);
+			LikelihoodFitResult stage = optimize_fixed_likelihood(obj, params, stage_spec, maxit, tol, optimization_alg, "newton_raphson", 0, nullptr);
+			if (stage.params.allFinite() && std::isfinite(stage.value)) params = stage.params;
+		}
+	}
+
 	return optimize_fixed_likelihood(obj, params, fixed_spec, maxit, tol, optimization_alg, "newton_raphson", 0, info_start_ptr);
 }
 

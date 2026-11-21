@@ -72,14 +72,23 @@ InferenceIncidExtendedRobins = define_inference_class(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$get_standard_error()
+			# Found by the v1.0.6-TODO-327 sweep test
+			# (test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R): on
+			# a fresh object this returned NA with no recorded reason, because only
+			# the SE was computed and beta_hat_T was still NULL. Compute the estimate
+			# first, and re-store the Robins SE as s_beta_hat_T (the cached branch of
+			# get_standard_error() returns it without doing so).
+			if (is.null(private$cached_values$beta_hat_T)) self$compute_estimate(estimate_only = TRUE)
+			private$cached_values$s_beta_hat_T = private$get_standard_error()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			private$get_standard_error()
+			# See compute_asymp_confidence_interval().
+			if (is.null(private$cached_values$beta_hat_T)) self$compute_estimate(estimate_only = TRUE)
+			private$cached_values$s_beta_hat_T = private$get_standard_error()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Initialize Extended Robins blocked-design incidence inference.

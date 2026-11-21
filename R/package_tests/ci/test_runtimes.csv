@@ -20,6 +20,7 @@ R/package_tests/testthat_bulk/test-approximate-randomization-distribution-delta-
 R/package_tests/testthat_bulk/test-assert-optimal-roi-solver-enum-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-assert-optimal-roi-solver-package-required-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-assert-strata-cluster-args-missing-columns-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-asymp-inference-paths.R,correctness,7.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-asymp-lik-compute-likelihood-test-two-sided-pval-unavailable-reason-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-asymp-lik-gradient-ci-inversion-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -254,6 +255,7 @@ R/package_tests/testthat_bulk/test-custom-inference-fit-contract-validation-guar
 R/package_tests/testthat_bulk/test-custom-rand-and-boot-fit-contract-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-custom-statistic-and-resampling-edge-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-define-inference-class-lock-objects-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-dep-cens-transform-bayesian-bootstrap-methods-not-supported.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-and-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-zero-exclusion-width-guard-and-wald-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1254,7 +1256,6 @@ R/package_tests/testthat_bulk/test-summary-glm-lean-zero-weight-dispersion-warni
 R/package_tests/testthat_bulk/test-supported-testing-types-with-bartlett-estimand-gating-and-unsupported-stop-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-classes-estimates-match-coxph-survreg-km-and-logrank-references.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-classes-rand-confidence-interval-unsupported-guards-reference.R,correctness,1,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-survival-dep-cens-transform-weighted-bootstrap-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-expected-attempt-roster-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-fit-start-extractors-and-standard-weibull-aft-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-glmm-weibull-frailty-loggamma-ivwc-migration-golden.R,correctness,7.4,measured_with_30_percent_headroom
@@ -1676,6 +1677,7 @@ R/EDI/tests/testthat/test-rand-custom-incidence-delta-guard.R,coverage,30,bootst
 R/EDI/tests/testthat/test-rand-custom-nonfinite-statistic-warns.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-null-construction.R,coverage,1.1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-pval-affine-reuse-finite-draw-minimum.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rand-pval-alternative-accepted-by-every-override.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-pval-tie-tolerance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-seed-reproducibility.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-test-and-ci-shift-censoring-bounds-under-null.R,coverage,30,bootstrap
@@ -1796,6 +1798,7 @@ R/package_tests/testthat_bulk/test-approximate-randomization-distribution-delta-
 R/package_tests/testthat_bulk/test-assert-optimal-roi-solver-enum-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-assert-optimal-roi-solver-package-required-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-assert-strata-cluster-args-missing-columns-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-asymp-inference-paths.R,coverage,15.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-asymp-lik-compute-likelihood-test-two-sided-pval-unavailable-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-asymp-lik-gradient-ci-inversion-guards-reference.R,coverage,240,bootstrap
@@ -2011,6 +2014,7 @@ R/package_tests/testthat_bulk/test-coxph-generate-mod-extreme-coefficients-guard
 R/package_tests/testthat_bulk/test-coxph-icen-extreme-coefficients-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-icenreg-package-required-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-coxph-interval-censored-wald-se-uses-object-seed.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernel-tied-times-breslow-cluster-robust-vcov-optimizers-and-fixed-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,coverage,240,bootstrap
@@ -2029,6 +2033,7 @@ R/package_tests/testthat_bulk/test-custom-inference-fit-contract-validation-guar
 R/package_tests/testthat_bulk/test-custom-rand-and-boot-fit-contract-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-custom-statistic-and-resampling-edge-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-define-inference-class-lock-objects-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-dep-cens-transform-bayesian-bootstrap-methods-not-supported.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-and-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-zero-exclusion-width-guard-and-wald-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R,coverage,240,bootstrap
@@ -2114,6 +2119,7 @@ R/package_tests/testthat_bulk/test-exact-binomial-no-matched-and-no-discordant-p
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-zero-matched-pairs-and-zero-discordant-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-fisher-incidence-tables-strata-and-htest-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-exact-fisher-infinite-conditional-mle-warns.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-fisher-no-informative-strata-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-only-classes-base-asymp-methods-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-test-source-type-resolution-arg-normalization-and-weighted-estimate-reference.R,coverage,240,bootstrap
@@ -3028,7 +3034,6 @@ R/package_tests/testthat_bulk/test-summary-glm-lean-zero-weight-dispersion-warni
 R/package_tests/testthat_bulk/test-supported-testing-types-with-bartlett-estimand-gating-and-unsupported-stop-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-classes-estimates-match-coxph-survreg-km-and-logrank-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-classes-rand-confidence-interval-unsupported-guards-reference.R,coverage,240,bootstrap
-R/package_tests/testthat_bulk/test-survival-dep-cens-transform-weighted-bootstrap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-expected-attempt-roster-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-fit-start-extractors-and-standard-weibull-aft-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-glmm-weibull-frailty-loggamma-ivwc-migration-golden.R,coverage,1.4,measured_with_30_percent_headroom

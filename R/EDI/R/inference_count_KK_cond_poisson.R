@@ -867,7 +867,11 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				},
 				score = self$compute_score_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				gradient = self$compute_gradient_confidence_interval(alpha = alpha)
+				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
+				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
+				# branch here, so the CI came back NULL. Same method a direct call reaches.
+				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
+				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
 		#' @description Computes a design-conservative score confidence interval.
@@ -938,7 +942,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				},
 				score = self$compute_score_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				gradient = self$compute_gradient_two_sided_pval(delta = delta)
+				gradient = self$compute_gradient_two_sided_pval(delta = delta),
+				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
+				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
+				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
 		#' @description Computes a design-conservative score p-value.
@@ -1890,7 +1897,11 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 				wald = self$compute_wald_confidence_interval(alpha = alpha),
 				score = self$compute_score_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				gradient = self$compute_gradient_confidence_interval(alpha = alpha)
+				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
+				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
+				# branch here, so the CI came back NULL. Same method a direct call reaches.
+				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
+				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
@@ -1902,7 +1913,10 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 				wald = self$compute_wald_two_sided_pval(delta = delta),
 				score = self$compute_score_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				gradient = self$compute_gradient_two_sided_pval(delta = delta)
+				gradient = self$compute_gradient_two_sided_pval(delta = delta),
+				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
+				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
+				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
 		#' @description Uses the shared Wald confidence-interval contract; see

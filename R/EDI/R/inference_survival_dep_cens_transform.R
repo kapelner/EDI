@@ -37,34 +37,51 @@ SurvivalDepCensTransformSource = list(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the treatment estimate under subject/block-level
-		#'   Bayesian-bootstrap weights, using \code{weighted_cox_bootstrap_surrogate_fit()}
-		#'   — a fast weighted Cox-model surrogate fit — as an approximation to the
-		#'   weighted joint dependent-censoring likelihood, rather than a full
-		#'   weighted refit of the joint bivariate model.
+		#' @description Reports the Bayesian-bootstrap weighted re-estimate as
+		#'   unavailable for this model. The joint dependent-censoring likelihood
+		#'   takes no observation weights, and the weighted Cox fit formerly used in
+		#'   its place estimates a log hazard ratio under independent censoring, a
+		#'   different quantity from this class's log time ratio (v1.0.6-TODO-326).
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#'   bootstrap weights (unused).
+		#' @param estimate_only Unused; accepted for the shared signature.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-				if (is.finite(beta_hat_T)) return(beta_hat_T)
-			}
-			X_fit = private$build_design_matrix()[, -1, drop = FALSE]
-			colnames(X_fit)[1L] = "treatment"
-			# The estimate here is not a Cox fit, so no tie rule matches it; keep the
-			# surrogate's historical Efron ties (v1.0.6-TODO-271 moved the Cox classes
-			# to Breslow; the package-wide ties choice is v1.1.0-TODO-61).
-			fit = weighted_cox_bootstrap_surrogate_fit(
-				private$y, private$dead, X_fit, row_weights,
-				ties = "efron",
-				warm_start_beta = private$get_fit_warm_start_for_length("params", ncol(X_fit)) %||% private$get_fit_warm_start_for_length("beta", ncol(X_fit))
-			)
-			private$cached_values$beta_hat_T = if (is.null(fit)) NA_real_ else as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$beta_hat_T
+			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
+			private$signal_unsupported_procedure("dep_cens_transform_bayesian_bootstrap_not_supported")
+			NA_real_
+		},
+		#' @description Reports the Bayesian-bootstrap two-sided p-value as
+		#'   unavailable for this model (see
+		#'   \code{compute_estimate_with_bootstrap_weights()}).
+		#' @param delta Null treatment-effect value. Default 0.
+		#' @param B Number of Bayesian-bootstrap draws (unused).
+		#' @param type P-value type (unused).
+		#' @param na.rm Unused; accepted for the shared signature.
+		#' @param show_progress Unused; accepted for the shared signature.
+		#' @param min_number_usable_samples Unused; accepted for the shared signature.
+		#' @param weighting_unit_type Unused; accepted for the shared signature.
+		#' @param min_fraction_usable_samples Unused; accepted for the shared signature.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
+			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
+			private$signal_unsupported_procedure("dep_cens_transform_bayesian_bootstrap_not_supported")
+			NA_real_
+		},
+		#' @description Reports the Bayesian-bootstrap confidence interval as
+		#'   unavailable for this model (see
+		#'   \code{compute_estimate_with_bootstrap_weights()}).
+		#' @param alpha Significance level. Default 0.05.
+		#' @param B Number of Bayesian-bootstrap draws (unused).
+		#' @param type Interval type (unused).
+		#' @param na.rm Unused; accepted for the shared signature.
+		#' @param show_progress Unused; accepted for the shared signature.
+		#' @param min_number_usable_samples Unused; accepted for the shared signature.
+		#' @param weighting_unit_type Unused; accepted for the shared signature.
+		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
+			private$signal_unsupported_procedure("dep_cens_transform_bayesian_bootstrap_not_supported")
+			ci = c(NA_real_, NA_real_)
+			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			ci
 		},
 		#' @description Reports jackknife bias correction as unavailable for this
 		#'   model; leave-one-out bias correction is unstable for the
@@ -118,7 +135,11 @@ SurvivalDepCensTransformSource = list(
 		#' @param show_progress Whether to show a progress bar.
 		#' @param permutations Optional pre-computed permutations. Default NULL.
 		#' @param zero_one_logit_clamp Numerical clamp for logit transforms near 0/1.
-		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+		#'   accepted for the shared signature (the result is \code{NA} for every value).
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			# v1.0.6-TODO-328: accept (and validate) `alternative` like InferenceRand's method.
+			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
 			private$signal_unsupported_procedure("dep_cens_transform_randomization_not_supported")
 			NA_real_
@@ -773,19 +794,19 @@ SurvivalDepCensTransformSource = list(
 #' score, gradient, and Wald tests are available when the model converges,
 #' plus parametric-likelihood-bootstrap calibration of the likelihood-ratio
 #' test. \strong{Substantial method-support limitations, all deliberate}:
-#' randomization inference and jackknife bias correction/standard errors are
-#' hard-unsupported (each randomization draw would require a full
-#' dependent-censoring likelihood refit, too unstable/slow for the
-#' comprehensive test suite; jackknife bias correction is unstable for this
-#' likelihood on small censored samples) — every jackknife/randomization
+#' randomization inference, the Bayesian bootstrap and jackknife bias
+#' correction/standard errors are hard-unsupported (each randomization draw would
+#' require a full dependent-censoring likelihood refit, too unstable/slow for the
+#' comprehensive test suite; the joint likelihood takes no observation weights,
+#' and a weighted Cox fit would estimate a log hazard ratio, not this class's log
+#' time ratio; jackknife bias correction is unstable for this likelihood on small
+#' censored samples) — every jackknife/randomization/Bayesian-bootstrap
 #' method returns \code{NA} with a classed \code{edi_unsupported_procedure}
 #' warning rather than computing a value; the estimate, standard error and
 #' \code{is_nonestimable()} are left untouched. Nonparametric-bootstrap confidence intervals are
 #' computed and returned whenever both endpoints are finite; they are never
 #' replaced based on width, sign, or agreement with a Wald interval. Numerical
-#' failures return \code{NA}. Bayesian-bootstrap weighted re-estimation
-#' uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
-#' as an approximation rather than a full weighted joint-likelihood refit.
+#' failures return \code{NA}.
 #'
 #' \strong{Small samples.} With covariate adjustment at n = 50, the score test
 #' rejected a true null up to 11\% of the time at a nominal 5\% level (intervals
@@ -832,6 +853,7 @@ InferenceSurvivalDepCensTransformRegr = define_inference_class(
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
 			"compute_rand_two_sided_pval", "compute_rand_confidence_interval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"get_supported_testing_types", "set_testing_type",
