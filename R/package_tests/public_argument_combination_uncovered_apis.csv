@@ -642,7 +642,7 @@
 "InferenceCountPoissonKKGEE::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceCountPoissonKKGEE","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountPoissonKKGEE::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceCountPoissonKKGEE","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountPoissonKKGEE::compute_rand_confidence_interval","r6_public_method","InferenceCountPoissonKKGEE","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceCountPoissonKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceCountPoissonKKGEE","compute_rand_two_sided_pval",9,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceCountPoissonKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceCountPoissonKKGEE","compute_rand_two_sided_pval",10,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountPoissonKKGEE::compute_subsampling_confidence_interval","r6_public_method","InferenceCountPoissonKKGEE","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountPoissonKKGEE::compute_subsampling_two_sided_pval","r6_public_method","InferenceCountPoissonKKGEE","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountQuasiPoisson::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceCountQuasiPoisson","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -992,7 +992,7 @@
 "InferenceIncidKKGEE::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceIncidKKGEE","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceIncidKKGEE","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::compute_rand_confidence_interval","r6_public_method","InferenceIncidKKGEE","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceIncidKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceIncidKKGEE","compute_rand_two_sided_pval",9,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceIncidKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceIncidKKGEE","compute_rand_two_sided_pval",10,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::compute_subsampling_confidence_interval","r6_public_method","InferenceIncidKKGEE","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::compute_subsampling_two_sided_pval","r6_public_method","InferenceIncidKKGEE","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKModifiedPoisson::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidKKModifiedPoisson","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1460,7 +1460,7 @@
 "InferenceOrdinalKKGEE::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceOrdinalKKGEE","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKGEE::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalKKGEE","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKGEE::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalKKGEE","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKGEE","compute_rand_two_sided_pval",9,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceOrdinalKKGEE::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKGEE","compute_rand_two_sided_pval",10,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKGEE::compute_subsampling_confidence_interval","r6_public_method","InferenceOrdinalKKGEE","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKGEE::compute_subsampling_two_sided_pval","r6_public_method","InferenceOrdinalKKGEE","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKGLMM::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalKKGLMM","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1704,7 +1704,7 @@
 "InferencePropKKGEE::compute_rand_bootstrap_confidence_interval","r6_public_method","InferencePropKKGEE","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropKKGEE::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferencePropKKGEE","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropKKGEE::compute_rand_confidence_interval","r6_public_method","InferencePropKKGEE","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferencePropKKGEE::compute_rand_two_sided_pval","r6_public_method","InferencePropKKGEE","compute_rand_two_sided_pval",9,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferencePropKKGEE::compute_rand_two_sided_pval","r6_public_method","InferencePropKKGEE","compute_rand_two_sided_pval",10,TRUE,TRUE,2,5,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropKKGEE::compute_subsampling_confidence_interval","r6_public_method","InferencePropKKGEE","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropKKGEE::compute_subsampling_two_sided_pval","r6_public_method","InferencePropKKGEE","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropKKGLMM::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferencePropKKGLMM","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1849,8 +1849,6 @@
 "InferenceSurvivalDepCensTransformRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalDepCensTransformRegr","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalDepCensTransformRegr::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalDepCensTransformRegr","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalDepCensTransformRegr::approximate_rand_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalDepCensTransformRegr","approximate_rand_bootstrap_distribution_beta_hat_T",8,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSurvivalDepCensTransformRegr::compute_bayesian_bootstrap_confidence_interval","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_confidence_interval",7,TRUE,TRUE,4,10,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSurvivalDepCensTransformRegr::compute_bayesian_bootstrap_two_sided_pval","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bayesian_bootstrap_two_sided_pval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalDepCensTransformRegr::compute_bootstrap_two_sided_pval","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_bootstrap_two_sided_pval",7,TRUE,TRUE,7,18,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalDepCensTransformRegr::compute_lik_ratio_bartlett_approx_confidence_interval","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_lik_ratio_bartlett_approx_confidence_interval",2,TRUE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalDepCensTransformRegr::compute_lik_ratio_bartlett_confidence_interval","r6_public_method","InferenceSurvivalDepCensTransformRegr","compute_lik_ratio_bartlett_confidence_interval",2,TRUE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE

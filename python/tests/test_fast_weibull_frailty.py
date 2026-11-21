@@ -52,12 +52,15 @@ def _synthetic_data():
     return X, y_obs, dead, group_id
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 via:
+# R reference, EDI 1.0.4 (dev, after the v1.0.6-TODO-169/170 Newton-decrement
+# convergence rule in _helper_functions_core.h), recomputed 2026-11-21 via:
 #   EDI:::fast_weibull_frailty_cpp(X, y, dead, group_id)
-R_B = np.array([-0.316123234717711, 0.23856536066327])
-R_LOG_SIGMA_EPS = 0.0230973368182207
-R_LOG_SIGMA_U = -4.70307170180294
-R_NEG_LOGLIK = 200.386107163062
+# The rule lets the fit go further along the flat log_sigma_u direction and
+# lowers neg_loglik from 200.386107163062 (EDI 1.0.0 fixture) to the value below.
+R_B = np.array([-0.314664711933378, 0.240735771491293])
+R_LOG_SIGMA_EPS = 0.0239644878547815
+R_LOG_SIGMA_U = -5.21232809552373
+R_NEG_LOGLIK = 200.38491423701
 
 
 def test_matches_r_fixture():
