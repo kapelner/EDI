@@ -1633,7 +1633,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   Verified 2026-11-21 (agent): the n = NULL fix is on HEAD (`test-sequential-design-without-fixed-n.R`, 50 pass);
   `DesignSeqOneByOneKK21$new(response_type = "continuous")` now assigns 12 subjects in a row, and the half-added
   subject on a failed assignment is rolled back by v1.0.6-TODO-316.
-- [ ] TODO-77 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+- [x] TODO-77 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **No sequential design with `n = NULL` can be analyzed.** `check_experiment_completed()` and
   `assert_all_subjects_arrived()` (`R/design_abstract.R` ~L482 and ~L500) evaluate
   `if (private$fixed_sample & private$t < private$n)`, which is `if (logical(0))` when `n` is NULL ("argument is of
@@ -1653,7 +1653,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   should mention n = NULL (suggested text in the agent report). NEWS added.
   - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f1 (2026-11-18, with `n = NULL`
     every completeness check and every Inference constructor fails with "argument is of length zero").
-- [ ] TODO-78 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+  Verified already fixed on HEAD 2026-11-21 (agent): the repro above (Efron, n = NULL, 10 subjects) gives
+  `check_experiment_completed()` TRUE and an OLS p-value 0.827; `test-sequential-design-without-fixed-n.R` 50 pass.
+- [x] TODO-78 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **With `n = NULL`, responses must be added in enrollment order, and the error message is wrong.**
   `add_one_subject_response()` (`R/design_abstract.R` ~L370-382) only appends to `y` when the sample size is not
   fixed. After enrolling 5 subjects, `d$add_one_subject_response(3, 1)` stops with "You cannot add a response for a
@@ -1672,6 +1674,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   should mention n = NULL (suggested text in the agent report). NEWS added.
   - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f6 (2026-11-18, with `n = NULL` an
     out-of-order outcome for an enrolled subject is refused as "not yet arrived").
+  Verified already fixed on HEAD 2026-11-21 (agent): with n = NULL, responses for subjects 10..1 in reverse order are
+  accepted, and a response for subject 11 (not enrolled) is refused naming subject 10 as the latest;
+  `test-sequential-design-without-fixed-n.R` 50 pass.
 - [ ] TODO-79 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **`vignettes/reproducibility.Rmd` overstates re-seeding for sequential designs.** Around L23-37 it says
   `maybe_set_seed()` runs "immediately before each call that consumes randomness" and that calling a draw method
@@ -5304,6 +5309,16 @@ were found by reading, not by running a fix.
   added must give a clear error. Test: for every fixed design, `$new()` without `n` then `add_all_subjects_to_experiment(X)`
   works (or `$new()` errors), and the realized allocation equals the one with `n = nrow(X)` for the same seed. Repro:
   fixed-designs F6, clusters-blocking F5.
+  Investigated 2026-11-21 (agent), needs an owner decision (public API): still reproduces on HEAD. `$new()` without
+  `n` then `add_all_subjects_to_experiment(X)` stops in `assert_fixed_sample()` for Bernoulli, iBCRD, BinaryMatch and
+  Optimal; Rerandomization already stops earlier on its acceptance-rule check. Options: (a) infer `n = nrow(X_all)`
+  in `add_all_subjects_to_experiment()` when `n` is NULL, set `fixed_sample = TRUE` and size `w`/`y`/caches there;
+  each constructor that reads `n` before subjects arrive (Optimal, Rerandomization, Blocking/Cluster sizing, any
+  `prob_T * n` target) must be checked, so it touches every fixed design; (b) make `n` required in the fixed-design
+  constructors (error at `$new()`, drop `= NULL` from the usage and Rd): small and safe, but breaks code that relies on
+  the default reaching a later error; (c) keep `n = NULL` but error at `$new()` with "fixed designs need n (or call
+  ...)" -- the same as (b) for users. Recommendation: (a) is what the help suggests a user expects, (b) is the
+  smaller change. Not changed.
 
 - [x] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
   `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` returns cached draws of another
