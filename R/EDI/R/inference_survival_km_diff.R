@@ -262,7 +262,9 @@ InferenceSurvivalKMDiff = define_inference_class(
 			}
 			private$shared()
 			if (is.na(private$cached_values$s_beta_hat_T)) {
-				return(self$compute_bootstrap_two_sided_pval(delta = delta))
+				# Drop non-finite replicates like the CI fallback does (subject to the bootstrap's
+				# usable-fraction guard), since this method takes no na.rm (v1.0.6-TODO-309).
+				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 			}
 			edi_warn_cluster_independence_once(self, private, "wald")
 			d = private$cached_values$beta_hat_T

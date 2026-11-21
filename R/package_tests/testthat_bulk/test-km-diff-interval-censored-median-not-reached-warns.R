@@ -105,3 +105,25 @@ test_that("interval-censored KMDiff with both medians reached raises no not-reac
 	expect_no_warning(est <- inf$compute_estimate(), class = "edi_km_median_not_reached_warning")
 	expect_equal(est, 6)
 })
+
+# v1.0.6-TODO-309 (docs-scenarios survival-censoring F4): the asymptotic p-value fell back to the
+# bootstrap with na.rm = FALSE and returned NA (2 of 501 replicates non-finite) while the asymptotic CI
+# (which drops them) was finite; the method takes no na.rm, so the warning's advice could not be followed.
+test_that("KMDiff asymptotic p-value fallback drops non-finite replicates like the CI fallback", {
+	set.seed(20261118); n = 80
+	X = data.frame(age = round(rnorm(n, 62, 9)), ecog = sample(0:1, n, replace = TRUE))
+	des = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X); des$assign_w_to_all_subjects(); w = des$get_w()
+	t_ev = rweibull(n, shape = 1.3, scale = 10 * exp(0.5 * w - 0.02 * (X$age - 62) - 0.3 * X$ecog))
+	fu = round(18 - runif(n, 0, 10), 2); obs = t_ev <= fu; tm = ifelse(obs, round(t_ev, 2), fu)
+	des$add_all_subject_responses(ys = ifelse(obs, tm, NA), y_Ls = ifelse(obs, NA, tm), y_Rs = ifelse(obs, NA, Inf))
+	km = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
+	km$set_seed(1); ci = suppressWarnings(km$compute_asymp_confidence_interval())
+	km$set_seed(1); p = suppressWarnings(km$compute_asymp_two_sided_pval())
+	expect_true(all(is.finite(ci)))
+	expect_true(is.finite(p))
+	expect_equal(p < 0.05, ci[1] > 0 || ci[2] < 0)
+	km2 = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
+	km2$set_seed(1)
+	expect_equal(p, suppressWarnings(km2$compute_bootstrap_two_sided_pval(na.rm = TRUE)))
+})

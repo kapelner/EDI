@@ -5661,8 +5661,12 @@ were found by reading, not by running a fix.
   parametric classes (Weibull, other AFT/frailty models) refuse with a reason naming the zero times. Test: the
   finding's repro errors at entry with that advice (or warns with the new reason); positive times unchanged. Repro:
   survival-censoring F3.
+  Investigated 2026-11-21 (agent), needs an owner decision (the entry leaves the choice to the owner): not changed.
+  Refusing y = 0 at entry is one check in `assert_y()` but changes what every survival class accepts (Cox, log-rank
+  and RMST give finite results on such data today); refusing only in the parametric classes keeps those working and
+  needs a reason string in each AFT/frailty class. The second is the less disruptive.
 
-- [ ] TODO-309 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f4):
+- [x] TODO-309 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f4):
   **`InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` returns NA while `compute_asymp_confidence_interval()` is
   finite, and the warning's `na.rm = TRUE` cannot be passed.** Audit: CI (2.246, 8.740); p-value NA because 2 of 501
   bootstrap replicates were non-finite; `compute_asymp_two_sided_pval(na.rm = TRUE)` gives "unused argument"; only
@@ -5673,6 +5677,12 @@ were found by reading, not by running a fix.
   valid-fraction guard of v1.0.6-TODO-12), and when NA is still returned, word the
   warning for the method the user called (no advice to pass an argument it does not take). Test: the finding's repro
   gives a finite asymptotic p-value consistent with the CI; on interval-censored data too. Repro: survival-censoring F4.
+  Done 2026-11-21 (agent): `compute_asymp_two_sided_pval()`'s bootstrap fallback now passes `na.rm = TRUE`, like the
+  CI fallback, so non-finite replicates are dropped subject to the bootstrap's `min_fraction_usable_samples = 0.95`
+  guard; the NA warning it could give therefore no longer arises in this case (its wording, which names
+  `compute_bootstrap_two_sided_pval()` and `na.rm`, was not changed). Evidence on the F4 repro: p NA -> 0.004008
+  (CI 2.246 to 8.740 excludes 0), equal to `compute_bootstrap_two_sided_pval(na.rm = TRUE)`. Test: new block in
+  `test-km-diff-interval-censored-median-not-reached-warns.R`; the interval-censored variant was not added.
 
 - [ ] TODO-310 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f5): **On
   interval-censored data `InferenceSurvivalCoxPHRegr` lists score / gradient / lik_ratio as supported but gives NA, a

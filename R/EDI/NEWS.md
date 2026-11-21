@@ -696,6 +696,11 @@
 
 ## Bug fixes
 
+* `InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` no longer returns
+  `NA` when a few bootstrap replicates of its fallback are non-finite while the
+  asymptotic CI (which drops them) is finite; both fallbacks now drop them
+  (v1.0.6-TODO-309).
+
 * `fast_weibull_regression(use_rcpp = FALSE)` now fits a covariate matrix with
   an empty or duplicated column name (e.g. `cbind(w, d$age)`), or columns named
   `y` / `dead`, instead of stopping with "failed to converge", and reports other
