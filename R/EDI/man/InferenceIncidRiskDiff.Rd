@@ -292,12 +292,12 @@ no treatment effect).}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()}}{
   Refits the linear-probability model by weighted least squares
-  under subject/block resampling weights (using the native OLS kernel for
-  full-rank draws and \code{stats::lm.wfit()} as the compatibility fallback)
-  (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
-  weights, both expanded to row weights via
-  \code{expand_subject_or_block_weights_to_row_weights()}) and returns the
-  re-estimated treatment coefficient. Rows with non-finite or non-positive
+  under subject/block resampling weights (nonparametric-bootstrap replicate
+  weights or Bayesian-bootstrap Dirichlet weights, both expanded to row
+  weights via \code{expand_subject_or_block_weights_to_row_weights()}) and
+  returns the re-estimated treatment coefficient. Full-rank draws use the
+  native OLS kernel, with \code{stats::lm.wfit()} as the compatibility
+  fallback. Rows with non-finite or non-positive
   weight are excluded; if too few positive-weight rows remain to identify
   the design, the replicate estimate is \code{NA_real_}.
   \subsection{Usage}{

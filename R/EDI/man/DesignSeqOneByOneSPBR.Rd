@@ -40,8 +40,10 @@ previous block; a stratum with only a partial block is one unit. The variance po
 the replicates' spread within strata (the stratified jackknife of Wolter 2007,
 \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
 \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A stratum with one block
-contributes nothing. Before EDI 1.0.6 a replicate deleted a whole stratum, which left
-only 2-4 replicates on typical data (v1.0.6-TODO-4).
+contributes nothing. The jackknife-Wald test and interval use the t distribution with
+\eqn{\sum_h (n_h - 1)} degrees of freedom, \eqn{n_h} the number of blocks in stratum
+\eqn{h} (v1.0.6-TODO-231). Before EDI 1.0.6 a replicate deleted a whole stratum, which
+left only 2-4 replicates on typical data (v1.0.6-TODO-4).
 When any stratum holds fewer than 10 permuted-block units, the automatic unit is one subject
 within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
 jackknife with subjects as units): with few blocks in a stratum the permuted-block

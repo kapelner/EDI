@@ -176,8 +176,10 @@ design's imputed covariates.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights()}}{
   Recomputes the KK ordinal treatment estimate under
-  subject/block bootstrap weights, used by the Bayesian bootstrap and
-  related weighted-resampling machinery. If the supplied weights are all
+  subject/block bootstrap weights. In EDI this hook is called only by the
+  Bayesian bootstrap, which is disabled for this class (see the class
+  description), so no built-in inference method reaches it; it runs only
+  when called directly. If the supplied weights are all
   (numerically) equal, this short-circuits to the unweighted
   \code{$compute_estimate(estimate_only = TRUE)} (the \code{multgee}
   proportional-odds GEE fit) rather than refitting. Otherwise, since

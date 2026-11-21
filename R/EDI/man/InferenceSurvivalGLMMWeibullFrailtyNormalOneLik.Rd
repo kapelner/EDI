@@ -17,11 +17,18 @@ A single logical.
 Randomization p-value.
 }
 \description{
-Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-\code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalOneLik]{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}}
-for the frailty-distribution details and contrast with the gamma-frailty
-\code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}
-(Clayton copula) alternative.
+Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator. Matched
+pairs follow the AFT model \code{log(T) = X beta + u + sigma_eps * epsilon},
+with \code{epsilon} standard extreme-value (Weibull margins) and a
+pair-shared Gaussian random intercept \code{u ~ N(0, sigma_u^2)}, i.e. a
+multiplicative log-normal frailty \code{exp(u)} on the time scale; the pair
+likelihood has no closed form and is evaluated by Gauss-Hermite quadrature.
+The matched-pair and reservoir contributions are fit as one combined
+likelihood, not combined by inverse-variance weighting (that variant is
+\code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}}).
+For the classic gamma-frailty alternative (closed-form, the Clayton copula
+with Weibull margins) see
+\code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}.
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 

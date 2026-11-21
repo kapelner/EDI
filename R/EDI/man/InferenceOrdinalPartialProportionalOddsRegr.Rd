@@ -22,6 +22,27 @@ empty and the earlier fast/VGAM/clm attempts failed) \code{MASS::polr}. Each
 fallback requires its corresponding package to be installed; unavailable
 packages are silently skipped in favor of the next fallback.
 }
+\details{
+\strong{Information source of the Wald standard error.} The Wald standard
+error, p-value and confidence interval always use the \emph{observed}
+information (the negative Hessian of the log-likelihood at the estimate;
+Efron and Hinkley, 1978), whichever backend fitted: the fast solver and
+\code{ordinal::clm} report it directly, and for a \code{VGAM::vglm} fit
+(whose own covariance is the \emph{expected} information from Fisher
+scoring) it is computed analytically at VGAM's estimate. The estimate is
+VGAM's either way. Before v1.0.6 the VGAM path reported VGAM's
+expected-information standard error; on simulated data (40 data sets per
+\eqn{n}, one nonparallel covariate, four categories) the
+observed-information treatment SE differs from it by a median of
+0.1--0.8\% (at most 5.7\%) at \eqn{n = 40}--\eqn{60}, 0.3\% (at most
+1.6\%) at \eqn{n = 100} and 0.2\% (at most 0.9\%) at \eqn{n = 300}, with
+every estimate unchanged. If the observed information at
+VGAM's estimate is not positive definite (VGAM did not stop at a maximum of
+the likelihood), the VGAM fit has no standard error and the cascade moves
+on to \code{ordinal::clm} for the estimate and its (observed-information)
+standard error; the expected information is never used as a substitute.
+Bootstrap-weighted refits report no standard error on any backend.
+}
 \section{Small-sample behaviour}{
 
 How fast the size (and coverage) error of each procedure is expected to vanish as the
@@ -80,7 +101,11 @@ block-marginal effect. See \code{DesignFixedBlocking}.
 }
 
 \references{
-Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
+Efron, B., and Hinkley, D. V. (1978). "Assessing the Accuracy
+  of the Maximum Likelihood Estimator: Observed Versus Expected Fisher
+  Information." \emph{Biometrika}, 65(3), 457-483,
+  \doi{10.1093/biomet/65.3.457}, for the observed-information standard
+  error. Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
   Odds Models for Ordinal Response Variables." \emph{Journal of the Royal
   Statistical Society, Series C (Applied Statistics)}, 39(2), 205-217,
   \doi{10.2307/2347760}, for the partial (non-parallel-covariate)

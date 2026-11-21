@@ -52,8 +52,8 @@ A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, \code{num_iter},
   \code{hit_iteration_cap}, \code{gradient_norm} and \code{min_eigenvalue_information};
   when \code{estimate_only = FALSE} (the default), additionally
-  \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
-  (all the same observed-information matrix), \code{information_type} (always
+  \code{neg_loglik}, \code{observed_information}/\code{information}
+  (both the same observed-information matrix; no expected-information field is returned), \code{information_type} (always
   \code{"observed"}), \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient
   on \code{X}'s first column — conventionally the treatment effect, since \code{X}
   carries no separate intercept column here; the thresholds \code{alpha} play that
@@ -94,7 +94,7 @@ parameters at caller-supplied constant values rather than estimating them.
 directly (skipping \code{smart_cold_start}); otherwise, when
 \code{smart_cold_start = TRUE} (the default), starting values come from an
 OLS-based heuristic, and when \code{FALSE}, thresholds start at
-\eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
+\eqn{\tan(\pi((k+1)/K - 1/2))}, \eqn{k = 0, \ldots, K-2} (an inverse-cauchit spacing of the empirical
 marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 iterations or until the gradient norm falls below \code{tol};

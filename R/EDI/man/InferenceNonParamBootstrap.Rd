@@ -342,7 +342,8 @@ distribution and converts back to the full-sample scale using
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
-  scaling = "sqrt_n"
+  scaling = "sqrt_n",
+  min_fraction_usable_samples = 0.8
 )}
     \if{html}{\out{</div>}}
   }
@@ -362,6 +363,21 @@ displayed.}
 estimates required after filtering. Default 5.}
       \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
       \item{\code{scaling}}{Scaling sequence for centered m-out-of-n pivots.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B}
+resamples that must be usable, for a ratio estimand
+(\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+\code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+\code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+treatment arm with no events; on the logit scale also only events; for a
+count a zero total; or a separated logistic fit) or its fit fails. Below this
+fraction the method returns \code{NA} with reason
+\code{"m_out_of_n_too_few_usable_draws_fraction"} and one
+\code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+with an extreme estimate, so a stricter cap returns \code{NA} on many data
+sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+rule (at least half of the resamples finite).}
     }
     \if{html}{\out{</div>}}
   }
@@ -387,7 +403,8 @@ estimates required after filtering. Default 5.}
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
-  scaling = "sqrt_n"
+  scaling = "sqrt_n",
+  min_fraction_usable_samples = 0.8
 )}
     \if{html}{\out{</div>}}
   }
@@ -408,6 +425,21 @@ displayed.}
 estimates required after filtering. Default 5.}
       \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
       \item{\code{scaling}}{Scaling sequence for centered m-out-of-n pivots.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B}
+resamples that must be usable, for a ratio estimand
+(\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+\code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+\code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+treatment arm with no events; on the logit scale also only events; for a
+count a zero total; or a separated logistic fit) or its fit fails. Below this
+fraction the method returns \code{NA} with reason
+\code{"m_out_of_n_too_few_usable_draws_fraction"} and one
+\code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+with an extreme estimate, so a stricter cap returns \code{NA} on many data
+sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+rule (at least half of the resamples finite).}
     }
     \if{html}{\out{</div>}}
   }
@@ -532,7 +564,8 @@ distribution and converts back to the full-sample scale using
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
-  scaling = "sqrt_n"
+  scaling = "sqrt_n",
+  min_fraction_usable_samples = 0.8
 )}
     \if{html}{\out{</div>}}
   }
@@ -552,6 +585,21 @@ displayed.}
 estimates required after filtering. Default 5.}
       \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
       \item{\code{scaling}}{Scaling sequence for centered subsampling pivots.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B}
+subsamples that must be usable, for a ratio estimand
+(\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+\code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+\code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+treatment arm with no events; on the logit scale also only events; for a
+count a zero total; or a separated logistic fit) or its fit fails. Below this
+fraction the method returns \code{NA} with reason
+\code{"subsampling_too_few_usable_draws_fraction"} and one
+\code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+with an extreme estimate, so a stricter cap returns \code{NA} on many data
+sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+rule (at least half of the subsamples finite).}
     }
     \if{html}{\out{</div>}}
   }
@@ -577,7 +625,8 @@ estimates required after filtering. Default 5.}
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
-  scaling = "sqrt_n"
+  scaling = "sqrt_n",
+  min_fraction_usable_samples = 0.8
 )}
     \if{html}{\out{</div>}}
   }
@@ -598,6 +647,21 @@ displayed.}
 estimates required after filtering. Default 5.}
       \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
       \item{\code{scaling}}{Scaling sequence for centered subsampling pivots.}
+      \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B}
+subsamples that must be usable, for a ratio estimand
+(\code{InferenceIncidLogRegr}, \code{InferenceIncidKKGEE},
+\code{InferenceIncidModifiedPoisson}, \code{InferenceIncidLogBinomial},
+\code{InferenceCountPoisson}). A draw is unusable when it is degenerate (a
+treatment arm with no events; on the logit scale also only events; for a
+count a zero total; or a separated logistic fit) or its fit fails. Below this
+fraction the method returns \code{NA} with reason
+\code{"subsampling_too_few_usable_draws_fraction"} and one
+\code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
+Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+with an extreme estimate, so a stricter cap returns \code{NA} on many data
+sets a test should reject. Lower it (down to 0) to keep more data sets, raise
+it to return \code{NA} sooner. Other classes ignore it and keep their fixed
+rule (at least half of the subsamples finite).}
     }
     \if{html}{\out{</div>}}
   }
@@ -743,8 +807,10 @@ values. Runs serially. Default \code{FALSE}.}
     as \code{"within_blocks"}.}
   \item{\code{"within_blocks"}}{Only legal for blocking-style designs that support
     block-aware bootstrap resampling:
-    \code{DesignFixedBlocking}, \code{DesignFixedOptimalBlocks},
-    \code{DesignSeqOneByOneSPBR}, and \code{DesignFixedBlockedCluster}.
+    \code{DesignFixedBlocking}, \code{DesignFixedOptimalBlocks}, and
+    \code{DesignFixedBlockedCluster}. (\code{DesignSeqOneByOneSPBR} is a
+    \code{DesignSeqOneByOne} subclass, so the nonparametric bootstrap is not
+    supported on it at all; see the class documentation.)
     Resamples observational units within each observed block/stratum. For blocked
     cluster designs this means resampling clusters within strata.}
   \item{\code{"resample_blocks"}}{Only legal for the same blocking-style designs as

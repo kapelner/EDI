@@ -38,8 +38,8 @@ values matters, not their numeric coding.}
 A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
   \code{gradient_norm}, \code{min_eigenvalue_information},
-  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-  observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+  \code{observed_information}/\code{information} (both the same
+  observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}), \code{vcov},
   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
   non-positive). \code{vcov} is omitted (and \code{ssq_b_j} is

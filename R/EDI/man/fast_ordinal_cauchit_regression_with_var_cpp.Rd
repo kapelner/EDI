@@ -39,8 +39,8 @@ The same list as \code{\link{fast_ordinal_cauchit_regression_cpp}} with
   \code{estimate_only = FALSE}: \code{b}, \code{alpha}, \code{params}, \code{n_params},
   \code{neg_loglik}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap},
   \code{gradient_norm}, \code{min_eigenvalue_information},
-  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-  observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+  \code{observed_information}/\code{information} (both the same
+  observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}), \code{vcov},
   and \code{ssq_b_j} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
   — conventionally the treatment effect; \code{NaN} if it comes out non-finite or
   non-positive). \code{vcov} is \code{NULL} (and \code{ssq_b_j} is
@@ -69,7 +69,7 @@ parameters at caller-supplied constant values rather than estimating them.
 directly (skipping \code{smart_cold_start}); otherwise, when
 \code{smart_cold_start = TRUE} (the default), starting values come from an
 OLS-based heuristic, and when \code{FALSE}, thresholds start at
-\eqn{\tan(\pi(k/K - 1/2))} (an inverse-cauchit spacing of the empirical
+\eqn{\tan(\pi((k+1)/K - 1/2))}, \eqn{k = 0, \ldots, K-2} (an inverse-cauchit spacing of the empirical
 marginal category proportions) with \eqn{\beta} at zero. Optimization runs
 via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 iterations or until the gradient norm falls below \code{tol};

@@ -61,6 +61,11 @@ when this class uses \code{objective = "abs_sum_diff"}, a finite \code{n_iter}, 
 \code{"abs_sum_diff"} fallback after a failed Cholesky factorization, and when
 \code{DesignFixedGreedyDOptimal} uses \code{objective = "A"} with \code{interest = "all"} or a covariate
 subset, or a \code{prior_precision}.
+Ties are the exception: the two searches compute their criteria
+differently in floating point, so when covariates have ties and several swaps improve
+the criterion by the same amount, they can break the tie differently and stop at
+different allocations with nearly the same balance. In one example with weights
+rounded to 0.1 and ages in whole weeks, 10 of 20 draws agreed.
 
 \strong{Unequal arms.} Any \code{prob_T} in \eqn{(0, 1)} is supported; the search
 keeps the treated count fixed at \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)},

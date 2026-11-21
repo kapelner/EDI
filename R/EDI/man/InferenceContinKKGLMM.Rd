@@ -23,6 +23,19 @@ structure to correctly capture the design's matching dependence and the
 usual linear mixed model assumptions (conditional normality of responses
 and pair effects, correctly specified fixed-effects formula).
 
+\strong{Wald standard error.} With \code{use_rcpp = TRUE} the Wald standard
+error is from the inverse of the full observed information (the analytic
+negative Hessian of the marginal log-likelihood in \eqn{(\beta, \log\sigma_e,
+\log\sigma_b)} at the MLE), including the \eqn{\beta}-by-variance-parameter
+terms. It can be larger than the \code{lme4::lmer(REML = FALSE)} value, which
+conditions on the variance parameters (\eqn{(X^\top V^{-1} X)^{-1}}); the two
+agree when \eqn{\hat\sigma_b} is away from 0 and differed by about 5\% in a
+fit with \eqn{\hat\sigma_b} near 0. The score test uses the
+block-diagonal (expected) information instead. With the \pkg{glmmTMB}
+fallback the standard error is \pkg{glmmTMB}'s. The same standard error is
+used by every Wald interval and p-value (\code{compute_asymp_*()} and
+\code{compute_wald_*()}) and by \code{InferenceSuite}'s \code{se} column.
+
 \strong{Small samples.} With covariate adjustment at n = 50, the Wald test
 can reject a true null up to about 8.5\% of the time at a nominal 5\% level
 (intervals can cover as little as about 91.5\%), since its normal reference

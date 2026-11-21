@@ -23,6 +23,16 @@ appropriate when the observational data itself has a matched/stratified/clustere
 structure (e.g. matched case-control sets, repeated measurements within site) that the
 bootstrap should respect.
 
+\strong{Jackknife.} With at least 5 blocks the jackknife's automatic deletion unit is the
+whole block (\code{unit = "block"}), right when the blocks are matched sets or clusters.
+With fewer than 5 blocks, leave-one-block-out would have too few units (its
+jackknife-Wald results would be \code{NA}), so the automatic unit is one subject, the
+blocks acting as strata (\code{unit = "observation_within_block"}; the stratified
+jackknife of Wolter 2007, Sec. 4.5, formulas in
+\code{\link[EDI:InferenceJackknife]{InferenceJackknife}}), with the t reference on
+\eqn{\sum_h (n_h - 1)} degrees of freedom. Either unit can be requested explicitly
+(v1.0.6-TODO-231).
+
 \strong{No auto-derived n.} Unlike plain \code{ObservationalDesign}, \code{n} is not a
 constructor argument here at all -- it is always \code{length(m)}, since a block
 membership vector with one entry per subject already fixes the sample size.

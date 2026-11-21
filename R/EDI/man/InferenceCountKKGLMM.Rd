@@ -23,11 +23,22 @@ likelihood by (non-adaptive) Gauss-Hermite quadrature with 60 fixed nodes
 rather than a Laplace approximation.
 
 \strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
-(model-based standard error) and likelihood-ratio testing types are
+(see \strong{Wald standard error} below) and likelihood-ratio testing types are
 available. The likelihood-ratio, score and gradient CIs/p-values are the
 GLMM's own model-based tests, as in the other KK GLMM classes; they are not
 widened against the Wald result (before 1.0.5 each reported the larger
 p-value / wider interval of the model test and the Wald test).
+
+\strong{Wald standard error.} The model standard error is from the inverse
+of the observed information (the negative Hessian of the quadrature
+marginal log-likelihood in \eqn{(\beta, \log\sigma_b)} at the MLE; with
+\code{use_rcpp = FALSE}, \pkg{glmmTMB}'s). Outside resampling it is then
+replaced by the delete-one jackknife standard error (automatic unit) when
+that is larger, so the Wald standard error is the larger of the two (on
+three simulated n = 60 KK14 fits 9\% to 26\% above the model value). The same
+standard error is used by every Wald interval and p-value
+(\code{compute_asymp_*()} and \code{compute_wald_*()}) and by
+\code{InferenceSuite}'s \code{se} column.
 
 \strong{Assumptions.} Count response modeled as conditionally Poisson given
 the random intercept (equidispersion conditional on \eqn{b_i}); pair-level
@@ -254,7 +265,8 @@ method never computes a weighted standard error regardless of this argument).}
 \subsection{\code{InferenceCountKKGLMM$compute_wald_confidence_interval()}}{
   Wald confidence interval for the treatment log-rate coefficient:
   \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)}, using the
-  model-based GLMM standard error. See
+  Wald standard error described in the class details (the larger of the
+  model-based and delete-one jackknife standard errors). See
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -279,7 +291,9 @@ method never computes a weighted standard error regardless of this argument).}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_wald_two_sided_pval()}}{
   Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
-  \eqn{H_1: \beta_T \neq \code{delta}}, using the model-based GLMM standard error.
+  \eqn{H_1: \beta_T \neq \code{delta}}, using the Wald standard error described in
+  the class details (the larger of the model-based and delete-one jackknife
+  standard errors).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_wald_two_sided_pval(delta = 0)}
@@ -351,10 +365,10 @@ any treatment effect at all.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_asymp_confidence_interval()}}{
-  Asymptotic confidence interval, dispatching to
-  \code{compute_wald_confidence_interval()} or \code{compute_lik_ratio_confidence_interval()}
-  depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
-  neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  Asymptotic confidence interval, dispatching on
+  \code{self$get_testing_type()} to \code{compute_wald_confidence_interval()},
+  \code{compute_lik_ratio_confidence_interval()}, or the score or gradient test
+  inversion; any other testing type is an error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
   testing-type dispatch contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -378,10 +392,10 @@ any treatment effect at all.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_asymp_two_sided_pval()}}{
-  Asymptotic two-sided p-value, dispatching to
-  \code{compute_wald_two_sided_pval()} or \code{compute_lik_ratio_two_sided_pval()}
-  depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
-  neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  Asymptotic two-sided p-value, dispatching on
+  \code{self$get_testing_type()} to \code{compute_wald_two_sided_pval()},
+  \code{compute_lik_ratio_two_sided_pval()}, or the score or gradient test; any
+  other testing type is an error. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
   testing-type dispatch contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

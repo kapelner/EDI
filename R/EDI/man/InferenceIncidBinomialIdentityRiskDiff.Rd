@@ -25,7 +25,15 @@ this is a real practical limitation of the identity link relative to
 logit/probit, not a bug. When the full-data MLE is on the boundary (some
 fitted probability equal to 0 or 1), the object warns once
 (\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
-errors and intervals may be unreliable. Validity requires the additive risk-difference
+errors and intervals may be unreliable. The Wald standard error is the
+inverse of the expected (Fisher) information \eqn{X^\top W X},
+\eqn{W = \mathrm{diag}\{1 / (\hat\mu_i (1 - \hat\mu_i))\}}, of the
+Fisher-scoring fit, as \code{glm()} reports for a non-canonical link; it is
+not the observed information, which the score test uses (a documented
+exception to the package's observed-information rule for Wald standard
+errors). The same standard error is used by every Wald interval and
+p-value (\code{compute_asymp_*()} and \code{compute_wald_*()}) and by
+\code{InferenceSuite}'s \code{se} column. Validity requires the additive risk-difference
 model to be correctly specified over the covariate range actually observed
 (an identity-link fit can be well-behaved in-sample yet imply
 out-of-range probabilities for other covariate values).

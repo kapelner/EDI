@@ -60,7 +60,9 @@ A list with components \code{b}/\code{params} (estimated
   negative log-likelihood), \code{loglik} (its negation), \code{converged}
   (logical, \code{gradient_norm < tol}, uniform across optimizers),
   \code{num_iter}, \code{hit_iteration_cap} (logical, mutually exclusive
-  with \code{converged}), and \code{gradient_norm}.
+  with \code{converged}), \code{gradient_norm}, and
+  \code{min_eigenvalue_information} (the smallest eigenvalue of the
+  information matrix, a diagnostic of near-singularity).
 }
 \description{
 Fits the same logistic regression model as

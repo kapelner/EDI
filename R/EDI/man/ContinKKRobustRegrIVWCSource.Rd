@@ -77,6 +77,8 @@ independent reservoir subjects; no censoring; a KK matching-on-the-fly
 design. Robust regression down-weights outlying residuals, trading some
 efficiency under exactly-Gaussian errors for resistance to heavy tails and
 contamination.
+
+\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \references{
 Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
@@ -88,7 +90,5 @@ Analogous Python API for robust linear models:
   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
   \href{https://en.wikipedia.org/wiki/Robust_regression}{Robust regression}
   (orientation).
-
-\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \keyword{internal}

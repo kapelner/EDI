@@ -48,7 +48,7 @@ optimizer iteration.}
 A list with components \code{coefficients} (\eqn{\hat\beta}),
   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
-  (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+  (\code{sqrt(diag(vcov))}), \code{converged} (logical),
   \code{information_invertible} (whether the free information block passed
   the invertibility check), and
   \code{fisher_information} (the observed-information matrix \code{vcov} was

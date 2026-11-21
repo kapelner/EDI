@@ -29,6 +29,11 @@ of the design's randomization structure:
     the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.6-TODO-270);
   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
     grouped by its stratum (\code{"observation_within_block"});
+  \item \code{\link[EDI:ObservationalDesignBlocks]{ObservationalDesignBlocks}}: one whole
+    block (\code{"block"}, right for matched sets and clusters) when there are at least
+    5 blocks; with fewer, one subject grouped by its block as a stratum
+    (\code{"observation_within_block"}), since leave-one-block-out would have too few
+    units (v1.0.6-TODO-231);
   \item other blocking designs: one whole block (\code{"block"});
   \item all other designs: one subject (\code{"observation"}).
 }
@@ -78,9 +83,14 @@ The strata are fixed by the design and treatment is randomized within them, so o
 the within-stratum spread of the replicates enters the variance. A stratum with a
 single unit contributes nothing to either sum. The bias-corrected jackknife estimate is
 \eqn{\hat\theta} minus the bias, and the jackknife-Wald test and interval use it with
-the jackknife standard error and the normal reference. They are \code{NA} when the
-variance has fewer than 4 degrees of freedom (\eqn{G - 1}, or
-\eqn{\sum_h (n_h - 1)} for the stratified units).
+the jackknife standard error. The reference distribution is the normal for the
+unstratified units and, since EDI 1.0.6, the t distribution with
+\eqn{\sum_h (n_h - 1)} degrees of freedom (the degrees of freedom of the stratified
+variance) for the stratified units \code{"permuted_block"} and
+\code{"observation_within_block"} (v1.0.6-TODO-231: on SPBR with about 31 degrees of
+freedom the normal-reference 95\% interval covered 0.930 and the t interval 0.943).
+They are \code{NA} when the variance has fewer than 4 degrees of freedom
+(\eqn{G - 1}, or \eqn{\sum_h (n_h - 1)} for the stratified units).
 
 Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
 block, which on these designs is the stratum, so a replicate deleted a whole stratum
@@ -243,6 +253,9 @@ Jones, H. L. (1974). Jackknife estimation of functions of stratum means.
 
 The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+The estimate is the full-data estimate minus
+\code{$compute_jackknife_bias_estimate()}; see that method for a caveat on the
+stratified units (\code{"permuted_block"}, \code{"observation_within_block"}).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_estimate(unit = "auto")}
@@ -268,6 +281,19 @@ The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 \if{latex}{\out{\hypertarget{method-InferenceJackknife-compute_jackknife_bias_estimate}{}}}
 \subsection{\code{InferenceJackknife$compute_jackknife_bias_estimate()}}{
   Computes the jackknife bias estimate.
+
+Unstratified units: \eqn{(G - 1)(\bar\theta - \hat\theta)}. Stratified units
+(\code{"permuted_block"}, \code{"observation_within_block"}): the stratified
+jackknife bias \eqn{\sum_h (n_h - 1)(\bar\theta^*_h - \hat\theta)} (Jones 1974;
+Wolter 2007, Sec. 4.5) applied to EDI's leave-unit-out refits rescaled to their
+first-order reweighted equivalents. That rescaling is exact enough for the variance
+but not for this second-order quantity: the result equals the ordinary
+\eqn{(N - 1)(\bar\theta - \hat\theta)}, which also counts the spread of the outcome
+between strata. It is 0 for a difference in means; for a nonlinear estimator
+(log odds ratio, log hazard ratio, ...) with strongly different strata it can be
+too large (in simulations up to about 0.4 standard errors), and so can the shift of
+\code{$compute_jackknife_estimate()} and of the jackknife-Wald interval centre.
+See \strong{Formulas} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_bias_estimate(unit = "auto")}
@@ -322,6 +348,10 @@ The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 
 The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+The reference distribution is the normal, except for the stratified units
+(\code{"permuted_block"}, \code{"observation_within_block"}), which use t with
+\eqn{\sum_h (n_h - 1)} degrees of freedom (EDI 1.0.6). The statistic is centred at
+the bias-corrected estimate; see \code{$compute_jackknife_bias_estimate()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_wald_two_sided_pval(
@@ -350,11 +380,16 @@ The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 \if{html}{\out{<a id="method-InferenceJackknife-compute_jackknife_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceJackknife-compute_jackknife_wald_confidence_interval}{}}}
 \subsection{\code{InferenceJackknife$compute_jackknife_wald_confidence_interval()}}{
-  Computes a normal-approximation confidence interval using the
-  jackknife estimate and jackknife standard error.
+  Computes a Wald confidence interval using the jackknife estimate
+  and jackknife standard error.
 
 The automatic deletion unit (\code{unit = "auto"}) follows the design: see
 \strong{Deletion units} in \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+The interval is estimate \eqn{\pm} quantile \eqn{\times} SE with the normal
+quantile, except for the stratified units (\code{"permuted_block"},
+\code{"observation_within_block"}), which use the t quantile with
+\eqn{\sum_h (n_h - 1)} degrees of freedom (EDI 1.0.6). It is centred at the
+bias-corrected estimate; see \code{$compute_jackknife_bias_estimate()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceJackknife$compute_jackknife_wald_confidence_interval(

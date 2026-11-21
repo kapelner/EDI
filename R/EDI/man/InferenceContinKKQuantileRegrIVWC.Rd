@@ -39,9 +39,16 @@ Install \pkg{quantreg} before using this class.
 
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 
-\strong{No Bayesian bootstrap.} Its halves' standard errors have no weighted refit yet, so this class does not
-offer the Bayesian bootstrap (\code{supports_bayesian_bootstrap()} is \code{FALSE}).
-Its other resampling methods are unaffected.
+\strong{Bayesian bootstrap.} Each Bayesian-bootstrap replicate is a weighted refit of
+this estimator: under the draw's Dirichlet weights (a matched pair's weight is the mean
+of its two subjects' row weights) both halves are refit by weighted
+quantile regression (\code{quantreg::rq(weights = )}). Each half's standard error comes
+from its weighted fit (the \code{"nid"} sandwich, then \code{"iid"}, then a weighted-IQR
+fallback) and the two halves are pooled by inverse variance exactly as in
+\code{compute_estimate()}. Units with a zero weight, or one below \eqn{10^{-10}} times the
+mean weight, are dropped from the refit; the
+remaining weights are rescaled to mean 1 (the coefficients do not depend on the scale, and
+uniform weights then reproduce the unweighted fit and its standard errors).
 }
 \examples{
 if (requireNamespace("quantreg", quietly = TRUE)) {

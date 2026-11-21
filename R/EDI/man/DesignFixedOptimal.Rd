@@ -50,7 +50,10 @@ and solved forms as follows:
 \strong{Solvers and certificates.} \code{solver = "auto"} (default) uses
 the exact \code{"ompr"} MILP path (\code{optimum_certificate = "global"},
 a certified global optimum) wherever tractable -- always for
-\code{"abs_sum_diff"} (pure linear MILP); up to
+\code{"abs_sum_diff"} (pure linear MILP, given \code{solver_args$milp_time_limit}
+seconds, default 30, with GLPK; if it has not finished by then the better of its
+incumbent and an annealing run is returned with a message and certificate
+\code{"annealing_converged"}); up to
 \code{solver_args$linearization_max_n} (default 20, set by a GLPK
 benchmark: the product linearization adds \eqn{n(n-1)/2} auxiliaries and
 branch-and-bound cost climbs steeply past \eqn{n \approx 20}) for the
@@ -283,6 +286,8 @@ if this design needs to be reloadable.}
   \code{roi_solver} (\code{"glpk"}/\code{"gurobi"}/\code{"cplex"} --
   a \emph{closed} set; arbitrary ROI plugin names are rejected),
   \code{linearization_max_n}, \code{max_dinkelbach_iter},
+  \code{milp_time_limit} (seconds for the \code{"abs_sum_diff"} MILP under
+  \code{solver = "auto"} with GLPK, default 30; \code{Inf} for none),
   \code{n_chains}, \code{max_iter}, \code{initial_temp},
   \code{cooling_rate}, and the explicit BRT-replay override
   \code{brt_solver} with its annealing controls \code{brt_max_iter}
@@ -426,6 +431,17 @@ seeded label flip).}
   achieved objective value, mirror-coin outcome
   (\code{mirror_feasible}/\code{mirror_tied}/\code{mirror_flipped}),
   elapsed time, and the solver's own detail fields.
+  \code{objective_value} is on the user scale \eqn{M(w)}: for
+  \code{"mahal_dist"} the squared Mahalanobis distance
+  \eqn{(\bar x_T - \bar x_C)^\top S^{-1} (\bar x_T - \bar x_C)} and for
+  \code{"abs_sum_diff"} the sum of absolute standardized mean differences
+  \eqn{\sum_j |\bar x_{T,j} - \bar x_{C,j}| / s_j} (sample covariance and SDs
+  with divisor \eqn{n - 1}; a \code{"mahal_dist"} solve that fell back to
+  \code{"abs_sum_diff"} reports the latter). Other objectives report the
+  solver's value. \code{objective_value_internal} and solver detail fields
+  such as \code{chain_values} are on the solver's internal scale, which for
+  those two objectives is \eqn{M(w)} times \eqn{4 n_T^2 n_C^2 / n^4} and
+  \eqn{2 n_T n_C / n^2} respectively.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedOptimal$get_optimization_diagnostics()}

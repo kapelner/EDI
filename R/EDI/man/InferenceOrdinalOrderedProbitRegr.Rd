@@ -51,6 +51,16 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\details{
+A response with fewer than two observed levels has no cutpoints to fit, so
+the estimate (and every test and interval built on it) is \code{NA}.
+Bootstrap and other resampling draws whose response has a single level are
+unusable and are dropped from the resampling distribution, as for
+\code{\link[EDI:InferenceOrdinalCauchitRegr]{InferenceOrdinalCauchitRegr}}
+and \code{\link[EDI:InferenceOrdinalCloglogRegr]{InferenceOrdinalCloglogRegr}}.
+(Before v1.0.6 this class returned an estimate of 0 in that case, and such
+draws entered the bootstrap distribution as exact zeros.)
+}
 \section{Small-sample behaviour}{
 
 How fast the size (and coverage) error of each procedure is expected to vanish as the

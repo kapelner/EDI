@@ -5,8 +5,9 @@
 \title{Hurdle Poisson Regression Inference for Count Responses}
 \description{
 Fits a hurdle Poisson regression for count responses: a binary hurdle
-submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (fit
-jointly with the count submodel) crossed with a zero-truncated Poisson
+submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (the
+hurdle likelihood factorizes, so this part is fit separately from the count
+submodel) crossed with a zero-truncated Poisson
 count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
 w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 submodels may use different covariate formulas

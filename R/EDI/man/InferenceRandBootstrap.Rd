@@ -310,7 +310,10 @@ values. Runs serially. Default \code{FALSE}.}
       \item{\code{rand_bootstrap_draws}}{Optional pre-generated draws (as returned by the private
 method \code{generate_rand_bootstrap_draws}) enabling common random numbers across
 calls with different \code{delta} values (used by the CI inversion). Default \code{NULL}.}
-      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging.}
+      \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
+\code{"logit"} response transform: responses are clamped to
+\code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -365,13 +368,17 @@ the studentized types: also a missing or non-positive draw standard error) makes
 p-value \code{NA}, with one \code{edi_bootstrap_nonfinite_na_warning} per object
 (silent inside an outer resampling operation). Under the sequential Monte Carlo
 early-stopping path (\code{brt_mc_control}) only the draws evaluated before stopping
-are checked.}
+are checked. With \code{TRUE} that path applies \code{min_fraction_usable_samples}
+(see there).}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{bootstrap_type}}{Optional bootstrap-resampling scheme; see
 \code{approximate_bootstrap_distribution_beta_hat_T} for legal values. Default \code{NULL}.}
       \item{\code{rand_bootstrap_draws}}{Optional pre-generated draws for common random numbers
 across \code{delta} values. Default \code{NULL}.}
-      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging.}
+      \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
+\code{"logit"} response transform: responses are clamped to
+\code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
+so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
       \item{\code{type}}{Test statistic type. \code{"percentile"} (default) uses the raw
   estimator as the BRT test statistic, giving an asymptotic p-value that inherits
   the unconditional superpopulation validity of the BRT.
@@ -467,8 +474,11 @@ reason \code{"rand_bootstrap_too_few_valid_replicates_fraction"} and one
 \code{edi_procedure_na_warning} (silent inside an outer resampling operation). Fewer
 than \code{max(10, 10\%)} finite draws keep the existing reason
 \code{"randomization_too_few_finite_estimates"}. \code{0} turns the check off;
-\code{1} requires every draw. Not applied by the sequential Monte Carlo early-stopping
-path (\code{brt_mc_control}), which stops on a prefix of the draws, nor inside
+\code{1} requires every draw. The sequential Monte Carlo early-stopping path
+(\code{brt_mc_control}) does not stop on a prefix of the draws with too few valid
+draws: it draws the next batch, and applies the check to all \code{B} draws when it
+gets there (v1.0.6-TODO-219). A prefix that clears the check can still stop early,
+so a run that stops early never sees the later draws. Not applied inside
 \code{compute_rand_bootstrap_confidence_interval()}, which inverts these p-values
 and has its own failure reasons.}
     }

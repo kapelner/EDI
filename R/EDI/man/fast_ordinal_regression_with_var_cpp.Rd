@@ -43,8 +43,8 @@ values matters, not their numeric coding.}
 \value{
 A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
   \code{converged}, \code{num_iter}, \code{neg_loglik},
-  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
-  observed-information matrix), \code{information_type} (\code{"observed"}),
+  \code{observed_information}/\code{information} (both the same
+  observed-information matrix; no expected-information field is returned), \code{information_type} (\code{"observed"}),
   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
   column — conventionally the treatment effect), and \code{vcov} — the latter two are
   \code{NA}/omitted if the free-parameter information matrix is not invertible.

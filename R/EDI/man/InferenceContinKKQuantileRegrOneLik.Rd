@@ -92,6 +92,7 @@ infer
 Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
 allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+
 Koenker, R. (2005). \emph{Quantile Regression}. Cambridge University Press.
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.

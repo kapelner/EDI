@@ -37,7 +37,7 @@ randomization-bootstrap p-values at \eqn{\delta = 0} remain available.
 \strong{The standard error assumes independent arms.} The Greenwood-type
 variance treats the two arms as independent samples, which is correct for
 Bernoulli assignment and complete randomization (\code{DesignSeqOneByOneBernoulli},
-\code{DesignFixedBernoulli}, \code{DesignFixedBCRD}, \code{DesignFixediBCRD},
+\code{DesignFixedBernoulli}, \code{DesignFixediBCRD},
 \code{DesignSeqOneByOneiBCRD}).
 Under every other design (blocking, stratified permuted blocks, matching,
 KK pairs, rerandomization, covariate-adaptive and other balancing designs) it

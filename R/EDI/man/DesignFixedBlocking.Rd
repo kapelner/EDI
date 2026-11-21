@@ -32,7 +32,9 @@ the running block count stays at or below the target (earlier columns take prior
 land on exactly \code{B_target} blocks. \code{equal_block_sizes = TRUE} (the default)
 additionally requires every block to have the same subject count, checked once at
 construction (via \code{n \%\% B_target}) if \code{n} and \code{B_target} are both
-already known, and again once covariates arrive; some downstream inference classes
+already known, and again when the blocks are formed, at \code{assign_w_to_all_subjects()}
+(not when the subjects are added). An explicit \code{B_target} cannot equalise the
+blocks of a categorical stratum, whose categories fix the block sizes; some downstream inference classes
 (\code{InferenceIncidCMH}, \code{InferenceIncidExtendedRobins}) require equal block
 sizes unconditionally, regardless of this flag. An explicit \code{m} (one block ID per
 subject) bypasses covariate-derived block construction entirely.
@@ -62,8 +64,10 @@ block structure in the resampling scheme, analogous to the cluster-level bootstr
     stratified jackknife of Wolter 2007,
     \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
     \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A block of one subject
-    contributes nothing. Before EDI 1.0.6 a replicate deleted a whole block, which left
-    only as many replicates as blocks (v1.0.6-TODO-4).
+    contributes nothing. The jackknife-Wald test and interval use the t distribution
+    with \eqn{\sum_h (n_h - 1)} degrees of freedom (v1.0.6-TODO-231). Before EDI 1.0.6
+    a replicate deleted a whole block, which left only as many replicates as blocks
+    (v1.0.6-TODO-4).
   \item \strong{Not block-aware:} the regression-type classes (OLS, Lin, robust,
     quantile, GLM, ordinal, survival regressions, ...) add \emph{no} block fixed
     effects automatically; the blocks enter the model only if the blocking column is
@@ -229,8 +233,8 @@ explicitly and leave `B_target` unset, it behaves like `B_target = NULL`: ALL na
 columns are used and the number of blocks is whatever their cross-classification
 gives (named strata are never silently dropped, e.g. at prime `n`). Note that with
 `equal_block_sizes = TRUE` this errors when the cells are not equal-sized (for
-example 2 sex cells at odd `n`); set `equal_block_sizes = FALSE` or pass an
-explicit `B_target`. If `strata_cols = NULL` (all covariates available) the default
+example 2 sex cells at odd `n`); set `equal_block_sizes = FALSE`, or, for binned
+continuous strata, pass an explicit `B_target`. If `strata_cols = NULL` (all covariates available) the default
 is the largest divisor of `n` that is at most `floor(sqrt(n))` (so it always
 satisfies `equal_block_sizes = TRUE`); if `n` is not yet known it is resolved to
 `floor(sqrt(n))` when subjects are added. The same cap is used when

@@ -33,7 +33,14 @@ reported quantity is instead the g-computation marginal risk difference
 subject's covariates plugged in once under treatment and once under
 control, averaged over the empirical covariate distribution. Under
 \code{estimand = "marginal_ratio"}, the log of the corresponding marginal
-risk ratio. Because there is no latent submodel for this family (unlike
+risk ratio: the estimate, its confidence intervals and \code{delta} are all on
+the log scale (\code{delta = 0} is no effect). This is the same standardized
+risk ratio that
+\code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
+computes from the same logistic working model, but that class reports it on
+the ratio scale (its estimate is \code{exp()} of this one, its intervals are
+back-transformed and its \code{delta = 1} is no effect) and its Wald standard
+error uses the sandwich rather than the model covariance. Because there is no latent submodel for this family (unlike
 e.g. \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
 zero/one-inflation mixture), the marginal mean function is exactly the
 model's own fitted mean; no separate standardization step beyond the
@@ -53,6 +60,26 @@ raises one warning of class \code{edi_logistic_separation_warning} per object
 unchanged. Prefer a likelihood-ratio test (\code{set_testing_type("lik_ratio")}),
 a randomization test, an exact incidence method, or fewer covariates.
 }
+\section{Subsampling and m-out-of-n}{
+
+(v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+\emph{degenerate}: a treatment arm with no events or only events, or a (quasi-)separated fit (a fitted probability numerically 0 or 1). Its log odds ratio then sits where the fitter stopped (about \eqn{\pm 20}),
+not in the sampling law the pivot estimates, so the draw is \code{NaN} in
+\code{approximate_subsampling_distribution_beta_hat_T()} and
+\code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
+and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
+v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
+\code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
+and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
+\eqn{\sqrt{b}(\hat\theta^* - \hat\theta)} (subsampling also divides by \eqn{\sqrt{1 - b/n}}) at
+least as large in absolute value as \eqn{\sqrt{n}(\hat\theta - \delta)}, floored at \eqn{1/B}, rather
+than the equal-tailed \eqn{2\min\{\cdot\}}, because at small \eqn{b} the law of a log ratio is skewed
+toward the observed effect and the equal-tailed rule doubles the heavy tail. The interval is the basic
+(equal-tailed) one. Null size at \eqn{n = 80} (200 data sets, \code{B = 199}, nominal 0.05, before and
+after): Wald 0.060; subsampling 0.000, m-out-of-n 0.000 before and after; the intervals that were \code{NA} from the extreme-interval cap (25\% and 54\% of data sets) are now finite. These tests stay conservative because at \eqn{b = 21} the spread of the subsample log odds ratio is about 1.5 times what the \eqn{\sqrt{b}} scaling assumes. The ordinary bootstrap is the better resampling method for this estimand.
+}
+
 \section{Small-sample behaviour}{
 
 How fast the size (and coverage) error of each procedure is expected to vanish as the

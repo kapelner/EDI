@@ -19,9 +19,9 @@ algorithm, for both the estimate-only \code{rq.fit} call and the variance-comput
 with no intercept column (the design matrix already carries one). Standard errors use
 \pkg{quantreg}'s Powell (1991) kernel sandwich \code{"nid"} estimator (heteroskedasticity-
 and design-robust, valid under non-i.i.d. errors) when available, falling back to the
-i.i.d.-errors \code{"iid"} estimator if \code{"nid"} extraction fails; inference on the
-resulting standard error uses the asymptotic normal (Wald) approximation, not a
-resampling-based reference distribution, for the asymptotic CI/p-value paths.
+i.i.d.-errors \code{"iid"} estimator if \code{"nid"} extraction fails. The asymptotic
+CI/p-value paths are Wald-type (estimate divided by this standard error, not a
+resampling-based reference distribution):
 \code{compute_asymp_confidence_interval}/\code{compute_asymp_two_sided_pval} use the
 fit's residual degrees of freedom \eqn{n - p} in a \eqn{t}-reference (via
 \code{compute_z_or_t_ci_from_s_and_df}) rather than a plain normal reference, so the

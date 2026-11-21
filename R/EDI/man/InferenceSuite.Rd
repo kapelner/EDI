@@ -393,7 +393,7 @@ once, ignoring \code{formulas}. Note this is a syntactic check
 actually use it) -- some classes accept-and-ignore \code{model_formula}
 (e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test).}
       \item{\code{methods}}{\code{NULL} (default), a character vector of method
-sentinel strings, or (TODO-22) a named list, \code{sentinel} to a
+sentinel strings, or a named list mapping each \code{sentinel} to a
 character vector of requested \code{type} values, or \code{NULL},
 restricting which inference method(s) -- and, for the three
 resampling sentinels marked "typed" below, which resampling/CI-
@@ -655,8 +655,7 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   stacked over its \dQuote{Estimates} box-and-whisker subplot; draw
   with \code{grid::grid.draw()} or pass to \code{ggplot2::ggsave()} --
   possibly empty -- rather than a single plot, since the visualization
-  is split one-per-estimand, per user request, 2026-08-19; the former
-  separate \code{estimates} plot became that subplot, 2026-08-21),
+  is split one-per-estimand),
   \code{files} (\code{list(html, pdf, json)}, each a
   path or \code{NULL}; \code{pdf} is one multi-page PDF with one page
   per estimand), \code{timestamp}, \code{total_secs}, and

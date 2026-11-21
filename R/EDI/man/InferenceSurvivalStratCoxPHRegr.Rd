@@ -292,10 +292,12 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceSurvivalStratCoxPHRegr-compute_rand_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalStratCoxPHRegr-compute_rand_confidence_interval}{}}}
 \subsection{\code{InferenceSurvivalStratCoxPHRegr$compute_rand_confidence_interval()}}{
-  Compute a randomization-based confidence interval for the
-  stratified Cox treatment effect by inverting the class-specific
-  randomization p-value. See
-  \code{InferenceRandCI}.
+  Not supported: randomization confidence intervals are not
+  available for the stratified Cox model, and calling this method always
+  signals an error. The log-hazard-ratio estimator units are not
+  commensurate with the randomization CI bisection's log-time-ratio
+  (AFT-effect) null search. Use \code{compute_rand_two_sided_pval()} for a
+  randomization test, or an asymptotic or bootstrap interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalStratCoxPHRegr$compute_rand_confidence_interval(
@@ -310,10 +312,10 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The significance level (default 0.05).}
-      \item{\code{r}}{Number of vectors to draw.}
-      \item{\code{pval_epsilon}}{The bisection convergence tolerance.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{alpha}}{Unused (the method always errors).}
+      \item{\code{r}}{Unused (the method always errors).}
+      \item{\code{pval_epsilon}}{Unused (the method always errors).}
+      \item{\code{show_progress}}{Unused (the method always errors).}
       \item{\code{ci_search_control}}{Unused.}
     }
     \if{html}{\out{</div>}}

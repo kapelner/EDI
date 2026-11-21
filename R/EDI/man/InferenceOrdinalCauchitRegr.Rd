@@ -19,9 +19,9 @@ Randomization p-value.
 Cauchit-link cumulative-odds ordinal regression: \eqn{P(Y \le k \mid w, x) =
 F_{\mathrm{Cauchy}}(\alpha_k - \beta_T w - \beta_X^\top x)}, where
 \eqn{F_{\mathrm{Cauchy}}} is the standard Cauchy CDF, \eqn{\alpha_k} are
-category-specific cutpoints, and \eqn{\beta_T} is the treatment log-odds
-coefficient on the cauchit scale (proportional-odds-style shift common to all
-categories). Fit by maximum likelihood. The heavy-tailed Cauchy link is
+category-specific cutpoints, and \eqn{\beta_T} is the treatment coefficient
+on the cauchit (Cauchy-quantile) scale: a shift common to all categories, not
+a log odds ratio. Fit by maximum likelihood. The heavy-tailed Cauchy link is
 markedly less sensitive to outlying/extreme response categories than the
 logit or probit link, at the cost of a less familiar effect-size
 interpretation. \code{likelihood_tier = "full"}: exposes likelihood-ratio,
@@ -101,6 +101,17 @@ Design-specific differences from the table:
 }
 }
 
+\examples{
+\donttest{
+seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
+for (i in 1:10) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
+inf = InferenceOrdinalCauchitRegr$new(seq_des)
+inf$compute_estimate()
+}
+}
 \references{
 Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models).

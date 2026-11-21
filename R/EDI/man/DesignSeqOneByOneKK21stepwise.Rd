@@ -76,8 +76,22 @@ unchanged from \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}; o
 \emph{how} the covariate weight vector is computed differs.
 }
 \examples{
-seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = 'continuous')
-seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+set.seed(1)
+n = 30
+# condition_on_ws_for_rand_tests = TRUE (the default) makes later randomization
+# draws reuse the realized pairs; FALSE replays the design exactly (much slower).
+seq_des = DesignSeqOneByOneKK21stepwise$new(n = n, response_type = 'continuous',
+  condition_on_ws_for_rand_tests = TRUE)
+# x2 is a near-copy of x1, so only one of them carries new information once the
+# other is selected; responses arrive as subjects enroll.
+for (t in 1 : n) {
+  x1 = rnorm(1)
+  x_t = data.frame(x1 = x1, x2 = x1 + rnorm(1, sd = 0.1), x3 = rnorm(1))
+  seq_des$add_one_subject_to_experiment_and_assign(x_t)
+  seq_des$add_one_subject_response(t, 2 * x1 + rnorm(1))
+}
+seq_des$get_covariate_weights()           # stepwise (conditional) weights
+length(seq_des$get_iteration_weights())   # one weight vector per weighted assignment
 
 ## ------------------------------------------------
 ## Method `DesignSeqOneByOneKK21stepwise$new()`

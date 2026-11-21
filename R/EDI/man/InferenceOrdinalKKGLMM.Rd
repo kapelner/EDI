@@ -30,8 +30,8 @@ odds (the treatment/covariate effect is constant across cutpoints), and
 correct specification of the fixed-effects formula.
 
 This differs from the GEE sibling
-\code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} (documented
-above) in estimand and inference basis: the GLMM's \eqn{\beta_T} is a
+\code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} in estimand
+and inference basis: the GLMM's \eqn{\beta_T} is a
 subject-specific (conditional) log-odds-ratio with model-likelihood-based
 inference, while the GEE's is a population-averaged (marginal) log-odds-ratio
 with sandwich-based inference; the two need not numerically agree even on the

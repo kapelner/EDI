@@ -78,6 +78,8 @@ seq_des$add_all_subject_responses(as.integer(c(1, 2, 2, 3, 3, 4, 4, 5)))
 infer <- InferenceOrdinalRidit$
   new(seq_des, verbose = FALSE)
 infer
+infer$compute_estimate()
+infer$compute_asymp_confidence_interval()
 
 }
 \references{

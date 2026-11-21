@@ -15,20 +15,27 @@ It must return one scalar (a value of any other length is an error). For maximum
 function of \code{(NumericVector y, IntegerVector w)} or
 \code{(NumericVector y, IntegerVector w, IntegerVector dead)} returning a
 scalar \code{double}, using the same convention as
-\code{DesignFixedOptimal}'s \code{custom_objective}.
+\code{DesignFixedOptimal}'s \code{custom_objective}. The source is compiled with
+\code{Rcpp::cppFunction()}, which adds its own \code{// [[Rcpp::export]]} tag
+in front of the first function in the source, so the source must contain exactly
+one function, the statistic: no helper functions before it (not even a forward
+declaration or an \code{inline} helper; the first one would be taken as the
+statistic and fail the argument check) and no \code{// [[Rcpp::export]]} line of
+your own (the function would be exported twice and the compile fails). Put helper
+logic in a lambda inside the statistic.
 
 Only a randomization test and randomization confidence interval are
 available -- there is no package point-estimator, Wald path, or bootstrap
 machinery on this class, so no other action needs disabling.
 
-The confidence interval inverts tests under an additive shift \eqn{\delta}
-of the treated responses, so it is a confidence interval for the additive
-effect \eqn{\delta} on the response scale, whatever the statistic's own
-units (a t statistic, or \code{-10 * mean difference}, give the same
-interval). The search is centred on the observed difference in mean
-response, not on the statistic's observed value. The statistic must respond
-to the shift (be monotone in \eqn{\delta}); if the test rejects every
-\eqn{\delta} tried the CI errors instead of returning a rejected band.
+The confidence interval inverts the randomization test over the shift
+\eqn{\delta} (see below for its scale by response type), whatever the
+statistic's own units (a t statistic, or \code{-10 * mean difference}, give the
+same interval). The search is centred on the observed difference in mean
+response on the shift scale, not on the statistic's observed value. The
+statistic must respond to the shift (be monotone in \eqn{\delta}); if the test
+rejects every \eqn{\delta} tried the CI errors instead of returning a rejected
+band.
 
 Draws on which the statistic returns \code{NA}, \code{NaN} or an infinite
 value are dropped silently (whatever \code{na.rm} is) and the p-value is
@@ -36,6 +43,32 @@ computed over the finite draws; at least
 \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
 required, otherwise the p-value is \code{NA}. See
 \code{InferenceRand$compute_rand_two_sided_pval()}.
+
+\strong{The scale of \code{delta} by response type.} A nonzero \code{delta}
+tests the sharp null that treatment moves every subject's response by
+\eqn{\delta} on the \code{transform_responses} scale. The shift is removed from
+the observed treated units and re-imposed on each draw's treated units on that
+same scale, and the statistic always sees responses on their own scale. Under
+the default \code{transform_responses = "none"}:
+\itemize{
+  \item continuous: additive, \eqn{y_i(1) = y_i(0) + \delta};
+    \code{compute_rand_confidence_interval()} is an interval for the additive effect.
+  \item survival: \eqn{\delta} is a log time ratio, \eqn{y_i(1) = y_i(0) e^\delta}
+    (censoring times are scaled alike, event indicators unchanged);
+    \code{compute_rand_confidence_interval()} is an interval for \eqn{\delta}, so
+    exponentiate its bounds for an interval for the time ratio \eqn{e^\delta}.
+  \item count: \eqn{\delta} is a log rate ratio, the treated counts multiplied by
+    \eqn{e^\delta} and rounded to integers.
+  \item proportion: \eqn{\delta} is a shift on the logit scale (responses clamped by
+    \code{zero_one_logit_clamp}).
+  \item incidence: a nonzero \code{delta} is refused.
+}
+\code{transform_responses = "log"} or \code{"logit"} selects the multiplicative or
+logit-scale shift explicitly (on continuous responses too, which then must be
+positive, or in (0, 1), for the null to make sense). The randomization CI is
+refused for incidence, count and proportion responses (its bounds would not be
+on the scale of this class's raw-scale estimate); on those types use the
+p-value, at \code{delta = 0} or at a chosen \code{delta}.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} -> \code{InferenceRandCustom}

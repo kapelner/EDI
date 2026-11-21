@@ -109,6 +109,8 @@ Reports the jackknife-Wald confidence interval as
   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 }
 \details{
+\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+
 For matched pairs, \eqn{\hat\beta_m} is the Hodges-Lehmann
   estimate from a Wilcoxon \strong{signed-rank} test on the within-pair
   differences (\code{stats::wilcox.test(diffs, conf.int = TRUE)}'s
@@ -154,8 +156,6 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   efficiency." \emph{Biometrics}, 70(2), 378-388, \doi{10.1111/biom.12148},
   for the KK matching-on-the-fly design and the inverse-variance combination
   of matched-pair and reservoir estimates.
-
-\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllKKWilcoxIVWC}

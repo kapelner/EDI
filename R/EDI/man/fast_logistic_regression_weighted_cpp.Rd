@@ -71,6 +71,10 @@ A list containing the following components:
   iterations without meeting the gradient-norm convergence criterion.}
 \item{gradient_norm}{The norm of the score vector at the returned
   coefficients.}
+\item{min_eigenvalue_information}{The smallest eigenvalue of the information
+  matrix at the fitted coefficients, a diagnostic of near-singularity.}
+\item{num_step_halvings}{The number of IRLS step halvings taken (always 0 on
+  the L-BFGS path).}
 }
 }
 \description{
