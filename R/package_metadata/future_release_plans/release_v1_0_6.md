@@ -5164,7 +5164,7 @@ f1/f2/f6 (v1.0.6-TODO-77/-76/-78), clusters-blocking f1 and factorial f6 (v1.0.6
 (cited at v1.0.6-TODO-234, which did not fix it, and filed as v1.0.6-TODO-294). Code locations marked "suspected"
 were found by reading, not by running a fix.
 
-- [ ] TODO-290 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f3): **KK14/KK21
+- [x] TODO-290 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f3): **KK14/KK21
   constructors accept `lambda` and `t_0_pct` outside [0, 1].** `lambda = -1`, `1.5`, `2` or `NA` constructs silently;
   KK14 then fails at the first post-burn-in assignment (a third of the way into the trial) with "NaNs produced" and
   "missing value where TRUE/FALSE needed" (`qf()` in `DesignSeqOneByOneKK14`, `R/EDI/R/design_seq_one_by_one_KK14.R`
@@ -5175,6 +5175,13 @@ were found by reading, not by running a fix.
   lower = 0, upper = 1)`, with messages naming the argument, like Efron's `weighted_coin_prob` check. Test: each bad
   value errors at `$new()` on all three KK classes; the defaults still give today's allocations. Repro:
   sequential-designs F3.
+  Done 2026-11-21 (agent): the KK14 constructor (shared by KK21 / KK21stepwise) stops at `$new()` with "lambda must be
+  a single number with 0 <= lambda <= 1." / "t_0_pct must be a single number with 0 <= t_0_pct <= 1." for a
+  non-numeric, NA, length != 1 or out-of-range value. The endpoints stay legal, unlike the entry's "0 < lambda < 1":
+  `lambda = 0` (never match) is used by `test-kk14-design-matching-threshold-early-phase-and-pair-invariants-reference.R`,
+  and `lambda = 1` runs (matches whenever the reservoir is non-empty, 15 pairs of 30). Test: new
+  `test-kk-design-lambda-and-t0-pct-argument-validation.R` (bad values error on all three classes; explicit defaults
+  give the default allocation; the endpoints run).
 
 - [x] TODO-291 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f4): **High priority:
   `InferenceContinKKGLMM`'s parametric bootstrap swaps the two variance components, so its CI is ~70x narrower than

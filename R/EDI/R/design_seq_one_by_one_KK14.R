@@ -126,6 +126,17 @@ DesignSeqOneByOneKK14 = define_design_class(
 			private$blocking_capable = TRUE
 			private$matching_capable = TRUE
 			private$uses_covariates = TRUE
+			# v1.0.6-TODO-290: out-of-range values used to construct and then fail mid-trial (qf() NaNs
+			# in KK14, "'probs' outside [0,1]" in KK21) or never match (t_0_pct > 1).
+			if (!is.null(lambda) && (!is.numeric(lambda) || length(lambda) != 1L || is.na(lambda) ||
+					!(lambda >= 0 && lambda <= 1))) {
+				# 0 (never match) and 1 (match whenever the reservoir is non-empty) both run.
+				stop("lambda must be a single number with 0 <= lambda <= 1.", call. = FALSE)
+			}
+			if (!is.null(t_0_pct) && (!is.numeric(t_0_pct) || length(t_0_pct) != 1L || is.na(t_0_pct) ||
+					!(t_0_pct >= 0 && t_0_pct <= 1))) {
+				stop("t_0_pct must be a single number with 0 <= t_0_pct <= 1.", call. = FALSE)
+			}
 			private$lambda = if (is.null(lambda)) 0.1 else lambda
 			private$t_0_pct = if (is.null(t_0_pct)) 0.35 else t_0_pct
 			# v1.0.6-TODO-46: morrison = TRUE was documented (on KK21/KK21stepwise) as switching to

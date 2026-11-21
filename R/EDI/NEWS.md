@@ -696,6 +696,11 @@
 
 ## Bug fixes
 
+* `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise`
+  now reject `lambda` or `t_0_pct` outside [0, 1] (or `NA`) at `$new()`. They used
+  to construct and then fail partway through the trial, or never match
+  (v1.0.6-TODO-290).
+
 * Sequential designs: when `add_one_subject_to_experiment_and_assign()` fails
   (for example a covariate refused by `missingness_method = "error"`), the
   subject is no longer left enrolled with no assignment. The design is rolled

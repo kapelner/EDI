@@ -573,6 +573,7 @@ R/package_tests/testthat_bulk/test-kk-cond-logit-ivwc-shared-matched-reservoir-c
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,correctness,1.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-fit-cascade-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-poisson-pairs-only-fallback-standard-error.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-design-lambda-and-t0-pct-argument-validation.R,correctness,15,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R,correctness,1,measured_with_30_percent_headroom
