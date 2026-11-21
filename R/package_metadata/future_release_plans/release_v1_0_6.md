@@ -5718,7 +5718,7 @@ were found by reading, not by running a fix.
   Add a source test that fails on any string literal in `R/` naming `package_metadata`, a `.md` file other than
   `REFERENCES.md`, or a `TODO-<n>`, so new ones cannot land. Repro: survival-censoring F6.
 
-- [ ] TODO-312 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f8):
+- [x] TODO-312 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f8):
   **`run_all_inference()` prints `p = NA` for every estimand that has only one inference class.** Right-censored n =
   100: every "(1 inferences)" line (Gehan-Wilcoxon, log-rank martingale, mean, RMST) shows `p = NA` while the class's
   own p-value is finite in the table (Gehan 0.561); every "(2 inferences)" line is finite; no warning. On an
@@ -5729,6 +5729,13 @@ were found by reading, not by running a fix.
   Kaplan-Meier row showed `se NA, pval NA` with status "ok": a row whose p-value is NA should not be "ok" without a
   reason. Test: the finding's repro shows each single-class estimand's own p-value; a NA-p row carries a non-"ok" status
   or a message. Repro: survival-censoring F8.
+  Done 2026-11-21 (agent), main part: the combiner returns NA for fewer than 2 usable p-values (pinned by
+  `test-inference-suite-grouped-evidence-reference.R`, and right for the overall combined evidence), so the fix is in
+  `run_all_inference_per_estimand_breakdown_lines()`: a group with exactly one finite p-value prints that p-value.
+  The line still reads "(1 inferences)". Test: the breakdown test in
+  `test-run-all-inference-combined-evidence-weights-summary-line-and-per-estimand-breakdown-reference.R` pinned NA for
+  the one-row group; it now expects that row's p (0.0500). Not done: the "ok" status on a KM row with NA se and p
+  (second part of the entry); not re-run on the finding's full suite repro.
 
 - [ ] TODO-313 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f9): **On
   interval-censored data `InferenceSurvivalCoxPHRegr`'s Wald CI and p-value depend on the global RNG state even after

@@ -696,6 +696,10 @@
 
 ## Bug fixes
 
+* `InferenceSuite$run_all_inference()`: the per-estimand summary printed
+  `p = NA` for every estimand with a single inference class; it now prints that
+  class's own p-value (v1.0.6-TODO-312).
+
 * `InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` no longer returns
   `NA` when a few bootstrap replicates of its fallback are non-finite while the
   asymptotic CI (which drops them) is finite; both fallbacks now drop them

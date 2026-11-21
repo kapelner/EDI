@@ -4362,6 +4362,10 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 		g = names(groups)[i]
 		combined = run_all_inference_combine_pvalues(groups[[g]])
 		combined_pvals[i] = combined$pval
+		# A group with one usable p-value has nothing to combine: report that p-value itself
+		# instead of the combiner's NA (v1.0.6-TODO-312).
+		finite_g = groups[[g]][is.finite(groups[[g]])]
+		if (length(finite_g) == 1L) combined_pvals[i] = finite_g
 		# This group's representative `tau` (for the "quantile_regression_
 		# effect" estimand's "median effect"/"quantile (<tau>%ile) effect"
 		# wording -- see `estimand_short_label()`'s own docs): the group's
