@@ -1,630 +1,629 @@
 {
  "example_timings": {
   "R/EDI/man/BaiAdjustedTSource.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 2.31
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 1.96
   },
   "R/EDI/man/Design.Rd": {
-   "cran": 0.0210000000000001,
-   "cran_cpu": 0.021
+   "cran": 0.0169999999999999,
+   "cran_cpu": 0.0170000000000001
   },
   "R/EDI/man/DesignFixed.Rd": {
-   "cran": 0.0149999999999999,
-   "cran_cpu": 0.014
+   "cran": 0.012,
+   "cran_cpu": 0.0109999999999999
   },
   "R/EDI/man/DesignFixedBernoulli.Rd": {
-   "cran": 0.016,
-   "cran_cpu": 0.015
+   "cran": 0.012,
+   "cran_cpu": 0.0110000000000001
   },
   "R/EDI/man/DesignFixedBinaryMatch.Rd": {
-   "cran": 1.749,
-   "cran_cpu": 1.732
+   "cran": 1.648,
+   "cran_cpu": 1.644
   },
   "R/EDI/man/DesignFixedBlockedCluster.Rd": {
-   "cran": 0.02,
-   "cran_cpu": 0.02
+   "cran": 0.014,
+   "cran_cpu": 0.0150000000000001
   },
   "R/EDI/man/DesignFixedBlocking.Rd": {
-   "cran": 0.0189999999999999,
-   "cran_cpu": 0.0190000000000001
+   "cran": 0.014,
+   "cran_cpu": 0.0150000000000001
   },
   "R/EDI/man/DesignFixedCluster.Rd": {
-   "cran": 0.0170000000000001,
-   "cran_cpu": 0.016
+   "cran": 0.014,
+   "cran_cpu": 0.0139999999999999
   },
   "R/EDI/man/DesignFixedFactorial.Rd": {
-   "cran": 0.0149999999999999,
-   "cran_cpu": 0.0140000000000002
+   "cran": 0.0130000000000001,
+   "cran_cpu": 0.0129999999999999
   },
   "R/EDI/man/DesignFixedGreedy.Rd": {
-   "cran": 0.026,
-   "cran_cpu": 0.026
+   "cran": 0.0209999999999999,
+   "cran_cpu": 0.0210000000000001
   },
   "R/EDI/man/DesignFixedGreedyDOptimal.Rd": {
-   "cran": 0.0289999999999999,
-   "cran_cpu": 0.0290000000000001
+   "cran": 0.0229999999999999,
+   "cran_cpu": 0.0230000000000001
   },
   "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd": {
-   "cran": 0.016,
-   "cran_cpu": 0.0160000000000001,
-   "full": 1.775
+   "cran": 0.012,
+   "cran_cpu": 0.0130000000000001,
+   "full": 1.659
   },
   "R/EDI/man/DesignFixedOptimal.Rd": {
-   "cran": 1.068,
-   "cran_cpu": 1.064,
-   "full": 6.843999999999999
+   "cran": 0.794,
+   "cran_cpu": 0.791,
+   "full": 5.33
   },
   "R/EDI/man/DesignFixedOptimalBlocks.Rd": {
-   "cran": 0.0469999999999999,
-   "cran_cpu": 0.0460000000000003
+   "cran": 0.034,
+   "cran_cpu": 0.0359999999999998
   },
   "R/EDI/man/DesignFixedRerandomization.Rd": {
-   "cran": 0.0309999999999999,
-   "cran_cpu": 0.0309999999999998
+   "cran": 0.0229999999999999,
+   "cran_cpu": 0.0229999999999999
   },
   "R/EDI/man/DesignFixediBCRD.Rd": {
    "cran": 0.014,
-   "cran_cpu": 0.0140000000000002
+   "cran_cpu": 0.0130000000000001
   },
   "R/EDI/man/DesignSeqOneByOne.Rd": {
-   "cran": 0.0229999999999999,
-   "cran_cpu": 0.0230000000000001
+   "cran": 0.0189999999999999,
+   "cran_cpu": 0.019
   },
   "R/EDI/man/DesignSeqOneByOneAtkinson.Rd": {
-   "cran": 0.315,
-   "cran_cpu": 0.316
+   "cran": 0.215,
+   "cran_cpu": 0.214
   },
   "R/EDI/man/DesignSeqOneByOneBernoulli.Rd": {
-   "cran": 0.024,
-   "cran_cpu": 0.024
+   "cran": 0.018,
+   "cran_cpu": 0.0190000000000001
   },
   "R/EDI/man/DesignSeqOneByOneEfron.Rd": {
-   "cran": 0.0229999999999999,
-   "cran_cpu": 0.0230000000000001
+   "cran": 0.0190000000000001,
+   "cran_cpu": 0.018
   },
   "R/EDI/man/DesignSeqOneByOneKK14.Rd": {
-   "cran": 0.0270000000000001,
-   "cran_cpu": 0.0270000000000002
+   "cran": 0.242,
+   "cran_cpu": 0.24
   },
   "R/EDI/man/DesignSeqOneByOneKK21.Rd": {
-   "cran": 0.0290000000000001,
-   "cran_cpu": 0.0299999999999999,
-   "full": 0.005000000000000202
+   "cran": 0.0229999999999999,
+   "cran_cpu": 0.0229999999999999,
+   "full": 0.0010000000000001015
   },
   "R/EDI/man/DesignSeqOneByOneKK21stepwise.Rd": {
-   "cran": 0.032,
-   "cran_cpu": 0.033
+   "cran": 0.0270000000000001,
+   "cran_cpu": 0.027
   },
   "R/EDI/man/DesignSeqOneByOnePocockSimon.Rd": {
-   "cran": 0.0409999999999999,
-   "cran_cpu": 0.0249999999999999
+   "cran": 0.0219999999999998,
+   "cran_cpu": 0.0219999999999999
   },
   "R/EDI/man/DesignSeqOneByOneRandomBlockSize.Rd": {
-   "cran": 0.0270000000000001,
-   "cran_cpu": 0.025
+   "cran": 0.024,
+   "cran_cpu": 0.02
   },
   "R/EDI/man/DesignSeqOneByOneSPBR.Rd": {
-   "cran": 0.0299999999999998,
-   "cran_cpu": 0.0299999999999999
+   "cran": 0.0209999999999999,
+   "cran_cpu": 0.0209999999999999
   },
   "R/EDI/man/DesignSeqOneByOneUrn.Rd": {
-   "cran": 0.024,
-   "cran_cpu": 0.0249999999999999
+   "cran": 0.018,
+   "cran_cpu": 0.0189999999999999
   },
   "R/EDI/man/DesignSeqOneByOneiBCRD.Rd": {
-   "cran": 0.0279999999999998,
-   "cran_cpu": 0.0280000000000001
+   "cran": 0.0210000000000001,
+   "cran_cpu": 0.0210000000000001
   },
   "R/EDI/man/InferenceAllKKMeanDiffIVWC.Rd": {
-   "cran": 0.248,
-   "cran_cpu": 0.248
+   "cran": 0.162,
+   "cran_cpu": 0.162
   },
   "R/EDI/man/InferenceAllKKWilcoxIVWC.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.371
-  },
-  "R/EDI/man/InferenceAllSimpleAverageDiff.Rd": {
-   "cran": 0.251,
-   "cran_cpu": 0.251
-  },
-  "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.23699999999999988
+   "full": 0.23899999999999988
+  },
+  "R/EDI/man/InferenceAllSimpleAverageDiff.Rd": {
+   "cran": 0.191,
+   "cran_cpu": 0.187
+  },
+  "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd": {
+   "cran": 0.195,
+   "cran_cpu": 0.193
   },
   "R/EDI/man/InferenceAllSimpleWilcox.Rd": {
-   "cran": 0.217,
-   "cran_cpu": 0.218
+   "cran": 0.171,
+   "cran_cpu": 0.17
   },
   "R/EDI/man/InferenceBaiAdjustedTKK14.Rd": {
-   "cran": 1.703,
-   "cran_cpu": 1.699,
-   "full": 0.43399999999999994
+   "cran": 1.658,
+   "cran_cpu": 1.643,
+   "full": 0.264
   },
   "R/EDI/man/InferenceBaiAdjustedTKK21.Rd": {
-   "cran": 1.684,
-   "cran_cpu": 1.673,
-   "full": 0.42599999999999993
+   "cran": 1.689,
+   "cran_cpu": 1.685,
+   "full": 0.22599999999999998
   },
   "R/EDI/man/InferenceContinKKGLMM.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.002,
-   "full": 0.4329999999999999
+   "full": 0.2999999999999999
   },
   "R/EDI/man/InferenceContinKKOLSIVWC.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4750000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.3379999999999999
   },
   "R/EDI/man/InferenceContinKKOLSOneLik.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00199999999999978,
-   "full": 0.4899999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.3599999999999999
   },
   "R/EDI/man/InferenceContinKKQuantileRegrIVWC.Rd": {
-   "cran": 0.634,
-   "cran_cpu": 0.633,
-   "full": 0.04300000000000004
+   "cran": 0.458,
+   "cran_cpu": 0.459,
+   "full": 0.02699999999999997
   },
   "R/EDI/man/InferenceContinKKQuantileRegrOneLik.Rd": {
-   "cran": 0.642,
-   "cran_cpu": 0.641,
-   "full": 0.03700000000000003
+   "cran": 0.482,
+   "cran_cpu": 0.479,
+   "full": 0.04500000000000004
   },
   "R/EDI/man/InferenceContinKKRobustRegrIVWC.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.5559999999999999
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.3899999999999999
   },
   "R/EDI/man/InferenceContinLin.Rd": {
-   "cran": 0.00700000000000012,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.24299999999999988
-  },
-  "R/EDI/man/InferenceContinOLS.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.2580000000000001
-  },
-  "R/EDI/man/InferenceContinQuantileRegr.Rd": {
-   "cran": 0.208,
-   "cran_cpu": 0.207,
-   "full": 0.262
-  },
-  "R/EDI/man/InferenceContinRobustRegr.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.23
-  },
-  "R/EDI/man/InferenceCountHurdleNegBin.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3790000000000001
-  },
-  "R/EDI/man/InferenceCountHurdlePoisson.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.4849999999999999
+   "full": 0.17499999999999988
+  },
+  "R/EDI/man/InferenceContinOLS.Rd": {
+   "cran": 0.00300000000000011,
+   "cran_cpu": 0.00300000000000022,
+   "full": 0.17599999999999988
+  },
+  "R/EDI/man/InferenceContinQuantileRegr.Rd": {
+   "cran": 0.136,
+   "cran_cpu": 0.136,
+   "full": 0.199
+  },
+  "R/EDI/man/InferenceContinRobustRegr.Rd": {
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.1740000000000001
+  },
+  "R/EDI/man/InferenceCountHurdleNegBin.Rd": {
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.002,
+   "full": 0.28399999999999986
+  },
+  "R/EDI/man/InferenceCountHurdlePoisson.Rd": {
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.3500000000000001
   },
   "R/EDI/man/InferenceCountKKGLMM.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.8659999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.5959999999999999
   },
   "R/EDI/man/InferenceCountNegBin.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.002,
-   "full": 0.3179999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.2319999999999999
   },
   "R/EDI/man/InferenceCountPoisson.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 1.3110000000000002
+   "full": 0.9710000000000001
   },
   "R/EDI/man/InferenceCountPoissonKKGEE.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.4760000000000001
+   "full": 0.3460000000000001
   },
   "R/EDI/man/InferenceCountQuasiPoisson.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.002,
-   "full": 0.2199999999999999
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.16400000000000012
   },
   "R/EDI/man/InferenceCountRobustPoisson.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.214
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.001,
+   "full": 0.17299999999999988
   },
   "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd": {
-   "cran": 0.179,
-   "cran_cpu": 0.179,
-   "full": 0.307
+   "cran": 0.107,
+   "cran_cpu": 0.107,
+   "full": 0.247
   },
   "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd": {
-   "cran": 0.491,
-   "cran_cpu": 0.486
+   "cran": 0.355,
+   "cran_cpu": 0.355
   },
   "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd": {
-   "cran": 0.00099999999999989,
+   "cran": 0.002,
    "cran_cpu": 0.002,
-   "full": 0.3880000000000001
+   "full": 0.279
   },
   "R/EDI/man/InferenceIncidCMH.Rd": {
-   "cran": 0.367,
-   "cran_cpu": 0.366
+   "cran": 0.282,
+   "cran_cpu": 0.279
   },
   "R/EDI/man/InferenceIncidExactBinomial.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.372
+   "full": 0.22200000000000011
   },
   "R/EDI/man/InferenceIncidExactFisher.Rd": {
-   "cran": 0.087,
-   "cran_cpu": 0.0870000000000002
+   "cran": 0.0670000000000002,
+   "cran_cpu": 0.0670000000000001
   },
   "R/EDI/man/InferenceIncidExactZhang.Rd": {
-   "cran": 0.359,
-   "cran_cpu": 0.358
+   "cran": 0.244,
+   "cran_cpu": 0.243
   },
   "R/EDI/man/InferenceIncidExtendedRobins.Rd": {
-   "cran": 0.362,
-   "cran_cpu": 0.36
+   "cran": 0.276,
+   "cran_cpu": 0.276
   },
   "R/EDI/man/InferenceIncidGCompRiskDiff.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.3049999999999999
+   "cran": 0.0129999999999999,
+   "cran_cpu": 0.0119999999999999,
+   "full": 0.2210000000000001
   },
   "R/EDI/man/InferenceIncidGCompRiskRatio.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.3199999999999999
+   "cran_cpu": 0.002,
+   "full": 0.2319999999999999
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMIVWC.Rd": {
-   "cran": 0.387,
-   "cran_cpu": 0.385
+   "cran": 0.29,
+   "cran_cpu": 0.287
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMOneLik.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.3649999999999999
+   "cran": 0.0130000000000001,
+   "cran_cpu": 0.0129999999999999,
+   "full": 0.3189999999999999
   },
   "R/EDI/man/InferenceIncidKKGCompRiskDiff.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.4350000000000001
+   "cran": 0.0130000000000001,
+   "cran_cpu": 0.013,
+   "full": 0.33099999999999985
   },
   "R/EDI/man/InferenceIncidKKGCompRiskRatio.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4240000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.3029999999999999
   },
   "R/EDI/man/InferenceIncidKKGEE.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4750000000000001
+   "cran": 0.0149999999999999,
+   "cran_cpu": 0.016,
+   "full": 0.3420000000000001
   },
   "R/EDI/man/InferenceIncidKKModifiedPoisson.Rd": {
    "cran": 0.002,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.388
+   "full": 0.262
   },
   "R/EDI/man/InferenceIncidKKNewcombeRiskDiff.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.3639999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.2609999999999999
   },
   "R/EDI/man/InferenceIncidLogBinomial.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.365
+   "full": 0.3030000000000001
   },
   "R/EDI/man/InferenceIncidLogRegr.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.9689999999999999
+   "cran": 0.133,
+   "cran_cpu": 0.133,
+   "full": 0.567
   },
   "R/EDI/man/InferenceIncidMiettinenNurminenRiskDiff.Rd": {
-   "cran": 0.3,
-   "cran_cpu": 0.3,
-   "full": 0.031000000000000028
+   "cran": 0.196,
+   "cran_cpu": 0.196,
+   "full": 0.033
   },
   "R/EDI/man/InferenceIncidModifiedPoisson.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00199999999999978,
-   "full": 0.39800000000000013
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.27500000000000013
   },
   "R/EDI/man/InferenceIncidNewcombeRiskDiff.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.002,
-   "full": 0.2200000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.001,
+   "full": 0.1559999999999999
   },
   "R/EDI/man/InferenceIncidProbitRegr.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.3780000000000001
+   "full": 0.27200000000000013
   },
   "R/EDI/man/InferenceIncidRiskDiff.Rd": {
-   "cran": 0.002,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.219
+   "full": 0.1609999999999999
   },
   "R/EDI/man/InferenceIncidWald.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.2380000000000001
+   "cran": 0.002,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.162
   },
   "R/EDI/man/InferenceMLEorKMSummaryTable.Rd": {
-   "cran": 0.282,
-   "cran_cpu": 0.282
+   "cran": 0.191,
+   "cran_cpu": 0.191
   },
   "R/EDI/man/InferenceOrdinalAdjCatLogitRegr.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00199999999999978,
-   "full": 0.3739999999999999
+   "full": 0.2540000000000001
   },
   "R/EDI/man/InferenceOrdinalContRatioRegr.Rd": {
-   "cran": 0.00100000000000011,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.40699999999999986
+   "full": 0.2580000000000001
   },
   "R/EDI/man/InferenceOrdinalGCompMeanDiff.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.23200000000000012
+   "cran": 0.002,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.164
   },
   "R/EDI/man/InferenceOrdinalJonckheereTerpstraTest.Rd": {
-   "cran": 0.27,
-   "cran_cpu": 0.27
+   "cran": 0.203,
+   "cran_cpu": 0.202
   },
   "R/EDI/man/InferenceOrdinalKKCLMM.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.4320000000000001
+   "cran_cpu": 0.002,
+   "full": 0.3120000000000001
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCauchit.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.4199999999999999
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.002,
+   "full": 0.3000000000000001
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCloglog.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.4140000000000001
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.28699999999999987
   },
   "R/EDI/man/InferenceOrdinalKKCLMMProbit.Rd": {
-   "cran": 0.002,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.393
+   "full": 0.2789999999999999
   },
   "R/EDI/man/InferenceOrdinalKKCondAdjCatLogitRegr.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.40200000000000014
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.24499999999999988
   },
   "R/EDI/man/InferenceOrdinalKKGEE.Rd": {
-   "cran": 0.29,
-   "cran_cpu": 0.29,
-   "full": 1.692
+   "cran": 0.21,
+   "cran_cpu": 0.209,
+   "full": 1.335
   },
   "R/EDI/man/InferenceOrdinalKKGLMM.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.45700000000000013
+   "full": 0.3080000000000001
   },
   "R/EDI/man/InferenceOrdinalOrderedProbitRegr.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.388
-  },
-  "R/EDI/man/InferenceOrdinalPairedSignTest.Rd": {
-   "cran": 0.368,
-   "cran_cpu": 0.367
-  },
-  "R/EDI/man/InferenceOrdinalPropOddsRegr.Rd": {
    "cran": 0.00099999999999989,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.9120000000000001
+   "full": 0.26900000000000013
+  },
+  "R/EDI/man/InferenceOrdinalPairedSignTest.Rd": {
+   "cran": 0.266,
+   "cran_cpu": 0.265
+  },
+  "R/EDI/man/InferenceOrdinalPropOddsRegr.Rd": {
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.6379999999999999
   },
   "R/EDI/man/InferenceOrdinalRidit.Rd": {
-   "cran": 0.232,
-   "cran_cpu": 0.232
+   "cran": 0.174,
+   "cran_cpu": 0.173
   },
   "R/EDI/man/InferencePropBetaRegr.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.5609999999999999
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.20599999999999988
   },
   "R/EDI/man/InferencePropFractionalLogit.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.24099999999999988
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.18399999999999989
   },
   "R/EDI/man/InferencePropGCompMeanDiff.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.002,
-   "full": 0.267
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.1740000000000001
   },
   "R/EDI/man/InferencePropKKGEE.Rd": {
-   "cran": 0.002,
+   "cran": 0.00099999999999989,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.463
+   "full": 0.33700000000000013
   },
   "R/EDI/man/InferencePropKKQuantileRegrIVWC.Rd": {
-   "cran": 0.204,
-   "cran_cpu": 0.204,
-   "full": 0.4650000000000001
+   "cran": 0.142,
+   "cran_cpu": 0.137,
+   "full": 0.351
   },
   "R/EDI/man/InferencePropKKQuantileRegrOneLik.Rd": {
-   "cran": 0.208,
-   "cran_cpu": 0.207,
-   "full": 0.486
+   "cran": 0.143,
+   "cran_cpu": 0.142,
+   "full": 0.33699999999999997
   },
   "R/EDI/man/InferencePropQuantileRegr.Rd": {
-   "cran": 0.204,
-   "cran_cpu": 0.203,
-   "full": 0.26
+   "cran": 0.145,
+   "cran_cpu": 0.145,
+   "full": 0.204
   },
   "R/EDI/man/InferencePropZeroOneInflatedBetaRegr.Rd": {
    "cran": 0.00100000000000011,
    "cran_cpu": 0.00099999999999989,
-   "full": 0.3009999999999999
+   "full": 0.2189999999999999
   },
   "R/EDI/man/InferenceRandBootstrap.Rd": {
-   "cran": 0.58,
-   "cran_cpu": 0.578
+   "cran": 0.41,
+   "cran_cpu": 0.409
   },
   "R/EDI/man/InferenceRandBootstrapCI.Rd": {
-   "cran": 0.592,
-   "cran_cpu": 0.59
+   "cran": 0.421,
+   "cran_cpu": 0.419
   },
   "R/EDI/man/InferenceSuite.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.002,
-   "full": 178.152
+   "cran_cpu": 0.00100000000000011,
+   "full": 3.1140000000000003
   },
   "R/EDI/man/InferenceSurvivalCoxPHRegr.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00200000000000011,
-   "full": 0.2799999999999999
+   "cran": 0.002,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.19
   },
   "R/EDI/man/InferenceSurvivalDepCensTransformRegr.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989,
-   "full": 0.38
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.2550000000000001
   },
   "R/EDI/man/InferenceSurvivalGehanWilcox.Rd": {
-   "cran": 0.283,
-   "cran_cpu": 0.267,
-   "full": 0.0
+   "cran": 0.198,
+   "cran_cpu": 0.198,
+   "full": 0.005999999999999978
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHIVWC.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.5819999999999999
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.4029999999999999
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHOneLik.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.4870000000000001
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.3560000000000001
   },
   "R/EDI/man/InferenceSurvivalKKRankRegrIVWC.Rd": {
-   "cran": 1.24,
-   "cran_cpu": 1.238
+   "cran": 0.982,
+   "cran_cpu": 0.98
   },
   "R/EDI/man/InferenceSurvivalKKWeibullMarginal.Rd": {
    "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.5070000000000001
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.3290000000000001
   },
   "R/EDI/man/InferenceSurvivalKMDiff.Rd": {
-   "cran": 0.263,
-   "cran_cpu": 0.263,
-   "full": 0.04799999999999999
+   "cran": 0.186,
+   "cran_cpu": 0.186,
+   "full": 0.028999999999999998
   },
   "R/EDI/man/InferenceSurvivalLogRank.Rd": {
-   "cran": 0.226,
-   "cran_cpu": 0.226
+   "cran": 0.162,
+   "cran_cpu": 0.161
   },
   "R/EDI/man/InferenceSurvivalRestrictedMeanDiff.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 0.2410000000000001
+   "cran": 0.00199999999999978,
+   "cran_cpu": 0.00099999999999989,
+   "full": 0.15800000000000022
   },
   "R/EDI/man/InferenceSurvivalStratCoxPHRegr.Rd": {
-   "cran": 0.281,
-   "cran_cpu": 0.281
+   "cran": 0.192,
+   "cran_cpu": 0.191
   },
   "R/EDI/man/InferenceSurvivalWeibullRegr.Rd": {
-   "cran": 0.00099999999999989,
+   "cran": 0.00100000000000011,
    "cran_cpu": 0.00100000000000011,
-   "full": 0.9840000000000001
+   "full": 0.6539999999999999
   },
   "R/EDI/man/ObservationalDesign.Rd": {
-   "cran": 0.0159999999999998,
-   "cran_cpu": 0.0150000000000001
+   "cran": 0.0110000000000001,
+   "cran_cpu": 0.0110000000000001
   },
   "R/EDI/man/ObservationalDesignBlocks.Rd": {
-   "cran": 0.02,
-   "cran_cpu": 0.0209999999999999
+   "cran": 0.0149999999999999,
+   "cran_cpu": 0.0150000000000001
   },
   "R/EDI/man/ObservationalDesignMatching.Rd": {
-   "cran": 0.0210000000000001,
-   "cran_cpu": 0.0209999999999999
+   "cran": 0.016,
+   "cran_cpu": 0.016
   },
   "R/EDI/man/SimulationFramework.Rd": {
-   "cran": 0.174,
-   "cran_cpu": 0.174,
-   "full": 3.173
+   "cran": 0.122,
+   "cran_cpu": 0.122,
+   "full": 2.071
   },
   "R/EDI/man/SimulationFrameworkReport.Rd": {
-   "cran": 0.123,
-   "cran_cpu": 0.123,
-   "full": 2.5380000000000003
+   "cran": 0.087,
+   "cran_cpu": 0.0860000000000001,
+   "full": 1.668
   },
   "R/EDI/man/clear_local_EDI_optimization.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00200000000000022,
-   "full": 0.0010000000000001097
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.00100000000000011,
+   "full": 0.002
   },
   "R/EDI/man/edi_build_info_cpp.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00100000000000011
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.001
   },
   "R/EDI/man/fast_beta_regression.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.002
+   "cran_cpu": 0.00200000000000022
   },
   "R/EDI/man/fast_beta_regression_cpp.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.00199999999999988
   },
   "R/EDI/man/fast_beta_regression_with_var.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran": 0.00500000000000012,
+   "cran_cpu": 0.005
   },
   "R/EDI/man/fast_beta_regression_with_var_cpp.Rd": {
    "cran": 0.002,
    "cran_cpu": 0.002
   },
   "R/EDI/man/fast_coxph_regression.Rd": {
-   "cran": 0.00299999999999989,
-   "cran_cpu": 0.00200000000000011
+   "cran": 0.002,
+   "cran_cpu": 0.00199999999999978
   },
   "R/EDI/man/fast_logistic_regression.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.001
+   "cran": 0.002,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_logistic_regression_with_var.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_neg_bin_cpp.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00200000000000022
+   "cran_cpu": 0.00100000000000011
   },
   "R/EDI/man/fast_neg_bin_weighted_cpp.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran": 0.004,
+   "cran_cpu": 0.004
   },
   "R/EDI/man/fast_neg_bin_with_var_cpp.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00199999999999978
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_negbin_regression.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00300000000000011
+   "cran": 0.00300000000000011,
+   "cran_cpu": 0.00199999999999978
   },
   "R/EDI/man/fast_negbin_regression_with_var.Rd": {
-   "cran": 0.00300000000000011,
-   "cran_cpu": 0.00400000000000023
+   "cran": 0.002,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/fast_weibull_regression.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.003
+   "cran_cpu": 0.00199999999999989
   },
   "R/EDI/man/generate_covariate_dataset.Rd": {
    "cran": 0.004,
@@ -635,29 +634,29 @@
    "cran_cpu": 0.002
   },
   "R/EDI/man/get_cold_start_dispatch_policy.Rd": {
-   "cran": 0.00100000000000011,
-   "cran_cpu": 0.00199999999999978
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/get_inference_procedure_validity.Rd": {
-   "cran": 0.349,
-   "cran_cpu": 0.348
+   "cran": 0.236,
+   "cran_cpu": 0.233
   },
   "R/EDI/man/get_local_EDI_optimization.Rd": {
    "cran": 0.00100000000000011,
-   "cran_cpu": 0.00200000000000022,
+   "cran_cpu": 0.00099999999999989,
    "full": 0.00099999999999989
   },
   "R/EDI/man/get_optimization_dispatch_policy.Rd": {
-   "cran": 0.00199999999999978,
-   "cran_cpu": 0.00099999999999989
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/get_parallel_dispatch_policy.Rd": {
-   "cran": 0.002,
-   "cran_cpu": 0.00099999999999989
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/get_warm_start_dispatch_policy.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.002
+   "cran_cpu": 0.00100000000000011
   },
   "R/EDI/man/inv_logit.Rd": {
    "cran": 0.002,
@@ -665,35 +664,35 @@
   },
   "R/EDI/man/logit.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00200000000000011
+   "cran_cpu": 0.002
   },
   "R/EDI/man/robust_negbinreg.Rd": {
-   "cran": 0.012,
-   "cran_cpu": 0.012
+   "cran": 0.00900000000000012,
+   "cran_cpu": 0.0089999999999999
   },
   "R/EDI/man/robust_survreg.Rd": {
-   "cran": 0.014,
-   "cran_cpu": 0.014
+   "cran": 0.01,
+   "cran_cpu": 0.0099999999999999
   },
   "R/EDI/man/robust_survreg_with_surv_object.Rd": {
-   "cran": 0.014,
-   "cran_cpu": 0.0129999999999999
+   "cran": 0.012,
+   "cran_cpu": 0.0110000000000001
   },
   "R/EDI/man/sample_mode.Rd": {
-   "cran": 0.00199999999999978,
-   "cran_cpu": 0.00099999999999989
+   "cran": 0.00099999999999989,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/set_cold_start_dispatch_policy.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00200000000000022
+   "cran_cpu": 0.002
   },
   "R/EDI/man/set_num_cores.Rd": {
-   "cran": 0.056,
-   "cran_cpu": 0.052
+   "cran": 0.054,
+   "cran_cpu": 0.036
   },
   "R/EDI/man/set_optimization_dispatch_policy.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00200000000000022
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.002
   },
   "R/EDI/man/set_parallel_dispatch_policy.Rd": {
    "cran": 0.002,
@@ -701,42 +700,42 @@
   },
   "R/EDI/man/set_warm_start_dispatch_policy.Rd": {
    "cran": 0.002,
-   "cran_cpu": 0.00200000000000022
-  },
-  "R/EDI/man/summary_glm_lean.Rd": {
-   "cran": 0.00900000000000012,
-   "cran_cpu": 0.00800000000000001
-  },
-  "R/EDI/man/transform_cont_y_based_on_response_type.Rd": {
-   "cran": 0.00200000000000022,
    "cran_cpu": 0.002
   },
+  "R/EDI/man/summary_glm_lean.Rd": {
+   "cran": 0.00499999999999989,
+   "cran_cpu": 0.00600000000000012
+  },
+  "R/EDI/man/transform_cont_y_based_on_response_type.Rd": {
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989
+  },
   "R/EDI/man/tune_EDI_for_this_machine.Rd": {
-   "cran": 0.00099999999999989,
-   "cran_cpu": 0.00100000000000011,
-   "full": 7.632
+   "cran": 0.00100000000000011,
+   "cran_cpu": 0.00099999999999989,
+   "full": 8.190000000000001
   },
   "R/EDI/man/unset_num_cores.Rd": {
-   "cran": 0.046,
-   "cran_cpu": 0.0509999999999999
+   "cran": 0.0509999999999999,
+   "cran_cpu": 0.044
   }
  },
- "last_run": "2026-11-19T13:45:04+00:00",
- "open_pr": 72,
+ "last_run": "2026-11-21T15:16:27+00:00",
+ "open_pr": 80,
  "units": {
   "R/EDI/man/BaiAdjustedTSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "d2964210e316d693",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "de18885b3ad0280e",
    "hash": "e20d9c7cc89371e8",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/ContinKKRobustRegrIVWCSource.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "0f5858e36aed33d8",
-   "hash": "5df54603c7c888f8",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6c19b6ad2b247e17",
+   "hash": "680bbb33db299684",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/CountCompositeLikelihoodSource.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -774,11 +773,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignFixed.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "ea08b8415226c6c1",
    "hash": "870e98e7a3c7c5e8",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixedBernoulli.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -795,25 +794,25 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignFixedBlockedCluster.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "8e7de9cd2e7dbf8b",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "c6c54c6be94ff3b8",
    "hash": "723fdd1f7951589f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixedBlocking.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "da5bfa5cbce2f84e",
-   "hash": "dd20b3f5796bc760",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "34647f8a5aad691d",
+   "hash": "5f8d1be1a6ca5d9e",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixedCluster.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "f6084c263d42e775",
    "hash": "00b8cf0ee6760264",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixedCustom.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -844,11 +843,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "dd10e577b7c860ef",
-   "hash": "f3eec89e6cb110d6",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "fcf3721954f7db66",
+   "hash": "521793613d0d1c97",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixedOptimal.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -865,18 +864,18 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignFixedRerandomization.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a3623314deab1770",
-   "hash": "e955f4463f7e94a2",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "7ab615eb228ae4af",
+   "hash": "78ec98a54a59aa40",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignFixediBCRD.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "7081e11d2c882968",
-   "hash": "d53af83e847826f3",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "3484bd38becbf2d4",
+   "hash": "b91fb42c0c387c32",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOne.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -907,46 +906,46 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignSeqOneByOneKK14.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "3911db93e3b13cd8",
-   "hash": "4ee6ad7c0c6bea45",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "3bee9d32aadf4622",
+   "hash": "7ea06eb6d079a45f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOneKK21.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "39d6e57ed28da8a2",
-   "hash": "35dfa13c28da7abb",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "65ae88caabefa135",
+   "hash": "eb52badda8bda0db",
+   "open_findings": 2,
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOneKK21stepwise.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "5fc9f997748f9ad3",
-   "hash": "3d980c41db91293e",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2be53d2010dbce30",
+   "hash": "37d813c98d34f2ef",
+   "open_findings": 2,
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOnePocockSimon.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "d65aba7147c10f98",
-   "hash": "760f2bdb93b60f8a",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "83253f29490fec75",
+   "hash": "11d75febf0cf9a82",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOneRandomBlockSize.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "b9d47e76d5c7d96c",
-   "hash": "7bb52128f30d46ab",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "a00b655ea9240da3",
+   "hash": "2c7ffc7075005ab1",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOneSPBR.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "dde1f007cb4466cb",
-   "hash": "2ae8e7a8cb752505",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "791d4b2e96b9d8e0",
+   "hash": "96dd9792320c2d17",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/DesignSeqOneByOneUrn.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -956,11 +955,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/DesignSeqOneByOneiBCRD.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "9424808d83fdd5a7",
-   "hash": "ccd3ba56d73ec676",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "bfdc9fc1fecc3c81",
+   "hash": "1dd21972c7ad5879",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/EDI.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1061,235 +1060,235 @@
    "run": "44173478787"
   },
   "R/EDI/man/Inference.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "e720e8aa10a0787d",
-   "hash": "a3139b3e0859c4f9",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "fcc32e7f808f8f7b",
+   "hash": "4a2aae60f2fac245",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAbstractKKCondLogitGLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "522d3d7c2b40814d",
-   "hash": "0611258bd083c82c",
+   "hash": "862d0ef1245013b3",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAbstractKKMarginalIncid.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "089469b5a4d2b96e",
-   "hash": "eedf53b6c4a5fa4c",
+   "hash": "9c4835b041af439b",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAbstractKKModifiedPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "67c0dbce2fec680a",
-   "hash": "aaf8c9c18cf199a9",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e8e26356016eaa54",
+   "hash": "2f24627bf9012516",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAbstractKKOrdinalCLMM.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "a45eb9bab1fc85e2",
-   "hash": "e6e8aa7a44744045",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "dc0d0bf04d46e800",
+   "hash": "2b804a329d5ac307",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAbstractQuantileRandCI.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "841d12424d0300f2",
-   "hash": "9f33412dead5f396",
+   "hash": "c33052bffe01033f",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAllKKMeanDiffIVWC.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "572fa2490a1cf5e6",
-   "hash": "b0b70a0d2256b55f",
+   "hash": "0145792ddcb8ce2c",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAllKKWilcoxIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "58c41bd700fcde76",
-   "hash": "bc7dfa03de569f6b",
+   "hash": "41a0663903e9f964",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAllSimpleAverageDiff.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "a3c6714ad9d34f8d",
-   "hash": "acf9934f38be3aa2",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1b0c8c84370564fb",
+   "hash": "c77e2506041765ce",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "8bf9e581b91f2fa4",
-   "hash": "c519f44779aa9b87",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "62350287277f974d",
+   "hash": "619dfe825e24d212",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAllSimpleWilcox.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "18ec7ce31c0a0586",
-   "hash": "c7ea42af751bd95a",
+   "hash": "4c97ee290f5ed4a8",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAsymp.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "d79bb27d8cdd8f82",
-   "hash": "5f97b376ecd8b7ff",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "ff06ccfff157a137",
+   "hash": "e84dc0e18aa475b4",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceAsympLik.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "8ac80a1403dd001b",
-   "hash": "66070d5595c82097",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "4d42d6e2d5ff0951",
+   "hash": "58af0f9766b8001e",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceBaiAdjustedTKK14.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "a274ac52844d6863",
-   "hash": "1b01c01d86dd62d9",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2edf6f97acf65250",
+   "hash": "69ebd15c13008085",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceBaiAdjustedTKK21.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "5f381049a1f52ae8",
-   "hash": "dc51c04de319f52d",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "cb2517c3d5a58f9a",
+   "hash": "cd41e579f18062a1",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceBayesianBootstrap.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "9aafab7280f1a8c5",
-   "hash": "e97e2008f0eb5aef",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e2768ce20585d519",
+   "hash": "0e959844f9791159",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKGLMM.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "4cfedf23e4af0db6",
-   "hash": "5b0a49ae94a39969",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "a9f11bbea52e45f5",
+   "hash": "2066d8127d33a359",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKOLSIVWC.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "401df0f79d6f494c",
-   "hash": "8ad4df062d9a8216",
+   "hash": "a8425ddfd0b399dc",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKOLSOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "53d0b24b8657d452",
-   "hash": "25792091c6cd75e8",
+   "hash": "b88618c3ac146e1e",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKQuantileRegrIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "e640b867fcba83b5",
-   "hash": "c5aea51c9935efe0",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5a88317965c4f8e7",
+   "hash": "212b59a260d45b43",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKQuantileRegrOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "d14dacdd7e9f3570",
-   "hash": "709e428d705b86b6",
+   "hash": "d14ccae11aef5c46",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKRobustRegrIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "1917314dd3e60eda",
-   "hash": "afe07273f75db280",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6b6d410058692594",
+   "hash": "71113b67bb39510d",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinKKRobustRegrOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "2f8878049e24c833",
-   "hash": "3deebf99cfec3ee3",
+   "hash": "3a6e34b4c92ebbd5",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinLin.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "1b1dd01c7dff386e",
-   "hash": "ffa592a031ad73f8",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2a6d769b997bab27",
+   "hash": "5e832328b3ab5b8f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinOLS.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "a5dbec263a5cac4c",
-   "hash": "69f1b7fa51c22f5c",
+   "hash": "70e595a0086ba63e",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinQuantileRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "d3031b35f1b24e35",
-   "hash": "2277974ad2b9519c",
+   "hash": "a9cdfa3f97905fe1",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceContinRobustRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "edcd5dc8f4cad42c",
-   "hash": "37bb60ea155c9963",
+   "hash": "51489816b4b821e9",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountHurdleNegBin.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "5e6fd86366874385",
-   "hash": "d27989373a29a173",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "01b2b0448767bc18",
+   "hash": "2741988a33ce9b25",
+   "open_findings": 1,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountHurdlePoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "8dd24d291e19975a",
-   "hash": "4dbdc40e56398287",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e6765ba9e25a4b4b",
+   "hash": "c6ace3b766a76750",
+   "open_findings": 1,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountKKCondPoissonOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "39a0364b29704134",
-   "hash": "635c845c946fea56",
+   "hash": "33c403caf2490e8c",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountKKGLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "b60888c5cd206588",
-   "hash": "178d4d87823d4fee",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "bcb020fd1c5b54de",
+   "hash": "a7aa1f0083ab4296",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountKKHurdlePoissonIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "de1329b39e4f28ad",
-   "hash": "c1f837c17f276823",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "ccccb621c80f44f7",
+   "hash": "d27eb34647044692",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountKKHurdlePoissonOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2d56ebc2b5b7bf91",
-   "hash": "20f27b69360274f7",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6214af6e8dbebd05",
+   "hash": "750c7bce61bd5a73",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountLikelihood.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1299,256 +1298,256 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceCountNegBin.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "f614632075b02c7d",
-   "hash": "01183963755a6532",
+   "hash": "20c3c8daf42a6873",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "400e9b6f387c82b2",
-   "hash": "558b481cd8888ea6",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2c664bca5c68399d",
+   "hash": "2899dd7842d845ac",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountPoissonKKGEE.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "2dd2f41996c62b35",
-   "hash": "29a1792b99977682",
+   "hash": "52e06b6fe7b072bf",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountQuasiPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "a3acae19d690cb28",
-   "hash": "c1bfbb5d21ae7b57",
+   "hash": "9af5f4aeedefd6b4",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountRobustPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "48d28371ea87c89a",
-   "hash": "5b4ad6c1bc6aee7c",
+   "hash": "27edbb1bfa712f75",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "d43f56c95dad4215",
-   "hash": "a106809b7fd58ad5",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "f2d1b1b10d7ce344",
+   "hash": "da4b1e6b3a4389d7",
    "open_findings": 1,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "3a1ded76bc9c3148",
-   "hash": "3fbb5378ac842992",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5b1bc19db6b8833e",
+   "hash": "f1738d3be97501a7",
+   "open_findings": 1,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCustomAsymp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "5d4082b8fd9cd414",
-   "hash": "f7aa8250fc01eec8",
+   "hash": "058ca84a58e2b7f1",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCustomBoot.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "22c70d6b10b0eb4b",
-   "hash": "913671db402e8b44",
+   "hash": "7fca8f47aff1d8f2",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceCustomRand.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "0678e35123057e1a",
-   "hash": "4a0b3f0dd2c145c4",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "d1cb4bb5adca2e92",
+   "hash": "69af9d6169590dbf",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "6ce854810b4f79e3",
-   "hash": "652e51ed88eaf432",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "52dbeb75f00883b2",
+   "hash": "0fd55490cafe7905",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidCMH.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "67b8aeb57babdb8b",
-   "hash": "379d4e7fd09a32aa",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "486b2c69b7a6aeb9",
+   "hash": "57679db68c6e1ff1",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidExactBinomial.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "08947399e7f1cbb9",
-   "hash": "1db1faa540d43e0f",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5a0c6a9faa676176",
+   "hash": "7a86d3cdd3fddf05",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidExactFisher.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "07461a3f271bee39",
-   "hash": "d83ac713ffb00335",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "c3c47400f347c6c1",
+   "hash": "b262b46cb0d5b75c",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidExactZhang.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "25783c6ed4fd953b",
-   "hash": "cbbf70d69a010bf1",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5cf93db4a57e2a1a",
+   "hash": "6883b96f39f1a9e7",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidExtendedRobins.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "5ec071fd4aebeec1",
-   "hash": "b743945bb03ef138",
+   "hash": "24f10901e7fbca6e",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidGCompRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2658c32ee1d84455",
-   "hash": "7fc4c2894968e232",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "54286f26a890814b",
+   "hash": "91a42d24c79bcca1",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidGCompRiskRatio.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "03754610d5d15398",
-   "hash": "8319081385d7deab",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2d3504860fa4a55d",
+   "hash": "ae83dfd66d4f0d0e",
+   "open_findings": 1,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "e729c052060a4b5d",
-   "hash": "40bc8bb3d6fddafd",
+   "hash": "4e7d0ef4caf13399",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKCondLogitGLMMOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "0eae90cb3e85ede7",
-   "hash": "6a969b01cc714e96",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "420533c79ecd79aa",
+   "hash": "9c77ccc8fb7749c4",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKCondLogitIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "83fbf1f794c05cef",
-   "hash": "a9770d52a5c3cee6",
+   "hash": "58d1603b19115cf0",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKCondLogitOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "3253ed8050b7e80c",
-   "hash": "20c63b35e60f8703",
+   "hash": "ed955e9edecb6b19",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKGCompRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "134450558b95de93",
-   "hash": "a8484a323ad7652e",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "02ab329c5a9830ea",
+   "hash": "7a52789283a861bd",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKGCompRiskRatio.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "4c4ef2b33a1b56a6",
-   "hash": "60f7485913400ff7",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "0755db257d995c39",
+   "hash": "32e26bee30bfd022",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKGEE.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "6841fd8a4028ece6",
-   "hash": "034782bc5d75ae15",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "7b90a09bf808f982",
+   "hash": "2d57e8ffe0063b0d",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKModifiedPoisson.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "5f384a2d4e59e29a",
-   "hash": "1c5b6318f0def841",
+   "hash": "f01b6d3e43932782",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidKKNewcombeRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "8094c53a1b48e6a8",
-   "hash": "cf5670515a01980a",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e5b9800c2c9c9201",
+   "hash": "c9abdb5a4ca192c8",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidLogBinomial.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "100af65a24e2ff48",
-   "hash": "79c54bdee0b3fb7c",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "c9a6317cd67843d7",
+   "hash": "4a7ce5022b48da39",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidLogRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2f9b932394402130",
-   "hash": "0be7f36f51ef9158",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6e85409ad5f0e7e4",
+   "hash": "bcf54fd5843d8908",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidMiettinenNurminenRiskDiff.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "78eeef656e2134e8",
-   "hash": "3a7f10ea25e8abdb",
+   "hash": "530773b9056b3ded",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidModifiedPoisson.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "cdb1d5463a2ca6d1",
-   "hash": "0e17cc7e63d2b2a5",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1f5161e42dca6490",
+   "hash": "29fc0087151d2c27",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidNewcombeRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "225ddaf553a10927",
-   "hash": "391df377f98d57ae",
+   "hash": "4c18c80ee88ae6a4",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidProbitRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "6ba7b764f6477e46",
-   "hash": "db28af37b754e490",
+   "hash": "82fefedcdef6cd33",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidRiskDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "c835db1307ec6a8d",
-   "hash": "e861f47043348260",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "97ed4607fbb23ebf",
+   "hash": "ec88012f6d086719",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceIncidWald.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "666571c3ae12e04b",
-   "hash": "0b4b7d1c944f17af",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "af7ad460b5850d20",
+   "hash": "79d4e363a52447a3",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceJackknife.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "e192050c9d4ae019",
-   "hash": "0e142bdd46325b2b",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "18d731c529c279ee",
+   "hash": "c5ba429100c9b2b8",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceKKPassThroughCompound.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1558,11 +1557,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceMLEorKMSummaryTable.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "c74642d474765638",
-   "hash": "2a8165f9d15a34a9",
+   "hash": "d0b3537a83b6d3d8",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceMarginalEstimand.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -1572,347 +1571,347 @@
    "run": "44173478787"
   },
   "R/EDI/man/InferenceNonParamBootstrap.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "1d513193996ab6b9",
-   "hash": "20ee7fc332969dea",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "253afd93cf8c1543",
+   "hash": "b1dabc903ddac3ca",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalAdjCatLogitRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "a4f7f3e406839821",
-   "hash": "aab2e9d1775de839",
+   "hash": "826df03129bef27f",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalCauchitRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "5d5e7010e54bd6fa",
-   "hash": "496f025d4abf2a5d",
+   "hash": "753c45218e498c54",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalCloglogRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "aed21b6a3646a37f",
-   "hash": "9a9bd2d55454fafa",
+   "hash": "717f6df8eeaa1980",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalContRatioRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "3bff3ad48440d34d",
-   "hash": "ce51db4845befd03",
+   "hash": "a3ff4be33819bc9b",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalGCompMeanDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "fbc25993cb4590c0",
-   "hash": "abc803545fa4ea65",
+   "hash": "1685ea200162f285",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalJonckheereTerpstraTest.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "376ad5d5049eca1f",
-   "hash": "9d8ed9bc6bbb6985",
+   "hash": "3fcfaffb406dbed3",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKCLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "dfa720f5cfb4afbe",
-   "hash": "079b28ce2f91082c",
+   "hash": "bf9e09a3f89d7b95",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCauchit.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "31266536ee314184",
-   "hash": "37461806b8fcbfdd",
+   "hash": "e32aa3b7f4eb46af",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKCLMMCloglog.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "f3d64b27586d08db",
-   "hash": "94a1252ba41df9b7",
+   "hash": "93578d2efb54c204",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKCLMMProbit.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "e0acbad629e018c5",
-   "hash": "60b9f76c0d36b91c",
+   "hash": "ba83b889e2181bd5",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKCondAdjCatLogitRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "901f7a7e95b2a095",
-   "hash": "68b88040f8b2bf77",
+   "hash": "04da0f240341ae77",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKGEE.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "59b22e7b80492ec2",
-   "hash": "6b9dbda813a7c758",
+   "hash": "40bbfe9c5ee0f103",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalKKGLMM.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "fc3d2dbba63dfb5e",
-   "hash": "85bbe8dc1a54cdd4",
+   "hash": "399a3f108f336ebe",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalOrderedProbitRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "9c7f7b640d79da90",
-   "hash": "f836cf59cac46415",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2e65f12d7a04e5c0",
+   "hash": "bf35b4883375f3c3",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalPairedSignTest.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "5ac4971e3f6146a8",
-   "hash": "e9841ff2b22a0b79",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "103859486d8f3210",
+   "hash": "c5a54348424f1f25",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalPartialProportionalOddsRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a0865ab60c194f46",
-   "hash": "73f92019ec78300b",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "91a6e54c2330fc31",
+   "hash": "ca6b6e20e20a8efa",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalPropOddsRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "67e5352088586f59",
-   "hash": "83e0f749c2aca2d3",
+   "hash": "e3676bb1c122c185",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalRidit.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "3bab74dd16f6950e",
-   "hash": "c3c0522e599c533b",
+   "hash": "586e3af4f1adbfce",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceOrdinalStereotypeLogitRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "6e4dde40977bda73",
-   "hash": "798f1f7a396f1bdd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "f53ae85b3c177d9a",
+   "hash": "e59ce849162af4ec",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceParamBootstrap.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "ef7f60bef32f7b73",
-   "hash": "66891c529aafbc7d",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "91446f460138aead",
+   "hash": "e928893074069a94",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropBetaRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "733c40d63afa0804",
-   "hash": "deb6a5b54c39010a",
+   "hash": "a9970c4054d9c42a",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropFractionalLogit.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "0e1275010139a9cd",
-   "hash": "e3c37cf395a12c22",
+   "hash": "f5dbf3833d2e04c7",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropGCompMeanDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "6adeb1542b3f52ec",
-   "hash": "3144f0f8c15a1ac8",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "4352775f0bb91475",
+   "hash": "f060545543fe1758",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropKKGEE.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "c1d36d9e934733cb",
-   "hash": "8729ef6ebc8e0f78",
+   "hash": "a523cce6f4b71cd2",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropKKGLMM.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "f49f37a1fd8e48c3",
-   "hash": "314917af4684c4e1",
+   "hash": "2f191aec5ae878fc",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropKKQuantileRegrIVWC.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "431e500217039f01",
-   "hash": "50f84fabfc65b87a",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5ff4a389a9f25d2f",
+   "hash": "8f7c3d40468417ae",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropKKQuantileRegrOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "e40af7fb8c64a6e2",
-   "hash": "d5eeb60b8633c098",
+   "hash": "d57f56267b10972f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropQuantileRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "5c3db7b42e2a5405",
-   "hash": "2ec7c067ba532cec",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "56bb6c6548dfa499",
+   "hash": "f1d5457f48129854",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferencePropZeroOneInflatedBetaRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "e9af691f3ce05643",
-   "hash": "3e249fed4e86952c",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "a61537d486c80001",
+   "hash": "0a3b4ffdeeab03f4",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceRand.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "c647cf40257f0b1d",
-   "hash": "42719fcbd4b88e47",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1157def39bb71dec",
+   "hash": "71fcbb606404351b",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceRandBootstrap.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "ca4f1f24cd9c9056",
-   "hash": "19d61ac4eb319afa",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e12c3b04fddeaeea",
+   "hash": "8c7655861c5e2bed",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceRandBootstrapCI.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "bfc4d35ed9842d82",
-   "hash": "0f4172f4416ea15b",
+   "hash": "dbee784688b8a609",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceRandCI.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "007fbbf136c9b719",
-   "hash": "649e5ac72919c571",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "eb46503cf2f68ac9",
+   "hash": "fac95c5cd3f48964",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceRandCustom.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "e385bf017c8e05ad",
-   "hash": "df2622b58e3b6cfd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "c628d777b4ac2b0b",
+   "hash": "9dfd6327bbec660f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceResamplingCore.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "f453edc843044bbf",
-   "hash": "2aef9476bcb6d4ac",
+   "hash": "e8abcae475eacf9e",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSuite.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "9a916818a6d70a3e",
-   "hash": "4110102c935e03cd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6ebb0191984cec04",
+   "hash": "4344d6e63d686a31",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalCoxPHRegr.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "4eb4b9f14762eb3a",
-   "hash": "6f4c5e58a0b801c4",
+   "hash": "cadac9a25cf3b10c",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalDepCensTransformRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "3f6f8a879ba40bb4",
-   "hash": "45afd9a9777c8ac1",
+   "hash": "89ea7741c9ec7521",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "430d60bbb84f1bf0",
-   "hash": "76e21fd305e84519",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "b85a28075fef140c",
+   "hash": "e533a1facf175d5d",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "cf204d1242fc013f",
-   "hash": "4226f76fe16eb9c3",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "92a9fe0fb61e0f50",
+   "hash": "ff874098100f7df1",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyNormalIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "3bc41ef56c6b2ad4",
-   "hash": "6cce00a98686899b",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "0d24acf2aa534fe9",
+   "hash": "883f76252755a25d",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyNormalOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "85041e9a11914f98",
-   "hash": "f1402c8e58ff6866",
+   "hash": "af64b0ba99ca44ce",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalGehanWilcox.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "7ec75660ed68ae83",
-   "hash": "b1160b57b934773d",
+   "hash": "54d4c8af10e0eedd",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHIVWC.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "ff651815095cb34a",
-   "hash": "f03a3f1307ce8ba3",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "c6f0191456296fbe",
+   "hash": "eb6e6f717a490e60",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKLWACoxPHOneLik.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "77b23d6f60c65e5f",
-   "hash": "743ac7daa1dc74b8",
+   "hash": "a2493f3c75b710fb",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKRankRegrIVWC.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "bb9f89616bce2eb6",
-   "hash": "0f17f0f36423dcff",
+   "hash": "1d341675ea7a9880",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKStratCoxPHIVWC.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "d2c535c235b59521",
-   "hash": "11744239be600131",
+   "hash": "43ad953096ae70b6",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKStratCoxPHOneLik.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "be3bde86df176e32",
-   "hash": "fe26f346b5bddcee",
+   "hash": "f9255a9c14869603",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalKKWeibullMarginal.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -1922,46 +1921,46 @@
    "run": "44511221004"
   },
   "R/EDI/man/InferenceSurvivalKMDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2d9728a60c230531",
-   "hash": "47edc72b25a9421a",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "b802400db8745351",
+   "hash": "762046a980c35a95",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalLogRank.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a8780c9fb537e476",
-   "hash": "4b3d3230421b2d0a",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "f64fd91fa67f69af",
+   "hash": "ab48260d83fc5990",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalRestrictedMeanDiff.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2c24db5b8ee5863b",
-   "hash": "f2fb847341d3f9ff",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "3e57df8703550dfd",
+   "hash": "8324940afda775b0",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalStratCoxPHRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "0d49e5a4a0ce75e0",
-   "hash": "6998a0ad1e1e3595",
+   "hash": "345e27cb23eefe1e",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/InferenceSurvivalWeibullRegr.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "c4fdff442373c891",
-   "hash": "b20a32e5b06e952b",
-   "open_findings": 0,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "30de6b618817140f",
+   "hash": "e45898b4c7e0f082",
+   "open_findings": 1,
+   "run": "44914151838"
   },
   "R/EDI/man/KKLWACoxIVWCPartialLikelihoodSource.Rd": {
-   "audited_at": "2026-11-18T20:33:38+00:00",
-   "deps": "e7452e46d39e8fb2",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "30c9c381a2ec478f",
    "hash": "040fcbbea9e85989",
    "open_findings": 0,
-   "run": "44358319326"
+   "run": "44914151838"
   },
   "R/EDI/man/KKLWACoxOneLikPartialLikelihoodSource.Rd": {
    "audited_at": "2026-11-18T20:33:38+00:00",
@@ -1985,11 +1984,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/ObservationalDesignBlocks.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a2cca3c64a795ddd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1e39014c433da3a0",
    "hash": "55635ae4288dafeb",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/ObservationalDesignMatching.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -1999,25 +1998,25 @@
    "run": "44511221004"
   },
   "R/EDI/man/SimulationFramework.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "6a6f02431b94ebd3",
-   "hash": "8c0f42effe8b328b",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1a9a757c60631d16",
+   "hash": "2ae1ba440456fb98",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/SimulationFrameworkReport.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "f6eb994f299b8187",
-   "hash": "0c4811331e01739a",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e5feae9620376e1f",
+   "hash": "d1a44d16be75d9fe",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/StandardModelCacheSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a932524bde3e419d",
-   "hash": "2d3aab8c9bc8e75f",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "1b9f9c00a5ab08c9",
+   "hash": "69c0a6ef824bbf1d",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/SurvivalDepCensTransformSource.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2027,11 +2026,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/SurvivalGLMMWeibullFrailtyLoggammaIVWCSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "d5a128fd5167e534",
-   "hash": "d7c9516977cd1479",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "6b3df734d87a1ab4",
+   "hash": "cc5ff98d8d641afa",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/SurvivalGLMMWeibullFrailtyLoggammaOneLikSource.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2048,18 +2047,18 @@
    "run": "44511221004"
   },
   "R/EDI/man/SurvivalGLMMWeibullFrailtyNormalOneLikLeafSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "cdd6a3d18b4b9aca",
    "hash": "ff4481c3ebe64de6",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/SurvivalGLMMWeibullFrailtyNormalOneLikSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "ffbd09e66b605c98",
    "hash": "061fb1e314382cde",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/SurvivalKKRankRegrIVWCSource.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2069,11 +2068,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/SurvivalKKStratCoxIVWCSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "ba67f1eade5c2a91",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "7048be923a24c322",
    "hash": "12b60fbe48786500",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/SurvivalKKStratCoxOneLikPartialLikelihoodSource.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2083,11 +2082,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/SurvivalWeibullLikelihoodSource.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "a081bd997fbda81e",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5f1af035165d2d8e",
    "hash": "08ba8001eaa0ba29",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/build_cox_data_cache_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2132,18 +2131,18 @@
    "run": "44511221004"
   },
   "R/EDI/man/compute_coxph_rand_bootstrap_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "9864d2554d01b561",
    "hash": "9eaada2654174554",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/compute_matching_wilcox_distr_parallel_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "7852bf6e48739654",
    "hash": "f2d3d82734656bac",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/compute_stereotype_logit_distr_parallel_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2209,11 +2208,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/edi_rebind_lazy_components_after_clone.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "1c55551cc50c96d0",
-   "hash": "5f5f54f3e1db23b6",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "810f3e6645cf76a0",
+   "hash": "0a82c1a6d6d457be",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/exact_jonckheere_terpstra_pval_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2244,11 +2243,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_adjacent_category_logit_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "49116f9da1a72dd0",
-   "hash": "905bd935707281aa",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "30dcca5b2326e576",
+   "hash": "1a52317eb6aa137c",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_beta_regression.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2258,11 +2257,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_beta_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "401bda731cb42085",
-   "hash": "f6423083d0dc14ab",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "59344a2b8a64a73c",
+   "hash": "b5bcfac0bcd2c62f",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_beta_regression_weighted_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2272,18 +2271,18 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_beta_regression_with_var.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "3c7661ad1398e89c",
-   "hash": "4e7821fce9b1811e",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "0b9f55acead149e7",
+   "hash": "43bb20d7bdd7f9a2",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_beta_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "ac6defd8d9469c6f",
-   "hash": "0b369e98cc8986d2",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "f368f66594b634ae",
+   "hash": "c8512688ee68d146",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_continuation_ratio_regression_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2314,11 +2313,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_coxph_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "b7043d16238be2ec",
-   "hash": "f452835569ce2126",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "b7f342cd7906f192",
+   "hash": "d3bd1b975931339b",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_coxph_regression_prebuilt_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2328,11 +2327,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_cpoisson_combined_with_var_cpp.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "1b66628bcad6517f",
-   "hash": "9a025836b5f1bc2f",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "73d2c20925497214",
+   "hash": "16999b6b06a0d31a",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_digamma_vec_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2356,11 +2355,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_identity_binomial_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "e77cc4cfcff552eb",
-   "hash": "f17149c26c939b06",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "ad8a77af9efdc87d",
+   "hash": "2bf24f7bf992a345",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_identity_binomial_regression_weighted_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2391,11 +2390,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_log_binomial_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "2d3bdaa71a162d64",
-   "hash": "ec60fb9e0b096bd1",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2a1b9ad9f6be721e",
+   "hash": "f33508d43088165d",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_log_binomial_regression_weighted_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2419,11 +2418,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_log_pnorm_vec_cpp.Rd": {
-   "audited_at": "2026-11-18T00:07:35+00:00",
-   "deps": "5c93e535376f4905",
-   "hash": "847496e521f2ba10",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "f1387a3cf66de62a",
+   "hash": "041c96bfd55d1ea8",
    "open_findings": 0,
-   "run": "44173478787"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_logistic_regression.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2440,11 +2439,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_logistic_regression_weighted_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "8e5e98fae31e836a",
    "hash": "4942698404df33b6",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_logistic_regression_with_var.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2454,39 +2453,39 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_logistic_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "92d58e9c6dbd3967",
    "hash": "dccbeb7915a4d652",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_neg_bin_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "f5d12451edacf5ba",
-   "hash": "a606f044a0a87833",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "e121bf53fcf80e51",
+   "hash": "66b36b0e59bad749",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_neg_bin_weighted_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "4a115e129bf6bd26",
-   "hash": "9893619732c52ee1",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "3a2bacfa740c5e30",
+   "hash": "8e2b48003812db4c",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_neg_bin_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "164922df851d35d8",
-   "hash": "815c1e4d163c6eb3",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "a9f68b765dcf35c1",
+   "hash": "86ea35434cc2d033",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_negbin_regression.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "4bd590ad9834c2a9",
-   "hash": "28d690df24e9a81e",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "b0f10b18a8f51aec",
+   "hash": "506cdc1a66e61598",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_negbin_regression_with_var.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2510,32 +2509,32 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_ordinal_cauchit_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "5512c9fe31f19d47",
-   "hash": "2c2cb2325e35a9e0",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "be42daa11a4e90b8",
+   "hash": "7109fe14ff732815",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_cauchit_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "0c75d643dd569756",
-   "hash": "d573edda0565d9bd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "ab1045c4fe406244",
+   "hash": "b35e18fd60723da4",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_cloglog_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "ad9778a7db9e352c",
-   "hash": "f723cd2fd7ffd270",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5aea34fa30b52fc2",
+   "hash": "259761ba7ba6ed21",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_cloglog_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "17b50350b5d2e0a5",
-   "hash": "e8f5c0a913595317",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "43b766df908d3e3d",
+   "hash": "0bae106566d7b105",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_glmm_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2545,39 +2544,39 @@
    "run": "44173478787"
   },
   "R/EDI/man/fast_ordinal_probit_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "59b77deefbc1d167",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "694c4cd690c4758f",
    "hash": "e979740cb4badeaa",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_probit_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "041e9c70021fbbf1",
-   "hash": "f2111cc13deec126",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "d92a094a905d2bc1",
+   "hash": "118e296f7c5fbdc8",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "094ed2da868bb854",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "5e33feffd91ea7df",
    "hash": "d942e70c70bc6c30",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_regression_weighted_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "44b2795e502c3a71",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "52ed52c023fbf32a",
    "hash": "77d7e030e9409309",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_ordinal_regression_with_var_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "043594fdc0f85dd7",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "2c15e54197ba4acd",
    "hash": "de0ff9171d7f0c52",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_poisson_regression_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2601,11 +2600,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_probit_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "f945be6aa817069c",
-   "hash": "919fba5c883e84dd",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "9a034f7493e2748c",
+   "hash": "958a3fae7312085c",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_probit_regression_with_var_cpp.Rd": {
    "audited_at": "2026-11-19T13:45:04+00:00",
@@ -2629,11 +2628,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/fast_robust_regression_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "378e283eaf8fb4b9",
-   "hash": "7fd26d1f2d56a1e6",
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "693cb55c468df2aa",
+   "hash": "d0a18cf23ebf38d7",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/fast_stereotype_logit_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2734,11 +2733,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/generate_covariate_dataset.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "a9f35c9db5cdc479",
    "hash": "48eee8d23b323602",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/generate_permutations_atkinson_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -2846,11 +2845,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/get_identity_binomial_regression_hessian_cpp.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "8d4640cf3a71536c",
    "hash": "93a72f6816d602c5",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/get_identity_binomial_regression_score_cpp.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -3189,11 +3188,11 @@
    "run": "44173478787"
   },
   "R/EDI/man/robust_survreg_with_surv_object.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "64152ae4ce09e525",
-   "hash": "8e693e7ea9a9c9cc",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "d74a0d33b5c72d45",
+   "hash": "c7ba27593a42f0ba",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/sample_mode.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -3252,11 +3251,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/summary_glm_lean.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
+   "audited_at": "2026-11-21T15:16:27+00:00",
    "deps": "81c64b6f1d089ae0",
    "hash": "1c14dc49d265abe7",
    "open_findings": 0,
-   "run": "44511221004"
+   "run": "44914151838"
   },
   "R/EDI/man/toggle_asserts.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",
@@ -3273,11 +3272,11 @@
    "run": "44511221004"
   },
   "R/EDI/man/tune_EDI_for_this_machine.Rd": {
-   "audited_at": "2026-11-19T13:45:04+00:00",
-   "deps": "e4e7e82e39ebb3e0",
-   "hash": "1383b0fee403e51f",
-   "open_findings": 1,
-   "run": "44511221004"
+   "audited_at": "2026-11-21T15:16:27+00:00",
+   "deps": "44a30c593153571f",
+   "hash": "df8a095c34d46faa",
+   "open_findings": 0,
+   "run": "44914151838"
   },
   "R/EDI/man/unset_num_cores.Rd": {
    "audited_at": "2026-11-18T00:07:35+00:00",

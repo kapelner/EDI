@@ -1,163 +1,212 @@
 {
- "rd-m010f0cb6": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed # of #: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = #) arm has no subjects with a usable response. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed 1 of 5: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = 0) arm has no subjects with a usable response. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
-  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
+ "rd-m0f1ec2d1": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `JKn`: InferenceCountPoisson.Rd:#, InferenceJackknife.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `JKn`: InferenceCountPoisson.Rd:52, InferenceJackknife.Rd:45",
+  "unit": "R/EDI/man/InferenceCountPoisson.Rd"
  },
- "rd-m12b86fed": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`InferenceIncidKKGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidKKGCompRiskDiff: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidKKGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidKKGCompRiskDiff: fitted probabilities numerically 0 or 1 occurred (3 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "unit": "R/EDI/man/InferenceIncidKKGCompRiskDiff.Rd"
+ "rd-m2fa7c1c1": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountHurdleNegBin.Rd`: with \\donttest, seeds #, # of #: warning: InferenceCountHurdleNegBin: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdleNegBin.Rd`: with \\donttest, seeds 1, 2 of 5: warning: InferenceCountHurdleNegBin: the hurdle (zero vs. positive) part is separated: 6 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountHurdleNegBin.Rd"
  },
- "rd-m191feae4": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceIncidLogBinomial.Rd`: with \\donttest, seed # of #: warning: InferenceIncidLogBinomial: the maximum-likelihood estimate is on the boundary of the parameter space (# subject(s) at fitted probability exp(X b) = #). The Wald p-value and confidence interval are NA here (the inverse information is too small at the boundary); score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidLogBinomial.Rd`: with \\donttest, seed 2 of 5: warning: InferenceIncidLogBinomial: the maximum-likelihood estimate is on the boundary of the parameter space (1 subject(s) at fitted probability exp(X b) = 1). The Wald p-value and confidence interval are NA here (the inverse information is too small at the boundary); score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
-  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
+ "rd-m362b49ad": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedNegBin.Rd`: with \\donttest, seed # of #: warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedNegBin.Rd`: with \\donttest, seed 2 of 5: warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: 20 of 20 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd"
  },
- "rd-m2bd1de76": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ "rd-m375b518a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Hinkley`: InferenceAsympLik.Rd:#,#,#,#, InferenceJackknife.Rd:#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Hinkley`: InferenceAsympLik.Rd:20,34,265,359, InferenceJackknife.Rd:94,105",
+  "unit": "R/EDI/man/InferenceAsympLik.Rd"
  },
- "rd-m2bd1de76-2": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ "rd-m3ca40610": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seeds #, # of #: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seeds 1, 2 of 5: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: 10 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-m4a8b7df8": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceIncidKKGEE.Rd`: with \\donttest, seed # of #: warning: InferenceIncidKKGEE: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidKKGEE.Rd`: with \\donttest, seed 4 of 5: warning: InferenceIncidKKGEE: fitted probabilities numerically 0 or 1 occurred (10 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. The sandwich standard error is degenerate, so the asymptotic p-value and confidence interval are returned as NA. Use a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
-  "unit": "R/EDI/man/InferenceIncidKKGEE.Rd"
+ "rd-m6949d76a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedNegBin.Rd`: with \\donttest, seeds #, #, # of #: warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedNegBin.Rd`: with \\donttest, seeds 1, 3, 4 of 5: warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: 10 of 20 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd"
  },
- "rd-m4d351226": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`SimulationFrameworkReport.Rd`: with \\donttest, seeds #, # of #: warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`SimulationFrameworkReport.Rd`: with \\donttest, seeds 2, 4 of 5: warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = 201: the nominal tail is only ~5.1 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
-  "unit": "R/EDI/man/SimulationFrameworkReport.Rd"
+ "rd-m69a8999f": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `sizeable`: InferenceCountZeroInflatedPoisson.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `sizeable`: InferenceCountZeroInflatedPoisson.Rd:116",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-m501dc218": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-donttest-time:`InferenceSuite.Rd`: the \\donttest part took about # s (reported over # s; R CMD check --as-cran runs it)",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceSuite.Rd`: the \\donttest part took about 178 s (reported over 60 s; R CMD check --as-cran runs it)",
-  "unit": "R/EDI/man/InferenceSuite.Rd"
+ "rd-m77d445ee": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "published-example-output:`InferenceCountZeroInflatedNegBin.Rd`: the published reference page shows `#> Warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedNegBin.Rd`: the published reference page shows `#> Warning: InferenceCountZeroInflatedNegBin: the zero-inflation part is separated: 18 of 20 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd"
  },
- "rd-m5931fcc2": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "unit": "R/EDI/man/SimulationFramework.Rd"
+ "rd-m7f2798f2": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "published-example-output:`InferenceCountHurdlePoisson.Rd`: the published reference page shows `#> Warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd`: the published reference page shows `#> Warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: 3 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
- "rd-m5931fcc2-2": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`SimulationFramework.Rd`: the published reference page shows `#> Warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "unit": "R/EDI/man/SimulationFramework.Rd"
+ "rd-m8e01cb35": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountHurdlePoisson.Rd`: with \\donttest, seed # of #: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd`: with \\donttest, seed 2 of 5: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: 7 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
- "rd-m7dd06479": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`InferenceIncidGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskDiff: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidGCompRiskDiff.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskDiff: fitted probabilities numerically 0 or 1 occurred (4 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "unit": "R/EDI/man/InferenceIncidGCompRiskDiff.Rd"
+ "rd-m8e01cb35-2": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountHurdlePoisson.Rd`: with \\donttest, seed # of #: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd`: with \\donttest, seed 3 of 5: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: 10 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
- "rd-m92159203": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "spelling:unknown word `undercovers`: InferenceIncidGCompRiskRatio.Rd:#, InferenceIncidKKGCompRiskRatio.Rd:#",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "unknown word `undercovers`: InferenceIncidGCompRiskRatio.Rd:63, InferenceIncidKKGCompRiskRatio.Rd:56",
+ "rd-m92bb8a04": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `reweighting`: InferenceJackknife.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `reweighting`: InferenceJackknife.Rd:48",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
+ },
+ "rd-m9706d359": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "published-example-output:`InferenceIncidGCompRiskRatio.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskRatio: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidGCompRiskRatio.Rd`: the published reference page shows `#> Warning: InferenceIncidGCompRiskRatio: fitted probabilities numerically 0 or 1 occurred (4 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
   "unit": "R/EDI/man/InferenceIncidGCompRiskRatio.Rd"
  },
- "rd-m9f9a6668": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ "rd-m97b7fc08": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Wolter's`: InferenceJackknife.Rd:#,#,#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Wolter's`: InferenceJackknife.Rd:45,51,61,65",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
  },
- "rd-m9f9a6668-2": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`tune_EDI_for_this_machine.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ "rd-m9d4f425a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `oversized`: InferenceCountZeroInflatedNegBin.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `oversized`: InferenceCountZeroInflatedNegBin.Rd:54",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedNegBin.Rd"
  },
- "rd-made61b89": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`SimulationFrameworkReport.Rd`: the published reference page shows `#> Warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`SimulationFrameworkReport.Rd`: the published reference page shows `#> Warning: InferenceAllSimpleAverageDiff: BCa adjustment on the boundary at B = 201: the nominal tail is only ~5.1 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").`",
-  "unit": "R/EDI/man/SimulationFrameworkReport.Rd"
+ "rd-ma957805a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountHurdlePoisson.Rd`: with \\donttest, seeds #, # of #: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd`: with \\donttest, seeds 1, 4 of 5: warning: InferenceCountHurdlePoisson: the hurdle (zero vs. positive) part is separated: 6 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
- "rd-mb172773e": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`tune_EDI_for_this_machine.Rd`: with \\donttest, seeds #, #, #, #, # of #: warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\"). | InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`tune_EDI_for_this_machine.Rd`: with \\donttest, seeds 1, 2, 3, 4, 5 of 5: warning: InferenceIncidLogRegr: dropped covariate(s) z and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, x, z, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\"). | InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (17 of 50 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").",
-  "unit": "R/EDI/man/tune_EDI_for_this_machine.Rd"
+ "rd-maa4ffcbb": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seed # of #: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seed 3 of 5: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: 9 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-mbf5e5040": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceIncidLogBinomial.Rd`: with \\donttest, seeds #, # of #: warning: InferenceIncidLogBinomial: dropped covariate(s) x# and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidLogBinomial.Rd`: with \\donttest, seeds 4, 5 of 5: warning: InferenceIncidLogBinomial: dropped covariate(s) x1 and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").",
-  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
+ "rd-maa4ffcbb-2": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seed # of #: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd`: (no \\donttest), seed 5 of 5: warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: 8 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-mc147aea5": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed # of #: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = #) arm's Kaplan-Meier curve never falls to # (lowest survival #, # events among # subjects), so its median is not reached. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceSurvivalKMDiff.Rd`: with \\donttest, seed 5 of 5: warning: InferenceSurvivalKMDiff: the difference in median survival is NA because the control (w = 0) arm's Kaplan-Meier curve never falls to 0.5 (lowest survival    1, 0 events among 1 subjects), so its median is not reached. The asymptotic, bootstrap, jackknife and randomization results on this object are NA as well. Use InferenceSurvivalRestrictedMeanDiff (difference in restricted mean survival time), which is defined however much follow-up there is. Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\").",
-  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
+ "rd-mafc40b7d": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "published-example-output:`InferenceCountZeroInflatedPoisson.Rd`: the published reference page shows `#> Warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd`: the published reference page shows `#> Warning: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: 10 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").`",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  },
- "rd-mc17edbaa": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`InferenceIncidBinomialIdentityRiskDiff.Rd`: with \\donttest, seeds #, # of #: warning: InferenceIncidBinomialIdentityRiskDiff: the maximum-likelihood estimate is on the boundary of the parameter space (# subject(s) at fitted probability # or #). Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidBinomialIdentityRiskDiff.Rd`: with \\donttest, seeds 2, 5 of 5: warning: InferenceIncidBinomialIdentityRiskDiff: the maximum-likelihood estimate is on the boundary of the parameter space (1 subject(s) at fitted probability 0 or 1). Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap (compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\").",
-  "unit": "R/EDI/man/InferenceIncidBinomialIdentityRiskDiff.Rd"
+ "rd-mb01893e5": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Wolter`: DesignFixedBlocking.Rd:#, DesignSeqOneByOneRandomBlockSize.Rd:#, DesignSeqOneByOneSPBR.Rd:#, InferenceCountPoisson.Rd:#,#, InferenceJackknife.Rd:#,#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Wolter`: DesignFixedBlocking.Rd:62, DesignSeqOneByOneRandomBlockSize.Rd:49, DesignSeqOneByOneSPBR.Rd:40, InferenceCountPoisson.Rd:53,188, InferenceJackknife.Rd:45,68,108",
+  "unit": "R/EDI/man/DesignFixedBlocking.Rd"
  },
- "rd-md6bbb35a": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) x# and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = #) for (Intercept), treatment, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: dropped covariate(s) x1 and refit because the fit with all covariates had non-finite or implausibly large coefficients (max_abs_reasonable_coef = 50) for (Intercept), treatment, which usually means (quasi-)complete separation. The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").`",
-  "unit": "R/EDI/man/InferenceIncidLogRegr.Rd"
+ "rd-mbbcf1c80": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Krewski`: InferenceJackknife.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Krewski`: InferenceJackknife.Rd:101",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
  },
- "rd-me75a6988": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`InferenceIncidKKCondLogitGLMMOneLik.Rd`: the published reference page shows `#> Warning: number of rows of result is not a multiple of vector length (arg #)`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidKKCondLogitGLMMOneLik.Rd`: the published reference page shows `#> Warning: number of rows of result is not a multiple of vector length (arg 1)`",
-  "unit": "R/EDI/man/InferenceIncidKKCondLogitGLMMOneLik.Rd"
+ "rd-mc173b17c": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Verkuilen`: DesignSeqOneByOneKK#.Rd:#,#,#, DesignSeqOneByOneKK#stepwise.Rd:#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Verkuilen`: DesignSeqOneByOneKK21.Rd:38,114,289, DesignSeqOneByOneKK21stepwise.Rd:99,276",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK21.Rd"
  },
- "rd-mf3027550": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-warning:`SimulationFramework.Rd`: with \\donttest, seeds #, #, #, #, # of #: warning: InferenceContinOLS: BCa adjustment on the boundary at B = #: the nominal tail is only ~# order statistics; increase B (>= # recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`SimulationFramework.Rd`: with \\donttest, seeds 1, 2, 3, 4, 5 of 5: warning: InferenceContinOLS: BCa adjustment on the boundary at B = 50: the nominal tail is only ~1.3 order statistics; increase B (>= 501 recommended) or use type = \"percentile\". The returned p-value is NA. Suppress with suppressWarnings(expr, classes = \"edi_bootstrap_bca_boundary_warning\").",
-  "unit": "R/EDI/man/SimulationFramework.Rd"
+ "rd-mcab79588": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `RandomBlockSize`: InferenceJackknife.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `RandomBlockSize`: InferenceJackknife.Rd:36",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
  },
- "rd-mf3816359": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "published-example-output:`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically # or # occurred (# of # subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidLogRegr.Rd`: the published reference page shows `#> Warning: InferenceIncidLogRegr: fitted probabilities numerically 0 or 1 occurred (2 of 10 subject(s)); the data look (quasi-)completely separated, so the maximum-likelihood estimate does not exist and the reported estimate is where the fitter stopped. Wald standard errors, p-values and confidence intervals are not meaningful here. Consider a likelihood-ratio test (set_testing_type(\"lik_ratio\")), a randomization test (compute_rand_two_sided_pval()), an exact incidence method, or fewer covariates. Suppress with suppressWarnings(expr, classes = \"edi_logistic_separation_warning\").`",
-  "unit": "R/EDI/man/InferenceIncidLogRegr.Rd"
+ "rd-md4e2f855": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `affinely`: DesignSeqOneByOneKK#.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `affinely`: DesignSeqOneByOneKK21.Rd:39",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK21.Rd"
+ },
+ "rd-mdd3b8cd7": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Zeileis`: DesignSeqOneByOneKK#.Rd:#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Zeileis`: DesignSeqOneByOneKK21.Rd:39,118",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK21.Rd"
+ },
+ "rd-mdeaf7d82": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `enrollees`: DesignSeqOneByOneSPBR.Rd:#, InferenceJackknife.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `enrollees`: DesignSeqOneByOneSPBR.Rd:37, InferenceJackknife.Rd:18",
+  "unit": "R/EDI/man/DesignSeqOneByOneSPBR.Rd"
+ },
+ "rd-meda604bf": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountHurdleNegBin.Rd`: with \\donttest, seed # of #: warning: InferenceCountHurdleNegBin: the hurdle (zero vs. positive) part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdleNegBin.Rd`: with \\donttest, seed 4 of 5: warning: InferenceCountHurdleNegBin: the hurdle (zero vs. positive) part is separated: 5 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler hurdle (zero vs. positive) formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountHurdleNegBin.Rd"
+ },
+ "rd-mf41dbebe": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `Davison`: InferenceJackknife.Rd:#,#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `Davison`: InferenceJackknife.Rd:94,105",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
+ },
+ "rd-mf73f9120": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "spelling:unknown word `reweights`: InferenceJackknife.Rd:#, InferenceOrdinalPairedSignTest.Rd:#",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "unknown word `reweights`: InferenceJackknife.Rd:46, InferenceOrdinalPairedSignTest.Rd:28",
+  "unit": "R/EDI/man/InferenceJackknife.Rd"
+ },
+ "rd-mff4a0118": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-warning:`InferenceCountZeroInflatedPoisson.Rd`: warning outside \\donttest: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: # of # fitted zero probabilities are numerically # or #, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountZeroInflatedPoisson.Rd`: warning outside \\donttest: InferenceCountZeroInflatedPoisson: the zero-inflation part is separated: 10 of 10 fitted zero probabilities are numerically 0 or 1, so its maximum likelihood estimate does not exist and its coefficients are reported as NA. The count-part treatment estimate is still reported; its standard error and Wald inference may be unreliable. Consider randomization or bootstrap inference, or a simpler zero-inflation formula. Suppress with suppressWarnings(expr, classes = \"edi_zero_part_separation_warning\").",
+  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
  }
 }

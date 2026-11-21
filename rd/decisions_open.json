@@ -1,289 +1,268 @@
 {
- "rd-d245172a3": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d03f518a8": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceRandCI.Rd` (param-mismatch): The `ci_search_control` text gives the search radius as `max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y))`. The code adds a floor of 1 as a third argument to `max()` (inference_all_abstract_rand_ci.R:659: `max(se_mult * se_guess, scale_mult * response_scale, 1)`). The page therefore understates the minimum radius.",
-  "unit": "R/EDI/man/InferenceRandCI.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidMiettinenNurminenRiskDiff.Rd` (param-mismatch): The `model_formula` @param says it is an \"Optional formula for covariate adjustment\" and that a new design matrix is built from it, but the class is documented as \"intentionally unadjusted\". The code only passes `model_formula` to `super$initialize`. The estimate, CI and p-value come from `get_counts()`, which uses only `private$w` and `private$y`, so no covariate adjustment ever happens (inference_incidence_miettinen_nurminen_univ.R:9, 64-67, 80-84, 187-200). The text should say the formula is accepted but ignored by the estimate.",
+  "unit": "R/EDI/man/InferenceIncidMiettinenNurminenRiskDiff.Rd"
  },
- "rd-d2736efbc": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-d04a3b2d0": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_logistic_regression_weighted_cpp.Rd` (return-mismatch): The @return list omits two components the function returns: `min_eigenvalue_information` and `num_step_halvings` (R/EDI/src/fast_logistic_regression.cpp:628-640). The roxygen @return is at R/EDI/R/helper_glm_fit.R:677-694.",
+  "unit": "R/EDI/man/fast_logistic_regression_weighted_cpp.Rd"
+ },
+ "rd-d0a75a6ee": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceCountZeroInflatedPoisson.Rd` (unclear): The class description says \"The hurdle and count submodels may use different covariate formulas (model_formula/model_formula_zero)\". This is a zero-inflated model, not a hurdle model. The arguments show that model_formula_zero is the zero-inflation submodel, so \"hurdle\" is the wrong term here (R/EDI/R/inference_count_zero_inflated.R:10-11, 129-130).\n  - now: \u201cThe hurdle and count submodels may use different covariate formulas (\\code{model_formula}/\\code{model_formula_zero}).\u201d\n  - suggested: \u201cThe zero-inflation and count submodels may use different covariate formulas (\\code{model_formula}/\\code{model_formula_zero}).\u201d",
-  "unit": "R/EDI/man/InferenceCountZeroInflatedPoisson.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceOrdinalCauchitRegr.Rd` (unclear): The description calls \\beta_T \"the treatment log-odds coefficient on the cauchit scale (proportional-odds-style shift common to all categories)\". With a Cauchy link, \\beta_T is a shift on the Cauchy-quantile (cauchit) scale, not a log odds ratio. The model formula given on the same page has no log-odds interpretation, and the page itself says the effect-size interpretation is less familiar (inference_ordinal_cauchit.R:214-221). \"Log-odds\" is misleading here.",
+  "unit": "R/EDI/man/InferenceOrdinalCauchitRegr.Rd"
  },
- "rd-d29f67403": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceContinKKGLMM.Rd` (param-mismatch): compute_asymp_confidence_interval (lines 189-209) and compute_asymp_two_sided_pval (lines 211-231) are described as always Wald, but both dispatch on private$testing_type. They use the score, gradient, likelihood-ratio and Bartlett variants as well as Wald, which the class description itself says are available when use_rcpp = TRUE. The method descriptions should say the interval and p-value follow the active testing type, with Wald as the default.",
-  "unit": "R/EDI/man/InferenceContinKKGLMM.Rd"
+ "rd-d0d8301bf": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceSuite.Rd` (unclear): The `methods` argument text refers to an internal ticket, \"(TODO-22)\", that means nothing to a reader of the help page. Similarly, the `@return` text says \"per user request, 2026-08-19\" and \"2026-08-21\", which are development-history notes and not behaviour. The `@param methods` text is at R/EDI/R/inference_suite.R:4781, and the `@return` text is at lines 5039-5040.\n  - now: \u201cor (TODO-22) a named list, \\code{sentinel} to a character vector of requested \\code{type} values, or \\code{NULL},\u201d\n  - suggested: \u201cor a named list mapping each \\code{sentinel} to a character vector of requested \\code{type} values, or \\code{NULL},\u201d",
+  "unit": "R/EDI/man/InferenceSuite.Rd"
  },
- "rd-d2e80265b": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`KKLWACoxIVWCPartialLikelihoodSource.Rd` (param-mismatch): @param estimate_only of compute_estimate says \"skip variance component calculations\". In shared() the matched and reservoir Cox fits and their variances (ssq_m, ssq_r) are always computed, because they set the IVWC weights (R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R:120-138). Only the final combined standard error is skipped (line 137). The Wilcoxon IVWC page words this correctly: \"omit only the final combined standard error; component variances are still fitted\".",
-  "unit": "R/EDI/man/KKLWACoxIVWCPartialLikelihoodSource.Rd"
- },
- "rd-d2e80265b-2": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`KKLWACoxIVWCPartialLikelihoodSource.Rd` (param-mismatch): @param delta of compute_asymp_two_sided_pval does not say that only delta = 0 is supported. A non-zero delta calls stop(\"Testing non-zero delta is not yet implemented for this class.\") when assertions are on, and returns NA_real_ otherwise (R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R:84-91). The sentence \"For any treatment effect at all this is set to zero\" is also unclear. Suggested text: \"The null log-hazard ratio to test against; only 0 (the default, testing for any treatment effect) is currently supported.\"",
-  "unit": "R/EDI/man/KKLWACoxIVWCPartialLikelihoodSource.Rd"
- },
- "rd-d338b10f6": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-d12d733d0": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "other",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`ContinKKRobustRegrIVWCSource.Rd` (other): The Details say the matched-pair regression has covariate differences as predictors with \"no intercept\". The code fits it with an intercept. robust_for_matched_pairs builds X as cbind(1, Xd), or a lone column of 1s, and calls fit_rlm_with_treatment with j_treat = 1L (R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:380-390). So the intercept is the treatment-effect estimate. Suggested text: \"(with covariate differences as predictors and an intercept, which is the treatment effect)\".\n  - now: \u201cone on the within-pair outcome differences for matched pairs (with covariate differences as predictors, no intercept), and one on the reservoir subjects (raw covariates plus a treatment indicator).\u201d\n  - suggested: \u201cone on the within-pair outcome differences for matched pairs (with covariate differences as predictors and an intercept that estimates the treatment effect), and one on the reservoir subjects (raw covariates plus a treatment indicator).\u201d",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceSurvivalStratCoxPHRegr.Rd` (other): The roxygen for compute_rand_confidence_interval says it computes a randomization-based CI by inverting the class-specific randomization p-value. The method body only calls stop() (inference_survival_strat_cox.R:307-309), and the class description (lines 134-136) says randomization CIs are not supported. The method description contradicts both.\n  - now: \u201cCompute a randomization-based confidence interval for the stratified Cox treatment effect by inverting the class-specific randomization p-value.\u201d\n  - suggested: \u201cRandomization confidence intervals are not supported for the stratified Cox model: calling this method always signals an error, because the log-hazard-ratio estimator units are not commensurate with the randomization CI bisection's log-time-ratio null search.\u201d",
+  "unit": "R/EDI/man/InferenceSurvivalStratCoxPHRegr.Rd"
+ },
+ "rd-d18ce37dd": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "grammar",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_beta_regression_with_var_cpp.Rd` (grammar): The \\value sentence has a second \"and\" in its list: \"..., \\code{converged} (logical), and \\code{information_invertible} (...), and \\code{fisher_information} (...)\". The first \"and\" should go. The text comes from C++ //' comments through R/RcppExports.R:621-628 (editable = false), so this needs a human edit in the C++ source, not a scripted fix.",
+  "unit": "R/EDI/man/fast_beta_regression_with_var_cpp.Rd"
+ },
+ "rd-d1961ba4a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidRiskDiff.Rd` (unclear): The description of `compute_estimate_with_bootstrap_weights` (inference_incidence_risk_diff.R:150-158) has two stacked parentheticals: '(using the native OLS kernel ... fallback) (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet weights, ...)'. It is unclear which weights the second one qualifies. It should be restructured, for example by moving the native-kernel/fallback remark to the end of the sentence.",
+  "unit": "R/EDI/man/InferenceIncidRiskDiff.Rd"
+ },
+ "rd-d1e771906": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "param-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidNewcombeRiskDiff.Rd` (param-mismatch): The `model_formula` param is documented as 'Optional formula for covariate adjustment' whose design matrix is reused or rebuilt. The class documentation says the class is unadjusted and the estimate is the plain risk difference p_T - p_C. The counts come only from `w` and `y` (`get_counts`, inference_incidence_newcombe_univ.R:219-229), and no covariate adjustment happens, so the description of the argument is misleading.\n  - now: \u201cOptional formula for covariate adjustment.\u201d\n  - suggested: \u201cOptional formula accepted for interface consistency; it is ignored because this class is unadjusted.\u201d",
+  "unit": "R/EDI/man/InferenceIncidNewcombeRiskDiff.Rd"
+ },
+ "rd-d2abf56ca": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_ordinal_cauchit_regression_cpp.Rd` (unclear): The cold-start threshold formula tan(pi(k/K - 1/2)) conflicts with the 0-based k used above it. The code uses (k+1)/K (fast_ordinal_cauchit_regression.cpp:85-88). Source is C++ comments, so this is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_cpp.Rd"
+ },
+ "rd-d3404f44b": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`ContinKKRobustRegrIVWCSource.Rd` (unclear): The sentence \"\\strong{Legacy class.} Not fully tested in comprehensive_tests.R.\" is written directly after the @seealso links (inference_continuous_KK_robust_regr_ivwc.R:38-43, with no blank roxygen line or section tag). It therefore renders inside the See Also section instead of in the description or details. Move it into @details or a @section.",
   "unit": "R/EDI/man/ContinKKRobustRegrIVWCSource.Rd"
  },
- "rd-d3467d1f8": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-d3b495bae": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAsympLik.Rd` (unclear): The `alpha` parameter is described as \"Significance level 1 - alpha\" (line 25). `alpha` is itself the significance level (see lines 30 and 139), so the text is wrong or confusing. The interval has confidence level 1 - alpha.\n  - now: \u201cSignificance level 1 - \\code{alpha}.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - \\code{alpha}.\u201d",
-  "unit": "R/EDI/man/InferenceAsympLik.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceContinKKQuantileRegrOneLik.Rd` (unclear): The two `@references` entries (Kapelner & Krieger 2014 and Koenker 2005) are on consecutive lines with no blank line between them (R/EDI/R/inference_continuous_KK_quantile_regr_one_lik.R:27-30). They render as one run-on paragraph: \"...(KK14 in REFERENCES.md). Koenker, R. (2005)...\". Separate them with a blank `#'` line or a semicolon.",
+  "unit": "R/EDI/man/InferenceContinKKQuantileRegrOneLik.Rd"
  },
- "rd-d3554783c": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_beta_regression_with_var.Rd` (param-mismatch): `@param warm_start_fisher_info` (helper_glm_fit.R:1227-1228) says it warm-starts the optimizer's curvature, but the body never passes it on. The call to `fast_beta_regression_with_var_cpp` at helper_glm_fit.R:1263 passes only `warm_start_beta`. The C++ backend does accept `warm_start_fisher_info` (fast_beta_regression.cpp:622), so the argument is silently ignored. Either pass it through or document it as unused.",
-  "unit": "R/EDI/man/fast_beta_regression_with_var.Rd"
- },
- "rd-d35ff28d5": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_coxph_regression_cpp.Rd` (return-mismatch): The @return list omits two fields the function returns: `hit_iteration_cap` and `min_eigenvalue_information`. Both are set on the estimate_only and full paths in R/EDI/src/fast_coxph_regression.cpp:886-907. The documented items otherwise match. The docs say `vcov` is omitted under estimate_only, and the C++ does omit it there.",
-  "unit": "R/EDI/man/fast_coxph_regression_cpp.Rd"
- },
- "rd-d3fb367d1": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceSurvivalLogRank.Rd` (example-weak): The class example (inference_survival_log_rank.R:47-74) builds interval-censored data and then only prints the inference object. It never calls compute_estimate(), a p-value or an interval, so it does not show the log-rank estimate or test the page describes. Adding `infer$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` would show them.",
-  "unit": "R/EDI/man/InferenceSurvivalLogRank.Rd"
- },
- "rd-d439ad4ec": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-d4585805d": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`BaiAdjustedTSource.Rd` (unclear): The @param delta text 'For any treatment effect at all this is set to zero (the default)' is garbled. It should say that delta = 0 tests for any treatment effect (inference_continuous_KK_bai_abstract.R:152-153).\n  - now: \u201cFor any treatment effect at all this is set to zero (the default).\u201d\n  - suggested: \u201cTo test for any treatment effect at all, set this to zero (the default).\u201d",
-  "unit": "R/EDI/man/BaiAdjustedTSource.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik.Rd` (unclear): The description says to see InferenceSurvivalGLMMWeibullFrailtyNormalOneLik for the frailty-distribution details, but this page is that class, so the link is circular (inference_survival_GLMM_weibull_frailty_normal.R:896-900). The page also has no description of the frailty distribution beyond one phrase, so the reader is sent nowhere.",
+  "unit": "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyNormalOneLik.Rd"
  },
  "rd-d46a02fe4": {
   "first_seen": "2026-11-18T00:07:35+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceCountHurdlePoisson.Rd` (unclear): In the class description the clause 'under the default \\code{estimand = \"conditional\"}' (inference_count_hurdle.R:14) trails the sentence about the unconditional mean. It reads as if it modifies the hurdle-crossing probability. It should attach to the reported treatment effect. The next sentence ('Wald, gradient ... under that estimand') then refers back to an estimand the reader has not been clearly given.\n  - now: \u201cThe reported treatment effect is the coefficient from the conditional (truncated, \\eqn{Y > 0}) count component, on the log-rate scale, \\strong{conditional on clearing the hurdle}: it is not the effect on the unconditional mean \\eqn{E[Y]}, which also depends on how treatment shifts the hurdle-crossing probability, under the default \\code{estimand = \"conditional\"}.\u201d\n  - suggested: \u201cUnder the default \\code{estimand = \"conditional\"}, the reported treatment effect is the coefficient from the conditional (truncated, \\eqn{Y > 0}) count component, on the log-rate scale, \\strong{conditional on clearing the hurdle}: it is not the effect on the unconditional mean \\eqn{E[Y]}, which also depends on how treatment shifts the hurdle-crossing probability.\u201d",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdlePoisson.Rd` (unclear): The page says the hurdle submodel is \"fit jointly with the count submodel\" (inference_count_hurdle.R:4-5). The 'Separated hurdle part' paragraph (lines 91-93) says the likelihood factorizes and the count-part estimate does not depend on the hurdle part. Both cannot be read literally; the first should say the two parts share one likelihood that factorizes, or that they are fit separately.\n  - now: \u201cThe hurdle likelihood factorizes, so the count-part treatment estimate does not depend on the hurdle part and is kept.\u201d\n  - suggested: \u201cThe hurdle likelihood factorizes, so the count-part treatment estimate does not depend on the hurdle part and is kept.\u201d",
   "unit": "R/EDI/man/InferenceCountHurdlePoisson.Rd"
  },
- "rd-d4885013b": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAbstractKKOrdinalCLMM.Rd` (param-mismatch): The @param subject_or_block_weights is described as \"Row weights for bootstrap\", but the code expands subject- or block-level weights to row weights (inference_ordinal_KK_clmm_abstract.R:93).\n  - now: \u201cNumeric vector. Row weights for bootstrap.\u201d\n  - suggested: \u201cNumeric vector. Subject- or block-level bootstrap weights (expanded internally to row weights).\u201d",
-  "unit": "R/EDI/man/InferenceAbstractKKOrdinalCLMM.Rd"
- },
- "rd-d4885013b-2": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAbstractKKOrdinalCLMM.Rd` (param-mismatch): The @param delta of compute_asymp_two_sided_pval() says \"Null treatment effect value (default 0)\" and gives no hint that only delta = 0 is supported. For delta != 0 the code calls stop(\"TO-DO\") when asserts are on and otherwise returns NA_real_ (inference_ordinal_KK_clmm_abstract.R:129-136). The page should say that nonzero delta is not implemented.\n  - now: \u201cNumeric. Null treatment effect value (default 0).\u201d\n  - suggested: \u201cNumeric. Null treatment effect value (default 0); only 0 is supported, and a nonzero value returns NA (or errors when assertions are enabled).\u201d",
-  "unit": "R/EDI/man/InferenceAbstractKKOrdinalCLMM.Rd"
- },
- "rd-d4bae0cd0": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAllSimpleAverageDiff.Rd` (return-mismatch): The compute_estimate @return (man-roxygen/simple-mean-diff-compute-estimate.R:8) says \"The setting-appropriate (see description) numeric estimate\". The description mentions no settings. The method returns a single number: the difference in arm means, or NA_real_ if either arm is empty (inference_all_average_diff.R:72-75, 80). The text is vague and its pointer leads nowhere.\n  - now: \u201cThe setting-appropriate (see description) numeric estimate of the treatment effect\u201d\n  - suggested: \u201cThe difference in sample means (treated minus control) as a single number, or \\code{NA_real_} if either arm has no observations.\u201d",
-  "unit": "R/EDI/man/InferenceAllSimpleAverageDiff.Rd"
- },
- "rd-d5d7760f8": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-d7a86f4e9": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_robust_regression_cpp.Rd` (unclear): The page says \"see Details\" (the `smart_cold_start` and `method` params, R/EDI/R/RcppExports.R:3550 and 3552). The page has no Details section. The method and algorithm description is in the description paragraph, and the only named section is \"Fixed parameters, warm starts\". The reference points nowhere. The roxygen comes from C++ comments, so this is not auto-editable. Fix it by changing \"see Details\" to \"see the Description\", or by adding a `@details` tag.",
-  "unit": "R/EDI/man/fast_robust_regression_cpp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_ordinal_probit_regression_cpp.Rd` (unclear): The cold-start thresholds are given as Phi^{-1}(k/K), but k was defined as 0-based, so k = 0 would give -Inf. The code uses qnorm((k+1)/K) (fast_ordinal_probit_regression.cpp:88-91). The cauchit page has the same issue with tan(pi(k/K - 1/2)) (cauchit_legacy_alpha uses (k+1)/K). The formula should say (k+1)/K, or state that k runs from 1 to K-1. Source is C++ comments, so this is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_probit_regression_cpp.Rd"
  },
- "rd-d5e3c85bf": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`DesignSeqOneByOneKK14.Rd` (example-weak): The example creates a design with n = 6 but adds only one subject (lines 57-59). That subject falls in the burn-in, so it is randomized and no matching-on-the-fly happens. The example never shows the opposite-treatment pairing that the page is about. Add all 6 subjects in a loop. Matching will not necessarily occur even then, since it only starts after 35% of n, and in a few draws no match is accepted.",
-  "unit": "R/EDI/man/DesignSeqOneByOneKK14.Rd"
- },
- "rd-d69b9567c": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-d834548f8": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceContinKKGLMM.Rd` (unclear): The description of compute_estimate_with_bootstrap_weights says that with effectively constant weights the method \"returns `df = Inf` to signal a degenerate/skipped bootstrap replicate\". The code (inference_continuous_KK_glmm.R:153-160) returns the unweighted beta_hat_T. It only sets the cached `df` to Inf and clears the cached summary table. Nothing is signalled to the caller as a skipped replicate, so the sentence misstates the return value and purpose.",
-  "unit": "R/EDI/man/InferenceContinKKGLMM.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceOrdinalKKGLMM.Rd` (unclear): The description says the GEE sibling InferenceOrdinalKKGEE is \"documented above\". A help page has no fixed order relative to other pages, so \"above\" points nowhere. The page already links the sibling, so \"above\" should go. See R/EDI/R/inference_ordinal_KK_combined.R:365-367.\n  - now: \u201cThis differs from the GEE sibling \\code{\\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} (documented above) in estimand and inference basis: the GLMM's \\eqn{\\beta_T} is a subject-specific (conditional) log-odds-ratio with model-likelihood-based inference, while the GEE's is a population-averaged (marginal) log-odds-ratio with sandwich-based inference; the two need not numerically agree even on the same data, and the correct choice depends on whether a subject-specific/conditional or population-averaged/marginal treatment effect is of interest.\u201d\n  - suggested: \u201cThis differs from the GEE sibling \\code{\\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} in estimand and inference basis: the GLMM's \\eqn{\\beta_T} is a subject-specific (conditional) log-odds-ratio with model-likelihood-based inference, while the GEE's is a population-averaged (marginal) log-odds-ratio with sandwich-based inference; the two need not numerically agree even on the same data, and the correct choice depends on whether a subject-specific/conditional or population-averaged/marginal treatment effect is of interest.\u201d",
+  "unit": "R/EDI/man/InferenceOrdinalKKGLMM.Rd"
  },
- "rd-d73074464": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAllSimpleAverageDiff.Rd` (param-mismatch): The `model_formula` parameter is documented as \"Optional formula for covariate adjustment\" (man-roxygen/simple-mean-diff-initialize.R:4-7). The estimator is explicitly unadjusted, and compute_estimate/shared use only `private$y` and `private$w` (inference_all_average_diff.R:70-75, 242-256). A covariate formula has no effect on the estimate or SE, which contradicts the class description (\"no covariate adjustment\", lines 342-345).",
-  "unit": "R/EDI/man/InferenceAllSimpleAverageDiff.Rd"
- },
- "rd-d732891cf": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceSurvivalKMDiff.Rd`: could not find exactly one @examples block for it in R/EDI/R/inference_survival_km_diff.R (2 found). Cause: Bernoulli assignment with n = 10 can leave a control arm empty or with a single subject, so its KM median is not reached and the estimator warns.\n\n```r\nseq_des = DesignSeqOneByOneiBCRD$new(n = 10, response_type = 'survival')\nfor (i in 1:10) {\n  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))\n}\nseq_des$add_all_subject_responses(runif(10))\ninf = InferenceSurvivalKMDiff$new(seq_des)\ninf$compute_estimate()\n```",
-  "unit": "R/EDI/man/InferenceSurvivalKMDiff.Rd"
- },
- "rd-d73e06b18": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceContinLin.Rd` (param-mismatch): The `alpha` parameter is documented as \"The confidence level. The default is 0.05.\" It is a significance level, so the interval's confidence level is 1 - alpha. The assert at inference_continuous_lin.R:218 bounds it to (0, 1), and 0.05 as a confidence level would be nonsensical. The sibling pages (quantile and robust regression) say \"The confidence level in the computed confidence interval is 1 - alpha.\"\n  - now: \u201cThe confidence level. The default is 0.05.\u201d\n  - suggested: \u201cThe confidence level in the computed confidence interval is 1 - \\code{alpha}. The default is 0.05.\u201d",
-  "unit": "R/EDI/man/InferenceContinLin.Rd"
- },
- "rd-d8b7235fc": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "return-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_adjacent_category_logit_with_var_cpp.Rd` (return-mismatch): \\value lists the returned components but omits num_iter, hit_iteration_cap, gradient_norm and min_eigenvalue_information, which the C++ function also returns (fast_adjacent_category_logit.cpp:539-552). The page text also says ssq_b_1 is NA only if the coefficient is fixed or its variance is non-finite or non-positive. It is also NA when the free-parameter covariance is not all finite, or when X has no columns (fast_adjacent_category_logit.cpp:528). The text comes from C++ comments, so it is reported but no sentence fix is proposed.",
-  "unit": "R/EDI/man/fast_adjacent_category_logit_with_var_cpp.Rd"
+ "rd-d8a21ca9d": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceSurvivalGLMMWeibullFrailtyNormalIVWC.Rd` (unclear): The description says to see InferenceSurvivalGLMMWeibullFrailtyNormalIVWC for the frailty-distribution details, but this page is that class, so the link points back to itself and leads nowhere (inference_survival_GLMM_weibull_frailty_normal.R:769-773). It probably should link to a page that actually holds those details, or the sentence should state them.",
+  "unit": "R/EDI/man/InferenceSurvivalGLMMWeibullFrailtyNormalIVWC.Rd"
  },
  "rd-d8f503e67": {
   "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceNonParamBootstrap.Rd` (unclear): The @param alpha text says \"The confidence level 1 - alpha\", which reads as if alpha itself were the confidence level. alpha is the significance level and the interval has confidence level 1 - alpha (default 0.05 gives 95%). Source: inference_all_abstract_non_param_boot.R:881.\n  - now: \u201cThe confidence level 1 - \\code{alpha}. Default 0.05.\u201d\n  - suggested: \u201cThe significance level; the interval has confidence level 1 - \\code{alpha}. Default 0.05.\u201d",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceNonParamBootstrap.Rd` (unclear): The class section says nonparametric bootstrap is unsupported for DesignSeqOneByOne and all subclasses except DesignSeqOneByOneBernoulli (lines 21-25). The `bootstrap_type` parameter doc lists DesignSeqOneByOneSPBR, a DesignSeqOneByOne subclass, as a legal design for \"within_blocks\" and \"resample_blocks\" (lines 500-507). The two statements contradict each other. Either SPBR is supported and the class section needs an exception, or the SPBR mention is stale.",
   "unit": "R/EDI/man/InferenceNonParamBootstrap.Rd"
  },
- "rd-d9129d27d": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_neg_bin_with_var_cpp.Rd` (example-weak): The example uses X = matrix(rnorm(100), 10, 10) and y = rpois(10, 2), which is 10 observations for 10 coefficients plus a dispersion parameter. The model is saturated, so the returned vcov is not a meaningful variance estimate. That is the quantity this page is about (R/EDI/R/RcppExports.R:2316-2319). A design with an intercept, a treatment column and a few covariates, with n well above p, would show a usable vcov.",
-  "unit": "R/EDI/man/fast_neg_bin_with_var_cpp.Rd"
- },
- "rd-d9b5b6562": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
+ "rd-d932884e7": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceCustomRand.Rd` (unclear): The description of compute_estimate ends with \"See InferenceCustomRand and InferenceRand\". It cross-links to the very class whose page it sits on. This is only a minor oddity, so it is optional (R/EDI/R/inference_custom_extensions.R:188-191).",
-  "unit": "R/EDI/man/InferenceCustomRand.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidCMH.Rd` (unclear): The `compute_rand_two_sided_pval` @description (inference_incidence_cmh.R:63-78) is developer migration history. It covers old-ladder behaviour, a stale pin, and a test file name, and it never says what the method returns. Users of the help page cannot tell what the method does. It should be replaced with a short user-facing description. The text can stay in a code comment.",
+  "unit": "R/EDI/man/InferenceIncidCMH.Rd"
+ },
+ "rd-d932884e7-2": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidCMH.Rd` (unclear): The `initialize` @description (inference_incidence_cmh.R:104-107) says it prepares a \"stratum-adjusted test\". The class details (lines 3-4, 10-25) and the code (get_standard_error, lines 157-218) show a simple mean-difference estimate with a randomization-based standard error and a Wald-type z/t inference. No stratum-adjusted CMH test is run, so the description does not match what the class does.",
+  "unit": "R/EDI/man/InferenceIncidCMH.Rd"
+ },
+ "rd-d954483b0": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceOrdinalCauchitRegr.Rd` (example-weak): The Cauchit page has no @examples section at all (inference_ordinal_cauchit.R:212-245), although the sibling ordinal pages, such as InferenceOrdinalAdjCatLogitRegr, show a constructed object and `compute_estimate()`. There is no example of the class on its own page.",
+  "unit": "R/EDI/man/InferenceOrdinalCauchitRegr.Rd"
+ },
+ "rd-d96bee3e6": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferencePropQuantileRegr.Rd` (unclear): The description says the asymptotic CI/p-value paths use the asymptotic normal (Wald) approximation, then says the same paths use a t-reference with n - p degrees of freedom rather than a plain normal reference. The two statements contradict each other (inference_proportion_quantile_regr.R:17-24). The code calls compute_z_or_t_ci_from_s_and_df (lines 134 and 144).",
+  "unit": "R/EDI/man/InferencePropQuantileRegr.Rd"
+ },
+ "rd-d9b05a60a": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "example-weak",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`DesignSeqOneByOneKK21stepwise.Rd` (example-weak): The class example (design_seq_one_by_one_KK21_stepwise.R:88-90) adds a single burn-in subject. The forward-stepwise weight computation and the `condition_on_ws_for_rand_tests` option that define this class are never exercised.",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK21stepwise.Rd"
  },
  "rd-d9f1e5345": {
   "first_seen": "2026-11-19T13:45:04+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceRandBootstrap.Rd` (unclear): The 'Design restriction' section says the bootstrap randomization test is not supported for DesignSeqOneByOne designs, including the KK matching-on-the-fly designs. Only the Bernoulli design and the fixed matched-pairs DesignFixedBinaryMatch are exceptions. The details then say the pair-aware resampler is 'already active for every BRT draw on a matching-capable design'. They also say the construction avoids bespoke combinatorics for the KK14/KK21/KK21stepwise designs. A reader cannot tell whether BRT runs on the on-the-fly KK designs, so the page contradicts itself (inference_all_abstract_rand_bootstrap.R:49-57 vs 83-87 and 127-153). It should say these paragraphs describe the design's behavior or apply only to DesignFixedBinaryMatch.",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceRandBootstrap.Rd` (unclear): The zero_one_logit_clamp text says 'when logging', but for proportion responses the clamp is applied before taking the logit, not a log. The same wording appears in InferenceRandCI.Rd and InferenceRandBootstrapCI.Rd. The sibling InferenceRand page gives the accurate text: 'clamped to [zero_one_logit_clamp, 1 - zero_one_logit_clamp] before taking the logit' (inference_all_abstract_rand.R:101-104). Suggested text for the bootstrap pages: 'Clamping distance from the 0/1 boundaries used by the \"logit\" response transform, so exact 0 and 1 values stay finite. Default .Machine$double.eps.' Locations: inference_all_abstract_rand_bootstrap.R:244 and 461; inference_all_abstract_rand_bootstrap_ci.R:68; inference_all_abstract_rand_ci.R:75.",
   "unit": "R/EDI/man/InferenceRandBootstrap.Rd"
  },
- "rd-da0a51d2b": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-da3a45627": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_neg_bin_cpp.Rd` (example-weak): The example fits a 10 x 10 random design to 10 counts (R/EDI/R/RcppExports.R:2346-2349). The model has more parameters than observations, so the dispersion and coefficients are not identifiable. It does not show a typical fit, such as an intercept column plus a treatment column with n much greater than p. The Rd description also still has a stray one-line 'High-performance negative binomial regression fitting.' paragraph (RcppExports.R:2325) that adds nothing.",
-  "unit": "R/EDI/man/fast_neg_bin_cpp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceOrdinalRidit.Rd` (example-weak): The @examples block builds the design and the InferenceOrdinalRidit object but only prints `infer`. It never calls compute_estimate(), get_ridit_scores() or compute_asymp_confidence_interval(), so it shows none of the ridit contrast or DeLong inference the page describes (R/EDI/R/inference_ordinal_ridit.R:62-76).",
+  "unit": "R/EDI/man/InferenceOrdinalRidit.Rd"
  },
- "rd-db3022df1": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceCountPoisson.Rd` (unclear): The compute_estimate() description sends the reader to 'the class-level \\code{@details}' (inference_count_poisson.R:176). The class block has no @details tag, and the rendered page has no section by that name. The formula is in the 'Estimand.' paragraph of the class description.\n  - now: \u201csee the class-level \\code{@details} for the formula.\u201d\n  - suggested: \u201csee the \"Estimand\" paragraph of the class description for the formula.\u201d",
-  "unit": "R/EDI/man/InferenceCountPoisson.Rd"
- },
- "rd-db55b9ac4": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-da6ebd5db": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_neg_bin_weighted_cpp.Rd` (example-weak): The example uses a 10 x 10 random X with 10 counts and all weights equal to 1 (R/EDI/R/RcppExports.R:2392-2395). The model is saturated, and the unit weights do not show what the weights argument does. Non-uniform weights, for example some zero or 2, on a design with n greater than p, would show the page's feature.",
-  "unit": "R/EDI/man/fast_neg_bin_weighted_cpp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidKKCondLogitIVWC.Rd` (example-weak): The page has no @examples section (inference_incidence_KK_cond_logit.R:972-1010). The class is only shown through the \\value text of its rand-method templates, so a reader sees no construction or estimate call.",
+  "unit": "R/EDI/man/InferenceIncidKKCondLogitIVWC.Rd"
  },
- "rd-db5888ad8": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-db28e8c69": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`edi_rebind_lazy_components_after_clone.Rd` (unclear): The description first says the helper is a no-op kept for one release, then says it \"repoints any already-installed lazy-component method ... at the clone's leaf enclosing environment\". These contradict each other. The code comment at contracts_mixins.R:2903-2910 says it must be a no-op for methods already closed over one of the clone's enclosing envs. The body (contracts_mixins.R:2918-2957) still repoints methods that are closed over neither, including compute_estimate_with_bootstrap_weights and weighted_refit_impl. The text should say it is a no-op for methods already bound to one of the clone's own enclosing environments, and that it only repoints the remaining ones.",
-  "unit": "R/EDI/man/edi_rebind_lazy_components_after_clone.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceIncidKKCondLogitIVWC.Rd` (unclear): The page calls the IVWC formula \"the classical fixed-effects inverse-variance meta-analysis pooling formula (see Cochrane Handbook / DerSimonian-Laird)\". DerSimonian-Laird is the random-effects method, which adds a between-study variance term. The pooling shown here (w* = s_r^2/(s_r^2+s_m^2), combined variance s_m^2 s_r^2/(s_m^2+s_r^2)) is the fixed-effects one, so the citation points readers to the wrong method (inference_incidence_KK_cond_logit.R:990).",
+  "unit": "R/EDI/man/InferenceIncidKKCondLogitIVWC.Rd"
  },
- "rd-dbed36379": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-db38f0e3b": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`DesignFixedMatchingGreedyPairSwitching.Rd` (unclear): The Constraints paragraph (lines 46-51) says \"n/2 matched pairs are formed regardless of parity\". n/2 is not an integer for odd n, and the same paragraph says n must be divisible by 4 and that even n is required for DesignFixedBinaryMatch. The wording contradicts itself. Say that DesignFixedBinaryMatch needs even n (n/2 pairs) and that this class additionally requires n divisible by 4.",
-  "unit": "R/EDI/man/DesignFixedMatchingGreedyPairSwitching.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceOrdinalKKGEE.Rd` (unclear): The class description says Bayesian-bootstrap inference is temporarily unavailable (lines 21-25), and the components list omits BayesianBootstrap (lines 61-66). The `compute_estimate_with_bootstrap_weights` description (lines 89-103) says it is \"used by the Bayesian bootstrap\" and documents an approximating fallback fit. A reader cannot tell whether this method is reachable. State that it is internal or only used by other resampling paths, or remove the Bayesian-bootstrap claim.",
+  "unit": "R/EDI/man/InferenceOrdinalKKGEE.Rd"
  },
- "rd-dc7de612b": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "grammar",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidExactZhang.Rd` (grammar): The initialize description is ungrammatical: the list \"Bernoulli-capable or matching-capable, an uncensored incidence response\" mixes a requirement on des_obj with a requirement on the response. It is in R/EDI/man-roxygen/exact-zhang-initialize.R:2-3 (the template used by R/EDI/R/inference_incidence_exact_zhang.R:168-170). Suggested: \"Requires \\code{des_obj} to be Bernoulli-capable or matching-capable, with an uncensored incidence response.\"\n  - now: \u201cRequires \\code{des_obj} to be Bernoulli-capable or matching-capable, an uncensored incidence response.\u201d\n  - suggested: \u201cRequires \\code{des_obj} to be Bernoulli-capable or matching-capable, with an uncensored incidence response.\u201d\n  - not applied automatically: its source file is not editable",
-  "unit": "R/EDI/man/InferenceIncidExactZhang.Rd"
+ "rd-db3e5e698": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_ordinal_regression_weighted_cpp.Rd` (return-mismatch): The @return says vcov and ssq_b_j are \"NA/omitted\" when the information matrix is not invertible. The with_var and fixed-link pages say ssq_b_j is NaN and vcov is NULL. The page also leaves out the converged-dependent details and the fields hit_iteration_cap, gradient_norm and min_eigenvalue_information, which the sibling with_var pages list. I could not check this against the C++ body of the logit weighted function. Source is the C++ comment, so this is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_regression_weighted_cpp.Rd"
  },
- "rd-dc9e99adb": {
-  "first_seen": "2026-11-18T00:07:35+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAllSimpleMeanDiffPooledVar.Rd` (param-mismatch): The `model_formula` parameter is documented as \"Optional formula for covariate adjustment\" (man-roxygen/simple-mean-diff-pooled-var-initialize.R:9-12). The class is an unadjusted difference in means: the estimate and SE use only `private$y` and `private$w` (inference_all_average_diff.R:70-75; pooled_var.R:164-179), so no covariate adjustment ever happens. The text should say the formula is accepted but does not change the estimate or SE.",
-  "unit": "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd"
- },
- "rd-ddbfd009e": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-dc25cc206": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "example-weak",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAllSimpleMeanDiffPooledVar.Rd` (example-weak): The example (lines 220-229) only calls `compute_estimate()`. That is the same unadjusted mean difference as InferenceAllSimpleAverageDiff, so it shows nothing about the page's subject, the pooled-variance t interval and p-value. The whole block is in \\donttest although it ran in about 0.001 s, so CRAN runs nothing. Suggest adding `inf$compute_asymp_confidence_interval()` and `inf$compute_asymp_two_sided_pval()`, and moving the example out of \\donttest, since it is fast.",
-  "unit": "R/EDI/man/InferenceAllSimpleMeanDiffPooledVar.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`DesignSeqOneByOneKK21.Rd` (example-weak): The class example (design_seq_one_by_one_KK21.R:102-105) builds a design with n = 6 and adds one subject. That subject is in the burn-in, so it is randomized. The example never reaches the outcome-weighted matching, `get_covariate_weights()` or `get_iteration_weights()`, which are what the page is about.",
+  "unit": "R/EDI/man/DesignSeqOneByOneKK21.Rd"
  },
- "rd-ddc9f82e3": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-dc270a50d": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_probit_regression_cpp.Rd` (unclear): The smart_cold_start param says 'use an OLS-based initial guess (see Details)', but the page has no Details section. The OLS start is described under 'Fixed parameters, warm starts'. The same applies to warm_start_weights ('see Details'). The text comes from C++ comments (RcppExports.R:3426, 3434), so it is not auto-editable.",
-  "unit": "R/EDI/man/fast_probit_regression_cpp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountHurdleNegBin.Rd` (unclear): The page says the hurdle submodel is \"fit jointly with the count submodel\" (inference_count_hurdle.R:283-285), but the 'Separated hurdle part' paragraph (lines 347-348) says \"The hurdle part is fit separately from the count part\". The two statements contradict each other. Reword one of them, for example to say the two parts share one likelihood that factorizes.\n  - now: \u201cThe hurdle part is fit separately from the count part, so the count-part treatment estimate does not depend on it and is kept.\u201d\n  - suggested: \u201cThe hurdle part is fit separately from the count part, so the count-part treatment estimate does not depend on it and is kept.\u201d",
+  "unit": "R/EDI/man/InferenceCountHurdleNegBin.Rd"
  },
- "rd-ddfdf0daa": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
+ "rd-dc6316a14": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_cpoisson_combined_with_var_cpp.Rd` (return-mismatch): The @return text lists the returned components but leaves out `num_iter`, `hit_iteration_cap` and `gradient_norm`. The C++ returns all three in both the full result and the estimate-only result (src/fast_cpoisson_combined.cpp:385-387 and 416-418). The Details section mentions \"iteration diagnostics\" for estimate-only mode without naming them. This page's text comes from C++ comments, so it is not editable here; the fix belongs in the //' block at src/fast_cpoisson_combined.cpp:475-530.",
+  "unit": "R/EDI/man/fast_cpoisson_combined_with_var_cpp.Rd"
+ },
+ "rd-dc6614af5": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_ordinal_cauchit_regression_with_var_cpp.Rd` (param-mismatch): The inherited section 'Fixed parameters, warm starts, and optimization' says optimization runs 'for up to maxit iterations or until the gradient norm falls below tol'. This function has no maxit or tol arguments (R/EDI/R/RcppExports.R:2538; R/EDI/src/fast_ordinal_cauchit_regression.cpp:260-278). They are hard-coded to 100 and 1e-6 in the call to the internal fitter. Text is inherited from the _cpp page via @inheritSection and comes from C++ comments, so it is not editable here.",
-  "unit": "R/EDI/man/fast_ordinal_cauchit_regression_with_var_cpp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountKKGLMM.Rd` (param-mismatch): The Wald CI and p-value methods are documented as using the \"model-based GLMM standard error\" (inference_count_KK_combined.R:160-163, 171-172). The class details (lines 28-37) say the Wald SE is the larger of the model SE and the delete-one jackknife SE. The shared fit applies that inflation (`.inflate_kk_onelik_standard_error_with_jackknife` at line 316), and both Wald methods use it. The method text contradicts the class text and the code.\n  - now: \u201cusing the model-based GLMM standard error.\u201d\n  - suggested: \u201cusing the Wald standard error described in the class details (the larger of the model-based and jackknife standard errors).\u201d",
+  "unit": "R/EDI/man/InferenceCountKKGLMM.Rd"
  },
- "rd-deb8ff434": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example-weak",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`fast_negbin_regression.Rd` (example-weak): The example uses matrix(rnorm(100), 10, 10) with y = rpois(10, 2) (R/EDI/R/helper_glm_fit.R, the @examples of the block at 1407-1455). That is 10 observations for 10 columns, so the wrapper's QR-based covariate dropping is likely to be triggered or the fit is saturated. The example does not show the intercept and treatment columns that the wrapper always keeps, or a clean fit with a few covariates.",
-  "unit": "R/EDI/man/fast_negbin_regression.Rd"
- },
- "rd-debdce966": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "example",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceIncidLogBinomial.Rd`: proposed example NOT applied, it does not pass the check (default part under 4 s, CPU/elapsed at most 2.5, every seed clean): with \\donttest, seed 2 of 5: warning: InferenceIncidLogBinomial: dropped covariate(s) x1 and refit because the fit with all covariates failed or did not pass the fit checks (e.g. no convergence or no usable standard error). The reported results are for the reduced model. Suppress with suppressWarnings(expr, classes = \"edi_covariate_dropped_warning\").. Cause given: With only 10 subjects, a covariate and a 50% event rate, the log-binomial MLE hits the exp(Xb)=1 boundary or the covariate fit fails, so warnings are raised.\n\n```r\nseq_des = DesignSeqOneByOneBernoulli$new(n = 60, response_type = 'incidence')\nfor (i in 1:60) {\n  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))\n}\nseq_des$add_all_subject_responses(rbinom(60, 1, 0.2))\n\\donttest{\ninf = InferenceIncidLogBinomial$new(seq_des)\ninf$compute_estimate()\n}\n```",
-  "unit": "R/EDI/man/InferenceIncidLogBinomial.Rd"
- },
- "rd-df0d4ecba": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-dc6614af5-2": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`InferenceAbstractKKModifiedPoisson.Rd` (param-mismatch): The `subject_or_block_weights` param is documented as \"Numeric vector. Row weights for bootstrap.\", but the body (inference_incidence_KK_marginal.R:24) passes it through expand_subject_or_block_weights_to_row_weights() to build the row weights, so it holds one weight per subject or matched block, not per row.",
-  "unit": "R/EDI/man/InferenceAbstractKKModifiedPoisson.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceCountKKGLMM.Rd` (param-mismatch): The `compute_asymp_confidence_interval` and `compute_asymp_two_sided_pval` descriptions (inference_count_KK_combined.R:197-201, 217-221) say they dispatch to Wald or likelihood-ratio and \"default to Wald if the testing type is neither\". The code (lines 208-215, 226-) also dispatches to the score and gradient tests. Any other testing type calls stop(\"Unsupported testing_type ...\") and does not fall back to Wald.",
+  "unit": "R/EDI/man/InferenceCountKKGLMM.Rd"
  },
- "rd-df47a6b80": {
-  "first_seen": "2026-11-18T20:33:38+00:00",
+ "rd-dca7083f5": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
   "key": "unclear",
-  "last_seen": "2026-11-18T20:33:38+00:00",
-  "text": "`InferenceAsymp.Rd` (unclear): The `alpha` parameter is described as \"Significance level 1 - alpha\" (line 17). That is self-referential. In the code (lines 22 and 136-139), `alpha` is the significance level and the interval has confidence level 1 - alpha. The sibling `compute_wald_confidence_interval` (line 85) says \"Significance level.\" and the simple-mean-diff templates say \"the interval has confidence level 1 - alpha\".\n  - now: \u201cSignificance level 1 - \\code{alpha}.\u201d\n  - suggested: \u201cSignificance level; the interval has confidence level 1 - \\code{alpha}.\u201d",
-  "unit": "R/EDI/man/InferenceAsymp.Rd"
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`InferenceAllKKWilcoxIVWC.Rd` (unclear): The paragraph `\\strong{Legacy class.} Not fully tested in comprehensive_tests.R.` is written after the `@references` tag with no tag of its own (R/EDI/R/inference_all_KK_wilcox_ivwc.R:536-545). roxygen therefore folds it into the References section, as man/InferenceAllKKWilcoxIVWC.Rd:158 shows. It reads as part of the citation list, not as a class note. Put it in the description or details, before `@references`.",
+  "unit": "R/EDI/man/InferenceAllKKWilcoxIVWC.Rd"
  },
- "rd-dfd87987b": {
-  "first_seen": "2026-11-19T13:45:04+00:00",
-  "key": "param-mismatch",
-  "last_seen": "2026-11-19T13:45:04+00:00",
-  "text": "`Inference.Rd` (param-mismatch): The `get_covariates()` description says it returns the design object's model-matrix covariates. The code (inference_all_abstract.R:425-432) also removes the columns dropped by the perfect-predictor check (`private$perfect_predictor_dropped`). The docs do not say so, although the class-level section says the dropped columns are no longer used. A user-defined subclass that reads this accessor would therefore see fewer columns than the design object holds.",
-  "unit": "R/EDI/man/Inference.Rd"
+ "rd-dcf604bfa": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`SimulationFramework.Rd` (unclear): The class details define power as the proportion of p-values below alpha, and say it equals the type-I error rate when betaT = 0. The report code never reports power for betaT = 0. It computes power only for non-zero effects and reports a separate size and size_pval for betaT = 0 (simulation_framework_report.R:149-170, and the @return of summarize()). The two pages describe the metrics inconsistently.\n  - now: \u201c\\strong{power}: proportion of p-values \\eqn{< \\alpha}; equals the empirical type-I error rate when \\code{betaT = 0}.\u201d\n  - suggested: \u201c\\strong{power}: proportion of p-values \\eqn{< \\alpha} when \\code{betaT != 0}; when \\code{betaT = 0} the same proportion is reported as \\strong{size} (the empirical type-I error rate).\u201d",
+  "unit": "R/EDI/man/SimulationFramework.Rd"
+ },
+ "rd-def7a0a93": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_ordinal_probit_regression_cpp.Rd` (return-mismatch): Same problem as the cloglog page. The @return says neg_loglik, the information matrices, vcov and ssq_b_j appear only \"and the fit converged\". The shared code returns them whenever estimate_only = FALSE; only vcov (NULL) and ssq_b_j (NaN) depend on convergence (ordinal_fixed_link_internal.h:152-172). The returned hit_iteration_cap, gradient_norm and min_eigenvalue_information are not listed (ordinal_fixed_link_internal.h:124-126, 160-162). The text also says ssq_b_j is \"set to NA\" when non-finite, but the code sets NaN (ordinal_fixed_link_internal.h:144-145). The page's own with_var text says NaN. Source is the C++ //' comment (fast_ordinal_probit_regression.cpp:174-188), so this is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_probit_regression_cpp.Rd"
+ },
+ "rd-df8541896": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_logistic_regression_with_var_cpp.Rd` (return-mismatch): The @return list omits the returned component `min_eigenvalue_information` (R/EDI/src/fast_logistic_regression.cpp:690-708). The roxygen @return is at R/EDI/R/helper_glm_fit.R:2040-2051.",
+  "unit": "R/EDI/man/fast_logistic_regression_with_var_cpp.Rd"
+ },
+ "rd-dfe341a7f": {
+  "first_seen": "2026-11-21T15:16:27+00:00",
+  "key": "return-mismatch",
+  "last_seen": "2026-11-21T15:16:27+00:00",
+  "text": "`fast_ordinal_cloglog_regression_cpp.Rd` (return-mismatch): The @return says the extra fields (neg_loglik, observed_information, vcov, ssq_b_j and so on) appear only when estimate_only = FALSE \"and the fit converged\". The shared fit code returns them whenever estimate_only = FALSE (ordinal_fixed_link_internal.h:152-172). Only vcov (NULL) and ssq_b_j (NaN) depend on convergence. The estimate_only = TRUE list also contains hit_iteration_cap, gradient_norm and min_eigenvalue_information (ordinal_fixed_link_internal.h:124-126), which the @return omits. The cauchit page lists them. Source is the C++ //' comment (fast_ordinal_cloglog_regression.cpp), so this is not editable here.",
+  "unit": "R/EDI/man/fast_ordinal_cloglog_regression_cpp.Rd"
  }
 }
