@@ -2,6 +2,16 @@
 
 ## Changes that alter results
 
+* `InferenceContinKKGLMM`'s parametric bootstrap (`compute_param_bootstrap_*()`
+  and the likelihood-ratio bootstrap) simulated each dataset with the residual
+  and pair standard deviations swapped, so when the pair SD was near 0 the
+  simulated data had almost no within-pair noise: the bootstrap CI came out
+  about 40-70 times narrower than the Wald CI and the p-value sat at its floor
+  (a 5% test rejected a true null 75% of the time in a small simulation; 10%
+  after the fix, the likelihood-ratio bootstrap 6.7% before and 8.3% after).
+  The simulator now reads the variance components in the kernel's order
+  (v1.0.6-TODO-291, v1.0.6-TODO-56).
+
 * Count, probit and other likelihood fits no longer report convergence too
   early, or a correct fit as unconverged, when the design is ill-conditioned or a
   covariate has a large scale or offset. The L-BFGS wrapper, Newton and the

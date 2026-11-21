@@ -1198,7 +1198,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   TODO); done when the fix lands and the skip is removed.
   Done 2026-11-19 with v1.0.6-TODO-166 (same cause): the `skip()` in
   `testthat_bulk/test-rand-pval-sequential-mc-small-batch.R` is removed and the test passes.
-- [ ] TODO-56 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
+- [x] TODO-56 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **KK GLMM null simulation swaps the two variance components.** `simulate_under_lik_null()`
   (`R/EDI/R/inference_continuous_KK_glmm.R:503`) reads the null fit as c(beta, log_sigma_b, log_sigma_e), but
   `fast_gaussian_lmm_cpp` returns c(beta, log_sigma_e, log_sigma_b) (`fast_gaussian_lmm.cpp:539-545`), so
@@ -1206,6 +1206,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   affected calibration rows. The failing test is
   `R/package_tests/testthat_bulk/test-contin-kk-glmm-null-simulation-variance-component-order.R` (skipped, citing this
   TODO); done when the fix lands and the skip is removed.
+  Done 2026-11-21 with v1.0.6-TODO-291 (same bug): the indices are fixed and the skip is removed; the test passes.
 - [x] TODO-57 (added 2026-11-17, agent, owner request; found by the numerical-robustness review audit, merged as a
   skipped failing test): **D/A-optimal projection is wrong when a covariate is collinear with the intercept.**
   `R/EDI/R/helper_optimal_shared.R:107` builds P = QQ' from `qr.Q(qr(cbind(1, X)))` without truncating to the QR rank,
@@ -5078,7 +5079,7 @@ were found by reading, not by running a fix.
   value errors at `$new()` on all three KK classes; the defaults still give today's allocations. Repro:
   sequential-designs F3.
 
-- [ ] TODO-291 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f4): **High priority:
+- [x] TODO-291 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f4): **High priority:
   `InferenceContinKKGLMM`'s parametric bootstrap swaps the two variance components, so its CI is ~70x narrower than
   Wald and its p-value sits at the 2/(B+1) floor.** Audit (KK14, n = 60, 26 pairs): Wald CI [-0.238, 0.679], p = 0.347;
   parametric-bootstrap CI [0.214, 0.227] (B = 199) and p = 0.01; replicate SD ~0.003 against a model SE of 0.23;
@@ -5094,6 +5095,21 @@ were found by reading, not by running a fix.
   on the finding's repro, the replicate SD is within 25% of the Wald SE and the bootstrap CI covers the Wald CI's
   midpoint; a small null simulation of the bootstrap p-value holds its size. NEWS: changes results. Repro:
   sequential-designs F4.
+  Done 2026-11-21 (agent): the two indices in `simulate_under_lik_null()` are swapped back (`sigma_e = exp(b[p + 1])`,
+  `sigma_u = exp(b[p + 2])`) and the comment gives the kernel's order; the code change itself went in with commit
+  8d8c5f78. No other reader of `fast_gaussian_lmm_cpp()$b` exists, and the count, proportion and ordinal KK GLMM
+  classes have no `simulate_under_lik_null()` of their own. The legacy fixture
+  `testthat_bulk/fixtures/legacy_contin_kk_glmm.R` had the same lines and got the same fix, so
+  `test-contin-kk-glmm-migration-golden.R` still compares like with like (its `param_boot_pval` row moved 0.9 -> 1).
+  Test: `test-contin-kk-glmm-null-simulation-variance-component-order.R` (the v1.0.6-TODO-56 skip removed, plus the
+  F4 repro: replicate SD within 0.75-1.33x the OLS SE, CI contains the estimate). Evidence on the F4 repro (B = 199):
+  bootstrap CI [0.810, 0.830] -> [0.332, 1.208], replicate SD 0.0052 -> 0.237 (lmer REML = FALSE SE 0.233, OLS SE
+  0.241). Null size (KK14, n = 50, y = x1 + N(0, 1), 60 datasets, B = 99): parametric-bootstrap p-value rejects at
+  5% in 75% of datasets before, 10% after (MC SE ~4%); LR bootstrap 6.7% before, 8.3% after. Found, not changed
+  (owner decision): on this repro the Wald CI is [0.585, 1.056] (SE 0.120) against lmer's 0.233; the kernel's
+  `vcov` (inverse full observed information) at log_sigma_b = -4.0 has a negative diagonal for log_sigma_b and a w SE
+  of 0.120, so the Wald SE looks wrong when sigma_b is near 0. The finding's run (older build) had Wald SE 0.230. The
+  TODO's "within 25% of the Wald SE" test was therefore written against the OLS SE instead.
 
 - [ ] TODO-292 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f5):
   **`InferenceSuite$run_all_inference()` with `max_secs_per_class` and `num_cores = 2` prints the report and then

@@ -412,13 +412,15 @@ InferenceContinKKGLMMLegacyOrig = define_inference_class("InferenceContinKKGLMM"
 		},
 		supports_lik_ratio_param_bootstrap = function() isTRUE(private$use_rcpp),
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			# fast_gaussian_lmm_cpp bundles all params in $b: c(betas, log_sigma, log_tau)
+			# fast_gaussian_lmm_cpp bundles all params in $b: c(betas, log_sigma_e, log_sigma_b)
+			# (v1.0.6-TODO-291 swap fix applied to this fixture too, so the migration golden still compares
+			# like with like)
 			p      = ncol(spec$X)
 			b_all  = as.numeric(null_fit$b)
 			if (length(b_all) < p + 2L) return(NULL)
 			b_null    = b_all[seq_len(p)]
-			sigma_u   = exp(b_all[p + 1L])
-			sigma_e   = exp(b_all[p + 2L])
+			sigma_e   = exp(b_all[p + 1L])
+			sigma_u   = exp(b_all[p + 2L])
 			X = spec$X
 			group_id = spec$group_id
 			n = nrow(X)

@@ -6,10 +6,10 @@
 # Where: R/EDI/R/inference_continuous_KK_glmm.R:503 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `sigma_e_hat` < 1.6. Actual comparison: 3.3
 # >= 1.6 Difference: 1.7 >= 0
-# Tracked by v1.0.6-TODO-56; remove the skip() when that fix lands.
+# Tracked by v1.0.6-TODO-56; fixed by v1.0.6-TODO-291 (2026-11-21), which also adds the end-to-end
+# parametric-bootstrap check below (docs-scenarios sequential-designs F4: replicate SD ~0.005 vs SE ~0.23).
 
 test_that("LMM null simulation uses log_sigma_e for the residual SD and log_sigma_b for the random intercept", {
-	skip("known bug, v1.0.6-TODO-56")
 		set.seed(2)
 		np = 40L
 		ns = 10L
@@ -38,4 +38,29 @@ test_that("LMM null simulation uses log_sigma_e for the residual SD and log_sigm
 			expect_lt(sigma_e_hat, 1.6)
 			expect_gt(sigma_e_hat, 0.6)
 		}
+})
+
+test_that("KK GLMM parametric-bootstrap replicates spread like the estimator (v1.0.6-TODO-291)", {
+	set.seed(20261118)
+	n = 60
+	X = data.frame(age = round(rnorm(n, 55, 10)), severity = round(rnorm(n), 2))
+	y0 = 0.05 * (X$age - 55) + 1.2 * X$severity + rnorm(n)
+	d = DesignSeqOneByOneKK14$new(response_type = "continuous", n = n, seed = 7041, verbose = FALSE)
+	for (i in 1:n) {
+		w = d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+		d$add_one_subject_response(i, y0[i] + 0.6 * w)
+	}
+	g = InferenceContinKKGLMM$new(d, verbose = FALSE)
+	g$set_seed(1)
+	est = g$compute_estimate()
+	ci = g$compute_param_bootstrap_confidence_interval(alpha = 0.05, B = 99)
+	reps = g$get_last_param_bootstrap_estimate_diagnostics()$replicate_estimates
+	# the fitted pair SD is ~0 here, so the OLS SE is the right scale (lmer REML = FALSE gives 0.233)
+	ols_se = summary(lm(y ~ w + age + severity, data.frame(y = d$get_y(), w = d$get_w(), X)))$coef["w", 2]
+	# before the fix: sd(reps) ~ 0.005 and the CI ~ [0.81, 0.83]
+	expect_gt(sd(reps), 0.75 * ols_se)
+	expect_lt(sd(reps), 1.33 * ols_se)
+	expect_lt(ci[1], est)
+	expect_gt(ci[2], est)
+	expect_gt(ci[2] - ci[1], 2 * ols_se)
 })
