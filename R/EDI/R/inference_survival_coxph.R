@@ -732,10 +732,28 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 				"cbind(.icen_L, .icen_R) ~ ", paste(covariate_names, collapse = " + ")
 			))
 			bs_samples = if (isTRUE(estimate_only)) 0L else private$icen_bs_samples
-			fit = tryCatch(
+			# ic_sp()'s covariance is a bootstrap drawn from the session RNG. With an object seed,
+			# draw it under a seed derived from it and restore the session stream afterwards, so
+			# the Wald SE does not depend on the global RNG state (v1.0.6-TODO-313).
+			fit_ic_sp = function() tryCatch(
 				suppressWarnings(icenReg::ic_sp(fmla, data = dat, model = "ph", bs_samples = bs_samples)),
 				error = function(e) NULL
 			)
+			fit = if (bs_samples > 0L && !is.null(private$seed)) {
+				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				on.exit({
+					if (had_seed) {
+						assign(".Random.seed", old_seed, envir = .GlobalEnv)
+					} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+						rm(".Random.seed", envir = .GlobalEnv)
+					}
+				}, add = TRUE)
+				set.seed(seq_design_draw_seed(private$seed, "coxph_icenreg_ic_sp_bootstrap"))
+				fit_ic_sp()
+			} else {
+				fit_ic_sp()
+			}
 			if (is.null(fit)) {
 				private$cached_values$likelihood_test_context = NULL
 				return(na_result)

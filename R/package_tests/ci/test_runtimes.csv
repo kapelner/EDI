@@ -235,6 +235,7 @@ R/package_tests/testthat_bulk/test-coxph-generate-mod-extreme-coefficients-guard
 R/package_tests/testthat_bulk/test-coxph-icen-extreme-coefficients-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-coxph-icenreg-package-required-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-coxph-interval-censored-wald-se-uses-object-seed.R,correctness,20,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernel-tied-times-breslow-cluster-robust-vcov-optimizers-and-fixed-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,correctness,1,measured_with_30_percent_headroom

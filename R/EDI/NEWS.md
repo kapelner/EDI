@@ -696,6 +696,11 @@
 
 ## Bug fixes
 
+* `InferenceSurvivalCoxPHRegr` on interval-censored data: with `set_seed()`, the
+  Wald CI and p-value (whose SE comes from `icenReg::ic_sp()`'s bootstrap) no
+  longer depend on the global RNG state, and the session stream is left as it
+  was (v1.0.6-TODO-313).
+
 * `InferenceSuite$run_all_inference()`: the per-estimand summary printed
   `p = NA` for every estimand with a single inference class; it now prints that
   class's own p-value (v1.0.6-TODO-312).

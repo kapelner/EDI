@@ -5737,7 +5737,7 @@ were found by reading, not by running a fix.
   the one-row group; it now expects that row's p (0.0500). Not done: the "ok" status on a KM row with NA se and p
   (second part of the entry); not re-run on the finding's full suite repro.
 
-- [ ] TODO-313 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f9): **On
+- [x] TODO-313 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f9): **On
   interval-censored data `InferenceSurvivalCoxPHRegr`'s Wald CI and p-value depend on the global RNG state even after
   `set_seed()`.** Same object seed 123: global seed 1 gives (-1.0867, -0.3260), p 0.000272; global seed 2 gives
   (-1.0931, -0.3196), p 0.000344; seed 1 again reproduces the first. On the audit's trial this moved the Wald p across
@@ -5748,6 +5748,14 @@ were found by reading, not by running a fix.
   `with_derived_seed()` does for designs), and document in the help that this path's SE is bootstrap-based. Test: the
   finding's repro gives identical results for global seeds 1 and 2 under the same object seed, and different results
   for different object seeds. Repro: survival-censoring F9.
+  Done 2026-11-21 (agent): when the object has a seed and `ic_sp()` is asked for bootstrap samples, the call runs
+  under `seq_design_draw_seed(private$seed, "coxph_icenreg_ic_sp_bootstrap")` with the session `.Random.seed` saved
+  and restored (`inference_survival_coxph.R`, icenReg dispatch); with no object seed it still draws from the session
+  stream. Not done: the help sentence that this path's SE is bootstrap-based. Test: new
+  `test-coxph-interval-censored-wald-se-uses-object-seed.R` (F9 repro: global seeds 1 and 2 give identical CI and p
+  under object seed 123, object seed 456 differs, and the session stream after the call is unchanged). Unrelated,
+  seen while running the 24 cox/interval test files: `test-weighted-cox-surrogate-coxph-fit-fast-path.R` fails 3
+  expectations both with and without this change.
 
 - [ ] TODO-314 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f1): **A `model_formula`
   naming a covariate that `"impute"` silently removed (an all-NA column) gives NA estimates with an unrelated `cbind`
