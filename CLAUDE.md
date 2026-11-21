@@ -155,3 +155,13 @@ Owner ruling 2026-11-19. Change the version only in `R/EDI/DESCRIPTION`, then ru
 `R/EDI/inst/CITATION`, and the BibTeX `version = {…}` in the READMEs. Never hand-edit a copy. The
 pre-push hook runs `sync_version.py --check` and refuses a push while any copy disagrees. `NEWS.md`
 and `python/CHANGELOG.md` are not copies; their top section may already name the next version.
+
+## Owner decisions go in `DECISIONS.md`
+
+Owner ruling 2026-11-21. `R/package_metadata/future_release_plans/DECISIONS.md` lists every release TODO that is
+waiting on an owner decision, one table row each, linked to its release file by its `v<version>-TODO-<n>` id
+(`[v1.0.6-TODO-294](release_v1_0_6.md)`). Whenever you (or an agent you run) leave a TODO open because it needs the
+owner's choice, or make a judgment call the owner should confirm, add a row in the same change: the TODO link, the
+question in one line, and the options. Keep the full write-up (options, evidence, recommendation) in the TODO entry;
+`DECISIONS.md` is only the index. When the owner decides, record the dated decision in the TODO entry and delete the
+row. When you report decisions to the owner, take them from this file, and check it is current first.
