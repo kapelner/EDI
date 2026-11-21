@@ -6,6 +6,7 @@ Acklam's
 adaptivity
 additively
 affine
+affinely
 Agresti
 al
 AllocationMatrixValidation
@@ -95,6 +96,7 @@ cpp
 CRC
 Cribari
 crossproduct
+Davison
 definitionally
 DeLong
 DerSimonian
@@ -150,6 +152,7 @@ Efron's
 Eicker
 Eigen
 Eigen's
+enrollees
 equidispersed
 equidispersion
 errored
@@ -201,6 +204,7 @@ Hedeker
 heteroskedastic
 Heteroskedasticity
 heteroskedasticity
+Hinkley
 HL
 homoskedastic
 homoskedasticity
@@ -245,6 +249,7 @@ irls
 ish
 IVWC
 Jin
+JKn
 Jonckheere
 Jonckheere's
 JRSS
@@ -259,6 +264,7 @@ KK
 KKT
 KMDiff
 Koenker
+Krewski
 Krieger
 Krieger's
 Lachin
@@ -364,6 +370,7 @@ orthogonally
 Ospina
 overfits
 overridable
+oversized
 oversubscription
 Paik
 Papke
@@ -400,6 +407,7 @@ PTE's
 pval
 pvalue
 ra
+RandomBlockSize
 Randomisation
 randomisation
 RandomizationCI
@@ -427,6 +435,8 @@ resampler
 ResamplingCore
 resimulate
 RestrictedMeanDiff
+reweighting
+reweights
 Ridit
 ridit
 RLM
@@ -465,6 +475,7 @@ SIMD
 simon
 SimulationFramework
 Sinica
+sizeable
 softmax
 SPBR
 splitmix
@@ -537,6 +548,8 @@ weibull
 WeibullAFTFitter
 Welch
 Welch's
+Wolter
+Wolter's
 Wooldridge
 Wooldridge's
 wordified
@@ -545,6 +558,7 @@ Xie
 xs
 Ying
 Zeger
+Zeileis
 Zelen
 Zhang
 Zhang's

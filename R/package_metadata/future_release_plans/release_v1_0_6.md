@@ -6689,3 +6689,29 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   the design is a rerandomization design, but the class accepts only KK designs, so the call always errors. The base
   method has allowed draw-based incidence p-values since 2026-10-20, so the refusal looks stale. Test either way.
   - Owner decision pending: [DECISION-v1.0.6-TODO-373](DECISIONS.md#DECISION-v1.0.6-TODO-373) (drop the stale incidence refusal, or remove `rand` from `InferenceIncidKKGEE`'s supported procedures?).
+
+- [ ] TODO-381 (added 2026-11-21, owner request; from the `pkg-size` budget report, issue #66): **The R CMD check
+  test phase got 36-60% slower on five of the six CRAN legs.** At commit `626f9964`, `tests_s` against the 8-week
+  median: macos-latest-release 11.0 min vs 416 s (+59%), ubuntu-latest-devel 561 vs 351 s (+60%),
+  ubuntu-latest-oldrel-1 507 vs 329 s (+54%), ubuntu-latest-release 463 vs 324 s (+43%), windows-latest-release
+  15.0 vs 11.0 min (+36%); the run before (`8d8c5f78`) had macos at 13.0 min. Install, examples and total check time
+  are within budget, so the growth is in `tests/testthat`. Find which test files grew (per-file timings from the
+  check logs of a run before and after the jump), and either speed them up, move them to the bulk suite, or accept
+  the new baseline with a reason here. Done when: the next budget run shows no `tests_s` flag, or the accepted new
+  baseline is recorded.
+- [ ] TODO-382 (added 2026-11-21, owner request; from the `ci-self-check` audit, issue #20): **Eight workflows now take
+  1.6-3.4x their 8-week median.** calibration-study 384 vs 114 min (ci-self-check-m17a2fb9e), audit-results-freshness
+  113 vs 56 (ci-self-check-m4736ea4b), audit-python-vulns 103 vs 54 (ci-self-check-med42e85a), audit-generated-drift
+  91 vs 47 (ci-self-check-md410b94c), audit-dead-code 134 vs 82 (ci-self-check-m03e51a70), audit-dependency-license 77
+  vs 41 (ci-self-check-m6bcbb195), audit-ci-self-check 59 vs 35 (ci-self-check-m45af0b31), audit-allowlist-hygiene 50
+  vs 29 (ci-self-check-m7f0b680b). Most medians rest on only 3 earlier runs, and several audits that rarely build EDI
+  (python-vulns, dependency-license) roughly doubled together, which points at a shared step (package install or
+  cache miss) rather than each audit's own work. Compare step timings of one slow and one normal run per workflow;
+  fix the shared cause, or accept the new baseline here per workflow. Done when: the next ci-self-check run reports
+  none of these ids, or each is accepted with a reason.
+- [ ] TODO-383 (added 2026-11-21, owner request; from the algorithm-audit drift report, issue #55): **Re-look at
+  algorithm-audit row R (exact discrete nulls and enumeration), reviewed 2026-10-22.** Commit `8d8c5f78` (2026-11-20)
+  changed its kernels (`R/EDI/R/inference_helpers_zhang.R`, `R/EDI/src/zhang_exact_speedups.cpp`). Follow
+  `R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md` for the row: check the change keeps the
+  row's chosen algorithm and its comparator agreement, then update the row's `reviewed` date. Done when: the drift
+  report lists no commits for row R.
