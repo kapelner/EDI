@@ -238,6 +238,11 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @return The treatment assignment as \{0,1\} (1 = treated, 0 = control).
 		add_one_subject_to_experiment_and_assign = function(x_new){
 			private$check_version_compat()
+			# v1.0.6-TODO-316: if adding the row or assigning it fails, roll the design back so a
+			# refused subject is not left enrolled with w = NA (t advanced, row stored).
+			state_before = private$snapshot_subject_state(x_new)
+			assigned = FALSE
+			on.exit(if (!assigned) private$restore_subject_state(state_before), add = TRUE)
 			self$add_one_subject(x_new)
 			# v1.0.6-TODO-177: with a seed, subject t's draw comes from (seed, t) with the
 			# session's RNG state saved and restored, so it does not depend on anything
@@ -255,6 +260,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 					private$w[private$t] = w_t
 				}
 			}
+			assigned = TRUE
 			private$w[private$t]
 		},
 		#' @description Assigns treatment to the current subject.
@@ -287,6 +293,30 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		# set.seed() of the seed derived from this design's seed and `key` (a subject
 		# index, or "redraw"), with the session's .Random.seed -- or its absence --
 		# saved before and restored after, even if `expr` errors.
+		# v1.0.6-TODO-316: the private fields as they were before a subject was added. R values
+		# are copy-on-modify, so this keeps references, not copies. The one in-place mutation on
+		# the add path that a later rollback could see is a new column added to Xraw by reference
+		# (allow_new_cols), so Xraw is deep-copied only when x_new's columns differ. In-place row
+		# fills of a preallocated Xraw land past t and are overwritten by the next add.
+		subject_state_field_names = NULL,
+		snapshot_subject_state = function(x_new){
+			nms = private$subject_state_field_names
+			if (is.null(nms)) {
+				nms = ls(private, all.names = TRUE, sorted = FALSE)
+				nms = nms[!vapply(nms, function(nm) is.function(private[[nm]]), logical(1))]
+				nms = setdiff(nms, "subject_state_field_names")
+				private$subject_state_field_names = nms
+			}
+			vals = mget(nms, envir = private, inherits = FALSE)
+			if (data.table::is.data.table(vals$Xraw) && !identical(names(x_new), names(vals$Xraw))) {
+				vals$Xraw = data.table::copy(vals$Xraw)
+			}
+			vals
+		},
+		restore_subject_state = function(vals){
+			for (nm in names(vals)) assign(nm, vals[[nm]], envir = private)
+			invisible(NULL)
+		},
 		with_derived_seed = function(key, expr){
 			had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
 			if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)

@@ -1605,7 +1605,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   closing: remove the v1.0.6-TODO-75 rows of `R/package_tests/na_audit_allowlist.csv` and widen its BCa-boundary
   intentional row to the bootstrap p-value methods. Still silent: the "unstable bias or acceleration" BCa NA (CI and
   p-value). The LogRank boundary case is really a sign bug in LogRank bootstrap draws on interval data (not yet filed).
-- [ ] TODO-76 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
+- [x] TODO-76 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **KK14, KK21 and KK21stepwise crash on the first assignment when `n = NULL`**, although the docs say
   `n = NULL` means the sample size is not fixed. `too_early_to_match()` (`R/design_seq_one_by_one_KK14.R`
   ~L213) computes `private$t <= private$t_0_pct * private$n`, which is `logical(0)` when `n` is NULL, and `||`
@@ -1630,6 +1630,9 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Also reported by the docs-scenario audit: ds-sequential-designs-44358267779-f2 (2026-11-18, KK14/KK21 with
     `n = NULL` fail at the 5th assignment and leave t advanced with no w stored; the half-added subject is the
     missing rollback of v1.0.6-TODO-316).
+  Verified 2026-11-21 (agent): the n = NULL fix is on HEAD (`test-sequential-design-without-fixed-n.R`, 50 pass);
+  `DesignSeqOneByOneKK21$new(response_type = "continuous")` now assigns 12 subjects in a row, and the half-added
+  subject on a failed assignment is rolled back by v1.0.6-TODO-316.
 - [ ] TODO-77 (added 2026-11-17, agent, owner request; found by the running-a-sequential-trial article agent):
   **No sequential design with `n = NULL` can be analyzed.** `check_experiment_completed()` and
   `assert_all_subjects_arrived()` (`R/design_abstract.R` ~L482 and ~L500) evaluate
@@ -5537,7 +5540,7 @@ were found by reading, not by running a fix.
   columns; also for `add_all_subjects_to_experiment()`. Test: the finding's repro errors at t = 1 naming subject 1 and
   x2; the design is unchanged after the error (see v1.0.6-TODO-316). Repro: missing-data F2.
 
-- [ ] TODO-316 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f3): **High priority: a
+- [x] TODO-316 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f3): **High priority: a
   refused `add_one_subject_to_experiment_and_assign()` still enrolls the subject: `get_t()` goes up and `w` is left
   NA.** After two refused calls `get_t()` is 6 and `get_w()[1:6]` is `0 1 0 0 NA NA`; each retry adds another
   unassigned subject, so the design is corrupted and cannot be repaired by retrying. Cause (confirmed by reading):
@@ -5550,6 +5553,16 @@ were found by reading, not by running a fix.
   `assign_wt()` (and the finding's "error" repro); after the error `get_t()`, `get_w()`, `get_X_raw()` and the KK
   match state equal their values before the call, and a corrected retry gives the allocation an uninterrupted run
   gives. Repro: missing-data F3.
+  Done 2026-11-21 (agent): `add_one_subject_to_experiment_and_assign()` (`design_seq_one_by_one_abstract.R`) takes a
+  snapshot of the private fields before `add_one_subject()` and restores it in `on.exit()` unless the assignment was
+  stored. The snapshot keeps references (copy-on-modify), not copies; the field-name list is computed once per object
+  (`private$subject_state_field_names`); `Xraw` is deep-copied only when `x_new`'s columns differ, the one case where
+  the add path changes it by reference (`:=` adding a column). Cost: 3,000 Bernoulli adds 3.8 s -> 4.1 s; 300 KK21
+  adds 1.7 s -> 2.0 s (one run each, noisy). Test: new `test-sequential-add-subject-rollback-on-failed-assignment.R`
+  (the F3 repro; an injected failing `assign_wt()` on KK21 / KK14 / Efron with fixed and NULL `n`: t, w, X and `m`
+  are unchanged and a retry gives the uninterrupted run's allocation); fails on the old file, passes now. Evidence:
+  F3 repro `get_t()` 6 -> 4. Not covered: state a subclass keeps in environments or other by-reference objects is not
+  rolled back (none found on the add path).
 
 - [ ] TODO-317 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f4): **An `Inf` covariate is
   accepted at enrollment, and inference later fails with `qr.default` "NA/NaN/Inf in foreign function call".**

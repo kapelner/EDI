@@ -696,6 +696,12 @@
 
 ## Bug fixes
 
+* Sequential designs: when `add_one_subject_to_experiment_and_assign()` fails
+  (for example a covariate refused by `missingness_method = "error"`), the
+  subject is no longer left enrolled with no assignment. The design is rolled
+  back to its state before the call, so a corrected retry continues the trial
+  as if the failed call never happened (v1.0.6-TODO-316).
+
 * `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` cached
   its draws by `B` alone, so on blocking designs a call with one
   `bootstrap_type` returned the draws of an earlier call with another, and a

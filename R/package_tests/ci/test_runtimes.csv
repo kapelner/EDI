@@ -1139,6 +1139,7 @@ R/package_tests/testthat_bulk/test-seeded-sequential-design-per-subject-rng.R,co
 R/package_tests/testthat_bulk/test-select-optimal-resample-size-volatility-window-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-column-mismatch-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-unsupported-column-types-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-sequential-add-subject-rollback-on-failed-assignment.R,correctness,15,bootstrap
 R/package_tests/testthat_bulk/test-sequential-design-branches.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-sequential-design-redraw-leaves-design-state-unchanged.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sequential-design-validation-contracts.R,correctness,1,measured_with_30_percent_headroom
