@@ -75,6 +75,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-fa
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-link-score-hessian-and-identity-fit-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-blocked-cluster-bootstrap-prepivoted-ci-finite.R,correctness,40,bootstrap
 R/package_tests/testthat_bulk/test-blocked-cluster-design-cluster-constant-block-balanced-draws-and-argument-validation-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-blocked-cluster-unequal-block-sizes.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-blocking-strata-key-construction-reference.R,correctness,1,measured_with_30_percent_headroom

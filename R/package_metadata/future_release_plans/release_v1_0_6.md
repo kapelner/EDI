@@ -1579,6 +1579,15 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     "blocks hold more than one subject" does not explain refusing leave-one-cluster-out). Filed here rather than as
     a new entry because this entry's fix (make the warning name a unit that works on the design) covers it; the
     "model-based SE" advice of the too-few-units message must also not be given on a cluster design.
+  Investigated 2026-11-21 (agent), needs an owner decision (new statistical method): not changed. On a blocking
+  design `jackknife_block_size_gt_one_unsupported()` (`inference_all_abstract_non_param_boot.R` ~L1332) refuses
+  every unit except block / permuted_block / observation_within_block / pair / matched_set, so `unit = "cluster"`
+  (and `"auto"`) on `DesignFixedBlockedCluster` is refused before any layout is built. Options: (a) implement a
+  stratified delete-one-cluster jackknife (clusters as deletion units, blocks as strata, the existing
+  `jackknife_stratified_layout()` machinery), which is the natural estimator but needs a validity check and
+  calibration; (b) keep the refusal and change the advice: the cluster-independence warning on a blocked-cluster
+  design should name `unit = "block"` only when there are enough blocks, and otherwise a cluster bootstrap /
+  CR2 SE, never the model-based SE; (c) both. (b) is a small message change; (a) is the real fix.
 - [ ] TODO-75 (added 2026-11-17, agent, owner request; found by the reporting-an-analysis article agent): **The
   BCa bootstrap p-value returns `NA`, with no warning, exactly when the evidence is strongest**: when the null
   value lies outside the whole bootstrap distribution. BCa is the default p-value type, so the default call
@@ -5514,7 +5523,7 @@ were found by reading, not by running a fix.
   (covers `DesignFixedCluster` and `DesignFixedBlockedCluster`). Test: same file, both classes (two flipped subjects
   -> "varies within 2 cluster(s)"; a cluster-constant vector is stored as given).
 
-- [ ] TODO-302 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f7): **On a
+- [x] TODO-302 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f7): **On a
   blocked-cluster trial, `compute_bootstrap_confidence_interval(type = "prepivoted" | "double-bootstrap" |
   "calibrated")` returns `c(NA, NA)` with only "bootstrap_ci_unavailable", although `get_supported_bootstrap_ci_types()`
   lists them and the percentile CI is finite (-0.712, 2.654).** On another blocked-cluster data set the same types are
@@ -5525,6 +5534,11 @@ were found by reading, not by running a fix.
   replicates) and give each a specific reason and advice, as the BCa reasons do; document the reasons and the cost
   (B x B_inner fits) in the help. Test: the finding's repro gives a classed warning with a specific reason for each
   type (or a finite CI, if the cause is a bug). Repro: clusters-blocking F7.
+  Verified already fixed on HEAD 2026-11-21 (agent; `load_all(compile = FALSE)` with the EDI.so built 2026-11-21
+  18:55): the F7 repro (B = 21, seed 1) gives prepivoted [-0.654, 2.635], double-bootstrap [-0.014, 3.274],
+  calibrated [-0.654, 2.635] and percentile [-0.712, 2.654], all finite, no warning. Not traced which commit fixed
+  it. Not done: the cost note for the help (prepivoted took ~20 s here at B = 21). Test: new
+  `test-blocked-cluster-bootstrap-prepivoted-ci-finite.R` (prepivoted only, ~20 s).
 
 - [ ] TODO-303 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f1,
   ds-factorial-44358267779-f2): **Randomization tests refuse every incidence analysis on `DesignFixedFactorial` and
