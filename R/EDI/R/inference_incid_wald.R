@@ -48,40 +48,37 @@ InferenceIncidWald = define_inference_class(
 		"SimpleMeanDifference"
 	),
 	public = list(
-		#' @description Uses the randomization-CI layer's two-sided p-value contract
-		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-		#'   incidence responses it does not refuse outright; the default p-value
-		#'   comes from the randomization draws, and the Zhang exact randomization
-		#'   test is used only when \code{type = "Zhang"} is passed explicitly
-		#'   (where applicable). This matches this class's pre-migration
-		#'   old-ladder behavior of not refusing (it inherited from
-		#'   \code{InferenceAllSimpleAverageDiff}, whose own pin was already
-		#'   corrected to \code{InferenceRandCI} -- see that file's identical
-		#'   rationale). This class independently composes the same components
-		#'   rather than truly inheriting \code{InferenceAllSimpleAverageDiff}, so it
-		#'   had its own stale copy of the old \code{InferenceRand} pin, which
-		#'   silently regressed Zhang dispatch (`compute_rand_two_sided_pval()`
-		#'   started throwing "Randomization tests are not supported for
-		#'   incidence" for the same designs the old ladder handled correctly) --
-		#'   found via \code{test-incid-wald-migration-golden.R}'s
-		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
+		# Uses the randomization-CI layer's two-sided p-value contract
+		#   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+		#   incidence responses it does not refuse outright; the default p-value
+		#   comes from the randomization draws, and the Zhang exact randomization
+		#   test is used only when \code{type = "Zhang"} is passed explicitly
+		#   (where applicable). This matches this class's pre-migration
+		#   old-ladder behavior of not refusing (it inherited from
+		#   \code{InferenceAllSimpleAverageDiff}, whose own pin was already
+		#   corrected to \code{InferenceRandCI} -- see that file's identical
+		#   rationale). This class independently composes the same components
+		#   rather than truly inheriting \code{InferenceAllSimpleAverageDiff}, so it
+		#   had its own stale copy of the old \code{InferenceRand} pin, which
+		#   silently regressed Zhang dispatch (`compute_rand_two_sided_pval()`
+		#   started throwing "Randomization tests are not supported for
+		#   incidence" for the same designs the old ladder handled correctly) --
+		#   found via \code{test-incid-wald-migration-golden.R}'s
+		#   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-		#' @description Pins asymptotic CI dispatch to the composed \code{Wald}
-		#'   component's implementation (\code{InferenceAsymp}), which uses
-		#'   \code{private$get_standard_error()} (this class's two-proportion
-		#'   Wald SE) and \code{private$get_degrees_of_freedom()}. Without this
-		#'   explicit pin, the \code{SimpleMeanDifference} component -- composed
-		#'   after \code{Wald} in this class's \code{components} list -- silently
-		#'   wins the assembly-order collision and dispatches its own Welch's
-		#'   t-test on raw \code{y} instead, making the documented Wald formula
-		#'   dead code. See class documentation.
-		#' @param alpha The confidence level in the computed confidence
-		#'   interval is 1 - \code{alpha}. The default is 0.05.
+		# Pins asymptotic CI dispatch to the composed \code{Wald}
+		#   component's implementation (\code{InferenceAsymp}), which uses
+		#   \code{private$get_standard_error()} (this class's two-proportion
+		#   Wald SE) and \code{private$get_degrees_of_freedom()}. Without this
+		#   explicit pin, the \code{SimpleMeanDifference} component -- composed
+		#   after \code{Wald} in this class's \code{components} list -- silently
+		#   wins the assembly-order collision and dispatches its own Welch's
+		#   t-test on raw \code{y} instead, making the documented Wald formula
+		#   dead code. See class documentation.
 		compute_asymp_confidence_interval = InferenceAsymp$public_methods$compute_asymp_confidence_interval,
-		#' @description Pins asymptotic p-value dispatch to the composed
-		#'   \code{Wald} component's implementation; see
-		#'   \code{$compute_asymp_confidence_interval()} for the rationale.
-		#' @param delta Null treatment effect value.
+		# Pins asymptotic p-value dispatch to the composed
+		#   \code{Wald} component's implementation; see
+		#   \code{$compute_asymp_confidence_interval()} for the rationale.
 		compute_asymp_two_sided_pval = InferenceAsymp$public_methods$compute_asymp_two_sided_pval,
 		#' @description Initialize Wald risk-difference incidence inference and
 		#'   prepare the treatment/control binomial summaries used by
@@ -169,3 +166,28 @@ InferenceIncidWald = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceIncidWald$compute_rand_two_sided_pval
+#' @description Randomization two-sided p-value for the risk difference. For incidence
+#'   responses the default p-value comes from the randomization draws; the Zhang exact
+#'   randomization test is used only when \code{type = "Zhang"} is passed explicitly
+#'   (where applicable).
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
+
+#' @R6method InferenceIncidWald$compute_asymp_confidence_interval
+#' @description Two-proportion Wald confidence interval for the risk difference,
+#'   \eqn{\hat\theta \pm z_{1-\alpha/2}\,\hat s(\hat\theta)}, with the unpooled
+#'   standard error given in the class description.
+#' @param alpha The confidence level in the computed confidence
+#'   interval is 1 - \code{alpha}. The default is 0.05.
+#' @return A length-2 numeric vector of lower and upper bounds.
+NULL
+
+#' @R6method InferenceIncidWald$compute_asymp_two_sided_pval
+#' @description Two-sided Wald test of \eqn{H_0: \theta = \delta}, using the
+#'   statistic \eqn{(\hat\theta - \delta) / \hat s(\hat\theta)} referred to the
+#'   standard normal distribution.
+#' @param delta Null treatment effect value. The default is 0.
+#' @return A two-sided p-value.
+NULL

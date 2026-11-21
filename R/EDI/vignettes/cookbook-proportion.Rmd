@@ -48,9 +48,15 @@ true_logit_shift = 0.7
 ## Fixed design, fractional logit
 
 The response is generated from a Beta distribution whose mean follows a
-logistic model in treatment and covariates, then kept strictly inside
-(0, 1) — fractional logit and Beta regression require open-interval data;
-the zero/one-inflated class handles exact boundary values.
+logistic model in treatment and covariates. Fractional logit is a
+quasi-likelihood and fits exact 0s and 1s as they are, so it needs no
+clipping. Beta regression is different: the Beta density is zero at 0 and 1,
+and when any response is exactly 0 or 1, `InferencePropBetaRegr` squeezes
+every response toward 1/2 before fitting (see `?InferencePropBetaRegr`). The
+clip below only keeps the simulated values strictly inside (0, 1) so that the
+Beta fit later in this article uses them unchanged. For real data with exact
+boundary values, use fractional logit or the zero/one-inflated class
+(`InferencePropZeroOneInflatedBetaRegr`).
 
 ```{r fixed}
 des = DesignFixedBernoulli$new(n = n, response_type = "proportion", verbose = FALSE)
@@ -61,7 +67,7 @@ w = des$get_w()
 mu  = plogis(-0.5 + true_logit_shift * w - 0.1 * X$severity + 0.4 * X$prior)
 phi = 15                                  # Beta precision
 y   = rbeta(n, mu * phi, (1 - mu) * phi)
-y   = pmin(pmax(y, 1e-4), 1 - 1e-4)       # keep strictly inside (0, 1)
+y   = pmin(pmax(y, 1e-4), 1 - 1e-4)       # strictly inside (0, 1), for the Beta fit
 des$add_all_subject_responses(y)
 
 inf = InferencePropFractionalLogit$new(des, verbose = FALSE)

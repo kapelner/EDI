@@ -603,9 +603,12 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #' @param stop_on_error Logical. If \code{TRUE} (default), any error raised
     #'   during a simulation path aborts the run immediately. If \code{FALSE},
     #'   the framework records the error, skips the failing path, and continues
-    #'   with the remaining replications / design / inference combinations. Use
-    #'   \code{$get_errors()} after \code{$run()} to inspect the captured
-    #'   errors.
+    #'   with the remaining replications / design / inference combinations.
+    #'   \code{SimulationFramework} itself has no method that returns the
+    #'   captured errors: after \code{$run()}, build a report with
+    #'   \code{SimulationFrameworkReport$new(sim)} and call its
+    #'   \code{$get_errors()}, which returns one list per captured error (cell,
+    #'   replication, design / inference path, stage and message).
     #'
     #' @param save_to_disk_every_n_rep Positive integer. Results are flushed to
     #'   the on-disk staging file only once every this many replications, and
@@ -851,11 +854,14 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     },
     # ── run() ─────────────────────────────────────────────────────────────────
     #' @description Execute the configured simulation replications, run each
-    #'   requested design and inference method, collect estimates/p-values/CIs and
-    #'   errors, and return a
-    #'   \code{\link[EDI:SimulationFrameworkReport]{SimulationFrameworkReport}}.
+    #'   requested design and inference method, and collect estimates/p-values/CIs
+    #'   and errors inside this object. It does not return a report: pass the
+    #'   object to
+    #'   \code{\link[EDI:SimulationFrameworkReport]{SimulationFrameworkReport}}\code{$new()}
+    #'   to summarize the results or read the errors.
     #'
-    #' @return The \code{SimulationFramework} object itself (invisibly).
+    #' @return The \code{SimulationFramework} object itself (invisibly), not a
+    #'   \code{SimulationFrameworkReport}.
     run = function() {
       # Closures defined below update run()'s own locals through this explicit
       # environment reference (never super-assignment, which could reach .GlobalEnv).

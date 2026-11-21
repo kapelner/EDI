@@ -12,9 +12,24 @@
 #' \code{clinfun::jonckheere.test()}'s normal approximation. This class also
 #' provides an \strong{exact}, permutation-distribution-based two-sided p-value
 #' via \code{$compute_exact_two_sided_pval_for_treatment_effect()}
-#' (\code{exact_jonckheere_terpstra_pval_cpp}).  Exact enumeration is capped
-#' at one million allocations; above that limit the public method warns and
-#' returns the asymptotic normal p-value instead.
+#' (\code{exact_jonckheere_terpstra_pval_cpp}). The exact null distribution is
+#' the permutation distribution of the statistic given the observed category
+#' totals \eqn{n_1, \dots, n_K} and \eqn{n_T}. It is computed without listing the
+#' \eqn{\binom{n}{n_T}} individual allocations: the statistic depends only on how
+#' many treated subjects fall in each category, so the code enumerates the vectors
+#' \eqn{(t_1, \dots, t_K)} with \eqn{\sum_k t_k = n_T}, \eqn{0 \le t_k \le n_k},
+#' each with the hypergeometric probability
+#' \eqn{\prod_k \binom{n_k}{t_k} / \binom{n}{n_T}}. Their number depends on
+#' \eqn{K} and \eqn{n_T}, not on \eqn{\binom{n}{n_T}}: with a few ordinal
+#' categories it stays small even when \eqn{\binom{n}{n_T}} is astronomically
+#' large (e.g. \eqn{n = 90}, \eqn{n_T = 53}). The cap is one million such count
+#' vectors; above it (many categories with large \eqn{n_T}) the method warns and
+#' returns the asymptotic normal p-value instead. The two-sided p-value is
+#' \eqn{\min\{1, 2 \min(P_{\le}, P_{\ge})\}}, twice the smaller one-sided exact
+#' tail probability. This differs from tests that order the reference
+#' distribution by \eqn{|U - E(U)|} (such as \pkg{coin}'s exact Wilcoxon test),
+#' which can give a different value when ties make the null distribution of
+#' \eqn{U} asymmetric.
 #'
 #' @references Jonckheere, A. R. (1954). "A Distribution-Free k-Sample Test
 #'   Against Ordered Alternatives." \emph{Biometrika}, 41(1-2), 133-145,
@@ -101,10 +116,11 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Returns the \strong{exact}, permutation-distribution-based
-		#'   two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}). Exact
-		#'   enumeration is capped at one million allocations; when that limit is
-		#'   exceeded, this method warns and returns
-		#'   \code{$compute_asymp_two_sided_pval()} instead.
+		#'   two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}), twice the
+		#'   smaller exact one-sided tail probability, capped at 1. The enumeration is over
+		#'   the per-category treated counts, not the individual allocations (see the class
+		#'   description); when there are more than one million such count vectors, this
+		#'   method warns and returns the asymptotic normal p-value instead.
 		compute_exact_two_sided_pval_for_treatment_effect = function(){
 			private$compute_exact_jt_components()
 			private$cached_values$p_exact

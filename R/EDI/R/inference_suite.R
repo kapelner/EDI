@@ -4432,30 +4432,28 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #' load failure inside some class's constructor) from a doomed construction
 #' attempt.
 #'
-#' @details \strong{Compatibility rules} (see
-#'   \code{is_inference_class_compatible_with_design_metadata()}, also used by
+#' @details \strong{Compatibility rules} (the same rules
 #'   \code{\link[EDI:Design]{Design}}'s own
-#'   \code{applicable_inference_class_names()}): a candidate class is
+#'   \code{applicable_inference_class_names()} applies, so
+#'   \code{des_obj$applicable_inference_class_names()} returns the same list,
+#'   and \code{des_obj$incompatible_inference_classes_due_to_design_structure()}
+#'   says why a class is missing): a candidate class is
 #'   excluded if its name contains \code{"IVWC"} (the legacy KK estimators,
 #'   superseded by their \code{OneLik} variants); if it is abstract or not
 #'   exported; if it declares no compatible response types, or none match
 #'   \code{des_obj}'s response type; if its registered
 #'   \code{requires_kk_matching_design} metadata is \code{TRUE} (a
 #'   matched-design-only class) but \code{des_obj} does not support KK
-#'   matching; if the class's \code{requires_blocking_design()}
-#'   is \code{TRUE} (currently only \code{InferenceIncidExtendedRobins} --
+#'   matching; if the class requires a blocking design
+#'   (currently only \code{InferenceIncidExtendedRobins} --
 #'   \code{InferenceIncidCMH} works on both blocking and non-blocking designs
 #'   via different standard-error estimators, so it is \strong{not} excluded)
 #'   but \code{des_obj} does not support blocking; or if \code{des_obj} has any
-#'   left-/interval-censored subjects (a finite \code{y_R}) but the class's
-#'   \code{supports_interval_or_left_censored_data()} is \code{FALSE} --
-#'   both of the latter two mirror \code{Inference$initialize()}'s own
-#'   construction-time gate exactly, via each class's registered
-#'   \code{requires_blocking_design}/\code{supports_general_censoring}
-#'   metadata (see \code{infer_inference_requires_blocking_design()}/
-#'   \code{infer_inference_supports_general_censoring()} in
-#'   \code{inference_class_registry.R}). Ordinary right-censoring alone never
-#'   excludes a class.
+#'   left-/interval-censored subjects (a finite \code{y_R}) but the class
+#'   handles only exact or right-censored times. The last two are the same
+#'   checks the class's own \code{$new()} makes, so a class excluded for
+#'   either reason would also fail to construct on \code{des_obj}. Ordinary
+#'   right-censoring alone never excludes a class.
 #'
 #'   A class that is design-compatible but whose registered
 #'   \code{required_packages} are not all installed is excluded from
@@ -4790,8 +4788,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   restricting which inference method(s) -- and, for the three
 		#'   resampling sentinels marked "typed" below, which resampling/CI-
 		#'   construction \code{type} flavor(s) -- get fit and reported per
-		#'   class. \code{NULL} considers every sentinel in
-		#'   \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS}, and for each typed
+		#'   class. \code{NULL} considers every sentinel listed under
+		#'   \dQuote{Valid sentinels} below, and for each typed
 		#'   sentinel, every \code{type} value that class supports
 		#'   (queried at runtime via its own \code{get_supported_bootstrap_
 		#'   {pval,ci}_types()} / \code{get_supported_bayesian_bootstrap_

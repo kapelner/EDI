@@ -144,8 +144,9 @@ p_rand
 
 The bootstrap also follows the blocks: by default it resamples patients within each
 site. The interval below is the percentile type. The default type, BCa, takes its
-acceleration from a leave-one-site-out jackknife and needs at least 5 sites, so with
-four sites it returns `NA` with a warning.
+acceleration from the jackknife on the design's automatic unit, which for
+`DesignFixedBlocking` deletes one patient at a time within site, so it works with
+four sites too and gives a finite interval close to the percentile one.
 
 ```{r boot}
 inf$set_seed(1)
@@ -348,9 +349,12 @@ Three related mistakes to check for:
   strata are not columns of `X`, or you want full control, pass `m`, one block ID
   per subject.
 - **Unequal block sizes.** `equal_block_sizes = TRUE` is the default. With strata of
-  different sizes the design then errors, not when the data are added but the first
-  time the blocks are used (a redraw, a randomization test or an inference fit). Real
-  trials rarely have equal strata; set `equal_block_sizes = FALSE`.
+  different sizes the design then errors, but not when the data are added, and not
+  when the recorded `w` is supplied: the error comes the first time the blocks are
+  used, at a redraw (`draw_ws_according_to_design()`), a bootstrap or a randomization
+  test or interval. The estimate, the Wald interval and the jackknife run before that
+  without complaint, so a partial analysis can look fine. Real trials rarely have
+  equal strata; set `equal_block_sizes = FALSE`.
 - **Different allocation ratios across strata.** The design's redraws treat
   `floor(N * prob_T)` or `ceiling(N * prob_T)` subjects in a block of size `N`. If
   the real trial used a different ratio in different strata, the redraws do not

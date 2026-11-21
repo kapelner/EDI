@@ -390,6 +390,27 @@ OrdinalCloglogLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
 #'
 #' @eval rd_small_sample_section("InferenceOrdinalCloglogRegr")
+#' @section Constructor:
+#' \code{InferenceOrdinalCloglogRegr$new(des_obj, model_formula = NULL, verbose = FALSE,
+#' smart_cold_start_default = NULL)}
+#' \describe{
+#'   \item{\code{des_obj}}{A completed \code{Design} object with an ordinal,
+#'     uncensored response.}
+#'   \item{\code{model_formula}}{Optional formula for covariate adjustment. If
+#'     \code{NULL} (default), the formula from the design object is used and its
+#'     pre-computed design matrix is reused. If a formula is provided, a new design
+#'     matrix is constructed from the design's imputed covariates.}
+#'   \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
+#'   \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by
+#'     default for the likelihood fit. Explicit starts always override this
+#'     object-level policy. \code{NULL} (default) consults the global cold-start
+#'     dispatch policy.}
+#' }
+#' These are the only arguments. The inherited \code{Inference$new()} entry below
+#' also lists \code{harden} and \code{seed}, but this constructor does not take
+#' them (passing either is an "unused argument" error): the base class's default
+#' \code{harden = TRUE} always applies, and the seed for the resampling methods is
+#' set after construction with \code{$set_seed()}.
 #' @export
 InferenceOrdinalCloglogRegr = define_inference_class(
 	classname = "InferenceOrdinalCloglogRegr",

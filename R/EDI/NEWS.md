@@ -1275,6 +1275,21 @@
 
 ## Documentation
 
+* Corrected docs from the 2026-11-21 docs-scenario audit: `?InferenceSuite` no longer points to unexported
+  internals and says `methods = NULL` means every sentinel it lists; `?Design` and the reproducibility vignette
+  date the per-subject sequential seeding to the first release after 1.0.4 (a development build still reports
+  1.0.4); the notation glossary says `SimulationFramework` hooks receive `w` in {0, 1}; `?SimulationFramework`
+  says `$run()` returns the framework, not a report, and that errors are read with
+  `SimulationFrameworkReport$new(sim)$get_errors()`; `?DesignFixedBlocking` and the existing-experiment article
+  say when the unequal-block error fires (at a drawn assignment, or for a supplied `w` at the first redraw,
+  bootstrap or randomization call), and the article says the four-site BCa interval is finite;
+  `?InferenceIncidWald` and `?InferenceIncidRiskDiff` no longer list other methods' arguments under `$new()`;
+  the proportional-odds, cloglog, ordered-probit and cauchit classes document their constructor, which takes no
+  `harden` or `seed`; the proportion cookbook says fractional logit fits exact 0s and 1s;
+  `?InferencePropBetaRegr` states the Smithson-Verkuilen squeeze it applies to every response when any is 0 or 1;
+  and `?InferenceOrdinalJonckheereTerpstraTest` describes its exact algorithm (enumeration of per-category
+  treated counts, capped at one million count vectors, not allocations) and its two-sided convention.
+
 * `?DesignFixedGreedy` and `?DesignFixedGreedyDOptimal`: the two classes give
   the same draws at their defaults only when the covariates have no ties; with
   ties their searches can break equal-improvement swaps differently

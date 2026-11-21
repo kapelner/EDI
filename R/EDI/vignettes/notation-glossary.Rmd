@@ -38,7 +38,7 @@ flagging it.
 | $W$ / `w` | The treatment assignment vector, length $n$. **Public convention throughout the package: $\{0,1\}$ encoding, $1$ = treated, $0$ = control** (see `?Design`, "Details"). Every `Design` public method that returns or accepts `w` (`get_w()`, `draw_ws_according_to_design()`, ...) uses this encoding. |
 | $w_i$ | Subject $i$'s treatment indicator, $w_i \in \{0,1\}$. |
 | Signed recoding | A handful of variance estimators (`InferenceIncidCMH`, `InferenceIncidExtendedRobins`) recode internally to a signed $\{-1,+1\}$ contrast where their formulas require it. This recoding is local to those classes and does not change the public $\{0,1\}$ convention. |
-| `SimulationFramework` custom hooks | `custom_apply_treatment_and_noise`/`make_estimand_fn` receive `w` in $\{-1,+1\}$ format for historical reasons specific to that framework's internal DGP machinery; convert with `(w+1)/2` to get the $\{0,1\}$ convention used everywhere else. This is a documented, isolated exception, not evidence the package-wide convention is inconsistent. |
+| `SimulationFramework` custom hooks | `custom_apply_treatment_and_noise`/`make_estimand_fn` receive `w` in the same $\{0,1\}$ convention used everywhere else (1 = treatment, 0 = control), as `?SimulationFramework` says; no conversion is needed. |
 
 ## Response, censoring, and the `y`/`y_L`/`y_R` schema
 

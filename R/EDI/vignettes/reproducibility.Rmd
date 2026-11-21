@@ -67,9 +67,14 @@ Therefore:
 This applies to every sequential design, including those whose per-subject
 draw runs in C++ (Atkinson, Pocock-Simon, the KK matching kernels): they draw
 from R's generator, or seed a local one from a single R draw, so the
-per-subject seed governs them too. Since v1.0.6; before that the sequential
-seed was applied once, in the constructor, and every later assignment drew
-from the global stream wherever it was.
+per-subject seed governs them too. This ships in the first release after
+1.0.4 (listed under "EDI (development version)" in NEWS); in the EDI 1.0.4
+release and earlier the sequential seed was applied once, in the constructor,
+and every later assignment drew from the global stream wherever it was. A
+development build installed before that release still reports version 1.0.4,
+in `packageVersion("EDI")` and in a saved design's
+`get_edi_version_created()`, but already seeds per subject, so a version stamp
+of "1.0.4" alone does not tell you which rule drew a design's allocation.
 
 **`seed = NULL`** (the default, both families) leaves R's ambient RNG state
 untouched: draws consume whatever state R's global stream happens to be in,

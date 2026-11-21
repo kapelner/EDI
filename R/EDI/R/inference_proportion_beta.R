@@ -18,9 +18,25 @@
 #' \code{likelihood_tier = "full"}: likelihood-ratio, score, gradient, and
 #' Wald tests are all available when the model converges, plus
 #' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
-#' \eqn{Y_i} values of exactly 0 or 1 are not supported by the beta density
-#' and are handled by \code{sanitize_beta_response()}'s boundary adjustment
-#' before fitting.
+#'
+#' \strong{Responses of exactly 0 or 1.} The beta density is zero at 0 and 1.
+#' When at least one recorded \eqn{Y_i} is exactly 0 or 1, the class replaces
+#' \emph{every} response, the interior ones too, by the Smithson-Verkuilen
+#' (2006) squeeze \eqn{Y_i' = \{Y_i (n - 1) + 1/2\} / n}, where \eqn{n} is the
+#' number of subjects, and fits the model to \eqn{Y'} (values still at 0 or 1
+#' after that are clamped to machine epsilon from the boundary). When every
+#' \eqn{Y_i} lies strictly inside \eqn{(0, 1)}, the responses are used unchanged.
+#' The same rule is applied each time the class fits the model to recorded
+#' responses: the estimate, the Wald and likelihood tests, and the bootstrap and
+#' randomization refits (each on the responses that refit uses). It is applied
+#' with no warning or message. With many boundary values it can move the estimate far from a
+#' fit to the interior responses alone, and even change its sign, because the
+#' 0s and 1s become extreme but finite observations of the beta mean. For data
+#' with exact 0s or 1s, prefer
+#' \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}},
+#' whose quasi-likelihood fits 0 and 1 as they are, or
+#' \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}},
+#' which models the boundary values separately.
 #'
 #' \strong{Known limitation: many covariates relative to \eqn{n}.} With a
 #' large adjustment set the model-based standard error is anti-conservative.
@@ -58,6 +74,11 @@
 #' @references Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
 #'   modelling rates and proportions." \emph{Journal of Applied Statistics},
 #'   31(7), 799-815, \doi{10.1080/0266476042000214501}.
+#'
+#'   Smithson, M., and Verkuilen, J. (2006). "A better lemon squeezer?
+#'   Maximum-likelihood regression with beta-distributed dependent variables."
+#'   \emph{Psychological Methods}, 11(1), 54-71, \doi{10.1037/1082-989X.11.1.54},
+#'   for the squeeze applied to responses of exactly 0 or 1.
 #'
 #' @seealso \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}
 #'   for a quasi-likelihood proportion model that specifies only the

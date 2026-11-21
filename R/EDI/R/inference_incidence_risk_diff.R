@@ -52,27 +52,16 @@ InferenceIncidRiskDiff = define_inference_class(
 		"Wald"
 	),
 	public = list(
-		#' @description Uses the randomization-CI layer's two-sided p-value contract
-		#'   (\code{InferenceRandCI}'s version, not
-		#'   \code{InferenceRand}'s): for incidence responses it does not refuse
-		#'   outright; the default p-value comes from the randomization draws, and
-		#'   the Zhang exact randomization test is used only when
-		#'   \code{type = "Zhang"} is passed explicitly (where applicable). This
-		#'   matches this class's pre-migration old-ladder behavior of not refusing,
-		#'   and deliberately differs from the
-		#'   \code{InferenceAllSimpleAverageDiff}-family precedent of pinning
-		#'   \code{InferenceRand}'s version, which refuses incidence responses.
-		#' @param r Number of randomization vectors.
-		#' @param delta Null difference.
-		#' @param transform_responses Transformation.
-		#' @param na.rm Drop non-finite draws. They are always dropped (\code{na.rm = FALSE} does not keep
-		#'   them); at least \eqn{\max(10, \lfloor r/10 \rfloor)}{max(10, floor(r/10))} finite draws are
-		#'   required, otherwise \code{NA}. See \code{InferenceRand$compute_rand_two_sided_pval()}.
-		#' @param show_progress Show progress.
-		#' @param permutations Pre-computed permutations.
-		#' @param type Optional exact-inference type for incidence dispatch.
-		#' @param args_for_type Optional arguments for \code{type}.
-		#' @param zero_one_logit_clamp Clamp for exact 0/1 values when logging.
+		# Uses the randomization-CI layer's two-sided p-value contract
+		#   (\code{InferenceRandCI}'s version, not
+		#   \code{InferenceRand}'s): for incidence responses it does not refuse
+		#   outright; the default p-value comes from the randomization draws, and
+		#   the Zhang exact randomization test is used only when
+		#   \code{type = "Zhang"} is passed explicitly (where applicable). This
+		#   matches this class's pre-migration old-ladder behavior of not refusing,
+		#   and deliberately differs from the
+		#   \code{InferenceAllSimpleAverageDiff}-family precedent of pinning
+		#   \code{InferenceRand}'s version, which refuses incidence responses.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a risk-difference inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
@@ -364,3 +353,11 @@ InferenceIncidRiskDiff = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+#' @R6method InferenceIncidRiskDiff$compute_rand_two_sided_pval
+#' @description Randomization two-sided p-value for the risk difference. For incidence
+#'   responses the default p-value comes from the randomization draws; the Zhang exact
+#'   randomization test is used only when \code{type = "Zhang"} is passed explicitly
+#'   (where applicable).
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
