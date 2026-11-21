@@ -14375,7 +14375,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
 
 - [ ] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
   `prepush_calibration_known_failures.csv`): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when the
-  bisection never moves.** Current state: OPEN; Stereotype symptom gone after TODO-175 (2026-11-07); the shared C++ jump guard is prototyped and verified in scratch but NOT applied (shared CI-inversion code; owner call).
+  bisection never moves.** Current state: OPEN; Stereotype symptom gone after TODO-175 (2026-11-07); the shared C++ jump guard is prototyped and verified in scratch but NOT applied (shared CI-inversion code).
   - Example: `InferenceOrdinalStereotypeLogitRegr` score CI, pre-push null rep 1 (n = 200, Bernoulli, ordinal, `~1`):
     lower endpoint = Wald lower exactly (-0.2390472; the upper is a genuine root); the class's own score p there is
     0.034 (pre-push endpoint failure).
@@ -14421,8 +14421,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     prototyped. Note from the main session 2026-11-07: the `InferenceIncidLogBinomial` gradient example above (rep 4 `~.`,
     upper 6.997) is NOT a bisection bug -- finite-difference score / Hessian crossing the mu = 1 boundary gives
     non-finite information and an NA p (separate R-only fix being prototyped). NA cliffs there can have p ~0.35 right
-    before the NA, so an NA-halving rule must not treat a cliff edge as a root. Open: owner decision on applying (a)
-    to the shared C++.
+    before the NA, so an NA-halving rule must not treat a cliff edge as a root.
+  - Owner decision pending: [DECISION-v1.0.5-TODO-174](DECISIONS.md#DECISION-v1.0.5-TODO-174) (Apply the prototyped jump guard to the shared C++ `pval_invert_ci_cpp`?).
 - [ ] TODO-175 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` score / LR
   p-value depends on evaluation history, not only on delta.** Current state: APPLIED 2026-11-07 (uncommitted), verified; NEWS + G4 pending.
   - Each delta-constrained null refit warm-starts from the previous one (memoized warm cache, `warm_cache_key =
@@ -15095,7 +15095,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Not applicable at this DGP: the reservoir split. At even n every subject is paired (0 singletons at n = 200 and 800), so the one-likelihood's reservoir term is empty here. Theta (median log-theta about 0) is far from the boundary.
   - Recommendation: close TODO-191 with no code change. Default-output Wald size is nominal at large n. A mild Wald excess at n = 200 (0.058) is the usual finite-sample effect, and LR is the better choice there; nothing new to document beyond TODO-189's small-n note.
 
-- [x] TODO-192 (added 2026-11-10, owner): **One registry that says, per inference procedure, whether it is asymptotic or finite-sample valid.** Current state: DONE 2026-11-10 (sections 1-3 and tests; section 4, the publish-job checkout, is an open owner decision) (registry `R/EDI/R/inference_procedure_regime.R`, load-time tie in `inference_suite.R`, regime-based tolerance schedule in the calibration gate, plot/readme scripts, two bulk test files, NEWS bullet); wave-3 re-gate of `2026-11-09-8c32d060` gives 98 flagged cells in 10 classes (was 736); plan section 4 (workflow checkout) NOT done, owner decision pending; awaiting owner review before ticking. Plan: `new_feature_plans/v1_0_5/inference_procedure_regime_registry.md`.
+- [x] TODO-192 (added 2026-11-10, owner): **One registry that says, per inference procedure, whether it is asymptotic or finite-sample valid.** Current state: DONE 2026-11-10 (sections 1-3 and tests; section 4, the publish-job checkout, is not implemented: owner decision pending, [DECISION-v1.0.5-TODO-192](DECISIONS.md#DECISION-v1.0.5-TODO-192)) (registry `R/EDI/R/inference_procedure_regime.R`, load-time tie in `inference_suite.R`, regime-based tolerance schedule in the calibration gate, plot/readme scripts, two bulk test files, NEWS bullet); wave-3 re-gate of `2026-11-09-8c32d060` gives 98 flagged cells in 10 classes (was 736); plan section 4 (workflow checkout) NOT done, owner decision pending; awaiting owner review before ticking. Plan: `new_feature_plans/v1_0_5/inference_procedure_regime_registry.md`.
   - Why: the calibration campaign `2026-11-09-8c32d060` flagged 736 of 2,946 n = 50 null cells after wave 3, about 550 of them ordinary small-sample excess (size 0.06-0.10) in Wald, score, LR and gradient tests. The owner ruled (2026-11-10) that asymptotic procedures should pass at small n unless egregious, and be held to nominal at large n; finite-sample procedures (exact, randomization) stay strict at every n. That needs a per-procedure classification, and today there is none: `inference_suite.R`'s sentinel tables list the 14 procedures but not their regime, `comprehensive_suite_registry.R:86` guesses "asymptotic" by regex, and the calibration scripts hard-code procedure names.
   - The regime belongs to the procedure (the `run_all_inference()` sentinel label), not to the class (owner, 2026-11-10).
   - Done when: one source of truth maps every sentinel label to `asymptotic` or `finite_sample`; the package fails to load if a sentinel has none; the calibration gate reads it (n-dependent tolerance for asymptotic procedures, strict for finite-sample ones); tests cover both; NEWS bullet.

@@ -451,30 +451,7 @@ ticked in their **owning plans**; this list is the release index.
   when decided, check which `estimand` values
   `marginal_estimand_report.md → TODO-3` already landed on so neither
   enum absorbs the other's):
-  1. `expanded_estimate_report.md → TODO-1` (`estimate_type` design —
-     blocks the API shape of steps 3 and 5 below),
-  2. `firth_penalties_report.md → TODO-1` +
-     `l1_l2_penalties_all_likelihood_paths_report.md → TODO-1` (joint
-     penalized-fitting inference semantics),
-  3. `median_bias_correction_likelihood_paths_report.md → TODO-1` (after
-     Firth),
-  4. `bias_correction_cox_snell.md → TODO-1` +
-     `cordeiro_mccullagh_bias_correction_report.md → TODO-1` (one project),
-  5. `modified_profile_likelihood_report.md → TODO-1`,
-  6. `likrat_correction_bartlett.md → TODO-1` (incl. ordering vs.
-     score/gradient corrections),
-  7. `bootstrap_calibrated_lr_report.md → TODO-2` (Difficult tier yes/no),
-  8. the response-type decisions in one pass: `nominal_… → TODO-1`,
-     `rank_choice_… → TODO-1`, `semi_continuous_… → TODO-1`,
-     `multivariate_… → TODO-1`, `compositional_… → TODO-1`,
-     `longitudinal_repeated_measures_… → TODO-1`,
-  9. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story),
-  9b. `quantum_upgrade.md → TODO-1` (added 2026-08-23: vignette+hook only /
-      nothing / full A1+A3 — taken right after step 9 so it reuses the
-      backend/dispatch answer; a "yes" of either kind also commits to its
-      hardware-detection + classical-fallback spec, §I.7 there),
-  10. `interval_censored_survival_response_type_report.md → TODO-1`
-      (second-wave semiparametric yes/no).
+  - Owner decision pending: [DECISION-v1.1.0-TODO-1](DECISIONS.md#DECISION-v1.1.0-TODO-1) (the ten Phase 0 decisions, in cascade order).
   ~~11. `local_machine_optimization.md → TODO-1` remaining parts~~ — moved
   to v1.0.0 (2026-08-20, user decision; see `release_v1_0_0.md`'s item 15).
   ~~12. `randomization_ci_construction_audit.md → TODO-1`~~ — **decided
@@ -1022,8 +999,8 @@ ticked in their **owning plans**; this list is the release index.
   the rejection-sampled conditional randomization test
   (`selective_inference_post_selection.md → TODO-7`, unblocked by this
   item). Only the remaining response types (count, proportion, survival,
-  ordinal) are left to TODO-9, and whether that remainder still belongs
-  in 2.0.0 or fits v1.4.0 better is an open question, not yet resolved.
+  ordinal) are left to TODO-9 (its release placement: owner decision
+  pending, [DECISION-v2.0.0-TODO-6h](DECISIONS.md#DECISION-v2.0.0-TODO-6h)).
   **Additive:** a new workflow object beside `InferenceSuite`; no default
   of any existing class changes. Consumes TODO-17z's check results (now `release_v1_3_0.md → TODO-5..6`)
   as assumption gates once both exist; with 17z in v1.2.0 the optional gate
@@ -2127,7 +2104,7 @@ ticked in their **owning plans**; this list is the release index.
     - Leads ruled out. Allocation is exact: n = 200 treated 100.0 (sd 0.7-1.1), per-stratum share 0.49-0.51; prob_T 0.2 gives 40.0 treated, share 0.19-0.21; n = 1000 FixedBlocking 500.0, share 0.499-0.501. The strata are the intended x4 x x5 (4 block ids), and no block variable enters the `~1` fit (EDI estimate and SE equal `glm(y ~ w, poisson)`). QuasiPoisson Wald (0.033-0.056) and RobustPoisson Wald (0.035-0.058) are nominal on the same cells in the campaign CSV, and so is rand (0.040-0.061).
     - Fix (`R/EDI/R/inference_count_poisson.R`): new private `design_stratified_jackknife()`. When the automatic jackknife p-value or CI is NA, the design is blocking with auto unit `"block"` and 2-4 blocks, and the estimand is `"conditional"`, the class falls back to the stratified delete-1 jackknife (Shao & Tu 1995 sec. 6.2): delete-1 refits with `fast_poisson_regression_cpp`, variance pooled within blocks, Wald centred at the full estimate, cached per object. `design_jackknife_pval()` and `design_jackknife_ci()` use it. Nothing else changes: unstratified designs, designs with 5 or more blocks, cluster and matching designs, the marginal estimands, and other classes (only this class has the guard) behave as before. No seeded design draws change.
     - Test: `R/package_tests/testthat_bulk/test-count-poisson-stratified-jackknife-guard-few-strata.R` (FixedBlocking and SPBR with 4 strata, exact match to a closed-form stratified jackknife; fallback off on iBCRD, on 8 blocks and for `marginal_mean_diff`): 23 pass. Under `load_all(compile = FALSE)` these also pass: the two existing count-poisson guard/refit tests, count-likelihood-families-focused (855 pass), marginal-estimand SE consistency, recorded-na-reason-warns, procedure-failure-keeps-wald-state, blocking-strata-in-design-formula-bca-jackknife.
-    - Still open: (1) re-run the campaign cells (all 64 flags) on the fix, then prune the accepted rows; (2) Bernoulli / SeqOneByOneBernoulli `~1` at 0.065-0.076 is the delete-1 jackknife-Wald's own small anti-conservatism (0.071 under every variant at n = 1000), not this bug; tracked as v1.1.0-TODO-219; (3) owner question: with 5 or more large strata, leave-one-stratum-out still treats fixed strata as sampled units. Should the stratified delete-1 jackknife replace it for every `"block"` unit, not only below 5 blocks?
+    - Still open: (1) re-run the campaign cells (all 64 flags) on the fix, then prune the accepted rows; (2) Bernoulli / SeqOneByOneBernoulli `~1` at 0.065-0.076 is the delete-1 jackknife-Wald's own small anti-conservatism (0.071 under every variant at n = 1000), not this bug; tracked as v1.1.0-TODO-219; (3) owner decision pending: [DECISION-v1.1.0-TODO-218](DECISIONS.md#DECISION-v1.1.0-TODO-218) (should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit?).
   - **Owner ruling 2026-11-19: fix accepted.** Reworked the same day to reuse the shared estimator instead of a private copy. v1.0.6-TODO-4 (committed 5bdb9dfb) had already moved DesignFixedBlocking to the stratified delete-1 unit `"observation_within_block"` and SPBR to `"permuted_block"`, so the gap left is blocking designs whose automatic unit is still `"block"` (DesignSeqOneByOneRandomBlockSize and the other blocking designs). `design_jackknife_pval()` / `design_jackknife_ci()` now retry the shared jackknife with `unit = "observation_within_block"` (Wolter 2007, Sec. 4.5, with EDI's reweighting scaling) when the automatic jackknife is NA there and the design has at least 2 blocks (private `use_within_block_jackknife_fallback()`); the private `design_stratified_jackknife()` is gone. Because the shared jackknife refits under the active estimand, the fallback now also covers the marginal estimands. Documented in NEWS ("Changes that alter results"), the class roxygen and `man/InferenceCountPoisson.Rd` ("Which jackknife", with the Wolter reference) and REFERENCES.md. Test `test-count-poisson-stratified-jackknife-guard-few-strata.R` rewritten to the Wolter JKn formula (23 pass); the stubs in `test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R` now take `unit` (26 pass). Still open: re-run the 64 campaign cells on this code, then prune the accepted rows; the agent's simulated sizes used the unscaled formula, which differs from the shared one by a factor of about (n_h/(n_h - 1))^2 in the variance, negligible at these stratum sizes.
   - **Verified locally 2026-11-19 (agent): the fallback is nominal where it runs; the cells on the current tree are nominal except two jackknife-unit cells, both outside this fix.** The `InferenceCountPoisson` class itself with `~1` (`pkgload::load_all(compile = FALSE)`), campaign seeds `cal_study_seed("count", n, rep)`, `cal_study_gen_X`, null potential outcomes and `cal_study_run_design` (strata x4 x x5), 2 cores. Wald = `compute_asymp_two_sided_pval()`. Size at alpha 0.05 with a binomial (Clopper-Pearson) 95% interval. Wald, score and LR agree in every cell, because the jackknife p-value is the larger half of max(model p, jackknife p) in every replicate. "Fallback" is the share of replicates where `use_within_block_jackknife_fallback()` was TRUE.
     - Tree. The n = 200 rows ran at 6ae5d609. Commit 72ea20ba (2026-11-20 01:03, v1.0.6-TODO-231) landed before the n = 1000 rows started; it moves DesignSeqOneByOneRandomBlockSize's automatic unit from `"block"` to `"permuted_block"`. On that tree no campaign design reaches the fallback: FixedBlocking uses `"observation_within_block"`, and SPBR and RandomBlockSize use `"permuted_block"`. The RandomBlockSize n = 200 rows were re-run on the current tree (rows marked "re-run").

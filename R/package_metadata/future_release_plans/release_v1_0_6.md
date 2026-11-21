@@ -406,17 +406,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     replicates. At the first look, a unit stops if every test in it (size for each procedure and formula, plus
     coverage from the same replicates) is clearly inside its bound; borderline units run to 1000 as today. Rough saving:
     30-50% of null work, several days per campaign.
-  - Design questions to settle before any code (owner decision):
-    - Stopping only for "clearly passing" is non-binding futility stopping: it cannot add false flags, but it lowers the
-      power to flag a mildly miscalibrated cell (for example a true size of 0.06). Choose the first-look margin from the
-      power that must be kept, and check it by simulation of the planner with known true sizes.
-    - Multiple testing: the campaign runs Benjamini-Hochberg over every test in the plan with unrun tests as p = 1, so
-      interim flags are never withdrawn. Define the p-value of a stopped unit (its first-look p-value is valid under
-      non-binding futility) and show that this keeps `m_total` and the monotonicity argument intact.
-    - Precision and the convergence analysis: stopped units have wider intervals; the |error| vs n_eff slopes and
-      the per-class pages must weight by replicates actually run, and the README must say which units stopped.
-    - Estimates after a sequential stop are slightly biased; say whether the published size/coverage use them as they are.
-    - Confirmation replicates (5,000 at 0.01 / m_total) are unchanged.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-17](DECISIONS.md#DECISION-v1.0.6-TODO-17) (the five design questions to settle before any code: first-look margin, p-value of a stopped unit, weighting, post-stop bias, confirmation replicates).
   - Where: `R/package_tests/calibration/plan_calibration_study.R` and `calibration_study_plan_common.R` (units, looks),
     `analyze_calibration_study.R` / `convergence_calibration_study.R` (p-values, weighting), `calibration_gates.md`.
   - Done when: the rule is written into `calibration_gates.md` with its power check, the planner stops units at the first
@@ -952,8 +942,8 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     `resampling-refit-loop#43925959437.2`): no caller in R or C++, and only a reference test calls it
     (`R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R` ~L28). It
     is exported (`NAMESPACE` L147) but documented `@keywords internal` (`man/compute_coxph_rand_bootstrap_cpp.Rd`).
-    Delete it, its export, Rd page and test case, and add a NEWS line (an exported internal kernel is removed). If the
-    owner prefers, deprecate it instead, as v1.0.6-TODO-38 does for `robust_negbinreg`.
+    Delete it, its export, Rd page and test case, and add a NEWS line (an exported internal kernel is removed).
+    - Owner decision pending: [DECISION-v1.0.6-TODO-43](DECISIONS.md#DECISION-v1.0.6-TODO-43) (delete `compute_coxph_rand_bootstrap_cpp` outright, or deprecate it first?).
   - `newcombe_paired_ci_cpp` (`src/newcombe_speedups.cpp` ~L113; finding `risk-difference-ci#43925959437.2`): not
     exported, `@keywords internal`, no R caller (`InferenceIncidKKNewcombeRiskDiff` computes its matched part with its
     own Wald variance, `inference_incidence_KK_newcombe_ivwc_univ.R` ~L140-148). Only
@@ -1579,15 +1569,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     "blocks hold more than one subject" does not explain refusing leave-one-cluster-out). Filed here rather than as
     a new entry because this entry's fix (make the warning name a unit that works on the design) covers it; the
     "model-based SE" advice of the too-few-units message must also not be given on a cluster design.
-  Investigated 2026-11-21 (agent), needs an owner decision (new statistical method): not changed. On a blocking
+  Investigated 2026-11-21 (agent): not changed. On a blocking
   design `jackknife_block_size_gt_one_unsupported()` (`inference_all_abstract_non_param_boot.R` ~L1332) refuses
   every unit except block / permuted_block / observation_within_block / pair / matched_set, so `unit = "cluster"`
-  (and `"auto"`) on `DesignFixedBlockedCluster` is refused before any layout is built. Options: (a) implement a
-  stratified delete-one-cluster jackknife (clusters as deletion units, blocks as strata, the existing
-  `jackknife_stratified_layout()` machinery), which is the natural estimator but needs a validity check and
-  calibration; (b) keep the refusal and change the advice: the cluster-independence warning on a blocked-cluster
-  design should name `unit = "block"` only when there are enough blocks, and otherwise a cluster bootstrap /
-  CR2 SE, never the model-based SE; (c) both. (b) is a small message change; (a) is the real fix.
+  (and `"auto"`) on `DesignFixedBlockedCluster` is refused before any layout is built.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-74](DECISIONS.md#DECISION-v1.0.6-TODO-74) (implement a stratified delete-one-cluster jackknife, change the advice, or both?).
 - [ ] TODO-75 (added 2026-11-17, agent, owner request; found by the reporting-an-analysis article agent): **The
   BCa bootstrap p-value returns `NA`, with no warning, exactly when the evidence is strongest**: when the null
   value lies outside the whole bootstrap distribution. BCa is the default p-value type, so the default call
@@ -2171,9 +2157,10 @@ coordinator and is not a bug: `fast_robust_regression.cpp` ~L78 throws on anythi
   `transform_y()` errored on any censored or not-yet-responded row. Tests: `test-inference-args-reject-nonscalar-nonfinite.R`
   (1377), `test-design-args-reject-nonfinite-and-nonscalar.R` (27), `test-transform-y-with-censored-rows.R` (5); 104
   related files, 0 failures. Static check saved as `R/package_tests/check_checkmate_explicit_defaults.R` (flags 16
-  sites today, all loose/fine; needs `# checkmate-loose: <why>` opt-outs before joining pre-push; owner decision).
+  sites today, all loose/fine; needs `# checkmate-loose: <why>` opt-outs before joining pre-push).
   Not fixed: `inference_survival_GLMM_weibull_frailty_loggamma.R:998` clamps `U2` to `1 - .Machine$double.xmin` (== 1,
   a no-op), so `U2 = 1` can give a survival time of 0 (rare).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-106](DECISIONS.md#DECISION-v1.0.6-TODO-106) (add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook?).
 ### Bugs found by the data-shape matrix (TODO-107..115)
 
 Found 2026-11-18 by the v1.0.6-TODO-97 matrix (`R/package_tests/run_public_argument_data_shape_matrix.R`; fixture
@@ -3043,10 +3030,8 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   hurdle / zero-inflated / ZOIB component builders also filter it (`edi_drop_perfect_predictor_cols()`). Clean-data
   sweep: 0 differences over 128 class/data cases plus KK designs; leak sweep: every covariate-using class warns once
   and equals the fit without the leak. Test `test-perfect-predictor-covariates-dropped.R` (71). Roxygen section added
-  (not roxygenized). NEWS added. Owner decisions: (1) ties drop the union (e.g. `y = 3z + 0.4 x1 + 1.5 w` drops z and
-  x1) vs a deterministic single pick; (2) the lazy re-run tracks the object's own `y`, not the design; (3)
-  covariate-ignoring classes skip the check (no warning there); (4) factor-dummy leaks in the component-formula
-  filter are untested.
+  (not roxygenized). NEWS added. Untested: factor-dummy leaks in the component-formula filter.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-158](DECISIONS.md#DECISION-v1.0.6-TODO-158) (confirm the three judgment calls: ties drop the union, the lazy re-run tracks the object's own `y`, covariate-ignoring classes skip the check).
 - [ ] TODO-159 (added 2026-11-18, owner request): **KK21 / KK21stepwise covariate weights for perfect predictors.**
   Today a covariate that predicts the responses so far exactly has residual variance 0, so the stepwise kernel
   (`kk21_weights.cpp`) skips it and gives it weight 0, and the non-stepwise kernel gives it eps: matching ignores the
@@ -3939,7 +3924,8 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   betareg version range EDI supports. Test: a small fixture with exact 0s/1s where the bootstrap replicate's
   estimate matches a direct weighted `betareg` fit, and a forced-fallback test for each `helper_glm_fit.R` path.
   Then rerun the Phase 0 bench spec for `beta-regression-mle#43925959437.1`, whose current side is this code (see
-  v1.1.0-TODO-197). Related: the open owner decision from the 2026-11-17 re-review to delete or fix the ZOIB wrapper.
+  v1.1.0-TODO-197).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-197](DECISIONS.md#DECISION-v1.0.6-TODO-197) (related: delete or fix the unused ZOIB wrapper `.fit_zero_one_inflated_beta` in `helper_zoib.R`?).
 
 - [ ] TODO-198 (added 2026-11-19, agent, owner request; found by the Rd audit, PR #65): **The published reference page
   of `InferenceIncidKKCondLogitGLMMOneLik` shows `Warning: number of rows of result is not a multiple of vector length
@@ -5289,6 +5275,7 @@ were found by reading, not by running a fix.
   and `lambda = 1` runs (matches whenever the reservoir is non-empty, 15 pairs of 30). Test: new
   `test-kk-design-lambda-and-t0-pct-argument-validation.R` (bad values error on all three classes; explicit defaults
   give the default allocation; the endpoints run).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-290](DECISIONS.md#DECISION-v1.0.6-TODO-290) (confirm the closed [0, 1] for `lambda` and `t_0_pct`, or tighten to (0, 1) and change the test).
 
 - [x] TODO-291 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f4): **High priority:
   `InferenceContinKKGLMM`'s parametric bootstrap swaps the two variance components, so its CI is ~70x narrower than
@@ -5316,11 +5303,12 @@ were found by reading, not by running a fix.
   F4 repro: replicate SD within 0.75-1.33x the OLS SE, CI contains the estimate). Evidence on the F4 repro (B = 199):
   bootstrap CI [0.810, 0.830] -> [0.332, 1.208], replicate SD 0.0052 -> 0.237 (lmer REML = FALSE SE 0.233, OLS SE
   0.241). Null size (KK14, n = 50, y = x1 + N(0, 1), 60 datasets, B = 99): parametric-bootstrap p-value rejects at
-  5% in 75% of datasets before, 10% after (MC SE ~4%); LR bootstrap 6.7% before, 8.3% after. Found, not changed
-  (owner decision): on this repro the Wald CI is [0.585, 1.056] (SE 0.120) against lmer's 0.233; the kernel's
+  5% in 75% of datasets before, 10% after (MC SE ~4%); LR bootstrap 6.7% before, 8.3% after. Found, not changed:
+  on this repro the Wald CI is [0.585, 1.056] (SE 0.120) against lmer's 0.233; the kernel's
   `vcov` (inverse full observed information) at log_sigma_b = -4.0 has a negative diagonal for log_sigma_b and a w SE
   of 0.120, so the Wald SE looks wrong when sigma_b is near 0. The finding's run (older build) had Wald SE 0.230. The
   TODO's "within 25% of the Wald SE" test was therefore written against the OLS SE instead.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-291](DECISIONS.md#DECISION-v1.0.6-TODO-291) (fix the KK GLMM Wald SE near sigma_b = 0, or accept it?).
 
 - [x] TODO-292 (added 2026-11-20, coordinator, owner request; ds-sequential-designs-44358267779-f5):
   **`InferenceSuite$run_all_inference()` with `max_secs_per_class` and `num_cores = 2` prints the report and then
@@ -5376,18 +5364,12 @@ were found by reading, not by running a fix.
   the reference draws do (KS D = 0.317); randomization test size 7.25% over 800 null trials (MCSE 0.77%), 5.88% with
   `obj_val_cutoff` at the same quantile. v1.0.6-TODO-234 only changed treated-count rounding; re-run on HEAD
   2026-11-20 (`load_all(compile = FALSE)`): realized outside 0.3167, reference outside 0, KS D 0.3167, unchanged.
-  Fix (owner to choose; changes realized allocations): (a) define `prop_acceptable` as a fixed cutoff, the
-  `prop_acceptable` quantile of M(w) estimated once from a large base sample (cached, seeded) and then used as
-  `obj_val_cutoff` for both the realized and the reference draws; or (b) make the reference draws exchangeable with
-  the realized one by drawing each reference allocation as best of `round(1 / prop_acceptable)` independently. Either
+  Fix: as the owner decides (decision below). Either
   way update the roxygen paragraph that calls the two "equivalent in the large-draw limit". Test: on the finding's
   repro, the realized and reference M(w) distributions agree (KS p > 0.01 over 300 seeds), and a 400-trial null
   simulation of the randomization test is within 2 MCSE of 0.05. NEWS: changes results. Repro: fixed-designs F2.
-  Investigated 2026-11-21 (agent), needs an owner decision (the entry marks the fix as owner's choice): not changed.
-  Note for the choice: (b) keeps every realized allocation as it is today and only changes the reference, at the same
-  cost as now (501 groups of `round(1 / prop_acceptable)` draws = the 50,100 base draws already made, each group
-  keeping its best instead of the best 501 overall); (a) changes realized allocations and needs a cached quantile
-  estimate. (b) looks like the smaller and safer change; both change randomization p-values and CIs.
+  Investigated 2026-11-21 (agent): not changed.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-294](DECISIONS.md#DECISION-v1.0.6-TODO-294) (fixed `prop_acceptable` cutoff, or best-of-k reference draws?).
 
 - [x] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
   and `DesignFixedGreedyDOptimal` at their defaults return different allocations for the same seed when covariates
@@ -5460,24 +5442,15 @@ were found by reading, not by running a fix.
   with "This type of design currently only works with fixed sample, i.e., you must specify n upon initialization"
   (`assert_fixed_sample()`, `R/EDI/R/design_abstract.R` ~L569, called from `add_all_subjects_to_experiment()` in
   `R/EDI/R/design_fixed_abstract.R` ~L65). On `DesignFixedCluster` a later `assign_w_to_all_subjects()` then errors
-  "argument is of length zero". The help shows `n = NULL` as the default and calls `n` only "The sample size". Fix
-  (owner to choose): infer `n = nrow(X_all)` in `add_all_subjects_to_experiment()` when `n` is NULL (set
-  `fixed_sample = TRUE` and size the internal vectors then; constructors that need n earlier, e.g. Optimal or
-  Rerandomization caches, must be checked), or require `n` in every fixed-design constructor with an error at
-  `$new()`, and drop the `= NULL` default from the usage. Either way `assign_w_to_all_subjects()` before subjects are
+  "argument is of length zero". The help shows `n = NULL` as the default and calls `n` only "The sample size". Fix:
+  as the owner decides (decision below). Either way `assign_w_to_all_subjects()` before subjects are
   added must give a clear error. Test: for every fixed design, `$new()` without `n` then `add_all_subjects_to_experiment(X)`
   works (or `$new()` errors), and the realized allocation equals the one with `n = nrow(X)` for the same seed. Repro:
   fixed-designs F6, clusters-blocking F5.
-  Investigated 2026-11-21 (agent), needs an owner decision (public API): still reproduces on HEAD. `$new()` without
+  Investigated 2026-11-21 (agent): still reproduces on HEAD. `$new()` without
   `n` then `add_all_subjects_to_experiment(X)` stops in `assert_fixed_sample()` for Bernoulli, iBCRD, BinaryMatch and
-  Optimal; Rerandomization already stops earlier on its acceptance-rule check. Options: (a) infer `n = nrow(X_all)`
-  in `add_all_subjects_to_experiment()` when `n` is NULL, set `fixed_sample = TRUE` and size `w`/`y`/caches there;
-  each constructor that reads `n` before subjects arrive (Optimal, Rerandomization, Blocking/Cluster sizing, any
-  `prob_T * n` target) must be checked, so it touches every fixed design; (b) make `n` required in the fixed-design
-  constructors (error at `$new()`, drop `= NULL` from the usage and Rd): small and safe, but breaks code that relies on
-  the default reaching a later error; (c) keep `n = NULL` but error at `$new()` with "fixed designs need n (or call
-  ...)" -- the same as (b) for users. Recommendation: (a) is what the help suggests a user expects, (b) is the
-  smaller change. Not changed.
+  Optimal; Rerandomization already stops earlier on its acceptance-rule check. Not changed.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-298](DECISIONS.md#DECISION-v1.0.6-TODO-298) (infer `n = nrow(X_all)` when `n` is NULL, or require `n` in every fixed-design constructor?).
   - Also reported by the docs-scenario audit: ds-observational-44883784401-f1 (2026-11-21, `ObservationalDesign`
     with the default `n = NULL` fails as soon as the data are added; reproduces on HEAD). Fix it here.
 
@@ -5573,17 +5546,11 @@ were found by reading, not by running a fix.
   and name what works here (e.g. `InferenceIncidExactFisher` / CMH), mentioning Zhang only when the design is
   Zhang-eligible; (3) fix the `type` guard message so it names the real reason (Zhang/Fisher dispatch needs a
   Zhang-eligible design) and list the valid `type` values in the roxygen; (4) state the incidence restriction in the
-  factorial article and `?DesignFixedFactorial`. Owner decision: whether the plain randomization test at delta = 0
-  should simply be allowed for incidence here (v1.0.6-TODO-110 allowed it for custom statistics). Test: on both
+  factorial article and `?DesignFixedFactorial`. Test: on both
   designs `supports()` and the method agree; the refusal names a class that runs; `type = "Zhang"` on a non-eligible
   design gives the new message. Repro: factorial F1, F2.
-  Investigated 2026-11-21 (agent), needs an owner decision: not changed. The entry's own open question decides the
-  shape of every part: if the plain randomization test at delta = 0 is allowed for incidence on these designs (as
-  v1.0.6-TODO-110 did for custom statistics), parts (1)-(3) reduce to lifting `supports_rand_pval_for_incidence()`'s
-  refusal for delta = 0 and keeping it for nonzero delta, and `supports("randomization_test")` is already right; if it
-  is not allowed, (1) should make `supports()` read `supports_rand_pval_for_incidence()`, (2)/(3) are message changes
-  (name `InferenceIncidExactFisher` / CMH, mention Zhang only on Zhang-eligible designs), and (4) is an article and
-  Rd change. The two branches touch the same lines, so doing either before the ruling would be wasted work.
+  Investigated 2026-11-21 (agent): not changed; the ruling decides the shape of every part.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-303](DECISIONS.md#DECISION-v1.0.6-TODO-303) (allow the plain randomization test at delta = 0 for incidence on these designs?).
   - Also reported by the docs-scenario audit: ds-incidence-44883784401-f7 (2026-11-21, the same refusal and failing
     `type = "Zhang"` advice on `DesignFixediBCRD`). Extends the scope: run the test on iBCRD too, and correct the
     "does not refuse outright" sentence in the @description of `InferenceIncidWald` (`inference_incid_wald.R:51-56`),
@@ -5606,14 +5573,11 @@ were found by reading, not by running a fix.
   v1.0.6-TODO-74's message fix); (4) the help's "the jackknife (resample within blocks)" must match what happens.
   Test: the finding's repro gives a finite default bootstrap CI or a warning whose advice runs; no jackknife message
   points to a unit that also fails. Repro: factorial F3.
-  Investigated 2026-11-21 (agent), needs an owner decision (statistical method): not changed. Part (1) is a choice
-  between computing the BCa acceleration from a leave-one-subject-out jackknife within blocks (which the jackknife
-  currently refuses on blocking designs with blocks of size > 1, `jackknife_block_size_gt_one_unsupported()`, the same
-  refusal as v1.0.6-TODO-74) and falling back to percentile/BC with a warning; both change the default BCa result on
-  blocking designs. Part (2) is in `edi_warn_bca_jackknife_unavailable()` (`inference_all_abstract_non_param_boot.R`
+  Investigated 2026-11-21 (agent): not changed. Part (2) is in `edi_warn_bca_jackknife_unavailable()` (`inference_all_abstract_non_param_boot.R`
   ~L2664: "the bootstrap itself resamples only those units"), and parts (2)-(3) depend on the advice chosen for
   v1.0.6-TODO-74 / -303 (which procedures run for incidence on these designs), so they are best done together after
   those rulings.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-304](DECISIONS.md#DECISION-v1.0.6-TODO-304) (part (1): within-block jackknife BCa acceleration, or percentile / BC fallback?).
 
 - [x] TODO-305 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f4): **`DesignFixedFactorial`
   accepts a non-integer number of levels (`list(subject = 2.5)`) and runs it as a two-level factor.** No error or
@@ -5634,6 +5598,7 @@ were found by reading, not by running a fix.
   `test-fixed-design-constructor-two-arm-and-blocking-validation-guards-reference.R` were named. Test: new block in the
   factorial reference file (2.5, 1, 0, NA, -2, Inf, unnamed and empty-name lists error; `list(subject_line = 2)` runs and
   `get_w_factorial()` is named `subject_line`).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-305](DECISIONS.md#DECISION-v1.0.6-TODO-305) (confirm that a one-level factor next to a two-level one now errors, or allow it again).
 
 - [x] TODO-306 (added 2026-11-20, coordinator, owner request; ds-factorial-44358267779-f7):
   **`InferenceIncidExactFisher$compute_estimate()` returns a bare NA when an arm has no events.** Audit (n = 40, the
@@ -5678,15 +5643,11 @@ were found by reading, not by running a fix.
   warning.** `add_all_subject_responses(ys = y)` with `y[1] = 0` passes `assert_y()` (`R/EDI/R/design_abstract.R`
   ~L1148-1151, `assertNumeric(y, lower = 0, ...)` for survival); Weibull then gives NA, only `is_nonestimable()` /
   reason `"model_fit_unavailable"` hint at it, and the reason does not mention the zero time. Cox, log-rank and RMST give
-  finite results. Fix (owner to choose): refuse an exact time of 0 at entry (require y > 0; a time-0 event is
-  left-censored, `y_L = 0, y_R = <first assessment>`, which the message should say), or keep accepting it and have the
-  parametric classes (Weibull, other AFT/frailty models) refuse with a reason naming the zero times. Test: the
-  finding's repro errors at entry with that advice (or warns with the new reason); positive times unchanged. Repro:
+  finite results. Fix: as the owner decides (decision below). Test: the
+  finding's repro errors at entry with the left-censoring advice (or warns with the new reason); positive times unchanged. Repro:
   survival-censoring F3.
-  Investigated 2026-11-21 (agent), needs an owner decision (the entry leaves the choice to the owner): not changed.
-  Refusing y = 0 at entry is one check in `assert_y()` but changes what every survival class accepts (Cox, log-rank
-  and RMST give finite results on such data today); refusing only in the parametric classes keeps those working and
-  needs a reason string in each AFT/frailty class. The second is the less disruptive.
+  Investigated 2026-11-21 (agent): not changed.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-308](DECISIONS.md#DECISION-v1.0.6-TODO-308) (refuse an exact time of 0 at data entry, or only in the parametric classes?).
 
 - [x] TODO-309 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f4):
   **`InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` returns NA while `compute_asymp_confidence_interval()` is
@@ -5833,9 +5794,9 @@ were found by reading, not by running a fix.
   `add_all_subjects_to_experiment()` with `X$x2[3] = Inf` is accepted silently and `get_X()[3, ]` shows `Inf`;
   `InferenceContinOLS$compute_estimate()` then errors in `qr.default(X_mat)`. Responses are checked for finiteness
   (`assert_y()`), covariates are not; NaN is treated as missing and imputed. Fix: in `add_one_subject()` and
-  `add_all_subjects_to_experiment()` refuse `Inf`/`-Inf` in numeric covariates with a message naming column and rows
-  (owner may prefer treating them as missing under `"impute"`, but say so in a message either way). Test: Inf in a
-  fixed and a sequential design errors at entry naming x2 and row 3. Repro: missing-data F4.
+  `add_all_subjects_to_experiment()` refuse `Inf`/`-Inf` in numeric covariates with a message naming column and rows.
+  Test: Inf in a fixed and a sequential design errors at entry naming x2 and row 3. Repro: missing-data F4.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-317](DECISIONS.md#DECISION-v1.0.6-TODO-317) (refuse `Inf` covariates at entry, or treat them as missing under `"impute"`?).
 
 - [ ] TODO-318 (added 2026-11-20, coordinator, owner request; ds-missing-data-44358267779-f5): **When `"drop_column"`
   removes every covariate, covariate-balancing designs run silently without covariates.** `dim(get_X())` is `40 0`
@@ -6060,8 +6021,8 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   [0.032, 0.059]); CI coverage 0.966, so slightly conservative, not broken. Note: with the v1.0.6-TODO-231 (6) t
   reference already in, the permuted-block size on the RBS cell is 0.060, not the 0.082 measured before it.
   NOT ticked: the RBS cell is nominal, but the SPBR cell stays at ~0.062 (this change does not reach it, since SPBR has
-  8-9 blocks per stratum). OWNER DECISION: accept SPBR at 0.062 (open a TODO per the calibration rule), raise the
-  threshold (e.g. 10 would switch SPBR here too: obs_within_block 0.055), or investigate SPBR separately.
+  8-9 blocks per stratum).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-270](DECISIONS.md#DECISION-v1.0.6-TODO-270) (SPBR at 0.062: accept, raise the threshold, or investigate SPBR separately?).
 
 - [ ] TODO-283 (added 2026-11-20, coordinator; found by the v1.0.6-TODO-188 agent; needs a wheel rebuild): **Python
   `fast_beta_regression` returns `neg_loglik = nan`.** Same pattern as v1.0.6-TODO-188: the binding reads
@@ -6202,9 +6163,8 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     ("Unsupported testing_type"), now fixed too. The new loop test also found that `InferenceIncidExtendedRobins`'s asymp
     CI and p-value returned NA with no reason on a fresh object (never computed `beta_hat_T`); fixed. Test:
     `R/package_tests/testthat_bulk/test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R` (every class x
-    supported type, Bartlett factor stubbed, ~32 s, 1232 passed). Open question for the owner: on the KK count OneLik
-    classes `lik_ratio` is design-conservative but `lik_ratio_bartlett_approx` dispatches to the model-only Bartlett
-    method (narrower CI on the fixture: [-0.262, 0.663] vs [-0.277, 0.695]).
+    supported type, Bartlett factor stubbed, ~32 s, 1232 passed).
+    - Owner decision pending: [DECISION-v1.0.6-TODO-327](DECISIONS.md#DECISION-v1.0.6-TODO-327) (KK count OneLik: keep `lik_ratio_bartlett_approx` model-only, or make it design-conservative like `lik_ratio`?).
 - [x] TODO-328 (added 2026-11-21, agent, owner request; audit decision `code-duplication-ddad98657`, issue #61 triage):
   **`compute_rand_two_sided_pval(alternative = ...)` errors ("unused argument") on 7 classes whose override lacks the
   argument.** The base method gained `alternative` in 3dabce47 and NEWS announces it, but the overrides in
@@ -6339,11 +6299,11 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `inference_model_scale_randomization_transform_for()` (`R/EDI/R/inference_all_abstract_rand_ci.R:21-31`) does not
   count Quasi/RobustPoisson as model-scale, so their rand-CI refusal says the estimate "is on the raw response scale"
   (false: it is the same log rate ratio as Poisson, whose rand CI works), and the message appends an internal TODO
-  path (`inference_all_abstract_rand_ci.R:360-361`, `inference_class_registry.R:325`). Fix (owner call on the
-  tags): retag GLM/count-part coefficients `log_rate_ratio_conditional`, keeping `marginal` for true marginal
-  estimands (e.g. PoissonKKGEE); treat Quasi/Robust as model-scale; drop the path from the message (see also
+  path (`inference_all_abstract_rand_ci.R:360-361`, `inference_class_registry.R:325`). Fix (the tags: owner
+  decision below): treat Quasi/Robust as model-scale; drop the path from the message (see also
   v1.0.5-TODO-119's note). Done when: a test asserts every count class's tag agrees with `get_estimand()`, the Quasi
   rand CI is finite, and no user-facing message contains "package_metadata".
+  - Owner decision pending: [DECISION-v1.0.6-TODO-340](DECISIONS.md#DECISION-v1.0.6-TODO-340) (retag the GLM / count-part coefficients `log_rate_ratio_conditional`, or keep the current tags?).
 
 - [ ] TODO-341 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Suite print and Combined
   Evidence: row-vs-class counts, single-inference groups, the 1e-4 Cauchy floor, mangled numbers.**
@@ -6366,9 +6326,10 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `inference_suite.R:1759-1771` sets the row to "nonest" on any `is_nonestimable("any")`, discarding
   `InferenceIncidExactFisher`'s exact p (6.26e-05) and CI on zero-cell data (its `nonestimable_stage` is
   "estimate"), while GComp RR (p = 0, CI 2.7e-10 to 7.6e-10) with its own separation warning stays `ok` at full
-  weight. Fix: keep the p/CI cells a class still returns when only the estimate stage is non-estimable; down-weight
-  or exclude rows that raised a separation/boundary warning (owner call on which). Done when: on the incidence F9
+  weight. Fix: keep the p/CI cells a class still returns when only the estimate stage is non-estimable; treat rows
+  that raised a separation/boundary warning as the owner decides (below). Done when: on the incidence F9
   repro the Fisher row carries its p and CI and the separated rows do not enter the combination at full weight.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-342](DECISIONS.md#DECISION-v1.0.6-TODO-342) (down-weight or exclude suite rows that raised a separation / boundary warning?).
 
 - [ ] TODO-343 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **User-facing help names
   unexported objects and internal developer files.**
@@ -6670,9 +6631,10 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   p ~ 1e-117 at low/high tau, no warning. The proportion cookbook (`vignettes/cookbook-proportion.Rmd:52-53,64`) says
   fractional logit needs open-interval data and clips y; the class takes [0, 1]. Fix: document the squeeze (formula,
   Smithson & Verkuilen 2006) and warn once naming the counts and pointing to ZOIB / FractionalLogit; for QuantileRegr
-  use the SV squeeze or warn/error on exact 0/1 (precedent v1.0.6-TODO-60; also the rand kernel's
-  `zero_one_logit_clamp`; results change, owner OK and NEWS); fix the cookbook text and drop the clipping from the
-  fractional-logit chunk. Done when: the F1 and F2 repros warn (no silent +/-34), and cookbook and help agree.
+  (and the rand kernel's `zero_one_logit_clamp`) as the owner decides (below; results change, NEWS); fix the cookbook
+  text and drop the clipping from the fractional-logit chunk. Done when: the F1 and F2 repros warn (no silent +/-34),
+  and cookbook and help agree.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-367](DECISIONS.md#DECISION-v1.0.6-TODO-367) (`InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error?).
 
 - [ ] TODO-368 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
   **`InferencePropZeroOneInflatedBetaRegr` returns NA with no warning for exact 1s without 0s and an uncentred
@@ -6707,9 +6669,10 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   Ids: ds-proportion-44883784401-f7.
   `resolve_effect_variance()` / `model_based_covariance_matrix()` (`R/EDI/R/inference_proportion_gcomp.R:~786-840`,
   docs `:92-110`) use the binomial Fisher information, which `?InferencePropFractionalLogit` (`:12-20`) calls wrong for
-  a fractional y; on the repro it is 2.5 x the sandwich SE. Fix (results change: owner OK, NEWS): scale by the Pearson
+  a fractional y; on the repro it is 2.5 x the sandwich SE. Fix (results change, NEWS): scale by the Pearson
   dispersion and document it. Done when: the `model_based` SE on the repro is about 0.0507 (quasi-binomial delta
   method).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-371](DECISIONS.md#DECISION-v1.0.6-TODO-371) (OK to scale the model-based variance by the Pearson dispersion (results change)?).
 
 - [ ] TODO-372 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **The quantile classes offer a
   jackknife that is NA on clean data, and the warning blames separation.**
@@ -6724,6 +6687,5 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   randomization p-value.** The KK GEE mixin's `compute_rand_two_sided_pval` override
   (`R/EDI/R/inference_mixin_kk_gee_shared.R` ~L125) stops with "not supported for incidence. Use Zhang method." unless
   the design is a rerandomization design, but the class accepts only KK designs, so the call always errors. The base
-  method has allowed draw-based incidence p-values since 2026-10-20, so the refusal looks stale. Decide: drop the
-  refusal (use the draw-based path, as the base does) or remove `rand` from the class's supported procedures and say so
-  in its docs. Test either way.
+  method has allowed draw-based incidence p-values since 2026-10-20, so the refusal looks stale. Test either way.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-373](DECISIONS.md#DECISION-v1.0.6-TODO-373) (drop the stale incidence refusal, or remove `rand` from `InferenceIncidKKGEE`'s supported procedures?).

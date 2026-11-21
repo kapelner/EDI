@@ -184,16 +184,8 @@ convention rather than inventing a new visual language each.
 
 ## Implementation TODOs (dependency order; tentative — no decision batch taken yet)
 
-- [ ] TODO-1: **Decision batch** — not yet taken for either item; neither
-  has a Phase-0 sitting to join yet (v2.0.0's own Phase 0 doesn't cover
-  post-2.0.0 work). Covers both plans' own "pursue this at all?" gates:
-  finite mixture regression's (implicitly decided *by design*, 2026-09-10,
-  in the scoping conversation itself — see that file's "Decisions Already
-  Made") and Bayesian-Stan's (`bayesian_stan_primary_analysis_report.md →
-  TODO-1`, genuinely undecided: pursue at all, confirm `cmdstanr` as
-  backend, confirm the hand-written `.stan`-library approach, confirm
-  response-type entry order). Revisit both once a real post-2.0.0
-  planning cycle opens.
+- [ ] TODO-1: **Decision batch**
+  - Owner decision pending: [DECISION-v3.0.0-TODO-1](DECISIONS.md#DECISION-v3.0.0-TODO-1) (pursue Bayesian-Stan, and with which backend, approach and entry order?).
 - [ ] TODO-2: `finite_mixture_regression.md`'s own "Implementation
   Sequencing" step 1 — audit per-family density-evaluator availability.
 - [ ] TODO-3: Build the generic EM driver + `InferenceMixinFiniteMixtureEM`
@@ -210,9 +202,8 @@ convention rather than inventing a new visual language each.
   "Implementation Sequencing" step 5 — visualization, proven on the same
   three families as step 2 before extending with step 3.
 - [ ] TODO-7 (added 2026-09-10): **Decide `edi_visualization_theme.md`'s
-  scheduling** — ship as an ordinary v3.0.0 item, or pull forward to land
-  before/alongside `release_v2_0_0.md → TODO-6i/6j/6k` per that file's own
-  "Scheduling caveat" section. Not decided here.
+  scheduling**
+  - Owner decision pending: [DECISION-v3.0.0-TODO-7](DECISIONS.md#DECISION-v3.0.0-TODO-7) (ship in v3.0.0, or before / alongside the v2.0.0 TODO-6i/6j/6k plots?).
 - [ ] TODO-8 (added 2026-09-10): `survival_curve_visualization.md →
   TODO-1..7`.
 - [ ] TODO-9 (added 2026-09-10): `simulation_framework_visualization.md →
@@ -225,8 +216,8 @@ convention rather than inventing a new visual language each.
   host plan's core statistical work (v2.0.0) landing first; not otherwise
   dependent on each other or on anything else in this file.
 - [ ] TODO-11 (added 2026-09-11): `inference_plots.md → TODO-1` — decision
-  gate: pursue all 19 families/102 classes, or triage to a prioritized
-  subset first.
+  gate.
+  - Owner decision pending: [DECISION-v3.0.0-TODO-11](DECISIONS.md#DECISION-v3.0.0-TODO-11) (all 19 families / 102 classes, or a prioritized subset first?).
 - [ ] TODO-12 (added 2026-09-11): `inference_plots.md → TODO-2` — build
   the reporting layer + a proving batch of 2-3 families before scaling to
   the rest.
@@ -244,9 +235,9 @@ convention rather than inventing a new visual language each.
   TODO-4's `SimulationFramework` serial-path fix before TODO-4b's test
   suite and TODO-5's contribution workflow; TODO-6/7/8 last).
 - [ ] TODO-16 (added 2026-09-11): `continuous_treatments.md → TODO-1` —
-  decision gate: pursue at all, and first-landing scope (parametric-only
-  vs. parametric + GPS together). Genuinely independent of every other
-  item and TODO in this file.
+  decision gate. Genuinely independent of every other item and TODO in
+  this file.
+  - Owner decision pending: [DECISION-v3.0.0-TODO-16](DECISIONS.md#DECISION-v3.0.0-TODO-16) (pursue at all, and parametric-only or parametric + GPS first?).
 - [ ] TODO-17 (added 2026-09-11): `continuous_treatments.md → TODO-2` —
   the `treatment_type` root-owned-state type relaxation on `w`
   (`EDI/R/design_fixed_abstract.R:173`, `EDI/R/design_abstract.R:423`,

@@ -53,9 +53,10 @@ depends on it.
   `more_language_bindings.md → TODO-1..` — execute only after TODO-1's ABI,
   release, and ownership decisions are complete.
 - [ ] TODO-3: **Parametric joint multivariate models**
-  `multivariate_response_modeling.md → TODO-5` — go/no-go decision first;
+  `multivariate_response_modeling.md → TODO-5`;
   requires v2.0.0's Levels 1-2 (`→ TODO-2..4`) and one-`Design`
   named-response architecture to have shipped.
+  - Owner decision pending: [DECISION-v4.0.0-TODO-3](DECISIONS.md#DECISION-v4.0.0-TODO-3) (go or no-go first).
 
 ## Standing constraints
 

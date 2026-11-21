@@ -272,10 +272,9 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
 
 ## Implementation TODOs (dependency order)
 
-- [ ] TODO-1: **Decision batch** for every gated 2.0.0 track (multi-arm
-  research question on K-arm KK; each response-shape TODO-1; GPU/quantum
-  TODO-1s; nominal TODO-1 with its recorded "no" recommendation). May be
-  taken in the 1.1.0 Phase 0 sitting; recorded in owning plans.
+- [ ] TODO-1: **Decision batch** for every gated 2.0.0 track; recorded in
+  owning plans.
+  - Owner decision pending: [DECISION-v2.0.0-TODO-1](DECISIONS.md#DECISION-v2.0.0-TODO-1) (the 2.0.0 decision batch for every gated track).
 - [ ] TODO-2: **Audit-commissioned 2.0.0 plans** (owning plans written
   2026-08-27; each TODO-1 is a decision):
   - [ ] TODO-2a: `cluster_robust_inference_glmm_gee.md → TODO-1..5` —
@@ -424,10 +423,8 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   `resolve_resampling_unit()` already solves the former uniformly across
   every design family, fixed or sequential — it was never blocked on
   TODO-6e's substrate, and there is nothing left here to "build once"
-  with it. **Open question, not resolved here:** whether response-type
-  coverage alone still merits a 2.0.0 slot, or belongs in v1.4.0's
-  response-and-data-extensions theme instead — see
-  `model_selection_framework.md`'s header.
+  with it.
+  - Owner decision pending: [DECISION-v2.0.0-TODO-6h](DECISIONS.md#DECISION-v2.0.0-TODO-6h) (response-type coverage alone: keep a 2.0.0 slot, or move to v1.4.0?).
 - [ ] TODO-6l (added 2026-09-16, user decision): **Incidence randomization
   CI, risk-difference estimand family** — `rand_ci_for_incidence.md →
   TODO-1..7`. Independent of every other TODO in this list; additive, no
