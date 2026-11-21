@@ -1,0 +1,1 @@
+Stopped 2026-11-15 (owner) after wave 5: shards that stepped aside for a nightly run were counted as dead, so 21+ units were wrongly abandoned (fix: study-yield markers in calibration-study.yml). Superseded by a new campaign; not resumed.
