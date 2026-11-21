@@ -5282,7 +5282,7 @@ were found by reading, not by running a fix.
   keeping its best instead of the best 501 overall); (a) changes realized allocations and needs a cached quantile
   estimate. (b) looks like the smaller and safer change; both change randomization p-values and CIs.
 
-- [ ] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
+- [x] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
   and `DesignFixedGreedyDOptimal` at their defaults return different allocations for the same seed when covariates
   have ties.** The help ("Same draws as DesignFixedGreedyDOptimal at the defaults") promises identical allocations;
   with weight rounded to 0.1 and age in whole weeks only 10 of 20 draws agree (none are mirrors), the realized
@@ -5293,6 +5293,12 @@ were found by reading, not by running a fix.
   compare differently. Fix: give both the same deterministic tie-break (lowest index pair) on the same objective
   computation, or, if that is not worth it, document that the identity holds only without ties. Test: the finding's
   tied-covariate repro gives 20 of 20 identical draws (or the doc change). Repro: fixed-designs F3.
+  Done 2026-11-21 (agent), doc option: the two searches are separate C++ kernels (`greedy_design_search_cpp()` vs
+  `d_optimal_search_cpp()`), so a shared tie-break needs a C++ change and a rebuild; instead the "same draws"
+  paragraphs in `design_fixed_greedy.R` and `design_fixed_greedy_d_optimal.R` now say the identity can fail with tied
+  covariates (roxygen only, Rd not regenerated). Still reproduces on HEAD: 10 of 20 tied draws agree. Test: new
+  `test-greedy-and-greedy-d-optimal-same-draws-without-ties.R` (untied: 20 of 20 identical; tied: same treated count
+  and Mahalanobis imbalances within 1e-3). If exact identity with ties is wanted, that is a C++ follow-up.
 
 - [ ] TODO-296 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f4):
   **`DesignFixedOptimal(objective = "abs_sum_diff")` with the default `solver = "auto"` hangs at n = 40 with no

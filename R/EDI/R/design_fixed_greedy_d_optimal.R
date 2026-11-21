@@ -106,6 +106,11 @@
 #' words: once the number of treated subjects is fixed, balancing the covariate means
 #' in Mahalanobis distance and maximizing the precision of the treatment effect in a
 #' linear model with an intercept are the same goal.
+#' Ties are the exception: the two searches compute their criteria
+#' differently in floating point, so when covariates have ties and several swaps improve
+#' the criterion by the same amount, they can break the tie differently and stop at
+#' different allocations with nearly the same balance. In one example with weights
+#' rounded to 0.1 and ages in whole weeks, 10 of 20 draws agreed.
 #'
 #' The two classes give different draws when:
 #' \itemize{

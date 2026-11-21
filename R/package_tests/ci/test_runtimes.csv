@@ -395,6 +395,7 @@ R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-onelik-randomiz
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-randomization-estimate-effective-time-dead-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-globals-small-helpers-control-conditions-assert-toggle-kk-weights-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-greedy-and-greedy-d-optimal-same-draws-without-ties.R,correctness,10,bootstrap
 R/package_tests/testthat_bulk/test-greedy-d-optimal-get-interest-returns-validated-interest.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-greedy-d-optimal-projection-rank-deficient-intercept-collinear.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-greedy-design-search-kernel-local-optimality-pair-mode-and-seed-reference.R,correctness,1,measured_with_30_percent_headroom
