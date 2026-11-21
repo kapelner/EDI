@@ -699,7 +699,7 @@ void bind_ordinal(py::module_& m) {
     "at the cost of not being a simple cumulative model. Returns ssq_b_1/\n"
     "ssq_b_j (variance of the first beta) via a profile-likelihood fallback\n"
     "when the Fisher-information diagonal entry isn't directly invertible;\n"
-    "vcov is always None (not computed by this kernel). smart_cold_start has no effect here (starting values come from the kernel default unless a warm start is given; warm_start_params takes precedence over warm_start_beta). Parameters sourced\n"
+    "vcov is always None (not computed by this kernel). fixed_idx is 1-based into the joint vector (alpha first); smart_cold_start has no effect here (starting values come from the kernel default unless a warm start is given; warm_start_params takes precedence over warm_start_beta). Parameters sourced\n"
     "from R/EDI/man/ documentation for fast_stereotype_logit_cpp/\n"
     "fast_stereotype_logit_with_var_cpp (this binding unifies both R\n"
     "exports). Reference: Anderson, J. A. (1984), 'Regression and Ordered\n"
