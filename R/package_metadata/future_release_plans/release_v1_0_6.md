@@ -5302,7 +5302,7 @@ were found by reading, not by running a fix.
   works (or `$new()` errors), and the realized allocation equals the one with `n = nrow(X)` for the same seed. Repro:
   fixed-designs F6, clusters-blocking F5.
 
-- [ ] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
+- [x] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
   `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` returns cached draws of another
   `bootstrap_type`, and the cache leaks into `compute_bootstrap_confidence_interval()`.** On one object, a
   `"resample_blocks"` call after a `"within_blocks"` call (same seed) returns an object `identical()` to the first (SD
@@ -5317,6 +5317,18 @@ were found by reading, not by running a fix.
   Test: the finding's repro gives `identical(a, b) == FALSE` and `identical(b, c) == TRUE`; the CI is the same with or
   without a prior `approximate_bootstrap_distribution_beta_hat_T()` call. NEWS: changes results. Repro:
   clusters-blocking F2.
+  Done 2026-11-21 (agent): `approximate_bootstrap_distribution_beta_hat_T()` keys its cache on B and the
+  bootstrap type (`"<B>::default"` for NULL, else `"<B>::within_blocks"` / `"<B>::resample_blocks"`), so the
+  `compute_bootstrap_*()` callers (which pass NULL) only read default-type draws. Checked the sibling caches: the
+  randomization-bootstrap cache (`inference_all_abstract_rand_bootstrap.R`) had the same gap for freshly drawn
+  resamples and now keys them as `fresh:<type>` (supplied draws keep their `draws_id`, which already fixes the scheme);
+  the Bayesian bootstrap, m-out-of-n and subsampling keys already include the type. The seed is not in the key:
+  `set_seed()` clears no cache anywhere in the package, so keying one cache by seed would make this cache behave
+  unlike the others; left as is. Test: a new block in
+  `test-resampling-centered-pivots-cache-keys-and-size-evaluation-reference.R`. Evidence on the F2 repro (B = 200):
+  `identical(a, b)` TRUE -> FALSE, `identical(b, c)` FALSE -> TRUE, SDs 0.531 0.531 0.430 -> 0.531 0.430 0.430;
+  percentile CI after a `"resample_blocks"` diagnostic call [1.527, 2.722] -> [1.176, 3.111], the same as a fresh
+  object.
 
 - [ ] TODO-300 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f4):
   **`assign_w_to_all_subjects(w_precomputed = )` accepts a 1/2-coded vector, keeps it, and inference then returns NA

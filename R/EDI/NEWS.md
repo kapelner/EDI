@@ -696,6 +696,13 @@
 
 ## Bug fixes
 
+* `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` cached
+  its draws by `B` alone, so on blocking designs a call with one
+  `bootstrap_type` returned the draws of an earlier call with another, and a
+  diagnostic call changed a later `compute_bootstrap_confidence_interval()` or
+  p-value. The cache (and the randomization-bootstrap one) is now keyed by the
+  bootstrap type too (v1.0.6-TODO-299).
+
 * `InferenceAllSimpleMeanDiffPooledVar`: after a randomization p-value or CI,
   the asymptotic p-value and CI came back `NA` with no warning, because the
   randomization path cached the estimate without the per-arm responses the

@@ -166,3 +166,36 @@ test_that("evaluate_m_out_of_n_bootstrap_size returns the centered CI / p-value 
 		list(status = "nonestimable", dominant_failure_reason = "m_out_of_n_original_estimate_unavailable",
 			finite_fraction = 0, n_finite = 0L))
 })
+
+# v1.0.6-TODO-299 (docs-scenarios clusters-blocking F2): the non-parametric bootstrap cache was keyed
+# by B only, so a "resample_blocks" call after a "within_blocks" call returned the within-blocks
+# draws, and a diagnostic call changed a later compute_bootstrap_confidence_interval().
+test_that("bootstrap distribution cache is keyed by bootstrap_type", {
+	set.seed(1)
+	school = factor(rep(sprintf("S%02d", 1:16), each = 10))
+	district = factor(rep(c("A", "B"), each = 80))
+	n = length(school)
+	X = data.frame(school = school, district = district, x = rnorm(n))
+	d = DesignFixedBlockedCluster$new(n = n, response_type = "continuous",
+		strata_cols = "district", cluster_col = "school", verbose = FALSE)
+	d$add_all_subjects_to_experiment(X)
+	d$assign_w_to_all_subjects()
+	w = d$get_w()
+	d$add_all_subject_responses(2 * w + X$x + rnorm(16)[school] + rnorm(n))
+	inf = InferenceContinOLS$new(d, verbose = FALSE)
+	inf$set_seed(1); a = inf$approximate_bootstrap_distribution_beta_hat_T(B = 60, show_progress = FALSE, bootstrap_type = "within_blocks")
+	inf$set_seed(1); b = inf$approximate_bootstrap_distribution_beta_hat_T(B = 60, show_progress = FALSE, bootstrap_type = "resample_blocks")
+	fresh = InferenceContinOLS$new(d, verbose = FALSE)
+	fresh$set_seed(1); c = fresh$approximate_bootstrap_distribution_beta_hat_T(B = 60, show_progress = FALSE, bootstrap_type = "resample_blocks")
+	expect_false(identical(a, b))
+	expect_identical(b, c)
+	# a cached call of the same type is still served from the cache
+	expect_identical(inf$approximate_bootstrap_distribution_beta_hat_T(B = 60, show_progress = FALSE, bootstrap_type = "within_blocks"), a)
+
+	f1 = InferenceContinOLS$new(d, verbose = FALSE)
+	f1$set_seed(1); ci1 = f1$compute_bootstrap_confidence_interval(B = 60, show_progress = FALSE)
+	f2 = InferenceContinOLS$new(d, verbose = FALSE)
+	f2$set_seed(1); invisible(f2$approximate_bootstrap_distribution_beta_hat_T(B = 60, show_progress = FALSE, bootstrap_type = "resample_blocks"))
+	f2$set_seed(1); ci2 = f2$compute_bootstrap_confidence_interval(B = 60, show_progress = FALSE)
+	expect_equal(ci2, ci1)
+})

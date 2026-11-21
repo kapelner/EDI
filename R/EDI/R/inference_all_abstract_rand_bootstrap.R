@@ -267,7 +267,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				as.integer(B),
 				formatC(as.numeric(delta), digits = 17, format = "fg", flag = "#"),
 				transform_responses,
-				if (draws_supplied) attr(rand_bootstrap_draws, "draws_id") else "fresh",
+				# supplied draws already fix the scheme; fresh draws are keyed by it (v1.0.6-TODO-299)
+				if (draws_supplied) attr(rand_bootstrap_draws, "draws_id")
+					else paste0("fresh:", if (is.null(bootstrap_type)) "default" else bootstrap_type),
 				sep = "|"
 			)
 			private$ensure_resampling_distribution_cache("rand_bootstrap")

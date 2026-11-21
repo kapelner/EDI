@@ -519,7 +519,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				assertCount(B, positive = TRUE); assertFlag(debug)
 			}
 			# Check cache (skipped in debug mode to always get fresh diagnostic results)
-			cache_key = as.character(B)
+			# Key on the resampling scheme too: a "resample_blocks" diagnostic call must not return (or
+			# leave behind for compute_bootstrap_*()) draws of another scheme (v1.0.6-TODO-299).
+			cache_key = paste0(as.character(B), "::", if (is.null(bootstrap_type)) "default" else bootstrap_type)
 			cached_boot_distr = private$get_cached_resampling_distribution("non_param_boot", cache_key)
 			if (!isTRUE(debug) && !is.null(cached_boot_distr)) {
 				return(cached_boot_distr)
