@@ -88,7 +88,9 @@ largest_divisor_at_most = function(n, target) {
 #' land on exactly \code{B_target} blocks. \code{equal_block_sizes = TRUE} (the default)
 #' additionally requires every block to have the same subject count, checked once at
 #' construction (via \code{n \%\% B_target}) if \code{n} and \code{B_target} are both
-#' already known, and again once covariates arrive; some downstream inference classes
+#' already known, and again when the blocks are formed, at \code{assign_w_to_all_subjects()}
+#' (not when the subjects are added). An explicit \code{B_target} cannot equalise the
+#' blocks of a categorical stratum, whose categories fix the block sizes; some downstream inference classes
 #' (\code{InferenceIncidCMH}, \code{InferenceIncidExtendedRobins}) require equal block
 #' sizes unconditionally, regardless of this flag. An explicit \code{m} (one block ID per
 #' subject) bypasses covariate-derived block construction entirely.
@@ -192,8 +194,8 @@ DesignFixedBlocking = define_design_class(
 		#'   columns are used and the number of blocks is whatever their cross-classification
 		#'   gives (named strata are never silently dropped, e.g. at prime `n`). Note that with
 		#'   `equal_block_sizes = TRUE` this errors when the cells are not equal-sized (for
-		#'   example 2 sex cells at odd `n`); set `equal_block_sizes = FALSE` or pass an
-		#'   explicit `B_target`. If `strata_cols = NULL` (all covariates available) the default
+		#'   example 2 sex cells at odd `n`); set `equal_block_sizes = FALSE`, or, for binned
+		#'   continuous strata, pass an explicit `B_target`. If `strata_cols = NULL` (all covariates available) the default
 		#'   is the largest divisor of `n` that is at most `floor(sqrt(n))` (so it always
 		#'   satisfies `equal_block_sizes = TRUE`); if `n` is not yet known it is resolved to
 		#'   `floor(sqrt(n))` when subjects are added. The same cap is used when

@@ -293,11 +293,30 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 				if (length(block_counts) > 1L && any(block_counts != block_counts[1L])) {
 					# Name only the arguments this class's constructor takes (v1.0.6-TODO-73).
 					ctor_args = names(formals(self$initialize))
+					# The advice depends on whether B_target was given and on whether any stratum is
+					# binned (continuous): B_target cannot equalise the categories of a categorical
+					# stratum (factorial F6: B_target = 2 with blocks of 100 and 98).
+					all_categorical = all(vapply(strata_cols, function(col) {
+						vec = private$Xraw[[col]]
+						!is.numeric(vec) || is_few_level_integer(vec)
+					}, logical(1)))
 					advice = if (all(c("equal_block_sizes", "B_target") %in% ctor_args)) {
-						paste0("Because strata_cols was named without B_target, all of it is used and the ",
-							"block sizes are determined by the data. Set equal_block_sizes = FALSE to allow ",
-							"unequal blocks, or adjust the strata_cols / covariate binning (or pass an ",
-							"explicit B_target) so that every block has the same size.")
+						how = if (all_categorical) {
+							"adjust the strata_cols so that every block has the same size"
+						} else if (is.null(private$B_target)) {
+							"adjust the strata_cols / covariate binning (or pass an explicit B_target) so that every block has the same size"
+						} else {
+							"adjust the strata_cols / covariate binning or B_target so that every block has the same size"
+						}
+						lead = if (is.null(private$B_target)) {
+							"Because strata_cols was named without B_target, all of it is used and the block sizes are determined by the data."
+						} else if (all_categorical) {
+							paste0("B_target = ", private$B_target, " was given, but the strata are categorical, so their ",
+								"categories fix the block sizes and B_target cannot make them equal.")
+						} else {
+							paste0("With B_target = ", private$B_target, " the chosen blocks still have unequal sizes.")
+						}
+						paste0(lead, " Set equal_block_sizes = FALSE to allow unequal blocks, or ", how, ".")
 					} else {
 						"Adjust the blocking covariates or their binning so that every block has the same size."
 					}

@@ -696,6 +696,10 @@
 
 ## Bug fixes
 
+* `DesignFixedBlocking`: the unequal-block-size error no longer says
+  `B_target` was not given when it was, and no longer advises `B_target` for
+  categorical strata, whose categories fix the block sizes (v1.0.6-TODO-73).
+
 * `DesignFixedOptimal(objective = "abs_sum_diff")` with the default
   `solver = "auto"` could run for many minutes with no message (n = 40). The
   exact MILP now gets `solver_args$milp_time_limit` seconds (default 30, GLPK);

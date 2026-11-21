@@ -80,3 +80,25 @@ test_that("the unequal-blocks error does not suggest arguments a class lacks", {
 	expect_false(grepl("equal_block_sizes", err, fixed = TRUE))
 	expect_false(grepl("B_target", err, fixed = TRUE))
 })
+
+# v1.0.6-TODO-73 (remaining part, docs-scenarios factorial F6): with B_target given and categorical
+# strata of unequal size, the error said "strata_cols was named without B_target" and advised passing
+# B_target, which cannot equalise categories.
+test_that("the unequal-block error advice matches whether B_target was given and whether the strata are categorical", {
+	set.seed(5)
+	n = 198
+	X = data.frame(age = rnorm(n), B = factor(rep(0:1, c(100, 98))))
+	msg = function(...) {
+		d = DesignFixedBlocking$new(n = n, response_type = "incidence", verbose = FALSE, ...)
+		d$add_all_subjects_to_experiment(X)
+		tryCatch({ d$assign_w_to_all_subjects(); NA_character_ }, error = function(e) conditionMessage(e))
+	}
+	m_target = msg(strata_cols = "B", B_target = 2)
+	expect_match(m_target, "B_target = 2 was given, but the strata are categorical", fixed = TRUE)
+	expect_false(grepl("without B_target", m_target, fixed = TRUE))
+	expect_false(grepl("pass an explicit B_target", m_target, fixed = TRUE))
+	m_none = msg(strata_cols = "B")
+	expect_match(m_none, "named without B_target", fixed = TRUE)
+	expect_false(grepl("pass an explicit B_target", m_none, fixed = TRUE))
+	expect_match(m_none, "equal_block_sizes = FALSE", fixed = TRUE)
+})

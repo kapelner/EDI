@@ -1502,7 +1502,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     binding's `py::arg` defaults against its `<name>_cpp` twin in `RcppExports.R` (no compiled module needed);
     it fails on the old binding and passes now. The rpy-parity mechanical check now reports 0 findings (was these
     2). No other default mismatch with a same-name twin. **Takes effect only when the wheel is rebuilt.**
-- [ ] TODO-73 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent):
+- [x] TODO-73 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent):
   **`DesignFixedBlockedCluster` refuses blocks with different numbers of subjects, and its error points to an
   argument it does not take.** The blocking base (`design_blocking_abstract.R`, `equal_block_sizes = TRUE` by
   default, checked ~L263/L286) rejects strata of unequal size and says "Set equal_block_sizes = FALSE", but
@@ -1548,6 +1548,14 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     `B_target` advice when the strata are categorical (it cannot equalise 100/98), and make the help say the
     check fires at assignment (or move it to `add_all_subjects_to_experiment()`). Tick this entry when that is
     done.
+  Done 2026-11-21 (agent), remaining part: the unequal-block error in `design_blocking_abstract.R` now picks its
+  advice from whether `B_target` was given and whether every stratum is categorical (factor/character or a
+  few-level integer): with `B_target = 2` and the factorial F6 blocks of 100/98 it says "B_target = 2 was given, but
+  the strata are categorical, so their categories fix the block sizes and B_target cannot make them equal. Set
+  equal_block_sizes = FALSE ..."; the "pass an explicit B_target" advice appears only for binned continuous strata.
+  `DesignFixedBlocking`'s roxygen now says the check fires at `assign_w_to_all_subjects()` and that `B_target` cannot
+  equalise categorical strata (Rd not regenerated). Test: new block in `test-blocked-cluster-unequal-block-sizes.R`
+  (118 pass); the 17 `*blocking*` bulk files pass.
 - [ ] TODO-74 (added 2026-11-17, agent, owner request; found by the cluster-and-factorial article agent): **The
   jackknife silently returns `c(NA, NA)` on `DesignFixedBlockedCluster`.**
   `compute_jackknife_wald_confidence_interval()` gives `NA, NA` with no warning for `unit = "auto"`,
