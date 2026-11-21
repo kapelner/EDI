@@ -3129,6 +3129,9 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
     and the exported `fast_weibull_regression(optimization_alg = "lbfgs")` matches survreg to 8 digits on the
     same kind of data. Not yet pinned by a test on this repro or on the interval-censored article data
     (`ic-weibull`, 0.4430507).
+  - Regression test added 2026-11-21 (agent): `test-weibull-unscaled-covariates-fit-converges.R` now runs the
+    survival-censoring F1 repro and checks the default (L-BFGS) and Newton estimates against `survreg` to 1e-6.
+    The interval-censored article data is still not pinned.
 
 - [ ] TODO-164 (added 2026-11-18, agent; from v1.0.6-TODO-161): **The Weibull C++ kernel (`fast_weibull_regression_cpp`)
   fails to converge on unscaled covariates** (lbfgs and newton both hit `maxit = 100` on `survival::colon`; survreg
@@ -5632,7 +5635,7 @@ were found by reading, not by running a fix.
   on `DesignFixedBlocking` and `DesignFixediBCRD`, which is also the ds-incidence f4 shape: one warning, none on a
   repeat call, p = 0.009 and CI (finite, Inf) unchanged); the 13 fisher-named test files pass.
 
-- [ ] TODO-307 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f2):
+- [x] TODO-307 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f2):
   **`fast_weibull_regression(use_rcpp = FALSE)` reports "failed to converge" when the real problem is an empty column
   name.** With `X = cbind(w, d$age)` (column names `"w"`, `""`) the Rcpp path fits, but the survreg path stops with
   "Weibull regression failed to converge: attempt to use zero-length variable name". The wrapper turns every survreg
@@ -5640,6 +5643,13 @@ were found by reading, not by running a fix.
   empty or duplicated column names safe names (`make.names(..., unique = TRUE)`, mapping the coefficient names back),
   and only say "failed to converge" for a real non-convergence; pass other errors through with their own message.
   Test: the finding's matrix fits on both paths with the same coefficients (1e-6). Repro: survival-censoring F2.
+  Done 2026-11-21 (agent): the survreg path of `fast_weibull_regression()` (`helper_glm_fit.R`) fits under safe
+  names (empty -> `X<j>`, duplicates made unique, names `y` / `dead` that collided with the response columns of its
+  data frame renamed) and returns the coefficients under the original names; a survreg error is reported as "failed to
+  converge" only when its message mentions convergence, otherwise as "Weibull regression (survreg) failed: <msg>".
+  Evidence: the F2 matrix gives (1.27211, 0.18656, 0.02046) on both paths (was an error on survreg). Also fixed on
+  the way: covariate columns named `y` or `dead` used to be overwritten by the response in that data frame. Test: new
+  block in `test-fast-weibull-regression-r-fallback-reference.R`.
 
 - [ ] TODO-308 (added 2026-11-20, coordinator, owner request; ds-survival-censoring-44358267779-f3): **An exact event
   time of 0 is accepted, and `InferenceSurvivalWeibullRegr` then returns NA estimate, CI and p-value with no

@@ -73,3 +73,20 @@ test_that("use_rcpp = FALSE ignores estimate_only -- unlike the Rcpp path, vcov 
 	expect_equal(r_estimate_only$coefficients, r_full$coefficients)
 	expect_equal(r_estimate_only$vcov, r_full$vcov)
 })
+
+# v1.0.6-TODO-307 (docs-scenarios survival-censoring F2): an empty column name (X = cbind(w, d$age))
+# made the survreg path stop with "failed to converge: attempt to use zero-length variable name".
+test_that("the survreg path fits columns with empty or reserved names and matches the Rcpp path", {
+	skip_if_not_installed("survival")
+	set.seed(1); d = data.frame(age = rnorm(100, 60, 10)); w = rbinom(100, 1, 0.5)
+	y = rexp(100, 0.1); dead = rbinom(100, 1, 0.7)
+	X = cbind(w, d$age)
+	a = fast_weibull_regression(y, dead, X)$coefficients
+	b = fast_weibull_regression(y, dead, X, use_rcpp = FALSE)$coefficients
+	expect_equal(unname(b), unname(a), tolerance = 1e-6)
+	expect_identical(names(b), c("(Intercept)", "w", ""))
+	X2 = cbind(y = w, dead = d$age)  # names that collide with the response columns
+	b2 = fast_weibull_regression(y, dead, X2, use_rcpp = FALSE)$coefficients
+	expect_equal(unname(b2), unname(a), tolerance = 1e-6)
+	expect_identical(names(b2), c("(Intercept)", "y", "dead"))
+})

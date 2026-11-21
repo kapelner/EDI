@@ -696,6 +696,11 @@
 
 ## Bug fixes
 
+* `fast_weibull_regression(use_rcpp = FALSE)` now fits a covariate matrix with
+  an empty or duplicated column name (e.g. `cbind(w, d$age)`), or columns named
+  `y` / `dead`, instead of stopping with "failed to converge", and reports other
+  survreg errors as such (v1.0.6-TODO-307).
+
 * `InferenceIncidExactFisher$compute_estimate()` now warns (class
   `edi_procedure_na_warning`) when it returns `NA` because an arm has no events
   and the conditional MLE is infinite, and names the cause; the exact CI and

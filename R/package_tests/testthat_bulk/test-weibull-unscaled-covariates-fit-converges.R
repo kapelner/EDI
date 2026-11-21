@@ -58,3 +58,21 @@ test_that("standardized retry maps the solution back to the original columns", {
 	# a fit that cannot be rescued is returned unchanged
 	expect_identical(weibull_fit_standardized_retry(function(X_try, ws) NULL, X, failed_res = failed), failed)
 })
+
+# v1.0.6-TODO-163 (docs-scenarios survival-censoring F1): on installed 1.0.4 the default L-BFGS fit
+# stopped short of the MLE (0.4776586 vs survreg 0.4771847); fixed by the internal column scaling.
+test_that("default Weibull AFT fit matches survreg on the survival-censoring F1 repro", {
+	skip_if_not_installed("survival")
+	set.seed(20261118); n = 80
+	X = data.frame(age = round(rnorm(n, 62, 9)), ecog = sample(0:1, n, replace = TRUE))
+	des = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X); des$assign_w_to_all_subjects(); w = des$get_w()
+	t_ev = rweibull(n, shape = 1.3, scale = 10 * exp(0.5 * w - 0.02 * (X$age - 62) - 0.3 * X$ecog))
+	fu = round(18 - runif(n, 0, 10), 2); obs = t_ev <= fu; tm = ifelse(obs, round(t_ev, 2), fu)
+	des$add_all_subject_responses(ys = ifelse(obs, tm, NA), y_Ls = ifelse(obs, NA, tm), y_Rs = ifelse(obs, NA, Inf))
+	inf = InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
+	g = survival::survreg(survival::Surv(tm, as.integer(obs)) ~ w + age + ecog, data = X, dist = "weibull")
+	expect_equal(inf$compute_estimate(), unname(coef(g)["w"]), tolerance = 1e-6)
+	inf$set_optimization_alg("newton_raphson")
+	expect_equal(inf$compute_estimate(), unname(coef(g)["w"]), tolerance = 1e-6)
+})

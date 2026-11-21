@@ -1050,19 +1050,27 @@ fast_weibull_regression = function(y, dead, X, use_rcpp = TRUE, estimate_only = 
 		original_colnames = paste0("X", 1:NCOL(X_no_intercept))
 	}
 
+	# Fit under safe, unique names: an empty or duplicated column name (e.g. cbind(w, d$age))
+	# made survreg stop with "attempt to use zero-length variable name", which was reported as
+	# "failed to converge" (v1.0.6-TODO-307). The coefficients keep the original names.
+	fit_colnames = ifelse(is.na(original_colnames) | !nzchar(original_colnames),
+		paste0("X", seq_along(original_colnames)), original_colnames)
+	fit_colnames = make.unique(fit_colnames, sep = "_")
+	fit_colnames = setdiff_safe_names(fit_colnames, c("y", "dead"))
 	# Create a data frame for survreg
 	df = as.data.frame(X_no_intercept)
-	colnames(df) = original_colnames
+	colnames(df) = fit_colnames
 	df$y = y
 	df$dead = dead
 	# Wrap column names in backticks to handle special characters
-	backticked_colnames = paste0("`", original_colnames, "`")
+	backticked_colnames = paste0("`", fit_colnames, "`")
 	formula_str = paste("survival::Surv(y, dead) ~", paste(backticked_colnames, collapse = " + "))
 	mod <- tryCatch(
 		survival::survreg(as.formula(formula_str), data = df, dist = "weibull"),
 		error = function(e) {
 		msg = if (nzchar(trimws(e$message))) e$message else "survreg returned no error message"
-		stop("Weibull regression failed to converge: ", msg)
+		stop(if (grepl("converge", msg, ignore.case = TRUE)) "Weibull regression failed to converge: " else
+			"Weibull regression (survreg) failed: ", msg)
 		}
 	)
 
@@ -1075,7 +1083,8 @@ fast_weibull_regression = function(y, dead, X, use_rcpp = TRUE, estimate_only = 
 		survival::survreg(survival::Surv(y, dead) ~ 1, dist = "weibull"),
 		error = function(e) {
 		msg = if (nzchar(trimws(e$message))) e$message else "survreg returned no error message"
-		stop("Weibull regression failed to converge: ", msg)
+		stop(if (grepl("converge", msg, ignore.case = TRUE)) "Weibull regression failed to converge: " else
+			"Weibull regression (survreg) failed: ", msg)
 		}
 	)
 	coefficients = as.vector(mod$coefficients)
@@ -2475,3 +2484,11 @@ NULL
 #' @name exact_jonckheere_terpstra_pval_cpp
 #' @export
 NULL
+
+# Rename fitted-column names that collide with the response columns of the survreg data frame
+# (v1.0.6-TODO-307): "y" -> "y_1", etc., keeping them unique.
+setdiff_safe_names = function(nms, reserved) {
+	clash = nms %in% reserved
+	if (any(clash)) nms = make.unique(c(reserved, nms), sep = "_")[-seq_along(reserved)]
+	nms
+}
