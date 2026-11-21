@@ -108,12 +108,12 @@
 #'   Poisson-specific).
 #'
 #' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'count')
-#' for (i in 1:10) {
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'count')
+#' for (i in 1:30) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rpois(10, 2))
+#' seq_des$add_all_subject_responses(rpois(30, 1))
+#' \donttest{
 #' inf = InferenceCountHurdlePoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
@@ -358,12 +358,12 @@ InferenceCountHurdlePoisson = define_inference_class(
 #'   generalizes to two parts.
 #'
 #' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'count')
-#' for (i in 1:10) {
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 30, response_type = 'count')
+#' for (i in 1:30) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
-#' seq_des$add_all_subject_responses(rpois(10, 2))
+#' seq_des$add_all_subject_responses(rpois(30, 1))
+#' \donttest{
 #' inf = InferenceCountHurdleNegBin$new(seq_des, model_formula = ~ x1)
 #' inf$compute_estimate()
 #' }

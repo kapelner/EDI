@@ -183,15 +183,17 @@ block-marginal effect. See \code{DesignFixedBlocking}.
 }
 
 \examples{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = 'count')
-for (i in 1:20) {
+seq_des = DesignSeqOneByOneBernoulli$new(n = 40, response_type = 'count')
+for (i in 1:40) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-y = rpois(20, 2)
-y[1:5] = 0L # a zero-inflated model needs zero counts
+# overdispersed counts with about 30\% structural zeros in both arms
+y = rnbinom(40, mu = 5, size = 2)
+y[rbinom(40, 1, 0.3) == 1] = 0L
+y[1:2] = 0L # a zero-inflated model needs zero counts
 seq_des$add_all_subject_responses(y)
 \donttest{
-inf = InferenceCountZeroInflatedNegBin$new(seq_des, model_formula = ~ x1)
+inf = InferenceCountZeroInflatedNegBin$new(seq_des, model_formula = ~ x1, model_formula_zero = ~ 1)
 inf$compute_estimate()
 }
 }
