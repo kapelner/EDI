@@ -5276,6 +5276,11 @@ were found by reading, not by running a fix.
   way update the roxygen paragraph that calls the two "equivalent in the large-draw limit". Test: on the finding's
   repro, the realized and reference M(w) distributions agree (KS p > 0.01 over 300 seeds), and a 400-trial null
   simulation of the randomization test is within 2 MCSE of 0.05. NEWS: changes results. Repro: fixed-designs F2.
+  Investigated 2026-11-21 (agent), needs an owner decision (the entry marks the fix as owner's choice): not changed.
+  Note for the choice: (b) keeps every realized allocation as it is today and only changes the reference, at the same
+  cost as now (501 groups of `round(1 / prop_acceptable)` draws = the 50,100 base draws already made, each group
+  keeping its best instead of the best 501 overall); (a) changes realized allocations and needs a cached quantile
+  estimate. (b) looks like the smaller and safer change; both change randomization p-values and CIs.
 
 - [ ] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
   and `DesignFixedGreedyDOptimal` at their defaults return different allocations for the same seed when covariates
