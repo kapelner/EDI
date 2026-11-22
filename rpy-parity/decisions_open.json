@@ -1,37 +1,16 @@
 {
- "rpy-parity-d81b9603c": {
-  "first_seen": "2026-11-21T23:15:09+00:00",
-  "key": "return_mismatch",
-  "last_seen": "2026-11-22T06:30:59+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_continuation_ratio_regression` (return_mismatch): R's fast_continuation_ratio_regression_cpp returns beta_full, X_aug, z, min_eigenvalue_information and fisher_information in addition to b, alpha and params. The Python dict drops min_eigenvalue_information and fisher_information. They are the diagnostics a Python user needs to reproduce R's conditioning and variance checks. It also does not mirror R's early return for n_alpha == 0 (b = zeros, alpha = empty only); Python returns the default-constructed fit instead. Suggested: Add min_eigenvalue_information and fisher_information to the Python dict, and handle cr.n_alpha == 0 as R does. Alternatively document the omissions.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_continuation_ratio_regression"
- },
  "rpy-parity-d8906bb83": {
   "first_seen": "2026-11-21T23:15:09+00:00",
   "key": "other",
-  "last_seen": "2026-11-22T06:30:59+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var` (other): The smart_cold_start parameter text says \"If True, use an initial OLS-based guess when starting from scratch.\" The kernel calls edi_opt::zap_smart_cold_start(X, Xzi, y), a model-specific start: Poisson on the nonzero rows and logistic on y==0. The sibling fast_zero_augmented_poisson docstring says exactly that. The text is not unique in bindings_count.cpp (lines 229, 651, 814), so it cannot be auto-fixed. Suggested: Change line 651 to the wording used at line 573 (\"model-specific heuristic start (Poisson for the count block, logistic for the zero block)\"). The old text occurs three times in the file, so edit by line.",
-  "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var"
- },
- "rpy-parity-dbd6daf89": {
-  "first_seen": "2026-11-22T06:30:59+00:00",
-  "key": "behaviour_mismatch",
-  "last_seen": "2026-11-22T06:30:59+00:00",
-  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var` (behaviour_mismatch): The docstring says the result also has \"the observed-information matrix (fisher_information / observed_information / information, all aliases), its negation (hessian), coefficients as a {\\\"cond\\\": ..., \\\"zi\\\": ...} split\". fast_zap_with_var_internal sets only params, vcov, information_invertible, converged, num_iter, hit_iteration_cap, neg_ll, fisher_information, gradient_norm and min_eigenvalue_information. The binding returns to_py_dict(res) and adds nothing. So observed_information, information, hessian and coefficients are never returned. The docstring also never names neg_ll or min_eigenvalue_information, which are returned. Suggested: Either add the aliases (observed_information, information, hessian = -info) and the coefficients split in fast_zap_with_var_internal or the binding, or rewrite the docstring to list the keys actually returned (fisher_information, neg_ll, min_eigenvalue_information, and so on). The fix spans several literal lines, so it needs a human.",
+  "last_seen": "2026-11-22T23:36:53+00:00",
+  "text": "`python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var` (other): The with_var docstring says smart_cold_start: \"If True, use an initial OLS-based guess when starting from scratch.\" The kernel calls edi_opt::zap_smart_cold_start(X, Xzi, y) (a Poisson start on the nonzero rows plus a logistic start on y==0). The sibling fast_zero_augmented_poisson docstring and the R roxygen (fast_zero_augmented_poisson.cpp:475) describe that model-specific heuristic. The with_var docstring also says \"Same argument meanings as fast_zero_augmented_poisson\", so the two texts contradict each other. Suggested: Replace the OLS wording at line 651 with the model-specific heuristic wording used at lines 573-575 (Poisson for the count block, logistic for the zero block). The old_text is not unique in the file (lines 229, 651 and 814 are identical), so it needs a manual edit. Optionally also copy the 'as in R, 1-based into [beta_cond, beta_zi]' note into fixed_idx.",
   "unit": "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var"
  },
  "rpy-parity-dd95d6c57": {
   "first_seen": "2026-11-22T06:30:59+00:00",
   "key": "other",
-  "last_seen": "2026-11-22T06:30:59+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_ordinal_glmm` (other): Python docstring says max_abs_log_sigma is the \"Maximum allowed value for log(sigma).\" The kernel clamps log_sigma symmetrically, std::clamp(raw_log_sigma, -max_abs_log_sigma, +max_abs_log_sigma), and the R roxygen says \"Symmetric clamp bound for log_sigma during optimization (default 8)\". The Python text implies only an upper bound. Suggested: Reword the docstring to \"Symmetric clamp bound: log(sigma) is limited to [-max_abs_log_sigma, +max_abs_log_sigma].\" The identical line \"    Maximum allowed value for log(sigma).\\n\" also appears at python/cpp/bindings_ordinal.cpp:647, so the automatic docstring fix (old_text must occur once) cannot be used. Edit both places by hand. Check whether the line-647 binding clamps symmetrically too.",
+  "last_seen": "2026-11-22T23:36:53+00:00",
+  "text": "`python/cpp/bindings_ordinal.cpp::fast_ordinal_glmm` (other): The docstring says max_abs_log_sigma is the \"Maximum allowed value for log(sigma).\" The kernel clamps log_sigma symmetrically: std::clamp(raw_log_sigma, -max_abs_log_sigma, +max_abs_log_sigma). The R roxygen says \"Symmetric clamp bound for log_sigma during optimization (default 8)\". The Python text suggests a one-sided upper bound. Suggested: Change the text to \"Symmetric clamp bound: log(sigma) is clamped to [-max_abs_log_sigma, +max_abs_log_sigma].\" The identical line also occurs at line 647 in the same file, so a unique automatic edit is not possible; edit line 796 by hand.",
   "unit": "python/cpp/bindings_ordinal.cpp::fast_ordinal_glmm"
- },
- "rpy-parity-ddc02a0dc": {
-  "first_seen": "2026-11-21T23:15:09+00:00",
-  "key": "return_mismatch",
-  "last_seen": "2026-11-22T06:30:59+00:00",
-  "text": "`python/cpp/bindings_ordinal.cpp::fast_adjacent_category_logit` (return_mismatch): R's fast_adjacent_category_logit_cpp returns min_eigenvalue_information, a conditioning diagnostic. The Python dict has b, alpha, params, neg_loglik, num_iter, hit_iteration_cap, converged and gradient_norm only. It drops min_eigenvalue_information. The docstring has no Returns section. Suggested: Add out[\"min_eigenvalue_information\"] = fit.min_eigenvalue_information, or document that it is omitted.",
-  "unit": "python/cpp/bindings_ordinal.cpp::fast_adjacent_category_logit"
  }
 }
