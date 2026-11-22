@@ -5870,6 +5870,26 @@ The numerical-robustness audit (PRs #51, #64, #71) added these tests with `skip(
   Fix: fit the zero/one parts as one weighted multinomial logit with the interior as reference (or as a weighted `fast_zero_one_inflated_beta` fit). Related: v1.1.0-TODO-197.
   Test: `R/package_tests/testthat_bulk/test-zoib-marginal-weighted-unit-weights-match-ml-estimate.R` ("ZOIB marginal mean diff under unit bootstrap weights matches the unweighted ML estimate"), currently skipped; remove the skip when fixed.
 
+### Process and save-format questions from the audit free-text sweep, 2026-11-22 (TODO-402..403)
+
+Found by the 2026-11-22 sweep of every audit report for items written outside the structured findings.
+
+- [ ] TODO-402 (added 2026-11-22, coordinator, owner request; audit free-text sweep, test-suite-health run 44358374710
+  `mechanical.json` and numerical-robustness PRs #51/#64/#71): **Audit-written bug tests that are skipped without a
+  TODO never reach any issue.** The numerical-robustness audit merges a failing test for each bug it finds behind
+  `skip("open a release TODO for this")`, and audit-notes marks the finding `fixed`/`proposed`; test-suite-health
+  reports these skips only as `unconditional-skip` in its own `mechanical.json`, which `audit_decisions.py` does not
+  read. 17 such tests sat untracked until v1.0.6-TODO-385..401 (2026-11-22).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-402](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-402) (how should
+    skipped audit tests without a TODO be surfaced?).
+
+- [ ] TODO-403 (added 2026-11-22, coordinator, owner request; audit free-text sweep, docs-scenarios run 44883784401,
+  save-load "could not do"): **A saved design or inference object carries its own method code.** R6 objects
+  serialize their method closures, so `readRDS()` of a design saved under an older EDI keeps running the old code
+  under a newer installed EDI, silently. `?Design` and the reproducibility vignette say nothing about it.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-403](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-403) (what should
+    happen when an object saved under another EDI version is loaded?).
+
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
 Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the campaign's `summary/triage.csv`: one TODO per failing class x procedure x metric. Review each: edit, merge or delete it, and move kept ones into the implementation list.

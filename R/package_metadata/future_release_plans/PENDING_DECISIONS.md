@@ -13,7 +13,7 @@ ruling, the reasons and the date added; the TODO's pointer line becomes `  - Dec
 newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-21.
+Last updated 2026-11-22.
 
 ## Summary
 
@@ -30,6 +30,8 @@ Last updated 2026-11-21.
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
+| [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.6-TODO-403](release_v1_0_6.md) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
+| [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.6-TODO-402](release_v1_0_6.md) | How should audit-written bug tests skipped without a TODO be surfaced? |
 | [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.6-TODO-373](release_v1_0_6.md) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
 | [DECISION-v1.0.6-TODO-371](#DECISION-v1.0.6-TODO-371) | [v1.0.6-TODO-371](release_v1_0_6.md) | OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)? |
 | [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.6-TODO-367](release_v1_0_6.md) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
@@ -202,6 +204,34 @@ Last updated 2026-11-21.
 - **Raised:** release file scoping, 2026-08-18.
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-403"></a>
+### DECISION-v1.0.6-TODO-403: Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods?
+
+- **TODO:** [v1.0.6-TODO-403](release_v1_0_6.md): **A saved design or inference object carries its own method code.**
+- **Context:** R6 objects serialize their method closures. A design saved with `saveRDS()` under EDI 1.0.4 and
+  restored under a later EDI runs the 1.0.4 methods, while new objects run the new ones; nothing tells the user.
+  Saved designs already carry a version stamp (`get_edi_version_created()`), and `check_version_compat` exists.
+- **Options:** (a) document it in `?Design` and the reproducibility vignette (saved objects reproduce the version
+  that saved them; refit with a new object to use the new code); (b) (a) plus a warning on first use when the stamp
+  differs from the installed version; (c) rebind methods to the installed class on load (objects then follow the new
+  code, which breaks exact reproduction of the old allocations), with (a).
+- **Evidence:** reported by the save-load docs-scenario agent as something it could not determine from the docs.
+- **Raised:** 2026-11-22, coordinator, from the audit free-text sweep.
+
+<a id="DECISION-v1.0.6-TODO-402"></a>
+### DECISION-v1.0.6-TODO-402: How should audit-written bug tests skipped without a TODO be surfaced?
+
+- **TODO:** [v1.0.6-TODO-402](release_v1_0_6.md): **Audit-written bug tests that are skipped without a TODO never
+  reach any issue.**
+- **Context:** numerical-robustness merges bug tests behind `skip("open a release TODO for this")`; test-suite-health
+  sees them as `unconditional-skip` in `mechanical.json`, but `audit_decisions.py` and issue #56 never list them, so
+  17 sat untracked (now v1.0.6-TODO-385..401).
+- **Options:** (a) have `audit_decisions.py` read test-suite-health's `unconditional-skip` findings as open mechanical
+  findings, cleared when the skip names a release TODO; (b) a pre-push / CI gate that fails on any
+  `skip("open a release TODO for this")`; (c) have the numerical-robustness audit file the TODO itself in its PR
+  instead of the placeholder skip; (d) leave as is and rely on periodic sweeps.
+- **Raised:** 2026-11-22, coordinator, from the audit free-text sweep.
 
 <a id="DECISION-v1.0.6-TODO-373"></a>
 ### DECISION-v1.0.6-TODO-373: `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`?
