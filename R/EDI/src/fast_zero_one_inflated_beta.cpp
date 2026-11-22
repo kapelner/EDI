@@ -630,7 +630,7 @@ Eigen::MatrixXd get_zero_one_inflated_beta_hessian_cpp(const Eigen::Map<Eigen::M
 //' supplies the full starting vector directly; otherwise, if \code{smart_cold_start
 //' = TRUE} (the default): \eqn{\beta} starts from an OLS fit of
 //' \eqn{\mathrm{logit}(y_i)} on \code{X} restricted to interior observations
-//' (\eqn{0 < y_i < 1}), falling back to zero if fewer such observations than
+//' (\eqn{0 < y_i < 1}), falling back to zero unless more such observations than
 //' \code{ncol(X)} are available; \eqn{\log\phi} starts at 2; and \eqn{\gamma_0}/
 //' \eqn{\gamma_1} each start from a separate OLS fit of \code{X_zero_one} on the
 //' corresponding 0/1 indicator (\eqn{\mathbb{1}[y_i = 0]}, \eqn{\mathbb{1}[y_i =

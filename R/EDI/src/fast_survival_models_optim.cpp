@@ -743,7 +743,7 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
         params.segment(p, p) = b_ols; // beta_cens
         params[2 * p] = 0.0; // log_sigma_event
         params[2 * p + 1] = 0.0; // log_sigma_cens
-        params[2 * p + 2] = 0.0; // log_theta
+        params[2 * p + 2] = 0.0; // atanh_rho
     } else {
         params.setZero();
     }

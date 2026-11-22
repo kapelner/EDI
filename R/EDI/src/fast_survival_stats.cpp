@@ -653,7 +653,7 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
 // BRT variant of the KM survival-statistic difference (median or restricted mean):
 // each replicate b resamples rows i_mat(., b) and pairs them with the fresh assignment
 // w_mat(., b); the sharp-null shift is multiplicative on the treated times (delta on the
-// log scale). Serial: get_survival_stat_for_group allocates R objects, which is not
+// log scale). Serial: the SEXP wrapper get_survival_stat_for_group allocates R objects, which is not
 // thread-safe; the win over the R paths is eliminating per-replicate object duplication.
 // [[Rcpp::export]]
 NumericVector compute_survival_stat_diff_rand_bootstrap_serial_cpp(

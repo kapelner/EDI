@@ -386,7 +386,7 @@ std::optional<double> fast_robust_regression_ssq_b_j_internal(
 //' ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
 //' weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
 //' otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
-//' any other value of \code{method} (including the default, \code{"MM"}) uses
+//' \code{method = "MM"} (the default; any other value is an error) uses
 //' \strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
 //' and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
 //' this exported wrapper, though the internal fitter accepts it). The scale is the
@@ -420,8 +420,8 @@ std::optional<double> fast_robust_regression_ssq_b_j_internal(
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
 //'   is supplied, use an OLS (QR) initial guess; see the section "Fixed parameters, warm starts".
-//' @param method Robust estimation method: \code{"M"} for Huber weighting, anything else
-//'   (default \code{"MM"}) for Tukey bisquare weighting; see the Description.
+//' @param method Robust estimation method: \code{"M"} for Huber weighting, \code{"MM"}
+//'   (the default) for Tukey bisquare weighting; any other value is an error; see the Description.
 //' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 //' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 //' @param maxit Maximum number of IRLS iterations.
@@ -432,10 +432,10 @@ std::optional<double> fast_robust_regression_ssq_b_j_internal(
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial curvature (\eqn{X^\top W X}) matrix for the first IRLS iteration.
 //' @param estimate_only If \code{TRUE}, skip the post-fit asymptotic-variance computation
-//'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.
+//'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{num_iter} (plus diagnostics).
 //'
 //' @return If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
-//'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{iterations}.
+//'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{num_iter}.
 //'   Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
 //'   \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
 //'   or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance

@@ -252,7 +252,7 @@ edi::ResultMap fast_ordinal_regression_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-// Simple solver using Newton-Raphson as we have a small number of parameters (usually)
+// Simple solver using L-BFGS by default (optimization_alg) as we have a small number of parameters (usually)
 //' Fast Cumulative Ordinal Regression with a Logit Link, i.e. Proportional-Odds
 //' Regression (C++)
 //'

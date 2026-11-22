@@ -83,7 +83,7 @@ A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
   \code{newton_polish_iterations} (diagnostics for the conditional
   damped-Newton fallback), and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
-  besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
+  besides \code{b}/\code{alpha}/\code{params}/\code{log_sigma}/\code{num_iter} and the flag fields are \code{NA}).
 }
 \description{
 Fits a cumulative-logit ordinal mixed model with a single Gaussian random intercept

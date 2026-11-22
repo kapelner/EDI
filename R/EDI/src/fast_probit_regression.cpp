@@ -350,7 +350,7 @@ ModelResult fast_probit_regression_internal(
             // above); this is the full-parameter-space information matrix
             // (not a fixed-padded expansion, so safe to use directly)
             // computed from the LBFGS-fitted res.b -- reused rather than
-            // requiring ProbitLbfgsObjective to implement .hessian()
+            // requiring a separate Fisher-information pass in the L-BFGS driver
             // (optimizer_diagnostics_report.md TODO-1).
         }
         if (res.score.size() == 0) {

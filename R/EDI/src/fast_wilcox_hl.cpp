@@ -594,7 +594,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(SEXP w, SEXP y
 
 // BRT variant: each replicate b resamples rows i_mat(., b) of the sharp-null outcomes y0
 // and pairs them with the fresh assignment w_mat(., b); delta is the sharp-null shift
-// applied to the freshly treated on the transform_code scale (see apply_shift; code 4 =
+// applied to the freshly treated on the transform_code scale (see apply_shift_hl; code 4 =
 // count response, multiplicative with rounding).
 // [[Rcpp::export]]
 NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Eigen::VectorXd>& y0,
