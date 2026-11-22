@@ -9,11 +9,9 @@
 # Where: R/EDI/R/inference_ordinal_gcomp.R:281 (kind: converged_unchecked).
 # On commit 4ce2b7126d36 this test failed with: Expected `md_shifted` to equal `md0`. Differences:
 # 1/1 mismatches [1] 0.112 - 0.507 == -0.395
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# v1.0.6-TODO-393: verified fixed on HEAD 2026-11-22 (this test passes); skip removed.
 
 test_that("ordinal G-comp mean difference is invariant to shifting a covariate's location", {
-	skip("open a release TODO for this")
 		gcomp_md_at_shift = function(shift){
 			set.seed(1)
 			n = 200L

@@ -7,11 +7,10 @@
 # Where: R/EDI/R/inference_mixin_off_optimum_likelihood_eval.R:99 (kind: other_numerical).
 # On commit 48765322fe90 this test failed with: Expected `val` to equal Inf. Differences: 1/1
 # mismatches [1] -0.396 - Inf == -Inf
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-391; remove the skip() when it is fixed.
 
 test_that("penalized neg-loglik is infeasible (Inf) when the information matrix is indefinite", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-391: determinant()$modulus drops the sign, so an indefinite information gives a finite value")
 		mixin = EDI:::InferenceMixinOffOptimumLikelihoodEval
 		env = new.env(parent = asNamespace("EDI"))
 		priv = lapply(mixin$private, function(f) {

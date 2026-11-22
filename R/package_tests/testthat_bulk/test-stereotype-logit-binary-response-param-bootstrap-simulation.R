@@ -8,11 +8,10 @@
 # Where: R/EDI/R/inference_ordinal_stereotype_logit.R:684 (kind: na_where_defined).
 # On commit 4ce2b7126d36 this test failed with: Expected `is.null(boot)` to be FALSE. Differences:
 # `actual`: TRUE `expected`: FALSE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-397; remove the skip() when it is fixed.
 
 test_that("stereotype logit parametric LR bootstrap simulates a binary (K = 2) response", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-397: the gamma index range runs downward when K = 2")
 		set.seed(1)
 		n = 200L
 		x = rnorm(n)

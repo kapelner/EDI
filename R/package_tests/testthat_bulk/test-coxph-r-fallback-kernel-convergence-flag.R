@@ -8,11 +8,10 @@
 # Where: R/EDI/R/inference_survival_coxph.R:69 (kind: converged_unchecked).
 # On commit 0231668c948b this test failed with: Expected `fit_converged` to be identical to
 # `ref_converged`. Differences: 1 element mismatch
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-387; remove the skip() when it is fixed.
 
 test_that("Cox R fallback kernel reports convergence only when survival::coxph.fit converged", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-387: .fit_survival_coxph_kernel() hard-codes converged = TRUE")
 		# Each event subject has the strictly largest covariate in its risk set, so the
 		# Breslow partial loglik increases toward 0 as beta -> Inf (monotone likelihood).
 		X = matrix(c(4, 3, 2, 1), ncol = 1, dimnames = list(NULL, "x1"))

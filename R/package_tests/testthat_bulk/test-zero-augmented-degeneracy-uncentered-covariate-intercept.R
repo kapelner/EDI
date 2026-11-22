@@ -8,11 +8,10 @@
 # Where: R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1564 (kind: na_where_defined).
 # On commit 48765322fe90 this test failed with: Expected `all(is.finite(ci_raw))` to be TRUE.
 # Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-399; remove the skip() when it is fixed.
 
 test_that("ZIP marginal CI is finite and invariant to shifting an uncentered covariate", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-399: the degeneracy rule params[1] < -15 depends on covariate location")
 		set.seed(11)
 		n = 300L
 		des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "count", verbose = FALSE)

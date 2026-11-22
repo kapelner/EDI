@@ -5798,6 +5798,78 @@ were found by reading, not by running a fix.
   (it already computes them), and check the other model-based classes for the same gap. Test: the finding's repro
   shows rows for the intercept, treatment, x1 and x2 matching `summary(lm())` to 1e-8. Repro: missing-data F8.
 
+### Audit-written bug tests that were skipped without a TODO, 2026-11-22 (TODO-385..401)
+
+The numerical-robustness audit (PRs #51, #64, #71) added these tests with `skip("open a release TODO for this")`, and no TODO was ever opened for them. Each one was re-run on HEAD `ac08e642` (2026-11-22) with the skip removed, under `load_all(compile = FALSE)`. Every test that still fails now skips with a message citing its TODO.
+
+- [ ] TODO-385 (added 2026-11-22, coordinator, owner request; numerical-robustness-609a1f12ec78): **`InferencePropBetaRegr` marginal-mean-diff SE is NA when a covariate is on a large scale.**
+  On HEAD, `se_big` is NA while the unit-scale SE is 0.0328. `generate_mod()` (`R/EDI/R/inference_proportion_beta.R` ~L741) discards the vcov when the raw `rcond(fi) < sqrt(eps)`, and that test depends on scale.
+  Fix: test conditioning on `D^{-1/2} fi D^{-1/2}` with `D = diag(fi)`, or use the kernel's own invertibility flag.
+  Test: `R/package_tests/testthat_bulk/test-beta-regr-marginal-se-covariate-rescaling-invariance.R` ("beta regression marginal_mean_diff SE is invariant to rescaling a covariate"), currently skipped; remove the skip when fixed.
+- [ ] TODO-386 (added 2026-11-22, coordinator, owner request; numerical-robustness-23a66300445a): **Combined evidence returns NaN, or one p-value labelled as combined, when fewer than two rows have a positive custom weight.**
+  On HEAD, `res0$pval` is NaN with all-zero weights, and with one positive weight the result is that row's p-value instead of NA. `run_all_inference_combine_pvalues()` (`R/EDI/R/inference_suite.R` ~L4273) counts a row as usable whenever its weight is finite, zero included.
+  Fix: require `weights > 0` in `usable`, so the existing `n_used < 2 -> NA` branch fires.
+  Test: `R/package_tests/testthat_bulk/test-combined-evidence-zero-custom-weights-not-nan.R` ("combined evidence returns NA, not NaN or a single p-value, when fewer than two rows carry positive weight"), currently skipped; remove the skip when fixed.
+- [ ] TODO-387 (added 2026-11-22, coordinator, owner request; numerical-robustness-3165df9ca614): **The Cox R fallback kernel always reports `converged = TRUE`.**
+  On HEAD, on a monotone-likelihood fit where `coxph.fit` runs out of iterations and warns, `fit_converged` differs from the reference flag. `.fit_survival_coxph_kernel()` (`R/EDI/R/inference_survival_coxph.R` L44/L69/L105) hard-codes `converged = TRUE` inside `suppressWarnings()`.
+  Fix: derive `converged` from `coxph.fit` (`iter < iter.max`, no "Ran out of iterations") and pass it through the fixed-kernel wrapper.
+  Test: `R/package_tests/testthat_bulk/test-coxph-r-fallback-kernel-convergence-flag.R` ("Cox R fallback kernel reports convergence only when survival::coxph.fit converged"), currently skipped; remove the skip when fixed.
+- [ ] TODO-388 (added 2026-11-22, coordinator, owner request; numerical-robustness-6fbae0626f0b): **The combined conditional-Poisson restricted fit reports `converged = FALSE` at the exact restricted optimum.**
+  On HEAD, `fit$converged` is FALSE even though the free-parameter estimates match the restricted MLE. `fast_cpoisson_combined_internal` (`R/EDI/src/fast_cpoisson_combined.cpp` ~L340) tests `grad.norm()` over all parameters, including the ones held fixed by `fixed_idx`.
+  Fix: take the norm over `fixed_spec.free_idx` only, as the Newton step already does.
+  Test: `R/package_tests/testthat_bulk/test-cpoisson-combined-fixed-parameter-convergence-flag.R` ("combined cond-Poisson restricted fit reports convergence at the restricted optimum"), currently skipped; remove the skip when fixed.
+- [ ] TODO-389 (added 2026-11-22, coordinator, owner request; numerical-robustness-c8ab3465e2aa): **`InferenceIncidRiskDiff` returns an NA estimate on a perfect fit (y = w; the true RD is 1).**
+  On HEAD, `compute_estimate()` returns NA where 1 is expected. `generate_mod()`'s `fit_ok` (`R/EDI/R/inference_incidence_risk_diff.R` ~L290-320) requires a positive HC0 variance, so the zero-variance fit is rejected and the finite point estimate is lost.
+  Fix: accept a finite treatment coefficient, and mark only the SE as non-estimable.
+  Test: `R/package_tests/testthat_bulk/test-incidence-risk-diff-perfect-fit-estimate-not-na.R` ("risk-difference estimate is returned for a perfect fit even though the HC0 SE is not estimable"), currently skipped; remove the skip when fixed.
+- [ ] TODO-390 (added 2026-11-22, coordinator, owner request; numerical-robustness-a98e2d9a3577): **`InferenceCountKKCondPoissonOneLik`'s pairs-only fallback always sets the SE to NA.**
+  On HEAD, the SE is NA where the reference conditional-logit model SE is 0.173. `try_pairs_only()` (`R/EDI/R/inference_count_KK_cond_poisson.R` ~L2210) sets `s_beta_hat_T = NA_real_`, so studentized bootstrap replicates on that path have no SE.
+  Fix: when `!estimate_only`, use the `[1,1]` entry of `solve(crossprod(X, X * n_k * p * (1 - p)))`, as `try_reservoir_only` does.
+  Test: `R/package_tests/testthat_bulk/test-kk-cond-poisson-pairs-only-fallback-standard-error.R` ("KK cond-Poisson pairs-only fallback reports the finite conditional-logit model SE"), currently skipped; remove the skip when fixed.
+- [ ] TODO-391 (added 2026-11-22, coordinator, owner request; numerical-robustness-5402ae828a70): **The off-optimum penalized neg-loglik is finite at an indefinite information matrix.**
+  On HEAD, with `diag(2, -3)` the function returns -0.396 instead of Inf. `evaluate_penalized_neg_loglik_at()` (`R/EDI/R/inference_mixin_off_optimum_likelihood_eval.R` ~L99) uses `determinant()$modulus` and drops the sign, so the Jeffreys/Firth penalty is evaluated where it is undefined.
+  Fix: return Inf unless `chol()` succeeds (or `$sign == 1`), and use `2 * sum(log(diag(R)))` as the log-determinant.
+  Test: `R/package_tests/testthat_bulk/test-off-optimum-penalized-loglik-indefinite-information.R` ("penalized neg-loglik is infeasible (Inf) when the information matrix is indefinite"), currently skipped; remove the skip when fixed.
+- [ ] TODO-392 (added 2026-11-22, coordinator, owner request; numerical-robustness-96505e151f00): **The cloglog full-data multistart does nothing on the estimate-only path.**
+  On HEAD, a stalled primary fit is returned unchanged: `b[1]` is 1.64 against the MLE's -0.357. `.cloglog_full_data_multistart()` (`R/EDI/R/inference_ordinal_cloglog.R` L1) needs `neg_loglik`, which the estimate-only kernel never returns, so no candidate can be compared.
+  Fix: have the estimate-only kernel return `neg_loglik`, or evaluate it in the helper. Related: v1.1.0-TODO-203 (gate the multistart on a certificate).
+  Test: `R/package_tests/testthat_bulk/test-ordinal-cloglog-estimate-only-multistart-repairs-stalled-fit.R` ("cloglog full-data multistart repairs a stalled primary fit on the estimate-only path"), currently skipped; remove the skip when fixed.
+- [x] TODO-393 (added 2026-11-22, coordinator, owner request; numerical-robustness-5b7fd96029e3): **`InferenceOrdinalGCompMeanDiff` changed with a covariate's location (uncentred covariate, unchecked `converged`).**
+  Verified fixed on HEAD 2026-11-22 (test passes; skip removed). At `ac08e642` all 3 expectations pass with the skip removed. The fixing commit was not identified.
+  Test: `R/package_tests/testthat_bulk/test-ordinal-gcomp-mean-diff-uncentred-covariate-shift-invariance.R` ("ordinal G-comp mean difference is invariant to shifting a covariate's location"), now unskipped.
+- [ ] TODO-394 (added 2026-11-22, coordinator, owner request; numerical-robustness-dfcefb11b502): **`InferenceCountPoisson` returns 0 for large counts (cell means ~2e4) under the default zero cold start.**
+  On HEAD, `fast_poisson_regression_cpp` returns `b = c(0, 0)` against glm's `c(9.938, 0.651)`, and the estimate is 0 instead of 0.694. Ten step-halvings cannot rescue the first IRLS step from `beta = 0` (`R/EDI/src/fast_poisson_regression.cpp`, `fast_poisson_internal`), and `fit_ok` (`R/EDI/R/inference_count_poisson.R` ~L563/L953) never checks `converged`.
+  Fix: retry from the smart `log(y + 0.1)` start when halving fails, and reject non-converged fits in `fit_ok`. This is the same kernel as TODO-395 and TODO-396.
+  Test: `R/package_tests/testthat_bulk/test-poisson-large-counts-zero-start-step-halving.R` ("Poisson estimate matches glm for large counts under the default zero cold start"), currently skipped; remove the skip when fixed.
+- [ ] TODO-395 (added 2026-11-22, coordinator, owner request; numerical-robustness-0cdb0c814d69): **`InferenceCountQuasiPoisson` returns 0 for large counts under the zero cold start.**
+  On HEAD, the estimate is 0 instead of 0.694. This is the same kernel failure as TODO-394, and `fit_ok` (`R/EDI/R/inference_count_quasipoisson.R` ~L321) accepts it because the Pearson dispersion stays finite.
+  Fix: the same as TODO-394, applied to this class's `fit_ok`.
+  Test: `R/package_tests/testthat_bulk/test-quasipoisson-large-counts-zero-start-step-halving.R` ("quasi-Poisson estimate matches glm for large counts under the default zero cold start"), currently skipped; remove the skip when fixed.
+- [ ] TODO-396 (added 2026-11-22, coordinator, owner request; numerical-robustness-747496232200): **`InferenceCountRobustPoisson` returns 0 for large counts under the zero cold start.**
+  On HEAD, the estimate is 0 instead of 0.694, with a sandwich SE evaluated at `b = 0`. `fit_count_model_with_var()` (`R/EDI/R/inference_count_robust_poisson.R` ~L218) checks only that the coefficients are finite.
+  Fix: check `mod$converged` and refit from the smart start (or take the kernel fix from TODO-394).
+  Test: `R/package_tests/testthat_bulk/test-robust-poisson-large-counts-zero-start-step-halving.R` ("robust Poisson estimate matches glm for large counts under the default zero cold start"), currently skipped; remove the skip when fixed.
+- [ ] TODO-397 (added 2026-11-22, coordinator, owner request; numerical-robustness-f0b0281da215): **The stereotype logit parametric-bootstrap simulator breaks for a binary (K = 2) response.**
+  On HEAD, `simulate_under_lik_null()` returns NULL and the parametric-bootstrap LR p-value is NA (with a warning). `gammas = params_null[(n_alpha + p + 1L):n_params]` (`R/EDI/R/inference_ordinal_stereotype_logit.R` ~L716) counts downward when there are no loadings, which gives `c(NA, beta)`.
+  Fix: `gammas = if (n_gamma > 0L) params_null[n_alpha + p + seq_len(n_gamma)] else numeric(0)`. Check the same idiom at ~L44.
+  Test: `R/package_tests/testthat_bulk/test-stereotype-logit-binary-response-param-bootstrap-simulation.R` ("stereotype logit parametric LR bootstrap simulates a binary (K = 2) response"), currently skipped; remove the skip when fixed.
+- [ ] TODO-398 (added 2026-11-22, coordinator, owner request; numerical-robustness-5a9caf5f5780): **The estimate-only stratified-Cox helper reports `converged = TRUE` after hitting `iter.max`.**
+  On HEAD, `res$converged` is TRUE for an unconverged coefficient. `cox_partial_likelihood_fit_estimate_only_fast()` (`R/EDI/R/inference_survival_strat_cox.R` ~L59-92) hard-codes the flag. This is the sibling of TODO-387.
+  Fix: take the flag from `coxph.fit` (iterations below the cap and no "Ran out of iterations"), or return NULL when the cap is hit.
+  Test: `R/package_tests/testthat_bulk/test-strat-cox-estimate-only-fit-convergence-flag.R` ("estimate-only coxph.fit helper does not report convergence when the iteration cap is hit"), currently skipped; remove the skip when fixed.
+- [ ] TODO-399 (added 2026-11-22, coordinator, owner request; numerical-robustness-7110d0cf73ab): **The ZIP degeneracy check flags well-identified fits whose count intercept is below -15 (an uncentred covariate).**
+  On HEAD, the marginal CI is `c(NA, NA)` on the raw covariate and `(-0.102, 0.957)` once it is centred. `zero_augmented_fit_is_degenerate()` (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R` ~L1699) uses `params[1] < -15`, which depends on where the covariates sit.
+  Fix: drop the intercept rule, or check the fitted rates instead (e.g. `max(lambda)` near 0).
+  Test: `R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R` ("ZIP marginal CI is finite and invariant to shifting an uncentered covariate"), currently skipped; remove the skip when fixed.
+- [ ] TODO-400 (added 2026-11-22, coordinator, owner request; numerical-robustness-dfcfe3aea2a6): **The Zhang combined p-value treats an underflowed matched-pairs p (p_M = 0) as missing, so the exact CI upper bound becomes +Inf.**
+  On HEAD, `p_fn(8.5)` is 1.00 where it should be at most 0.05, and the upper endpoint is Inf where the expected value is below 0.5. In `zhang_combine_exact_pvals()` (`R/EDI/R/inference_helpers_zhang.R` L20-21), `has_M` requires `p_M > 0`.
+  Fix: treat `p_M == 0` (or `p_R == 0`) as decisive (combined p = 0), or compute the components in log space. Related: v1.1.0-TODO-211 (tail-accurate combination).
+  Test: `R/package_tests/testthat_bulk/test-zhang-combined-pval-underflowed-matched-component.R` ("Zhang combined p-value does not drop an underflowed matched-pairs p-value and the exact CI stays finite"), currently skipped; remove the skip when fixed.
+- [ ] TODO-401 (added 2026-11-22, coordinator, owner request; numerical-robustness-c12c91fd6454): **The ZOIB marginal mean difference under bootstrap weights is wrong even with unit weights.**
+  On HEAD, the unit-weight estimate differs from the unweighted ML estimate by 0.029, against a tolerance of 0.005. `compute_estimate_with_bootstrap_weights()` (`R/EDI/R/inference_proportion_zero_one_inflated_beta.R` ~L272) fits two independent binary logits for P(0) and P(1), then feeds them to `zoib_marginal_mean_diff_from_coefs()`, which expects softmax logits.
+  Fix: fit the zero/one parts as one weighted multinomial logit with the interior as reference (or as a weighted `fast_zero_one_inflated_beta` fit). Related: v1.1.0-TODO-197.
+  Test: `R/package_tests/testthat_bulk/test-zoib-marginal-weighted-unit-weights-match-ml-estimate.R` ("ZOIB marginal mean diff under unit bootstrap weights matches the unweighted ML estimate"), currently skipped; remove the skip when fixed.
+
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
 Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the campaign's `summary/triage.csv`: one TODO per failing class x procedure x metric. Review each: edit, merge or delete it, and move kept ones into the implementation list.

@@ -8,11 +8,10 @@
 # Where: R/EDI/src/fast_cpoisson_combined.cpp:403 (kind: other_numerical).
 # On commit 48765322fe90 this test failed with: Expected `isTRUE(fit$converged)` to be TRUE.
 # Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-388; remove the skip() when it is fixed.
 
 test_that("combined cond-Poisson restricted fit reports convergence at the restricted optimum", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-388: the convergence norm includes the fixed parameters' gradient")
 		set.seed(1)
 		yT_v = c(3, 5, 2, 4)
 		n_k_v = c(5, 7, 6, 6)

@@ -8,11 +8,10 @@
 # Where: R/EDI/R/inference_ordinal_cloglog.R:5 (kind: other_numerical).
 # On commit 4ce2b7126d36 this test failed with: Expected `as.numeric(out$b[1])` to equal
 # `as.numeric(mle$b[1])`. Differences: 1/1 mismatches [1] 1.64 - -0.357 == 2
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-392; remove the skip() when it is fixed.
 
 test_that("cloglog full-data multistart repairs a stalled primary fit on the estimate-only path", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-392: the estimate-only kernel returns no neg_loglik, so the multistart is a no-op")
 		set.seed(20261118)
 		n = 300
 		w = rbinom(n, 1, 0.5)

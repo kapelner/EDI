@@ -6,11 +6,10 @@
 # Where: R/EDI/R/inference_survival_strat_cox.R:92 (kind: converged_unchecked).
 # On commit 0231668c948b this test failed with: Expected `is.null(res) || !isTRUE(res$converged)` to
 # be TRUE. Differences: `actual`: FALSE `expected`: TRUE
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-398; remove the skip() when it is fixed.
 
 test_that("estimate-only coxph.fit helper does not report convergence when the iteration cap is hit", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-398: the estimate-only coxph.fit helper hard-codes converged = TRUE")
 		set.seed(1)
 		n = 60
 		w = rep(c(0, 1), n / 2)

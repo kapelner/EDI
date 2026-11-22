@@ -8,11 +8,10 @@
 # On commit 48765322fe90 this test failed with: Expected `as.numeric(kfit$b)` to equal
 # `unname(stats::coef(ref0))`. Differences: 2/2 mismatches (average diff: 5.29) [1] 0 - 9.938 ==
 # -9.938 [2] 0 - 0.651 == -0.651
-# Remove the skip() once a release TODO covers this finding, and cite that TODO here
-# (v<version>-TODO-<n>).
+# Tracked as v1.0.6-TODO-394; remove the skip() when it is fixed.
 
 test_that("Poisson estimate matches glm for large counts under the default zero cold start", {
-	skip("open a release TODO for this")
+	skip("v1.0.6-TODO-394: zero-start IRLS step-halving fails for large counts and fit_ok ignores converged")
 		set.seed(1)
 		n = 40
 		X = data.frame(x1 = rnorm(n))
