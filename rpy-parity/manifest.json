@@ -1,7 +1,7 @@
 {
- "issue_hash": null,
- "last_run": "2026-11-21T23:15:09+00:00",
- "open_pr": 82,
+ "issue_hash": "a3354129da06aabb",
+ "last_run": "2026-11-22T06:30:59+00:00",
+ "open_pr": null,
  "units": {
   "python/cpp/bindings_binary.cpp::<name>": {
    "audited_at": "2026-11-19T21:52:21+00:00",
@@ -74,11 +74,11 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_count.cpp::fast_neg_bin": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "3eeff2544f74d940",
-   "hash": "2e106036620ad7db",
-   "open_findings": 2,
-   "run": "44958897845"
+   "hash": "2a8fa812e6bd8c7b",
+   "open_findings": 0,
+   "run": "44993898397"
   },
   "python/cpp/bindings_count.cpp::fast_poisson_regression": {
    "audited_at": "2026-11-19T21:29:41+00:00",
@@ -95,18 +95,18 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "6b644881345e5998",
    "hash": "94d25932187b39d0",
-   "open_findings": 1,
-   "run": "44958897845"
+   "open_findings": 0,
+   "run": "44993898397"
   },
   "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "c68c468a1d54bff9",
    "hash": "f51311e2acc8c08a",
-   "open_findings": 1,
-   "run": "44958897845"
+   "open_findings": 2,
+   "run": "44993898397"
   },
   "python/cpp/bindings_count.cpp::fast_zinb": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -228,11 +228,11 @@
    "run": "44048317273"
   },
   "python/cpp/bindings_glmm.cpp::fast_clogit_plus_glmm": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "9650eff57c582789",
    "hash": "5b0c268ad0166cb2",
-   "open_findings": 1,
-   "run": "44958897845"
+   "open_findings": 0,
+   "run": "44993898397"
   },
   "python/cpp/bindings_glmm.cpp::fast_gaussian_lmm": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -291,18 +291,18 @@
    "run": "44143207023"
   },
   "python/cpp/bindings_ordinal.cpp::fast_adjacent_category_logit": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "7d68c3e7d76d9cbf",
    "hash": "cb202d884880ac5e",
    "open_findings": 1,
-   "run": "44958897845"
+   "run": "44993898397"
   },
   "python/cpp/bindings_ordinal.cpp::fast_continuation_ratio_regression": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "a2f0548491122966",
    "hash": "7cc286494430e51d",
    "open_findings": 1,
-   "run": "44958897845"
+   "run": "44993898397"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_cauchit_regression": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -326,11 +326,11 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_glmm": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "6bafed30d7b475d9",
-   "hash": "e3ef9d8e82f5ea8b",
+   "hash": "f588f59680b3b6c8",
    "open_findings": 1,
-   "run": "44958897845"
+   "run": "44993898397"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_probit_regression": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -389,11 +389,11 @@
    "run": "44914349915"
   },
   "python/cpp/bindings_survival.cpp::fast_dep_cens_transform_optim": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "045225a77b44737f",
    "hash": "0cab2834f2c83d40",
-   "open_findings": 1,
-   "run": "44958897845"
+   "open_findings": 0,
+   "run": "44993898397"
   },
   "python/cpp/bindings_survival.cpp::fast_gehan_wilcox_stats": {
    "audited_at": "2026-11-19T12:25:34+00:00",
@@ -424,11 +424,11 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_survival.cpp::fast_weibull_regression_general": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
+   "audited_at": "2026-11-22T06:30:59+00:00",
    "deps": "86ce8e4d56aa73c2",
-   "hash": "b2c4a6582e56b527",
-   "open_findings": 1,
-   "run": "44958897845"
+   "hash": "6893ec9e3e37ae29",
+   "open_findings": 0,
+   "run": "44993898397"
   },
   "python/cpp/bindings_survival.cpp::get_survival_stat_diff": {
    "audited_at": "2026-11-21T14:33:02+00:00",
