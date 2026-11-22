@@ -45,7 +45,7 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	todo55_classes <- c("AllSimpleAverageDiff", "AllSimpleMeanDiffPooledVar", "PropGCompMeanDiff", "AllSimpleWilcox")
 	todo55_rules <- checked_in_rules[
 		response_type == "proportion" & class %in% todo55_classes &
-			grepl("TODO-55", tracked_in, fixed = TRUE)
+			grepl("TODO-55", reason, fixed = TRUE)
 	]
 	testthat::expect_setequal(todo55_rules$class, todo55_classes)
 	testthat::expect_identical(as.character(todo55_rules$before_timestamp), rep("2026-10-22", 4L))
@@ -66,6 +66,10 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	)
 	rules[, before_timestamp := as.character(before_timestamp)]
 	todo55_rules[, before_timestamp := as.character(before_timestamp)]
+	# d16afd65 retracked the TODO-55 rules to their fixing commit (70b55982), which
+	# this isolated fixture repo lacks; point them at a commit it has so
+	# --check-rules validates them here.
+	todo55_rules[, tracked_in := paste0("commit:", post_fix)]
 	rules <- data.table::rbindlist(list(rules, todo55_rules), use.names = TRUE)
 	data.table::fwrite(rules, file.path(harness_dir, "stale_ok_row_rules.csv"))
 	rows <- data.table::data.table(

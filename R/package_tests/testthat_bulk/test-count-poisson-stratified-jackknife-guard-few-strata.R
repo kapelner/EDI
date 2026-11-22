@@ -141,13 +141,20 @@ test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackkni
 })
 
 test_that("~1 Poisson on a 4-stratum RandomBlockSize design uses its recorded permuted blocks (v1.0.6-TODO-231)", {
-	f <- strat_fixture("rbs")
+	# n = 480 gives at least 16 permuted blocks per stratum, above
+	# EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM (10).
+	f <- strat_fixture("rbs", n = 480L)
 	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 	inf$num_cores <- 1L
 	p <- inf$.__enclos_env__$private
 	expect_identical(p$resolve_jackknife_unit("auto"), "permuted_block")
 	expect_false(p$use_within_block_jackknife_fallback())
 	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
+	# v1.0.6-TODO-270: at n = 240 the smallest stratum has 8 permuted blocks, so
+	# the jackknife deletes one subject within its stratum instead.
+	f_small <- strat_fixture("rbs")
+	p_small <- InferenceCountPoisson$new(f_small$des, model_formula = ~1, verbose = FALSE)$.__enclos_env__$private
+	expect_identical(p_small$resolve_jackknife_unit("auto"), "observation_within_block")
 })
 
 test_that("the stratified fallback stays off on unstratified designs and where the automatic unit is not the block, and covers marginal estimands", {

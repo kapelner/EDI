@@ -41,14 +41,14 @@ test_that("with a fixed seed the debug values equal the plain distribution and p
 	expect_equal(d$values, as.numeric(plain))
 	# The cache now holds those values; a plain call returns them without recomputation.
 	priv <- inf$.__enclos_env__$private
-	expect_equal(as.numeric(priv$get_cached_resampling_distribution("non_param_boot", "10")), d$values)
+	expect_equal(as.numeric(priv$get_cached_resampling_distribution("non_param_boot", "10::default")), d$values)
 	expect_equal(as.numeric(inf$approximate_bootstrap_distribution_beta_hat_T(B = 10L, show_progress = FALSE)), d$values)
 })
 
 test_that("debug = TRUE ignores an existing cached entry", {
 	inf <- mk()
 	priv <- inf$.__enclos_env__$private
-	priv$set_cached_resampling_distribution("non_param_boot", "8", rep(999, 8))
+	priv$set_cached_resampling_distribution("non_param_boot", "8::default", rep(999, 8))
 	d <- inf$approximate_bootstrap_distribution_beta_hat_T(B = 8L, show_progress = FALSE, debug = TRUE)
 	expect_false(any(d$values == 999))
 })

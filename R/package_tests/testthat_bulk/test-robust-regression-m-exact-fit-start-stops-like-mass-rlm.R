@@ -33,11 +33,21 @@ test_that("robust M fit with an exact-fit OLS start matches MASS::rlm (coefficie
 	for (nm in names(exact_fit_fixtures)) {
 		X <- exact_fit_fixtures[[nm]]$X
 		y <- exact_fit_fixtures[[nm]]$y
-		ref <- MASS::rlm(X, y, method = "M", scale.est = "MAD", maxit = 50)
-		expect_true(ref$converged, info = nm)
-
+		# EDI's answer is the OLS start, which is exact here (slope 0). MASS::rlm
+		# matches it only when R's own lm.wfit start leaves exactly zero residuals
+		# on the x = 0 points. With OpenBLAS (the bulk CI runners) they come out
+		# ~1e-16, the MAD is tiny but positive, and rlm takes the WLS step to
+		# slope 1.67, the old EDI behavior. So compare to rlm only when its start
+		# MAD is exactly 0 on this platform.
+		ols <- qr.solve(X, y)
+		rlm_start_mad <- median(abs(stats::lm.wfit(X, y, rep(1, length(y)))$residuals))
 		fit <- EDI:::fast_robust_regression_cpp(X, y, method = "M")
-		expect_equal(unname(fit$coefficients), unname(coef(ref)), tolerance = 1e-12, info = nm)
+		expect_equal(unname(fit$coefficients), unname(ols), tolerance = 1e-12, info = nm)
+		if (identical(rlm_start_mad, 0)) {
+			ref <- MASS::rlm(X, y, method = "M", scale.est = "MAD", maxit = 50)
+			expect_true(ref$converged, info = nm)
+			expect_equal(unname(fit$coefficients), unname(coef(ref)), tolerance = 1e-12, info = nm)
+		}
 		expect_true(fit$converged, info = nm)
 		expect_identical(as.integer(fit$num_iter), 1L, info = nm)
 		expect_false(fit$hit_iteration_cap, info = nm)
@@ -45,7 +55,7 @@ test_that("robust M fit with an exact-fit OLS start matches MASS::rlm (coefficie
 		expect_equal(unname(fit$fisher_information), unname(crossprod(X)), tolerance = 1e-12, info = nm)
 
 		fit_eo <- EDI:::fast_robust_regression_cpp(X, y, method = "M", estimate_only = TRUE)
-		expect_equal(unname(fit_eo$coefficients), unname(coef(ref)), tolerance = 1e-12, info = nm)
+		expect_equal(unname(fit_eo$coefficients), unname(ols), tolerance = 1e-12, info = nm)
 		expect_true(fit_eo$converged, info = nm)
 	}
 })
