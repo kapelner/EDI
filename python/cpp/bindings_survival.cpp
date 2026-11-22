@@ -334,7 +334,7 @@ void bind_survival(py::module_& m) {
     "y_R : ndarray\n"
     "    Upper censoring bounds; NaN for exact observations and inf for right censoring.\n"
     "warm_start_params : ndarray, optional\n"
-    "    Optional starting values for coefficients.\n"
+    "    Optional starting values for the full [beta, log_sigma] vector (length ncol(X) + 1).\n"
     "smart_cold_start : bool, default True\n"
     "    If True, use an initial OLS-based guess.\n"
     "estimate_only : bool, default False\n"
