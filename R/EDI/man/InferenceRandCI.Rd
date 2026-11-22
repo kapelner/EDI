@@ -120,8 +120,17 @@ matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
 accepted. The draws are not validated (row count, 0/1 coding and column count are
 not checked), so they must come from the design's own randomization mechanism for
 the test to be valid.}
-      \item{\code{type}}{Optional incidence-specific exact randomization type.}
-      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{type}}{\code{NULL} (default) or \code{"Zhang"}, the only accepted value.
+\code{NULL} computes the p-value from the randomization draws. \code{"Zhang"}
+instead returns the Zhang exact combined test (see
+\code{\link[EDI:InferenceIncidExactZhang]{InferenceIncidExactZhang}}); it applies
+only to incidence responses on a Bernoulli or matching design. For any other
+response or design, a non-\code{NULL} \code{type} is an error; other strings
+(for example \code{"Fisher"} or \code{"exact"}) are rejected.}
+      \item{\code{args_for_type}}{\code{NULL} or a list keyed by \code{type}, used only with
+\code{type = "Zhang"}: \code{list(Zhang = list(combination_method = "Stouffer"))},
+where \code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"}
+or \code{"min_p"}.}
       \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
 \code{"logit"} response transform: responses are clamped to
 \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
@@ -232,8 +241,11 @@ non-negative, one-tailed-by-construction statistic (squared difference, chi-squa
       \item{\code{r}}{Number of randomization vectors.}
       \item{\code{pval_epsilon}}{Bisection tolerance.}
       \item{\code{show_progress}}{Show progress.}
-      \item{\code{type}}{Optional incidence-specific exact randomization type.}
-      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{type}}{Accepted for interface compatibility; no value is currently
+usable. Randomization CIs are disabled for incidence responses (the only
+responses for which \code{type = "Zhang"} was meaningful), and for every other
+response a non-\code{NULL} \code{type} is an error. Leave it \code{NULL}.}
+      \item{\code{args_for_type}}{Must be \code{NULL}, for the same reason.}
       \item{\code{ci_search_control}}{Optional control list for randomization-CI search. Supported
 entries are \code{fallback}, \code{seed}, \code{max_radius_se_mult} (default 25),
 \code{max_radius_scale_mult} (default 6), \code{max_expansions} (default 7),

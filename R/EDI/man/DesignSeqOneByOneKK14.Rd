@@ -78,6 +78,7 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-DesignSeqOneByOneKK14-get_matching_cluster_ids}{\code{DesignSeqOneByOneKK14$get_matching_cluster_ids()}}
     \item \href{#method-DesignSeqOneByOneKK14-is_a_kk_matching_capable}{\code{DesignSeqOneByOneKK14$is_a_kk_matching_capable()}}
     \item \href{#method-DesignSeqOneByOneKK14-initialize}{\code{DesignSeqOneByOneKK14$new()}}
     \item \href{#method-DesignSeqOneByOneKK14-assign_wt}{\code{DesignSeqOneByOneKK14$assign_wt()}}
@@ -144,6 +145,34 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DesignSeqOneByOneKK14-get_matching_cluster_ids"></a>}}
+\if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK14-get_matching_cluster_ids}{}}}
+\subsection{\code{DesignSeqOneByOneKK14$get_matching_cluster_ids()}}{
+  Cluster ids implied by the matching: the two members of matched
+  pair \code{k} share id \code{k}, and every unmatched (reservoir) subject gets
+  its own singleton id, numbered after the largest pair id. Use these ids
+  wherever pair membership is needed, for example to cluster standard errors
+  or to cross-check a matched-pairs analysis outside EDI.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{DesignSeqOneByOneKK14$get_matching_cluster_ids(m_vec = private$m)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{m_vec}}{Optional integer match vector, one entry per subject: the pair id,
+or \code{0} / \code{NA} for an unmatched subject. Defaults to this design's
+own match vector.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector of length \code{n}.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-DesignSeqOneByOneKK14-is_a_kk_matching_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK14-is_a_kk_matching_capable}{}}}

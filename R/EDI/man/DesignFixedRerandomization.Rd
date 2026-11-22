@@ -86,6 +86,25 @@ has 12 treated; before v1.0.6 odd \eqn{n} at 0.5 had \eqn{\lfloor n/2 \rfloor}{f
 in one batched call, computes \eqn{M(w)} for all of them via
 \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
 
+\strong{Choosing \code{obj_val_cutoff} for a target acceptance rate.} The
+acceptance rate of a cutoff \eqn{a} is \eqn{P(M(w) \le a)} under the base complete
+randomization of the design's own covariates. For \code{"mahal_dist"}, \eqn{M(w)}
+is the Mahalanobis distance between the two \emph{means} with no
+\eqn{1/n_T + 1/n_C} factor, so Morgan and Rubin's (2012) statistic is
+\eqn{\frac{n_T n_C}{n} M(w)}{(n_T n_C / n) M(w)}, which is approximately
+\eqn{\chi^2_k} (\eqn{k} = number of covariate columns used, after dummy coding),
+exactly so only asymptotically or for normal covariate means. An approximate cutoff
+for acceptance rate \eqn{p_a} is therefore
+\code{a = qchisq(p_a, df = k) * n / (n_T * n_C)}; e.g. \eqn{k = 2}, \eqn{n = 44},
+\eqn{n_T = n_C = 22}, \eqn{p_a = 0.01} gives \eqn{a \approx 0.0018}. For
+\code{"abs_sum_diff"} there is no closed form. In either case the exact rate for
+your data is the empirical quantile of \eqn{M(w)} over complete randomizations with
+\eqn{n_T} treated, which you can simulate. \code{prop_acceptable = p_a} targets the
+rate directly: it keeps the best \eqn{p_a} share of the drawn candidates, an implied
+cutoff at the empirical \eqn{p_a} quantile of those draws, so no cutoff needs to be
+chosen. Very small rates make the \code{obj_val_cutoff} search slower and can hit
+the \code{max(1000 r, 1e5)} candidate budget described above.
+
 \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
 only).} Draws candidates in vectorized batches (uniformly random subsets of size
 \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}), scores each batch at once, and keeps the first \eqn{r} candidates with
@@ -211,7 +230,9 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
 exactly \code{round(n * prob_T)} treated subjects; drawing errors if that
 leaves no treated or no control subject.}
       \item{\code{obj_val_cutoff}}{The maximum allowable objective value \eqn{a}; a candidate
-allocation is accepted iff \eqn{M(w) \le a}. Exactly one of this and prop_acceptable is required.}
+allocation is accepted iff \eqn{M(w) \le a}. Exactly one of this and prop_acceptable is required.
+For how to pick \eqn{a} for a target acceptance rate, see "Choosing
+\code{obj_val_cutoff} for a target acceptance rate" in the class details.}
       \item{\code{prop_acceptable}}{The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest),
 e.g. \code{0.1}. Exactly one of this and obj_val_cutoff is required.}
       \item{\code{objective}}{The covariate-imbalance objective \eqn{M(w)} to filter on:

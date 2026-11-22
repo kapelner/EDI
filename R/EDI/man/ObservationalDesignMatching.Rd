@@ -41,6 +41,7 @@ des$assign_w_to_all_subjects(w_precomputed = c(1, 0, 0, 1, 1, 0))
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-ObservationalDesignMatching-get_matching_cluster_ids}{\code{ObservationalDesignMatching$get_matching_cluster_ids()}}
     \item \href{#method-ObservationalDesignMatching-initialize}{\code{ObservationalDesignMatching$new()}}
     \item \href{#method-ObservationalDesignMatching-clone}{\code{ObservationalDesignMatching$clone()}}
   }
@@ -109,6 +110,34 @@ des$assign_w_to_all_subjects(w_precomputed = c(1, 0, 0, 1, 1, 0))
   <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ObservationalDesignMatching-get_matching_cluster_ids"></a>}}
+\if{latex}{\out{\hypertarget{method-ObservationalDesignMatching-get_matching_cluster_ids}{}}}
+\subsection{\code{ObservationalDesignMatching$get_matching_cluster_ids()}}{
+  Cluster ids implied by the matching: the two members of matched
+  pair \code{k} share id \code{k}, and every unmatched (reservoir) subject gets
+  its own singleton id, numbered after the largest pair id. Use these ids
+  wherever pair membership is needed, for example to cluster standard errors
+  or to cross-check a matched-pairs analysis outside EDI.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{ObservationalDesignMatching$get_matching_cluster_ids(m_vec = private$m)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{m_vec}}{Optional integer match vector, one entry per subject: the pair id,
+or \code{0} / \code{NA} for an unmatched subject. Defaults to this design's
+own match vector.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector of length \code{n}.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-ObservationalDesignMatching-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-ObservationalDesignMatching-initialize}{}}}

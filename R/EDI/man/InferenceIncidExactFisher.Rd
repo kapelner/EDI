@@ -91,6 +91,8 @@ Fisher, R. A. (1935). "The Logic of Inductive Inference."
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidExactFisher-compute_exact_confidence_interval}{\code{InferenceIncidExactFisher$compute_exact_confidence_interval()}}
+    \item \href{#method-InferenceIncidExactFisher-compute_exact_two_sided_pval_for_treatment_effect}{\code{InferenceIncidExactFisher$compute_exact_two_sided_pval_for_treatment_effect()}}
     \item \href{#method-InferenceIncidExactFisher-initialize}{\code{InferenceIncidExactFisher$new()}}
     \item \href{#method-InferenceIncidExactFisher-compute_estimate}{\code{InferenceIncidExactFisher$compute_estimate()}}
     \item \href{#method-InferenceIncidExactFisher-clone}{\code{InferenceIncidExactFisher$clone()}}
@@ -102,8 +104,6 @@ Fisher, R. A. (1935). "The Logic of Inductive Inference."
   <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
@@ -126,6 +126,74 @@ Fisher, R. A. (1935). "The Logic of Inductive Inference."
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactFisher-compute_exact_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-compute_exact_confidence_interval}{}}}
+\subsection{\code{InferenceIncidExactFisher$compute_exact_confidence_interval()}}{
+  Exact confidence interval for the log odds ratio: the log of the
+  exact conditional interval from \code{\link[stats]{fisher.test}} (one table) or
+  \code{\link[stats]{mantelhaen.test}} with \code{exact = TRUE} (several strata).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactFisher$compute_exact_confidence_interval(
+  alpha = 0.05,
+  pval_epsilon = 0.005,
+  type = NULL,
+  args_for_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level; the interval has level \code{1 - alpha}.}
+      \item{\code{pval_epsilon}}{Accepted for interface compatibility and ignored: the
+interval is taken from \code{stats} directly, with no test inversion by
+bisection, so any value gives the same interval.}
+      \item{\code{type}}{Exact inference type; only \code{"Fisher"} (the default) is accepted.}
+      \item{\code{args_for_type}}{Optional list keyed by type; \code{list(Fisher = list())} is
+the only valid form and has no settings.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector of lower and upper bounds (one bound can be
+  infinite when the table is separated).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactFisher-compute_exact_two_sided_pval_for_treatment_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-compute_exact_two_sided_pval_for_treatment_effect}{}}}
+\subsection{\code{InferenceIncidExactFisher$compute_exact_two_sided_pval_for_treatment_effect()}}{
+  Exact two-sided Fisher (one table) or exact conditional
+  Mantel-Haenszel (several strata) p-value for \eqn{H_0:} log odds ratio
+  \eqn{= \delta}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactFisher$compute_exact_two_sided_pval_for_treatment_effect(
+  delta = 0,
+  type = NULL,
+  args_for_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null log odds ratio. Default \code{0}. A stratified design (blocks
+or matched pairs) supports only \code{delta = 0}; another value is an error.}
+      \item{\code{type}}{Exact inference type; only \code{"Fisher"} (the default) is accepted.}
+      \item{\code{args_for_type}}{Optional list keyed by type; \code{list(Fisher = list())} is
+the only valid form and has no settings.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidExactFisher-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-initialize}{}}}

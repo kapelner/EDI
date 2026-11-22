@@ -114,8 +114,17 @@ and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumption
       \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
       \item{\code{show_progress}}{Whether to show progress.}
       \item{\code{permutations}}{Optional pre-generated assignment draws.}
-      \item{\code{type}}{Optional incidence-specific exact randomization type.}
-      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{type}}{\code{NULL} (default) or \code{"Zhang"}, the only accepted value.
+\code{NULL} computes the p-value from the randomization draws. \code{"Zhang"}
+instead returns the Zhang exact combined test (see
+\code{\link[EDI:InferenceIncidExactZhang]{InferenceIncidExactZhang}}); it applies
+only to incidence responses on a Bernoulli or matching design. For any other
+response or design, a non-\code{NULL} \code{type} is an error; other strings
+(for example \code{"Fisher"} or \code{"exact"}) are rejected.}
+      \item{\code{args_for_type}}{\code{NULL} or a list keyed by \code{type}, used only with
+\code{type = "Zhang"}: \code{list(Zhang = list(combination_method = "Stouffer"))},
+where \code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"}
+or \code{"min_p"}.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
       \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}

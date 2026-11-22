@@ -83,6 +83,7 @@ Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-DesignFixedBlockedCluster-set_m}{\code{DesignFixedBlockedCluster$set_m()}}
     \item \href{#method-DesignFixedBlockedCluster-is_a_cluster_capable}{\code{DesignFixedBlockedCluster$is_a_cluster_capable()}}
     \item \href{#method-DesignFixedBlockedCluster-initialize}{\code{DesignFixedBlockedCluster$new()}}
     \item \href{#method-DesignFixedBlockedCluster-clone}{\code{DesignFixedBlockedCluster$clone()}}
@@ -147,6 +148,37 @@ Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
   <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DesignFixedBlockedCluster-set_m"></a>}}
+\if{latex}{\out{\hypertarget{method-DesignFixedBlockedCluster-set_m}{}}}
+\subsection{\code{DesignFixedBlockedCluster$set_m()}}{
+  Record explicit block identifiers, inherited from the blocking
+  component. On this class it does \strong{not} change the randomization:
+  assignments are always drawn over whole clusters within the blocks formed from
+  \code{strata_cols}, whatever \code{set_m()} stored. The stored ids are what
+  \code{$get_block_ids()} (and block-aware inference that reads it) then report,
+  so ids that differ from the \code{strata_cols} blocks make the analysis strata
+  disagree with the randomization strata; there is normally no reason to call it
+  here. It can be called only while no block ids are stored yet: the first
+  \code{$get_block_ids()} call stores the covariate-derived ids, and
+  \code{set_m()} errors after that.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{DesignFixedBlockedCluster$set_m(m)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{m}}{A non-negative-integer vector of block ids, one per subject.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-DesignFixedBlockedCluster-is_a_cluster_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBlockedCluster-is_a_cluster_capable}{}}}

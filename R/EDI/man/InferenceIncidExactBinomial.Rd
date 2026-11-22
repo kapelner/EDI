@@ -72,6 +72,8 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidExactBinomial-compute_exact_confidence_interval}{\code{InferenceIncidExactBinomial$compute_exact_confidence_interval()}}
+    \item \href{#method-InferenceIncidExactBinomial-compute_exact_two_sided_pval_for_treatment_effect}{\code{InferenceIncidExactBinomial$compute_exact_two_sided_pval_for_treatment_effect()}}
     \item \href{#method-InferenceIncidExactBinomial-initialize}{\code{InferenceIncidExactBinomial$new()}}
     \item \href{#method-InferenceIncidExactBinomial-compute_estimate}{\code{InferenceIncidExactBinomial$compute_estimate()}}
     \item \href{#method-InferenceIncidExactBinomial-clone}{\code{InferenceIncidExactBinomial$clone()}}
@@ -83,8 +85,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
@@ -107,6 +107,75 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactBinomial-compute_exact_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-compute_exact_confidence_interval}{}}}
+\subsection{\code{InferenceIncidExactBinomial$compute_exact_confidence_interval()}}{
+  Exact confidence interval for the log odds ratio from the
+  discordant matched pairs: the Clopper-Pearson interval
+  (\code{\link[stats]{binom.test}}) for the share of discordant pairs in which
+  the treated member has the event, mapped to the log-odds scale with
+  \code{qlogis()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactBinomial$compute_exact_confidence_interval(
+  alpha = 0.05,
+  pval_epsilon = 0.005,
+  type = NULL,
+  args_for_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level; the interval has level \code{1 - alpha}.}
+      \item{\code{pval_epsilon}}{Accepted for interface compatibility and ignored: the
+interval is closed form, so any value gives the same interval.}
+      \item{\code{type}}{Exact inference type; only \code{"Binomial"} (the default) is accepted.}
+      \item{\code{args_for_type}}{Optional list keyed by type; \code{list(Binomial = list())}
+is the only valid form and has no settings.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector of lower and upper bounds.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactBinomial-compute_exact_two_sided_pval_for_treatment_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-compute_exact_two_sided_pval_for_treatment_effect}{}}}
+\subsection{\code{InferenceIncidExactBinomial$compute_exact_two_sided_pval_for_treatment_effect()}}{
+  Exact equal-tail binomial p-value for \eqn{H_0:} log odds ratio
+  \eqn{= \delta}, computed on the discordant matched pairs with success
+  probability \code{plogis(delta)}; it is the test that
+  \code{$compute_exact_confidence_interval()} inverts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactBinomial$compute_exact_two_sided_pval_for_treatment_effect(
+  delta = 0,
+  type = NULL,
+  args_for_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null log odds ratio. Default \code{0}.}
+      \item{\code{type}}{Exact inference type; only \code{"Binomial"} (the default) is accepted.}
+      \item{\code{args_for_type}}{Optional list keyed by type; \code{list(Binomial = list())}
+is the only valid form and has no settings.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value. With no matched pair or no discordant pair the
+  method stops with an error.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidExactBinomial-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-initialize}{}}}

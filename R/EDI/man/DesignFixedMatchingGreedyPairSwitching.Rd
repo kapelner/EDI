@@ -79,6 +79,7 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
   \itemize{
     \item \href{#method-DesignFixedMatchingGreedyPairSwitching-initialize}{\code{DesignFixedMatchingGreedyPairSwitching$new()}}
     \item \href{#method-DesignFixedMatchingGreedyPairSwitching-supports_batch_w_pregeneration}{\code{DesignFixedMatchingGreedyPairSwitching$supports_batch_w_pregeneration()}}
+    \item \href{#method-DesignFixedMatchingGreedyPairSwitching-get_matching_cluster_ids}{\code{DesignFixedMatchingGreedyPairSwitching$get_matching_cluster_ids()}}
     \item \href{#method-DesignFixedMatchingGreedyPairSwitching-clone}{\code{DesignFixedMatchingGreedyPairSwitching$clone()}}
   }
 }
@@ -216,6 +217,36 @@ stopping), each accepting the flip only if it improves the objective.}
   }
   \subsection{Returns}{
     Always \code{TRUE} for this class.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DesignFixedMatchingGreedyPairSwitching-get_matching_cluster_ids"></a>}}
+\if{latex}{\out{\hypertarget{method-DesignFixedMatchingGreedyPairSwitching-get_matching_cluster_ids}{}}}
+\subsection{\code{DesignFixedMatchingGreedyPairSwitching$get_matching_cluster_ids()}}{
+  Cluster ids implied by the matching: the two members of matched
+  pair \code{k} share id \code{k}, and every unmatched (reservoir) subject gets
+  its own singleton id, numbered after the largest pair id. Use these ids
+  wherever pair membership is needed, for example to cluster standard errors
+  or to cross-check a matched-pairs analysis outside EDI.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{DesignFixedMatchingGreedyPairSwitching$get_matching_cluster_ids(
+  m_vec = private$m
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{m_vec}}{Optional integer match vector, one entry per subject: the pair id,
+or \code{0} / \code{NA} for an unmatched subject. Defaults to this design's
+own match vector.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector of length \code{n}.
   }
 }
 

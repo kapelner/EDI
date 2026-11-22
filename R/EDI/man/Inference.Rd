@@ -600,6 +600,7 @@ procedure labels as used in the \code{method} column of
 \if{latex}{\out{\hypertarget{method-Inference-set_optimization_alg}{}}}
 \subsection{\code{Inference$set_optimization_alg()}}{
   Set the optimizer used by likelihood-based inference implementations.
+  Changing the optimizer clears the object's cached results.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Inference$set_optimization_alg(
@@ -612,11 +613,22 @@ procedure labels as used in the \code{method} column of
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{optimization_alg}}{The optimizer name. Valid values are configured by
-the concrete inference class.}
-      \item{\code{allow_irls}}{Whether to allow IRLS (Iteratively Reweighted Least Squares)
-as a fallback or primary optimization algorithm.}
-      \item{\code{default}}{The default optimizer to use if none is specified.}
+      \item{\code{optimization_alg}}{The optimizer name: \code{"newton_raphson"} or
+\code{"lbfgs"}, plus \code{"irls"} when IRLS is allowed (see
+\code{allow_irls}). Unambiguous abbreviations (e.g. \code{"newton"}) are
+accepted via \code{\link[base]{match.arg}}; any other value is an error.
+\code{NULL} (the default) selects \code{default}.}
+      \item{\code{allow_irls}}{Whether \code{"irls"} (Iteratively Reweighted Least Squares)
+is an accepted value. Defaults to the object's current setting, which the
+class constructor sets (\code{TRUE} only for classes with an IRLS fit, such
+as \code{InferenceIncidLogRegr} and \code{InferenceIncidProbitRegr}).}
+      \item{\code{default}}{The optimizer used when \code{optimization_alg} is
+\code{NULL}. When missing or \code{NULL} it comes from the optimization
+dispatch policy for this class (see
+\code{\link{get_optimization_dispatch_policy}} and
+\code{\link{set_optimization_dispatch_policy}}): \code{"newton_raphson"}
+unless the policy names another optimizer for the class (for example
+\code{"lbfgs"} for \code{InferenceSurvivalWeibullRegr}).}
     }
     \if{html}{\out{</div>}}
   }

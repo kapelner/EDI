@@ -125,6 +125,7 @@ discrete data. \emph{The R Journal}, 2(1), 53--58. \doi{10.32614/RJ-2010-008}
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidExactZhang-compute_exact_two_sided_pval_for_treatment_effect}{\code{InferenceIncidExactZhang$compute_exact_two_sided_pval_for_treatment_effect()}}
     \item \href{#method-InferenceIncidExactZhang-initialize}{\code{InferenceIncidExactZhang$new()}}
     \item \href{#method-InferenceIncidExactZhang-compute_estimate}{\code{InferenceIncidExactZhang$compute_estimate()}}
     \item \href{#method-InferenceIncidExactZhang-compute_exact_confidence_interval}{\code{InferenceIncidExactZhang$compute_exact_confidence_interval()}}
@@ -137,7 +138,6 @@ discrete data. \emph{The R Journal}, 2(1), 53--58. \doi{10.32614/RJ-2010-008}
   <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
@@ -160,6 +160,39 @@ discrete data. \emph{The R Journal}, 2(1), 53--58. \doi{10.32614/RJ-2010-008}
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactZhang-compute_exact_two_sided_pval_for_treatment_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactZhang-compute_exact_two_sided_pval_for_treatment_effect}{}}}
+\subsection{\code{InferenceIncidExactZhang$compute_exact_two_sided_pval_for_treatment_effect()}}{
+  Exact combined two-sided p-value for \eqn{H_0:} log odds ratio
+  \eqn{= \delta}, combining the matched-pairs and reservoir exact tests as
+  described in the class documentation.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactZhang$compute_exact_two_sided_pval_for_treatment_effect(
+  delta = 0,
+  type = NULL,
+  args_for_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null log odds ratio. Default \code{0}.}
+      \item{\code{type}}{Exact inference type; only \code{"Zhang"} (the default) is accepted.}
+      \item{\code{args_for_type}}{Optional list keyed by type, e.g.
+\code{list(Zhang = list(combination_method = "Stouffer"))};
+\code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"} or
+\code{"min_p"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidExactZhang-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidExactZhang-initialize}{}}}

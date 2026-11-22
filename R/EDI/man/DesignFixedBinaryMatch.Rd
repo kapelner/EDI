@@ -86,6 +86,7 @@ Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
     \item \href{#method-DesignFixedBinaryMatch-supports_batch_w_pregeneration}{\code{DesignFixedBinaryMatch$supports_batch_w_pregeneration()}}
     \item \href{#method-DesignFixedBinaryMatch-initialize}{\code{DesignFixedBinaryMatch$new()}}
     \item \href{#method-DesignFixedBinaryMatch-assign_w_to_all_subjects}{\code{DesignFixedBinaryMatch$assign_w_to_all_subjects()}}
+    \item \href{#method-DesignFixedBinaryMatch-get_matching_cluster_ids}{\code{DesignFixedBinaryMatch$get_matching_cluster_ids()}}
     \item \href{#method-DesignFixedBinaryMatch-clone}{\code{DesignFixedBinaryMatch$clone()}}
   }
 }
@@ -265,6 +266,34 @@ supplied, it is used directly as the treatment allocation instead of drawing
 a fresh within-pair-randomized allocation.}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DesignFixedBinaryMatch-get_matching_cluster_ids"></a>}}
+\if{latex}{\out{\hypertarget{method-DesignFixedBinaryMatch-get_matching_cluster_ids}{}}}
+\subsection{\code{DesignFixedBinaryMatch$get_matching_cluster_ids()}}{
+  Cluster ids implied by the matching: the two members of matched
+  pair \code{k} share id \code{k}, and every unmatched (reservoir) subject gets
+  its own singleton id, numbered after the largest pair id. Use these ids
+  wherever pair membership is needed, for example to cluster standard errors
+  or to cross-check a matched-pairs analysis outside EDI.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{DesignFixedBinaryMatch$get_matching_cluster_ids(m_vec = private$m)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{m_vec}}{Optional integer match vector, one entry per subject: the pair id,
+or \code{0} / \code{NA} for an unmatched subject. Defaults to this design's
+own match vector.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector of length \code{n}.
   }
 }
 
