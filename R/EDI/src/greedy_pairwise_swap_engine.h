@@ -15,7 +15,7 @@
 //   - exhaustive_best_improvement_search_pruned(): the sorted-scan
 //     early-termination variant, which is only a VALID optimization for
 //     objectives whose per-pair delta decomposes as
-//     delta(i,j) >= outer_bound(i) + inner_bound(j) - prune_offset()
+//     delta(i,j) >= outer_bound(i) + inner_bound(j) - prune_threshold(best_delta)
 //     (true for the P/H quadratic-form objectives D-/A-optimal use; NOT
 //     established for DesignFixedGreedy's Mahalanobis/abs-sum-diff
 //     objectives, so greedy intentionally still uses the unpruned variant --

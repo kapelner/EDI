@@ -454,7 +454,7 @@ static double univariate_beta_tstat(
 	w = (prob.array() * (1.0 - prob.array())).max(1e-10).matrix();
 
 	// Profile likelihood optimization for phi
-	// Grid search over log(phi) from log(0.01) to log(1000)
+	// Grid search over log(phi) from -2 to 7 (phi from exp(-2) to exp(7)), step 0.5
 	double best_phi = 10.0;
 	double best_ll = -std::numeric_limits<double>::infinity();
 
