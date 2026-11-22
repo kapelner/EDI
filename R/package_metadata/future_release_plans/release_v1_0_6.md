@@ -5890,6 +5890,26 @@ Found by the 2026-11-22 sweep of every audit report for items written outside th
   - Owner decision pending: [DECISION-v1.0.6-TODO-403](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-403) (what should
     happen when an object saved under another EDI version is loaded?).
 
+- [ ] TODO-405 (added 2026-11-22, coordinator, owner request; found by the v1.0.6-TODO-404 doc agent, confirmed by
+  reading): **`compute_rand_two_sided_pval(type = "Zhang")` silently ignores `type` when assertions are off.** In
+  `InferenceRandCI$compute_rand_two_sided_pval()` (`R/EDI/R/inference_all_abstract_rand_ci.R` ~L104-116) the `type`
+  dispatch to `compute_exact_two_sided_pval_rand()` sits inside an `if (should_run_asserts())` block, together with the
+  `transform_responses` guard. With assertions off (e.g. `SimulationFramework`'s `turn_off_asserts_for_speed`, or
+  `set_asserts(FALSE)`), the call falls through and returns the randomization-draw p-value instead of the requested
+  Zhang exact p-value, with no message. Fix: move the dispatch (and the guard's `stop()`, which is behaviour, not an
+  assertion) out of the `should_run_asserts()` block; grep the other rand/CI entry points for the same pattern. Test:
+  with assertions off, `type = "Zhang"` returns the same p-value as with assertions on, on an incidence Bernoulli
+  design.
+
+- [ ] TODO-406 (added 2026-11-22, coordinator, owner request; found by the v1.0.6-TODO-404 doc agent, from reading the
+  code, not yet reproduced): **`DesignFixedBlockedCluster$set_m()` can store block ids that differ from the strata
+  used to randomize.** Randomization draws always use `strata_cols`, while `set_m()` (inherited from
+  `design_blocking_abstract.R` ~L76) only replaces what `get_block_ids()` reports; inference that reads
+  `get_block_ids()` (blocked jackknife, block bootstrap, stratified tests) would then analyse different strata from
+  the ones the allocation was drawn in. Fix: reproduce first; then either refuse `set_m()` on this class (or when the
+  ids disagree with the strata) or make it re-derive the strata. Test: `set_m()` with ids that disagree with
+  `strata_cols` errors (or the analysis strata equal the randomization strata).
+
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
 Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the campaign's `summary/triage.csv`: one TODO per failing class x procedure x metric. Review each: edit, merge or delete it, and move kept ones into the implementation list.
