@@ -294,6 +294,7 @@ Adding a class *inside* the package is a different contract: the class must go
 through `define_inference_class()` / `define_design_class()` with exact
 component, capability, and registry metadata, meet the package documentation
 standard, and be registered with the test harnesses, C++ kernels, Python
-bindings, and benchmarks. That process lives in the repository, in
-`R/package_metadata/contracts/new_model_creation.md`, which builds on the
+bindings, and benchmarks. That process lives in the repository (not in the
+installed package), in
+[`R/package_metadata/contracts/new_model_creation.md`](https://github.com/kapelner/EDI/blob/main/R/package_metadata/contracts/new_model_creation.md), which builds on the
 architecture summarized in this vignette rather than repeating it.

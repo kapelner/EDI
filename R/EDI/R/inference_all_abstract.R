@@ -528,11 +528,23 @@ Inference = R6::R6Class("Inference",
 			private$model_formula
 		},
 		#' @description Set the optimizer used by likelihood-based inference implementations.
-		#' @param optimization_alg The optimizer name. Valid values are configured by
-		#'   the concrete inference class.
-		#' @param allow_irls 		Whether to allow IRLS (Iteratively Reweighted Least Squares)
-		#'   as a fallback or primary optimization algorithm.
-		#' @param default 			The default optimizer to use if none is specified.
+		#'   Changing the optimizer clears the object's cached results.
+		#' @param optimization_alg The optimizer name: \code{"newton_raphson"} or
+		#'   \code{"lbfgs"}, plus \code{"irls"} when IRLS is allowed (see
+		#'   \code{allow_irls}). Unambiguous abbreviations (e.g. \code{"newton"}) are
+		#'   accepted via \code{\link[base]{match.arg}}; any other value is an error.
+		#'   \code{NULL} (the default) selects \code{default}.
+		#' @param allow_irls 		Whether \code{"irls"} (Iteratively Reweighted Least Squares)
+		#'   is an accepted value. Defaults to the object's current setting, which the
+		#'   class constructor sets (\code{TRUE} only for classes with an IRLS fit, such
+		#'   as \code{InferenceIncidLogRegr} and \code{InferenceIncidProbitRegr}).
+		#' @param default 			The optimizer used when \code{optimization_alg} is
+		#'   \code{NULL}. When missing or \code{NULL} it comes from the optimization
+		#'   dispatch policy for this class (see
+		#'   \code{\link{get_optimization_dispatch_policy}} and
+		#'   \code{\link{set_optimization_dispatch_policy}}): \code{"newton_raphson"}
+		#'   unless the policy names another optimizer for the class (for example
+		#'   \code{"lbfgs"} for \code{InferenceSurvivalWeibullRegr}).
 		#' @return Invisibly returns \code{self}.
 		set_optimization_alg = function(optimization_alg = NULL, allow_irls = private$optimization_alg_allow_irls, default = private$optimization_alg_default){
 			private$optimization_alg_allow_irls = allow_irls

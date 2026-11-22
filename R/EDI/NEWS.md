@@ -1382,6 +1382,23 @@
   correction then equals the ordinary jackknife bias, which can over-correct
   nonlinear estimators when strata differ strongly (v1.0.6-TODO-231).
 
+* Filled documentation gaps the docs-scenario audits noted outside their
+  findings (v1.0.6-TODO-404). `?SimulationFramework`: `X_mat` makes
+  `cov_draw_method` ignored (it need not be `NULL`), `keep_all_intermediate_data`
+  is refused with `num_cores > 1` or `Nrep_Y_w > 1`, and incidence and
+  proportion responses put `y_linear_model` and `betaT` on the logit scale;
+  `SimulationFrameworkReport$get_results()` explains the `simulation_mode`
+  column. `compute_rand_two_sided_pval()` lists its only `type`, `"Zhang"`, and
+  its `args_for_type`; the exact Fisher, binomial and Zhang classes document
+  their `compute_exact_*()` methods, including that the Fisher and binomial
+  exact intervals ignore `pval_epsilon`. `?DesignFixedRerandomization` explains
+  how to choose `obj_val_cutoff` for a target acceptance rate;
+  `?DesignFixedBlockedCluster` documents `set_m()`; `set_optimization_alg()`
+  lists its accepted values; the matching designs document
+  `get_matching_cluster_ids()`; and the count cookbook and extending-EDI
+  vignettes link to the roadmap and contributor contract on GitHub instead of
+  files the package does not ship.
+
 ## Internal
 
 * PRW subsampling and the m-out-of-n bootstrap share one setup routine

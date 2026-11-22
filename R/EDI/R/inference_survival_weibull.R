@@ -91,8 +91,11 @@ SurvivalWeibullLikelihoodSource = list(
 		#'   design's imputed covariates.
 		#' @param verbose Whether to print progress messages.
 		#' @param smart_cold_start_default Whether to use smart optimizer start values by default.
-		#' @param optimization_alg Character scalar specifying the optimization algorithm. 
-		#'   Default is dispatched via policy.
+		#' @param optimization_alg Character scalar specifying the optimization algorithm:
+		#'   \code{"lbfgs"} or \code{"newton_raphson"} (IRLS is not available for this
+		#'   class). \code{NULL} (the default) uses the optimization dispatch policy
+		#'   (\code{\link{get_optimization_dispatch_policy}}), which gives \code{"lbfgs"}.
+		#'   Can be changed later with \code{$set_optimization_alg()}.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL, optimization_alg = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")

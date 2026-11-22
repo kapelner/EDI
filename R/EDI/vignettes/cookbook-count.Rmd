@@ -114,7 +114,9 @@ inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
 
 - Zero-heavy data: `InferenceCountHurdlePoisson`, `InferenceCountHurdleNegBin`,
   `InferenceCountZeroInflatedPoisson`, `InferenceCountZeroInflatedNegBin`.
-- Exposure/offset (rates per unit time) is a planned addition — see
-  `ROADMAP.md`.
+- Exposure/offset (rates per unit time) is a planned addition — see the
+  [EDI roadmap](https://github.com/kapelner/EDI/blob/main/ROADMAP.md) on GitHub.
+  Until then, EDI has no offset argument; log-exposure entered as an ordinary
+  covariate gets an estimated coefficient rather than one fixed at 1.
 - `vignette("validation-evidence")`: each kernel is checked against
   `stats::glm`, `MASS::glm.nb`, or `pscl`.

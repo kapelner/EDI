@@ -400,8 +400,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'
     #' @param betaT Numeric scalar or vector.  True treatment effect added to treated
     #'   subjects' outcomes.  The scale is response-type specific: additive for
-    #'   \code{continuous}, \code{proportion}, and \code{ordinal}; on the logit
-    #'   scale for \code{incidence}; log-multiplicative for \code{count} and
+    #'   \code{continuous} and \code{ordinal}; on the logit scale for
+    #'   \code{incidence} and \code{proportion}; log-multiplicative for \code{count} and
     #'   \code{survival}.  Default \code{1}.  Set \code{betaT = 0} to check
     #'   type-I error.
     #'
@@ -430,7 +430,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'
     #' @param phi_proportion Positive numeric scalar. Precision parameter for
     #'   beta-distributed observed proportion outcomes. The beta mean is
-    #'   \code{y_linear_model[i] + betaT * w[i]}. Default \code{100}.
+    #'   \code{plogis(y_linear_model[i] + betaT * w[i])}, clamped to
+    #'   \code{[proportion_clamp, 1 - proportion_clamp]}. Default \code{100}.
     #'
     #' @param k_survival Positive numeric scalar. Scale parameter passed to
     #'   the Weibull draw for observed survival outcomes. Default \code{2}.
@@ -438,6 +439,13 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #' @param incidence_clamp Numeric scalar in \eqn{(0, 0.5)}. Clamp applied
     #'   to the Bernoulli probability for observed incidence outcomes.
     #'   Default \code{1e-9}.
+    #'   For \code{response_type = "incidence"}, \code{y_linear_model} (the
+    #'   latent signal passed to the custom hooks and to the function built by
+    #'   \code{make_estimand_fn}) is on the logit scale: subject \code{i} is a
+    #'   Bernoulli draw with success probability
+    #'   \code{plogis(y_linear_model[i] + betaT * w[i])}, clamped to
+    #'   \code{[incidence_clamp, 1 - incidence_clamp]}; \code{sd_noise} is not
+    #'   used.
     #'
     #' @param proportion_clamp Numeric scalar in \eqn{(0, 0.5)}. Clamp applied
     #'   to the beta mean for observed proportion outcomes. Default \code{1e-9}.
@@ -462,8 +470,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   The generated vector is scaled to match this norm. Default \code{1}.
     #'
     #' @param X_mat Numeric matrix of dimensions \code{n x p}, or \code{NULL} (default).
-    #'   If provided, these fixed covariates are used for every replication.
-    #'   In this case, \code{cov_draw_method} must be \code{NULL}.
+    #'   If provided, these fixed covariates are used for every replication,
+    #'   and \code{cov_draw_method} and \code{cov_draw_method_args} are ignored
+    #'   (you do not need to set \code{cov_draw_method = NULL}).
     #'
     #' @param seed Integer or \code{NULL} (default).  Random seed for the
     #'   entire simulation run.
@@ -472,7 +481,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   values for every replication. The function must accept the total number
     #'   of values as its first argument, followed by arguments in
     #'   \code{cov_draw_method_args}.  Default \code{stats::rnorm}.
-    #'   Must be \code{NULL} when \code{X_mat} is supplied.
+    #'   Ignored when \code{X_mat} is supplied.
     #'
     #' @param cov_draw_method_args Named list of additional arguments forwarded to
     #'   \code{cov_draw_method} beyond the sample-size first argument. Default is
@@ -545,6 +554,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   saves the instantiated design and inference objects for every replication.
     #'   These can be retrieved after the run using \code{$get_all_intermediate_data()}.
     #'   Warning: this can consume a lot of memory for many replications.
+    #'   Not available with \code{num_cores > 1} or \code{Nrep_Y_w > 1}: the
+    #'   constructor stops with an error for either combination.
     #'   Default \code{FALSE}.
     #'
     #' @param turn_off_asserts_for_speed Logical. If \code{TRUE} (default),

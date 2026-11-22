@@ -175,3 +175,18 @@ DesignFixedBlockedCluster = define_design_class(
 		# hand-rolled version via test-design-cluster-structure-golden.R before removal.
 	)
 )
+
+#' @R6method DesignFixedBlockedCluster$set_m
+#' @description Record explicit block identifiers, inherited from the blocking
+#'   component. On this class it does \strong{not} change the randomization:
+#'   assignments are always drawn over whole clusters within the blocks formed from
+#'   \code{strata_cols}, whatever \code{set_m()} stored. The stored ids are what
+#'   \code{$get_block_ids()} (and block-aware inference that reads it) then report,
+#'   so ids that differ from the \code{strata_cols} blocks make the analysis strata
+#'   disagree with the randomization strata; there is normally no reason to call it
+#'   here. It can be called only while no block ids are stored yet: the first
+#'   \code{$get_block_ids()} call stores the covariate-derived ids, and
+#'   \code{set_m()} errors after that.
+#' @param m A non-negative-integer vector of block ids, one per subject.
+#' @return Invisibly returns \code{self}.
+NULL

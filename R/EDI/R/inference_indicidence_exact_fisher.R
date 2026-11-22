@@ -347,3 +347,30 @@ NULL
 #' @R6method InferenceIncidExactFisher$compute_estimate
 #' @template exact-fisher-compute-estimate
 NULL
+
+#' @R6method InferenceIncidExactFisher$compute_exact_confidence_interval
+#' @description Exact confidence interval for the log odds ratio: the log of the
+#'   exact conditional interval from \code{\link[stats]{fisher.test}} (one table) or
+#'   \code{\link[stats]{mantelhaen.test}} with \code{exact = TRUE} (several strata).
+#' @param alpha Significance level; the interval has level \code{1 - alpha}.
+#' @param pval_epsilon Accepted for interface compatibility and ignored: the
+#'   interval is taken from \code{stats} directly, with no test inversion by
+#'   bisection, so any value gives the same interval.
+#' @param type Exact inference type; only \code{"Fisher"} (the default) is accepted.
+#' @param args_for_type Optional list keyed by type; \code{list(Fisher = list())} is
+#'   the only valid form and has no settings.
+#' @return A length-2 numeric vector of lower and upper bounds (one bound can be
+#'   infinite when the table is separated).
+NULL
+
+#' @R6method InferenceIncidExactFisher$compute_exact_two_sided_pval_for_treatment_effect
+#' @description Exact two-sided Fisher (one table) or exact conditional
+#'   Mantel-Haenszel (several strata) p-value for \eqn{H_0:} log odds ratio
+#'   \eqn{= \delta}.
+#' @param delta Null log odds ratio. Default \code{0}. A stratified design (blocks
+#'   or matched pairs) supports only \code{delta = 0}; another value is an error.
+#' @param type Exact inference type; only \code{"Fisher"} (the default) is accepted.
+#' @param args_for_type Optional list keyed by type; \code{list(Fisher = list())} is
+#'   the only valid form and has no settings.
+#' @return A two-sided p-value.
+NULL

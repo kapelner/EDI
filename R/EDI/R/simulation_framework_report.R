@@ -63,6 +63,16 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
     #'
     #' @return A \code{data.table} with one row per
     #'   (replication, design, inference class, inference type).
+    #'   Its \code{simulation_mode} column records which custom data-generating
+    #'   hooks of the \code{SimulationFramework} were active for that row:
+    #'   \code{"standard"} (none), \code{"custom_dgp"}, or a \code{"+"}-joined
+    #'   combination of \code{"crdg"} (\code{custom_replication_data_generator}),
+    #'   \code{"catn"} (\code{custom_apply_treatment_and_noise}) and
+    #'   \code{"cte"} (\code{make_estimand_fn}), e.g. \code{"crdg+catn+cte"}.
+    #'   \code{$summarize()} groups by this column, and for any mode other than
+    #'   \code{"standard"} it decides whether a cell is a null (size) or an
+    #'   alternative (power) cell from the mean \code{true_estimand} instead of
+    #'   from \code{betaT}.
     get_results = function() {
       private$results_dt
     },
@@ -79,7 +89,8 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
     #'
     #' @return A \code{data.table} with one row per unique
     #'   (response_type, cond_exp_func_model, n, p, betaT, design, inference,
-    #'   inference_type) combination.  Columns include \code{MSE},
+    #'   inference_type, simulation_mode) combination (\code{simulation_mode}
+    #'   only when the results carry that column; see \code{$get_results()}).  Columns include \code{MSE},
     #'   \code{coverage}, \code{ci_length}, and \code{coverage_pval} (when CI
     #'   types were run; \code{coverage_pval} is the exact two-sided binomial
     #'   test p-value of H0: true coverage = 1 - alpha),

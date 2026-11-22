@@ -9,8 +9,17 @@
 #' @param na.rm Whether to remove non-finite simulated statistics.
 #' @param show_progress Whether to show progress.
 #' @param permutations Optional pre-generated assignment draws.
-#' @param type Optional incidence-specific exact randomization type.
-#' @param args_for_type Optional arguments keyed by \code{type}.
+#' @param type \code{NULL} (default) or \code{"Zhang"}, the only accepted value.
+#'   \code{NULL} computes the p-value from the randomization draws. \code{"Zhang"}
+#'   instead returns the Zhang exact combined test (see
+#'   \code{\link[EDI:InferenceIncidExactZhang]{InferenceIncidExactZhang}}); it applies
+#'   only to incidence responses on a Bernoulli or matching design. For any other
+#'   response or design, a non-\code{NULL} \code{type} is an error; other strings
+#'   (for example \code{"Fisher"} or \code{"exact"}) are rejected.
+#' @param args_for_type \code{NULL} or a list keyed by \code{type}, used only with
+#'   \code{type = "Zhang"}: \code{list(Zhang = list(combination_method = "Stouffer"))},
+#'   where \code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"}
+#'   or \code{"min_p"}.
 #' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
 #' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 #'   use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.

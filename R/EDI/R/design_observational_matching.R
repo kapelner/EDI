@@ -96,3 +96,15 @@ ObservationalDesignMatching = define_design_class(
 		}
 	)
 )
+
+#' @R6method ObservationalDesignMatching$get_matching_cluster_ids
+#' @description Cluster ids implied by the matching: the two members of matched
+#'   pair \code{k} share id \code{k}, and every unmatched (reservoir) subject gets
+#'   its own singleton id, numbered after the largest pair id. Use these ids
+#'   wherever pair membership is needed, for example to cluster standard errors
+#'   or to cross-check a matched-pairs analysis outside EDI.
+#' @param m_vec Optional integer match vector, one entry per subject: the pair id,
+#'   or \code{0} / \code{NA} for an unmatched subject. Defaults to this design's
+#'   own match vector.
+#' @return An integer vector of length \code{n}.
+NULL

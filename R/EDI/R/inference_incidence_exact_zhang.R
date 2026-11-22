@@ -204,3 +204,16 @@ NULL
 #' @R6method InferenceIncidExactZhang$compute_exact_confidence_interval
 #' @template exact-zhang-compute-exact-confidence-interval
 NULL
+
+#' @R6method InferenceIncidExactZhang$compute_exact_two_sided_pval_for_treatment_effect
+#' @description Exact combined two-sided p-value for \eqn{H_0:} log odds ratio
+#'   \eqn{= \delta}, combining the matched-pairs and reservoir exact tests as
+#'   described in the class documentation.
+#' @param delta Null log odds ratio. Default \code{0}.
+#' @param type Exact inference type; only \code{"Zhang"} (the default) is accepted.
+#' @param args_for_type Optional list keyed by type, e.g.
+#'   \code{list(Zhang = list(combination_method = "Stouffer"))};
+#'   \code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"} or
+#'   \code{"min_p"}.
+#' @return A two-sided p-value.
+NULL

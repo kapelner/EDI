@@ -242,3 +242,31 @@ NULL
 #' @R6method InferenceIncidExactBinomial$compute_estimate
 #' @template exact-binomial-compute-estimate
 NULL
+
+#' @R6method InferenceIncidExactBinomial$compute_exact_confidence_interval
+#' @description Exact confidence interval for the log odds ratio from the
+#'   discordant matched pairs: the Clopper-Pearson interval
+#'   (\code{\link[stats]{binom.test}}) for the share of discordant pairs in which
+#'   the treated member has the event, mapped to the log-odds scale with
+#'   \code{qlogis()}.
+#' @param alpha Significance level; the interval has level \code{1 - alpha}.
+#' @param pval_epsilon Accepted for interface compatibility and ignored: the
+#'   interval is closed form, so any value gives the same interval.
+#' @param type Exact inference type; only \code{"Binomial"} (the default) is accepted.
+#' @param args_for_type Optional list keyed by type; \code{list(Binomial = list())}
+#'   is the only valid form and has no settings.
+#' @return A length-2 numeric vector of lower and upper bounds.
+NULL
+
+#' @R6method InferenceIncidExactBinomial$compute_exact_two_sided_pval_for_treatment_effect
+#' @description Exact equal-tail binomial p-value for \eqn{H_0:} log odds ratio
+#'   \eqn{= \delta}, computed on the discordant matched pairs with success
+#'   probability \code{plogis(delta)}; it is the test that
+#'   \code{$compute_exact_confidence_interval()} inverts.
+#' @param delta Null log odds ratio. Default \code{0}.
+#' @param type Exact inference type; only \code{"Binomial"} (the default) is accepted.
+#' @param args_for_type Optional list keyed by type; \code{list(Binomial = list())}
+#'   is the only valid form and has no settings.
+#' @return A two-sided p-value. With no matched pair or no discordant pair the
+#'   method stops with an error.
+NULL
