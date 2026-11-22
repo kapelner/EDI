@@ -14,7 +14,7 @@
 
 namespace edi_opt {
 
-// Robust OLS solver using Complete Orthogonal Decomposition to handle rank-deficiency.
+// Robust OLS solver using column-pivoting Householder QR to handle rank-deficiency.
 inline bool robust_ols_solve(const Eigen::MatrixXd& X,
                              const Eigen::VectorXd& y,
                              Eigen::VectorXd& beta_out) {

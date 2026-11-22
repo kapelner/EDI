@@ -75,7 +75,7 @@ x_i^\top\beta} scaled by a category-specific "score" \eqn{\phi_k \in [0, 1]}:
 with free intercepts \eqn{\alpha_2, \ldots, \alpha_K} and free interior scores
 \eqn{\phi_2, \ldots, \phi_{K-1}} reparameterized via unconstrained
 \eqn{\gamma_1, \ldots, \gamma_{K-2}} as cumulative softmax-style partial sums,
-\eqn{\phi_{j} = \left(\sum_{r \le j-2} e^{\gamma_r}\right) \big/ \left(1 +
+\eqn{\phi_{j} = \left(\sum_{r \le j-1} e^{\gamma_r}\right) \big/ \left(1 +
 \sum_r e^{\gamma_r}\right)} for \eqn{j = 2, \ldots, K-1}, which guarantees
 \eqn{0 = \phi_1 \le \phi_2 \le \cdots \le \phi_{K-1} \le \phi_K = 1} without an
 explicit constraint. A single \eqn{\hat\beta} therefore governs the covariate

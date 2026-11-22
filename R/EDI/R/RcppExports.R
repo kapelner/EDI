@@ -2814,7 +2814,7 @@ get_ordinal_glmm_neg_loglik_cpp <- function(X, y, group_id, params, K, n_gh = 20
 #'   \code{newton_polish_iterations} (diagnostics for the conditional
 #'   damped-Newton fallback), and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
 #'   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
-#'   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
+#'   besides \code{b}/\code{alpha}/\code{params}/\code{log_sigma}/\code{num_iter} and the flag fields are \code{NA}).
 #' @export
 #' @keywords internal
 fast_ordinal_glmm_cpp <- function(X, y, group_id, K, j_T, smart_cold_start = TRUE, estimate_only = FALSE, n_gh = 20L, max_abs_log_sigma = 8.0, maxit = 300L, eps_g = 1e-6, warm_start_params = NULL, warm_start_beta = NULL, optimization_alg = "lbfgs", fixed_idx = NULL, fixed_values = NULL, warm_start_fisher_info = NULL) {
@@ -2858,7 +2858,7 @@ get_ordinal_probit_regression_hessian_cpp <- function(X, y, params, fixed_idx = 
 #' directly (skipping \code{smart_cold_start}); otherwise, when
 #' \code{smart_cold_start = TRUE} (the default), starting values come from an
 #' OLS-based heuristic, and when \code{FALSE}, thresholds start at
-#' \eqn{\Phi^{-1}((k+1)/K)}, \eqn{k = 0, \ldots, K-2} (inverse-normal spacing of the empirical marginal category
+#' \eqn{\Phi^{-1}((k+1)/K)}, \eqn{k = 0, \ldots, K-2} (inverse-normal of equally spaced cumulative
 #' proportions) with \eqn{\beta} at zero. Optimization runs via
 #' \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 #' iterations or until the parameter/gradient change falls below \code{tol};
@@ -3559,7 +3559,7 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #' ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
 #' weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
 #' otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
-#' any other value of \code{method} (including the default, \code{"MM"}) uses
+#' \code{method = "MM"} (the default; any other value is an error) uses
 #' \strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
 #' and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
 #' this exported wrapper, though the internal fitter accepts it). The scale is the
@@ -3593,8 +3593,8 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 #' @param smart_cold_start Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
 #'   is supplied, use an OLS (QR) initial guess; see the section "Fixed parameters, warm starts".
-#' @param method Robust estimation method: \code{"M"} for Huber weighting, anything else
-#'   (default \code{"MM"}) for Tukey bisquare weighting; see the Description.
+#' @param method Robust estimation method: \code{"M"} for Huber weighting, \code{"MM"}
+#'   (the default) for Tukey bisquare weighting; any other value is an error; see the Description.
 #' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
 #' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
 #' @param maxit Maximum number of IRLS iterations.
@@ -3605,10 +3605,10 @@ fast_ridit_analysis_cpp <- function(w, y, reference = "control") {
 #' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 #' @param warm_start_fisher_info Optional initial curvature (\eqn{X^\top W X}) matrix for the first IRLS iteration.
 #' @param estimate_only If \code{TRUE}, skip the post-fit asymptotic-variance computation
-#'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.
+#'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{num_iter} (plus diagnostics).
 #'
 #' @return If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
-#'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{iterations}.
+#'   (the MAD-based robustness scale \eqn{\hat\sigma} used in the last iteration), \code{converged}, \code{num_iter}.
 #'   Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
 #'   \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
 #'   or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance
@@ -3698,7 +3698,7 @@ get_stereotype_logit_hessian_cpp <- function(X, y, params) {
 #' with free intercepts \eqn{\alpha_2, \ldots, \alpha_K} and free interior scores
 #' \eqn{\phi_2, \ldots, \phi_{K-1}} reparameterized via unconstrained
 #' \eqn{\gamma_1, \ldots, \gamma_{K-2}} as cumulative softmax-style partial sums,
-#' \eqn{\phi_{j} = \left(\sum_{r \le j-2} e^{\gamma_r}\right) \big/ \left(1 +
+#' \eqn{\phi_{j} = \left(\sum_{r \le j-1} e^{\gamma_r}\right) \big/ \left(1 +
 #' \sum_r e^{\gamma_r}\right)} for \eqn{j = 2, \ldots, K-1}, which guarantees
 #' \eqn{0 = \phi_1 \le \phi_2 \le \cdots \le \phi_{K-1} \le \phi_K = 1} without an
 #' explicit constraint. A single \eqn{\hat\beta} therefore governs the covariate
@@ -4285,7 +4285,7 @@ get_zero_one_inflated_beta_hessian_cpp <- function(X, X_zero_one, y, params) {
 #' supplies the full starting vector directly; otherwise, if \code{smart_cold_start
 #' = TRUE} (the default): \eqn{\beta} starts from an OLS fit of
 #' \eqn{\mathrm{logit}(y_i)} on \code{X} restricted to interior observations
-#' (\eqn{0 < y_i < 1}), falling back to zero if fewer such observations than
+#' (\eqn{0 < y_i < 1}), falling back to zero unless more such observations than
 #' \code{ncol(X)} are available; \eqn{\log\phi} starts at 2; and \eqn{\gamma_0}/
 #' \eqn{\gamma_1} each start from a separate OLS fit of \code{X_zero_one} on the
 #' corresponding 0/1 indicator (\eqn{\mathbb{1}[y_i = 0]}, \eqn{\mathbb{1}[y_i =

@@ -7,7 +7,7 @@
 // Parameter vector: [beta_cond(p_cond), beta_zi(p_zi), log_theta]
 //   mu  = exp(eta_cond),  pi = sigmoid(eta_zi),  theta = exp(log_theta)
 //
-// Analytic gradient; analytic Hessian.
+// Analytic gradient; numerical Hessian (numerical_hessian).
 
 #ifdef EDI_CORE_ONLY
 #include "_helper_functions_core.h"

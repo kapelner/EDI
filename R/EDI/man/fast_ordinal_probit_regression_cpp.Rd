@@ -92,7 +92,7 @@ parameters at caller-supplied constant values rather than estimating them.
 directly (skipping \code{smart_cold_start}); otherwise, when
 \code{smart_cold_start = TRUE} (the default), starting values come from an
 OLS-based heuristic, and when \code{FALSE}, thresholds start at
-\eqn{\Phi^{-1}((k+1)/K)}, \eqn{k = 0, \ldots, K-2} (inverse-normal spacing of the empirical marginal category
+\eqn{\Phi^{-1}((k+1)/K)}, \eqn{k = 0, \ldots, K-2} (inverse-normal of equally spaced cumulative
 proportions) with \eqn{\beta} at zero. Optimization runs via
 \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
 iterations or until the parameter/gradient change falls below \code{tol};

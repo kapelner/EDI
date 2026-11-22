@@ -753,7 +753,7 @@ double get_ordinal_glmm_neg_loglik_cpp(
 //'   \code{newton_polish_iterations} (diagnostics for the conditional
 //'   damped-Newton fallback), and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
 //'   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
-//'   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
+//'   besides \code{b}/\code{alpha}/\code{params}/\code{log_sigma}/\code{num_iter} and the flag fields are \code{NA}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

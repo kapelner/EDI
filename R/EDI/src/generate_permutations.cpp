@@ -121,7 +121,7 @@ double compute_atkinson_weight_internal(
 } // namespace
 
 // ─────────────────────────────────────────────────────────────────────────
-// Portable cores (EDI_CORE_ONLY-safe): identical logic to the 9 exported
+// Portable cores (EDI_CORE_ONLY-safe): identical logic to the 8 exported
 // generate_permutations_*_cpp functions below, but each takes the seed as
 // an explicit parameter instead of drawing it from R's RNG internally (the
 // Rcpp wrapper draws one R::unif_rand() value; a Python binding would pass
