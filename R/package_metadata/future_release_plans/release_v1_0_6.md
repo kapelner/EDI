@@ -6409,6 +6409,11 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   alone and keep internal pointers in `#` comments. This extends v1.0.6-TODO-311 (which covers message strings) to
   roxygen. Done when: a source test fails on any `#'` line naming `package_metadata`, an internal `.md` or
   `TODO-<n>`, and `man/InferenceSuite.Rd` names no unexported identifier.
+  2026-11-22 (coordinator): the vignette part is done in commit 2bc1e336 (v1.0.6-TODO-404): a grep of
+  `vignettes/` and `vignettes/articles/` for `ROADMAP.md`, `R/package_metadata/` and `release_v` found two links to
+  unshipped repo files, `cookbook-count.Rmd` (`ROADMAP.md`) and `extending-edi.Rmd`
+  (`R/package_metadata/contracts/new_model_creation.md`); both now link to the GitHub copies. The roxygen part
+  stays open.
 
 - [ ] TODO-344 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`InferenceCountRobustPoisson`
   returns a named estimate and p-value (`"treatment"`).**
@@ -6751,6 +6756,38 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   sample quantiles anyway. Fix: drop the jackknife capability for the Contin/Prop/KK quantile classes and update the
   small-sample table, or keep it with a quantile-specific reason; reword the generic text so separation is one
   possible cause. Done when: the repro either doesn't offer the jackknife or warns without mentioning separation.
+
+- [x] TODO-404 (added 2026-11-22, done 2026-11-22, coordinator, owner request; docs-scenario free-text gaps): **Doc gaps
+  the docs-scenario agents noted outside their findings.** Sources: the "Not done / guesses", "Could not do" and
+  "Where I had to guess" parts of the area summaries of run 44883784401 (2026-11-21, this file's section) and run
+  44358267779 (2026-11-18, `audit-notes` branch). Docs-only, commit 2bc1e336 (roxygen edited, Rd not regenerated):
+  - simulation-framework: `simulations_framework.R`: `X_mat` makes `cov_draw_method` ignored (the code drops it; the
+    help said "must be NULL"); `keep_all_intermediate_data` refused with `num_cores > 1` or `Nrep_Y_w > 1`;
+    `y_linear_model` (and `betaT`) on the logit scale for incidence, and for proportion, whose `betaT` text said
+    additive. `simulation_framework_report.R`: `simulation_mode` values (`standard`, `custom_dgp`,
+    `crdg`/`catn`/`cte` joined by `+`), and that `summarize()` groups by it and classifies null cells by mean
+    `true_estimand` outside `standard`.
+  - count: `vignettes/cookbook-count.Rmd` (`ROADMAP.md`) and `vignettes/extending-edi.Rmd`
+    (`R/package_metadata/contracts/...`) link to GitHub (see v1.0.6-TODO-343). `get_matching_cluster_ids()`
+    `@R6method` blocks on `DesignSeqOneByOneKK14` (KK21 inherits), `DesignFixedBinaryMatch`,
+    `DesignFixedMatchingGreedyPairSwitching` and `ObservationalDesignMatching`.
+  - incidence / factorial: `inference_all_abstract_rand_ci.R` and the `randci-compute-rand-two-sided-pval-params`
+    template: `type` is `NULL` or `"Zhang"` (incidence on Bernoulli/matching designs) with
+    `args_for_type = list(Zhang = list(combination_method = ...))`; the randomization-CI `type` has no usable value.
+    `compute_exact_*()` `@R6method` blocks for ExactFisher (`"Fisher"`; CI from `fisher.test`/`mantelhaen.test`,
+    `pval_epsilon` ignored, premise held), ExactBinomial (`"Binomial"`; Clopper-Pearson, `pval_epsilon` ignored) and
+    ExactZhang's p-value.
+  - fixed-designs / clusters-blocking: `design_fixed_rerandomization.R`: choosing `obj_val_cutoff` for a target
+    rate (`a = qchisq(p_a, k) * n / (n_T n_C)` for `mahal_dist`, empirical quantile otherwise; `prop_acceptable` as
+    the direct route). `design_fixed_blocked_cluster.R`: `set_m()` does not change the randomization (draws use
+    `strata_cols`) and only changes what `get_block_ids()` reports.
+  - survival-censoring: `inference_all_abstract.R` `set_optimization_alg()`: `"newton_raphson"`, `"lbfgs"`, plus
+    `"irls"` when allowed, `match.arg` abbreviations, default from the optimization dispatch policy;
+    `inference_survival_weibull.R` constructor: `"lbfgs"` default, no IRLS.
+  Code issues seen, not fixed: in `InferenceRandCI$compute_rand_two_sided_pval()` the `type = "Zhang"` dispatch sits
+  inside `if (should_run_asserts())`, so with assertions off (e.g. `SimulationFramework`'s
+  `turn_off_asserts_for_speed`) `type` is silently ignored and the randomization-draw p-value is returned;
+  `DesignFixedBlockedCluster$set_m()` can record block ids that differ from the randomization strata.
 
 - [ ] TODO-373 (added 2026-11-21, agent; found by the v1.0.6-TODO-328 fix): **`InferenceIncidKKGEE` can never return a
   randomization p-value.** The KK GEE mixin's `compute_rand_two_sided_pval` override
