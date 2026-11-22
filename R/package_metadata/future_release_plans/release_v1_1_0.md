@@ -2654,3 +2654,11 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedBernoulli@prob_T=0.2' --n 1000 --effect null --only InferenceSurvivalRestrictedMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: each group is explained (estimand mismatch with the DGP truth, design artefact, or a real bias) and
     either fixed or documented; re-check against the next campaign's `null-bias.md`.
+- [ ] TODO-264 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **`InferenceOrdinalKKCLMM`: null bias 0.217 SD at n = 1000 on KK14 (reported, not gated).**
+  - Two cells, SeqOneByOneKK14 `~.` and `~1` n = 1000: bias 0.217 SD (line 0.1). No TODO covers it; compare
+    v1.1.0-TODO-263 (the other null-bias groups).
+  - Caveat: the campaign abandoned the OrdinalKKCLMM n = 1000 units on FixedBinaryMatch and KK14 after repeated shard
+    timeouts (about 12 min per replicate), so this bias rests on the replicates that finished, which may be a biased
+    subset (the slow fits). Re-measure on a full replicate set before investigating the estimator.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneKK14' --n 1000 --effect null --only InferenceOrdinalKKCLMM --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: the bias is re-measured on complete replicates, and explained, fixed or documented.

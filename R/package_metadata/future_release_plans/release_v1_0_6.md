@@ -6935,3 +6935,19 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   the p-value moves (0.112 vs 0.102). Example: on the mirrored assignment `1 - w` the worker returns NA while a fresh
   fit gives -0.6247. Fix (1) first, then check whether (2) remains; the randomization p-value of this class is
   unreliable until then. Test: worker replicate equals a fresh fit on several permuted draws, and no silent NA.
+- [ ] TODO-407 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **`InferenceOrdinalCloglogRegr`: every model-based test oversized in one cell, FixedBlocking prob_T 0.2, n = 1000.**
+  - Wald / score / LR / gradient, size and coverage, all in FixedBlocking@0.2 `~.` n = 1000: size 0.075-0.078 (level
+    0.05), coverage 0.922-0.925. No other Cloglog cell is flagged, and no calibration TODO covers the class.
+  - All four tests moving together in one cell points at the fit or the data in that cell (for example a sparse
+    outcome category in the treated arm at prob_T 0.2 within blocks), not at one test's reference distribution.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignFixedBlocking@prob_T=0.2' --n 1000 --effect null --only InferenceOrdinalCloglogRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cell; if confirmed, fixed or accepted with rows citing this TODO.
+- [ ] TODO-408 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **Ordinal randomization tests oversized in one shared cell, SeqOneByOneiBCRD prob_T 0.2, n = 50.**
+  - `rand` size in SeqOneByOneiBCRD@0.2 `~.` n = 50: `InferenceOrdinalAdjCatLogitRegr` 0.074, `InferenceOrdinalCloglogRegr`
+    0.074, `InferenceOrdinalContRatioRegr` 0.074, `InferenceOrdinalGCompMeanDiff` 0.079 (level 0.05); GCompMeanDiff also
+    FixedBinaryMatch `~1` n = 50. No calibration TODO covers these.
+  - Four classes share the same data in this cell and fail together, so suspect the design's redraws (iBCRD at prob_T
+    0.2 and n = 50, sequential) or the Monte Carlo p-value rather than the classes. A randomization test is exact under
+    the design, so a confirmed excess is a bug.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneiBCRD@prob_T=0.2' --n 50 --effect null --only InferenceOrdinalGCompMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation decides the cells; confirmed ones are fixed.
