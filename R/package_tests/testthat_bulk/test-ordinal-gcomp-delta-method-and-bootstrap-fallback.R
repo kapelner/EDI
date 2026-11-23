@@ -3,8 +3,9 @@ library(EDI)
 
 # inference_ordinal_gcomp.R's delta-method sandwich path (private$shared()'s
 # finite-difference gradient of the proportional-odds standardization through
-# fast_ordinal_regression_with_var_cpp's fitted vcov) and its bootstrap-fallback
-# branch (private$has_finite_md_se()) were previously only smoke-tested
+# fast_ordinal_regression_with_var_cpp's fitted vcov) and its unavailable-SE
+# branch (private$has_finite_md_se(); a bootstrap fallback before v1.0.6-TODO-380,
+# NA since) were previously only smoke-tested
 # (test-ordinal-gcomp-and-conditional-setup-contracts.R checks compute_estimate/
 # compute_asymp_confidence_interval/compute_asymp_two_sided_pval return finite,
 # self-consistent values, with no independent numerical reference and no
@@ -73,28 +74,23 @@ test_that("delta-method estimate/SE match an independent MASS::polr fit and fini
 	expect_error(f$inf$compute_asymp_confidence_interval(alpha = 0), "alpha")
 })
 
-test_that("a non-finite delta-method SE falls back to the exact bootstrap CI/p-value, with a warning", {
+test_that("a non-finite delta-method SE gives NA with a recorded reason and one warning, never the bootstrap", {
+	# v1.0.6-TODO-380: this used to fall back to the bootstrap CI / p-value.
 	f <- ordinal_gcomp_asymp_fixture(42)
 	f$inf$compute_estimate()
 	priv <- f$inf$.__enclos_env__$private
 	priv$cached_values$se_md <- NA_real_
 	priv$cached_values$s_beta_hat_T <- NA_real_
+	unlockBinding("compute_bootstrap_confidence_interval", f$inf)
+	f$inf$compute_bootstrap_confidence_interval <- function(...) stop("bootstrap must not be called")
+	unlockBinding("compute_bootstrap_two_sided_pval", f$inf)
+	f$inf$compute_bootstrap_two_sided_pval <- function(...) stop("bootstrap must not be called")
 
-	expect_warning(
-		ci <- f$inf$compute_asymp_confidence_interval(alpha = 0.2),
-		"falling back to bootstrap"
-	)
-	set.seed(999)
-	expected_ci <- f$inf$compute_bootstrap_confidence_interval(alpha = 0.2, na.rm = TRUE)
-	set.seed(999)
-	actual_ci <- suppressWarnings(f$inf$compute_asymp_confidence_interval(alpha = 0.2))
-	expect_equal(actual_ci, expected_ci)
-
-	set.seed(1)
-	expected_pval <- f$inf$compute_bootstrap_two_sided_pval(na.rm = TRUE)
-	set.seed(1)
-	actual_pval <- suppressWarnings(f$inf$compute_asymp_two_sided_pval())
-	expect_equal(actual_pval, expected_pval)
+	expect_warning(ci <- f$inf$compute_asymp_confidence_interval(alpha = 0.2), class = "edi_wald_unavailable_warning")
+	expect_true(all(is.na(ci)))
+	expect_identical(names(ci), c("10%", "90%"))
+	expect_true(is.na(f$inf$compute_asymp_two_sided_pval()))
+	expect_identical(priv$cached_values$procedure_failure_reason$wald, "wald_standard_error_unavailable")
 })
 
 test_that("bootstrap-weighted replicates run side-effect-free and reproduce the unweighted estimate under unit weights", {
@@ -118,33 +114,23 @@ test_that("bootstrap-weighted replicates run side-effect-free and reproduce the 
 })
 
 # docs-claims audit, finding docs-claims-d1275549d: the Wald aliases carry their own copy of
-# the bootstrap-fallback branch (inference_ordinal_gcomp.R compute_wald_*), so exercise them
+# the unavailable-SE branch (inference_ordinal_gcomp.R compute_wald_*), so exercise them
 # directly with a non-finite delta-method SE.
-test_that("compute_wald_confidence_interval / compute_wald_two_sided_pval also fall back to the bootstrap when the SE is non-finite", {
+test_that("compute_wald_confidence_interval / compute_wald_two_sided_pval also give NA, not the bootstrap, when the SE is non-finite", {
 	f <- ordinal_gcomp_asymp_fixture(42)
 	f$inf$compute_estimate()
 	priv <- f$inf$.__enclos_env__$private
 	priv$cached_values$se_md <- NA_real_
 	priv$cached_values$s_beta_hat_T <- NA_real_
+	unlockBinding("compute_bootstrap_confidence_interval", f$inf)
+	f$inf$compute_bootstrap_confidence_interval <- function(...) stop("bootstrap must not be called")
+	unlockBinding("compute_bootstrap_two_sided_pval", f$inf)
+	f$inf$compute_bootstrap_two_sided_pval <- function(...) stop("bootstrap must not be called")
 
-	set.seed(321)
-	expect_warning(
-		wald_ci <- f$inf$compute_wald_confidence_interval(alpha = 0.2),
-		"falling back to bootstrap"
-	)
-	set.seed(321)
-	expected_ci <- f$inf$compute_bootstrap_confidence_interval(alpha = 0.2, na.rm = TRUE)
-	expect_equal(wald_ci, expected_ci)
-
-	set.seed(7)
-	expect_warning(
-		wald_p <- f$inf$compute_wald_two_sided_pval(),
-		"falling back to bootstrap"
-	)
-	set.seed(7)
-	expected_p <- f$inf$compute_bootstrap_two_sided_pval(na.rm = TRUE)
-	expect_equal(wald_p, expected_p)
-	expect_true(is.finite(wald_p) && wald_p >= 0 && wald_p <= 1)
+	expect_warning(wald_ci <- f$inf$compute_wald_confidence_interval(alpha = 0.2), class = "edi_wald_unavailable_warning")
+	expect_true(all(is.na(wald_ci)))
+	wald_p <- f$inf$compute_wald_two_sided_pval()
+	expect_true(is.na(wald_p))
 })
 
 # docs-claims audit, finding docs-claims-d1275549d: initialize requires an ordinal response.

@@ -141,7 +141,10 @@ InferenceSurvivalLogRank = define_inference_class(
 		},
 		#' @description Computes a (1 - alpha)-level confidence interval based on the asymptotic
 		#' normality of the martingale-residual mean-difference estimate.
-		#' Falls back to bootstrap if the estimated standard error is unavailable.
+		#' When the estimated standard error is unavailable the interval is \code{NA},
+		#' with the reason recorded and an \code{edi_wald_unavailable_warning}; no
+		#' bootstrap interval is substituted (v1.0.6-TODO-380; call
+		#' \code{compute_bootstrap_confidence_interval()} for one).
 		#' @param alpha Significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -149,7 +152,8 @@ InferenceSurvivalLogRank = define_inference_class(
 			}
 			private$compute_shared()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},

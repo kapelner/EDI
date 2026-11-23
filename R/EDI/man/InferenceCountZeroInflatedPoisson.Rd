@@ -433,8 +433,10 @@ resampling paths.}
 \if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedPoisson-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountZeroInflatedPoisson$compute_asymp_confidence_interval()}}{
   Asymptotic confidence interval. Under the conditional
-  estimand, delegates to the shared zero-augmented count-model Wald/
-  bootstrap-fallback contract; under a marginal estimand, the
+  estimand, the zero-augmented count-model Wald interval (\code{NA}, with
+  the reason recorded and an \code{edi_wald_unavailable_warning}, when the
+  model standard error is unavailable; no bootstrap is substituted,
+  v1.0.6-TODO-380); under a marginal estimand, the
   delta-method interval computed by \code{compute_estimate()}. Calls
   \code{self$compute_estimate()} first (not \code{private$shared()}
   directly) so the estimand-aware cache is always current regardless

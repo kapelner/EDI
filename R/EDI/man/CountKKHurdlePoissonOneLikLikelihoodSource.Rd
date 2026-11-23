@@ -22,8 +22,11 @@ Recomputes the combined hurdle-Poisson estimate under
 
 Compute the configured asymptotic confidence interval for the
   one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-  score, likelihood-ratio, or gradient paths as documented in
-  \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+  score, likelihood-ratio, gradient, model-only Bartlett-corrected
+  likelihood-ratio (\code{"lik_ratio_bartlett_approx"}) or
+  design-conservative Bartlett
+  (\code{"lik_ratio_bartlett_approx_design_conservative"}) paths; see
+  \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 
 Computes a design-conservative score confidence interval.
 
@@ -32,9 +35,9 @@ Computes a design-conservative likelihood-ratio confidence interval.
 Computes a design-conservative gradient confidence interval.
 
 Compute the configured asymptotic two-sided p-value for the
-  one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-  score, likelihood-ratio, or gradient paths as documented in
-  \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+  one-likelihood hurdle-Poisson treatment coefficient, delegating to the
+  same paths as \code{compute_asymp_confidence_interval()}; see
+  \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 
 Computes a design-conservative score p-value.
 
@@ -43,15 +46,16 @@ Computes a design-conservative likelihood-ratio p-value.
 Computes a design-conservative gradient p-value.
 
 Compute the Wald confidence interval for the one-likelihood
-  hurdle-Poisson treatment coefficient, falling back to bootstrap when the
-  model standard error is unavailable. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  hurdle-Poisson treatment coefficient. When the model standard error is
+  unavailable the interval is \code{NA}, with the reason recorded and an
+  \code{edi_wald_unavailable_warning}; no other procedure is substituted
+  (call \code{compute_bootstrap_confidence_interval()} for a bootstrap
+  interval). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 
 Compute the Wald two-sided p-value for the one-likelihood
-  hurdle-Poisson treatment coefficient, falling back to the nonparametric
-  bootstrap p-value when the model standard error is unavailable (or
-  \code{NA_real_} when the design does not support the nonparametric
-  bootstrap). See
+  hurdle-Poisson treatment coefficient: \code{NA} (reason recorded, with an
+  \code{edi_wald_unavailable_warning}) when the model standard error is
+  unavailable, never a bootstrap p-value. See
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 }
 \keyword{internal}

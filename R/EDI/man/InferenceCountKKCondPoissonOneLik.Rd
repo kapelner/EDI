@@ -37,7 +37,11 @@ statistic under \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}'s
 \eqn{z}/\eqn{t} machinery, so inference never overstates precision
 relative to the design alone. The exception is the Bartlett-corrected
 likelihood-ratio test (\code{"lik_ratio_bartlett_approx"}), which is the
-model-only test and can be narrower than \code{"lik_ratio"}.
+model-only test and can be narrower than \code{"lik_ratio"}. Its
+design-conservative version is the separate testing type
+\code{"lik_ratio_bartlett_approx_design_conservative"}: the larger of the
+model-only Bartlett p-value and the design Wald p-value, and the union of
+the two intervals (v1.0.6-TODO-380).
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 

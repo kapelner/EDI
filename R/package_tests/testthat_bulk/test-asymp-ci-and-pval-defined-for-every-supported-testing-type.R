@@ -15,7 +15,8 @@ library(EDI)
 #
 # Runtime: the parametric-bootstrap Bartlett factor (B = 99 refits per null
 # value, and the CI inversion visits many) costs minutes per class on the
-# GLMM / hurdle / stereotype classes, so for "lik_ratio_bartlett_approx" the
+# GLMM / hurdle / stereotype classes, so for "lik_ratio_bartlett_approx" (and
+# v1.0.6-TODO-380's "lik_ratio_bartlett_approx_design_conservative") the
 # instance's private get_bartlett_factor_approx() is replaced by a constant 1.
 # That keeps the dispatch and CI-inversion path under test (what TODO-327 is
 # about) without the bootstrap; the factor itself is covered by
@@ -121,7 +122,7 @@ test_that("compute_asymp_confidence_interval() and compute_asymp_two_sided_pval(
 			# fresh object per type, so no cached state carries over
 			inf = suppressWarnings(suppressMessages(gen$new(d, verbose = FALSE)))
 			inf$set_testing_type(tt)
-			if (identical(tt, "lik_ratio_bartlett_approx")) {
+			if (tt %in% c("lik_ratio_bartlett_approx", "lik_ratio_bartlett_approx_design_conservative")) {
 				asymp_tt_stub_bartlett_factor(inf)
 				n_bartlett = n_bartlett + 1L
 			}

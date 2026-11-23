@@ -362,6 +362,16 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
 		paste(x[!startsWith(x, "load_resampling_draw_into_worker@")], collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.6-TODO-380 (2026-11-23) deleted the Wald paths' bootstrap-fallback
+	# helpers: CountLikelihoodPlumbing's count_bootstrap_fallback_ci()/_pval() and
+	# the KK hurdle-Poisson OneLik's (already uncalled) warn_bootstrap_fallback_once().
+	# A Wald request now gets Wald or NA. Reviewed removal delta: these names
+	# disappear from every class that had them, and nothing else changes.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		gone <- sub("@.*$", "", x) %in% c("count_bootstrap_fallback_ci", "count_bootstrap_fallback_pval", "warn_bootstrap_fallback_once")
+		paste(x[!gone], collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	# v1.0.5 TODO-97 Option A (2026-10-22) added the ResamplingCore component
 	# (shared resampling cache/contract, jackknife-unit validators, extreme-
 	# estimate guard, NULL create_bootstrap_worker_state() default) and

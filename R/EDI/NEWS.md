@@ -553,6 +553,25 @@
 
 ### Model fits: all response types
 
+* A Wald confidence interval or p-value whose standard error is unavailable
+  now returns `NA`, records the reason (`procedure_failure_reason$wald`) and
+  warns once per fit with class `edi_wald_unavailable_warning`. It no longer
+  substitutes the nonparametric bootstrap, which these classes used to do
+  silently or with an unclassed warning: `InferenceCountKKHurdlePoissonOneLik`
+  (`testing_type = "wald"` and `compute_wald_*()`), `InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedPoisson`, `InferenceCountZeroInflatedNegBin`,
+  `InferenceOrdinalGCompMeanDiff` (asymptotic and `compute_wald_*()`), the
+  confidence intervals of `InferenceSurvivalLogRank` and
+  `InferenceSurvivalGehanWilcox` (and so the log-rank class's CI-inverted
+  p-value), and the right-censored intervals and p-values of
+  `InferenceSurvivalKMDiff` and `InferenceSurvivalRestrictedMeanDiff`. The
+  testing type you ask for is the test you get; call
+  `compute_bootstrap_confidence_interval()` or
+  `compute_bootstrap_two_sided_pval()` for the bootstrap. On left- and
+  interval-censored data, where the KM-median and RMST differences have no
+  analytic standard error, those two classes still return the bootstrap
+  (v1.0.6-TODO-380).
+
 * Wald standard errors, p-values and CIs of likelihood-backed classes now
   always use the observed information, and `compute_wald_confidence_interval()`,
   `compute_wald_two_sided_pval()`, `get_standard_error()`, `InferenceSuite`'s
@@ -750,6 +769,19 @@
   exact p-value and confidence interval are unchanged.
 
 ### Count responses
+
+* `InferenceCountPoisson`: `testing_type = "lik_ratio_bartlett_approx"` (and
+  `compute_lik_ratio_bartlett_approx_confidence_interval()` /
+  `_two_sided_pval()` and the best-available
+  `compute_lik_ratio_bartlett_confidence_interval()` / `_two_sided_pval()`) is
+  now the model-only Bartlett-corrected likelihood-ratio test, as it already
+  was on `InferenceCountKKCondPoissonOneLik` and
+  `InferenceCountKKHurdlePoissonOneLik`. It used to report the larger of that
+  p-value and the design jackknife-Wald p-value, and the union of the two
+  intervals, so its intervals can now be narrower and its p-values smaller.
+  The old result is the new testing type
+  `"lik_ratio_bartlett_approx_design_conservative"`, which reproduces it
+  exactly (v1.0.6-TODO-380).
 
 * `InferenceCountPoisson`: the design-conservative tests (every asymptotic and
   likelihood test, which report the larger of the model-based and jackknife
@@ -980,6 +1012,17 @@
   (v1.0.6-TODO-219).
 
 ## New features
+
+* New testing type `"lik_ratio_bartlett_approx_design_conservative"` on
+  `InferenceCountPoisson`, `InferenceCountKKCondPoissonOneLik` and
+  `InferenceCountKKHurdlePoissonOneLik`: the larger of the model-only
+  Bartlett-corrected likelihood-ratio p-value and the design-based Wald
+  p-value (the jackknife Wald for `InferenceCountPoisson`), and the union of
+  the two intervals, the rule these classes already apply to `"score"`,
+  `"lik_ratio"` and `"gradient"`. `"lik_ratio_bartlett_approx"` stays the
+  model-only test. Select it with `set_testing_type()` and call
+  `compute_asymp_confidence_interval()` / `compute_asymp_two_sided_pval()`
+  (v1.0.6-TODO-380).
 
 * `InferenceSuite$run_all_inference()` gains `r` (draws for the randomization
   and randomization-bootstrap tests and CIs) and `B` (replicates for the

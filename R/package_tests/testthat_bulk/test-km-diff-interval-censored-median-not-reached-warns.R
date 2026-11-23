@@ -109,7 +109,10 @@ test_that("interval-censored KMDiff with both medians reached raises no not-reac
 # v1.0.6-TODO-309 (docs-scenarios survival-censoring F4): the asymptotic p-value fell back to the
 # bootstrap with na.rm = FALSE and returned NA (2 of 501 replicates non-finite) while the asymptotic CI
 # (which drops them) was finite; the method takes no na.rm, so the warning's advice could not be followed.
-test_that("KMDiff asymptotic p-value fallback drops non-finite replicates like the CI fallback", {
+test_that("KMDiff asymptotic CI / p-value with a missing Brookmeyer-Crowley bound are NA, not the bootstrap", {
+	# v1.0.6-TODO-380: they used to fall back to the bootstrap here (the TODO-309 fixture, whose
+	# right-censored data leave a Brookmeyer-Crowley bound non-finite); a Wald request now gets
+	# NA with a reason. The bootstrap, called directly, still drops non-finite replicates.
 	set.seed(20261118); n = 80
 	X = data.frame(age = round(rnorm(n, 62, 9)), ecog = sample(0:1, n, replace = TRUE))
 	des = DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
@@ -118,12 +121,12 @@ test_that("KMDiff asymptotic p-value fallback drops non-finite replicates like t
 	fu = round(18 - runif(n, 0, 10), 2); obs = t_ev <= fu; tm = ifelse(obs, round(t_ev, 2), fu)
 	des$add_all_subject_responses(ys = ifelse(obs, tm, NA), y_Ls = ifelse(obs, NA, tm), y_Rs = ifelse(obs, NA, Inf))
 	km = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
-	km$set_seed(1); ci = suppressWarnings(km$compute_asymp_confidence_interval())
-	km$set_seed(1); p = suppressWarnings(km$compute_asymp_two_sided_pval())
-	expect_true(all(is.finite(ci)))
-	expect_true(is.finite(p))
-	expect_equal(p < 0.05, ci[1] > 0 || ci[2] < 0)
+	expect_true(is.finite(km$compute_estimate()))
+	expect_warning(ci <- km$compute_asymp_confidence_interval(), class = "edi_wald_unavailable_warning")
+	expect_true(all(is.na(ci)))
+	expect_true(is.na(km$compute_asymp_two_sided_pval()))
+	expect_identical(km$.__enclos_env__$private$cached_values$procedure_failure_reason$wald, "km_brookmeyer_crowley_bound_unavailable")
 	km2 = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
 	km2$set_seed(1)
-	expect_equal(p, suppressWarnings(km2$compute_bootstrap_two_sided_pval(na.rm = TRUE)))
+	expect_true(is.finite(suppressWarnings(km2$compute_bootstrap_two_sided_pval(na.rm = TRUE))))
 })

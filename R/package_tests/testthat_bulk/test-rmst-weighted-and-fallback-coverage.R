@@ -62,26 +62,22 @@ test_that("weighted RMST returns missing when an arm has no positive weight", {
   }
 })
 
-test_that("RMST routes unavailable Greenwood uncertainty to bootstrap inference", {
+test_that("RMST with unavailable Greenwood uncertainty gives NA Wald inference, not the bootstrap", {
   # All observations censored is a reachable zero-Greenwood-information case.
+  # v1.0.6-TODO-380: this used to route to the bootstrap; a Wald request now gets NA with a reason.
   generator <- R6::R6Class("InferenceSurvivalRestrictedMeanDiff",
     inherit = InferenceSurvivalRestrictedMeanDiff, parent_env = asNamespace("EDI"),
     lock_objects = FALSE,
     public = list(
-      compute_bootstrap_confidence_interval = function(alpha = 0.05, ...) {
-        private$fallback_calls$alpha <- alpha
-        c(-2, 3)
-      },
-      compute_bootstrap_two_sided_pval = function(delta = 0, na.rm = FALSE, ...) {
-        private$fallback_calls$delta <- delta
-        private$fallback_calls$na.rm <- na.rm
-        0.25
-      }
-    ), private = list(fallback_calls = list()))
+      compute_bootstrap_confidence_interval = function(...) stop("bootstrap must not be called"),
+      compute_bootstrap_two_sided_pval = function(...) stop("bootstrap must not be called")
+    ))
   inf <- generator$new(rmst_weighted_coverage_design(rep(0, 6L)), verbose = FALSE)
-  expect_warning(ci <- inf$compute_asymp_confidence_interval(alpha = 0.2), "Restricted mean SE")
-  expect_identical(ci, c(-2, 3))
-  expect_identical(inf$compute_asymp_two_sided_pval(), 0.25)
-  expect_identical(inf$.__enclos_env__$private$fallback_calls,
-                   list(alpha = 0.2, delta = 0, na.rm = TRUE))
+  expect_warning(
+    expect_warning(ci <- inf$compute_asymp_confidence_interval(alpha = 0.2), "Restricted mean SE"),
+    class = "edi_wald_unavailable_warning")
+  expect_true(all(is.na(ci)))
+  expect_identical(names(ci), c("10%", "90%"))
+  expect_true(is.na(inf$compute_asymp_two_sided_pval()))
+  expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$wald, "wald_standard_error_unavailable")
 })

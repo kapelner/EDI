@@ -1700,10 +1700,16 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' The Bartlett-corrected likelihood-ratio test
 #' (\code{set_testing_type("lik_ratio_bartlett_approx")}) is not combined this
 #' way: it is the model-only Bartlett-corrected test, so its interval can be
-#' narrower than the design-conservative \code{"lik_ratio"} one.
-#' The Wald confidence interval and p-value fall back to the
-#' nonparametric-bootstrap distribution when the model-based standard error is unavailable
-#' or non-finite (e.g. a boundary/separation fit).
+#' narrower than the design-conservative \code{"lik_ratio"} one. Its
+#' design-conservative version is a separate testing type,
+#' \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}: the
+#' larger of the model-only Bartlett p-value and the design Wald p-value, and the
+#' union of the two intervals (v1.0.6-TODO-380).
+#' When the model-based standard error is unavailable or non-finite (e.g. a
+#' boundary/separation fit) the Wald confidence interval and p-value are
+#' \code{NA}, with the reason recorded and an \code{edi_wald_unavailable_warning};
+#' no other procedure is substituted. Call
+#' \code{compute_bootstrap_confidence_interval()} for a bootstrap interval.
 #'
 #' \strong{Assumptions.} Independence across matched pairs and reservoir
 #' subjects conditional on covariates; correct specification of the
@@ -2542,7 +2548,11 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #' \eqn{z}/\eqn{t} machinery, so inference never overstates precision
 #' relative to the design alone. The exception is the Bartlett-corrected
 #' likelihood-ratio test (\code{"lik_ratio_bartlett_approx"}), which is the
-#' model-only test and can be narrower than \code{"lik_ratio"}.
+#' model-only test and can be narrower than \code{"lik_ratio"}. Its
+#' design-conservative version is the separate testing type
+#' \code{"lik_ratio_bartlett_approx_design_conservative"}: the larger of the
+#' model-only Bartlett p-value and the design Wald p-value, and the union of
+#' the two intervals (v1.0.6-TODO-380).
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
 #' log-linear (Poisson) mean model \eqn{E[Y \mid w, x] = \exp(\beta_0 +

@@ -253,7 +253,10 @@ design's imputed covariates.}
 \subsection{\code{InferenceSurvivalLogRank$compute_asymp_confidence_interval()}}{
   Computes a (1 - alpha)-level confidence interval based on the asymptotic
 normality of the martingale-residual mean-difference estimate.
-Falls back to bootstrap if the estimated standard error is unavailable.
+When the estimated standard error is unavailable the interval is \code{NA},
+with the reason recorded and an \code{edi_wald_unavailable_warning}; no
+bootstrap interval is substituted (v1.0.6-TODO-380; call
+\code{compute_bootstrap_confidence_interval()} for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalLogRank$compute_asymp_confidence_interval(alpha = 0.05)}

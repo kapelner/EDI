@@ -14,8 +14,11 @@
 #' standard error is unavailable or non-finite, the Wald-style methods
 #' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()},
 #' \code{$compute_wald_confidence_interval()}, \code{$compute_wald_two_sided_pval()})
-#' all fall back to a nonparametric bootstrap interval/p-value instead
-#' (with a warning), rather than returning \code{NA}.
+#' all return \code{NA}, with the reason recorded and an
+#' \code{edi_wald_unavailable_warning}; no bootstrap interval or p-value is
+#' substituted (they fell back to the bootstrap before EDI 1.0.6,
+#' v1.0.6-TODO-380). Call \code{$compute_bootstrap_confidence_interval()} for a
+#' bootstrap interval.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 #' 10 treated subjects at n = 50), the delta-method Wald test rejected a true
@@ -128,9 +131,9 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		},
 		#' @description Computes a \eqn{1-\alpha} confidence interval for the
 		#'   G-Comp mean difference using the delta-method standard error (see
-		#'   class documentation), or falls back (with a warning) to a
-		#'   nonparametric bootstrap interval if that standard error is
-		#'   unavailable. Identical to \code{$compute_wald_confidence_interval()}.
+		#'   class documentation); \code{NA} with an
+		#'   \code{edi_wald_unavailable_warning} if that standard error is
+		#'   unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_confidence_interval()}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
@@ -139,11 +142,8 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				warning(
-					"Ordinal G-computation: falling back to bootstrap because ",
-					"delta-method standard error is unavailable."
-				)
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha, na.rm = TRUE))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			z_val = stats::qnorm(1 - alpha / 2)
 			ci = private$cached_values$md + c(-1, 1) * z_val * private$cached_values$se_md
@@ -152,9 +152,9 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		},
 		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
 		#'   \mathrm{md} = \code{delta}} using the delta-method standard error (see
-		#'   class documentation), or falls back (with a warning) to a
-		#'   nonparametric bootstrap p-value if that standard error is
-		#'   unavailable. Identical to \code{$compute_wald_two_sided_pval()}.
+		#'   class documentation); \code{NA} with an
+		#'   \code{edi_wald_unavailable_warning} if that standard error is
+		#'   unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_two_sided_pval()}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
@@ -163,18 +163,15 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				warning(
-					"Ordinal G-computation: falling back to bootstrap because ",
-					"delta-method standard error is unavailable."
-				)
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private))
 			}
 			z_val = (private$cached_values$md - delta) / private$cached_values$se_md
 			2 * stats::pnorm(-abs(z_val))
 		},
 		#' @description Identical to \code{$compute_asymp_confidence_interval()}
-		#'   (both compute the same delta-method-based Wald interval, with the
-		#'   same bootstrap fallback); provided as an explicit alias for callers
+		#'   (both compute the same delta-method-based Wald interval, \code{NA}
+		#'   when its standard error is unavailable); provided as an explicit alias for callers
 		#'   that want to name the Wald method directly rather than via the
 		#'   generic "asymptotic" dispatch.
 		#' @param alpha The significance level (default 0.05).
@@ -185,11 +182,8 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				warning(
-					"Ordinal G-computation: falling back to bootstrap because ",
-					"delta-method standard error is unavailable."
-				)
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha, na.rm = TRUE))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			z_val = stats::qnorm(1 - alpha / 2)
 			ci = private$cached_values$md + c(-1, 1) * z_val * private$cached_values$se_md
@@ -197,8 +191,8 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			ci
 		},
 		#' @description Identical to \code{$compute_asymp_two_sided_pval()} (both
-		#'   compute the same delta-method-based Wald p-value, with the same
-		#'   bootstrap fallback); provided as an explicit alias for callers that
+		#'   compute the same delta-method-based Wald p-value, \code{NA} when its
+		#'   standard error is unavailable); provided as an explicit alias for callers that
 		#'   want to name the Wald method directly rather than via the generic
 		#'   "asymptotic" dispatch.
 		#' @param delta The null treatment effect (default 0).
@@ -209,11 +203,8 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				warning(
-					"Ordinal G-computation: falling back to bootstrap because ",
-					"delta-method standard error is unavailable."
-				)
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private))
 			}
 			z_val = (private$cached_values$md - delta) / private$cached_values$se_md
 			2 * stats::pnorm(-abs(z_val))

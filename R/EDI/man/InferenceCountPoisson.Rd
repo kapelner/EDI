@@ -34,8 +34,19 @@ result is \code{NA}. Validity requires the usual correctly-specified
 linear predictor on the log scale; unlike the raw Poisson likelihood
 alone, this class's actual reported inference degrades gracefully (rather
 than becoming anti-conservative) under mean-variance misspecification.
-This combination applies to the asymptotic likelihood methods, their
-Bartlett-corrected variants, and likelihood-ratio bootstrap calibration.
+This combination applies to the asymptotic likelihood methods and
+likelihood-ratio bootstrap calibration. The Bartlett-corrected
+likelihood-ratio test is the exception: \code{"lik_ratio_bartlett_approx"}
+(and \code{compute_lik_ratio_bartlett_approx_confidence_interval()} /
+\code{compute_lik_ratio_bartlett_approx_two_sided_pval()} and the
+best-available \code{compute_lik_ratio_bartlett_*()} pair) is the model-only
+Bartlett-corrected test, so its interval can be narrower than the
+design-conservative \code{"lik_ratio"} one; its design-conservative version is
+the separate testing type \code{"lik_ratio_bartlett_approx_design_conservative"}
+(the larger of the model-only Bartlett p-value and the design jackknife-Wald
+p-value, the union of the two intervals). Before EDI 1.0.6,
+\code{"lik_ratio_bartlett_approx"} itself returned the design-conservative
+result (v1.0.6-TODO-380).
 Generic estimate-resampling intervals (Bayesian bootstrap, ordinary
 bootstrap, and the direct parametric-bootstrap estimate interval) retain
 their standard component definitions and are not unioned with a second
@@ -377,7 +388,9 @@ bootstrap resampling paths.}
   Design-conservative confidence interval for \eqn{\beta_T}
   using whichever test type is configured
   (\code{private$testing_type}: \code{"wald"}, \code{"score"},
-  \code{"gradient"}, or \code{"lik_ratio"}); see
+  \code{"gradient"}, \code{"lik_ratio"}, or
+  \code{"lik_ratio_bartlett_approx_design_conservative"}; the model-only
+  \code{"lik_ratio_bartlett_approx"} is not combined); see
   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
   union-with-jackknife-Wald combination rule.
   \subsection{Usage}{
@@ -561,8 +574,12 @@ bootstrap resampling paths.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval()}}{
-  Approximate Bartlett-corrected likelihood-ratio confidence
-  interval, unioned with the design-based jackknife-Wald interval.
+  Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
+  confidence interval: the model-only test, not unioned with the
+  design-based jackknife-Wald interval (v1.0.6-TODO-380; it was unioned
+  before EDI 1.0.6). For the union use
+  \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
+  and \code{compute_asymp_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval(
@@ -585,8 +602,11 @@ bootstrap resampling paths.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval()}}{
-  Approximate Bartlett-corrected likelihood-ratio p-value,
-  conservatively combined with the design-based jackknife-Wald p-value.
+  Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
+  p-value: the model-only test, not combined with the design-based
+  jackknife-Wald p-value (v1.0.6-TODO-380). For the larger of the two use
+  \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
+  and \code{compute_asymp_two_sided_pval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval(
@@ -610,7 +630,9 @@ bootstrap resampling paths.}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval()}}{
   Best-available Bartlett-corrected likelihood-ratio confidence
-  interval, unioned with the design-based jackknife-Wald interval.
+  interval (the approximate correction for this class): model-only, like
+  \code{compute_lik_ratio_bartlett_approx_confidence_interval()}
+  (v1.0.6-TODO-380).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval(
@@ -633,8 +655,9 @@ bootstrap resampling paths.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval()}}{
-  Best-available Bartlett-corrected likelihood-ratio p-value,
-  conservatively combined with the design-based jackknife-Wald p-value.
+  Best-available Bartlett-corrected likelihood-ratio p-value:
+  model-only, like \code{compute_lik_ratio_bartlett_approx_two_sided_pval()}
+  (v1.0.6-TODO-380).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval(

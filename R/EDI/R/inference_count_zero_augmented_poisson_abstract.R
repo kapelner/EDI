@@ -78,8 +78,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 		},
 		#' @description Compute the zero-augmented count-model asymptotic confidence
-		#'   interval for the conditional treatment coefficient, with bootstrap
-		#'   fallback when a stable model standard error is unavailable. See
+		#'   (Wald) interval for the conditional treatment coefficient: \code{NA}, with
+		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
+		#'   stable model standard error is unavailable (no bootstrap is substituted,
+		#'   v1.0.6-TODO-380). See
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -95,24 +97,17 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# 2026-09-18: the bootstrap fallback below is itself unavailable on a
-				# KK21stepwise/SPBR design (apply_inference_design_restrictions()
-				# stubs compute_bootstrap_confidence_interval() to stop() on any
-				# non-Bernoulli DesignSeqOneByOne design) -- checking first avoids
-				# that unrelated design-restriction error leaking through and being
-				# misread as "asymp itself is unsupported" (found via a
-				# comprehensive_tests results audit).
-				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-					return(private$count_likelihood_missing_ci(alpha))
-				}
-				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(private$count_bootstrap_fallback_ci(alpha))
+				# v1.0.6-TODO-380: a Wald request gets Wald or NA, never the bootstrap
+				# interval this used to substitute (see edi_wald_unavailable_na()).
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the zero-augmented count-model asymptotic two-sided
-		#'   p-value for the conditional treatment coefficient, with bootstrap
-		#'   fallback when a stable model standard error is unavailable. See
+		#'   (Wald) p-value for the conditional treatment coefficient: \code{NA}, with
+		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
+		#'   stable model standard error is unavailable (no bootstrap is substituted,
+		#'   v1.0.6-TODO-380). See
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -126,13 +121,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# See compute_asymp_confidence_interval()'s matching comment: the
-				# bootstrap fallback is itself unavailable on this design.
-				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-					return(NA_real_)
-				}
-				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(private$count_bootstrap_fallback_pval(delta))
+				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
+				return(edi_wald_unavailable_na(self, private))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},

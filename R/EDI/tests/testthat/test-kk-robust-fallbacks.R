@@ -35,7 +35,8 @@ test_that("KK robust regression muffles MM non-convergence and falls back intern
 	expect_true(is.finite(fit_ok$ssq))
 })
 
-test_that("KK hurdle-Poisson combined-likelihood warns once before bootstrap fallback", {
+test_that("KK hurdle-Poisson combined-likelihood Wald gives NA, never a bootstrap result, when the SE is unavailable", {
+	# v1.0.6-TODO-380: the Wald CI / p-value used to fall back to the bootstrap here.
 	skip_if_not_installed("nbpMatching")
 
 	des = DesignFixedBinaryMatch$new(response_type = "count", n = 4, verbose = FALSE)
@@ -44,11 +45,19 @@ test_that("KK hurdle-Poisson combined-likelihood warns once before bootstrap fal
 	des$add_all_subject_responses(c(0L, 1L, 2L, 0L))
 
 	inf = InferenceCountKKHurdlePoissonOneLik$new(des, verbose = FALSE, use_rcpp = TRUE)
-	inf$.__enclos_env__$private$cached_values$warned_bootstrap_se_unavailable = FALSE
+	priv = inf$.__enclos_env__$private
+	suppressWarnings(inf$compute_estimate())
+	priv$cached_values$s_beta_hat_T = NA_real_
+	unlockBinding("compute_bootstrap_confidence_interval", inf)
+	inf$compute_bootstrap_confidence_interval = function(...) stop("bootstrap must not be called")
+	unlockBinding("compute_bootstrap_two_sided_pval", inf)
+	inf$compute_bootstrap_two_sided_pval = function(...) stop("bootstrap must not be called")
 
-	expect_warning(inf$.__enclos_env__$private$warn_bootstrap_fallback_once(), "falling back to bootstrap")
-	expect_no_warning(inf$.__enclos_env__$private$warn_bootstrap_fallback_once())
-	expect_true(isTRUE(inf$.__enclos_env__$private$cached_values$warned_bootstrap_se_unavailable))
+	expect_warning(ci <- inf$compute_wald_confidence_interval(), class = "edi_wald_unavailable_warning")
+	expect_true(all(is.na(ci)))
+	expect_true(is.na(inf$compute_wald_two_sided_pval()))
+	expect_identical(priv$cached_values$procedure_failure_reason$wald, "wald_standard_error_unavailable")
+	expect_false(exists("warn_bootstrap_fallback_once", envir = priv, inherits = FALSE))
 })
 
 test_that("KK count one-likelihood paths produce finite estimates", {

@@ -740,6 +740,7 @@ R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,corre
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,correctness,7.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-lazy-component-raw-clone-isolation.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-lik-ratio-bartlett-approx-design-conservative-testing-type.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-lik-ratio-param-bootstrap-preflight-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-bartlett-test-unavailable-reason-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-profile-references.R,correctness,1,measured_with_30_percent_headroom
@@ -1311,6 +1312,7 @@ R/package_tests/testthat_bulk/test-validate-optimal-design-interest-formula-one-
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-tilde-string-promotion-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-type-fallback-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wald-component-is-a-asymp-marker-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-wald-se-unavailable-returns-na-never-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-wald-se-uses-observed-information.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-warm-start-params-size-mismatch-guards-five-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-aft-unscaled-covariates-converges.R,correctness,120,bootstrap
@@ -2519,6 +2521,7 @@ R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,cover
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,coverage,11.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-lazy-component-raw-clone-isolation.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-lik-ratio-bartlett-approx-design-conservative-testing-type.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-lik-ratio-param-bootstrap-preflight-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-bartlett-test-unavailable-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-profile-references.R,coverage,240,bootstrap
@@ -3090,6 +3093,7 @@ R/package_tests/testthat_bulk/test-validate-optimal-design-interest-formula-one-
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-tilde-string-promotion-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-validate-optimal-design-interest-type-fallback-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wald-component-is-a-asymp-marker-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-wald-se-unavailable-returns-na-never-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wald-se-uses-observed-information.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-warm-start-params-size-mismatch-guards-five-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-aft-unscaled-covariates-converges.R,coverage,240,bootstrap

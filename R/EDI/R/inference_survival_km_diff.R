@@ -21,7 +21,9 @@
 #' unusable). When both medians are reached but a Brookmeyer-Crowley bound is
 #' non-finite, the Wald-style confidence interval and p-value methods
 #' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
-#' fall back to a nonparametric bootstrap instead of returning \code{NA}. The
+#' return \code{NA}, with the reason recorded and an
+#' \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they fell back to a
+#' nonparametric bootstrap (v1.0.6-TODO-380). The
 #' jackknife-Wald methods are unreliable for a median and are often \code{NA},
 #' with an \code{edi_km_jackknife_na_warning} giving the reason; prefer the
 #' bootstrap. A convenience method,
@@ -32,8 +34,10 @@
 #' \code{turnbull_npmle_stat_diff()}; exact events are folded in as degenerate
 #' intervals \eqn{[y, y]} rather than dropped, and unusable rows are excluded
 #' with a warning), which has no closed-form standard error —
-#' inference on that path relies entirely on the bootstrap fallback described
-#' above. The Bayesian bootstrap
+#' inference on that path relies entirely on the nonparametric bootstrap:
+#' \code{$compute_asymp_confidence_interval()} and
+#' \code{$compute_asymp_two_sided_pval()} return the bootstrap interval and
+#' p-value there. The Bayesian bootstrap
 #' (\code{$compute_bayesian_bootstrap_confidence_interval()},
 #' \code{$compute_bayesian_bootstrap_two_sided_pval()} and
 #' \code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
@@ -217,8 +221,11 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' When either group's median is not reached (its Kaplan-Meier curve does not
 		#' fall to 0.5) the estimate is \code{NA} and so is this interval, with an
 		#' \code{edi_km_median_not_reached_warning} (see the class description). When
-		#' both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, falls
-		#' back to \code{compute_bootstrap_confidence_interval}.
+		#' both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, the
+		#' interval is \code{NA} too, with an \code{edi_wald_unavailable_warning} (no
+		#' bootstrap is substituted, v1.0.6-TODO-380). On left- or interval-censored
+		#' data, which have no analytic standard error, this is the nonparametric
+		#' bootstrap interval (see the class description).
 		#'
 		#' @param alpha           The significance level; the confidence level is 1 - \code{alpha}.
 		#'   Default is 0.05.
@@ -230,12 +237,25 @@ InferenceSurvivalKMDiff = define_inference_class(
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
-			if (is.na(private$cached_values$s_beta_hat_T)) {
+			# The Turnbull median contrast has no analytic SE; its documented variance
+			# strategy is the bootstrap (TODO-8, interval_censored_survival_response.md).
+			if (isTRUE(private$has_general_censoring)) {
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+			}
+			# v1.0.6-TODO-380: right-censored data used to fall back to the bootstrap here;
+			# a Wald request gets Wald or NA. A median that is not reached keeps its own
+			# edi_km_median_not_reached_warning, so it gets no second warning.
+			if (!is.finite(private$cached_values$beta_hat_T)) {
+				ci = c(NA_real_, NA_real_)
+				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+				return(ci)
+			}
+			if (is.na(private$cached_values$s_beta_hat_T)) {
+				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			arms = private$km_median_arm_bounds(alpha)
 			if (is.null(arms)) {
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			hw = private$mover_half_widths(arms)
 			d = private$cached_values$beta_hat_T
@@ -251,7 +271,9 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' at either bound); at other levels the two are close but not exact inverses,
 		#' because each arm's interval changes shape with its level. \code{NA} (with an
 		#' \code{edi_km_median_not_reached_warning}) when a median is not reached, and
-		#' falls back to the bootstrap under the same conditions as the confidence interval.
+		#' \code{NA} with an \code{edi_wald_unavailable_warning} under the same
+		#' conditions as the confidence interval (v1.0.6-TODO-380); the bootstrap p-value
+		#' on left- or interval-censored data.
 		#'
 		#' @param delta The null difference to test against. Default is 0.
 		#'
@@ -261,10 +283,16 @@ InferenceSurvivalKMDiff = define_inference_class(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
-			if (is.na(private$cached_values$s_beta_hat_T)) {
-				# Drop non-finite replicates like the CI fallback does (subject to the bootstrap's
+			if (isTRUE(private$has_general_censoring)) {
+				# No analytic SE on this path (see compute_asymp_confidence_interval()). Drop
+				# non-finite replicates like the CI does (subject to the bootstrap's
 				# usable-fraction guard), since this method takes no na.rm (v1.0.6-TODO-309).
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+			}
+			if (!is.finite(private$cached_values$beta_hat_T)) return(NA_real_)
+			if (is.na(private$cached_values$s_beta_hat_T)) {
+				# v1.0.6-TODO-380: was a bootstrap fallback.
+				return(edi_wald_unavailable_na(self, private, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			edi_warn_cluster_independence_once(self, private, "wald")
 			d = private$cached_values$beta_hat_T
@@ -472,9 +500,8 @@ InferenceSurvivalKMDiff = define_inference_class(
 				# this derived quantity (icfit() gives no closed-form variance
 				# for a median contrast), so s_beta_hat_T is left NA here --
 				# compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
-				# already fall back to the nonparametric bootstrap whenever
-				# s_beta_hat_T is unavailable, which is the "bootstrap fallback"
-				# variance strategy TODO-8 asks for.
+				# return the nonparametric bootstrap on this path, the variance
+				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-380).
 				assert_interval_installed(class(self)[1L])
 				private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(private$y_L, private$y_R, private$w, "median", y = private$y)
 				private$cached_values$s_beta_hat_T = NA_real_

@@ -312,8 +312,10 @@ seq_des_inf$compute_estimate()
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalGehanWilcox-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval()}}{
   Computes a (1 - alpha)-level confidence interval based on the asymptotic normality
-of the Peto-Prentice weighted martingale residual mean difference. Falls back to
-bootstrap if the SE is unavailable.
+of the Peto-Prentice weighted martingale residual mean difference. When the SE
+is unavailable the interval is \code{NA}, with the reason recorded and an
+\code{edi_wald_unavailable_warning}; no bootstrap interval is substituted
+(v1.0.6-TODO-380; call \code{compute_bootstrap_confidence_interval()} for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval(alpha = 0.05)}

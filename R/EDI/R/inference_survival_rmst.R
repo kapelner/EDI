@@ -21,8 +21,12 @@
 #' standard error of the difference comes from the Greenwood-type variance of
 #' each arm's RMST, combined across the two (independent) arms via
 #' \code{get_restricted_mean_se_diff()}. When that standard error is
-#' unavailable or non-finite, \code{$compute_asymp_confidence_interval()} falls
-#' back to a nonparametric bootstrap interval rather than returning \code{NA}.
+#' unavailable or non-finite, \code{$compute_asymp_confidence_interval()} and
+#' \code{$compute_asymp_two_sided_pval()} return \code{NA}, with the reason
+#' recorded and an \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they
+#' fell back to a nonparametric bootstrap (v1.0.6-TODO-380). On left- or
+#' interval-censored data, which have no analytic standard error, they return
+#' the nonparametric bootstrap interval and p-value.
 #' Randomization confidence intervals are not supported (the RMST-difference
 #' units are not commensurate with the randomization CI bisection algorithm's
 #' transformed-scale null search). Randomization-bootstrap confidence intervals
@@ -220,8 +224,11 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#' @description Computes a \eqn{1-\alpha} level Wald confidence interval for
 		#'   the RMST-difference treatment effect \eqn{\hat\mu_T(\tau) -
 		#'   \hat\mu_C(\tau)}, using its Greenwood-based standard error (see class
-		#'   documentation). Falls back to a nonparametric bootstrap interval if
-		#'   that standard error is unavailable or non-finite.
+		#'   documentation). \code{NA} (reason recorded, with an
+		#'   \code{edi_wald_unavailable_warning}) if that standard error is
+		#'   unavailable or non-finite; no bootstrap is substituted
+		#'   (v1.0.6-TODO-380). On left- or interval-censored data, which have no
+		#'   analytic standard error, the nonparametric bootstrap interval.
 		#'
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
@@ -237,9 +244,15 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$compute_s_beta_hat_T()
 			}
+			# Turnbull restricted-mean contrast: no analytic SE, so the documented
+			# variance strategy is the bootstrap (TODO-8, see compute_s_beta_hat_T()).
+			if (isTRUE(private$has_general_censoring)) {
+				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+			}
 			if (!is.finite(private$cached_values$beta_hat_T) ||
 					is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
@@ -247,8 +260,10 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#'   \mu_T(\tau) - \mu_C(\tau) = 0} (only \code{delta = 0} is currently
 		#'   supported; a non-zero null raises an error), using the RMST-difference
 		#'   estimate and its Greenwood-based standard error — see class
-		#'   documentation. Falls back to a nonparametric bootstrap p-value if that
-		#'   standard error is unavailable.
+		#'   documentation. \code{NA} (reason recorded, with an
+		#'   \code{edi_wald_unavailable_warning}) if that standard error is
+		#'   unavailable (v1.0.6-TODO-380); the nonparametric bootstrap p-value on
+		#'   left- or interval-censored data.
 		#'
 		#' @param delta The null difference to test against. For any
 		#'   treatment effect at all this is set to zero (the default).
@@ -265,9 +280,13 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				if (is.null(private$cached_values$s_beta_hat_T)){
 					private$compute_s_beta_hat_T()
 				}
+				if (isTRUE(private$has_general_censoring)) {
+					return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				}
 				if (!is.finite(private$cached_values$beta_hat_T) ||
 						is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
-					return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+					# v1.0.6-TODO-380: was a bootstrap fallback.
+					return(edi_wald_unavailable_na(self, private))
 				}
 				z_beta_hat_T = private$cached_values$beta_hat_T / private$cached_values$s_beta_hat_T
 				2 * min(stats::pnorm(z_beta_hat_T), 1 - stats::pnorm(z_beta_hat_T))
@@ -452,11 +471,10 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		compute_s_beta_hat_T = function(){
 			if (isTRUE(private$has_general_censoring)) {
 				# No closed-form SE for a Turnbull-NPMLE restricted-mean contrast
-				# is available from interval::icfit() -- leaving s_beta_hat_T NA
-				# here makes compute_asymp_confidence_interval()/
-				# compute_asymp_two_sided_pval() (unchanged above) fall back to
-				# the nonparametric bootstrap automatically, which is the
-				# "bootstrap fallback" variance strategy TODO-8 asks for.
+				# is available from interval::icfit(), so s_beta_hat_T stays NA and
+				# compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
+				# return the nonparametric bootstrap on this path, the variance
+				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-380).
 				private$cached_values$s_beta_hat_T = NA_real_
 				return(invisible(NULL))
 			}

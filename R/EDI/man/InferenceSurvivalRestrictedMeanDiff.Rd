@@ -25,8 +25,12 @@ computed by exact integration of the step-function KM curve (a sum of rectangles
 standard error of the difference comes from the Greenwood-type variance of
 each arm's RMST, combined across the two (independent) arms via
 \code{get_restricted_mean_se_diff()}. When that standard error is
-unavailable or non-finite, \code{$compute_asymp_confidence_interval()} falls
-back to a nonparametric bootstrap interval rather than returning \code{NA}.
+unavailable or non-finite, \code{$compute_asymp_confidence_interval()} and
+\code{$compute_asymp_two_sided_pval()} return \code{NA}, with the reason
+recorded and an \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they
+fell back to a nonparametric bootstrap (v1.0.6-TODO-380). On left- or
+interval-censored data, which have no analytic standard error, they return
+the nonparametric bootstrap interval and p-value.
 Randomization confidence intervals are not supported (the RMST-difference
 units are not commensurate with the randomization CI bisection algorithm's
 transformed-scale null search). Randomization-bootstrap confidence intervals
@@ -281,8 +285,11 @@ to \eqn{\tau}.}
   Computes a \eqn{1-\alpha} level Wald confidence interval for
   the RMST-difference treatment effect \eqn{\hat\mu_T(\tau) -
   \hat\mu_C(\tau)}, using its Greenwood-based standard error (see class
-  documentation). Falls back to a nonparametric bootstrap interval if
-  that standard error is unavailable or non-finite.
+  documentation). \code{NA} (reason recorded, with an
+  \code{edi_wald_unavailable_warning}) if that standard error is
+  unavailable or non-finite; no bootstrap is substituted
+  (v1.0.6-TODO-380). On left- or interval-censored data, which have no
+  analytic standard error, the nonparametric bootstrap interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval(
@@ -311,8 +318,10 @@ interval is 1 - \code{alpha}. The default is 0.05.}
   \mu_T(\tau) - \mu_C(\tau) = 0} (only \code{delta = 0} is currently
   supported; a non-zero null raises an error), using the RMST-difference
   estimate and its Greenwood-based standard error — see class
-  documentation. Falls back to a nonparametric bootstrap p-value if that
-  standard error is unavailable.
+  documentation. \code{NA} (reason recorded, with an
+  \code{edi_wald_unavailable_warning}) if that standard error is
+  unavailable (v1.0.6-TODO-380); the nonparametric bootstrap p-value on
+  left- or interval-censored data.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalRestrictedMeanDiff$compute_asymp_two_sided_pval(delta = 0)}

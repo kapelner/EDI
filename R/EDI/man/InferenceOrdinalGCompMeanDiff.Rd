@@ -18,8 +18,11 @@ variance-covariance matrix, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}}) =
 standard error is unavailable or non-finite, the Wald-style methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()},
 \code{$compute_wald_confidence_interval()}, \code{$compute_wald_two_sided_pval()})
-all fall back to a nonparametric bootstrap interval/p-value instead
-(with a warning), rather than returning \code{NA}.
+all return \code{NA}, with the reason recorded and an
+\code{edi_wald_unavailable_warning}; no bootstrap interval or p-value is
+substituted (they fell back to the bootstrap before EDI 1.0.6,
+v1.0.6-TODO-380). Call \code{$compute_bootstrap_confidence_interval()} for a
+bootstrap interval.
 
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 10 treated subjects at n = 50), the delta-method Wald test rejected a true
@@ -255,9 +258,9 @@ the design's imputed covariates.}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval()}}{
   Computes a \eqn{1-\alpha} confidence interval for the
   G-Comp mean difference using the delta-method standard error (see
-  class documentation), or falls back (with a warning) to a
-  nonparametric bootstrap interval if that standard error is
-  unavailable. Identical to \code{$compute_wald_confidence_interval()}.
+  class documentation); \code{NA} with an
+  \code{edi_wald_unavailable_warning} if that standard error is
+  unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -278,9 +281,9 @@ the design's imputed covariates.}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval()}}{
   Computes a two-sided Wald p-value testing \eqn{H_0:
   \mathrm{md} = \code{delta}} using the delta-method standard error (see
-  class documentation), or falls back (with a warning) to a
-  nonparametric bootstrap p-value if that standard error is
-  unavailable. Identical to \code{$compute_wald_two_sided_pval()}.
+  class documentation); \code{NA} with an
+  \code{edi_wald_unavailable_warning} if that standard error is
+  unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_two_sided_pval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval(delta = 0)}
@@ -300,8 +303,8 @@ the design's imputed covariates.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_wald_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_wald_confidence_interval()}}{
   Identical to \code{$compute_asymp_confidence_interval()}
-  (both compute the same delta-method-based Wald interval, with the
-  same bootstrap fallback); provided as an explicit alias for callers
+  (both compute the same delta-method-based Wald interval, \code{NA}
+  when its standard error is unavailable); provided as an explicit alias for callers
   that want to name the Wald method directly rather than via the
   generic "asymptotic" dispatch.
   \subsection{Usage}{
@@ -323,8 +326,8 @@ the design's imputed covariates.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_wald_two_sided_pval()}}{
   Identical to \code{$compute_asymp_two_sided_pval()} (both
-  compute the same delta-method-based Wald p-value, with the same
-  bootstrap fallback); provided as an explicit alias for callers that
+  compute the same delta-method-based Wald p-value, \code{NA} when its
+  standard error is unavailable); provided as an explicit alias for callers that
   want to name the Wald method directly rather than via the generic
   "asymptotic" dispatch.
   \subsection{Usage}{

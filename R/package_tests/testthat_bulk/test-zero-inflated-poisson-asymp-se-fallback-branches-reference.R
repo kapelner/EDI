@@ -2,9 +2,9 @@ library(testthat)
 library(EDI)
 
 # InferenceCountZeroInflatedPoisson's asymptotic CI / p-value dispatch when the
-# standard error is available, unavailable (bootstrap fallback with a warning),
-# unavailable on a design without nonparametric-bootstrap support (NA, no
-# fallback), or blocked by the count-likelihood guard, under both the
+# standard error is available, unavailable (NA with an edi_wald_unavailable_warning;
+# before v1.0.6-TODO-380 a bootstrap fallback), unavailable on a design without
+# nonparametric-bootstrap support (the same NA), or blocked by the count-likelihood guard, under both the
 # conditional and marginal estimands. Existing tests only run the happy path.
 # The state each branch keys on is forced with stubs on a real fitted object.
 
@@ -51,7 +51,8 @@ test_that("with an available SE the conditional CI and p-value are the z/t Wald 
 	expect_equal(f$inf$compute_asymp_two_sided_pval(delta = est), 1, tolerance = 1e-8)
 })
 
-test_that("an unavailable SE falls back to the bootstrap with a warning", {
+test_that("an unavailable SE gives NA with a recorded reason and a classed warning, never the bootstrap", {
+	# v1.0.6-TODO-380: this used to fall back to the bootstrap interval / p-value.
 	f <- zip_fixture()
 	est <- f$inf$compute_estimate()
 	stub_private(f$priv, "get_standard_error", function() NA_real_)
@@ -59,27 +60,21 @@ test_that("an unavailable SE falls back to the bootstrap with a warning", {
 		f$priv$cached_values$s_beta_hat_T <- NA_real_
 		est
 	})
-	calls <- list()
-	stub_public(f$inf, "compute_bootstrap_confidence_interval", function(alpha = 0.05, ...) {
-		calls$ci <<- alpha
-		c(-9, 9)
-	})
-	stub_public(f$inf, "compute_bootstrap_two_sided_pval", function(delta = 0, na.rm = FALSE, ...) {
-		calls$pval <<- list(delta = delta, na.rm = na.rm)
-		0.123
-	})
+	stub_public(f$inf, "compute_bootstrap_confidence_interval", function(...) stop("bootstrap must not be called"))
+	stub_public(f$inf, "compute_bootstrap_two_sided_pval", function(...) stop("bootstrap must not be called"))
 
-	expect_warning(ci <- f$inf$compute_asymp_confidence_interval(alpha = 0.1), "Zero-Inflated Poisson: falling back to bootstrap")
-	expect_equal(ci, c(-9, 9))
-	expect_equal(calls$ci, 0.1)
+	expect_warning(ci <- f$inf$compute_asymp_confidence_interval(alpha = 0.1), class = "edi_wald_unavailable_warning")
+	expect_length(ci, 2L)
+	expect_true(all(is.na(ci)))
+	expect_identical(names(ci), c("5%", "95%"))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$wald, "wald_standard_error_unavailable")
 
-	expect_warning(p <- f$inf$compute_asymp_two_sided_pval(delta = 0.2), "falling back to bootstrap")
-	expect_equal(p, 0.123)
-	expect_equal(calls$pval$delta, 0.2)
-	expect_true(calls$pval$na.rm)
+	# one warning per fit: the p-value is NA silently, the reason stays recorded
+	expect_no_warning(p <- f$inf$compute_asymp_two_sided_pval(delta = 0.2))
+	expect_true(is.na(p))
 })
 
-test_that("without nonparametric-bootstrap support the unavailable-SE case returns NA without a fallback", {
+test_that("without nonparametric-bootstrap support the unavailable-SE case is the same NA", {
 	f <- zip_fixture()
 	est <- f$inf$compute_estimate()
 	stub_private(f$priv, "get_standard_error", function() NA_real_)
@@ -91,10 +86,10 @@ test_that("without nonparametric-bootstrap support the unavailable-SE case retur
 	stub_public(f$inf, "compute_bootstrap_confidence_interval", function(...) stop("bootstrap must not be called"))
 	stub_public(f$inf, "compute_bootstrap_two_sided_pval", function(...) stop("bootstrap must not be called"))
 
-	expect_no_warning(ci <- f$inf$compute_asymp_confidence_interval())
+	expect_warning(ci <- f$inf$compute_asymp_confidence_interval(), class = "edi_wald_unavailable_warning")
 	expect_length(ci, 2L)
 	expect_true(all(is.na(ci)))
-	expect_no_warning(p <- f$inf$compute_asymp_two_sided_pval())
+	p <- f$inf$compute_asymp_two_sided_pval()
 	expect_true(is.na(p))
 })
 

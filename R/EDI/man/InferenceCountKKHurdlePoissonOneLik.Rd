@@ -74,10 +74,16 @@ so the model-based test is never anti-conservative relative to the design.
 The Bartlett-corrected likelihood-ratio test
 (\code{set_testing_type("lik_ratio_bartlett_approx")}) is not combined this
 way: it is the model-only Bartlett-corrected test, so its interval can be
-narrower than the design-conservative \code{"lik_ratio"} one.
-The Wald confidence interval and p-value fall back to the
-nonparametric-bootstrap distribution when the model-based standard error is unavailable
-or non-finite (e.g. a boundary/separation fit).
+narrower than the design-conservative \code{"lik_ratio"} one. Its
+design-conservative version is a separate testing type,
+\code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}: the
+larger of the model-only Bartlett p-value and the design Wald p-value, and the
+union of the two intervals (v1.0.6-TODO-380).
+When the model-based standard error is unavailable or non-finite (e.g. a
+boundary/separation fit) the Wald confidence interval and p-value are
+\code{NA}, with the reason recorded and an \code{edi_wald_unavailable_warning};
+no other procedure is substituted. Call
+\code{compute_bootstrap_confidence_interval()} for a bootstrap interval.
 
 \strong{Assumptions.} Independence across matched pairs and reservoir
 subjects conditional on covariates; correct specification of the

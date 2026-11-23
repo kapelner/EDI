@@ -85,7 +85,10 @@ test_that("end to end, the public Wald p-value and CI are the glm Wald result wi
 	expect_gte(f$inf$compute_asymp_two_sided_pval(0), glm_p - 1e-6)
 })
 
-test_that("Bartlett likelihood-ratio entry points use the same design-conservative combination", {
+test_that("Bartlett likelihood-ratio entry points are model-only; the design-conservative type combines them", {
+	# v1.0.6-TODO-380 (owner, 2026-11-21): lik_ratio_bartlett_approx (and the best-available pair)
+	# used to return the design-conservative combination; that is now the separate testing type
+	# "lik_ratio_bartlett_approx_design_conservative".
 	f <- fx()
 	stub(f$p, "design_jackknife_pval", function(delta = 0) 0.31)
 	stub(f$p, "design_jackknife_ci", function(alpha = 0.05) c(-0.7, 0.8))
@@ -94,16 +97,23 @@ test_that("Bartlett likelihood-ratio entry points use the same design-conservati
 	stub(f$p, "compute_lik_ratio_bartlett_two_sided_pval_impl", function(delta, B = 99, B_missing = TRUE) 0.09)
 	stub(f$p, "compute_lik_ratio_bartlett_confidence_interval_impl", function(alpha, B = 99, B_missing = TRUE) c(-0.1, 0.5))
 
-	expect_equal(f$inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0.2, B = 7), 0.31)
+	expect_equal(f$inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0.2, B = 7), 0.04)
 	expect_equal(
 		unname(f$inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.1, B = 7)),
-		c(-0.7, 0.8)
+		c(-0.2, 0.4)
 	)
-	expect_equal(f$inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0.2, B = 7), 0.31)
+	expect_equal(f$inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0.2, B = 7), 0.09)
 	expect_equal(
 		unname(f$inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.1, B = 7)),
-		c(-0.7, 0.8)
+		c(-0.1, 0.5)
 	)
+
+	f$inf$set_testing_type("lik_ratio_bartlett_approx")
+	expect_equal(f$inf$compute_asymp_two_sided_pval(0.2), 0.04)
+	expect_equal(unname(f$inf$compute_asymp_confidence_interval(0.1)), c(-0.2, 0.4))
+	f$inf$set_testing_type("lik_ratio_bartlett_approx_design_conservative")
+	expect_equal(f$inf$compute_asymp_two_sided_pval(0.2), 0.31)
+	expect_equal(unname(f$inf$compute_asymp_confidence_interval(0.1)), c(-0.7, 0.8))
 })
 
 # docs-claims audit, finding docs-claims-dccc6a08a: the max / union rule also applies to the score, likelihood-ratio,

@@ -125,8 +125,10 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes a (1 - alpha)-level confidence interval based on the asymptotic normality
-		#' of the Peto-Prentice weighted martingale residual mean difference. Falls back to
-		#' bootstrap if the SE is unavailable.
+		#' of the Peto-Prentice weighted martingale residual mean difference. When the SE
+		#' is unavailable the interval is \code{NA}, with the reason recorded and an
+		#' \code{edi_wald_unavailable_warning}; no bootstrap interval is substituted
+		#' (v1.0.6-TODO-380; call \code{compute_bootstrap_confidence_interval()} for one).
 		#'
 		#' @param  alpha  Significance level. Default is 0.05.
 		#'
@@ -154,7 +156,8 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 			}
 			private$compute_shared()
 			if (is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},

@@ -25,7 +25,9 @@ inside resampling, where a draw that loses its median just counts as
 unusable). When both medians are reached but a Brookmeyer-Crowley bound is
 non-finite, the Wald-style confidence interval and p-value methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
-fall back to a nonparametric bootstrap instead of returning \code{NA}. The
+return \code{NA}, with the reason recorded and an
+\code{edi_wald_unavailable_warning}; before EDI 1.0.6 they fell back to a
+nonparametric bootstrap (v1.0.6-TODO-380). The
 jackknife-Wald methods are unreliable for a median and are often \code{NA},
 with an \code{edi_km_jackknife_na_warning} giving the reason; prefer the
 bootstrap. A convenience method,
@@ -36,8 +38,10 @@ from a Turnbull NPMLE median contrast (\code{interval::icfit()}, via
 \code{turnbull_npmle_stat_diff()}; exact events are folded in as degenerate
 intervals \eqn{[y, y]} rather than dropped, and unusable rows are excluded
 with a warning), which has no closed-form standard error —
-inference on that path relies entirely on the bootstrap fallback described
-above. The Bayesian bootstrap
+inference on that path relies entirely on the nonparametric bootstrap:
+\code{$compute_asymp_confidence_interval()} and
+\code{$compute_asymp_two_sided_pval()} return the bootstrap interval and
+p-value there. The Bayesian bootstrap
 (\code{$compute_bayesian_bootstrap_confidence_interval()},
 \code{$compute_bayesian_bootstrap_two_sided_pval()} and
 \code{$approximate_bayesian_bootstrap_distribution_beta_hat_T()}) stops
@@ -375,8 +379,11 @@ d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}]} with
 When either group's median is not reached (its Kaplan-Meier curve does not
 fall to 0.5) the estimate is \code{NA} and so is this interval, with an
 \code{edi_km_median_not_reached_warning} (see the class description). When
-both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, falls
-back to \code{compute_bootstrap_confidence_interval}.
+both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, the
+interval is \code{NA} too, with an \code{edi_wald_unavailable_warning} (no
+bootstrap is substituted, v1.0.6-TODO-380). On left- or interval-censored
+data, which have no analytic standard error, this is the nonparametric
+bootstrap interval (see the class description).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalKMDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -408,7 +415,9 @@ half-width on the side of the estimate that \code{delta} lies on, divided by
 at either bound); at other levels the two are close but not exact inverses,
 because each arm's interval changes shape with its level. \code{NA} (with an
 \code{edi_km_median_not_reached_warning}) when a median is not reached, and
-falls back to the bootstrap under the same conditions as the confidence interval.
+\code{NA} with an \code{edi_wald_unavailable_warning} under the same
+conditions as the confidence interval (v1.0.6-TODO-380); the bootstrap p-value
+on left- or interval-censored data.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval(delta = 0)}

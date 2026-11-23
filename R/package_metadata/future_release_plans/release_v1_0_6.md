@@ -6847,6 +6847,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type survival --design 'DesignFixedRerandomization' --n 1000 --effect null --only InferenceSurvivalWeibullRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cells; confirmed ones are fixed, or ruled inherent and documented, with
     calibration_study_accepted.csv rows citing this TODO.
+  - Status 2026-11-23 (coordinator): every flagged cell is now decided (wave 29 of campaign 2026-11-15-e36c7710): 32 confirmed failing (2 at n = 200, 30 at n = 1000; Wald 8, score 11, LR 6, gradient 7) and 18 cleared (all 4 at n = 50, 2 at n = 200, 12 at n = 1000). The large-n excess is real, not screening noise: investigate (start with the `~1` misspecification check above).
 - [ ] TODO-376 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Wald / LR / gradient oversized at n = 1000 on KK14 (`~1`).**
   - One cell per test: SeqOneByOneKK14 `~1` n = 1000, size 0.080-0.081 (level 0.0525), coverage 0.919-0.920.
   - v1.1.0-TODO-184 covers Wald at n = 50 and v1.1.0-TODO-256 / -257 the score test; neither covers large n.
@@ -6935,13 +6936,14 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   the p-value moves (0.112 vs 0.102). Example: on the mirrored assignment `1 - w` the worker returns NA while a fresh
   fit gives -0.6247. Fix (1) first, then check whether (2) remains; the randomization p-value of this class is
   unreliable until then. Test: worker replicate equals a fresh fit on several permuted draws, and no silent NA.
-- [ ] TODO-407 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **`InferenceOrdinalCloglogRegr`: every model-based test oversized in one cell, FixedBlocking prob_T 0.2, n = 1000.**
+- [x] TODO-407 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **`InferenceOrdinalCloglogRegr`: every model-based test oversized in one cell, FixedBlocking prob_T 0.2, n = 1000.**
   - Wald / score / LR / gradient, size and coverage, all in FixedBlocking@0.2 `~.` n = 1000: size 0.075-0.078 (level
     0.05), coverage 0.922-0.925. No other Cloglog cell is flagged, and no calibration TODO covers the class.
   - All four tests moving together in one cell points at the fit or the data in that cell (for example a sparse
     outcome category in the treated arm at prob_T 0.2 within blocks), not at one test's reference distribution.
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignFixedBlocking@prob_T=0.2' --n 1000 --effect null --only InferenceOrdinalCloglogRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cell; if confirmed, fixed or accepted with rows citing this TODO.
+  - Status 2026-11-23 (coordinator): DONE. All 8 flagged cells (Wald / score / LR / gradient, size and coverage, FixedBlocking@0.2 n = 1000) were cleared by confirmation on fresh replicates in wave 29 of campaign 2026-11-15-e36c7710: screening noise, not a defect. No code change and no accepted rows needed.
 - [ ] TODO-408 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **Ordinal randomization tests oversized in one shared cell, SeqOneByOneiBCRD prob_T 0.2, n = 50.**
   - `rand` size in SeqOneByOneiBCRD@0.2 `~.` n = 50: `InferenceOrdinalAdjCatLogitRegr` 0.074, `InferenceOrdinalCloglogRegr`
     0.074, `InferenceOrdinalContRatioRegr` 0.074, `InferenceOrdinalGCompMeanDiff` 0.079 (level 0.05); GCompMeanDiff also
@@ -6951,6 +6953,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     the design, so a confirmed excess is a bug.
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneiBCRD@prob_T=0.2' --n 50 --effect null --only InferenceOrdinalGCompMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cells; confirmed ones are fixed.
+  - Status 2026-11-23 (coordinator): wave 29 of campaign 2026-11-15-e36c7710: `InferenceOrdinalAdjCatLogitRegr` cleared by confirmation; `InferenceOrdinalCloglogRegr` (1 cell), `InferenceOrdinalContRatioRegr` (1) and `InferenceOrdinalGCompMeanDiff` (2) still pending confirmation.
 - [ ] TODO-409 (added 2026-11-23, coordinator, owner decision 2026-11-22; found by calibration campaign 2026-11-15-e36c7710): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
   - Problem: `InferenceOrdinalKKCLMM` null at n = 1000 costs ~870 s per replicate in `rand` (Wald 2.7 s), so its shards
     (4-7 replicates) ran ~58 min and some hit the shard job's `timeout-minutes: 75` (4 per wave in runs 44902301848,

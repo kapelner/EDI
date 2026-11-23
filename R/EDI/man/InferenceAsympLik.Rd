@@ -238,14 +238,21 @@ information." \emph{Biometrika}, 65(3), 457-483. \doi{10.1093/biomet/65.3.457}
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$set_testing_type(
   testing_type = c("wald", "score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx",
-    "lik_ratio_bartlett_exact")
+    "lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx_design_conservative")
 )}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{testing_type}}{One of \code{"wald"}, \code{"score"}, \code{"gradient"}, \code{"lik_ratio"}, \code{"lik_ratio_bartlett_approx"}, or \code{"lik_ratio_bartlett_exact"}.}
+      \item{\code{testing_type}}{One of \code{"wald"}, \code{"score"}, \code{"gradient"}, \code{"lik_ratio"}, \code{"lik_ratio_bartlett_approx"}, \code{"lik_ratio_bartlett_exact"}, or \code{"lik_ratio_bartlett_approx_design_conservative"}.
+The last is offered only by classes that combine a model-based test with a
+design-based Wald test (\code{InferenceCountPoisson},
+\code{InferenceCountKKCondPoissonOneLik},
+\code{InferenceCountKKHurdlePoissonOneLik}): the larger of the
+approximate Bartlett-corrected likelihood-ratio p-value and the design
+Wald p-value, and the union of the two intervals. Each class accepts only
+the types in its \code{get_supported_testing_types()}.}
     }
     \if{html}{\out{</div>}}
   }
