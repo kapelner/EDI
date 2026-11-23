@@ -106,6 +106,8 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-12](#DECISION-v1.0.6-TODO-12) | [v1.0.6-TODO-12](release_v1_0_6.md) | minimum 95% valid replicates, user-settable | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-4a](#DECISION-v1.0.6-TODO-4a) | [v1.0.6-TODO-4](release_v1_0_6.md) | trailing partial permuted block merged into the previous block | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-4b](#DECISION-v1.0.6-TODO-4b) | [v1.0.6-TODO-4](release_v1_0_6.md) | FixedBlocking: stratified JKn delete-one within strata (Wolter) | 2026-11-19 |
+| [DECISION-v1.0.5-TODO-192](#DECISION-v1.0.5-TODO-192) | [v1.0.5-TODO-192](release_v1_0_5.md) | analysis scripts from `main` (TODO-200); acceptance list from the pinned commit (2026-11-17) | 2026-11-10 |
+| [DECISION-v1.0.5-TODO-174](#DECISION-v1.0.5-TODO-174) | [v1.0.5-TODO-174](release_v1_0_5.md) | jump guard applied (67347569); owner approval not recorded | 2026-11-07 |
 | [DECISION-v1.0.5-TODO-189](#DECISION-v1.0.5-TODO-189) | [v1.0.5-TODO-189](release_v1_0_5.md) | accept the score oversize as a documented finite-sample property; bootstrap score p in v1.1.0-TODO-166 | 2026-11-09 |
 | [DECISION-v1.0.5-TODO-185](#DECISION-v1.0.5-TODO-185) | [v1.0.5-TODO-185](release_v1_0_5.md) | leave the ZIP/ZINB partial-collapse ridge case; pseudo-inverse score test deferred to v1.1.0-TODO-3a | 2026-11-06 |
 | [DECISION-v1.0.5-TODO-184a](#DECISION-v1.0.5-TODO-184a) | [v1.0.5-TODO-184](release_v1_0_5.md) | coverage graded at the null only (beta_T = 0.5 rows: coverage_truth NA) | 2026-11-11 |
@@ -1241,6 +1243,69 @@ Last updated 2026-11-23.
   "owner to confirm" in the TODO); the variance form was kept by the owner under v1.0.6-TODO-231 (1), 2026-11-20.
 
 ## v1.0.5
+
+<a id="DECISION-v1.0.5-TODO-192"></a>
+### DECISION-v1.0.5-TODO-192: Calibration publish job: run the gate scripts from the campaign's pinned commit or from `main`?
+
+- **TODO:** [v1.0.5-TODO-192](release_v1_0_5.md) (ticked): **One registry that says, per inference procedure, whether
+  it is asymptotic or finite-sample valid.** Section 4 of the plan was left unimplemented.
+- **Context:** plan `new_feature_plans/v1_0_5/inference_procedure_regime_registry.md`, section 4 ("Open decision for
+  the owner (do not implement without asking)"). The publish job checks out the campaign's pinned commit
+  (`calibration-study.yml`, `ref: needs.plan.outputs.sha`), so gate changes reach only campaigns started after they
+  land; the campaign running when this was written (`2026-11-09-8c32d060`) kept the strict gate.
+- **Options:** (a) keep the pinned commit (reproducibility argues for it); (b) run the analysis scripts from `main`.
+- **Agent's note (2026-11-21):** the campaign it was raised for has ended, so the question may now only matter for
+  future gate changes during a running campaign.
+- **Raised:** 2026-11-10, in the plan.
+- **Ruling:** (b), the analysis scripts run from `main`, with one exception: the acceptance list comes from the
+  campaign's pinned commit. 2026-11-10, owner: the owner's own v1.0.5-TODO-200 (added 2026-11-10, owner; "the publish
+  job runs the analysis scripts from `main` and records both commits"; its entry: "Owner approved all points
+  2026-11-10"). Implemented in 168c2e92 (2026-11-10) as the separate `analyze` job of `calibration-study.yml`: on HEAD
+  the analysis scripts and registry come from the run's own commit (`ref: ${{ github.sha }}`, `main` at dispatch, so a
+  campaign is gated by the rules current at completion; both commits recorded as `SHA=` / `ANALYSIS_SHA=` in
+  `campaign.env`), while the merge and the roster use the pinned commit (`needs.plan.outputs.sha`). Exception (owner,
+  2026-11-17, workflow comment above `analyze` and learning l-991a46f4): `calibration_study_accepted.csv` is read from
+  the campaign's pinned commit, so rows added on `main` apply from the next campaign. The pending entry was written
+  from the plan's section 4, which predates TODO-200; it was closed 2026-11-23 (coordinator, owner request to fix
+  stale entries).
+- **Why:** gate changes should apply to the campaign being analysed (v1.0.5-TODO-200); for the acceptance list
+  (2026-11-17), a row added mid-campaign re-levelled its cell at the next wave and withdrew flags the BH screen
+  promised never to withdraw (campaign 2026-11-15-e36c7710: 120 flags at wave 5 -> 0 at wave 6 after c28bbb34).
+- **Rejected:** (a) keep the pinned commit for the whole analysis.
+
+<a id="DECISION-v1.0.5-TODO-174"></a>
+### DECISION-v1.0.5-TODO-174: Apply the prototyped jump guard to the shared C++ `pval_invert_ci_cpp`?
+
+- **TODO:** [v1.0.5-TODO-174](release_v1_0_5.md): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when
+  the bisection never moves.**
+- **Context:** `pval_invert_ci_cpp` is shared CI-inversion code: every score / Bartlett /
+  `invert_test_pval_confidence_interval` CI goes through it. The Stereotype symptom is gone after v1.0.5-TODO-175
+  (2026-11-07): CI ends equal to the Wald end bit-for-bit 2/300 -> 0/300 on null reps 1-25.
+- **Options:**
+  - (a) jump guard: if the bisection collapses onto the initial outer point and |p(a) - p(b0)| > 1e-3, restart the
+    outward search from b0, NA after 3 restarts (-> `finalize_inverted_ci`'s Wald fallback with warning). Prototype
+    `/tmp/claude-1000/t174/todo174_jump_guard.diff`, verified with `Rcpp::sourceCpp` on the extracted function: a
+    smooth p with an isolated dip at the seed gives lower -0.2390 before, -0.7609 after (the true root); identical on
+    smooth p. Over 1,576 CI rows (2026-10-28) only the 2 Stereotype rows change. Not run through the full CI suite.
+    Cost: up to 60 extra p evaluations per restart. Default-output change: NEWS, canonical CSVs (G4), equivalence note.
+  - (b) on an NA midpoint, halve back toward a (up to 20 times) instead of stopping: not prototyped; narrows every CI
+    that now ends on an NA midpoint, and must not treat an NA cliff edge (p ~0.35 right before the NA) as a root.
+  - (c) leave the shared code as is.
+- **Raised:** 2026-10-28, owner; "open: owner decision on applying (a) to the shared C++" since 2026-11-07.
+- **Ruling:** (a), the jump guard, applied by an agent on 2026-11-07 and committed in 67347569 (2026-11-08); owner
+  approval not recorded. Evidence: the guard is in `pval_invert_ci_cpp` on HEAD (`R/EDI/src/lrt_ci_newton.cpp`, the
+  "TODO-174 jump guard" block: up to 3 outward restarts, then NA for that side); the release file's status-table row in
+  67347569 reads "2026-11-07: jump guard applied ... Verified by sourceCpp swap", while the same commit's TODO entry
+  still said "Open: owner decision on applying (a) to the shared C++"; checked on the installed build 2026-11-10 (EDI.so
+  2026-11-10 16:48: isolated low-p point at the seed gives the true root -0.7611, 1.0.2 gave -0.2390; smooth case
+  unchanged); NEWS bullet "Likelihood CI inversion no longer returns an isolated low-p point as an endpoint." No owner
+  ruling, owner request or G6 item approving it was found. The owner's 2026-11-10 "Final benchmark gate" note (release
+  file, dependency diagram) lists "the TODO-174 CI jump guard in `lrt_ci_newton.cpp`" among the changes the final
+  benchmark run must cover, so the owner knew it was in. Recorded 2026-11-23 (coordinator, owner request to fix stale
+  entries).
+- **Why:** No reason recorded.
+- **Rejected:** (b) NA-midpoint halving (not prototyped) and (c) leave the shared code as is, by the change as applied.
+- **Revisit if:** the owner wants the change reverted, or the G4 rows show CIs that moved outside the 2 Stereotype rows.
 
 <a id="DECISION-v1.0.5-TODO-189"></a>
 ### DECISION-v1.0.5-TODO-189: Frailty Weibull score test runs ~1.5 points high under a correct model: fix in 1.0.5 or accept as documented?

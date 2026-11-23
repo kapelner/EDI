@@ -57,8 +57,6 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-67](release_v1_0_6.md) | 606 open results-freshness findings: stable unit-keyed ids then cite, one audit-wide citation, or leave listed until the regeneration? |
 | [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.6-TODO-43](release_v1_0_6.md) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
 | [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.6-TODO-17](release_v1_0_6.md) | Calibration early stopping of clearly passing null units: settle the five design questions |
-| [DECISION-v1.0.5-TODO-192](#DECISION-v1.0.5-TODO-192) | [v1.0.5-TODO-192](release_v1_0_5.md) | Calibration publish job: run the gate scripts from the campaign's pinned commit or from `main`? |
-| [DECISION-v1.0.5-TODO-174](#DECISION-v1.0.5-TODO-174) | [v1.0.5-TODO-174](release_v1_0_5.md) | Apply the prototyped jump guard to the shared C++ `pval_invert_ci_cpp`? |
 
 ## v4.0.0
 
@@ -593,39 +591,3 @@ Last updated 2026-11-23.
      they are.
   5. Confirmation replicates (5,000 at 0.01 / m_total) are unchanged.
 - **Raised:** 2026-11-11, owner (the entry is an owner exception to the v1.0.6 entry rule).
-
-## v1.0.5
-
-<a id="DECISION-v1.0.5-TODO-192"></a>
-### DECISION-v1.0.5-TODO-192: Calibration publish job: run the gate scripts from the campaign's pinned commit or from `main`?
-
-- **TODO:** [v1.0.5-TODO-192](release_v1_0_5.md) (ticked): **One registry that says, per inference procedure, whether
-  it is asymptotic or finite-sample valid.** Section 4 of the plan was left unimplemented.
-- **Context:** plan `new_feature_plans/v1_0_5/inference_procedure_regime_registry.md`, section 4 ("Open decision for
-  the owner (do not implement without asking)"). The publish job checks out the campaign's pinned commit
-  (`calibration-study.yml`, `ref: needs.plan.outputs.sha`), so gate changes reach only campaigns started after they
-  land; the campaign running when this was written (`2026-11-09-8c32d060`) kept the strict gate.
-- **Options:** (a) keep the pinned commit (reproducibility argues for it); (b) run the analysis scripts from `main`.
-- **Agent's note (2026-11-21):** the campaign it was raised for has ended, so the question may now only matter for
-  future gate changes during a running campaign.
-- **Raised:** 2026-11-10, in the plan.
-
-<a id="DECISION-v1.0.5-TODO-174"></a>
-### DECISION-v1.0.5-TODO-174: Apply the prototyped jump guard to the shared C++ `pval_invert_ci_cpp`?
-
-- **TODO:** [v1.0.5-TODO-174](release_v1_0_5.md): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when
-  the bisection never moves.**
-- **Context:** `pval_invert_ci_cpp` is shared CI-inversion code: every score / Bartlett /
-  `invert_test_pval_confidence_interval` CI goes through it. The Stereotype symptom is gone after v1.0.5-TODO-175
-  (2026-11-07): CI ends equal to the Wald end bit-for-bit 2/300 -> 0/300 on null reps 1-25.
-- **Options:**
-  - (a) jump guard: if the bisection collapses onto the initial outer point and |p(a) - p(b0)| > 1e-3, restart the
-    outward search from b0, NA after 3 restarts (-> `finalize_inverted_ci`'s Wald fallback with warning). Prototype
-    `/tmp/claude-1000/t174/todo174_jump_guard.diff`, verified with `Rcpp::sourceCpp` on the extracted function: a
-    smooth p with an isolated dip at the seed gives lower -0.2390 before, -0.7609 after (the true root); identical on
-    smooth p. Over 1,576 CI rows (2026-10-28) only the 2 Stereotype rows change. Not run through the full CI suite.
-    Cost: up to 60 extra p evaluations per restart. Default-output change: NEWS, canonical CSVs (G4), equivalence note.
-  - (b) on an NA midpoint, halve back toward a (up to 20 times) instead of stopping: not prototyped; narrows every CI
-    that now ends on an NA midpoint, and must not treat an NA cliff edge (p ~0.35 right before the NA) as a root.
-  - (c) leave the shared code as is.
-- **Raised:** 2026-10-28, owner; "open: owner decision on applying (a) to the shared C++" since 2026-11-07.
