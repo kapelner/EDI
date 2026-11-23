@@ -15372,7 +15372,7 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      MatchingGreedyPairSwitching). Every randomization p-value and CI changes, so the regeneration must run on a build
      that contains 160a0dcc. Rd regeneration (roxygenize) for both is still to do.
    - Open v1.0.6 TODOs that change `R/EDI` land before the release commit or are deferred to 1.0.6 by name.
-     v1.0.6-TODO-45 (KK14 threshold; R fix in, 9 fix-dependent bulk files left) is a prerequisite of
+     v1.0.6-TODO-45 (KK14 threshold; done 2026-11-23, all fix-dependent bulk files pass) was a prerequisite of
      v1.0.6-TODO-67's regeneration. v1.0.6-TODO-180 is open and fails the full R-CMD-check on every leg (re-run its
      three files on a build with the ticked v1.0.6-TODO-163; fix if they still fail). v1.0.6-TODO-181 was fixed
      2026-11-21. The full run cannot go green until v1.0.6-TODO-180 is fixed.

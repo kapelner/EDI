@@ -995,7 +995,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     and numbers are in the `missingness_method` roxygen (`Design.Rd`); Freedman2008 added to `REFERENCES.md`.
   - Still to do: a NEWS line under the next release's heading (imputed values and covariate-adjusted estimates change
     for data with missing covariates, and are now reproducible).
-- [ ] TODO-45 (added 2026-11-17, agent, owner request; found by the matching-on-the-fly article agent): **KK14's
+- [x] TODO-45 (added 2026-11-17, agent, owner request; done 2026-11-23; found by the matching-on-the-fly article agent): **KK14's
   match test was twice as strict as published.** `DesignSeqOneByOneKK14$assign_wt()` compared the full
   d'S^-1 d (`compute_proportional_mahal_distances_cpp`, stored as `sqd_distances_times_two`) with the Hotelling
   cutoff p(n-1)/(n-p) F_{p,t-p}(lambda). The statistic is half of that (the difference of two exchangeable
@@ -1048,6 +1048,21 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
     `cloud/comprehensive_study_costs.csv`. NEWS line (KK14 forms more matches; seeded KK14 allocations change; the
     digest fixture's header asks for one). `test-designs.R`'s "DesignSeqOneByOneiBCRD works" failure is unrelated
     (fails with or without the fix).
+  - Done 2026-11-23 (agent; nothing left to change). The fix is on HEAD (a32ab62c, `T_sq = ... / 2` in
+    `design_seq_one_by_one_KK14.R`; the only caller of `compute_proportional_mahal_distances_cpp`). The 9 bulk files
+    were already re-pinned in 271a7ea1 (2026-11-17): GEE parity est tolerance 1e-3 -> 5e-3, GEE weighted refit 2e-2
+    -> 5e-2 (20-seed sweep), CLMM all-links cloglog at sigma_b = 1.2 2e-2 -> 5e-2, CLMM boundaries Cauchit 1e-6 ->
+    1e-4, CLMM migration 5e-5 for every link, modified-Poisson SE 1e-6 -> 1e-5, plus the two seed/phi re-pins above;
+    the introspection audit passes unchanged because the separated exact-Fisher row is now `nonest`
+    (`exact_fisher_conditional_mle_infinite`, also 271a7ea1). Those loosened tolerances are where v1.0.6-TODO-47 and
+    v1.0.6-TODO-48 start; they stay open for the which-side-is-wrong question. Run 2026-11-23 against the source
+    (`load_all(compile = FALSE)`, NOT_CRAN, EDI_PREPUSH_NO_PARALLEL): all 9 pass (1554 expectations, 0 failures;
+    the one skip is the introspection audit's source-tree check, path-dependent), as do the 11 bulk files re-pinned
+    on 2026-11-17 and the 4 `tests/testthat` files above. The roxygen, `DesignSeqOneByOneKK14.Rd`, the
+    matching-on-the-fly article and the NEWS bullet ("Changes that alter results" > Designs) all give
+    T^2 = 1/2 d'S^-1 d against p(n-1)/(n-p) F_{p,t-p}(lambda), as the code does. The KK14 and KK21/KK21stepwise rows
+    of the comprehensive and calibration baselines (and their cost files) regenerate in the 1.0.5 full run
+    (v1.0.6-TODO-67); the 18 KK14 and 36 KK21 accepted calibration rows get re-reviewed there.
 - [ ] TODO-46 (added 2026-11-17, agent, owner request): **KK21 / KK14 doc and API fixes from the matching-on-the-fly
   article.**
   - Done 2026-11-17: `morrison = TRUE` was documented on KK21/KK21stepwise as switching to Morrison's
