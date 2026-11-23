@@ -1075,6 +1075,7 @@ R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,correctness,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-rand-pval-type-dispatch-independent-of-assertions.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-incidence-non-zhang-eligible-unsupported-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-observed-statistic-unavailable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1171,6 +1172,7 @@ R/package_tests/testthat_bulk/test-seed-determinism.R,correctness,5.2,measured_w
 R/package_tests/testthat_bulk/test-seeded-sequential-design-per-subject-rng.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-select-optimal-resample-size-volatility-window-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seq-design-deep-clone-does-not-share-assignment-state.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-seq-design-refuses-extra-subject-and-covariate-type-change.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-column-mismatch-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-unsupported-column-types-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-sequential-add-subject-rollback-on-failed-assignment.R,correctness,15,bootstrap
@@ -2864,6 +2866,7 @@ R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-pval-type-dispatch-independent-of-assertions.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-incidence-non-zhang-eligible-unsupported-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-two-sided-pval-observed-statistic-unavailable-guard-reference.R,coverage,240,bootstrap
@@ -2960,6 +2963,7 @@ R/package_tests/testthat_bulk/test-seed-determinism.R,coverage,2.7,measured_with
 R/package_tests/testthat_bulk/test-seeded-sequential-design-per-subject-rng.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-select-optimal-resample-size-volatility-window-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seq-design-deep-clone-does-not-share-assignment-state.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-seq-design-refuses-extra-subject-and-covariate-type-change.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-column-mismatch-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-unsupported-column-types-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sequential-add-subject-rollback-on-failed-assignment.R,coverage,240,bootstrap

@@ -3,6 +3,8 @@
 > **Status:** written 2026-10-22 as a plan. **TODO-1..4 and TODO-6 (items 1-3, 5; item 4 drafted) implemented
 > 2026-10-22** (R only, owner decisions G6 #45 (i), (ii)(a), (iii)(a)); see "Implementation record" at the end.
 > TODO-5 (C++) is not in 1.0.5 scope: v1.1.0, or G1 if that build happens anyway.
+> **TODO-5 implemented 2026-11-23** (owner ruling DECISION-v1.1.0-TODO-265a (d), v1.1.0-TODO-265); see "TODO-5
+> implementation record (2026-11-23)" at the end.
 > Slated for `../../future_release_plans/release_v1_0_5.md → TODO-31` (the "Golden re-pinned 2026-10-22" cloglog
 > residual). Owner decisions are G6 #45. Related: `glmm_variance_component_sigma_collapse.md` (the 2026-10-09
 > multistart fix), `optimize_likelihood_newton_false_nonconvergence.md` (Survey 2 headline 2, "CLMM tolerance"),
@@ -233,7 +235,7 @@ R-only steps (TODO-1..4) can land in 1.0.5 without G1. TODO-5 is C++ (G1). TODO-
   Add one diagnostic: `private$cached_values$clmm_variance_boundary = fit$log_sigma <= -4.5`. Do **not** read
   `fit$params` or `fit$fisher_information`: the kernel returns neither today (side finding: `shared_rcpp` L296 passes
   `fit$params = NULL` to `set_fit_warm_start`, so the CLMM warm-start cache never holds the fit). TODO-5 adds `params`.
-- [ ] **TODO-5 (C++, G1; NOT in 1.0.5 scope per G6 #45 (iii)(a) unless G1 runs anyway, otherwise v1.1.0): port the sibling's polish + projected-gradient
+- [x] **TODO-5 (C++, G1; NOT in 1.0.5 scope per G6 #45 (iii)(a) unless G1 runs anyway, otherwise v1.1.0; done 2026-11-23 under v1.1.0-TODO-265, see the implementation record at the end): port the sibling's polish + projected-gradient
   convergence into `run_fast_ordinal_clmm`.** File `R/EDI/src/fast_ordinal_clmm.cpp` L106-180, modelled on
   `R/EDI/src/fast_ordinal_glmm.cpp` L384-402 (tight L-BFGS polish, `polish_tol = min(eps_g, 1e-10)`) and L417-501
   (projected damped Newton on the active set, then `converged = projected_gnorm <= max(1e-5, eps_g)`). Changes:
@@ -454,3 +456,48 @@ Scratch: `/tmp/claude-1000/todo31_impl/` (`measure.R`, `measure_{before,final}.r
 - **Left:** TODO-5 (C++, v1.1.0/G1). G4: regenerate all four KKCLMM classes' rows (asymptotic, rand p/CI,
   rand-bootstrap, non-BB bootstrap, jackknife) and the ten cloglog BB procedures. G8: Rd. The owner sends the
   upstream report.
+
+## TODO-5 implementation record (2026-11-23, v1.1.0-TODO-265)
+
+Owner ruling DECISION-v1.1.0-TODO-265a: first (b), the R Newton retry runs from the L-BFGS point only
+(`fast_ordinal_clmm_cpp(variance_multistart = FALSE)`) except for a boundary fit (log sigma <= -4.5) with gradient
+norm > 1e-3, then (d), this TODO. Verified by `Rcpp::sourceCpp()` of the edited `fast_ordinal_clmm.cpp` swapped into
+the namespace under `pkgload::load_all(compile = FALSE)`; no relink, no install. `RcppExports.R` / `.cpp` were edited
+by hand for the new argument, so the package must be rebuilt before the change is live.
+
+- **What the kernel does now** (`run_fast_ordinal_clmm`): multistart as before (supplied start + log sigma -1, 0, 1,
+  -8 unless `variance_multistart = FALSE`); then, for L-BFGS, (1) if the winner sits at the boundary
+  (log sigma <= -4.5) with L-BFGS gradient norm > 1e-3 and there are several starts, every start is polished with a
+  tight L-BFGS restart (`min(eps_g, 1e-10)`) and the best re-selected (the guard for a winner chosen among poorly
+  converged starts; `test-ordinal-kk-clmm-stationary-fit-kkt.R`'s eps_g = 1e-2 case); otherwise the winner is
+  polished only if it fails the projected test; (2) tau-score `s = (g[ls] - sigma_penalty_grad(ls)) / (2 e^{2 ls})`,
+  lower bound active iff `ls <= -5 + 1e-4 && s > 0`; (3) projected damped Newton (numerical Hessian, LDLT positive
+  check, Armijo, at most 50 steps, stopped after two steps that shrink the projected gradient by < 10%: the
+  numerical-Hessian floor); (4) `converged = projected gnorm <= max(1e-5, eps_g)`, `gradient_norm` = projected norm.
+  Plan items 1-7 are in, with two deviations: the tight L-BFGS polish runs only when needed (always polishing cost
+  20-35% at n <= 200 for no change), and the stall stop in (3) (without it, fits at n = 800-1000 ran up to 50 Hessians
+  at the floor). New result fields: `params`, `lbfgs_gradient_norm`, `variance_boundary_hit`,
+  `variance_boundary_tau_score`, `newton_polish_attempted/accepted/iterations`. The Python 16-argument
+  `fast_ordinal_clmm_internal` is kept as a wrapper (always the full multistart); `python/tests/test_fast_ordinal_clmm.py`
+  re-pinned from R (old fixture: L-BFGS stop at gradient 0.019; new: 2.2e-7, nll lower by 4.3e-6).
+- **The R retry** (`clmm_accept_fit`, TODO-4) stays as a safety net. At the production `eps_g = 1e-12` it no longer
+  runs on n <= 200 calibration fits (0 of 1,440 vs 4 before) and on 10 of 160 at n = 1000 (35 before): `~ 1` fits
+  with an interior sigma where Newton reaches the numerical-Hessian floor between 1e-5 and 1e-4.
+- **Equivalence** (same data before vs after; calibration DGP null and power50, SeqOneByOneKK14 and
+  FixedBinaryMatch, all four links, `~ .` and `~ 1`): n = 50 (960 fits) / 200 (480) / 1000 (160): max |d estimate|
+  4.9e-6 / 2.3e-6 / 5.9e-7; SE 1.6e-5 / 1.2e-6 / 2.1e-8; Wald p 4.2e-6 / 5.4e-6 / 3.9e-6; nll changes <= 1e-10; no NA
+  changed. Randomization p-values (logit and Cauchit): identical at n = 200 (40) and 1000 (16); at n = 50, 5 of 80
+  differ (by up to 0.039): in 4, 1-6 redraws per distribution that were `NA` (kernel not converged, gradient 0.09-0.9,
+  log sigma ~3.6-4.8, the retry failed) are now finite (|treatment| 12-61; 14 such redraws in 16,160); in 1, redraws
+  within ~1e-6 of the observed statistic flipped the tie rule. One n = 50 `~ 1` redraw moved 0.034 at the same nll
+  (a flat ridge at log sigma ~4). Recorded for the owner as DECISION-v1.1.0-TODO-265b.
+- **Speed** (end to end, same seeds, randomization p-value; before = HEAD kernel): n = 1000: SeqOneByOneKK14 99 ->
+  23 s (4.3x), FixedBinaryMatch 79 -> 25 s (3.2x), Cauchit 32 -> 13 s (2.5x), r = 20; single fit 9.0 -> 1.2 s,
+  9.0 -> 1.2 s, 4.3 -> 0.6 s. n = 200 (r = 40): 1.1x / 1.3x / 1.7x; median single fit unchanged (0.11 -> 0.13 s).
+  With (b) alone, n = 1000 was 1.9x-4.7x.
+- **Tests:** `test-ordinal-kk-clmm-stationary-fit-kkt.R` gains the post-TODO-5 assertions (gradient <= 1e-5, no R
+  retry, positive kernel tau-score at a boundary fit); new `test-ordinal-kk-clmm-newton-retry-single-start-unless-boundary.R`.
+  38 ordinal CLMM / KK / kernel-contract / randomization test files: 1,478 pass, 3 fail, all 3 in
+  `test-randomization-sequential-mc-pval-stopping-rule-reference.R`, which fails the same way with the HEAD kernel
+  (the merged v1.2.0-TODO-207 "+1" randomization p-value change, not this work).
+

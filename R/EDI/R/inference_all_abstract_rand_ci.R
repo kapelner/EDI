@@ -108,24 +108,24 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertFlag(na.rm)
 			}
-			if (should_run_asserts()) {
-				if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
-					stop("transform_responses is not supported for incidence randomization inference.")
-				}
-				# Exact incidence tests only when explicitly requested via `type`; the
-				# default p-value always comes from the randomization draws.
-				if (!is.null(type) && private$should_use_zhang_incidence_randomization()){
-					rand_type = type
-					exact_args = private$normalize_exact_inference_args(
-						rand_type,
-						args_for_type = args_for_type
-					)
-					return(private$compute_exact_two_sided_pval_rand(rand_type, delta, exact_args))
-				}
+			# v1.0.6-TODO-405: the `type` dispatch and these two refusals are behaviour, not
+			# assertions, so they run whatever the assertion setting. They used to sit inside
+			# `if (should_run_asserts())`, so with assertions off `type = "Zhang"` was ignored and
+			# the randomization-draw p-value came back instead, with no message.
+			if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
+				stop("transform_responses is not supported for incidence randomization inference.")
 			}
-			if (should_run_asserts()) {
-				private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
+			# Exact incidence tests only when explicitly requested via `type`; the
+			# default p-value always comes from the randomization draws.
+			if (!is.null(type) && private$should_use_zhang_incidence_randomization()){
+				rand_type = type
+				exact_args = private$normalize_exact_inference_args(
+					rand_type,
+					args_for_type = args_for_type
+				)
+				return(private$compute_exact_two_sided_pval_rand(rand_type, delta, exact_args))
 			}
+			private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
 			# Not super$compute_rand_two_sided_pval(): a class composed via
 			# define_inference_class() that splices this method in as a raw function
 			# copy (not real inheritance -- see the "generic self-aliased overrides"
@@ -367,9 +367,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					call. = FALSE
 				)
 			}
-			if (should_run_asserts()) {
-				private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)
-			}
+			# v1.0.6-TODO-405: always enforced (an ignored `type` is a silent wrong answer).
+			private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)
 			is_glm = inference_uses_model_scale_randomization_transform(self)
 			# TODO-119: refuse when the shift scale is not the estimand's scale.
 			scale_mismatch = inference_randomization_ci_scale_mismatch(class(self), resp_type, is_glm)
@@ -499,14 +498,14 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			invisible(FALSE)
 		},
+		# v1.0.6-TODO-405: not gated on should_run_asserts(); a `type` this response cannot
+		# use would otherwise be silently ignored.
 		assert_no_incidence_only_randomization_args = function(resp_type, type, args_for_type){
-			if (should_run_asserts()) {
-				if (!is.null(type)) {
-					stop("Randomization type dispatch is only supported for incidence outcomes.")
-				}
-				if (!is.null(args_for_type)) {
-					stop("args_for_type is only used for incidence randomization inference.")
-				}
+			if (!is.null(type)) {
+				stop("Randomization type dispatch is only supported for incidence outcomes.")
+			}
+			if (!is.null(args_for_type)) {
+				stop("args_for_type is only used for incidence randomization inference.")
 			}
 			invisible(NULL)
 		},

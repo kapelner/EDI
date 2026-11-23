@@ -74,14 +74,16 @@ test_that("reordered factor and logical attributes retain their classes and valu
     data.frame(site = factor(c("A", "B")), flag = c(TRUE, FALSE), x = c(1, 2)))
 })
 
-test_that("a closed sequential schema accepts reordered attributes and warns on genuine type changes", {
+test_that("a closed sequential schema accepts reordered attributes and refuses unconvertible type changes", {
+  # v1.0.6-TODO-351: a genuine type change used to warn and retype the stored column; it is now refused
+  # (or coerced back to the stored type when that keeps the value) and the stored column is unchanged.
   des <- DesignSeqOneByOneBernoulli$new("continuous", seed = 647)
   des$add_one_subject(data.frame(x = 1.0, site = "A"))
   expect_warning(des$add_one_subject(data.frame(site = "B", x = 2.0), allow_new_cols = FALSE), NA)
-  expect_warning(des$add_one_subject(data.frame(site = "C", x = "three"), allow_new_cols = FALSE),
-    "character for attribute named x that was previously entered with data type numeric", fixed = TRUE)
+  expect_error(des$add_one_subject(data.frame(site = "C", x = "three"), allow_new_cols = FALSE),
+    "covariate 'x' of subject 3 is character (three) but was entered as numeric", fixed = TRUE)
   expect_equal(as.data.frame(des$get_X_raw()),
-    data.frame(x = c("1", "2", "three"), site = c("A", "B", "C")))
+    data.frame(x = c(1, 2), site = c("A", "B")))
 })
 
 test_that("name alignment remains enforced with argument assertions disabled", {

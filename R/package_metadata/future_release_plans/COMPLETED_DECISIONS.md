@@ -12,7 +12,7 @@ added. Before reopening or re-arguing a choice, check this file. Order: releases
 TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-23.
+Last updated 2026-11-24.
 
 ## Summary
 
@@ -26,7 +26,10 @@ Last updated 2026-11-23.
 | [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) | [v1.2.0-TODO-207](release_v1_2_0.md) | randomization p-values: (b+1)/(B+1) per tail, two-sided doubled and capped at 1 | 2026-11-23 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
+| [DECISION-v1.1.0-TODO-267](#DECISION-v1.1.0-TODO-267) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) opt-in score-at-the-null statistic via `compute_rand_two_sided_pval(type = "score")` on the KK CLMM classes; default unchanged | 2026-11-24 |
+| [DECISION-v1.1.0-TODO-266](#DECISION-v1.1.0-TODO-266) | [v1.1.0-TODO-266](release_v1_1_0.md) | (a) ruled out: CLMM redraws keep their own-data start; the observed-fit warm start reaches the same maxima but is 3-25% slower | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-265a](#DECISION-v1.1.0-TODO-265a) | [v1.1.0-TODO-265](release_v1_1_0.md) | (b) single-start Newton retry except at a far-from-stationary boundary, then (d) the kernel KKT polish | 2026-11-23 |
+| [DECISION-v1.1.0-TODO-265b](#DECISION-v1.1.0-TODO-265b) | [v1.1.0-TODO-265](release_v1_1_0.md) | (a) accept: degenerate n = 50 redraws that used to be `NA` now return values; some n = 50 rand p-values move (up to 0.039) | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-218a](#DECISION-v1.1.0-TODO-218a) | [v1.1.0-TODO-218](release_v1_1_0.md) | CountPoisson blocking-design fix accepted (stratified within-block jackknife fallback) | 2026-11-19 |
 | [DECISION-v1.1.0-TODO-217](#DECISION-v1.1.0-TODO-217) | [v1.1.0-TODO-217](release_v1_1_0.md) | ZINB n = 50 oversize ruled inherent (small-sample degeneracy) | 2026-11-19 |
 | [DECISION-v1.1.0-TODO-216](#DECISION-v1.1.0-TODO-216) | [v1.1.0-TODO-216](release_v1_1_0.md) | ZIP `~1` oversize ruled inherent (misspecification), documented | 2026-11-19 |
@@ -315,6 +318,62 @@ Last updated 2026-11-23.
 
 ## v1.1.0
 
+<a id="DECISION-v1.1.0-TODO-267"></a>
+### DECISION-v1.1.0-TODO-267: Ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not?
+
+- **TODO:** [v1.1.0-TODO-267](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does
+  not need a full refit per redraw.**
+- **Context:** the current statistic refits the CLMM on every redraw (0.25 s at n = 200, 1-6 s at n = 1000). A
+  randomization test is exact for any statistic, so a cheaper one keeps the size; only power and the p-values change.
+  Prototype (scratch, not in the package): fit the null CLMM once (treatment coefficient fixed at 0 with the kernel's
+  `fixed_idx`); r_i = posterior mean, over unit i's pair random intercept (the same 20-node Gauss-Hermite rule), of
+  d log p(y_i | eta) / d eta; statistic T(w) = sum_i w_i r_i, the score for beta_T. Each redraw is one dot product
+  (`crossprod(w_mat, r)`). Checked: kernel neg-loglik = R neg-loglik at the null fit (237.509), numeric derivative =
+  analytic score (-2.059287).
+- **Evidence (2026-11-23, agent):** cost of one p-value with r = 501: 0.05 s at n = 50 vs 31 s now (~600x); 0.17 s vs
+  ~120 s at n = 200; 0.55-0.87 s vs ~2,000-2,900 s at n = 1000. Null size at alpha = 0.05 (calibration DGP, null):
+  SeqOneByOneKK14 n = 50 0.050 (300 reps), n = 200 0.037 (300), n = 1000 0.070 (400; MC SD 0.011);
+  FixedBinaryMatch n = 200 0.067 (300), n = 1000 0.065 (200); Cauchit KK14 n = 200 0.037 (300). On three n = 1000 data
+  sets where the score test rejected, the current statistic also rejected or nearly (p = 0.059 / 0.020 / 0.020), so the
+  n = 1000 excess is shared, not the score's. Agreement with the current statistic on the same data (KK14, n = 50, 40
+  null reps): cor(p) = 0.997, max |dp| = 0.06; on one n = 200 data set the two p-values were identical (0.583). Power
+  at the power50 effect (KK14, n = 50, 60 reps, same data): 0.43 (score) vs 0.37 (current).
+- **Options:** (a) add it as an opt-in statistic (e.g. `rand_statistic = "score"`) for the four KK CLMM links, default
+  unchanged; (b) make it the default randomization statistic for these classes (results change; NEWS; release rule);
+  (c) also use it for the randomization CI (each bisection step becomes cheap; the CI then inverts a score test, not the
+  estimate's test, and the delta-shift needs the null fit refit at each delta); (d) do not ship.
+- **Recommendation (agent):** (a), then (b) if a full calibration run shows no power loss. It is the only option that
+  makes the n = 1000 p-value cost seconds instead of minutes.
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+- **Ruling:** (a) ship as an opt-in statistic, default unchanged, owner, 2026-11-24. Interface (coordinator, owner agreed): the existing `type` argument of `compute_rand_two_sided_pval()`, `type = "score"`, as `type = "Zhang"` is for the incidence classes; offered on the four KK CLMM link classes only.
+- **Why:** No reason recorded.
+- **Rejected:** (b) make it the default (revisit after a full calibration run shows no power loss); (d) do not ship. (c), using it for the randomization CI, was not ruled on (the owner asked about it on 2026-11-24; see the TODO).
+- **Revisit if:** a calibration run of `type = "score"` shows size and power at least as good as the refit statistic, then consider (b).
+
+<a id="DECISION-v1.1.0-TODO-266"></a>
+### DECISION-v1.1.0-TODO-266: Confirm ruling out the observed-fit warm start for CLMM randomization redraws (same optimum, slower)
+
+- **TODO:** [v1.1.0-TODO-266](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's
+  refit from the observed-data fit.**
+- **Context:** each redraw already starts from its own data, not cold: `shared_rcpp()` starts from the fixed-effects
+  cumulative-link MLE on the redraw's assignment (`clmm_warm_start()`, ~2 ms), and the kernel adds log-sigma starts
+  -1, 0, 1, -8. Nothing chains (v1.0.6-TODO-61 holds).
+- **Evidence (2026-11-23, agent):** observed-fit start vs current start, same redraws, max log-likelihood compared:
+  default DGP (sigma at the lower boundary) KK14 / FixedBinaryMatch n = 200, 100 redraws each: |d nll| <= 9.4e-11,
+  none worse or better by 1e-6, time 38.2 vs 29.7 s and 25.0 vs 20.7 s; n = 1000, 20 each: |d nll| <= 2.0e-10, 24.2 vs
+  23.4 s and 28.0 vs 27.3 s; Cauchit KK14 n = 200, 100: |d nll| <= 9.1e-11, 35.4 vs 29.5 s. Interior sigma (model
+  `~ x1`, log sigma median -0.67, 25% at the boundary) KK14 n = 200, 100: |d nll| <= 5.5e-11, 11.2 vs 9.1 s; n = 1000,
+  20: |d nll| <= 4.7e-11, 7.0 vs 5.9 s. No ZIP-style trap, but no speed-up either: the redraw's own fixed-effects MLE is a
+  closer start than the observed fit, and the share of redraws needing the Newton retry barely moves (n = 1000: 8 vs
+  8 of 20 on KK14, 8 vs 11 on FixedBinaryMatch).
+- **Options:** (a) rule it out (no code change); (b) adopt it anyway (no benefit seen).
+- **Recommendation (agent):** (a).
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+- **Ruling:** (a) ruled out, owner, 2026-11-24.
+- **Why:** No reason recorded.
+- **Rejected:** (b) adopting the observed-fit warm start (same maxima, 3-25% slower).
+- **Revisit if:** a later kernel change makes redraw fits sensitive to their start.
+
 <a id="DECISION-v1.1.0-TODO-265a"></a>
 ### DECISION-v1.1.0-TODO-265a: CLMM Newton retry: drop its four extra log-sigma starts (2.5x-5x faster at n = 1000), make it conditional, or do the plan TODO-5 KKT port?
 
@@ -356,6 +415,37 @@ Last updated 2026-11-23.
 - **Rejected:** (a) unconditional single-start retry (breaks the boundary guard); (c) scale-aware acceptance; (e) no
   change.
 - **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+
+
+<a id="DECISION-v1.1.0-TODO-265b"></a>
+### DECISION-v1.1.0-TODO-265b: Accept that degenerate n = 50 CLMM redraws that used to be `NA` now return values (some rand p-values move)?
+
+- **TODO:** [v1.1.0-TODO-265](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: find why its cost
+  grows faster than n.**
+- **Context:** the kernel KKT polish (DECISION-v1.1.0-TODO-265a (d)) was required to keep results within the D2
+  numerical-equivalence rule. On 1,600 before/after fits it does for estimates, SEs and Wald p-values (<= 1.6e-5), and
+  randomization p-values are identical at n = 200 and 1000. At n = 50 they are not: 5 of 80 logit/Cauchit
+  randomization p-values (r = 101) changed, by up to 0.039.
+- **The cases** (calibration DGP, null, n = 50; scratch `nacount.R` / `equiv.R`): 14 of 16,160 redraws went from `NA`
+  to a value, never the reverse: Cauchit KK14 `~ .` rep 5 (6 redraws), rep 7 (2), rep 14 (3); Cauchit FixedBinaryMatch
+  `~ .` rep 6 (1), rep 19 (1); logit KK14 `~ .` rep 7 (1). Before, the kernel stopped with gradient norm 0.09-0.9 and
+  the Newton retry failed (`kk_clmm_rcpp_not_stationary`); now the polish reaches a stationary point with a lower nll
+  (e.g. 54.139 -> 54.091), at log sigma 3.6-4.8 (sigma 35-120) and treatment -61 to +24: degenerate near-separated
+  fits. Plus one tie flip (Cauchit FixedBinaryMatch `~ 1` rep 1: redraws within ~1e-6 of the observed statistic), and
+  one `~ 1` logit KK14 rep 16 redraw that moved 0.034 at the same nll (a flat ridge at log sigma ~4; both versions
+  needed the retry).
+- **Options:** (a) accept: these redraws now have a well-defined (if extreme) maximum-likelihood value, and the
+  randomization distribution keeps them, as it keeps every other finite redraw (NEWS says so); (b) treat a fit at an
+  implausible sigma (e.g. log sigma > 3) or |treatment| above a cap as nonestimable, restoring the old `NA`s (a new
+  rule; would also hit observed fits); (c) revert the KKT polish and keep only the retry fix (b) (1.9x-4.7x at
+  n = 1000 instead of 2.5x-4.3x plus the faster single fits; results bit-identical in the checks).
+- **Recommendation (agent):** (a). The `NA` was an optimizer failure, not a modeling rule; with it the p-value
+  silently dropped those redraws.
+- **Raised:** 2026-11-24, by the v1.1.0-TODO-265..268 agent.
+- **Ruling:** (a) accept, owner, 2026-11-24.
+- **Why:** No reason recorded.
+- **Rejected:** (b) a nonestimability rule for implausible sigma / treatment (a new rule that would also hit observed fits); (c) reverting the kernel KKT polish.
+- **Revisit if:** the degenerate large-sigma redraws are shown to distort size or power of the randomization test at small n.
 
 <a id="DECISION-v1.1.0-TODO-218a"></a>
 ### DECISION-v1.1.0-TODO-218a: `InferenceCountPoisson` `~1` oversized on blocking designs: accept the stratified within-block jackknife fix?

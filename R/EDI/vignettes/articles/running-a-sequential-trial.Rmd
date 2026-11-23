@@ -109,12 +109,14 @@ response type, the target sample size `n`, the design's tuning arguments, and th
   (`t_0_pct * n` subjects) and their matching threshold depend on it, and EDI's
   fixed-sample analysis assumes that the number of subjects was fixed before
   enrollment and not chosen by watching the outcomes. The design does not stop
-  enrollment for you: it is up to you to stop at exactly `n`.
+  enrollment for you, but it refuses subject `n + 1` with an error.
 * **Fix the covariate list.** Every arrival must be a one-row data frame with the
-  same columns, of the same types, measured before assignment. A column whose type
-  changes partway through (an integer that arrives as a character string, say)
-  produces a warning. A missing covariate value is allowed: it is imputed (see the
-  `missingness_method` argument).
+  same columns, of the same types, measured before assignment. A value whose type
+  differs from its column's (a number that arrives as a character string, say) is
+  converted to the column's type; if it cannot be (`"1.7a"` for a numeric column),
+  the subject is refused with an error naming the column and the design is left as
+  it was, so you can correct the value and add the subject again. A missing
+  covariate value is allowed: it is imputed (see the `missingness_method` argument).
 * **Set `seed`.** With a seed, the design seeds each assignment from the seed and the
   subject's enrollment number, and puts the session's random number stream back
   afterwards. So the seed fixes the whole allocation (given the covariates and, for

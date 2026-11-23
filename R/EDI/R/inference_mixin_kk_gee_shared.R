@@ -136,12 +136,14 @@ InferenceMixinKKGEEShared = list(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE) # v1.0.6-TODO-100
 				assertFlag(na.rm)
 			}
-			if (should_run_asserts() && private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
+			# v1.0.6-TODO-405: the `type` dispatch and the refusals below are behaviour, not
+			# assertions, so they run whatever the assertion setting.
+			if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
 				stop("transform_responses is not supported for incidence randomization inference.")
 			}
 			# Exact incidence tests only when explicitly requested via `type`; the
 			# default p-value always comes from the randomization draws.
-			if (should_run_asserts() && !is.null(type) && private$should_use_zhang_incidence_randomization()){
+			if (!is.null(type) && private$should_use_zhang_incidence_randomization()){
 				rand_type = type
 				exact_args = private$normalize_exact_inference_args(
 					rand_type,
@@ -149,12 +151,10 @@ InferenceMixinKKGEEShared = list(
 				)
 				return(private$compute_exact_two_sided_pval_rand(rand_type, delta, exact_args))
 			}
-			if (should_run_asserts()) {
-				private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
-				if (private$des_obj_priv_int$response_type == "incidence" &&
-						!private$should_use_design_randomization_for_incidence()) {
-					stop("Randomization tests are not supported for incidence. Use Zhang method.")
-				}
+			private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
+			if (private$des_obj_priv_int$response_type == "incidence" &&
+					!private$should_use_design_randomization_for_incidence()) {
+				stop("Randomization tests are not supported for incidence. Use Zhang method.")
 			}
 			# v1.2.0-TODO-263: a supplied full enumeration holds the realized allocation; drop one copy.
 			enum = rand_drop_realized_from_enumeration(permutations, private$w, r)

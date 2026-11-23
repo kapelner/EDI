@@ -2663,7 +2663,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneKK14' --n 1000 --effect null --only InferenceOrdinalKKCLMM --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: the bias is re-measured on complete replicates, and explained, fixed or documented.
   - Status 2026-11-23 (coordinator): wave 29 of campaign 2026-11-15-e36c7710: 4 cells now, SeqOneByOneKK14 and SeqOneByOneKK21stepwise at n = 1000; both units were abandoned after shard timeouts (KK21stepwise in wave 29), so the caveat above applies to all four. Re-measure once v1.0.6-TODO-409 (planner fix) is pushed and those units complete.
-- [ ] TODO-265 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: find why its cost grows faster than n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
+- [x] TODO-265 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: find why its cost grows faster than n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Each redraw refits the full CLMM, but the growth beyond the fit's own cost suggests extra per-draw work. First suspect:
     the KK matching (pairs / reservoir) being redone on every redraw instead of once per design; also check per-draw
     setup (model matrix, cluster ids) and the number of redraws B used at n = 1000.
@@ -2692,8 +2692,24 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
       statistic) >> this TODO's retry fix (2.5x-5x, numerically equivalent on the calibration data) > v1.1.0-TODO-268
       (sequential stop, ~3x at the null, 1.7x under power, changes p-values) >> v1.1.0-TODO-266 (none; ruled out).
       The retry fix and the sequential stop multiply.
-  - Owner decision pending: [DECISION-v1.1.0-TODO-265](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-265) (CLMM Newton retry: drop its four extra log-sigma starts, make it conditional, or wait for the plan TODO-5 KKT port?).
-- [ ] TODO-266 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's refit from the observed-data fit.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
+  - Decided 2026-11-23 (owner): (b) single-start Newton retry except at a far-from-stationary boundary, then (d) the kernel KKT polish (plan TODO-5); see [DECISION-v1.1.0-TODO-265a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-265a).
+  - Status 2026-11-24 (agent): both implemented (C++ `fast_ordinal_clmm.cpp` + hand-edited `RcppExports`, R
+    `clmm_accept_fit()`; verified by `sourceCpp` swap, no relink: **the owner must rebuild** for it to be live). The
+    kernel now polishes its multistart winner and judges convergence by the projected gradient (KKT at the sigma
+    boundary), so the R retry no longer fires on n <= 200 calibration fits and on 10 of 160 at n = 1000 (was 35); when
+    it does, it starts from the fitted point only. End-to-end randomization p-value, same seeds: n = 1000
+    SeqOneByOneKK14 4.3x, FixedBinaryMatch 3.2x, Cauchit 2.5x (single fit 4-9 s -> 0.6-1.2 s); n = 200 1.1x-1.7x.
+    Equivalence on 1,600 fits (n = 50 / 200 / 1000, four links, both formulas): estimate <= 4.9e-6, SE <= 1.6e-5,
+    Wald p <= 5.4e-6; randomization p identical at n = 200 and 1000, but 5 of 80 differ at n = 50 (up to 0.039) because
+    degenerate redraws that were `NA` now return values (and one tie flip). Details:
+    `../bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md` "TODO-5 implementation record". Tests: new
+    `test-ordinal-kk-clmm-newton-retry-single-start-unless-boundary.R`, KKT assertions added to
+    `test-ordinal-kk-clmm-stationary-fit-kkt.R`; 38 related files pass except 3 pre-existing failures in
+    `test-randomization-sequential-mc-pval-stopping-rule-reference.R` (same with the HEAD kernel; from the merged
+    v1.2.0-TODO-207 "+1" p-value change). `python/tests/test_fast_ordinal_clmm.py` re-pinned from R; it still needs the
+    pre-push Python build to confirm. NEWS entry under "Changes that alter results / Ordinal responses".
+  - Decided 2026-11-24 (owner): accept that degenerate n = 50 redraws that used to be `NA` now return values; see [DECISION-v1.1.0-TODO-265b](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-265b).
+- [x] TODO-266 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's refit from the observed-data fit.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Warm-start every redraw from the observed-data fit, never from the previous redraw: the owner ruling of 2026-11-19
     (v1.0.6-TODO-61) bans chaining warm starts across redraws, not a fixed start from the observed fit. Check that the
     multimodality guards (`multistart_nonconcave_likelihoods.md`) still hold, since the CLMM likelihood is not concave.
@@ -2705,7 +2721,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     n = 200 on KK14, FixedBinaryMatch and Cauchit, 20 at n = 1000 on KK14 and FixedBinaryMatch, plus 100 + 20 with an
     interior sigma, model `~ x1`), but is 3-25% slower; the share of redraws needing the Newton retry barely moves (n = 1000: 8 vs 8 of 20 on
     KK14, 8 vs 11 on FixedBinaryMatch).
-  - Owner decision pending: [DECISION-v1.1.0-TODO-266](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-266) (confirm ruling out the observed-fit warm start for CLMM randomization redraws).
+  - Decided 2026-11-24 (owner): ruled out, no code change; see [DECISION-v1.1.0-TODO-266](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-266).
 - [ ] TODO-267 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does not need a full refit per redraw.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Candidates: a score statistic evaluated at the null fit (computed once; each redraw only re-evaluates the score under
     the permuted assignment), or a one-step Newton update from the observed fit. Either changes the test statistic, so
@@ -2725,7 +2741,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     the current statistic on the same data (KK14 n = 50, 40 null reps): cor(p) = 0.997, max |dp| = 0.06; at the power50
     effect (60 reps, same data) power 0.43 vs 0.37 now. Calibration cells at n = 50, 200, 1000 for the option are still
     to run once it is implemented.
-  - Owner decision pending: [DECISION-v1.1.0-TODO-267](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-267) (ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not?).
+  - Decided 2026-11-24 (owner): ship as an opt-in, `compute_rand_two_sided_pval(type = "score")`, default unchanged; see [DECISION-v1.1.0-TODO-267](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-267).
 - [ ] TODO-268 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: fewer redraws at large n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Use fewer redraws when n is large (or a sequential Monte Carlo stopping rule, which EDI already has for
     randomization p-values), so the p-value resolution is kept where it matters (near alpha) and spent less elsewhere.

@@ -10,17 +10,22 @@ library(EDI)
 # (DesignSeqOneByOne* and its many concrete subclasses) being some of the most heavily tested classes in
 # the whole suite -- every existing fixture consistently supplies the same covariate types across all
 # subjects, so this drift-detection warning was never triggered.
+# v1.0.6-TODO-351 (2026-11-24): the warning is gone. Retyping the stored column for every earlier subject
+# changed later assignments and broke the analysis, so a changed type is now coerced back to the stored
+# type, and a value that cannot be converted is refused with an error naming the column.
 
-test_that("a later subject's covariate with a changed data type triggers the documented warning, naming the attribute and both types", {
+test_that("a later subject's covariate with an unconvertible changed data type is refused, naming the attribute and both types", {
 	set.seed(1L)
 	des <- DesignSeqOneByOneBernoulli$new(n = 5L, response_type = "continuous", verbose = FALSE)
 	des$add_one_subject_to_experiment_and_assign(data.frame(x1 = 1.5, x2 = "a", stringsAsFactors = FALSE))
 
-	expect_warning(
+	expect_error(
 		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = "not_numeric", x2 = "b", stringsAsFactors = FALSE)),
-		"You entered data type character for attribute named x1 that was previously entered with data type numeric",
+		"covariate 'x1' of subject 2 is character (not_numeric) but was entered as numeric",
 		fixed = TRUE
 	)
+	expect_equal(des$get_t(), 1)
+	expect_true(is.numeric(des$get_X_raw()$x1))
 })
 
 test_that("subsequent subjects with the SAME covariate types as the first never trigger the warning", {
@@ -31,14 +36,12 @@ test_that("subsequent subjects with the SAME covariate types as the first never 
 	expect_no_warning(des$add_one_subject_to_experiment_and_assign(data.frame(x1 = 3.5, x2 = "c", stringsAsFactors = FALSE)))
 })
 
-test_that("a data-type change on a column supplied in a different order still triggers the warning (attributes matched by name, not position)", {
+test_that("a convertible data-type change on a column supplied in a different order is coerced back to the stored type (attributes matched by name, not position)", {
 	set.seed(3L)
 	des <- DesignSeqOneByOneBernoulli$new(n = 5L, response_type = "continuous", verbose = FALSE)
 	des$add_one_subject_to_experiment_and_assign(data.frame(x1 = 1.5, x2 = "a", stringsAsFactors = FALSE))
 
-	expect_warning(
-		des$add_one_subject_to_experiment_and_assign(data.frame(x2 = "b", x1 = TRUE)),
-		"You entered data type logical for attribute named x1 that was previously entered with data type numeric",
-		fixed = TRUE
-	)
+	expect_no_warning(des$add_one_subject_to_experiment_and_assign(data.frame(x2 = "b", x1 = TRUE)))
+	expect_true(is.numeric(des$get_X_raw()$x1))
+	expect_equal(des$get_X_raw()$x1, c(1.5, 1))
 })

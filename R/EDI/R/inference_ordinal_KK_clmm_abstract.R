@@ -23,7 +23,24 @@
 #' \eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
 #' test, the estimate is \code{NA} with nonestimable reason
 #' \code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
-#' does not normally run.
+#' rarely runs (at large n, when Newton reaches the numerical-Hessian floor
+#' between \eqn{10^{-5}} and \eqn{10^{-4}}).
+#'
+#' \code{compute_rand_two_sided_pval(type = "score")} is an opt-in
+#' randomization statistic for large \eqn{n}. The default statistic refits the
+#' CLMM on every redraw (about a second per redraw at \eqn{n = 1000}). The
+#' score statistic fits the CLMM once with the treatment coefficient fixed at
+#' 0 and takes, for each subject, the posterior mean over its pair's random
+#' intercept of \eqn{\partial \log p(y_i \mid \eta_i) / \partial \eta_i}; the
+#' statistic is \eqn{T(w) = \sum_i w_i r_i}, the score for the treatment
+#' coefficient, so each redraw is one inner product (a p-value with 501 draws
+#' takes well under a second at \eqn{n = 1000}). It uses the same draws, tail
+#' counting, tie rule and \eqn{(1 + b)/(1 + B)} p-value as the default. Like any
+#' randomization test it is exact under the sharp null of no effect, but it is
+#' a different statistic, so its p-values and power differ (simulated, KK14,
+#' \eqn{n = 50}, a 50\%-power effect: rejection rate 0.43 against 0.37 for the
+#' default). It tests only \eqn{\delta = 0}. These classes do not offer a
+#' randomization confidence interval.
 #'
 #' The \pkg{ordinal} package's \code{clmm()} (used by the weighted
 #' Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log
@@ -57,10 +74,6 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		"KKPassThrough"
 	),
 	public = list(
-		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
-		# ancestor walk, same verification step and same resolution as
-		# InferenceOrdinalKKCondAdjCatLogitRegr's identical pin above).
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize KK cumulative-link mixed-model inference for
 		#'   ordinal responses, validate the matched design, and prepare the ordinal
 		#'   likelihood used by \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}.
@@ -148,10 +161,146 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				}
 				NA_real_
 			}
+		},
+		#' @description Randomization p-value for the treatment effect. With
+		#'   \code{type = NULL} (the default) it is the shared randomization test
+		#'   (\code{InferenceRandCI$compute_rand_two_sided_pval()}): every redraw refits the
+		#'   CLMM and the statistic is the treatment estimate. \code{type = "score"} uses the
+		#'   score statistic at the null fit instead: the CLMM is fit once with the treatment
+		#'   coefficient fixed at 0, and each redraw costs one inner product (see the class
+		#'   details). Both are exact randomization tests of the sharp null of no effect; they
+		#'   use different statistics, so their p-values and power differ.
+		#' @param r Number of randomization draws (default 501).
+		#' @param delta Null treatment effect (default 0). \code{type = "score"} supports only
+		#'   0 and errors otherwise.
+		#' @param transform_responses Response transform for the default statistic (see
+		#'   \code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with
+		#'   \code{type = "score"}.
+		#' @param na.rm Drop non-finite draws (they are always dropped; see
+		#'   \code{InferenceRand$compute_rand_two_sided_pval()}).
+		#' @param show_progress Whether to show progress (default statistic only).
+		#' @param permutations Optional pre-generated assignment draws: a list with element
+		#'   \code{w_mat} (an \eqn{n \times r}{n x r} 0/1 matrix, one column per draw), as for
+		#'   \code{InferenceRand$compute_rand_two_sided_pval()}. \code{NULL} draws them from the
+		#'   design; both statistics then use the same draws.
+		#' @param type \code{NULL} (default) or \code{"score"}. \code{"score"} selects the
+		#'   score-at-the-null-fit statistic, offered only by the KK CLMM classes; other
+		#'   values are rejected. The randomization confidence interval does not use it (and
+		#'   is not offered by these classes).
+		#' @param args_for_type Must be \code{NULL}.
+		#' @param zero_one_logit_clamp Passed to the default statistic; unused with
+		#'   \code{type = "score"}.
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"},
+		#'   with the same tail counts, tie rule and \eqn{(1 + b)/(1 + B)} counting as the
+		#'   default statistic.
+		#' @return A p-value.
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			# v1.1.0-TODO-267 (owner 2026-11-24, DECISION-v1.1.0-TODO-267 (a)): opt-in score statistic.
+			if (identical(type, "score")) {
+				return(private$compute_clmm_score_rand_pval(r = r, delta = delta, transform_responses = transform_responses,
+					permutations = permutations, args_for_type = args_for_type, alternative = alternative))
+			}
+			# Otherwise the shared InferenceRandCI method, as pinned before (it rejects any other type).
+			core_fn = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+			environment(core_fn) = environment()
+			core_fn(r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
+				show_progress = show_progress, permutations = permutations, type = type, args_for_type = args_for_type,
+				zero_one_logit_clamp = zero_one_logit_clamp, alternative = alternative)
 		}
 	),
 	private = list(
 		is_a_kk_ordinal_clmm = function() TRUE,
+		# v1.1.0-TODO-267: score statistic for beta_T at the null fit. The CLMM is fit once with the
+		# treatment coefficient fixed at 0 (fixed_idx); r_i is the posterior mean, over unit i's group
+		# random intercept (the kernel's 20-node Gauss-Hermite rule), of d log p(y_i | eta_i) / d eta_i.
+		# The score is T(w) = sum_i w_i r_i: w enters eta only through beta_T, which is 0, so r does not
+		# depend on w and each redraw is one inner product. Returns NULL when the null fit fails.
+		clmm_score_residuals = function(){
+			if (!is.null(private$cached_values$clmm_score_residuals)) return(private$cached_values$clmm_score_residuals)
+			X_fit = private$clmm_X_for_rcpp()
+			gid = as.integer(private$clmm_group_id())
+			y_levels = sort(unique(private$y))
+			K = length(y_levels)
+			if (K < 2L || K > 20L) return(NULL)
+			y = as.integer(match(private$y, y_levels))
+			n_alpha = K - 1L
+			start_nt = private$clmm_warm_start(X_fit[, -1L, drop = FALSE], y, n_alpha)
+			if (is.null(start_nt)) return(NULL)
+			start = c(start_nt[seq_len(n_alpha)], 0, start_nt[-seq_len(n_alpha)])
+			call_args = list(X = X_fit, y = y, group_id = gid, K = K, j_T = 0L, link = private$clmm_link(),
+				estimate_only = TRUE, warm_start_params = start, eps_g = private$clmm_eps_g,
+				fixed_idx = as.integer(n_alpha + 1L), fixed_values = 0)
+			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
+			fit = private$clmm_accept_fit(fit, call_args)$fit
+			if (is.null(fit)) return(NULL)
+			F = switch(private$clmm_link(),
+				logit = stats::plogis, probit = stats::pnorm,
+				cauchit = function(z) 0.5 + atan(z) / pi,
+				cloglog = function(z) ifelse(z > 100, 1, ifelse(z < -700, 0, -expm1(-exp(pmin(z, 700))))))
+			f = switch(private$clmm_link(),
+				logit = stats::dlogis, probit = stats::dnorm,
+				cauchit = function(z) 1 / (pi * (1 + z * z)),
+				cloglog = function(z) ifelse(abs(z) > 700, 0, exp(pmin(z, 700) - exp(pmin(z, 700)))))
+			alpha = cumsum(c(fit$alpha[1L], exp(fit$alpha[-1L])))
+			eta0 = drop(X_fit %*% fit$b)
+			# Gauss-Hermite rule exactly as glmm::gauss_hermite_rule(): nodes x_k, weights w_k / sqrt(pi).
+			n_gh = 20L
+			J = matrix(0, n_gh, n_gh)
+			for (k in seq_len(n_gh - 1L)) { v = sqrt(k / 2); J[k, k + 1L] = v; J[k + 1L, k] = v }
+			es = eigen(J, symmetric = TRUE)
+			log_w = log(sqrt(pi) * es$vectors[1L, ]^2) - 0.5 * log(pi)
+			E = outer(eta0, sqrt(2) * exp(fit$log_sigma) * es$values, "+")
+			a_up = c(alpha, Inf)[y]; a_lo = c(-Inf, alpha)[y]
+			F_up = F(a_up - E); F_up[y == K, ] = 1
+			F_lo = F(a_lo - E); F_lo[y == 1L, ] = 0
+			prob = pmax(F_up - F_lo, 1e-15)
+			g_up = f(a_up - E); g_up[y == K, ] = 0
+			g_lo = f(a_lo - E); g_lo[y == 1L, ] = 0
+			d_eta = -(g_up - g_lo) / prob
+			grp = match(gid, unique(gid))
+			lt = sweep(rowsum(log(prob), grp, reorder = FALSE), 2L, log_w, "+")
+			post = exp(lt - apply(lt, 1L, max))
+			post = post / rowSums(post)
+			res = rowSums(post[grp, , drop = FALSE] * d_eta)
+			if (!all(is.finite(res))) return(NULL)
+			private$cached_values$clmm_score_residuals = res
+			res
+		},
+		compute_clmm_score_rand_pval = function(r, delta, transform_responses, permutations, args_for_type, alternative){
+			if (should_run_asserts()) {
+				private$assert_design_supports_randomization_draw("Randomization inference")
+				assertCount(r, positive = TRUE)
+				assertChoice(alternative, c("two.sided", "greater", "less"))
+			}
+			if (!isTRUE(all.equal(as.numeric(delta), 0)) || length(delta) != 1L)
+				stop("compute_rand_two_sided_pval(type = \"score\") tests only delta = 0 (the score is taken at the null fit).", call. = FALSE)
+			if (!identical(transform_responses, "none"))
+				stop("compute_rand_two_sided_pval(type = \"score\") requires transform_responses = \"none\".", call. = FALSE)
+			if (!is.null(args_for_type))
+				stop("args_for_type is not used with type = \"score\".", call. = FALSE)
+			if (is.null(permutations)) permutations = private$generate_permutations(r)
+			w_mat = if (!is.null(permutations$w_mat)) permutations$w_mat else
+				vapply(permutations, function(p) as.numeric(if (is.list(p) && !is.null(p$w)) p$w else p), numeric(private$n))
+			w_mat = w_mat[, seq_len(min(as.integer(r), ncol(w_mat))), drop = FALSE]
+			# Cached under a key that includes the statistic, so it never shares draws with the default.
+			cache_key = paste0("type=score|", private$build_randomization_distribution_cache_key(r, 0, "none", list(w_mat = w_mat)))
+			private$ensure_resampling_distribution_cache("rand")
+			res = private$clmm_score_residuals()
+			if (is.null(res)) {
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "kk_clmm_score_null_fit_unavailable", "estimate")
+				edi_warn_procedure_na(self, private, procedure = "randomization p-value (type = \"score\")",
+					reason = "kk_clmm_score_null_fit_unavailable",
+					detail = "The CLMM fit with the treatment coefficient fixed at 0 failed or was not stationary.")
+				return(NA_real_)
+			}
+			t0s = private$get_cached_resampling_distribution("rand", cache_key)
+			if (is.null(t0s)) {
+				t0s = as.numeric(crossprod(w_mat, res))
+				private$set_cached_resampling_distribution("rand", cache_key, t0s)
+			}
+			t = sum(as.numeric(private$w) * res)
+			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
+		},
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		supports_likelihood_tests = function() FALSE,
 		use_rcpp = TRUE,

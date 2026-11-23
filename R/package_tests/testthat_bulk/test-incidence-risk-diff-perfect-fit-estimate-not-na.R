@@ -7,10 +7,9 @@
 # Where: R/EDI/R/inference_incidence_risk_diff.R:369 (kind: na_where_defined).
 # On commit 48765322fe90 this test failed with: Expected `is.finite(est)` to be TRUE. Differences:
 # `actual`: FALSE `expected`: TRUE
-# Tracked as v1.0.6-TODO-389; remove the skip() when it is fixed.
+# Tracked as v1.0.6-TODO-389; skip removed 2026-11-24 (finite-estimate fallback when no fit has a usable SE).
 
 test_that("risk-difference estimate is returned for a perfect fit even though the HC0 SE is not estimable", {
-	skip("v1.0.6-TODO-389: fit_ok rejects a zero-variance perfect fit, so the estimate is NA")
 		set.seed(1)
 		n = 40L
 		x = rnorm(n)

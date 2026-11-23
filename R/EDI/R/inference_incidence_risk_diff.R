@@ -280,6 +280,7 @@ InferenceIncidRiskDiff = define_inference_class(
 			"wald"
 		},
 		generate_mod = function(estimate_only = FALSE){
+			finite_estimate_fallback = NULL
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = private$build_design_matrix(),
 				fit_fun = function(X_fit, keep){
@@ -325,9 +326,22 @@ InferenceIncidRiskDiff = define_inference_class(
 					j_treat = mod$j_treat
 					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
 					if (estimate_only) return(TRUE)
-					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
+					if (is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0) return(TRUE)
+					if (is.null(finite_estimate_fallback)) {
+						finite_estimate_fallback <<- list(fit = mod, X = X_fit, keep = keep)
+					}
+					FALSE
 				}
 			)
+			# v1.0.6-TODO-389: a perfect fit (e.g. y = w, RD = 1) has zero residuals, so the HC0
+			# variance is 0 and every column-dropping retry was rejected, losing the finite point
+			# estimate (compute_estimate() returned NA). When no attempt has a usable SE, keep the
+			# first fit with a finite treatment coefficient and mark only its SE non-estimable.
+			if (is.null(attempt$fit) && !is.null(finite_estimate_fallback)) {
+				attempt = finite_estimate_fallback
+				attempt$fit$ssq_b_j = NA_real_
+				attempt$fit$ssq_b_2 = NA_real_
+			}
 			if (!is.null(attempt$fit)){
 				private$best_X_colnames = setdiff(colnames(attempt$X), c("(Intercept)", "treatment"))
 			}

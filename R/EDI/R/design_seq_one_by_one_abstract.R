@@ -77,6 +77,12 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @param x_new A data frame with one row representing the new subject's covariates.
 		#' @param allow_new_cols Allow new features in the new subject's covariates.
 		add_one_subject = function(x_new, allow_new_cols = TRUE){
+			# v1.0.6-TODO-351: a fixed-n design takes exactly n subjects. Subject n + 1 used to be
+			# accepted (t = n + 1, w grew, get_n() stayed n). Always enforced.
+			if (isTRUE(private$fixed_sample) && private$t >= private$n) {
+				stop(class(self)[1L], ": all n = ", private$n, " subjects have already been added; ",
+					"subject ", private$t + 1L, " cannot be enrolled.", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				assertClass(x_new, "data.frame")
 				if (nrow(x_new) != 1){
@@ -146,13 +152,14 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 					# Type checks describe attributes by name, even when the incoming
 					# subject supplies the established columns in a different order.
 					xnew_data_types = xnew_data_types[colnames_Xraw]
-					if (should_run_asserts()) {
-						idx_data_types_that_changed = which(xnew_data_types != Xraw_data_types)
-						if (length(idx_data_types_that_changed) > 0){
-							for (e in idx_data_types_that_changed){
-								warning("You entered data type ", xnew_data_types[e], " for attribute named ", colnames_Xraw[e], " that was previously entered with data type ", Xraw_data_types[e])
-							}
-						}
+					# v1.0.6-TODO-351: a value whose type differs from the stored column's (a number
+					# arriving as text, say) used to warn and then retype the stored column for every
+					# earlier subject. It is now coerced back to the stored type, and refused, naming
+					# the column, when that coercion loses the value. Always enforced.
+					idx_data_types_that_changed = which(xnew_data_types != Xraw_data_types)
+					for (e in idx_data_types_that_changed){
+						col = colnames_Xraw[e]
+						x_new[[col]] = private$coerce_new_value_to_stored_type(x_new[[col]], Xraw_data_types[e], xnew_data_types[e], col)
 					}
 				} else {
 					if (allow_new_cols){ #make NA's in appropriate places
@@ -289,6 +296,32 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	),
 	private = list(
 		equal_block_sizes = FALSE,
+		# v1.0.6-TODO-351: coerce one new subject's value to the type its column was stored with,
+		# or stop naming the column when the value would be lost (non-missing in, NA out).
+		coerce_new_value_to_stored_type = function(value, stored_type, new_type, col){
+			to_number = function(v) if (is.logical(v) || is.numeric(v)) as.numeric(v) else suppressWarnings(as.numeric(as.character(v)))
+			coerced = switch(stored_type,
+				numeric = to_number(value),
+				integer = {
+					v = to_number(value)
+					ifelse(is.finite(v) & v == round(v), as.integer(round(v)), NA_integer_)
+				},
+				logical = if (is.character(value) || is.factor(value)) as.logical(as.character(value)) else {
+					v = to_number(value)
+					ifelse(v %in% c(0, 1), as.logical(v), NA)
+				},
+				character = as.character(value),
+				factor = factor(as.character(value)),
+				value
+			)
+			if (any(is.na(coerced) & !is.na(value))) {
+				stop(class(self)[1L], ": covariate '", col, "' of subject ", private$t + 1L, " is ",
+					new_type, " (", paste(format(value), collapse = ", "), ") but was entered as ", stored_type,
+					" for the earlier subjects, and it cannot be converted. Enter it as ", stored_type, ".",
+					call. = FALSE)
+			}
+			coerced
+		},
 		# v1.0.6-TODO-177: evaluate `expr` (a promise, forced after seeding) under
 		# set.seed() of the seed derived from this design's seed and `key` (a subject
 		# index, or "redraw"), with the session's .Random.seed -- or its absence --

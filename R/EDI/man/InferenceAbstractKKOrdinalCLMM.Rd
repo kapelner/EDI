@@ -26,7 +26,24 @@ variance boundary with a gradient norm above \eqn{10^{-3}}, where the
 \eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
 test, the estimate is \code{NA} with nonestimable reason
 \code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
-does not normally run.
+rarely runs (at large n, when Newton reaches the numerical-Hessian floor
+between \eqn{10^{-5}} and \eqn{10^{-4}}).
+
+\code{compute_rand_two_sided_pval(type = "score")} is an opt-in
+randomization statistic for large \eqn{n}. The default statistic refits the
+CLMM on every redraw (about a second per redraw at \eqn{n = 1000}). The
+score statistic fits the CLMM once with the treatment coefficient fixed at
+0 and takes, for each subject, the posterior mean over its pair's random
+intercept of \eqn{\partial \log p(y_i \mid \eta_i) / \partial \eta_i}; the
+statistic is \eqn{T(w) = \sum_i w_i r_i}, the score for the treatment
+coefficient, so each redraw is one inner product (a p-value with 501 draws
+takes well under a second at \eqn{n = 1000}). It uses the same draws, tail
+counting, tie rule and \eqn{(1 + b)/(1 + B)} p-value as the default. Like any
+randomization test it is exact under the sharp null of no effect, but it is
+a different statistic, so its p-values and power differ (simulated, KK14,
+\eqn{n = 50}, a 50\%-power effect: rejection rate 0.43 against 0.37 for the
+default). It tests only \eqn{\delta = 0}. These classes do not offer a
+randomization confidence interval.
 
 The \pkg{ordinal} package's \code{clmm()} (used by the weighted
 Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log
@@ -47,6 +64,7 @@ the complementary log-log model.
     \item \href{#method-InferenceAbstractKKOrdinalCLMM-compute_estimate_with_bootstrap_weights}{\code{InferenceAbstractKKOrdinalCLMM$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceAbstractKKOrdinalCLMM-compute_asymp_confidence_interval}{\code{InferenceAbstractKKOrdinalCLMM$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAbstractKKOrdinalCLMM-compute_asymp_two_sided_pval}{\code{InferenceAbstractKKOrdinalCLMM$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAbstractKKOrdinalCLMM-compute_rand_two_sided_pval}{\code{InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceAbstractKKOrdinalCLMM-clone}{\code{InferenceAbstractKKOrdinalCLMM$clone()}}
   }
 }
@@ -200,6 +218,48 @@ supported, and a nonzero value returns \code{NA} (or errors when
 assertions are enabled).}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAbstractKKOrdinalCLMM-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAbstractKKOrdinalCLMM-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval()}}{
+  Randomization p-value for the treatment effect. With \code{type = NULL} (the default) it is the shared randomization test (\code{InferenceRandCI$compute_rand_two_sided_pval()}): every redraw refits the CLMM and the statistic is the treatment estimate. \code{type = "score"} uses the score statistic at the null fit instead: the CLMM is fit once with the treatment coefficient fixed at 0, and each redraw costs one inner product (see the class details). Both are exact randomization tests of the sharp null of no effect; they use different statistics, so their p-values and power differ.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization draws (default 501).}
+      \item{\code{delta}}{Null treatment effect (default 0). \code{type = "score"} supports only 0 and errors otherwise.}
+      \item{\code{transform_responses}}{Response transform for the default statistic (see \code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with \code{type = "score"}.}
+      \item{\code{na.rm}}{Drop non-finite draws (they are always dropped; see \code{InferenceRand$compute_rand_two_sided_pval()}).}
+      \item{\code{show_progress}}{Whether to show progress (default statistic only).}
+      \item{\code{permutations}}{Optional pre-generated assignment draws: a list with element \code{w_mat} (an \eqn{n \times r}{n x r} 0/1 matrix, one column per draw), as for \code{InferenceRand$compute_rand_two_sided_pval()}. \code{NULL} draws them from the design; both statistics then use the same draws.}
+      \item{\code{type}}{\code{NULL} (default) or \code{"score"}. \code{"score"} selects the score-at-the-null-fit statistic, offered only by the KK CLMM classes; other values are rejected. The randomization confidence interval does not use it (and is not offered by these classes).}
+      \item{\code{args_for_type}}{Must be \code{NULL}.}
+      \item{\code{zero_one_logit_clamp}}{Passed to the default statistic; unused with \code{type = "score"}.}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"}, with the same tail counts, tie rule and \eqn{(1 + b)/(1 + B)} counting as the default statistic.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A p-value.
   }
 }
 

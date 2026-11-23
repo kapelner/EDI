@@ -157,40 +157,18 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
         // projected gradient (KKT at the lower variance bound), and (3) when that still fails,
         // take damped Newton steps on the active set.
         const bool used_lbfgs = normalize_optimizer_algorithm(optimization_alg, "lbfgs", false) == "lbfgs";
-        if (used_lbfgs) {
-            const double polish_tol = std::min(eps_g, 1e-10);
-            auto polish = [&](const LikelihoodFitResult& from) {
-                LikelihoodFitResult polished = optimize_fixed_likelihood(
-                    obj, from.params, fixed_spec, maxit, polish_tol,
-                    optimization_alg, "lbfgs", 0, nullptr);
-                if (std::isfinite(polished.value) && polished.params.allFinite() &&
-                    polished.value <= from.value + 1e-10) {
-                    polished.niter += from.niter;
-                    return polished;
-                }
-                return from;
-            };
-            // A winner at the sigma -> 0 boundary that is far from stationary was picked among
-            // poorly converged starts (a loose eps_g): the flat boundary can hold a local optimum
-            // while another start's basin holds the interior MLE. Then polish every start and
-            // re-select; otherwise only the winner (the starts' cost dominates).
-            if (!log_sigma_is_fixed && best_fit.params[total - 1] <= -4.5 &&
-                std::isfinite(best_fit.gradient_norm) && best_fit.gradient_norm > 1e-3 &&
-                finite_fits.size() > 1) {
-                LikelihoodFitResult best_polished = polish(best_fit);
-                for (const auto& f : finite_fits) {
-                    LikelihoodFitResult pf = polish(f);
-                    if (pf.value < best_polished.value) best_polished = pf;
-                }
-                best_fit = best_polished;
-            } else {
-                best_fit = polish(best_fit);
+        const double polish_tol = std::min(eps_g, 1e-10);
+        auto polish = [&](const LikelihoodFitResult& from) {
+            LikelihoodFitResult polished = optimize_fixed_likelihood(
+                obj, from.params, fixed_spec, maxit, polish_tol,
+                optimization_alg, "lbfgs", 0, nullptr);
+            if (std::isfinite(polished.value) && polished.params.allFinite() &&
+                polished.value <= from.value + 1e-10) {
+                polished.niter += from.niter;
+                return polished;
             }
-        }
-        par = best_fit.params;
-        neg_ll = obj(par, nll_gradient);
-        hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
-        niter = best_fit.niter;
+            return from;
+        };
 
         // Tau-score: d nll / d tau (tau = sigma^2) from the likelihood-only log-sigma
         // derivative (the soft penalty removed). The lower bound is active, so log sigma
@@ -216,6 +194,34 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
             return std::make_pair(active_idx, subset_vector(gradient, active_idx));
         };
 
+        if (used_lbfgs) {
+            // A winner at the sigma -> 0 boundary that is far from stationary was picked among
+            // poorly converged starts (a loose eps_g): the flat boundary can hold a local optimum
+            // while another start's basin holds the interior MLE. Then polish every start and
+            // re-select. Otherwise polish the winner only when it fails the projected test (a
+            // winner that passes is returned as is).
+            if (!log_sigma_is_fixed && best_fit.params[total - 1] <= -4.5 &&
+                std::isfinite(best_fit.gradient_norm) && best_fit.gradient_norm > 1e-3 &&
+                finite_fits.size() > 1) {
+                LikelihoodFitResult best_polished = polish(best_fit);
+                for (const auto& f : finite_fits) {
+                    LikelihoodFitResult pf = polish(f);
+                    if (pf.value < best_polished.value) best_polished = pf;
+                }
+                best_fit = best_polished;
+            } else {
+                Eigen::VectorXd g0(total);
+                const double f0 = obj(best_fit.params, g0);
+                if (!(std::isfinite(f0) && g0.allFinite() &&
+                      active_indices_and_gradient(best_fit.params, g0).second.norm() <= convergence_gradient_tol))
+                    best_fit = polish(best_fit);
+            }
+        }
+        par = best_fit.params;
+        neg_ll = obj(par, nll_gradient);
+        hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
+        niter = best_fit.niter;
+
         auto active_state = active_indices_and_gradient(par, nll_gradient);
         if (used_lbfgs && std::isfinite(neg_ll) && par.allFinite() && nll_gradient.allFinite() &&
             active_state.second.norm() > convergence_gradient_tol) {
@@ -224,6 +230,7 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
             Eigen::VectorXd candidate_gradient = nll_gradient;
             double candidate_value = neg_ll;
             const int polish_maxit = std::min(maxit, 50);
+            int stalled_steps = 0;
             for (int iter = 0; iter < polish_maxit; ++iter) {
                 edi_check_R_user_interrupt_every(iter);
                 active_state = active_indices_and_gradient(candidate_params, candidate_gradient);
@@ -242,6 +249,7 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
 
                 bool step_accepted = false;
                 double step_scale = 1.0;
+                const double prev_gnorm = active_gradient.norm();
                 for (int line_iter = 0; line_iter < 30; ++line_iter) {
                     edi_check_R_user_interrupt_every(line_iter);
                     Eigen::VectorXd trial = candidate_params;
@@ -262,6 +270,12 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
                     step_scale *= 0.5;
                 }
                 if (!step_accepted) break;
+                // Stop when the steps no longer shrink the gradient (two in a row by < 10%): the
+                // numerical Hessian's accuracy floor, where more steps only cost Hessians. The fit
+                // is then reported not converged and the R-side retry judges it.
+                const double new_gnorm = active_indices_and_gradient(candidate_params, candidate_gradient).second.norm();
+                stalled_steps = (new_gnorm > 0.9 * prev_gnorm) ? stalled_steps + 1 : 0;
+                if (stalled_steps >= 2) break;
             }
             if (candidate_params.allFinite() && candidate_gradient.allFinite() &&
                 std::isfinite(candidate_value) && candidate_value <= neg_ll + 1e-10 &&

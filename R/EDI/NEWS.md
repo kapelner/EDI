@@ -956,6 +956,29 @@
 
 ### Ordinal responses
 
+* The KK CLMM classes (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`,
+  `...Cloglog`) fit faster at large n, most visibly in randomization tests.
+  The native kernel now polishes the best of its starts and judges
+  convergence by the projected gradient (a KKT test at the sigma -> 0
+  boundary), taking damped Newton steps when L-BFGS stops short; before, it
+  reported LBFGSpp's lenient flag and the R side retried every fit whose
+  gradient norm exceeded 1e-4 with a full five-start Newton run, which at
+  n = 1000 fired on 35-65% of randomization redraws and cost 6-9 s each. The
+  retry, now rare, starts from the fitted point only (the extra log-sigma
+  starts are kept for a far-from-stationary boundary fit). Measured on the
+  calibration design, same seeds: a randomization p-value is 2.5x-4.3x faster
+  at n = 1000 (SeqOneByOneKK14 4.3x, FixedBinaryMatch 3.2x, Cauchit 2.5x) and
+  1.1x-1.7x at n = 200; a single fit at n = 1000 drops from 4-9 s to 0.6-1.2 s
+  when the retry used to fire. Estimates, SEs and Wald p-values move by at most
+  5e-6 (n = 50, 200, 1000; all four links, both formulas). At n = 50 a few
+  degenerate randomization redraws (sigma near e^4, |treatment| 12-61) that
+  used to be `NA` now return a value, so some n = 50 randomization p-values
+  move (5 of 80 checked, by up to 0.04). `fast_ordinal_clmm_cpp()` gains
+  `variance_multistart` and returns `params`, `lbfgs_gradient_norm`,
+  `variance_boundary_hit`, `variance_boundary_tau_score` and the
+  `newton_polish_*` diagnostics; its `converged` and `gradient_norm` now
+  describe the projected gradient (v1.1.0-TODO-265).
+
 * The cumulative-link ordinal classes (`InferenceOrdinalPropOddsRegr`,
   `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalCauchitRegr`,
   `InferenceOrdinalCloglogRegr`) now use the expected Fisher information

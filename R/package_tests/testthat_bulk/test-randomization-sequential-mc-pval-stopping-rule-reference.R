@@ -33,9 +33,11 @@ stub_prefix <- function(p, pool) {
 	}
 	function() calls
 }
+# Two-sided randomization p-value on the drawn prefix. Since v1.2.0-TODO-207 the observed statistic counts
+# as one draw (Phipson and Smyth 2010): min(1, 2 (1 + min(b_ge, b_le)) / (1 + n)), smallest value 2 / (n + 1).
 ref_p <- function(t0s, t) {
 	v <- t0s[is.finite(t0s)]
-	min(1, max(2 / length(v), 2 * min(sum(v >= t), sum(v <= t)) / length(v)))
+	min(1, 2 * (1 + min(sum(v >= t), sum(v <= t))) / (1 + length(v)))
 }
 ref_band <- function(t0s, t, conf) {
 	v <- t0s[is.finite(t0s)]; n <- length(v); a <- 1 - conf
