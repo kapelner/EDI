@@ -4,8 +4,6 @@
 \alias{InferenceAllSimpleAverageDiff}
 \title{Simple Mean-Difference Inference for Continuous Responses}
 \value{
-A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
-
 The difference in sample means (treated minus control) as a single
   number, or \code{NA_real_} if either arm has no observations.
 }
@@ -270,6 +268,9 @@ removed); see
 \code{InferenceRand$compute_rand_two_sided_pval()}.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
   }
 }
 

@@ -164,6 +164,7 @@ InferenceCustomAsymp = define_inference_class(
 #'   `RandomizationTest` and `RandomizationCI`, and the two provide
 #'   conflicting `compute_rand_two_sided_pval` implementations.
 #' @template randci-compute-rand-two-sided-pval-params
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 NULL
 
 #' Internal base for user-defined randomization inference extensions
@@ -229,6 +230,7 @@ InferenceCustomRand = define_inference_class(
 #'   implementations -- the same conflict `InferenceCustomAsymp` and
 #'   `InferenceCustomBoot` resolve the same way.
 #' @template randci-compute-rand-two-sided-pval-params
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 NULL
 
 #' Internal base for user-defined bootstrap inference extensions
@@ -292,5 +294,6 @@ InferenceCustomBoot = define_inference_class(
 #'   `RandomizationTest` and `RandomizationCI`, and the two provide
 #'   conflicting `compute_rand_two_sided_pval` implementations.
 #' @template randci-compute-rand-two-sided-pval-params
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 NULL
 

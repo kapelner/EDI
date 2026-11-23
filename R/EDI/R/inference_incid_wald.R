@@ -173,6 +173,7 @@ InferenceIncidWald = define_inference_class(
 #'   randomization test is used only when \code{type = "Zhang"} is passed explicitly
 #'   (where applicable).
 #' @template randci-compute-rand-two-sided-pval-params
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 NULL
 
 #' @R6method InferenceIncidWald$compute_asymp_confidence_interval

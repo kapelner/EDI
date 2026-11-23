@@ -454,6 +454,7 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 #'   \code{compute_rand_two_sided_pval} for why it's now safe to splice
 #'   this in outside the old inheritance chain.
 #' @template randci-compute-rand-two-sided-pval-params
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 NULL
 
 #' @R6method InferenceAllSimpleAverageDiff$initialize

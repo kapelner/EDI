@@ -138,6 +138,9 @@ removed); see
     }
     \if{html}{\out{</div>}}
   }
+  \subsection{Returns}{
+    A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
+  }
 }
 
 \if{html}{\out{<hr>}}

@@ -3,9 +3,6 @@
 \name{InferenceIncidRiskDiff}
 \alias{InferenceIncidRiskDiff}
 \title{Risk Difference Inference for Incidence Responses}
-\value{
-A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
-}
 \description{
 Fits a linear probability model \eqn{E[Y \mid w, x] = \beta_0 + \beta_T w +
 \beta_X^\top x} via ordinary least squares for binary (incidence) responses
@@ -221,6 +218,9 @@ removed); see
 \code{InferenceRand$compute_rand_two_sided_pval()}.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
   }
 }
 

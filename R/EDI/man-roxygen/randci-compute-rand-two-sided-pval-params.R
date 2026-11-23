@@ -33,4 +33,3 @@
 #'   counted twice (a seeded design's replay of it is skipped, a full enumeration's copy
 #'   removed); see
 #'   \code{InferenceRand$compute_rand_two_sided_pval()}.
-#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).

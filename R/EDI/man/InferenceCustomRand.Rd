@@ -3,9 +3,6 @@
 \name{InferenceCustomRand}
 \alias{InferenceCustomRand}
 \title{Internal base for user-defined randomization inference extensions}
-\value{
-A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
-}
 \description{
 This class uses the same \code{fit()} result contract as
 \code{InferenceCustomAsymp}, but only promises estimate/randomization/
@@ -121,6 +118,9 @@ removed); see
 \code{InferenceRand$compute_rand_two_sided_pval()}.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
   }
 }
 
