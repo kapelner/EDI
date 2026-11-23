@@ -1095,6 +1095,8 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   randomization outputs, against 1e-7). Check the cloglog likelihood, gradient and the quadrature, and compare
   log-likelihoods at both optima to see which fit is better. Done when cloglog matches clmm on several seeds or
   the difference is explained (e.g. clmm stops at a worse optimum) and documented.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-48](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-48) (raise the KK CLMM Gauss-Hermite rule from 20 to 60 nodes, wait for adaptive quadrature, or keep 20?).
+  - Investigated 2026-11-24 (agent, owner request): EDI is the side that is off. On cloglog n = 60, sigma_b = 1.2, seeds 2 and 3 both fits are stationary for their own objective, but under the exact marginal likelihood (`integrate()`) clmm's parameters win (nll 72.0694 vs 72.1193; 61.7877 vs 61.8786): EDI's fixed 20-node non-adaptive Gauss-Hermite rule is inaccurate at sigma 2.1-2.6. With `n_gh = 60L` EDI lands on clmm's optimum (0.8146 -> 0.7752 vs 0.7755; 0.2590 -> 0.2799 vs 0.2797). The fix is R-side (the kernel takes `n_gh`) but changes every KK CLMM result, so it waits for the decision; the test comment that said neither fit had the better likelihood is corrected. The Cauchit weighted-refit (3.8e-5) and Probit/Cloglog migration-golden (1-3e-6) gaps were not re-examined.
 - [x] TODO-49 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **An
   inference reported as status 'ok' with a non-finite estimate.**
   `R/package_tests/testthat_bulk/test-design-inference-introspection-audit.R` ("no silently masked capability for

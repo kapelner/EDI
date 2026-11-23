@@ -20,8 +20,13 @@ Fc <- list(logit = plogis, probit = pnorm, cauchit = pcauchy, cloglog = function
 # cauchit 1.7e-2.
 # 2026-11-17, after the v1.0.6-TODO-45 KK14 matching fix changed the matches: cloglog n = 60,
 # sigma_b = 1.2 seeds 2 and 3 now give |EDI - clmm| = 0.039 and 0.021 at fitted sigma 2.1 to 2.6
-# (the same quadrature gap; neither fit has the better likelihood in both cells), so cloglog at
-# sigma_b = 1.2 uses 5e-2 until adaptive quadrature (v1.2.0-TODO-153).
+# (the same quadrature gap), so cloglog at sigma_b = 1.2 uses 5e-2 until the quadrature is fixed.
+# v1.0.6-TODO-48 (2026-11-24): it is EDI's error, not clmm's. Under the exact marginal likelihood
+# (integrate(), rel.tol 1e-12) clmm's parameters are better in both cells (nll 72.0694 vs EDI 72.1193;
+# 61.7877 vs 61.8786): EDI maximizes a 20-node non-adaptive Gauss-Hermite approximation that is off at
+# sigma 2.1-2.6, and with n_gh = 60 it lands on clmm's optimum (0.7752 vs 0.7755; 0.2799 vs 0.2797).
+# The fix (more nodes, or adaptive quadrature, v1.2.0-TODO-153) waits for
+# DECISION-v1.0.6-TODO-48; then this tolerance can go back to about 3e-3.
 tol_w <- list(`0.6` = c(logit = 3e-3, probit = 3e-3, cloglog = 3e-3, cauchit = 2e-2),
 	`1.2` = c(logit = 3e-3, probit = 3e-3, cloglog = 5e-2, cauchit = 2e-2))
 
