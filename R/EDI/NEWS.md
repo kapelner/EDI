@@ -1698,8 +1698,6 @@ methods.
 * `InferenceIncidBinomialIdentityRiskDiff`'s null refit no longer fails when
   every start has a fitted probability outside [0, 1]; such CI endpoints
   stopped short of the root.
-* Likelihood CI inversion no longer returns an isolated low-p point as an
-  endpoint.
 * `InferenceOrdinalStereotypeLogitRegr`: likelihood-test p-values no longer
   depend on which nulls were tested earlier on the object (now 3-6x slower).
 * `InferenceOrdinalStereotypeLogitRegr`: the randomization and bootstrap
