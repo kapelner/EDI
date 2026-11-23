@@ -1,4 +1,4 @@
-# Audit status (after every audit run, and daily 08:07 UTC): one table of the scheduled audits,
+# Audit status (after audit runs, at most once an hour, and daily 08:07 UTC): one table of the scheduled audits,
 # grouped daily / weekly / monthly like their names in the Actions sidebar, with each audit's
 # schedule, last run, result and open PR or issue. It is the body of one pinned issue labelled
 # `audit-status`, edited in place, and the job summary. A second pinned issue (label
@@ -53,13 +53,30 @@ concurrency:
 jobs:
   status:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 80
     permissions:
       contents: read
       actions: read
       issues: write
       pull-requests: read
     steps:
+      # Debounce (owner request 2026-11-23): publish at most once an hour. A run started by an audit
+      # finishing waits until 60 min after the last successful update; a later audit finishing meanwhile
+      # cancels this run (concurrency above) and waits in its place, so the last audit's results are
+      # still published. Manual dispatches and the daily cron publish at once.
+      - name: Wait until an hour after the last update
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/actions/workflows/audit-status.yml/runs?status=success&per_page=1" \
+            -q '.workflow_runs[0].updated_at // empty' || true)
+          [ -n "$last" ] || exit 0
+          wait=$(( 3600 - ( $(date +%s) - $(date -d "$last" +%s) ) ))
+          if [ "$wait" -gt 0 ]; then
+            echo "Last update $last; waiting ${wait}s."
+            sleep "$wait"
+          fi
       - uses: actions/checkout@v7
         with:
           sparse-checkout: |
