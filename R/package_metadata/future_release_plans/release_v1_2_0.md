@@ -1458,7 +1458,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   Reopens the catalog's NEW-fd-hessian row.
   - Done when: (1) is merged with a test that the SE is bit-identical, and per-replicate time for the frailty IVWC
     randomization test is benchmarked at n = 50-500 pairs; (2) is decided with those numbers.
-- [ ] TODO-263 (added 2026-11-23, agent; found while landing v1.2.0-TODO-207): **The observed allocation can already be
+- [x] TODO-263 (added 2026-11-23, agent; found while landing v1.2.0-TODO-207): **The observed allocation can already be
   one of the randomization reference draws, so the (b+1)/(B+1) rule counts it twice**
   - A fixed design created with a `seed` and analysed with no inference seed draws its reference allocations from the
     design seed (`effective_draw_seed()` falls back to it), and column 1 of `draw_ws_according_to_design(r)` then
@@ -1468,7 +1468,18 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     the test stays valid but is conservative, its smallest two-sided p is 4/(B+1), and at r = 201 it cannot reject at
     alpha = 0.01 (`InferenceAllSimpleAverageDiff`, iBCRD n = 20, 3,000 seeded-design datasets: size 0% at 0.01 and 4.17%
     at 0.05, vs 0.90% / 4.82% with an inference seed). Under the old b/r rule this case happened to be close to exact.
-  - Owner decision pending: [DECISION-v1.2.0-TODO-263](PENDING_DECISIONS.md#DECISION-v1.2.0-TODO-263) (drop the
-    replayed draw, draw from a derived seed, or document the conservativeness?).
+  - Decided 2026-11-23 (owner): (a) drop the replayed draw; see
+    [DECISION-v1.2.0-TODO-263](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-263).
   - Done when: the owner picks an option and it lands with a test that a seeded design's draws do not include the
     replay (or the documentation states the conservative case), or the item closes with the numbers.
+  - Done 2026-11-23 (agent, branch `rand-pvalue-plus-one`, commit 264b95ec; R only, no rebuild; Rd not
+    regenerated). `rand_skip_replayed_realized_draw()`, called from `seed_global_rng_for_draws()` (so
+    `generate_permutations()`, the deferred sequential-MC draws and the CI searches all get it): when the draw seed equals
+    the design seed, the first draw from set.seed(seed) is consumed if it is identical to the realized w, else the RNG
+    is reset; the outcome is cached on the design per (seed, w). Replay confirmed before the change for iBCRD,
+    Bernoulli, cluster, binary-match, greedy, greedy D-optimal and greedy pair-switching; not for rerandomization or
+    blocking. `rand_drop_realized_from_enumeration()` at the p-value entry points (`InferenceRand` and the KK GEE mixin)
+    removes one copy from a supplied full enumeration (`permutations$enumeration = TRUE`, or auto-detected as the whole
+    complete-randomization support; `enumeration = FALSE` disables). Size after the change: seeded designs with no inference seed, InferenceAllSimpleAverageDiff, n = 20, r = 201, 5,000 datasets each, rejection rate at alpha = 0.01 / 0.05: iBCRD 0.0098 / 0.0500, Bernoulli 0.0092 / 0.0524 (before: iBCRD 0.0000 / 0.0417 on 3,000). Full enumeration (iBCRD n = 10, N = 252, 5,000 datasets): one copy dropped 0.0048 / 0.0448 (exact b/N; min p 2/252 = 0.0079), not dropped (enumeration = FALSE) 0.0000 / 0.0350 (min p 0.0158).
+    Test: `test-rand-realized-allocation-not-a-reference-draw.R`; `test-rand-pval-tie-tolerance.R` is back to the exact
+    enumeration values.

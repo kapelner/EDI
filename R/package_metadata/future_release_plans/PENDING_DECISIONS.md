@@ -28,7 +28,6 @@ Last updated 2026-11-23.
 | [DECISION-v2.0.0-TODO-1](#DECISION-v2.0.0-TODO-1) | [v2.0.0-TODO-1](release_v2_0_0.md) | The 2.0.0 decision batch for every gated track |
 | [DECISION-v1.4.0-TODO-1](#DECISION-v1.4.0-TODO-1) | [v1.4.0-TODO-1](release_v1_4_0.md) | The v1.4.0 Phase 0 decisions for the gated survival / censoring items |
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
-| [DECISION-v1.2.0-TODO-263](#DECISION-v1.2.0-TODO-263) | [v1.2.0-TODO-263](release_v1_2_0.md) | A seeded design replays the observed allocation as reference draw 1, so the (b+1)/(B+1) rule counts it twice: drop it, reseed, or document? |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
 | [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
@@ -166,29 +165,6 @@ Last updated 2026-11-23.
   (the gate text says "the nine pilot families"; since 2026-10-22 the pilot is cut to the Incidence GLM family only,
   v1.3.0-TODO-6, so the ratification is of that pilot).
 - **Raised:** 2026-10-20 (moved to v1.3.0 by user decision).
-
-## v1.2.0
-
-<a id="DECISION-v1.2.0-TODO-263"></a>
-### DECISION-v1.2.0-TODO-263: The observed allocation as a reference draw: drop the replay, reseed, or document?
-
-- **TODO:** [v1.2.0-TODO-263](release_v1_2_0.md): **The observed allocation can already be one of the randomization
-  reference draws, so the (b+1)/(B+1) rule counts it twice.**
-- **Context:** since [DECISION-v1.2.0-TODO-207](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-207) every randomization
-  p-value adds the observed statistic as one draw. A fixed design with a `seed` and no inference seed replays the
-  realized allocation as reference draw 1 (iBCRD and Bernoulli checked), and a user-supplied full enumeration
-  contains it too, so the observed statistic is counted twice. Valid but conservative: smallest two-sided p 4/(B+1);
-  at r = 201, size 0% at alpha = 0.01 and 4.17% at 0.05 (3,000 datasets, mean difference, iBCRD n = 20) against
-  0.90% / 4.82% with an inference seed.
-- **Options:** (a) skip the replayed draw: when the draws come from the design seed, draw r + 1 and drop column 1
-  (seeded results change again; one-time); (b) derive the draw seed from the design seed (e.g. a fixed offset or
-  hash) so draw 1 is no longer the replay (seeded results change); (c) keep the draws and document that seeded
-  designs without an inference seed, and full enumerations, are conservative by about 1/(B+1) (no result change).
-  For a full enumeration the exact p is b/B with the observed allocation inside; (c) or an explicit
-  enumeration flag (with v1.2.0's small-n enumeration work) covers it.
-- **Recommendation:** none yet (agent, 2026-11-23); (a) or (b) before the 1.0.5 regeneration avoids a second change
-  of seeded p-values.
-- **Raised:** 2026-11-23, agent, while landing v1.2.0-TODO-207 on branch `rand-pvalue-plus-one`.
 
 ## v1.1.0
 
