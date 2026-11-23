@@ -3416,7 +3416,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   `"marginal_ratio"` is a log ratio. Null size simulated (200 datasets) on every path for GCompRR, KKGCompRR, Ridit, JT,
   SignTest: consistent with correct centering. Guard test `test-estimand-no-effect-value-centering.R` (51): a new
   estimand tag must be classified. Follow-up: v1.0.6-TODO-191.
-- [ ] TODO-180 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, run 44358518303):
+- [x] TODO-180 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, run 44358518303):
   **The slow path and the reusable-worker path disagree for general-censoring survival classes.**
   `R/EDI/tests/testthat/test-rand-test-and-ci-shift-censoring-bounds-under-null.R:73` fails on every platform. The
   sanitizer legs (valgrind, ASAN/UBSAN), which run more tests, also fail
@@ -3428,6 +3428,21 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   find which class and path differ, and either make the worker path start from the same point as the slow path or
   loosen the tolerance only where the difference is optimizer precision. Valgrind and ASAN/UBSAN reported no memory
   errors.
+  - **Done 2026-11-24 (agent, tests only, no package change):** two causes. (1) The OS-leg failure at 4ce2b712 (`:73`,
+    Weibull, ~1e-5) was warm-start chaining on the worker path vs a cold slow path; b508634e turned warm starts off in
+    the test and v1.0.6-TODO-61 stopped chaining for every class. At 8d8c5f78 (run 44903905332) all 10 OS legs that ran
+    the tests pass the three files (68/68 expectations of the rand file) and fail only on other tests (ordinal GLMM,
+    stereotype logit, Gaussian LMM Hessian). (2) The valgrind and ASAN/UBSAN legs still fail them because those images install only hard
+    dependencies: under interval censoring KMDiff, RestrictedMeanDiff, LogRank and GehanWilcox need `interval` and
+    CoxPHRegr needs `icenReg`, so the slow path gave all-NA draws (`is.finite` / "differs from delta = 0" failures) and
+    two single-class checks errored (same leg-specific cause, also in
+    `test-rand-bootstrap-smoothing-refused-under-general-censoring.R:83`). Fix: new
+    `R/EDI/tests/testthat/helper-survival-general-censoring-missing-packages.R` reads the missing package from the
+    class's own "Package 'X' is required" error; the three loops skip those classes and report them as a named skip,
+    and the two single-class checks use `skip_if_not_installed("interval")`. Evidence (`load_all(compile = FALSE)`,
+    NOT_CRAN): with `interval` mocked absent, before 16 failures/errors across the four files, the CI valgrind/ASAN set
+    minus the two CoxPH ones (CI: 18); with `interval` and `icenReg` mocked absent, after 0 failed, 5 tests skipped by
+    name, Weibull still compared; with both installed 915 expectations, 0 failed, 0 skipped, before and after.
 - [x] TODO-181 (added 2026-11-19, agent, owner request; found by the weekly R-CMD-check on 4ce2b712, sanitizer legs):
   **Two argument-validation tests don't skip classes whose optional packages aren't installed.**
   `R/EDI/tests/testthat/test-inference-args-reject-na.R:113,163` and

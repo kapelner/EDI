@@ -58,7 +58,11 @@ test_that("an all-interval-censored rand-bootstrap null distribution moves with 
 
 test_that("the slow path matches the reusable worker at nonzero delta on interval-censored data", {
 	des = brt_bounds_interval_design()
+	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank")) {
+		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		missing_pkg = general_censoring_missing_package(cls, des)
+		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		fast = brt_bounds_null_draws(cls, des, 0.7, TRUE)
 		slow = brt_bounds_null_draws(cls, des, 0.7, FALSE)
 		expect_true(all(is.finite(slow)), info = cls)
@@ -66,4 +70,5 @@ test_that("the slow path matches the reusable worker at nonzero delta on interva
 		# the shift now reaches the censored subjects: draws differ from delta = 0
 		expect_false(isTRUE(all.equal(slow, brt_bounds_null_draws(cls, des, 0, FALSE))), info = cls)
 	}
+	skip_inference_fixtures_missing_packages(skipped)
 })

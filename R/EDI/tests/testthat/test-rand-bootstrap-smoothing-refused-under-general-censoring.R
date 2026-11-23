@@ -78,6 +78,7 @@ test_that("right-censored survival data still smooth, and unsmoothed BRT under i
 		expect_true(is.numeric(pv) && length(pv) == 1L, info = cls)
 	}
 	des_i = brt_smooth_censoring_design(kind = "mixed")
+	skip_if_not_installed("interval")  # LogRank's interval-censored fit (v1.0.6-TODO-180)
 	inf = suppressWarnings(InferenceSurvivalLogRank$new(des_i, verbose = FALSE))
 	set.seed(1)
 	pv = suppressWarnings(inf$compute_rand_bootstrap_two_sided_pval(B = 11, type = "percentile", show_progress = FALSE))

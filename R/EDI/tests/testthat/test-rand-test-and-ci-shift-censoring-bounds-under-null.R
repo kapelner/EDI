@@ -76,8 +76,12 @@ test_that("an all-interval-censored randomization null distribution moves with d
 
 test_that("the slow path matches the reusable worker at nonzero delta for every general-censoring survival class", {
 	des = rand_bounds_interval_design()
+	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalRestrictedMeanDiff",
 			"InferenceSurvivalLogRank", "InferenceSurvivalGehanWilcox", "InferenceSurvivalCoxPHRegr")) {
+		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		missing_pkg = general_censoring_missing_package(cls, des)
+		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		fast = rand_bounds_null_draws(cls, des, 0.7, TRUE)
 		slow = rand_bounds_null_draws(cls, des, 0.7, FALSE)
 		expect_true(sum(is.finite(slow)) >= 10L, info = cls)
@@ -85,6 +89,7 @@ test_that("the slow path matches the reusable worker at nonzero delta for every 
 		# the shift reaches the censored subjects: draws differ from delta = 0
 		expect_false(isTRUE(all.equal(slow, rand_bounds_null_draws(cls, des, 0, FALSE))), info = cls)
 	}
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("a worker reused across deltas does not keep the previous delta's bounds", {
@@ -114,6 +119,7 @@ test_that("the rand p-value and the Weibull rand CI run at nonzero delta on inte
 	expect_true(all(is.finite(ci)) && ci[1L] < ci[2L])
 	est = inf$compute_estimate()
 	expect_true(ci[1L] <= est && est <= ci[2L])
+	skip_if_not_installed("interval")  # KMDiff's interval-censored fit (v1.0.6-TODO-180)
 	km = suppressWarnings(InferenceSurvivalKMDiff$new(des, verbose = FALSE))
 	km$num_cores = 1L
 	km$set_seed(1)

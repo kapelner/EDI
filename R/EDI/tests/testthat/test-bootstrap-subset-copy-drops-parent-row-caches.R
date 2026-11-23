@@ -58,7 +58,11 @@ test_that("a subset copy's design carries the draw's y_L / y_R / y_original", {
 
 test_that("the rand-bootstrap slow path matches the reusable worker on interval-censored data", {
 	des = subset_copy_survival_design(interval = TRUE)
+	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank")) {
+		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		missing_pkg = general_censoring_missing_package(cls, des)
+		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		draws = lapply(c(TRUE, FALSE), function(worker){
 			inf = suppressWarnings(get(cls)$new(des, verbose = FALSE, model_formula = ~ x1 + x2))
 			inf$.__enclos_env__$private$reusable_bootstrap_worker_enabled = worker
@@ -68,6 +72,7 @@ test_that("the rand-bootstrap slow path matches the reusable worker on interval-
 		expect_true(all(is.finite(draws[[2]])), info = cls)
 		expect_equal(draws[[2]], draws[[1]], tolerance = 1e-6, info = cls)
 	}
+	skip_inference_fixtures_missing_packages(skipped)
 })
 
 test_that("no private field of a subset copy keeps the parent's rows", {

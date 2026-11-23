@@ -1340,6 +1340,13 @@
   `procedure_failure_reason[["lik_ratio_bootstrap_ci"]]`, keeping the Wald
   estimate and standard error, as other resampling procedures do
   (v1.0.6-TODO-210).
+* Tests: the slow-path-versus-reusable-worker checks on interval-censored
+  survival data now skip a class whose general-censoring fit needs a Suggests
+  package that is not installed (`interval` for the Kaplan-Meier, RMST,
+  log-rank and Gehan-Wilcoxon classes, `icenReg` for Cox), so they no longer
+  fail on the R-devel valgrind and ASAN/UBSAN checks, which install only
+  hard dependencies. The Weibull slow-path and worker draws still agree
+  (v1.0.6-TODO-180).
 
 * PRW subsampling confidence intervals and p-values now respect the CI
   timeout deadline and re-raise timeouts or interrupts that occur while
