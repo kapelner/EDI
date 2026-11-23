@@ -840,7 +840,8 @@ def fast_ordinal_clmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
         Number of Gauss-Hermite quadrature nodes used to integrate out the random
         intercept.
     max_abs_log_sigma : float, default 8.0
-        Maximum allowed value for log(sigma).
+        Symmetric bound on log(sigma): values outside [-max_abs_log_sigma,
+        +max_abs_log_sigma] are rejected during optimization.
     maxit : int, default 300
         Maximum number of iterations.
     eps_g : float, default 1e-6
@@ -912,7 +913,8 @@ def fast_ordinal_glmm(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "
     n_gh : int, default 20
         Number of Gauss-Hermite nodes.
     max_abs_log_sigma : float, default 8.0
-        Maximum allowed value for log(sigma).
+        Symmetric clamp bound: log(sigma) is clamped to [-max_abs_log_sigma,
+        +max_abs_log_sigma] during optimization.
     maxit : int, default 300
         Maximum number of iterations.
     eps_g : float, default 1e-6
@@ -1403,9 +1405,9 @@ def fast_zero_augmented_poisson(X: typing.Annotated[numpy.typing.NDArray[numpy.f
         Optional starting values for all parameters. If provided,
         smart_cold_start is ignored.
     smart_cold_start : bool, default True
-        If True, use an initial OLS-based guess when starting from scratch (a
-        "cold start") with no prior knowledge. Ignored if a warm start is
-        provided.
+        If True, use the model-specific heuristic start (Poisson for the count
+        block, logistic for the zero block) when starting from scratch (a
+        "cold start"). Ignored if a warm start is provided.
     maxit : int, default 1000
         Maximum number of iterations.
     tol : float, default 1e-8
@@ -1437,8 +1439,9 @@ def fast_zero_augmented_poisson_with_var(X: typing.Annotated[numpy.typing.NDArra
         Optional starting values for all parameters. If provided,
         smart_cold_start is ignored.
     smart_cold_start : bool, default True
-        If True, use an initial OLS-based guess when starting from scratch. Ignored
-        if a warm start is provided.
+        If True, use the model-specific heuristic start (Poisson for the count
+        block, logistic for the zero block) when starting from scratch (a
+        "cold start"). Ignored if a warm start is provided.
     maxit : int, default 1000
         Maximum number of iterations.
     tol : float, default 1e-8
