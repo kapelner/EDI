@@ -7037,6 +7037,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneiBCRD@prob_T=0.2' --n 50 --effect null --only InferenceOrdinalGCompMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cells; confirmed ones are fixed.
   - Status 2026-11-23 (coordinator): wave 29 of campaign 2026-11-15-e36c7710: `InferenceOrdinalAdjCatLogitRegr` cleared by confirmation; `InferenceOrdinalCloglogRegr` (1 cell), `InferenceOrdinalContRatioRegr` (1) and `InferenceOrdinalGCompMeanDiff` (2) still pending confirmation.
+  - Status 2026-11-23 (coordinator), wave 30 of campaign 2026-11-15-e36c7710: `InferenceOrdinalCloglogRegr` and `InferenceOrdinalContRatioRegr` cleared by confirmation (after `InferenceOrdinalAdjCatLogitRegr` in wave 29), and so did `InferenceOrdinalGCompMeanDiff` on FixedBinaryMatch `~1`. One cell left, pending: `InferenceOrdinalGCompMeanDiff` on SeqOneByOneiBCRD@0.2 `~.` n = 50, size 0.079 (level 0.05). Close this TODO if it clears too.
 - [ ] TODO-409 (added 2026-11-23, coordinator, owner decision 2026-11-22; found by calibration campaign 2026-11-15-e36c7710): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
   - Problem: `InferenceOrdinalKKCLMM` null at n = 1000 costs ~870 s per replicate in `rand` (Wald 2.7 s), so its shards
     (4-7 replicates) ran ~58 min and some hit the shard job's `timeout-minutes: 75` (4 per wave in runs 44902301848,
@@ -7185,7 +7186,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   progress line with elapsed time to `worker_invariance_sweep()` (`helper-worker-count-invariance.R`) so the CI log
   shows where it stops. Done when the leg finishes within its limit (a fix, a per-class time cap, or a raised
   `timeout-minutes` with the reason) and the comparison step passes with five legs.
-- [ ] TODO-412 (added 2026-11-23, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), wave 29): **`InferenceOrdinalCauchitRegr`: Wald / score / LR / gradient oversized, confirmed at n = 50 and at n = 1000.**
+- [ ] TODO-412 (added 2026-11-23, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), wave 29): **`InferenceOrdinalCauchitRegr`: score / LR / gradient oversized, confirmed at n = 50, 200 and 1000.**
   - Wave 29: 28 cells confirmed failing (18 at n = 50, 10 at n = 1000), 10 cleared, 87 pending, across many designs
     and both allocations.
   - Worst confirmed: score at n = 50, size 0.170 / 0.167 / 0.166 (level 0.1) on FixedGreedy@0.2, FixedRerandomization@0.2,
@@ -7201,6 +7202,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignFixediBCRD@prob_T=0.2' --n 1000 --effect null --only InferenceOrdinalCauchitRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"` (and `--design 'DesignFixedGreedy@prob_T=0.2' --n 50`). Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: the cause is found and the n = 1000 cells pass, or the owner accepts them with a reason and
     calibration_study_accepted.csv rows citing this TODO; the n = 50 cells can stay under v1.1.0-TODO-181 if that is the cause.
+  - Status 2026-11-23 (coordinator), wave 30 of campaign 2026-11-15-e36c7710: 82 cells confirmed failing (score 59, gradient 14, LR 9; size and coverage) across n = 50, 200 and 1000. Every Wald cell was cleared by confirmation, so Wald is out of scope (title updated). 6 cells still pending: score / LR / gradient, size and coverage, SeqOneByOneRandomBlockSize prob_T 0.5, n = 1000.
 
 - [ ] TODO-413 (added 2026-11-23, agent; found by the v1.0.6-TODO-380 agent): **`InferenceCountZeroInflatedPoisson`,
   `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin` and `InferenceCountHurdleNegBin` ignore
