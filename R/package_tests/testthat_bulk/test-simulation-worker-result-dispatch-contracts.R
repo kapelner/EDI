@@ -166,7 +166,8 @@ test_that("observational DGP estimands override standard class-based estimands",
     observed <- list()
     make_data <- function(n, p, rep) {
       observed <<- list(n = n, p = p, rep = rep)
-      w <- rep(c(-1L, 1L), n / 2L)
+      # v1.0.6-TODO-300: a DGP's w must be 0/1 (w_precomputed rejects -1).
+      w <- rep(c(0L, 1L), n / 2L)
       list(X = data.frame(x = seq_len(n)), w = w,
         y = 2 * w, true_estimand = 4)
     }
