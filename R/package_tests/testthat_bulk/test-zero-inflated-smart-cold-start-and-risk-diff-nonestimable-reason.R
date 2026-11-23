@@ -44,12 +44,16 @@ for (cls_name in c("InferenceCountZeroInflatedPoisson", "InferenceCountZeroInfla
 	})
 }
 
-test_that("InferenceIncidRiskDiff: a failing fit with no specific reason still records model_fit_unavailable", {
+test_that("InferenceIncidRiskDiff: an all-zero response keeps the estimate and marks only the SE non-estimable", {
+	# v1.0.6-TODO-389 (2026-11-24): with y all 0 the fit is perfect (RD = 0, HC0 variance 0). It used
+	# to be rejected outright (reason model_fit_unavailable, estimate NA); the finite estimate is now
+	# kept and only the SE is non-estimable.
 	seq_des = simulate_incid_design(3L, y = rep(0, 40L))
 	inf = InferenceIncidRiskDiff$new(seq_des)
 	ci = suppressWarnings(inf$compute_asymp_confidence_interval())
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "model_fit_unavailable")
+	expect_identical(inf$get_nonestimable_reason(), "model_standard_error_unavailable")
+	expect_equal(as.numeric(inf$compute_estimate()), 0)
 })
 
 test_that("InferenceIncidRiskDiff: a NULL fit records the class-specific generate_mod_nonestimable_reason", {

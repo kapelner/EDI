@@ -705,6 +705,12 @@
 
 ### Incidence responses
 
+* `InferenceIncidRiskDiff` returns the finite risk-difference estimate on a
+  perfect fit (e.g. `y = w`, RD = 1, or an all-zero response, RD = 0) instead of
+  `NA`; only the HC0 standard error is non-estimable there (reason
+  `model_standard_error_unavailable`). The zero sandwich variance used to make
+  every column-dropping refit fail, which lost the estimate (v1.0.6-TODO-389).
+
 * `InferenceIncidKKGEE` and `InferencePropKKGEE` return `NA` for the asymptotic
   p-value and confidence interval, with `edi_logistic_separation_warning`,
   only when the data are (quasi-)completely separated. Before, the collapsed
