@@ -154,3 +154,6 @@ dismissed item, with the reason, so the next reader knows why it was let go:
 - `todo-status-mb0433359`: v1.1.0-TODO-17x -> v1.0.5-TODO-5: informational pointer notice; pointer rule, TODOs ticked (2026-11-23)
 - `todo-status-mb8b28f93`: v1.1.0-TODO-39 -> v1.0.5-TODO-57: informational pointer notice; pointer rule, TODOs ticked (2026-11-23)
 - `todo-status-me73ebd97`: v1.1.0-TODO-17p -> v1.0.5-TODO-3: informational pointer notice; pointer rule, TODOs ticked (2026-11-23)
+- `rpy-parity-d8906bb83`: fixed in 1b6510bb (docs): `fast_zero_augmented_poisson_with_var` `smart_cold_start` docstring names the model-specific Poisson / logistic start, stub mirrored (2026-11-23)
+- `rpy-parity-dd95d6c57`: fixed in 1b6510bb (docs): `fast_ordinal_glmm` `max_abs_log_sigma` docstring says symmetric clamp (also `fast_ordinal_clmm`), stub mirrored (2026-11-23)
+- `source-comment-rot-d2fd45ba0`: fixed in f73607bf (docs): `fast_ordinal_glmm.cpp` `warm_start_params` roxygen says a wrong length or non-finite value errors (2026-11-23)
