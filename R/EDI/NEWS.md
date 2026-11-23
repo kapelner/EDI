@@ -1137,6 +1137,20 @@
 
 ## New features
 
+* The KK CLMM classes (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`,
+  `...Cloglog`) offer an opt-in randomization statistic for large n:
+  `compute_rand_two_sided_pval(type = "score")`. It is the score for the
+  treatment coefficient at the null fit: the CLMM is fit once with the
+  treatment coefficient fixed at 0, and each redraw costs one inner product
+  instead of a refit. With r = 501, a p-value takes 0.1-0.5 s at n = 50-200 and
+  1-2 s at n = 1000, against 40-260 s and 560-1,170 s for the default statistic
+  (250x-650x faster). Like any randomization test it is exact under the sharp
+  null, with the same draws, tie rule and +1 counting as the default, but it is
+  a different statistic, so p-values and power differ (n = 50, a 50%-power
+  effect: rejection rate 0.43 against 0.37). It tests only `delta = 0`. The
+  default (`type = NULL`) is unchanged; other classes reject `type = "score"`
+  (v1.1.0-TODO-267).
+
 * New testing type `"lik_ratio_bartlett_approx_design_conservative"` on
   `InferenceCountPoisson`, `InferenceCountKKCondPoissonOneLik` and
   `InferenceCountKKHurdlePoissonOneLik`: the larger of the model-only

@@ -330,7 +330,12 @@ between \eqn{w^*} and a \emph{verified co-optimal} mirror
 \eqn{1 - w^*} after every solve (only possible at
 \code{prob_T = 0.5}); see the class documentation.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
-      \item{\code{n}}{Sample size (if fixed).}
+      \item{\code{n}}{The sample size. If \code{NULL} (default), \code{n} is set to
+\code{nrow(X_all)} when the subjects are added with
+\code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+\code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+(a covariate-free design such as iBCRD or Bernoulli can then assign without
+\code{X}).}
       \item{\code{verbose}}{Flag for verbosity.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}

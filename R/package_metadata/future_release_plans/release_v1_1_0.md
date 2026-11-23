@@ -2722,7 +2722,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     interior sigma, model `~ x1`), but is 3-25% slower; the share of redraws needing the Newton retry barely moves (n = 1000: 8 vs 8 of 20 on
     KK14, 8 vs 11 on FixedBinaryMatch).
   - Decided 2026-11-24 (owner): ruled out, no code change; see [DECISION-v1.1.0-TODO-266](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-266).
-- [ ] TODO-267 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does not need a full refit per redraw.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
+- [x] TODO-267 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does not need a full refit per redraw.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Candidates: a score statistic evaluated at the null fit (computed once; each redraw only re-evaluates the score under
     the permuted assignment), or a one-step Newton update from the observed fit. Either changes the test statistic, so
     it changes results: put it behind an option, or follow the release rule for default changes.
@@ -2742,6 +2742,28 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     effect (60 reps, same data) power 0.43 vs 0.37 now. Calibration cells at n = 50, 200, 1000 for the option are still
     to run once it is implemented.
   - Decided 2026-11-24 (owner): ship as an opt-in, `compute_rand_two_sided_pval(type = "score")`, default unchanged; see [DECISION-v1.1.0-TODO-267](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-267).
+  - Status 2026-11-24 (agent): implemented (R only) in `inference_ordinal_KK_clmm_abstract.R`: public
+    `compute_rand_two_sided_pval()` on the CLMM base dispatches `type = "score"` to private
+    `compute_clmm_score_rand_pval()` and otherwise calls the shared `InferenceRandCI` method as before (which still
+    rejects any other `type`); private `clmm_score_residuals()` (null fit via `fixed_idx`, cached). Same draws
+    (`generate_permutations(r)` or `permutations`), +1 rule, tie tolerance, alternatives and finite-draw minimum
+    (`compute_two_sided_randomization_pval_from_t0s()`); the null distribution is cached under a `type=score|` key.
+    Only `delta = 0`, `transform_responses = "none"`, `args_for_type = NULL`; a failed null fit gives `NA` with reason
+    `kk_clmm_score_null_fit_unavailable`. Other classes reject it (generic "type dispatch is only supported for
+    incidence outcomes", or an unused-argument error). Package timing, r = 501, score vs default (default estimated
+    from r = 101 at n = 200, r = 21 at n = 1000): n = 50 0.08-0.15 s vs 40-53 s; n = 200 0.28-0.47 s vs 155-258 s;
+    n = 1000 1.0-2.0 s vs 558-1,169 s (KK14, FixedBinaryMatch, Cauchit; 250x-650x). Null size (300 reps each, alpha
+    0.05): KK14 n = 50 0.043, n = 200 0.037; FixedBinaryMatch n = 200 0.057; Cauchit KK14 n = 200 0.037 (prototype
+    0.050 / 0.037 / 0.067 / 0.037; the differences are the +1 rule merged since). Tests: new
+    `test-ordinal-kk-clmm-score-statistic-randomization-pval.R` (23 expectations: score = numeric derivative for all four
+    links, p-value = hand computation on the same w_mat for all three alternatives, seeded and separately cached,
+    default unchanged, refusals); 39 related files 1,504 pass, 0 fail. Roxygen + hand-edited
+    `man/InferenceAbstractKKOrdinalCLMM.Rd` (`tools::checkRd` clean), NEWS "New features".
+  - CI: not wired (owner correction 2026-11-24: not ruled out, decide later). These classes refuse every
+    randomization CI today (`EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES`), and the default p-value at delta != 0
+    shifts the integer levels (1..4 -> 1, 1.5, ..., 4.5), not the latent log-odds coefficient. The private score
+    function takes `delta` so a CI search can pass `type` through. Owner decision pending:
+    [DECISION-v1.1.0-TODO-267b](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-267b) (what randomization CI, if any, should the KK CLMM classes offer, and on which null?).
 - [ ] TODO-268 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: fewer redraws at large n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Use fewer redraws when n is large (or a sequential Monte Carlo stopping rule, which EDI already has for
     randomization p-values), so the p-value resolution is kept where it matters (near alpha) and spent less elsewhere.

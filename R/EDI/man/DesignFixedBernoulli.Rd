@@ -165,7 +165,12 @@ Neyman, J. (1923, transl. 1990). "On the Application of Probability
 assigned to treatment; need not be \code{0.5} (unlike
 \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
-      \item{\code{n}}{The sample size.}
+      \item{\code{n}}{The sample size. If \code{NULL} (default), \code{n} is set to
+\code{nrow(X_all)} when the subjects are added with
+\code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+\code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+(a covariate-free design such as iBCRD or Bernoulli can then assign without
+\code{X}).}
       \item{\code{verbose}}{A flag for verbosity.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
