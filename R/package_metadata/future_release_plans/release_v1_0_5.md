@@ -15373,9 +15373,15 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      that contains 160a0dcc. Rd regeneration (roxygenize) for both is still to do.
    - Open v1.0.6 TODOs that change `R/EDI` land before the release commit or are deferred to 1.0.6 by name.
      v1.0.6-TODO-45 (KK14 threshold; done 2026-11-23, all fix-dependent bulk files pass) was a prerequisite of
-     v1.0.6-TODO-67's regeneration. v1.0.6-TODO-180 is open and fails the full R-CMD-check on every leg (re-run its
-     three files on a build with the ticked v1.0.6-TODO-163; fix if they still fail). v1.0.6-TODO-181 was fixed
-     2026-11-21. The full run cannot go green until v1.0.6-TODO-180 is fixed.
+     v1.0.6-TODO-67's regeneration. v1.0.6-TODO-180 done 2026-11-24 (39d04ba9, tests only):
+     the OS legs already pass its files at 8d8c5f78; the sanitizer/valgrind images lack `interval`/`icenReg`, which
+     the tests now skip by name. v1.0.6-TODO-181 was fixed 2026-11-21. Still failing on every OS leg at 8d8c5f78
+     (not yet checked on HEAD): `test-stereotype-logit-full-fit-multistart.R`, `test-stereotype-logit-hessian-allocs.R`,
+     `test-ordinal-glmm-optimizer-robustness.R`, `test-ordinal-information-reuse.R`, `test-gaussian-lmm-hessian-prealloc.R`,
+     `test-rcpp-fitting-equivalence.R:491`; valgrind also `test-kk-ivwc-bayesian-bootstrap-replicates-match-estimator.R`,
+     `test-zero-augmented-*`, `test-reused-worker-rank-deficient-draw-rebuilds-covariates.R`; CRAN-extra "nold" and
+     "ubuntu devel, devdeps" failed before tests (`dyn.load` error, build failure). Dispatch a full run on HEAD to see
+     which remain.
    - v1.0.5-TODO-174 jump guard: owner ruled (c) 2026-11-23, leave the shared code alone; the unapproved guard
      (67347569) is reverted in 42361aa5 and v1.0.5-TODO-174 is closed (DECISION-v1.0.5-TODO-174). **The owner
      rebuilds EDI after 42361aa5 and before the regeneration** (step 2 at a `$SHA` that contains it), so the full run
@@ -15386,7 +15392,7 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      has no IVWC row, `is_skipped_inference_label()` skips every `IVWC` label (`comprehensive_tests.R` L3527-3530),
      yet the KK survival selector lists this class (L4441). After wave 1, `grep IVWC $W/c/discovered.csv`; if it is
      absent, TODO-14 needs its own class-filtered run (unverified which path wins).
-   - Passed when: each open v1.0.6 TODO touching `R/EDI` is landed or named deferred; v1.0.6-TODO-180 fixed.
+   - Passed when: each open v1.0.6 TODO touching `R/EDI` is landed or named deferred; a full R-CMD-check dispatched on HEAD shows no remaining test failures.
 1. **Release commit + freeze (O).** Pick `SHA` on `main`. Announce the freeze. `git switch -c dev-1.0.6 $SHA` and
    push it (push is the owner's). Passed when: `dev-1.0.6` exists; `main` gets no `R/EDI` / harness commit until step 9.
    Docs-only commits on `main` (the tables, NEWS, these files) are allowed.
