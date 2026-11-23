@@ -1179,6 +1179,17 @@
 
 ### Designs
 
+* A fixed design (or `ObservationalDesign`) built with the default `n = NULL`
+  now takes `n` from `nrow(X_all)` in `add_all_subjects_to_experiment()`
+  (owner ruling, v1.0.6-TODO-298). It used to stop with "you must specify n upon
+  initialization" although `X_all` gives n. A given `n` that disagrees with
+  `nrow(X_all)` still errors ("X_all must have exactly n = <n> rows, but has
+  <rows>."), now whatever the assertion setting, and assigning before the
+  subjects are added with `n` unknown errors "pass n to $new() or add the
+  subjects first" instead of "replacement has length zero" (or silently
+  assigning nothing). The allocation equals the one with `n = nrow(X_all)` for
+  the same seed.
+
 * Sequential designs with a fixed `n` now refuse subject `n + 1` with an error
   (it used to be enrolled: `t = n + 1`, `w` grew, `get_n()` stayed `n`, and
   inference ran on `n + 1` subjects), and a covariate value whose type differs

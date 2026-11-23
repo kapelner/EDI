@@ -374,6 +374,7 @@ R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validat
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-design-constructor-two-arm-and-blocking-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-fixed-design-n-inferred-from-subjects.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-design-w-precomputed-validation.R,correctness,10,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-feasibility-draws-and-uneven-sizes-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2167,6 +2168,7 @@ R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validat
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,coverage,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-design-constructor-two-arm-and-blocking-validation-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fixed-design-n-inferred-from-subjects.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-design-w-precomputed-validation.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-feasibility-draws-and-uneven-sizes-reference.R,coverage,240,bootstrap

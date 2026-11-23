@@ -45,7 +45,6 @@ Last updated 2026-11-24.
 | [DECISION-v1.0.6-TODO-305](#DECISION-v1.0.6-TODO-305) | [v1.0.6-TODO-305](release_v1_0_6.md) | Confirm that a one-level factor next to a two-level one (`list(dose = 1, arm = 2)`) now errors |
 | [DECISION-v1.0.6-TODO-304](#DECISION-v1.0.6-TODO-304) | [v1.0.6-TODO-304](release_v1_0_6.md) | BCa on 2-block blocking designs: within-block jackknife acceleration, or percentile / BC fallback? |
 | [DECISION-v1.0.6-TODO-303](#DECISION-v1.0.6-TODO-303) | [v1.0.6-TODO-303](release_v1_0_6.md) | Allow the plain randomization test at delta = 0 for incidence on `DesignFixedFactorial` / `DesignFixedBlocking`? |
-| [DECISION-v1.0.6-TODO-298](#DECISION-v1.0.6-TODO-298) | [v1.0.6-TODO-298](release_v1_0_6.md) | Fixed designs with the default `n = NULL`: infer `n = nrow(X_all)`, or require `n`? |
 | [DECISION-v1.0.6-TODO-291](#DECISION-v1.0.6-TODO-291) | [v1.0.6-TODO-291](release_v1_0_6.md) | `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept? |
 | [DECISION-v1.0.6-TODO-290](#DECISION-v1.0.6-TODO-290) | [v1.0.6-TODO-290](release_v1_0_6.md) | Confirm KK `lambda` and `t_0_pct` allowed in the closed [0, 1] |
 | [DECISION-v1.0.6-TODO-270](#DECISION-v1.0.6-TODO-270) | [v1.0.6-TODO-270](release_v1_0_6.md) | SPBR jackknife-Wald at 0.062: accept, raise the permuted-block threshold, or investigate? |
@@ -418,23 +417,6 @@ Last updated 2026-11-24.
 - **Context:** the two branches touch the same lines, so doing either before the ruling would be wasted work. The
   docs-scenario audit later added `DesignFixediBCRD` to the scope.
 - **Raised:** 2026-11-20, docs-scenario audit (ds-factorial-44358267779-f1, -f2); investigated 2026-11-21 (agent).
-
-<a id="DECISION-v1.0.6-TODO-298"></a>
-### DECISION-v1.0.6-TODO-298: Fixed designs with the default `n = NULL`: infer `n = nrow(X_all)`, or require `n`?
-
-- **TODO:** [v1.0.6-TODO-298](release_v1_0_6.md): **Every fixed design accepts the default `n = NULL`, then
-  `add_all_subjects_to_experiment()` errors although `X_all` gives n.**
-- **Options:**
-  - (a) infer `n = nrow(X_all)` in `add_all_subjects_to_experiment()` when `n` is NULL, set `fixed_sample = TRUE` and
-    size `w` / `y` / caches there; each constructor that reads `n` before subjects arrive (Optimal, Rerandomization
-    caches, Blocking / Cluster sizing, any `prob_T * n` target) must be checked, so it touches every fixed design;
-  - (b) make `n` required in the fixed-design constructors (error at `$new()`, drop `= NULL` from the usage and Rd):
-    small and safe, but breaks code that relies on the default reaching a later error;
-  - (c) keep `n = NULL` but error at `$new()` with "fixed designs need n (or call ...)": the same as (b) for users.
-  - Either way `assign_w_to_all_subjects()` before subjects are added must give a clear error.
-- **Recommendation (agent, 2026-11-21):** (a) is what the help suggests a user expects; (b) is the smaller change.
-- **Raised:** 2026-11-20, docs-scenario audit (ds-fixed-designs-44358267779-f6, ds-clusters-blocking-44358267779-f5);
-  investigated 2026-11-21 (agent).
 
 <a id="DECISION-v1.0.6-TODO-291"></a>
 ### DECISION-v1.0.6-TODO-291: `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept?

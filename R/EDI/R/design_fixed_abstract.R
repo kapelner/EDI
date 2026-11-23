@@ -20,7 +20,12 @@ DesignFixed = R6::R6Class("DesignFixed",
 		#'   "ordinal".
 		#' @param  prob_T  Probability of treatment assignment.
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
-		#' @param  n  		The sample size.
+		#' @param n The sample size. If \code{NULL} (default), \code{n} is set to
+		#'   \code{nrow(X_all)} when the subjects are added with
+		#'   \code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+		#'   \code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+		#'   (a covariate-free design such as iBCRD or Bernoulli can then assign without
+		#'   \code{X}).
 		#' @param verbose A flag for verbosity.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
@@ -47,6 +52,7 @@ DesignFixed = R6::R6Class("DesignFixed",
 		#'   \code{draw_ws_according_to_design} is not called (avoids re-running a
 		#'   costly allocation search, e.g. for \code{DesignFixedGreedy}).
 		assign_w_to_all_subjects = function(w_precomputed = NULL){
+			private$assert_n_known_for_assignment()
 			if (!is.null(w_precomputed)) {
 				w_precomputed = private$validate_w_precomputed(w_precomputed)
 				private$w[1:self$get_n()] = w_precomputed
@@ -59,10 +65,20 @@ DesignFixed = R6::R6Class("DesignFixed",
 		#' @param X_all A data frame containing the full covariate matrix.
 		#' @return Invisibly returns the design object.
 		add_all_subjects_to_experiment = function(X_all){
+			if (should_run_asserts()) assertClass(X_all, "data.frame")
 			n_all = nrow(X_all)
+			# v1.0.6-TODO-298 (owner ruling 2026-11-23): a fixed design built without n takes n from
+			# X_all. Fixed designs with covariates carry n in X_all, and the covariate-free ones
+			# (iBCRD, Bernoulli) can still be given n to assign without X. Always on.
+			if (!isTRUE(private$fixed_sample) && private$t == 0L) {
+				private$set_n_from_subjects(n_all)
+			}
 			n_expected = self$get_n()
+			# Owner wording (2026-11-23); always enforced, a wrong-length X_all is never stored.
+			if (n_all != n_expected){
+				stop("X_all must have exactly n = ", n_expected, " rows, but has ", n_all, ".", call. = FALSE)
+			}
 			if (should_run_asserts()) {
-				assertClass(X_all, "data.frame")
 				self$assert_fixed_sample()
 				assertStrataClusterArgs(
 					strata_cols = private$strata_cols,
@@ -70,9 +86,6 @@ DesignFixed = R6::R6Class("DesignFixed",
 					data = X_all,
 					context = paste0(class(self)[1L], "$add_all_subjects_to_experiment")
 				)
-				if (n_all != n_expected){
-					stop("X_all must have exactly ", n_expected, " rows for this fixed design.")
-				}
 				if (private$t > 0L || nrow(private$Xraw) > 0L){
 					stop("Subjects have already been added to this design.")
 				}
@@ -177,6 +190,28 @@ DesignFixed = R6::R6Class("DesignFixed",
 		# v1.0.6-TODO-154).
 	),
 	private = list(
+		# v1.0.6-TODO-298: fix n (and size w / y / y_L / y_R, as Design$initialize() does for a
+		# given n) from the number of subjects added to a design built with n = NULL.
+		set_n_from_subjects = function(n){
+			n = as.integer(n)
+			private$n = n
+			private$fixed_sample = TRUE
+			private$y =          rep(NA_real_, n)
+			private$y_original = rep(NA_real_, n)
+			private$w =          rep(NA_real_, n)
+			private$y_L =        rep(NA_real_, n)
+			private$y_R =        rep(NA_real_, n)
+			invisible(NULL)
+		},
+		# v1.0.6-TODO-298: assigning needs n. With n = NULL and no subjects yet it is unknown, which
+		# used to fail with "replacement has length zero" or "argument is of length zero".
+		assert_n_known_for_assignment = function(){
+			if (!isTRUE(private$fixed_sample) && private$t == 0L) {
+				stop(class(self)[1L], ": n is not known yet; pass n to $new() or add the subjects first ",
+					"(add_all_subjects_to_experiment()).", call. = FALSE)
+			}
+			invisible(NULL)
+		},
 		# v1.0.6-TODO-300 / -301: w_precomputed was stored as.numeric() unchecked, so a 1/2-coded
 		# vector was kept and inference returned NA, and a cluster design accepted an assignment
 		# that varies within clusters.

@@ -52,6 +52,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-352](release_v1_0_6.md) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-380) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-326](#DECISION-v1.0.6-TODO-326) | [v1.0.6-TODO-326](release_v1_0_6.md) | DepCens Bayesian bootstrap unsupported (warn, NA) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-298](#DECISION-v1.0.6-TODO-298) | [v1.0.6-TODO-298](release_v1_0_6.md) | (a) n = NULL takes n from nrow(X_all); a disagreeing n keeps the error; assigning before subjects with n unknown errors | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-294](#DECISION-v1.0.6-TODO-294) | [v1.0.6-TODO-294](release_v1_0_6.md) | best-of-k reference draws (realized allocations unchanged) | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-285](#DECISION-v1.0.6-TODO-285) | [v1.0.6-TODO-285](release_v1_0_6.md) | 1.2-1.3x is close enough; no further speedups; allowlist row stays until the v1.0.6 release | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-270a](#DECISION-v1.0.6-TODO-270a) | [v1.0.6-TODO-270](release_v1_0_6.md) | few permuted blocks per stratum: auto unit switches to observation_within_block | 2026-11-20 |
@@ -706,6 +707,31 @@ Last updated 2026-11-24.
 - **Ruling:** (b) the Bayesian-bootstrap methods warn `edi_unsupported_procedure` and return NA, 2026-11-21, owner (recorded by the coordinator)
 - **Why:** No reason recorded; the owner chose (b) on the code reading, without a numerical reproduction first.
 - **Rejected:** (a) a weighted dependent-censoring refit.
+
+<a id="DECISION-v1.0.6-TODO-298"></a>
+### DECISION-v1.0.6-TODO-298: Fixed designs with the default `n = NULL`: infer `n = nrow(X_all)`, or require `n`?
+
+- **TODO:** [v1.0.6-TODO-298](release_v1_0_6.md): **Every fixed design accepts the default `n = NULL`, then
+  `add_all_subjects_to_experiment()` errors although `X_all` gives n.**
+- **Options:**
+  - (a) infer `n = nrow(X_all)` in `add_all_subjects_to_experiment()` when `n` is NULL, set `fixed_sample = TRUE` and
+    size `w` / `y` / caches there; each constructor that reads `n` before subjects arrive (Optimal, Rerandomization
+    caches, Blocking / Cluster sizing, any `prob_T * n` target) must be checked, so it touches every fixed design;
+  - (b) make `n` required in the fixed-design constructors (error at `$new()`, drop `= NULL` from the usage and Rd):
+    small and safe, but breaks code that relies on the default reaching a later error;
+  - (c) keep `n = NULL` but error at `$new()` with "fixed designs need n (or call ...)": the same as (b) for users.
+  - Either way `assign_w_to_all_subjects()` before subjects are added must give a clear error.
+- **Recommendation (agent, 2026-11-21):** (a) is what the help suggests a user expects; (b) is the smaller change.
+- **Raised:** 2026-11-20, docs-scenario audit (ds-fixed-designs-44358267779-f6, ds-clusters-blocking-44358267779-f5);
+  investigated 2026-11-21 (agent).
+- **Ruling:** (a), owner 2026-11-23: with `n = NULL`, `add_all_subjects_to_experiment(X_all)` sets
+  `n = nrow(X_all)` (and sizes `w` / `y` / `y_L` / `y_R`); when both are given and disagree, keep the error, in the
+  owner's wording `"X_all must have exactly n = <n> rows"` (an actual row count may follow); with `n = NULL`, assigning
+  (`assign_w_to_all_subjects()`, with or without `w_precomputed`) before the subjects are added errors "pass n to
+  $new() or add the subjects first". Covers every fixed design. Implemented 2026-11-24 (see the TODO's done note).
+- **Why:** "fixed designs with covariates already carry n in X_all; covariate-free designs (iBCRD, Bernoulli) can
+  draw a randomization list from n alone, so n stays optional" (owner, 2026-11-23).
+- **Rejected:** (b) require `n` in every fixed-design constructor; (c) keep `n = NULL` but error at `$new()`.
 
 <a id="DECISION-v1.0.6-TODO-294"></a>
 ### DECISION-v1.0.6-TODO-294: Rerandomization with `prop_acceptable`: fixed cutoff, or best-of-k reference draws?

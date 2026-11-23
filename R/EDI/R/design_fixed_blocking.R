@@ -186,7 +186,12 @@ DesignFixedBlocking = define_design_class(
 		#'   "ordinal".
 		#' @param  prob_T  Probability of treatment assignment.
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
-		#' @param  n  		The sample size.
+		#' @param n The sample size. If \code{NULL} (default), \code{n} is set to
+		#'   \code{nrow(X_all)} when the subjects are added with
+		#'   \code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+		#'   \code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+		#'   (a covariate-free design such as iBCRD or Bernoulli can then assign without
+		#'   \code{X}).
 		#' @param preferred_num_bins_for_continuous_covariate The number of quantile bins to use for continuous strata. Default is 2.
 		#' @param B_target The target number of blocks. Columns from `strata_cols`
 		#'   are added greedily in order, each column being included only if it does not push

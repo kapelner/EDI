@@ -86,7 +86,12 @@ DesignFixedCluster = define_design_class(
 		#'   of \emph{clusters} treated, not of subjects: with unequal cluster sizes
 		#'   the share of subjects treated varies from draw to draw around it.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
-		#' @param n  		The sample size.
+		#' @param n The sample size. If \code{NULL} (default), \code{n} is set to
+		#'   \code{nrow(X_all)} when the subjects are added with
+		#'   \code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+		#'   \code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+		#'   (a covariate-free design such as iBCRD or Bernoulli can then assign without
+		#'   \code{X}).
 		#' @param verbose  Flag for verbosity.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.

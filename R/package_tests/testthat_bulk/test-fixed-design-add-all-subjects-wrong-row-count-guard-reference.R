@@ -9,12 +9,14 @@ library(EDI)
 # wrong-row-count guard itself had zero test references anywhere; every existing test only exercises
 # the success path. The sibling re-entry guard ("Subjects have already been added to this design.")
 # is already covered by test-design-lifecycle-completeness-and-single-enrollment-guards-reference.R.
+# v1.0.6-TODO-298 (2026-11-24): the message is now the owner's "X_all must have exactly n = <n> rows, but has
+# <rows>." and is enforced whatever the assertion setting.
 
 test_that("add_all_subjects_to_experiment(): too few rows errors with the documented message", {
 	d <- DesignFixedBernoulli$new(response_type = "continuous", n = 10L, verbose = FALSE)
 	expect_error(
 		d$add_all_subjects_to_experiment(data.frame(x1 = rnorm(5))),
-		"X_all must have exactly 10 rows for this fixed design\\."
+		"X_all must have exactly n = 10 rows", fixed = TRUE
 	)
 })
 
@@ -22,7 +24,7 @@ test_that("add_all_subjects_to_experiment(): too many rows errors with the docum
 	d <- DesignFixedBernoulli$new(response_type = "continuous", n = 10L, verbose = FALSE)
 	expect_error(
 		d$add_all_subjects_to_experiment(data.frame(x1 = rnorm(15))),
-		"X_all must have exactly 10 rows for this fixed design\\."
+		"X_all must have exactly n = 10 rows", fixed = TRUE
 	)
 })
 

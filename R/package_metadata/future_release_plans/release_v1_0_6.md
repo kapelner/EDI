@@ -5544,7 +5544,7 @@ were found by reading, not by running a fix.
   `DesignFixedRerandomization`'s fixed 4 / 2 cutoff conversion (~L236) is only used for prob_T = 0.5 with even n,
   where it is right.
 
-- [ ] TODO-298 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f6,
+- [x] TODO-298 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f6,
   ds-clusters-blocking-44358267779-f5): **Every fixed design accepts the default `n = NULL`, then
   `add_all_subjects_to_experiment()` errors although `X_all` gives n.** Bernoulli, iBCRD, Rerandomization, Greedy,
   GreedyDOptimal, BinaryMatch, Optimal, Blocking, Cluster and BlockedCluster all construct with `n = NULL` and then stop
@@ -5559,9 +5559,10 @@ were found by reading, not by running a fix.
   Investigated 2026-11-21 (agent): still reproduces on HEAD. `$new()` without
   `n` then `add_all_subjects_to_experiment(X)` stops in `assert_fixed_sample()` for Bernoulli, iBCRD, BinaryMatch and
   Optimal; Rerandomization already stops earlier on its acceptance-rule check. Not changed.
-  - Owner decision pending: [DECISION-v1.0.6-TODO-298](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-298) (infer `n = nrow(X_all)` when `n` is NULL, or require `n` in every fixed-design constructor?).
+  - Decided 2026-11-23 (owner): (a) infer `n = nrow(X_all)`, keep the mismatch error, error on assigning before subjects with `n` unknown; see [DECISION-v1.0.6-TODO-298](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-298).
   - Also reported by the docs-scenario audit: ds-observational-44883784401-f1 (2026-11-21, `ObservationalDesign`
     with the default `n = NULL` fails as soon as the data are added; reproduces on HEAD). Fix it here.
+  Done 2026-11-24 (DECISION (a)): `DesignFixed$add_all_subjects_to_experiment()` sets `n` from `nrow(X_all)` via `set_n_from_subjects()` when the design has no `n` and no subjects; the mismatch error is always on and reads "X_all must have exactly n = <n> rows, but has <rows>."; `assert_n_known_for_assignment()` (DesignFixed and the BinaryMatch override) errors "<class>: n is not known yet; pass n to $new() or add the subjects first (add_all_subjects_to_experiment())." The `n` roxygen of the fixed-design and ObservationalDesign constructors describes the rule. Before: all 11 designs (Bernoulli, iBCRD, Rerandomization, Greedy, GreedyDOptimal, BinaryMatch, Optimal, Blocking, Cluster, BlockedCluster, ObservationalDesign) stopped with "you must specify n upon initialization", and assigning first gave "replacement has length zero", a Rerandomization prob_T/n = 0 error, a BinaryMatch "no covariates" error, or was accepted (Optimal, Blocking, Cluster, BlockedCluster). After: each takes n = 24 from X_all with `get_w()` identical to `n = 24` for the same seed; ds-observational-44883784401-f1 covered. Test: `R/package_tests/testthat_bulk/test-fixed-design-n-inferred-from-subjects.R`; `test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R` updated to the owner's wording.
 
 - [x] TODO-299 (added 2026-11-20, coordinator, owner request; ds-clusters-blocking-44358267779-f2): **High priority:
   `approximate_bootstrap_distribution_beta_hat_T(bootstrap_type = ...)` returns cached draws of another

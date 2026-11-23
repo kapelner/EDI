@@ -114,7 +114,12 @@ DesignFixedBinaryMatch = define_design_class(
 		#'   relative to 1.0.x (measured at n = 1000, p = 4), so seeded designs and
 		#'   their downstream results differ from earlier versions.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
-		#' @param n  		The sample size.
+		#' @param n The sample size. If \code{NULL} (default), \code{n} is set to
+		#'   \code{nrow(X_all)} when the subjects are added with
+		#'   \code{add_all_subjects_to_experiment()}; a given \code{n} must equal
+		#'   \code{nrow(X_all)}. Assigning before the subjects are added needs \code{n}
+		#'   (a covariate-free design such as iBCRD or Bernoulli can then assign without
+		#'   \code{X}).
 		#' @param m Optional integer vector of explicit matched-pair identifiers, one per
 		#'   subject. If supplied, `n` must also be supplied, `length(m)` must equal `n`,
 		#'   all values must be positive, and each pair ID must occur exactly twice.
@@ -174,6 +179,7 @@ DesignFixedBinaryMatch = define_design_class(
 		#'   supplied, it is used directly as the treatment allocation instead of drawing
 		#'   a fresh within-pair-randomized allocation.
 		assign_w_to_all_subjects = function(w_precomputed = NULL){
+			private$assert_n_known_for_assignment() # v1.0.6-TODO-298
 			private$ensure_matching_structure_computed()
 			super$assign_w_to_all_subjects(w_precomputed)
 		}
