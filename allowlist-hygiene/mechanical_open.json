@@ -1,0 +1,9 @@
+{
+ "allowlist-hygiene-mc649621d": {
+  "first_seen": "2026-11-23T19:12:04+00:00",
+  "key": "embedded-todo-ticked:`R/EDI/tests/testthat/test-same-binary-determinism-registry.R` line #: `SAME_BINARY_KNOWN_FAILURES` is tracked by `release_v#_#_#.md TODO-#`, which is ticked (`release_v#_#_#.md \u2192 TODO-#` is ticked); remove its entries or cite an open TODO.",
+  "last_seen": "2026-11-23T19:12:04+00:00",
+  "text": "`R/EDI/tests/testthat/test-same-binary-determinism-registry.R` line 60: `SAME_BINARY_KNOWN_FAILURES` is tracked by `release_v1_0_6.md TODO-35`, which is ticked (`release_v1_0_6.md \u2192 TODO-35` is ticked); remove its entries or cite an open TODO.",
+  "unit": "R/EDI/tests/testthat/test-same-binary-determinism-registry.R::SAME_BINARY_KNOWN_FAILURES"
+ }
+}
