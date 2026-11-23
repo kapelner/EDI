@@ -25,6 +25,22 @@ assertBootstrapArgs = function(B, min_number_usable_samples = NULL, type = NULL,
 	invisible(NULL)
 }
 
+# v1.0.6-TODO-347 (2026-11-24): no inference class honours an offset() term in
+# a model formula; create_model_matrix_from_features() silently dropped it, so a
+# fit "with" an offset equalled the fit without it. Refuse it, whatever the
+# assertion setting (offset support is v1.1.0-TODO-17a).
+edi_refuse_formula_offset = function(model_formula, context = "model_formula"){
+	if (is.null(model_formula) || !inherits(model_formula, "formula")) return(invisible(NULL))
+	if (!is.null(attr(stats::terms(model_formula), "offset"))) {
+		stop(
+			context, " contains an offset() term; offsets are not supported yet ",
+			"(they would be ignored). Remove offset() from the formula.",
+			call. = FALSE
+		)
+	}
+	invisible(NULL)
+}
+
 assertFormulaContext = function(model_formula, data, context = "model_formula"){
 	if (!should_run_asserts()) return(invisible(NULL))
 	assertFormula(model_formula, null.ok = TRUE)

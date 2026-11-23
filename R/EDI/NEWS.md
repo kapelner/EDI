@@ -1208,6 +1208,16 @@
 
 ### Inference
 
+* An `offset()` term in `model_formula` (or in a count class's
+  `model_formula_zero` / `model_formula_hurdle`) is now refused with an error at
+  `$new()`, whatever the assertion setting. It used to be accepted, echoed by
+  `get_model_formula()` and silently dropped, so a Poisson, negative-binomial or
+  zero-inflated fit "with" an offset equalled the fit without it. Offsets are
+  not supported yet (v1.0.6-TODO-347). The `model_formula_zero` docs of
+  `InferenceCountZeroInflatedNegBin` and the `model_formula_hurdle` docs of
+  `InferenceCountHurdlePoisson` / `InferenceCountHurdleNegBin` now say that the
+  treatment is always included, so `~ 1` fits that part on the treatment only.
+
 * `InferenceSurvivalCoxPHRegr` on interval-censored data: with `set_seed()`, the
   Wald CI and p-value (whose SE comes from `icenReg::ic_sp()`'s bootstrap) no
   longer depend on the global RNG state, and the session stream is left as it

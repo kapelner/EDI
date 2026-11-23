@@ -6600,7 +6600,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `hurdle:` names; relates to v1.1.0-TODO-56 items 2-3. Done when: for these four classes the summary's treatment SE
   equals the SE implied by the asymptotic CI and HurdleNegBin's labels match HurdlePoisson's.
 
-- [ ] TODO-347 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Count model formulas:
+- [x] TODO-347 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Count model formulas:
   `offset()` is silently dropped, and `~ 1` for the zero/hurdle part is under-documented.**
   Ids: ds-count-44883784401-f1, ds-count-44883784401-f4.
   `offset(log_fu)` in `model_formula` is accepted, echoed by `get_model_formula()`, and dropped: Poisson, NegBin and
@@ -6611,6 +6611,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   non-NULL ("offsets are not supported yet"), outside the `should_run_asserts()` gate; copy the "treatment is always
   included" sentence to the other three pages. Done when: `~ offset(x) + ...` errors for every count class and all
   four Rd pages say what `~ 1` fits.
+  Done 2026-11-24: `edi_refuse_formula_offset()` (`R/EDI/R/helper_additional_asserts.R`) errors on `attr(terms(f), "offset")`, outside the `should_run_asserts()` gate, from `Inference$initialize()` (`model_formula`, so every class), the zero-augmented abstract (`model_formula_zero`) and `InferenceCountHurdleNegBin` (`model_formula_hurdle`). Before: `InferenceCountPoisson` with `~ x1 + offset(log_fu)` gave 0.3535 = the no-offset fit (glm with the offset: 0.2548); after: "model_formula contains an offset() term; offsets are not supported yet". The "treatment is always included, so `~ 1` ..." sentence is in the ZINB `model_formula_zero` and both hurdle `model_formula_hurdle` roxygen (ZIP already had it); the Rd pages pick it up at the next roxygenize. Test: `R/package_tests/testthat_bulk/test-count-model-formula-offset-term-refused.R` (8 count classes, asserts off, zero/hurdle formulas); 17 formula bulk files pass.
 
 - [ ] TODO-348 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Testing types are listed as
   supported, then refused or answered with "no error message was recorded".**

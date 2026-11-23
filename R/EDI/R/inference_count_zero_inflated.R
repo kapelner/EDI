@@ -495,6 +495,8 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param model_formula_zero Formula for the zero-inflation submodel. If
 		#'   \code{NULL} (default), it uses the same formula as \code{model_formula}.
+		#'   The treatment is always included, so \code{~ 1} fits the zero-inflation
+		#'   probability on the treatment only.
 		#' @param use_rcpp Logical. If \code{TRUE} (default), use our internal Rcpp
 		#'   implementation. If \code{FALSE}, use \pkg{glmmTMB}.
 		#' @param verbose Whether to print progress messages.

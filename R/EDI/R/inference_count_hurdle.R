@@ -147,6 +147,8 @@ InferenceCountHurdlePoisson = define_inference_class(
 		#' @param model_formula Optional formula for the count submodel.
 		#' @param model_formula_hurdle Formula for the hurdle submodel. If
 		#'   \code{NULL} (default), it uses the same formula as \code{model_formula}.
+		#'   The treatment is always included, so \code{~ 1} fits the hurdle
+		#'   (zero vs. positive) probability on the treatment only.
 		#' @param use_rcpp Logical. If \code{TRUE} (default), use the internal Rcpp
 		#'   implementation. If \code{FALSE}, use \pkg{glmmTMB}.
 		#' @param verbose Whether to print progress messages.
@@ -426,6 +428,8 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param model_formula_hurdle Formula for the hurdle submodel. If
 		#'   \code{NULL} (default), it uses the same formula as \code{model_formula}.
+		#'   The treatment is always included, so \code{~ 1} fits the hurdle
+		#'   (zero vs. positive) probability on the treatment only.
 		#' @param verbose A flag indicating whether messages should be displayed.
 		#' @param smart_cold_start_default   Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, model_formula_hurdle = NULL, verbose = FALSE, smart_cold_start_default = NULL){
@@ -433,6 +437,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 				assertResponseType(des_obj$get_response_type(), "count")
 				assertFormula(model_formula_hurdle, null.ok = TRUE)
 			}
+			edi_refuse_formula_offset(model_formula_hurdle, context = "model_formula_hurdle")
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (is.null(model_formula_hurdle)) {
 				model_formula_hurdle = private$model_formula

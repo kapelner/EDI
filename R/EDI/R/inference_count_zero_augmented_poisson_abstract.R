@@ -45,6 +45,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				assertFormula(model_formula_zero, null.ok = TRUE)
 				assertFlag(use_rcpp)
 			}
+			edi_refuse_formula_offset(model_formula_zero, context = "model_formula_zero")
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (is.null(model_formula_zero)) {

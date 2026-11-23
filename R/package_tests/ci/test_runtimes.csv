@@ -214,6 +214,7 @@ R/package_tests/testthat_bulk/test-count-likelihood-families-focused.R,correctne
 R/package_tests/testthat_bulk/test-count-likelihood-plumbing-is-a-count-likelihood-marker-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-likelihood-plumbing-tests-block-guard-and-ci-dispatch-reference.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-model-and-bootstrap-contracts.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-count-model-formula-offset-term-refused.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-negbin-deferred-fit-and-count-response-guard.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1999,6 +2000,7 @@ R/package_tests/testthat_bulk/test-count-likelihood-families-focused.R,coverage,
 R/package_tests/testthat_bulk/test-count-likelihood-plumbing-is-a-count-likelihood-marker-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-likelihood-plumbing-tests-block-guard-and-ci-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-model-and-bootstrap-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-count-model-formula-offset-term-refused.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-negbin-deferred-fit-and-count-response-guard.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-poisson-design-conservative-pval-ci-and-jackknife-wrappers-reference.R,coverage,240,bootstrap

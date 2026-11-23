@@ -49,7 +49,8 @@ Inference = R6::R6Class("Inference",
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
+		#'   design's imputed covariates. An \code{offset()} term is refused with an
+		#'   error: offsets are not supported yet.
 		#' @param smart_cold_start_default Whether to use smart cold start values by default for
 		#'   likelihood-based models. Explicit starts always override this object-level policy.
 		#'   \code{NULL} (default) consults the global cold-start dispatch policy.
@@ -58,6 +59,7 @@ Inference = R6::R6Class("Inference",
 			if (is.null(smart_cold_start_default)) {
 				smart_cold_start_default = edi_cold_start_dispatch_policy(class(self)[1])
 			}
+			edi_refuse_formula_offset(model_formula, context = "model_formula")
 			if (should_run_asserts()) {
 				assertClass(des_obj, "Design")
 				assertFlag(verbose)
