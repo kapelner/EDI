@@ -1,4 +1,22 @@
 {
+ "R/package_metadata/audits/research_findings/2026-11-19-run44618445718-searches.md:841#term30": {
+  "hash": "53a891944dd8312f",
+  "judged_at": "2026-11-23T17:58:25+00:00",
+  "kind": "benign",
+  "text": "[TERM #30] is part of the host name of a third-party GitHub Pages site, in a URL the research audit fetched about quantile regression. It looks like a different word or an external account handle, not the private term used as a reference to a person in this repo."
+ },
+ "R/package_metadata/audits/research_findings/2026-11-19-run44618445718.md:91#term30": {
+  "hash": "82d22922ab5d7204",
+  "judged_at": "2026-11-23T17:58:25+00:00",
+  "kind": "benign",
+  "text": "Same external GitHub Pages URL as the other hits, listed in a research finding's Sources line. [TERM #30] appears only inside the host name of a public third-party site."
+ },
+ "R/package_metadata/audits/research_log.json:9681#term30": {
+  "hash": "2d1e3e3d28dfa772",
+  "judged_at": "2026-11-23T17:58:25+00:00",
+  "kind": "benign",
+  "text": "The same external URL, stored as one entry in a JSON list of sources the research audit visited. [TERM #30] is only part of a third-party host name, and the line says nothing about the owner."
+ },
  "R/package_metadata/new_feature_plans/v1_4_0/censored_count_response.md:406#term8": {
   "hash": "f520cac74c50b60c",
   "judged_at": "2026-11-17T10:08:27+00:00",

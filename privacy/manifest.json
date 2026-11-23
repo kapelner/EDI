@@ -1,6 +1,27 @@
 {
- "last_run": "2026-11-18T19:05:54+00:00",
+ "last_run": "2026-11-23T17:58:25+00:00",
  "units": {
+  "R/package_metadata/audits/research_findings/2026-11-19-run44618445718-searches.md:841#term30": {
+   "audited_at": "2026-11-23T17:58:25+00:00",
+   "deps": null,
+   "hash": "53a891944dd8312f",
+   "open_findings": 0,
+   "run": "45233033637"
+  },
+  "R/package_metadata/audits/research_findings/2026-11-19-run44618445718.md:91#term30": {
+   "audited_at": "2026-11-23T17:58:25+00:00",
+   "deps": null,
+   "hash": "82d22922ab5d7204",
+   "open_findings": 0,
+   "run": "45233033637"
+  },
+  "R/package_metadata/audits/research_log.json:9681#term30": {
+   "audited_at": "2026-11-23T17:58:25+00:00",
+   "deps": null,
+   "hash": "2d1e3e3d28dfa772",
+   "open_findings": 0,
+   "run": "45233033637"
+  },
   "R/package_metadata/new_feature_plans/v1_4_0/censored_count_response.md:406#term8": {
    "audited_at": "2026-11-17T10:08:27+00:00",
    "deps": null,
