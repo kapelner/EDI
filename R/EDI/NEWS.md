@@ -1173,6 +1173,15 @@
 
 ### Designs
 
+* Sequential designs with a fixed `n` now refuse subject `n + 1` with an error
+  (it used to be enrolled: `t = n + 1`, `w` grew, `get_n()` stayed `n`, and
+  inference ran on `n + 1` subjects), and a covariate value whose type differs
+  from its column's (a number arriving as text) is converted to the stored
+  type, or refused with an error naming the column when it cannot be, with the
+  design left unchanged. It used to warn once and retype the stored column for
+  every earlier subject, which changed later assignments and made the final
+  analysis `NA` (v1.0.6-TODO-351).
+
 * `clone(deep = TRUE)` of a sequential design no longer shares assignment
   state with the original (v1.0.6-TODO-350). `DesignSeqOneByOneSPBR` and
   `DesignSeqOneByOneRandomBlockSize` kept their per-stratum block queues in an
