@@ -1370,7 +1370,6 @@
 "InferenceOrdinalKKCLMM::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceOrdinalKKCLMM","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMM::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMM","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMM::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalKKCLMM","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalKKCLMM::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMM","compute_rand_two_sided_pval",10,TRUE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMM::compute_subsampling_confidence_interval","r6_public_method","InferenceOrdinalKKCLMM","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMM::compute_subsampling_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMM","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCauchit::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalKKCLMMCauchit","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1388,7 +1387,6 @@
 "InferenceOrdinalKKCLMMCauchit::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCauchit::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCauchit::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalKKCLMMCauchit::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_rand_two_sided_pval",10,TRUE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCauchit::compute_subsampling_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCauchit::compute_subsampling_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCauchit","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCloglog::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalKKCLMMCloglog","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1406,7 +1404,6 @@
 "InferenceOrdinalKKCLMMCloglog::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCloglog::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCloglog::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalKKCLMMCloglog::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_rand_two_sided_pval",10,TRUE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCloglog::compute_subsampling_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMCloglog::compute_subsampling_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMCloglog","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMProbit::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalKKCLMMProbit","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
@@ -1424,7 +1421,6 @@
 "InferenceOrdinalKKCLMMProbit::compute_rand_bootstrap_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_rand_bootstrap_confidence_interval",8,TRUE,TRUE,6,16,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMProbit::compute_rand_bootstrap_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_rand_bootstrap_two_sided_pval",10,TRUE,TRUE,5,14,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMProbit::compute_rand_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceOrdinalKKCLMMProbit::compute_rand_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_rand_two_sided_pval",10,TRUE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMProbit::compute_subsampling_confidence_interval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_subsampling_confidence_interval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCLMMProbit::compute_subsampling_two_sided_pval","r6_public_method","InferenceOrdinalKKCLMMProbit","compute_subsampling_two_sided_pval",9,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalKKCondAdjCatLogitRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","approximate_bayesian_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,2,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
