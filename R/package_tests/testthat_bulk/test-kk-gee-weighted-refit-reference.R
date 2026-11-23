@@ -59,6 +59,14 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 	# over 20 seeds of this fixture, |EDI - geepack| was at most 0.035 weighted
 	# but at most 0.003 unweighted. The 2e-2 bar only held for the old KK14
 	# assignments; the v1.0.6-TODO-45 matching fix changed w and the data here.
+	# v1.0.6-TODO-47 (2026-11-24): which side is wrong? Neither. EDI's beta solves the weighted GEE
+	# U(beta; alpha) = sum D' V^-1 (W^1/2 r) at its own alpha (|U| = 1.2e-9) and geepack's beta solves the
+	# same equation at geepack's alpha (|U| = 4.3e-5, its tolerance). They differ only in the exchangeable
+	# alpha moment estimator: EDI 0.027, geepack 0.123 on this draw (the unweighted alpha is -0.061 / -0.058).
+	# EDI uses Liang-Zeger's weighted moments with N - p and n_pairs - p; geepack's weighted alpha equation
+	# is noisier (over 30 weight draws both average -0.065 / -0.069, SD 0.027 vs 0.058). With alpha fixed
+	# at EDI's value (corstr = "fixed") geepack reproduces EDI's beta to 3e-8, checked below on several
+	# draws; this looser comparison against geepack's own alpha stays at 5e-2.
 	expect_equal(as.numeric(est_pkg), as.numeric(coef(mod_ref)["w"]), tolerance = 5e-2)
 
 	# Unit weights reproduce the unweighted estimate.
@@ -89,6 +97,30 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 	# The documented no-variance contract: SE/df are always left NA/Inf.
 	expect_true(is.na(inf$.__enclos_env__$private$weighted_refit_se()))
 	expect_equal(inf$.__enclos_env__$private$last_weighted_refit$df, Inf)
+})
+
+test_that("KK GEE weighted refit equals geepack with the working correlation fixed at EDI's alpha", {
+	# v1.0.6-TODO-47: isolates the beta solver from the alpha moment-estimator convention (see above).
+	skip_if_not_installed("geepack")
+	for (seed in c(20260918, 1, 2, 3, 4)) {
+		set.seed(seed)
+		f <- make_kk_gee_design()
+		weights <- runif(f$n, 0.3, 2.5)
+		inf <- InferencePropKKGEE$new(f$des, use_rcpp = TRUE, verbose = FALSE)
+		install_subject_bayesian_bootstrap_context(inf, f$n)
+		est_pkg <- inf$compute_estimate_with_bootstrap_weights(weights)
+		ord <- order(f$group_id)
+		d <- data.frame(y = f$y, w = f$w, x1 = f$x1, x2 = f$x2)[ord, ]
+		id <- f$group_id[ord]
+		wt <- weights[ord]
+		fit_edi <- EDI:::gee_pairs_singletons_weighted_cpp(cbind(1, as.matrix(d[, c("w", "x1", "x2")])),
+			as.numeric(d$y), as.integer(id), "binomial", wt)
+		expect_equal(as.numeric(est_pkg), as.numeric(fit_edi$beta[2]), tolerance = 1e-8, info = seed)
+		n_pairs <- sum(table(id) == 2L)
+		mod_fixed <- suppressWarnings(geepack::geeglm(y ~ w + x1 + x2, data = d, id = id, weights = wt,
+			family = binomial("logit"), corstr = "fixed", zcor = rep(fit_edi$alpha, n_pairs)))
+		expect_equal(as.numeric(coef(mod_fixed)), as.numeric(fit_edi$beta), tolerance = 1e-6, info = seed)
+	}
 })
 
 test_that("KK GEE weighted-bootstrap refit's use_rcpp=FALSE geepack fallback now matches an independent weighted geepack fit (bug fixed)", {

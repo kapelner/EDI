@@ -102,6 +102,36 @@ test_that("fast KK GEE direct solver matches geepack for binomial and Poisson", 
 	}
 })
 
+test_that("with alpha fixed at EDI's value geepack reproduces EDI's GEE beta", {
+	# v1.0.6-TODO-47 (2026-11-24): EDI's and geepack's exchangeable GEE differ only in the alpha moment
+	# estimator. EDI uses Liang-Zeger's sum r_i r_j / ((n_pairs - p) phi) with phi = sum r^2 / (N - p);
+	# geepack uses no p correction, sum r_i r_j / (n_pairs sum r^2 / N) (checked: -0.058312 vs geepack
+	# -0.0583124 on the TODO-47 fixture). Given the same alpha, both solve the same estimating equation, so beta
+	# agrees to the solvers' tolerance. The wrapper comparisons below therefore keep their looser
+	# exchangeable-alpha tolerances (e.g. 5e-3 for incidence): that gap is the alpha convention.
+	skip_if_not_installed("geepack")
+	for (seed in 1:4) {
+		set.seed(seed)
+		n_pairs <- 120L
+		n_single <- 60L
+		group_id <- c(rep(seq_len(n_pairs), each = 2L), n_pairs + seq_len(n_single))
+		n <- length(group_id)
+		X <- cbind("(Intercept)" = 1, w = rbinom(n, 1L, 0.5), x1 = rnorm(n))
+		b <- rnorm(max(group_id), sd = 0.45)
+		eta <- drop(X %*% c(0.3, -0.4, 0.2) + b[group_id])
+		for (family in c("binomial", "poisson")) {
+			y <- if (family == "binomial") rbinom(n, 1L, plogis(eta)) else rpois(n, exp(pmin(eta, 5)))
+			fit_edi <- EDI:::gee_pairs_singletons_cpp(X, y, group_id, family_str = family)
+			df <- data.frame(y = y, w = X[, "w"], x1 = X[, "x1"])
+			mod_fixed <- suppressWarnings(geepack::geeglm(y ~ w + x1, data = df, id = group_id,
+				family = if (family == "binomial") stats::binomial("logit") else stats::poisson("log"),
+				corstr = "fixed", zcor = rep(fit_edi$alpha, n_pairs)))
+			expect_equal(as.numeric(stats::coef(mod_fixed)), as.numeric(fit_edi$beta), tolerance = 1e-6,
+				info = paste(family, seed))
+		}
+	}
+})
+
 test_that("fast exchangeable Poisson GEE applies the Pearson-dispersion correction to alpha", {
 	skip_if_not_installed("geepack")
 	set.seed(20261010)
@@ -135,6 +165,9 @@ test_that("incidence, count, and proportion KK GEE wrappers match backend fits",
 	# count/proportion siblings below, which already use far looser tolerances.
 	# 2026-11-17: est 5e-3. After the v1.0.6-TODO-45 KK14 matching fix (more pairs
 	# form) this fixture's two solvers differ by 3.2e-3 relative (-0.537 vs -0.535).
+	# v1.0.6-TODO-47 (2026-11-24): that gap is the alpha moment-estimator convention (EDI subtracts p,
+	# geepack does not), not a solver error: see "with alpha fixed at EDI's value geepack reproduces
+	# EDI's GEE beta" above.
 	compare_kk_gee_wrapper_paths("InferenceIncidKKGEE", des_incid, use_rcpp_tolerance_est = 5e-3, use_rcpp_tolerance_se = 1e-4)
 
 	des_count <- make_kk_design_for_gee_test("count")

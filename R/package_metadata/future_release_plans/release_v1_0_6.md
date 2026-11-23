@@ -1077,7 +1077,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - Still to do: implementing Morrison's calibration itself, if wanted (the v1.2.0 KK14 incremental-covariance
     note already mentions the argument); the power-simulation scripts in `R/package_tests/*bai_et_al.R` pass
     `morrison = TRUE` and have been running the standard schedule all along.
-- [ ] TODO-47 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **KK GEE
+- [x] TODO-47 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **KK GEE
   weighted refit disagrees with its reference by 6%.** On the data the corrected KK14 threshold produces,
   `R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R` gets -0.616 from EDI vs -0.581 from the
   reference. Also `test-kk-gee-parity.R`: EDI's GEE vs geepack differ by 3.2e-3 relative against a 1e-3
@@ -1085,6 +1085,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   fixture hid both. Find which side is wrong (working correlation, weights, convergence tolerance, or the
   reference call) before re-pinning either test; do not restore the old fixture with a smaller `lambda` to make
   them pass. Done when the two agree to a justified tolerance on several seeds.
+  Done 2026-11-24 (owner request): neither side is wrong; the two solve the same estimating equation with different exchangeable-alpha moment estimators. Weighted fixture (`test-kk-gee-weighted-refit-reference.R`, seed 20260918): EDI beta_w -0.61639, alpha 0.02655, converged, |U(beta_EDI; alpha_EDI)| = 1.2e-9 with U = sum D' V^-1 W^1/2 r; geepack -0.58137, alpha 0.12252, |U(beta_geepack; alpha_geepack)| = 4.3e-5 (its tolerance) under the same U, |U(beta_geepack; alpha_EDI)| = 0.53. `geeglm(corstr = "fixed", zcor = alpha_EDI)` reproduces EDI's beta to 3.3e-8. The alphas: EDI is Liang-Zeger (sum w_ij r_i r_j / ((n_pairs - p) phi), phi = sum w r^2 / (N - p)); geepack applies no p correction (unweighted: num / (n_pairs sum r^2 / N) gives -0.058312 = geepack's -0.0583124; EDI -0.06087) and its weighted alpha is noisier (30 weight draws: mean -0.065 / -0.069, SD 0.027 / 0.058). Unweighted the same: EDI beta_w -0.64141, geepack -0.64052, geepack at alpha_EDI -0.64141. Tests: both files now also check geepack with alpha fixed at EDI's value at 1e-6 (5 weighted draws; 4 seeds x binomial/Poisson for the direct solver); the exchangeable-alpha comparisons keep 5e-2 (weighted) and 5e-3 (incidence wrapper), documented as the alpha convention. No code change, no NEWS.
 - [ ] TODO-48 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **KK
   ordinal CLMM cloglog link disagrees with `ordinal::clmm`.** On the new KK14 data,
   `R/package_tests/testthat_bulk/test-ordinal-kk-clmm-matches-clmm-all-links-reference.R` gets 0.815 vs clmm's
