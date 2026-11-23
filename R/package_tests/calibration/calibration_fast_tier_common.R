@@ -229,12 +229,78 @@ cal_clean_msg <- function(x) {
 	substr(gsub("[\r\n\t,]+", " ", x), 1L, 300L)
 }
 
+# Calibration-only p-value procedures (v1.1.0-TODO-269): a typed call of one of EDI's run_all_inference() sentinels
+# that the suite itself does not enumerate, so it gets its own procedure label here. Each entry: `base` (the sentinel
+# whose task it rides on: it runs only where that task exists, for the same formula, right after it), `method` (the
+# public method called), `args` (its extra arguments), `classes` (the only classes it runs for) and `capability` (the
+# private method a class of the INSTALLED EDI must have; an EDI without it gets no task, so a build from before the
+# feature is skipped cleanly instead of erroring on every replicate). The label must also be in
+# EDI_INFERENCE_PROCEDURE_VARIANTS (inference_procedure_regime.R), which gives it its base sentinel's regime and
+# convergence entries in the gate.
+#   rand_score: the KK CLMM classes' opt-in score-at-the-null randomization statistic,
+#               compute_rand_two_sided_pval(type = "score") (DECISION-v1.1.0-TODO-267 (a)). Same r (the method's
+#               default, 501) and the same draws as `rand`: both take the design's cached permutations.
+CAL_EXTRA_PVAL_PROCEDURES <- list(
+	rand_score = list(base = "rand", method = "compute_rand_two_sided_pval", args = list(type = "score"),
+		classes = c("InferenceOrdinalKKCLMM", "InferenceOrdinalKKCLMMProbit", "InferenceOrdinalKKCLMMCauchit", "InferenceOrdinalKKCLMMCloglog"),
+		capability = "compute_clmm_score_rand_pval")
+)
+
+# Whether the installed EDI's class `cls_name` (or an ancestor) defines private method `method`. `ns` is injectable for tests.
+cal_class_has_private_method <- function(cls_name, method, ns = asNamespace("EDI")) {
+	gen <- get0(cls_name, envir = ns, inherits = FALSE)
+	while (inherits(gen, "R6ClassGenerator")) {
+		if (is.function(gen$private_methods[[method]])) return(TRUE)
+		gen <- gen$get_inherit()
+	}
+	FALSE
+}
+
+# Whether extra procedure `label` can run for `cls_name` on the installed EDI.
+cal_extra_procedure_applies <- function(label, cls_name, extras = CAL_EXTRA_PVAL_PROCEDURES, has_method = cal_class_has_private_method) {
+	e <- extras[[label]]
+	!is.null(e) && cls_name %in% e$classes && isTRUE(has_method(cls_name, e$capability))
+}
+
+# Adds the extra-procedure tasks of `methods` to EDI's task list: one copy of each `base` task of an applicable class,
+# relabelled, right after it.
+cal_add_extra_tasks <- function(tasks, methods, extras = CAL_EXTRA_PVAL_PROCEDURES, applies = cal_extra_procedure_applies) {
+	wanted <- intersect(methods, names(extras))
+	if (!length(wanted) || !length(tasks)) return(tasks)
+	out <- list()
+	for (task in tasks) {
+		out[[length(out) + 1L]] <- task
+		for (lab in wanted) {
+			if (!identical(task$method, extras[[lab]]$base) || !isTRUE(applies(lab, task$cls_name, extras))) next
+			x <- task
+			x$method <- lab
+			x$result_name <- sub(sprintf("\\{%s\\}$", task$method), sprintf("{%s}", lab), task$result_name)
+			out[[length(out) + 1L]] <- x
+		}
+	}
+	out
+}
+
+# p-value of an extra procedure, in run_all_inference_call_pval_for_method()'s shape (pval, method, error).
+cal_extra_pval <- function(inf_obj, label, extras = CAL_EXTRA_PVAL_PROCEDURES) {
+	e <- extras[[label]]
+	f <- inf_obj[[e$method]]
+	if (!is.function(f)) return(list(pval = NA_real_, method = NA_character_))
+	args <- e$args
+	if ("show_progress" %in% names(formals(f))) args$show_progress <- FALSE
+	pv <- tryCatch(do.call(f, args), error = function(err) err)
+	if (inherits(pv, "error")) return(list(pval = NA_real_, method = label, error = conditionMessage(pv)))
+	if (length(pv) == 1L && is.finite(pv)) return(list(pval = as.numeric(pv), method = label))
+	list(pval = NA_real_, method = label, error = "returned a non-finite p-value")
+}
+
 # The (class, formula, method) tasks cal_run_tasks() runs for `classes` on one design, without fitting anything:
-# one per row it returns. The study's roster (build_calibration_study_roster.R) counts these.
+# one per row it returns. The study's roster (build_calibration_study_roster.R) counts these. Labels of
+# CAL_EXTRA_PVAL_PROCEDURES in `methods` are not sentinels: they are added after EDI builds the rest.
 cal_task_list <- function(des, classes, methods = CAL_METHODS) {
 	if (!length(classes)) return(list())
-	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, methods, des_obj = des)
-	Filter(function(task) !is.na(task$method), tasks)
+	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, setdiff(methods, names(CAL_EXTRA_PVAL_PROCEDURES)), des_obj = des)
+	cal_add_extra_tasks(Filter(function(task) !is.na(task$method), tasks), methods)
 }
 
 # Runs every (class, formula, method) task for `classes` on one design. Returns
@@ -260,7 +326,8 @@ cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE, me
 			row$null_value <- cal_null_value(inf_obj)
 			ci <- if (task$method %in% pval_only) list(lower = NA_real_, upper = NA_real_, error = NULL)
 				else EDI:::run_all_inference_call_ci_for_method(inf_obj, alpha, task$method)
-			pv <- EDI:::run_all_inference_call_pval_for_method(inf_obj, task$method)
+			pv <- if (task$method %in% names(CAL_EXTRA_PVAL_PROCEDURES)) cal_extra_pval(inf_obj, task$method)
+				else EDI:::run_all_inference_call_pval_for_method(inf_obj, task$method)
 			row$ci_a <- ci$lower
 			row$ci_b <- ci$upper
 			row$pval <- pv$pval

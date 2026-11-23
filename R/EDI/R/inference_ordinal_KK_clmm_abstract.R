@@ -1,3 +1,10 @@
+# v1.0.6-TODO-48 (owner ruling 2026-11-24, DECISION-v1.0.6-TODO-48): every KK CLMM kernel fit uses a
+# 60-node Gauss-Hermite rule (the kernel default is 20), as the Poisson GLMM does since 2026-10-24. At a
+# fitted sigma of 2-2.6 the 20-node rule's marginal likelihood is off enough that EDI's maximizer was not
+# the MLE (cloglog, n = 60: treatment 0.8146 vs ordinal::clmm's 0.7755); with 60 nodes it lands on clmm's
+# optimum (0.7752).
+KK_CLMM_N_GH = 60L
+
 #' Abstract class for ordinal CLMM-based Inference in KK designs
 #'
 #' @details
@@ -171,8 +178,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		#'   details). Both are exact randomization tests of the sharp null of no effect; they
 		#'   use different statistics, so their p-values and power differ.
 		#' @param r Number of randomization draws (default 501).
-		#' @param delta Null treatment effect (default 0). \code{type = "score"} supports only
-		#'   0 and errors otherwise.
+		#' @param delta Null treatment effect (default 0). Only 0 is supported, for both the default
+		#'   statistic and \code{type = "score"}; any other value errors: no sharp null exists on the latent
+		#'   log-odds scale, and shifting the ordinal levels by \code{delta} would test a different hypothesis.
 		#' @param transform_responses Response transform for the default statistic (see
 		#'   \code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with
 		#'   \code{type = "score"}.
@@ -200,6 +208,15 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				return(private$compute_clmm_score_rand_pval(r = r, delta = delta, transform_responses = transform_responses,
 					permutations = permutations, args_for_type = args_for_type, alternative = alternative))
 			}
+			# v1.1.0-TODO-267 (owner 2026-11-24, DECISION-v1.1.0-TODO-267b (d)): the default statistic tests only
+			# delta = 0. The shared delta-shift adds delta to the treated subjects' integer levels (1..K become
+			# 1, 1 + delta, ...), which is not the null "latent log-odds coefficient = delta" that this estimand
+			# needs, and no sharp null exists on that scale; so refuse instead of testing the wrong hypothesis.
+			if (!isTRUE(all.equal(as.numeric(delta), 0))) {
+				stop("compute_rand_two_sided_pval() for the KK CLMM classes tests only delta = 0: there is no sharp ",
+					"null on the latent log-odds scale, and shifting the ordinal levels by delta would test a ",
+					"different hypothesis.", call. = FALSE)
+			}
 			# Otherwise the shared InferenceRandCI method, as pinned before (it rejects any other type).
 			core_fn = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 			environment(core_fn) = environment()
@@ -212,7 +229,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		is_a_kk_ordinal_clmm = function() TRUE,
 		# v1.1.0-TODO-267: score statistic for beta_T at the null fit. The CLMM is fit once with the
 		# treatment coefficient fixed at 0 (fixed_idx); r_i is the posterior mean, over unit i's group
-		# random intercept (the kernel's 20-node Gauss-Hermite rule), of d log p(y_i | eta_i) / d eta_i.
+		# random intercept (the kernel's KK_CLMM_N_GH-node Gauss-Hermite rule), of d log p(y_i | eta_i) / d eta_i.
 		# The score is T(w) = sum_i w_i r_i: w enters eta only through beta_T, which is 0, so r does not
 		# depend on w and each redraw is one inner product. Returns NULL when the null fit fails.
 		clmm_score_residuals = function(){
@@ -228,7 +245,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			if (is.null(start_nt)) return(NULL)
 			start = c(start_nt[seq_len(n_alpha)], 0, start_nt[-seq_len(n_alpha)])
 			call_args = list(X = X_fit, y = y, group_id = gid, K = K, j_T = 0L, link = private$clmm_link(),
-				estimate_only = TRUE, warm_start_params = start, eps_g = private$clmm_eps_g,
+				estimate_only = TRUE, warm_start_params = start, eps_g = private$clmm_eps_g, n_gh = KK_CLMM_N_GH,
 				fixed_idx = as.integer(n_alpha + 1L), fixed_values = 0)
 			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
 			fit = private$clmm_accept_fit(fit, call_args)$fit
@@ -244,7 +261,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			alpha = cumsum(c(fit$alpha[1L], exp(fit$alpha[-1L])))
 			eta0 = drop(X_fit %*% fit$b)
 			# Gauss-Hermite rule exactly as glmm::gauss_hermite_rule(): nodes x_k, weights w_k / sqrt(pi).
-			n_gh = 20L
+			n_gh = KK_CLMM_N_GH
 			J = matrix(0, n_gh, n_gh)
 			for (k in seq_len(n_gh - 1L)) { v = sqrt(k / 2); J[k, k + 1L] = v; J[k + 1L, k] = v }
 			es = eigen(J, symmetric = TRUE)
@@ -366,7 +383,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				j_T        = 0L,
 				link       = private$clmm_link(),
 				estimate_only = TRUE,
-				eps_g      = private$clmm_eps_g
+				eps_g      = private$clmm_eps_g,
+				n_gh       = KK_CLMM_N_GH
 			)
 			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
 			fit = private$clmm_accept_fit(fit, call_args)$fit
@@ -528,7 +546,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				estimate_only = estimate_only,
 				warm_start_params = start,
 				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-				eps_g         = private$clmm_eps_g
+				eps_g         = private$clmm_eps_g,
+				n_gh          = KK_CLMM_N_GH
 			)
 			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
 			accepted = private$clmm_accept_fit(fit, call_args)

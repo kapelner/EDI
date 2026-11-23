@@ -51,13 +51,44 @@ EDI_INFERENCE_PROCEDURE_REGIME = c(
 	rand_bootstrap            = "asymptotic"
 )
 
+#' Procedure labels that are a typed variant of a sentinel, not a sentinel
+#' themselves: label -> the sentinel it is a variant of. They take that
+#' sentinel's regime and its convergence-registry entries (every layer). Used
+#' by the calibration study (R/package_tests/calibration/, its
+#' CAL_EXTRA_PVAL_PROCEDURES), which records such a variant under its own
+#' label. Kept apart from EDI_INFERENCE_PROCEDURE_REGIME because that table
+#' must list exactly the run_all_inference() sentinels (inference_suite.R).
+#'   rand_score: compute_rand_two_sided_pval(type = "score") of the KK CLMM
+#'     classes (v1.1.0-TODO-267, DECISION-v1.1.0-TODO-267 (a); calibration
+#'     study v1.1.0-TODO-269). A randomization test with another statistic,
+#'     so exact under the sharp null like `rand`.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_PROCEDURE_VARIANTS = c(
+	rand_score = "rand"
+)
+
+#' The sentinel label a procedure label stands for: a variant
+#' (EDI_INFERENCE_PROCEDURE_VARIANTS) becomes its sentinel; every other label,
+#' registered or not, is returned unchanged.
+#'
+#' @keywords internal
+#' @noRd
+inference_procedure_base_label = function(procedure) {
+	procedure = as.character(procedure)
+	v = unname(EDI_INFERENCE_PROCEDURE_VARIANTS[procedure])
+	ifelse(is.na(v), procedure, v)
+}
+
 #' Regime of each procedure label: a character vector the length of `procedure`,
-#' `NA_character_` for a label that is not registered.
+#' `NA_character_` for a label that is not registered. A variant label
+#' (EDI_INFERENCE_PROCEDURE_VARIANTS) takes its sentinel's regime.
 #'
 #' @keywords internal
 #' @noRd
 inference_procedure_regime = function(procedure) {
-	unname(EDI_INFERENCE_PROCEDURE_REGIME[as.character(procedure)])
+	unname(EDI_INFERENCE_PROCEDURE_REGIME[inference_procedure_base_label(procedure)])
 }
 
 # ---------------------------------------------------------------------------

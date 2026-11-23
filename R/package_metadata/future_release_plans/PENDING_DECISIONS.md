@@ -29,7 +29,6 @@ Last updated 2026-11-24.
 | [DECISION-v1.4.0-TODO-1](#DECISION-v1.4.0-TODO-1) | [v1.4.0-TODO-1](release_v1_4_0.md) | The v1.4.0 Phase 0 decisions for the gated survival / censoring items |
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
 | [DECISION-v1.1.0-TODO-268](#DECISION-v1.1.0-TODO-268) | [v1.1.0-TODO-268](release_v1_1_0.md) | Turn on the sequential-MC early stop for the standalone randomization p-value (p-values change), and for which classes? |
-| [DECISION-v1.1.0-TODO-267b](#DECISION-v1.1.0-TODO-267b) | [v1.1.0-TODO-267](release_v1_1_0.md) | What randomization CI, if any, should the KK CLMM classes offer, and on which null? |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
 | [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
@@ -193,43 +192,6 @@ Last updated 2026-11-24.
   saving (about 3x at the null, 1.7x under power) is smaller than DECISION-v1.1.0-TODO-267's and stacks with the
   v1.1.0-TODO-265 retry and kernel fix ([DECISION-v1.1.0-TODO-265a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-265a)).
 - **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
-
-<a id="DECISION-v1.1.0-TODO-267b"></a>
-### DECISION-v1.1.0-TODO-267b: What randomization CI, if any, should the KK CLMM classes offer, and on which null?
-
-- **TODO:** [v1.1.0-TODO-267](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does
-  not need a full refit per redraw.**
-- **Context:** the owner left open (2026-11-24) whether the new `type = "score"` statistic should also drive a
-  randomization CI. What exists today (checked in the code, 2026-11-24):
-  1. **No CLMM randomization CI.** `compute_rand_confidence_interval()` stops for all four KK CLMM classes ("not
-     implemented for ordinal model-coefficient estimands"; they are in `EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES`).
-  2. **The default p-value at delta != 0 is on the wrong scale.** `shift_randomization_responses()` imposes the ordinal
-     sharp null as an additive shift of the treated subjects' integer levels (`y + delta`), and the CLMM refit then
-     takes `sort(unique(y))` as its levels: at delta = 0.5 the levels 1..4 become 1, 1.5, 2, ..., 4.5 (8 levels). That
-     tests "treated labels moved by delta", not "latent log-odds coefficient = delta", so inverting it would not give a
-     CI for the CLMM estimand. It is inconsistent, but nothing calls it at delta != 0 for these classes.
-  3. **No sharp null exists for a latent-coefficient hypothesis.** beta_T = delta does not determine a subject's
-     ordinal outcome under the other arm, so neither statistic gives an exact randomization CI on the log-odds scale.
-- **Options:**
-  - (a) keep refusing the randomization CI (status quo). The Wald, bootstrap and jackknife CIs remain.
-  - (b) a model-based score CI: at each delta, fit the CLMM once with beta_T fixed at delta (an offset), and compute
-    each redraw's score from the redraw's offset (the posterior weights depend on w through delta * w, so it is one
-    O(n x 20) pass per redraw, no refit). Cheap, but approximate: a conditional/permutation score test, not an exact
-    randomization test.
-  - (c) define an ordinal sharp-null scale first (an integer level shift with clamping, or a distributional shift),
-    then invert either statistic on it. This is a new estimand, not the CLMM coefficient.
-  - (d) also refuse `delta != 0` in the default randomization p-value for these classes (fixes item 2).
-- **Cost per interval (estimates):** a refit-statistic randomization CI cost 9-24 full r = 501 p-values on
-  `InferenceCountNegBin` (n = 200, 3 data sets, measured). For the default CLMM statistic, after v1.1.0-TODO-265, that is
-  155-258 s per p-value at n = 200, so 25 min to 1.7 h per interval, and 560-1,170 s at n = 1000, so 1.5-8 h. For (b):
-  per delta one null fit (about 0.1-0.3 s at n = 200, 0.6-1.2 s at n = 1000) plus about 1 ms / 5 ms per redraw, so
-  about 0.6 s / 3.5 s per p-value. A search evaluates roughly 20-50 deltas, so about 15-40 s per interval at n = 200
-  and 1-3 min at n = 1000.
-- **Code state:** the score p-value's private function takes `delta` (it refuses nonzero values today), so a CI search
-  can pass `type` through to it once a null is chosen; no CI guard was added.
-- **Recommendation (agent):** (a) + (d) now. Take (b) only if an approximate model-based interval is wanted, labeled as
-  such.
-- **Raised:** 2026-11-24, by the v1.1.0-TODO-265..268 agent (owner request via the coordinator).
 
 <a id="DECISION-v1.1.0-TODO-218"></a>
 ### DECISION-v1.1.0-TODO-218: Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit?

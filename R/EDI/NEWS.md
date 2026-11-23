@@ -1147,7 +1147,12 @@
   (250x-650x faster). Like any randomization test it is exact under the sharp
   null, with the same draws, tie rule and +1 counting as the default, but it is
   a different statistic, so p-values and power differ (n = 50, a 50%-power
-  effect: rejection rate 0.43 against 0.37). It tests only `delta = 0`. The
+  effect: rejection rate 0.43 against 0.37). It tests only `delta = 0`, and so
+  does the default statistic for these classes now: a nonzero `delta` errors,
+  because the shared delta-shift moved the ordinal levels (testing "treated
+  labels moved by delta", not "log-odds coefficient = delta") and no sharp null
+  exists on the latent log-odds scale. These classes still offer no
+  randomization CI (DECISION-v1.1.0-TODO-267b). The
   default (`type = NULL`) is unchanged; other classes reject `type = "score"`
   (v1.1.0-TODO-267).
 

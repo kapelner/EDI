@@ -26,6 +26,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) | [v1.2.0-TODO-207](release_v1_2_0.md) | randomization p-values: (b+1)/(B+1) per tail, two-sided doubled and capped at 1 | 2026-11-23 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
+| [DECISION-v1.1.0-TODO-267b](#DECISION-v1.1.0-TODO-267b) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) + (d): no randomization CI for the KK CLMM classes; their randomization p-value refuses `delta != 0` | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-267](#DECISION-v1.1.0-TODO-267) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) opt-in score-at-the-null statistic via `compute_rand_two_sided_pval(type = "score")` on the KK CLMM classes; default unchanged | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-266](#DECISION-v1.1.0-TODO-266) | [v1.1.0-TODO-266](release_v1_1_0.md) | (a) ruled out: CLMM redraws keep their own-data start; the observed-fit warm start reaches the same maxima but is 3-25% slower | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-265a](#DECISION-v1.1.0-TODO-265a) | [v1.1.0-TODO-265](release_v1_1_0.md) | (b) single-start Newton retry except at a far-from-stationary boundary, then (d) the kernel KKT polish | 2026-11-23 |
@@ -318,6 +319,47 @@ Last updated 2026-11-24.
 - **Rejected:** (a) the per-call adapter; (c) Eigen-only, deferred to `release_v2_0_0.md → TODO-7b` (a 1.x warning on Rcpp-typed sources pointing at the Eigen form is the deprecation path).
 
 ## v1.1.0
+
+<a id="DECISION-v1.1.0-TODO-267b"></a>
+### DECISION-v1.1.0-TODO-267b: What randomization CI, if any, should the KK CLMM classes offer, and on which null?
+
+- **TODO:** [v1.1.0-TODO-267](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does
+  not need a full refit per redraw.**
+- **Context:** the owner left open (2026-11-24) whether the new `type = "score"` statistic should also drive a
+  randomization CI. What exists today (checked in the code, 2026-11-24):
+  1. **No CLMM randomization CI.** `compute_rand_confidence_interval()` stops for all four KK CLMM classes ("not
+     implemented for ordinal model-coefficient estimands"; they are in `EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES`).
+  2. **The default p-value at delta != 0 is on the wrong scale.** `shift_randomization_responses()` imposes the ordinal
+     sharp null as an additive shift of the treated subjects' integer levels (`y + delta`), and the CLMM refit then
+     takes `sort(unique(y))` as its levels: at delta = 0.5 the levels 1..4 become 1, 1.5, 2, ..., 4.5 (8 levels). That
+     tests "treated labels moved by delta", not "latent log-odds coefficient = delta", so inverting it would not give a
+     CI for the CLMM estimand. It is inconsistent, but nothing calls it at delta != 0 for these classes.
+  3. **No sharp null exists for a latent-coefficient hypothesis.** beta_T = delta does not determine a subject's
+     ordinal outcome under the other arm, so neither statistic gives an exact randomization CI on the log-odds scale.
+- **Options:**
+  - (a) keep refusing the randomization CI (status quo). The Wald, bootstrap and jackknife CIs remain.
+  - (b) a model-based score CI: at each delta, fit the CLMM once with beta_T fixed at delta (an offset), and compute
+    each redraw's score from the redraw's offset (the posterior weights depend on w through delta * w, so it is one
+    O(n x 20) pass per redraw, no refit). Cheap, but approximate: a conditional/permutation score test, not an exact
+    randomization test.
+  - (c) define an ordinal sharp-null scale first (an integer level shift with clamping, or a distributional shift),
+    then invert either statistic on it. This is a new estimand, not the CLMM coefficient.
+  - (d) also refuse `delta != 0` in the default randomization p-value for these classes (fixes item 2).
+- **Cost per interval (estimates):** a refit-statistic randomization CI cost 9-24 full r = 501 p-values on
+  `InferenceCountNegBin` (n = 200, 3 data sets, measured). For the default CLMM statistic, after v1.1.0-TODO-265, that is
+  155-258 s per p-value at n = 200, so 25 min to 1.7 h per interval, and 560-1,170 s at n = 1000, so 1.5-8 h. For (b):
+  per delta one null fit (about 0.1-0.3 s at n = 200, 0.6-1.2 s at n = 1000) plus about 1 ms / 5 ms per redraw, so
+  about 0.6 s / 3.5 s per p-value. A search evaluates roughly 20-50 deltas, so about 15-40 s per interval at n = 200
+  and 1-3 min at n = 1000.
+- **Code state:** the score p-value's private function takes `delta` (it refuses nonzero values today), so a CI search
+  can pass `type` through to it once a null is chosen; no CI guard was added.
+- **Recommendation (agent):** (a) + (d) now. Take (b) only if an approximate model-based interval is wanted, labeled as
+  such.
+- **Raised:** 2026-11-24, by the v1.1.0-TODO-265..268 agent (owner request via the coordinator).
+- **Ruling:** (a) + (d), owner, 2026-11-24: the KK CLMM classes keep refusing the randomization CI, and their default randomization p-value now also refuses `delta != 0` (done 2026-11-24, coordinator: guard in `InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval()`, test in `test-ordinal-kk-clmm-score-statistic-randomization-pval.R`, roxygen / Rd `delta` doc, NEWS).
+- **Why:** No reason recorded.
+- **Rejected (for now):** (b) a model-based score CI and (c) an ordinal sharp-null scale; both are recorded as routes in `new_feature_plans/v1_1_0/ordinal_model_coefficient_randomization_confidence_intervals.md` (owner request, 2026-11-24), unscheduled.
+- **Revisit if:** v1.1.0-TODO-17j (ordinal model-coefficient randomization CIs) is taken up.
 
 <a id="DECISION-v1.1.0-TODO-267"></a>
 ### DECISION-v1.1.0-TODO-267: Ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not?

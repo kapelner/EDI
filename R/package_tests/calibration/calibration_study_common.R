@@ -44,8 +44,11 @@ CAL_STUDY_COEF <- 1 / sqrt(3 + 2 * 0.25)
 # here; its CI is tier 2. lik_ratio_bartlett_approx is tier 2: measured
 # 2026-11-09 it is 60-90% of a tier-1 replicate (18 of 32 s continuous, 77 of
 # 84 s incidence, n = 50), not analytic-cheap.
-CAL_STUDY_TIER1_METHODS <- c("wald", "score", "lik_ratio", "gradient", "exact", "rand")
-CAL_STUDY_TIER1_PVAL_ONLY <- "rand"
+# `rand_score` (v1.1.0-TODO-269) is p-value only too: the KK CLMM classes' score-statistic randomization test
+# (CAL_EXTRA_PVAL_PROCEDURES in calibration_fast_tier_common.R), run only for those four classes and only on an
+# installed EDI that has it. The default `rand` statistic still runs for them as before.
+CAL_STUDY_TIER1_METHODS <- c("wald", "score", "lik_ratio", "gradient", "exact", "rand", "rand_score")
+CAL_STUDY_TIER1_PVAL_ONLY <- c("rand", "rand_score")
 
 # Design label -> constructor extras. A label "<Design>@prob_T=<p>" runs <Design>
 # at prob_T = p (cal_plan_entry()).

@@ -253,8 +253,9 @@ assertions are enabled).}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{r}}{Number of randomization draws (default 501).}
-      \item{\code{delta}}{Null treatment effect (default 0). \code{type = "score"} supports only
-0 and errors otherwise.}
+      \item{\code{delta}}{Null treatment effect (default 0). Only 0 is supported, for both the default
+statistic and \code{type = "score"}; any other value errors: no sharp null exists on the latent
+log-odds scale, and shifting the ordinal levels by \code{delta} would test a different hypothesis.}
       \item{\code{transform_responses}}{Response transform for the default statistic (see
 \code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with
 \code{type = "score"}.}

@@ -94,6 +94,9 @@ test_that("every KK CLMM link offers type = 'score'; other types, delta != 0 and
 	}
 	inf <- InferenceOrdinalKKCLMM$new(des, verbose = FALSE)
 	expect_error(inf$compute_rand_two_sided_pval(type = "score", delta = 0.5), "delta = 0")
+	# DECISION-v1.1.0-TODO-267b (d): the default statistic also refuses delta != 0 (the level shift would
+	# test a different hypothesis than "log-odds coefficient = delta").
+	expect_error(inf$compute_rand_two_sided_pval(r = 99L, delta = 0.5), "only delta = 0")
 	expect_error(inf$compute_rand_two_sided_pval(type = "score", transform_responses = "log"), "transform_responses")
 	expect_error(inf$compute_rand_two_sided_pval(type = "Zhang"))
 	other <- InferenceOrdinalPropOddsRegr$new(des, verbose = FALSE)

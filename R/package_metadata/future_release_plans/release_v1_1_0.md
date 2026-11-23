@@ -2762,8 +2762,8 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   - CI: not wired (owner correction 2026-11-24: not ruled out, decide later). These classes refuse every
     randomization CI today (`EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES`), and the default p-value at delta != 0
     shifts the integer levels (1..4 -> 1, 1.5, ..., 4.5), not the latent log-odds coefficient. The private score
-    function takes `delta` so a CI search can pass `type` through. Owner decision pending:
-    [DECISION-v1.1.0-TODO-267b](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-267b) (what randomization CI, if any, should the KK CLMM classes offer, and on which null?).
+    function takes `delta` so a CI search can pass `type` through.
+  - Decided 2026-11-24 (owner): (a) + (d), no randomization CI, and the default p-value refuses `delta != 0` (done); routes (b) and (c) recorded in `ordinal_model_coefficient_randomization_confidence_intervals.md`; see [DECISION-v1.1.0-TODO-267b](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-267b).
 - [ ] TODO-268 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: fewer redraws at large n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Use fewer redraws when n is large (or a sequential Monte Carlo stopping rule, which EDI already has for
     randomization p-values), so the p-value resolution is kept where it matters (near alpha) and spent less elsewhere.

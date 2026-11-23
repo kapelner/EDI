@@ -154,3 +154,51 @@ support such null values estimator-specifically or reject them explicitly.
 The present guard prevents the package from constructing and reporting the
 known-invalid confidence intervals while preserving existing default-null test
 paths.
+
+## KK CLMM findings and the two routes forward (2026-11-24, coordinator, owner request)
+
+Context: v1.1.0-TODO-265..268 (release_v1_1_0.md) made the KK CLMM randomization p-value fast, including the
+opt-in `compute_rand_two_sided_pval(type = "score")` (v1.1.0-TODO-267), which is the score for the treatment
+coefficient at the null fit: one constrained fit at beta_T = 0, then one inner product per redraw. Owner ruling
+DECISION-v1.1.0-TODO-267b (2026-11-24): (a) the KK CLMM classes keep refusing the randomization CI, and (d) their
+default randomization p-value now also refuses `delta != 0` (the generic level shift tested "treated labels moved
+by delta", e.g. levels 1..4 became 1, 1.5, ..., 4.5, not "log-odds coefficient = delta"). That closes the gap the
+"Out of scope" paragraph above left open for these four classes. The two routes below are recorded for this plan;
+neither is scheduled.
+
+### Route (b): constrained-score inversion (model-based, approximate)
+
+This is section 2 above, measured on the KK CLMM classes:
+
+- At each candidate delta, fit the CLMM once with beta_T fixed at delta (an offset; the kernel's `fixed_idx`), then
+  recompute the score for every redraw. Unlike delta = 0, the posterior weights over the pair random intercept now
+  depend on w through delta * w, so each redraw is one O(n x 20) Gauss-Hermite pass rather than a single inner
+  product. Still no refit per redraw.
+- Estimated cost per interval (about 20-50 candidate deltas, r = 501): about 15-40 s at n = 200 and 1-3 min at
+  n = 1000, against 25 min to 1.7 h and 1.5-8 h for inverting the refit statistic (ratio of 9-24 full p-values per
+  CI measured on `InferenceCountNegBin`, n = 200, applied to the CLMM p-value costs).
+- It is model-assisted, not an exact Fisher interval: fixing the link coefficient does not say what each subject's
+  ordinal outcome would have been under the other arm, so the redraw distribution at delta != 0 is a model-based
+  approximation. It must be documented and labelled as approximate, and validated by coverage in simulation
+  (acceptance criteria above) before any class regains the CI capability.
+- The p-value at delta = 0 stays exact (the sharp null of no effect for anyone), so the interval would be centred on
+  an exact test but its width rests on the model.
+
+### Route (c): define an ordinal sharp-null scale first (a new estimand)
+
+An exact Fisher randomization interval needs a sharp causal model that generates every subject's ordinal potential
+outcome at each candidate effect. A latent log-odds coefficient does not provide one. Defining such a model is a
+new estimand, not an implementation detail. Candidates to study:
+
+- a latent-variable shift: each subject has a latent U_i with Y_i = category of (U_i + tau * w_i) under fixed
+  thresholds, so tau shifts every subject's latent value; the observed category only bounds U_i, so potential
+  outcomes are set-valued and the test needs a worst case over the set (compare the exact worst-case ordinal tests
+  of Chiba 2017);
+- a category-shift (dilation) model: treatment moves each subject up by k categories with ceiling at K (integer
+  effects only, so the CI is a set of integers);
+- distributional estimands with known sharp-null forms (e.g. the Mann-Whitney / ridit probability), which are
+  already excluded from `EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES` because they are not coefficients.
+
+Each needs its own estimand definition, documentation of what the interval covers, and a check of how it relates
+to the CLMM coefficient the class reports. Until one exists, route (b) is the only practical interval for the
+coefficient, and it is approximate.

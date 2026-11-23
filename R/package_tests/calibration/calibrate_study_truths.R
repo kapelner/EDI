@@ -54,7 +54,7 @@ pairs_for <- function(rt) {
 	set.seed(1L)
 	X <- cal_study_gen_X(200L)
 	des <- cal_study_run_design("DesignFixedBernoulli", rt, X, cal_study_potential_outcomes(rt, X, 0))
-	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, CAL_STUDY_TIER1_METHODS, des_obj = des)
+	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, setdiff(CAL_STUDY_TIER1_METHODS, names(CAL_EXTRA_PVAL_PROCEDURES)), des_obj = des)
 	tasks <- Filter(function(t) !is.na(t$method), tasks)
 	p <- unique(data.frame(inf_class = vapply(tasks, `[[`, "", "cls_name"),
 		formula = vapply(tasks, function(t) if (is.null(t$model_formula)) "" else deparse1(t$model_formula), ""),
