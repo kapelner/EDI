@@ -203,6 +203,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		#'   default statistic.
 		#' @return A p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			# Same delta check as the shared method, before either refusal below, so an NA, non-finite or
+			# non-scalar delta gets checkmate's error rather than the delta = 0 refusal.
+			if (should_run_asserts()) assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			# v1.1.0-TODO-267 (owner 2026-11-24, DECISION-v1.1.0-TODO-267 (a)): opt-in score statistic.
 			if (identical(type, "score")) {
 				return(private$compute_clmm_score_rand_pval(r = r, delta = delta, transform_responses = transform_responses,
