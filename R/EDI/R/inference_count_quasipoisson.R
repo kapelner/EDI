@@ -305,7 +305,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 							smart_cold_start = private$smart_cold_start_default,
 							estimate_only = TRUE
 						)
-						list(b = res$b, XtWX = res$XtWX, w = res$w, ssq_b_j = NA_real_, j_treat = j_treat)
+						list(b = res$b, XtWX = res$XtWX, w = res$w, ssq_b_j = NA_real_, j_treat = j_treat, converged = res$converged)
 					} else {
 						res = fast_quasipoisson_regression_with_var_cpp(
 							X = X_fit, y = private$y, j = j_treat,
@@ -321,6 +321,9 @@ InferenceCountQuasiPoisson = define_inference_class(
 				fit_ok = function(mod, X_fit, keep){
 					j_treat = mod$j_treat
 					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
+					# v1.0.6-TODO-395: an unconverged IRLS fit (e.g. stuck at the zero start for
+					# large counts) is not an estimate, even when the Pearson dispersion is finite.
+					if (isFALSE(mod$converged)) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_j) && mod$ssq_b_j > .Machine$double.eps
 				}

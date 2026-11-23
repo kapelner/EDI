@@ -330,6 +330,20 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
         }
     }
     res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
+    // v1.0.6-TODO-394/395/396 (2026-11-23): with large counts (cell means ~2e4)
+    // the first IRLS step from the default zero start overshoots by ~1e4, no
+    // step-halving is accepted and the loop stops at beta = 0 unconverged.
+    // When the zero cold start (no warm start, no smart start) fails, refit once
+    // from the smart log(y + 0.1) start (glm()'s mustart) and keep that fit if
+    // it converges. A converged zero-start fit is never touched.
+    const bool zero_cold_start = !(warm_start_beta.has_value() && warm_start_beta->size() > 0) &&
+                                 !smart_cold_start;
+    if (!res.converged && zero_cold_start) {
+        ModelResult retry = fast_poisson_internal(X, y, weights, std::nullopt, true, maxit, tol,
+                                                  fixed_idx, fixed_values, optimization_alg,
+                                                  warm_start_weights, std::nullopt, estimate_only);
+        if (retry.converged) return retry;
+    }
     // Reuses XtWX_free, already built above (the last iteration's Fisher
     // information in free-parameter space) -- no new computation
     // (optimizer_diagnostics_report.md TODO-1).

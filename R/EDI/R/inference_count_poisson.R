@@ -971,7 +971,7 @@ InferenceCountPoisson = define_inference_class(
 							smart_cold_start = private$smart_cold_start_default,
 							estimate_only = TRUE
 						)
-						list(b = res$b, XtWX = res$XtWX, w = res$w, ssq_b_j = NA_real_, j_treat = j_treat, neg_ll = res$neg_ll)
+						list(b = res$b, XtWX = res$XtWX, w = res$w, ssq_b_j = NA_real_, j_treat = j_treat, neg_ll = res$neg_ll, converged = res$converged)
 					} else {
 						res = fast_poisson_regression_with_var_cpp(
 							X = X_fit, y = private$y, j = j_treat,
@@ -988,6 +988,9 @@ InferenceCountPoisson = define_inference_class(
 					if (is.null(mod)) return(FALSE)
 					j_treat = mod$j_treat
 					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
+					# v1.0.6-TODO-394: an unconverged IRLS fit (e.g. stuck at the zero start for
+					# large counts) is not an estimate.
+					if (isFALSE(mod$converged)) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
 				}

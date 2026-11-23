@@ -819,6 +819,16 @@
 
 ### Count responses
 
+* `InferenceCountPoisson`, `InferenceCountQuasiPoisson` and `InferenceCountRobustPoisson`
+  no longer return an estimate of 0 for large counts (cell means around 2e4) under the default
+  zero cold start (v1.0.6-TODO-394, v1.0.6-TODO-395, v1.0.6-TODO-396). The first IRLS step from
+  `beta = 0` overshot so far that no step-halving was accepted and the fit stopped at `beta = 0`,
+  unconverged, which the classes accepted. The Poisson IRLS kernel (`fast_poisson_regression_cpp()`
+  and its weighted / with-variance / quasi-Poisson variants) now refits once from the
+  `log(y + 0.1)` start when the zero start does not converge, and the three classes reject an
+  unconverged fit instead of reporting it. Fits that converged from the zero start are unchanged.
+  The kernel part takes effect after the package is rebuilt.
+
 * `InferenceCountPoisson`: `testing_type = "lik_ratio_bartlett_approx"` (and
   `compute_lik_ratio_bartlett_approx_confidence_interval()` /
   `_two_sided_pval()` and the best-available

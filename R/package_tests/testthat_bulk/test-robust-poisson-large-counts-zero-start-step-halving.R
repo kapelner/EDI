@@ -7,10 +7,9 @@
 # Where: R/EDI/R/inference_count_robust_poisson.R:243 (kind: converged_unchecked).
 # On commit 48765322fe90 this test failed with: Expected `est` to equal
 # `unname(stats::coef(ref)["w"])`. Differences: 1/1 mismatches [1] 0 - 0.694 == -0.694
-# Tracked as v1.0.6-TODO-396; remove the skip() when it is fixed.
+# Tracked as v1.0.6-TODO-396; skip removed 2026-11-23 (kernel zero-start retry + fit_ok converged check).
 
 test_that("robust Poisson estimate matches glm for large counts under the default zero cold start", {
-	skip("v1.0.6-TODO-396: zero-start IRLS step-halving fails for large counts and converged is unchecked")
 		set.seed(1)
 		n = 40
 		X = data.frame(x1 = rnorm(n))

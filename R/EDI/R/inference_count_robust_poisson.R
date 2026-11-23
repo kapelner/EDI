@@ -240,7 +240,9 @@ InferenceCountRobustPoisson = define_inference_class(
 				return(list(b = rep(NA_real_, ncol(X)), ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat))
 			}
 			coef_hat = as.numeric(mod$b)
-			if (length(coef_hat) != ncol(X_fit) || any(!is.finite(coef_hat))){
+			# v1.0.6-TODO-396: an unconverged IRLS fit (e.g. stuck at the zero start for
+			# large counts) is not an estimate; do not evaluate the sandwich there.
+			if (length(coef_hat) != ncol(X_fit) || any(!is.finite(coef_hat)) || isFALSE(mod$converged)){
 				return(list(b = rep(NA_real_, ncol(X)), ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat))
 			}
 			
