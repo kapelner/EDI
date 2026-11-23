@@ -3,8 +3,9 @@ library(EDI)
 
 # Bootstrap-randomization studentized machinery (InferenceRandBootstrap):
 # compute_two_sided_brt_pval_studentized() against hand-written formulas (one-sided
-# tail proportions doubled for the asymmetric form, |z| exceedance for the symmetric
-# form, 2 / n_ok floor, invalid-input NA rules) and run_rand_bootstrap_iteration_with_se()
+# tail counts doubled for the asymmetric form, |z| exceedance count for the symmetric
+# form, both counting the observed statistic as one draw (v1.2.0-TODO-207:
+# (1 + b) / (1 + n_ok)), invalid-input NA rules) and run_rand_bootstrap_iteration_with_se()
 # (one bootstrap null draw -> (t0, se0)) against a hand-computed Welch difference.
 
 fx <- function(n = 30L) {
@@ -27,7 +28,7 @@ test_that("asymmetric studentized p is twice the smaller tail proportion of the 
 	for (t_obs in c(-1, 0.1, 0.9)) {
 		delta <- 0.05; se_obs <- 0.4
 		z0 <- (t0 - delta) / se0; zo <- (t_obs - delta) / se_obs
-		ref <- min(1, max(2 / 200, 2 * min(mean(z0 >= zo), mean(z0 <= zo))))
+		ref <- min(1, 2 * (1 + min(sum(z0 >= zo), sum(z0 <= zo))) / (1 + 200))
 		expect_equal(f$priv$compute_two_sided_brt_pval_studentized(t_obs, t0, se0, delta, se_obs), ref, info = t_obs)
 	}
 })
@@ -36,7 +37,7 @@ test_that("symmetric studentized p is the proportion of |z| exceedances", {
 	f <- fx()
 	set.seed(2)
 	t0 <- rnorm(150); se0 <- runif(150, 0.5, 1.5)
-	ref <- function(t_obs, delta, se_obs) min(1, max(2 / 150, mean(abs(t0 - delta) / se0 >= abs(t_obs - delta) / se_obs)))
+	ref <- function(t_obs, delta, se_obs) min(1, (1 + sum(abs(t0 - delta) / se0 >= abs(t_obs - delta) / se_obs)) / (1 + 150))
 	for (t_obs in c(0.2, 1.5, 4)) {
 		expect_equal(f$priv$compute_two_sided_brt_pval_studentized(t_obs, t0, se0, 0.1, 0.7, symmetric = TRUE), ref(t_obs, 0.1, 0.7), info = t_obs)
 	}
@@ -45,17 +46,18 @@ test_that("symmetric studentized p is the proportion of |z| exceedances", {
 		f$priv$compute_two_sided_brt_pval_studentized(0.1 - 1, t0, se0, 0.1, 0.7, TRUE))
 })
 
-test_that("the 2 / n_ok floor and the cap at one apply, and unusable draws are excluded from n_ok", {
+test_that("the smallest values and the cap at one apply, and unusable draws are excluded from n_ok", {
 	f <- fx()
-	# No draw as extreme as the observation: floor 2 / n_ok with n_ok counting only usable draws.
+	# No draw as extreme as the observation: 2 / (n_ok + 1) signed, 1 / (n_ok + 1) symmetric,
+	# with n_ok counting only usable draws (v1.2.0-TODO-207; both were the 2 / n_ok floor).
 	t0 <- c(rep(0, 8), NA, Inf); se0 <- c(rep(1, 8), 1, 1)
-	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(50, t0, se0, 0, 1), 2 / 8)
-	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(50, t0, se0, 0, 1, symmetric = TRUE), 2 / 8)
+	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(50, t0, se0, 0, 1), 2 / 9)
+	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(50, t0, se0, 0, 1, symmetric = TRUE), 1 / 9)
 	# Everything at the null centre: capped at 1.
 	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(0, rep(0, 10), rep(1, 10), 0, 1), 1)
 	# Non-positive / non-finite draw SEs are dropped.
 	t0b <- c(0, 0, 0, 5); se0b <- c(1, 1, 1, 0)
-	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(3, t0b, se0b, 0, 1), 2 / 3)
+	expect_equal(f$priv$compute_two_sided_brt_pval_studentized(3, t0b, se0b, 0, 1), 2 / 4)   # 2 * (1 + 0) / (1 + 3); was 2 / 3
 })
 
 test_that("invalid observed statistic / SE or no usable draws give NA", {

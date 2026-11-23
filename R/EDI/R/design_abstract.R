@@ -96,7 +96,9 @@
 #' the inference object's \code{set_seed()}, falling back to this design's
 #' \code{seed}, inside a \code{.Random.seed} save/restore, for fixed and
 #' sequential designs alike; see \code{Inference$set_seed()} and
-#' \code{clear_randomization_cache()}.
+#' \code{clear_randomization_cache()}. Under the design's own seed a fixed design's
+#' first redraw would be its realized allocation again, so that draw is skipped and the
+#' reference draws start with the next one (v1.2.0-TODO-263).
 #'
 #' \strong{Save and reload.} A seeded sequential design saved with
 #' \code{saveRDS()} keeps its seed, so after \code{readRDS()} the next

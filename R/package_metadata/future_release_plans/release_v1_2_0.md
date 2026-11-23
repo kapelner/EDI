@@ -865,7 +865,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     ms.
   - Done when: the owner picks one rule given the size/power table, or closes it with the numbers (no default change
     without that decision).
-- [ ] TODO-207 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
+- [x] TODO-207 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
   `randomization-null-distribution#43925959437.2`, see `audits/research_triage_drafts.md`): **Randomization p-value
   rule: (b+1)/(r+1) vs b/r with floor (owner policy decision)**
   - Simulate the null rejection rate of the current rule (rand_pval_from_tail_counts) and the Phipson-Smyth rule at r in
@@ -873,6 +873,33 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     report the exact size of each. Also fix catalog section 7 P4's description of the current rule.
   - Done when: the owner decides to switch (documented default change, bundled with release_v1_2_0.md TODO-11 / perf
     TODO-156) or to keep b/r with the floor and document why, with the size table attached.
+  - Decided 2026-11-23 (owner): switch to (b+1)/(B+1) per tail, two-sided doubled and capped at 1, before the 1.0.5
+    freeze (not bundled with TODO-11); see [DECISION-v1.2.0-TODO-207](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-207).
+  - Done 2026-11-23 (agent, branch `rand-pvalue-plus-one`, commit bb0fa2b8; R only, no C++ change, no rebuild
+    needed; Rd not regenerated). Every Monte Carlo randomization p-value counts the observed statistic as one draw:
+    `rand_pval_from_tail_counts()` (doubled smaller tail; `compute_rand_two_sided_pval()`, its sequential-MC and
+    affine-reuse paths, `InferenceRandCustom`, the KK GEE mixin, BRT percentile/smoothed), new
+    `rand_pval_from_abs_count()` (|T| form), `compute_two_sided_brt_pval_studentized()` (signed: doubled; symmetric:
+    |T|), `closed_form_ci_from_affine_null_draws()` and the BRT CI's B-too-small message (now 2/(B+1) >= alpha), and
+    the KK quantile IVWC `compute_rand_pval_matched_pairs()`/`compute_rand_pval_reservoir()` (|T|; were b/B with no
+    floor and could return 0, which `zhang_combine_exact_pvals()` treated as a missing component). Catalog section 7
+    P4 corrected. Size table (exact under exchangeable ranks, no ties; 20,000-dataset simulation within MC error):
+
+    | r | alpha | old two-sided | new two-sided | old KK-quantile abs, b/r | old BRT symmetric, floor 2/r | new abs |
+    |---|---|---|---|---|---|---|
+    | 101 | 0.01 | 0.0000 | 0.0000 | 0.0196 | 0.0000 | 0.0098 |
+    | 101 | 0.05 | 0.0588 | 0.0392 | 0.0588 | 0.0588 | 0.0490 |
+    | 201 | 0.01 | 0.0198 | 0.0099 | 0.0149 | 0.0149 | 0.0099 |
+    | 201 | 0.05 | 0.0594 | 0.0495 | 0.0545 | 0.0545 | 0.0495 |
+    | 501 | 0.01 | 0.0120 | 0.0080 | 0.0120 | 0.0120 | 0.0100 |
+    | 501 | 0.05 | 0.0518 | 0.0478 | 0.0518 | 0.0518 | 0.0498 |
+
+    Real EDI calls (`InferenceAllSimpleAverageDiff`, iBCRD n = 20, normal y, unseeded design, inference seed per
+    dataset; old and new rule on the same draws), rejection rate at alpha = 0.01 / 0.05: r = 101 (5,000 datasets) old
+    0.0000 / 0.0588, new 0.0000 / 0.0396; r = 201 (5,000) old 0.0194 / 0.0596, new 0.0090 / 0.0482; r = 501 (3,000) old
+    0.0123 / 0.0507, new 0.0087 / 0.0450. Seeded design with no inference seed (r = 201, 3,000): old 0.0117 / 0.0553,
+    new 0.0000 / 0.0417, because draw 1 replays the observed allocation (v1.2.0-TODO-263).
+  - Follow-up: v1.2.0-TODO-263 below (the observed allocation already among the reference draws).
 - [ ] TODO-208 (added 2026-11-17, agent, owner approved; from the algorithm-research triage of run 43925959437, finding
   `ridit-mann-whitney#43925959437.1`, see `audits/research_triage_drafts.md`): **Ridit: Brunner-Konietschke unbiased
   variance as an option beside DeLong (owner decision: estimator change)**
@@ -1432,3 +1459,28 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   Reopens the catalog's NEW-fd-hessian row.
   - Done when: (1) is merged with a test that the SE is bit-identical, and per-replicate time for the frailty IVWC
     randomization test is benchmarked at n = 50-500 pairs; (2) is decided with those numbers.
+- [x] TODO-263 (added 2026-11-23, agent; found while landing v1.2.0-TODO-207): **The observed allocation can already be
+  one of the randomization reference draws, so the (b+1)/(B+1) rule counts it twice**
+  - A fixed design created with a `seed` and analysed with no inference seed draws its reference allocations from the
+    design seed (`effective_draw_seed()` falls back to it), and column 1 of `draw_ws_according_to_design(r)` then
+    replays the realized allocation (checked 2026-11-23 for `DesignFixediBCRD` and `DesignFixedBernoulli`; not for
+    `DesignFixedBlocking`, `DesignSeqOneByOneBernoulli` or `DesignSeqOneByOneKK14`). The same holds when a user passes
+    the full enumeration as `permutations`. With the v1.2.0-TODO-207 rule the observed statistic is then counted twice:
+    the test stays valid but is conservative, its smallest two-sided p is 4/(B+1), and at r = 201 it cannot reject at
+    alpha = 0.01 (`InferenceAllSimpleAverageDiff`, iBCRD n = 20, 3,000 seeded-design datasets: size 0% at 0.01 and 4.17%
+    at 0.05, vs 0.90% / 4.82% with an inference seed). Under the old b/r rule this case happened to be close to exact.
+  - Decided 2026-11-23 (owner): (a) drop the replayed draw; see
+    [DECISION-v1.2.0-TODO-263](COMPLETED_DECISIONS.md#DECISION-v1.2.0-TODO-263).
+  - Done when: the owner picks an option and it lands with a test that a seeded design's draws do not include the
+    replay (or the documentation states the conservative case), or the item closes with the numbers.
+  - Done 2026-11-23 (agent, branch `rand-pvalue-plus-one`, commit 264b95ec; R only, no rebuild; Rd not
+    regenerated). `rand_skip_replayed_realized_draw()`, called from `seed_global_rng_for_draws()` (so
+    `generate_permutations()`, the deferred sequential-MC draws and the CI searches all get it): when the draw seed equals
+    the design seed, the first draw from set.seed(seed) is consumed if it is identical to the realized w, else the RNG
+    is reset; the outcome is cached on the design per (seed, w). Replay confirmed before the change for iBCRD,
+    Bernoulli, cluster, binary-match, greedy, greedy D-optimal and greedy pair-switching; not for rerandomization or
+    blocking. `rand_drop_realized_from_enumeration()` at the p-value entry points (`InferenceRand` and the KK GEE mixin)
+    removes one copy from a supplied full enumeration (`permutations$enumeration = TRUE`, or auto-detected as the whole
+    complete-randomization support; `enumeration = FALSE` disables). Size after the change: seeded designs with no inference seed, InferenceAllSimpleAverageDiff, n = 20, r = 201, 5,000 datasets each, rejection rate at alpha = 0.01 / 0.05: iBCRD 0.0098 / 0.0500, Bernoulli 0.0092 / 0.0524 (before: iBCRD 0.0000 / 0.0417 on 3,000). Full enumeration (iBCRD n = 10, N = 252, 5,000 datasets): one copy dropped 0.0048 / 0.0448 (exact b/N; min p 2/252 = 0.0079), not dropped (enumeration = FALSE) 0.0000 / 0.0350 (min p 0.0158).
+    Test: `test-rand-realized-allocation-not-a-reference-draw.R`; `test-rand-pval-tie-tolerance.R` is back to the exact
+    enumeration values.

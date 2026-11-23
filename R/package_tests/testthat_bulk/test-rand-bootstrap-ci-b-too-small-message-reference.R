@@ -3,13 +3,14 @@ library(EDI)
 
 # InferenceRandBootstrapCI's compute_rand_bootstrap_confidence_interval() (inference_all_abstract_
 # rand_bootstrap_ci.R) emits an informational message when B is too small for the requested alpha --
-# the Monte Carlo p-value floor 2/B is >= alpha, so the search can never bracket and both bounds
+# the smallest Monte Carlo p-value 2/(B+1) (v1.2.0-TODO-207; was the floor 2/B) is >= alpha, so the
+# search can never bracket and both bounds
 # degrade to the conservative search boundary. The sibling "conservative bound" messages tied to
 # rand_bootstrap_ci_conservative_count are already covered elsewhere, but this specific upfront
 # "B is too small for alpha" message had no test reference anywhere (confirmed via a zero-hit grep for
 # its literal text). Reached with the same InferenceAllSimpleAverageDiff fixture already established
 # for this file's sibling guard tests, just with B small enough (25, under the alpha = 0.05
-# threshold of B > 40) to trigger it on an ordinary, otherwise-successful call -- no mocking needed.
+# threshold of B >= 40) to trigger it on an ordinary, otherwise-successful call -- no mocking needed.
 
 test_that("a B too small for the requested alpha emits the documented 'too small' message", {
 	set.seed(1L); n <- 20L
@@ -23,7 +24,7 @@ test_that("a B too small for the requested alpha emits the documented 'too small
 
 	expect_message(
 		ci <- inf$compute_rand_bootstrap_confidence_interval(B = 25L, alpha = 0.05, show_progress = FALSE, type = "percentile"),
-		"B = 25 is too small for alpha = 0.05.*p-value floor 2/B = 0\\.08.*Use B > 40"
+		"B = 25 is too small for alpha = 0.05.*smallest p-value 2/\\(B\\+1\\) = 0\\.0769.*Use B >= 40"
 	)
 	expect_length(ci, 2L)
 })

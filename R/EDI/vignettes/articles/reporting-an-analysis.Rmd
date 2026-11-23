@@ -150,8 +150,10 @@ sample and the interval and p-value are `NA` with a warning, and
 
 For the paper, format it with `knitr::kable()` (or any table package). The one
 thing to get right is the p-value from a resampling test: with `r` draws the
-smallest p-value EDI reports is `2 / r`, so a value at that floor should be
-printed as an upper bound, not as an exact number.
+smallest two-sided randomization p-value EDI reports is `2 / (r + 1)` (the
+observed assignment counts as one of the draws), and the smallest bootstrap
+p-value is `2 / B`, so a value at that floor should be printed as an upper
+bound, not as an exact number.
 
 ```{r kable}
 fmt_p = function(p, floor = 0) {
@@ -163,7 +165,7 @@ pretty = data.frame(
   Interval   = results$interval,
   Estimate   = sprintf("%.2f", results$estimate),
   `95% CI`   = sprintf("(%.2f, %.2f)", results$lower, results$upper),
-  p          = c(fmt_p(p_wald), fmt_p(p_rand, floor = 2 / r), fmt_p(p_boot, floor = 2 / B)),
+  p          = c(fmt_p(p_wald), fmt_p(p_rand, floor = 2 / (r + 1)), fmt_p(p_boot, floor = 2 / B)),
   check.names = FALSE
 )
 knitr::kable(pretty, align = "llrcr",
@@ -237,8 +239,8 @@ number in it comes from the objects above:
 n_T = sum(w)
 n_C = n - n_T
 covs = names(X)
-rand_p_text = if (p_rand <= 2 / r) {
-  sprintf("p ≤ %s", format(2 / r))
+rand_p_text = if (p_rand <= 2 / (r + 1)) {
+  sprintf("p ≤ %s", format(2 / (r + 1)))
 } else {
   sprintf("p = %s", format(signif(p_rand, 2)))
 }

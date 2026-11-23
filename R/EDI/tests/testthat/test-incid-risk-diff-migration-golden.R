@@ -211,9 +211,11 @@ risk_diff_method_calls = local({
 	calls$randomization_bootstrap_pval$args$B = 12L
 	calls
 })
+# v1.2.0-TODO-207: no draw is as extreme as the observed statistic, so both are the smallest
+# two-sided value 2 / (12 + 1); before the observed draw was counted they were the 2 / 12 floor.
 risk_diff_pinned_values = list(
-	randomization_pval = 0.16666666666666666,
-	randomization_bootstrap_pval = 0.16666666666666666
+	randomization_pval = 2 / 13,
+	randomization_bootstrap_pval = 2 / 13
 )
 
 expect_risk_diff_migration_outputs_equal = function(legacy_class, migrated_class, design) {

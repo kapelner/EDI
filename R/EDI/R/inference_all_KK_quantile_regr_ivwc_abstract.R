@@ -451,7 +451,8 @@ KKQuantileRegrIVWCSource = list(
 			})
 			T_rand = T_rand[is.finite(T_rand)]
 			if (length(T_rand) == 0L) return(NA_real_)
-			mean(abs(T_rand) >= abs(T_obs))
+			# v1.2.0-TODO-207: |T| convention, observed statistic counted as one draw.
+			rand_pval_from_abs_count(sum(abs(T_rand) >= abs(T_obs)), length(T_rand))
 		},
 		# Two-sided permutation test for reservoir at H0: Q_tau(transform(y)|w=1,X) - Q_tau(...|w=0,X) = delta_0.
 		compute_rand_pval_reservoir = function(delta_0){
@@ -487,7 +488,8 @@ KKQuantileRegrIVWCSource = list(
 			})
 			T_rand = T_rand[is.finite(T_rand)]
 			if (length(T_rand) == 0L) return(NA_real_)
-			mean(abs(T_rand) >= abs(T_obs))
+			# v1.2.0-TODO-207: |T| convention, observed statistic counted as one draw.
+			rand_pval_from_abs_count(sum(abs(T_rand) >= abs(T_obs)), length(T_rand))
 		},
 		# Helper: QR intercept from rq(yd ~ Xd) for matched-pair randomisation iterations
 		qr_intercept_pairs = function(yd, Xd, tau, m){

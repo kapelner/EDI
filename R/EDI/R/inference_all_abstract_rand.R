@@ -1,15 +1,27 @@
-# Tail-count -> randomization p-value. "two.sided" is the historical doubled
-# smaller tail (floor 2/n, cap 1); "greater"/"less" are the single tails
-# (floor 1/n), for non-negative / one-tailed-by-construction statistics
-# (TODO-113). A plain function, not a private method, because
+# Tail-count -> randomization p-value, n = number of finite reference draws.
+# v1.2.0-TODO-207 (owner ruling 2026-11-23): the exact Monte Carlo rule that
+# counts the observed statistic as one draw (Phipson and Smyth 2010):
+# per tail (1 + b) / (1 + n). "two.sided" doubles the smaller tail and caps
+# at 1, min(1, 2 * (1 + min(n_ge, n_le)) / (1 + n)), so its smallest value is
+# 2 / (n + 1); "greater"/"less" are the single tails (smallest 1 / (n + 1)),
+# for non-negative / one-tailed-by-construction statistics (TODO-113). The
+# rule before 1.0.5 was b / n with a floor of 2 / n (1 / n one-sided), whose
+# null size at n = 201 and alpha = 0.05 was about 5.9%.
+# A plain function, not a private method, because
 # compute_rand_two_sided_pval() is spliced into mixins whose contracts list
 # the private methods they need.
 rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
 	switch(alternative,
-		greater = min(1, max(1 / n, n_ge / n)),
-		less = min(1, max(1 / n, n_le / n)),
-		min(1, max(2 / n, 2 * min(n_ge / n, n_le / n)))
+		greater = min(1, (1 + n_ge) / (1 + n)),
+		less = min(1, (1 + n_le) / (1 + n)),
+		min(1, 2 * (1 + min(n_ge, n_le)) / (1 + n))
 	)
+}
+# Same rule for a two-sided p-value from an absolute (symmetric) statistic:
+# n_abs_ge = #{|T_m| >= |T_obs|} over n finite draws, p = (1 + n_abs_ge) / (1 + n),
+# no doubling (v1.2.0-TODO-207). Smallest value 1 / (n + 1).
+rand_pval_from_abs_count = function(n_abs_ge, n){
+	min(1, (1 + n_abs_ge) / (1 + n))
 }
 
 # Tail counts of a randomization distribution, with draws tied to the observed
@@ -31,6 +43,87 @@ rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
 # invariant to the response's units.
 # Counting ties in both tails is the conservative convention and makes the
 # p-value deterministic.
+# v1.2.0-TODO-263 (owner ruling 2026-11-23, option (a)): the (1 + b) / (1 + B) rule counts
+# the observed allocation once, so it must not also be one of the B reference draws.
+#
+# Replay. A fixed design draws its allocation with set.seed(design seed) followed by one
+# draw, and randomization draws come from a seed-less duplicate under set.seed(draw seed).
+# When the draw seed is the design seed (no inference seed, or the same value), the first
+# reference draw is the realized allocation again (iBCRD and Bernoulli do this; Blocking,
+# sequential and KK designs, whose redraws use another stream or generator, do not). Called
+# right after set.seed(seed): if the first draw from that state is identical to the realized
+# assignment vector, it is consumed, so every reference draw comes after it; otherwise the RNG
+# is put back to set.seed(seed) and nothing changes. The decision depends only on the seed and
+# the design's own generator, never on a random redraw happening to equal w, so a legitimate
+# chance match later in the stream is kept. The RNG state is cached on the design per
+# (seed, w), so expensive generators (optimal, rerandomization) peek once.
+rand_skip_replayed_realized_draw = function(private, seed){
+	design_seed = private$des_obj_priv_int$seed
+	if (is.null(design_seed) || length(design_seed) != 1L ||
+			!isTRUE(suppressWarnings(as.integer(design_seed) == as.integer(seed)))) return(invisible(FALSE))
+	w = as.numeric(private$w)
+	if (!length(w) || anyNA(w)) return(invisible(FALSE))
+	key = paste0(as.integer(seed), "|", paste(w, collapse = ""))
+	cache = private$des_obj_priv_int$rand_replay_skip_cache
+	if (is.null(cache)) cache = list()
+	hit = cache[[key]]
+	if (!is.null(hit)) {
+		if (!isFALSE(hit)) assign(".Random.seed", hit, envir = .GlobalEnv)
+		return(invisible(!isFALSE(hit)))
+	}
+	d1 = tryCatch({
+		d = private$des_obj$duplicate()
+		as.numeric(d$draw_ws_according_to_design(1L)[, 1L])
+	}, error = function(e) NULL)
+	replay = !is.null(d1) && length(d1) == length(w) && all(d1 == w)
+	if (replay) {
+		cache[[key]] = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+	} else {
+		cache[[key]] = FALSE
+		set.seed(seed)
+	}
+	private$des_obj_priv_int$rand_replay_skip_cache = cache
+	invisible(replay)
+}
+
+# v1.2.0-TODO-263: a user-supplied full enumeration of the assignment space contains the
+# realized allocation by construction; remove exactly one copy (matched by the assignment
+# vector, not the statistic) so it is counted once, through the +1. The p-value is then
+# b / N over all N allocations, the exact permutation p-value. Random draws are left alone:
+# the +1 rule is exact for them as they are, even when one equals w by chance.
+# An enumeration is recognised when permutations$enumeration is TRUE (any design; the realized
+# w must be among the first r columns), or, when it is NULL, when the first r columns are
+# pairwise distinct, all have the realized number treated, have no m_mat, and number
+# choose(n, n_T): that is the whole complete-randomization support. enumeration = FALSE turns
+# the check off. Returns list(permutations, r, dropped).
+rand_drop_realized_from_enumeration = function(permutations, w, r){
+	out = list(permutations = permutations, r = r, dropped = FALSE)
+	if (is.null(permutations) || is.null(permutations$w_mat)) return(out)
+	flag = permutations$enumeration
+	if (isFALSE(flag)) return(out)
+	W = permutations$w_mat
+	r = as.integer(r)
+	if (ncol(W) < r) return(out)
+	W = W[, seq_len(r), drop = FALSE]
+	w = as.numeric(w)
+	if (nrow(W) != length(w)) return(out)
+	is_w = colSums(abs(W - w)) == 0
+	if (!isTRUE(flag)) {
+		n_T = sum(w)
+		if (!is.null(permutations$m_mat) || !any(is_w) || any(colSums(W) != n_T) ||
+				!isTRUE(all.equal(r, choose(length(w), n_T))) || anyDuplicated(t(W)) > 0L) return(out)
+	} else if (!any(is_w)) {
+		stop("permutations$enumeration = TRUE, but the realized allocation is not among the first r = ", r,
+			" columns of permutations$w_mat.", call. = FALSE)
+	}
+	j = which(is_w)[1L]
+	keep = setdiff(seq_len(r), j)
+	permutations$w_mat = W[, keep, drop = FALSE]
+	if (!is.null(permutations$m_mat)) permutations$m_mat = permutations$m_mat[, keep, drop = FALSE]
+	permutations$enumeration = FALSE
+	list(permutations = permutations, r = r - 1L, dropped = TRUE)
+}
+
 rand_tie_tolerance = function(t0s, t){
 	scale = max(abs(t), abs(t0s[is.finite(t0s)]), 0)
 	EDI_TIE_REL_TOL * scale
@@ -56,6 +149,12 @@ edi_muffle_rand_pval_na_warnings = function(expr){
 #'
 #' Abstract class for randomization-based inference.
 #'
+#' Randomization p-values count the observed allocation as one of the \eqn{B} finite
+#' reference draws, \eqn{(1 + b)/(1 + B)} per tail (two-sided: the smaller tail doubled,
+#' capped at 1), so they are exact and never 0; the realized allocation is never also one of
+#' the reference draws; see \code{compute_rand_two_sided_pval()}.
+#'
+#' @template rand-mc-pvalue-references
 #' @keywords internal
 InferenceRand = R6::R6Class("InferenceRand",
 	# Legacy-ladder parent only (component sources take direct methods): keeps
@@ -371,21 +470,46 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
 		#'   accepted. The draws are not validated (row count, 0/1 coding and column count are
 		#'   not checked), so they must come from the design's own randomization mechanism for
-		#'   the test to be valid.
+		#'   the test to be valid. Random draws are used as they are. A full enumeration of
+		#'   the assignment space contains the realized allocation, which the rule below
+		#'   already counts once, so one column identical to the realized assignment is
+		#'   removed before counting (the p-value is then the exact enumeration p-value,
+		#'   \eqn{b/N} over all \eqn{N} allocations). That happens when the list has
+		#'   \code{enumeration = TRUE} (an error if the realized allocation is not among the
+		#'   first \code{r} columns), or, with \code{enumeration} absent, when the first
+		#'   \code{r} columns are pairwise distinct, all have the realized number of treated
+		#'   units, number \code{choose(n, n_T)} and \code{m_mat} is \code{NULL} (the whole
+		#'   complete-randomization support); \code{enumeration = FALSE} turns it off.
 		#' @param zero_one_logit_clamp Clamping distance from the 0/1 boundaries used by the
 		#'   \code{"logit"} response transform: responses are clamped to
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param alternative One of \code{"two.sided"} (default), \code{"greater"} or
-		#'   \code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
-		#'   P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}
-		#'   (no +1 correction; a floor of \eqn{2/B}), which assumes a signed, roughly
-		#'   symmetric statistic. For a non-negative, one-tailed-by-construction
+		#'   \code{"less"}. Let \eqn{B} be the number of finite reference statistics
+		#'   \eqn{T_0}, \eqn{b_{\ge}}{b_ge} the number with \eqn{T_0 \ge t} and
+		#'   \eqn{b_{\le}}{b_le} the number with \eqn{T_0 \le t}. The observed allocation
+		#'   counts as one draw, so each tail is \eqn{(1 + b)/(1 + B)}. The default
+		#'   doubles the smaller tail and caps at 1,
+		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))},
+		#'   which assumes a signed, roughly symmetric statistic; its smallest value is
+		#'   \eqn{2/(B + 1)}. For a non-negative, one-tailed-by-construction
 		#'   statistic (a squared difference, a chi-square or omnibus statistic, an
 		#'   absolute value) the doubled smaller tail is wrong -- it counts the
 		#'   uninformative lower tail as evidence -- so pass \code{"greater"}, which
-		#'   returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
-		#'   \code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.
+		#'   returns the upper-tail p-value \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)}
+		#'   (no doubling, smallest value \eqn{1/(B + 1)}); \code{"less"} returns
+		#'   \eqn{(1 + b_{\le})/(1 + B)}{(1 + b_le) / (1 + B)}. This is the exact Monte Carlo
+		#'   p-value of Phipson and Smyth (2010): with \eqn{B} independent draws from the
+		#'   design the test rejects a true sharp null with probability at most
+		#'   \eqn{\alpha}, and the p-value is never 0. (Before EDI 1.0.5 the rule was
+		#'   \eqn{b/B} with a floor of \eqn{2/B}, whose size was above \eqn{\alpha} by
+		#'   about \eqn{1/B}; v1.2.0-TODO-207.) A tie with \eqn{t} (within a relative
+		#'   tolerance) counts in both tails. The realized allocation is never counted
+		#'   twice: when the draws come from the design's own seed (no inference seed, or the
+		#'   same value), the first draw of that stream, which a seeded fixed design makes
+		#'   equal to its realized allocation, is skipped, and a supplied full enumeration has
+		#'   its copy removed (see \code{permutations}; v1.2.0-TODO-263). A later random draw
+		#'   that equals the realized allocation by chance is kept, as the rule requires.
 		#' @details For survival outcomes with left- or interval-censoring, a nonzero
 		#'   \code{delta} shifts the censoring bounds \code{y_L} and \code{y_R} of the
 		#'   treated exactly as it shifts exact times: multiplicatively by
@@ -427,6 +551,9 @@ InferenceRand = R6::R6Class("InferenceRand",
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
 			}
+			# v1.2.0-TODO-263: a supplied full enumeration holds the realized allocation; drop one copy.
+			enum = rand_drop_realized_from_enumeration(permutations, private$w, r)
+			permutations = enum$permutations; r = enum$r
 			# The p-value always comes from the randomization draws (w vectors), including
 			# for incidence responses on matched-pair and Bernoulli designs. A
 			# Zhang exact-combined-test dispatch used to live here (added 2026-08-23);
@@ -1009,6 +1136,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 			had = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
 			if (had) old = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
 			set.seed(seed)
+			# v1.2.0-TODO-263: never hand the realized allocation back as reference draw 1.
+			rand_skip_replayed_realized_draw(private, seed)
 			function() {
 				if (had) assign(".Random.seed", old, envir = .GlobalEnv)
 				else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)

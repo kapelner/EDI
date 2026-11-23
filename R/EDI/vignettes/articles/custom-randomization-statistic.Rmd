@@ -55,12 +55,17 @@ The test then:
    at their values under $H_0$;
 3. reports how extreme the observed $T$ is in that reference distribution.
 
-The default two-sided p-value doubles the smaller tail:
-$\min\{1, 2\min(\hat P(T_0 \ge t), \hat P(T_0 \le t))\}$ over the draws $T_0$, with a
-floor of $2/B$, where $B$ is the number of draws on which the statistic is finite
-($B = r$ unless some draws are dropped; see Pitfalls). The test is valid, meaning it rejects a true $H_0$ at most at the
-nominal rate up to Monte Carlo error, for **any** statistic you choose, because
-validity comes from the randomization and not from a model. The choice of
+The default two-sided p-value doubles the smaller tail and counts the observed
+assignment as one of the draws:
+$\min\{1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B)\}$, where $b_{\ge}$ and $b_{\le}$
+count the draws $T_0$ with $T_0 \ge t$ and $T_0 \le t$ and $B$ is the number of draws
+on which the statistic is finite ($B = r$ unless some draws are dropped; see
+Pitfalls). The smallest possible value is $2/(B + 1)$; `alternative = "greater"`
+gives $(1 + b_{\ge})/(1 + B)$, as small as $1/(B + 1)$. This is the exact Monte
+Carlo p-value of Phipson and Smyth (2010): the test is valid, meaning it rejects a
+true $H_0$ at most at the nominal rate (exactly, not only up to Monte Carlo error),
+for **any** statistic you choose, because validity comes from the randomization
+and not from a model. The choice of
 statistic affects only power: how often the test rejects when $H_0$ is false.
 
 The sharp null is a stronger statement than "the average effect is zero." A

@@ -50,10 +50,12 @@ sweep129_cases = list(
 		call = function(inf) inf$compute_bootstrap_confidence_interval(B = 25, type = "calibrated", show_progress = FALSE)),
 	# `needs`: a Suggests package the class refuses to initialize without. The
 	# sanitizer / valgrind jobs install no Suggests, so both blocks below skip.
+	# r = 25, was 15 (v1.2.0-TODO-207): the |T| sign-flip p-value is at least 1 / (r + 1), so with
+	# only matched pairs and r = 15 (p >= 0.0625) no delta is rejected at alpha = 0.05 and the CI is NA.
 	quantile_ivwc_rand_ci = list(cls = "InferenceContinKKQuantileRegrIVWC", rt = "continuous", kind = "match", needs = "quantreg",
-		call = function(inf) inf$compute_rand_confidence_interval(r = 15, show_progress = FALSE)),
+		call = function(inf) inf$compute_rand_confidence_interval(r = 25, show_progress = FALSE)),
 	prop_quantile_ivwc_rand_ci = list(cls = "InferencePropKKQuantileRegrIVWC", rt = "proportion", kind = "match", needs = "quantreg",
-		call = function(inf) inf$compute_rand_confidence_interval(r = 15, show_progress = FALSE))
+		call = function(inf) inf$compute_rand_confidence_interval(r = 25, show_progress = FALSE))
 )
 
 sweep129_run = function(case, des, seed) {

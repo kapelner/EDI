@@ -89,9 +89,8 @@ rand_ols_ci_reference <- function(y, w_obs, X_covars, W, alpha) {
 		finite <- is.finite(t0)
 		n_finite <- sum(finite)
 		if (!is.finite(t_obs) || n_finite == 0L) return(NA_real_)
-		min(1, max(2 / n_finite,
-			2 * min(sum(t0[finite] >= t_obs) / n_finite,
-				sum(t0[finite] <= t_obs) / n_finite)))
+		# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+		min(1, 2 * (1 + min(sum(t0[finite] >= t_obs), sum(t0[finite] <= t_obs))) / (1 + n_finite))
 	}
 
 	stopifnot(is.finite(t_obs), ref_pval(t_obs) >= alpha)
@@ -188,11 +187,12 @@ rand_ols_bootstrap_ci_reference <- function(y, w_obs, X_covars, draws, alpha) {
 	ok <- is.finite(A) & is.finite(c_slope)
 	A <- A[ok]
 	c_slope <- c_slope[ok]
-	stopifnot(length(A) > 2 / alpha)
+	stopifnot(2 / (length(A) + 1) < alpha)
 
 	pval <- function(delta) {
 		t0 <- A + delta * c_slope
-		min(1, max(2 / length(t0), 2 * min(sum(t0 >= t_obs), sum(t0 <= t_obs)) / length(t0)))
+		# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+		min(1, 2 * (1 + min(sum(t0 >= t_obs), sum(t0 <= t_obs))) / (1 + length(t0)))
 	}
 	breaks <- sort(unique((t_obs - A[abs(c_slope) >= 1e-12]) / c_slope[abs(c_slope) >= 1e-12]))
 	stopifnot(length(breaks) >= 2L)

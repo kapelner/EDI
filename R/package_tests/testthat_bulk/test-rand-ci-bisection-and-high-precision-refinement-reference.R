@@ -238,13 +238,14 @@ test_that("public CI reaches strict refinement on the fixed-permutation p-value 
 		t0 <- manual_t0s(delta, n_draws)
 		observed_under_null <- observed - delta
 		valid <- is.finite(t0)
-		p_raw <- 2 * min(sum(t0[valid] >= observed_under_null) / sum(valid), sum(t0[valid] <= observed_under_null) / sum(valid))
-		min(1, max(2 / sum(valid), p_raw))
+		# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+		min(1, 2 * (1 + min(sum(t0[valid] >= observed_under_null), sum(t0[valid] <= observed_under_null))) / (1 + sum(valid)))
 	}
-	expect_equal(manual_p(3.5, 450L), 24 / 450, tolerance = 1e-12)
-	expect_equal(manual_p(4.5, 450L), 2 / 450, tolerance = 1e-12)
-	expect_equal(manual_p(3.5, 501L), 126 / 501, tolerance = 1e-12)
-	expect_equal(manual_p(4.5, 501L), 2 / 501, tolerance = 1e-12)
+	# v1.2.0-TODO-207: 2 * (1 + b) / (1 + B) with b = 12, 0, 63, 0; were 24/450, 2/450, 126/501, 2/501.
+	expect_equal(manual_p(3.5, 450L), 26 / 451, tolerance = 1e-12)
+	expect_equal(manual_p(4.5, 450L), 2 / 451, tolerance = 1e-12)
+	expect_equal(manual_p(3.5, 501L), 128 / 502, tolerance = 1e-12)
+	expect_equal(manual_p(4.5, 501L), 2 / 502, tolerance = 1e-12)
 
 	track <- new.env(parent = emptyenv())
 	track$inside_refinement <- FALSE
@@ -308,7 +309,10 @@ test_that("public CI reaches strict refinement on the fixed-permutation p-value 
 	}
 
 	alpha <- 0.05
-	tol <- 0.05
+	# v1.2.0-TODO-207: 0.055, was 0.05. The 450-draw prefix gap at the final bracket is now
+	# 26/451 - 2/451 = 0.0532 (was 24/450 - 2/450 = 0.0489), so the tolerance must stay above it
+	# for the cheap pass to stop at the same bracket.
+	tol <- 0.055
 	ci <- inf$compute_rand_confidence_interval(
 		alpha = alpha, r = 501L, pval_epsilon = tol, show_progress = FALSE,
 		ci_search_control = list(
@@ -463,8 +467,8 @@ test_that("public CI reaches strict refinement on the fixed-permutation p-value 
 		observed_replay <- mean(loaded_replay$response[loaded_replay$observed_assignment == 1L]) -
 			mean(loaded_replay$response[loaded_replay$observed_assignment == 0L])
 		target <- observed_replay - delta
-		p_raw <- 2 * min(sum(t0 >= target) / length(t0), sum(t0 <= target) / length(t0))
-		min(1, max(2 / length(t0), p_raw))
+		# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+		min(1, 2 * (1 + min(sum(t0 >= target), sum(t0 <= target))) / (1 + length(t0)))
 	}
 	replay_upper <- function(l, u) {
 		p_l <- replay_manual_p(l)
@@ -538,7 +542,16 @@ test_that("the public CI inverts the two-sided test at alpha on one shared fixed
 	p_at_zero <- inf$compute_rand_two_sided_pval(r = r, delta = 0, show_progress = FALSE, permutations = perms)
 
 	# Discrete p-values and the returned side of each final bracket permit one grid step.
-	expect_equal(p_at_bounds, rep(alpha, 2L), tolerance = 0.015)
+	# v1.2.0-TODO-263: with the replayed draw skipped this fixture's draws moved by one, and the
+	# lower bound now sits next to a jump of 4 / 400 in the discrete p-value (0.175 -> 0.195), so
+	# "one grid step" is checked as what the bisection guarantees: alpha is crossed within
+	# pval_epsilon (0.01) of each returned bound.
+	for (b in as.numeric(ci)) {
+		window <- vapply(b + seq(-0.01, 0.01, length.out = 11L), function(delta)
+			inf$compute_rand_two_sided_pval(r = r, delta = delta, show_progress = FALSE, permutations = perms), numeric(1))
+		expect_true(min(window) <= alpha && alpha <= max(window), info = b)
+	}
+	expect_true(all(abs(p_at_bounds - alpha) <= 0.03))
 	expect_identical(!(ci[1] <= 0 && 0 <= ci[2]), p_at_zero < alpha)
 })
 

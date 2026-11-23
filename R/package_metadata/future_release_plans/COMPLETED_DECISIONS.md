@@ -22,6 +22,8 @@ Last updated 2026-11-23.
 | [DECISION-v2.0.0-TODO-6g](#DECISION-v2.0.0-TODO-6g) | [v2.0.0-TODO-6g](release_v2_0_0.md) | ModelDiagnostics contract and pilot ship in 1.x (in-sample checks need no fold substrate) | 2026-09-05 |
 | [DECISION-v2.0.0-TODO-6i](#DECISION-v2.0.0-TODO-6i) | [v2.0.0-TODO-6i](release_v2_0_0.md) | ModelDiagnostics pilot cut to the Incidence GLM family; the other eight families move to v2.0.0 | 2026-10-22 |
 | [DECISION-v1.2.0-TODO-258](#DECISION-v1.2.0-TODO-258) | [v1.2.0-TODO-258](release_v1_2_0.md) | one rerandomization kernel, documented default change, bundled with the RNG streams change | 2026-11-20 |
+| [DECISION-v1.2.0-TODO-263](#DECISION-v1.2.0-TODO-263) | [v1.2.0-TODO-263](release_v1_2_0.md) | (a) drop the replayed draw: a seeded design's replay of the realized allocation is skipped, a full enumeration's copy removed | 2026-11-23 |
+| [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) | [v1.2.0-TODO-207](release_v1_2_0.md) | randomization p-values: (b+1)/(B+1) per tail, two-sided doubled and capped at 1 | 2026-11-23 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
 | [DECISION-v1.1.0-TODO-265a](#DECISION-v1.1.0-TODO-265a) | [v1.1.0-TODO-265](release_v1_1_0.md) | (b) single-start Newton retry except at a far-from-stationary boundary, then (d) the kernel KKT polish | 2026-11-23 |
@@ -243,6 +245,53 @@ Last updated 2026-11-23.
 - **Ruling:** (a) one kernel, a documented default change, not opt-in. NEWS ("Changes that alter results"): "For odd n or prob_T != 0.5, `DesignFixedRerandomization`'s seeded rerandomized assignments differ from v1.1; their distribution is unchanged." Regenerate every fixture and cross-platform digest pinned to those draws in the same PR; ship it in the same release as the non-R RNG streams change (`performance_profiling_and_upgrades.md` TODO-149, in v1.2.0-TODO-11), 2026-11-20, owner
 - **Why:** So seeded streams change once in the 1.x line (the reason for bundling with the RNG streams change); no other reason recorded.
 - **Rejected:** (b) opt-in.
+
+<a id="DECISION-v1.2.0-TODO-263"></a>
+### DECISION-v1.2.0-TODO-263: The observed allocation as a reference draw: drop the replay, reseed, or document?
+
+- **TODO:** [v1.2.0-TODO-263](release_v1_2_0.md): **The observed allocation can already be one of the randomization
+  reference draws, so the (b+1)/(B+1) rule counts it twice.**
+- **Context:** since [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) every randomization p-value adds the
+  observed statistic as one draw. A fixed design with a `seed` and no inference seed replayed the realized allocation
+  as reference draw 1 (iBCRD, Bernoulli, cluster, binary-match, greedy, greedy D-optimal, greedy pair-switching), and a
+  user-supplied full enumeration contains it, so the observed statistic was counted twice: valid but conservative
+  (smallest two-sided p 4/(B+1); at r = 201, size 0% at alpha = 0.01 and 4.17% at 0.05).
+- **Options on the table:** (a) skip the replayed draw / remove the enumeration's copy; (b) derive the draw seed from
+  the design seed so draw 1 is no longer the replay; (c) keep the draws and document the conservativeness.
+- **Ruling:** (a) drop the replayed draw; owner 2026-11-23. Implemented on branch `rand-pvalue-plus-one` (commit
+  264b95ec): when the draw seed equals the design seed, the first draw of that stream is consumed if it is identical to
+  the realized assignment vector (decided from the seed and the design's generator, cached per seed and w; later
+  chance matches are kept); a supplied full enumeration (`permutations$enumeration = TRUE`, or recognised as the whole
+  complete-randomization support) has exactly one copy of the realized allocation removed, giving b/N.
+- **Why:** No reason recorded.
+- **Rejected:** (b) derive the draw seed from the design seed; (c) document the conservativeness.
+- **Evidence after the change:** seeded designs with no inference seed, InferenceAllSimpleAverageDiff, n = 20, r = 201, 5,000 datasets each, rejection rate at alpha = 0.01 / 0.05: iBCRD 0.0098 / 0.0500, Bernoulli 0.0092 / 0.0524 (before: iBCRD 0.0000 / 0.0417 on 3,000). Full enumeration (iBCRD n = 10, N = 252, 5,000 datasets): one copy dropped 0.0048 / 0.0448 (exact b/N; min p 2/252 = 0.0079), not dropped (enumeration = FALSE) 0.0000 / 0.0350 (min p 0.0158).
+
+<a id="DECISION-v1.2.0-TODO-207"></a>
+### DECISION-v1.2.0-TODO-207: Randomization p-value rule: (b+1)/(r+1) or b/r with a floor?
+
+- **TODO:** [v1.2.0-TODO-207](release_v1_2_0.md): **Randomization p-value rule: (b+1)/(r+1) vs b/r with floor (owner
+  policy decision).**
+- **Question:** `rand_pval_from_tail_counts()` returned 2 * min(n_ge, n_le) / r with a floor of 2 / r (1 / r one-sided)
+  and no +1; switch every Monte Carlo randomization p-value to the exact rule that counts the observed statistic as
+  one draw?
+- **Options on the table:** (a) switch to (1 + b) / (1 + B) per tail (b = finite reference draws at least as extreme in
+  that tail, B = finite draws), two-sided min(1, 2 * (1 + min(b_ge, b_le)) / (1 + B)), and (1 + #{|T_m| >= |T_obs|}) /
+  (1 + B) for p-values from an absolute statistic; (b) keep b / r with the floor and document why.
+- **Evidence:** exact null size under exchangeable ranks (no ties), 20,000-dataset simulation agreeing: two-sided at
+  alpha = 0.05, old 5.88% / 5.94% / 5.18% vs new 3.92% / 4.95% / 4.78% at r = 101 / 201 / 501; alpha = 0.01, old 0% /
+  1.98% / 1.20% vs new 0% / 0.99% / 0.80%. Real `InferenceAllSimpleAverageDiff` calls (iBCRD, n = 20, unseeded design,
+  5,000 / 5,000 / 3,000 datasets) at alpha = 0.05: old 5.88% / 5.96% / 5.07%, new 3.96% / 4.82% / 4.50%. Full table in
+  the TODO's done note.
+- **Ruling:** (a) switch to (b+1)/(B+1) per tail, two-sided doubled and capped at 1; also the |T| form, (1 + b) /
+  (1 + B), wherever a two-sided p comes from an absolute statistic. Owner, 2026-11-23, before the 1.0.5 freeze; landed
+  on branch `rand-pvalue-plus-one`.
+- **Why:** exact Monte Carlo p-value (Phipson & Smyth 2010); b/r is anti-conservative by about 1/r; the full 1.0.5
+  regeneration absorbs the change.
+- **Rejected:** (b) keep b/r with the floor.
+- **Follow-up:** when the observed allocation is already one of the reference draws (a seeded design with no inference
+  seed replays it as draw 1; a user-supplied full enumeration contains it), the +1 counts it twice and the test is
+  conservative; see [DECISION-v1.2.0-TODO-263](#DECISION-v1.2.0-TODO-263).
 
 <a id="DECISION-v1.2.0-TODO-36"></a>
 ### DECISION-v1.2.0-TODO-36: Calibration-campaign runners: free GitHub-hosted only, or self-hosted / paid runners?

@@ -36,7 +36,8 @@ draws_ok <- function(B, id = NULL) {
 	if (!is.null(id)) attr(d, "draws_id") <- id
 	d
 }
-ref_p <- function(v, t) min(1, max(2 / length(v), 2 * min(sum(v >= t), sum(v <= t)) / length(v)))
+# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+ref_p <- function(v, t) min(1, 2 * (1 + min(sum(v >= t), sum(v <= t))) / (1 + length(v)))
 run <- function(p, t, B, draws, delta = 0, transform_arg = "none") {
 	p$compute_two_sided_brt_pval_with_sequential_mc(t = t, B = B, delta = delta, transform_arg = transform_arg,
 		y0_full = numeric(0), draws = draws, zero_one_logit_clamp = 1e-12)
