@@ -36,7 +36,10 @@ cppflags="$(R CMD config --cppflags) -I$(r_inc Rcpp) -I$(r_inc RcppEigen) -I$(r_
 # check the no-OpenMP clang path on a Linux machine).
 makeconf="$(R RHOME)/etc${R_ARCH:-}/Makeconf"
 openmp="${SIMD_REPORT_OPENMP-$(sed -n 's/^SHLIB_OPENMP_CXXFLAGS[[:space:]]*=[[:space:]]*//p' "$makeconf")}"
-flags="-O2 -fPIC -DNDEBUG -DEIGEN_NO_DEBUG $openmp -Rpass=loop-vectorize -Rpass-missed=loop-vectorize"
+# `R CMD config CXX17` is only the compiler; the C++17 switch is CXX17STD.
+# Without it macOS clang compiles as C++14 and fails on std::optional.
+cxxstd="${SIMD_REPORT_CXXSTD-$(R CMD config CXX17STD)}"
+flags="$cxxstd -O2 -fPIC -DNDEBUG -DEIGEN_NO_DEBUG $openmp -Rpass=loop-vectorize -Rpass-missed=loop-vectorize"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
