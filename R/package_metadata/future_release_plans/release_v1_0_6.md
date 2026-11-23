@@ -1094,13 +1094,19 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   randomization outputs, against 1e-7). Check the cloglog likelihood, gradient and the quadrature, and compare
   log-likelihoods at both optima to see which fit is better. Done when cloglog matches clmm on several seeds or
   the difference is explained (e.g. clmm stops at a worse optimum) and documented.
-- [ ] TODO-49 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **An
+- [x] TODO-49 (added 2026-11-17, agent, owner approved; surfaced by the v1.0.6-TODO-45 fixture sweep): **An
   inference reported as status 'ok' with a non-finite estimate.**
   `R/package_tests/testthat_bulk/test-design-inference-introspection-audit.R` ("no silently masked capability for
   KK/incidence") finds a KK/incidence row with status 'ok' and a non-finite estimate, most likely the exact Fisher
   log odds ratio = Inf on a separated 2x2 table. Find the row, then either report it with a non-ok status (and a
   reason) or define the estimate on separated tables; an 'ok' row must never carry Inf/NaN. Done when the audit
   test passes on the new data without changing the fixture.
+  - Done 2026-11-24 (owner request; fixed in 271a7ea1, 2026-11-17): the row was `InferenceIncidExactFisher` on a
+    separated table. `inference_indicidence_exact_fisher.R` now flags that fit non-estimable (reason
+    `exact_fisher_conditional_mle_infinite`), so the suite reports it as status `nonest`, not 'ok' with an Inf
+    estimate. `test-design-inference-introspection-audit.R` passes unchanged (checked 2026-11-23 by the
+    v1.0.6-TODO-45 agent, `load_all(compile = FALSE)`, NOT_CRAN=true). The missing warning on that path is
+    v1.0.6-TODO-306.
 - [x] TODO-50 (added 2026-11-17, agent; surfaced by the v1.0.6-TODO-45 pre-push run): **KK robust regression's *(ticked by the TODO audit 2026-11-17: R/package_metadata/future_release_plans/release_v1_0_6.md:1007; R/EDI/src/fast_robust_regression.cpp:192; R/EDI/src/fast_robust_regression.cpp:244; R/EDI/src/fast_robust_regression.cpp:195; R/EDI/src/fast_robust_regression.cpp:428; R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:196; R/EDI/R/i...)*
   C++ path disagrees with `MASS::rlm`.** `R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R` ("InferenceContinKKRobustRegrIVWC:
   use_rcpp matches MASS::rlm fallback") now fails: -0.864 (use_rcpp = TRUE) vs -0.854 (rlm), tolerance 1e-3. It is
