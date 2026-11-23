@@ -31,7 +31,14 @@ assertBootstrapArgs = function(B, min_number_usable_samples = NULL, type = NULL,
 # assertion setting (offset support is v1.1.0-TODO-17a).
 edi_refuse_formula_offset = function(model_formula, context = "model_formula"){
 	if (is.null(model_formula) || !inherits(model_formula, "formula")) return(invisible(NULL))
-	if (!is.null(attr(stats::terms(model_formula), "offset"))) {
+	# Walk the call tree rather than calling terms(): terms() errors on a `.`
+	# formula without data.
+	has_offset_call = function(e) {
+		if (!is.call(e)) return(FALSE)
+		if (identical(e[[1L]], as.name("offset"))) return(TRUE)
+		any(vapply(as.list(e)[-1L], has_offset_call, logical(1)))
+	}
+	if (has_offset_call(model_formula)) {
 		stop(
 			context, " contains an offset() term; offsets are not supported yet ",
 			"(they would be ignored). Remove offset() from the formula.",

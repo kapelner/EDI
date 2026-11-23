@@ -53,3 +53,9 @@ test_that("an offset() term in the zero-inflation or hurdle formula is refused",
 	expect_error(InferenceCountHurdleNegBin$new(des, model_formula = ~ x1,
 		model_formula_hurdle = ~ offset(log_fu), verbose = FALSE), "model_formula_hurdle contains an offset")
 })
+
+test_that("a dot formula is still accepted and a dot formula with an offset is refused", {
+	des = make_count_design_with_followup()
+	expect_no_error(InferenceCountPoisson$new(des, model_formula = ~ ., verbose = FALSE))
+	expect_error(InferenceCountPoisson$new(des, model_formula = ~ . + offset(log_fu), verbose = FALSE), "offset")
+})
