@@ -15411,7 +15411,17 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      `-P 47` (owner, 2026-11-23): 47 worker slots, one core left for the system; `xargs` starts the next job as each
      finishes, so do not split the jobs into 47 fixed chunks. Run the loop inside `tmux` so it survives logout:
      `tmux new -s edi-regen`, start the wave, detach with `Ctrl-b d`, reattach with `tmux attach -t edi-regen`
-     (or `nohup bash wave.sh > $W/wave-$N.nohup 2>&1 &`). Keep the installed EDI unchanged until the last wave ends:
+     Or run it with `nohup` instead of tmux: save the three commands above (planner, `xargs`, merge) as `$W/wave.sh`,
+     taking N as its first argument (`N=$1` at the top, after the `export` and `cd` lines), then
+
+         nohup bash $W/wave.sh 1 > $W/wave-1.nohup 2>&1 &
+         echo $! > $W/wave-1.pid                 # PID of the wave
+         tail -f $W/wave-1.nohup $W/wave-1.log   # follow progress; Ctrl-C stops only the tail
+         pgrep -fc run_comprehensive_shard.R     # number of running shard processes (47 while the wave is busy)
+
+     `nohup` keeps the wave running after logout; start the next wave (`bash $W/wave.sh 2`, ...) only after the
+     previous one's merge has finished (its PID is gone). To stop a wave: `pkill -P $(cat $W/wave-1.pid)` then
+     `kill $(cat $W/wave-1.pid)`. Keep the installed EDI unchanged until the last wave ends:
      a rebuild mid-run changes EDI.so and every later call fails the provenance check (the 2026-11-16 survival
      batches lost 262 of 301 jobs this way). Nothing else heavy on the machine; never during G2.
    - (b) Join: `mkdir -p $W/results && Rscript R/package_tests/cloud/finalize_comprehensive_study.R --campaign-dir $W/c --results-dir $W/results`.
