@@ -107,7 +107,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-4a](#DECISION-v1.0.6-TODO-4a) | [v1.0.6-TODO-4](release_v1_0_6.md) | trailing partial permuted block merged into the previous block | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-4b](#DECISION-v1.0.6-TODO-4b) | [v1.0.6-TODO-4](release_v1_0_6.md) | FixedBlocking: stratified JKn delete-one within strata (Wolter) | 2026-11-19 |
 | [DECISION-v1.0.5-TODO-192](#DECISION-v1.0.5-TODO-192) | [v1.0.5-TODO-192](release_v1_0_5.md) | analysis scripts from `main` (TODO-200); acceptance list from the pinned commit (2026-11-17) | 2026-11-10 |
-| [DECISION-v1.0.5-TODO-174](#DECISION-v1.0.5-TODO-174) | [v1.0.5-TODO-174](release_v1_0_5.md) | jump guard applied (67347569); owner approval not recorded | 2026-11-07 |
+| [DECISION-v1.0.5-TODO-174](#DECISION-v1.0.5-TODO-174) | [v1.0.5-TODO-174](release_v1_0_5.md) | (c) leave the shared code alone; unapproved jump guard (67347569) reverted in 42361aa5 | 2026-11-23 |
 | [DECISION-v1.0.5-TODO-189](#DECISION-v1.0.5-TODO-189) | [v1.0.5-TODO-189](release_v1_0_5.md) | accept the score oversize as a documented finite-sample property; bootstrap score p in v1.1.0-TODO-166 | 2026-11-09 |
 | [DECISION-v1.0.5-TODO-185](#DECISION-v1.0.5-TODO-185) | [v1.0.5-TODO-185](release_v1_0_5.md) | leave the ZIP/ZINB partial-collapse ridge case; pseudo-inverse score test deferred to v1.1.0-TODO-3a | 2026-11-06 |
 | [DECISION-v1.0.5-TODO-184a](#DECISION-v1.0.5-TODO-184a) | [v1.0.5-TODO-184](release_v1_0_5.md) | coverage graded at the null only (beta_T = 0.5 rows: coverage_truth NA) | 2026-11-11 |
@@ -1292,20 +1292,12 @@ Last updated 2026-11-23.
     that now ends on an NA midpoint, and must not treat an NA cliff edge (p ~0.35 right before the NA) as a root.
   - (c) leave the shared code as is.
 - **Raised:** 2026-10-28, owner; "open: owner decision on applying (a) to the shared C++" since 2026-11-07.
-- **Ruling:** (a), the jump guard, applied by an agent on 2026-11-07 and committed in 67347569 (2026-11-08); owner
-  approval not recorded. Evidence: the guard is in `pval_invert_ci_cpp` on HEAD (`R/EDI/src/lrt_ci_newton.cpp`, the
-  "TODO-174 jump guard" block: up to 3 outward restarts, then NA for that side); the release file's status-table row in
-  67347569 reads "2026-11-07: jump guard applied ... Verified by sourceCpp swap", while the same commit's TODO entry
-  still said "Open: owner decision on applying (a) to the shared C++"; checked on the installed build 2026-11-10 (EDI.so
-  2026-11-10 16:48: isolated low-p point at the seed gives the true root -0.7611, 1.0.2 gave -0.2390; smooth case
-  unchanged); NEWS bullet "Likelihood CI inversion no longer returns an isolated low-p point as an endpoint." No owner
-  ruling, owner request or G6 item approving it was found. The owner's 2026-11-10 "Final benchmark gate" note (release
-  file, dependency diagram) lists "the TODO-174 CI jump guard in `lrt_ci_newton.cpp`" among the changes the final
-  benchmark run must cover, so the owner knew it was in. Recorded 2026-11-23 (coordinator, owner request to fix stale
-  entries).
-- **Why:** No reason recorded.
-- **Rejected:** (b) NA-midpoint halving (not prototyped) and (c) leave the shared code as is, by the change as applied.
-- **Revisit if:** the owner wants the change reverted, or the G4 rows show CIs that moved outside the 2 Stereotype rows.
+- **Ruling:** (c) leave the shared code alone; owner 2026-11-23. The jump guard an agent applied in 67347569 without
+  recorded approval is reverted in 42361aa5.
+- **Why:** Owner chose not to change the shared CI-inversion code; the Stereotype symptom is fixed by v1.0.5-TODO-175.
+  Owner: "the calibration CI campaign will find if there's still issues and we'll deal with them in a later version."
+- **Rejected:** (a) jump guard (reverted in 42361aa5); (b) NA-midpoint halving (not prototyped).
+- **Revisit if:** a calibration campaign flags CI endpoints equal to the Wald seed, or inverted-CI miscoverage.
 
 <a id="DECISION-v1.0.5-TODO-189"></a>
 ### DECISION-v1.0.5-TODO-189: Frailty Weibull score test runs ~1.5 points high under a correct model: fix in 1.0.5 or accept as documented?

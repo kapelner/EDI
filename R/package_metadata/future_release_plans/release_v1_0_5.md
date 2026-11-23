@@ -14272,9 +14272,9 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     (glmmTMB nll 93.2709 vs EDI 93.2794), exposed once its rows were sorted.
   - Open, not done here: the `operator()` bound bug (C++); the proportion boundary stall above.
 
-- [ ] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
+- [x] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
   `prepush_calibration_known_failures.csv`): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when the
-  bisection never moves.** Current state: OPEN; Stereotype symptom gone after TODO-175 (2026-11-07); the shared C++ jump guard is prototyped and verified in scratch but NOT applied (shared CI-inversion code).
+  bisection never moves.** Current state: CLOSED 2026-11-23 (owner ruling (c)): no change to the shared code; the jump guard an agent applied in 67347569 without recorded approval is reverted in 42361aa5. Stereotype symptom gone after TODO-175 (2026-11-07).
   - Example: `InferenceOrdinalStereotypeLogitRegr` score CI, pre-push null rep 1 (n = 200, Bernoulli, ordinal, `~1`):
     lower endpoint = Wald lower exactly (-0.2390472; the upper is a genuine root); the class's own score p there is
     0.034 (pre-push endpoint failure).
@@ -14321,8 +14321,9 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     upper 6.997) is NOT a bisection bug -- finite-difference score / Hessian crossing the mu = 1 boundary gives
     non-finite information and an NA p (separate R-only fix being prototyped). NA cliffs there can have p ~0.35 right
     before the NA, so an NA-halving rule must not treat a cliff edge as a root.
-  - Decided 2026-11-07 (agent; owner approval not recorded): jump guard (a) applied, committed in 67347569; see [DECISION-v1.0.5-TODO-174](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-174).
-  - Applied 2026-11-07 by an agent and committed in 67347569 (checked 2026-11-23): the jump guard is in `pval_invert_ci_cpp` on HEAD; see the decision line above. Left: G4.
+  - Decided 2026-11-23 (owner): (c) leave the shared code alone; guard reverted in 42361aa5; see [DECISION-v1.0.5-TODO-174](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-174).
+  - Applied 2026-11-07 by an agent and committed in 67347569 (checked 2026-11-23); reverted 2026-11-23 in 42361aa5 (owner ruling (c)), with its NEWS bullet.
+  - Closed 2026-11-23 (owner ruling (c)): no change to the shared code; reverted the unapproved guard. Owner: "the calibration CI campaign will find if there's still issues and we'll deal with them in a later version." The described defect stays in the shared code, accepted by the owner. The v1.0.5 regeneration must run on a build without the guard.
 - [ ] TODO-175 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` score / LR
   p-value depends on evaluation history, not only on delta.** Current state: APPLIED 2026-11-07 (uncommitted), verified; NEWS + G4 pending.
   - Each delta-constrained null refit warm-starts from the previous one (memoized warm cache, `warm_cache_key =
@@ -15125,7 +15126,8 @@ root `/home/kapelner/workspace/EDI` unless a `cd` is shown.
     `benchmark_model_fits` reports and the regression check (runbook step 7, "Benchmark regression check"); every
     flagged row must be explained or fixed. The 2026-11-09 PASS is interim only: it predates the 2026-11-09/10 changes
     (LogBinomial cold null refit + KKT score, RiskDiff KKT score + feasible-start null refit, the TODO-174 CI jump
-    guard in `lrt_ci_newton.cpp`, Stereotype `~1` non-estimable, the TODO-190 warning).
+    guard in `lrt_ci_newton.cpp` (reverted 2026-11-23 in 42361aa5, DECISION-v1.0.5-TODO-174 (c); the final build must not
+    contain it), Stereotype `~1` non-estimable, the TODO-190 warning).
     If a C++ patch changes an exported signature (04, 05, 08): after G1 re-run G8 and G9.
 
 ### Classification of the 131 TODOs (closing audit 2026-10-23)
@@ -15157,9 +15159,9 @@ Of TODO-1..131: DONE 100, open 31. Newly DONE since 2026-10-23: 4, 116, 123 (che
 open ones are in "Per-TODO status".
 
 **Recount 2026-11-23** (from the boxes, after the five G5 ticks in "Per-TODO status"): 171 entries (TODO-1..131 and
-TODO-161..201; 132-160 and 196 are unused), DONE 131, open 40. TODO-1..131: DONE 105, open 26 (8-10 12-14 16 18 19 23 26 31 38
-50 55 63 67 68 76 77 99 119 127-129 131); closed 2026-11-23 on G5: 109 112 120 125 130. TODO-161..201: DONE 26, open 14 (165 169
-172-181 184 188). Every open TODO is GATED; NEEDS-DECISION 0 (the last two v1.0.5 pending decisions, 174 and 192, were closed
+TODO-161..201; 132-160 and 196 are unused), DONE 132, open 39. TODO-1..131: DONE 105, open 26 (8-10 12-14 16 18 19 23 26 31 38
+50 55 63 67 68 76 77 99 119 127-129 131); closed 2026-11-23 on G5: 109 112 120 125 130. TODO-161..201: DONE 27, open 13 (165 169
+172 173 175-181 184 188; 174 closed 2026-11-23 by owner ruling (c)). Every open TODO is GATED; NEEDS-DECISION 0 (the last two v1.0.5 pending decisions, 174 and 192, were closed
 2026-11-23).
 
 ### Uncommitted state (historical, 2026-10-22, HEAD `478104b0`; current state and commit groups: "Closing audit 2026-10-23")
@@ -15197,7 +15199,7 @@ a separate go-ahead):
 
 Rd/man regeneration (G8) should be its own commit after commit group 1-7.
 
-### Per-TODO status (the 40 open TODOs, refreshed 2026-11-23 against HEAD 5f3fd4fe and CI; earlier: rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
+### Per-TODO status (the 39 open TODOs, refreshed 2026-11-23 against HEAD 5f3fd4fe and CI; earlier: rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
 
 Gate key: G1 build (+ patch bundle), G2 quiet-host timing, G3 1.0.2 parity, G4 CSV regen/audit (G4-C = calibration
 runbook R1-R7), G5 commit/push/CI, G7 TODO-56 slice, G8 Rd (roxygenized 2026-10-23, 0 warnings; only the commit is
@@ -15238,7 +15240,6 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 169 | gated | G4 | vcov whitelist + two-start null fit committed 9c9b2cab (2026-10-29); NEWS written 2026-11-06. Left: G4 |
 | 172 | gated | G4 | C++ fix committed 83f1f3cf, NEWS present. The owner rebuild of 2026-11-06 (EDI.so 16:04) includes it; the TODO-173 rows no longer reproduce there and the full pre-push calibration check passes (2026-11-06). Left: tick after G4 rows |
 | 173 | gated | G4 | Fixed by TODO-172 + TODO-187; known-failure rows deleted (5153c02c) and confirmed not reproducing on the 2026-11-06 rebuild. Left: G4 rows |
-| 174 | gated | G4 | Jump guard in `pval_invert_ci_cpp`, applied by an agent 2026-11-07 and committed in 67347569; owner approval not recorded (DECISION-v1.0.5-TODO-174 closed 2026-11-23). Checked on the installed build 2026-11-10 (EDI.so 16:48, sha256 `3e2efba0…6825`): isolated low-p point at the seed gives the true root -0.7611 (1.0.2: -0.2390), smooth case unchanged. NEWS written. Left: G4 |
 | 175 | gated | G4 | Deterministic multistart null refits (+ parametric bootstrap) committed 67347569 (2026-11-08); same-object = fresh p; NEWS written 2026-11-07; Stereotype Rd regenerated since. Left: G4 rows |
 | 176 | gated | G4 | Code committed a464f68e; the 2026-11-08 `~1` non-estimable ruling committed af6a86f0; NEWS written. Left: G4 |
 | 177 | gated | G4 | Shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial committed 67347569 (2026-11-08); new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
@@ -15249,7 +15250,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 184 | gated | full runs | Harness committed: `prob_T` cells 41696739, KMDiff MOVER CI b1e96231, per-case seeding e635334a, sequential-design BRT exclusion c2989a61. Batch-1 0.2 cells verified and merged 2026-11-15 (DECISION-v1.0.5-TODO-184b: verify from the survival G4 rows). Left: the 0.2 cells of survival batches 2-3 (batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge); the fast-tier run at 0.2 and re-measured `secs_per_rep` (not recorded) |
 | 188 | gated | G4 | R-only DepCens full-fit multistart committed 5153c02c (2026-11-04); NEWS bullet written. Left: G4 regeneration of the DepCensTransformRegr rows (also in survival batch 3, not yet rerun) |
 
-Closed 2026-11-23 (G5 satisfied; rows dropped): 109, 112, 120, 125, 130, by R-CMD-check run 45131875338 at 38d1b90a and test-bulk-non-cran run 44072918156 at 92c44b8c (each entry has the note). Rows also dropped because their boxes were ticked before this refresh: 189, 190, 191. Every "uncommitted" claim in the open entries was checked against git on 2026-11-23: all of the described code is on HEAD, and each entry now ends with a dated "Committed in <sha>" note.
+Closed 2026-11-23 (G5 satisfied; rows dropped): 109, 112, 120, 125, 130, by R-CMD-check run 45131875338 at 38d1b90a and test-bulk-non-cran run 44072918156 at 92c44b8c (each entry has the note). Rows also dropped because their boxes were ticked before this refresh: 189, 190, 191. Closed 2026-11-23 (owner ruling (c), row dropped): 174, its unapproved jump guard reverted in 42361aa5. Every "uncommitted" claim in the open entries was checked against git on 2026-11-23: all of the described code is on HEAD, and each entry now ends with a dated "Committed in <sha>" note.
 
 **Release gates still open (2026-11-23)**
 
