@@ -32,6 +32,14 @@ triaged as possibly upstream's bug. Record the run URL in the release's
 `release_v*.md` before submission. This also satisfies any release gate that
 names the sanitizer and valgrind jobs at a committed SHA (e.g. v1.0.5 G5).
 
+## Calibration campaigns gate x.y.0 releases only
+
+Owner ruling 2026-11-23 ([DECISION-v1.0.6-TODO-409c](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-409c)). A
+complete, analysed calibration campaign (`calibration-study.yml`) is a release gate for minor and major releases
+(x.y.0: 1.1.0, 1.2.0, 2.0.0, ...) only. It never gates a patch release (x.y.z, z > 0): an unfinished campaign and
+its open results-freshness findings on the calibration summary may stay open at a patch tag, tracked by their TODOs.
+The comprehensive-results gates (regeneration, results audit, path audits) are separate and still apply.
+
 ## CI coverage already enforced on every push
 
 Audited 2026-08-15 against `.github/workflows/R-CMD-check.yaml`, extended

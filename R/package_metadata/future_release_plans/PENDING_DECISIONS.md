@@ -54,7 +54,6 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-158](#DECISION-v1.0.6-TODO-158) | [v1.0.6-TODO-158](release_v1_0_6.md) | Confirm the perfect-predictor detection's three judgment calls |
 | [DECISION-v1.0.6-TODO-106](#DECISION-v1.0.6-TODO-106) | [v1.0.6-TODO-106](release_v1_0_6.md) | Add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook? |
 | [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) | [v1.0.6-TODO-74](release_v1_0_6.md) | Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both? |
-| [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-67](release_v1_0_6.md) | 606 open results-freshness findings: stable unit-keyed ids then cite, one audit-wide citation, or leave listed until the regeneration? |
 | [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.6-TODO-43](release_v1_0_6.md) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
 | [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.6-TODO-17](release_v1_0_6.md) | Calibration early stopping of clearly passing null units: settle the five design questions |
 
@@ -531,35 +530,6 @@ Last updated 2026-11-23.
   - (c) both.
 - **Agent's note (2026-11-21):** (b) is a small message change; (a) is the real fix.
 - **Raised:** 2026-11-17 (cluster-and-factorial article agent); investigated 2026-11-21 (agent).
-
-<a id="DECISION-v1.0.6-TODO-67"></a>
-### DECISION-v1.0.6-TODO-67: 606 open results-freshness findings: stable unit-keyed ids then cite, one audit-wide citation, or leave listed until the regeneration?
-
-- **TODO:** [v1.0.6-TODO-67](release_v1_0_6.md): **Regenerate the stale result rows.**
-- **Context:** the weekly results-freshness audit (run 45033002717 at `9186e6a5`, 2026-11-22; issue #23) reports 606
-  row groups generated before their class's code last changed: `comprehensive_tests_mse.csv` 103,
-  `comprehensive_tests_size.csv` 103, `comprehensive_tests_coverage.csv` 102,
-  `comprehensive_coverage_attempt_summary.csv` 102, `comprehensive_tests_power.csv` 101, and the calibration summary
-  of campaign 2026-11-15-e36c7710 (`calibration-results` branch) 95. They are real (the rows predate the code), and
-  v1.0.6-TODO-67 already plans the regeneration, but the open-decisions list (issue #56) counts them as uncovered:
-  a finding leaves the list only when a run stops reporting it, an open release TODO cites its exact
-  `results-freshness-m<hex>` id, or DISMISSED_DECISIONS.md lists it. The id is a hash of the unit
-  (`<file>::<class>::<family>`) and a key built from the finding text with digits masked
-  (`mech_key()` in `.github/scripts/audit_common.py`); that text names the short hashes of the commits that changed
-  the class, so the id changes each time the class changes again, and a citation goes stale silently.
-- **Options:**
-  - (a) Key results-freshness findings on the unit alone (pass a fixed `key`, e.g. `stale-class`, from
-    `.github/scripts/audits/results_freshness.py`, which `track_mechanical()` already supports), then cite the 606
-    ids once in v1.0.6-TODO-67. Ids stay stable until the rows are regenerated; one long citation list in the TODO.
-  - (b) Let `audit_decisions.py` (and `cited_decisions()`) accept an audit-wide citation, e.g. an open TODO containing
-    `results-freshness-m*`, so every open finding of that audit counts as covered. Short, but it would also hide new
-    stale groups that appear later, until the TODO is ticked.
-  - (c) Change nothing: leave the 606 listed until the next comprehensive and calibration regeneration clears them,
-    and treat results-freshness as known in the triage sweeps.
-- **Evidence:** counts above from `results-freshness/mechanical_open.json` on `audit-notes` (2026-11-22); every
-  finding gives the regenerate command for its class. The calibration campaign is still running (v1.0.6-TODO-409),
-  so its 95 groups clear only after it finishes.
-- **Raised:** 2026-11-23, by the audit triage sweep (coordinator, owner request).
 
 <a id="DECISION-v1.0.6-TODO-43"></a>
 ### DECISION-v1.0.6-TODO-43: Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first?

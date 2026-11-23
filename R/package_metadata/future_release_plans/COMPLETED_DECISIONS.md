@@ -38,6 +38,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
 | [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish, accept the 1.3x-3x cost, allowlist the slowed benchmark rows | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-409](release_v1_0_6.md) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-380](release_v1_0_6.md) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-380](release_v1_0_6.md) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
@@ -101,6 +102,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-87](#DECISION-v1.0.6-TODO-87) | [v1.0.6-TODO-87](release_v1_0_6.md) | keep the removal of the always-NaN keys | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-82](#DECISION-v1.0.6-TODO-82) | [v1.0.6-TODO-82](release_v1_0_6.md) | keep `na.rm`, documented as "drop non-finite draws" | 2026-11-18 |
 | [DECISION-v1.0.6-TODO-76](#DECISION-v1.0.6-TODO-76) | [v1.0.6-TODO-76](release_v1_0_6.md) | KK with `n = NULL` matches once the model matrix exists; `n` not required | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-67](release_v1_0_6.md) | (c) leave the results-freshness findings listed; the full 1.0.5 regeneration clears them | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-61](#DECISION-v1.0.6-TODO-61) | [v1.0.6-TODO-61](release_v1_0_6.md) | randomization replicates never chain warm starts, for any class | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-60](#DECISION-v1.0.6-TODO-60) | [v1.0.6-TODO-60](release_v1_0_6.md) | milder clamp (y(n-1)+0.5)/n in both KK21 proportion speedups | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-12](#DECISION-v1.0.6-TODO-12) | [v1.0.6-TODO-12](release_v1_0_6.md) | minimum 95% valid replicates, user-settable | 2026-11-19 |
@@ -429,6 +431,24 @@ Last updated 2026-11-23.
 - **Revisit if:** the allowlist rows come out at the v1.0.6 release and these fits still fail the 1.25x canary, or a
   kernel gets an analytic Hessian that makes the finish cheap.
 
+
+<a id="DECISION-v1.0.6-TODO-409c"></a>
+### DECISION-v1.0.6-TODO-409c: Does an unfinished calibration campaign gate a patch release (v1.0.5)?
+
+- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
+- **Context:** campaign 2026-11-15-e36c7710 is still running (v1.0.6-TODO-409). Its calibration summary carries 95 of
+  the 606 results-freshness row groups (DECISION-v1.0.6-TODO-67). The 1.0.5 release cut (2026-11-23) had to say
+  whether 1.0.5 waits for the campaign to finish and be analysed.
+- **Options on the table:** (a) 1.0.5 waits for the campaign; (b) it does not, and the calibration-summary findings
+  stay open at the tag.
+- **Ruling:** (b). Calibration campaigns gate minor and major releases (x.y.0: 1.1.0 and later) only, never a patch
+  release (x.y.z, z > 0). The unfinished campaign does not gate 1.0.5; its 95 results-freshness groups may stay open at
+  the 1.0.5 tag, tracked by v1.0.6-TODO-409 and v1.0.6-TODO-67. 2026-11-23, owner. General rule recorded in
+  `release.md` ("Calibration campaigns gate x.y.0 releases only").
+- **Why:** owner: "The unfinished calibration campaign should not gate 1.0.5. It should only gate 1.1.0 and further
+  x.x.0 releases." Calibration is a minor/major-release gate.
+- **Rejected:** (a) hold 1.0.5 for the campaign.
+- **Revisit if:** a patch release fixes a calibration failure that only a campaign can confirm.
 
 <a id="DECISION-v1.0.6-TODO-380a"></a>
 ### DECISION-v1.0.6-TODO-380a: Name of the opt-in design-conservative Bartlett option
@@ -1176,6 +1196,47 @@ Last updated 2026-11-23.
   `n`), 2026-11-18, owner.
 - **Why:** No reason recorded.
 - **Rejected:** requiring `n`; an absolute `t_0`.
+
+<a id="DECISION-v1.0.6-TODO-67"></a>
+### DECISION-v1.0.6-TODO-67: 606 open results-freshness findings: stable unit-keyed ids then cite, one audit-wide citation, or leave listed until the regeneration?
+
+- **TODO:** [v1.0.6-TODO-67](release_v1_0_6.md): **Regenerate the stale result rows.**
+- **Context:** the weekly results-freshness audit (run 45033002717 at `9186e6a5`, 2026-11-22; issue #23) reports 606
+  row groups generated before their class's code last changed: `comprehensive_tests_mse.csv` 103,
+  `comprehensive_tests_size.csv` 103, `comprehensive_tests_coverage.csv` 102,
+  `comprehensive_coverage_attempt_summary.csv` 102, `comprehensive_tests_power.csv` 101, and the calibration summary
+  of campaign 2026-11-15-e36c7710 (`calibration-results` branch) 95. They are real (the rows predate the code), and
+  v1.0.6-TODO-67 already plans the regeneration, but the open-decisions list (issue #56) counts them as uncovered:
+  a finding leaves the list only when a run stops reporting it, an open release TODO cites its exact
+  `results-freshness-m<hex>` id, or DISMISSED_DECISIONS.md lists it. The id is a hash of the unit
+  (`<file>::<class>::<family>`) and a key built from the finding text with digits masked
+  (`mech_key()` in `.github/scripts/audit_common.py`); that text names the short hashes of the commits that changed
+  the class, so the id changes each time the class changes again, and a citation goes stale silently.
+- **Options:**
+  - (a) Key results-freshness findings on the unit alone (pass a fixed `key`, e.g. `stale-class`, from
+    `.github/scripts/audits/results_freshness.py`, which `track_mechanical()` already supports), then cite the 606
+    ids once in v1.0.6-TODO-67. Ids stay stable until the rows are regenerated; one long citation list in the TODO.
+  - (b) Let `audit_decisions.py` (and `cited_decisions()`) accept an audit-wide citation, e.g. an open TODO containing
+    `results-freshness-m*`, so every open finding of that audit counts as covered. Short, but it would also hide new
+    stale groups that appear later, until the TODO is ticked.
+  - (c) Change nothing: leave the 606 listed until the next comprehensive and calibration regeneration clears them,
+    and treat results-freshness as known in the triage sweeps.
+- **Evidence:** counts above from `results-freshness/mechanical_open.json` on `audit-notes` (2026-11-22); every
+  finding gives the regenerate command for its class. The calibration campaign is still running (v1.0.6-TODO-409),
+  so its 95 groups clear only after it finishes.
+- **Raised:** 2026-11-23, by the audit triage sweep (coordinator, owner request).
+- **Ruling:** (c) leave the findings listed; the full 1.0.5 comprehensive regeneration clears them. 2026-11-23, owner
+  (with the 1.0.5 release-cut ruling: v1.0.5 regenerates every comprehensive row at the release commit; see
+  `release_v1_0_5.md`, "Release cut (owner ruling 2026-11-23)").
+- **Why:** No reason recorded. A full regeneration rewrites every row group the audit lists for the four
+  `comprehensive_tests_*.csv` tables and `comprehensive_coverage_attempt_summary.csv`, so citing ids that would vanish
+  with it is moot. The 95 calibration-summary groups stay open at the 1.0.5 tag: calibration does not gate a patch
+  release ([DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c)); they clear when campaign 2026-11-15-e36c7710 (or
+  a later one) finishes and is analysed (v1.0.6-TODO-409).
+- **Rejected:** (a) unit-keyed stable ids and one citation list in v1.0.6-TODO-67; (b) an audit-wide
+  `results-freshness-m*` citation.
+- **Revisit if:** stale groups persist after the 1.0.5 regeneration's rows are committed and the weekly audit has run
+  on that commit, or the full regeneration is dropped for slices.
 
 <a id="DECISION-v1.0.6-TODO-61"></a>
 ### DECISION-v1.0.6-TODO-61: Should randomization replicates chain warm starts?

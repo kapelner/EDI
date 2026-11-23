@@ -3,6 +3,9 @@
 > **Status: CLOSED to new TODOs (owner, 2026-11-12): soon to be released.** New work goes to `release_v1_0_6.md`
 > or later; `triage_calibration_study.R` never drafts into a file with this line.
 
+> **Release cut (owner ruling 2026-11-23):** scope, freeze/branching, the full 50-rep comprehensive regeneration and
+> the ordered checklist that ships 1.0.5 are in [Release cut (owner ruling 2026-11-23)](#release-cut-2026-11-23).
+
 > **Depends on:** `release_v1_0_0.md` (ships first). No dependency on
 > `release_v1_1_0.md` — this file was split out of it on 2026-09-23 (user
 > decision) precisely so these fixes are not gated on that release's new
@@ -15258,6 +15261,235 @@ Closed 2026-11-23 (G5 satisfied; rows dropped): 109, 112, 120, 125, 130, by R-CM
 - **Path audits regenerated + `compare_path_audits.R` (closing runbook step 6a)**: after the G4 merges. Release gate; no single TODO waits on it.
 - **Full R-CMD-check green at the exact release commit** (release.md; weekly schedule or dispatch, not the lean push run): both full runs so far failed (44358518303 at 4ce2b712, 2026-11-18; 44903905332 at 8d8c5f78, 2026-11-21) on every OS check leg and both sanitizer legs, from v1.0.6-TODO-180 (open) and v1.0.6-TODO-181 (fixed 2026-11-21). Its sanitizer and valgrind legs also close TODO-63's G5 recheck and TODO-38's CI part.
 - **G4 regeneration batch** (class-filtered comprehensive rows, audit, merge, on one fixed build): survival batches 2-3 need a rerun (262 of 301 jobs skipped 2026-11-16) plus TODO-14's own GLMMWeibullFrailtyLoggammaIVWC run. Unblocks 8, 9, 10, 12, 13, 14, 16, 18, 19, 23, 26, 31, 38, 50, 55, 68, 76, 77, 99, 119, 127, 128, 129, 131, 165, 169, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 188, and the 0.2 cells of 184.
+
+<a id="release-cut-2026-11-23"></a>
+### Release cut (owner ruling 2026-11-23)
+
+Owner rulings of 2026-11-23, then the ordered checklist that ships 1.0.5. Investigation is read-only (2026-11-23,
+HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + data.table, seconds). Marked
+"(unverified)" where not checked.
+
+**Rulings.**
+
+- **Scope.** 1.0.5 ships everything on `main` at the release commit, including every v1.0.6 TODO ticked by then. Ticked
+  v1.0.6 TODOs are not moved and keep their numbers (about 1,400 references cite them). The open v1.0.6 TODOs are
+  the 1.0.6 scope; scope note at the top of `release_v1_0_6.md`. NEWS: the top "EDI (development version)" section
+  becomes `EDI 1.0.5` at release (DESCRIPTION is already 1.0.5); `python/CHANGELOG.md` top is `[1.0.5] - Unreleased`.
+- **Branching.** Release from `main` with a tag. From the release commit until the gates pass, freeze merges that
+  touch `R/EDI` or anything the comprehensive results depend on (`R/package_tests/comprehensive_tests.R` and its
+  helpers, `_dataset_load.R`, the audits). Freeze-time work goes to a short-lived `dev-1.0.6` branch, merged after
+  the tag. A CRAN-requested patch goes on `release-1.0.5`, branched from the tag, then merged back to `main`.
+- **Full comprehensive regeneration**, not G4 slices, run by the owner on a 48-core machine, at **50 reps with every
+  class run to completion** (owner 2026-11-23; same as DECISION-v1.1.0-TODO-194b). The temporary results were deleted
+  2026-11-23 (169 files, 9.9 GB: `.bak`, `_filtered_`, provenance `.rds`, nc_2/4/8). The six canonical
+  `R/package_tests/comprehensive_tests_results_nc_1_<type>.csv` (3.2 GB) stay until the new rows replace them.
+  Why 50 runs to completion: today's files target reps 1..50, but per-class max rep is short for many classes (scan
+  2026-11-23, distinct `inference_class` per file): continuous 50/50 complete; ordinal 64/64; incidence 73 at 50,
+  5 at 37-40; count 32 at 50, 42 at 34-35; survival 22 at 50, 20 at 34 or 43; proportion 12 at 50, 42 at 24-40.
+  This regeneration also satisfies the path-audit gate of DECISION-v1.1.0-TODO-194a (a complete local regeneration
+  at the release commit).
+- **Results freshness.** DECISION-v1.0.6-TODO-67 is moot under a full regeneration: ruled (c), leave the findings
+  listed; the regeneration clears the comprehensive ones (COMPLETED_DECISIONS.md).
+- **Calibration does not gate 1.0.5.** Calibration campaigns gate x.y.0 releases only
+  (DECISION-v1.0.6-TODO-409c; general rule in `release.md`). Campaign 2026-11-15-e36c7710 may still be running at
+  the tag, and its 95 calibration-summary results-freshness groups may stay open, tracked by v1.0.6-TODO-409 and
+  v1.0.6-TODO-67.
+
+**Facts the runbook relies on (checked 2026-11-23).**
+
+- `comprehensive_tests.R` arg 1 is `Nrep`, arg 2 `NUM_CORES` (L750-751). `NUM_CORES` is each inference object's
+  OpenMP thread budget, not case-level parallelism: cases run serially and no R cluster is created (comment
+  L885-904). One process at `NUM_CORES = 48` mostly uses one core; parallelism has to come from many processes.
+- Response type `NA` writes one combined `comprehensive_tests_results_nc_<N>.csv` (L1047-1048), which the per-type
+  tools do not read. Always pass a response type (the cloud scripts do).
+- `run_comprehensive_shard.R` always passes `NUM_CORES = 1` (L33), so every shard output is `nc_1_<type>_filtered_...`.
+
+**Investigation answers.**
+
+1. **The cloud scripts run locally as they are; no change needed.** `plan_comprehensive_study.R` needs base R +
+   data.table and a cost table (committed `R/package_tests/cloud/comprehensive_study_costs.csv`, 1,759 pieces over
+   139 response x dataset x design cases, built 2026-11-14 at `c2989a61` from the local canonical files).
+   `run_comprehensive_shard.R` needs `Rscript` on `PATH` with the release build of EDI in the library, a checkout
+   (`--repo`) and `--out-dir`; it forks one process per planned proc (`parallel::mcparallel`). The two merge scripts
+   need data.table, `xz` and `tar`. None of them calls `gh`, git branches or GitHub artifacts; that is all in
+   `comprehensive-study.yml`. Settings for a local run: `--procs 1` (one process per job, so `xargs -P 48` gives 48
+   single-core processes), `--wave-size 100000` (default 256 cuts the wave), `--speed 1` (1.5 is the hosted-runner
+   factor), `--deadline-minutes 100000` on the shard runner (default 30 stops starting calls). Jobs are numbered
+   heaviest first, so `xargs` in job order is longest-first scheduling. Dry run 2026-11-23 with these settings:
+   12,113 jobs, 13,100 calls (278 catch-all calls), about 3,950 CPU-hours estimated, longest call 48 min; about
+   82 h (3.5 days) on 48 cores if the 48-core machine's cores match the cost table's (unverified). One wave is not
+   enough: each case's catch-all call (rep 1) finds classes missing from the cost table and records them in
+   `discovered.csv`; their reps 2..50 are planned by the next wave. Re-plan with the ledger until
+   `remaining_pieces=0`; a call that exits non-zero gets no `DONE` and is re-planned every wave, so after wave 2-3
+   read its log instead of looping. Outputs must live outside the checkout: `EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK=1`,
+   which the shard runner sets, is honoured only then (`comprehensive_tests.R` L1110-1113). Memory for 48 concurrent
+   R processes is unmeasured (unverified). Do not size `-P` with `$(nproc)` after exporting `OMP_NUM_THREADS=1`:
+   GNU `nproc` then prints 1.
+2. **Cloud alternative** (`gh workflow run comprehensive-study.yml -f sha=<sha>`). Dry run of the workflow's own
+   settings (`--procs 4 --speed 1.5 --wave-size 256`, 50 reps): 4,210 jobs and 18,586 calls in total, about
+   5,900 CPU-hours (1,477 job-hours), so about 17 waves of 256 jobs. At `max-parallel: 16` and ~25-30 min per shard
+   plus setup, that is roughly 6-8 days of wall time (unverified), plus the discovery waves. It shares the
+   `calibration-study` concurrency group, so its waves queue behind the running calibration campaign's waves
+   (calibration-study.yml, same group). Results: the last wave runs `finalize_comprehensive_study.R`, the results
+   audit and the path-audit regeneration + compare on the runner, and publishes `rows-<response>.csv.xz` to the
+   prerelease `comprehensive-<C>`. To bring them back: `gh release download comprehensive-<C> -p 'rows-*.csv.xz' -D $W/dl`,
+   then `xz -dc $W/dl/rows-<rt>.csv.xz > $W/results/comprehensive_tests_results_nc_1_<rt>.csv` for the six types
+   (each is exactly what finalize wrote as the canonical file), then step 3d onwards here. The rows come from a CI
+   build (`EDI_PORTABLE=1`, hosted runner), and the per-call provenance sidecars are not published (only rows and
+   logs). Recommendation: the local run (half the time, no queueing behind calibration, provenance kept).
+3. **Hard-coded nc_1.** `prune_stale_result_rows.R` L96, L155, L175 (reads nc_1 only);
+   `comprehensive_audit_paths.R` L38-41 (default nc_1; any `nc_N` per type only inside `EDI_COMPREHENSIVE_RESULTS_DIR`,
+   L42-58, and it stops on two files per type); `merge_comprehensive_slice_results.R` L794-799 (links only the
+   untouched `nc_1_<type>` files into the preview dir; doc L71); the cloud scripts: `run_comprehensive_shard.R` L33,
+   `merge_comprehensive_study_wave.R` L47, `finalize_comprehensive_study.R` L39, `build_comprehensive_study_costs.R` L18.
+   Readers that pool every `nc_*` file: `analyze_comprehensive_tests.R` L6-11 and `path_audits_source.R` L914-924
+   (both `rbind` with no dedup by `id`, so `nc_1` + `nc_48` files of one type double-count every row);
+   `na_audit_gate.R` L378-383 keeps the newest file per type (safe). The recommended path writes only `nc_1`, so no
+   change is needed. Rule: keep exactly the six unfiltered `nc_1_<type>.csv` files in `R/package_tests/`. No script
+   was changed.
+4. **Provenance.** `finalize_comprehensive_study.R` writes the canonical files directly and has no DLL check; the
+   DLL-equals-installed check is only in `merge_comprehensive_slice_results.R`, which this path does not use. Each
+   call's sidecar (`<results>.provenance-<stamp>-pid<n>.rds`, `comprehensive_run_provenance.R` L203-220) records
+   `before`/`after` `edi_dll_sha256`, `checkout_head` and `checkout_status_porcelain` (L178-200); step 3c checks them.
+   Recommendation: run everything that needs the build (regeneration, finalize, results audit, analyze, NA digest,
+   path audits + compare) on the 48-core machine, then copy back the six canonical CSVs and the committed tables
+   (list in step 3e) plus a tarball of the sidecars and logs, and commit the tables here. Copying raw outputs back
+   instead would leave the path audits running against this machine's install, which is a different build.
+5. **Reps.** The canonical files use `Nrep = 50` (max rep 50 in all six), but many classes stop short (counts above);
+   by cell (class x dataset x design x beta_T) the median distinct reps is 50 for continuous, incidence and
+   proportion, and 12 (ordinal), 18 (count), 23 (survival). The cloud study uses 50 (`REPS: 50`,
+   DECISION-v1.1.0-TODO-194b). Owner ruling 2026-11-23: 50, every class complete.
+
+**Checklist.** Who: O = owner, A = an agent may do it (docs, read-only checks). Paths: `R` = the release clone on the
+48-core machine, `W` = its work dir, outside the clone.
+
+0. **Preconditions (O; before the freeze).**
+   - Open v1.0.6 TODOs that change `R/EDI` land before the release commit or are deferred to 1.0.6 by name.
+     v1.0.6-TODO-45 (KK14 threshold; R fix in, 9 fix-dependent bulk files left) is a prerequisite of
+     v1.0.6-TODO-67's regeneration. v1.0.6-TODO-180 is open and fails the full R-CMD-check on every leg (re-run its
+     three files on a build with the ticked v1.0.6-TODO-163; fix if they still fail). v1.0.6-TODO-181 was fixed
+     2026-11-21. The full run cannot go green until v1.0.6-TODO-180 is fixed.
+   - v1.0.5-TODO-174 jump guard: owner ruled (c) 2026-11-23, leave the shared code alone; the unapproved guard
+     (67347569) is reverted in 42361aa5 and v1.0.5-TODO-174 is closed (DECISION-v1.0.5-TODO-174). **The owner
+     rebuilds EDI after 42361aa5 and before the regeneration** (step 2 at a `$SHA` that contains it), so the full run
+     uses a build without the guard.
+   - Subsumed by the full regeneration: the survival G4 batches 2-3 that never ran (262 of 301 jobs
+     `SKIP_DLL_CHANGED`, `~/edi_regen/regen_survival_b23_20261115/`; can be deleted after step 3).
+     Not certainly subsumed: v1.0.5-TODO-14's `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` rows. The cost table
+     has no IVWC row, `is_skipped_inference_label()` skips every `IVWC` label (`comprehensive_tests.R` L3527-3530),
+     yet the KK survival selector lists this class (L4441). After wave 1, `grep IVWC $W/c/discovered.csv`; if it is
+     absent, TODO-14 needs its own class-filtered run (unverified which path wins).
+   - Passed when: each open v1.0.6 TODO touching `R/EDI` is landed or named deferred; v1.0.6-TODO-180 fixed.
+1. **Release commit + freeze (O).** Pick `SHA` on `main`. Announce the freeze. `git switch -c dev-1.0.6 $SHA` and
+   push it (push is the owner's). Passed when: `dev-1.0.6` exists; `main` gets no `R/EDI` / harness commit until step 9.
+   Docs-only commits on `main` (the tables, NEWS, these files) are allowed.
+2. **Build with provenance (O, 48-core machine; owner's own build, a full compile).**
+
+       git clone <EDI remote> $R && cd $R && git checkout --detach $SHA && git status --porcelain   # prints nothing
+       Rscript R/package_tests/install_comprehensive_tests_deps.R
+       R CMD INSTALL --preclean R/EDI          # owner's choice; EDI_UNITY=0 not required on that machine
+       mkdir -p $W; { git rev-parse HEAD; sha256sum "$(Rscript -e 'cat(system.file("libs","EDI.so",package="EDI"))')"; \
+         Rscript -e 'cat(packageDescription("EDI")$Built, "\n")'; } | tee $W/build.txt
+
+   Passed when: HEAD = `$SHA`, clean tree, `build.txt` holds the EDI.so SHA-256. Ticks: G1-style provenance for step 3.
+3. **Full comprehensive regeneration, 50 reps (O, 48-core machine, ~3.5 days, unverified).**
+   - (a) Waves. Repeat with N = 1, 2, ... until the planner prints `remaining_pieces=0` (only repeat failures left:
+     read their logs in `$W/wave-N/*/*/log.txt` instead):
+
+         cd $R; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NOT_CRAN=true; mkdir -p $W/c
+         Rscript R/package_tests/cloud/plan_comprehensive_study.R --costs R/package_tests/cloud/comprehensive_study_costs.csv \
+           --discovered $W/c/discovered.csv --ledger $W/c/ledger.csv --reps 50 --wave-size 100000 --procs 1 --speed 1 \
+           --out-plan $W/plan-$N.csv --out-matrix $W/matrix-$N.json | tee $W/planner-$N.out
+         NJOBS=$(sed -n 's/^jobs=//p' $W/planner-$N.out)
+         seq 1 $NJOBS | xargs -P 48 -I{} Rscript R/package_tests/cloud/run_comprehensive_shard.R --plan $W/plan-$N.csv \
+           --job {} --out-dir $W/wave-$N/{} --reps 50 --deadline-minutes 100000 --repo $R > $W/wave-$N.log 2>&1
+         Rscript R/package_tests/cloud/merge_comprehensive_study_wave.R --wave-dir $W/wave-$N --plan $W/plan-$N.csv \
+           --campaign-dir $W/c --wave $N
+
+     Run it detached (`tmux`/`nohup`). Nothing else heavy on the machine; never during G2.
+   - (b) Join: `mkdir -p $W/results && Rscript R/package_tests/cloud/finalize_comprehensive_study.R --campaign-dir $W/c --results-dir $W/results`.
+     Passed when: `$W/c/audit/rep_variation.count` is 0, and `rows_summary.csv` lists all six types.
+   - (c) Provenance and completeness:
+
+         Rscript -e 'f <- list.files(Sys.getenv("W"), "\\.provenance-.*\\.rds$", recursive = TRUE, full.names = TRUE); x <- lapply(f, readRDS);
+           cat(length(f), "sidecars\n"); print(table(unlist(lapply(x, function(r) c(r$before$edi_dll_sha256, r$after$edi_dll_sha256)))));
+           print(table(vapply(x, function(r) r$before$checkout_head, ""))); print(sum(nzchar(unlist(lapply(x, function(r) r$before$checkout_status_porcelain)))))'
+         Rscript -e 'library(data.table); for (f in Sys.glob(file.path(Sys.getenv("W"), "results", "comprehensive_tests_results_nc_1_*.csv"))) {
+           d <- fread(f, select = c("rep", "inference_class")); m <- d[, .(max_rep = max(rep)), by = inference_class][max_rep < 50];
+           cat(basename(f), ":", uniqueN(d$inference_class), "classes,", nrow(m), "short\n"); if (nrow(m)) print(m) }'
+
+     Passed when: one DLL hash, equal to `build.txt`; one `checkout_head` = `$SHA`; 0 dirty-tree entries; **every
+     class reaches rep 50 (0 short in all six files)**.
+   - (d) Results audit in the staging dir: `cp R/package_tests/comprehensive_results_audit_baseline.csv $W/results/ &&
+     EDI_COMPREHENSIVE_RESULTS_DIR=$W/results Rscript R/package_tests/audit_comprehensive_results.R --force` (also
+     writes `comprehensive_coverage_attempt_summary.csv` there). Passed when: exit 0, or every new finding has a TODO.
+     `--write-baseline` needs its own approval.
+   - (e) Install the rows, then the tables (in `$R`): copy the six `$W/results/comprehensive_tests_results_nc_1_*.csv`
+     and the attempt summary into `R/package_tests/` (no other `comprehensive_tests_results_nc_*` file there), then
+     `( cd R && Rscript package_tests/analyze_comprehensive_tests.R )` (size/power/coverage/mse),
+     `Rscript R/package_tests/na_audit_gate.R digest` (shard runs are filtered, so the runner did not refresh it), and
+     `Rscript R/package_tests/prune_stale_result_rows.R` (dry run; expect 0 stale rows). Copy back to the workstation:
+     the six canonical CSVs, `comprehensive_tests_{size,power,coverage,mse}.csv`,
+     `comprehensive_coverage_attempt_summary.csv`, `comprehensive_suite_na_audit.csv`, then step 4's two outputs, and
+     `tar -cJf $W/provenance.tar.xz` of the sidecars + `$W/c/logs/`. Replace the old canonical files here only now,
+     after (c) and (d) passed. Commit the tables (not the gitignored CSVs) on `main`.
+   - Ticks (after step 8's evidence notes): the G4 rows of every gated TODO (list in step 8).
+4. **Path audits + compare (O, same machine, release build installed; closing runbook step 6a / `release.md`
+   "Path audits").** In `$R`, with the new canonical files:
+
+       S=$W/path_audits; mkdir -p $S
+       cp R/package_tests/path_audits_source.R R/package_tests/path_audits_nonestimability_defaults.csv $S/
+       for f in R/package_tests/comprehensive_tests_results_nc_*.csv; do case $f in *_filtered_*) ;; *) ln -s "$PWD/$f" $S/ ;; esac; done
+       ( cd R && Rscript $S/path_audits_source.R ) 2>&1 | tee $S/gen.log
+       Rscript R/package_tests/compare_path_audits.R --new-dir $S --out-dir $S/compare
+
+   Passed when: exit 0 / `RESULT: PASS`, no `path_audits: could not ...` in `gen.log`; every worse cell matches
+   `path_audits_regression_allowlist.csv`. Then copy `path_audits.html` and `path_audits_nonestimability_defaults.csv`
+   back and commit with step 3e. Ticks: the path-audit release gate.
+5. **G2 benchmarks on the final build (O, quiet host, never during step 3; closing runbook step 7, "Benchmark
+   regression check").** `( cd R && Rscript benchmark/benchmark_model_fits.R )`, then
+   `( cd R && $PY benchmark/benchmark_model_fits_python.py )` after the Python extension build, then
+   `compare_benchmark_runs.R --part R ... --normalize-host` and the Python compare, exactly as in step 7.
+   Passed when: both compares exit 0, or every flagged row is explained (allowlist, incl. the v1.0.6-TODO-410 rows).
+   Ticks: v1.0.5-TODO-67 (benchmark rows) and the G2 release gate.
+6. **Calibration: not a 1.0.5 gate** (DECISION-v1.0.6-TODO-409c). Campaign 2026-11-15-e36c7710 finishes and is
+   analysed under v1.0.6-TODO-409 on its own schedule; its 95 calibration-summary freshness groups may stay open at
+   the tag. Note at the tag which wave it reached.
+7. **Full R-CMD-check at the tag commit (O; `release.md`).** `gh workflow run R-CMD-check.yaml --ref main` with `main`
+   at the commit to be tagged, `gh run watch`, then `gh run view <id> --json headSha` must equal it. Record the URL
+   here. Passed when: all gating legs green (R-devel leg excluded). Ticks: the CI parts of v1.0.5-TODO-38 and
+   v1.0.5-TODO-63 (ASAN/UBSAN + valgrind legs at a commit after the last `src` change; save per-wrapper results for
+   TODO-63).
+8. **Tick the gated v1.0.5 TODOs (A drafts, O approves).** Each gets a dated note: what ran, `$SHA`, EDI.so hash,
+   artifact paths, run URLs.
+   - Step 3 (G4 rows): 8, 9, 10, 12, 13 (the 988 stale GComp rows vanish with the regeneration; confirm with the prune
+     dry run), 14 (if the IVWC rows exist, see step 0), 16 (also `--write-baseline` approval and ContRatioRegr rows),
+     18, 19, 23, 26, 31 (owner's upstream clmm report is non-blocking), 50, 55 (record the timezone), 68, 76, 77, 99,
+     119, 127, 128, 129, 131, 165, 169, 172, 173, 175, 176, 177, 178
+     (also the Stereotype `~1` check), 179, 180, 181, 188, and 184's 0.2 cells (plus its fast-tier run and
+     `secs_per_rep`).
+   - Step 5: 67. Step 7: 38 (with its G4 rows and plan TODO-5 `EDI_UNITY=0` equivalence), 63.
+   - Then: `python3 .github/scripts/audit_decisions.py --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" --out $TMPDIR/decisions.md`
+     after the weekly `audit-results-freshness.yml` has run on the tagged tree (or `gh workflow run audit-results-freshness.yml --ref main`).
+     Passed when: no open v1.0.5 decision (`PENDING_DECISIONS.md` has no v1.0.5 section) and the results-freshness
+     findings on the four `comprehensive_tests_*.csv` tables and the attempt summary are gone; only the calibration-summary
+     groups may remain (step 6).
+9. **Tag (O; each of tag, push, CRAN and PyPI submission is a separate go-ahead, `release.md` step 7).**
+   - NEWS: `# EDI (development version)` -> `# EDI 1.0.5`; `python/CHANGELOG.md` `[1.0.5] - Unreleased` -> the date;
+     fill the release commit into the scope note of `release_v1_0_6.md`.
+   - `python3 scripts/sync_version.py --check` exits 0.
+   - `release.md` "The pre-submission steps CI cannot cover" (win-builder/mac-builder, algorithm-audit gate,
+     `cran-comments.md`, etc.); do not copy them here.
+   - `git tag v1.0.5 <commit>`; Python: `py-v1.0.5` tag triggers the `publish` job of `.github/workflows/build-wheels.yml`
+     (see its header and `python/CHANGELOG.md`'s versioning rule).
+10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. CRAN patch: `git switch -c release-1.0.5 v1.0.5`, fix, tag
+    `v1.0.5.1` or as CRAN requires (unverified naming), then merge `release-1.0.5` back into `main`.
+
+**Open questions for the owner.**
+
+- Tag commit vs code commit: the tables, NEWS header and scope note land after `$SHA`. Proposal: tag the commit
+  that holds them (its `R/EDI` tree differs from `$SHA` only in `NEWS.md`), and run step 7 on that tag commit.
+- v1.0.5-TODO-14's IVWC rows (step 0): accept the outcome of wave 1, or schedule a filtered run now.
 
 ### G1. Native build of the current checkout, with provenance (+ the uncompiled C++ patch bundle)
 

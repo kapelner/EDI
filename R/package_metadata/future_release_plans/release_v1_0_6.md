@@ -1,5 +1,9 @@
 # Release Scope: v1.0.6
 
+> **Scope (owner ruling 2026-11-23):** TODOs ticked before the 1.0.5 release commit (<to be filled at tag time>)
+> shipped in 1.0.5; 1.0.6 is the open TODOs. The ticked TODOs keep their v1.0.6 numbers (about 1,400 references
+> cite them). See `release_v1_0_5.md`, "Release cut (owner ruling 2026-11-23)".
+
 > **Status: APPROVED 2026-11-10 (owner).** A bug-fix release after v1.0.5 that fixes bugs found during v1.0.5
 > work, which were parked in `release_v1_1_0.md`. The owner approved the triage table below on 2026-11-10; the
 > "Proposed for v1.0.6" items moved here as TODO-1..12 (their v1.1.0 entries are now strike-through pointers), and
@@ -1394,9 +1398,7 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   - 2026-11-23 (coordinator, owner request): the 2026-11-22 run (45033002717, `9186e6a5`) lists 606 stale row groups,
     none cited by an id, because a citation must name each `results-freshness-m<hex>` id and those ids change
     whenever the class changes again.
-  - Owner decision pending: [DECISION-v1.0.6-TODO-67](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-67) (606 open
-    results-freshness findings: make the ids stable and cite them, allow one audit-wide citation, or leave them
-    listed until the regeneration?).
+  - Decided 2026-11-23 (owner): (c) leave the findings listed; the full 1.0.5 regeneration clears them; see [DECISION-v1.0.6-TODO-67](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-67).
 - [ ] TODO-68 (added 2026-11-17, agent, owner request; from GitHub issue #25, the NEWS and version audit):
   **Version numbers disagree across files.** `CITATION.cff` and `codemeta.json` say 1.0.2; `python/CITATION.cff`,
   `python/README.md` and `python/README_PYPI.md` say 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4. Bring the R-side
@@ -7064,6 +7066,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     a slow outlier, but the 180-minute timeout is what lets a single slow replicate finish.
   - Owner decision pending: [DECISION-v1.0.6-TODO-409a](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409a) (keep halving shards below 4 replicates, or rely on the 180-minute timeout?).
   - Owner decision pending: [DECISION-v1.0.6-TODO-409b](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409b) (after three dead 1-replicate shards, abandon the whole unit or only those replicates?).
+  - Decided 2026-11-23 (owner): calibration campaigns gate x.y.0 releases only; this unfinished campaign does not gate 1.0.5; see [DECISION-v1.0.6-TODO-409c](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-409c).
   - Done when: after a push, the next wave(s) complete the `InferenceOrdinalKKCLMM` n = 1000 units.
 - [x] TODO-410 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951, benchmark canary):
   **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-169.** Every flagged row
