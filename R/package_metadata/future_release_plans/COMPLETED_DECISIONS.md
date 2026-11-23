@@ -12,7 +12,7 @@ added. Before reopening or re-arguing a choice, check this file. Order: releases
 TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-21.
+Last updated 2026-11-23.
 
 ## Summary
 
@@ -37,6 +37,7 @@ Last updated 2026-11-21.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
+| [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish, accept the 1.3x-3x cost, allowlist the slowed benchmark rows | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-380](release_v1_0_6.md) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-380](release_v1_0_6.md) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
@@ -388,6 +389,44 @@ Last updated 2026-11-21.
 - **Rejected:** (b) a corrected inversion. (A second item, the null construction, was withdrawn 2026-09-05: the code already uses impute-then-permute, verified by test.)
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-410"></a>
+### DECISION-v1.0.6-TODO-410: L-BFGS Newton finish: accept the 1.3x-3x cost, or finish only the multistart winner (results move by up to 8e-4)?
+
+- **TODO:** [v1.0.6-TODO-410](release_v1_0_6.md): **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-169.**
+- **Context:** the v1.0.6-TODO-169 finish (`lbfgs_finish_with_newton_decrement()`) runs after every L-BFGS run whose
+  gradient is above 1e-6, which on the benchmark data is every run, including each multistart start. Each finish
+  evaluates at least one Hessian, and in the GLMM/CLMM/frailty kernels that Hessian is a central difference of the
+  gradient costing about as much as the whole L-BFGS fit. Measured by kernel swap (2026-11-23, numbers in the TODO's
+  measurement note): the finish is the whole slowdown, and it is not useless: on the benchmark fixtures it moves 6 of
+  20 kernel/section fits toward the reference fitter (largest: ZIP wald 6.5e-3 -> 1.6e-4 vs pscl, clogit+GLMM 0.015),
+  and on the colon scaling variants it fixes most of the raw / x1000 / +1e5 failures.
+- **Options on the table:** (a) keep the finish everywhere as it is and put the slowed rows into
+  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-410: no result changes. (b) In the four
+  multistart kernels (CLMM, ordinal GLMM, Poisson GLMM, logistic GLMM) run each start without the finish and finish only
+  the winner (an L-BFGS restart from the best start, with the finish); allowlist the single-start rows (ZIP, ZINB,
+  hurdle NegBin, clogit+GLMM, Weibull frailty, Gaussian LMM), where one Hessian is the floor. Results move by up to
+  7.9e-4 in the estimate (SE 8.9e-5, negLL 3e-5) on the benchmark data, inside the rule's own tolerance; on colon CLMM
+  x1000 loses a partial improvement that was still wrong (estimate 0 instead of -0.218, truth -0.170). (c) (b) plus
+  forward instead of central differences in `numerical_hessian()` during the finish: a further 10-40% on CLMM, frailty
+  and ZINB, results move <= 6e-5 on benchmark data. (d) Remove the finish (back to the v1.0.4 verdict): restores speed,
+  brings back the TODO-169 failures (wrong estimates reported as converged on raw and rescaled colon covariates).
+- **Evidence:** times OFF / ON / (b), ms: CLMM wald 39 / 106 / 52, models 113 / 223 / 128; ordinal GLMM wald 37 / 103 /
+  76; Poisson GLMM wald 17 / 21.5 / 16.8; logistic GLMM wald 15 / 20.5 / 17. A cheaper screen that skips the finish
+  using LBFGSpp's quasi-Newton inverse Hessian was tried and rejected: it underestimates the Newton decrement by up to
+  1e5x on the raw colon designs and keeps the old errors.
+- **Recommendation (agent):** (b); (c) only if the remaining CLMM wald row (1.3x after (b)) must pass the canary
+  without an allowlist entry.
+- **Raised:** 2026-11-23, by the measurement agent working on v1.0.6-TODO-410.
+- **Ruling:** (a) keep the finish everywhere and accept the cost; the slowed rows (CLMM, ordinal GLMM, Poisson GLMM,
+  logistic GLMM kernel, Gaussian LMM, ZIP, ZINB, hurdle NegBin, conditional-logit + GLMM, Weibull frailty) go into
+  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-410. 2026-11-23, owner.
+- **Why:** No reason recorded.
+- **Rejected:** (b) finish only the multistart winner (the agent's recommendation; moves estimates by up to 7.9e-4);
+  (c) (b) plus forward-difference Hessians; (d) remove the finish.
+- **Revisit if:** the allowlist rows come out at the v1.0.6 release and these fits still fail the 1.25x canary, or a
+  kernel gets an analytic Hessian that makes the finish cheap.
+
 
 <a id="DECISION-v1.0.6-TODO-380a"></a>
 ### DECISION-v1.0.6-TODO-380a: Name of the opt-in design-conservative Bartlett option

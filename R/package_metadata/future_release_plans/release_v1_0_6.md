@@ -7064,7 +7064,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Owner decision pending: [DECISION-v1.0.6-TODO-409a](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409a) (keep halving shards below 4 replicates, or rely on the 180-minute timeout?).
   - Owner decision pending: [DECISION-v1.0.6-TODO-409b](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409b) (after three dead 1-replicate shards, abandon the whole unit or only those replicates?).
   - Done when: after a push, the next wave(s) complete the `InferenceOrdinalKKCLMM` n = 1000 units.
-- [ ] TODO-410 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951, benchmark canary):
+- [x] TODO-410 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951, benchmark canary):
   **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-169.** Every flagged row
   first appeared together in the 11-21 nightly, the first on 8d8c5f78. The 11-18 nightly (4ce2b712) ran every section
   and passed, with the current CLMM wald row at 24.6 ms. In 4ce2b712..9186e6a5 the GLMM/CLMM kernels changed only by
@@ -7101,6 +7101,75 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   v1.0.6-TODO-411 Ubuntu reproducibility timeout probably has the same cause. Done when the rows above are back within
   the canary's 1.25x, or the owner accepts the cost and the rows go into `R/benchmark/benchmark_regression_allowlist.csv`
   citing this TODO.
+  -- Measurement (agent, 2026-11-23): cause CONFIRMED, but the finish also helps, so its cost is not free to drop.
+  Method: kernel swap of all ten kernels (scratch `sourceCpp` copies built against a copy of `_helper_functions_core.h`
+  with a runtime switch; OFF = the pre-TODO-169 verdict `gradient_norm < tol || niter < maxit`, no finish, no NaN
+  rescue; `R/EDI/src` and `EDI.so` untouched; the Poisson GLMM and hurdle NegBin copies also compiled
+  `fast_poisson_regression.cpp` / `fast_logistic_regression.cpp` into the same scratch unit, both used there only for
+  IRLS start values). Local timings, single thread, 15 interleaved repeats; the ratios match the nightly.
+  Benchmark fixtures, median ms OFF -> ON (models / wald): CLMM 92 -> 198 / 33 -> 87; ordinal GLMM 168 -> 293 / 38 -> 87;
+  Poisson GLMM 60 -> 77 / 16 -> 21; logistic GLMM 38 -> 58 / 15 -> 21; ZIP 3.5 -> 4.4 / 0.36 -> 0.96; ZINB 12.2 -> 24.2 /
+  0.98 -> 1.38; hurdle NegBin 1.28 -> 1.60 / 0.25 -> 0.38; clogit+GLMM 6.8 -> 20.5 / 5.1 -> 6.9; Weibull frailty 1.8 ->
+  5.0 / 1.4 -> 2.0; Gaussian LMM 0.13 -> 0.30 / 0.12 -> 0.17. The finish runs after every L-BFGS run, including each
+  multistart start (CLMM 5, ordinal GLMM 6, Poisson GLMM 10, logistic GLMM 5; 1-2 elsewhere): the gradient is never
+  below 1e-6 at LBFGSpp's stop. Hessians / Newton steps per fit (models; wald): CLMM 10 / 5; 19 / 14, all
+  `numerical_hessian()` (GLMM engine); ordinal GLMM 22 / 16; 22 / 16 (its own `hessian()` is also a central difference
+  of the gradient); Poisson GLMM 10 / 0; 11 / 1; logistic GLMM 7 / 2; 5 / 0; ZIP 1 / 0; 17 / 16 (plus expected
+  information when the observed one is not PD); ZINB 14 / 12; 2 / 1, numerical (on models 13 of the 14 are the NaN
+  rescue from the start of a ZINB fit that fails either way and falls back to the reduced model); hurdle NegBin 2 / 0
+  both; clogit+GLMM 2 / 1; 1 / 0; frailty 1 / 0 both, numerical; LMM 1 / 0 both. One Hessian costs about as much as the
+  whole L-BFGS fit in these kernels, so even the finishes that pass at once (most of them) double the time. The
+  converged flag never flipped.
+  (a) Benchmark data, ON vs OFF (abs diff of treatment estimate; SE; negLL decrease): <= 2e-8 for ordinal GLMM, hurdle
+  NegBin, frailty, LMM, CLMM models, Poisson GLMM models, logistic GLMM wald, ZIP models, ZINB models, clogit+GLMM wald.
+  Changed, always toward the reference: ZIP wald 6.7e-3 (pscl gap 6.5e-3 -> 1.6e-4; negLL -4.42: OFF stopped at
+  lambda^2 = 0.078 vs bound 6.7e-5); clogit+GLMM models 0.015, negLL -0.016 (no reference); logistic GLMM models 1.4e-3
+  (glmer nAGQ = 20 gap 1.3e-3 -> 7e-5); CLMM wald 2.5e-4 (clmm gap 2.5e-4 -> 4e-7); Poisson GLMM wald 2.3e-4 (glmer gap
+  2.4e-4 -> 6e-6); ZINB wald 7e-5. SE changes <= 1.7e-5.
+  (b) colon variants. Responses: binary `status`; count pmax(nodes - 1, 0) and ordinal cut(nodes, c(-Inf, 1, 4, Inf))
+  with nodes dropped from X; LMM log(time); frailty time / status; zero part of ZI/hurdle (1, w, age). Groups: pairs of
+  consecutive rows in time order (in nodes order for LMM and frailty); clogit+GLMM: consecutive opposite-arm pairs in
+  time order, discordant ones -> conditional part, concordant pairs and leftover rows -> GLMM part. Reference: glmer /
+  lmer / ordinal::clmm / pscl on the `scale()`d design; the treatment coefficient and the maximum likelihood do not
+  change across the four variants, so negLL above the best fit measures the error. OFF -> ON, gap in estimate (negLL
+  excess):
+  - Fixed by the finish: Poisson GLMM raw 1.6e-3 -> 9e-5, x1000 / +1e5 0.104 (+14.5 / +9.1) -> 9e-5; ZIP raw 1.2e-3 ->
+    1e-7, x1000 / +1e5 0.043 (+6.3 / +2.6) -> 1e-6; hurdle NegBin raw 7.6e-3 -> 2e-5, x1000 / +1e5 0.245 (estimate 0) ->
+    5e-6; LMM raw 2.8e-3 (+0.48) -> 5e-5, x1000 / +1e5 (+2.6 / +8.3) -> 9e-5; the raw design of logistic GLMM (+0.54 ->
+    0), CLMM (1.3e-2 -> 8e-5), clogit+GLMM (0.18, +5.0 -> 0) and frailty (0.074, +4.5 -> 0); ZINB raw 6.4e-3 -> 1.5e-3
+    (negLL +2.1 either way, known).
+  - Not fixed, and reported converged = TRUE both ways (Hessian not PD at the stop, so the old verdict stands): CLMM
+    x1000 estimate 0 -> -0.218 vs -0.170 (+68 -> +47), +1e5 estimate 0 (+65) both; logistic GLMM x1000 / +1e5 -0.110 ->
+    -0.23 vs -0.263 (+27 -> +9); clogit+GLMM x1000 / +1e5 estimate 0 (+40) both; frailty x1000 / +1e5 0.080 vs 0.347
+    (+46 / +37) both; ZINB x1000 / +1e5 (+8.7 / +18, known from v1.0.6-TODO-169). The ordinal GLMM is wrong on x1000 /
+    +1e5 both ways but reports converged = FALSE.
+  Prototypes (copies only, nothing in `R/EDI/src` changed): (1) skip the finish when LBFGSpp's own inverse-Hessian
+  approximation gives g'Hg <= the bound: REJECTED, it underestimates lambda^2 by up to 1e5x on the raw colon designs
+  (logistic GLMM 5.2 vs 6.3e-5) and keeps the OFF errors (logistic GLMM raw -0.271, LMM raw +0.48). A relative-gradient
+  screen fails too: on the benchmark data the finishes that needed Newton steps and those that passed at once overlap
+  (max |g_j| max(1, |theta_j|) / max(1, |f|) 2e-5 to 2.6e-3). (2) Reusing the Hessian between the rule check and the
+  first Newton step: the code already does this (the step uses the check's Hessian). (3) Forward instead of central
+  differences in `numerical_hessian()` during the finish: CLMM 227 -> 200 / 111 -> 79, frailty 6.2 -> 4.2 / 2.3 -> 2.1,
+  ZINB 27.8 -> 25.5 / 1.62 -> 1.44; benchmark results move <= 6e-5, but CLMM colon x1000 falls back to estimate 0.
+  (4) Finish only the multistart winner (each start's L-BFGS without the finish, then an L-BFGS restart with the finish
+  from the best start): ms ON -> (4) (OFF): CLMM 223 -> 128 (113) / 106 -> 52 (39); ordinal GLMM 332 -> 272 (218) / 103
+  -> 76 (37) (its tight-tolerance polish still runs the finish); Poisson GLMM 85 -> 70 (64) / 21.5 -> 16.8 (17);
+  logistic GLMM 62 -> 50 (43) / 20.5 -> 17 (15). Against current ON on benchmark data: estimate <= 7.9e-4, SE <= 8.9e-5,
+  negLL within 3e-5, converged unchanged. Colon (b) results kept, except that CLMM x1000 loses ON's partial improvement
+  (back to estimate 0) and logistic GLMM +1e5 gets better (+9 -> +1.0). The rule itself accepts points about 0.02 SE
+  from the optimum, so changes of 1e-4 to 1e-3 are inside its tolerance.
+  Recommendation (agent): keep the finish; adopt (4) in the four multistart kernels (CLMM, ordinal GLMM, Poisson GLMM,
+  logistic GLMM); accept the remaining cost of the single-start kernels (one Hessian is the floor there) and allowlist
+  those rows citing this TODO. Still open, for separate TODOs: the colon cases above that stay wrong with
+  converged = TRUE, and the ZINB NaN rescue that spends 12 Newton steps on a fit that is discarded. Side findings: the
+  benchmark ordinal-pairs generator makes p2 negative, so the middle category is empty (y in {1, 3}) and both ordinal
+  kernels fit a boundary model; `fast_ordinal_glmm_cpp` then differs from ordinal::clmm by 0.38 / 0.18 (it matches to
+  1e-5 on colon). Unverified: with groups of 6 rows (a first colon attempt) the logistic GLMM kernel reported a negLL
+  10 below glmer's (190.7 vs 200.8), and `fast_gaussian_lmm_cpp` refuses groups larger than 2; check whether the
+  other GLMM kernels accept such groups but compute a different likelihood. Scripts: session scratch `$TMPDIR/t410/`
+  (not committed).
+  - Decided 2026-11-23 (owner): keep the finish and accept the cost; slowed rows allowlisted; see [DECISION-v1.0.6-TODO-410](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-410).
+  - DONE 2026-11-23: ten rows added to `R/benchmark/benchmark_regression_allowlist.csv` citing this TODO (remove at the v1.0.6 release). Still open in separate TODOs if filed: the colon cases that stay wrong with converged = TRUE, and the ZINB NaN rescue.
 - [ ] TODO-411 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951): **The nightly Ubuntu
   reproducibility leg times out, so the cross-leg comparison fails.** `reproducibility (ubuntu-latest-release)` was
   cancelled at the 150-minute job limit on 11-21 (8d8c5f78) and 11-22 (9186e6a5); it took 47-69 min on 11-18..11-20.
