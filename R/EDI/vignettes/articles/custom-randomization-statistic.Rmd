@@ -233,9 +233,9 @@ y = 2 * X$x1 + 1.5 * X$x2 - X$x3 + 0.5 * w + rnorm(n)
 des_rr$add_all_subject_responses(y)
 ```
 
-`DesignFixedRerandomization` draws assignments until it finds one whose covariate
-imbalance is in the best 10% (`prop_acceptable = 0.1`); the randomization test
-redraws under the same rule.
+`DesignFixedRerandomization` with `prop_acceptable = 0.1` uses the best-balanced
+of 10 candidate assignments; the randomization test redraws each assignment under
+the same rule.
 
 ```{r resid-stat}
 Z = cbind(1, as.matrix(X))

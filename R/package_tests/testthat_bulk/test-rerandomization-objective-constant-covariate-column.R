@@ -64,7 +64,9 @@ test_that("prop_acceptable with a constant design_formula term filters like the 
 	expect_identical(ws_const, ws_plain)
 	X = as.matrix(Xdf)
 	scores = abs_sum_diff_reference(X, t(ws_const))
-	# Kept draws are the best 10 of 100; unfiltered draws would score like a random allocation.
+	# Each kept draw is the best of its own group of 10 of the 100 pool draws (v1.0.6-TODO-294);
+	# unfiltered draws would score like a random allocation.
 	all_draws = EDI:::complete_randomization_forced_balanced_cpp(n, 100L, 5L)
-	expect_true(max(scores) <= sort(abs_sum_diff_reference(X, all_draws))[10] + 1e-12)
+	group_best = apply(matrix(abs_sum_diff_reference(X, all_draws), nrow = 10L), 2L, min)
+	expect_equal(unname(scores), group_best, tolerance = 1e-12)
 })

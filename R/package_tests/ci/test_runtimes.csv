@@ -1094,6 +1094,7 @@ R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rerandomization-objective-constant-covariate-column.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-rerandomization-prop-acceptable-reference-draws-follow-realized-law.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-search-kernel-invariants-and-cutoff-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resample-group-rows-kernel-input-guards-and-block-structure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
@@ -2875,6 +2876,7 @@ R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-constant-covariate-column.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rerandomization-prop-acceptable-reference-draws-follow-realized-law.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-search-kernel-invariants-and-cutoff-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resample-group-rows-kernel-input-guards-and-block-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,coverage,1,measured_with_30_percent_headroom

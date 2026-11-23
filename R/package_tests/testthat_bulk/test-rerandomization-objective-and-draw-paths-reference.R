@@ -4,7 +4,7 @@ library(EDI)
 # DesignFixedRerandomization's private objective (compute_obj: Mahalanobis and
 # absolute-sum-difference balance measures), the single-draw rejection sampler
 # (generate_one_rerandomized_w), and the draw_ws_raw() paths: no covariates,
-# prop_acceptable (best-r of a larger seeded pool), the cutoff-based C++ search
+# prop_acceptable (best of each group of a larger seeded pool), the cutoff-based C++ search
 # (balanced even n), and the pure-R fallback (unbalanced allocation). None had a
 # direct test reference. Objectives are recomputed independently from the raw
 # covariates.
@@ -87,18 +87,19 @@ test_that("an impossible cutoff makes the search fail loudly", {
 	expect_error(f$des$draw_ws_according_to_design(r = 5), "could not find 5 acceptable allocation")
 })
 
-test_that("prop_acceptable returns the r best allocations of a larger seeded pool", {
-	seed <- 41L; r <- 5L; prop <- 0.1; n <- 20L
+# v1.0.6-TODO-294: each draw is the best of its own group of round(1 / prop) consecutive pool
+# draws (the realized allocation's rule), not the best r of the pooled r / prop draws.
+test_that("prop_acceptable returns the best of each consecutive group of a seeded pool", {
+	seed <- 41L; r <- 5L; prop <- 0.1; n <- 20L; k <- round(1 / prop)
 	f <- rerand_design(prop_acceptable = prop, seed = seed)
 	W <- f$des$draw_ws_according_to_design(r = r)
 	expect_equal(dim(W), c(n, r))
 	expect_true(all(colSums(W) == n / 2))
 
-	pool <- EDI:::complete_randomization_forced_balanced_cpp(n, round(r / prop), seed)
+	pool <- EDI:::complete_randomization_forced_balanced_cpp(n, r * k, seed)
 	objs <- apply(pool, 1, function(w) ref_mahal(f$X, w))
-	best <- pool[order(objs)[seq_len(r)], , drop = FALSE]
-	expect_equal(unname(W), unname(t(best)))
-	expect_lte(max(apply(W, 2, function(w) ref_mahal(f$X, w))), sort(objs)[r] + 1e-8)
+	best_rows <- vapply(seq_len(r), function(j) (j - 1L) * k + which.min(objs[(j - 1L) * k + seq_len(k)]), numeric(1))
+	expect_equal(unname(W), unname(t(pool[best_rows, , drop = FALSE])))
 })
 
 test_that("unbalanced allocation uses the pure-R sampler and still respects the cutoff", {

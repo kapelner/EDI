@@ -248,11 +248,10 @@ edi_cite_year = citation("EDI")$year
 
 > **Methods.** A total of `r n` participants were assigned to treatment (n =
 > `r n_T`) or control (n = `r n_C`) by rerandomization (Morgan and Rubin, 2012).
-> Candidate assignments were drawn by complete randomization with equal arm sizes,
-> and the `r 100 * prop_acceptable`% with the smallest Mahalanobis distance between
-> the treated and control means of `r paste(covs, collapse = ", ")` were accepted;
-> the assignment used was one draw from that accepted set (design seed
-> `r design_seed`). The estimand was the average treatment effect on the outcome,
+> `r round(1 / prop_acceptable)` candidate assignments were drawn by complete
+> randomization with equal arm sizes, and the one with the smallest Mahalanobis
+> distance between the treated and control means of
+> `r paste(covs, collapse = ", ")` was used (design seed `r design_seed`). The estimand was the average treatment effect on the outcome,
 > estimated by ordinary least squares regression of the outcome on treatment and
 > `r paste(covs, collapse = ", ")`. The primary analysis was a two-sided
 > randomization test of the sharp null hypothesis of no treatment effect for any

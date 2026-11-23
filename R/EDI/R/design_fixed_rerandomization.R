@@ -18,11 +18,15 @@
 #'
 #' Two mutually exclusive acceptance modes are supported (specifying both errors):
 #' \code{obj_val_cutoff} accepts/rejects each draw against a fixed threshold \code{a};
-#' \code{prop_acceptable} instead draws \eqn{r / prop\_acceptable} candidates and keeps
-#' the \eqn{r} with the \emph{lowest} \eqn{M(w)} (an empirical top-quantile acceptance
-#' region, equivalent in the large-draw limit to an implied cutoff at the
-#' \code{prop_acceptable} quantile of \eqn{M(w)}'s distribution under the base
-#' randomization law).
+#' \code{prop_acceptable} instead makes every allocation the one with the \emph{lowest}
+#' \eqn{M(w)} among \eqn{k = \mathrm{round}(1 / prop\_acceptable)} independent base draws
+#' (best of \eqn{k}). The same rule gives the realized allocation and every redrawn one
+#' (randomization p-values and CIs, bootstrap-randomization replays), so the realized
+#' allocation and the randomization reference follow the same law and the randomization
+#' test keeps its size. Best of \eqn{k} is not the base law truncated at its
+#' \code{prop_acceptable} quantile: a best-of-\eqn{k} draw lies above that quantile with
+#' probability \eqn{(1 - prop\_acceptable)^k \approx e^{-1}}. Use \code{obj_val_cutoff} for
+#' a truncation at a fixed cutoff.
 #'
 #' @details
 #' \strong{Objective \eqn{M(w)}.} \code{objective = "mahal_dist"} (default) uses the
@@ -78,9 +82,15 @@
 #' \eqn{n}) or \code{complete_randomization_imbalanced_cpp()} (any other case, with
 #' \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}, so \code{n = 23} at \code{prob_T = 0.5}
 #' has 12 treated; before v1.0.6 odd \eqn{n} at 0.5 had \eqn{\lfloor n/2 \rfloor}{floor(n/2)}) to draw
-#' \eqn{n_{\mathrm{draw}} = \mathrm{round}(r / prop\_acceptable)} candidate allocations
+#' \eqn{n_{\mathrm{draw}} = r \cdot \mathrm{round}(1 / prop\_acceptable)} candidate allocations
 #' in one batched call, computes \eqn{M(w)} for all of them via
-#' \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
+#' \code{compute_objective_vals_cpp()}, and returns the lowest-\eqn{M(w)} draw of each
+#' consecutive group of \eqn{k = \mathrm{round}(1 / prop\_acceptable)} draws
+#' (\eqn{n_{\mathrm{draw}} = r k}). The realized allocation is the \eqn{r = 1} case. Through
+#' EDI 1.0.5 a request for \eqn{r > 1} draws kept the best \eqn{r} of all
+#' \eqn{\mathrm{round}(r / prop\_acceptable)} draws, a tighter law than the realized
+#' best-of-\eqn{k} allocation, so the randomization test over-rejected (about 7\% at
+#' nominal 5\% in one audit); realized allocations are unchanged.
 #'
 #' \strong{Choosing \code{obj_val_cutoff} for a target acceptance rate.} The
 #' acceptance rate of a cutoff \eqn{a} is \eqn{P(M(w) \le a)} under the base complete
@@ -96,9 +106,9 @@
 #' \code{"abs_sum_diff"} there is no closed form. In either case the exact rate for
 #' your data is the empirical quantile of \eqn{M(w)} over complete randomizations with
 #' \eqn{n_T} treated, which you can simulate. \code{prop_acceptable = p_a} targets the
-#' rate directly: it keeps the best \eqn{p_a} share of the drawn candidates, an implied
-#' cutoff at the empirical \eqn{p_a} quantile of those draws, so no cutoff needs to be
-#' chosen. Very small rates make the \code{obj_val_cutoff} search slower and can hit
+#' rate directly: each allocation is the best of \eqn{\mathrm{round}(1 / p_a)} draws, so
+#' no cutoff needs to be chosen (it is a best-of-\eqn{k} rule, not a fixed cutoff at the
+#' \eqn{p_a} quantile; see above). Very small rates make the \code{obj_val_cutoff} search slower and can hit
 #' the \code{max(1000 r, 1e5)} candidate budget described above.
 #'
 #' \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
@@ -139,8 +149,10 @@ DesignFixedRerandomization = define_design_class(
 		#'   allocation is accepted iff \eqn{M(w) \le a}. Exactly one of this and prop_acceptable is required.
 		#'   For how to pick \eqn{a} for a target acceptance rate, see "Choosing
 		#'   \code{obj_val_cutoff} for a target acceptance rate" in the class details.
-		#' @param prop_acceptable	The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest),
-		#'   e.g. \code{0.1}. Exactly one of this and obj_val_cutoff is required.
+		#' @param prop_acceptable	The proportion of randomizations to accept, e.g. \code{0.1}: the realized
+		#'   allocation and every reference allocation (randomization tests and CIs) are each the best
+		#'   (lowest \eqn{M(w)}) of \code{round(1 / prop_acceptable)} independent base draws.
+		#'   Exactly one of this and obj_val_cutoff is required.
 		#' @param objective 	The covariate-imbalance objective \eqn{M(w)} to filter on:
 		#'   either \code{"mahal_dist"} (default, squared Mahalanobis distance) or
 		#'   \code{"abs_sum_diff"} (sum of absolute standardized mean differences); see
@@ -229,11 +241,19 @@ DesignFixedRerandomization = define_design_class(
 			}
 			# Every path below must see a supported objective before any C++ call (v1.0.6-TODO-70).
 			private$assert_supported_objective(private$objective)
-			# prop_acceptable path: draw r/prop_acceptable randomizations, return r with lowest obj vals
+			# prop_acceptable path: each returned allocation is the best of k = round(1 / prop_acceptable)
+			# base draws (v1.0.6-TODO-294, DECISION-v1.0.6-TODO-294 (b)). The realized allocation
+			# (r = 1) was always the best of k, but r > 1 kept the best r of r / prop_acceptable draws
+			# overall, so the randomization reference followed a tighter law than the realized
+			# allocation and the rand test over-rejected (7.25% at nominal 5%). Now draw r * k
+			# candidates and keep the best of each consecutive group of k: column j is the best of
+			# draws (j - 1) * k + 1, ..., j * k, the same rule as the realized draw. At r = 1 this is
+			# the same draws and the same pick as before, so realized allocations are unchanged.
 			if (!is.null(private$prop_acceptable)) {
 				private$ensure_S_inv_current(n)
 				X = private$X[1:n, , drop = FALSE]
-				n_draw = round(r / private$prop_acceptable)
+				k = max(1L, as.integer(round(1 / private$prop_acceptable)))
+				n_draw = as.integer(r) * k
 				ext_seed = if (!is.null(private$seed)) private$seed else sample.int(.Machine$integer.max, 1L)
 				# v1.0.6-TODO-234: the forced-balanced kernel draws floor(n / 2) treated, which
 				# equals round(n * prob_T) only for even n; odd n uses the n_T kernel like
@@ -244,9 +264,16 @@ DesignFixedRerandomization = define_design_class(
 					indicTs = complete_randomization_imbalanced_cpp(n, n_T, n_draw, ext_seed)
 				}
 				obj_vals = compute_objective_vals_cpp(X, indicTs, private$objective, private$S_inv)
-				ord = order(obj_vals)
-				# indicTs is n_draw x n; subset rows for best r, then transpose to n x r
-				w_mat = t(indicTs[ord[seq_len(r)], , drop = FALSE])
+				# Best of each group of k (first minimum on ties, as order() picked before; an
+				# all-NaN group keeps its first draw, as order() did).
+				obj_by_group = matrix(obj_vals, nrow = k)
+				best_in_group = apply(obj_by_group, 2L, function(v){
+					i = which.min(v)
+					if (length(i)) i else 1L
+				})
+				best_rows = (seq_len(r) - 1L) * k + best_in_group
+				# indicTs is n_draw x n; subset the r group winners, then transpose to n x r
+				w_mat = t(indicTs[best_rows, , drop = FALSE])
 				storage.mode(w_mat) = "numeric"
 				return(w_mat)
 			}

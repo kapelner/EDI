@@ -1055,6 +1055,20 @@
 
 ### Designs
 
+* `DesignFixedRerandomization` with `prop_acceptable`: the randomization
+  reference now follows the same law as the realized allocation, so
+  randomization p-values and CIs for this design change. The realized
+  allocation was always the best (lowest M(w)) of `round(1 / prop_acceptable)`
+  draws, but the reference draws (randomization tests and CIs) kept the best r
+  of `r / prop_acceptable` draws, which were tighter, and the randomization test
+  over-rejected: 7.25% at nominal 5% in a null simulation (n = 40, two
+  covariates, `prop_acceptable = 0.01`; KS distance 0.32 between realized and
+  reference M(w)). Each reference draw is now the best of its own
+  `round(1 / prop_acceptable)` draws, at the same cost; realized allocations
+  are unchanged (KS distance 0.04, size 6.1%, which is the 5.9% that the
+  `b / r` p-value rule gives for any valid reference with `r = 201`)
+  (v1.0.6-TODO-294).
+
 * `DesignFixedFactorial` now requires `factors` to be a fully named list of whole
   numbers >= 2. `list(subject = 2.5)` used to run as a two-level factor and an
   unnamed list got the name `Var1` (v1.0.6-TODO-305).
