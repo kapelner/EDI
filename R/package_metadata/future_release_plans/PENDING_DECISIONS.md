@@ -46,7 +46,6 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-304](#DECISION-v1.0.6-TODO-304) | [v1.0.6-TODO-304](release_v1_0_6.md) | BCa on 2-block blocking designs: within-block jackknife acceleration, or percentile / BC fallback? |
 | [DECISION-v1.0.6-TODO-303](#DECISION-v1.0.6-TODO-303) | [v1.0.6-TODO-303](release_v1_0_6.md) | Allow the plain randomization test at delta = 0 for incidence on `DesignFixedFactorial` / `DesignFixedBlocking`? |
 | [DECISION-v1.0.6-TODO-298](#DECISION-v1.0.6-TODO-298) | [v1.0.6-TODO-298](release_v1_0_6.md) | Fixed designs with the default `n = NULL`: infer `n = nrow(X_all)`, or require `n`? |
-| [DECISION-v1.0.6-TODO-294](#DECISION-v1.0.6-TODO-294) | [v1.0.6-TODO-294](release_v1_0_6.md) | Rerandomization with `prop_acceptable`: fixed cutoff, or best-of-k reference draws? |
 | [DECISION-v1.0.6-TODO-291](#DECISION-v1.0.6-TODO-291) | [v1.0.6-TODO-291](release_v1_0_6.md) | `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept? |
 | [DECISION-v1.0.6-TODO-290](#DECISION-v1.0.6-TODO-290) | [v1.0.6-TODO-290](release_v1_0_6.md) | Confirm KK `lambda` and `t_0_pct` allowed in the closed [0, 1] |
 | [DECISION-v1.0.6-TODO-270](#DECISION-v1.0.6-TODO-270) | [v1.0.6-TODO-270](release_v1_0_6.md) | SPBR jackknife-Wald at 0.062: accept, raise the permuted-block threshold, or investigate? |
@@ -426,23 +425,6 @@ Last updated 2026-11-23.
 - **Recommendation (agent, 2026-11-21):** (a) is what the help suggests a user expects; (b) is the smaller change.
 - **Raised:** 2026-11-20, docs-scenario audit (ds-fixed-designs-44358267779-f6, ds-clusters-blocking-44358267779-f5);
   investigated 2026-11-21 (agent).
-
-<a id="DECISION-v1.0.6-TODO-294"></a>
-### DECISION-v1.0.6-TODO-294: Rerandomization with `prop_acceptable`: fixed cutoff, or best-of-k reference draws?
-
-- **TODO:** [v1.0.6-TODO-294](release_v1_0_6.md): **The realized `DesignFixedRerandomization` allocation with
-  `prop_acceptable` comes from a different law than its randomization reference, and the randomization test
-  over-rejects (7.25% at nominal 5%).**
-- **Options (each changes randomization p-values and CIs):**
-  - (a) define `prop_acceptable` as a fixed cutoff: the `prop_acceptable` quantile of M(w), estimated once from a
-    large base sample (cached, seeded), then used as `obj_val_cutoff` for both the realized and the reference draws.
-    Changes realized allocations and needs a cached quantile estimate.
-  - (b) make the reference draws exchangeable with the realized one: draw each reference allocation as the best of
-    `round(1 / prop_acceptable)` independently. Keeps every realized allocation as it is today and only changes the
-    reference, at the same cost as now (501 groups of `round(1 / prop_acceptable)` draws = the 50,100 base draws
-    already made, each group keeping its best instead of the best 501 overall).
-- **Recommendation (agent, 2026-11-21):** (b) looks like the smaller and safer change.
-- **Raised:** 2026-11-20, docs-scenario audit (ds-fixed-designs-44358267779-f2); investigated 2026-11-21 (agent).
 
 <a id="DECISION-v1.0.6-TODO-291"></a>
 ### DECISION-v1.0.6-TODO-291: `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept?

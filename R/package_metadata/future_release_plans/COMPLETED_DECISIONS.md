@@ -45,6 +45,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-352](release_v1_0_6.md) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-380) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-326](#DECISION-v1.0.6-TODO-326) | [v1.0.6-TODO-326](release_v1_0_6.md) | DepCens Bayesian bootstrap unsupported (warn, NA) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-294](#DECISION-v1.0.6-TODO-294) | [v1.0.6-TODO-294](release_v1_0_6.md) | best-of-k reference draws (realized allocations unchanged) | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-285](#DECISION-v1.0.6-TODO-285) | [v1.0.6-TODO-285](release_v1_0_6.md) | 1.2-1.3x is close enough; no further speedups; allowlist row stays until the v1.0.6 release | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-270a](#DECISION-v1.0.6-TODO-270a) | [v1.0.6-TODO-270](release_v1_0_6.md) | few permuted blocks per stratum: auto unit switches to observation_within_block | 2026-11-20 |
 | [DECISION-v1.0.6-TODO-235](#DECISION-v1.0.6-TODO-235) | [v1.0.6-TODO-235](release_v1_0_6.md) | refuse the surrogate Bayesian bootstrap of the loggamma Weibull frailty IVWC class | 2026-11-19 |
@@ -509,6 +510,31 @@ Last updated 2026-11-23.
 - **Ruling:** (b) the Bayesian-bootstrap methods warn `edi_unsupported_procedure` and return NA, 2026-11-21, owner (recorded by the coordinator)
 - **Why:** No reason recorded; the owner chose (b) on the code reading, without a numerical reproduction first.
 - **Rejected:** (a) a weighted dependent-censoring refit.
+
+<a id="DECISION-v1.0.6-TODO-294"></a>
+### DECISION-v1.0.6-TODO-294: Rerandomization with `prop_acceptable`: fixed cutoff, or best-of-k reference draws?
+
+- **TODO:** [v1.0.6-TODO-294](release_v1_0_6.md): **The realized `DesignFixedRerandomization` allocation with
+  `prop_acceptable` comes from a different law than its randomization reference, and the randomization test
+  over-rejects (7.25% at nominal 5%).**
+- **Options (each changes randomization p-values and CIs):**
+  - (a) define `prop_acceptable` as a fixed cutoff: the `prop_acceptable` quantile of M(w), estimated once from a
+    large base sample (cached, seeded), then used as `obj_val_cutoff` for both the realized and the reference draws.
+    Changes realized allocations and needs a cached quantile estimate.
+  - (b) make the reference draws exchangeable with the realized one: draw each reference allocation as the best of
+    `round(1 / prop_acceptable)` independently. Keeps every realized allocation as it is today and only changes the
+    reference, at the same cost as now (501 groups of `round(1 / prop_acceptable)` draws = the 50,100 base draws
+    already made, each group keeping its best instead of the best 501 overall).
+- **Recommendation (agent, 2026-11-21):** (b) looks like the smaller and safer change: realized allocations and cost
+  unchanged. The owner accepted it.
+- **Raised:** 2026-11-20, docs-scenario audit (ds-fixed-designs-44358267779-f2); investigated 2026-11-21 (agent).
+- **Ruling:** (b), owner 2026-11-23: each reference allocation is the best of `round(1 / prop_acceptable)` independent
+  draws, the realized allocation's rule. Implemented 2026-11-23 (R-only; realized allocations bit-identical; KS D
+  0.317 -> 0.058 on the audit repro; see the TODO's DONE note).
+- **Why:** No reason recorded. (The recommendation the owner accepted: smaller and safer; realized allocations and cost
+  unchanged.)
+- **Rejected:** (a) a fixed cutoff at a cached, seeded estimate of the `prop_acceptable` quantile of M(w), used as
+  `obj_val_cutoff` for both the realized and the reference draws (would have changed realized allocations).
 
 <a id="DECISION-v1.0.6-TODO-285"></a>
 ### DECISION-v1.0.6-TODO-285: Zhang hull CI at ~1.2-1.3x the pre-hull time: accept, or pursue further speedups?

@@ -5387,7 +5387,7 @@ were found by reading, not by running a fix.
   `compute_rand_two_sided_pval(r = 101)` the asymptotic p was NA and the CI `NA NA`; now 0.9359437 and
   [-1.393, 1.289], the same as a fresh object and `t.test`.
 
-- [ ] TODO-294 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f2): **The realized
+- [x] TODO-294 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f2): **The realized
   `DesignFixedRerandomization` allocation with `prop_acceptable` comes from a different law than its randomization
   reference, and the randomization test over-rejects (7.25% at nominal 5%).** `assign_w_to_all_subjects()` takes r = 1,
   i.e. the best of `round(1 / prop_acceptable)` = 100 draws, while `draw_ws_according_to_design(501)` keeps the best
@@ -5401,7 +5401,30 @@ were found by reading, not by running a fix.
   repro, the realized and reference M(w) distributions agree (KS p > 0.01 over 300 seeds), and a 400-trial null
   simulation of the randomization test is within 2 MCSE of 0.05. NEWS: changes results. Repro: fixed-designs F2.
   Investigated 2026-11-21 (agent): not changed.
-  - Owner decision pending: [DECISION-v1.0.6-TODO-294](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-294) (fixed `prop_acceptable` cutoff, or best-of-k reference draws?).
+  - Decided 2026-11-23 (owner): (b) best-of-k reference draws; see [DECISION-v1.0.6-TODO-294](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-294).
+  - DONE 2026-11-23 (agent): R-only, no rebuild needed. `draw_ws_raw()`'s `prop_acceptable` branch now draws
+    r * k candidates, k = round(1 / prop_acceptable), and returns the best of each consecutive group of k (first
+    minimum on ties, as `order()` picked). Every redraw (rand p-values and CIs, rand bootstrap, which already used
+    r = 1) goes through it, so all use the realized rule. At r = 1 the draws and the pick are the old ones: the
+    300 realized allocations of the repro and three seeded cases (even n, odd n, prob_T = 0.3 with abs_sum_diff)
+    are bit-identical before and after. Same cost (r * k = the old round(r / prop_acceptable) draws). The draws are
+    one sequential stream from the design seed, so they do not depend on the core count. Numbers on the F2 repro
+    (n = 40, prop_acceptable = 0.01): before, realized outside the base 1% quantile 0.317, reference 0, KS D 0.317,
+    rand test size 7.25% (800 trials); after, realized 0.317, reference 0.363 (theory (0.99)^100 = 0.366), KS D
+    0.058 (p = 0.53), size 6.88% on the same 800 trials and 6.07% over 2,800 (MCSE 0.45%). That is the size EDI's
+    b / r p-value rule gives for any valid reference at r = 201: P(min(n_ge, n_le) <= 5) = 12 / 202 = 5.94%
+    (v1.2.0-TODO-207 covers that rule). On the same draws a (#{|T_b| >= |T_obs|}) / r p-value with the reference
+    including the realized draw has size 5.05% (4,000 trials). So the entry's "400-trial null simulation within
+    2 MCSE of 0.05" is not a test assertion: the residual is the p-value rule, not this design. Tests:
+    `R/package_tests/testthat_bulk/test-rerandomization-prop-acceptable-reference-draws-follow-realized-law.R`
+    (realized allocations pinned to the pre-fix values; best-of-group pool reference; KS D < 0.1 between 400
+    realized and 1,000 reference draws, 0.0395 now and 0.37 with the old code; same reference and rand p at 1 and
+    2 cores). Updated two tests that asserted the old best-r-of-pool rule
+    (`test-rerandomization-objective-and-draw-paths-reference.R`, `test-rerandomization-objective-constant-covariate-column.R`).
+    Docs: roxygen (class description, prop_acceptable path, @param; not roxygenized, Rd pending), NEWS, and the
+    methods text in the reporting-an-analysis and custom-randomization-statistic articles. Changes 1.0.5 results:
+    rand p-values and CIs of `DesignFixedRerandomization` with `prop_acceptable` (comprehensive rows for this design
+    need regenerating).
 
 - [x] TODO-295 (added 2026-11-20, coordinator, owner request; ds-fixed-designs-44358267779-f3): **`DesignFixedGreedy`
   and `DesignFixedGreedyDOptimal` at their defaults return different allocations for the same seed when covariates
