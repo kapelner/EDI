@@ -2243,6 +2243,7 @@ range, since the plan files' internal numbering did not change.
   No build/install, sweep, or result write occurred; the release-wide sweep
   and separate native/provenance gate remain open.
   - Decided 2026-10-22 (owner via G6 #28): approve the release-wide 720-evaluation bit-for-bit sweep, after G1; see [DECISION-v1.0.5-TODO-12](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-12).
+  - Committed in 97db828d (2026-11-15: the fixture changes to `test-reused-worker-resampling-nondegenerate.R`) (checked 2026-11-23). Left: G4 rows.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
@@ -4125,6 +4126,7 @@ range, since the plan files' internal numbering did not change.
       5% size: at n = 60 both variants reject about 11% on the count fixture (the same limitation). Installed build
       (EDI.so `1194fa45…`): 10 expectations pass, 38 s on a loaded host; `ci/test_runtimes.csv` row added (50 s).
     - Left: G4 provenance regeneration of the `_smoothed` rows.
+  - Committed (checked 2026-11-23): the 2026-10-23 R3 smoke fix and replay follow-ups in 618bcbc1; the 2026-11-12 limitation paragraph and `test-brt-smoothed-matches-percentile-under-null.R` in e635334a (Rd: `man/InferenceRandBootstrap.Rd` has the paragraph).
 - [ ] TODO-19 (added 2026-09-23, resolved in source 2026-10-09):
   **`InferenceIncidKKModifiedPoisson` exposed invalid working-likelihood
   inference.** The validated estimator uses a cluster-robust sandwich, so
@@ -5144,6 +5146,7 @@ range, since the plan files' internal numbering did not change.
           `receipt.json.running` receipt, and no results CSV. Deleted 2026-10-31 (owner), with its launch log. The R4B merge
           (step 1) remains open. The rescored iris/pte_example CSVs also have no sidecar of their own.
   - **(audit 2026-11-04)** Calibration (R4A PASS 14/14, 0.941-0.959), native validation (G1 PASS 2026-10-25 and 2026-10-31; the targeted-compile criterion waived by G6 #36), the re-audit and the baseline update are done. The R4B merge is superseded by the 2026-10-31 SD 0.25 survival regeneration (`regen_survival_sd025_20261030T140038Z`), which is reconciled and audited but not merged. Left: merge that regeneration (owner approval) and prune stale rows; then the sub-item can be ticked.
+  - Committed (checked 2026-11-23): the 2026-10-23 R4 smoke fix (`weighted_restricted_mean_se_diff()`, `test-rmst-bayesian-bootstrap-studentized-weighted-se.R`) in 618bcbc1; the 2026-10-28 RMST baseline edit in 9c9b2cab.
 - [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
   **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
   artifact, not a variance defect** —
@@ -9480,6 +9483,7 @@ baseline as expected/benign.
   - [ ] Regenerate the affected `rand` and `rand_bootstrap` comprehensive rows
     using the corrected inversion, reconcile every affected result key and
     coverage claim, and update documentation only from the reconciled output.
+  - Committed (checked 2026-11-23): the 2026-10-20 working-tree `inference_all_abstract_rand_ci.R` went in with a7e7f8bc.
 
 - [x] TODO-69 (added 2026-10-09, fixed 2026-10-09; user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/v1_0_5/algorithm_choice_audit.md → row L,
@@ -11438,7 +11442,7 @@ against the source").
     survRM2 is not installed here); Rd regeneration. Gate-table row 108
     (partly, G1+G8) unchanged. Box left unchecked.
 
-- [ ] TODO-109 (added 2026-10-22, user decision; harness T33; verified by
+- [x] TODO-109 (added 2026-10-22, user decision; harness T33; verified by
   reading the source only): **The Turnbull (interval-censored) RMST/median
   path silently drops exact events, and still uses a separate τ per arm.**
   - **Current state (2026-10-22):** both defects fixed in R only (no C++) and
@@ -11501,6 +11505,8 @@ against the source").
       all-censored-arm = horizon default change (G6 #29).
   - Decided 2026-10-22 (owner via G6 #29): accept the all-censored RMST arm = horizon default change; see [DECISION-v1.0.5-TODO-109](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-109).
   - Left: CI (G5).
+  - Closed 2026-11-23 (coordinator, owner request): G5 satisfied by R-CMD-check run 45131875338 at 38d1b90a (2026-11-23, lean push matrix: ubuntu release/devel/oldrel-1, windows release/devel, macOS release, CRAN incoming, rchk all green) and test-bulk-non-cran run 44072918156 at 92c44b8c (2026-11-17, all 10 shards green; the latest bulk run that ran its shards and passed: the later green runs 44539331052, 44539752832, 44921997657 and 45082880097 skipped every shard at the code-change gate, and the shard-running runs since failed, see v1.0.6-TODO-416), both containing a7e7f8bc (the Turnbull fix and its tests) (`git merge-base --is-ancestor` checked). The three TODO-109 test files are in `testthat_bulk` and in the bulk manifest. The full R-CMD-check run at the release commit stays a separate release gate (release.md).
+  - Committed in a7e7f8bc (checked 2026-11-23).
 - [x] TODO-110 (added 2026-10-22, user decision; harness T34; verified by
   reading the source only): **`InferenceSurvivalStratCoxPHRegr` ignores the
   pairs on matched designs without saying so, and the KK stratified Cox
@@ -11688,7 +11694,7 @@ against the source").
         consistent state; the sweep observation was a transient or mis-read.
   - Decided 2026-10-22 (owner via G6 #34): the representative-subset smoke test closes the coverage item; see [DECISION-v1.0.5-TODO-111](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-111).
   - Left: patch 02 (G1).
-- [ ] TODO-112 (added 2026-10-22, user decision; harness T24, T28, T43, T48,
+- [x] TODO-112 (added 2026-10-22, user decision; harness T24, T28, T43, T48,
   T49): **Randomization p-values and CIs ignore both the design seed and
   `Inference$set_seed()`, and the design-level permutation cache ignores the
   seed.**
@@ -11770,6 +11776,8 @@ against the source").
     search) and a seeded bootstrap CI (B = 201).
   - Decided 2026-10-22 (owner via G6 #29): accept the seeded rand p/CI default change; see [DECISION-v1.0.5-TODO-112](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-112).
   - Left: CI (G5).
+  - Closed 2026-11-23 (coordinator, owner request): G5 satisfied by R-CMD-check run 45131875338 at 38d1b90a (2026-11-23, lean push matrix: ubuntu release/devel/oldrel-1, windows release/devel, macOS release, CRAN incoming, rchk all green) and test-bulk-non-cran run 44072918156 at 92c44b8c (2026-11-17, all 10 shards green; the latest bulk run that ran its shards and passed: the later green runs 44539331052, 44539752832, 44921997657 and 45082880097 skipped every shard at the code-change gate, and the shard-running runs since failed, see v1.0.6-TODO-416), both containing a7e7f8bc (seeded rand draws, `clear_randomization_cache()`, both tests) (`git merge-base --is-ancestor` checked). The R-CMD-check jobs set `EDI_PREPUSH_NO_PARALLEL=true`, so the two-session core-count test ran in the bulk run only. The full R-CMD-check run at the release commit stays a separate release gate (release.md).
+  - Committed in a7e7f8bc (checked 2026-11-23).
 - [x] TODO-113 (added 2026-10-22, user decision; harness T43):
   **`compute_rand_two_sided_pval` doubles the smaller tail for every
   statistic, including non-negative custom ones.**
@@ -12623,7 +12631,7 @@ against the source").
     bullet. It says `capabilities()`/`supports()` no longer advertise `randomization_ci` for (class, response type) pairs
     whose randomization CI is refused, and that the five survival-only classes in
     `EDI_RAND_CI_CLASS_OVERRIDE_REFUSING_CLASSES` no longer advertise it at all.
-- [ ] TODO-120 (added 2026-10-22, user decision): **One default `B` for
+- [x] TODO-120 (added 2026-10-22, user decision): **One default `B` for
   the dependent-censoring bootstrap.** `InferenceSurvivalDepCensTransformRegr`'s
   four bootstrap CI methods (`compute_bootstrap_confidence_interval`,
   `_basic`, `_bca`, `_studentized`) and its private
@@ -12668,6 +12676,8 @@ against the source").
     errors or skips.
   - Decided 2026-10-22 (owner via G6 #29): accept the dep-cens bootstrap default B 1000 -> 501 change; see [DECISION-v1.0.5-TODO-120](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-120).
   - Left: CI (G5).
+  - Closed 2026-11-23 (coordinator, owner request): G5 satisfied by R-CMD-check run 45131875338 at 38d1b90a (2026-11-23, lean push matrix: ubuntu release/devel/oldrel-1, windows release/devel, macOS release, CRAN incoming, rchk all green) and test-bulk-non-cran run 44072918156 at 92c44b8c (2026-11-17, all 10 shards green; the latest bulk run that ran its shards and passed: the later green runs 44539331052, 44539752832, 44921997657 and 45082880097 skipped every shard at the code-change gate, and the shard-running runs since failed, see v1.0.6-TODO-416), both containing a7e7f8bc (all dep-cens bootstrap defaults 501 and `test-dep-cens-bootstrap-default-B.R`) (`git merge-base --is-ancestor` checked). The full R-CMD-check run at the release commit stays a separate release gate (release.md).
+  - Committed in a7e7f8bc (checked 2026-11-23).
 - [x] TODO-121 (CLOSED 2026-11-04 by owner after the v1.0.5 TODO audit: closed after G1, same standard as TODO-123: patches 03 + 09 are in the tree, both named tests are tracked, G1 patch verification passed; added 2026-10-22, user decision; found while fixing TODO-115 on
   an all-matched `~1` design, not yet diagnosed): **Silent Wald fallback: score
   and LR p-values are numerically identical to Wald.**
@@ -12940,7 +12950,7 @@ against the source").
     only the p-value.
   - Decided 2026-10-22 (owner via G6 #13): raise `r` to >= 19 in a few representative migration goldens; see [DECISION-v1.0.5-TODO-124a](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-124a).
   - Decided 2026-10-22 (owner via G6 #44): investigate the unowned bootstrap-CI-NA finding in 1.0.5 as TODO-129; see [DECISION-v1.0.5-TODO-124b](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-124b).
-- [ ] TODO-125 (added 2026-10-22, user decision; asked for as "TODO-120", but
+- [x] TODO-125 (added 2026-10-22, user decision; asked for as "TODO-120", but
   120-124 were already taken; found while drafting a paper): **A raw `$clone()` of an inference object
   leaves lazily installed methods pointing at the original object. Fix it at
   the source by closing installed methods over the object's enclosing
@@ -13045,6 +13055,8 @@ against the source").
       `edi_rebind_lazy_components_after_clone.Rd` (G8, roxygen text
       changed). Removal of the helper is planned for the next release:
       filed 2026-10-22 as `release_v1_1_0.md → TODO-60`.
+  - Closed 2026-11-23 (coordinator, owner request): G5 satisfied by R-CMD-check run 45131875338 at 38d1b90a (2026-11-23, lean push matrix: ubuntu release/devel/oldrel-1, windows release/devel, macOS release, CRAN incoming, rchk all green) and test-bulk-non-cran run 44072918156 at 92c44b8c (2026-11-17, all 10 shards green; the latest bulk run that ran its shards and passed: the later green runs 44539331052, 44539752832, 44921997657 and 45082880097 skipped every shard at the code-change gate, and the shard-running runs since failed, see v1.0.6-TODO-416), both containing a7e7f8bc (the `install_lazy_inference_component()` fix) and 455a48e3 (`test-lazy-component-raw-clone-isolation.R`) (`git merge-base --is-ancestor` checked). That green bulk run is the "full bulk suite on the commit" of step 5; it is not one of the runs that alternate with the v1.0.6-TODO-416 flake. G8: `man/edi_rebind_lazy_components_after_clone.Rd` has the 2026-10-22 no-op text. The full R-CMD-check run at the release commit stays a separate release gate (release.md).
+  - Committed in a7e7f8bc, test in 455a48e3 (checked 2026-11-23).
 
 - [x] TODO-126 (added 2026-10-22, owner decision; split out of TODO-6; box checked by the closing audit 2026-10-23):
   **Generic Bartlett p-value stall for
@@ -13214,6 +13226,7 @@ against the source").
     duration fields differ). The canonical CSV's results/truths differ
     from both runs because it predates today's harness/package changes,
     not because of this fix. Left: G4 regeneration of duration fields.
+  - Committed in a7e7f8bc (checked 2026-11-23). Left: G4 duration fields.
 
 - [ ] TODO-128 (added 2026-10-22, user decision; found while validating
   harness draw reuse, `../audits/further_optimizations.md`): **The
@@ -13664,8 +13677,9 @@ against the source").
         call-graph delta (1) is now recorded as a TODO-23 reviewed delta
         (acceptance 137/137, class registry 2776/2776).
   - **(audit 2026-11-04)** G8 and G9 are done: `man/robust_survreg_with_surv_object.Rd` has `jitter_seed`, and `comprehensive_suite_baseline_audit.csv` shows the 5-argument row. Left: G4 rows and G5 CI on a commit.
+  - Committed in 618bcbc1 (checked 2026-11-23). G5 satisfied 2026-11-23 by R-CMD-check run 45131875338 at 38d1b90a and test-bulk-non-cran run 44072918156 at 92c44b8c, both containing 618bcbc1. Left: G4 rows.
 
-- [ ] TODO-130 (added 2026-10-22, found by the TODO-129 seed sweep):
+- [x] TODO-130 (added 2026-10-22, found by the TODO-129 seed sweep):
   **`InferenceAllKKMeanDiffIVWC` bootstrap errors "Wrong R type for mapped
   matrix" on `DesignFixedBinaryMatch`.** Current state: FIXED (R only,
   uncommitted). Pre-existing (same error on the installed 1.0.3).
@@ -13693,6 +13707,8 @@ against the source").
     `skip_on_cran()`). Installed 1.0.3: 3 errors (the bug); sources: 10/10.
   - NEWS: Bug-fixes line added. Left: G5 CI. No G4 rows needed (previously
     an error, so no stored result changes).
+  - Closed 2026-11-23 (coordinator, owner request): G5 satisfied by R-CMD-check run 45131875338 at 38d1b90a (2026-11-23, lean push matrix: ubuntu release/devel/oldrel-1, windows release/devel, macOS release, CRAN incoming, rchk all green) and test-bulk-non-cran run 44072918156 at 92c44b8c (2026-11-17, all 10 shards green; the latest bulk run that ran its shards and passed: the later green runs 44539331052, 44539752832, 44921997657 and 45082880097 skipped every shard at the code-change gate, and the shard-running runs since failed, see v1.0.6-TODO-416), both containing 618bcbc1 (the `storage.mode()` coercion and `test-kk-mean-diff-ivwc-binary-match-bootstrap.R`) (`git merge-base --is-ancestor` checked). The full R-CMD-check run at the release commit stays a separate release gate (release.md).
+  - Committed in 618bcbc1 (checked 2026-11-23).
 - [ ] TODO-131 (added 2026-10-23, split out of TODO-18's R3 cell-C1 smoke finding):
   **Bootstrap-randomization replay drew assignments from the original sample's cached design structure.**
   Current state: FIXED in R source (uncommitted); C++ hardening patch 15 written (uncompiled, G1).
@@ -13745,6 +13761,7 @@ against the source").
   - NEWS: three Bug-fixes lines (replay; RMST studentized BB weighted SE; robust NA guard). `ci/test_runtimes.csv`: 33
     rows added via `refresh_manifest.py` (both `plan_shards.py --check-only` pass).
   - Left: G1 (build + patch 15; recheck R3 cell C1), G4 (BRT rows on these designs change: regenerate), G5 CI, G8 Rd.
+  - Committed (checked 2026-11-23): R fix in 618bcbc1, C++ patch 15 in 96b34122. G5 satisfied 2026-11-23 by R-CMD-check run 45131875338 at 38d1b90a and test-bulk-non-cran run 44072918156 at 92c44b8c, both containing them. Left: G4 BRT rows.
 
 The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/edi_regen/r4b_20261026T213023Z`,
 `InferenceSurvivalRestrictedMeanDiff`, fixed tau; see the G4 R4B notes). Each has an agent investigating.
@@ -13978,6 +13995,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
       skipping the KMDiff jobs; resolve the nc_1/nc_8 duplicate keys first; decide on the extra (new) keys; rerun
       KMDiff at SD 0.25; retire the raw-beta KMDiff baseline rows; follow up on ContinKKQuantileRegrOneLik's
       percentile p-value (0.175 at `~1`).
+  - Committed in eb6f4408 (checked 2026-11-23).
 - [x] TODO-166 (added 2026-10-28, owner; found by the calibration pre-push check, `calibration_gates.md`):
   **`InferenceBaiAdjustedTKK14` / `InferenceBaiAdjustedTKK21` wald test ignores `delta`.**
   Current state: DONE 2026-10-28 (owner approved; uncommitted). Return replaced by
@@ -14109,6 +14127,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     0.021. ZINB lik_ratio `~.` null baseline: coverage 0.803 while the test's size is 0.079.
   - Low yield in the same baseline (reported, not gated): ZINB wald/gradient ~15% finite.
   - NEWS written 2026-11-06.
+  - Committed in 9c9b2cab (checked 2026-11-23).
 - [x] TODO-170 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceAllSimpleWilcox` CI
   doesn't match its test.** Current state: DONE 2026-10-28 (owner approved; uncommitted). Line 81 now
   `wilcox.test(yT, yC, mu = delta, exact = FALSE)`; verified with load_all(compile = FALSE): wald-routing test passes,
@@ -14182,6 +14201,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     steps near the root; tol_p = 1e-7 is tighter than the null fit's precision, and on non-convergence it returns
     the midpoint of a wide bracket instead of NA or a bisection result. Shared C++, so every LR CI may be affected.
     Check: how often it fails across classes (calibration fast tier endpoint p), tol_p vs fit precision, fallback.
+  - Committed in 83f1f3cf (checked 2026-11-23).
 
 - [ ] TODO-173 (added 2026-10-28, owner; found by the calibration pre-push check reseed): **`InferenceIncidKKCondLogitGLMMOneLik`
   lik_ratio CI is not the inversion of its own LR test.** Current state: ROOT-CAUSED 2026-11-03/04 (agent); fixed by
@@ -14302,6 +14322,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     non-finite information and an NA p (separate R-only fix being prototyped). NA cliffs there can have p ~0.35 right
     before the NA, so an NA-halving rule must not treat a cliff edge as a root.
   - Decided 2026-11-07 (agent; owner approval not recorded): jump guard (a) applied, committed in 67347569; see [DECISION-v1.0.5-TODO-174](COMPLETED_DECISIONS.md#DECISION-v1.0.5-TODO-174).
+  - Applied 2026-11-07 by an agent and committed in 67347569 (checked 2026-11-23): the jump guard is in `pval_invert_ci_cpp` on HEAD; see the decision line above. Left: G4.
 - [ ] TODO-175 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` score / LR
   p-value depends on evaluation history, not only on delta.** Current state: APPLIED 2026-11-07 (uncommitted), verified; NEWS + G4 pending.
   - Each delta-constrained null refit warm-starts from the previous one (memoized warm cache, `warm_cache_key =
@@ -14365,6 +14386,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     code fails the history test); rewrote `test-ordinal-stereotype-logit-lik-test-null-refit-multistart-reference.R` and
     the Stereotype part of `test-ordinal-cloglog-stereotype-simulate-under-lik-null-fit-null-multistart-reference.R`
     (they pinned the old two-start / warm-start mechanism).
+  - Committed in 67347569 (checked 2026-11-23).
 - [ ] TODO-176 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` drops the
   covariates in most fits.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04); owner chose (ii) for `~1`); NEWS + G4 pending.
   - Rep 1: `~1`, `~.` and `~x1` give the same estimate (0.497038), which is why both known-failure rows are identical.
@@ -14501,6 +14523,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     IncidLogBinomial / fit_null / warm-start state (tests/testthat + testthat_bulk, incl. the three named above):
     0 fail / 2534 pass. Not done: NEWS, canonical CSV rows (G4); LogBinomial `~.` leftovers above (TODO-174 / TODO-181
     LogBinomial boundary score, which is a different fix); HurdleNegBin / DepCens history dependence (TODO-180).
+  - Committed in 67347569 (checked 2026-11-23).
 - [ ] TODO-178 (added 2026-10-29, owner; found while answering a question about TODO-175):
   **`InferenceOrdinalStereotypeLogitRegr` randomization refits warm-start from the previous permutation and land in
   wrong optima, changing the randomization p-value.** Current state: APPLIED 2026-11-07 (uncommitted), verified, Done-when met for `~.`; NEWS + G4 pending; the headline below was WRONG (see correction).
@@ -14575,6 +14598,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     old code fails 8); rewrote `test-ordinal-stereotype-logit-randomization-estimate-refit-reference.R` (pinned the old
     hook). All 20 Stereotype test files (13 bulk + 7 tests/testthat) pass under `load_all(compile = FALSE)`, plus
     parametric-bootstrap-LR, warm-start-length, migration-baseline, mixin-contracts.
+  - Committed in 67347569; the 2026-11-08 `~1` non-estimable ruling in af6a86f0 (checked 2026-11-23).
 - [ ] TODO-179 (added 2026-10-30, owner; found by the first nightly calibration fast tier, run 40833827319,
   commit c85ce459): **two anti-conservative cells that persist at n = 200, so not small-sample.** Current state: OPEN,
   investigated 2026-11-07 (no bug found; both are honest properties, recommendation below). **LogBinomial half APPLIED
@@ -14683,6 +14707,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     wald `~.`/`~1` n = 50 rows (v1.1 TODO-184 reason) and the LogBinomial score rows are unchanged. Rd check: regenerating
     every Rd in a scratch copy (no compile, no `compileAttributes()`) changes nothing in `InferenceIncidLogBinomial.Rd` or
     `tune_EDI_for_this_machine.Rd`. Left: G4.
+  - Committed (checked 2026-11-23): the 2026-11-09 LogBinomial Wald change in e4dca08e; the 2026-11-12 accepted-row deletions in e635334a.
 - [ ] TODO-180 (added 2026-10-31, owner; found by the TODO-177 agent): **`InferenceCountHurdleNegBin` and
   `InferenceSurvivalDepCensTransformRegr`: the null refit's warm start lands in a different optimum, so p-values depend
   on what the object computed before.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified; NEWS + G4 pending; DepCens full-fit multimodality found, not fixed (below). Same pattern as TODO-175 (Stereotype),
@@ -14917,6 +14942,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     DepCensTransformRegr, RestrictedMeanDiff, KMDiff, KKStratCoxPHOneLik, KKLWACoxPHOneLik (batch 3), longest first, cap 8
     (`maxp`), pinned to the EDI.so at start. Grid cost estimate 141 CPU-h (longest job 7.6 h); the prob_T = 0.2 axis can
     make it longer. TODO-14's GLMMWeibullFrailtyLoggammaIVWC is not in this grid and still needs its own run.
+  - Committed (checked 2026-11-23): `prob_T` cells 41696739 (2026-11-03), KMDiff MOVER CI b1e96231 (2026-11-04), per-case seeding e635334a (2026-11-12), sequential-design BRT exclusion c2989a61 (2026-11-14).
+  - Batches 2-3 status (checked 2026-11-23 from `~/edi_regen/regen_survival_b23_20261115/provenance.log` and `grid/scheduler.log`): the batch ended 2026-11-16 10:58 +0200 with rc 0, 39 of 301 jobs run (all exit 0) and 262 skipped `SKIP_DLL_CHANGED` (EDI.so a669d270... at start, 658769c0... at the end). Nothing was merged: `comprehensive_tests_results_nc_1_survival.csv` was last written 2026-11-15 11:59 (the batch-1 merge). Batches 2-3 must be rerun on one fixed build.
 - [x] TODO-185 (added 2026-11-03, owner; found by the TODO-184 pre-push 0.2 cell): **`InferenceCountZeroInflatedNegBin` / `InferenceCountZeroInflatedPoisson` score CIs are not inverted from their tests at `prob_T = 0.2`.** Current state: DONE 2026-11-06, confirmed against the installed build (owner rebuild 2026-11-06 16:16). The full pre-push calibration check (`EDI_PREPUSH_CALIBRATION=all`, 166 classes, 2864 task rows) reports `prepush_calibration: OK`, and `prepush_calibration_known_failures.csv` has no ZIP/ZINB rows. The original finding follows. The endpoint check, which re-runs the class's own score test at each CI endpoint, gets p far below 0.05 at the upper endpoint:
   - ZINB score `~1`, null rep 2: p at ci_b = 0.4061 is 0.0016.
   - ZIP score `~.`, null rep 3: p at ci_b = 0.3038 is 0.00012.
@@ -14939,6 +14966,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Tests (`load_all(compile = FALSE)`, NOT_CRAN = true): the new `R/EDI/tests/testthat/test-dep-cens-transform-full-fit-multistart.R` passes 18/18 (re-run by the main session), and 12 of its 18 assertions fail on the pre-fix code. The TODO-180 history-independence test passes 30/30. The 9 testthat files mentioning the class: 119 pass, 0 fail. The 15 bulk files: 3201 pass, 1 skip, and 1 error that also occurs on the pre-fix code (`test-survival-expected-attempt-roster-reference.R`, `design_key_label` not found).
   - Timing: full fit 6.9 -> 15.3 ms; score CI 0.153 -> 0.207 s; nonparametric bootstrap (B = 201) 0.73 -> 2.46 s. Bootstrap distributions change because replicates no longer stop in the wrong mode. NEWS bullet added under 1.0.5 Bug fixes.
   - Left: G4 regeneration of this class's canonical rows. Not in scope (possible follow-up): `simulate_under_lik_null` (the parametric-bootstrap LR) still refits each simulated dataset from one start.
+  - Committed in 5153c02c (checked 2026-11-23).
 
 - [x] TODO-189 (added 2026-11-08, owner; side finding of the TODO-179 investigation): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` (Clayton / loggamma-frailty Weibull) score test runs about 1.5 points high even when the model is correct.** Current state: DONE 2026-11-09 (owner accepted the agent's recommendation: a finite-sample property of the score test, not a bug; documented in the class roxygen, "Score test at small n"; the bootstrap-calibrated score p-value is v1.1 TODO-166).
   - Evidence (TODO-179 agent, 2026-11-07, scratch `/tmp/claude-1000/t179/`): correctly specified pairs (Clayton theta = 1, Weibull(1.5) margins, harness censoring), score size 0.063, 0.061, 0.067 over three cells; pooled 191/3000 = 0.064 (about [0.055, 0.073]), while wald 0.049 and LR 0.045 on the same data.
@@ -15128,6 +15156,12 @@ Of TODO-1..131: DONE 100, open 31. Newly DONE since 2026-10-23: 4, 116, 123 (che
 183, 186 = the renumbered second TODO-184, 187; 166-168, 170, 171, 185 checked 2026-11-06; 189, 190), open 15 (165, 169, 172-181, 184, 188, 191). All 162 entries: DONE 116, open 46 (recounted 2026-11-10); the
 open ones are in "Per-TODO status".
 
+**Recount 2026-11-23** (from the boxes, after the five G5 ticks in "Per-TODO status"): 171 entries (TODO-1..131 and
+TODO-161..201; 132-160 and 196 are unused), DONE 131, open 40. TODO-1..131: DONE 105, open 26 (8-10 12-14 16 18 19 23 26 31 38
+50 55 63 67 68 76 77 99 119 127-129 131); closed 2026-11-23 on G5: 109 112 120 125 130. TODO-161..201: DONE 26, open 14 (165 169
+172-181 184 188). Every open TODO is GATED; NEEDS-DECISION 0 (the last two v1.0.5 pending decisions, 174 and 192, were closed
+2026-11-23).
+
 ### Uncommitted state (historical, 2026-10-22, HEAD `478104b0`; current state and commit groups: "Closing audit 2026-10-23")
 
 As of 2026-10-22, all of it was uncommitted: 205 entries, 159 modified and 46 untracked. Much of it has been committed
@@ -15163,7 +15197,7 @@ a separate go-ahead):
 
 Rd/man regeneration (G8) should be its own commit after commit group 1-7.
 
-### Per-TODO status (the 52 open TODOs, incl. 188 added and 106 closed 2026-11-04, 166-168, 170, 171 closed 2026-11-06; rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
+### Per-TODO status (the 40 open TODOs, refreshed 2026-11-23 against HEAD 5f3fd4fe and CI; earlier: rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
 
 Gate key: G1 build (+ patch bundle), G2 quiet-host timing, G3 1.0.2 parity, G4 CSV regen/audit (G4-C = calibration
 runbook R1-R7), G5 commit/push/CI, G7 TODO-56 slice, G8 Rd (roxygenized 2026-10-23, 0 warnings; only the commit is
@@ -15176,52 +15210,53 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 |---|---|---|---|
 | 8 | gated | G4 ordinal slice | R2 ran 2026-10-25/26 (12.9% at n100 K5); owner deferred the gate and QR-drop issues to v1.1.0 TODO-160; roxygen numbers + Rd updated (7dc68d41, 22ab41b2). Left: class-filtered ordinal shard + merge (plan TODO-8) |
 | 9 | gated | G4 | Stale-worker rand/bootstrap rows, one combined pass with 12/13; key reconciliation (341 new + 183 absent keys) |
-| 10 | gated | G4 merge | R7 PASS 2026-10-30 (chi² rule); KKStrat/KKLWA graded since 2026-10-30/31; survival SD 0.25 regen done and audited, not merged. Left: owner merge approval of that regen (new / no-longer-emitted / multi-file key decisions), then the ordinal slice **2026-11-12: owner approved this merge, but the merge tool blocks it:** the rows were made on DLL 7607b692 (2026-10-31), the installed EDI.so is a7794779, and the 2026-10-30 grid has the single-seed flaw (identical reps; fixed 2026-11-12 by per-case seeding). Take these rows from the 2026-11-11/12 batch survival regeneration (`~/edi_regen/regen_survival_b1r_20261111/`, `b1a`, then batches 2-3) and merge those; the approval carries over. **2026-11-15:** batch 1 merged (see TODO-184); batches 2-3 running in `~/edi_regen/regen_survival_b23_20261115/`. |
-| 12 | gated | sweep, G4 | Approved (#28) 720-evaluation bit-for-bit sweep (`scripts/reused_worker_bitforbit_sweep.R`, two pre-fix noise snapshots + one post-fix, per the entry's 2026-10-18 isolated protocol; exact pre-fix commands unverified); then the G4 rows |
+| 10 | gated | G4 merge | R7 PASS 2026-10-30 (chi² rule); KKStrat/KKLWA graded since 2026-10-30/31. The owner approved the survival merge 2026-11-12; the approval carries over to the 2026-11-11/12 batch regeneration, since the 2026-10-30/31 rows (DLL 7607b692) have the single-seed flaw. Batch 1 (Cox, StratCox, LogRank, GehanWilcox, AllSimple*) merged 2026-11-15. KKStratCoxPHOneLik / KKLWACoxPHOneLik are in batch 3: batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge. Left: rerun batches 2-3 on one fixed build and merge them; then the ordinal slice |
+| 12 | gated | G4 | Approved (#28) release-wide sweep DONE 2026-11-14 (owner ticked 2026-11-15; 242 keys, 0 fixed, 0 MOVED; fixture changes committed 97db828d). Left: the G4 rows |
 | 13 | gated | G4 | Proportion `rand` p-value family (28,800 keys); prune 988 stale GComp rand-CI rows (`prune_stale_result_rows.R --apply`, separately approved) |
-| 14 | gated | G4 merge | R5 PASS 2026-10-25, provenance accepted 2026-10-26 (4,080 approved skips, two accepted SHAs). Left: canonical merge into `nc_1_survival.csv` **2026-11-12: owner approved this merge, but the merge tool blocks it:** the R5 rows (`~/edi_regen/r5_rescope_20261025T004722Z/`, 2026-10-25) were made on an older DLL than the installed EDI.so (a7794779), and predate the 2026-11-12 per-case seeding fix. Take these rows from the 2026-11-11/12 batch survival regeneration (`~/edi_regen/regen_survival_b1r_20261111/`, `b1a`, then batches 2-3) and merge those; the approval carries over. **2026-11-15:** batch 1 merged (see TODO-184); batches 2-3 running in `~/edi_regen/regen_survival_b23_20261115/`. TODO-14's GLMMWeibullFrailtyLoggammaIVWC is not in that grid; it needs its own run. |
+| 14 | gated | G4 run + merge | R5 PASS 2026-10-25, provenance accepted 2026-10-26. The owner approved the merge into `nc_1_survival.csv` 2026-11-12, but the R5 rows (2026-10-25) predate the installed build and the 2026-11-12 per-case seeding fix, so they must be regenerated. TODO-14's GLMMWeibullFrailtyLoggammaIVWC is in neither batch 1 (merged 2026-11-15) nor batches 2-3; its own run has not started. Left: that run, then the merge (approval carries over) |
 | 16 | gated | G4 | R1 PASS on `~1` 2026-10-25 (DLL c6d59498, G1-rechecked; `~.` strata non-gating by owner 10-25); narrowed ordinal pboot slice merged 2026-10-30. Left: `--write-baseline` (separate approval), ContRatioRegr rows (linked plan TODO-6), other datasets / beta 0.5 rows |
-| 18 | gated | G4 | DECIDED 2026-11-12 (owner, option A): C2/N5 accepted as a documented high-p/n limitation of the unstudentized BRT, not smoothing; fix in release_v1_0_6.md TODO-18. C1/N1/N2 recorded (all PASS); limitation documented in the rand-bootstrap roxygen (Rd at G8); permanent test `test-brt-smoothed-matches-percentile-under-null.R` pinned. Left: provenance regen of the `_smoothed` rows (G4) |
+| 18 | gated | G4 | DECIDED 2026-11-12 (owner, option A): C2/N5 accepted as a documented high-p/n limitation of the unstudentized BRT; fix in release_v1_0_6.md TODO-18. C1/N1/N2 PASS; limitation in `man/InferenceRandBootstrap.Rd`; test `test-brt-smoothed-matches-percentile-under-null.R` pinned (both committed e635334a). Left: provenance regen of the `_smoothed` rows (G4) |
 | 19 | gated | G4 | `InferenceIncidKKModifiedPoisson` rows (~21 h, 26,880 labels); the 2026-10-23 slice merge was blocked by a DLL mismatch, rerun outstanding |
-| 23 | gated | G4 merge | R4A PASS 14/14; G1 native validation passed; re-audit + baseline done. Left: merge the 2026-10-31 SD 0.25 survival regen (supersedes the R4B merge; owner approval) and prune stale rows **2026-11-12: owner approved this merge, but the merge tool blocks it:** the rows were made on DLL 7607b692 (2026-10-31), the installed EDI.so is a7794779, and the 2026-10-30 grid has the single-seed flaw (identical reps; fixed 2026-11-12 by per-case seeding). Take these rows from the 2026-11-11/12 batch survival regeneration (`~/edi_regen/regen_survival_b1r_20261111/`, `b1a`, then batches 2-3) and merge those; the approval carries over. **2026-11-15:** batch 1 merged (see TODO-184); batches 2-3 running in `~/edi_regen/regen_survival_b23_20261115/`. |
-| 26 | gated | G4 merge | Rows regenerated 2026-10-30 in the survival grid (DLL 7607b692, receipts). Left: owner approval of the canonical merge **2026-11-12: owner approved this merge, but the merge tool blocks it:** the rows were made on DLL 7607b692 (2026-10-31), the installed EDI.so is a7794779, and the 2026-10-30 grid has the single-seed flaw (identical reps; fixed 2026-11-12 by per-case seeding). Take these rows from the 2026-11-11/12 batch survival regeneration (`~/edi_regen/regen_survival_b1r_20261111/`, `b1a`, then batches 2-3) and merge those; the approval carries over. **2026-11-15:** batch 1 merged (see TODO-184); batches 2-3 running in `~/edi_regen/regen_survival_b23_20261115/`. |
-| 31 | gated | G4 | R8 grid PASS 2026-10-24 (Poisson `n_gh` 20 -> 60, owner 2026-10-24). Left: four KKCLMM classes + ten cloglog BB procedures rows. Owner action (non-blocking): send the upstream clmm report |
-| 38 | gated | G4 (+ CI log check) | Sanitizer/Valgrind: CI run 41085170825 (e3e165fa, 2026-10-30) green on ASAN/UBSAN and valgrind at a commit containing the malformed-start tests (confirm the file ran in the job log). Left: plan TODO-5 `EDI_UNITY=0` equivalence (with TODO-63); row reconciliation |
+| 23 | gated | G4 merge | R4A PASS 14/14; G1 native validation passed; re-audit + baseline done (baseline committed 9c9b2cab). The owner approved the merge 2026-11-12 (carries over to the batch regeneration). RestrictedMeanDiff is in batch 3: batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge. Left: rerun batch 3 on one fixed build, merge, prune stale rows |
+| 26 | gated | G4 merge | The 2026-10-30 rows (DLL 7607b692) have the single-seed flaw; the owner's 2026-11-12 merge approval carries over to the batch regeneration. KKWeibullMarginal is in batch 2: batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge. Left: rerun batch 2 on one fixed build and merge |
 | 50 | gated | G4 | R8 PASS 2026-10-24 (same grid as 31). Left: CountKKGLMM/OrdinalKKCLMM rows; confirm the umbrella findings stay dispositioned in the baseline audit |
+| 31 | gated | G4 | R8 grid PASS 2026-10-24 (Poisson `n_gh` 20 -> 60, owner 2026-10-24). Left: four KKCLMM classes + ten cloglog BB procedures rows. Owner action (non-blocking): send the upstream clmm report |
+| 38 | gated | G4, sanitizer legs | Last green ASAN/UBSAN + valgrind legs: 41621753618 (41696739, 2026-11-03; run cancelled, both legs success) and 41085170825 (e3e165fa, 2026-10-30). Since 2026-11-14 the legs run only in the weekly / dispatch full run: 44358518303 (4ce2b712, 2026-11-18) and 44903905332 (8d8c5f78, 2026-11-21) failed both legs on test failures (v1.0.6-TODO-180, open; v1.0.6-TODO-181, fixed 2026-11-21), no memory errors reported. Left: plan TODO-5 `EDI_UNITY=0` equivalence (with TODO-63); confirm in a green leg's log that the malformed-start tests ran; row reconciliation (G4) |
 | 55 | gated | G4 | Four proportion classes, 140,960 rows; local date >= 2026-10-22, record the timezone |
-| 63 | gated | G5 recheck | G1 `EDI_UNITY=0` build 2026-10-23 and CI 41085170825 (e3e165fa, 2026-10-30) ASAN/UBSAN + valgrind green. Left: recheck at current HEAD (src changed since e3e165fa) and save per-wrapper results |
+| 63 | gated | G5 recheck | G1 `EDI_UNITY=0` build 2026-10-23; ASAN/UBSAN + valgrind last green on 41621753618 (41696739, 2026-11-03). `R/EDI/src` changed since (last: f73607bf, 2026-11-23). Both full runs since the 2026-11-14 weekly-only change failed the two legs on tests (v1.0.6-TODO-180), no memory errors reported. Left: green sanitizer + valgrind legs at a commit after the last `src` change, with per-wrapper results saved |
 | 67 | gated | benchmark rows | DECIDED 2026-10-23: R6 pass rules. G1 done. R6 PASS 2026-11-12 on the current build (`57df40d4`, receipt exit 0) + native sub-gate 3/3; R6 sub-box ticked. Left: the affected benchmark rows (G2 final benchmark gate) |
 | 68 | gated | G4 | `rand`/`rand_bootstrap` CI rows (candidate manifest of 668,320 keys prepared); then docs from reconciled output |
 | 76 | gated | G4 | KKGLMM + four KKCLMM links, ten BB procedures (after TODO-31) |
 | 77 | gated | G4 | Both KK clogit+GLMM classes, ten BB procedures (80 keys) |
 | 99 | gated | G4 | Incidence `rand` p-value rows |
-| 109 | gated | G5 | CI on the commit (#29 accepted) |
-| 112 | gated | G5 | CI on the commit (#29 accepted) |
-| 119 | gated | G9, G4 | Capability matrix regen (29 classes lose `randomization_ci`, new column); `rand` rows + prune |
-| 120 | gated | G5 | CI on the commit (#29 accepted) |
-| 125 | gated | G5 | Full bulk suite on the commit |
-| 127 | gated | G4 | Duration fields regenerate with the next baseline run |
+| 119 | gated | G4 | G9 done: `capability_matrix.csv` has the `capabilities_refused_by_response_type` column (4354b9de, 2026-10-23). Left: `rand` rows + prune (G4). The entry's last "Left" also lists the non-GLM mixed-response advertising fix and the other ordinal/quantile/ZOIB audit, with no later note |
+| 127 | gated | G4 | Harness fix committed a7e7f8bc. Left: duration fields regenerate with the next baseline run |
 | 128 | gated | G4 | G1 part done (patch 14 code in the tree); NEWS bullet written 2026-11-07. Left: boundary-case rows |
-| 129 | gated | G4, G5 | G8 (Rd `jitter_seed`) and G9 (suite coverage CSV row, 5 args) done. Left: seeded-result harness/benchmark rows; CI on a commit |
-| 130 | gated | G5 | CI on the commit |
-| 131 | gated | G4, G5 | G1 part done: patch 15 in the tree and in the README apply order; R3 C1 smoke exit 0. Left: BRT rows on the 5 fixed designs (OptimalBlocks re-solve per replay draw); CI |
-| 165 | gated | G4 merge | mid-rank z0 BCa fix + percentile overrides in source, NEWS done. Left: KMDiff rerun at SD 0.25 and the owner-gated G4 merge **2026-11-12: owner approved this merge, but the merge tool blocks it:** the rows were made on DLL 7607b692 (2026-10-31), the installed EDI.so is a7794779, and the 2026-10-30 grid has the single-seed flaw (identical reps; fixed 2026-11-12 by per-case seeding). Take these rows from the 2026-11-11/12 batch survival regeneration (`~/edi_regen/regen_survival_b1r_20261111/`, `b1a`, then batches 2-3) and merge those; the approval carries over. **2026-11-15:** batch 1 merged (see TODO-184); batches 2-3 running in `~/edi_regen/regen_survival_b23_20261115/`. |
-| 169 | open | agent, G4 | vcov whitelist + two-start null fit in source; NEWS written 2026-11-06. Left: G4 |
+| 129 | gated | G4 | Code committed 618bcbc1; G8 (Rd `jitter_seed`) and G9 (5-arg coverage row) done; G5 satisfied 2026-11-23 (R-CMD-check 45131875338 at 38d1b90a, bulk 44072918156 at 92c44b8c, both contain 618bcbc1). Left: seeded-result harness/benchmark rows (G4) |
+| 131 | gated | G4 | R fix 618bcbc1, patch 15 C++ 96b34122; R3 C1 smoke exit 0; G5 satisfied 2026-11-23 (same two runs, both contain them). Left: BRT rows on the 5 fixed designs (OptimalBlocks re-solve per replay draw) |
+| 165 | gated | G4 merge | Mid-rank z0 BCa fix + percentile overrides committed eb6f4408 (2026-10-27); NEWS done. The owner's 2026-11-12 merge approval carries over to the batch regeneration. KMDiff is in batch 3: batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge. Left: rerun batch 3 on one fixed build and merge |
+| 169 | gated | G4 | vcov whitelist + two-start null fit committed 9c9b2cab (2026-10-29); NEWS written 2026-11-06. Left: G4 |
 | 172 | gated | G4 | C++ fix committed 83f1f3cf, NEWS present. The owner rebuild of 2026-11-06 (EDI.so 16:04) includes it; the TODO-173 rows no longer reproduce there and the full pre-push calibration check passes (2026-11-06). Left: tick after G4 rows |
 | 173 | gated | G4 | Fixed by TODO-172 + TODO-187; known-failure rows deleted (5153c02c) and confirmed not reproducing on the 2026-11-06 rebuild. Left: G4 rows |
-| 174 | gated | G4 | Jump guard in `pval_invert_ci_cpp` (committed 67347569). In the installed build (EDI.so 2026-11-10 16:48, sha256 `3e2efba0…6825`), checked 2026-11-10: an isolated low-p point at the seed gives the true root -0.7611 (1.0.2: -0.2390), smooth case unchanged. NEWS written. Left: G4 |
-| 175 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): deterministic multistart null refits (+ parametric bootstrap); same-object = fresh p; NEWS written 2026-11-07. Left: G4 rows, Rd regen |
-| 176 | open | agent, G4 | Code committed a464f68e; NEWS written 2026-11-06. Left: G4 |
-| 177 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial; new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
-| 178 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): cold primary fit, no warm-start write from the rand hook, estimate_only = full estimator; NEWS written 2026-11-07. Owner ruling 2026-11-08: `~1` (treatment-only, K >= 3) is always non-estimable, reason `stereotype_treatment_only_fit_not_identified` (applied in `generate_mod()`; 5 tests moved to `~x` or the new rule; 302 Stereotype checks pass with NOT_CRAN; roxygen + NEWS updated). Left: Rd regen, owner rebuild, Stereotype calibration re-run (`~1` cells now all NA; check the analysis and accepted rows), G4 rows |
-| 179 | gated | G4 | LogBinomial Wald NA at a boundary MLE applied 2026-11-09 (owner decision; committed e4dca08e), Rd current (checked 2026-11-12). Frailty half accepted as honest. 2026-11-12 (owner): the 8 LogBinomial wald `~.` accepted rows deleted without waiting for a nightly; the 6 frailty score rows reworded to the 2026-11-07 finding. Left: G4 rows |
-| 180 | open | agent, G4 | Code committed a464f68e, test exists; NEWS written 2026-11-06. Left: G4. The DepCens full-fit multistart is TODO-188 |
-| 181 | open | agent, G4 | Code committed a464f68e, 3 tests exist; NEWS bullet written 2026-11-07. LogBinomial boundary score APPLIED 2026-11-07 (KKT/profile score + cold refit of non-KKT null fits in `inference_incidence_log_binomial.R`; test `test-log-binomial-null-mle-boundary-kkt-score-reference.R`, 34 pass): all 8 `~.` calibration reps now give finite score/LR/gradient CIs at roots, no Wald fallback. NEWS written. KKT ported to RiskDiff 2026-11-08 (owner; reverses the 181(c) NA ruling): shared `edi_binomial_bound_kkt_core()` with two-sided constraint signs, cold refit of non-KKT null fits; 181(c) test rewritten as `test-binomial-identity-null-mle-boundary-kkt-score-reference.R`; rep 23 score CI upper 0.2199 (not a root) -> 0.2170 (root); 25 `~.` reps x score/gradient/LR: 0 of 75 CIs with NA, fallback or non-root endpoints. NEWS updated. Left: G4 |
-| 184 | gated | full runs | Harness/calibration plumbing in source. Left: full comprehensive + calibration runs at `prob_T = 0.2`; the KMDiff MOVER CI follow-up (uncommitted, see entry) |
-| 188 | gated | G4 | APPLIED 2026-11-04 (R-only DepCens full-fit multistart, uncommitted; NEWS bullet written). Left: G4 regeneration of the DepCensTransform rows |
-| 189 | DONE | - | Accepted 2026-11-09 as a documented finite-sample property (class roxygen note, Rd regenerated); test `test-weibull-frailty-loggamma-onelik-score-test-null-information-accuracy.R` pins the information checks; v1.1 follow-up TODO-166 |
-| 190 | done | agent | LogBinomial gradient CI LR substitution now warns (`edi_lik_ci_lik_ratio_fallback`) + records reason; fires 4/1600 calibration fits (n = 50 `~.`, boundary MLE); 2026-11-08 |
-| 191 | DONE | owner | Investigated 2026-11-09: not real. Independent seeds, n = 800 x 5000 reps: Wald 0.0504 [0.0445, 0.0568], LR 0.0502, SE/sd 1.006 [0.985, 1.025]. n = 200 x 4000: Wald 0.058, LR 0.053. The old 0.065 was a noticed high draw, and its 7%-low SE reused the same seeds. No code change. Closed by owner 2026-11-09 as a false alarm |
+| 174 | gated | G4 | Jump guard in `pval_invert_ci_cpp`, applied by an agent 2026-11-07 and committed in 67347569; owner approval not recorded (DECISION-v1.0.5-TODO-174 closed 2026-11-23). Checked on the installed build 2026-11-10 (EDI.so 16:48, sha256 `3e2efba0…6825`): isolated low-p point at the seed gives the true root -0.7611 (1.0.2: -0.2390), smooth case unchanged. NEWS written. Left: G4 |
+| 175 | gated | G4 | Deterministic multistart null refits (+ parametric bootstrap) committed 67347569 (2026-11-08); same-object = fresh p; NEWS written 2026-11-07; Stereotype Rd regenerated since. Left: G4 rows |
+| 176 | gated | G4 | Code committed a464f68e; the 2026-11-08 `~1` non-estimable ruling committed af6a86f0; NEWS written. Left: G4 |
+| 177 | gated | G4 | Shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial committed 67347569 (2026-11-08); new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
+| 178 | gated | G4 | Cold primary fit, no warm-start write from the rand hook, estimate_only = full estimator, committed 67347569; owner ruling 2026-11-08 (`~1` always non-estimable, `stereotype_treatment_only_fit_not_identified`) committed af6a86f0; the Stereotype Rd has the rule; the owner has rebuilt since. Left: Stereotype calibration re-run (`~1` cells now all NA; check the analysis and accepted rows; no re-run recorded in the entry), G4 rows |
+| 179 | gated | G4 | LogBinomial Wald NA at a boundary MLE committed e4dca08e (owner decision 2026-11-09), Rd current; frailty half accepted as honest; the 2026-11-12 accepted-row deletions committed e635334a. Left: G4 rows |
+| 180 | gated | G4 | Code committed a464f68e, test exists; NEWS written 2026-11-06. Left: G4. The DepCens full-fit multistart is TODO-188 |
+| 181 | gated | G4 | Code committed a464f68e (3 tests); LogBinomial boundary KKT/profile score + cold refit and the RiskDiff port (`edi_binomial_bound_kkt_core()`, owner 2026-11-08) committed 67347569; 25 `~.` reps x score/gradient/LR: 0 of 75 CIs with NA, fallback or non-root endpoints; NEWS written. Left: G4 |
+| 184 | gated | full runs | Harness committed: `prob_T` cells 41696739, KMDiff MOVER CI b1e96231, per-case seeding e635334a, sequential-design BRT exclusion c2989a61. Batch-1 0.2 cells verified and merged 2026-11-15 (DECISION-v1.0.5-TODO-184b: verify from the survival G4 rows). Left: the 0.2 cells of survival batches 2-3 (batches 2-3 (`~/edi_regen/regen_survival_b23_20261115/`) stopped 2026-11-16 10:58: 39 of 301 jobs ran (exit 0), 262 were skipped `SKIP_DLL_CHANGED` (EDI.so changed mid-batch), nothing merged; `nc_1_survival.csv` unchanged since the 2026-11-15 batch-1 merge); the fast-tier run at 0.2 and re-measured `secs_per_rep` (not recorded) |
+| 188 | gated | G4 | R-only DepCens full-fit multistart committed 5153c02c (2026-11-04); NEWS bullet written. Left: G4 regeneration of the DepCensTransformRegr rows (also in survival batch 3, not yet rerun) |
+
+Closed 2026-11-23 (G5 satisfied; rows dropped): 109, 112, 120, 125, 130, by R-CMD-check run 45131875338 at 38d1b90a and test-bulk-non-cran run 44072918156 at 92c44b8c (each entry has the note). Rows also dropped because their boxes were ticked before this refresh: 189, 190, 191. Every "uncommitted" claim in the open entries was checked against git on 2026-11-23: all of the described code is on HEAD, and each entry now ends with a dated "Committed in <sha>" note.
+
+**Release gates still open (2026-11-23)**
+
+- **G2 benchmark reports + regression check on the final build** (owner, 2026-10-26 and 2026-11-10; runbook step 7): the R and Python `benchmark_model_fits` reports, re-run after the last source change; every flagged row explained or fixed. The 2026-11-09 PASS is interim. Unblocks TODO-67 (benchmark rows) and the release.
+- **Path audits regenerated + `compare_path_audits.R` (closing runbook step 6a)**: after the G4 merges. Release gate; no single TODO waits on it.
+- **Full R-CMD-check green at the exact release commit** (release.md; weekly schedule or dispatch, not the lean push run): both full runs so far failed (44358518303 at 4ce2b712, 2026-11-18; 44903905332 at 8d8c5f78, 2026-11-21) on every OS check leg and both sanitizer legs, from v1.0.6-TODO-180 (open) and v1.0.6-TODO-181 (fixed 2026-11-21). Its sanitizer and valgrind legs also close TODO-63's G5 recheck and TODO-38's CI part.
+- **G4 regeneration batch** (class-filtered comprehensive rows, audit, merge, on one fixed build): survival batches 2-3 need a rerun (262 of 301 jobs skipped 2026-11-16) plus TODO-14's own GLMMWeibullFrailtyLoggammaIVWC run. Unblocks 8, 9, 10, 12, 13, 14, 16, 18, 19, 23, 26, 31, 38, 50, 55, 68, 76, 77, 99, 119, 127, 128, 129, 131, 165, 169, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 188, and the 0.2 cells of 184.
 
 ### G1. Native build of the current checkout, with provenance (+ the uncompiled C++ patch bundle)
 
