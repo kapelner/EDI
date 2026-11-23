@@ -114,6 +114,7 @@ R/package_tests/testthat_bulk/test-calibration-covariate-balance.R,correctness,1
 R/package_tests/testthat_bulk/test-calibration-dead-shards-halve-replicates-and-extend-timeout.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-failure-triage-drafts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-calibration-kk-clmm-score-randomization-procedure.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,correctness,30,bootstrap
@@ -1908,6 +1909,7 @@ R/package_tests/testthat_bulk/test-calibration-covariate-balance.R,coverage,240,
 R/package_tests/testthat_bulk/test-calibration-dead-shards-halve-replicates-and-extend-timeout.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-failure-triage-drafts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-kk-clmm-score-randomization-procedure.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,coverage,240,bootstrap
