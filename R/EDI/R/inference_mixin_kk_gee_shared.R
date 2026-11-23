@@ -156,6 +156,9 @@ InferenceMixinKKGEEShared = list(
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
 			}
+			# v1.2.0-TODO-263: a supplied full enumeration holds the realized allocation; drop one copy.
+			enum = rand_drop_realized_from_enumeration(permutations, private$w, r)
+			permutations = enum$permutations; r = enum$r
 			mc_control_for_perms = private$randomization_mc_control
 			defer_permutation_generation_for_mc =
 				is.null(permutations) &&

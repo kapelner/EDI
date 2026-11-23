@@ -38,13 +38,13 @@ tie_fixture = function(y, w_obs, levels, order = seq_along(y)) {
 		perms = list(w_mat = W, m_mat = NULL),
 		B = B,
 		n_ties = sum(u == u0),
-		# v1.2.0-TODO-207: EDI counts the observed allocation as one extra draw, (1 + b) / (1 + B),
-		# also when the supplied draws are the full enumeration (which already contains it), so the
-		# reference values apply that rule to the exact integer tail counts.
+		# v1.2.0-TODO-207/263: EDI drops the one copy of the realized allocation from a full
+		# enumeration and then adds it back through the +1, so the p-value is the exact
+		# enumerated one, b / B over all B allocations.
 		exact = c(
-			two.sided = min(1, 2 * (1 + min(sum(u >= u0), sum(u <= u0))) / (1 + B)),
-			greater = (1 + sum(u >= u0)) / (1 + B),
-			less = (1 + sum(u <= u0)) / (1 + B)
+			two.sided = min(1, 2 * min(sum(u >= u0), sum(u <= u0)) / B),
+			greater = sum(u >= u0) / B,
+			less = sum(u <= u0) / B
 		)
 	)
 }

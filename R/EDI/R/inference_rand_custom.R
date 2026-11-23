@@ -48,8 +48,10 @@
 #' \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)}, smallest \eqn{1/(B + 1)} (use it for a
 #' statistic that is already an absolute value or a squared or omnibus measure). The
 #' p-value is exact (a true sharp null is rejected with probability at most
-#' \eqn{\alpha}) and never 0 (Phipson and Smyth 2010). The randomization CI inverts
-#' the two-sided rule.
+#' \eqn{\alpha}) and never 0 (Phipson and Smyth 2010). The realized allocation is never
+#' also one of the \eqn{B} draws: a seeded design's replay of it as the first draw is
+#' skipped, and a supplied full enumeration has its copy removed. The randomization CI
+#' inverts the two-sided rule.
 #'
 #' \strong{The scale of \code{delta} by response type.} A nonzero \code{delta}
 #' tests the sharp null that treatment moves every subject's response by

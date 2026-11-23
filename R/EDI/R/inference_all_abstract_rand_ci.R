@@ -92,7 +92,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
 		#'   (doubled smaller tail, smallest value \eqn{2/(B + 1)}), one-sided
 		#'   \eqn{(1 + b)/(1 + B)} (smallest \eqn{1/(B + 1)}); exact (size at most \eqn{\alpha},
-		#'   Phipson and Smyth 2010) and never 0. \code{type = "Zhang"} is an exact test that
+		#'   Phipson and Smyth 2010) and never 0; the realized allocation is never counted twice
+		#'   (see \code{InferenceRand$compute_rand_two_sided_pval()}). \code{type = "Zhang"} is an exact test that
 		#'   does not use the draws.
 		#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){

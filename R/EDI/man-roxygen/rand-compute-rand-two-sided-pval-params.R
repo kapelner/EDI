@@ -14,6 +14,8 @@
 #'   \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)} (smallest \eqn{1/(B + 1)}), where
 #'   \eqn{b_{\ge}}{b_ge} and \eqn{b_{\le}}{b_le} count the draws at least as large / as
 #'   small as the observed statistic. This exact Monte Carlo p-value (Phipson and Smyth
-#'   2010) has size at most \eqn{\alpha} and is never 0; see
+#'   2010) has size at most \eqn{\alpha} and is never 0; the realized allocation is never
+#'   counted twice (a seeded design's replay of it is skipped, a full enumeration's copy
+#'   removed); see
 #'   \code{InferenceRand$compute_rand_two_sided_pval()}.
 #' @return 	Randomization p-value.

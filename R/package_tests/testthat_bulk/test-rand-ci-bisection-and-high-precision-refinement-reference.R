@@ -542,7 +542,16 @@ test_that("the public CI inverts the two-sided test at alpha on one shared fixed
 	p_at_zero <- inf$compute_rand_two_sided_pval(r = r, delta = 0, show_progress = FALSE, permutations = perms)
 
 	# Discrete p-values and the returned side of each final bracket permit one grid step.
-	expect_equal(p_at_bounds, rep(alpha, 2L), tolerance = 0.015)
+	# v1.2.0-TODO-263: with the replayed draw skipped this fixture's draws moved by one, and the
+	# lower bound now sits next to a jump of 4 / 400 in the discrete p-value (0.175 -> 0.195), so
+	# "one grid step" is checked as what the bisection guarantees: alpha is crossed within
+	# pval_epsilon (0.01) of each returned bound.
+	for (b in as.numeric(ci)) {
+		window <- vapply(b + seq(-0.01, 0.01, length.out = 11L), function(delta)
+			inf$compute_rand_two_sided_pval(r = r, delta = delta, show_progress = FALSE, permutations = perms), numeric(1))
+		expect_true(min(window) <= alpha && alpha <= max(window), info = b)
+	}
+	expect_true(all(abs(p_at_bounds - alpha) <= 0.03))
 	expect_identical(!(ci[1] <= 0 && 0 <= ci[2]), p_at_zero < alpha)
 })
 
