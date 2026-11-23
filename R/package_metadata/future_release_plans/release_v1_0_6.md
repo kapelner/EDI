@@ -6713,7 +6713,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   when: a test asserts the hook sees `w` in {0,1}, the documented error call works, and the `$run()` Rd agrees with
   itself.
 
-- [ ] TODO-354 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Serial `SimulationFramework`
+- [x] TODO-354 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Serial `SimulationFramework`
   runs don't seed replication i with `seed + i`, so results depend on `num_cores` and a resumed run replays old data.**
   Ids: ds-simulation-framework-44883784401-f4, ds-simulation-framework-44883784401-f5.
   The serial loop (`R/EDI/R/simulations_framework.R:1881-1970`) seeds once (`:866`); the fork (`:1629,1674`) and
@@ -6723,6 +6723,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   reproducibility across `num_cores`. Fix: `set.seed(seed + rep)` before each serial rep, as the parallel paths do.
   Done when: the F4 repro gives identical `get_results()` at 1 and 2 cores, and a serial 3-rep run resumed to 6
   equals a fresh 6-rep run row for row.
+  Done 2026-11-24: the serial loop calls `set.seed(seed + rep)` at the start of each replication, as `fork_rep_worker_fn` does. Repro (continuous, iBCRD + Bernoulli, OLS, n = 20, 4 reps, seed 42): 1 vs 2 cores identical FALSE -> TRUE; 2 reps resumed to 4 vs fresh 4 FALSE -> TRUE; rep 3 a replay of rep 1 TRUE -> FALSE. Note: the mirai path seeds per (rep, cell), so on a grid with several cells mirai results still differ from fork / serial (pre-existing, not in this entry; the test uses one cell so it holds on every backend). Test: `R/package_tests/testthat_bulk/test-simulation-framework-serial-seeding-report-alpha-and-risk-diff-estimand.R`.
 
 - [ ] TODO-355 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework`
   constructor accepts bad `alpha` / `sd_noise` and hides a design constructor's own error.**
@@ -6737,7 +6738,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   under `stop_on_error = TRUE`). Done when: alpha 0 / 1.5 / NA and `sd_noise = -1` error at `$new()`, and
   `list(DesignFixediBCRD = list(foo = 1))` with `stop_on_error = TRUE` errors with "unused argument (foo = 1)".
 
-- [ ] TODO-356 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+- [x] TODO-356 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
   **`SimulationFrameworkReport$new(sim, alpha = a)` tests coverage of CIs built at the framework's alpha against
   `1 - a`.**
   Ids: ds-simulation-framework-44883784401-f9.
@@ -6745,8 +6746,9 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   so `coverage_pval` flags correctly calibrated intervals. Fix: test coverage against the alpha the CIs were built at
   and use the override for power/size only (or warn when they differ), and say so in the `alpha` doc. Done when: a
   report with alpha = 0.2 on a 0.05 run gives the same `coverage_pval` as the default report.
+  Done 2026-11-24: the report keeps `ci_alpha` (the framework's alpha; from a file, the given alpha) and uses it for `coverage_pval`; an `alpha` override changes power / size only, and the `alpha` roxygen says so. Repro (incidence, n = 200, 40 reps): `coverage_pval` with `alpha = 0.2` identical to the default report (TRUE). Test: `R/package_tests/testthat_bulk/test-simulation-framework-serial-seeding-report-alpha-and-risk-diff-estimand.R`.
 
-- [ ] TODO-357 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework` scores
+- [x] TODO-357 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`SimulationFramework` scores
   `InferenceIncidGCompRiskDiff` against the logit-scale `betaT`.**
   Ids: ds-simulation-framework-44883784401-f10.
   The hand-kept `is_mean_diff` list (`R/EDI/R/simulations_framework.R:3231-3240`) has InferenceIncidKKGCompRiskDiff but
@@ -6754,6 +6756,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   classes (e.g. BinomialIdentityRiskDiff), or replace the list by a registry flag. Done when: the F10 repro gives a
   G-comp true estimand equal to Newcombe's (~0.198) and coverage near 0.95, and a test checks every incidence
   risk-difference class.
+  Done 2026-11-24: the hand-kept list is now `EDI_SIM_MEAN_DIFF_INFERENCE_CLASSES` + `edi_sim_inference_scores_mean_diff()` (`simulations_framework.R`), with `InferenceIncidGCompRiskDiff` and `InferenceIncidBinomialIdentityRiskDiff` added (the only `InferenceIncid*RiskDiff` classes missing). Repro (incidence, n = 200, 40 reps, betaT = 1): G-comp, Newcombe and BinomialIdentity true estimand all 0.1965 (G-comp was scored against 1); G-comp asymp CI coverage 1.0 (40/40). Test: `R/package_tests/testthat_bulk/test-simulation-framework-serial-seeding-report-alpha-and-risk-diff-estimand.R` (asserts every `InferenceIncid*RiskDiff` class is in the list).
 
 - [ ] TODO-358 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`DesignFixedBinaryMatch`
   accepts a `w_precomputed` that does not treat exactly one member of each pair.**

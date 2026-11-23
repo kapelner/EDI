@@ -1230,6 +1230,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-hel
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-simulation-framework-serial-seeding-report-alpha-and-risk-diff-estimand.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-framework-validate-custom-replication-data-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -3018,6 +3019,7 @@ R/package_tests/testthat_bulk/test-simulation-framework-result-key-and-cache-hel
 R/package_tests/testthat_bulk/test-simulation-framework-results-file-unsupported-format-defensive-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-framework-serial-seeding-report-alpha-and-risk-diff-estimand.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-sync-results-bz2-rename-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-valid-inference-types-capability-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-validate-custom-replication-data-reference.R,coverage,240,bootstrap

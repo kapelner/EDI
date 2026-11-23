@@ -219,6 +219,30 @@ add_bounded_response_to_design = function(des, t, bounds) {
   na_to_null = function(x) if (is.na(x)) NULL else x
   des$add_one_subject_response(t, na_to_null(bounds$y), na_to_null(bounds$y_L), na_to_null(bounds$y_R))
 }
+# Inference classes whose estimand is the difference in mean responses (a risk
+# difference for incidence), so SimulationFramework scores them against the
+# simulated mean-difference ATE rather than the model-scale betaT.
+# v1.0.6-TODO-357 (2026-11-24): InferenceIncidGCompRiskDiff and
+# InferenceIncidBinomialIdentityRiskDiff were missing, so they were scored
+# against the logit-scale betaT (coverage 0, wrong MSE).
+EDI_SIM_MEAN_DIFF_INFERENCE_CLASSES = c(
+	"InferenceAllSimpleAverageDiff",
+	"InferenceIncidWald",
+	"InferenceIncidCMH",
+	"InferenceIncidExtendedRobins",
+	"InferenceIncidRiskDiff",
+	"InferenceIncidMiettinenNurminenRiskDiff",
+	"InferenceIncidNewcombeRiskDiff",
+	"InferenceIncidKKNewcombeRiskDiff",
+	"InferenceIncidGCompRiskDiff",
+	"InferenceIncidKKGCompRiskDiff",
+	"InferenceIncidBinomialIdentityRiskDiff",
+	"InferencePropGCompMeanDiff"
+)
+edi_sim_inference_scores_mean_diff = function(inf_obj) {
+	any(vapply(EDI_SIM_MEAN_DIFF_INFERENCE_CLASSES, function(cl) methods::is(inf_obj, cl), logical(1)))
+}
+
 #' Simulation Framework for Experimental Designs and Inference Methods
 #'
 #' @description An R6 class for benchmarking experimental designs and inference methods by
@@ -1914,6 +1938,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           next
         }
 
+        # v1.0.6-TODO-354: seed replication `rep` with seed + rep, as the fork path does
+        # (fork_rep_worker_fn: one set.seed() per rep, then its cells in order). The serial
+        # loop used to seed once for the whole run, so results depended on num_cores and a
+        # resumed run (continue_from_last_result_row) replayed the first reps' data.
+        if (!is.null(seed_val)) set.seed(seed_val + rep)
         private$rep_start_capture = inter_rep_start
         private$current_rep_idx = rep
         private$current_cell_idx = active_cells[[1L]]
@@ -3245,16 +3274,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (is.list(inf_obj) && !is.null(inf_obj$fatal_error)) return(inf_obj)
           
           if (is.null(inf_obj)) next
-          is_mean_diff = is(inf_obj, "InferenceAllSimpleAverageDiff") ||
-                         is(inf_obj, "InferenceIncidWald") ||
-                         is(inf_obj, "InferenceIncidCMH") ||
-                         is(inf_obj, "InferenceIncidExtendedRobins") ||
-                         is(inf_obj, "InferenceIncidRiskDiff") ||
-                         is(inf_obj, "InferenceIncidMiettinenNurminenRiskDiff") ||
-                         is(inf_obj, "InferenceIncidNewcombeRiskDiff") ||
-                         is(inf_obj, "InferenceIncidKKNewcombeRiskDiff") ||
-                         is(inf_obj, "InferenceIncidKKGCompRiskDiff") ||
-                         is(inf_obj, "InferencePropGCompMeanDiff")
+          is_mean_diff = edi_sim_inference_scores_mean_diff(inf_obj)
           te = if (!is.null(state$make_estimand_fn) || !is.null(state$custom_dgp)) {
             true_mean_diff_ate  # custom estimand always wins regardless of inference class type
           } else if (is_mean_diff) {

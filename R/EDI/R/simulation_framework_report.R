@@ -45,11 +45,14 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
     #' @param sim_or_filename Either a completed \code{SimulationFramework} object
     #'   or a character string giving the path to a \code{.csv} or \code{.csv.bz2}
     #'   results file written by \code{SimulationFramework}.
-    #' @param alpha Numeric in \eqn{(0,1)}.  Significance level for coverage and
-    #'   power calculations.  When \code{sim_or_filename} is a
-    #'   \code{SimulationFramework} object and \code{alpha} is \code{NULL}
-    #'   (default), the framework's own alpha is used.  When loading from a file,
-    #'   defaults to \code{0.05}.
+    #' @param alpha Numeric in \eqn{(0,1)}.  Significance level for the power and
+    #'   size calculations (a p-value below \code{alpha} rejects).  When
+    #'   \code{sim_or_filename} is a \code{SimulationFramework} object and
+    #'   \code{alpha} is \code{NULL} (default), the framework's own alpha is used.
+    #'   Coverage (and \code{coverage_pval}, the test of coverage
+    #'   \eqn{= 1 - \alpha}) always uses the alpha the confidence intervals were
+    #'   built at, the framework's, whatever \code{alpha} is given here.  When
+    #'   loading from a file, defaults to \code{0.05} and is used for both.
     initialize = function(sim_or_filename, alpha = NULL) {
       if (is.character(sim_or_filename)) {
         private$.init_from_file(sim_or_filename, alpha %||% 0.05)
@@ -131,6 +134,9 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
       # ── Aggregate raw results ─────────────────────────────────────────────────
       dt         = private$results_dt
       alpha      = private$alpha
+      # v1.0.6-TODO-356: the CIs were built at the framework's alpha; an alpha
+      # override applies to power and size only.
+      ci_alpha   = private$ci_alpha %||% private$alpha
       report_cov = any(grepl("_ci$",   private$inf_types))
       report_pow = any(grepl("_pval$", private$inf_types))
       has_sim_mode = "simulation_mode" %in% names(dt)
@@ -148,12 +154,12 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
             m_row$coverage  = if (any(ci_fin)) mean(ci_lo[ci_fin] <= true_estimand[ci_fin] & true_estimand[ci_fin] <= ci_hi[ci_fin]) else NA_real_
             m_row$n_cov     = sum(ci_fin)
             m_row$ci_length = if (any(ci_fin)) mean(ci_hi[ci_fin] - ci_lo[ci_fin]) else NA_real_
-            # Exact two-sided binomial test of H0: true coverage = 1 - alpha,
+            # Exact two-sided binomial test of H0: true coverage = 1 - ci_alpha,
             # the CI analogue of size_pval below
             m_row$coverage_pval = if (any(ci_fin)) {
               stats::binom.test(
                 sum(ci_lo[ci_fin] <= true_estimand[ci_fin] & true_estimand[ci_fin] <= ci_hi[ci_fin]),
-                sum(ci_fin), p = 1 - alpha
+                sum(ci_fin), p = 1 - ci_alpha
               )$p.value
             } else NA_real_
           }
@@ -233,6 +239,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
     errors                       = NULL,
     valid_combos                 = NULL,
     alpha                        = NULL,
+    ci_alpha                     = NULL,
     inf_types                    = NULL,
     design_labels                = NULL,
     design_params                = NULL,
@@ -258,6 +265,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
       private$errors                       = p$error_log
       private$valid_combos                 = p$valid_combos
       private$alpha                        = if (!is.null(alpha_override)) alpha_override else p$alpha
+      private$ci_alpha                     = p$alpha
       private$inf_types                    = p$inf_types
       private$design_labels                = p$design_labels
       private$design_params                = p$design_params
@@ -299,6 +307,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
       private$results_dt = dt
       private$errors     = list()
       private$alpha      = alpha
+      private$ci_alpha   = alpha
       if (nrow(dt) > 0L) {
         combo_cols = intersect(
           c("response_type", "cond_exp_func_model", "n", "p", "betaT",

@@ -1066,6 +1066,18 @@
 
 ### Reproducibility across core counts
 
+* `SimulationFramework`: a serial run (`num_cores = 1`) now seeds replication
+  `i` with `seed + i`, as the parallel paths do, so a seeded simulation gives
+  the same results at 1 and 2 cores, and a run resumed with
+  `continue_from_last_result_row = TRUE` equals a fresh run instead of replaying
+  the first replications' data (v1.0.6-TODO-354). Serial results for a given
+  `seed` change. `SimulationFrameworkReport$new(sim, alpha = a)` now tests
+  coverage against the alpha the intervals were built at (the framework's) and
+  uses `a` only for power and size (v1.0.6-TODO-356). `InferenceIncidGCompRiskDiff`
+  and `InferenceIncidBinomialIdentityRiskDiff` are now scored against the risk
+  difference rather than the logit-scale `betaT` (coverage was 0 and the MSE
+  wrong; v1.0.6-TODO-357).
+
 * `InferencePropGCompMeanDiff`'s nonparametric bootstrap (confidence interval,
   p-value and `approximate_bootstrap_distribution_beta_hat_T()`) no longer
   depends on the number of cores. Each worker chunk drew its resamples from its
