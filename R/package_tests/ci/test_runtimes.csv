@@ -111,6 +111,7 @@ R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-
 R/package_tests/testthat_bulk/test-calibration-class-major-order.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-covariate-balance.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-calibration-dead-shards-halve-replicates-and-extend-timeout.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-failure-triage-drafts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,correctness,120,bootstrap
@@ -1889,6 +1890,7 @@ R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-
 R/package_tests/testthat_bulk/test-calibration-class-major-order.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-covariate-balance.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-dead-shards-halve-replicates-and-extend-timeout.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-failure-triage-drafts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,coverage,240,bootstrap
