@@ -360,7 +360,13 @@ seq_des_inf$compute_asymp_confidence_interval()
   Computes the Peto-Prentice (Gehan-Wilcoxon) two-sided p-value via
 \code{survival::survdiff(rho = 1)}, which puts greater weight on early events
 relative to the standard log-rank test (\code{rho = 0}).
-For delta != 0, not yet implemented.
+For delta != 0, not yet implemented. On left- or interval-censored data
+this is \code{interval::ictest()}'s p-value; when that is unavailable the
+p-value is \code{NA}, with the reason recorded under
+\code{procedure_failure_reason$rank_test} and an
+\code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
+substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalGehanWilcox$compute_asymp_two_sided_pval(delta = 0)}
@@ -374,7 +380,7 @@ For delta != 0, not yet implemented.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A p-value in [0, 1].
+    A p-value in [0, 1], or \code{NA} as above.
   }
   \subsection{Examples}{
     \if{html}{\out{<div class="r example copy">}}

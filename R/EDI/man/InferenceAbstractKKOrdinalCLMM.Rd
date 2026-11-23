@@ -225,7 +225,14 @@ assertions are enabled).}
 \if{html}{\out{<a id="method-InferenceAbstractKKOrdinalCLMM-compute_rand_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAbstractKKOrdinalCLMM-compute_rand_two_sided_pval}{}}}
 \subsection{\code{InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval()}}{
-  Randomization p-value for the treatment effect. With \code{type = NULL} (the default) it is the shared randomization test (\code{InferenceRandCI$compute_rand_two_sided_pval()}): every redraw refits the CLMM and the statistic is the treatment estimate. \code{type = "score"} uses the score statistic at the null fit instead: the CLMM is fit once with the treatment coefficient fixed at 0, and each redraw costs one inner product (see the class details). Both are exact randomization tests of the sharp null of no effect; they use different statistics, so their p-values and power differ.
+  Randomization p-value for the treatment effect. With
+  \code{type = NULL} (the default) it is the shared randomization test
+  (\code{InferenceRandCI$compute_rand_two_sided_pval()}): every redraw refits the
+  CLMM and the statistic is the treatment estimate. \code{type = "score"} uses the
+  score statistic at the null fit instead: the CLMM is fit once with the treatment
+  coefficient fixed at 0, and each redraw costs one inner product (see the class
+  details). Both are exact randomization tests of the sharp null of no effect; they
+  use different statistics, so their p-values and power differ.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAbstractKKOrdinalCLMM$compute_rand_two_sided_pval(
@@ -246,15 +253,28 @@ assertions are enabled).}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{r}}{Number of randomization draws (default 501).}
-      \item{\code{delta}}{Null treatment effect (default 0). \code{type = "score"} supports only 0 and errors otherwise.}
-      \item{\code{transform_responses}}{Response transform for the default statistic (see \code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with \code{type = "score"}.}
-      \item{\code{na.rm}}{Drop non-finite draws (they are always dropped; see \code{InferenceRand$compute_rand_two_sided_pval()}).}
+      \item{\code{delta}}{Null treatment effect (default 0). \code{type = "score"} supports only
+0 and errors otherwise.}
+      \item{\code{transform_responses}}{Response transform for the default statistic (see
+\code{InferenceRand$compute_rand_two_sided_pval()}); must be \code{"none"} with
+\code{type = "score"}.}
+      \item{\code{na.rm}}{Drop non-finite draws (they are always dropped; see
+\code{InferenceRand$compute_rand_two_sided_pval()}).}
       \item{\code{show_progress}}{Whether to show progress (default statistic only).}
-      \item{\code{permutations}}{Optional pre-generated assignment draws: a list with element \code{w_mat} (an \eqn{n \times r}{n x r} 0/1 matrix, one column per draw), as for \code{InferenceRand$compute_rand_two_sided_pval()}. \code{NULL} draws them from the design; both statistics then use the same draws.}
-      \item{\code{type}}{\code{NULL} (default) or \code{"score"}. \code{"score"} selects the score-at-the-null-fit statistic, offered only by the KK CLMM classes; other values are rejected. The randomization confidence interval does not use it (and is not offered by these classes).}
+      \item{\code{permutations}}{Optional pre-generated assignment draws: a list with element
+\code{w_mat} (an \eqn{n \times r}{n x r} 0/1 matrix, one column per draw), as for
+\code{InferenceRand$compute_rand_two_sided_pval()}. \code{NULL} draws them from the
+design; both statistics then use the same draws.}
+      \item{\code{type}}{\code{NULL} (default) or \code{"score"}. \code{"score"} selects the
+score-at-the-null-fit statistic, offered only by the KK CLMM classes; other
+values are rejected. The randomization confidence interval does not use it (and
+is not offered by these classes).}
       \item{\code{args_for_type}}{Must be \code{NULL}.}
-      \item{\code{zero_one_logit_clamp}}{Passed to the default statistic; unused with \code{type = "score"}.}
-      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"}, with the same tail counts, tie rule and \eqn{(1 + b)/(1 + B)} counting as the default statistic.}
+      \item{\code{zero_one_logit_clamp}}{Passed to the default statistic; unused with
+\code{type = "score"}.}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"},
+with the same tail counts, tie rule and \eqn{(1 + b)/(1 + B)} counting as the
+default statistic.}
     }
     \if{html}{\out{</div>}}
   }

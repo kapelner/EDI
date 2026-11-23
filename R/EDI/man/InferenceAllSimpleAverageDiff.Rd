@@ -257,7 +257,17 @@ where \code{combination_method} is \code{"Fisher"} (default), \code{"Stouffer"}
 or \code{"min_p"}.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
       \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
-use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
+use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.
+The observed allocation counts as one of the \eqn{B} finite draws: two-sided is
+\eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+(doubled smaller tail, smallest value \eqn{2/(B + 1)}); \code{"greater"} is
+\eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)} (smallest \eqn{1/(B + 1)}), where
+\eqn{b_{\ge}}{b_ge} and \eqn{b_{\le}}{b_le} count the draws at least as large / as
+small as the observed statistic. This exact Monte Carlo p-value (Phipson and Smyth
+2010) has size at most \eqn{\alpha} and is never 0; the realized allocation is never
+counted twice (a seeded design's replay of it is skipped, a full enumeration's copy
+removed); see
+\code{InferenceRand$compute_rand_two_sided_pval()}.}
     }
     \if{html}{\out{</div>}}
   }

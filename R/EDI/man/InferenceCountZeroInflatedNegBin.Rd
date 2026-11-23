@@ -356,7 +356,9 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
       \item{\code{des_obj}}{A completed \code{Design} object with a count response.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment.}
       \item{\code{model_formula_zero}}{Formula for the zero-inflation submodel. If
-\code{NULL} (default), it uses the same formula as \code{model_formula}.}
+\code{NULL} (default), it uses the same formula as \code{model_formula}.
+The treatment is always included, so \code{~ 1} fits the zero-inflation
+probability on the treatment only.}
       \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use our internal Rcpp
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}

@@ -22,11 +22,15 @@ tests/CIs restricted to that truncated support).
 
 Two mutually exclusive acceptance modes are supported (specifying both errors):
 \code{obj_val_cutoff} accepts/rejects each draw against a fixed threshold \code{a};
-\code{prop_acceptable} instead draws \eqn{r / prop\_acceptable} candidates and keeps
-the \eqn{r} with the \emph{lowest} \eqn{M(w)} (an empirical top-quantile acceptance
-region, equivalent in the large-draw limit to an implied cutoff at the
-\code{prop_acceptable} quantile of \eqn{M(w)}'s distribution under the base
-randomization law).
+\code{prop_acceptable} instead makes every allocation the one with the \emph{lowest}
+\eqn{M(w)} among \eqn{k = \mathrm{round}(1 / prop\_acceptable)} independent base draws
+(best of \eqn{k}). The same rule gives the realized allocation and every redrawn one
+(randomization p-values and CIs, bootstrap-randomization replays), so the realized
+allocation and the randomization reference follow the same law and the randomization
+test keeps its size. Best of \eqn{k} is not the base law truncated at its
+\code{prop_acceptable} quantile: a best-of-\eqn{k} draw lies above that quantile with
+probability \eqn{(1 - prop\_acceptable)^k \approx e^{-1}}. Use \code{obj_val_cutoff} for
+a truncation at a fixed cutoff.
 
 
 \strong{Objective \eqn{M(w)}.} \code{objective = "mahal_dist"} (default) uses the
@@ -82,9 +86,15 @@ but this reproducibility guarantee also holds after
 \eqn{n}) or \code{complete_randomization_imbalanced_cpp()} (any other case, with
 \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}, so \code{n = 23} at \code{prob_T = 0.5}
 has 12 treated; before v1.0.6 odd \eqn{n} at 0.5 had \eqn{\lfloor n/2 \rfloor}{floor(n/2)}) to draw
-\eqn{n_{\mathrm{draw}} = \mathrm{round}(r / prop\_acceptable)} candidate allocations
+\eqn{n_{\mathrm{draw}} = r \cdot \mathrm{round}(1 / prop\_acceptable)} candidate allocations
 in one batched call, computes \eqn{M(w)} for all of them via
-\code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
+\code{compute_objective_vals_cpp()}, and returns the lowest-\eqn{M(w)} draw of each
+consecutive group of \eqn{k = \mathrm{round}(1 / prop\_acceptable)} draws
+(\eqn{n_{\mathrm{draw}} = r k}). The realized allocation is the \eqn{r = 1} case. Through
+EDI 1.0.5 a request for \eqn{r > 1} draws kept the best \eqn{r} of all
+\eqn{\mathrm{round}(r / prop\_acceptable)} draws, a tighter law than the realized
+best-of-\eqn{k} allocation, so the randomization test over-rejected (about 7\% at
+nominal 5\% in one audit); realized allocations are unchanged.
 
 \strong{Choosing \code{obj_val_cutoff} for a target acceptance rate.} The
 acceptance rate of a cutoff \eqn{a} is \eqn{P(M(w) \le a)} under the base complete
@@ -100,9 +110,9 @@ for acceptance rate \eqn{p_a} is therefore
 \code{"abs_sum_diff"} there is no closed form. In either case the exact rate for
 your data is the empirical quantile of \eqn{M(w)} over complete randomizations with
 \eqn{n_T} treated, which you can simulate. \code{prop_acceptable = p_a} targets the
-rate directly: it keeps the best \eqn{p_a} share of the drawn candidates, an implied
-cutoff at the empirical \eqn{p_a} quantile of those draws, so no cutoff needs to be
-chosen. Very small rates make the \code{obj_val_cutoff} search slower and can hit
+rate directly: each allocation is the best of \eqn{\mathrm{round}(1 / p_a)} draws, so
+no cutoff needs to be chosen (it is a best-of-\eqn{k} rule, not a fixed cutoff at the
+\eqn{p_a} quantile; see above). Very small rates make the \code{obj_val_cutoff} search slower and can hit
 the \code{max(1000 r, 1e5)} candidate budget described above.
 
 \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
@@ -233,8 +243,10 @@ leaves no treated or no control subject.}
 allocation is accepted iff \eqn{M(w) \le a}. Exactly one of this and prop_acceptable is required.
 For how to pick \eqn{a} for a target acceptance rate, see "Choosing
 \code{obj_val_cutoff} for a target acceptance rate" in the class details.}
-      \item{\code{prop_acceptable}}{The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest),
-e.g. \code{0.1}. Exactly one of this and obj_val_cutoff is required.}
+      \item{\code{prop_acceptable}}{The proportion of randomizations to accept, e.g. \code{0.1}: the realized
+allocation and every reference allocation (randomization tests and CIs) are each the best
+(lowest \eqn{M(w)}) of \code{round(1 / prop_acceptable)} independent base draws.
+Exactly one of this and obj_val_cutoff is required.}
       \item{\code{objective}}{The covariate-imbalance objective \eqn{M(w)} to filter on:
 either \code{"mahal_dist"} (default, squared Mahalanobis distance) or
 \code{"abs_sum_diff"} (sum of absolute standardized mean differences); see

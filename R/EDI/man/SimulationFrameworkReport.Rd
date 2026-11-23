@@ -69,11 +69,14 @@ report$summarize()
       \item{\code{sim_or_filename}}{Either a completed \code{SimulationFramework} object
 or a character string giving the path to a \code{.csv} or \code{.csv.bz2}
 results file written by \code{SimulationFramework}.}
-      \item{\code{alpha}}{Numeric in \eqn{(0,1)}.  Significance level for coverage and
-power calculations.  When \code{sim_or_filename} is a
-\code{SimulationFramework} object and \code{alpha} is \code{NULL}
-(default), the framework's own alpha is used.  When loading from a file,
-defaults to \code{0.05}.}
+      \item{\code{alpha}}{Numeric in \eqn{(0,1)}.  Significance level for the power and
+size calculations (a p-value below \code{alpha} rejects).  When
+\code{sim_or_filename} is a \code{SimulationFramework} object and
+\code{alpha} is \code{NULL} (default), the framework's own alpha is used.
+Coverage (and \code{coverage_pval}, the test of coverage
+\eqn{= 1 - \alpha}) always uses the alpha the confidence intervals were
+built at, the framework's, whatever \code{alpha} is given here.  When
+loading from a file, defaults to \code{0.05} and is used for both.}
     }
     \if{html}{\out{</div>}}
   }

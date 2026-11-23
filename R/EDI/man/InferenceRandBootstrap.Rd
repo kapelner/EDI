@@ -182,6 +182,25 @@ Kallus, N. (2018), "Optimal a priori balance in the design of controlled
   the-fly family) and response types, and pairing it with a confidence-interval
   inversion (\code{\link{InferenceRandBootstrapCI}}); it does not resolve the open
   validity question.
+
+Monte Carlo randomization p-value (v1.2.0-TODO-207; see \code{[PhipsonSmyth2010]}
+  in REFERENCES.md): Phipson, B. and Smyth, G. K. (2010). Permutation P-values should never
+  be zero: calculating exact P-values when permutations are randomly drawn.
+  \emph{Statistical Applications in Genetics and Molecular Biology}, 9(1), Article 39,
+  \doi{10.2202/1544-6115.1585}; also arXiv:1603.05766. The same rule is implemented by
+  \code{permp()} in the CRAN package statmod (\url{https://CRAN.R-project.org/package=statmod};
+  help page \url{https://search.r-project.org/CRAN/refmans/statmod/html/permp.html}).
+  Hemerik, J. and Goeman, J. (2017). Exact testing with random permutations.
+  \emph{TEST}, \doi{10.1007/s11749-017-0571-1}; arXiv:1411.7565.
+  Howes, M. (2023). Markov chain Monte Carlo significance tests. arXiv:2310.04924.
+  Fischer, L. and Ramdas, A. (2025). Sequential Monte-Carlo testing by betting.
+  \emph{Journal of the Royal Statistical Society Series B}, qkaf014,
+  \doi{10.1093/jrsssb/qkaf014}; arXiv:2401.07365.
+  Zeng, Z., Adjaho, C., Bucarey, A., Qin, C., Zhang, R., Hoban, P., Johari, R. and
+  Wager, S. (2026). Sequentially-rerandomized switchback experiments. arXiv:2604.02489.
+  Coppock, A. Randomization inference with ri2 (vignette of the CRAN package ri2,
+  \url{https://CRAN.R-project.org/package=ri2};
+  \url{https://alexandercoppock.com/ri2/articles/ri2_vignette.html}).
 }
 \keyword{internal}
 \section{Super classes}{
@@ -383,10 +402,18 @@ so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
   estimator as the BRT test statistic, giving an asymptotic p-value that inherits
   the unconditional superpopulation validity of the BRT.
   \code{"studentized"} divides each null draw's signed deviation from the null by its
-  per-draw standard error: \eqn{p = 2\min(P(z^0_b \ge z), P(z^0_b \le z))} where
+  per-draw standard error and doubles the smaller tail of
   \eqn{z^0_b = (t^0_b - \delta)/\hat{s}^0_b}; yields asymmetric CI under inversion.
-  \code{"symmetric-percentile-t"} uses the absolute pivot
-  \eqn{p = P(|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s})}; CI is symmetric.
+  \code{"symmetric-percentile-t"} uses the absolute pivot: it counts the draws with
+  \eqn{|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s}}, no doubling; CI is symmetric.
+  Every type counts the observed statistic as one of the \eqn{B} finite draws
+  (v1.2.0-TODO-207, Phipson and Smyth 2010): the doubled-tail types
+  (\code{"percentile"}, \code{"smoothed"}, \code{"studentized"}) return
+  \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+  (smallest \eqn{2/(B + 1)}), and \code{"symmetric-percentile-t"} returns
+  \eqn{(1 + b_{|\cdot|})/(1 + B)}{(1 + b_abs) / (1 + B)}, where \eqn{b_{|\cdot|}}{b_abs}
+  counts the draws with an absolute pivot at least as large (smallest \eqn{1/(B + 1)}).
+  Neither is ever 0.
   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
   \code{"percentile"} if the SE is unavailable.
   \code{"smoothed"} is refused (with an error) for left- or interval-censored survival

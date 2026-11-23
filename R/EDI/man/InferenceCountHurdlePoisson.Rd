@@ -353,7 +353,9 @@ Mullahy, J. (1986). "Specification and Testing of Some
       \item{\code{des_obj}}{A completed \code{Design} object with a count response.}
       \item{\code{model_formula}}{Optional formula for the count submodel.}
       \item{\code{model_formula_hurdle}}{Formula for the hurdle submodel. If
-\code{NULL} (default), it uses the same formula as \code{model_formula}.}
+\code{NULL} (default), it uses the same formula as \code{model_formula}.
+The treatment is always included, so \code{~ 1} fits the hurdle
+(zero vs. positive) probability on the treatment only.}
       \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use the internal Rcpp
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
@@ -399,10 +401,14 @@ resampling paths.}
 \if{latex}{\out{\hypertarget{method-InferenceCountHurdlePoisson-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountHurdlePoisson$compute_asymp_confidence_interval()}}{
   Asymptotic confidence interval. Under the conditional
-  estimand, the zero-augmented count-model Wald interval (\code{NA}, with
-  the reason recorded and an \code{edi_wald_unavailable_warning}, when the
-  model standard error is unavailable; no bootstrap is substituted,
-  v1.0.6-TODO-380); under a marginal estimand, the
+  estimand, the interval of the test chosen with \code{set_testing_type()}:
+  score, gradient, likelihood-ratio and Bartlett-corrected
+  likelihood-ratio give the same interval as the matching
+  \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
+  returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+  with the reason recorded and an \code{edi_wald_unavailable_warning}, when
+  the model standard error is unavailable (no bootstrap is substituted,
+  v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
   delta-method interval computed by \code{compute_estimate()}. Calls
   \code{self$compute_estimate()} first (not \code{private$shared()}
   directly) so the estimand-aware cache is always current regardless

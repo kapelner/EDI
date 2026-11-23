@@ -24,7 +24,7 @@ integer number of treated subjects: the constructor errors unless
 
 \strong{Per-stratum queues.} As in
 \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
-\code{private$strata_states} is a hashed environment mapping each stratum key
+\code{private$strata_states} is a named list mapping each stratum key
 (concatenated \code{strata_cols} values, \code{"NA"} for missing) to the vector of
 not-yet-used assignments remaining in that stratum's current block;
 \code{assign_wt()} pops the next assignment, refilling with a fresh block when

@@ -113,7 +113,8 @@ intervention.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
-design's imputed covariates.}
+design's imputed covariates. An \code{offset()} term is refused with an
+error: offsets are not supported yet.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
 likelihood-based models. Explicit starts always override this object-level policy.
 \code{NULL} (default) consults the global cold-start dispatch policy.}

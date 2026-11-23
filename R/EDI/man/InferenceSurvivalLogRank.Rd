@@ -300,6 +300,12 @@ bootstrap interval is substituted (v1.0.6-TODO-380; call
   Computes the standard two-sided log-rank p-value for a zero treatment effect.
   Under left-/interval-censored data, this is \code{interval::ictest()}'s
   own p-value (TODO-7) rather than a re-derived chi-squared statistic.
+  When the log-rank null variance (or the interval-censored p-value) is
+  unavailable the p-value is \code{NA}, with the reason recorded under
+  \code{procedure_failure_reason$rank_test} and an
+  \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
+  substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+  for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalLogRank$compute_asymp_log_rank_two_sided_pval_for_treatment_effect(

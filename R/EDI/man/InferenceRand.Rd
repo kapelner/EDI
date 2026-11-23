@@ -6,6 +6,11 @@
 \description{
 Abstract class for randomization-based inference.
 
+Randomization p-values count the observed allocation as one of the \eqn{B} finite
+reference draws, \eqn{(1 + b)/(1 + B)} per tail (two-sided: the smaller tail doubled,
+capped at 1), so they are exact and never 0; the realized allocation is never also one of
+the reference draws; see \code{compute_rand_two_sided_pval()}.
+
 For survival outcomes with left- or interval-censoring, a nonzero
   \code{delta} shifts the censoring bounds \code{y_L} and \code{y_R} of the
   treated exactly as it shifts exact times: multiplicatively by
@@ -26,6 +31,26 @@ For survival outcomes with left- or interval-censoring, a nonzero
   is a shift of the responses, not a value of the estimand: \code{delta = 0} is the
   sharp null of no effect for every class, including ratio estimands (risk ratio
   1, log risk ratio 0).
+}
+\references{
+Monte Carlo randomization p-value (v1.2.0-TODO-207; see \code{[PhipsonSmyth2010]}
+  in REFERENCES.md): Phipson, B. and Smyth, G. K. (2010). Permutation P-values should never
+  be zero: calculating exact P-values when permutations are randomly drawn.
+  \emph{Statistical Applications in Genetics and Molecular Biology}, 9(1), Article 39,
+  \doi{10.2202/1544-6115.1585}; also arXiv:1603.05766. The same rule is implemented by
+  \code{permp()} in the CRAN package statmod (\url{https://CRAN.R-project.org/package=statmod};
+  help page \url{https://search.r-project.org/CRAN/refmans/statmod/html/permp.html}).
+  Hemerik, J. and Goeman, J. (2017). Exact testing with random permutations.
+  \emph{TEST}, \doi{10.1007/s11749-017-0571-1}; arXiv:1411.7565.
+  Howes, M. (2023). Markov chain Monte Carlo significance tests. arXiv:2310.04924.
+  Fischer, L. and Ramdas, A. (2025). Sequential Monte-Carlo testing by betting.
+  \emph{Journal of the Royal Statistical Society Series B}, qkaf014,
+  \doi{10.1093/jrsssb/qkaf014}; arXiv:2401.07365.
+  Zeng, Z., Adjaho, C., Bucarey, A., Qin, C., Zhang, R., Hoban, P., Johari, R. and
+  Wager, S. (2026). Sequentially-rerandomized switchback experiments. arXiv:2604.02489.
+  Coppock, A. Randomization inference with ri2 (vignette of the CRAN package ri2,
+  \url{https://CRAN.R-project.org/package=ri2};
+  \url{https://alexandercoppock.com/ri2/articles/ri2_vignette.html}).
 }
 \keyword{internal}
 \section{Super classes}{
@@ -211,21 +236,46 @@ vectors (one column per draw, rows in subject order, 1 = treatment) with at leas
 matrix of block/match ids per draw (\code{NULL} otherwise). A bare matrix is not
 accepted. The draws are not validated (row count, 0/1 coding and column count are
 not checked), so they must come from the design's own randomization mechanism for
-the test to be valid.}
+the test to be valid. Random draws are used as they are. A full enumeration of
+the assignment space contains the realized allocation, which the rule below
+already counts once, so one column identical to the realized assignment is
+removed before counting (the p-value is then the exact enumeration p-value,
+\eqn{b/N} over all \eqn{N} allocations). That happens when the list has
+\code{enumeration = TRUE} (an error if the realized allocation is not among the
+first \code{r} columns), or, with \code{enumeration} absent, when the first
+\code{r} columns are pairwise distinct, all have the realized number of treated
+units, number \code{choose(n, n_T)} and \code{m_mat} is \code{NULL} (the whole
+complete-randomization support); \code{enumeration = FALSE} turns it off.}
       \item{\code{zero_one_logit_clamp}}{Clamping distance from the 0/1 boundaries used by the
 \code{"logit"} response transform: responses are clamped to
 \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
       \item{\code{alternative}}{One of \code{"two.sided"} (default), \code{"greater"} or
-\code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
-P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}
-(no +1 correction; a floor of \eqn{2/B}), which assumes a signed, roughly
-symmetric statistic. For a non-negative, one-tailed-by-construction
+\code{"less"}. Let \eqn{B} be the number of finite reference statistics
+\eqn{T_0}, \eqn{b_{\ge}}{b_ge} the number with \eqn{T_0 \ge t} and
+\eqn{b_{\le}}{b_le} the number with \eqn{T_0 \le t}. The observed allocation
+counts as one draw, so each tail is \eqn{(1 + b)/(1 + B)}. The default
+doubles the smaller tail and caps at 1,
+\eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))},
+which assumes a signed, roughly symmetric statistic; its smallest value is
+\eqn{2/(B + 1)}. For a non-negative, one-tailed-by-construction
 statistic (a squared difference, a chi-square or omnibus statistic, an
 absolute value) the doubled smaller tail is wrong -- it counts the
 uninformative lower tail as evidence -- so pass \code{"greater"}, which
-returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
-\code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.}
+returns the upper-tail p-value \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)}
+(no doubling, smallest value \eqn{1/(B + 1)}); \code{"less"} returns
+\eqn{(1 + b_{\le})/(1 + B)}{(1 + b_le) / (1 + B)}. This is the exact Monte Carlo
+p-value of Phipson and Smyth (2010): with \eqn{B} independent draws from the
+design the test rejects a true sharp null with probability at most
+\eqn{\alpha}, and the p-value is never 0. (Before EDI 1.0.5 the rule was
+\eqn{b/B} with a floor of \eqn{2/B}, whose size was above \eqn{\alpha} by
+about \eqn{1/B}; v1.2.0-TODO-207.) A tie with \eqn{t} (within a relative
+tolerance) counts in both tails. The realized allocation is never counted
+twice: when the draws come from the design's own seed (no inference seed, or the
+same value), the first draw of that stream, which a seeded fixed design makes
+equal to its realized allocation, is skipped, and a supplied full enumeration has
+its copy removed (see \code{permutations}; v1.2.0-TODO-263). A later random draw
+that equals the realized allocation by chance is kept, as the rule requires.}
     }
     \if{html}{\out{</div>}}
   }

@@ -262,7 +262,9 @@ Mullahy, J. (1986). "Specification and Testing of Some
       \item{\code{des_obj}}{A completed \code{Design} object.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment.}
       \item{\code{model_formula_hurdle}}{Formula for the hurdle submodel. If
-\code{NULL} (default), it uses the same formula as \code{model_formula}.}
+\code{NULL} (default), it uses the same formula as \code{model_formula}.
+The treatment is always included, so \code{~ 1} fits the hurdle
+(zero vs. positive) probability on the treatment only.}
       \item{\code{verbose}}{A flag indicating whether messages should be displayed.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }
@@ -275,8 +277,10 @@ Mullahy, J. (1986). "Specification and Testing of Some
 \if{latex}{\out{\hypertarget{method-InferenceCountHurdleNegBin-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountHurdleNegBin$compute_asymp_confidence_interval()}}{
   Compute the hurdle negative-binomial asymptotic confidence
-  interval for the treatment coefficient, using the shared count-likelihood
-  semantics documented in
+  interval for the treatment coefficient by the test chosen with
+  \code{set_testing_type()} (Wald by default; the other types give the same
+  interval as the matching \code{compute_<type>_confidence_interval()},
+  v1.0.6-TODO-413), using the shared count-likelihood semantics documented in
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -297,8 +301,10 @@ Mullahy, J. (1986). "Specification and Testing of Some
 \if{latex}{\out{\hypertarget{method-InferenceCountHurdleNegBin-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceCountHurdleNegBin$compute_asymp_two_sided_pval()}}{
   Compute the hurdle negative-binomial asymptotic two-sided
-  p-value for the treatment coefficient, falling back through the shared
-  count-likelihood machinery when needed; see
+  p-value for the treatment coefficient by the test chosen with
+  \code{set_testing_type()} (Wald by default; the other types give the same
+  p-value as the matching \code{compute_<type>_two_sided_pval()},
+  v1.0.6-TODO-413); see
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -341,8 +347,10 @@ Mullahy, J. (1986). "Specification and Testing of Some
 \if{html}{\out{<a id="method-InferenceCountHurdleNegBin-compute_gradient_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountHurdleNegBin-compute_gradient_confidence_interval}{}}}
 \subsection{\code{InferenceCountHurdleNegBin$compute_gradient_confidence_interval()}}{
-  Compute a hurdle negative-binomial likelihood-based confidence
-  interval by inverting the configured likelihood test. See
+  Compute the hurdle negative-binomial gradient-test confidence
+  interval by inverting the gradient test, whatever testing type is
+  configured (before 1.0.6 it inverted the configured type, so by default
+  it returned the Wald interval; v1.0.6-TODO-413). See
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
   for related score, likelihood-ratio, and gradient methods.
   \subsection{Usage}{

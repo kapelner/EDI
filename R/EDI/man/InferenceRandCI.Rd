@@ -137,7 +137,14 @@ or \code{"min_p"}.}
 so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
       \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 see \code{InferenceRand$compute_rand_two_sided_pval()}. Use \code{"greater"} for a
-non-negative, one-tailed-by-construction statistic (squared difference, chi-square).}
+non-negative, one-tailed-by-construction statistic (squared difference, chi-square).
+The observed allocation counts as one of the \eqn{B} finite draws: two-sided is
+\eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+(doubled smaller tail, smallest value \eqn{2/(B + 1)}), one-sided
+\eqn{(1 + b)/(1 + B)} (smallest \eqn{1/(B + 1)}); exact (size at most \eqn{\alpha},
+Phipson and Smyth 2010) and never 0; the realized allocation is never counted twice
+(see \code{InferenceRand$compute_rand_two_sided_pval()}). \code{type = "Zhang"} is an exact test that
+does not use the draws.}
     }
     \if{html}{\out{</div>}}
   }
@@ -220,7 +227,14 @@ non-negative, one-tailed-by-construction statistic (squared difference, chi-squa
   units); repeated calls with fresh draws give slightly different endpoints, and
   an interval that looks inconsistent with the randomization p-value near the
   \code{alpha} boundary usually reflects this noise. Increase \code{r} to reduce
-  it. No Monte Carlo standard error is returned with the interval.
+  it. No Monte Carlo standard error is returned with the interval. The interval
+  is the set of \eqn{\delta} whose two-sided randomization p-value
+  \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+  (the observed allocation counted as one draw; see
+  \code{compute_rand_two_sided_pval()}) is at least \code{alpha}; because the
+  smallest p-value is \eqn{2/(B + 1)}, \code{r} must satisfy
+  \eqn{2/(r + 1) < \alpha} (\code{r >= 40} at \code{alpha = 0.05}) for the
+  test to reject anywhere.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceRandCI$compute_rand_confidence_interval(

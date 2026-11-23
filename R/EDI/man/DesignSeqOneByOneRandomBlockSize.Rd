@@ -29,7 +29,7 @@ must yield an integer number of treated subjects when multiplied by \code{prob_T
 every \code{bs}); a block size that would require a fractional number of treated
 subjects is rejected.
 
-\strong{Per-stratum queues.} \code{private$strata_states} is a hashed environment
+\strong{Per-stratum queues.} \code{private$strata_states} is a named list
 mapping each stratum key (or the literal key \code{"overall"} when
 \code{strata_cols} is \code{NULL}) to the vector of not-yet-used assignments
 remaining in that stratum's current block; \code{assign_wt()} pops the next
