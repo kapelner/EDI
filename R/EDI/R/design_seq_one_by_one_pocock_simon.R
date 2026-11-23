@@ -132,6 +132,11 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				private$counts = matrix(0, nrow = private$num_levels_total, ncol = 2)
 			}
 			
+			# v1.0.6-TODO-350: the Rcpp function updates counts in place, and R6's
+			# clone(deep = TRUE) and the v1.0.6-TODO-316 rollback snapshot hold the same
+			# matrix by reference, so a copy's assignments changed the original's counts.
+			# Give this design its own copy first (a levels x 2 matrix, so cheap).
+			private$counts = private$counts + 0
 			# Call Rcpp function that assigns and updates counts in-place
 			pocock_simon_assign_and_update_cpp(
 				private$counts, 

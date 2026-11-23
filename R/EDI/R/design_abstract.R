@@ -1037,6 +1037,15 @@ Design = R6::R6Class("Design",
 		num_cores = function() get_num_cores()
 	),
 	private = list(
+		# v1.0.6-TODO-350: R6's clone(deep = TRUE) copies a data.table field by reference, and a
+		# preallocated Xraw (DesignSeqOneByOnePocockSimon) is filled in place with
+		# data.table::set(), so a copy's new subjects overwrote the original's rows (and the
+		# reverse). Copy data.tables; deep-clone R6 fields as R6's default deep_clone() does.
+		deep_clone = function(name, value){
+			if (data.table::is.data.table(value)) return(data.table::copy(value))
+			if (is.environment(value) && !is.null(value$`.__enclos_env__`)) return(value$clone(deep = TRUE))
+			value
+		},
 		edi_version_created = NULL,
 		model_matrix_stale = FALSE,
 		assignment_rule_reads_model_matrix = TRUE,

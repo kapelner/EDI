@@ -20,7 +20,7 @@
 #'
 #' \strong{Per-stratum queues.} As in
 #' \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
-#' \code{private$strata_states} is a hashed environment mapping each stratum key
+#' \code{private$strata_states} is a named list mapping each stratum key
 #' (concatenated \code{strata_cols} values, \code{"NA"} for missing) to the vector of
 #' not-yet-used assignments remaining in that stratum's current block;
 #' \code{assign_wt()} pops the next assignment, refilling with a fresh block when
@@ -100,7 +100,12 @@ DesignSeqOneByOneSPBR = define_design_class(
 			private$block_size = as.integer(block_size)
 			private$uses_covariates = TRUE
 			private$sequential_bootstrap_whole_group = TRUE
-			private$strata_states = new.env(parent = emptyenv())
+			# v1.0.6-TODO-350: a plain list, not an environment. R6's clone(deep = TRUE) and the
+			# v1.0.6-TODO-316 rollback snapshot copy fields by reference, so an environment was
+			# shared with every copy and a copy's assignments advanced the original's queues.
+			# A list is copied on modify. Keys get a "s:" prefix because a list element named ""
+			# cannot be looked up.
+			private$strata_states = list()
 			
 			if (should_run_asserts()) {
 				if (abs(block_size * prob_T - round(block_size * prob_T)) > 1e-10) {
@@ -115,7 +120,7 @@ DesignSeqOneByOneSPBR = define_design_class(
 		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			x_new = private$Xraw[private$t, ]
-			key = private$get_strata_key(x_row = x_new)
+			key = paste0("s:", private$get_strata_key(x_row = x_new))
 			
 			if (is.null(private$strata_states[[key]]) || length(private$strata_states[[key]]) == 0) {
 				n_T = round(private$block_size * private$prob_T)

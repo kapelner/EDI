@@ -88,7 +88,7 @@ test_that("redraws replay fresh stratum queues without mutating the realized des
 	for (i in seq_len(n)) d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	priv <- d$.__enclos_env__$private
 	w_before <- d$get_w()
-	queues_before <- as.list.environment(priv$strata_states, all.names = TRUE)
+	queues_before <- as.list(priv$strata_states)
 	t_before <- priv$t
 
 	ws <- d$draw_ws_according_to_design(25L)
@@ -98,5 +98,5 @@ test_that("redraws replay fresh stratum queues without mutating the realized des
 	}
 	expect_identical(d$get_w(), w_before)
 	expect_identical(priv$t, t_before)
-	expect_identical(as.list.environment(priv$strata_states, all.names = TRUE), queues_before)
+	expect_identical(as.list(priv$strata_states), queues_before)
 })

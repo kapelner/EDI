@@ -1170,6 +1170,7 @@ R/package_tests/testthat_bulk/test-save-load-design.R,correctness,3.4,measured_w
 R/package_tests/testthat_bulk/test-seed-determinism.R,correctness,5.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seeded-sequential-design-per-subject-rng.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-select-optimal-resample-size-volatility-window-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-seq-design-deep-clone-does-not-share-assignment-state.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-column-mismatch-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-unsupported-column-types-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-sequential-add-subject-rollback-on-failed-assignment.R,correctness,15,bootstrap
@@ -2957,6 +2958,7 @@ R/package_tests/testthat_bulk/test-save-load-design.R,coverage,209.9,measured_wi
 R/package_tests/testthat_bulk/test-seed-determinism.R,coverage,2.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-seeded-sequential-design-per-subject-rng.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-select-optimal-resample-size-volatility-window-validation-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-seq-design-deep-clone-does-not-share-assignment-state.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-column-mismatch-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seq-one-by-one-add-one-subject-unsupported-column-types-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sequential-add-subject-rollback-on-failed-assignment.R,coverage,240,bootstrap

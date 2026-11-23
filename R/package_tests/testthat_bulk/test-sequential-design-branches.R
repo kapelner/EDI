@@ -57,7 +57,9 @@ test_that("random-block design refills and consumes balanced blocks", {
 	)
 	draw = c(des$assign_wt(), des$assign_wt())
 	expect_equal(sort(draw), c(0, 1))
-	expect_length(private_env(des)$strata_states$overall, 0L)
+	# v1.0.6-TODO-350: the queues are a list keyed "s:<stratum>"
+	expect_true("s:overall" %in% names(private_env(des)$strata_states))
+	expect_length(private_env(des)$strata_states[["s:overall"]], 0L)
 
 	expect_error(
 		DesignSeqOneByOneRandomBlockSize$new(

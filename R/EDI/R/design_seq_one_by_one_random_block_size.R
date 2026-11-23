@@ -25,7 +25,7 @@
 #' every \code{bs}); a block size that would require a fractional number of treated
 #' subjects is rejected.
 #'
-#' \strong{Per-stratum queues.} \code{private$strata_states} is a hashed environment
+#' \strong{Per-stratum queues.} \code{private$strata_states} is a named list
 #' mapping each stratum key (or the literal key \code{"overall"} when
 #' \code{strata_cols} is \code{NULL}) to the vector of not-yet-used assignments
 #' remaining in that stratum's current block; \code{assign_wt()} pops the next
@@ -122,7 +122,12 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 			private$block_sizes = as.integer(block_sizes)
 			private$uses_covariates = !is.null(strata_cols)
 			private$sequential_bootstrap_whole_group = FALSE
-			private$strata_states = new.env(parent = emptyenv())
+			# v1.0.6-TODO-350: a plain list, not an environment. R6's clone(deep = TRUE) and the
+			# v1.0.6-TODO-316 rollback snapshot copy fields by reference, so an environment was
+			# shared with every copy and a copy's assignments advanced the original's queues.
+			# A list is copied on modify. Keys get a "s:" prefix because a list element named ""
+			# cannot be looked up.
+			private$strata_states = list()
 			
 			# Validation for block sizes and prob_T
 			for (bs in private$block_sizes) {
@@ -144,6 +149,7 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 				x_new = private$Xraw[private$t, ]
 				key = private$get_strata_key(x_row = x_new)
 			}
+			key = paste0("s:", key)
 			if (is.null(private$strata_states[[key]]) || length(private$strata_states[[key]]) == 0) {
 				# Randomly choose next block size
 				current_block_size = private$block_sizes[sample.int(length(private$block_sizes), 1L)]

@@ -1138,6 +1138,17 @@
 
 ### Designs
 
+* `clone(deep = TRUE)` of a sequential design no longer shares assignment
+  state with the original (v1.0.6-TODO-350). `DesignSeqOneByOneSPBR` and
+  `DesignSeqOneByOneRandomBlockSize` kept their per-stratum block queues in an
+  environment, `DesignSeqOneByOnePocockSimon` updates its running counts in
+  place, and PocockSimon's preallocated covariate table was filled in place, so
+  subjects added to the copy changed the original's next assignments and
+  covariate rows (and the reverse): after a clone the original differed from an
+  uninterrupted run in 5, 12 and 11 of 20 assignments. The queues are now a list,
+  PocockSimon copies its counts before each update, and `Design` deep-copies
+  `data.table` fields on a deep clone. Seeded allocations are unchanged.
+
 * `DesignFixedRerandomization` with `prop_acceptable`: the randomization
   reference now follows the same law as the realized allocation, so
   randomization p-values and CIs for this design change. The realized

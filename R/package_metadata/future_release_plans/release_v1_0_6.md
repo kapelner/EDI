@@ -6661,7 +6661,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   is FALSE for these and TRUE on Bernoulli, CMH is absent or NA-with-warning, and the KK14 error names the method
   and "DesignSeqOneByOneKK14".
 
-- [ ] TODO-350 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`clone(deep = TRUE)` of
+- [x] TODO-350 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **`clone(deep = TRUE)` of
   SPBR, RandomBlockSize and PocockSimon shares per-stratum state with the original.**
   Ids: ds-save-load-44883784401-f2.
   `private$strata_states = new.env()` (`design_seq_one_by_one_spbr.R:103,120-129`,
@@ -6672,6 +6672,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   that copies environments and `counts`, or have the C++ return the updated counts. Check the v1.0.6-TODO-316
   rollback snapshot, which keeps the same references. Done when: a test over every sequential class shows the copy
   and the original each match an uninterrupted run.
+  Done 2026-11-24: SPBR / RandomBlockSize `strata_states` is a list (keys `"s:<stratum>"`, since a list element named `""` cannot be looked up), PocockSimon copies `counts` (`+ 0`) before `pocock_simon_assign_and_update_cpp()` updates it in place, and `Design` gained a private `deep_clone()` that `data.table::copy()`s data.table fields (PocockSimon preallocates `Xraw` and fills it with `data.table::set()`, so a clone fed different subjects had its covariate rows overwritten by the original: found while writing the test). Other designs hold no environments (only `design_class_registry.R` / `design_component_registry.R` package-level registries). The v1.0.6-TODO-316 rollback snapshot is fixed by the same change (list and fresh counts are copy-on-modify). Before (seeded, n = 24, clone at 12): copy differed from an uninterrupted run in 4 (PocockSimon), 4 (RandomBlockSize), 6 (SPBR) assignments; after: 0 for all 11 sequential classes, copy-first and original-first. Test: `R/package_tests/testthat_bulk/test-seq-design-deep-clone-does-not-share-assignment-state.R`; 48 sequential/clone/PocockSimon/SPBR/RBS test files pass (two tests updated for the list: `test-random-block-size-design-block-decomposition-balance-and-argument-validation-reference.R`, `test-sequential-design-branches.R`; `test-randomization-sequential-mc-pval-stopping-rule-reference.R` fails 3 expectations, pre-existing from the merged (1 + b)/(1 + B) p-value rule).
 
 - [ ] TODO-351 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Sequential designs accept
   subject n + 1, and a covariate arriving as text retypes the column for every earlier subject.**
