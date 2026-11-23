@@ -914,8 +914,10 @@ R/package_tests/testthat_bulk/test-ordinal-kk-clmm-gradient-tolerance-matches-cl
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-matches-clmm-all-links-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-migration-golden.R,correctness,4.8,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-kk-clmm-newton-retry-single-start-unless-boundary.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-probit-cloglog-reject-non-ordinal-designs.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-rcpp-shared-failure-reasons-caching-and-ri-estimate-reference.R,correctness,1.1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-kk-clmm-score-statistic-randomization-pval.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-stationary-fit-kkt.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-use-rcpp-false-and-nonzero-delta.R,correctness,1.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-weighted-helper-matches-native-all-links.R,correctness,120,bootstrap
@@ -2705,8 +2707,10 @@ R/package_tests/testthat_bulk/test-ordinal-kk-clmm-gradient-tolerance-matches-cl
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-matches-clmm-all-links-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-migration-golden.R,coverage,1.8,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-kk-clmm-newton-retry-single-start-unless-boundary.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-probit-cloglog-reject-non-ordinal-designs.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-rcpp-shared-failure-reasons-caching-and-ri-estimate-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-kk-clmm-score-statistic-randomization-pval.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-stationary-fit-kkt.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-use-rcpp-false-and-nonzero-delta.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-weighted-helper-matches-native-all-links.R,coverage,240,bootstrap
