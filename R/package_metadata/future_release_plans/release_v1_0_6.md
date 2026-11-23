@@ -6874,7 +6874,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type proportion --design 'DesignFixedBernoulli@prob_T=0.2' --n 1000 --effect null --only InferencePropQuantileRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cell; if confirmed, fixed or accepted with rows citing this TODO.
 
-- [ ] TODO-380 (added 2026-11-21, owner request; from the v1.0.6-TODO-327 decision): **A separate opt-in
+- [x] TODO-380 (added 2026-11-21, owner request; from the v1.0.6-TODO-327 decision): **A separate opt-in
   design-conservative Bartlett option, and "the testing type you ask for is the test you get".** (1) Owner 2026-11-21:
   `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test on `InferenceCountKKCondPoissonOneLik`
   and `InferenceCountKKHurdlePoissonOneLik`. Add a separate option for the design-conservative version (the larger of
@@ -6897,6 +6897,23 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     `R/EDI/R/inference_count_poisson.R:404`), and its current result moves to
     `"lik_ratio_bartlett_approx_design_conservative"`. This changes `InferenceCountPoisson`'s default Bartlett result;
     NEWS entry required.
+  - **Done 2026-11-23 (agent):** (1) New testing type `"lik_ratio_bartlett_approx_design_conservative"` on
+    `InferenceCountPoisson`, `InferenceCountKKCondPoissonOneLik` and `InferenceCountKKHurdlePoissonOneLik` (the larger of
+    the model-only Bartlett and design Wald p-values, the union of the CIs), reached through `set_testing_type()` and
+    `compute_asymp_*()`. No new public methods: those would have to join the `likelihood_tests` method list on every
+    likelihood class, plus suite sentinels and the argument registry. (2) `InferenceCountPoisson`'s
+    `lik_ratio_bartlett_approx`, and also its best-available `compute_lik_ratio_bartlett_*` pair, so the two can't
+    disagree, are now model-only; the new type reproduces the old result exactly (`identical()` on a fixture). (3) New
+    `edi_wald_unavailable_na()` (`helper_robust_sandwich.R`): NA, `procedure_failure_reason$wald`, and a once-per-fit
+    `edi_wald_unavailable_warning`. It replaces the bootstrap fallback in the Wald paths of KK hurdle Poisson OneLik,
+    hurdle Poisson, ZIP, the zero-augmented base (ZINB), ordinal g-comp, the LogRank and Gehan-Wilcoxon CIs, and
+    right-censored KMDiff / RMST. The unused `count_bootstrap_fallback_*` helpers were deleted. Tests:
+    `R/package_tests/testthat_bulk/test-lik-ratio-bartlett-approx-design-conservative-testing-type.R` (36),
+    `test-wald-se-unavailable-returns-na-never-bootstrap.R` (46); 90 related bulk files pass. Kept by design:
+    interval-censored KMDiff / RMST (no analytic SE; bootstrap is the documented strategy), the KK GEE jackknife-Wald,
+    and `InferenceCountPoisson`'s Wald / jackknife-Wald union. Follow-up: v1.0.6-TODO-413 (ZA count classes ignore the
+    testing type).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-380d](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-380d) (rank tests: keep the bootstrap fallback when the asymptotic p-value is unavailable?).
 
 - [ ] TODO-381 (added 2026-11-21, owner request; from the `pkg-size` budget report, issue #66): **The R CMD check
   test phase got 36-60% slower on five of the six CRAN legs.** At commit `626f9964`, `tests_s` against the 8-week
@@ -7049,3 +7066,13 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignFixediBCRD@prob_T=0.2' --n 1000 --effect null --only InferenceOrdinalCauchitRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"` (and `--design 'DesignFixedGreedy@prob_T=0.2' --n 50`). Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: the cause is found and the n = 1000 cells pass, or the owner accepts them with a reason and
     calibration_study_accepted.csv rows citing this TODO; the n = 50 cells can stay under v1.1.0-TODO-181 if that is the cause.
+
+- [ ] TODO-413 (added 2026-11-23, agent; found by the v1.0.6-TODO-380 agent): **`InferenceCountZeroInflatedPoisson`,
+  `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin` and `InferenceCountHurdleNegBin` ignore
+  `set_testing_type()`.** `compute_asymp_confidence_interval()` / `compute_asymp_two_sided_pval()` always return the
+  Wald result: score, gradient, LR and Bartlett all gave the Wald p-value (0.2970551 for every type on a ZIP fixture),
+  although `get_supported_testing_types()` lists them. Breaks the owner principle "the testing type you ask for is the
+  test you get" (v1.0.6-TODO-380). Fix: dispatch on the testing type as the other likelihood classes do
+  (`inference_count_zero_inflated.R`, `inference_count_hurdle.R`, `inference_count_zero_augmented_poisson_abstract.R`),
+  or drop unsupported types from the list. Test: for each class and each listed type, the asymp p-value equals the
+  direct `compute_<type>_two_sided_pval()`. Results change for anyone who set a non-Wald type; NEWS entry.

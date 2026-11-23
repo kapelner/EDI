@@ -34,6 +34,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
 | [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.6-TODO-403](release_v1_0_6.md) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
 | [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.6-TODO-402](release_v1_0_6.md) | How should audit-written bug tests skipped without a TODO be surfaced? |
+| [DECISION-v1.0.6-TODO-380d](#DECISION-v1.0.6-TODO-380d) | [v1.0.6-TODO-380](release_v1_0_6.md) | Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable? |
 | [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.6-TODO-373](release_v1_0_6.md) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
 | [DECISION-v1.0.6-TODO-371](#DECISION-v1.0.6-TODO-371) | [v1.0.6-TODO-371](release_v1_0_6.md) | OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)? |
 | [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.6-TODO-367](release_v1_0_6.md) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
@@ -264,6 +265,24 @@ Last updated 2026-11-23.
   `skip("open a release TODO for this")`; (c) have the numerical-robustness audit file the TODO itself in its PR
   instead of the placeholder skip; (d) leave as is and rely on periodic sweeps.
 - **Raised:** 2026-11-22, coordinator, from the audit free-text sweep.
+
+<a id="DECISION-v1.0.6-TODO-380d"></a>
+### DECISION-v1.0.6-TODO-380d: Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable?
+
+- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md) (ticked): **A separate opt-in design-conservative Bartlett option, and
+  "the testing type you ask for is the test you get".**
+- **Context:** under the owner principle "If the user wants wald, we should always give wald" (2026-11-21), the Wald
+  paths that fell back to the nonparametric bootstrap now return NA with a recorded reason and a warning. The agent
+  left two fallbacks alone because they are not Wald tests: `InferenceSurvivalLogRank`'s p-value falls back to the
+  bootstrap when its variance or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R`
+  ~L181-187), and `InferenceSurvivalGehanWilcox`'s asymptotic p-value does the same for interval-censored data (~L196).
+- **Options:** (a) keep both fallbacks and document them; (b) apply the same rule: the asymptotic p-value is NA with a
+  reason and a warning, and the bootstrap stays its own method (results change where a fallback fired; NEWS entry).
+- **Also to confirm (judgment call by the agent):** `InferenceCountPoisson`'s best-available
+  `compute_lik_ratio_bartlett_*` pair was made model-only too, not only the approx pair, so the two cannot disagree.
+  Revert those lines (`R/EDI/R/inference_count_poisson.R` ~L415-451) if only the approx pair should change.
+- **Recommendation (agent):** (b), for one rule across testing types; keep the best-available pair model-only.
+- **Raised:** 2026-11-23, by the agent that implemented v1.0.6-TODO-380.
 
 <a id="DECISION-v1.0.6-TODO-373"></a>
 ### DECISION-v1.0.6-TODO-373: `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`?

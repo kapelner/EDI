@@ -73,9 +73,11 @@ test_that("RMST with unavailable Greenwood uncertainty gives NA Wald inference, 
       compute_bootstrap_two_sided_pval = function(...) stop("bootstrap must not be called")
     ))
   inf <- generator$new(rmst_weighted_coverage_design(rep(0, 6L)), verbose = FALSE)
-  expect_warning(
-    expect_warning(ci <- inf$compute_asymp_confidence_interval(alpha = 0.2), "Restricted mean SE"),
-    class = "edi_wald_unavailable_warning")
+  warns <- list()
+  ci <- withCallingHandlers(inf$compute_asymp_confidence_interval(alpha = 0.2),
+    warning = function(w) { warns[[length(warns) + 1L]] <<- w; invokeRestart("muffleWarning") })
+  expect_true(any(vapply(warns, function(w) grepl("Restricted mean SE", conditionMessage(w)), logical(1))))
+  expect_true(any(vapply(warns, inherits, logical(1), "edi_wald_unavailable_warning")))
   expect_true(all(is.na(ci)))
   expect_identical(names(ci), c("10%", "90%"))
   expect_true(is.na(inf$compute_asymp_two_sided_pval()))
