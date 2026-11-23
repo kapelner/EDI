@@ -1391,6 +1391,12 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
   generated before their class or family code last changed (49 groups at 2026-11-17). Today's v1.0.6-TODO-44
   (imputation), -45 (KK14 threshold) and -50 (robust kernel) change more of them. Run the next comprehensive
   campaign after those land (and the owner's rebuild for TODO-50), then confirm the freshness issue closes itself.
+  - 2026-11-23 (coordinator, owner request): the 2026-11-22 run (45033002717, `9186e6a5`) lists 606 stale row groups,
+    none cited by an id, because a citation must name each `results-freshness-m<hex>` id and those ids change
+    whenever the class changes again.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-67](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-67) (606 open
+    results-freshness findings: make the ids stable and cite them, allow one audit-wide citation, or leave them
+    listed until the regeneration?).
 - [ ] TODO-68 (added 2026-11-17, agent, owner request; from GitHub issue #25, the NEWS and version audit):
   **Version numbers disagree across files.** `CITATION.cff` and `codemeta.json` say 1.0.2; `python/CITATION.cff`,
   `python/README.md` and `python/README_PYPI.md` say 1.0.5; `R/EDI/DESCRIPTION` says 1.0.4. Bring the R-side
