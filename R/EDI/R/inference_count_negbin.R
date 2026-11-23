@@ -381,13 +381,22 @@ InferenceCountNegBin = define_inference_class(
 				y = y,
 				j = j_treat,
 				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
+				# v1.0.6-TODO-345: every null fit starts from the same fixed point, the
+				# full-data MLE, never from the mutable backend warm start or a start
+				# chained from another delta (no `start` formal, so the memoized
+				# wrapper does not chain). The score-CI search moved that warm start,
+				# so the score p-value changed after a CI (0.8837140 fresh vs 0.8837136).
+				fit_null = function(delta){
+					full_fit = private$cached_mod
+					full_start = c(as.numeric(full_fit$b), log(as.numeric(full_fit$theta_hat)))
+					full_fisher = full_fit$fisher_information
+					if (!edi_warm_start_usable(full_start) || length(full_start) != ncol(X_fit) + 1L) full_start = NULL
+					if (is.null(full_start) || !is.matrix(full_fisher) || nrow(full_fisher) != ncol(X_fit) + 1L || !all(is.finite(full_fisher))) full_fisher = NULL
 					negbin_fit_cpp(
 						X = X_fit,
 						y = as.integer(y),
-						warm_start_params = start %||% ws_args$start_params,
-						warm_start_fisher_info = ws_args$warm_start_fisher_info,
+						warm_start_params = full_start,
+						warm_start_fisher_info = full_fisher,
 						fixed_idx = j_treat,
 						fixed_values = delta,
 						smart_cold_start = private$smart_cold_start_default,

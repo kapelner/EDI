@@ -219,6 +219,9 @@ InferenceCountQuasiPoisson = define_inference_class(
 		}
 	),
 	private = list(
+		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# edi_poisson_warm_start_on_boundary()).
+		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		best_X_colnames = NULL,
 		# Conditional plus the g-computed marginal mean difference / log-ratio of the average fitted count.
 		get_supported_estimands_impl = function(){

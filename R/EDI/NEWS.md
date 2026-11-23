@@ -819,6 +819,18 @@
 
 ### Count responses
 
+* Count-model results no longer depend on what was computed before
+  (v1.0.6-TODO-345). `InferenceCountNegBin`'s score / gradient /
+  likelihood-ratio null fits now always start from the full-data MLE instead of
+  the object's mutable warm start (which a score-CI search moved), so the score
+  p-value is the same with and without a prior CI (it was 0.8837140 fresh and
+  0.8837136 after a CI in the docs-scenario case). `InferenceCountPoisson`,
+  `InferenceCountQuasiPoisson` and `InferenceCountRobustPoisson` no longer keep a
+  separated fit (a coefficient beyond +-15, e.g. every control count 0) as a
+  warm start: randomization refits started there could not move, so every draw
+  equalled the observed estimate and the randomization p-value was 1 (or NA).
+  They now cold-start, as a fresh fit does.
+
 * `InferenceCountPoisson`, `InferenceCountQuasiPoisson` and `InferenceCountRobustPoisson`
   no longer return an estimate of 0 for large counts (cell means around 2e4) under the default
   zero cold start (v1.0.6-TODO-394, v1.0.6-TODO-395, v1.0.6-TODO-396). The first IRLS step from

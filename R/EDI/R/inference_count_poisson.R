@@ -1,3 +1,19 @@
+# v1.0.6-TODO-345 (2026-11-24): when a cell has no events (e.g. every control
+# count is 0) the Poisson log-link MLE does not exist; IRLS stops on the
+# separation boundary with coefficients around +-20 (the observed fit was
+# -22.0 / +23.1). A fit warm-started there cannot move (fitted means ~1e-10,
+# zero IRLS weights, no step-halving accepted), so every randomization refit
+# stayed at the observed estimate and the randomization p-value was 1. A start
+# with any coefficient beyond +-POISSON_WARM_START_COEF_EDGE (a rate ratio of
+# 3.3e6) is therefore never stored as a warm start, and the next fit cold-starts
+# like a fresh object. Legitimate fits rarely reach it; when one does, dropping
+# its warm start only costs a cold start.
+POISSON_WARM_START_COEF_EDGE = 15
+edi_poisson_warm_start_on_boundary = function(start) {
+	start = suppressWarnings(as.numeric(start))
+	length(start) > 0L && any(is.finite(start) & abs(start) > POISSON_WARM_START_COEF_EDGE)
+}
+
 #' Poisson Regression Inference for Count Responses
 #'
 #' Fits a Poisson log-link regression for count responses:
@@ -608,6 +624,9 @@ InferenceCountPoisson = define_inference_class(
 		}
 	),
 	private = list(
+		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# edi_poisson_warm_start_on_boundary()).
+		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		cached_mod = NULL,
 		# 2026-08-24 (marginal_estimand_report.md TODO-9): every class
 		# composing MarginalEstimand supports only "conditional" by default;

@@ -172,6 +172,9 @@ InferenceCountRobustPoisson = define_inference_class(
 		}
 	),
 	private = list(
+		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# edi_poisson_warm_start_on_boundary()).
+		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){

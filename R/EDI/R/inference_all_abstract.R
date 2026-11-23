@@ -851,6 +851,9 @@ Inference = R6::R6Class("Inference",
 			private$cached_values$nonestimable_stage = NULL
 			invisible(NULL)
 		},
+		warm_start_on_separation_boundary = function(start){
+			FALSE
+		},
 		clear_fit_warm_start = function(){
 			private$fit_warm_start = NULL
 			private$fit_warm_start_type = NULL
@@ -860,6 +863,13 @@ Inference = R6::R6Class("Inference",
 		},
 		set_fit_warm_start = function(start, type = c("beta", "params"), fisher = NULL, weights = NULL, force_pd = TRUE){
 			if (!isTRUE(private$fit_warm_start_enabled)) {
+				private$clear_fit_warm_start()
+				return(invisible(NULL))
+			}
+			# v1.0.6-TODO-345: a class can refuse a start that sits on a separation
+			# boundary (warm_start_on_separation_boundary(), FALSE by default); such
+			# a start is never stored, so later fits cold-start like a fresh object.
+			if (isTRUE(private$warm_start_on_separation_boundary(start))) {
 				private$clear_fit_warm_start()
 				return(invisible(NULL))
 			}
