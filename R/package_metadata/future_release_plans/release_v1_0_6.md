@@ -7189,6 +7189,11 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   progress line with elapsed time to `worker_invariance_sweep()` (`helper-worker-count-invariance.R`) so the CI log
   shows where it stops. Done when the leg finishes within its limit (a fix, a per-class time cap, or a raised
   `timeout-minutes` with the reason) and the comparison step passes with five legs.
+  -- Progress (agent, 2026-11-23): `worker_invariance_sweep()` now writes a `[worker-sweep HH:MM:SS +Nm] start|done`
+  line to stderr around every (class, response, procedure, cores) run on the exhaustive leg (or with
+  `EDI_WORKER_INVARIANCE_VERBOSE=true`). The other four legs did not slow (8-14 min on 11-23 vs 11-15 on 11-20), and
+  the ~10 TODO-410 classes cannot turn 58 min into 150+, so a fork-worker hang or one very slow run is more likely
+  than the fit slowdown. Next: read where the next nightly's Ubuntu leg log stops.
 - [ ] TODO-412 (added 2026-11-23, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), wave 29): **`InferenceOrdinalCauchitRegr`: score / LR / gradient oversized, confirmed at n = 50, 200 and 1000.**
   - Wave 29: 28 cells confirmed failing (18 at n = 50, 10 at n = 1000), 10 cleared, 87 pending, across many designs
     and both allocations.

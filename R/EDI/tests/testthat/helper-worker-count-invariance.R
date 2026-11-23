@@ -213,6 +213,16 @@ worker_invariance_sweep = function(backend, core_counts = worker_invariance_core
 	pinned = !worker_invariance_exhaustive()
 	cases = worker_invariance_registry_cases()
 	results = list()
+	# v1.0.6-TODO-411: the exhaustive nightly leg went silent for 2+ hours inside
+	# this sweep, so a hang and a slow class looked the same. On that leg (or with
+	# EDI_WORKER_INVARIANCE_VERBOSE=true) log each run to stderr before it starts
+	# and after it ends, so the CI log shows where it stops and what each run cost.
+	progress = worker_invariance_exhaustive() || identical(Sys.getenv("EDI_WORKER_INVARIANCE_VERBOSE"), "true")
+	sweep_started = proc.time()[["elapsed"]]
+	log_progress = function(fmt, ...) {
+		if (progress) cat(sprintf(paste0("[worker-sweep %s +%.1fm] ", fmt, "\n"), format(Sys.time(), "%H:%M:%S"),
+			(proc.time()[["elapsed"]] - sweep_started) / 60, ...), file = stderr())
+	}
 	for (cores in core_counts) {
 		if (cores > 1L) {
 			set_num_cores(cores, force_mirai = identical(backend, "mirai"))
@@ -223,7 +233,10 @@ worker_invariance_sweep = function(backend, core_counts = worker_invariance_core
 			procs = worker_invariance_procedures[case$procedures]
 			for (proc_name in names(procs)) {
 				key = paste(case$class, case$response_type, proc_name, sep = "|")
+				log_progress("start %s cores=%d %s", backend, as.integer(cores), key)
 				run = worker_invariance_run_once(case, procs[[proc_name]])
+				log_progress("done  %s cores=%d %s: %s in %.1fs", backend, as.integer(cores), key, run$status,
+					if (is.null(run$elapsed)) 0 else run$elapsed)
 				results[[key]][[as.character(cores)]] = run
 			}
 		}
