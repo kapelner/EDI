@@ -6032,7 +6032,7 @@ Found by the 2026-11-22 sweep of every audit report for items written outside th
   - Owner decision pending: [DECISION-v1.0.6-TODO-403](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-403) (what should
     happen when an object saved under another EDI version is loaded?).
 
-- [ ] TODO-405 (added 2026-11-22, coordinator, owner request; found by the v1.0.6-TODO-404 doc agent, confirmed by
+- [x] TODO-405 (added 2026-11-22, coordinator, owner request; found by the v1.0.6-TODO-404 doc agent, confirmed by
   reading): **`compute_rand_two_sided_pval(type = "Zhang")` silently ignores `type` when assertions are off.** In
   `InferenceRandCI$compute_rand_two_sided_pval()` (`R/EDI/R/inference_all_abstract_rand_ci.R` ~L104-116) the `type`
   dispatch to `compute_exact_two_sided_pval_rand()` sits inside an `if (should_run_asserts())` block, together with the
@@ -6042,6 +6042,7 @@ Found by the 2026-11-22 sweep of every audit report for items written outside th
   assertion) out of the `should_run_asserts()` block; grep the other rand/CI entry points for the same pattern. Test:
   with assertions off, `type = "Zhang"` returns the same p-value as with assertions on, on an incidence Bernoulli
   design.
+  Done 2026-11-24 (code in cf4b5a29, which picked up this session's staged edit): in `InferenceRandCI$compute_rand_two_sided_pval()` the transform refusal, the `type` dispatch and `assert_no_incidence_only_randomization_args()` (whose own `should_run_asserts()` gate is removed, so the randomization-CI call at ~L371 is always enforced too) run whatever the assertion setting; the same in `inference_mixin_kk_gee_shared.R` (plus its "Use Zhang method" refusal). Other entry points grepped: `inference_all_abstract_rand.R` ~L1321 has a gated incidence-delta stop that the always-on entry guard already covers; no other `type` dispatch is gated. Before / after on the incidence Bernoulli case (n = 40, `InferenceIncidLogRegr`): Zhang p asserts on 0.527254, off 0.42 (the draw p) -> 0.527254; a continuous class with `type = "Zhang"` and assertions off: ignored -> "only supported for incidence". The (1 + b)/(1 + B) draw p-value from 160a0dcc is untouched (the Zhang path never uses draws). Test: `R/package_tests/testthat_bulk/test-rand-pval-type-dispatch-independent-of-assertions.R`; 88 Zhang / risk-difference / KK GEE / rand-CI / rand-p test files pass.
 
 - [ ] TODO-406 (added 2026-11-22, coordinator, owner request; found by the v1.0.6-TODO-404 doc agent, from reading the
   code, not yet reproduced): **`DesignFixedBlockedCluster$set_m()` can store block ids that differ from the strata

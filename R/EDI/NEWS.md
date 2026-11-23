@@ -1275,6 +1275,15 @@
 
 ### Inference
 
+* `compute_rand_two_sided_pval(type = "Zhang")` no longer ignores `type` when
+  assertions are off (`toggle_asserts(FALSE)`, or `SimulationFramework`'s
+  `turn_off_asserts_for_speed`): the dispatch to the Zhang exact test, and the
+  refusals of `transform_responses` / a `type` the response cannot use, sat
+  inside `if (should_run_asserts())`, so the randomization-draw p-value came
+  back instead (0.42 instead of 0.527 in the regression case). The same
+  pattern in the KK GEE classes' randomization p-value is fixed too
+  (v1.0.6-TODO-405).
+
 * An `offset()` term in `model_formula` (or in a count class's
   `model_formula_zero` / `model_formula_hurdle`) is now refused with an error at
   `$new()`, whatever the assertion setting. It used to be accepted, echoed by
