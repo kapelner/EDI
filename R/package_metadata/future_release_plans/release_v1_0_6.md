@@ -6978,6 +6978,12 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   check logs of a run before and after the jump), and either speed them up, move them to the bulk suite, or accept
   the new baseline with a reason here. Done when: the next budget run shows no `tests_s` flag, or the accepted new
   baseline is recorded.
+  - Update 2026-11-23 (coordinator, owner request; budget run 45131875338 at `38d1b90a`, issue #66): macos-latest-release
+    `tests_s` 15.0 min vs 446 s (+102%) and, new, total `check_s` 55.6 vs 41.7 min (+33%, the first `check_s` flag; it
+    follows from the test phase, since install and examples are within budget); ubuntu-latest-oldrel-1 `tests_s` 560 vs
+    405 s (+38%); the other legs' `tests_s` are back within budget. The source tarball grew to 3.07 MB (3.09 MB on
+    Windows) from 2.80 MB at `01ee435d` (8-week median 2.75 MB): under the 4 MB warning, but find what added ~0.3 MB
+    when looking at this TODO.
 - [ ] TODO-382 (added 2026-11-21, owner request; from the `ci-self-check` audit, issue #20): **Eight workflows now take
   1.6-3.4x their 8-week median.** calibration-study 384 vs 114 min (ci-self-check-m17a2fb9e), audit-results-freshness
   113 vs 56 (ci-self-check-m4736ea4b), audit-python-vulns 103 vs 54 (ci-self-check-med42e85a), audit-generated-drift
