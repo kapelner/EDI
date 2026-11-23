@@ -731,9 +731,9 @@ double get_ordinal_glmm_neg_loglik_cpp(
 //' @param maxit Maximum number of optimizer iterations.
 //' @param eps_g Gradient-norm convergence tolerance.
 //' @param warm_start_params Optional starting values for the full reparameterized vector
-//'   \eqn{[\alpha_1, \log\text{-diffs}, \beta, \log\sigma]}; if its length doesn't match, falls
-//'   back to zero cutpoints/\eqn{\beta} and \code{log_sigma = -3}. Takes precedence over
-//'   \code{warm_start_beta} and \code{smart_cold_start}.
+//'   \eqn{[\alpha_1, \log\text{-diffs}, \beta, \log\sigma]}. Its length must be
+//'   \code{(K - 1) + ncol(X) + 1} and its values finite; otherwise an error is thrown. Takes
+//'   precedence over \code{warm_start_beta} and \code{smart_cold_start}.
 //' @param warm_start_beta Optional starting values either for the full parameter vector (same
 //'   length as \code{warm_start_params} above) or for \eqn{\beta} alone (length \code{p}, with
 //'   cutpoints zeroed and \code{log_sigma = -3}); ignored if \code{warm_start_params} is supplied.
