@@ -15366,6 +15366,11 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
 48-core machine, `W` = its work dir, outside the clone.
 
 0. **Preconditions (O; before the freeze).**
+   - Branch `rand-pvalue-plus-one` is merged (160a0dcc, 2026-11-23): randomization p-values count the observed draw,
+     (1 + b)/(1 + B) (v1.2.0-TODO-207), and a seeded fixed design no longer replays the realized allocation as a
+     reference draw (v1.2.0-TODO-263; iBCRD, Bernoulli, Cluster, BinaryMatch, Greedy, GreedyDOptimal,
+     MatchingGreedyPairSwitching). Every randomization p-value and CI changes, so the regeneration must run on a build
+     that contains 160a0dcc. Rd regeneration (roxygenize) for both is still to do.
    - Open v1.0.6 TODOs that change `R/EDI` land before the release commit or are deferred to 1.0.6 by name.
      v1.0.6-TODO-45 (KK14 threshold; R fix in, 9 fix-dependent bulk files left) is a prerequisite of
      v1.0.6-TODO-67's regeneration. v1.0.6-TODO-180 is open and fails the full R-CMD-check on every leg (re-run its
@@ -15499,8 +15504,15 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      `cran-comments.md`, etc.); do not copy them here.
    - `git tag v1.0.5 <commit>`; Python: `py-v1.0.5` tag triggers the `publish` job of `.github/workflows/build-wheels.yml`
      (see its header and `python/CHANGELOG.md`'s versioning rule).
-10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. CRAN patch: `git switch -c release-1.0.5 v1.0.5`, fix, tag
-    `v1.0.5.1` or as CRAN requires (unverified naming), then merge `release-1.0.5` back into `main`.
+   - Python ships with R (owner, 2026-11-23): `edi_kernels` 1.0.5 is released together with R 1.0.5, from the same
+     release commit. Before tagging `py-v1.0.5`: build the wheel at the release commit, run
+     `python3 .github/scripts/check_wheel_isa.py <wheel>` (no AVX/AVX-512, v1.0.6-TODO-284) and the Python tests, and
+     check `python/pyproject.toml` reads 1.0.5 (`sync_version.py --check`).
+10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. If CRAN asks for changes during review (before acceptance), fix
+    them on `release-1.0.5` (`git switch -c release-1.0.5 v1.0.5`), keep the version 1.0.5, move the `v1.0.5` tag to
+    the fixed commit, resubmit, and merge `release-1.0.5` back into `main` (owner, 2026-11-23: the release is 1.0.5;
+    no patch version name). Only a fix needed after CRAN has published 1.0.5 needs a higher version, because CRAN
+    rejects an update whose version is not greater than the published one; decide then (1.0.6 or 1.0.5.1).
 
 **Open questions for the owner.**
 
