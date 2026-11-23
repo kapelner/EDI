@@ -15312,18 +15312,20 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
    `run_comprehensive_shard.R` needs `Rscript` on `PATH` with the release build of EDI in the library, a checkout
    (`--repo`) and `--out-dir`; it forks one process per planned proc (`parallel::mcparallel`). The two merge scripts
    need data.table, `xz` and `tar`. None of them calls `gh`, git branches or GitHub artifacts; that is all in
-   `comprehensive-study.yml`. Settings for a local run: `--procs 1` (one process per job, so `xargs -P 48` gives 48
+   `comprehensive-study.yml`. Settings for a local run: `--procs 1` (one process per job, so `xargs -P 47` gives 47
    single-core processes), `--wave-size 100000` (default 256 cuts the wave), `--speed 1` (1.5 is the hosted-runner
    factor), `--deadline-minutes 100000` on the shard runner (default 30 stops starting calls). Jobs are numbered
    heaviest first, so `xargs` in job order is longest-first scheduling. Dry run 2026-11-23 with these settings:
    12,113 jobs, 13,100 calls (278 catch-all calls), about 3,950 CPU-hours estimated, longest call 48 min; about
-   82 h (3.5 days) on 48 cores if the 48-core machine's cores match the cost table's (unverified). One wave is not
+   about 84 h (3.5 days) on 47 worker slots if the 48-core machine's cores match the cost table's (unverified). One wave is not
    enough: each case's catch-all call (rep 1) finds classes missing from the cost table and records them in
    `discovered.csv`; their reps 2..50 are planned by the next wave. Re-plan with the ledger until
    `remaining_pieces=0`; a call that exits non-zero gets no `DONE` and is re-planned every wave, so after wave 2-3
    read its log instead of looping. Outputs must live outside the checkout: `EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK=1`,
-   which the shard runner sets, is honoured only then (`comprehensive_tests.R` L1110-1113). Memory for 48 concurrent
-   R processes is unmeasured (unverified). Do not size `-P` with `$(nproc)` after exporting `OMP_NUM_THREADS=1`:
+   which the shard runner sets, is honoured only then (`comprehensive_tests.R` L1110-1113). Memory for 47 concurrent
+   R processes is unmeasured (unverified): watch `free -g` in the first minutes of wave 1; if free memory nears zero or
+   swap grows, stop the wave and rerun it with a smaller `-P` (the merge step keeps finished calls; only unfinished
+   ones are re-planned). Do not size `-P` with `$(nproc)` after exporting `OMP_NUM_THREADS=1`:
    GNU `nproc` then prints 1.
 2. **Cloud alternative** (`gh workflow run comprehensive-study.yml -f sha=<sha>`). Dry run of the workflow's own
    settings (`--procs 4 --speed 1.5 --wave-size 256`, 50 reps): 4,210 jobs and 18,586 calls in total, about
@@ -15401,12 +15403,17 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
            --discovered $W/c/discovered.csv --ledger $W/c/ledger.csv --reps 50 --wave-size 100000 --procs 1 --speed 1 \
            --out-plan $W/plan-$N.csv --out-matrix $W/matrix-$N.json | tee $W/planner-$N.out
          NJOBS=$(sed -n 's/^jobs=//p' $W/planner-$N.out)
-         seq 1 $NJOBS | xargs -P 48 -I{} Rscript R/package_tests/cloud/run_comprehensive_shard.R --plan $W/plan-$N.csv \
+         seq 1 $NJOBS | xargs -P 47 -I{} Rscript R/package_tests/cloud/run_comprehensive_shard.R --plan $W/plan-$N.csv \
            --job {} --out-dir $W/wave-$N/{} --reps 50 --deadline-minutes 100000 --repo $R > $W/wave-$N.log 2>&1
          Rscript R/package_tests/cloud/merge_comprehensive_study_wave.R --wave-dir $W/wave-$N --plan $W/plan-$N.csv \
            --campaign-dir $W/c --wave $N
 
-     Run it detached (`tmux`/`nohup`). Nothing else heavy on the machine; never during G2.
+     `-P 47` (owner, 2026-11-23): 47 worker slots, one core left for the system; `xargs` starts the next job as each
+     finishes, so do not split the jobs into 47 fixed chunks. Run the loop inside `tmux` so it survives logout:
+     `tmux new -s edi-regen`, start the wave, detach with `Ctrl-b d`, reattach with `tmux attach -t edi-regen`
+     (or `nohup bash wave.sh > $W/wave-$N.nohup 2>&1 &`). Keep the installed EDI unchanged until the last wave ends:
+     a rebuild mid-run changes EDI.so and every later call fails the provenance check (the 2026-11-16 survival
+     batches lost 262 of 301 jobs this way). Nothing else heavy on the machine; never during G2.
    - (b) Join: `mkdir -p $W/results && Rscript R/package_tests/cloud/finalize_comprehensive_study.R --campaign-dir $W/c --results-dir $W/results`.
      Passed when: `$W/c/audit/rep_variation.count` is 0, and `rows_summary.csv` lists all six types.
    - (c) Provenance and completeness:
