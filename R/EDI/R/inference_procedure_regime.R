@@ -390,7 +390,9 @@ inference_convergence_validate = function(defaults = EDI_CONVERGENCE_PROCEDURE_D
 #' `regularity`, `basis` / `reference` (of the size order), `bias_basis` /
 #' `bias_reference`, the matching `reference_key` / `bias_reference_key` (comma-separated
 #' REFERENCES.md citation keys), and `<field>_layer` = the layer that supplied each field.
-#' An unregistered procedure stops with an error.
+#' An unregistered procedure stops with an error. A variant label
+#' (EDI_INFERENCE_PROCEDURE_VARIANTS) is resolved as its sentinel in every
+#' layer; the returned `procedure` column keeps the label as given.
 #'
 #' @keywords internal
 #' @noRd
@@ -400,7 +402,8 @@ inference_convergence_expectation = function(design, class, procedure,
 	n = if (any(lens == 0L)) 0L else max(lens)
 	D = as.character(rep_len(design, n)); C = as.character(rep_len(class, n)); P = as.character(rep_len(procedure, n))
 	D_base = sub("@.*$", "", D)
-	pi = match(P, defaults$procedure)
+	P_base = inference_procedure_base_label(P)
+	pi = match(P_base, defaults$procedure)
 	if (anyNA(pi)) stop("unregistered procedure label(s): ", paste(unique(P[is.na(pi)]), collapse = ", "), call. = FALSE)
 	regime = inference_procedure_regime(P)
 	# Citation keys (v1.0.5 TODO-195); tolerate synthetic tables without the columns.
@@ -422,7 +425,7 @@ inference_convergence_expectation = function(design, class, procedure,
 		e = overrides[i, , drop = FALSE]
 		hit = (is.na(e$design) | D == e$design | D_base == e$design |
 				(identical(e$design, "@prob_T") & grepl("@prob_T=", D, fixed = TRUE))) &
-			(is.na(e$class) | C == e$class) & (is.na(e$procedure) | P == e$procedure)
+			(is.na(e$class) | C == e$class) & (is.na(e$procedure) | P_base == e$procedure)
 		if (!any(hit)) next
 		idx = which(hit)
 		s = unname(EDI_CONVERGENCE_LAYERS[e$layer]) * 10 + (!is.na(e$procedure)) + 2 * (!is.na(e$design) && grepl("@", e$design, fixed = TRUE))

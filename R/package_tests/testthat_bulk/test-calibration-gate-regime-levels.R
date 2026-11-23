@@ -78,7 +78,7 @@ test_that("an unknown procedure label errors", {
 })
 
 # Synthetic stats dir from a spec: one null cell per row (rep counts, rejections, coverage hits, bias).
-synthetic_gate = function(spec, accepted = NULL, convergence = NULL, final = FALSE) {
+synthetic_gate = function(spec, accepted = NULL, convergence = NULL, final = FALSE, pval_only = FALSE) {
 	dir = tempfile("calgate")
 	dir.create(dir)
 	u = cal_env$cal_stats_u_cols()
@@ -90,6 +90,7 @@ synthetic_gate = function(spec, accepted = NULL, convergence = NULL, final = FAL
 		formula = spec$formula, n = spec$n, n_nominal = spec$n, effect_label = spec$effect_label, stage = "screen",
 		inf_procedure = spec$inf_procedure, reps = spec$reps, n_p = spec$reps, rej = spec$rej, rej10 = spec$rej, n_ci = spec$reps,
 		cov = spec$reps - spec$cov_miss, fit_secs = 1, stringsAsFactors = FALSE)
+	if (isTRUE(pval_only)) { tests$n_ci = 0L; tests$cov = 0L }   # a p-value-only procedure (rand, rand_score)
 	tests[u] = lapply(seq_along(u), function(j) 0L)
 	est = unique(cbind(tests[c("response_type", "design", "prob_T", "inf_class", "formula", "n", "n_nominal", "effect_label", "stage")],
 		bias = spec$bias, reps = spec$reps))
@@ -139,6 +140,37 @@ test_that("size 0.07 passes for an asymptotic procedure at n = 50, fails at n = 
 	expect_equal(s$n_eff[s$inf_procedure == "wald" & s$n == 1000], 1000)
 	md = readLines(file.path(g$out, "calibration_summary.md"))
 	expect_true(any(grepl("level 0.0525, rate", md, fixed = TRUE)))
+})
+
+# v1.1.0-TODO-269: the KK CLMM classes' score-statistic randomization test is recorded as `rand_score`, a variant of
+# the `rand` sentinel (EDI_INFERENCE_PROCEDURE_VARIANTS): finite-sample like it, p-value only (no coverage).
+test_that("rand_score is gated as a finite-sample procedure like rand, and has no coverage test", {
+	expect_identical(cal_env$cal_gate_regime(c("rand_score", "rand"), regimes = cal_env$EDI_INFERENCE_PROCEDURE_REGIME),
+		c("finite_sample", "finite_sample"))
+	# Not a sentinel: the regime table itself stays the sentinel list.
+	expect_false("rand_score" %in% names(cal_env$EDI_INFERENCE_PROCEDURE_REGIME))
+	spec = data.frame(inf_procedure = rep(c("rand", "rand_score"), each = 2), n = rep(c(50, 1000), 2), rej = 210L, reps = 3000L,
+		inf_class = "InferenceOrdinalKKCLMM", response_type = "ordinal", design = "DesignSeqOneByOneKK14")
+	g = synthetic_gate(spec)
+	expect_null(g$status, info = paste(g$res, collapse = "\n"))
+	s = summary_of(g)
+	rs = s[s$inf_procedure == "rand_score", ]
+	expect_identical(nrow(rs), 2L)
+	expect_identical(rs$regime, c("finite_sample", "finite_sample"))
+	expect_identical(rs$rule_size, c("finite", "finite"))
+	expect_equal(rs$size_null, c(0.05, 0.05))
+	f = failing(g)
+	expect_true(f[["rand_score 50"]])
+	expect_true(f[["rand_score 1000"]])
+	# Same levels and verdicts as rand on the same counts.
+	r = s[s$inf_procedure == "rand", ]
+	for (col in c("n", "size_null", "rule_size", "expected_order", "fail_size")) expect_identical(rs[[col]], r[[col]], info = col)
+	# p-value only (n_ci = 0, as the study writes it): no coverage, so no coverage verdict.
+	g2 = synthetic_gate(transform(spec[spec$inf_procedure == "rand_score", ], rej = 150L), pval_only = TRUE)
+	expect_null(g2$status, info = paste(g2$res, collapse = "\n"))
+	s2 = summary_of(g2)
+	expect_true(all(is.na(s2$coverage)))
+	expect_false(any(s2$fail_coverage %in% TRUE))
 })
 
 test_that("an accepted row overrides the rate-derived level and is labelled", {

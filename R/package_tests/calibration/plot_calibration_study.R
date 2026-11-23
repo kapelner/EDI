@@ -165,8 +165,8 @@ RT_ORDER <- c("continuous", "incidence", "count", "proportion", "survival", "ord
 # publish job). Display order: the monthly tier-1 procedures first, then the rest in registry order.
 source(file.path(dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L]))),
 	"..", "..", "EDI", "R", "inference_procedure_regime.R"))
-PROC_ORDER <- c("wald", "score", "lik_ratio", "gradient", "exact", "rand")
-PROC_ORDER <- c(PROC_ORDER, setdiff(names(EDI_INFERENCE_PROCEDURE_REGIME), PROC_ORDER))
+PROC_ORDER <- c("wald", "score", "lik_ratio", "gradient", "exact", "rand", "rand_score")
+PROC_ORDER <- c(PROC_ORDER, setdiff(c(names(EDI_INFERENCE_PROCEDURE_REGIME), names(EDI_INFERENCE_PROCEDURE_VARIANTS)), PROC_ORDER))
 
 # ---- Convergence (v1.0.5 TODO-199) --------------------------------------------------------
 # Verdict colours: slower is the warning (status red); the others are neutral or benign.

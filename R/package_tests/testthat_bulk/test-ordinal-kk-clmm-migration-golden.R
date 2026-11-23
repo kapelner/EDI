@@ -111,7 +111,10 @@ run_ordinal_kk_clmm_golden_comparison = function(Legacy, migrated_generator, des
 			# (22 pairs instead of 18) probit and cloglog show the same pattern: their fits
 			# stop at gradient norm ~3e-6 to 1e-5, and the jackknife and one randomization
 			# draw differ by 1.2e-6 to 6.1e-6 abs (max 2.1e-5 rel, cloglog jackknife p-value).
-			tol = if (identical(label, "randomization_bootstrap_distr")) 0.05 else 5e-5
+			# v1.0.6-TODO-48 (2026-11-24): both classes now use 60 Gauss-Hermite nodes (the fixture mirrors
+			# KK_CLMM_N_GH), and the largest legacy/migrated gap is 3.6e-6 abs (a jackknife CI bound), so 1e-5
+			# (it fails at 1e-9: jackknife and one randomization draw, as described above).
+			tol = if (identical(label, "randomization_bootstrap_distr")) 0.05 else 1e-5
 			expect_equal(migrated_result$value, legacy_result$value, tolerance = tol, info = label)
 		}
 	}

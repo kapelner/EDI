@@ -52,7 +52,6 @@ Last updated 2026-11-24.
 | [DECISION-v1.0.6-TODO-158](#DECISION-v1.0.6-TODO-158) | [v1.0.6-TODO-158](release_v1_0_6.md) | Confirm the perfect-predictor detection's three judgment calls |
 | [DECISION-v1.0.6-TODO-106](#DECISION-v1.0.6-TODO-106) | [v1.0.6-TODO-106](release_v1_0_6.md) | Add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook? |
 | [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) | [v1.0.6-TODO-74](release_v1_0_6.md) | Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both? |
-| [DECISION-v1.0.6-TODO-48](#DECISION-v1.0.6-TODO-48) | [v1.0.6-TODO-48](release_v1_0_6.md) | KK CLMM quadrature: 20 -> 60 Gauss-Hermite nodes (EDI is off at large sigma), adaptive quadrature later, or keep 20? |
 | [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.6-TODO-43](release_v1_0_6.md) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
 | [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.6-TODO-17](release_v1_0_6.md) | Calibration early stopping of clearly passing null units: settle the five design questions |
 
@@ -505,31 +504,6 @@ Last updated 2026-11-24.
   - (c) both.
 - **Agent's note (2026-11-21):** (b) is a small message change; (a) is the real fix.
 - **Raised:** 2026-11-17 (cluster-and-factorial article agent); investigated 2026-11-21 (agent).
-
-<a id="DECISION-v1.0.6-TODO-48"></a>
-### DECISION-v1.0.6-TODO-48: KK CLMM quadrature: raise the fixed Gauss-Hermite rule from 20 to 60 nodes, wait for adaptive quadrature, or keep 20?
-
-- **TODO:** [v1.0.6-TODO-48](release_v1_0_6.md): **KK ordinal CLMM cloglog link disagrees with `ordinal::clmm`.**
-- **Context (2026-11-24, agent):** EDI is the side that is off. On the two disagreeing cells (cloglog, n = 60,
-  sigma_b = 1.2, seeds 2 and 3 of `test-ordinal-kk-clmm-matches-clmm-all-links-reference.R`) both fits are stationary
-  for their own objective (EDI gradient norm 7e-6 / 2e-6, clmm max gradient 1e-6 / 2e-6), but EDI maximizes the
-  marginal likelihood approximated by a fixed 20-node non-adaptive Gauss-Hermite rule, which is inaccurate at the
-  fitted sigma of 2.1-2.6. Under the marginal likelihood computed by `integrate()` (rel.tol 1e-12) clmm's parameters
-  are better in both cells: nll 72.0694 vs EDI 72.1193 (seed 2) and 61.7877 vs 61.8786 (seed 3). EDI's 20-node nll at
-  its own optimum is 71.9978 / 61.8898. Passing `n_gh = 60L` to `fast_ordinal_clmm_cpp()` moves EDI onto clmm's
-  optimum: treatment 0.8146 -> 0.7752 (clmm 0.7755), 0.2590 -> 0.2799 (clmm 0.2797), at about twice the fit time
-  (0.04 -> 0.09 s). The kernel already takes `n_gh`; the R class never passes it, and `clmm_score_residuals()`
-  hard-codes `n_gh = 20L` (`inference_ordinal_KK_clmm_abstract.R` ~L247).
-- **Options:**
-  - (a) pass `n_gh = 60L` from every KK CLMM fit call and the score-residual helper (R-only, no rebuild), as the
-    owner ruled for the Poisson GLMM on 2026-10-24 (20 -> 60); changes every KK CLMM result slightly (at small
-    sigma by ~1e-6 or less), roughly doubles fit time, breaks `test-ordinal-kk-clmm-migration-golden.R` (re-pin) and
-    lets the cloglog sigma_b = 1.2 tolerance go back from 5e-2 to about 3e-3;
-  - (b) wait for adaptive quadrature (v1.2.0-TODO-153, C++ in `fast_ordinal_clmm.cpp`), keep 5e-2 meanwhile;
-  - (c) keep 20 nodes and document the bias at large sigma.
-- **Recommendation (agent, 2026-11-24):** (a): it is R-only, follows the Poisson GLMM precedent, and fixes the
-  measured gap; (b) is the eventual fix.
-- **Raised:** 2026-11-24, by the agent that investigated v1.0.6-TODO-48 (owner request "which side is wrong").
 
 <a id="DECISION-v1.0.6-TODO-43"></a>
 ### DECISION-v1.0.6-TODO-43: Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first?

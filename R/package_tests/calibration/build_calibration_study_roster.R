@@ -14,7 +14,7 @@
 # enumeration cal_run_tasks() fits (formula x procedure, minus tasks without a method). Columns: response_type,
 # design, matched (the package's is_a_kk_matching_capable(): the matched-pair class set), design_rank (sort order of the design, cal_study_design_rank(); the planner has no design list of its own),
 # inf_class, n_size (rows with a p-value: formula x procedure), n_cov (rows with a CI: the same without
-# the p-value-only `rand`), secs_n50. The designs are cal_study_designs(): discovered from the installed EDI, after a
+# the p-value-only `rand` and `rand_score`), secs_n50. The designs are cal_study_designs(): discovered from the installed EDI, after a
 # one-replicate smoke check that each can be built and assigned on the study's data (else the job fails naming it). A cell's tests are n_size size tests plus n_cov coverage tests under the null
 # and n_cov coverage tests at a power effect (an upper bound: a class with no true estimand value has none there).
 # The class set is read at --n (default the smallest study n, 50); tests/test-calibration-class-major-order.R checks

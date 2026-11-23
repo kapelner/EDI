@@ -73,6 +73,12 @@ env:
   # build cache, roster, analyze, publish, last-round stragglers), so fewer, bigger waves save ~1.5-2 days a campaign.
   # Cost: results publish every ~6 h instead of ~1.8 h, and a cancelled wave loses up to ~6 h of shards.
   WAVE_SIZE: 256
+  # Slow-unit replicate cap (v1.1.0-TODO-269, plan_calibration_study.R --slow-unit-cap-secs / --slow-unit-cap-reps): a
+  # screening unit whose measured single-core cost exceeds SLOW_UNIT_CAP_SECS per replicate runs at most
+  # SLOW_UNIT_CAP_REPS replicates. 0 = off (the default) until the owner rules on DECISION-v1.1.0-TODO-269: the planner
+  # runs from this commit, so turning it on also applies to a running campaign.
+  SLOW_UNIT_CAP_SECS: '0'
+  SLOW_UNIT_CAP_REPS: '300'
 
 jobs:
   plan:
@@ -323,6 +329,7 @@ jobs:
             --campaign-dir "results/campaigns/$C" --roster roster.csv \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
+            --slow-unit-cap-secs "$SLOW_UNIT_CAP_SECS" --slow-unit-cap-reps "$SLOW_UNIT_CAP_REPS" \
             --wave-size "$WAVE_SIZE" --meta-out meta.txt)"
           cat meta.txt
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
@@ -739,15 +746,18 @@ jobs:
           d="results/campaigns/$C"
           # The campaign's plan (every screening unit, its replicates and tests; v1.0.5 TODO-203): this run's planner, the same
           # one the roster job planned the wave with (Amendment E); the analysis below reads it (m_total, completed cells, class status).
+          # --campaign-dir: the slow-unit cap (when on) needs the campaign's measured costs to write the same reps as the wave planner.
           Rscript R/package_tests/calibration/plan_calibration_study.R --plan-only --plan-out "$d/plan.csv" --roster "$d/roster.csv" \
-            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
-            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS"
+            --campaign-dir "$d" --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
+            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" \
+            --slow-unit-cap-secs "$SLOW_UNIT_CAP_SECS" --slow-unit-cap-reps "$SLOW_UNIT_CAP_REPS"
           Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" > /dev/null
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" \
             --out-dir "$d/summary" --accepted "$ACCEPTED" > /dev/null
           Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" --roster "$d/roster.csv" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
+            --slow-unit-cap-secs "$SLOW_UNIT_CAP_SECS" --slow-unit-cap-reps "$SLOW_UNIT_CAP_REPS" \
             --wave-size "$WAVE_SIZE" --meta-out after.txt > /dev/null
           cat after.txt
           . ./after.txt

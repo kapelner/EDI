@@ -15,7 +15,7 @@
 #   confirmations become verdicts. A row of --accepted re-tests its cell against
 #   the accepted level instead of the schedule's, in both stages.
 #   Level (v1.0.5 TODO-200, new_feature_plans/v1_0_5/calibration_rate_derived_gate.md; cal_gate_levels() in
-#   calibration_study_stats.R): finite-sample procedures (exact, rand) 0.05 / 0.95 at every n; asymptotic
+#   calibration_study_stats.R): finite-sample procedures (exact, rand, rand_score) 0.05 / 0.95 at every n; asymptotic
 #   procedures with a known order a > 0 (registry, inference_convergence_expectation()) size
 #   min(0.10, 0.05 + c_a n_eff^-a), coverage 1 - that, reaching the 0.10 cap at n_eff = 50; unknown order:
 #   the cap below the campaign's largest n, the a = 1 level at it; expected order 0 (design mismatch):

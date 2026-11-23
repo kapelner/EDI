@@ -97,7 +97,8 @@ conv_n_eff_flag <- function(rule) {
 # Shared by the gate (analyze_calibration_study.R), so both read one n_eff computation.
 conv_expectations <- function(design, prob_T, inf_class, inf_procedure, n_nominal) {
 	design_label <- ifelse(prob_T != 0.5, paste0(design, "@prob_T=", prob_T), design)
-	registered <- inf_procedure %in% names(EDI_INFERENCE_PROCEDURE_REGIME)
+	# A variant label (EDI_INFERENCE_PROCEDURE_VARIANTS, e.g. rand_score) counts as its sentinel's.
+	registered <- inference_procedure_base_label(inf_procedure) %in% names(EDI_INFERENCE_PROCEDURE_REGIME)
 	tk <- paste(design_label, inf_class, inf_procedure, sep = "\r")
 	u <- !duplicated(tk) & registered
 	ex <- if (any(u)) inference_convergence_expectation(design_label[u], inf_class[u], inf_procedure[u]) else NULL

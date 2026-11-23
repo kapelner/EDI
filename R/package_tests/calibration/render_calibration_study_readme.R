@@ -81,7 +81,8 @@ about <- c(
 	"  estimate minus the null value) is reported and flagged, not gated: an honest estimator has O(1/n) null bias on",
 	"  ratio scales and under unequal allocation.",
 	"* **Levels (v1.0.5 TODO-200):** each procedure is either asymptotic (Wald, jackknife, score, likelihood ratio,",
-	"  gradient, Bartlett, the bootstraps, the randomization bootstrap) or finite-sample (exact, randomization); the registry is",
+	"  gradient, Bartlett, the bootstraps, the randomization bootstrap) or finite-sample (exact, randomization, including",
+	"  `rand_score`); the registry is",
 	sprintf("  [`inference_procedure_regime.R`](https://github.com/%s/blob/main/R/EDI/R/inference_procedure_regime.R).", repo),
 	"  Finite-sample procedures are held to size 5% and coverage 95% at every n. An asymptotic procedure with a known",
 	"  convergence order a (the registry's expected order of its size error, `inference_convergence_expectation()`) is",
@@ -115,9 +116,13 @@ about <- c(
 	"* **Slow classes:** the KK random-effects fits for count and ordinal responses on the matched designs",
 	"  (`InferenceCountKKGLMM` and the four `InferenceOrdinalKKCLMM*` links) take 4-40 minutes per replicate at",
 	"  n = 1000, so they get 500 null replicates at n = 1000 (1,000 below) and power at n = 50 only. Every table",
-	"  gives each cell's own replicate count.",
+	"  gives each cell's own replicate count. A campaign can also cap any screening unit whose measured cost per",
+	"  replicate is above a threshold (the planner's opt-in slow-unit cap); its README then says which units.",
 	"* **Procedures:** Wald, score, likelihood ratio, gradient and exact tests and CIs, and the randomization test,",
-	"  monthly. Bootstrap, jackknife, Bartlett-corrected and randomization CIs run in slower tiers (see",
+	"  monthly. For the four `InferenceOrdinalKKCLMM*` links the randomization test also runs with the score statistic",
+	"  at the null fit (`rand_score`: `compute_rand_two_sided_pval(type = \"score\")`, same draws as `rand`; p-value only,",
+	"  finite-sample like `rand`), in campaigns whose EDI commit has it.",
+	"  Bootstrap, jackknife, Bartlett-corrected and randomization CIs run in slower tiers (see",
 	sprintf("  [the plan](https://github.com/%s/blob/main/R/package_metadata/future_release_plans/release_v1_2_0.md)).", repo),
 	sprintf("* **Code:** [`R/package_tests/calibration/`](https://github.com/%s/tree/main/R/package_tests/calibration),", repo),
 	"  run by `.github/workflows/calibration-study.yml`; each campaign is pinned to one EDI commit.")
@@ -327,9 +332,10 @@ data_body <- c(
 		sprintf("* Raw per-replicate rows: the `study-rows` artifact of each workflow run (%s), one `rows.csv.xz` per wave (read it in R with `read_csv_fast(xzfile(\"rows.csv.xz\"))`; kept 60 days, so the last two campaigns; a GitHub login is needed to download).", paste(sprintf("[%s](https://github.com/%s/actions/runs/%s)", runs, repo, runs), collapse = ", "))
 	else "* Raw per-replicate rows: none yet. Each workflow run of the campaign will add a `study-rows` artifact (one `rows.csv.xz` per wave, kept 60 days), linked here.",
 	"  One row per replicate x class x formula x procedure:",
-	"  `inf_class` (EDI inference class), `inf_procedure` (`wald`, `score`, `lik_ratio`, `gradient`, `exact`, `rand`),",
+	"  `inf_class` (EDI inference class), `inf_procedure` (`wald`, `score`, `lik_ratio`, `gradient`, `exact`, `rand`, and",
+	"  `rand_score` for the KK CLMM classes in campaigns that have it),",
 	"  `formula` (`~1` or `~.`), `beta_T_hat` (treatment-effect estimate), `ci_beta_T_a` / `ci_beta_T_b` (95% CI",
-	"  ends; NA for `rand`, p-value only), `pval` (two-sided, H0: beta_T = `null_value`), `null_value` (0 on the",
+	"  ends; NA for `rand` and `rand_score`, p-value only), `pval` (two-sided, H0: beta_T = `null_value`), `null_value` (0 on the",
 	"  class's scale), `fit_secs`, `status` (`ok`, `nonestimable`, `error`), `message` (error text), then the cell:",
 	"  `response_type`, `design`, `prob_T`, `n` (as run), `n_nominal` (as planned; pair-switching runs 52 for 50),",
 	"  `p` (covariates), `rep` (sets the seed: the same `rep` is the same subjects on every design), `effect_label`",
@@ -339,6 +345,21 @@ data_body <- c(
 	"  are rounded to 7 significant digits; the published tables use the unrounded values.", "")
 add_page("data.md", "Data", data_body)
 add_page("about.md", "About this study", c(about, ""))
+
+# Slow-unit cap (v1.1.0-TODO-269, plan_calibration_study.R --slow-unit-cap-secs, opt-in): plan.csv's rep_cap marks the
+# screening units run at fewer replicates because their measured cost per replicate was above the threshold.
+cap_note <- local({
+	pp <- file.path(cdir, "plan.csv")
+	if (!file.exists(pp) || file.size(pp) < 2L) return(NULL)
+	pl <- read_csv_fast(pp, stringsAsFactors = FALSE)
+	if (!"rep_cap" %in% names(pl)) return(NULL)
+	cp <- pl[!is.na(pl$rep_cap), , drop = FALSE]
+	if (!nrow(cp)) return(NULL)
+	sprintf(paste("Slow-unit cap: %d screening unit(s) (%s) run at most %s replicates, because the planner's measured cost was above",
+		"%s single-core seconds per replicate (`rep_cap` in [`plan.csv`](plan.csv)); their tables give each cell's own replicate count."),
+		nrow(cp), paste(sort(unique(sub("^Inference", "", cp$inf_class))), collapse = ", "),
+		paste(sort(unique(cp$rep_cap)), collapse = " / "), paste(format(sort(unique(cp$rep_cap_secs))), collapse = " / "))
+})
 
 # Master page.
 ana_sha <- env$ANALYSIS_SHA %||% ""
@@ -364,6 +385,7 @@ crd <- c(sprintf("# EDI calibration study: campaign %s", campaign), "",
 		if (nzchar(ana_sha)) sprintf("; analysed at %s", commit_link(ana_sha)) else ""), "",
 	"## Summary", "", pre_text[!startsWith(pre_text, "Levels (TODO-200)")],
 	if (!is.null(class_counts)) sprintf("Classes: %d complete, %d in progress, %d not started ([Classes](classes.md)).", class_counts[["complete"]], class_counts[["in progress"]], class_counts[["not started"]]),
+	if (!is.null(cap_note)) c("", cap_note),
 	"", red, "",
 	"## Contents", "", toc, "",
 	"## Data", "", "Tables as CSV, raw replicate rows as workflow artifacts: see [Data](data.md).", "",

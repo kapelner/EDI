@@ -963,6 +963,16 @@
 ### Ordinal responses
 
 * The KK CLMM classes (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`,
+  `...Cloglog`) integrate the random intercept with a 60-node Gauss-Hermite rule
+  instead of 20 (owner ruling, v1.0.6-TODO-48; the Poisson GLMM made the same
+  change on 2026-10-24). At a fitted random-intercept SD of about 2 or more the
+  20-node rule's likelihood was off enough that the fit was not the MLE: on a
+  cloglog example (n = 60) the treatment estimate was 0.8146 against
+  `ordinal::clmm`'s 0.7755 and is now 0.7752. Every KK CLMM estimate, SE,
+  p-value and CI changes slightly (typically by 1e-5 or less at a small SD), and
+  fits take about 2.6 times as long.
+
+* The KK CLMM classes (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`,
   `...Cloglog`) fit faster at large n, most visibly in randomization tests.
   The native kernel now polishes the best of its starts and judges
   convergence by the projected gradient (a KKT test at the sigma -> 0

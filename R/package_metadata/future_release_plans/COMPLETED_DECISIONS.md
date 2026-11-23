@@ -115,6 +115,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-67](release_v1_0_6.md) | (c) leave the results-freshness findings listed; the full 1.0.5 regeneration clears them | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-61](#DECISION-v1.0.6-TODO-61) | [v1.0.6-TODO-61](release_v1_0_6.md) | randomization replicates never chain warm starts, for any class | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-60](#DECISION-v1.0.6-TODO-60) | [v1.0.6-TODO-60](release_v1_0_6.md) | milder clamp (y(n-1)+0.5)/n in both KK21 proportion speedups | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-48](#DECISION-v1.0.6-TODO-48) | [v1.0.6-TODO-48](release_v1_0_6.md) | (a) n_gh = 60 for KK CLMM (EDI's 20-node rule was off the MLE at sigma ~2-2.6) | 2026-11-24 |
 | [DECISION-v1.0.6-TODO-12](#DECISION-v1.0.6-TODO-12) | [v1.0.6-TODO-12](release_v1_0_6.md) | minimum 95% valid replicates, user-settable | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-4a](#DECISION-v1.0.6-TODO-4a) | [v1.0.6-TODO-4](release_v1_0_6.md) | trailing partial permuted block merged into the previous block | 2026-11-19 |
 | [DECISION-v1.0.6-TODO-4b](#DECISION-v1.0.6-TODO-4b) | [v1.0.6-TODO-4](release_v1_0_6.md) | FixedBlocking: stratified JKn delete-one within strata (Wolter) | 2026-11-19 |
@@ -1556,6 +1557,38 @@ Last updated 2026-11-24.
   it as the standard choice in the literature (Smithson & Verkuilen 2006) and add it to REFERENCES.md.
 - **Why:** it keeps more signal; it is the standard choice in the literature (Smithson & Verkuilen 2006).
 - **Rejected:** (a) the eps clamp.
+
+<a id="DECISION-v1.0.6-TODO-48"></a>
+### DECISION-v1.0.6-TODO-48: KK CLMM quadrature: raise the fixed Gauss-Hermite rule from 20 to 60 nodes, wait for adaptive quadrature, or keep 20?
+
+- **TODO:** [v1.0.6-TODO-48](release_v1_0_6.md): **KK ordinal CLMM cloglog link disagrees with `ordinal::clmm`.**
+- **Context (2026-11-24, agent):** EDI is the side that is off. On the two disagreeing cells (cloglog, n = 60,
+  sigma_b = 1.2, seeds 2 and 3 of `test-ordinal-kk-clmm-matches-clmm-all-links-reference.R`) both fits are stationary
+  for their own objective (EDI gradient norm 7e-6 / 2e-6, clmm max gradient 1e-6 / 2e-6), but EDI maximizes the
+  marginal likelihood approximated by a fixed 20-node non-adaptive Gauss-Hermite rule, which is inaccurate at the
+  fitted sigma of 2.1-2.6. Under the marginal likelihood computed by `integrate()` (rel.tol 1e-12) clmm's parameters
+  are better in both cells: nll 72.0694 vs EDI 72.1193 (seed 2) and 61.7877 vs 61.8786 (seed 3). EDI's 20-node nll at
+  its own optimum is 71.9978 / 61.8898. Passing `n_gh = 60L` to `fast_ordinal_clmm_cpp()` moves EDI onto clmm's
+  optimum: treatment 0.8146 -> 0.7752 (clmm 0.7755), 0.2590 -> 0.2799 (clmm 0.2797), at about twice the fit time
+  (0.04 -> 0.09 s). The kernel already takes `n_gh`; the R class never passes it, and `clmm_score_residuals()`
+  hard-codes `n_gh = 20L` (`inference_ordinal_KK_clmm_abstract.R` ~L247).
+- **Options:**
+  - (a) pass `n_gh = 60L` from every KK CLMM fit call and the score-residual helper (R-only, no rebuild), as the
+    owner ruled for the Poisson GLMM on 2026-10-24 (20 -> 60); changes every KK CLMM result slightly (at small
+    sigma by ~1e-6 or less), roughly doubles fit time, breaks `test-ordinal-kk-clmm-migration-golden.R` (re-pin) and
+    lets the cloglog sigma_b = 1.2 tolerance go back from 5e-2 to about 3e-3;
+  - (b) wait for adaptive quadrature (v1.2.0-TODO-153, C++ in `fast_ordinal_clmm.cpp`), keep 5e-2 meanwhile;
+  - (c) keep 20 nodes and document the bias at large sigma.
+- **Recommendation (agent, 2026-11-24):** (a): it is R-only, follows the Poisson GLMM precedent, and fixes the
+  measured gap; (b) is the eventual fix.
+- **Raised:** 2026-11-24, by the agent that investigated v1.0.6-TODO-48 (owner request "which side is wrong").
+- **Ruling:** (a), owner 2026-11-24: n_gh = 60 for KK CLMM. Implemented 2026-11-24 (R-only): `KK_CLMM_N_GH = 60L`
+  is passed by every KK CLMM `fast_ordinal_clmm_cpp()` call (observed fit, randomization / bootstrap refits via
+  `compute_ri_estimate_rcpp()`, the Newton retry and SE refit that copy those arguments, and the score-test null fit)
+  and used by `clmm_score_residuals()`; see the TODO's done note.
+- **Why:** "EDI's 20-node quadrature is off the MLE at sigma ~2-2.6; 60 nodes land on clmm's optimum; same as the
+  Poisson GLMM ruling of 2026-10-24" (owner, 2026-11-24).
+- **Rejected:** (c) keep 20 nodes. (b), adaptive quadrature (v1.2.0-TODO-153), stays the eventual fix.
 
 <a id="DECISION-v1.0.6-TODO-12"></a>
 ### DECISION-v1.0.6-TODO-12: Bootstrap p-values with `na.rm = TRUE`: minimum valid-replicate fraction, and user-settable?

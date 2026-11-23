@@ -51,7 +51,8 @@ test_that("every KK CLMM class fit is stationary (gradient, Newton polish, bound
 		yl <- sort(unique(p$y)); y <- as.integer(match(p$y, yl)); K <- length(yl)
 		par <- c(fit$alpha, fit$b, fit$log_sigma)
 		call <- function(...) EDI:::fast_ordinal_clmm_cpp(X = X, y = y, group_id = gid, K = K, j_T = 0L,
-			link = link, estimate_only = TRUE, optimization_alg = "newton_raphson", eps_g = 1e-10, ...)
+			link = link, estimate_only = TRUE, optimization_alg = "newton_raphson", eps_g = 1e-10,
+			n_gh = EDI:::KK_CLMM_N_GH, ...)  # v1.0.6-TODO-48: polish the class's own (60-node) objective
 		polish <- call(warm_start_params = par)
 		expect_lte(polish$neg_loglik, fit$neg_loglik + 1e-8)
 		expect_equal(est, polish$b[1L], tolerance = 1e-5, scale = 1, info = info)

@@ -42,7 +42,8 @@
 #          [--response-types all] [--null-reps 1000] [--power-reps 500] [--cores 4] \
 #          [--target-minutes 25] [--pack-minutes 25] [--min-shard-minutes 8.33] [--min-measured-reps 20] [--verbose] [--wave-size 64] [--max-dead 3] [--timeout-minutes 75] [--dead-timeout-minutes 180] [--meta-out FILE] [--power-ns 50,200] \
 #          [--slow-null-reps 500] [--slow-reduced-n 1000] [--slow-power-ns 50] \
-#          [--confirm-reps 5000] [--slow-confirm-reps 1000] --roster FILE [--plan-out FILE] [--plan-only]
+#          [--confirm-reps 5000] [--slow-confirm-reps 1000] [--slow-unit-cap-secs 0] [--slow-unit-cap-reps 300] \
+#          --roster FILE [--plan-out FILE] [--plan-only]
 #
 # Two-stage gate: a block (effect, response type, class) whose screening replicates are all done has its flagged tests
 # (<campaign-dir>/summary/confirm_cells.csv, from analyze_calibration_study.R) confirmed on fresh replicates (10001 on),
@@ -56,6 +57,10 @@
 # count and ordinal take 4-15 single-core minutes per replicate at n = 1000; they get fewer replicates (user decision
 # 2026-11-09, release_v1_2_0.md TODO-36): --slow-null-reps at n >= --slow-reduced-n (default 500 at n = 1000) and the
 # power effects only at --slow-power-ns (default 50).
+#
+# Slow-unit cap (v1.1.0-TODO-269, opt-in, off by default): --slow-unit-cap-secs S > 0 caps every screening unit whose
+# estimated cost exceeds S single-core seconds per replicate at --slow-unit-cap-reps (default 300) replicates; see
+# "Slow-unit cap" below.
 
 # read.csv() calls in this file go through read_csv_fast(): fread-backed, same
 # result as read.csv (R/package_tests/read_csv_fast.R), loaded from the checkout.
@@ -113,6 +118,11 @@ slow_power_ns <- as.integer(split_csv(arg_value("--slow-power-ns", "50")))
 confirm_reps <- as.integer(arg_value("--confirm-reps", "5000"))
 if (confirm_reps >= 10000L) stop("--confirm-reps must be below 10000 (replicates 10001..19999)")
 slow_confirm_reps <- as.integer(arg_value("--slow-confirm-reps", "1000"))
+# Per-unit replicate cap for slow units (v1.1.0-TODO-269, opt-in; owner decision DECISION-v1.1.0-TODO-269): see "Slow-unit
+# cap" below. 0 (the default) = off.
+slow_unit_cap_secs <- as.numeric(arg_value("--slow-unit-cap-secs", "0"))
+slow_unit_cap_reps <- as.integer(arg_value("--slow-unit-cap-reps", "300"))
+stopifnot(is.finite(slow_unit_cap_secs), slow_unit_cap_secs >= 0, slow_unit_cap_reps >= 1L)
 CONFIRM_REP0 <- CAL_PLAN_CONFIRM_REP0
 stopifnot(all(rts %in% CAL_PLAN_RESPONSE_TYPES), all(effects %in% CAL_PLAN_EFFECTS))
 
@@ -146,19 +156,6 @@ units <- cal_plan_units(roster, rts = rts, designs = designs, ns = ns, effects =
 if (is.null(units)) stop("the class roster has no unit for the requested response types and designs")
 units$secs_source <- roster$secs_source[match(paste(units$response_type, units$design, units$inf_class), paste(roster$response_type, roster$design, roster$inf_class))]
 m_total <- cal_plan_m_total(units)
-
-# plan.csv: every screening unit of the campaign, in run order, with its replicates and the upper bound
-# on its tests. The analysis reads it (the m of the multiple-testing family, which units are complete,
-# class status). It does not depend on the ledger.
-if (nzchar(plan_out)) {
-	dir.create(dirname(plan_out), recursive = TRUE, showWarnings = FALSE)
-	utils::write.csv(units[c("rank", "response_type", "design", "family", "n", "effect", "inf_class", "reps", "n_tests")], plan_out, row.names = FALSE)
-}
-if (plan_only) {
-	if (nzchar(meta_out)) cat(sprintf("m_total=%d\nunits=%d\n", m_total, nrow(units)), file = meta_out, append = TRUE)
-	cat(sprintf("m_total=%d units=%d\n", m_total, nrow(units)))
-	quit(save = "no", status = 0L)
-}
 
 parse_reps <- function(x) {
 	x <- x[!is.na(x) & nzchar(x)]
@@ -407,6 +404,40 @@ rc <- resolve_cost(units)
 units$cost <- rc$cost
 units$cost_source <- rc$source
 if ("--verbose" %in% args) message("calibration planner: unit costs from ", paste(sprintf("%s %d", names(table(units$cost_source)), as.integer(table(units$cost_source))), collapse = ", "))
+
+# Slow-unit cap (v1.1.0-TODO-269, opt-in by --slow-unit-cap-secs > 0; owner decision DECISION-v1.1.0-TODO-269): a SCREENING
+# unit whose single-core cost per replicate (the planner's estimate above: this campaign's measured cost once the unit, or
+# its class at that n, has --min-measured-reps replicates) exceeds --slow-unit-cap-secs runs at most --slow-unit-cap-reps
+# replicates. Confirmation units are never capped. plan.csv records it (rep_cap, rep_cap_secs), so the analysis counts a
+# capped unit as complete at the cap and the campaign README says which units were capped. Because the cost is re-measured
+# every wave, a unit whose cost sits at the threshold could switch between capped and not; the KK CLMM units it is for cost
+# ~25-130 s (n <= 200) or ~1,000-1,900 s (n = 1000, campaign 2026-11-15-e36c7710), far from a 300 s threshold.
+units$rep_cap <- NA_integer_
+units$rep_cap_secs <- NA_real_
+if (slow_unit_cap_secs > 0) {
+	capped <- is.finite(units$cost) & units$cost > slow_unit_cap_secs & units$reps > slow_unit_cap_reps
+	units$rep_cap[capped] <- slow_unit_cap_reps
+	units$rep_cap_secs[capped] <- slow_unit_cap_secs
+	units$reps[capped] <- slow_unit_cap_reps
+	if (any(capped)) message(sprintf("calibration planner: %d slow unit(s) (cost > %g s per replicate) capped at %d screening replicates",
+		sum(capped), slow_unit_cap_secs, slow_unit_cap_reps))
+}
+
+# plan.csv: every screening unit of the campaign, in run order, with its replicates and the upper bound
+# on its tests. The analysis reads it (the m of the multiple-testing family, which units are complete,
+# class status). It does not depend on the ledger; with the slow-unit cap on it depends on the campaign's measured costs,
+# so --plan-only then needs --campaign-dir like the wave planner.
+if (nzchar(plan_out)) {
+	dir.create(dirname(plan_out), recursive = TRUE, showWarnings = FALSE)
+	cols <- c("rank", "response_type", "design", "family", "n", "effect", "inf_class", "reps", "n_tests")
+	if (any(!is.na(units$rep_cap))) cols <- c(cols, "rep_cap", "rep_cap_secs")
+	utils::write.csv(units[cols], plan_out, row.names = FALSE)
+}
+if (plan_only) {
+	if (nzchar(meta_out)) cat(sprintf("m_total=%d\nunits=%d\n", m_total, nrow(units)), file = meta_out, append = TRUE)
+	cat(sprintf("m_total=%d units=%d\n", m_total, nrow(units)))
+	quit(save = "no", status = 0L)
+}
 
 # Per-pack overhead (see above) from the ledger.
 overhead_fn <- function() {

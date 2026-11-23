@@ -12,7 +12,7 @@
 #             nonnull_bias_summary.csv). Reported, never gated; the estimate is per class, so inf_procedure is "estimate".
 #
 # category / suggested_release (the triage rule, owner-approved 2026-11-12):
-#   bug           -> current: a finite-sample procedure (exact, rand) failing at any n, or an asymptotic one failing at
+#   bug           -> current: a finite-sample procedure (exact, rand, rand_score) failing at any n, or an asymptotic one failing at
 #                    the campaign's largest n (the level there is nearly nominal, so it does not converge), or one whose
 #                    largest n never ran
 #   small_sample  -> next:    an asymptotic procedure failing only below the largest n

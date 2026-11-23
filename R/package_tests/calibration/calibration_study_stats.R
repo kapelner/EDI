@@ -119,7 +119,7 @@ cal_stats_write <- function(x, path) {
 # v1_0_5/calibration_rate_derived_gate.md; replaces TODO-192's step schedule). The level a
 # cell is tested against comes from the procedure's regime (inference_procedure_regime.R)
 # and the registry's expected order a of its size error (inference_convergence_expectation()):
-#   finite-sample procedures (exact, rand): size 0.05, coverage 0.95 at every n_eff.
+#   finite-sample procedures (exact, rand, rand_score): size 0.05, coverage 0.95 at every n_eff.
 #   asymptotic, known order a > 0: size min(CAL_GATE_CAP, 0.05 + c_a * n_eff^-a), coverage
 #     1 - that, with c_a = (CAP - 0.05) * N_CAP^a, i.e. the level is the cap up to
 #     n_eff = N_CAP and 0.05 + (CAP - 0.05) * (N_CAP / n_eff)^a beyond.
@@ -142,10 +142,12 @@ cal_gate_size_level <- function(n_eff, a) {
 
 # Regime of each procedure label, from the registry (EDI_INFERENCE_PROCEDURE_REGIME,
 # sourced from the checkout by the scripts that gate). A label it does not know stops
-# the gate: never silently strict or lax.
+# the gate: never silently strict or lax. A variant label (EDI_INFERENCE_PROCEDURE_VARIANTS,
+# e.g. rand_score, v1.1.0-TODO-269) takes its sentinel's regime.
 cal_gate_regime <- function(procedure, regimes = EDI_INFERENCE_PROCEDURE_REGIME) {
 	procedure <- as.character(procedure)
-	regime <- unname(regimes[procedure])
+	base <- if (exists("inference_procedure_base_label", mode = "function")) inference_procedure_base_label(procedure) else procedure
+	regime <- unname(regimes[base])
 	unknown <- unique(procedure[is.na(regime)])
 	if (length(unknown)) stop(sprintf(
 		"calibration gate: procedure(s) [%s] have no regime in inference_procedure_regime.R; add them to EDI_INFERENCE_PROCEDURE_REGIME",

@@ -155,7 +155,7 @@ test_that("roster enumeration matches the classes and rows the runner runs, with
 				# One class alone (the runner's --only) enumerates the same rows as the roster counts.
 				tk = get("cal_task_list", envir = globalenv())(des, r$inf_class[[k]], roster_env$CAL_STUDY_TIER1_METHODS)
 				expect_identical(length(tk), r$n_size[[k]], info = paste(rt, dl, n, r$inf_class[[k]]))
-				expect_identical(sum(vapply(tk, function(t) t$method != "rand", logical(1L))), r$n_cov[[k]], info = paste(rt, dl, n, r$inf_class[[k]]))
+				expect_identical(sum(vapply(tk, function(t) !(t$method %in% roster_env$CAL_STUDY_TIER1_PVAL_ONLY), logical(1L))), r$n_cov[[k]], info = paste(rt, dl, n, r$inf_class[[k]]))
 			}
 		}
 		expect_true(all(r$n_cov <= r$n_size))
