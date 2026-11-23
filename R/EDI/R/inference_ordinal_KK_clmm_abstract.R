@@ -7,12 +7,23 @@
 #' likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
 #' fixed-effects cumulative-link fit.
 #'
-#' A native fit is accepted only if the optimizer reports convergence and the
-#' gradient norm of the objective is at most \eqn{10^{-4}}; the optimizer runs
-#' with a tight tolerance (\code{1e-12}) so that this normally holds. Otherwise
-#' the fit is retried once with Newton-Raphson from the returned parameters; if
-#' that also fails the gradient test, the estimate is \code{NA} with
-#' nonestimable reason \code{"kk_clmm_rcpp_not_stationary"}.
+#' The native fit maximizes the marginal likelihood from several starts (the
+#' default start and a few values of \eqn{\log\sigma_b}), polishes the best one
+#' and judges convergence by the projected gradient: its norm must be at most
+#' \eqn{\max(10^{-5}, \epsilon_g)} (\eqn{\epsilon_g} is the kernel tolerance, \code{1e-12}
+#' here), where at the lower variance boundary the
+#' \eqn{\log\sigma_b} coordinate is left out when the score in
+#' \eqn{\sigma_b^2} points outward (a KKT point). When that test fails after
+#' L-BFGS, damped Newton steps are taken on the remaining coordinates.
+#'
+#' A native fit is accepted only if it converged and the gradient norm is at
+#' most \eqn{10^{-4}}. Otherwise it is retried once with Newton-Raphson from the
+#' returned parameters (from that point only, unless the fit sits at the lower
+#' variance boundary with a gradient norm above \eqn{10^{-3}}, where the
+#' \eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
+#' test, the estimate is \code{NA} with nonestimable reason
+#' \code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
+#' does not normally run.
 #'
 #' The \pkg{ordinal} package's \code{clmm()} (used by the weighted
 #' Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log
@@ -160,6 +171,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		# Stationarity acceptance (TODO-4): a native fit is used only if its gradient norm is
 		# <= this; otherwise one Newton retry, then NA (kk_clmm_rcpp_not_stationary).
 		clmm_gradient_accept = 1e-4,
+		# v1.1.0-TODO-265: the Newton retry keeps the kernel's variance multistart only for a
+		# boundary (log sigma <= -4.5) L-BFGS fit whose gradient norm exceeds this.
+		clmm_retry_multistart_gradient = 1e-3,
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (private$use_rcpp) {
@@ -231,6 +245,15 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			retry_args$warm_start_params = start
 			retry_args$warm_start_fisher_info = NULL
 			retry_args$optimization_alg = "newton_raphson"
+			# v1.1.0-TODO-265 (owner 2026-11-23, DECISION-v1.1.0-TODO-265 (b)): polish from the
+			# L-BFGS point only. The kernel's four extra log-sigma starts, rerun with Newton, were
+			# ~95% of the retry (6-9 s of a 7-10 s redraw at n = 1000) and never changed its
+			# result, except when the L-BFGS winner sits at the sigma -> 0 boundary far from
+			# stationary: there single-start Newton can stay on the flat boundary while another
+			# start reaches the interior MLE (test-ordinal-kk-clmm-stationary-fit-kkt.R), so that
+			# case keeps the multistart.
+			retry_args$variance_multistart = isTRUE(fit$log_sigma <= -4.5) &&
+				isTRUE(fit$gradient_norm > private$clmm_retry_multistart_gradient)
 			# Same eps_g as the fit (1e-12 in production), but never looser than 1e-6 so the
 			# retry can reach the acceptance threshold when a subclass loosens clmm_eps_g.
 			retry_args$eps_g = min(call_args$eps_g %||% 1e-6, 1e-6)

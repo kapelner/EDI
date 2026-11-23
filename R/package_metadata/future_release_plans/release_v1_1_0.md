@@ -2671,20 +2671,70 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     report the share of time in the refit vs everything else.
   - Done when: the per-draw cost is broken down, any redundant per-draw work is removed, and the fixes in the next three
     TODOs are ranked by expected speed-up.
+  - See also v1.2.0-TODO-21 (`garthwaite_buckland_ci_search.md`): Robbins-Monro CI search. It does not speed up the p-value tracked here (one pass of redraws, no endpoint to search), but it is the candidate for this class's randomization CI, whose bisection repeats this per-draw refit cost at every step; this class is now listed in that plan's benchmark corpus. Any per-draw saving found here also cuts the CI's cost.
+  - Status 2026-11-23 (agent): cost broken down; no package code changed. Measured on this machine, calibration DGP
+    (null), r = 501 (the `compute_rand_two_sided_pval()` default; the harness passes no r, and no early stop is used for a
+    standalone p-value), num_cores = 1:
+    - n = 200 (SeqOneByOneKK14 / FixedBinaryMatch): ~0.25 s per redraw, 100-135 s per p-value. 92-94% is the native
+      CLMM fit (one 5-start L-BFGS fit at eps_g = 1e-12, ~0.22 s); the Newton retry fired in 0 of 61 redraws. The rest is
+      R: design matrix, group ids, the redraw's fixed-effects start (~2 ms), cache resets, gc (~2%). The KK match data is
+      not recomputed per redraw (0.4%); nothing else redundant in R.
+    - n = 1000: 4.0 s (KK14) / 5.7 s (FixedBinaryMatch) per redraw, 99% in the kernel. The L-BFGS fit is 1.0-1.4 s
+      (linear in n), but its gradient norm (a sum over n) now exceeds `clmm_gradient_accept = 1e-4` in 35-65% of
+      redraws, and each Newton retry costs 6-9 s because the kernel reruns all 5 starts with Newton (numerical
+      Hessians): 70-73% of the time. That is the extra growth (16x for 5x n). The retry's eps_g does not matter
+      (1e-12..1e-6: 7-8.5 s).
+    - Fix found: run the retry from the L-BFGS point only. End to end at n = 1000: 2.9x (KK14), 2.45x
+      (FixedBinaryMatch), 5.3x (Cauchit), identical p-values; n = 200 unchanged. Not implemented: it is a C++ change
+      to the kernel's multistart guard, one related test shows the guard can matter (a loosened L-BFGS stuck at the
+      sigma boundary), and `fast_ordinal_clmm.cpp` has another session's uncommitted v1.0.6-TODO-410 edits.
+    - Ranking of the next three by expected speed-up at n = 1000: v1.1.0-TODO-267 (score statistic, ~1000x, changes the
+      statistic) >> this TODO's retry fix (2.5x-5x, numerically equivalent on the calibration data) > v1.1.0-TODO-268
+      (sequential stop, ~3x at the null, 1.7x under power, changes p-values) >> v1.1.0-TODO-266 (none; ruled out).
+      The retry fix and the sequential stop multiply.
+  - Owner decision pending: [DECISION-v1.1.0-TODO-265](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-265) (CLMM Newton retry: drop its four extra log-sigma starts, make it conditional, or wait for the plan TODO-5 KKT port?).
 - [ ] TODO-266 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's refit from the observed-data fit.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Warm-start every redraw from the observed-data fit, never from the previous redraw: the owner ruling of 2026-11-19
     (v1.0.6-TODO-61) bans chaining warm starts across redraws, not a fixed start from the observed fit. Check that the
     multimodality guards (`multistart_nonconcave_likelihoods.md`) still hold, since the CLMM likelihood is not concave.
   - Done when: redraw results match cold starts within the D2 numerical-equivalence rule (or the difference is
     documented), with the measured speed-up at n = 200 and 1000.
+  - Status 2026-11-23 (agent): ruled out with evidence, no code change. Redraws already start from their own data (the
+    fixed-effects cumulative-link MLE on the redraw, plus the kernel's log-sigma starts), never chained. Starting from
+    the observed fit instead reaches the same maximum on every redraw tried (|d neg-loglik| <= 2e-10; 100 redraws at
+    n = 200 on KK14, FixedBinaryMatch and Cauchit, 20 at n = 1000 on KK14 and FixedBinaryMatch, plus 100 + 20 with an
+    interior sigma, model `~ x1`), but is 3-25% slower; the share of redraws needing the Newton retry barely moves (n = 1000: 8 vs 8 of 20 on
+    KK14, 8 vs 11 on FixedBinaryMatch).
+  - Owner decision pending: [DECISION-v1.1.0-TODO-266](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-266) (confirm ruling out the observed-fit warm start for CLMM randomization redraws).
 - [ ] TODO-267 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does not need a full refit per redraw.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Candidates: a score statistic evaluated at the null fit (computed once; each redraw only re-evaluates the score under
     the permuted assignment), or a one-step Newton update from the observed fit. Either changes the test statistic, so
     it changes results: put it behind an option, or follow the release rule for default changes.
   - Done when: a no-refit statistic is implemented and its null size checked against the current one (calibration
     cells at n = 50, 200, 1000), with the speed-up measured.
+  - Status 2026-11-23 (agent): prototyped in scratch (not in the package), default unchanged. Statistic: the score for
+    beta_T at the null fit, T(w) = sum_i w_i r_i, where the null CLMM is fit once (treatment coefficient fixed at 0) and
+    r_i is the posterior mean over unit i's pair intercept of d log p(y_i | eta) / d eta (same 20-node Gauss-Hermite
+    rule; checked against a numeric derivative). A redraw is one dot product. Cost per p-value (r = 501): 0.05 s at
+    n = 50 (now 31 s), 0.17 s at n = 200 (now ~120 s), 0.55-0.87 s at n = 1000 (now ~2,000-2,900 s here; ~870 s in the
+    campaign). Null size at alpha = 0.05 (calibration DGP): KK14 n = 50 0.050 (300 reps), n = 200 0.037 (300), n = 1000
+    0.070 (400; 0.100 on reps 1-150, 0.052 on 151-400); FixedBinaryMatch n = 200 0.067 (300), n = 1000 0.065 (200);
+    Cauchit KK14 n = 200 0.037 (300). On three n = 1000 data sets where the score test rejected, the current statistic
+    also gave p = 0.059 / 0.020 / 0.020 (r = 101), so that excess is not the score statistic's (it is either noise or
+    a property of the data/design shared with the current test; see v1.1.0-TODO-264's n = 1000 caveat). Agreement with
+    the current statistic on the same data (KK14 n = 50, 40 null reps): cor(p) = 0.997, max |dp| = 0.06; at the power50
+    effect (60 reps, same data) power 0.43 vs 0.37 now. Calibration cells at n = 50, 200, 1000 for the option are still
+    to run once it is implemented.
+  - Owner decision pending: [DECISION-v1.1.0-TODO-267](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-267) (ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not?).
 - [ ] TODO-268 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: fewer redraws at large n.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Use fewer redraws when n is large (or a sequential Monte Carlo stopping rule, which EDI already has for
     randomization p-values), so the p-value resolution is kept where it matters (near alpha) and spent less elsewhere.
   - Done when: the redraw count or stopping rule is chosen, documented, and its effect on size and on the p-value's Monte
     Carlo error at alpha = 0.05 measured.
+  - Status 2026-11-23 (agent): measured, default unchanged. EDI's sequential-MC stop works for this class unchanged, but
+    only the randomization CI turns it on; a standalone p-value always draws all r. With the CI-search defaults
+    (r = 501, batch 45, >= 100 draws, 99% band, threshold 0.05), simulated under the null: 34% of the draws, size 0.0536
+    both ways, 1 of 20,000 decisions differs (0 of 20,000 at a 99.9% band); under 32-80% power: 51-59% of the draws, 0
+    of 5,000 differ. The p-value is the prefix's (SD of the change 0.06 under the null). On the class (KK14, n = 200):
+    98-135 s -> 25-37 s per p-value. Enabling it changes every p-value away from alpha, so it is an owner decision.
+  - Owner decision pending: [DECISION-v1.1.0-TODO-268](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-268) (turn on the sequential-MC early stop for the standalone randomization p-value, and for which classes?).

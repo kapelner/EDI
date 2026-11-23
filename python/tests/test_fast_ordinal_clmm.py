@@ -53,14 +53,17 @@ def _synthetic_data():
     return X, y.astype(np.int32), group_id
 
 
-# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the CLMM log-sigma fixes
-# (e706c6f6); the old 2026-08-04 fixture had sigma stuck at its -3 start
-# (neg_loglik 305.06 vs 304.43 now). Via:
+# R reference, re-pinned 2026-11-23 after the kernel's projected-gradient (KKT) polish
+# (v1.1.0-TODO-265, clmm_sigma_collapse_false_convergence.md TODO-5): the old fixture
+# (2026-10-11, e706c6f6) was L-BFGS's relative-f stop at eps_g = 1e-6 with gradient norm
+# 0.019 (neg_loglik 304.434809048618); the polished fit has gradient norm 2.2e-7 and
+# neg_loglik 304.434804750277 (b moves 4.3e-4). Computed from R with the working-tree
+# fast_ordinal_clmm.cpp (sourceCpp; the HEAD kernel reproduced the old values exactly) via:
 #   EDI:::fast_ordinal_clmm_cpp(X, y, group_id, K = 3L, j_T = 0L, link = "logit")
-R_B = np.array([0.55888892440341, -0.491100628144333])
-R_ALPHA = np.array([-1.10593958892995, 0.445408883013162])
-R_LOG_SIGMA = -0.460626132920187
-R_NEG_LOGLIK = 304.434809048618
+R_B = np.array([0.558458581299922, -0.490902311732509])
+R_ALPHA = np.array([-1.10615886517463, 0.44538335886387])
+R_LOG_SIGMA = -0.460209473643548
+R_NEG_LOGLIK = 304.434804750277
 
 
 def test_matches_r_fixture():

@@ -328,6 +328,7 @@ Ticked in owning plans; this list is the index.
   the pattern; composes with TODO-20's multistart as one more
   deterministic start).
   - See also (research triage, 2026-11-19): Keep conservative CRN bisection (Glazer-Stark); narrow or downgrade Robbins-Monro plan (`monte-carlo-test-inversion-ci#43925959437.3`).
+  - Benchmark case (2026-11-23, coordinator, owner request): `InferenceOrdinalKKCLMM`'s randomization test refits a CLMM on every redraw, about 870 s per p-value at n = 1000 (13.5 s at n = 50, 55 s at n = 200) in calibration campaign 2026-11-15-e36c7710, so its randomization CI (a bisection with a full redraw set per step) multiplies that cost by every step. That is the refit-heavy, non-affine statistic the 2026-11-19 research triage proposes keeping in this plan's scope: add it (and `InferenceOrdinalKKCLMMCauchit`, about 500 s per p-value at n = 1000) to the A/B corpus, comparing Robbins-Monro against the conservative common-random-number bisection. The p-value cost itself is tracked in v1.1.0-TODO-265..268.
 
 - [ ] TODO-202 (added 2026-11-16, owner request): **Optimizer techniques for
   the nonconcave likelihoods.**

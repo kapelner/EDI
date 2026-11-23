@@ -2170,8 +2170,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fast_ordinal_clmm_cpp
-List fast_ordinal_clmm_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, int K, int j_T, std::string link, bool estimate_only, int n_gh, double max_abs_log_sigma, int maxit, double eps_g, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params, std::string optimization_alg, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info);
-RcppExport SEXP _EDI_fast_ordinal_clmm_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP KSEXP, SEXP j_TSEXP, SEXP linkSEXP, SEXP estimate_onlySEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP, SEXP maxitSEXP, SEXP eps_gSEXP, SEXP warm_start_paramsSEXP, SEXP optimization_algSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP warm_start_fisher_infoSEXP) {
+List fast_ordinal_clmm_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, int K, int j_T, std::string link, bool estimate_only, int n_gh, double max_abs_log_sigma, int maxit, double eps_g, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params, std::string optimization_alg, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info, bool variance_multistart);
+RcppExport SEXP _EDI_fast_ordinal_clmm_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP KSEXP, SEXP j_TSEXP, SEXP linkSEXP, SEXP estimate_onlySEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP, SEXP maxitSEXP, SEXP eps_gSEXP, SEXP warm_start_paramsSEXP, SEXP optimization_algSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP warm_start_fisher_infoSEXP, SEXP variance_multistartSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2191,7 +2191,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type fixed_idx(fixed_idxSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type fixed_values(fixed_valuesSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type warm_start_fisher_info(warm_start_fisher_infoSEXP);
-    rcpp_result_gen = Rcpp::wrap(fast_ordinal_clmm_cpp(X, y, group_id, K, j_T, link, estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g, warm_start_params, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info));
+    Rcpp::traits::input_parameter< bool >::type variance_multistart(variance_multistartSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_ordinal_clmm_cpp(X, y, group_id, K, j_T, link, estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g, warm_start_params, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info, variance_multistart));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -5368,7 +5369,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_get_ordinal_cauchit_regression_hessian_cpp", (DL_FUNC) &_EDI_get_ordinal_cauchit_regression_hessian_cpp, 5},
     {"_EDI_fast_ordinal_cauchit_regression_cpp", (DL_FUNC) &_EDI_fast_ordinal_cauchit_regression_cpp, 11},
     {"_EDI_fast_ordinal_cauchit_regression_with_var_cpp", (DL_FUNC) &_EDI_fast_ordinal_cauchit_regression_with_var_cpp, 8},
-    {"_EDI_fast_ordinal_clmm_cpp", (DL_FUNC) &_EDI_fast_ordinal_clmm_cpp, 16},
+    {"_EDI_fast_ordinal_clmm_cpp", (DL_FUNC) &_EDI_fast_ordinal_clmm_cpp, 17},
     {"_EDI_fast_cloglog_link_eval_cpp", (DL_FUNC) &_EDI_fast_cloglog_link_eval_cpp, 1},
     {"_EDI_get_ordinal_cloglog_regression_score_cpp", (DL_FUNC) &_EDI_get_ordinal_cloglog_regression_score_cpp, 5},
     {"_EDI_get_ordinal_cloglog_regression_hessian_cpp", (DL_FUNC) &_EDI_get_ordinal_cloglog_regression_hessian_cpp, 5},

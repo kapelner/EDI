@@ -78,7 +78,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 		},
 		#' @description Compute the zero-augmented count-model asymptotic confidence
-		#'   (Wald) interval for the conditional treatment coefficient: \code{NA}, with
+		#'   interval for the conditional treatment coefficient by the test chosen
+		#'   with \code{set_testing_type()} (score, gradient, likelihood-ratio or
+		#'   Bartlett-corrected likelihood-ratio inversion: the same interval as the
+		#'   matching \code{compute_<type>_confidence_interval()}, v1.0.6-TODO-413).
+		#'   The default Wald interval is \code{NA}, with
 		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
 		#'   stable model standard error is unavailable (no bootstrap is substituted,
 		#'   v1.0.6-TODO-380). See
@@ -90,6 +94,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
 				return(private$count_likelihood_missing_ci(alpha))
+			}
+			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
+			if (!identical(private$testing_type, "wald")) {
+				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
 			}
 			private$shared()
 			se = private$get_standard_error()
@@ -104,7 +112,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the zero-augmented count-model asymptotic two-sided
-		#'   (Wald) p-value for the conditional treatment coefficient: \code{NA}, with
+		#'   p-value for the conditional treatment coefficient by the test chosen with
+		#'   \code{set_testing_type()} (the same p-value as the matching
+		#'   \code{compute_<type>_two_sided_pval()}, v1.0.6-TODO-413). The default
+		#'   Wald p-value is \code{NA}, with
 		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
 		#'   stable model standard error is unavailable (no bootstrap is substituted,
 		#'   v1.0.6-TODO-380). See
@@ -115,6 +126,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
+			if (!identical(private$testing_type, "wald")) {
+				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
+			}
 			private$shared()
 			se = private$get_standard_error()
 			if (is.finite(se) && se > 0) {
@@ -1604,6 +1619,35 @@ ZeroAugmentedCountLikelihoodSource = list(
 		}
 	)
 )
+
+# v1.0.6-TODO-413: the non-Wald branches of compute_asymp_confidence_interval() /
+# compute_asymp_two_sided_pval() on the four zero-augmented count classes
+# (ZIP, ZINB, hurdle Poisson, hurdle NegBin). Before 1.0.6 those methods always
+# returned Wald whatever set_testing_type() chose. Each branch calls the same
+# public method a direct call reaches, so the two always agree; an unknown type
+# stops (as v1.0.6-TODO-327 did for the other likelihood classes). The callers
+# keep their own Wald body, so Wald results are unchanged. `value` is alpha when
+# `ci` is TRUE, delta otherwise.
+za_count_asymp_by_testing_type = function(self, private, ci, value){
+	tt = private$testing_type
+	if (ci) {
+		switch(tt,
+			score = self$compute_score_confidence_interval(alpha = value),
+			gradient = self$compute_gradient_confidence_interval(alpha = value),
+			lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = value),
+			lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = value),
+			stop("Unsupported testing_type: ", tt)
+		)
+	} else {
+		switch(tt,
+			score = self$compute_score_two_sided_pval(delta = value),
+			gradient = self$compute_gradient_two_sided_pval(delta = value),
+			lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = value),
+			lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = value),
+			stop("Unsupported testing_type: ", tt)
+		)
+	}
+}
 
 InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 	classname = "InferenceCountZeroAugmentedPoissonAbstract",

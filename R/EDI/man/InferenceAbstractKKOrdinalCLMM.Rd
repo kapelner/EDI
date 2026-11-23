@@ -10,12 +10,23 @@ the lower boundary (\eqn{\sigma_b \to 0}, reported as a log-sigma near
 likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
 fixed-effects cumulative-link fit.
 
-A native fit is accepted only if the optimizer reports convergence and the
-gradient norm of the objective is at most \eqn{10^{-4}}; the optimizer runs
-with a tight tolerance (\code{1e-12}) so that this normally holds. Otherwise
-the fit is retried once with Newton-Raphson from the returned parameters; if
-that also fails the gradient test, the estimate is \code{NA} with
-nonestimable reason \code{"kk_clmm_rcpp_not_stationary"}.
+The native fit maximizes the marginal likelihood from several starts (the
+default start and a few values of \eqn{\log\sigma_b}), polishes the best one
+and judges convergence by the projected gradient: its norm must be at most
+\eqn{\max(10^{-5}, \epsilon_g)} (\eqn{\epsilon_g} is the kernel tolerance, \code{1e-12}
+here), where at the lower variance boundary the
+\eqn{\log\sigma_b} coordinate is left out when the score in
+\eqn{\sigma_b^2} points outward (a KKT point). When that test fails after
+L-BFGS, damped Newton steps are taken on the remaining coordinates.
+
+A native fit is accepted only if it converged and the gradient norm is at
+most \eqn{10^{-4}}. Otherwise it is retried once with Newton-Raphson from the
+returned parameters (from that point only, unless the fit sits at the lower
+variance boundary with a gradient norm above \eqn{10^{-3}}, where the
+\eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
+test, the estimate is \code{NA} with nonestimable reason
+\code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
+does not normally run.
 
 The \pkg{ordinal} package's \code{clmm()} (used by the weighted
 Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log

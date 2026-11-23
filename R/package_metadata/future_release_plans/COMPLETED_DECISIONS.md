@@ -24,6 +24,7 @@ Last updated 2026-11-23.
 | [DECISION-v1.2.0-TODO-258](#DECISION-v1.2.0-TODO-258) | [v1.2.0-TODO-258](release_v1_2_0.md) | one rerandomization kernel, documented default change, bundled with the RNG streams change | 2026-11-20 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
+| [DECISION-v1.1.0-TODO-265a](#DECISION-v1.1.0-TODO-265a) | [v1.1.0-TODO-265](release_v1_1_0.md) | (b) single-start Newton retry except at a far-from-stationary boundary, then (d) the kernel KKT polish | 2026-11-23 |
 | [DECISION-v1.1.0-TODO-218a](#DECISION-v1.1.0-TODO-218a) | [v1.1.0-TODO-218](release_v1_1_0.md) | CountPoisson blocking-design fix accepted (stratified within-block jackknife fallback) | 2026-11-19 |
 | [DECISION-v1.1.0-TODO-217](#DECISION-v1.1.0-TODO-217) | [v1.1.0-TODO-217](release_v1_1_0.md) | ZINB n = 50 oversize ruled inherent (small-sample degeneracy) | 2026-11-19 |
 | [DECISION-v1.1.0-TODO-216](#DECISION-v1.1.0-TODO-216) | [v1.1.0-TODO-216](release_v1_1_0.md) | ZIP `~1` oversize ruled inherent (misspecification), documented | 2026-11-19 |
@@ -37,10 +38,11 @@ Last updated 2026-11-23.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
-| [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish, accept the 1.3x-3x cost, allowlist the slowed benchmark rows | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-409](release_v1_0_6.md) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-380](release_v1_0_6.md) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-380d](#DECISION-v1.0.6-TODO-380d) | [v1.0.6-TODO-380](release_v1_0_6.md) | rank tests drop the bootstrap fallback (NA + reason); Poisson best-available Bartlett pair stays model-only | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-380](release_v1_0_6.md) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-352](release_v1_0_6.md) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
 | [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-380) | 2026-11-21 |
@@ -264,6 +266,48 @@ Last updated 2026-11-23.
 
 ## v1.1.0
 
+<a id="DECISION-v1.1.0-TODO-265a"></a>
+### DECISION-v1.1.0-TODO-265a: CLMM Newton retry: drop its four extra log-sigma starts (2.5x-5x faster at n = 1000), make it conditional, or do the plan TODO-5 KKT port?
+
+- **TODO:** [v1.1.0-TODO-265](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: find why its cost
+  grows faster than n.**
+- **Context:** the super-linear growth is `clmm_accept_fit()`'s Newton retry (DECISION-v1.0.5-TODO-31b (iii)(a)). The
+  L-BFGS fit's gradient norm is a sum over n; at n = 1000 it exceeds the absolute 1e-4 acceptance in 35-65% of
+  redraws (n = 200, logit: 0 of 261; Cauchit: 4 of 100), and each retry calls `fast_ordinal_clmm_cpp(optimization_alg = "newton_raphson")`, which
+  reruns the kernel's full multistart: Newton from the L-BFGS point plus log sigma = -1, 0, 1, -8, each with numerical
+  Hessians. The retry is 6-9 s against 1.0-1.4 s for the L-BFGS fit: 70-73% of all redraw time at n = 1000. Its
+  tolerance is not the cost (retry at eps_g 1e-12 / 1e-10 / 1e-8 / 1e-6: median 8.3 / 8.5 / 8.0 / 7.1 s).
+- **Evidence (2026-11-23, agent; scratch copy of `fast_ordinal_clmm.cpp` via `sourceCpp`, no relink):** Newton retry
+  single start (from the L-BFGS point) vs the 5 starts, on every retry seen: default DGP n = 1000 KK14 12 retries /
+  FixedBinaryMatch 9: 101.6 -> 6.8 s and 60.3 -> 2.9 s, |d b_T| <= 2.2e-11, |d nll| <= 1.4e-12, all with gradient
+  <= 4.3e-6; interior sigma (`~ x1`) n = 1000 2 retries: |d b_T| <= 2.0e-11. End to end (same seeds, r = 20, both with
+  the scratch kernel): n = 1000 KK14 71.3 -> 24.6 s (2.9x), FixedBinaryMatch 61.2 -> 25.0 s (2.45x), Cauchit KK14
+  73.3 -> 13.8 s (5.3x); n = 200 1.0x-1.2x; identical p-values and estimates. The 18 related test files pass with it
+  (782 expectations) **except one**: `test-ordinal-kk-clmm-stationary-fit-kkt.R:73`. There the L-BFGS is loosened to
+  eps_g = 1e-2 and stops at the sigma -> 0 boundary (log sigma -5, gradient 5e-3); single-start Newton stays on that
+  flat boundary and passes the 1e-4 gradient test (1.4e-5) with nll 78.07708, while one of the extra starts reaches the
+  interior MLE (log sigma -1.27, nll 78.07100, b_T 0.3562 vs 0.3479). So the extra starts are a real guard when the
+  L-BFGS winner is a poor boundary point; at the shipped eps_g = 1e-12 no such case was seen.
+- **Options:** (a) the kernel runs the extra log-sigma starts only for L-BFGS (one condition in
+  `run_fast_ordinal_clmm`; patch below), and the test's loosened case is changed to expect the boundary point or is
+  dropped; (b) R-side conditional: keep the 5-start retry when the L-BFGS winner is at the boundary with a large
+  gradient (e.g. log sigma <= -4.5 and gradient > 1e-3, which covers the test case), single start otherwise (needs a
+  kernel flag, so an `RcppExports` change); (c) make the acceptance scale-aware (e.g. the kernel's own Newton-decrement
+  verdict, which these L-BFGS fits already pass), so the retry rarely fires; b_T moves by <= 1.1e-6 (L-BFGS vs
+  Newton point) and some draws now NA would get a value; (d) no change here; do
+  `bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md` TODO-5 (port the sibling's polish + projected-gradient
+  KKT test into the kernel), which removes the R retry altogether; (e) leave as is.
+- **Recommendation (agent):** (b) for v1.1.0, and (d) as the lasting fix.
+- **Ruling:** (b) as the interim retry fix, then (d); 2026-11-23, owner (via the coordinator). Implemented the same day:
+  `fast_ordinal_clmm_cpp(variance_multistart =)` (new kernel argument, `RcppExports` edited by hand; the owner must
+  rebuild), the retry keeps the multistart only for a boundary fit (log sigma <= -4.5) with gradient norm > 1e-3, and
+  the kernel's polish + projected-gradient KKT test (plan TODO-5). See v1.1.0-TODO-265's status notes for the
+  measurements.
+- **Why:** No reason recorded beyond the recommendation.
+- **Rejected:** (a) unconditional single-start retry (breaks the boundary guard); (c) scale-aware acceptance; (e) no
+  change.
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+
 <a id="DECISION-v1.1.0-TODO-218a"></a>
 ### DECISION-v1.1.0-TODO-218a: `InferenceCountPoisson` `~1` oversized on blocking designs: accept the stratified within-block jackknife fix?
 
@@ -431,6 +475,9 @@ Last updated 2026-11-23.
   (c) (b) plus forward-difference Hessians; (d) remove the finish.
 - **Revisit if:** the allowlist rows come out at the v1.0.6 release and these fits still fail the 1.25x canary, or a
   kernel gets an analytic Hessian that makes the finish cheap.
+- **Note:** the same day a "finish only the multistart winner" instruction was relayed and implemented by kernel swap;
+  the owner then confirmed (a) above, so that implementation was reverted to HEAD (2026-11-23). Its numbers are in
+  the v1.0.6-TODO-410 entry.
 
 
 <a id="DECISION-v1.0.6-TODO-409c"></a>
@@ -470,6 +517,16 @@ Last updated 2026-11-23.
 - **Ruling:** (a) same split: its `lik_ratio_bartlett_approx` becomes the model-only Bartlett test and its current result moves to `"lik_ratio_bartlett_approx_design_conservative"`; changes the default Bartlett result, NEWS entry required, 2026-11-21, owner
 - **Why:** No reason recorded (recommended for one rule across the count classes, in line with "the testing type you ask for is the test you get").
 - **Rejected:** (b) leave it as is.
+
+<a id="DECISION-v1.0.6-TODO-380d"></a>
+### DECISION-v1.0.6-TODO-380d: Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable?
+
+- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **Question:** `InferenceSurvivalLogRank`'s p-value falls back to the bootstrap when its variance or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R` ~L181-187); `InferenceSurvivalGehanWilcox`'s asymptotic p-value does the same for interval-censored data (~L196). Also: confirm the agent's change making `InferenceCountPoisson`'s best-available `compute_lik_ratio_bartlett_*` pair model-only.
+- **Options on the table:** (a) keep both fallbacks and document them; (b) the asymptotic p-value is NA with a reason and a warning, and the bootstrap stays its own method. For the Bartlett pair: keep it model-only, or revert to the design-conservative wrap.
+- **Ruling:** (b) for the rank tests, and the best-available Bartlett pair stays model-only, 2026-11-23, owner. Implementation: v1.0.6-TODO-417.
+- **Why:** No reason recorded beyond the principle in DECISION-v1.0.6-TODO-380c ("If the user wants wald, we should always give wald").
+- **Rejected:** (a) keeping the rank-test fallbacks; reverting the Bartlett pair.
 
 <a id="DECISION-v1.0.6-TODO-380c"></a>
 ### DECISION-v1.0.6-TODO-380c: May a testing type silently return another procedure (e.g. Wald falling back to a bootstrap interval)?

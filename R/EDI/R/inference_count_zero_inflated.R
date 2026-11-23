@@ -255,10 +255,14 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Asymptotic confidence interval. Under the conditional
-		#'   estimand, the zero-augmented count-model Wald interval (\code{NA}, with
-		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when the
-		#'   model standard error is unavailable; no bootstrap is substituted,
-		#'   v1.0.6-TODO-380); under a marginal estimand, the
+		#'   estimand, the interval of the test chosen with \code{set_testing_type()}:
+		#'   score, gradient, likelihood-ratio and Bartlett-corrected
+		#'   likelihood-ratio give the same interval as the matching
+		#'   \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
+		#'   returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+		#'   with the reason recorded and an \code{edi_wald_unavailable_warning}, when
+		#'   the model standard error is unavailable (no bootstrap is substituted,
+		#'   v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
 		#'   delta-method interval computed by \code{compute_estimate()}. Calls
 		#'   \code{self$compute_estimate()} first (not \code{private$shared()}
 		#'   directly) so the estimand-aware cache is always current regardless
@@ -277,6 +281,10 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
 				return(private$count_likelihood_missing_ci(alpha))
+			}
+			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
+			if (!identical(private$testing_type, "wald")) {
+				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
 			}
 			se = private$get_standard_error()
 			if (is.finite(se) && se > 0) {
@@ -306,6 +314,10 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
+			if (!identical(private$testing_type, "wald")) {
+				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
+			}
 			se = private$get_standard_error()
 			if (is.finite(se) && se > 0) {
 				private$cached_values$s_beta_hat_T = se

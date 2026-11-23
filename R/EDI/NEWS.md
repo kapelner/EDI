@@ -572,6 +572,17 @@
   analytic standard error, those two classes still return the bootstrap
   (v1.0.6-TODO-380).
 
+* The asymptotic rank-test p-values no longer fall back to the bootstrap:
+  `InferenceSurvivalLogRank$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()`
+  when the log-rank null variance (right-censored) or `interval::ictest()`'s
+  p-value (left- / interval-censored) is unavailable, and
+  `InferenceSurvivalGehanWilcox$compute_asymp_two_sided_pval()` when the
+  interval-censored p-value is unavailable. They now return `NA`, record
+  `procedure_failure_reason$rank_test` (`"rank_test_asymptotic_pvalue_unavailable"`)
+  and raise one `edi_rank_test_unavailable_warning` (an
+  `edi_procedure_na_warning`) per fit. Call `compute_bootstrap_two_sided_pval()`
+  for the bootstrap (v1.0.6-TODO-417).
+
 * Wald standard errors, p-values and CIs of likelihood-backed classes now
   always use the observed information, and `compute_wald_confidence_interval()`,
   `compute_wald_two_sided_pval()`, `get_standard_error()`, `InferenceSuite`'s
@@ -782,6 +793,18 @@
   The old result is the new testing type
   `"lik_ratio_bartlett_approx_design_conservative"`, which reproduces it
   exactly (v1.0.6-TODO-380).
+
+* `InferenceCountZeroInflatedPoisson`, `InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedNegBin` and `InferenceCountHurdleNegBin`:
+  `compute_asymp_confidence_interval()` and `compute_asymp_two_sided_pval()`
+  now use the test chosen with `set_testing_type()`. They always returned the
+  Wald result, so `"score"`, `"gradient"`, `"lik_ratio"` and
+  `"lik_ratio_bartlett_approx"` gave the Wald p-value and interval; each now
+  equals the matching `compute_<type>_two_sided_pval()` /
+  `_confidence_interval()`. Wald results are unchanged. Also,
+  `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` returned
+  the Wald interval unless the testing type was set to `"gradient"`; it now
+  always inverts the gradient test (v1.0.6-TODO-413).
 
 * `InferenceCountPoisson`: the design-conservative tests (every asymptotic and
   likelihood test, which report the larger of the model-based and jackknife

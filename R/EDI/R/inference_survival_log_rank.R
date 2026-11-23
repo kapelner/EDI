@@ -171,6 +171,12 @@ InferenceSurvivalLogRank = define_inference_class(
 		#' @description Computes the standard two-sided log-rank p-value for a zero treatment effect.
 		#'   Under left-/interval-censored data, this is \code{interval::ictest()}'s
 		#'   own p-value (TODO-7) rather than a re-derived chi-squared statistic.
+		#'   When the log-rank null variance (or the interval-censored p-value) is
+		#'   unavailable the p-value is \code{NA}, with the reason recorded under
+		#'   \code{procedure_failure_reason$rank_test} and an
+		#'   \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
+		#'   substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+		#'   for one).
 		#' @param delta Null treatment effect to test against. Only \code{0} is supported.
 		compute_asymp_log_rank_two_sided_pval_for_treatment_effect = function(delta = 0){
 			if (should_run_asserts()) {
@@ -182,13 +188,15 @@ InferenceSurvivalLogRank = define_inference_class(
 					stop("Testing non-zero delta is not yet implemented for InferenceSurvivalLogRank.")
 				}
 			}
+			# v1.0.6-TODO-417 (DECISION-v1.0.6-TODO-380d): both branches used to fall back
+			# to the bootstrap p-value; the asymptotic rank test is that test or NA.
 			if (isTRUE(private$has_general_censoring)) {
 				pv = private$cached_values$icen_pval
-				if (!is.finite(pv)) return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				if (!is.finite(pv)) return(edi_rank_test_unavailable_na(self, private))
 				return(pv)
 			}
 			if (!is.finite(private$cached_values$logrank_var) || private$cached_values$logrank_var <= 0){
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(edi_rank_test_unavailable_na(self, private))
 			}
 			chisq_stat = private$cached_values$logrank_score ^ 2 / private$cached_values$logrank_var
 			stats::pchisq(chisq_stat, df = 1, lower.tail = FALSE)

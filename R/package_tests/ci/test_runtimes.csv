@@ -1189,6 +1189,7 @@ R/package_tests/testthat_bulk/test-simple-average-diff-studentized-and-jackknife
 R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R,correctness,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-diff-affine-coefs-guards-and-small-arm-shared-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,correctness,2.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-estimate-pval-and-ci.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-hl-estimate.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-empty-arm-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-wilcox-hl-point-estimate-weighted-branch-and-fast-randomization-distribution-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1341,6 +1342,7 @@ R/package_tests/testthat_bulk/test-wilcox-hl-distr-kernel-delta-shift-transform-
 R/package_tests/testthat_bulk/test-wilcox-hl-signed-rank-bisection-walsh-average-path-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-with-var-regression-kernels-fisher-information-and-ssq-b-j-cross-family-contract-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-augmented-count-asymp-honors-testing-type.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1718,7 +1720,6 @@ R/EDI/tests/testthat/test-seed-reproducibility-all-designs.R,coverage,3.0,measur
 R/EDI/tests/testthat/test-seed-reproducibility-single-thread-metadata.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-seq-ibcrd-requires-n.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-sequential-nonparam-bootstrap-disabled.R,coverage,2.9,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-simple-wilcox-constant-arms-estimate-pval-and-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-simulation-framework-advanced.R,coverage,3.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-simulation-framework-capability-dispatch.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-simulation-framework-extended.R,coverage,7.0,measured_with_30_percent_headroom
@@ -2971,6 +2972,7 @@ R/package_tests/testthat_bulk/test-simple-average-diff-studentized-and-jackknife
 R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R,coverage,5.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-diff-affine-coefs-guards-and-small-arm-shared-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-estimate-pval-and-ci.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-constant-arms-hl-estimate.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-empty-arm-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-hl-point-estimate-weighted-branch-and-fast-randomization-distribution-reference.R,coverage,240,bootstrap
@@ -3123,6 +3125,7 @@ R/package_tests/testthat_bulk/test-wilcox-hl-distr-kernel-delta-shift-transform-
 R/package_tests/testthat_bulk/test-wilcox-hl-signed-rank-bisection-walsh-average-path-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-with-var-regression-kernels-fisher-information-and-ssq-b-j-cross-family-contract-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-count-asymp-honors-testing-type.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,coverage,240,bootstrap

@@ -136,3 +136,82 @@ for (cn in names(wna_cases)) {
 		}
 	})
 }
+
+# v1.0.6-TODO-417 (DECISION-v1.0.6-TODO-380d): the asymptotic rank-test p-values
+# (log-rank, Gehan-Wilcoxon) used to fall back to the bootstrap p-value when the
+# log-rank null variance (right-censored) or interval::ictest()'s p-value (left- /
+# interval-censored) was unavailable. With that quantity forced unavailable, the
+# asymptotic p-value is NA, records procedure_failure_reason$rank_test, raises one
+# edi_rank_test_unavailable_warning (an edi_procedure_na_warning) per fit, and never
+# calls the bootstrap (stubbed to stop()).
+rna_interval_design = function(n = 60L, seed = 417L, g = 0.5) {
+	set.seed(seed)
+	d = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	d$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	d$assign_w_to_all_subjects()
+	t = rexp(n, rate = 0.15 * exp(0.4 * d$get_w()))
+	y_L = floor(t / g) * g
+	d$add_all_subject_responses(y_Ls = y_L, y_Rs = y_L + g)
+	d
+}
+
+rna_cases = list(
+	"InferenceSurvivalLogRank (right-censored, null variance unavailable)" = list(
+		build = function() {
+			inf = InferenceSurvivalLogRank$new(wna_design("survival"), verbose = FALSE)
+			inf$compute_estimate(estimate_only = FALSE)
+			inf$.__enclos_env__$private$cached_values$logrank_var = NA_real_
+			inf
+		},
+		pval = function(inf) inf$compute_asymp_log_rank_two_sided_pval_for_treatment_effect(delta = 0)
+	),
+	"InferenceSurvivalLogRank (interval-censored, ictest p-value unavailable)" = list(
+		interval = TRUE,
+		build = function() {
+			inf = InferenceSurvivalLogRank$new(rna_interval_design(), verbose = FALSE)
+			inf$compute_estimate(estimate_only = FALSE)
+			inf$.__enclos_env__$private$cached_values$icen_pval = NA_real_
+			inf
+		},
+		pval = function(inf) inf$compute_asymp_log_rank_two_sided_pval_for_treatment_effect(delta = 0)
+	),
+	"InferenceSurvivalGehanWilcox (interval-censored, ictest p-value unavailable)" = list(
+		interval = TRUE,
+		build = function() {
+			inf = InferenceSurvivalGehanWilcox$new(rna_interval_design(), verbose = FALSE)
+			inf$compute_estimate(estimate_only = FALSE)
+			inf$.__enclos_env__$private$cached_values$icen_pval = NA_real_
+			inf
+		},
+		pval = function(inf) inf$compute_asymp_two_sided_pval(delta = 0)
+	)
+)
+
+for (cn in names(rna_cases)) {
+	test_that(paste0(cn, ": the asymptotic rank-test p-value is NA with a reason and a warning, never the bootstrap"), {
+		cs = rna_cases[[cn]]
+		if (isTRUE(cs$interval)) skip_if_not_installed("interval")
+		inf = wna_forbid_bootstrap(suppressWarnings(suppressMessages(cs$build())))
+		w = NULL
+		p1 = withCallingHandlers(cs$pval(inf),
+			edi_rank_test_unavailable_warning = function(cond) { w <<- cond; invokeRestart("muffleWarning") })
+		expect_s3_class(w, "edi_rank_test_unavailable_warning")
+		expect_s3_class(w, "edi_procedure_na_warning")
+		expect_true(is.numeric(p1) && length(p1) == 1L && is.na(p1))
+		p = withCallingHandlers(cs$pval(inf),
+			edi_rank_test_unavailable_warning = function(w) stop("warned twice in one fit"))
+		expect_true(is.numeric(p) && length(p) == 1L && is.na(p))
+		expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$rank_test,
+			"rank_test_asymptotic_pvalue_unavailable")
+	})
+}
+
+test_that("the bootstrap p-value stays reachable through its own method on the log-rank class", {
+	inf = InferenceSurvivalLogRank$new(wna_design("survival"), verbose = FALSE)
+	inf$compute_estimate(estimate_only = FALSE)
+	inf$.__enclos_env__$private$cached_values$logrank_var = NA_real_
+	expect_warning(inf$compute_asymp_log_rank_two_sided_pval_for_treatment_effect(), class = "edi_rank_test_unavailable_warning")
+	set.seed(1)
+	p = suppressWarnings(inf$compute_bootstrap_two_sided_pval(B = 101, type = "percentile", show_progress = FALSE))
+	expect_true(is.numeric(p) && length(p) == 1L && is.finite(p) && p >= 0 && p <= 1)
+})

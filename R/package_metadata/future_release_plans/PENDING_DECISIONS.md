@@ -28,13 +28,15 @@ Last updated 2026-11-23.
 | [DECISION-v2.0.0-TODO-1](#DECISION-v2.0.0-TODO-1) | [v2.0.0-TODO-1](release_v2_0_0.md) | The 2.0.0 decision batch for every gated track |
 | [DECISION-v1.4.0-TODO-1](#DECISION-v1.4.0-TODO-1) | [v1.4.0-TODO-1](release_v1_4_0.md) | The v1.4.0 Phase 0 decisions for the gated survival / censoring items |
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
+| [DECISION-v1.1.0-TODO-268](#DECISION-v1.1.0-TODO-268) | [v1.1.0-TODO-268](release_v1_1_0.md) | Turn on the sequential-MC early stop for the standalone randomization p-value (p-values change), and for which classes? |
+| [DECISION-v1.1.0-TODO-267](#DECISION-v1.1.0-TODO-267) | [v1.1.0-TODO-267](release_v1_1_0.md) | Ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not? |
+| [DECISION-v1.1.0-TODO-266](#DECISION-v1.1.0-TODO-266) | [v1.1.0-TODO-266](release_v1_1_0.md) | Confirm ruling out the observed-fit warm start for CLMM randomization redraws (same optimum, slower) |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
 | [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
 | [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
 | [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.6-TODO-403](release_v1_0_6.md) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
 | [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.6-TODO-402](release_v1_0_6.md) | How should audit-written bug tests skipped without a TODO be surfaced? |
-| [DECISION-v1.0.6-TODO-380d](#DECISION-v1.0.6-TODO-380d) | [v1.0.6-TODO-380](release_v1_0_6.md) | Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable? |
 | [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.6-TODO-373](release_v1_0_6.md) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
 | [DECISION-v1.0.6-TODO-371](#DECISION-v1.0.6-TODO-371) | [v1.0.6-TODO-371](release_v1_0_6.md) | OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)? |
 | [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.6-TODO-367](release_v1_0_6.md) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
@@ -165,6 +167,82 @@ Last updated 2026-11-23.
 
 ## v1.1.0
 
+<a id="DECISION-v1.1.0-TODO-268"></a>
+### DECISION-v1.1.0-TODO-268: Turn on the sequential-MC early stop for the standalone randomization p-value (p-values change), and for which classes?
+
+- **TODO:** [v1.1.0-TODO-268](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: fewer redraws at
+  large n.**
+- **Context:** `compute_two_sided_pval_with_sequential_mc()` (`inference_all_abstract_rand.R`) already stops drawing once
+  the 99% Clopper-Pearson band of the running p-value excludes the threshold. Only the randomization CI search turns it on
+  (`normalize_randomization_ci_search_control()`: batch `max(25, ceil(2 sqrt(r)))` = 45, at least 100 draws, conf 0.99,
+  enabled for `r >= 200`). A standalone `compute_rand_two_sided_pval()` leaves `private$randomization_mc_control` NULL
+  and always uses all r = 501 redraws; there is no public argument to turn it on. It works for the KK CLMM classes
+  unchanged (checked, below).
+- **Evidence (2026-11-23, agent):** under the null the rule's behavior does not depend on the statistic (ranks are
+  uniform), so it was simulated with iid draws, r = 501, CI-search defaults, threshold 0.05: mean 172 of 501 draws (34%;
+  2.9x fewer), size 0.0536 both ways, reject/accept decision differs in 1 of 20,000 replicates; conf 0.999: 182 draws,
+  0 of 20,000. Under alternatives with 32 / 51 / 80% power: 51 / 58 / 59% of the draws, 0 of 5,000 decisions differ.
+  The returned p-value is the prefix's (SD of the change 0.06 under the null, 0.02-0.04 under alternatives), so every
+  p-value away from alpha changes. On the real class (`InferenceOrdinalKKCLMM`, SeqOneByOneKK14, n = 200, 3 null data
+  sets): 114 / 98 / 135 s -> 25 / 27 / 37 s; p 0.60 / 0.58 / 0.64 -> 0.71 / 0.44 / 0.53.
+- **Options:** (a) keep the default (all r draws); add a public opt-in (e.g. `mc_control =` on
+  `compute_rand_two_sided_pval()`, or an `InferenceSuite` setting) and let the calibration harness use it for the slow
+  classes; (b) turn it on by default for every class's standalone p-value when r >= 200 (release-rule default change,
+  NEWS; every rand p-value away from alpha moves); (c) on by default only for classes whose redraw refits a model (a
+  registry flag), so cheap classes keep exact full-r p-values; (d) leave as is.
+- **Recommendation (agent):** (a) now, (c) if the owner wants the calibration study to stay on the default path. The
+  saving (about 3x at the null, 1.7x under power) is smaller than DECISION-v1.1.0-TODO-267's and stacks with the
+  v1.1.0-TODO-265 retry and kernel fix ([DECISION-v1.1.0-TODO-265a](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-265a)).
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+
+<a id="DECISION-v1.1.0-TODO-267"></a>
+### DECISION-v1.1.0-TODO-267: Ship the score-at-the-null-fit randomization statistic for the KK CLMM classes: as an option, as the default, or not?
+
+- **TODO:** [v1.1.0-TODO-267](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: a statistic that does
+  not need a full refit per redraw.**
+- **Context:** the current statistic refits the CLMM on every redraw (0.25 s at n = 200, 1-6 s at n = 1000). A
+  randomization test is exact for any statistic, so a cheaper one keeps the size; only power and the p-values change.
+  Prototype (scratch, not in the package): fit the null CLMM once (treatment coefficient fixed at 0 with the kernel's
+  `fixed_idx`); r_i = posterior mean, over unit i's pair random intercept (the same 20-node Gauss-Hermite rule), of
+  d log p(y_i | eta) / d eta; statistic T(w) = sum_i w_i r_i, the score for beta_T. Each redraw is one dot product
+  (`crossprod(w_mat, r)`). Checked: kernel neg-loglik = R neg-loglik at the null fit (237.509), numeric derivative =
+  analytic score (-2.059287).
+- **Evidence (2026-11-23, agent):** cost of one p-value with r = 501: 0.05 s at n = 50 vs 31 s now (~600x); 0.17 s vs
+  ~120 s at n = 200; 0.55-0.87 s vs ~2,000-2,900 s at n = 1000. Null size at alpha = 0.05 (calibration DGP, null):
+  SeqOneByOneKK14 n = 50 0.050 (300 reps), n = 200 0.037 (300), n = 1000 0.070 (400; MC SD 0.011);
+  FixedBinaryMatch n = 200 0.067 (300), n = 1000 0.065 (200); Cauchit KK14 n = 200 0.037 (300). On three n = 1000 data
+  sets where the score test rejected, the current statistic also rejected or nearly (p = 0.059 / 0.020 / 0.020), so the
+  n = 1000 excess is shared, not the score's. Agreement with the current statistic on the same data (KK14, n = 50, 40
+  null reps): cor(p) = 0.997, max |dp| = 0.06; on one n = 200 data set the two p-values were identical (0.583). Power
+  at the power50 effect (KK14, n = 50, 60 reps, same data): 0.43 (score) vs 0.37 (current).
+- **Options:** (a) add it as an opt-in statistic (e.g. `rand_statistic = "score"`) for the four KK CLMM links, default
+  unchanged; (b) make it the default randomization statistic for these classes (results change; NEWS; release rule);
+  (c) also use it for the randomization CI (each bisection step becomes cheap; the CI then inverts a score test, not the
+  estimate's test, and the delta-shift needs the null fit refit at each delta); (d) do not ship.
+- **Recommendation (agent):** (a), then (b) if a full calibration run shows no power loss. It is the only option that
+  makes the n = 1000 p-value cost seconds instead of minutes.
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+
+<a id="DECISION-v1.1.0-TODO-266"></a>
+### DECISION-v1.1.0-TODO-266: Confirm ruling out the observed-fit warm start for CLMM randomization redraws (same optimum, slower)
+
+- **TODO:** [v1.1.0-TODO-266](release_v1_1_0.md): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's
+  refit from the observed-data fit.**
+- **Context:** each redraw already starts from its own data, not cold: `shared_rcpp()` starts from the fixed-effects
+  cumulative-link MLE on the redraw's assignment (`clmm_warm_start()`, ~2 ms), and the kernel adds log-sigma starts
+  -1, 0, 1, -8. Nothing chains (v1.0.6-TODO-61 holds).
+- **Evidence (2026-11-23, agent):** observed-fit start vs current start, same redraws, max log-likelihood compared:
+  default DGP (sigma at the lower boundary) KK14 / FixedBinaryMatch n = 200, 100 redraws each: |d nll| <= 9.4e-11,
+  none worse or better by 1e-6, time 38.2 vs 29.7 s and 25.0 vs 20.7 s; n = 1000, 20 each: |d nll| <= 2.0e-10, 24.2 vs
+  23.4 s and 28.0 vs 27.3 s; Cauchit KK14 n = 200, 100: |d nll| <= 9.1e-11, 35.4 vs 29.5 s. Interior sigma (model
+  `~ x1`, log sigma median -0.67, 25% at the boundary) KK14 n = 200, 100: |d nll| <= 5.5e-11, 11.2 vs 9.1 s; n = 1000,
+  20: |d nll| <= 4.7e-11, 7.0 vs 5.9 s. No ZIP-style trap, but no speed-up either: the redraw's own fixed-effects MLE is a
+  closer start than the observed fit, and the share of redraws needing the Newton retry barely moves (n = 1000: 8 vs
+  8 of 20 on KK14, 8 vs 11 on FixedBinaryMatch).
+- **Options:** (a) rule it out (no code change); (b) adopt it anyway (no benefit seen).
+- **Recommendation (agent):** (a).
+- **Raised:** 2026-11-23, by the v1.1.0-TODO-265..268 agent.
+
 <a id="DECISION-v1.1.0-TODO-218"></a>
 ### DECISION-v1.1.0-TODO-218: Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit?
 
@@ -262,24 +340,6 @@ Last updated 2026-11-23.
   `skip("open a release TODO for this")`; (c) have the numerical-robustness audit file the TODO itself in its PR
   instead of the placeholder skip; (d) leave as is and rely on periodic sweeps.
 - **Raised:** 2026-11-22, coordinator, from the audit free-text sweep.
-
-<a id="DECISION-v1.0.6-TODO-380d"></a>
-### DECISION-v1.0.6-TODO-380d: Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable?
-
-- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md) (ticked): **A separate opt-in design-conservative Bartlett option, and
-  "the testing type you ask for is the test you get".**
-- **Context:** under the owner principle "If the user wants wald, we should always give wald" (2026-11-21), the Wald
-  paths that fell back to the nonparametric bootstrap now return NA with a recorded reason and a warning. The agent
-  left two fallbacks alone because they are not Wald tests: `InferenceSurvivalLogRank`'s p-value falls back to the
-  bootstrap when its variance or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R`
-  ~L181-187), and `InferenceSurvivalGehanWilcox`'s asymptotic p-value does the same for interval-censored data (~L196).
-- **Options:** (a) keep both fallbacks and document them; (b) apply the same rule: the asymptotic p-value is NA with a
-  reason and a warning, and the bootstrap stays its own method (results change where a fallback fired; NEWS entry).
-- **Also to confirm (judgment call by the agent):** `InferenceCountPoisson`'s best-available
-  `compute_lik_ratio_bartlett_*` pair was made model-only too, not only the approx pair, so the two cannot disagree.
-  Revert those lines (`R/EDI/R/inference_count_poisson.R` ~L415-451) if only the approx pair should change.
-- **Recommendation (agent):** (b), for one rule across testing types; keep the best-available pair model-only.
-- **Raised:** 2026-11-23, by the agent that implemented v1.0.6-TODO-380.
 
 <a id="DECISION-v1.0.6-TODO-373"></a>
 ### DECISION-v1.0.6-TODO-373: `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`?

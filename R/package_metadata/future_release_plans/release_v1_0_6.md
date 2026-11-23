@@ -5017,7 +5017,7 @@ itself still needs a look.
     KK21 count weight comparisons and the affected package_tests CSVs.
   - Done when: both sites fixed, the theta.ml test passes, NEWS notes the changed weights.
 
-### Bugs found by the algorithm-audit re-review of drift issue #55, 2026-11-20 (TODO-271..276, TODO-323..324, TODO-326)
+### Bugs found by the algorithm-audit re-review of drift issue #55, 2026-11-20 (TODO-271..276, TODO-323..324, TODO-326, TODO-424)
 
 The 2026-11-20 re-review of the 26 drifted algorithm-audit rows (`new_feature_plans/v1_0_5/algorithm_choice_audit.md`,
 "Re-review log", entry "2026-11-20: drift issue #55") kept every row's decision but found these. Only TODO-271 and
@@ -5217,6 +5217,24 @@ TODO-273 were confirmed by reading the code; the rest are suspected and need a r
   test-survival-dep-cens-transform-weighted-bootstrap-reference.R (it tested the Cox-surrogate wiring) is deleted and
   ci/test_runtimes.csv refreshed. Under load_all(compile = FALSE) the other DepCens, mixin-contract, registry and
   Bayesian-bootstrap test files pass (test-mixin-contracts.R 1678 pass). Not reproduced numerically first.
+
+- [ ] TODO-424 (added 2026-11-23, owner; the optional item left open by v1.0.6-TODO-272): **Logistic IRLS runs the
+  plain pass even when it is bound to fail.** `fast_logistic_regression_impl` (`R/EDI/src/fast_logistic_regression.cpp`
+  ~L430-434) always runs `run_irls(false)` first and, when that pass does not converge, reruns the whole fit from the
+  same start with step halving (`run_irls(true)`). The plain pass comes first so that every fit that converged before
+  stays bit-identical (the comment at ~L216-225). But a fit that will not converge (separation, or a far warm start)
+  pays for two full IRLS runs, up to 2 x maxit iterations, and that cost lands on every resampling draw of such data.
+  Callers include the logistic classes, `fast_gee.cpp` and `fast_hurdle_negbin.cpp`.
+  - Measure first: how often the plain pass fails in practice (separated KK / bootstrap / randomization draws, far warm
+    starts) and what the second pass costs there; if it is rare or cheap, close this with the numbers.
+  - Options: (a) stop the plain pass early as soon as a step raises the negative log-likelihood (the case the
+    safeguarded pass exists for) and switch to the safeguarded pass from that point, or from the start, keeping
+    converged fits that never saw a rise bit-identical; (b) skip the plain pass when a cheap screen predicts failure
+    (e.g. the fitted |eta| separation screen on the warm start); (c) reuse the plain pass's best iterate as the
+    safeguarded pass's start instead of restarting.
+  - Done when: non-converging fits take about one pass of work, every fit that converges today returns bit-identical
+    coefficients (sweep as in v1.0.6-TODO-272: far warm starts, separation, maxit 1..100), with a test and a timing
+    note; NEWS bullet only if any result changes.
 
 ### custom-statistic docs-scenario findings, run 44358267779, 2026-11-20 (TODO-277..282)
 
@@ -6373,7 +6391,7 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   `InferenceIncidBinomialIdentityRiskDiff` example warned** (`edi_binomial_mle_boundary_warning` on 3 of 30 seeds). It
   now uses `set.seed(1)`, n = 100, a binary covariate and true risks in [0.3, 0.6], and also shows the asymptotic CI
   (roxygen in 8d8c5f78; the Rd example block hand-synced, `checkRd` clean). 0 of 50 seeds warn; about 0.1 s per run.
-- [ ] TODO-333 (added 2026-11-21, agent, owner request; audit decisions `rpy-parity-d1f65c8c0`, `rpy-parity-d62675f61`,
+- [x] TODO-333 (added 2026-11-21, agent, owner request; audit decisions `rpy-parity-d1f65c8c0`, `rpy-parity-d62675f61`,
   `rpy-parity-dd699435e`): **Python bindings return less than their R exports.** Code done, not yet verified:
   (1) `fast_zero_one_inflated_beta` takes `estimate_only` (default `False`) and returns R's fields (`b`, `log_phi`,
   `zero_one_b0`, `zero_one_b1`, `vcov`, the information matrices, `hessian`, `min_eigenvalue_information`); (2)
@@ -6383,6 +6401,11 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
   (`fast_zero_one_inflated_beta_result_internal`, `fast_robust_regression_ssq_b_j_internal`; C++ in 8d8c5f78); R
   output should be unchanged. Done when, after the owner's rebuild, the 5 new pytest cases pass and the R ZOIB and
   robust-regression tests still pass.
+  - **Verified 2026-11-23 (agent) on the owner's builds:** with today's Python extension
+    (`python/build/cp314-cp314-linux_x86_64/`, loaded from a `$TMPDIR` copy because the venv's editable install still
+    points at the 2026-11-20 one) the 6 binding test files pass, 650 passed, including the 5 new cases. On today's R build
+    the 40 ZOIB / zero-one-inflated / robust-regression test files in both trees pass (830, 0 failed). The venv needs
+    reinstalling to pick up the new extension.
 - [ ] TODO-334 (added 2026-11-21, agent, owner request; audit decision `docs-claims-d70b0515c`, claim 2): **Test
   `InferenceRandCustom`'s parallel-path contract.** The docs (`R/EDI/R/inference_rand_custom.R:84-86`) say a C++
   source string works on parallel paths while an external pointer or pre-compiled Rcpp function is valid in the main
@@ -6919,6 +6942,10 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   Done when, after the owner's rebuild with both patches, R-CMD-check is green on every leg and the v1.0.6-TODO-322 (2)
   probes of the other kernels sharing the finish (ZIP / hurdle, ZOIB, the GLMMs, Weibull frailty, CLMM) pass; the
   header change reaches every L-BFGS kernel, and only these two were swapped.
+  - **Verified 2026-11-23 (agent) on the owner's 09:28 build with both patches:** `test-rcpp-fitting-equivalence.R` 81/81,
+    `test-stereotype-logit-hessian-allocs.R` 18/18, `test-gaussian-lmm-hessian-prealloc.R` 19/19, and the three other
+    files from the run 44749244495 failures pass. Still to confirm on CI after a push: R-CMD-check green on every leg, and
+    the v1.0.6-TODO-322 (2) probes of the other kernels that share the finish.
 - [ ] TODO-375 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalWeibullRegr`: Wald / LR / gradient oversized at n = 1000 with `~1`, and score oversized at every n.**
   - Wald / LR / gradient, size and coverage: 4-5 cells each, all `~1`, n = 1000 (FixedBernoulli, FixediBCRD,
     FixedRerandomization at prob_T 0.5 and 0.2, SeqOneByOneRandomBlockSize); worst FixedRerandomization `~1` n = 1000:
@@ -6998,7 +7025,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     interval-censored KMDiff / RMST (no analytic SE; bootstrap is the documented strategy), the KK GEE jackknife-Wald,
     and `InferenceCountPoisson`'s Wald / jackknife-Wald union. Follow-up: v1.0.6-TODO-413 (ZA count classes ignore the
     testing type).
-  - Owner decision pending: [DECISION-v1.0.6-TODO-380d](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-380d) (rank tests: keep the bootstrap fallback when the asymptotic p-value is unavailable?).
+  - Decided 2026-11-23 (owner): rank tests drop the bootstrap fallback, Poisson best-available Bartlett pair stays model-only; see [DECISION-v1.0.6-TODO-380d](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-380d). Implementation: v1.0.6-TODO-417.
 
 - [ ] TODO-381 (added 2026-11-21, owner request; from the `pkg-size` budget report, issue #66): **The R CMD check
   test phase got 36-60% slower on five of the six CRAN legs.** At commit `626f9964`, `tests_s` against the 8-week
@@ -7197,6 +7224,12 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   (not committed).
   - Decided 2026-11-23 (owner): keep the finish and accept the cost; slowed rows allowlisted; see [DECISION-v1.0.6-TODO-410](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-410).
   - DONE 2026-11-23: ten rows added to `R/benchmark/benchmark_regression_allowlist.csv` citing this TODO (remove at the v1.0.6 release). Still open in separate TODOs if filed: the colon cases that stay wrong with converged = TRUE, and the ZINB NaN rescue.
+  - Briefly revised 2026-11-23 to "finish only the multistart winner" (implemented by kernel swap: CLMM 256 -> 131 /
+    150 -> 66 ms, estimates moved <= 7.9e-4), then withdrawn the same day: the owner confirmed the ruling above (keep the
+    finish everywhere). The code, roxygen and NEWS edits were reverted to HEAD; the prototype is in /tmp/claude-1000/t410/.
+  - Follow-ups filed from the measurement: v1.0.6-TODO-419 (colon cases wrong but converged = TRUE), v1.0.6-TODO-420
+    (wasted ZINB NaN rescue), v1.0.6-TODO-421 (ordinal benchmark generators leave the middle category empty),
+    v1.0.6-TODO-422 (unverified: GLMM likelihood for groups larger than two).
 - [ ] TODO-411 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951): **The nightly Ubuntu
   reproducibility leg times out, so the cross-leg comparison fails.** `reproducibility (ubuntu-latest-release)` was
   cancelled at the 150-minute job limit on 11-21 (8d8c5f78) and 11-22 (9186e6a5); it took 47-69 min on 11-18..11-20.
@@ -7235,7 +7268,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     calibration_study_accepted.csv rows citing this TODO; the n = 50 cells can stay under v1.1.0-TODO-181 if that is the cause.
   - Status 2026-11-23 (coordinator), wave 30 of campaign 2026-11-15-e36c7710: 82 cells confirmed failing (score 59, gradient 14, LR 9; size and coverage) across n = 50, 200 and 1000. Every Wald cell was cleared by confirmation, so Wald is out of scope (title updated). 6 cells still pending: score / LR / gradient, size and coverage, SeqOneByOneRandomBlockSize prob_T 0.5, n = 1000.
 
-- [ ] TODO-413 (added 2026-11-23, agent; found by the v1.0.6-TODO-380 agent): **`InferenceCountZeroInflatedPoisson`,
+- [x] TODO-413 (added 2026-11-23, agent; found by the v1.0.6-TODO-380 agent): **`InferenceCountZeroInflatedPoisson`,
   `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin` and `InferenceCountHurdleNegBin` ignore
   `set_testing_type()`.** `compute_asymp_confidence_interval()` / `compute_asymp_two_sided_pval()` always return the
   Wald result: score, gradient, LR and Bartlett all gave the Wald p-value (0.2970551 for every type on a ZIP fixture),
@@ -7244,6 +7277,17 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   (`inference_count_zero_inflated.R`, `inference_count_hurdle.R`, `inference_count_zero_augmented_poisson_abstract.R`),
   or drop unsupported types from the list. Test: for each class and each listed type, the asymp p-value equals the
   direct `compute_<type>_two_sided_pval()`. Results change for anyone who set a non-Wald type; NEWS entry.
+  - **Done 2026-11-23 (agent):** new `za_count_asymp_by_testing_type()`
+    (`R/EDI/R/inference_count_zero_augmented_poisson_abstract.R`) routes each non-Wald type to the same public method a
+    direct call reaches, with a `stop()` default; used by the ZINB base, ZIP, hurdle Poisson and hurdle NegBin
+    `compute_asymp_*()`. Wald is unchanged (including the v1.0.6-TODO-380 NA path). All listed types work, so none was
+    dropped; the real Bartlett factor gives values close to LR (ZIP 0.675 vs 0.654). Also fixed:
+    `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` inverted the configured type and so returned the
+    Wald CI by default (fixture: [-0.596, 0.341] -> [-0.674, 0.424]). Test:
+    `R/package_tests/testthat_bulk/test-zero-augmented-count-asymp-honors-testing-type.R` (141); 81 zero-augmented /
+    hurdle files in both trees pass (3023, 0 failed). NEWS bullet added. Rd to regenerate:
+    `InferenceCountZeroInflatedPoisson.Rd`, `InferenceCountHurdlePoisson.Rd`, `InferenceCountHurdleNegBin.Rd`.
+    Follow-up: v1.0.6-TODO-423.
 
 ### Audit triage sweep, 2026-11-23 (TODO-414..416)
 
@@ -7306,3 +7350,68 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   the structural differences changed. Alternatively, key families by file pair and the enclosing function or R6
   method names. Test: in a fixture, edit one line inside a judged region; the next detect() gives the same decision id
   and no new Claude batch.
+
+- [x] TODO-417 (added 2026-11-23, owner request; from DECISION-v1.0.6-TODO-380d): **Rank-test asymptotic p-values must
+  not fall back to the bootstrap.** `InferenceSurvivalLogRank`'s p-value falls back to the bootstrap when its variance
+  or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R` ~L181-187), and
+  `InferenceSurvivalGehanWilcox`'s asymptotic p-value does the same for interval-censored data (~L196). Return NA with a
+  recorded `procedure_failure_reason` and a classed warning (the v1.0.6-TODO-380 `edi_wald_unavailable_na()` pattern,
+  with a rank-test reason); the bootstrap stays reachable through its own method. Update the docs; NEWS entry (results
+  change where a fallback fired). Test: with the asymptotic quantity forced unavailable, the asymptotic p-value is NA
+  with the reason and warning, and the bootstrap stub is never called.
+  - **Done 2026-11-23 (agent):** new `edi_rank_test_unavailable_na()` (`R/EDI/R/helper_robust_sandwich.R`) records
+    `procedure_failure_reason$rank_test = "rank_test_asymptotic_pvalue_unavailable"` and warns once per fit with
+    `edi_rank_test_unavailable_warning` (also an `edi_procedure_na_warning`). `InferenceSurvivalLogRank` (right-censored
+    variance or interval-censored `ictest()` p-value missing) and `InferenceSurvivalGehanWilcox` (interval-censored
+    `ictest()` p-value missing) use it instead of the bootstrap, which stays available as
+    `compute_bootstrap_two_sided_pval()`. Gehan's right-censored fallback to `survdiff(rho = 1)` is the same asymptotic
+    test and stays. A sweep of the other rank and nonparametric classes found no other such fallback; interval-censored
+    KMDiff / RMST keep the bootstrap by design. Tests: 4 new blocks in
+    `R/package_tests/testthat_bulk/test-wald-se-unavailable-returns-na-never-bootstrap.R` (63 pass); 9 related survival
+    files pass. NEWS bullet added. Rd to regenerate: `InferenceSurvivalLogRank.Rd`, `InferenceSurvivalGehanWilcox.Rd`.
+
+### Follow-ups from the v1.0.6-TODO-410 measurement, 2026-11-23 (TODO-419..422)
+
+- [ ] TODO-419 (added 2026-11-23, agent, from the v1.0.6-TODO-410 measurement): **Several L-BFGS kernels still report
+  `converged = TRUE` at a wrong optimum on the colon age x 1000 / age + 1e5 designs.** With the v1.0.6-TODO-169 finish
+  on, the Hessian at LBFGSpp's stop is not positive definite, so `lbfgs_finish_with_newton_decrement()` keeps the old
+  "stopped before the cap" verdict. Measured (colon, etype 2, Obs vs Lev+5FU, pairs of consecutive rows in time order;
+  negLL above the best fit of the same model on the `scale()`d design): `fast_ordinal_clmm_cpp` x1000 treatment 0 (+68),
+  +1e5 0 (+65), truth -0.170; `fast_logistic_glmm_cpp` x1000 / +1e5 about -0.23 (+9), truth -0.263;
+  `fast_clogit_plus_glmm_cpp` x1000 / +1e5 0 (+40); `fast_weibull_frailty_cpp` x1000 / +1e5 0.080 (+46 / +37), truth 0.347;
+  ZINB already known (v1.0.6-TODO-169). `fast_ordinal_glmm_cpp` is also wrong there but reports `converged = FALSE`.
+  Fix candidates: report not converged when the rule cannot judge a point that is far from stationary (e.g. a large
+  relative gradient), retry from an internally column-scaled problem (the v1.0.6-TODO-163 Weibull approach), or use
+  the expected information when the observed one is not PD. Repro scripts: the v1.0.6-TODO-410 session scratch
+  (`colon.R`, not committed); the TODO-410 measurement note has the response and grouping construction.
+- [ ] TODO-420 (added 2026-11-23, agent, from the v1.0.6-TODO-410 measurement): **The ZINB NaN rescue spends 12 Newton
+  steps on a fit that is thrown away.** On the benchmark `InferenceCountZeroInflatedNegBin` fixture (Poisson data, so
+  theta goes to its boundary) the full ZINB L-BFGS run ends non-finite, `optimize_likelihood_lbfgs` retries the
+  damped-Newton finish from the start (gradient norm 669, 13 numerical Hessians, 12 steps), the rescue fails the rule,
+  and the kernel falls back to the reduced model anyway: fit time 12.2 -> 24.2 ms for no change in the result. Skip the
+  rescue when the start is far from stationary, or cap its steps, and check that the TODO-169 NegBin rescue cases
+  (smart cold start, age x 1000 / + 1e5) still succeed.
+- [ ] TODO-421 (added 2026-11-23, agent, from the v1.0.6-TODO-410 measurement): **The benchmark ordinal generators leave
+  the middle category empty.** `generate_kk_ordinal_pairs_data()` and the `"ordinal"` branch of `generate_data()` in
+  `R/benchmark/benchmark_model_fits.R` set p1 = 1 / (1 + exp(eta - 1)) and p2 = 1 / (1 + exp(eta + 1)) - p1, which is
+  always negative, so it is clamped to 1e-6 and y takes only 1 and 3 (199 / 201 on the CLMM pairs fixture). The
+  ordinal kernels then fit a boundary model (log spacing of the cutpoints about -13), and `fast_ordinal_glmm_cpp`
+  differs from `ordinal::clmm` by 0.38 / 0.18 on those fixtures while matching it to 1e-5 on colon. Fix the
+  probabilities (cumulative P(Y <= k) = plogis(alpha_k - eta) with increasing alpha), note that it changes every ordinal
+  benchmark dataset and timing, and check the ordinal GLMM vs clmm gap on boundary data separately.
+- [ ] TODO-422 (added 2026-11-23, agent, from the v1.0.6-TODO-410 measurement; unverified): **Check whether the GLMM
+  kernels compute the right likelihood for groups larger than two rows.** In a first colon attempt with groups of 6
+  rows, `fast_logistic_glmm_cpp` reported a negLL of 190.7 where `lme4::glmer(nAGQ = 20)` on the same data and model
+  gave 200.8 (a better likelihood than the reference, which should not happen for the same model), while
+  `fast_gaussian_lmm_cpp` refuses groups larger than 2. KK designs only produce pairs and singletons, but the kernels
+  accept any `group_id`. Compare each GLMM kernel (logistic, Poisson, ordinal CLMM / GLMM, hurdle Poisson, frailty)
+  with glmer / clmm on groups of 3-6 rows, and either fix the likelihood or reject such groups as the LMM does.
+
+- [ ] TODO-423 (added 2026-11-23, agent; found by the v1.0.6-TODO-413 agent): **`InferenceAsympLik`'s
+  `compute_asymp_*()` switch has no `stop()` default**, so a testing type with no branch returns `NULL` (the bug class
+  v1.0.6-TODO-327 fixed in the subclasses). Add `stop("Unsupported testing_type: ", ...)` to both switches in
+  `R/EDI/R/inference_all_abstract_asymp_lik.R` and sweep the remaining `switch(private$testing_type` sites that lack one
+  (v1.0.6-TODO-327's sweep listed abstract_asymp_lik, std_mod_cache, logit, binomial_identity, log_binomial, beta, zoib,
+  coxph, strat_cox). `set_testing_type()` validates names today, so this guards against a supported-type list and a
+  switch drifting apart. Test: a class whose supported list names a type its switch lacks errors instead of returning
+  `NULL` (inject via a test subclass).

@@ -2570,8 +2570,8 @@ fast_ordinal_cauchit_regression_with_var_cpp <- function(X, y, warm_start_params
     .Call(`_EDI_fast_ordinal_cauchit_regression_with_var_cpp`, X, y, warm_start_params, smart_cold_start, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info)
 }
 
-fast_ordinal_clmm_cpp <- function(X, y, group_id, K, j_T, link = "logit", estimate_only = FALSE, n_gh = 20L, max_abs_log_sigma = 8.0, maxit = 300L, eps_g = 1e-6, warm_start_params = NULL, optimization_alg = "lbfgs", fixed_idx = NULL, fixed_values = NULL, warm_start_fisher_info = NULL) {
-    .Call(`_EDI_fast_ordinal_clmm_cpp`, X, y, group_id, K, j_T, link, estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g, warm_start_params, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info)
+fast_ordinal_clmm_cpp <- function(X, y, group_id, K, j_T, link = "logit", estimate_only = FALSE, n_gh = 20L, max_abs_log_sigma = 8.0, maxit = 300L, eps_g = 1e-6, warm_start_params = NULL, optimization_alg = "lbfgs", fixed_idx = NULL, fixed_values = NULL, warm_start_fisher_info = NULL, variance_multistart = TRUE) {
+    .Call(`_EDI_fast_ordinal_clmm_cpp`, X, y, group_id, K, j_T, link, estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g, warm_start_params, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info, variance_multistart)
 }
 
 fast_cloglog_link_eval_cpp <- function(x) {

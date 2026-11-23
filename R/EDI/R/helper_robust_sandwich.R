@@ -1075,6 +1075,34 @@ edi_wald_unavailable_na = function(self, private, alpha = NULL, reason = "wald_s
 	ci
 }
 
+#' The NA an asymptotic rank-test p-value returns when its null variance or
+#' p-value is unavailable (v1.0.6-TODO-417)
+#'
+#' Sibling of \code{edi_wald_unavailable_na()} for the rank tests (log-rank,
+#' Gehan-Wilcoxon) per DECISION-v1.0.6-TODO-380d: the asymptotic p-value is
+#' \code{NA}, never the nonparametric bootstrap p-value (which stays its own
+#' method). Records the reason under \code{procedure_failure_reason$rank_test}
+#' and warns once per fit (class \code{edi_rank_test_unavailable_warning}, also
+#' an \code{edi_procedure_na_warning}; silent inside resampling).
+#'
+#' @keywords internal
+#' @noRd
+edi_rank_test_unavailable_na = function(self, private, reason = "rank_test_asymptotic_pvalue_unavailable") {
+	private$cache_procedure_failure("rank_test", reason)
+	if (!isTRUE(private$cached_values$rank_test_unavailable_warned)) {
+		warned = edi_warn_procedure_na(self, private,
+			procedure = "the asymptotic rank-test p-value",
+			reason = reason,
+			detail = paste0(
+				"The null variance / p-value it needs is unavailable for this fit, and no other procedure is substituted. ",
+				"For a resampling result call compute_bootstrap_two_sided_pval() or compute_rand_two_sided_pval()."
+			),
+			warning_class = "edi_rank_test_unavailable_warning")
+		if (isTRUE(warned)) private$cached_values$rank_test_unavailable_warned = TRUE
+	}
+	NA_real_
+}
+
 #' Has a procedure already recorded a failure reason? (TODO-116)
 #' @keywords internal
 #' @noRd
