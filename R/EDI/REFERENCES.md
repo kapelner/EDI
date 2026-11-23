@@ -188,6 +188,47 @@ Crossref 2026-11-17.)
   observed information at the MLE; the information preference applies only
   to score tests and score CIs (v1.0.6-TODO-215).
 
+### Randomization tests: Monte Carlo p-values
+
+The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
+(v1.2.0-TODO-207, owner ruling 2026-11-23). The in-code citations live in the
+`man-roxygen/rand-mc-pvalue-references.R` template.
+
+- **[PhipsonSmyth2010]** Phipson, B., and Smyth, G. K. (2010). "Permutation
+  P-values should never be zero: calculating exact P-values when
+  permutations are randomly drawn." *Statistical Applications in Genetics
+  and Molecular Biology*, 9(1), Article 39.
+  [doi:10.2202/1544-6115.1585](https://doi.org/10.2202/1544-6115.1585); also
+  arXiv:1603.05766. Implemented as `permp()` in the CRAN package statmod
+  (<https://CRAN.R-project.org/package=statmod>). — Used by:
+  `InferenceRand`, `InferenceRandCustom`, `InferenceRandBootstrap`,
+  `rand_pval_from_tail_counts`, `rand_pval_from_abs_count` (every
+  randomization and randomization-bootstrap p-value, and the CIs that
+  invert them).
+- **[HemerikGoeman2017]** Hemerik, J., and Goeman, J. (2017). "Exact testing
+  with random permutations." *TEST*.
+  [doi:10.1007/s11749-017-0571-1](https://doi.org/10.1007/s11749-017-0571-1);
+  arXiv:1411.7565. — Used by: `InferenceRand` (exactness of the rule with
+  randomly drawn reference allocations).
+- **[Howes2023]** Howes, M. (2023). "Markov chain Monte Carlo significance
+  tests." arXiv:2310.04924. — Used by: `InferenceRand` (the same +1
+  correction for dependent reference draws).
+- **[FischerRamdas2025]** Fischer, L., and Ramdas, A. (2025). "Sequential
+  Monte-Carlo testing by betting." *Journal of the Royal Statistical
+  Society Series B*, qkaf014.
+  [doi:10.1093/jrsssb/qkaf014](https://doi.org/10.1093/jrsssb/qkaf014);
+  arXiv:2401.07365. — Used by: `InferenceRand` (background for the
+  sequential Monte Carlo early-stopping path).
+- **[Zeng2026Switchback]** Zeng, Z., Adjaho, C., Bucarey, A., Qin, C., Zhang,
+  R., Hoban, P., Johari, R., and Wager, S. (2026). "Sequentially-rerandomized
+  switchback experiments." arXiv:2604.02489. — Used by: `InferenceRand`
+  (a recent randomization-inference application of the same rule).
+- **[Coppock_ri2]** Coppock, A. "Randomization Inference with ri2" (vignette
+  of the CRAN package ri2, <https://CRAN.R-project.org/package=ri2>;
+  <https://alexandercoppock.com/ri2/articles/ri2_vignette.html>). — Used by:
+  `InferenceRand` (comparator software for design-based randomization
+  inference).
+
 ### Cross-cutting: two-sample location, rank, and robust methods
 
 - **[Student1908]** Student [Gosset, W. S.] (1908). "The Probable Error of a

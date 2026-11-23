@@ -14,6 +14,11 @@
 InferenceExtQuantileRandCI = list(
 	public = list(
 		#' @description Computes a randomization-based confidence interval via Zhang's combined test.
+		#'   The matched-pair (sign-flip) and reservoir (permutation) components each give a
+		#'   two-sided p-value from the absolute statistic, \eqn{(1 + b)/(1 + B)} where
+		#'   \eqn{b} counts the \eqn{B} finite draws with \eqn{|T_m| \ge |T_{obs}|}{|T_m| >= |T_obs|}
+		#'   (the observed statistic counted as one draw, Phipson and Smyth 2010; never 0),
+		#'   and the two are combined by Fisher's method.
 		#'
 		#' @param alpha  				The confidence level is 1 - \code{alpha}.
 		#' @param r  	Number of random sign-flips / permutations.

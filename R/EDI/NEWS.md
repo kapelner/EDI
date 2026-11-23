@@ -237,6 +237,29 @@
 
 ### Randomization tests
 
+* Every Monte Carlo randomization p-value now counts the observed allocation as
+  one of the draws, the exact rule of Phipson and Smyth (2010). With `B` finite
+  reference draws, each tail is `(1 + b) / (1 + B)`, where `b` counts the
+  draws at least as extreme in that tail. The default two-sided p-value doubles
+  the smaller tail, `min(1, 2 * (1 + min(b_ge, b_le)) / (1 + B))`; the
+  `alternative = "greater"`/`"less"` p-values use the single tail; and the
+  p-values built from an absolute statistic (the `"symmetric-percentile-t"`
+  randomization-bootstrap type and the KK quantile-regression sign-flip and
+  permutation components behind its Zhang-combined interval) are
+  `(1 + #{|T_m| >= |T_obs|}) / (1 + B)`. This covers `compute_rand_two_sided_pval()`,
+  `InferenceRandCustom`, `compute_rand_bootstrap_two_sided_pval()` (every
+  `type`) and the confidence intervals that invert them. Before, the rule was
+  `b / B` with a floor of `2 / B` (`1 / B` one-sided), which at `r = 201` and
+  `alpha = 0.05` rejected a true null 5.94% of the time; the new rule's size
+  is at most `alpha` (4.95% there). Randomization p-values rise by about
+  `1 / (B + 1)` to `2 / (B + 1)`, the smallest two-sided p-value is
+  `2 / (B + 1)` (one-sided and absolute-statistic: `1 / (B + 1)`), no
+  randomization p-value is ever 0 (the KK quantile components could return 0
+  before, which the Zhang combination then treated as missing), and inverted
+  randomization confidence intervals widen slightly. The
+  `compute_rand_bootstrap_confidence_interval()` message for a too-small `B`
+  now fires when `2 / (B + 1) >= alpha` (v1.2.0-TODO-207).
+
 * Randomization p-values (`compute_rand_two_sided_pval()`, their Monte Carlo
   bands, the studentized randomization-bootstrap p-values and the closed-form
   randomization-bootstrap CI) now count a redrawn statistic as a tie in both

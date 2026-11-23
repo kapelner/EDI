@@ -88,6 +88,12 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 		#'   see \code{InferenceRand$compute_rand_two_sided_pval()}. Use \code{"greater"} for a
 		#'   non-negative, one-tailed-by-construction statistic (squared difference, chi-square).
+		#'   The observed allocation counts as one of the \eqn{B} finite draws: two-sided is
+		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+		#'   (doubled smaller tail, smallest value \eqn{2/(B + 1)}), one-sided
+		#'   \eqn{(1 + b)/(1 + B)} (smallest \eqn{1/(B + 1)}); exact (size at most \eqn{\alpha},
+		#'   Phipson and Smyth 2010) and never 0. \code{type = "Zhang"} is an exact test that
+		#'   does not use the draws.
 		#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
@@ -217,7 +223,14 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   units); repeated calls with fresh draws give slightly different endpoints, and
 		#'   an interval that looks inconsistent with the randomization p-value near the
 		#'   \code{alpha} boundary usually reflects this noise. Increase \code{r} to reduce
-		#'   it. No Monte Carlo standard error is returned with the interval.
+		#'   it. No Monte Carlo standard error is returned with the interval. The interval
+		#'   is the set of \eqn{\delta} whose two-sided randomization p-value
+		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+		#'   (the observed allocation counted as one draw; see
+		#'   \code{compute_rand_two_sided_pval()}) is at least \code{alpha}; because the
+		#'   smallest p-value is \eqn{2/(B + 1)}, \code{r} must satisfy
+		#'   \eqn{2/(r + 1) < \alpha} (\code{r >= 40} at \code{alpha = 0.05}) for the
+		#'   test to reject anywhere.
 		#'
 		#' @references Tsiatis, A. A. (1990). Estimating regression parameters using linear
 		#'   rank tests for censored data. \emph{The Annals of Statistics}, 18(1), 354-372,

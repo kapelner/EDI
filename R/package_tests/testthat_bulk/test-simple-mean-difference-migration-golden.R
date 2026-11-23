@@ -143,7 +143,8 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		# than the 10 finite draws the randomization p-value needs), so the
 		# golden compared NA with NA and could not catch a regression.
 		list(delta = 0, r = 12L, show_progress = FALSE),
-		0.16666666666666666
+		# v1.2.0-TODO-207: 2 * (1 + 1) / 13 (smaller tail 1 of 12 draws); was 2 * 1 / 12.
+		4 / 13
 	)
 	expect_simple_mean_difference_golden(
 		"bootstrap distribution",

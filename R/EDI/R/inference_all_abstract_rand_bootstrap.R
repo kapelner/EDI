@@ -197,6 +197,7 @@ assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
 #'   the-fly family) and response types, and pairing it with a confidence-interval
 #'   inversion (\code{\link{InferenceRandBootstrapCI}}); it does not resolve the open
 #'   validity question.
+#' @template rand-mc-pvalue-references
 #'
 #' @examples
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
@@ -471,10 +472,18 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   estimator as the BRT test statistic, giving an asymptotic p-value that inherits
 		#'   the unconditional superpopulation validity of the BRT.
 		#'   \code{"studentized"} divides each null draw's signed deviation from the null by its
-		#'   per-draw standard error: \eqn{p = 2\min(P(z^0_b \ge z), P(z^0_b \le z))} where
+		#'   per-draw standard error and doubles the smaller tail of
 		#'   \eqn{z^0_b = (t^0_b - \delta)/\hat{s}^0_b}; yields asymmetric CI under inversion.
-		#'   \code{"symmetric-percentile-t"} uses the absolute pivot
-		#'   \eqn{p = P(|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s})}; CI is symmetric.
+		#'   \code{"symmetric-percentile-t"} uses the absolute pivot: it counts the draws with
+		#'   \eqn{|t^0_b - \delta|/\hat{s}^0_b \ge |t - \delta|/\hat{s}}, no doubling; CI is symmetric.
+		#'   Every type counts the observed statistic as one of the \eqn{B} finite draws
+		#'   (v1.2.0-TODO-207, Phipson and Smyth 2010): the doubled-tail types
+		#'   (\code{"percentile"}, \code{"smoothed"}, \code{"studentized"}) return
+		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))}
+		#'   (smallest \eqn{2/(B + 1)}), and \code{"symmetric-percentile-t"} returns
+		#'   \eqn{(1 + b_{|\cdot|})/(1 + B)}{(1 + b_abs) / (1 + B)}, where \eqn{b_{|\cdot|}}{b_abs}
+		#'   counts the draws with an absolute pivot at least as large (smallest \eqn{1/(B + 1)}).
+		#'   Neither is ever 0.
 		#'   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
 		#'   \code{"percentile"} if the SE is unavailable.
 		#'   \code{"smoothed"} is refused (with an error) for left- or interval-censored survival
@@ -1249,7 +1258,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#   p = 2 * min(P(z0 >= z_obs), P(z0 <= z_obs)). Yields asymmetric CI under inversion.
 		# symmetric = TRUE ("symmetric-percentile-t"): absolute pivot |t0_b - delta| / se0_b;
 		#   p = P(|z0| >= |z_obs|). CI is symmetric around the observed estimate.
-		# Draws with non-finite t0_b or se0_b excluded; 2/n floor on finite draw count.
+		# Draws with non-finite t0_b or se0_b excluded; n = finite draw count. Both rules count the
+		# observed statistic as one draw (v1.2.0-TODO-207): (1 + #{|z0| >= |z_obs|}) / (1 + n) for
+		# the symmetric pivot (smallest 1/(n+1)), min(1, 2 * (1 + min tail count) / (1 + n)) for the
+		# signed one (smallest 2/(n+1)).
 		compute_two_sided_brt_pval_studentized = function(t, t0_b, se0_b, delta, se_obs, symmetric = FALSE){
 			if (!is.finite(se_obs) || se_obs <= 0 || !is.finite(t)) return(NA_real_)
 			ok = is.finite(t0_b) & is.finite(se0_b) & se0_b > 0
@@ -1259,12 +1271,12 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				z0 = abs(t0_b[ok] - delta) / se0_b[ok]
 				z_obs = abs(t - delta) / se_obs
 				# Ties within EDI_TIE_REL_TOL count as extreme (rand_tail_counts(), TODO-3).
-				min(1, max(2 / n_ok, rand_tail_counts(z0, z_obs)[["ge"]] / n_ok))
+				rand_pval_from_abs_count(rand_tail_counts(z0, z_obs)[["ge"]], n_ok)
 			} else {
 				z0 = (t0_b[ok] - delta) / se0_b[ok]
 				z_obs = (t - delta) / se_obs
 				tails = rand_tail_counts(z0, z_obs)
-				min(1, max(2 / n_ok, 2 * min(tails[["ge"]], tails[["le"]]) / n_ok))
+				rand_pval_from_tail_counts(tails[["ge"]], tails[["le"]], n_ok)
 			}
 		},
 		# One null draw: build the resampled sub-design/sub-inference, draw (or inject) a fresh

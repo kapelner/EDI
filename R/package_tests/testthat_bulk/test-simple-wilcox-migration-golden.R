@@ -235,7 +235,8 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		# than the 10 finite draws the randomization p-value needs), so the
 		# golden compared NA with NA.
 		list(delta = 0, r = 12L, show_progress = FALSE),
-		0.66666666666666663
+		# v1.2.0-TODO-207: 2 * (1 + 4) / 13 (smaller tail 4 of 12 draws); was 2 * 4 / 12.
+		10 / 13
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap distribution",
@@ -284,7 +285,8 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		# v1.0.6-TODO-212: B = 12, not 9 (B = 9 is below the 10-finite-draw
 		# floor, so the golden compared NA with NA).
 		list(delta = 0, B = 12L, show_progress = FALSE),
-		0.16666666666666666
+		# v1.2.0-TODO-207: 2 * (1 + 1) / 13 (smaller tail 1 of 12 draws); was 2 * 1 / 12.
+		4 / 13
 	)
 	# v1.0.6-TODO-212: unsupported-procedure contract, not NA-equals-NA goldens.
 	for (jk in list(
@@ -344,7 +346,8 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		# v1.0.6-TODO-212: r = 12, not 9 (r = 9 is below the 10-finite-draw floor,
 		# so the golden compared NA with NA).
 		list(delta = 0, r = 12L, show_progress = FALSE),
-		0.16666666666666666
+		# v1.2.0-TODO-207: 2 * (1 + 1) / 13 (smaller tail 1 of 12 draws); was 2 * 1 / 12.
+		4 / 13
 	)
 	# Ordinary nonparametric bootstrap was intentionally disabled for adaptive
 	# sequential designs, and since 2026-11-14 so is the randomization bootstrap;

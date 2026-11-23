@@ -1682,6 +1682,7 @@ R/EDI/tests/testthat/test-rand-null-construction.R,coverage,1.1,measured_with_30
 R/EDI/tests/testthat/test-rand-pval-affine-reuse-finite-draw-minimum.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-pval-alternative-accepted-by-every-override.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-pval-tie-tolerance.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rand-pvalue-observed-counts-as-one-draw.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-seed-reproducibility.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-test-and-ci-shift-censoring-bounds-under-null.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-warm-start-anchoring-nonconcave.R,coverage,30,bootstrap

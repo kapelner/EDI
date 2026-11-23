@@ -38,10 +38,13 @@ tie_fixture = function(y, w_obs, levels, order = seq_along(y)) {
 		perms = list(w_mat = W, m_mat = NULL),
 		B = B,
 		n_ties = sum(u == u0),
+		# v1.2.0-TODO-207: EDI counts the observed allocation as one extra draw, (1 + b) / (1 + B),
+		# also when the supplied draws are the full enumeration (which already contains it), so the
+		# reference values apply that rule to the exact integer tail counts.
 		exact = c(
-			two.sided = min(1, 2 * min(sum(u >= u0), sum(u <= u0)) / B),
-			greater = sum(u >= u0) / B,
-			less = sum(u <= u0) / B
+			two.sided = min(1, 2 * (1 + min(sum(u >= u0), sum(u <= u0))) / (1 + B)),
+			greater = (1 + sum(u >= u0)) / (1 + B),
+			less = (1 + sum(u <= u0)) / (1 + B)
 		)
 	)
 }
@@ -116,10 +119,10 @@ test_that("the bootstrap-randomization counting paths use the same tie rule", {
 	t0 = c(-5.55e-17, 5.55e-17, 1:8, -1)
 	p_signed = priv$compute_two_sided_brt_pval_studentized(t = 0, t0_b = t0, se0_b = rep(1, 11),
 		delta = 0, se_obs = 1, symmetric = FALSE)
-	expect_identical(p_signed, 2 * 3 / 11)
+	expect_identical(p_signed, 2 * (1 + 3) / (1 + 11))   # v1.2.0-TODO-207 rule; was 2 * 3 / 11
 	p_sym = priv$compute_two_sided_brt_pval_studentized(t = 0.25, t0_b = c(0.25 * (1 - 4e-16), -0.25, 0.1, 0.5),
 		se0_b = rep(1, 4), delta = 0, se_obs = 1, symmetric = TRUE)
-	expect_identical(p_sym, 3 / 4)
+	expect_identical(p_sym, (1 + 3) / (1 + 4))           # v1.2.0-TODO-207 rule; was 3 / 4
 	# Closed-form affine CI inversion: two constant (slope 0) draws that equal
 	# t_obs up to rounding give the same interval as two bit-exact ties.
 	set.seed(3)

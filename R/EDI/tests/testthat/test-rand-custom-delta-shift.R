@@ -176,12 +176,13 @@ test_that("alternative = 'greater' gives the single upper-tail p-value for a non
 	expect_error(pv(alternative = "bogus"))
 })
 
-test_that("alternative = 'greater' / 'less' single tails equal the tail proportions and the default is unchanged", {
+test_that("alternative = 'greater' / 'less' single tails are (1 + b) / (1 + n) and the default doubles the smaller", {
+	# v1.2.0-TODO-207: the observed statistic counts as one draw (was b / n with a floor).
 	f = EDI:::rand_pval_from_tail_counts
-	expect_equal(f(30, 80, 100), 0.6)
-	expect_equal(f(30, 80, 100, "greater"), 0.3)
-	expect_equal(f(30, 80, 100, "less"), 0.8)
-	expect_equal(f(0, 100, 100, "greater"), 0.01)   # 1/n floor
-	expect_equal(f(0, 100, 100), 0.02)              # 2/n floor
-	expect_equal(f(90, 20, 100), 0.4)
+	expect_equal(f(30, 80, 100), 2 * 31 / 101)
+	expect_equal(f(30, 80, 100, "greater"), 31 / 101)
+	expect_equal(f(30, 80, 100, "less"), 81 / 101)
+	expect_equal(f(0, 100, 100, "greater"), 1 / 101)   # smallest one-sided value
+	expect_equal(f(0, 100, 100), 2 / 101)              # smallest two-sided value
+	expect_equal(f(90, 20, 100), 2 * 21 / 101)
 })

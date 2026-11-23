@@ -5,6 +5,7 @@ Acklam
 Acklam's
 adaptivity
 additively
+Adjaho
 affine
 affinely
 Agresti
@@ -58,6 +59,7 @@ Brookmeyer
 Bross
 BRT
 brt
+Bucarey
 Bugni
 BugniCanayShaikh
 BZ
@@ -86,6 +88,7 @@ conf
 conservativeness
 constructable
 convolving
+Coppock
 covariate's
 CoxPH
 CoxPHFitter
@@ -170,6 +173,7 @@ Fay
 Fedorov
 finalizer
 finiteness
+Fischer
 Fisherian
 Fleiss
 Frisch
@@ -186,6 +190,7 @@ GLMM's
 GLPK
 GLPK's
 GLS
+Goeman
 Gosset
 Gotze
 Greevy
@@ -201,17 +206,20 @@ hardcodes
 HC
 hc
 Hedeker
+Hemerik
 heteroskedastic
 Heteroskedasticity
 heteroskedasticity
 Hinkley
 HL
+Hoban
 homoskedastic
 homoskedasticity
 Hostname
 Hotelling
 Hotelling's
 Hougaard
+Howes
 Hu
 Huskova
 IBCRD
@@ -250,6 +258,7 @@ ish
 IVWC
 Jin
 JKn
+Johari
 Jonckheere
 Jonckheere's
 JRSS
@@ -382,7 +391,9 @@ params
 Parmar
 partialling
 pboot
+permp
 Peto
+Phipson
 Physica
 Pinheiro
 PMID
@@ -406,7 +417,9 @@ PSODs
 PTE's
 pval
 pvalue
+Qin
 ra
+Ramdas
 RandomBlockSize
 Randomisation
 randomisation
@@ -431,6 +444,7 @@ representable
 repro
 Rerandomization
 rerandomization
+rerandomized
 resampler
 ResamplingCore
 resimulate
@@ -477,6 +491,7 @@ simon
 SimulationFramework
 Sinica
 sizeable
+Smyth
 softmax
 SPBR
 splitmix
@@ -485,6 +500,7 @@ ssq
 Stallard
 stateful
 Statistica
+statmod
 statsmodels
 Stegun
 Stouffer
@@ -499,6 +515,7 @@ subproblems
 superpopulation
 survfit's
 SUTVA
+switchback
 symmetrization
 symmetrized
 Sävje
@@ -545,6 +562,7 @@ vectorization
 Verkuilen
 Verlag
 VGAM
+Wager
 weibull
 WeibullAFTFitter
 Welch
@@ -561,6 +579,7 @@ Ying
 Zeger
 Zeileis
 Zelen
+Zeng
 Zhang
 Zhang's
 Zou

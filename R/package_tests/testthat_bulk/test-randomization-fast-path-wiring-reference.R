@@ -306,10 +306,11 @@ test_that("Simple-Wilcoxon R6 p-value agrees with its kernel at n = r = 1000", {
 	t_obs <- inf$compute_estimate(estimate_only = TRUE)
 	t_kernel <- p$compute_fast_randomization_distr(p$y, perms, 0, "none")
 	n_valid <- sum(is.finite(t_kernel))
-	pval_kernel <- min(1, max(2 / n_valid, 2 * min(
-		sum(t_kernel >= t_obs, na.rm = TRUE) / n_valid,
-		sum(t_kernel <= t_obs, na.rm = TRUE) / n_valid
-	)))
+	# v1.2.0-TODO-207 rule: the observed statistic counts as one draw.
+	pval_kernel <- min(1, 2 * (1 + min(
+		sum(t_kernel >= t_obs, na.rm = TRUE),
+		sum(t_kernel <= t_obs, na.rm = TRUE)
+	)) / (1 + n_valid))
 	ratio <- max(pval_r6, pval_kernel) / min(pval_r6, pval_kernel)
 	expect_equal(length(t_kernel), 1000L)
 	expect_equal(n_valid, 1000L)

@@ -28,7 +28,8 @@
 # Two-sided convention. EDI's compute_rand_two_sided_pval() (see
 # compute_two_sided_randomization_pval_from_t0s() in
 # inference_all_abstract_rand.R) is the doubled smaller tail,
-#   p = min(1, max(2 / r, 2 * min(P(t0 >= t), P(t0 <= t)))),
+#   p = min(1, 2 * (1 + min(b_ge, b_le)) / (1 + r)) with b the tail counts of the r draws
+#   (the observed statistic counted as one draw, v1.2.0-TODO-207),
 # whereas coin's two-sided p is P(|T - E T| >= |t - E T|). Those differ for an
 # asymmetric permutation distribution, so we never compare EDI's two-sided p
 # to coin's two-sided p directly; instead we take coin's exact one-sided tails
@@ -101,10 +102,12 @@ coin_cv_exact_tails = function(dist, t_obs, eps = 1e-8) {
 	)
 }
 
-# EDI's two-sided randomization p-value rule applied to arbitrary tail
-# probabilities (r = Inf for an exact reference distribution).
+# EDI's two-sided randomization p-value rule applied to tail proportions ge, le of r draws
+# (v1.2.0-TODO-207: min(1, 2 * (1 + r * min(ge, le)) / (1 + r))); r = Inf for an exact reference
+# distribution, where the rule is the plain doubled smaller tail.
 coin_cv_doubled_min = function(ge, le, r = Inf) {
-	min(1, max(2 / r, 2 * min(ge, le)))
+	if (!is.finite(r)) return(min(1, 2 * min(ge, le)))
+	min(1, 2 * (1 + r * min(ge, le)) / (1 + r))
 }
 
 coin_cv_empirical_tails = function(t0s, t_obs, eps = 1e-10) {

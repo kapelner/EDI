@@ -126,12 +126,14 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					stop("Bootstrap randomization confidence intervals are not supported for incidence.")
 				}
 			}
-			# The Monte Carlo p-value has floor 2/B; if that floor is >= alpha the inversion
-			# can never bracket and both bounds degrade to the conservative search boundary.
-			if (2 / as.integer(B) >= alpha) {
+			# The smallest Monte Carlo p-value is 2/(B+1) (v1.2.0-TODO-207); if it is >= alpha
+			# the inversion can never bracket and both bounds degrade to the conservative search boundary.
+			if (2 / (as.integer(B) + 1) >= alpha) {
+				B_min = max(1L, as.integer(ceiling(2 / alpha - 1)))
+				while (2 / (B_min + 1) >= alpha) B_min = B_min + 1L
 				message(sprintf(
-					"compute_rand_bootstrap_confidence_interval: B = %d is too small for alpha = %g (p-value floor 2/B = %.4g >= alpha = %.4g); bounds will be conservative. Use B > %d.",
-					as.integer(B), alpha, 2 / as.integer(B), alpha, ceiling(2 / alpha)))
+					"compute_rand_bootstrap_confidence_interval: B = %d is too small for alpha = %g (smallest p-value 2/(B+1) = %.4g >= alpha = %.4g); bounds will be conservative. Use B >= %d.",
+					as.integer(B), alpha, 2 / (as.integer(B) + 1), alpha, B_min))
 			}
 			transform_arg = switch(
 				private$des_obj_priv_int$response_type,
@@ -361,7 +363,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		},
 		# Exact inversion of the bootstrap randomization test when every null draw is affine in
 		# delta: t0_b(delta) = A[b] + delta * c_slopes[b]. The two-sided Monte Carlo p-value
-		# (with its 2/B floor) is piecewise constant with breakpoints at (t_obs - A_b) / c_b;
+		# (rand_pval_from_tail_counts(), smallest value 2/(B+1)) is piecewise constant with breakpoints at (t_obs - A_b) / c_b;
 		# the acceptance region {delta : pval(delta) >= alpha} is delimited by breakpoints, so
 		# the CI is found by evaluating the count-based p-value on each open interval between
 		# sorted breakpoints. Endpoints are closed (a draw sitting exactly at t_obs counts in
@@ -376,8 +378,8 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			ok = is.finite(A) & is.finite(c_slopes)
 			A = as.numeric(A[ok]); cs = as.numeric(c_slopes[ok])
 			B_valid = length(A)
-			# p-value floor 2/B must be able to drop below the threshold for the inversion to bracket
-			if (B_valid == 0L || 2 / B_valid >= pval_th) return(NULL)
+			# the smallest p-value 2/(B+1) must be able to drop below the threshold for the inversion to bracket
+			if (B_valid == 0L || 2 / (B_valid + 1) >= pval_th) return(NULL)
 			# Slope ~ 0 draws never flip; carry their constant tail contributions separately
 			is_const = abs(cs) < 1e-12
 			A_const = A[is_const]
@@ -389,7 +391,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			pval_at = function(d){
 				# Same tie rule as the bisection path's p-value (rand_tail_counts(), TODO-3).
 				tails = rand_tail_counts(c(A_v + d * c_v, A_const), t_obs)
-				min(1, max(2 / B_valid, 2 * min(tails[["ge"]], tails[["le"]]) / B_valid))
+				rand_pval_from_tail_counts(tails[["ge"]], tails[["le"]], B_valid)
 			}
 			# Probe each open interval: outer probes detect an unbounded acceptance region
 			span_pad = max(1, diff(range(breakpoints)))

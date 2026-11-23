@@ -227,7 +227,8 @@ p_rand = cox_adj$compute_rand_two_sided_pval(r = 2000, show_progress = FALSE)
 p_rand
 ```
 
-The p-value can be no smaller than about `1 / (r + 1)`, so with 2000 redraws it
+The two-sided p-value can be no smaller than `2 / (r + 1)` (the observed
+assignment counts as one of the draws), so with 2000 redraws it
 says only that the observed estimate is more extreme than nearly every redraw.
 EDI deliberately offers no randomization confidence interval for Cox-family
 classes (see the [survival cookbook](cookbook-survival.html)); the bootstrap

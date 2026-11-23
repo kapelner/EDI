@@ -130,7 +130,8 @@ test_that("InferenceRandCustom continuous \"none\" stays an additive shift", {
 	got = cu$approximate_randomization_distribution_beta_hat_T(r = 15L, delta = 0.5,
 		transform_responses = "none", permutations = perms, show_progress = FALSE)
 	expect_equal(got, expected, tolerance = 1e-12)
-	# Pinned values from before the fix (same seed and r).
+	# Pinned values from before the fix (same seed and r). v1.2.0-TODO-207: no draw is as extreme,
+	# so the smallest two-sided value 2 / (99 + 1); before the observed draw was counted it was 2 / 99.
 	cu$set_seed(1)
-	expect_equal(cu$compute_rand_two_sided_pval(r = 99L, delta = 0.5, show_progress = FALSE), 2 / 99, tolerance = 1e-12)
+	expect_equal(cu$compute_rand_two_sided_pval(r = 99L, delta = 0.5, show_progress = FALSE), 2 / 100, tolerance = 1e-12)
 })

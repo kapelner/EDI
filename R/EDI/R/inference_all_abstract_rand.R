@@ -1,15 +1,27 @@
-# Tail-count -> randomization p-value. "two.sided" is the historical doubled
-# smaller tail (floor 2/n, cap 1); "greater"/"less" are the single tails
-# (floor 1/n), for non-negative / one-tailed-by-construction statistics
-# (TODO-113). A plain function, not a private method, because
+# Tail-count -> randomization p-value, n = number of finite reference draws.
+# v1.2.0-TODO-207 (owner ruling 2026-11-23): the exact Monte Carlo rule that
+# counts the observed statistic as one draw (Phipson and Smyth 2010):
+# per tail (1 + b) / (1 + n). "two.sided" doubles the smaller tail and caps
+# at 1, min(1, 2 * (1 + min(n_ge, n_le)) / (1 + n)), so its smallest value is
+# 2 / (n + 1); "greater"/"less" are the single tails (smallest 1 / (n + 1)),
+# for non-negative / one-tailed-by-construction statistics (TODO-113). The
+# rule before 1.0.5 was b / n with a floor of 2 / n (1 / n one-sided), whose
+# null size at n = 201 and alpha = 0.05 was about 5.9%.
+# A plain function, not a private method, because
 # compute_rand_two_sided_pval() is spliced into mixins whose contracts list
 # the private methods they need.
 rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
 	switch(alternative,
-		greater = min(1, max(1 / n, n_ge / n)),
-		less = min(1, max(1 / n, n_le / n)),
-		min(1, max(2 / n, 2 * min(n_ge / n, n_le / n)))
+		greater = min(1, (1 + n_ge) / (1 + n)),
+		less = min(1, (1 + n_le) / (1 + n)),
+		min(1, 2 * (1 + min(n_ge, n_le)) / (1 + n))
 	)
+}
+# Same rule for a two-sided p-value from an absolute (symmetric) statistic:
+# n_abs_ge = #{|T_m| >= |T_obs|} over n finite draws, p = (1 + n_abs_ge) / (1 + n),
+# no doubling (v1.2.0-TODO-207). Smallest value 1 / (n + 1).
+rand_pval_from_abs_count = function(n_abs_ge, n){
+	min(1, (1 + n_abs_ge) / (1 + n))
 }
 
 # Tail counts of a randomization distribution, with draws tied to the observed
@@ -56,6 +68,11 @@ edi_muffle_rand_pval_na_warnings = function(expr){
 #'
 #' Abstract class for randomization-based inference.
 #'
+#' Randomization p-values count the observed allocation as one of the \eqn{B} finite
+#' reference draws, \eqn{(1 + b)/(1 + B)} per tail (two-sided: the smaller tail doubled,
+#' capped at 1), so they are exact and never 0; see \code{compute_rand_two_sided_pval()}.
+#'
+#' @template rand-mc-pvalue-references
 #' @keywords internal
 InferenceRand = R6::R6Class("InferenceRand",
 	# Legacy-ladder parent only (component sources take direct methods): keeps
@@ -377,15 +394,26 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		#' @param alternative One of \code{"two.sided"} (default), \code{"greater"} or
-		#'   \code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
-		#'   P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}
-		#'   (no +1 correction; a floor of \eqn{2/B}), which assumes a signed, roughly
-		#'   symmetric statistic. For a non-negative, one-tailed-by-construction
+		#'   \code{"less"}. Let \eqn{B} be the number of finite reference statistics
+		#'   \eqn{T_0}, \eqn{b_{\ge}}{b_ge} the number with \eqn{T_0 \ge t} and
+		#'   \eqn{b_{\le}}{b_le} the number with \eqn{T_0 \le t}. The observed allocation
+		#'   counts as one draw, so each tail is \eqn{(1 + b)/(1 + B)}. The default
+		#'   doubles the smaller tail and caps at 1,
+		#'   \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))},
+		#'   which assumes a signed, roughly symmetric statistic; its smallest value is
+		#'   \eqn{2/(B + 1)}. For a non-negative, one-tailed-by-construction
 		#'   statistic (a squared difference, a chi-square or omnibus statistic, an
 		#'   absolute value) the doubled smaller tail is wrong -- it counts the
 		#'   uninformative lower tail as evidence -- so pass \code{"greater"}, which
-		#'   returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
-		#'   \code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.
+		#'   returns the upper-tail p-value \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)}
+		#'   (no doubling, smallest value \eqn{1/(B + 1)}); \code{"less"} returns
+		#'   \eqn{(1 + b_{\le})/(1 + B)}{(1 + b_le) / (1 + B)}. This is the exact Monte Carlo
+		#'   p-value of Phipson and Smyth (2010): with \eqn{B} independent draws from the
+		#'   design the test rejects a true sharp null with probability at most
+		#'   \eqn{\alpha}, and the p-value is never 0. (Before EDI 1.0.5 the rule was
+		#'   \eqn{b/B} with a floor of \eqn{2/B}, whose size was above \eqn{\alpha} by
+		#'   about \eqn{1/B}; v1.2.0-TODO-207.) A tie with \eqn{t} (within a relative
+		#'   tolerance) counts in both tails.
 		#' @details For survival outcomes with left- or interval-censoring, a nonzero
 		#'   \code{delta} shifts the censoring bounds \code{y_L} and \code{y_R} of the
 		#'   treated exactly as it shifts exact times: multiplicatively by

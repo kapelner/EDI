@@ -40,6 +40,17 @@
 #' required, otherwise the p-value is \code{NA}. See
 #' \code{InferenceRand$compute_rand_two_sided_pval()}.
 #'
+#' \strong{The p-value rule.} With \eqn{B} finite draws, \eqn{b_{\ge}}{b_ge} of them at
+#' least and \eqn{b_{\le}}{b_le} at most the observed statistic, the observed allocation
+#' counts as one draw: the default two-sided p-value doubles the smaller tail,
+#' \eqn{\min(1, 2(1 + \min(b_{\ge}, b_{\le}))/(1 + B))}{min(1, 2 (1 + min(b_ge, b_le)) / (1 + B))},
+#' smallest value \eqn{2/(B + 1)}; \code{alternative = "greater"} gives
+#' \eqn{(1 + b_{\ge})/(1 + B)}{(1 + b_ge) / (1 + B)}, smallest \eqn{1/(B + 1)} (use it for a
+#' statistic that is already an absolute value or a squared or omnibus measure). The
+#' p-value is exact (a true sharp null is rejected with probability at most
+#' \eqn{\alpha}) and never 0 (Phipson and Smyth 2010). The randomization CI inverts
+#' the two-sided rule.
+#'
 #' \strong{The scale of \code{delta} by response type.} A nonzero \code{delta}
 #' tests the sharp null that treatment moves every subject's response by
 #' \eqn{\delta} on the \code{transform_responses} scale. The shift is removed from
@@ -85,6 +96,7 @@
 #'   (external pointers do not survive serialization to parallel workers;
 #'   use a source string for parallel paths).
 #' @param verbose Whether to print progress messages.
+#' @template rand-mc-pvalue-references
 #' @export
 InferenceRandCustom = define_inference_class(
 	classname = "InferenceRandCustom",
