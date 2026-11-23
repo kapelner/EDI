@@ -3782,6 +3782,60 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - `code-duplication-df3056dcc` (`dup-3e3efd5c256a`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:415-485` vs `R/EDI/src/fast_log_binomial_regression.cpp:659-734`
   - `code-duplication-df815ccee` (`dup-953983a5b28c`): `R/EDI/R/inference_proportion_gcomp.R:724-732` vs `R/EDI/R/inference_proportion_gcomp.R:737-745`
   - `code-duplication-df90f4d8c` (`dup-281eb5818608`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-651` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:731-783`
+  Added 2026-11-23 from run 45037204796 (`9186e6a5`, 2026-11-22): the run's 51 refactor verdicts (issue #61); its two
+  divergence_bug verdicts are v1.0.6-TODO-414 and v1.0.6-TODO-415. Fourteen of the 51 are flagged as possible divergence
+  bugs and should be checked before merging.
+  - `code-duplication-d03e1cc0f` (`dup-62427e559c21`): `R/EDI/R/inference_continuous_lin.R:442-491` vs `R/EDI/R/inference_continuous_ols.R:476-522`
+  - `code-duplication-d07d94f12` (`dup-781c3eba4ee9`): `R/EDI/R/inference_mixin_kk_passthrough.R:118-142` vs `R/EDI/R/inference_mixin_kk_passthrough.R:164-182` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): only the debug copy of the KK bootstrap replicate calls `compute_reservoir_and_match_statistics()`; the parallel and serial copies do not
+  - `code-duplication-d1421e1c6` (`dup-ad22cc9e05e1`) [C++]: `R/EDI/src/rerandomization_helpers.cpp:57-69` vs `R/EDI/src/rerandomization_helpers.cpp:71-82`
+  - `code-duplication-d14868fe3` (`dup-7dda27e13bf2`): `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:242-256` vs `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:272-286` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the ZAP CI wrappers do not expose `min_fraction_usable_samples`, the p-value wrappers do
+  - `code-duplication-d15664876` (`dup-9428ea78e32b`): `R/EDI/R/inference_ordinal_cauchit.R:93-137` vs `R/EDI/R/inference_ordinal_ordered_probit.R:471-514` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cauchit keeps its own `get_likelihood_test_spec`, using `get_fit_warm_start_for_length`/`_fisher` instead of `get_backend_warm_start_args`
+  - `code-duplication-d20db4083` (`dup-ee84d31f8808`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:518-582` vs `R/EDI/src/fast_log_binomial_regression.cpp:801-872`
+  - `code-duplication-d2164341b` (`dup-7ba91e25902b`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:604-812` vs `R/EDI/src/fast_log_binomial_regression.cpp:894-1082`
+  - `code-duplication-d286f6d5e` (`dup-74fed185bef1`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:403-420` vs `R/EDI/src/fast_gaussian_lmm.cpp:572-590`
+  - `code-duplication-d2c92521f` (`dup-753e9d723d07`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:634-712` vs `R/EDI/src/fast_poisson_regression.cpp:496-571` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the logistic `with_var` wrapper hard-codes maxit/tol and omits `mu`; the Poisson one exposes them
+  - `code-duplication-d2e855eb9` (`dup-cca84c6e9584`): `R/EDI/R/inference_count_KK_combined.R:310-339` vs `R/EDI/R/inference_ordinal_KK_combined.R:562-588` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the count KK combined class inflates the SE with `.inflate_kk_onelik_standard_error_with_jackknife()`, the ordinal one does not (owner to confirm)
+  - `code-duplication-d33781699` (`dup-fd8056940861`): `R/EDI/R/inference_ordinal_cloglog.R:67-107` vs `R/EDI/R/inference_ordinal_ordered_probit.R:268-301`
+  - `code-duplication-d3a37242b` (`dup-1bc99d4593d2`) [C++]: `R/EDI/src/kk21_weights.cpp:678-727` vs `R/EDI/src/kk21_weights.cpp:826-879`
+  - `code-duplication-d3c08cd80` (`dup-16edf232d0b4`): `R/EDI/R/inference_continuous_lin.R:141-202` vs `R/EDI/R/inference_continuous_ols.R:154-216`
+  - `code-duplication-d517ba962` (`dup-be0576598be3`): `R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:210-247` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:324-374` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the live loggamma copy keeps a redundant early return after v1.0.6-TODO-132 (harmless today)
+  - `code-duplication-d5284f092` (`dup-30a5f25e14cd`): `R/EDI/R/inference_survival_strat_cox.R:676-689` vs `R/EDI/R/inference_survival_strat_cox.R:690-702`
+  - `code-duplication-d5867314f` (`dup-78103d4c1c9b`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:360-541` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:411-598`
+  - `code-duplication-d586bfb11` (`dup-21f4a388433b`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:112-147` vs `R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R:99-121`
+  - `code-duplication-d58a41a25` (`dup-c894cf6d2f0f`): `R/EDI/R/inference_all_average_diff.R:258-289` vs `R/EDI/R/inference_all_simple_wilcox.R:428-459`
+  - `code-duplication-d590bf12e` (`dup-1bde054f4a23`): `R/EDI/R/inference_incidence_KK_cond_logit.R:867-899` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:344-373`
+  - `code-duplication-d5df38ede` (`dup-23b0189638cd`): `R/EDI/R/inference_ordinal_cauchit.R:278-344` vs `R/EDI/R/inference_ordinal_proportional_odds.R:250-317` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): PropOdds overrides `get_complexity_tier` to "heavy"; Cauchit (and Cloglog) get the "light" default, so warm starts are beta-only
+  - `code-duplication-d5e145b6f` (`dup-74e315bcd22f`) [C++]: `R/EDI/src/fast_coxph_regression.cpp:1174-1244` vs `R/EDI/src/fast_weibull_regression.cpp:835-915`
+  - `code-duplication-d61b1e65d` (`dup-7a3c5e76926c`) [C++]: `R/EDI/src/fast_zero_augmented_poisson.cpp:156-168` vs `R/EDI/src/fast_zero_augmented_poisson.cpp:173-188`
+  - `code-duplication-d6bd896f0` (`dup-5be91e2d8c8c`): `R/EDI/R/inference_ordinal_cauchit.R:139-208` vs `R/EDI/R/inference_ordinal_cloglog.R:290-361`
+  - `code-duplication-d6dd4bb22` (`dup-4a855c5b3ea6`) [C++]: `R/EDI/src/fast_ordinal_clmm.cpp:120-153` vs `R/EDI/src/fast_poisson_glmm.cpp:415-444`
+  - `code-duplication-d7d373540` (`dup-8cf00df7147b`): `R/EDI/R/inference_ordinal_cauchit.R:136-208` vs `R/EDI/R/inference_ordinal_ordered_probit.R:57-129` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cauchit `generate_mod` uses a different warm-start accessor than probit (see d15664876)
+  - `code-duplication-d7f65f74b` (`dup-34bf68e1fb0d`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-280` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-309`
+  - `code-duplication-d84d305f3` (`dup-0ce60a39bcff`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:47-137` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:48-130`
+  - `code-duplication-d853f318a` (`dup-2b57c27e00a4`): `R/EDI/R/inference_survival_strat_cox.R:649-691` vs `R/EDI/R/inference_survival_strat_cox.R:749-790` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the second prebuilt block labels the fit `stratified = FALSE, strata = NULL` while `strat_cox_data_cache` is still the stratified cache
+  - `code-duplication-d9383b909` (`dup-2d175b52b684`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:336-374` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:359-395` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the normal Weibull-frailty class guards `is.null(KKstats)`, the loggamma class does not
+  - `code-duplication-d971fa2d0` (`dup-d8550248d5a0`) [C++]: `R/EDI/src/fast_survival_models_optim.cpp:650-659` vs `R/EDI/src/fast_survival_models_optim.cpp:661-670`
+  - `code-duplication-d97d93309` (`dup-738f7c904be2`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-406` vs `R/EDI/src/fast_logistic_glmm.cpp:410-435`
+  - `code-duplication-d9966a006` (`dup-faf67873824e`) [C++]: `R/EDI/src/_helper_functions_core.h:1859-1890` vs `R/EDI/src/_helper_functions_core.h:1891-1921`
+  - `code-duplication-da55699c9` (`dup-a8d3d55a6f41`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:345-367` vs `R/EDI/R/inference_survival_KK_strat_cox.R:267-289` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the Weibull-frailty normal `shared()` keeps the early return on a cached `beta_hat_T` (L349) that v1.0.6-TODO-132 meant to remove
+  - `code-duplication-dab3ec8ba` (`dup-568f77559618`): `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:62-112` vs `R/EDI/R/inference_ext_prw_subsampling.R:57-107`
+  - `code-duplication-dac68e91d` (`dup-e4bb88b1e488`): `R/EDI/R/inference_class_registry.R:3149-3163` vs `R/EDI/R/inference_class_registry.R:3169-3186`
+  - `code-duplication-db1a1593e` (`dup-4be9360a3eb0`): `R/EDI/R/inference_all_abstract_non_param_boot.R:2440-2456` vs `R/EDI/R/inference_all_abstract_non_param_boot.R:2567-2582`
+  - `code-duplication-dc2e938b7` (`dup-c430dcafd64e`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:8-72` vs `R/EDI/R/inference_ordinal_stereotype_logit.R:334-394` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the stereotype copy has the `stereotype_treatment_estimate_is_usable` guard and nonestimable-state handling, adjacent-category does not
+  - `code-duplication-dc38e164b` (`dup-46f330704001`): `R/EDI/R/inference_ordinal_ordered_probit.R:30-84` vs `R/EDI/R/inference_ordinal_proportional_odds.R:80-139` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): PropOdds `generate_mod` catches errors but its `estimate_only` branch has no `is.null(res)` guard; probit has the guard but no `tryCatch`
+  - `code-duplication-dc67f77bd` (`dup-795fe533cf12`): `R/EDI/R/inference_all_abstract_rand.R:482-516` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:176-207` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the GEE mixin copy of the rand p-value tail omits the additive-delta-shift cache and affine-reuse branch (not reachable today)
+  - `code-duplication-dc6d70509` (`dup-b5ece4323f44`): `R/EDI/R/design_abstract.R:417-518` vs `R/EDI/R/design_fixed_abstract.R:90-191`
+  - `code-duplication-dd01a78e4` (`dup-1afcc07d3228`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:647-713` vs `R/EDI/src/fast_probit_regression.cpp:605-670`
+  - `code-duplication-ddc856d68` (`dup-a646215cf3fb`) [C++]: `R/EDI/src/_helper_functions_core.h:283-317` vs `R/EDI/src/_helper_functions_core.h:334-360`
+  - `code-duplication-ddddf4f3d` (`dup-d9617a3cac16`) [C++]: `R/EDI/src/fast_poisson_regression.cpp:459-528` vs `R/EDI/src/fast_probit_regression.cpp:514-623`
+  - `code-duplication-de147f919` (`dup-02d020585d2c`): `R/EDI/R/inference_survival_coxph.R:358-378` vs `R/EDI/R/inference_survival_coxph.R:388-408`
+  - `code-duplication-deb78240f` (`dup-5241962b7a38`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:397-479` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:366-429`
+  - `code-duplication-deea3181d` (`dup-26172419b01d`): `R/EDI/R/inference_count_poisson.R:950-962` vs `R/EDI/R/inference_incidence_risk_diff.R:321-332`
+  - `code-duplication-df6297951` (`dup-b204ea6df4fc`): `R/EDI/R/inference_incidence_KK_combined.R:82-117` vs `R/EDI/R/inference_proportion_KK_combined.R:66-106`
+  - `code-duplication-df6be3096` (`dup-15964dd92780`): `R/EDI/R/inference_count_KK_cond_poisson.R:846-882` vs `R/EDI/R/inference_count_KK_cond_poisson.R:927-956`
+  - `code-duplication-dfa2f5560` (`dup-6e848545caae`): `R/EDI/R/inference_count_poisson.R:309-344` vs `R/EDI/R/inference_count_poisson.R:436-470`
+  - `code-duplication-dfe3bfba7` (`dup-f1e6c6e01c40`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:558-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:843-919`
+  - `code-duplication-dfee4a016` (`dup-4f9b19023d97`) [C++]: `R/EDI/src/fast_weibull_regression.cpp:447-535` vs `R/EDI/src/fast_weibull_regression.cpp:640-736`
 
 - [x] TODO-194 (added 2026-11-19, owner request; from the code-duplication audit, decisions `code-duplication-d3fc63ea7`
   (`dup-eb9320e6bb57`, p-value path) and `code-duplication-d61e30e3a` (`dup-7bbada5cb607`, CI path); one drift on two
