@@ -7076,3 +7076,50 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   (`inference_count_zero_inflated.R`, `inference_count_hurdle.R`, `inference_count_zero_augmented_poisson_abstract.R`),
   or drop unsupported types from the list. Test: for each class and each listed type, the asymp p-value equals the
   direct `compute_<type>_two_sided_pval()`. Results change for anyone who set a non-Wald type; NEWS entry.
+
+### Audit triage sweep, 2026-11-23 (TODO-414..416)
+
+Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 22:30 UTC.
+
+- [ ] TODO-414 (added 2026-11-23, coordinator, owner request; audit decision `code-duplication-d78867741`
+  (`dup-de630ca1589f`), code-duplication run 45037204796, issue #61): **KK21's univariate beta t-statistic does not
+  clamp y, so an exact 0 or 1 response freezes phi at its default.** `multivariate_beta_tstat`
+  (`R/EDI/src/kk21_weights.cpp` ~L894-972) clamps y inside the beta log-likelihood (`std::max(yi, 1e-12)`,
+  `std::min(yi, 1 - 1e-12)`, ~L952-953) and its caller clamps y to [1e-10, 1 - 1e-10] (~L1086-1089).
+  `univariate_beta_tstat` (~L412-493) runs the same phi grid without the clamp (~L474-475), and its caller
+  `kk21_beta_weights_cpp` (~L595-612) passes y unclamped (the clamp at ~L620 is only in the logit fallback). The design
+  accepts proportion responses in [0, 1] inclusive (`design_abstract.R:1152`), so with one y exactly 0 or 1,
+  `log(yi)` or `log1p(-yi)` is -inf, the log-likelihood is -inf for every phi, `ll > best_ll` never fires and
+  `best_phi` stays at 10.0 instead of the profile-likelihood phi. The t-statistic stays finite, so the logit fallback
+  does not run and the KK21 weights change silently. Reached by `DesignSeqOneByOneKK21` / `KK21stepwise` with
+  `response_type = "proportion"` and `proportion_use_speedup = FALSE` (`design_seq_one_by_one_KK21.R` ~L436).
+  Confirmed by reading HEAD (38d1b90a); not yet run. Fix: clamp y in `kk21_beta_weights_cpp` as the multivariate
+  caller does, or share one phi-profile helper between the two functions (see v1.0.6-TODO-193). Test: y with an exact
+  0 and 1 gives the same weights as y clamped to [1e-10, 1 - 1e-10], and the profile picks a phi other than 10.
+  Changes KK21 weights (and so allocations) on such data; NEWS entry. [C++]
+- [ ] TODO-415 (added 2026-11-23, coordinator, owner request; audit decision `code-duplication-dc86f7ad2`
+  (`dup-55ec9b7a429d`), code-duplication run 45037204796, issue #61): **`InferenceIncidModifiedPoisson`'s
+  randomization-inference refit swallows timeouts and interrupts.** In
+  `compute_treatment_estimate_during_randomization_inference` (`R/EDI/R/inference_incidence_modified_poisson.R`
+  ~L142-176) the `tryCatch` around `fast_poisson_regression_cpp` uses `error = function(e) NULL` (~L164), so a time
+  or CPU limit raised inside the fit becomes `NA_real_` and the randomization loop continues instead of aborting. The
+  count sibling (`inference_count_robust_poisson.R` ~L192-204) rethrows control conditions with
+  `if (is_edi_control_condition(e)) stop(e)` (`globals.R` ~L86-92). The incidence copy also omits
+  `estimate_only = TRUE` in that refit (a speed difference; check that the warm-start Fisher it stores from
+  `res$XtWX` is still valid if it is added). The other `error = function(e) NULL` handlers in the same file (~L229,
+  ~L252, ~L266) need the same check. Confirmed by reading HEAD (38d1b90a). Fix: rethrow control conditions as the
+  count class does (or use `private$resampling_error_to_na`), pass `estimate_only = TRUE`. Test: with
+  `options(EDI.ci_timeout_deadline)` in the past, the randomization p-value / CI aborts with the timeout condition
+  instead of returning a value; the randomization distribution is otherwise unchanged on a fixed seed.
+- [ ] TODO-416 (added 2026-11-23, coordinator, owner request; test-bulk-non-cran runs 44958883285 (91ec8e5c) and
+  45131875335 (38d1b90a) failed, 45082880097 (29d59ae4) passed): **`test-simulation-worker-result-dispatch-contracts.R`
+  fails intermittently in the bulk shard.** `R/package_tests/testthat_bulk/test-simulation-worker-result-dispatch-contracts.R:181-182`
+  ("observational DGP estimands override standard class-based estimands"): `out$errors` has length 1 and
+  `out$results_dt$true_estimand` is NULL, for both the stateless and the stateful `custom_dgp`. The test file has not
+  changed since be70fd55 (2026-09-18), and between the passing and the latest failing run `simulations_framework.R`
+  changed only in roxygen, so the failure looks order-dependent (process state left by an earlier file in the same
+  shard; see the `feedback_shard_process_state_poisoning` memory) or random. The other six files that failed in
+  44958883285 were fixed on 2026-11-22; this one was not. Plan: (1) print `out$errors` (add it to the expectation's
+  `info`) so the next failure names the error; (2) run the file alone and then directly after its shard neighbours (the
+  shard-1 file list in the run log), with NOT_CRAN=true, to see whether the order triggers it; (3) fix the leaking
+  state or the test. Done when the file passes in the shard on three consecutive bulk runs.
