@@ -91,10 +91,17 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		},
 		#' @description Sets the asymptotic testing method used by p-values and CIs.
 		#'
-		#' @param testing_type One of \code{"wald"}, \code{"score"}, \code{"gradient"}, \code{"lik_ratio"}, \code{"lik_ratio_bartlett_approx"}, or \code{"lik_ratio_bartlett_exact"}.
+		#' @param testing_type One of \code{"wald"}, \code{"score"}, \code{"gradient"}, \code{"lik_ratio"}, \code{"lik_ratio_bartlett_approx"}, \code{"lik_ratio_bartlett_exact"}, or \code{"lik_ratio_bartlett_approx_design_conservative"}.
+		#'   The last is offered only by classes that combine a model-based test with a
+		#'   design-based Wald test (\code{InferenceCountPoisson},
+		#'   \code{InferenceCountKKCondPoissonOneLik},
+		#'   \code{InferenceCountKKHurdlePoissonOneLik}): the larger of the
+		#'   approximate Bartlett-corrected likelihood-ratio p-value and the design
+		#'   Wald p-value, and the union of the two intervals. Each class accepts only
+		#'   the types in its \code{get_supported_testing_types()}.
 		#'
 		#' @return The inference object, invisibly.
-		set_testing_type = function(testing_type = c("wald", "score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact")){
+		set_testing_type = function(testing_type = c("wald", "score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx_design_conservative")){
 			testing_type = private$normalize_testing_type(testing_type)
 			supported = private$get_supported_testing_types_with_bartlett()
 			if (!testing_type %in% supported) {
@@ -598,7 +605,10 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 				lr_bartlett_exact = "lik_ratio_bartlett_exact",
 				lrb_exact = "lik_ratio_bartlett_exact",
 				bartlett_exact = "lik_ratio_bartlett_exact",
-				stop("testing_type must be one of: wald, score, gradient, lik_ratio, lik_ratio_bartlett_approx, lik_ratio_bartlett_exact", call. = FALSE)
+				# v1.0.6-TODO-380: the design-conservative Bartlett option of the classes
+				# that combine a model test with a design Wald test (see set_testing_type()).
+				lik_ratio_bartlett_approx_design_conservative = "lik_ratio_bartlett_approx_design_conservative",
+				stop("testing_type must be one of: wald, score, gradient, lik_ratio, lik_ratio_bartlett_approx, lik_ratio_bartlett_exact, lik_ratio_bartlett_approx_design_conservative", call. = FALSE)
 			)
 		},
 		normalize_information_preference = function(information_preference){

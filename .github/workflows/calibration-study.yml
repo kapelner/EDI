@@ -346,8 +346,10 @@ jobs:
     # ~25 min of replicates (the deadline) + setup + the replicates in flight. Most
     # shards end near 30 min; a slow-class shard whose single replicate outlasts the
     # deadline (InferenceCountKKGLMM at n = 1000: ~37 single-core min measured
-    # locally) needs the headroom on a slower runner.
-    timeout-minutes: 75
+    # locally) needs the headroom on a slower runner. Per shard from the planner (matrix.timeout_minutes,
+    # v1.0.6-TODO-409, owner 2026-11-22): 75 normally, 180 for a unit that has already lost a shard to a death or
+    # this timeout (plan_calibration_study.R --dead-timeout-minutes; GitHub-hosted runners allow 360 at most).
+    timeout-minutes: ${{ matrix.timeout_minutes || 75 }}
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -690,11 +692,17 @@ jobs:
           d="results/campaigns/$C"
           wave_no=$(( $(wc -l < "$d/runs.txt" 2>/dev/null || echo 0) + 1 ))
           Rscript pinned/R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
-          # Every planned shard, finished or not: the planner abandons a unit after repeated shards that never
-          # wrote shard.csv (died or timed out).
-          [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id" > "$d/planned.csv"
+          # Every planned shard, finished or not, with its replicates: a shard that never wrote shard.csv (died or timed
+          # out) halves its unit's next shards, and the planner abandons a unit after repeated dead 1-replicate shards
+          # (v1.0.6-TODO-409). A planned.csv from before the reps column gets it, empty, on its old rows.
+          [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id,reps" > "$d/planned.csv"
+          hdr="$(head -n 1 "$d/planned.csv")"
+          case "$hdr" in
+            *,reps|*,'"reps"') ;;
+            *) awk 'NR == 1 { print $0 ",reps"; next } { print $0 "," }' "$d/planned.csv" > planned.tmp && mv planned.tmp "$d/planned.csv" ;;
+          esac
           echo '${{ needs.roster.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
-            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r] | @csv' >> "$d/planned.csv"
+            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r, .reps] | @csv' >> "$d/planned.csv"
           echo "${{ github.run_id }}" >> "$d/runs.txt"
           echo "wave_no=$wave_no" >> "$GITHUB_ENV"
           # This wave's raw rows, for deep dives (60 days, so the last two campaigns, ~0.3 GB each, are kept at a

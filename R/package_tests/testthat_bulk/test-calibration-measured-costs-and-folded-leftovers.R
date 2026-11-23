@@ -55,7 +55,8 @@ amend_e_campaign = function(done = list(), dead = list(), ledger_spr = NULL, ros
 	}
 	if (length(dead)) {
 		planned = do.call(rbind, lapply(seq_along(dead), function(i) data.frame(id = paste0("dead", i), response_type = "continuous", design = dead[[i]]$design,
-			n = dead[[i]]$n, effect = "null", group = dead[[i]]$cls, wave = 1L, run_id = "1", stringsAsFactors = FALSE)))
+			n = dead[[i]]$n, effect = "null", group = dead[[i]]$cls, wave = 1L, run_id = "1", reps = if (is.null(dead[[i]]$reps)) "" else dead[[i]]$reps,
+			stringsAsFactors = FALSE)))
 		utils::write.csv(planned, file.path(cdir, "planned.csv"), row.names = FALSE)
 	}
 	list(cdir = cdir, roster = roster_path)
@@ -161,19 +162,19 @@ test_that("a unit that lost a shard still runs alone: it is neither a host nor a
 	bern = "DesignFixedBernoulli"
 	# OLS has a small leftover (did 1:60); Lin is fresh (it would be an eligible guest) but lost a shard to a death.
 	cp = amend_e_campaign(list(list(cls = "InferenceContinOLS", design = bern, n = 50L, reps_done = "1:60", reps_stat = 60L, fit = 0.5)),
-		dead = list(list(design = bern, n = 50L, cls = "InferenceContinLin")))
+		dead = list(list(design = bern, n = 50L, cls = "InferenceContinLin", reps = "1:100")))
 	w = amend_e_plan(cp)
 	cell = w[w$design == bern & w$n == 50L & w$response_type == "continuous", ]
 	lin = cell[grepl("InferenceContinLin", cell$only, fixed = TRUE), ]
-	expect_equal(nrow(lin), 1L)
-	expect_equal(lin$only, "InferenceContinLin")
-	expect_equal(lin$reps, "1:100")
+	# Alone, and (v1.0.6-TODO-409) in shards of at most half the dead shard's 100 replicates.
+	expect_true(all(lin$only == "InferenceContinLin"))
+	expect_equal(sort(lin$reps), c("1:50", "51:100"))
 	ols = cell[grepl("InferenceContinOLS", cell$only, fixed = TRUE), ]
 	expect_equal(ols$only, "InferenceContinOLS")
 	expect_equal(ols$reps, "61:100")
 	# And a dead unit with a small missing set is not topped up either.
 	cp2 = amend_e_campaign(list(list(cls = "InferenceContinLin", design = bern, n = 50L, reps_done = "1:60", reps_stat = 60L, fit = 0.5)),
-		dead = list(list(design = bern, n = 50L, cls = "InferenceContinLin")))
+		dead = list(list(design = bern, n = 50L, cls = "InferenceContinLin", reps = "1:100")))
 	w2 = amend_e_plan(cp2)
 	c2 = w2[w2$design == bern & w2$n == 50L & w2$response_type == "continuous", ]
 	expect_equal(c2$only[c2$reps == "61:100"], "InferenceContinLin")

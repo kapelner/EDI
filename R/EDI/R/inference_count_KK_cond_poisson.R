@@ -130,6 +130,48 @@ kk_cpoisson_glm_fallback_spec = function(ctx){
 	ci
 }
 
+# v1.0.6-TODO-380 (owner, 2026-11-21): testing_type
+# "lik_ratio_bartlett_approx_design_conservative" on the KK count OneLik classes.
+# "lik_ratio_bartlett_approx" stays the model-only Bartlett-corrected LR test;
+# this type combines it with the design-based Wald test by the rule the
+# lik_ratio / score / gradient types use: the larger p-value and the union of
+# the intervals. The design Wald quantities are read (and restored) around the
+# model call, as in those types, because the generic likelihood path refits.
+.kk_onelik_bartlett_design_conservative_ci = function(self, private, alpha = 0.05, B = 99){
+	private$shared(estimate_only = FALSE)
+	beta_design = private$cached_values$beta_hat_T
+	se_design = private$cached_values$s_beta_hat_T
+	df_design = private$cached_values$df
+	ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
+	ci_model = tryCatch(self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha, B = B), error = function(e) c(NA_real_, NA_real_))
+	private$cached_values$beta_hat_T = beta_design
+	private$cached_values$s_beta_hat_T = se_design
+	private$cached_values$df = df_design
+	if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
+	.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "lik_ratio_bartlett_approx")
+}
+
+.kk_onelik_bartlett_design_conservative_pval = function(self, private, delta = 0, B = 99){
+	private$shared(estimate_only = FALSE)
+	beta_design = private$cached_values$beta_hat_T
+	se_design = private$cached_values$s_beta_hat_T
+	df_design = private$cached_values$df
+	p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+	p_model = tryCatch(self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta, B = B), error = function(e) NA_real_)
+	private$cached_values$beta_hat_T = beta_design
+	private$cached_values$s_beta_hat_T = se_design
+	private$cached_values$df = df_design
+	if (is.finite(p_design)) private$clear_nonestimable_state()
+	.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "lik_ratio_bartlett_approx")
+}
+
+# The supported testing types of the KK count OneLik classes: the design-conservative
+# Bartlett option is offered wherever the approximate Bartlett factor is.
+.kk_onelik_supported_testing_types = function(private){
+	c("wald", "score", "gradient", "lik_ratio",
+		if (isTRUE(private$supports_bartlett_likelihood_ratio_approx())) "lik_ratio_bartlett_approx_design_conservative")
+}
+
 # v1.0.6-TODO-195 (1), 2026-11-19: the KK hurdle-Poisson classes fit the count
 # part of a hurdle model, a zero-truncated Poisson GLMM on the matched rows with a
 # positive count (fast_hurdle_poisson_glmm_cpp()); the hurdle (zero vs. positive)
@@ -840,37 +882,25 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		},
 		#' @description Compute the configured asymptotic confidence interval for the
 		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-		#'   score, likelihood-ratio, or gradient paths as documented in
-		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+		#'   score, likelihood-ratio, gradient, model-only Bartlett-corrected
+		#'   likelihood-ratio (\code{"lik_ratio_bartlett_approx"}) or
+		#'   design-conservative Bartlett
+		#'   (\code{"lik_ratio_bartlett_approx_design_conservative"}) paths; see
+		#'   \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 		#' @param alpha Significance level; the interval has confidence level 1 - alpha.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			switch(
 				self$get_testing_type(),
-				wald = {
-					private$shared_combined_hurdle()
-					if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-						# 2026-09-18: the bootstrap fallback below is itself
-						# unavailable on a KK21stepwise/SPBR design
-						# (apply_inference_design_restrictions() stubs
-						# compute_bootstrap_confidence_interval() to stop() on any
-						# non-Bernoulli DesignSeqOneByOne design) -- checking first
-						# avoids that unrelated design-restriction error leaking
-						# through and being misread as "asymp itself is
-						# unsupported" (found via a comprehensive_tests results
-						# audit).
-						if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-							return(c(NA_real_, NA_real_))
-						}
-						return(self$compute_bootstrap_confidence_interval(alpha = alpha))
-					}
-					private$compute_z_or_t_ci_from_s_and_df(alpha)
-				},
+				# v1.0.6-TODO-380: the Wald method itself, which returns NA (never a
+				# bootstrap interval) when the standard error is unavailable.
+				wald = self$compute_wald_confidence_interval(alpha = alpha),
 				score = self$compute_score_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
 				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
 				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
 				# branch here, so the CI came back NULL. Same method a direct call reaches.
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
+				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_ci(self, private, alpha = alpha),
 				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
@@ -920,31 +950,21 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "gradient")
 		},
 		#' @description Compute the configured asymptotic two-sided p-value for the
-		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-		#'   score, likelihood-ratio, or gradient paths as documented in
-		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
+		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to the
+		#'   same paths as \code{compute_asymp_confidence_interval()}; see
+		#'   \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			switch(
 				self$get_testing_type(),
-				wald = {
-					private$shared_combined_hurdle()
-					if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-						# See compute_asymp_confidence_interval()'s matching
-						# comment: the bootstrap fallback is itself unavailable
-						# on this design.
-						if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-							return(NA_real_)
-						}
-						return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
-					}
-					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-				},
+				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
+				wald = self$compute_wald_two_sided_pval(delta = delta),
 				score = self$compute_score_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
 				gradient = self$compute_gradient_two_sided_pval(delta = delta),
 				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
+				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_pval(self, private, delta = delta),
 				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
@@ -994,43 +1014,31 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "gradient")
 		},
 		#' @description Compute the Wald confidence interval for the one-likelihood
-		#'   hurdle-Poisson treatment coefficient, falling back to bootstrap when the
-		#'   model standard error is unavailable. See
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#'   hurdle-Poisson treatment coefficient. When the model standard error is
+		#'   unavailable the interval is \code{NA}, with the reason recorded and an
+		#'   \code{edi_wald_unavailable_warning}; no other procedure is substituted
+		#'   (call \code{compute_bootstrap_confidence_interval()} for a bootstrap
+		#'   interval). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Significance level; the interval has confidence level 1 - alpha.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# 2026-09-18: the bootstrap fallback below is itself unavailable
-				# on a KK21stepwise/SPBR design (apply_inference_design_
-				# restrictions() stubs compute_bootstrap_confidence_interval() to
-				# stop() on any non-Bernoulli DesignSeqOneByOne design) --
-				# checking first avoids that unrelated design-restriction error
-				# leaking through and being misread as "wald itself is
-				# unsupported" (found via a comprehensive_tests results audit).
-				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-					return(c(NA_real_, NA_real_))
-				}
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the Wald two-sided p-value for the one-likelihood
-		#'   hurdle-Poisson treatment coefficient, falling back to the nonparametric
-		#'   bootstrap p-value when the model standard error is unavailable (or
-		#'   \code{NA_real_} when the design does not support the nonparametric
-		#'   bootstrap). See
+		#'   hurdle-Poisson treatment coefficient: \code{NA} (reason recorded, with an
+		#'   \code{edi_wald_unavailable_warning}) when the model standard error is
+		#'   unavailable, never a bootstrap p-value. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Null treatment effect value.
 		compute_wald_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# See compute_wald_confidence_interval()'s matching comment: the
-				# bootstrap fallback is itself unavailable on this design.
-				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
-					return(NA_real_)
-				}
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				# v1.0.6-TODO-380: see compute_wald_confidence_interval().
+				return(edi_wald_unavailable_na(self, private))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
@@ -1065,14 +1073,9 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		supports_lik_ratio_param_bootstrap = function(){
 			TRUE
 		},
+		# v1.0.6-TODO-380: plus "lik_ratio_bartlett_approx_design_conservative".
 		get_supported_testing_types_impl = function(){
-			c("wald", "score", "gradient", "lik_ratio")
-		},
-		warn_bootstrap_fallback_once = function(){
-			if (!isTRUE(private$cached_values$warned_bootstrap_se_unavailable)) {
-				private$cached_values$warned_bootstrap_se_unavailable = TRUE
-				warning("KK hurdle-Poisson combined-likelihood: falling back to bootstrap because standard error is unavailable.")
-			}
+			.kk_onelik_supported_testing_types(private)
 		},
 		compute_basic_match_data = function(){
 			private$cached_values$KKstats = .compute_kk_basic_match_data_cached(
@@ -1905,6 +1908,8 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
 				# branch here, so the CI came back NULL. Same method a direct call reaches.
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
+				# v1.0.6-TODO-380: the model-only Bartlett interval unioned with the design Wald one.
+				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_ci(self, private, alpha = alpha),
 				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
@@ -1920,6 +1925,8 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 				gradient = self$compute_gradient_two_sided_pval(delta = delta),
 				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
+				# v1.0.6-TODO-380: the larger of the model-only Bartlett and design Wald p-values.
+				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_pval(self, private, delta = delta),
 				stop("Unsupported testing_type: ", self$get_testing_type())
 			)
 		},
@@ -2043,8 +2050,9 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		supports_lik_ratio_param_bootstrap = function(){
 			TRUE
 		},
+		# v1.0.6-TODO-380: plus "lik_ratio_bartlett_approx_design_conservative".
 		get_supported_testing_types_impl = function(){
-			c("wald", "score", "gradient", "lik_ratio")
+			.kk_onelik_supported_testing_types(private)
 		},
 		compute_basic_match_data = function(){
 			private$cached_values$KKstats = .compute_kk_basic_match_data_cached(

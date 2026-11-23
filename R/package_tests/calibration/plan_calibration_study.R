@@ -15,7 +15,8 @@
 # directory (on the calibration-results branch) holds the ledger:
 #   ledger.csv    one row per finished shard (its shard.csv, plus id): response_type, design, n, effect, only (its
 #                 classes, ";"-joined), reps_done, cost
-#   planned.csv   every shard ever planned: id, response_type, design, n, effect, group (its classes), wave, run id
+#   planned.csv   every shard ever planned: id, response_type, design, n, effect, group (its classes), wave, run id, reps
+#                 (its replicate ranges; rows from before v1.0.6-TODO-409 have none)
 #   roster.csv    the campaign's class roster (--roster; frozen at the first wave)
 #   plan.csv      --plan-out: every screening unit in run order (analysis reads it: m_total, completed cells)
 # Missing replicates = all - union(reps_done) per unit (class). They are cut into shards of about --target-minutes on
@@ -25,8 +26,12 @@
 # a shard that hit its deadline) are topped up with further classes of the same cell ("Fold" below). Shards run time-boxed
 # (run_calibration_study.R), so a low estimate costs nothing but an extra wave.
 #
-# A unit is abandoned after --max-dead planned shards that left no shard.csv (the job died or hit its timeout), so a
-# replicate that hangs cannot loop forever; a unit that has lost a shard runs alone from then on.
+# A planned shard that left no shard.csv died or hit its job timeout. A unit that has lost a shard runs alone from then on,
+# its next shards carry half the replicates of its smallest dead shard (down to 1), and they get the longer job timeout
+# --dead-timeout-minutes (else --timeout-minutes; the matrix's timeout_minutes). The unit is abandoned after --max-dead
+# dead shards of a single replicate, so a replicate that hangs cannot loop forever (v1.0.6-TODO-409, owner 2026-11-22:
+# before, every death counted and the unit re-ran at the same size, so InferenceOrdinalKKCLMM at n = 1000, ~870 s per
+# replicate, was abandoned on three designs in campaign 2026-11-15-e36c7710).
 #
 # Prints the wave's matrix JSON ({"include": [...]}) on stdout; --meta-out gets key=value lines for $GITHUB_OUTPUT: units,
 # units_done, units_abandoned, reps_total, reps_done, wave (shards in this wave), shards_left (shards still needed after it,
@@ -35,7 +40,7 @@
 # Usage: Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir DIR \
 #          [--ns 50,200,1000] [--effects null,power20,power50,power80] [--designs all] \
 #          [--response-types all] [--null-reps 1000] [--power-reps 500] [--cores 4] \
-#          [--target-minutes 25] [--pack-minutes 25] [--min-shard-minutes 8.33] [--min-measured-reps 20] [--verbose] [--wave-size 64] [--max-dead 3] [--meta-out FILE] [--power-ns 50,200] \
+#          [--target-minutes 25] [--pack-minutes 25] [--min-shard-minutes 8.33] [--min-measured-reps 20] [--verbose] [--wave-size 64] [--max-dead 3] [--timeout-minutes 75] [--dead-timeout-minutes 180] [--meta-out FILE] [--power-ns 50,200] \
 #          [--slow-null-reps 500] [--slow-reduced-n 1000] [--slow-power-ns 50] \
 #          [--confirm-reps 5000] [--slow-confirm-reps 1000] --roster FILE [--plan-out FILE] [--plan-only]
 #
@@ -92,6 +97,11 @@ fold_secs <- 60 * as.numeric(arg_value("--min-shard-minutes", as.character(as.nu
 min_measured_reps <- as.integer(arg_value("--min-measured-reps", "20"))
 wave_size <- as.integer(arg_value("--wave-size", "64"))
 max_dead <- as.integer(arg_value("--max-dead", "3"))
+# Job timeout of each shard (the matrix's timeout_minutes, read by the workflow's shards job): --timeout-minutes normally,
+# --dead-timeout-minutes for a unit that has already lost a shard (v1.0.6-TODO-409; GitHub-hosted runners allow 360 at most).
+timeout_minutes <- as.integer(arg_value("--timeout-minutes", "75"))
+dead_timeout_minutes <- as.integer(arg_value("--dead-timeout-minutes", "180"))
+stopifnot(timeout_minutes >= 1L, dead_timeout_minutes >= 1L, max(timeout_minutes, dead_timeout_minutes) <= 360L)
 meta_out <- arg_value("--meta-out", "")
 plan_out <- arg_value("--plan-out", "")
 plan_only <- "--plan-only" %in% args
@@ -189,16 +199,61 @@ if (!is.null(ledger)) {
 }
 planned_path <- file.path(campaign_dir, "planned.csv")
 planned <- if (nzchar(campaign_dir) && file.exists(planned_path))
-	read_csv_fast(planned_path, stringsAsFactors = FALSE, colClasses = c(group = "character")) else NULL
-dead_n <- list()
-if (!is.null(planned)) {
-	dead <- planned[!(planned$id %in% if (is.null(ledger)) character() else ledger$id), , drop = FALSE]
+	read_csv_fast(planned_path, stringsAsFactors = FALSE, colClasses = c(group = "character", reps = "character")) else NULL
+# Dead shards (v1.0.6-TODO-409, owner decision 2026-11-22): a planned shard with no ledger row died or hit the job timeout
+# (shards no longer yield to a nightly run, owner 2026-11-15; when they did, the workflow left yielded shards out of
+# planned.csv so they were never counted dead). Each unit (class key) keeps the replicate counts
+# of its dead shards: its next shards carry half the replicates of its smallest dead shard (at least 1), and only a dead
+# shard of 1 replicate counts toward --max-dead. A shard's replicate count is planned.csv's `reps` (written since that
+# change); a row from before it is sized from its wave's finished sibling shards of the same unit (ledger n_done + n_failed
+# + n_skipped = the replicates planned), else from the gap to the next sibling's first replicate in the shard ids, else it
+# is unknown (NA): the unit still halves, from the size it would be planned at now, and the death never counts toward
+# --max-dead. Recomputed from planned.csv every wave, so a change of this rule applies to past deaths too.
+dead_sizes <- list()
+if (!is.null(planned) && nrow(planned)) {
+	is_dead <- !(planned$id %in% if (is.null(ledger)) character() else ledger$id)
+	size <- rep(NA_real_, nrow(planned))
+	if ("reps" %in% names(planned)) {
+		r <- as.character(planned$reps)
+		has <- !is.na(r) & nzchar(r)
+		size[has] <- vapply(r[has], function(x) length(parse_reps(x)), integer(1L))
+	}
+	legacy <- which(is_dead & is.na(size))
+	if (length(legacy)) {
+		grp <- paste(planned$response_type, planned$design, planned$n, planned$effect, planned$group, planned$run_id, sep = "|")
+		if (!is.null(ledger) && all(c("n_done", "n_failed", "n_skipped") %in% names(ledger))) {
+			li <- match(planned$id, ledger$id)
+			tot <- suppressWarnings(as.numeric(ledger$n_done[li]) + as.numeric(ledger$n_failed[li]) + as.numeric(ledger$n_skipped[li]))
+			sib <- tapply(tot, grp, function(v) if (any(!is.na(v))) stats::median(v, na.rm = TRUE) else NA_real_)
+			size[legacy] <- as.numeric(sib[grp[legacy]])
+		}
+		first <- suppressWarnings(as.integer(sub("^.*-r([0-9]+)$", "\\1", planned$id)))
+		for (i in legacy[is.na(size[legacy])]) {
+			s <- sort(unique(first[grp == grp[[i]] & !is.na(first)]))
+			if (is.na(first[[i]]) || length(s) < 2L) next
+			nxt <- s[s > first[[i]]]
+			gaps <- diff(s)
+			size[[i]] <- if (length(nxt)) nxt[[1L]] - first[[i]] else stats::median(gaps)
+		}
+	}
+	dead <- planned[is_dead, , drop = FALSE]
+	dsize <- size[is_dead]
 	cls <- split_classes(dead$group)
 	for (i in seq_len(nrow(dead))) for (k in ckey(cal_plan_key(dead$response_type[[i]], dead$design[[i]], dead$n[[i]], dead$effect[[i]], cls[[i]]),
 		isTRUE(startsWith(dead$group[[i]], "confirm:"))))
-		dead_n[[k]] <- (dead_n[[k]] %||% 0L) + 1L
+		dead_sizes[[k]] <- c(dead_sizes[[k]], dsize[[i]])
 }
-dead_of <- function(k) dead_n[[k]] %||% 0L
+dead_of <- function(k) length(dead_sizes[[k]])
+# Deaths that count toward --max-dead: dead shards of a single replicate.
+dead_single_of <- function(k) sum(dead_sizes[[k]] <= 1, na.rm = TRUE)
+# The most replicates a unit's next shard may carry: half its smallest dead shard (at least 1); NA = no known size (half
+# the planned size, see emit()); Inf = no death.
+rep_cap_of <- function(k) {
+	s <- dead_sizes[[k]]
+	if (!length(s)) return(Inf)
+	if (all(is.na(s))) return(NA_real_)
+	max(1, floor(min(s, na.rm = TRUE) / 2))
+}
 
 # ---- Costs (v1.0.5 TODO-203 Amendment E) ----------------------------------------------------------------------------------
 # Seconds per replicate (single core) of a unit. Preference, most specific first (the source of every unit is reported on stderr):
@@ -417,7 +472,8 @@ cls_short <- function(x) sub("^Inference", "", x)
 #  1. Classes with the same missing set, in priority order, are packed next-fit into bins whose whole work (replicates x
 #     (summed class costs + the cell's overhead a + b x classes)) fits --pack-minutes on --cores cores (one class per bin when
 #     --pack-minutes is 0). A unit that has already lost a shard to a death or timeout always runs alone, and is never
-#     folded; so does a new class's probe (plan_unit_set()).
+#     folded (its shards are also capped at half its smallest dead shard, see "Dead shards"); so does a new class's probe
+#     (plan_unit_set()).
 #  2. Fold (Amendment E): a bin whose predicted time is under --min-shard-minutes (typically the leftovers of a shard that hit
 #     its deadline) takes in further classes of the cell whose missing set contains the bin's replicates -- fresh classes, or
 #     classes with larger leftovers -- in priority order, while the pack budget allows, until it reaches the minimum. The guests'
@@ -434,6 +490,12 @@ plan_cell <- function(u, m, confirm) {
 	emit <- function(b, reps) {
 		cost <- bin_cost(b)
 		per <- max(cores, floor(target_secs * cores / cost))
+		# A unit that lost a shard: at most half its smallest dead shard's replicates (half the planned size when that is
+		# unknown), and a longer job timeout (--dead-timeout-minutes) as the backstop. Such a unit always runs alone.
+		cap <- min(u$rep_cap[b])
+		if (is.na(cap)) cap <- max(1, floor(min(per, length(reps)) / 2))
+		per <- max(1, min(per, cap))
+		timeout <- if (any(u$dead[b] > 0L)) dead_timeout_minutes else timeout_minutes
 		k <- ceiling(length(reps) / per)
 		size <- ceiling(length(reps) / k)
 		tag <- if (length(b) == 1L) cls_short(u$inf_class[b]) else sprintf("%s-p%d", cls_short(u$inf_class[b[[1L]]]), length(b))
@@ -443,7 +505,7 @@ plan_cell <- function(u, m, confirm) {
 				id = sprintf("%s-%s-n%d-%s-%s-r%d", rt, slug(dd), nn, ef, tag, ch[[1L]]),
 				response_type = rt, design = dd, n = nn, effect = ef, reps = ranges(ch),
 				secs_per_rep = round(cost, 1), group = paste0(if (confirm) "confirm:" else "", paste(u$inf_class[b], collapse = ";")),
-				only = paste(u$inf_class[b], collapse = ","), exclude = "", priority = u$priority[[b[[1L]]]])
+				only = paste(u$inf_class[b], collapse = ","), exclude = "", timeout_minutes = timeout, priority = u$priority[[b[[1L]]]])
 		}
 	}
 	pack <- function(ix) {   # ix: units with one missing set, in priority order
@@ -502,6 +564,7 @@ plan_unit_set <- function(us, confirm) {
 	us$missing_str <- ""
 	miss <- vector("list", nrow(us))
 	us$dead <- 0L
+	us$rep_cap <- Inf
 	for (i in seq_len(nrow(us))) {
 		u <- us[i, ]
 		k <- ckey(u$key, confirm)
@@ -510,8 +573,9 @@ plan_unit_set <- function(us, confirm) {
 		cnt$done <- cnt$done + length(done)
 		m <- setdiff(want, done)
 		us$dead[[i]] <- dead_of(k)
+		us$rep_cap[[i]] <- rep_cap_of(k)
 		if (!length(m)) { cnt$units_done <- cnt$units_done + 1L; next }
-		if (us$dead[[i]] >= max_dead) { cnt$abandoned <- cnt$abandoned + 1L; miss[[i]] <- integer(); next }
+		if (dead_single_of(k) >= max_dead) { cnt$abandoned <- cnt$abandoned + 1L; miss[[i]] <- integer(); next }
 		miss[[i]] <- m
 		us$missing_str[[i]] <- ranges(m)
 	}
@@ -590,8 +654,8 @@ wave <- utils::head(shards, wave_size)
 if (length(wave) > 256L) stop("a wave cannot exceed GitHub's 256-job matrix limit")
 esc <- function(x) gsub('"', '\\\\"', x)
 json <- vapply(wave, function(s) sprintf(paste0('{"id":"%s","response_type":"%s","design":"%s","n":%d,"effect":"%s","reps":"%s",',
-	'"secs_per_rep":%s,"group":"%s","only":"%s","exclude":"%s"}'),
-	s$id, s$response_type, esc(s$design), s$n, s$effect, s$reps, format(s$secs_per_rep), s$group, s$only, s$exclude), character(1L))
+	'"secs_per_rep":%s,"group":"%s","only":"%s","exclude":"%s","timeout_minutes":%d}'),
+	s$id, s$response_type, esc(s$design), s$n, s$effect, s$reps, format(s$secs_per_rep), s$group, s$only, s$exclude, as.integer(s$timeout_minutes)), character(1L))
 cat(sprintf('{"include":[%s]}\n', paste(json, collapse = ",")))
 if (nzchar(meta_out)) cat(sprintf("units=%d\nunits_done=%d\nunits_abandoned=%d\nreps_total=%d\nreps_done=%d\nwave=%d\nshards_left=%d\nm_total=%d\n",
 	units_all_n, units_done, units_abandoned, reps_all, reps_done_total, length(wave), length(shards) - length(wave), m_total),

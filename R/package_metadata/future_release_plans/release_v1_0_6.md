@@ -6951,3 +6951,98 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     the design, so a confirmed excess is a bug.
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignSeqOneByOneiBCRD@prob_T=0.2' --n 50 --effect null --only InferenceOrdinalGCompMeanDiff --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cells; confirmed ones are fixed.
+- [ ] TODO-409 (added 2026-11-23, coordinator, owner decision 2026-11-22; found by calibration campaign 2026-11-15-e36c7710): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
+  - Problem: `InferenceOrdinalKKCLMM` null at n = 1000 costs ~870 s per replicate in `rand` (Wald 2.7 s), so its shards
+    (4-7 replicates) ran ~58 min and some hit the shard job's `timeout-minutes: 75` (4 per wave in runs 44902301848,
+    44970301607, 45002060522). `plan_calibration_study.R` counted every planned shard without a ledger row as dead,
+    abandoned the unit at `--max-dead 3`, and re-planned a unit that had lost a shard at the same size, so it died again.
+    Before this change the plan at wave 28 had all three units (FixedBinaryMatch, SeqOneByOneKK14, SeqOneByOneKK21)
+    abandoned.
+  - Owner decision 2026-11-22: options 1 and 2 below. Option 3, making `InferenceOrdinalKKCLMM`'s randomization test
+    cheaper, is not taken now.
+  - Changed: (1) planner: after each death the unit's next shards carry at most half the replicates of its smallest dead
+    shard (down to 1), and only a dead 1-replicate shard counts toward `--max-dead`; recomputed from `planned.csv` every
+    wave, so the three units came back without any edit to the `calibration-results` branch. `planned.csv` gains a
+    `reps` column (the workflow adds it, empty, to an older file); for older rows the dead shard's size comes from its
+    wave's finished siblings in the ledger (`n_done + n_failed + n_skipped`), else from the gap between shard ids.
+    (2) backstop: the planner writes `timeout_minutes` into each matrix entry (`--timeout-minutes 75`,
+    `--dead-timeout-minutes 180` for a unit that has lost a shard; at most 360) and the shards job uses
+    `timeout-minutes: ${{ matrix.timeout_minutes || 75 }}`. Test:
+    `R/package_tests/testthat_bulk/test-calibration-dead-shards-halve-replicates-and-extend-timeout.R`.
+  - Dry run on the campaign files at wave 28: 0 abandoned units (was 3); the three units now plan 74 shards of 3
+    replicates (FixedBinaryMatch, 7-replicate shards died), 176 and 12 shards of 2 (KK14, KK21; 4-replicate shards
+    died), all with the 180-minute timeout; every other shard is the same as before, at 75 minutes.
+  - Watch: a shard runs its replicates in parallel on 4 cores and the first round is never cut by the deadline, so a
+    shard of 4 or fewer replicates takes about as long as its slowest replicate. Halving below 4 lowers the chance of
+    a slow outlier, but the 180-minute timeout is what lets a single slow replicate finish.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-409a](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409a) (keep halving shards below 4 replicates, or rely on the 180-minute timeout?).
+  - Owner decision pending: [DECISION-v1.0.6-TODO-409b](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-409b) (after three dead 1-replicate shards, abandon the whole unit or only those replicates?).
+  - Done when: after a push, the next wave(s) complete the `InferenceOrdinalKKCLMM` n = 1000 units.
+- [ ] TODO-410 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951, benchmark canary):
+  **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-169.** Every flagged row
+  first appeared together in the 11-21 nightly, the first on 8d8c5f78. The 11-18 nightly (4ce2b712) ran every section
+  and passed, with the current CLMM wald row at 24.6 ms. In 4ce2b712..9186e6a5 the GLMM/CLMM kernels changed only by
+  refactors (shared `glmm::gauss_hermite_rule`/`soft_barrier`, v1.0.6-TODO-193), and the ordinal CLMM/GLMM kernels,
+  build flags, `nightly.yml` and the benchmark harness did not change. What did change is `_helper_functions_core.h`
+  (8d8c5f78, v1.0.6-TODO-169). `optimize_likelihood_lbfgs` now passes every run that fails the gradient test to
+  `lbfgs_finish_with_newton_decrement()`. That evaluates a Hessian at the stop (`numerical_hessian()` when the
+  functor has no `hessian()` method, e.g. `fast_ordinal_clmm.cpp`), and it can take up to 50 damped Newton steps.
+  GLMM-type fits usually stop on LBFGSpp's relative-decrease rule, so they now pay for that on most fits.
+  Rows (release v1.0.4 -> current, ms; 11-21 / 11-22 runners):
+  - wald-ordinal `InferenceOrdinalCLMM` (pairs) 24.4 -> 71.3 / 18.0 -> 51.8; `InferenceOrdinalGLMM` (pairs) 25.5 -> 61.5 / 14.6 -> 34.8;
+    models-ordinal CLMM 79 -> 160, GLMM 124 -> 208.
+  - `InferenceCountGLMM` (pairs) wald 10.2 -> 14.9, models 32-45 -> 42-58; `fast_logistic_glmm_cpp` (pairs, kernel only)
+    27.8 -> 40.0 (a direct `.Call`, so no R-layer cause).
+  - Not covered by v1.0.6-TODO-6: `InferenceCountZeroInflatedPoisson` wald 0.27 -> 0.65, models 1.9 -> 2.8;
+    `InferenceCountZeroInflatedNegBin` 0.87 -> 1.15 / 15.6-20.7 -> 23.8-30.4; `InferenceCountHurdleNegBin` 0.20 -> 0.27,
+    0.97 -> 1.25; `InferenceIncidKKCondLogitGLMMOneLik` 2.9 -> 3.7 / 3.0-4.4 -> 9.7-15.6;
+    `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` 0.75-0.99 -> 1.07-1.42 / 0.94-1.33 -> 2.5-3.5;
+    `InferenceContinGLMM` (pairs) 0.05-0.09 -> 0.13-0.26.
+  - Separate, 11-22 only: procedures "Randomization test p-value: OLS covariate-adjusted (r = 1000)" 30.9 -> 44.3
+    (OLS does not use L-BFGS; check the next nightly before treating it as real).
+  Benefit check (owner request 2026-11-23): v1.0.6-TODO-169 verified the finish on NegBin/Poisson/probit/beta/ZINB but did
+  not re-probe the GLMM, CLMM, ZIP/hurdle, Weibull frailty or conditional-logit GLMM kernels, which are the slowed rows.
+  With the finish on vs off, record for each of those kernels whether the estimate, SE, negLL and converged flag
+  change (a) on the benchmark data (`R/benchmark/benchmark_model_fits.R` fixtures) and (b) on the colon scaling
+  variants of v1.0.6-TODO-169 (raw, `scale()`d, age x 1000, age + 1e5) against a reference fitter (glmer, ordinal::clmm,
+  pscl, ...). If (a) shows no change, the cheap fixes below keep (b) and recover the speed.
+  Cause not yet confirmed by measurement (no build was run). Confirm first: kernel-swap one kernel (sourceCpp copy, as
+  in the `feedback_kernel_swap_test_no_relink` memory) with and without the finish, and count how often the finish runs
+  and how many Hessians and Newton steps it takes per fit on the benchmark data. Fix candidates (results must stay as
+  v1.0.6-TODO-169 made them, or any change explained): an analytic `hessian()` for the CLMM functor; cache the
+  Hessian across the rule check and the first Newton step; skip the finish when LBFGSpp stopped with a gradient
+  already within a looser scale-aware bound. Overlaps v1.0.6-TODO-6 (the GLMM/CLMM warm-start screen); the
+  v1.0.6-TODO-411 Ubuntu reproducibility timeout probably has the same cause. Done when the rows above are back within
+  the canary's 1.25x, or the owner accepts the cost and the rows go into `R/benchmark/benchmark_regression_allowlist.csv`
+  citing this TODO.
+- [ ] TODO-411 (added 2026-11-23, agent, owner request; nightly runs 44890775329 and 45008760951): **The nightly Ubuntu
+  reproducibility leg times out, so the cross-leg comparison fails.** `reproducibility (ubuntu-latest-release)` was
+  cancelled at the 150-minute job limit on 11-21 (8d8c5f78) and 11-22 (9186e6a5); it took 47-69 min on 11-18..11-20.
+  "reproducibility comparison across legs" then fails with "1 leg(s) produced no results"; the other four legs agree on
+  every digest. The leg runs with `EDI_EXHAUSTIVE_WORKER_TESTS=true`, and the log stops at the first file,
+  `test-aa-fork-worker-count-invariance-registry.R`, printing nothing for 2 h 15 min. That file runs the whole
+  registry sweep (`worker_invariance_sweep("fork")`, every concrete exported non-IVWC non-KK class at 1/2/4 fork
+  workers) inside one `test_that()` with its expectations at the end, so a hang and a slow sweep look the same in the
+  log. Most likely cause: the v1.0.6-TODO-410 fit slowdown, multiplied over the sweep (it started with the same
+  commit). A fork-worker hang is not ruled out: the old nanonext hang was mirai, but this file deliberately runs
+  before mirai. Investigate: run the sweep locally with `EDI_EXHAUSTIVE_WORKER_TESTS=true` and
+  `EDI_WORKER_INVARIANCE_VERBOSE=true` (over 10 minutes, real fork workers) and time each class, or add a per-class
+  progress line with elapsed time to `worker_invariance_sweep()` (`helper-worker-count-invariance.R`) so the CI log
+  shows where it stops. Done when the leg finishes within its limit (a fix, a per-class time cap, or a raised
+  `timeout-minutes` with the reason) and the comparison step passes with five legs.
+- [ ] TODO-412 (added 2026-11-23, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), wave 29): **`InferenceOrdinalCauchitRegr`: Wald / score / LR / gradient oversized, confirmed at n = 50 and at n = 1000.**
+  - Wave 29: 28 cells confirmed failing (18 at n = 50, 10 at n = 1000), 10 cleared, 87 pending, across many designs
+    and both allocations.
+  - Worst confirmed: score at n = 50, size 0.170 / 0.167 / 0.166 (level 0.1) on FixedGreedy@0.2, FixedRerandomization@0.2,
+    FixedOptimal@0.2, and 0.13-0.14 at prob_T 0.5 (SeqOneByOneBernoulli, SPBR, Efron, KK14, FixedOptimalBlocks,
+    FixedBinaryMatch); LR and gradient at n = 1000, FixediBCRD@0.2 `~.`, size about 0.070 (level 0.05). Wald fails at
+    n = 1000 too (SeqOneByOneRandomBlockSize@0.2, 0.082, pending).
+  - v1.1.0-TODO-181 covers the likelihood tests at n = 50 as small-sample; the n = 1000 failures are outside it, so
+    either the cauchit fit or its information is off, not only small-n asymptotics. Investigate first: observed vs
+    expected information for the cauchit link (heavy tails make the expected information a poor fit to the curvature);
+    convergence and boundary handling of the null fit used by score / LR / gradient; compare against `ordinal::clm(link =
+    "cauchit")` on the failing cells. Also check the shared ordinal parametric-bootstrap simulator's sign mismatch
+    (owner memory 2026-09-23, root-caused, not fixed; Cauchit among the affected), in case it shares code with these tests.
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type ordinal --design 'DesignFixediBCRD@prob_T=0.2' --n 1000 --effect null --only InferenceOrdinalCauchitRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"` (and `--design 'DesignFixedGreedy@prob_T=0.2' --n 50`). Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: the cause is found and the n = 1000 cells pass, or the owner accepts them with a reason and
+    calibration_study_accepted.csv rows citing this TODO; the n = 50 cells can stay under v1.1.0-TODO-181 if that is the cause.

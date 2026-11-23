@@ -13,7 +13,7 @@ ruling, the reasons and the date added; the TODO's pointer line becomes `  - Dec
 newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-22.
+Last updated 2026-11-23.
 
 ## Summary
 
@@ -30,6 +30,8 @@ Last updated 2026-11-22.
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
+| [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
+| [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
 | [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.6-TODO-403](release_v1_0_6.md) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
 | [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.6-TODO-402](release_v1_0_6.md) | How should audit-written bug tests skipped without a TODO be surfaced? |
 | [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.6-TODO-373](release_v1_0_6.md) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
@@ -204,6 +206,36 @@ Last updated 2026-11-22.
 - **Raised:** release file scoping, 2026-08-18.
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-409a"></a>
+### DECISION-v1.0.6-TODO-409a: Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone?
+
+- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **Calibration planner: shards of slow units time out and the units get abandoned.**
+- **Context:** owner decision 2026-11-22 took both fixes: halve a unit's shard after each timeout (down to 1 replicate)
+  and give units that lost a shard a 180-minute job timeout (75 otherwise). A shard runs its replicates in parallel on 4
+  cores and the first round is never cut by the 25-minute deadline, so a shard of 4 or fewer replicates lasts about as
+  long as its slowest replicate (4-replicate `InferenceOrdinalKKCLMM` n = 1000 shards took up to ~66 min).
+- **Options:** (a) keep the halving as built: going from 4 to 2 replicates only lowers the odds of drawing a slow
+  replicate, and roughly doubles the number of jobs and their setup time; (b) stop halving at 4 replicates (one round on
+  4 cores) and rely on the 180-minute timeout; (c) drop the halving entirely, timeout only.
+- **Evidence:** dry run of the planner on the campaign 2026-11-15-e36c7710 files: 3 abandoned units return with 2-3
+  replicates per shard (262 extra shards, all theirs); every other shard unchanged.
+- **Recommendation (coordinator):** (b): the timeout does the work, and fewer jobs keep the waves faster.
+- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-409.
+
+<a id="DECISION-v1.0.6-TODO-409b"></a>
+### DECISION-v1.0.6-TODO-409b: Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates?
+
+- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **Calibration planner: shards of slow units time out and the units get abandoned.**
+- **Context:** under the new rule only dead 1-replicate shards count toward `--max-dead 3`. Three of them still abandon
+  the whole unit, even if hundreds of its other 1-replicate shards finish.
+- **Options:** (a) keep it: three single replicates that cannot finish in 180 minutes mean the unit is not
+  calibratable at this cost; (b) abandon only the replicates that died (the cell is reported with fewer replicates,
+  and its gate uses the replicates it has).
+- **Evidence:** none yet; no unit has reached 1-replicate shards. (b) risks a biased replicate set if the slow fits
+  are systematically different (compare v1.1.0-TODO-264, a bias measured on an abandoned unit's finished replicates).
+- **Recommendation (coordinator):** (a) for now; revisit if a unit actually reaches it.
+- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-409.
 
 <a id="DECISION-v1.0.6-TODO-403"></a>
 ### DECISION-v1.0.6-TODO-403: Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods?

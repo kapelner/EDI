@@ -1043,6 +1043,38 @@ edi_warn_procedure_na = function(self, private, procedure, reason, detail = NULL
 	invisible(TRUE)
 }
 
+#' The NA a Wald confidence interval or p-value returns when its standard
+#' error is unavailable (v1.0.6-TODO-380)
+#'
+#' "If the user wants wald, we should always give wald": a Wald path whose
+#' standard error is missing returns \code{NA}, never another procedure (several
+#' classes used to substitute the nonparametric bootstrap). Records the reason
+#' under \code{procedure_failure_reason$wald} and warns once per fit (class
+#' \code{edi_wald_unavailable_warning}, also an \code{edi_procedure_na_warning};
+#' silent inside resampling). Returns a named \code{c(NA, NA)} interval when
+#' \code{alpha} is given, else \code{NA_real_}.
+#'
+#' @keywords internal
+#' @noRd
+edi_wald_unavailable_na = function(self, private, alpha = NULL, reason = "wald_standard_error_unavailable") {
+	private$cache_procedure_failure("wald", reason)
+	if (!isTRUE(private$cached_values$wald_unavailable_warned)) {
+		warned = edi_warn_procedure_na(self, private,
+			procedure = "the Wald confidence interval / p-value",
+			reason = reason,
+			detail = paste0(
+				"The standard error it needs is unavailable for this fit, and no other procedure is substituted. ",
+				"For a resampling result call compute_bootstrap_confidence_interval() / compute_bootstrap_two_sided_pval()."
+			),
+			warning_class = "edi_wald_unavailable_warning")
+		if (isTRUE(warned)) private$cached_values$wald_unavailable_warned = TRUE
+	}
+	if (is.null(alpha)) return(NA_real_)
+	ci = c(NA_real_, NA_real_)
+	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	ci
+}
+
 #' Has a procedure already recorded a failure reason? (TODO-116)
 #' @keywords internal
 #' @noRd
