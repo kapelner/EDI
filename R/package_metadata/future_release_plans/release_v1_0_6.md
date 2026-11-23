@@ -7268,3 +7268,18 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   `info`) so the next failure names the error; (2) run the file alone and then directly after its shard neighbours (the
   shard-1 file list in the run log), with NOT_CRAN=true, to see whether the order triggers it; (3) fix the leaking
   state or the test. Done when the file passes in the shard on three consecutive bulk runs.
+- [ ] TODO-418 (added 2026-11-23, agent, owner request; code-duplication run 45037204796, issue #56): **Keep a
+  code-duplication family's id, verdict and TODO citation when its code is edited.** A family id (`dup-<12 hex>`,
+  `.github/scripts/audits/code_duplication.py` ~L341) hashes the two file paths and the normalized text of both
+  regions, and each region runs from the jscpd match out to `EXTEND_LINES` (20) past each end. So it survives a pure
+  move, but any edit inside or near either copy makes a new id. The family then comes back on issue #56 as a new
+  decision, is judged again by Claude (`verdicts.json` is keyed by the id), and needs a new citation in
+  v1.0.6-TODO-193. Evidence: the 2026-11-22 run listed 53 new decisions; 19 of them are on a file pair that
+  v1.0.6-TODO-193 already cited under an older id, e.g. `design_abstract.R` vs `design_fixed_abstract.R` was
+  `code-duplication-d6b10061f` (L405-498 / L90-191) and is now `code-duplication-dc6d70509` (L417-518 / L90-191).
+  Fix: when a new family overlaps an earlier one (same file pair and, say, at least half of each region's lines in
+  common), carry over the old family's verdict and decision id instead of minting new ones. Record the old-to-new id
+  mapping in `verdicts.json` so citations and dismissals keep working. Re-judge only when the overlap is small or
+  the structural differences changed. Alternatively, key families by file pair and the enclosing function or R6
+  method names. Test: in a fixture, edit one line inside a judged region; the next detect() gives the same decision id
+  and no new Claude batch.
