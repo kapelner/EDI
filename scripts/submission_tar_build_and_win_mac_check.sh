@@ -103,6 +103,35 @@ PKG_DIR="$REPO_ROOT/R/EDI"
 SCRATCH_DIR="$(mktemp -d -t edi_release_build.XXXXXX)"
 CLEAN_PKG_DIR="$SCRATCH_DIR/EDI"
 
+# Core limit for step 3. --as-cran sets _R_CHECK_LIMIT_CORES_, and R's own tools (R-file collation at
+# install, the incoming-feasibility Rd/DOI scans) spawn MC_CORES processes, erroring above 2. A larger
+# MC_CORES from ~/.Renviron (12 here) made the install fail with "12 simultaneous processes spawned".
+# Exporting MC_CORES=2 is not enough: every R process reads the user Renviron at startup and its
+# MC_CORES=12 overwrites the environment (058ed9d5 tried only that). So R_ENVIRON_USER points at a copy
+# of that file with MC_CORES=2 appended (the last assignment wins), which keeps every other setting.
+CHECK_RENVIRON="$SCRATCH_DIR/check_renviron"
+USER_RENVIRON="${R_ENVIRON_USER:-$HOME/.Renviron}"
+if [ -f "$USER_RENVIRON" ]; then cp "$USER_RENVIRON" "$CHECK_RENVIRON"; else : > "$CHECK_RENVIRON"; fi
+printf '\nMC_CORES=2\n' >> "$CHECK_RENVIRON"
+
+echo "== 0. Preflight: R started with step 3's environment sees at most 2 cores =="
+# Fails in seconds instead of after step 3's ~12-minute compile. Runs R exactly as the check's child
+# processes start (user Renviron and Rprofile read), with --as-cran's core limit switched on.
+if ! (cd "$SCRATCH_DIR" && R_ENVIRON_USER="$CHECK_RENVIRON" MC_CORES=2 _R_CHECK_LIMIT_CORES_=TRUE Rscript -e '
+  mc_env <- Sys.getenv("MC_CORES"); mc_opt <- getOption("mc.cores")
+  cat(sprintf("  MC_CORES=%s, options(mc.cores)=%s\n", mc_env, if (is.null(mc_opt)) "unset" else mc_opt))
+  bad <- c(if (nzchar(mc_env) && as.integer(mc_env) > 2L) sprintf("MC_CORES is %s", mc_env),
+           if (!is.null(mc_opt) && mc_opt > 2L) sprintf("options(mc.cores) is %s (an Rprofile?)", mc_opt))
+  ok <- tryCatch({ parallel::mclapply(1:4, identity); TRUE }, error = function(e) { bad <<- c(bad, conditionMessage(e)); FALSE })
+  if (length(bad)) { cat("  ", paste(bad, collapse = "; "), "\n", sep = ""); quit(status = 1) }
+'); then
+  echo "ERROR: R CMD check --as-cran allows at most 2 cores, and R started with this script's check environment" >&2
+  echo "  would use more (see above). Find where it is set (~/.Renviron, ~/.Rprofile, R_HOME/etc/Renviron.site)" >&2
+  echo "  and extend the override at CHECK_RENVIRON in this script. Stopping before the build." >&2
+  exit 1
+fi
+echo "OK: at most 2 cores under --as-cran's limit"
+
 echo "== 1. Building clean copy of $PKG_DIR at $CLEAN_PKG_DIR (excluding .claude/.git/build artifacts) =="
 rsync -a \
   --exclude='.claude' \
@@ -201,16 +230,7 @@ USER_MAKEVARS_OVERRIDE="$SCRATCH_DIR/user_makevars_override"
 echo "CXXFLAGS = -O3" > "$USER_MAKEVARS_OVERRIDE"
 CHECK_LOG="$SCRATCH_DIR/check.log"
 set +e
-# MC_CORES=2: --as-cran sets _R_CHECK_LIMIT_CORES_, and R's own tools (R-file collation at install, the
-# incoming-feasibility Rd/DOI scans) spawn MC_CORES processes; a larger MC_CORES from ~/.Renviron (12 here)
-# made the install fail with "12 simultaneous processes spawned". Exporting MC_CORES=2 is not enough: every
-# R process the check starts reads the user Renviron at startup and its MC_CORES=12 overwrites the
-# environment. So point R_ENVIRON_USER at a copy of that file with MC_CORES=2 appended (the last
-# assignment wins), which keeps every other setting in it.
-CHECK_RENVIRON="$SCRATCH_DIR/check_renviron"
-USER_RENVIRON="${R_ENVIRON_USER:-$HOME/.Renviron}"
-if [ -f "$USER_RENVIRON" ]; then cp "$USER_RENVIRON" "$CHECK_RENVIRON"; else : > "$CHECK_RENVIRON"; fi
-printf '\nMC_CORES=2\n' >> "$CHECK_RENVIRON"
+# CHECK_RENVIRON caps MC_CORES at 2 for --as-cran (see its definition at the top and step 0).
 (cd "$SCRATCH_DIR" && R_ENVIRON_USER="$CHECK_RENVIRON" MC_CORES=2 NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 R_MAKEVARS_USER="$USER_MAKEVARS_OVERRIDE" R CMD check --as-cran "$(basename "$TARBALL")" 2>&1 | tee "$CHECK_LOG")
 CHECK_EXIT=$?
 set -e
