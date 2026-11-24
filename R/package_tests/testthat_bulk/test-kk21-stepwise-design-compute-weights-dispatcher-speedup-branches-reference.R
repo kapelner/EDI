@@ -26,8 +26,12 @@ library(EDI)
 # by using specific fixture seeds independently confirmed (by calling compute_weights() twice on the
 # same accumulated data and checking for an identical result) to land on the function's stable regime,
 # so the assertions below are not flaky, but the underlying kernel bug remains.
-
-na0 <- function(w) { w[is.na(w)] <- 0; w }
+#
+# 2026-11-24: the seed workaround did not hold across platforms (bulk run 45403913673,
+# shard 16: the count block got 0.254 from the dispatcher vs NA -> 0 from the direct call).
+# A dispatcher test should not depend on the kernel's numerics at all, so the kernels are
+# now mocked: each block checks WHICH kernel compute_weights() calls, WITH WHICH (transformed)
+# response, and that it returns the kernel's output with NA turned into 0.
 
 kk21sw_fixture <- function(seed, response_type, n_burn_in = 20L, y_fn, ...) {
 	set.seed(seed)
@@ -40,70 +44,83 @@ kk21sw_fixture <- function(seed, response_type, n_burn_in = 20L, y_fn, ...) {
 	des
 }
 
-test_that("count_use_speedup = TRUE matches kk21_stepwise_continuous_weights_cpp on log(y + 1)", {
-	des <- kk21sw_fixture(1L, "count", y_fn = function(x1, x2, w) rpois(1, exp(1 + 0.3 * x1 + 0.2 * w)), count_use_speedup = TRUE)
+kk21sw_kernels <- c("kk21_stepwise_continuous_weights_cpp", "kk21_stepwise_logistic_weights_cpp",
+	"kk21_stepwise_negbin_weights_cpp", "kk21_stepwise_beta_weights_cpp",
+	"kk21_stepwise_ordinal_weights_cpp", "kk21_stepwise_survival_weights_cpp")
+
+# Run compute_weights() with every stepwise kernel replaced by a recorder that returns
+# c(NA, 0.5, ...) of the right length; returns the output and the recorded calls.
+kk21sw_dispatch <- function(des) {
 	priv <- des$.__enclos_env__$private
 	asd <- priv$compute_all_subject_data()
+	calls <- list()
+	recorder <- function(name) function(X, y, ...) {
+		calls[[length(calls) + 1L]] <<- list(kernel = name, X = X, y = y, rest = list(...))
+		out <- rep(0.5, ncol(X)); out[1L] <- NA_real_; out
+	}
+	mocks <- stats::setNames(lapply(kk21sw_kernels, recorder), kk21sw_kernels)
+	do.call(testthat::local_mocked_bindings, c(mocks, list(.package = "EDI", .env = environment())))
 	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_continuous_weights_cpp(asd$X_all_with_y_scaled, log(asd$y_all + 1), asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	list(asd = asd, w_out = w_out, calls = calls)
+}
+
+expect_kk21sw_dispatch <- function(res, kernel, y_expected) {
+	expect_length(res$calls, 1L)
+	call <- res$calls[[1L]]
+	expect_identical(call$kernel, kernel)
+	expect_equal(unname(as.matrix(call$X)), unname(as.matrix(res$asd$X_all_with_y_scaled)))
+	expect_equal(as.numeric(call$y), as.numeric(y_expected))
+	expect_equal(as.numeric(call$rest[[length(call$rest)]]), as.numeric(res$asd$w_all_with_y_scaled))
+	expect_equal(as.numeric(res$w_out), c(0, rep(0.5, ncol(call$X) - 1L)))
+}
+
+test_that("count_use_speedup = TRUE calls kk21_stepwise_continuous_weights_cpp on log(y + 1)", {
+	des <- kk21sw_fixture(1L, "count", y_fn = function(x1, x2, w) rpois(1, exp(1 + 0.3 * x1 + 0.2 * w)), count_use_speedup = TRUE)
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_continuous_weights_cpp", log(res$asd$y_all + 1))
 })
 
 test_that("count_use_speedup = FALSE dispatches to kk21_stepwise_negbin_weights_cpp instead", {
 	des <- kk21sw_fixture(1L, "count", y_fn = function(x1, x2, w) rpois(1, exp(1 + 0.3 * x1 + 0.2 * w)), count_use_speedup = FALSE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_negbin_weights_cpp(asd$X_all_with_y_scaled, asd$y_all, asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_negbin_weights_cpp", res$asd$y_all)
 })
 
-test_that("proportion_use_speedup = TRUE matches kk21_stepwise_continuous_weights_cpp on logit(y)", {
+test_that("proportion_use_speedup = TRUE calls kk21_stepwise_continuous_weights_cpp on the speedup logit of y", {
 	des <- kk21sw_fixture(3L, "proportion", n_burn_in = 30L,
 		y_fn = function(x1, x2, w) plogis(0.5 * x1 - 0.4 * x2 + 0.2 * w + rnorm(1, sd = 0.15)),
 		proportion_use_speedup = TRUE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	y <- asd$y_all; y[y == 0] <- .Machine$double.eps; y[y == 1] <- 1 - .Machine$double.eps
-	ref <- na0(EDI:::kk21_stepwise_continuous_weights_cpp(asd$X_all_with_y_scaled, log(y / (1 - y)), asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	# v1.0.6-TODO-60: the speedup uses the Smithson-Verkuilen logit, not an eps clamp; with no
+	# 0/1 responses here it is the plain logit.
+	y <- res$asd$y_all
+	expect_true(all(y > 0 & y < 1))
+	expect_kk21sw_dispatch(res, "kk21_stepwise_continuous_weights_cpp", EDI:::kk21_speedup_proportion_logit(y))
+	expect_equal(EDI:::kk21_speedup_proportion_logit(y), qlogis(y))
 })
 
 test_that("proportion_use_speedup = FALSE dispatches to kk21_stepwise_beta_weights_cpp instead", {
 	des <- kk21sw_fixture(1L, "proportion", y_fn = function(x1, x2, w) plogis(0.3 * x1 + 0.2 * w + rnorm(1, sd = 0.1)), proportion_use_speedup = FALSE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_beta_weights_cpp(asd$X_all_with_y_scaled, asd$y_all, asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_beta_weights_cpp", res$asd$y_all)
 })
 
-test_that("ordinal_use_speedup = TRUE matches kk21_stepwise_continuous_weights_cpp on the raw integer-coded levels", {
+test_that("ordinal_use_speedup = TRUE calls kk21_stepwise_continuous_weights_cpp on the raw integer-coded levels", {
 	levs <- c("low", "med", "high")
 	des <- kk21sw_fixture(1L, "ordinal", y_fn = function(x1, x2, w) factor(sample(levs, 1), levels = levs, ordered = TRUE), ordinal_use_speedup = TRUE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_continuous_weights_cpp(asd$X_all_with_y_scaled, asd$y_all, asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_continuous_weights_cpp", res$asd$y_all)
 })
 
 test_that("ordinal_use_speedup = FALSE dispatches to kk21_stepwise_ordinal_weights_cpp instead", {
 	levs <- c("low", "med", "high")
 	des <- kk21sw_fixture(1L, "ordinal", y_fn = function(x1, x2, w) factor(sample(levs, 1), levels = levs, ordered = TRUE), ordinal_use_speedup = FALSE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_ordinal_weights_cpp(asd$X_all_with_y_scaled, asd$y_all, asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_ordinal_weights_cpp", res$asd$y_all)
 })
 
-test_that("survival_use_speedup_for_no_censoring = TRUE with an all-uncensored sample matches kk21_stepwise_continuous_weights_cpp on log(y)", {
+test_that("survival_use_speedup_for_no_censoring = TRUE with an all-uncensored sample calls kk21_stepwise_continuous_weights_cpp on log(y)", {
 	des <- kk21sw_fixture(1L, "survival", y_fn = function(x1, x2, w) rexp(1, exp(-0.3 * w)), survival_use_speedup_for_no_censoring = TRUE)
-	priv <- des$.__enclos_env__$private
-	asd <- priv$compute_all_subject_data()
-	w_out <- priv$compute_weights(asd)
-	ref <- na0(EDI:::kk21_stepwise_continuous_weights_cpp(asd$X_all_with_y_scaled, log(asd$y_all), asd$w_all_with_y_scaled))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	res <- kk21sw_dispatch(des)
+	expect_kk21sw_dispatch(res, "kk21_stepwise_continuous_weights_cpp", log(res$asd$y_all))
 })
