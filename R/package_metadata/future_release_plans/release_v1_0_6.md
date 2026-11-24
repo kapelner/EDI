@@ -7530,3 +7530,7 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
     Eigen master renamed `unsupported/` to `contrib/` and left `unsupported/Eigen/*` as forwarding shims, and the
     workflow's Eigen-master overlay copied only `Eigen/` and `unsupported/Eigen/`. Fix: the overlay also copies
     `contrib/Eigen/` into the dev RcppEigen include directory.
+- [ ] TODO-427 (added 2026-11-24, agent; found by nightly run 45393057600 on 82ef6889): **Two new benchmark regressions:**
+  `InferenceOrdinalOrderedProbitRegr` fit 0.37 -> 0.49 ms (`models-ordinal`) and the `InferenceContinOLS` randomization
+  p-value at r = 1000, 32.2 -> 43.9 ms (`procedures`), both new since 38d1b90a.
+  - Owner decision pending: [DECISION-v1.0.6-TODO-427](PENDING_DECISIONS.md#DECISION-v1.0.6-TODO-427) (accept the two new nightly benchmark slowdowns (OrderedProbit fit, OLS randomization p-value) and allowlist them, or investigate first?).
