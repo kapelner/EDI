@@ -87,7 +87,7 @@ test_that("off by default: a slow unit plans all its replicates and plan.csv has
 test_that("on: a unit measured above the threshold runs at most the capped replicates; cheaper units are untouched", {
 	cp = cap_campaign()
 	off = run_plan(cp)
-	on = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50)
+	on = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50, "--slow-unit-cap-scope", "all")
 	expect_identical(reps_of(ols_shards(on$wave)), 41:50)
 	r = ols_row(on$plan)
 	expect_identical(as.integer(r$reps), 50L)
@@ -106,18 +106,30 @@ test_that("on: a unit measured above the threshold runs at most the capped repli
 	# The tests of the plan (the gate's m) do not depend on replicate counts.
 	expect_equal(on$meta[["m_total"]], off$meta[["m_total"]])
 	# A threshold above the measured cost caps nothing.
-	hi = run_plan(cp, "--slow-unit-cap-secs", 500, "--slow-unit-cap-reps", 50)
+	hi = run_plan(cp, "--slow-unit-cap-secs", 500, "--slow-unit-cap-reps", 50, "--slow-unit-cap-scope", "all")
 	expect_identical(reps_of(ols_shards(hi$wave)), 41:100)
 	expect_false("rep_cap" %in% names(hi$plan))
 })
 
+test_that("default scope caps only the planner's slow-list classes (DECISION-v1.1.0-TODO-269 (d))", {
+	cp = cap_campaign()
+	off = run_plan(cp)
+	on = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50)
+	# ContinOLS is not in CAL_PLAN_SLOW_CLASSES, so although it costs 400 s per replicate it keeps all its replicates.
+	expect_identical(reps_of(ols_shards(on$wave)), 41:100)
+	expect_false("rep_cap" %in% names(on$plan))
+	expect_identical(on$plan, off$plan)
+	expect_false("InferenceContinOLS" %in% unlist(env$CAL_PLAN_SLOW_CLASSES))
+	expect_error(suppressWarnings(run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-scope", "bogus")))
+})
+
 test_that("a unit already past its cap is complete, and --plan-only writes the same plan.csv as the wave planner", {
 	cp = cap_campaign(done = 60L)
-	on = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50)
+	on = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50, "--slow-unit-cap-scope", "all")
 	expect_identical(nrow(ols_shards(on$wave)), 0L)
 	off = run_plan(cp)
 	expect_equal(on$meta[["units_done"]], off$meta[["units_done"]] + 1)
-	po = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50, plan_only = TRUE)
+	po = run_plan(cp, "--slow-unit-cap-secs", 300, "--slow-unit-cap-reps", 50, "--slow-unit-cap-scope", "all", plan_only = TRUE)
 	expect_identical(po$plan, on$plan)
 	# Confirmation replicates are never capped: no confirmation unit is in plan.csv, and the cap reads only screening units.
 	expect_true(all(on$plan$reps[!is.na(on$plan$rep_cap)] == 50L))

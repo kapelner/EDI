@@ -75,9 +75,10 @@ env:
   WAVE_SIZE: 256
   # Slow-unit replicate cap (v1.1.0-TODO-269, plan_calibration_study.R --slow-unit-cap-secs / --slow-unit-cap-reps): a
   # screening unit whose measured single-core cost exceeds SLOW_UNIT_CAP_SECS per replicate runs at most
-  # SLOW_UNIT_CAP_REPS replicates. 0 = off (the default) until the owner rules on DECISION-v1.1.0-TODO-269: the planner
-  # runs from this commit, so turning it on also applies to a running campaign.
-  SLOW_UNIT_CAP_SECS: '0'
+  # SLOW_UNIT_CAP_REPS replicates. Owner 2026-11-24 (DECISION-v1.1.0-TODO-269, option (d)): on, for the classes on the
+  # planner's slow list only (CAL_PLAN_SLOW_CLASSES; --slow-unit-cap-scope defaults to slow_classes). 0 turns it off. The
+  # planner runs from this commit, so it also applies to a running campaign from its next wave.
+  SLOW_UNIT_CAP_SECS: '300'
   SLOW_UNIT_CAP_REPS: '300'
 
 jobs:

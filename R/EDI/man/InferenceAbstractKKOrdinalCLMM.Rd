@@ -10,14 +10,18 @@ the lower boundary (\eqn{\sigma_b \to 0}, reported as a log-sigma near
 likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
 fixed-effects cumulative-link fit.
 
-The native fit maximizes the marginal likelihood from several starts (the
-default start and a few values of \eqn{\log\sigma_b}), polishes the best one
-and judges convergence by the projected gradient: its norm must be at most
-\eqn{\max(10^{-5}, \epsilon_g)} (\eqn{\epsilon_g} is the kernel tolerance, \code{1e-12}
-here), where at the lower variance boundary the
+The random intercept is integrated with a 60-node Gauss-Hermite rule. The
+native fit maximizes the marginal likelihood from several starts (the
+default start and a few values of \eqn{\log\sigma_b}) on a 20-node rule,
+which costs a third as much, and then refits only the start that is best
+under the 60-node rule on that rule, from its estimates; the reported fit is
+the 60-node optimum. Convergence is judged by the projected gradient: its
+norm must be at most \eqn{\max(10^{-4}, \epsilon_g)} (\eqn{\epsilon_g} is the
+kernel tolerance, \code{1e-12} here), where at the lower variance boundary the
 \eqn{\log\sigma_b} coordinate is left out when the score in
-\eqn{\sigma_b^2} points outward (a KKT point). When that test fails after
-L-BFGS, damped Newton steps are taken on the remaining coordinates.
+\eqn{\sigma_b^2} points outward (a KKT point). A fit that fails that test
+after L-BFGS is polished (a tight L-BFGS restart, then damped Newton steps on
+the remaining coordinates, aiming at \eqn{10^{-5}}).
 
 A native fit is accepted only if it converged and the gradient norm is at
 most \eqn{10^{-4}}. Otherwise it is retried once with Newton-Raphson from the
@@ -26,8 +30,8 @@ variance boundary with a gradient norm above \eqn{10^{-3}}, where the
 \eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
 test, the estimate is \code{NA} with nonestimable reason
 \code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
-rarely runs (at large n, when Newton reaches the numerical-Hessian floor
-between \eqn{10^{-5}} and \eqn{10^{-4}}).
+rarely runs (only when the polish cannot bring the gradient below
+\eqn{10^{-4}}).
 
 \code{compute_rand_two_sided_pval(type = "score")} is an opt-in
 randomization statistic for large \eqn{n}. The default statistic refits the

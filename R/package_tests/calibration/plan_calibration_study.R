@@ -42,7 +42,7 @@
 #          [--response-types all] [--null-reps 1000] [--power-reps 500] [--cores 4] \
 #          [--target-minutes 25] [--pack-minutes 25] [--min-shard-minutes 8.33] [--min-measured-reps 20] [--verbose] [--wave-size 64] [--max-dead 3] [--timeout-minutes 75] [--dead-timeout-minutes 180] [--meta-out FILE] [--power-ns 50,200] \
 #          [--slow-null-reps 500] [--slow-reduced-n 1000] [--slow-power-ns 50] \
-#          [--confirm-reps 5000] [--slow-confirm-reps 1000] [--slow-unit-cap-secs 0] [--slow-unit-cap-reps 300] \
+#          [--confirm-reps 5000] [--slow-confirm-reps 1000] [--slow-unit-cap-secs 0] [--slow-unit-cap-reps 300] [--slow-unit-cap-scope slow_classes|all] \
 #          --roster FILE [--plan-out FILE] [--plan-only]
 #
 # Two-stage gate: a block (effect, response type, class) whose screening replicates are all done has its flagged tests
@@ -122,6 +122,11 @@ slow_confirm_reps <- as.integer(arg_value("--slow-confirm-reps", "1000"))
 # cap" below. 0 (the default) = off.
 slow_unit_cap_secs <- as.numeric(arg_value("--slow-unit-cap-secs", "0"))
 slow_unit_cap_reps <- as.integer(arg_value("--slow-unit-cap-reps", "300"))
+# DECISION-v1.1.0-TODO-269 (owner 2026-11-24, option (d)): by default the cap reads only the classes on the planner's
+# slow list (CAL_PLAN_SLOW_CLASSES), so an unrelated unit that happens to be expensive keeps its replicates;
+# --slow-unit-cap-scope all caps any screening unit over the threshold.
+slow_unit_cap_scope <- arg_value("--slow-unit-cap-scope", "slow_classes")
+stopifnot(slow_unit_cap_scope %in% c("slow_classes", "all"))
 stopifnot(is.finite(slow_unit_cap_secs), slow_unit_cap_secs >= 0, slow_unit_cap_reps >= 1L)
 CONFIRM_REP0 <- CAL_PLAN_CONFIRM_REP0
 stopifnot(all(rts %in% CAL_PLAN_RESPONSE_TYPES), all(effects %in% CAL_PLAN_EFFECTS))
@@ -416,6 +421,7 @@ units$rep_cap <- NA_integer_
 units$rep_cap_secs <- NA_real_
 if (slow_unit_cap_secs > 0) {
 	capped <- is.finite(units$cost) & units$cost > slow_unit_cap_secs & units$reps > slow_unit_cap_reps
+	if (slow_unit_cap_scope == "slow_classes") capped <- capped & units$inf_class %in% unlist(CAL_PLAN_SLOW_CLASSES)
 	units$rep_cap[capped] <- slow_unit_cap_reps
 	units$rep_cap_secs[capped] <- slow_unit_cap_secs
 	units$reps[capped] <- slow_unit_cap_reps

@@ -2,7 +2,8 @@
 # 60-node Gauss-Hermite rule (the kernel default is 20), as the Poisson GLMM does since 2026-10-24. At a
 # fitted sigma of 2-2.6 the 20-node rule's marginal likelihood is off enough that EDI's maximizer was not
 # the MLE (cloglog, n = 60: treatment 0.8146 vs ordinal::clmm's 0.7755); with 60 nodes it lands on clmm's
-# optimum (0.7752).
+# optimum (0.7752). The kernel runs its variance multistart on a 20-node rule and refits only the winner
+# on these 60 nodes (owner 2026-11-24, v1.1.0-TODO-265 follow-up), so a fit costs 1.1-1.5x the 20-node fit, not 2.3-3x.
 KK_CLMM_N_GH = 60L
 
 #' Abstract class for ordinal CLMM-based Inference in KK designs
@@ -14,14 +15,18 @@ KK_CLMM_N_GH = 60L
 #' likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
 #' fixed-effects cumulative-link fit.
 #'
-#' The native fit maximizes the marginal likelihood from several starts (the
-#' default start and a few values of \eqn{\log\sigma_b}), polishes the best one
-#' and judges convergence by the projected gradient: its norm must be at most
-#' \eqn{\max(10^{-5}, \epsilon_g)} (\eqn{\epsilon_g} is the kernel tolerance, \code{1e-12}
-#' here), where at the lower variance boundary the
+#' The random intercept is integrated with a 60-node Gauss-Hermite rule. The
+#' native fit maximizes the marginal likelihood from several starts (the
+#' default start and a few values of \eqn{\log\sigma_b}) on a 20-node rule,
+#' which costs a third as much, and then refits only the start that is best
+#' under the 60-node rule on that rule, from its estimates; the reported fit is
+#' the 60-node optimum. Convergence is judged by the projected gradient: its
+#' norm must be at most \eqn{\max(10^{-4}, \epsilon_g)} (\eqn{\epsilon_g} is the
+#' kernel tolerance, \code{1e-12} here), where at the lower variance boundary the
 #' \eqn{\log\sigma_b} coordinate is left out when the score in
-#' \eqn{\sigma_b^2} points outward (a KKT point). When that test fails after
-#' L-BFGS, damped Newton steps are taken on the remaining coordinates.
+#' \eqn{\sigma_b^2} points outward (a KKT point). A fit that fails that test
+#' after L-BFGS is polished (a tight L-BFGS restart, then damped Newton steps on
+#' the remaining coordinates, aiming at \eqn{10^{-5}}).
 #'
 #' A native fit is accepted only if it converged and the gradient norm is at
 #' most \eqn{10^{-4}}. Otherwise it is retried once with Newton-Raphson from the
@@ -30,8 +35,8 @@ KK_CLMM_N_GH = 60L
 #' \eqn{\log\sigma_b} starts are rerun as well); if that also fails the gradient
 #' test, the estimate is \code{NA} with nonestimable reason
 #' \code{"kk_clmm_rcpp_not_stationary"}. With the default tolerance the retry
-#' rarely runs (at large n, when Newton reaches the numerical-Hessian floor
-#' between \eqn{10^{-5}} and \eqn{10^{-4}}).
+#' rarely runs (only when the polish cannot bring the gradient below
+#' \eqn{10^{-4}}).
 #'
 #' \code{compute_rand_two_sided_pval(type = "score")} is an opt-in
 #' randomization statistic for large \eqn{n}. The default statistic refits the

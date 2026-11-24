@@ -2709,6 +2709,68 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     v1.2.0-TODO-207 "+1" p-value change). `python/tests/test_fast_ordinal_clmm.py` re-pinned from R; it still needs the
     pre-push Python build to confirm. NEWS entry under "Changes that alter results / Ordinal responses".
   - Decided 2026-11-24 (owner): accept that degenerate n = 50 redraws that used to be `NA` now return values; see [DECISION-v1.1.0-TODO-265b](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-265b).
+  - Status 2026-11-24 (agent, owner request; re-measured A/B): **the kernel change's speed-up holds where it was
+    measured (n = 1000, `~ .`), but the current code is 2.3-3x slower everywhere else, because of the 60-node
+    Gauss-Hermite rule (v1.0.6-TODO-48, commit dd161678), which landed after this TODO's measurement.** Three arms, each
+    its own R code with its own kernel (`sourceCpp` of the single kernel file swapped into the namespace, no relink):
+    "old" = b9567dd0 (f27d8c00^; e36c7710 has the same kernel and only doc/assert edits in the CLMM R code), "new" = the
+    working tree (= HEAD), and "new20" = the working tree with `KK_CLMM_N_GH` set back to 20 (the TODO-265 change alone).
+    Calibration DGP (null), SeqOneByOneKK14 and FixedBinaryMatch, logit and Cauchit, `~1` and `~.`, n = 200 and
+    1000, study reps 1-3, r = 21 with identical permutations in all arms, single-threaded (OMP/MKL 1), arms
+    interleaved per data set (ABC / CBA), load average 1.0-3.3 (12 cores). Rand p-value time, median [range] over 3
+    data sets, speed-up = old / arm:
+
+    | n | design | link | formula | old (s) | new20 (s) | new (s) | new20 speed-up | new speed-up |
+    |---|---|---|---|---|---|---|---|---|
+    | 1000 | KK14 | logit | `~.` | 65.3 [23-96] | 20.1 [12-23] | 48.2 [24-50] | 3.3x [2.0-4.1] | 1.4x [0.96-1.9] |
+    | 1000 | BinaryMatch | logit | `~.` | 93.7 [80-103] | 21.6 [22-26] | 53.6 [50-63] | 4.0x [3.7-4.4] | 1.6x [1.5-1.9] |
+    | 1000 | KK14 | cauchit | `~.` | 32.9 [31-47] | 14.0 [14-16] | 36.2 [34-37] | 2.4x [2.2-3.0] | 0.96x [0.85-1.3] |
+    | 1000 | BinaryMatch | cauchit | `~.` | 28.8 [23-51] | 13.7 [13-23] | 33.9 [31-54] | 2.1x [1.8-2.3] | 0.85x [0.74-0.95] |
+    | 1000 | both | both | `~1` | 5.6-7.5 | 6.2-8.2 | 17.5-24.1 | 0.81-0.98x | 0.30-0.33x |
+    | 200 | both | both | both | 1.3-6.5 | 1.3-6.4 | 3.3-14.3 | 0.89-0.97x | 0.38-0.43x |
+
+    Single observed fit at n = 1000, `~.` logit (medians of KK14 and BinaryMatch): old 6.9-7.3 s, new20 1.0-1.15 s, new 2.4-2.65 s (`~1`: 0.26-0.41 s,
+    0.29-0.40 s, 0.82-1.11 s). Newton retries per 63 redraws at n = 1000 (old / new20 / new): `~.` 29-34 / 0 / 0-1
+    (old: all 5-start, 2.5-5.6 s each, 60-77% of its time); `~1` 0-3 / 2-13 / 8-15 (single start, ~0.07 s each with
+    20 nodes). n = 200: retries 0-1 in every arm. So TODO-265's 2.5-4.3x was right for its comparison (old vs the
+    kernel + retry change at 20 nodes), and TODO-269's measurement was also right for the code as it now is: what makes
+    the current code slow is the 60-node rule, which costs 2.3-3x per fit in every regime (likelihood and gradient cost
+    are linear in the node count). The kernel change alone is 2-20% slower where the old code had no retries to save
+    (`~1`, n = 200): the extra objective evaluation, the tight L-BFGS polish and the Newton steps (numerical Hessians)
+    whenever the projected gradient exceeds 1e-5; at n = 1000 `~1` one redraw fit (without retry) costs ~0.24 s old vs ~0.30 s
+    new20. (TODO-269's `~1` A/B gave the old kernel the current R code, so both its arms ran 60 nodes: a kernel-only
+    comparison, 1.7x on a loaded machine against ~1.2x here.)
+    Results agree: same data and permutations in every arm (checked); old vs new20 estimate <= 9.4e-7, SE <= 3.4e-7,
+    redraw estimates <= 2.2e-6; old vs new (60 nodes) estimate <= 7e-4 (Cauchit `~1`; the node count, not the kernel);
+    randomization p-values identical in all 48 data sets for both arms when recomputed under one counting rule (the
+    reported ones differ only by the v1.2.0-TODO-207 (1 + b)/(1 + B) change between b9567dd0 and HEAD). The installed EDI
+    (built 2026-11-24 02:00) already has the new kernel (17-argument signature, same result as the source kernel).
+    Likely fixes, not implemented (owner to choose): (1) run the multistart L-BFGS at 20 nodes and refine only the winner
+    at 60 nodes (a warm-started polish), which should recover most of new20's speed while landing on the 60-node
+    optimum; or adaptive (mode-centred) quadrature, which reaches the same accuracy with far fewer nodes for these
+    2-member clusters; (2) for the remaining ~1.2x at `~1`, skip the kernel polish when the L-BFGS gradient is already
+    below the R acceptance (1e-4) instead of the kernel's 1e-5, so the extra L-BFGS/Newton pass and the R retry do not
+    both run. Scratch scripts: `bench.R`, `driver.sh`, `analyze.R` in the measuring session's scratchpad (temporary).
+  - Status 2026-11-24 (agent; owner approved both fixes above): implemented in `fast_ordinal_clmm.cpp` only (no signature
+    or `RcppExports` change; verified by `sourceCpp` swap, no relink: **the owner must rebuild**). (1) Coarse-to-fine
+    quadrature: with `n_gh > 20` the L-BFGS variance multistart runs on 20 nodes, the coarse endpoint best under the
+    60-node rule is refit on 60 nodes (the far-from-stationary boundary guard refits every endpoint), so the reported
+    fit is still the 60-node optimum and v1.0.6-TODO-48's accuracy is kept (its all-links `ordinal::clmm` test passes).
+    Adaptive quadrature was not chosen: it changes the objective (beyond D2, a new decision) and needs a new engine
+    path, while the coarse stage already brings a fit to 1.1-1.5x the 20-node cost. (2) The polish runs only when the
+    projected gradient exceeds the R acceptance `max(1e-4, eps_g)`, and `converged` uses the same bound, so no fit pays
+    for both polish and R retry (0 retries in the A/B at n = 1000; HEAD 8-15 per cell at `~ 1`). Same A/B harness, a
+    fourth arm, 48 data sets, r = 21, ABCD/DCBA, one core, load 1.0-3.5: rand p-value vs HEAD 1.4x-2.2x faster in every
+    cell (n = 1000 `~ .` logit 2.0-2.2x, Cauchit 1.6-1.7x, `~ 1` 1.8-2.2x; n = 200 1.4-2.2x); vs 1.0.5 (b9567dd0):
+    n = 1000 `~ .` logit 2.7-3.8x, Cauchit 1.4x faster, but `~ 1` at n = 1000 0.52-0.67x and n = 200 0.59-0.96x (the
+    60-node refit's own cost; per redraw `~ 1` ~0.5 s vs 0.35 s at 20 nodes). Equivalence vs HEAD (D2): estimate <=
+    1.2e-6, SE <= 3.0e-7, Wald p <= 2.9e-6, redraw estimates <= 3.9e-6, randomization p identical in all 48.
+    `test-ordinal-kk-clmm-stationary-fit-kkt.R` drops its kernel-verdict `gradient_norm <= 1e-5` assertion (now 1e-4 by
+    design; 14 of 48 fits were 1.1e-5..6.2e-5); 44 related test files pass (4,652 / 0). Python fixture
+    (`test_fast_ordinal_clmm.py`, n_gh 20) reproduced bit for bit from R; the pytest run itself needs the pre-push
+    Python build. Docs: class roxygen + `man/InferenceAbstractKKOrdinalCLMM.Rd` (checkRd clean), NEWS (speed-up
+    figures corrected for the 60-node rule), plan `clmm_sigma_collapse_false_convergence.md` follow-up section.
+    Cross-reference: v1.0.6-TODO-48.
 - [x] TODO-266 (added 2026-11-23, coordinator, owner request; from the OrdinalKKCLMM shard timeouts in calibration campaign 2026-11-15-e36c7710): **`InferenceOrdinalKKCLMM` randomization test: start each redraw's refit from the observed-data fit.** `InferenceOrdinalKKCLMM`'s randomization test costs about 870 s per replicate at n = 1000 against 2.7 s for Wald (13.5 s at n = 50, 55 s at n = 200: 5x the data from 200 to 1000 costs 16x), which made its calibration shards time out (the planner side is fixed separately in v1.0.6).
   - Warm-start every redraw from the observed-data fit, never from the previous redraw: the owner ruling of 2026-11-19
     (v1.0.6-TODO-61) bans chaining warm starts across redraws, not a fixed start from the observed fit. Check that the
@@ -2776,3 +2838,73 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     of 5,000 differ. The p-value is the prefix's (SD of the change 0.06 under the null). On the class (KK14, n = 200):
     98-135 s -> 25-37 s per p-value. Enabling it changes every p-value away from alpha, so it is an owner decision.
   - Owner decision pending: [DECISION-v1.1.0-TODO-268](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-268) (turn on the sequential-MC early stop for the standalone randomization p-value, and for which classes?).
+- [ ] TODO-269 (added 2026-11-24, agent, owner request; follows v1.1.0-TODO-265 and v1.1.0-TODO-267): **Calibration study: run the KK CLMM score-statistic randomization test (`rand_score`), and an opt-in replicate cap for slow units.** [DECISION-v1.1.0-TODO-267](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-267) shipped `compute_rand_two_sided_pval(type = "score")` as an opt-in and rejected making it the default "until a full calibration run shows no power loss" (its revisit condition: a calibration run of `type = "score"` with size and power at least as good as the refit statistic). The study had no way to produce that run.
+  - Done (2026-11-24, agent), for the NEXT campaign: tier 1 has a seventh, p-value-only procedure `rand_score`
+    (`CAL_STUDY_TIER1_METHODS` / `CAL_STUDY_TIER1_PVAL_ONLY` in `calibration_study_common.R`), declared in
+    `CAL_EXTRA_PVAL_PROCEDURES` (`calibration_fast_tier_common.R`): run only for the four `InferenceOrdinalKKCLMM*`
+    links, as a copy of each `rand` task (same formula, right after it), calling `compute_rand_two_sided_pval(type =
+    "score")` with the method's default r (501, as `rand`) and the design's cached draws (the same ones `rand` used;
+    checked: one permutation-cache entry per design). The default `rand` still runs. Capability check: a task is added
+    only if the installed EDI's class (or an ancestor) has the private `compute_clmm_score_rand_pval`, so an EDI
+    without it (e.g. the campaign 2026-11-15-e36c7710 commit) is skipped cleanly. Downstream: raw rows and stats carry it
+    as `inf_procedure = "rand_score"` (its own cell; no cell-key change, so older campaigns analyze unchanged); the roster
+    counts it in `n_size`, not `n_cov`; the gate, convergence study, triage and plots take it as a variant of `rand`
+    (new `EDI_INFERENCE_PROCEDURE_VARIANTS` + `inference_procedure_base_label()` in `R/EDI/R/inference_procedure_regime.R`:
+    finite-sample, every convergence-registry layer of `rand`; kept out of `EDI_INFERENCE_PROCEDURE_REGIME`, which must
+    stay the sentinel list); size and power only, no coverage; README "Procedures" / "Data" text. The planner's cost
+    model needs no change (a class's cost sums `fit_secs` over its procedures; `rand_score` costs 0.4-0.7 s per row at
+    n = 50 and ~6 s at n = 1000, against ~100 s and ~1,100-1,400 s for `rand`).
+  - What runs where (`.github/workflows/calibration-study.yml`): from the campaign's PINNED commit: EDI itself, the roster
+    (`build_calibration_study_roster.R`), the shards (`run_calibration_study.R` and the `calibration_study_common.R` /
+    `calibration_fast_tier_common.R` / `calibration_common.R` / `calibration_study_stats.R` it sources), the wave merge
+    and the balance backfill's data generation, and the acceptance list. From the run's own commit (`main`): the
+    planner (`plan_calibration_study.R` + `calibration_study_plan_common.R` + `calibration_study_stats.R` +
+    `calibration_study_costs.csv`), the analysis, convergence, triage, plots, design comparison, balance summary, README
+    rendering, and the regime / convergence registry (`inference_procedure_regime.R`, sourced from the checkout). So
+    `rand_score` starts with the first campaign pinned at a commit that has this change (the next monthly one); the
+    running campaign 2026-11-15-e36c7710 never produces it, and its analysis is unchanged (checked on its real
+    `stats/` files: same plan and wave with the cap off).
+  - Default `rand` cost with the v1.1.0-TODO-265 kernel (measured 2026-11-24, this machine, `load_all(compile = FALSE)`
+    of the working tree, src/EDI.so built after the kernel change, one replicate, single core, machine shared with an
+    EDI install and other sessions): see the Status line below. It is well above ~3 min per replicate
+    at n = 1000, so a cap was added (next bullet). For comparison the running campaign (old kernel, GitHub runners)
+    measured 1,595-1,870 s per replicate (logit) and 996-1,066 s (Cauchit) at n = 1000; nearly all of it is `rand`
+    with `~ .`.
+  - Done (2026-11-24, agent), opt-in: planner slow-unit cap `--slow-unit-cap-secs S --slow-unit-cap-reps R` (default
+    S = 0, off; R = 300): a screening unit whose estimated single-core cost per replicate (the planner's own, measured
+    on the campaign once it has `--min-measured-reps`) exceeds S runs at most R replicates. Confirmation units are never
+    capped. `plan.csv` gets `rep_cap` / `rep_cap_secs` (only when something is capped), the `--plan-only` call in the
+    workflow now passes `--campaign-dir` so it writes the same plan, and the campaign README names the capped units.
+    Workflow env `SLOW_UNIT_CAP_SECS: '0'`, `SLOW_UNIT_CAP_REPS: '300'`. Test:
+    `testthat_bulk/test-calibration-slow-unit-replicate-cap.R`.
+  - Dry run on the running campaign (real `ledger.csv`, `planned.csv`, `roster.csv`, `stats/`, `summary/confirm_cells.csv`
+    from `origin/calibration-results` 0dcff7de) with S = 300, R = 300: 21 units capped, all null at n = 1000: the 16
+    `InferenceOrdinalKKCLMM*` units (4 links x KK14 / KK21 / KK21stepwise / FixedBinaryMatch), 4 `InferenceCountKKGLMM`
+    units (already 500 done) and `InferenceIncidCMH` on DesignFixedGreedy (379 s per replicate, already 1,000 done).
+    11 of them are already past 300, so their extra replicates stay in the statistics and only the plan's target moves.
+    It skips 2,213 replicates still to run (Probit and Cloglog at n = 1000 not started, 200 each; Cauchit two at 0,
+    two at 400-429; logit 2-24 each): about 2,000 x ~1,000-1,900 s, i.e. ~600-1,000 core-hours, ~10-16 h of the
+    campaign's 64 cores. Plan: reps_total 15,265,000 -> 15,260,300, units done 6,477 -> 6,478, shards left after this
+    wave 2,544 -> 2,350; 80 of the wave's 256 shards change. It also lowers those cells' replicate counts (size MC SD at
+    300 replicates 0.0126 vs 0.0097 at 500).
+  - Status 2026-11-24 (agent), measured default `rand` cost per replicate (both formulas, wald + rand + rand_score),
+    SeqOneByOneKK14, rep 1 (the study's seed), single core, this machine under load 4-11 of 12 (an EDI install and other
+    sessions): n = 1000: logit 3,166 s (`rand` `~1` 1,012 s, `~.` 2,110 s), Probit 3,342 s, Cauchit 2,484 s; n = 200:
+    logit 521 s, Probit 555 s, Cauchit 642 s. `rand_score` 0.5-2 s per row at n = 200 and 4-8 s at n = 1000. Cloglog and
+    FixedBinaryMatch were stopped unfinished (too slow to wait for). This machine is slower than a GitHub runner (wald `~1`
+    at n = 1000: 2.0-2.9 s here against 0.23-0.44 s in the campaign), so on runners expect very roughly 3-7x less, i.e.
+    ~8-17 min per replicate at n = 1000: far above ~3 min, hence the cap. Lead, not verified: a same-process A/B at n = 1000
+    (KK14 logit, r = 21, current R code, e36c7710 kernel swapped in by `sourceCpp`, no relink) gave `~1` 0.88-0.90 s per
+    redraw with the old kernel against 1.54 s with the new one, while `~.` took 4.2-4.6 s per redraw with the new kernel
+    (the old kernel's `~.` fit is rejected as non-stationary by the current R acceptance, so no `~.` comparison). That is
+    not the 2.5-4.3x end-to-end speedup v1.1.0-TODO-265 reported on its data; worth re-measuring on an idle machine
+    before relying on the new kernel to bring the campaign's n = 1000 cost down.
+  - Status 2026-11-24 (agent): re-measured side by side; both measurements were right. The kernel change is 2.1-4.0x
+    faster at n = 1000 `~.`, but the 60-node quadrature rule (v1.0.6-TODO-48) makes the current code 2.3-3x slower at
+    `~1` and at n = 200 and only 0.85-1.6x at n = 1000 `~.`; see the 2026-11-24 A/B status under v1.1.0-TODO-265.
+  - Decided 2026-11-24 (owner): (d), cap only the planner's slow-list classes, on now (300 s / 300 replicates); planner flag `--slow-unit-cap-scope` (default `slow_classes`) and workflow `SLOW_UNIT_CAP_SECS: '300'` done; see [DECISION-v1.1.0-TODO-269](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-269).
+  - Tests: new `test-calibration-kk-clmm-score-randomization-procedure.R` (task insertion, capability check, the call,
+    registry variant, roster counts, a real n = 50 replicate on the same draws) and
+    `test-calibration-slow-unit-replicate-cap.R`; a `rand_score` case in `test-calibration-gate-regime-levels.R`; the
+    roster check in `test-calibration-class-major-order.R` counts every p-value-only procedure. All 12 calibration and
+    registry test files pass (dev EDI via `load_all(compile = FALSE)`).

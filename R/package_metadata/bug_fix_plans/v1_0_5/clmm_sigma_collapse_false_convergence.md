@@ -501,3 +501,38 @@ by hand for the new argument, so the package must be rebuilt before the change i
   `test-randomization-sequential-mc-pval-stopping-rule-reference.R`, which fails the same way with the HEAD kernel
   (the merged v1.2.0-TODO-207 "+1" randomization p-value change, not this work).
 
+## Follow-up: coarse-to-fine quadrature and the polish trigger (2026-11-24, v1.1.0-TODO-265)
+
+Owner approved 2026-11-24 (after the A/B in `release_v1_1_0.md` v1.1.0-TODO-265 that found the 60-node rule of
+v1.0.6-TODO-48 had erased most of the speed-up outside n = 1000 `~ .`). Kernel only (`fast_ordinal_clmm.cpp`, no
+signature change, no `RcppExports` edit); verified by `sourceCpp` swap under `load_all(compile = FALSE)`, no relink:
+**the owner must rebuild** for it to be live.
+
+- **Coarse-to-fine quadrature** (`kClmmCoarseNGH = 20`): when `n_gh > 20` and the algorithm is L-BFGS, the variance
+  multistart runs on a 20-node `GLMMData`; each coarse endpoint is scored once under the requested rule and the best
+  one is the single start of the requested-rule fit (which then goes through the usual polish / KKT test / SE). If
+  that endpoint is a far-from-stationary boundary fit (log sigma <= -4.5, gradient > 1e-3, the loose-eps_g guard),
+  every coarse endpoint is refit instead, so the guard still sees all starts. The reported fit is the 60-node
+  optimum. Chosen over adaptive (mode-centred) quadrature: that needs a per-cluster mode and curvature in every
+  likelihood and gradient evaluation (a new engine path shared with the other GLMM kernels), changes the objective
+  itself (so results move beyond D2 and would need a decision), and the coarse stage already brings the cost to
+  1.1-1.5x the 20-node fit.
+- **Polish trigger = R acceptance** (`kClmmAcceptGradient = 1e-4`): the tight L-BFGS polish and the damped Newton steps
+  run only when the projected gradient exceeds `max(1e-4, eps_g)` (was `max(1e-5, eps_g)`); when they run they still
+  aim at `max(1e-5, eps_g)`; `converged` is projected gradient <= `max(1e-4, eps_g)`. A fit no longer pays for both the
+  polish and the R retry: the retry fired 0 times in the 528 n = 1000 randomization fits and 24 observed fits of the A/B (HEAD
+  kernel: 8-15 per cell at `~ 1`).
+- **Equivalence vs the HEAD (60-node) code**, 48 data sets (n = 200 / 1000, SeqOneByOneKK14 and FixedBinaryMatch, logit
+  and Cauchit, `~ 1` and `~ .`, study reps 1-3, r = 21, same permutations): max |d estimate| 1.2e-6, SE 3.0e-7, Wald p
+  2.9e-6, redraw estimates 3.9e-6, randomization p identical in all 48 (D2: within the solver's 1e-4 / 1e-5 gradient
+  tolerance; the node-count change itself moved estimates by up to 7e-4). `python/tests/test_fast_ordinal_clmm.py`'s
+  fixture (n_gh 20, eps_g 1e-6) is reproduced bit for bit from R.
+- **Speed** (rand p-value, median of 3, ABCD/DCBA interleaved, one core, load 1.0-3.5 of 12; vs HEAD / vs 1.0.5
+  b9567dd0): n = 1000 `~ .` logit 1.99-2.17x / 2.7-3.8x, Cauchit 1.58-1.68x / 1.40-1.42x; n = 1000 `~ 1` 1.78-2.23x /
+  0.52-0.67x; n = 200 1.41-2.17x / 0.59-0.96x. Per redraw at n = 1000: `~ .` ~1.1 s (HEAD 2.2-2.4 s, 20-node 1.0 s),
+  `~ 1` ~0.5 s (HEAD 0.84-1.10 s, 20-node 0.35 s). What remains above the 20-node cost is the 60-node refit itself.
+- **Tests:** `test-ordinal-kk-clmm-stationary-fit-kkt.R` drops the kernel-verdict `gradient_norm <= 1e-5` assertion
+  (now <= 1e-4 by design; 14 of its 48 fits were 1.1e-5..6.2e-5); the no-retry, Newton-polish agreement (1e-5),
+  boundary KKT and loosened-fit retry assertions are unchanged and pass. 44 ordinal CLMM / KK / kernel-contract /
+  randomization files: 4,652 pass, 0 fail with the new kernel and the edited test (HEAD kernel with the old test:
+  4,700 / 0; new kernel with the old test: the 14 removed assertions were the only failures).

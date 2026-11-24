@@ -26,6 +26,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) | [v1.2.0-TODO-207](release_v1_2_0.md) | randomization p-values: (b+1)/(B+1) per tail, two-sided doubled and capped at 1 | 2026-11-23 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
+| [DECISION-v1.1.0-TODO-269](#DECISION-v1.1.0-TODO-269) | [v1.1.0-TODO-269](release_v1_1_0.md) | (d) cap slow-list classes only (300 s / 300 replicates), on now | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-267b](#DECISION-v1.1.0-TODO-267b) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) + (d): no randomization CI for the KK CLMM classes; their randomization p-value refuses `delta != 0` | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-267](#DECISION-v1.1.0-TODO-267) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) opt-in score-at-the-null statistic via `compute_rand_two_sided_pval(type = "score")` on the KK CLMM classes; default unchanged | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-266](#DECISION-v1.1.0-TODO-266) | [v1.1.0-TODO-266](release_v1_1_0.md) | (a) ruled out: CLMM redraws keep their own-data start; the observed-fit warm start reaches the same maxima but is 3-25% slower | 2026-11-24 |
@@ -320,6 +321,38 @@ Last updated 2026-11-24.
 - **Rejected:** (a) the per-call adapter; (c) Eigen-only, deferred to `release_v2_0_0.md → TODO-7b` (a 1.x warning on Rcpp-typed sources pointing at the Eigen form is the deprecation path).
 
 ## v1.1.0
+
+<a id="DECISION-v1.1.0-TODO-269"></a>
+### DECISION-v1.1.0-TODO-269: Calibration planner: turn the slow-unit replicate cap on (threshold, replicates), and from the running campaign or the next?
+
+- **TODO:** [v1.1.0-TODO-269](release_v1_1_0.md): **Calibration study: run the KK CLMM score-statistic randomization
+  test (`rand_score`), and an opt-in replicate cap for slow units.**
+- **Context:** the default `rand` p-value of the KK CLMM classes still costs many minutes per replicate at n = 1000
+  after the v1.1.0-TODO-265 kernel fix (measured numbers in the TODO's Status). `plan_calibration_study.R` now has
+  `--slow-unit-cap-secs S --slow-unit-cap-reps R`: a screening unit whose estimated cost exceeds S single-core seconds
+  per replicate runs at most R replicates (confirmations never capped; `plan.csv` `rep_cap`; the campaign README names
+  the units). It is wired into `calibration-study.yml` as `SLOW_UNIT_CAP_SECS: '0'` (off). The planner runs from
+  `main`, so switching it on applies to the running campaign 2026-11-15-e36c7710 at its next wave, not only to the next.
+- **Options:**
+  - (a) leave it off (status quo). The running campaign keeps its 500 n = 1000 replicates per KK CLMM unit; the next
+    campaign's cost depends on the new kernel.
+  - (b) on from now, S = 300, R = 300 (the owner's example). Dry run on e36c7710 (real campaign files): 21 units capped,
+    all null at n = 1000: 16 KK CLMM, 4 `InferenceCountKKGLMM` (already 500 done), `InferenceIncidCMH` on
+    DesignFixedGreedy (379 s per replicate, already 1,000 done). Skips 2,213 replicates still to run (Probit and Cloglog
+    at n = 1000 not started, 200 each; Cauchit 71-200; logit 2-24), roughly 600-1,000 core-hours (~10-16 h of the
+    campaign's 64 cores). Those cells get 300 replicates (size MC SD 0.0126 vs 0.0097 at 500); units already past 300
+    keep their extra replicates in the statistics.
+  - (c) on from the next campaign only: keep `SLOW_UNIT_CAP_SECS` 0 until e36c7710 completes, then set it.
+  - (d) on, but only for the CAL_PLAN_SLOW_CLASSES (KK GLMM / KK CLMM), so a generic slow unit such as IncidCMH on
+    DesignFixedGreedy keeps its full replicates (a small code change).
+- **Recommendation (agent):** (b) or (c) with S = 300, R = 300; (d) if the IncidCMH-type side effect is unwanted. The
+  bigger lever for the next campaign is `rand_score` itself (seconds per replicate), if its calibration cells support
+  making it the default per DECISION-v1.1.0-TODO-267's revisit condition.
+- **Raised:** 2026-11-24, by the v1.1.0-TODO-269 agent (owner request via the coordinator).
+- **Ruling:** (d), owner, 2026-11-24: cap only the classes on the planner's slow list (`CAL_PLAN_SLOW_CLASSES`: `InferenceCountKKGLMM` and the four `InferenceOrdinalKKCLMM*` classes), turned on in the workflow (`SLOW_UNIT_CAP_SECS: '300'`, `SLOW_UNIT_CAP_REPS: '300'`). Done 2026-11-24 (coordinator): new planner flag `--slow-unit-cap-scope slow_classes|all` (default `slow_classes`); test `test-calibration-slow-unit-replicate-cap.R` (44 pass). Takes effect on the running campaign from its first wave after a push.
+- **Why:** No reason recorded.
+- **Rejected:** (a) leave it off; (b) cap every unit over the threshold (it would also cap e.g. `InferenceIncidCMH` on FixedGreedy); (c) next campaign only.
+- **Revisit if:** a capped cell's size or power is too uncertain at 300 replicates (Monte Carlo SD 0.0126 at size 0.05).
 
 <a id="DECISION-v1.1.0-TODO-267b"></a>
 ### DECISION-v1.1.0-TODO-267b: What randomization CI, if any, should the KK CLMM classes offer, and on which null?

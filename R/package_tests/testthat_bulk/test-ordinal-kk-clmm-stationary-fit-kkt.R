@@ -8,8 +8,11 @@ library(EDI)
 # stationary point. With clmm_eps_g = 1e-12 plus the gradient acceptance (<= 1e-4, one Newton
 # retry, else NA "kk_clmm_rcpp_not_stationary") every class fit is a stationary point: the
 # treatment agrees with a kernel Newton polish, and a lower-variance-boundary fit has a positive
-# one-sided tau-score (KKT). Plan TODO-5 (C++, v1.1.0-TODO-265, 2026-11-23): also gradient_norm <= max(1e-5, eps_g),
-# no R Newton retry on these fits, and variance_boundary_tau_score > 0 whenever variance_boundary_hit (lower bound).
+# one-sided tau-score (KKT). Plan TODO-5 (C++, v1.1.0-TODO-265, 2026-11-23): no R Newton retry on these fits, and
+# variance_boundary_tau_score > 0 whenever variance_boundary_hit (lower bound). Since 2026-11-24 (owner, v1.1.0-TODO-265
+# follow-up) the kernel's own verdict is the R acceptance, projected gradient <= max(1e-4, eps_g), not 1e-5: a fit
+# already below 1e-4 is not polished, so a fit never pays for both the kernel polish and the R retry. The Newton-polish
+# agreement below (1e-5 on the treatment) is what keeps such a fit at the stationary point.
 
 cls <- c(logit = "InferenceOrdinalKKCLMM", probit = "InferenceOrdinalKKCLMMProbit",
 	cauchit = "InferenceOrdinalKKCLMMCauchit", cloglog = "InferenceOrdinalKKCLMMCloglog")
@@ -43,7 +46,6 @@ test_that("every KK CLMM class fit is stationary (gradient, Newton polish, bound
 		expect_lte(fit$gradient_norm, 1e-4)
 		# Plan TODO-5 (v1.1.0-TODO-265): the kernel's own verdict is the projected gradient, so a class fit
 		# at the production tolerance needs no R retry, and a lower-boundary fit is a certified KKT point.
-		expect_lte(fit$gradient_norm, 1e-5)
 		expect_null(fit$clmm_newton_retry)
 		if (isTRUE(fit$variance_boundary_hit) && fit$log_sigma < 0)
 			expect_gt(fit$variance_boundary_tau_score, 0, label = paste("kernel tau-score", info))

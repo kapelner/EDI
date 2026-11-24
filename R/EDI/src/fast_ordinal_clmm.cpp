@@ -12,6 +12,7 @@
 #include <string>
 #include <optional>
 #include <stdexcept>
+#include <memory>
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -19,6 +20,17 @@ using namespace Rcpp;
 using namespace glmm;
 
 namespace {
+
+// v1.1.0-TODO-265 follow-up (owner 2026-11-24): coarse-to-fine quadrature. With more than this
+// many Gauss-Hermite nodes (the KK CLMM classes pass 60, v1.0.6-TODO-48), the variance multistart
+// runs on a 20-node objective and only its winner is refit on the requested rule, warm-started.
+// The likelihood and gradient cost are linear in the node count, so the multistart costs a
+// third; the reported fit (estimate, gradient test, SE) is the requested rule's optimum.
+constexpr int kClmmCoarseNGH = 20;
+// The R acceptance threshold (InferenceAbstractKKOrdinalCLMM's clmm_gradient_accept). A fit whose
+// projected gradient is already below it is not polished and counts as converged, so a fit never
+// pays for both the kernel polish and the R Newton retry.
+constexpr double kClmmAcceptGradient = 1e-4;
 
 // Ordinal model with thresholds
 template <typename Link>
@@ -93,7 +105,8 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
                            const Eigen::Ref<const Eigen::VectorXd>& start_full, const std::string& optimization_alg,
                            const FixedParamSpec& fixed_spec,
                            const Eigen::MatrixXd* info_start_ptr = nullptr,
-                           bool variance_multistart = true) {
+                           bool variance_multistart = true,
+                           const GLMMData* coarse_dat = nullptr) {
     OrdinalLikelihood<Link> model(K);
     GLMMObjective<OrdinalLikelihood<Link>> obj(dat, model);
 
@@ -129,6 +142,44 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
                     candidate[total - 1] = z;
                     starts.push_back(apply_fixed_values(candidate, fixed_spec));
                 }
+            }
+        }
+
+        // Coarse-to-fine (kClmmCoarseNGH): run the starts on the coarse objective, then refit on the
+        // requested rule from the coarse endpoint that is best under the requested rule (one
+        // evaluation each, so a mode the coarse rule misranks is not chosen). When that endpoint
+        // sits at the sigma -> 0 boundary far from stationary (the loose-eps_g guard below), every
+        // coarse endpoint is refit instead, so the guard sees all of them.
+        int coarse_niter = 0;
+        const bool lbfgs_requested = normalize_optimizer_algorithm(optimization_alg, "lbfgs", false) == "lbfgs";
+        if (coarse_dat != nullptr && lbfgs_requested) {
+            GLMMObjective<OrdinalLikelihood<Link>> coarse_obj(*coarse_dat, model);
+            std::vector<LikelihoodFitResult> coarse_fits;
+            for (const auto& start_candidate : starts) {
+                LikelihoodFitResult fit = optimize_fixed_likelihood(
+                    coarse_obj, start_candidate, fixed_spec, maxit, eps_g,
+                    optimization_alg, "lbfgs", 0, info_start_ptr);
+                if (std::isfinite(fit.value) && fit.params.allFinite()) coarse_fits.push_back(fit);
+            }
+            int best_i = -1;
+            double best_fine = std::numeric_limits<double>::infinity();
+            Eigen::VectorXd g_tmp(total);
+            for (int ii = 0; ii < (int)coarse_fits.size(); ++ii) {
+                const double v = obj(coarse_fits[ii].params, g_tmp);
+                if (std::isfinite(v) && v < best_fine) { best_fine = v; best_i = ii; }
+            }
+            if (best_i >= 0) {
+                const LikelihoodFitResult& cb = coarse_fits[best_i];
+                const bool boundary_guard = !log_sigma_is_fixed && cb.params[total - 1] <= -4.5 &&
+                    std::isfinite(cb.gradient_norm) && cb.gradient_norm > 1e-3 && coarse_fits.size() > 1;
+                starts.clear();
+                if (boundary_guard) {
+                    for (const auto& f : coarse_fits) starts.push_back(f.params);
+                } else {
+                    starts.push_back(cb.params);
+                }
+                coarse_niter = cb.niter;
+                info_start_ptr = nullptr;  // the warm-start information belongs to the original start
             }
         }
 
@@ -175,7 +226,10 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
         // leaves the convergence norm and the Newton system, iff log sigma sits at the soft
         // bound and s > 0 (moving inward would increase the objective: KKT). With s <= 0 the
         // coordinate stays free and the polish pushes it inward. The upper bound is never active.
+        // convergence_gradient_tol is where a polish aims; accept_gradient_tol decides whether a
+        // polish is needed and whether the fit converged (kClmmAcceptGradient, 2026-11-24).
         const double convergence_gradient_tol = std::max(1e-5, eps_g);
+        const double accept_gradient_tol = std::max(kClmmAcceptGradient, eps_g);
         auto tau_score_at = [&](const Eigen::VectorXd& params, const Eigen::VectorXd& gradient) {
             const double ls = params[total - 1];
             const double g_lik = gradient[total - 1] - sigma_penalty_grad(ls);
@@ -213,18 +267,18 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
                 Eigen::VectorXd g0(total);
                 const double f0 = obj(best_fit.params, g0);
                 if (!(std::isfinite(f0) && g0.allFinite() &&
-                      active_indices_and_gradient(best_fit.params, g0).second.norm() <= convergence_gradient_tol))
+                      active_indices_and_gradient(best_fit.params, g0).second.norm() <= accept_gradient_tol))
                     best_fit = polish(best_fit);
             }
         }
         par = best_fit.params;
         neg_ll = obj(par, nll_gradient);
         hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
-        niter = best_fit.niter;
+        niter = best_fit.niter + coarse_niter;
 
         auto active_state = active_indices_and_gradient(par, nll_gradient);
         if (used_lbfgs && std::isfinite(neg_ll) && par.allFinite() && nll_gradient.allFinite() &&
-            active_state.second.norm() > convergence_gradient_tol) {
+            active_state.second.norm() > accept_gradient_tol) {
             newton_polish_attempted = true;
             Eigen::VectorXd candidate_params = par;
             Eigen::VectorXd candidate_gradient = nll_gradient;
@@ -293,7 +347,7 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
         tau_score = tau_score_at(par, nll_gradient);
         // Never best_fit.converged (the lenient flag): converged iff the projected gradient is small.
         converged = std::isfinite(neg_ll) && par.allFinite() && nll_gradient.allFinite() &&
-                    gradient_norm <= convergence_gradient_tol;
+                    gradient_norm <= accept_gradient_tol;
         if (converged) hit_iteration_cap = false;
     } catch (...) {
         converged = false;
@@ -377,6 +431,9 @@ edi::ResultMap fast_ordinal_clmm_internal_vm(
     }
 
     GLMMData dat(X, y_v, gid_v, n_gh, max_abs_log_sigma);
+    std::unique_ptr<GLMMData> coarse_dat;
+    if (n_gh > kClmmCoarseNGH)
+        coarse_dat = std::make_unique<GLMMData>(X, y_v, gid_v, kClmmCoarseNGH, max_abs_log_sigma);
     FixedParamSpec fixed_spec = make_fixed_param_spec(total, fixed_idx, fixed_values);
 
     Eigen::VectorXd start_full(total);
@@ -395,10 +452,10 @@ edi::ResultMap fast_ordinal_clmm_internal_vm(
         info_start_ptr = &info_start;
     }
 
-    if (link == "logit")   return run_fast_ordinal_clmm<LogitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart);
-    if (link == "probit")  return run_fast_ordinal_clmm<ProbitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart);
-    if (link == "cauchit") return run_fast_ordinal_clmm<CauchitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart);
-    if (link == "cloglog") return run_fast_ordinal_clmm<CloglogLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart);
+    if (link == "logit")   return run_fast_ordinal_clmm<LogitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart, coarse_dat.get());
+    if (link == "probit")  return run_fast_ordinal_clmm<ProbitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart, coarse_dat.get());
+    if (link == "cauchit") return run_fast_ordinal_clmm<CauchitLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart, coarse_dat.get());
+    if (link == "cloglog") return run_fast_ordinal_clmm<CloglogLink>(dat, K, j_T, estimate_only, maxit, eps_g, start_full, optimization_alg, fixed_spec, info_start_ptr, variance_multistart, coarse_dat.get());
 
     throw std::invalid_argument("Unknown link: " + link);
 }

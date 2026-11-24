@@ -979,8 +979,11 @@
   20-node rule's likelihood was off enough that the fit was not the MLE: on a
   cloglog example (n = 60) the treatment estimate was 0.8146 against
   `ordinal::clmm`'s 0.7755 and is now 0.7752. Every KK CLMM estimate, SE,
-  p-value and CI changes slightly (typically by 1e-5 or less at a small SD), and
-  fits take about 2.6 times as long.
+  p-value and CI changes slightly (typically by 1e-5 or less at a small SD). The
+  kernel runs its variance multistart on a 20-node rule and refits only the
+  winner on the 60-node rule, from its estimates (the reported fit is the
+  60-node optimum), so a fit takes about 1.1-1.5 times as long as with 20 nodes
+  instead of 2.3-3 times.
 
 * The KK CLMM classes (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`,
   `...Cloglog`) fit faster at large n, most visibly in randomization tests.
@@ -991,19 +994,27 @@
   gradient norm exceeded 1e-4 with a full five-start Newton run, which at
   n = 1000 fired on 35-65% of randomization redraws and cost 6-9 s each. The
   retry, now rare, starts from the fitted point only (the extra log-sigma
-  starts are kept for a far-from-stationary boundary fit). Measured on the
-  calibration design, same seeds: a randomization p-value is 2.5x-4.3x faster
-  at n = 1000 (SeqOneByOneKK14 4.3x, FixedBinaryMatch 3.2x, Cauchit 2.5x) and
-  1.1x-1.7x at n = 200; a single fit at n = 1000 drops from 4-9 s to 0.6-1.2 s
-  when the retry used to fire. Estimates, SEs and Wald p-values move by at most
-  5e-6 (n = 50, 200, 1000; all four links, both formulas). At n = 50 a few
+  starts are kept for a far-from-stationary boundary fit), and a fit whose
+  projected gradient is already below that 1e-4 acceptance is not polished, so
+  no fit pays for both the polish and the retry. Measured against 1.0.5 with
+  the 60-node rule above included (calibration design, null, SeqOneByOneKK14
+  and FixedBinaryMatch, same seeds and redraws, r = 21, one core): a
+  randomization p-value at n = 1000 with `~ .` is 2.7x-3.8x faster for logit
+  and 1.4x for Cauchit (a single logit fit drops from about 7 s to 1.1-1.2 s);
+  with `~ 1` at n = 1000 and at n = 200, where 1.0.5 rarely retried, it is
+  1.0x-1.9x slower, the price of the 60-node rule. Against the 20-node kernel
+  change alone the gain was 2.1x-4.0x at n = 1000 `~ .` (v1.1.0-TODO-265).
+  Estimates, SEs and Wald p-values move by at most 5e-6 (n = 50, 200, 1000;
+  all four links, both formulas). At n = 50 a few
   degenerate randomization redraws (sigma near e^4, |treatment| 12-61) that
   used to be `NA` now return a value, so some n = 50 randomization p-values
   move (5 of 80 checked, by up to 0.04). `fast_ordinal_clmm_cpp()` gains
   `variance_multistart` and returns `params`, `lbfgs_gradient_norm`,
   `variance_boundary_hit`, `variance_boundary_tau_score` and the
   `newton_polish_*` diagnostics; its `converged` and `gradient_norm` now
-  describe the projected gradient (v1.1.0-TODO-265).
+  describe the projected gradient (`converged` means a projected gradient norm
+  of at most `max(1e-4, eps_g)`), and with `n_gh` above 20 its L-BFGS
+  multistart runs on 20 nodes before the final refit (v1.1.0-TODO-265).
 
 * The cumulative-link ordinal classes (`InferenceOrdinalPropOddsRegr`,
   `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalCauchitRegr`,
