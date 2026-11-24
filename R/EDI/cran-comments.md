@@ -1,122 +1,79 @@
-# CRAN comments — EDI 1.0.2
+# CRAN comments — EDI 1.0.5
 
-> **Version plan (2026-09-24, user decision, superseding an earlier same-day
-> note that named 1.1.0):** the first CRAN submission is **v1.0.2**. Versions
-> 1.0.0 and 1.0.1 were GitHub-only releases. The test-environment and
-> check-result details below were recorded for the 1.0.1 content and must be
-> re-run and refreshed for 1.0.2 (a clean `R CMD check --as-cran`, a fresh
-> win-builder run, and a fresh ASAN/UBSAN and valgrind confirmation) before
-> submission.
-
-## Resubmission
-
-Thank you for the review. This is a resubmission. In this version we have
-addressed both points you raised and fixed some other minor bugs hence we bumped the version to 1.0.2 (from 1.0.1).
-
-* **Examples in `\dontrun{}` / "Unexecutable code":** there is no `\dontrun{}`
-  left anywhere in the package. The five Rd files you flagged for
-  unexecutable code (`InferenceIncidCMH`, `InferenceIncidExtendedRobins`,
-  `InferenceIncidKKCondLogitGLMMIVWC`, `InferenceSurvivalKKRankRegrIVWC`,
-  `InferenceSurvivalStratCoxPHRegr`) had `\donttest{}` nested inside
-  `\dontrun{}`; those examples, and all the other examples previously in
-  `\dontrun{}`, are now unwrapped and run as normal examples, since they run in
-  well under 5 seconds. Examples that were only placeholders (in
-  `InferenceIncidExactFisher`, `InferenceIncidExactZhang`,
-  `InferenceRandBootstrap` and `InferenceRandBootstrapCI`) have been replaced
-  with complete, runnable ones. `\donttest{}` is used only where an example
-  genuinely takes longer: the part of the `DesignFixedOptimal` example that
-  compiles a custom C++ objective at run time with `RcppXPtrUtils` (about 8
-  seconds), and the `BaiAdjustedTSource` examples, where loading the suggested
-  package `nbpMatching` alone takes a few seconds. Both are also guarded with
-  `requireNamespace()`, since those packages are in Suggests. Every Rd file's
-  examples, excluding `\donttest{}` code, now run in under 2.5 seconds on our
-  machine.
-
-* **Modifying the global environment and the user's options:** the package no
-  longer writes to `.GlobalEnv` or changes the user's `options()`, `par()` or
-  working directory.
-  * Loading the package no longer sets any options, and `toggle_asserts()`,
-    `set_num_cores()` and `unset_num_cores()` no longer set any options either.
-    That internal state is now kept in an environment inside the package
-    namespace.
-  * Every `<<-` in `R/globals.R`, `R/inference_suite.R` and
-    `R/simulations_framework.R` has been replaced with explicit local
-    environments.
-  * A code path that could overwrite the user's `.Random.seed` has been
-    removed. Where a function sets a seed the user asked for, the user's
-    previous `.Random.seed` is restored with an immediate `on.exit()`.
-  * Data sent to parallel worker processes no longer goes into those workers'
-    global environments.
-  * A call to another package's function that changes `options(contrasts)`
-    without restoring it (`multgee::ordLORgee()`) is now wrapped so the user's
-    option is restored with an immediate `on.exit()`.
-
-  We verified this by checking that loading the package and running its
-  parallel, simulation and inference entry points leave `options()`, the
-  working directory, the contents of `.GlobalEnv` and (for seeded runs)
-  `.Random.seed` unchanged.
+> **Before submitting (delete this block):** fill in the four `[TODO]` items below from
+> `./scripts/submission_tar_build_and_win_mac_check.sh` (local `R CMD check --as-cran`) and the
+> win-builder runs, and confirm the last full `R-CMD-check.yaml` run on the submitted commit is
+> green. Drafted 2026-11-24 from: CRAN's EDI 1.0.2 check page (OK on all 13 flavors that day),
+> the `DESCRIPTION` diff against tag `v1.0.2`, `NEWS.md`, and `R-CMD-check.yaml` run
+> 45403920576 (4e83509a, all 21 jobs green). The run on cf2beb67 (today's hurdle and
+> randomization fixes) was still running when this was written.
 
 ## Submission
 
-First submission of EDI to CRAN (new package).
+This is an update of EDI from 1.0.2, the version on CRAN, to 1.0.5. Versions 1.0.3 and 1.0.4
+were not submitted to CRAN; their changes are included here and listed in `NEWS.md`.
+
+The update is mainly a correctness release. It fixes wrong results found by an audit of the
+package's algorithms and by large simulation sweeps: coverage and type I error problems in
+several confidence intervals and tests, and convergence problems in several model fits. Seeded
+random draws are now identical on Linux, macOS and Windows at every thread count. `NEWS.md`
+lists every change; the ones that change results are under "Changes that alter results", and the
+few API changes are under "Breaking changes".
+
+* **Reverse dependencies:** EDI has none on CRAN, so no other package is affected by the API
+  changes.
+* **Dependencies:** no new Imports. Suggests gains `optmatch` and `clubSandwich` (both on
+  CRAN, used conditionally via `requireNamespace()`), and `betareg` now requires >= 3.2-6.
+* **Description:** one sentence was added, "EDI replaces the 'SeqExpMatch' package".
+  'SeqExpMatch' is my earlier CRAN package (same maintainer); EDI covers everything it did.
+  [TODO: say whether you are asking CRAN to archive SeqExpMatch, or that it stays on CRAN for
+  now.]
+* **Maintainer:** unchanged.
 
 ## R CMD check results
 
-Status: 0 WARNINGs, 0 ERRORs, 1 NOTE.
+[TODO: paste the summary from the local `--as-cran` run, e.g.]
 
-* NOTE: New submission. (Expected, unavoidable for a first CRAN submission.)
+0 ERRORs | 0 WARNINGs | [n] NOTEs
 
-INFO (not a NOTE): installed package size 25.0Mb (R 13.8Mb, help 2.6Mb, libs
-8.1Mb) — the package compiles a large C++ kernel tree (RcppEigen/
-RcppNumerical/LBFGSpp) covering every response-type/design combination;
-size is dominated by compiled code and documentation, not data.
+* [TODO: list each NOTE and its explanation. An "installed package size" NOTE, if it appears, is
+  compiled code and documentation, as for 1.0.2: the package compiles a large C++ kernel tree
+  (RcppEigen / RcppNumerical / LBFGSpp) covering every response type and design. The source
+  tarball is 3.1 MB.]
 
+## Tests and check time
 
-## Check time and tests
+As in 1.0.2, the test suite is skipped on CRAN (`tests/testthat.R` runs it only when
+`NOT_CRAN=true`). It is large and runs on every push on the CI matrix below, including ASAN/UBSAN
+and valgrind, so running it on CRAN's machines would add check time without adding coverage.
+Examples, including `\donttest{}` code, run normally; every Rd file's examples outside
+`\donttest{}` run in under 2.5 seconds on our machine.
 
-The test suite is intentionally skipped on CRAN (`tests/testthat.R` runs it
-only when `NOT_CRAN=true`): it is large, and it runs continuously on our CI
-matrix — macOS/Windows/Linux across R devel/release/oldrel-1 with
-`--as-cran`, a no-Suggests leg, ASAN/UBSAN, and valgrind (see Test
-environments below) — so running it on CRAN's machines would add check time
-without adding coverage. Examples (including `--run-donttest`) run
-normally.
-
+The package still has no `\dontrun{}`, does not write to the global environment, and leaves
+`options()`, the working directory and `.Random.seed` as it found them (the release script
+checks all of these before every submission).
 
 ## Compiled code
 
-The package compiles a large C++ kernel tree (RcppEigen/RcppNumerical).
-ASAN/UBSAN and valgrind runs are part of continuous CI (see Test
-environments below); the most recent run predating this exact 1.0.2 content
-was green (recorded for 1.0.1); a fresh confirmation for 1.0.2 is still to be
-run. Note that 1.0.2 fixes a heap overflow in `fast_zero_one_inflated_beta_cpp()`
-(an unchecked warm-start length), found with valgrind after the last recorded
-valgrind run, so the valgrind job should be rerun on the 1.0.2 tree.
-
+ASAN/UBSAN (rocker/r-devel-san) and valgrind memcheck run on every push. [TODO: confirm from
+the sanitizer outputs (`tests/testthat.Rout` in each job's check directory) that no errors are
+reported in EDI's code before writing "clean". Both jobs pass whenever `R CMD check` passes, and
+on run 45403920576 they ended with WARNINGs (valgrind 2 WARNINGs and 1 NOTE, ASAN/UBSAN 3
+WARNINGs) that still need explaining.] `rchk` and CRAN's additional checks (clang 23, gcc 16,
+LTO, `--no-long-double`) are also part of CI and passed on that run.
 
 ## Test environments
 
-* GitHub Actions (continuously, on every push —
-  `.github/workflows/R-CMD-check.yaml`, 10 jobs):
-  * macOS (latest), R release
-  * Windows (latest), R release
-  * Windows (latest), R devel
-  * Ubuntu (latest), R devel, release, and oldrel-1
-  * Ubuntu, R release with no Suggests installed (`_R_CHECK_SUGGESTS_ONLY_`)
-  * Ubuntu, R release with `_R_CHECK_CRAN_INCOMING_` left enabled (the
-    "R-CMD-check-incoming" job) — continuous coverage of the
-    Title/Description phrasing policy, misspellings, URL validity, and
-    license-text checks that would otherwise only be caught at manual
-    pre-submission time; `error-on: "warning"` since the "New submission"
-    NOTE is unavoidable here
-  * R-devel with ASAN/UBSAN (rocker/r-devel-san)
-  * R-devel under valgrind memcheck
-* win-builder (2026-09-14, on the 1.0.1 content; to be repeated for 1.0.2): uploaded to all three sections (R-devel,
-  R-release, R-oldrelease). Status: clean on all three — no WARNINGs or
-  ERRORs, and no NOTEs beyond the expected "New submission".
-* mac-builder: not used for this submission — the builder on
-  mac.r-project.org is currently down.
-* Local: R Under development (unstable) (2026-04-23 r89955),
-  x86_64-pc-linux-gnu, Ubuntu 26.04 LTS, gcc/gfortran 15.2.0.
-  Install (compile) ~27min; everything else together well under 10 minutes: 30s
-  examples, 183s donttest, 21s PDF manual, 41s HTML manual.
+* GitHub Actions (`.github/workflows/R-CMD-check.yaml`, on every push):
+  * macOS (latest), R release, with and without OpenMP
+  * Windows (latest), R release and R devel
+  * Ubuntu (latest), R devel, release and oldrel-1; R devel with development versions of
+    dependencies; R release with no Suggests installed; R release with
+    `_R_CHECK_CRAN_INCOMING_` enabled
+  * R devel with ASAN/UBSAN, and R devel under valgrind
+  * CRAN additional checks: rchk, clang 23, gcc 16, LTO, `--no-long-double`
+* win-builder: [TODO: date and result for R-devel, R-release and R-oldrelease]
+* mac-builder: [TODO: date and result, or "not used"]
+* Local: [TODO: R version from the check log (currently R Under development (unstable)
+  (2026-10-13 r90668)), x86_64-pc-linux-gnu, Ubuntu 26.04.1 LTS, gcc 15.2.0; install and
+  check times]
