@@ -7304,6 +7304,25 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `EDI_WORKER_INVARIANCE_VERBOSE=true`). The other four legs did not slow (8-14 min on 11-23 vs 11-15 on 11-20), and
   the ~10 TODO-410 classes cannot turn 58 min into 150+, so a fork-worker hang or one very slow run is more likely
   than the fit slowdown. Next: read where the next nightly's Ubuntu leg log stops.
+  -- Root cause and fix (agent, 2026-11-24; nightly run 45393057600 on 82ef6889): the progress lines stop at
+  `start fork cores=1 InferenceCountHurdleNegBin|count|rand_ci_parallel` (13:02:09; cancelled 15:15); every other
+  `rand_ci_parallel` took <= 0.3 s. Reproduced locally (> 5 min, all inside `fast_hurdle_negbin_cpp`, from
+  `expand_bound` in the rand-CI bound search). Two causes. (1) The v1.0.6-TODO-169 Newton-decrement finish
+  (8d8c5f78, 2026-11-20, the commit the timeouts started with) falls back to `TruncatedNegBinCount::expected_hessian()`
+  whenever the observed Hessian is not positive definite, which it never is at the Poisson limit (v1.0.6-TODO-425), and
+  that series built a one-row model plus a full Hessian for every term, up to 10000 terms per row (rounding stalled its
+  `1 - cum < 1e-10` stop at a huge theta) or `mu + 12 sd` terms at the large `mu` of an extreme shift (5.9e6 one-row
+  Hessians at mu ~ e^10). Fixed in `R/EDI/src/fast_hurdle_negbin.cpp`: the series is now four scalar sums per row
+  (sum p, p*y, p*digamma(y + r), p*trigamma(y + r)), the same quantity (old vs new 1e-15 at ordinary theta, <= 3e-5 at
+  theta 1e8-1e11 where the old per-term sum cancelled), with the bound computed in double (the int cast overflowed at
+  eta ~ 700) and a negligible-term stop. (2) A warm start carried over at theta ~ 1e8 made a refit take 25 s even with
+  the cheap series; `try_hurdle_negbin_fit()` now drops a warm start whose log theta is past
+  `HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA` (the cold start reaches the same estimate at once). The sweep case: hours ->
+  26 s with both (212 s with the kernel fix alone; still hung with the R fix alone), same CI (-9.7662, 10.658). 30
+  ordinary hurdle NB fits: 29 bit-identical, one Poisson-limit fit moves (log theta 22.65 -> 23.26, b 5e-5). Verified by
+  kernel swap (`sourceCpp` of the file into the scratchpad, no relink); 10 hurdle test files pass; new test
+  `R/EDI/tests/testthat/test-hurdle-negbin-poisson-limit-warm-start-dropped.R`. Still open: the leg needs the user's
+  rebuild (C++ change) and a nightly that finishes in its limit with five legs.
 - [ ] TODO-412 (added 2026-11-23, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), wave 29): **`InferenceOrdinalCauchitRegr`: score / LR / gradient oversized, confirmed at n = 50, 200 and 1000.**
   - Wave 29: 28 cells confirmed failing (18 at n = 50, 10 at n = 1000), 10 cleared, 87 pending, across many designs
     and both allocations.

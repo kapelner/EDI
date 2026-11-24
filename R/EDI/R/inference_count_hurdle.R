@@ -742,6 +742,19 @@ InferenceCountHurdleNegBin = define_inference_class(
 			n_params = ncol(X_f) + 1L
 			warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 			warm_fisher = private$get_fit_warm_start_fisher(n_params)
+			# v1.0.6-TODO-411: a warm start at the Poisson limit (log theta past the boundary, e.g.
+			# theta ~ 1e8 from the previous fit) leaves the count optimizer where the observed
+			# information is numerically meaningless, so its Newton-decrement finish fell back to the
+			# expected-information series on every iteration: one refit in a randomization-CI bound
+			# search took 25 s to hours (the Ubuntu reproducibility leg's hang). The cold start reaches
+			# the same estimate at once.
+			if (length(warm_start_params) == n_params) {
+				ws_log_theta = suppressWarnings(as.numeric(warm_start_params[[n_params]]))
+				if (!is.finite(ws_log_theta) || ws_log_theta > HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA) {
+					warm_start_params = NULL
+					warm_fisher = NULL
+				}
+			}
 			mod = tryCatch(
 				if (estimate_only) {
 					fast_hurdle_negbin_cpp(

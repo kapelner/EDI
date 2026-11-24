@@ -467,36 +467,83 @@ public:
 		return H;
 	}
 
+	// Expected information: the observed one-row Hessian (hessian() above) averaged over the
+	// zero-truncated NB distribution of y at each row's mu. That Hessian is linear in y except
+	// through digamma(y + r) and trigamma(y + r), so the series only needs four scalar sums per
+	// row (sum p, sum p*y, sum p*digamma(y + r), sum p*trigamma(y + r)) over the same truncated
+	// terms and stopping rule. v1.0.6-TODO-411: this used to build a one-row model and a full
+	// Hessian for every term, and the Newton-decrement finish calls it whenever the observed
+	// Hessian is not positive definite, so randomization-CI bound searches over extreme shifts
+	// (large mu, long series) took minutes to hours.
 	MatrixXd expected_hessian(const Eigen::Ref<const VectorXd>& params) {
 		const int total_p = m_p + 1;
 		MatrixXd H = MatrixXd::Zero(total_p, total_p);
 		const VectorXd beta = params.head(m_p);
 		const double r = std::exp(params[m_p]);
+		const double log_r = std::log(r);
+		const double digamma_r = fast_digamma(r);
+		const double trigamma_r = fast_trigamma(r);
 		VectorXd eta = (m_X * beta).array().min(700.0).matrix();
+		VectorXd beta_weights = VectorXd::Zero(m_n);
+		VectorXd cross_weights = VectorXd::Zero(m_n);
+		double h_rr = 0.0;
 
 		for (int i = 0; i < m_n; ++i) {
 			const double mu_i = std::max(std::exp(eta[i]), 1e-10);
-			const double p0 = std::pow(r / (r + mu_i), r);
-			const double q_pos = std::max(1.0 - p0, 1e-12);
+			// Series weights (unchanged): zero-truncated NB probabilities.
+			const double p0_series = std::pow(r / (r + mu_i), r);
+			const double q_pos = std::max(1.0 - p0_series, 1e-12);
 			const double sd = std::sqrt(mu_i + mu_i * mu_i / r);
-			const int soft_min_y = std::max(20, static_cast<int>(std::ceil(mu_i + 12.0 * sd)));
+			// Bound in double before the int cast: at eta near 700, mu_i + 12 sd overflows int.
+			const double soft_bound = std::min(std::ceil(mu_i + 12.0 * sd), 1e6);
+			const int soft_min_y = std::max(20, static_cast<int>(soft_bound));
 			const int max_y = std::max(soft_min_y, 10000);
-			double cum = 0.0;
-
-			MatrixXd Xi(1, m_p);
-			Xi.row(0) = m_X.row(i);
+			double cum = 0.0, s_y = 0.0, s_dig = 0.0, s_trig = 0.0;
 			for (int yv = 1; yv <= max_y; ++yv) {
 				const double prob = fast_dnbinom_mu(static_cast<double>(yv), r, mu_i, false) / q_pos;
 				if (prob > 0.0 && std::isfinite(prob)) {
-					VectorXi yi(1);
-					yi[0] = yv;
-					TruncatedNegBinCount one_row(Xi, yi);
-					H.noalias() += prob * one_row.hessian(params);
+					const double ypt = static_cast<double>(yv) + r;
 					cum += prob;
+					s_y += prob * yv;
+					s_dig += prob * fast_digamma(ypt);
+					s_trig += prob * fast_trigamma(ypt);
 				}
-				if (yv >= soft_min_y && 1.0 - cum < 1e-10) break;
+				// Past mu + 12 sd the remaining terms are negligible; at a huge theta rounding can
+				// stall cum just short of 1 - 1e-10, which ran every row to max_y.
+				if (yv >= soft_min_y && (1.0 - cum < 1e-10 || !(prob > 1e-16))) break;
 			}
+			if (!(cum > 0.0)) continue;
+
+			// hessian()'s row terms with y replaced by the sums above.
+			const double denom = r + mu_i;
+			const double denom_sq = denom * denom;
+			const double log_denom = std::log(denom);
+			double p0 = std::exp(r * (log_r - log_denom));
+			p0 = std::min(std::max(p0, 1e-12), 1.0 - 1e-12);
+			const double q0 = 1.0 - p0;
+			const double c_eta = r * mu_i / denom;
+			const double dlogp0_dr = log_r - log_denom + 1.0 - r / denom;
+			const double p0_over_q0 = p0 / q0;
+
+			// -d score_eta / d eta = (y + r) r mu / denom^2 + r^2 mu p0 / (denom^2 q0) - c_eta^2 p0 / q0^2
+			beta_weights[i] = (s_y + r * cum) * r * mu_i / denom_sq +
+				cum * (r * r * mu_i * p0 / (denom_sq * q0) - c_eta * c_eta * p0 / (q0 * q0));
+			// -d score_eta / d log r
+			cross_weights[i] = -(
+				r * mu_i * (s_y - mu_i * cum) / denom_sq -
+				cum * (r * mu_i * mu_i * p0 / (denom_sq * q0) + r * r * mu_i * p0 * dlogp0_dr / (denom * q0 * q0))
+			);
+			const double d2logp0_dr2 = 1.0 / r - 1.0 / denom - mu_i / denom_sq;
+			const double e_dlogf_dr = s_dig - cum * digamma_r + cum * (log_r - log_denom + 1.0) - (s_y + r * cum) / denom;
+			const double e_d2logf_dr2 = s_trig - cum * trigamma_r + cum * (1.0 / r - 1.0 / denom) + (s_y - mu_i * cum) / denom_sq;
+			h_rr -= r * (e_dlogf_dr + cum * p0_over_q0 * dlogp0_dr) +
+				r * r * (e_d2logf_dr2 + cum * (p0 * dlogp0_dr * dlogp0_dr / (q0 * q0) + p0_over_q0 * d2logp0_dr2));
 		}
+
+		H.topLeftCorner(m_p, m_p).noalias() = weighted_crossprod(m_X, beta_weights);
+		H.topRightCorner(m_p, 1).noalias() = m_X.transpose() * cross_weights;
+		H.bottomLeftCorner(1, m_p) = H.topRightCorner(m_p, 1).transpose();
+		H(m_p, m_p) = h_rr;
 		return (H + H.transpose()) / 2.0;
 	}
 };

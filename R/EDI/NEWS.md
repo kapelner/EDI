@@ -1342,6 +1342,15 @@
 
 ### Inference
 
+* `InferenceCountHurdleNegBin` no longer stalls for minutes to hours in a
+  randomization confidence interval. The count part's expected information
+  (used when the observed information is not positive definite, as at the
+  Poisson limit) built a one-row model for every term of its series; it is now
+  four scalar sums per row, the same quantity. A warm start whose dispersion is
+  past the Poisson boundary (theta > 1e4) is dropped in favour of the cold start,
+  which reaches the same estimate at once. The Ubuntu reproducibility leg of the
+  nightly run hung on this (v1.0.6-TODO-411).
+
 * `compute_rand_two_sided_pval(type = "Zhang")` no longer ignores `type` when
   assertions are off (`toggle_asserts(FALSE)`, or `SimulationFramework`'s
   `turn_off_asserts_for_speed`): the dispatch to the Zhang exact test, and the
