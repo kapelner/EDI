@@ -825,6 +825,16 @@
 
 ### Count responses
 
+* `InferenceCountHurdleNegBin` no longer drops its covariates when the positive counts are
+  Poisson-like (v1.0.6-TODO-425). The zero-truncated negative-binomial count part can then stop
+  at an enormous dispersion (theta of 1e7 to 1e15, depending on the platform's floating point),
+  where its observed information is numerically meaningless; the treatment variance came out
+  negative, the fit was rejected and the class fell back silently to the treatment-only model,
+  a different estimate, without its hurdle separation warning. At theta >= 1e4 an unusable
+  information is now replaced by the information of the Poisson limit (the zero-truncated
+  Poisson count part, dispersion dropped), so the covariate fit is kept and its standard error
+  matches `InferenceCountHurdlePoisson`'s. Fits whose information was usable are unchanged.
+
 * Count-model results no longer depend on what was computed before
   (v1.0.6-TODO-345). `InferenceCountNegBin`'s score / gradient /
   likelihood-ratio null fits now always start from the full-data MLE instead of

@@ -7468,20 +7468,44 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   coxph, strat_cox). `set_testing_type()` validates names today, so this guards against a supported-type list and a
   switch drifting apart. Test: a class whose supported list names a type its switch lacks errors instead of returning
   `NULL` (inject via a test subclass).
-- [ ] TODO-425 (added 2026-11-24, agent; found by the dispatched R-CMD-check run 45295584606 on 8077aea1): **Two
-  failures only on the R-devel sanitizer legs.** The other R-CMD-check failures in that run were the stale
-  "exactly 4 rows" test (7ea2bf58) and tests that needed a Suggests package the hard-dependency-only images lack (8d4f8e87).
-  Two failures remain that are not about missing packages; they reproduce with every Suggests package mocked absent.
-  (1) `R/EDI/tests/testthat/test-zero-augmented-ridge-warm-start-and-zero-part-separation.R:310-311`:
-  `InferenceCountHurdleNegBin` raises no `edi_zero_part_separation_warning` on the separated-hurdle fixture, on both valgrind and
-  ASAN/UBSAN (g++ 16.2, Debian R-devel). It passes locally and on every OS leg, and it passed on valgrind at 8d8c5f78
-  (run 44903905332), so look at the hurdle and count-model commits between 8d8c5f78 and 8077aea1 first (d06dbb6f
-  v1.0.6-TODO-345 warm start, 4392d9dc Poisson IRLS retry). The likely cause is that the hurdle part's separation
-  screen sits near a threshold and the sanitizer builds' different optimization flags push it across. (2)
-  `test-aa-fork-worker-count-invariance.R:87` (valgrind only): `InferenceContinOLS` bootstrap CI at 2 fork workers is
-  `c(NA, NA)` while the serial one is finite (`InferenceAllSimpleAverageDiff` matches). Check whether the forked
-  workers fail (a timeout under valgrind's slowdown?) and record why the CI is NA. Fix the cause, or skip under valgrind with
-  a recorded reason if it is the harness.
+- [x] TODO-425 (added 2026-11-24, agent; found by the dispatched R-CMD-check run 45295584606 on 8077aea1; done
+  2026-11-24, agent): **Full R-CMD-check run 45295584606: valgrind and ASAN/UBSAN failures.** valgrind had 13 failures,
+  ASAN/UBSAN 12 (the same set without the fork test). Neither log has a sanitizer finding: no AddressSanitizer or UBSAN
+  `runtime error`, and every valgrind `ERROR SUMMARY` is 0 errors with 0 bytes definitely lost. Per file:
+  - `test-design-abstract-hierarchy.R:97` (both legs, and every other leg): stale "exactly 4 rows" message; fixed on HEAD
+    by 7ea2bf58.
+  - `test-kk-ivwc-bayesian-bootstrap-replicates-match-estimator.R:77,84` (quantreg), `test-recorded-na-reason-warns.R:88`
+    (multgee), `test-reused-worker-rank-deficient-draw-rebuilds-covariates.R:101` (aftgee),
+    `test-zero-augmented-bootstrap-pval-min-fraction-usable-samples.R:36` and
+    `test-zero-augmented-count-aliased-covariates-dropped-on-positive-rows.R:116` x4 (glmmTMB: the weighted
+    Bayesian-bootstrap refits are NA without it), both legs: a Suggests package the hard-dependency-only images lack.
+    Fixed by 8d4f8e87 with `skip_if_not_installed()` / `requireNamespace()` guards on those checks only. Verified with
+    the CI's 32 missing Suggests packages hidden (a library of symlinks without them): named skips, the rest pass.
+  - `test-zero-augmented-ridge-warm-start-and-zero-part-separation.R:310-311` (both legs; a real bug,
+    platform-dependent): on the Poisson-like positive counts of the separated-hurdle fixture the zero-truncated
+    negative-binomial count part of `InferenceCountHurdleNegBin` stops at an enormous theta (1.2e7 locally; 2e15 to
+    6e15 when x1 is perturbed by 1e-12 relative, 2 of 300 perturbations) with `converged = TRUE` but no Poisson-boundary
+    flag. There the C++ observed information is meaningless (entries ~1e26, negative definite), `ssq_b_j` came back
+    negative, `try_hurdle_negbin_fit()` rejected the fit and `generate_mod()` fell back silently to the treatment-only
+    model: estimate -0.028 instead of 0.015, and no separation flag because the treatment-only hurdle part is not
+    separated. Not a threshold in the separation screen, and not caused by a commit between 8d8c5f78 and 8077aea1 (none
+    touches this fit); where the optimizer stops at the boundary depends on the platform's floating point. Fix (R only,
+    no rebuild): `hurdle_negbin_poisson_limit_information()` in `R/EDI/R/inference_count_hurdle.R`. When theta >= 1e4
+    (`kNegBinPoissonBoundaryLogTheta`) and the reported information is not finite and positive definite, it uses the
+    limit's information: the zero-truncated Poisson information of the count coefficients (count block of
+    `get_zero_augmented_poisson_hessian_cpp()`), dispersion dropped, `dispersion_at_poisson_boundary = TRUE`. Fits with a
+    usable information are returned unchanged (bit for bit). Test: `test-hurdle-negbin-poisson-limit-information.R`
+    injects the bad kernel output so every platform runs the path; it fails without the fix (8 expectations). The
+    perturbed repro now gives the covariate estimate and the warning. The count, hurdle, zero-augmented and ZINB/ZIP files
+    in `tests/testthat` and 33 HurdleNegBin-related `testthat_bulk` files pass. Follow-up, not done: the C++ hessian of
+    `TruncatedNegBinCount` at theta >> 1e7 cancels catastrophically; the kernel could flag the boundary itself.
+  - `test-aa-fork-worker-count-invariance.R:87` (valgrind only): `InferenceContinOLS` BCa bootstrap CI at 2 fork workers
+    `c(NA, NA)` (reason `bootstrap_ci_unavailable`, i.e. an error inside the parallel jackknife) while the serial CI is
+    finite. Valgrind's exit reports show five pairs of fork workers in the test where two are expected, which fits
+    `par_lapply()` losing its worker connections and rebuilding the cluster. Harness, not numerics: it passed under
+    valgrind at 8d8c5f78 with no change to these paths since, and passes on ASAN/UBSAN (same R-devel image), on every
+    other leg and locally (`_R_CHECK_LIMIT_CORES_` set). Fix: the test skips under valgrind (detected by its vgpreload
+    `LD_PRELOAD`), with the reason in the test.
 - [ ] TODO-426 (added 2026-11-24, agent): **Full R-CMD-check run 45295584606: CRAN-extra nold, gcc16 and devel-devdeps
   failures.** All three legs failed the same way in every earlier full run since they were added (44358518303 on
   2026-11-18, 44903905332 on 2026-11-21); none has passed yet. None is a long-double or results problem.

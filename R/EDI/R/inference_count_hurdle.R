@@ -763,8 +763,9 @@ InferenceCountHurdleNegBin = define_inference_class(
 			)
 			if (is.null(mod)) return(NULL)
 			b = as.numeric(mod$b)
-			ssq = if (estimate_only) NA_real_ else as.numeric(mod$ssq_b_j)
 			if (length(b) != ncol(X_f) || any(!is.finite(b))) return(NULL)
+			if (!estimate_only) mod = hurdle_negbin_poisson_limit_information(mod, X_f, private$y, j_t)
+			ssq = if (estimate_only) NA_real_ else as.numeric(mod$ssq_b_j)
 			if (!estimate_only && (!is.finite(ssq) || ssq < 0)) return(NULL)
 			list(mod = mod, b = b, ssq = ssq, j = j_t, X = X_f, X_hurdle = X_hurdle)
 		},
@@ -1068,3 +1069,52 @@ InferenceCountHurdleNegBin = define_inference_class(
 		}
 	)
 )
+
+# kNegBinPoissonBoundaryLogTheta in src/_negbin_boundary_convergence.h: from theta = 1e4 on, a
+# negative-binomial dispersion is treated as at its Poisson limit.
+HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA = log(1e4)
+
+# v1.0.6-TODO-425: the zero-truncated negative-binomial count part of a hurdle fit on
+# Poisson-like counts can stop at an enormous theta (1e7 to 1e15, depending on the platform's
+# floating point) with converged = TRUE but dispersion_at_poisson_boundary = FALSE. At such a
+# theta the C++ observed information is numerically meaningless (entries ~1e26, negative
+# definite), so ssq_b_j came back negative or tiny and try_hurdle_negbin_fit() rejected the fit.
+# generate_mod() then fell back silently to the treatment-only model: a different estimate, and
+# no separation flag on a separated hurdle part (seen on the R-devel valgrind and ASAN/UBSAN
+# legs of R-CMD-check run 45295584606). When theta is at the Poisson limit and the reported
+# information is not finite and positive definite, use the information of the limit instead:
+# the zero-truncated Poisson information of the count coefficients (the count block of the
+# hurdle-Poisson Hessian, which does not depend on the hurdle part), with the dispersion
+# dropped as for any fit at the Poisson boundary (boundary_information() in
+# get_likelihood_test_spec()). A fit whose information is usable is returned unchanged.
+hurdle_negbin_poisson_limit_information = function(mod, X, y, j) {
+	log_theta = suppressWarnings(log(as.numeric(mod$theta_hat)[1L]))
+	if (length(log_theta) != 1L || is.na(log_theta) || log_theta < HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA) return(mod)
+	p = ncol(X)
+	b = as.numeric(mod$b)
+	info = mod$observed_information
+	usable = function(m, k) {
+		m = tryCatch(as.matrix(m), error = function(e) NULL)
+		!is.null(m) && is.numeric(m) && nrow(m) == k && ncol(m) == k && all(is.finite(m)) &&
+			!inherits(tryCatch(chol((m + t(m)) / 2), error = function(e) e), "error")
+	}
+	if (usable(info, p + 1L) && is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0) return(mod)
+	H = tryCatch(get_zero_augmented_poisson_hessian_cpp(X, as.numeric(y), matrix(1, nrow(X), 1L), c(b, 0), TRUE),
+		error = function(e) NULL)
+	if (is.null(H) || nrow(as.matrix(H)) < p) return(mod)
+	info_b = -as.matrix(H)[seq_len(p), seq_len(p), drop = FALSE]
+	if (!usable(info_b, p)) return(mod)
+	vc = tryCatch(chol2inv(chol((info_b + t(info_b)) / 2)), error = function(e) NULL)
+	if (is.null(vc) || !all(is.finite(vc))) return(mod)
+	info_full = matrix(0, p + 1L, p + 1L)
+	info_full[seq_len(p), seq_len(p)] = info_b
+	info_full[p + 1L, p + 1L] = 1
+	mod$observed_information = info_full
+	mod$fisher_information = info_full
+	mod$information = info_full
+	mod$hessian = -info_full
+	mod$ssq_b_j = vc[j, j]
+	if (p >= 2L) mod$ssq_b_2 = vc[2L, 2L]
+	mod$dispersion_at_poisson_boundary = TRUE
+	mod
+}
