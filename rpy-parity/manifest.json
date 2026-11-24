@@ -1,7 +1,7 @@
 {
- "issue_hash": "a520596a8ceafe58",
- "last_run": "2026-11-24T00:26:06+00:00",
- "open_pr": 86,
+ "issue_hash": "9254015fe7f11102",
+ "last_run": "2026-11-24T12:06:58+00:00",
+ "open_pr": null,
  "units": {
   "python/cpp/bindings_binary.cpp::<name>": {
    "audited_at": "2026-11-19T21:52:21+00:00",
@@ -39,11 +39,11 @@
    "run": "44511206611"
   },
   "python/cpp/bindings_continuous.cpp::fast_robust_regression": {
-   "audited_at": "2026-11-24T00:26:06+00:00",
+   "audited_at": "2026-11-24T12:06:58+00:00",
    "deps": "6f229b74c5511e56",
-   "hash": "93ff58c30eebbb77",
-   "open_findings": 1,
-   "run": "45295608597"
+   "hash": "555e066a99620499",
+   "open_findings": 0,
+   "run": "45390034622"
   },
   "python/cpp/bindings_continuous.cpp::ols_hc2_post_fit": {
    "audited_at": "2026-11-17T10:19:35+00:00",
@@ -102,11 +102,11 @@
    "run": "45295608597"
   },
   "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var": {
-   "audited_at": "2026-11-24T00:26:06+00:00",
+   "audited_at": "2026-11-24T12:06:58+00:00",
    "deps": "c68c468a1d54bff9",
    "hash": "af1e088f0d7eab89",
    "open_findings": 1,
-   "run": "45295608597"
+   "run": "45390034622"
   },
   "python/cpp/bindings_count.cpp::fast_zinb": {
    "audited_at": "2026-11-21T23:15:09+00:00",
