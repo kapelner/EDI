@@ -1,0 +1,6 @@
+# Units left out of a calibration campaign (read by plan_calibration_study.R --skip-units). One row per
+# (campaign, response_type, inf_class, n); a listed unit is planned like an abandoned one at every effect and in
+# confirmation. Rows only affect the campaign they name.
+campaign,response_type,inf_class,n,reason
+2026-11-15-e36c7710,ordinal,InferenceOrdinalKKCLMMCloglog,1000,"owner 2026-11-24: n = 1000 shards time out at 75 min on the pinned e36c7710 code (~870 s per rand p-value); left to the next campaign, which has the KK CLMM speedups (f27d8c00, cf4b5a29)"
+2026-11-15-e36c7710,ordinal,InferenceOrdinalKKCLMMProbit,1000,"owner 2026-11-24: as above; left to the next campaign"

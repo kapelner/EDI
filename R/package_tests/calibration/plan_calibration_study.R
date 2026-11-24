@@ -111,7 +111,20 @@ meta_out <- arg_value("--meta-out", "")
 plan_out <- arg_value("--plan-out", "")
 plan_only <- "--plan-only" %in% args
 roster_path <- arg_value("--roster", "")
-power_ns <- as.integer(split_csv(arg_value("--power-ns", "50,200")))
+# Units the owner left out of a campaign (owner 2026-11-24): calibration_skip_units.csv next to this script, one row per
+# (campaign, response_type, inf_class, n) with a reason. A listed unit is planned like an abandoned one (no shards, counted
+# in units_abandoned, its block treated as finished for confirmation), at every effect and in confirmation too. Rows for
+# other campaigns are ignored, so the list never affects a later campaign.
+skip_path <- arg_value("--skip-units", file.path(script_dir, "calibration_skip_units.csv"))
+skip_keys <- character()
+if (nzchar(skip_path) && file.exists(skip_path) && nzchar(campaign_dir)) {
+	sk <- utils::read.csv(skip_path, stringsAsFactors = FALSE, comment.char = "#", strip.white = TRUE)
+	sk <- sk[sk$campaign == basename(normalizePath(campaign_dir, mustWork = FALSE)), , drop = FALSE]
+	skip_keys <- paste(sk$response_type, sk$inf_class, as.integer(sk$n))
+	if (length(skip_keys)) message(sprintf("calibration planner: skipping %d (response type, class, n) unit group(s) listed in %s",
+		length(skip_keys), basename(skip_path)))
+}
+power_ns <-as.integer(split_csv(arg_value("--power-ns", "50,200")))
 slow_null_reps <- as.integer(arg_value("--slow-null-reps", "500"))
 slow_reduced_n <- as.integer(arg_value("--slow-reduced-n", "1000"))
 slow_power_ns <- as.integer(split_csv(arg_value("--slow-power-ns", "50")))
@@ -612,6 +625,9 @@ plan_unit_set <- function(us, confirm) {
 		us$dead[[i]] <- dead_of(k)
 		us$rep_cap[[i]] <- rep_cap_of(k)
 		if (!length(m)) { cnt$units_done <- cnt$units_done + 1L; next }
+		if (paste(u$response_type, u$inf_class, as.integer(u$n)) %in% skip_keys) {
+			cnt$abandoned <- cnt$abandoned + 1L; miss[[i]] <- integer(); next
+		}
 		if (dead_single_of(k) >= max_dead) { cnt$abandoned <- cnt$abandoned + 1L; miss[[i]] <- integer(); next }
 		miss[[i]] <- m
 		us$missing_str[[i]] <- ranges(m)
