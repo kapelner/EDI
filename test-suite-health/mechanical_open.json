@@ -1,0 +1,16 @@
+{
+ "test-suite-health-m6be2b076": {
+  "first_seen": "2026-11-24T17:37:16+00:00",
+  "key": "unconditional-skip:R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R :: seeded SimulationFramework results do not depend on num_cores|`skip(\"open a release TODO for this\")` runs unconditionally, so this test never runs",
+  "last_seen": "2026-11-24T17:37:16+00:00",
+  "text": "Skips that always run: `R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R :: seeded SimulationFramework results do not depend on num_cores` (line 18): `skip(\"open a release TODO for this\")` runs unconditionally, so this test never runs",
+  "unit": "R/package_tests/testthat_bulk/test-simulation-framework-seed-core-count-invariance.R :: seeded SimulationFramework results do not depend on num_cores"
+ },
+ "test-suite-health-ma96ba51f": {
+  "first_seen": "2026-11-24T17:37:16+00:00",
+  "key": "unconditional-skip:R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R :: SimulationFramework seeded estimates do not depend on num_cores|`skip(\"open a release TODO for this\")` runs unconditionally, so this test never runs",
+  "last_seen": "2026-11-24T17:37:16+00:00",
+  "text": "Skips that always run: `R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R :: SimulationFramework seeded estimates do not depend on num_cores` (line 19): `skip(\"open a release TODO for this\")` runs unconditionally, so this test never runs",
+  "unit": "R/package_tests/testthat_bulk/test-simulation-framework-seeded-results-core-count-invariance.R :: SimulationFramework seeded estimates do not depend on num_cores"
+ }
+}
