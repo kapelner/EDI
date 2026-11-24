@@ -7482,3 +7482,26 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   `c(NA, NA)` while the serial one is finite (`InferenceAllSimpleAverageDiff` matches). Check whether the forked
   workers fail (a timeout under valgrind's slowdown?) and record why the CI is NA. Fix the cause, or skip under valgrind with
   a recorded reason if it is the harness.
+- [ ] TODO-426 (added 2026-11-24, agent): **Full R-CMD-check run 45295584606: CRAN-extra nold, gcc16 and devel-devdeps
+  failures.** All three legs failed the same way in every earlier full run since they were added (44358518303 on
+  2026-11-18, 44903905332 on 2026-11-21); none has passed yet. None is a long-double or results problem.
+  - [ ] **nold** (workflow; fixed, confirm on the next dispatch): the tests never ran. Loading `digest` failed with
+    `unable to load shared object '.../digest/libs/digest.so': libc++.so.1: cannot open shared object file`. The leg
+    restored the package cache that the clang23 leg saved: both are Ubuntu 26.04 R-devel 4.7.0, r-hub/actions/setup-deps
+    gave both cache version "1" (the images' RHUB repo option was unset at run time), so their keys share a prefix and
+    nold restored clang23's library, whose packages are built with `-stdlib=libc++`. Fix: the "Configure this leg" step
+    of `R-CMD-check-cran-extra` in `.github/workflows/R-CMD-check.yaml` sets `R_LIBS_USER` to a per-leg path
+    (`$HOME/R/rhub-<label>-library`); actions/cache restores only entries saved under the same paths.
+  - [x] **gcc16** (C++; fixed, rebuild needed): `R CMD check` WARNING at install, "significant warning"
+    `emmintrin.h:135:24: array subscript 3 is outside array bounds of 'const {anonymous}::SM2 [1]' [-Warray-bounds=]`,
+    inlined from `lmm_analytic_hessian` at `fast_gaussian_lmm.cpp:266` (`Xg^T * P` with `P` a 2x2-max-size dynamic
+    matrix; GCC 16 -O3 vectorizes it into 2-double loads and cannot prove m <= 2). A false positive, but CRAN counts it.
+    Fix: that product is built column by column as `sum_i P(i,j) * Xg.row(i)^T`. Verified: compiling
+    `fast_gaussian_lmm.cpp` alone with g++-16 and the leg's flags (`-std=gnu++20 -O3 -Wall -pedantic
+    -Wp,-D_FORTIFY_SOURCE=3 -fopenmp`) gave the warning before the edit and not after; a standalone Eigen check gives
+    identical results (max difference 0) for m = 1, 2.
+  - [ ] **devel, devdeps** (workflow; outside the release gate; fixed, confirm on the next weekly run): `fatal error:
+    ../../contrib/Eigen/IterativeSolvers: No such file or directory`, from `RcppEigenForward.h:31`. Not upstream's bug:
+    Eigen master renamed `unsupported/` to `contrib/` and left `unsupported/Eigen/*` as forwarding shims, and the
+    workflow's Eigen-master overlay copied only `Eigen/` and `unsupported/Eigen/`. Fix: the overlay also copies
+    `contrib/Eigen/` into the dev RcppEigen include directory.

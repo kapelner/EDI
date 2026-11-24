@@ -263,7 +263,15 @@ Eigen::MatrixXd lmm_analytic_hessian(const LMMData& dat,
         dP_b = (-2.0 * v_b) * tmp;
 
         // β-β block: gw * Xg^T * P * Xg  (buf_XtA reused, no Xg copy)
-        buf_XtA.leftCols(m).noalias() = dat.X_s.middleRows(s, m).transpose() * P;
+        // Built column by column as sum_i P(i,j) * Xg.row(i)^T rather than as the product
+        // Xg^T * P: GCC 16 at -O3 vectorizes that product into 2-double loads from P's
+        // inline storage and, unable to prove m <= 2, reports a false -Warray-bounds that
+        // R CMD check counts as a significant warning (CRAN gcc16 check, v1.0.6-TODO-426).
+        for (int j = 0; j < m; ++j) {
+            buf_XtA.col(j).noalias() = P(0, j) * dat.X_s.row(s).transpose();
+            for (int i = 1; i < m; ++i)
+                buf_XtA.col(j).noalias() += P(i, j) * dat.X_s.row(s + i).transpose();
+        }
         H.topLeftCorner(p, p).noalias() += gw * (buf_XtA.leftCols(m) * dat.X_s.middleRows(s, m));
 
         // β-σ blocks: -gw * Xg^T * dP_a * rg  (SV2 on stack, no rg copy)

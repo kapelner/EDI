@@ -1674,6 +1674,10 @@
 * `InferenceCountZeroInflatedNegBin` loses a marginal-estimand branch that
   could never run.
 
+* `fast_gaussian_lmm.cpp` no longer triggers a false `-Warray-bounds` warning
+  under GCC 16 at `-O3`, which `R CMD check` reported as a significant install
+  warning on CRAN's gcc16 check. Results are unchanged (v1.0.6-TODO-426).
+
 # EDI 1.0.4
 
 Correctness release. Wrong results found by the algorithm audit and the
