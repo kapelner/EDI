@@ -1,7 +1,7 @@
 {
  "issue_hash": "a520596a8ceafe58",
- "last_run": "2026-11-22T23:36:53+00:00",
- "open_pr": null,
+ "last_run": "2026-11-24T00:26:06+00:00",
+ "open_pr": 86,
  "units": {
   "python/cpp/bindings_binary.cpp::<name>": {
    "audited_at": "2026-11-19T21:52:21+00:00",
@@ -39,11 +39,11 @@
    "run": "44511206611"
   },
   "python/cpp/bindings_continuous.cpp::fast_robust_regression": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
-   "deps": "ce21f24fd0cf1bef",
+   "audited_at": "2026-11-24T00:26:06+00:00",
+   "deps": "6f229b74c5511e56",
    "hash": "93ff58c30eebbb77",
-   "open_findings": 0,
-   "run": "44958897845"
+   "open_findings": 1,
+   "run": "45295608597"
   },
   "python/cpp/bindings_continuous.cpp::ols_hc2_post_fit": {
    "audited_at": "2026-11-17T10:19:35+00:00",
@@ -95,18 +95,18 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson": {
-   "audited_at": "2026-11-22T06:30:59+00:00",
+   "audited_at": "2026-11-24T00:26:06+00:00",
    "deps": "6b644881345e5998",
-   "hash": "94d25932187b39d0",
+   "hash": "41ab2534cf533477",
    "open_findings": 0,
-   "run": "44993898397"
+   "run": "45295608597"
   },
   "python/cpp/bindings_count.cpp::fast_zero_augmented_poisson_with_var": {
-   "audited_at": "2026-11-22T23:36:53+00:00",
+   "audited_at": "2026-11-24T00:26:06+00:00",
    "deps": "c68c468a1d54bff9",
-   "hash": "f51311e2acc8c08a",
+   "hash": "af1e088f0d7eab89",
    "open_findings": 1,
-   "run": "45082895132"
+   "run": "45295608597"
   },
   "python/cpp/bindings_count.cpp::fast_zinb": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -312,11 +312,11 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_clmm": {
-   "audited_at": "2026-11-21T23:15:09+00:00",
-   "deps": "6a4813098cb45b61",
-   "hash": "7d0bcb11a16dd1c5",
+   "audited_at": "2026-11-24T00:26:06+00:00",
+   "deps": "d8b61efcf931b5c5",
+   "hash": "a97e565ce1c4ec31",
    "open_findings": 0,
-   "run": "44958897845"
+   "run": "45295608597"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_cloglog_regression": {
    "audited_at": "2026-11-21T23:15:09+00:00",
@@ -326,11 +326,11 @@
    "run": "44958897845"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_glmm": {
-   "audited_at": "2026-11-22T23:36:53+00:00",
+   "audited_at": "2026-11-24T00:26:06+00:00",
    "deps": "6bafed30d7b475d9",
-   "hash": "f588f59680b3b6c8",
-   "open_findings": 1,
-   "run": "45082895132"
+   "hash": "16ee6f909ce57e8c",
+   "open_findings": 0,
+   "run": "45295608597"
   },
   "python/cpp/bindings_ordinal.cpp::fast_ordinal_probit_regression": {
    "audited_at": "2026-11-21T23:15:09+00:00",
