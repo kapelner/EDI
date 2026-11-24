@@ -1542,6 +1542,7 @@ R/EDI/tests/testthat/test-hurdle-negbin-large-mean-likelihood.R,coverage,1,measu
 R/EDI/tests/testthat/test-hurdle-negbin-log1p-fast-path.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-parametric-bootstrap-lr.R,coverage,1.7,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-poisson-limit-information.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-hurdle-negbin-poisson-limit-warm-start-dropped.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-hurdle-poisson-glmm-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-poisson-glmm-log1p-fast-path.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ibcrd-tie-rounding-redraw-count.R,coverage,30,bootstrap
