@@ -275,7 +275,16 @@ worker_invariance_sweep = function(backend, core_counts = worker_invariance_core
 			# known_failure column shows it.
 			if (!(key %in% known_failures)) {
 				testthat::expect_identical(run$status, reference$status, info = label)
-				testthat::expect_identical(run$value, reference$value, info = label)
+				# testthat prints only "Objects equal but not identical" for a last-bit difference; name
+				# what moved and by how much so a CI-only failure can be diagnosed from the log (the
+				# 2026-11-24 nightly's StereotypeLogit asymp_ci/asymp_pval failure could not be).
+				value_info = label
+				if (!identical(run$value, reference$value)) {
+					diff_text = tryCatch(paste(all.equal(reference$value, run$value, tolerance = 0), collapse = "; "),
+						error = function(e) conditionMessage(e))
+					value_info = paste0(label, " [", diff_text, "]")
+				}
+				testthat::expect_identical(run$value, reference$value, info = value_info)
 			}
 			rows[[length(rows) + 1L]] = data.frame(
 				backend = backend, class = parts[1], response_type = parts[2], procedure = parts[3],

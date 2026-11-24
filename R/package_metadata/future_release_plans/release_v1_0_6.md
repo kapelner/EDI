@@ -7566,3 +7566,15 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   function gone from the profile, CI identical; the seven enumeration/realized-draw test files pass (651
   expectations). No allowlist row. Next largest cost (pre-existing, in v1.0.4 too): `stable_signature()`'s
   `serialize`, ~50% of what is left. Confirm on the next nightly's `procedures` job.
+- [ ] TODO-429 (added 2026-11-25, agent; found by nightly run 45494402590 on cf2beb67): **`InferenceOrdinalStereotypeLogitRegr`
+  `asymp_ci` and `asymp_pval` were "equal but not identical" at 2 and 4 cores vs 1, on both fork and mirai, in the
+  exhaustive worker-count sweep** (`reproducibility (ubuntu-latest-release)`, `test-aa-fork-...` and
+  `test-zz-mirai-worker-count-invariance-registry.R`, 8 failures). The point estimate was identical. The same leg passed
+  on a65304eb (run 45467685988) with the same runner image (ubuntu-26.04 20261116) and serial OpenBLAS, and no ordinal
+  code changed in between (only e57fb3c5's randomization-CI speedup, which made the earlier classes finish sooner: the
+  1-core pass reached the class at +1.0 min instead of +1.5 min). Not reproduced locally (MKL, load_all(compile =
+  FALSE)): all three values bit-identical at 1, 2 and 4 cores. Ruled out so far: the C++ fit and
+  `loglik_hessian` (serial, no OpenMP region, matrix-vector products only) and the R multistart loop (serial). The
+  sweep now prints `all.equal(tolerance = 0)` with a value failure, so a recurrence names the component and size.
+  Next: re-run the leg to see whether it recurs; if it does, find what the asymptotic path reads that depends on
+  the thread budget or on earlier cases in the same process.
