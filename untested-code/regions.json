@@ -1,0 +1,92 @@
+{
+ "unt-0b8758b65991": {
+  "file": "R/EDI/R/globals.R",
+  "fn": "set_num_cores",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "intended"
+ },
+ "unt-3827edd1e177": {
+  "file": "R/EDI/R/simulations_framework.R",
+  "fn": "run",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "intended"
+ },
+ "unt-525e539e9c6e": {
+  "attempts": 1,
+  "file": "R/EDI/R/helper_glm_fit.R",
+  "fn": "fast_weibull_regression",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-fast-weibull-regression-survreg-intercept-only-error-wrap-contracts.R"
+ },
+ "unt-64dacec1a245": {
+  "attempts": 1,
+  "file": "R/EDI/R/helper_glm_fit.R",
+  "fn": "fast_weibull_regression",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-fast-weibull-survreg-fallback-error-message-contracts.R"
+ },
+ "unt-714e4fd0ff27": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_count_hurdle.R",
+  "fn": "compute_estimate_with_bootstrap_weights",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-refit-count-mle-not-finite-contracts.R"
+ },
+ "unt-769833065f3d": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_all_abstract_non_param_boot.R",
+  "fn": "approximate_bootstrap_distribution_beta_hat_T",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-nonparam-bootstrap-warmup-guard-non-reusable-worker-falls-back-to-serial-reference.R"
+ },
+ "unt-8703a3c6983f": {
+  "attempts": 1,
+  "file": "R/EDI/R/design_seq_one_by_one_abstract.R",
+  "fn": "add_one_subject",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-pocock-simon-preallocated-xraw-reordered-columns-and-new-level-fallback-reference.R"
+ },
+ "unt-9b0c3da228aa": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_mixin_kk_gee_shared.R",
+  "fn": "compute_rand_two_sided_pval",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-kk-gee-rand-pval-nonfinite-observed-statistic-guard-contracts.R"
+ },
+ "unt-ae62b6fc7f4c": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_all_abstract_rand.R",
+  "fn": "approximate_randomization_distribution_beta_hat_T",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-rand-debug-distribution-non-reusable-worker-per-permutation-reference.R"
+ },
+ "unt-be82cb32413f": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_count_zero_augmented_poisson_abstract.R",
+  "fn": "compute_estimate_with_bootstrap_weights",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-hurdle-poisson-weighted-refit-count-mle-not-finite-contracts.R"
+ },
+ "unt-c489a8a7fa0b": {
+  "attempts": 1,
+  "file": "R/EDI/R/inference_all_abstract_rand.R",
+  "fn": "compute_rand_two_sided_pval",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "proposed",
+  "test_file": "R/package_tests/testthat_bulk/test-rand-pval-cached-affine-path-nonfinite-observed-statistic-guard-contracts.R"
+ },
+ "unt-ec09e6abae20": {
+  "file": "R/EDI/R/simulations_framework.R",
+  "fn": "run",
+  "last_attempt": "2026-11-24T20:44:48+00:00",
+  "status": "intended"
+ }
+}

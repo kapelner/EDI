@@ -1,0 +1,23 @@
+{
+ "untested-code-d39aef6a4": {
+  "first_seen": "2026-11-24T20:51:31+00:00",
+  "key": "intended",
+  "last_seen": "2026-11-24T20:51:31+00:00",
+  "text": "Intentionally untested? `R/EDI/R/simulations_framework.R:1463-1503` (run) [unt-3827edd1e177]: This is the design/SE cache-job dispatch over mirai daemons in SimulationFramework$run(), together with its 'all mirai daemons died' abort. It is reached only when use_parallel_workers && use_mirai_backend, so it needs real mirai daemons (num_cores > 1, on a non-Unix platform or after mirai was already used). The audit policy forbids starting daemons and CI skips real-daemon tests. If so, add `unt-3827edd1e177` to `R/package_metadata/audits/untested_code_allowlist.csv` with a reason that starts with an open release TODO.",
+  "unit": "unt-3827edd1e177"
+ },
+ "untested-code-ddb5a7abb": {
+  "first_seen": "2026-11-24T20:51:31+00:00",
+  "key": "intended",
+  "last_seen": "2026-11-24T20:51:31+00:00",
+  "text": "Intentionally untested? `R/EDI/R/globals.R:915-939` (set_num_cores) [unt-0b8758b65991]: The region is the mirai backend of set_num_cores(): it starts real mirai daemons and sends a worker-setup block with mirai::everywhere(). On Linux CI it runs only with force_mirai = TRUE, which launches daemons, and the audit rules and CI forbid real-daemon tests. Lines 925-937 are the body of the everywhere() expression, which runs inside the daemon processes, so covr in the main process can neve If so, add `unt-0b8758b65991` to `R/package_metadata/audits/untested_code_allowlist.csv` with a reason that starts with an open release TODO.",
+  "unit": "unt-0b8758b65991"
+ },
+ "untested-code-dff770fc0": {
+  "first_seen": "2026-11-24T20:51:31+00:00",
+  "key": "intended",
+  "last_seen": "2026-11-24T20:51:31+00:00",
+  "text": "Intentionally untested? `R/EDI/R/simulations_framework.R:1828-1923` (run) [unt-ec09e6abae20]: This is the mirai rep x cell work-unit stream in SimulationFramework$run(). It runs only when use_mirai_backend is TRUE, which needs num_cores > 1 and either a non-Unix platform or a session that has already used mirai. Either way real mirai daemons must be launched and fed jobs. The audit policy forbids starting mirai daemons, and the CI main matrix skips real-daemon tests (EDI_PREPUSH_NO_PARALLE If so, add `unt-ec09e6abae20` to `R/package_metadata/audits/untested_code_allowlist.csv` with a reason that starts with an open release TODO.",
+  "unit": "unt-ec09e6abae20"
+ }
+}
