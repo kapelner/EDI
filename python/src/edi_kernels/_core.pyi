@@ -1202,7 +1202,7 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
     -------
     dict
         'coefficients', 'scale', 'converged', 'num_iter', 'hit_iteration_cap' and
-        'min_eigenvalue_information' (nan unless the fit did not converge), and,
+        'min_eigenvalue_information' (always nan: the IRLS kernel never sets it), and,
         with estimate_only=False, 'ssq_b_j' (the Huber-sandwich variance of
         coefficient j with MASS::rlm's small-sample correction; nan where R
         returns NA: j indexes a fixed coefficient, or the fit neither converged

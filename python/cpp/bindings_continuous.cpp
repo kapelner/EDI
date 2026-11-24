@@ -237,7 +237,7 @@ void bind_continuous(py::module_& m) {
     "-------\n"
     "dict\n"
     "    'coefficients', 'scale', 'converged', 'num_iter', 'hit_iteration_cap' and\n"
-    "    'min_eigenvalue_information' (nan unless the fit did not converge), and,\n"
+    "    'min_eigenvalue_information' (always nan: the IRLS kernel never sets it), and,\n"
     "    with estimate_only=False, 'ssq_b_j' (the Huber-sandwich variance of\n"
     "    coefficient j with MASS::rlm's small-sample correction; nan where R\n"
     "    returns NA: j indexes a fixed coefficient, or the fit neither converged\n"
