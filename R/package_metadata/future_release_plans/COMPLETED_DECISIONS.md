@@ -45,6 +45,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
+| [DECISION-v1.0.6-TODO-427](#DECISION-v1.0.6-TODO-427) | [v1.0.6-TODO-427](release_v1_0_6.md) | accept both benchmark slowdowns (OrderedProbit fit, OLS rand p-value) and allowlist the rows | 2026-11-24 |
 | [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-409](release_v1_0_6.md) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
@@ -654,6 +655,37 @@ Last updated 2026-11-24.
 - **Rejected:** (b) a corrected inversion. (A second item, the null construction, was withdrawn 2026-09-05: the code already uses impute-then-permute, verified by test.)
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-427"></a>
+### DECISION-v1.0.6-TODO-427: Accept the two new nightly benchmark slowdowns (OrderedProbit fit, OLS randomization p-value) and allowlist them, or investigate first?
+
+- **TODO:** [v1.0.6-TODO-427](release_v1_0_6.md): **Two new nightly benchmark regressions at 82ef6889.**
+- **Context:** nightly run 45393057600 (82ef6889) failed the benchmark regression gate (slower than v1.0.4 in both
+  comparisons, flagged as not noisy) on two rows that were not flagged at 38d1b90a (run 45158232611):
+  `models-ordinal`: `InferenceOrdinalOrderedProbitRegr` 0.37 ms -> 0.49 ms; `procedures`: "Randomization test p-value:
+  OLS covariate-adjusted (r = 1000) [R6 InferenceContinOLS]" 32.2 ms -> 43.9 ms. The 38d1b90a..82ef6889 range has many
+  randomization changes (bb0fa2b8 (1 + b) / (1 + B); 264b95ec realized-draw replay skip and enumeration drop, v1.2.0-TODO-263)
+  and ordinal CLMM work (cf4b5a29, f27d8c00).
+- **Options:** (a) accept the cost: add both rows to `R/benchmark/benchmark_regression_allowlist.csv` citing this TODO,
+  as for v1.0.6-TODO-410; (b) investigate first: time both rows at 38d1b90a and 82ef6889 (needs a build of each) and fix
+  any avoidable overhead, then allowlist whatever remains; (c) allowlist the sub-millisecond probit row now and
+  investigate only the OLS one.
+- **Evidence (agent, 2026-11-24, `load_all(compile = FALSE)`, n = 200, r = 1000):** stubbing
+  `rand_drop_realized_from_enumeration()` saves ~1 ms of 16.5 ms; the replay skip returns at once for the benchmark's
+  unseeded design. More than half the time is `cache_additive_delta_shift_distribution()` (a `qr.resid` per draw, CI
+  slopes computed even for a delta = 0 p-value), but that dates from c189e94f (2026-10-10), so it is not the new cost,
+  though it is the biggest saving available. Not bisected.
+- **Recommendation (agent):** (c): the probit row is 0.12 ms and close to timer noise; for OLS, skipping the delta-shift
+  precompute when only a p-value is asked for would likely more than pay back the regression.
+- **Raised:** 2026-11-24, by the agent fixing nightly run 45393057600.
+- **Ruling:** (a) accept the cost: both rows go into `R/benchmark/benchmark_regression_allowlist.csv` citing
+  v1.0.6-TODO-427 (the OLS pattern names only the R6 randomization p-value row, not the OLS fit, CI or kernel rows).
+  2026-11-24, owner.
+- **Why:** No reason recorded.
+- **Rejected:** (b) investigate (bisect) first; (c) allowlist only the probit row and investigate the OLS one (the
+  agent's recommendation).
+- **Revisit if:** the rows come out at the v1.0.6 release and still fail the canary, or the delta = 0 p-value path
+  stops precomputing the CI delta-shift slopes (the largest available saving on the OLS row).
 
 <a id="DECISION-v1.0.6-TODO-410"></a>
 ### DECISION-v1.0.6-TODO-410: L-BFGS Newton finish: accept the 1.3x-3x cost, or finish only the multistart winner (results move by up to 8e-4)?
