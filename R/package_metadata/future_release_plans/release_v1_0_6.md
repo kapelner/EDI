@@ -7468,3 +7468,17 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   coxph, strat_cox). `set_testing_type()` validates names today, so this guards against a supported-type list and a
   switch drifting apart. Test: a class whose supported list names a type its switch lacks errors instead of returning
   `NULL` (inject via a test subclass).
+- [ ] TODO-425 (added 2026-11-24, agent; found by the dispatched R-CMD-check run 45295584606 on 8077aea1): **Two
+  failures only on the R-devel sanitizer legs.** The other R-CMD-check failures in that run were the stale
+  "exactly 4 rows" test (7ea2bf58) and tests that needed a Suggests package the hard-dependency-only images lack (8d4f8e87).
+  Two failures remain that are not about missing packages; they reproduce with every Suggests package mocked absent.
+  (1) `R/EDI/tests/testthat/test-zero-augmented-ridge-warm-start-and-zero-part-separation.R:310-311`:
+  `InferenceCountHurdleNegBin` raises no `edi_zero_part_separation_warning` on the separated-hurdle fixture, on both valgrind and
+  ASAN/UBSAN (g++ 16.2, Debian R-devel). It passes locally and on every OS leg, and it passed on valgrind at 8d8c5f78
+  (run 44903905332), so look at the hurdle and count-model commits between 8d8c5f78 and 8077aea1 first (d06dbb6f
+  v1.0.6-TODO-345 warm start, 4392d9dc Poisson IRLS retry). The likely cause is that the hurdle part's separation
+  screen sits near a threshold and the sanitizer builds' different optimization flags push it across. (2)
+  `test-aa-fork-worker-count-invariance.R:87` (valgrind only): `InferenceContinOLS` bootstrap CI at 2 fork workers is
+  `c(NA, NA)` while the serial one is finite (`InferenceAllSimpleAverageDiff` matches). Check whether the forked
+  workers fail (a timeout under valgrind's slowdown?) and record why the CI is NA. Fix the cause, or skip under valgrind with
+  a recorded reason if it is the harness.
