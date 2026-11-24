@@ -959,6 +959,18 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      # deploy-pages looks the artifact up through the run's artifact list, which can lag the
+      # upload: runs 45158232611 and 45393057600 failed one second after the upload with
+      # "No artifacts named github-pages" (24 of 25 artifacts listed). Wait until it is listed.
+      - name: Wait for the Pages artifact to be listed
+        if: steps.site.outputs.has == 'true'
+        run: |
+          for i in $(seq 1 24); do
+            if gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+                 --jq '.artifacts[].name' | grep -qx github-pages; then exit 0; fi
+            sleep 5
+          done
+          echo "::warning::github-pages artifact still not listed after 120 s; trying the deploy anyway"
       - id: deployment
         if: steps.site.outputs.has == 'true'
         uses: actions/deploy-pages@v5
