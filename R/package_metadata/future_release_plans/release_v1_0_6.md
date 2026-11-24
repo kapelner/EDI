@@ -7554,3 +7554,15 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   p-value at r = 1000, 32.2 -> 43.9 ms (`procedures`), both new since 38d1b90a.
   - Decided 2026-11-24 (owner): accept both and allowlist the rows; see [DECISION-v1.0.6-TODO-427](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-427).
   - DONE 2026-11-24: both rows in `R/benchmark/benchmark_regression_allowlist.csv`, citing this TODO.
+- [x] TODO-428 (added 2026-11-24, agent; found by nightly run 45467685988 on a65304eb; done 2026-11-24): **The
+  `InferenceContinOLS` randomization CI (r = 1000, test inversion) benchmark row regressed, 120 -> 198 ms vs v1.0.4**
+  (ratios 1.66 and 1.40; at 82ef6889 the same row was slower in both comparisons but too noisy to fail). Owner chose
+  to investigate before allowlisting. Cause: `rand_drop_realized_from_enumeration()` (264b95ec, v1.2.0-TODO-263,
+  after v1.0.4) ran `colSums(abs(W - w))` over the whole n x r draw matrix before the O(1) tests that rule out an
+  enumeration (no `m_mat`, r == choose(n, n_T)). For random draws those tests always fail, and the CI search calls it
+  once per p-value evaluation, so the scan was 45% of the CI's time (profile at n = 1000, r = 1000,
+  `load_all(compile = FALSE)`). Fix (`R/EDI/R/inference_all_abstract_rand.R`): the O(1) tests run first; they are
+  conjunctive early returns, so no result can change. Measured: local median 576 -> 148 ms (noisy machine), the
+  function gone from the profile, CI identical; the seven enumeration/realized-draw test files pass (651
+  expectations). No allowlist row. Next largest cost (pre-existing, in v1.0.4 too): `stable_signature()`'s
+  `serialize`, ~50% of what is left. Confirm on the next nightly's `procedures` job.

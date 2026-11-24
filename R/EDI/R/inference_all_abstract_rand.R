@@ -104,14 +104,17 @@ rand_drop_realized_from_enumeration = function(permutations, w, r){
 	W = permutations$w_mat
 	r = as.integer(r)
 	if (ncol(W) < r) return(out)
-	W = W[, seq_len(r), drop = FALSE]
 	w = as.numeric(w)
 	if (nrow(W) != length(w)) return(out)
+	# The O(1) tests come before anything that touches all n x r entries of W: a randomization CI
+	# search calls this once per p-value evaluation, and for random draws (flag NULL) r is never
+	# choose(n, n_T), so the column scans below were the CI's largest cost (v1.0.6-TODO-428).
+	if (!isTRUE(flag) && (!is.null(permutations$m_mat) || !isTRUE(all.equal(r, choose(length(w), sum(w)))))) return(out)
+	W = W[, seq_len(r), drop = FALSE]
 	is_w = colSums(abs(W - w)) == 0
 	if (!isTRUE(flag)) {
 		n_T = sum(w)
-		if (!is.null(permutations$m_mat) || !any(is_w) || any(colSums(W) != n_T) ||
-				!isTRUE(all.equal(r, choose(length(w), n_T))) || anyDuplicated(t(W)) > 0L) return(out)
+		if (!any(is_w) || any(colSums(W) != n_T) || anyDuplicated(t(W)) > 0L) return(out)
 	} else if (!any(is_w)) {
 		stop("permutations$enumeration = TRUE, but the realized allocation is not among the first r = ", r,
 			" columns of permutations$w_mat.", call. = FALSE)
