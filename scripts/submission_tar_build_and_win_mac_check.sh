@@ -203,8 +203,15 @@ CHECK_LOG="$SCRATCH_DIR/check.log"
 set +e
 # MC_CORES=2: --as-cran sets _R_CHECK_LIMIT_CORES_, and R's own tools (R-file collation at install, the
 # incoming-feasibility Rd/DOI scans) spawn MC_CORES processes; a larger MC_CORES from ~/.Renviron (12 here)
-# made the install fail with "12 simultaneous processes spawned".
-(cd "$SCRATCH_DIR" && MC_CORES=2 NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 R_MAKEVARS_USER="$USER_MAKEVARS_OVERRIDE" R CMD check --as-cran "$(basename "$TARBALL")" 2>&1 | tee "$CHECK_LOG")
+# made the install fail with "12 simultaneous processes spawned". Exporting MC_CORES=2 is not enough: every
+# R process the check starts reads the user Renviron at startup and its MC_CORES=12 overwrites the
+# environment. So point R_ENVIRON_USER at a copy of that file with MC_CORES=2 appended (the last
+# assignment wins), which keeps every other setting in it.
+CHECK_RENVIRON="$SCRATCH_DIR/check_renviron"
+USER_RENVIRON="${R_ENVIRON_USER:-$HOME/.Renviron}"
+if [ -f "$USER_RENVIRON" ]; then cp "$USER_RENVIRON" "$CHECK_RENVIRON"; else : > "$CHECK_RENVIRON"; fi
+printf '\nMC_CORES=2\n' >> "$CHECK_RENVIRON"
+(cd "$SCRATCH_DIR" && R_ENVIRON_USER="$CHECK_RENVIRON" MC_CORES=2 NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 R_MAKEVARS_USER="$USER_MAKEVARS_OVERRIDE" R CMD check --as-cran "$(basename "$TARBALL")" 2>&1 | tee "$CHECK_LOG")
 CHECK_EXIT=$?
 set -e
 CHECK_DIR="$SCRATCH_DIR/EDI.Rcheck"
