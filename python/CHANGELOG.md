@@ -148,6 +148,18 @@ or permutation function is exposed in Python.
   20 to 100 because the cap stopped some fits one to three iterations short.
   Fits that converged before still return the same result; fits that hit the
   old cap now run on to convergence (v1.0.6-TODO-72, GitHub issue #33).
+- `fast_ordinal_clmm`: `converged` is now judged by the projected gradient
+  (KKT at the `sigma -> 0` lower bound), with a threshold of 1e-4. It used
+  to be L-BFGS's own flag, which also counted a stall in the relative change
+  of the objective as convergence. A multistart winner that fails the test
+  is polished with a tight L-BFGS restart and then damped Newton steps. When
+  a winner sits at the `sigma -> 0` boundary far from stationary, every
+  start is polished and the best one re-selected, since another start's
+  basin can hold the interior optimum. With `n_gh` above 20 (the default
+  stays 20), the starts run on a 20-node rule and only the best is refit on
+  the requested rule; the reported fit is the requested rule's optimum.
+  Fits can move, and some that used to report `converged=True` now report
+  `False` (v1.1.0-TODO-265).
 
 ### Fixed
 
@@ -195,6 +207,21 @@ or permutation function is exposed in Python.
   `ValueError` instead of silently returning zero coefficients.
 - `fast_weibull_regression_general`: the smart cold start used a mistyped
   Euler constant (0.5722 instead of 0.5772). Only the starting values change.
+- `fast_poisson_regression`: with large counts the first IRLS step from the
+  default zero start overshot, no step-halving was accepted, and the fit
+  stopped at `b = 0` with `converged=False`. When the zero cold start fails
+  to converge, the kernel now refits once from the `log(y + 0.1)` start
+  (`glm()`'s starting values) and returns that fit if it converges. A fit
+  that converges from the zero start is unchanged (v1.0.6-TODO-394,
+  v1.0.6-TODO-395, v1.0.6-TODO-396).
+- `fast_hurdle_negbin`: near the Poisson limit (very large `theta_hat`),
+  where the observed information is not positive definite, the count fit
+  falls back to the expected information. That series now uses four running
+  sums per row; it used to build a one-row model for every term, which made
+  a single fit take from seconds to hours. Ordinary fits are unchanged. At
+  the Poisson limit, where `theta_hat` is effectively infinite either way,
+  the coefficients can move slightly (by 5e-5 in one test fit)
+  (v1.0.6-TODO-411).
 
 ### Documentation
 
