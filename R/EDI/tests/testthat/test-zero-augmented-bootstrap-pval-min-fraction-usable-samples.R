@@ -27,6 +27,9 @@ test_that("zero-augmented bootstrap p-value overrides forward min_fraction_usabl
 		min_fraction_usable_samples = 0))
 	expect_true(is.na(strict))
 	expect_true(is.finite(loose))
+	# The weighted (Bayesian-bootstrap) refit needs glmmTMB (a Suggests package, absent on the
+	# hard-dependency-only valgrind / ASAN legs).
+	skip_if_not_installed("glmmTMB")
 	set.seed(2)
 	strict_bb = suppressWarnings(inf$compute_bayesian_bootstrap_two_sided_pval(B = 40, na.rm = TRUE, show_progress = FALSE,
 		min_fraction_usable_samples = 1))

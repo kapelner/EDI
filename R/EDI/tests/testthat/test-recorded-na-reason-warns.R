@@ -85,6 +85,7 @@ separated_kk21_ordinal_113 = function(){
 }
 
 test_that("an NA jackknife on a separated KK21 ordinal fit warns with the specific reason on every call", {
+	skip_if_not_installed("multgee")
 	inf = InferenceOrdinalKKGEE$new(separated_kk21_ordinal_113())
 	suppressWarnings(inf$compute_estimate())
 	expect_warning(ci <- inf$compute_jackknife_wald_confidence_interval(), class = "edi_procedure_na_warning")

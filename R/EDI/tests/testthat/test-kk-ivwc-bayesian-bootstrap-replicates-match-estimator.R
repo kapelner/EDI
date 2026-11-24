@@ -73,6 +73,7 @@ for (case in fixed_cases) {
 		cs = case
 		test_that(paste0(cs$gen, ": a near-uniform Bayesian-bootstrap replicate is the point estimate"), {
 			if (cs$rt == "survival") skip_if_not_installed("survival")
+			if (identical(cs$gen, "InferenceContinKKQuantileRegrIVWC")) skip_if_not_installed("quantreg")
 			for (seed in 1:2) {
 				inf = get(cs$gen)$new(kk_bb_design(cs$rt, seed = seed), verbose = FALSE)
 				inf$num_cores = 1L
@@ -81,6 +82,7 @@ for (case in fixed_cases) {
 		})
 		test_that(paste0(cs$gen, ": Bayesian-bootstrap replicates are on the estimate's scale"), {
 			if (cs$rt == "survival") skip_if_not_installed("survival")
+			if (identical(cs$gen, "InferenceContinKKQuantileRegrIVWC")) skip_if_not_installed("quantreg")
 			inf = get(cs$gen)$new(kk_bb_design(cs$rt, seed = 1L), verbose = FALSE)
 			inf$num_cores = 1L
 			expect_bb_replicates_on_estimate_scale(inf)

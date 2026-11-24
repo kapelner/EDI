@@ -109,12 +109,16 @@ test_that("an aliased count-part covariate is dropped, giving the fit without it
 		boot_ref = suppressWarnings(ref$approximate_bootstrap_distribution_beta_hat_T(B = 12, show_progress = FALSE))
 		expect_gt(sum(is.finite(boot)), 8L)
 		expect_equal(boot, boot_ref, tolerance = 1e-8, info = cls)
-		set.seed(3)
-		bb = suppressWarnings(inf$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 6, show_progress = FALSE))
-		set.seed(3)
-		bb_ref = suppressWarnings(ref$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 6, show_progress = FALSE))
-		expect_true(all(is.finite(bb)), info = cls)
-		expect_equal(bb, bb_ref, tolerance = 1e-6, info = cls)
+		# The weighted (Bayesian-bootstrap) refit needs glmmTMB (a Suggests package, absent on
+		# the hard-dependency-only valgrind / ASAN legs).
+		if (requireNamespace("glmmTMB", quietly = TRUE)) {
+			set.seed(3)
+			bb = suppressWarnings(inf$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 6, show_progress = FALSE))
+			set.seed(3)
+			bb_ref = suppressWarnings(ref$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 6, show_progress = FALSE))
+			expect_true(all(is.finite(bb)), info = cls)
+			expect_equal(bb, bb_ref, tolerance = 1e-6, info = cls)
+		}
 	}
 })
 

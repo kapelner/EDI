@@ -98,6 +98,7 @@ for (rt in names(rank_deficient_kk_classes)) local({
 	for (cls in rank_deficient_kk_classes[[rt]]) local({
 		cls = cls
 		test_that(paste0(cls, ": reusable worker on a draw that drops a rare covariate equals the subset refit"), {
+			if (identical(cls, "InferenceSurvivalKKRankRegrIVWC")) skip_if_not_installed("aftgee")
 			inf = suppressWarnings(get(cls)$new(des$duplicate(verbose = FALSE), verbose = FALSE))
 			p = inf$.__enclos_env__$private
 			set.seed(3)
