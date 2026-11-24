@@ -372,6 +372,8 @@ R/package_tests/testthat_bulk/test-fast-logistic-helper-separated-covariate-fall
 R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-fast-weibull-regression-survreg-intercept-only-error-wrap-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-fast-weibull-survreg-fallback-error-message-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-zero-augmented-poisson-failed-fit-diagnostic-result-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,correctness,1,measured_with_30_percent_headroom
@@ -430,10 +432,12 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-ex
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-negbin-poisson-boundary-rescue-acceptance-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-refit-count-mle-not-finite-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,correctness,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,correctness,1.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-hurdle-poisson-weighted-refit-count-mle-not-finite-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-identity-binomial-slow-fisher-scoring-interior-mle-reaches-mle.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-imputation-helpers-logical-and-unknown-type-column-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-imputation-helpers-missingness-and-unique-count-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -611,6 +615,7 @@ R/package_tests/testthat_bulk/test-kk-gee-geepack-package-required-guard-referen
 R/package_tests/testthat_bulk/test-kk-gee-incidence-constructor-guards-and-rcpp-fallback.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,correctness,7.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-gee-rand-pval-nonfinite-observed-statistic-guard-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-separation-check-ignores-high-leverage-point.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,correctness,2.5,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R,correctness,1.4,measured_with_30_percent_headroom
@@ -861,6 +866,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-statistics-cache-and-seed-refe
 R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-guards-reference.R,correctness,8.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-nonparam-bootstrap-warmup-guard-non-reusable-worker-falls-back-to-serial-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-normal-frailty-ivwc-se-after-estimate-only-call.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-observational-design-draw-ws-unsupported-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-off-optimum-likelihood-eval-mixin-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -990,6 +996,7 @@ R/package_tests/testthat_bulk/test-pocock-simon-benchmark-provenance-reference.R
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-level-index-out-of-range-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,correctness,1.5,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-pocock-simon-preallocated-xraw-reordered-columns-and-new-level-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-kernel-input-guards-and-output-contract-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-rng-state-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,correctness,1,measured_with_30_percent_headroom
@@ -1078,8 +1085,10 @@ R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-gu
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-custom-null-shift-scale-by-response-type.R,correctness,40,bootstrap
 R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-rand-debug-distribution-non-reusable-worker-per-permutation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,correctness,1.6,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-pval-cached-affine-path-nonfinite-observed-statistic-guard-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-type-dispatch-independent-of-assertions.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,correctness,120,bootstrap
@@ -2171,6 +2180,8 @@ R/package_tests/testthat_bulk/test-fast-logistic-helper-separated-covariate-fall
 R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fast-weibull-regression-survreg-intercept-only-error-wrap-contracts.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fast-weibull-survreg-fallback-error-message-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-zero-augmented-poisson-failed-fit-diagnostic-result-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,coverage,1.4,measured_with_30_percent_headroom
@@ -2229,10 +2240,12 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-ex
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-poisson-boundary-rescue-acceptance-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-glmmtmb-core-count-invariance.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-negbin-weighted-refit-count-mle-not-finite-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-poisson-weighted-refit-count-mle-not-finite-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-identity-binomial-slow-fisher-scoring-interior-mle-reaches-mle.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-imputation-helpers-logical-and-unknown-type-column-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-imputation-helpers-missingness-and-unique-count-kernels-reference.R,coverage,240,bootstrap
@@ -2410,6 +2423,7 @@ R/package_tests/testthat_bulk/test-kk-gee-geepack-package-required-guard-referen
 R/package_tests/testthat_bulk/test-kk-gee-incidence-constructor-guards-and-rcpp-fallback.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,coverage,11.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-gee-rand-pval-nonfinite-observed-statistic-guard-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-separation-check-ignores-high-leverage-point.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R,coverage,240,bootstrap
@@ -2660,6 +2674,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-statistics-cache-and-seed-refe
 R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-nonparam-bootstrap-warmup-guard-non-reusable-worker-falls-back-to-serial-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-normal-frailty-ivwc-se-after-estimate-only-call.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-observational-design-draw-ws-unsupported-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-off-optimum-likelihood-eval-mixin-reference.R,coverage,240,bootstrap
@@ -2789,6 +2804,7 @@ R/package_tests/testthat_bulk/test-pocock-simon-benchmark-provenance-reference.R
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-level-index-out-of-range-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-pocock-simon-preallocated-xraw-reordered-columns-and-new-level-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-kernel-input-guards-and-output-contract-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-rng-state-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,coverage,240,bootstrap
@@ -2877,8 +2893,10 @@ R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-gu
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-failed-error-fallback-mode-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-custom-null-shift-scale-by-response-type.R,coverage,80,bootstrap
 R/package_tests/testthat_bulk/test-rand-custom-statistic-length-and-ci-refusal.R,coverage,30,bootstrap
+R/package_tests/testthat_bulk/test-rand-debug-distribution-non-reusable-worker-per-permutation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-distribution-warm-start-chain-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-and-rand-bootstrap-ci-incidence-not-supported-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-pval-cached-affine-path-nonfinite-observed-statistic-guard-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-sequential-mc-small-batch.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-pval-type-dispatch-independent-of-assertions.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R,coverage,240,bootstrap
