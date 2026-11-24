@@ -201,7 +201,10 @@ USER_MAKEVARS_OVERRIDE="$SCRATCH_DIR/user_makevars_override"
 echo "CXXFLAGS = -O3" > "$USER_MAKEVARS_OVERRIDE"
 CHECK_LOG="$SCRATCH_DIR/check.log"
 set +e
-(cd "$SCRATCH_DIR" && NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 R_MAKEVARS_USER="$USER_MAKEVARS_OVERRIDE" R CMD check --as-cran "$(basename "$TARBALL")" 2>&1 | tee "$CHECK_LOG")
+# MC_CORES=2: --as-cran sets _R_CHECK_LIMIT_CORES_, and R's own tools (R-file collation at install, the
+# incoming-feasibility Rd/DOI scans) spawn MC_CORES processes; a larger MC_CORES from ~/.Renviron (12 here)
+# made the install fail with "12 simultaneous processes spawned".
+(cd "$SCRATCH_DIR" && MC_CORES=2 NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 R_MAKEVARS_USER="$USER_MAKEVARS_OVERRIDE" R CMD check --as-cran "$(basename "$TARBALL")" 2>&1 | tee "$CHECK_LOG")
 CHECK_EXIT=$?
 set -e
 CHECK_DIR="$SCRATCH_DIR/EDI.Rcheck"

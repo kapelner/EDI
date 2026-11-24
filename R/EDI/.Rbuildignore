@@ -16,6 +16,9 @@ check_survfit.R
 ^simulation_framework_results.*$
 ^inference_suite_results_.*$
 ^\.mcp\.json$
+# local agent-tool artifacts (graft index caches, MCP configs) anywhere in the tree
+(^|/)\.mcp\.json$
+(^|/)graft$
 ^\.claude$
 ^man-roxygen$
 ^tests/\.prepush_errors$
