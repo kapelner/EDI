@@ -117,6 +117,7 @@ R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,correctness,
 R/package_tests/testthat_bulk/test-calibration-kk-clmm-score-randomization-procedure.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-calibration-slow-unit-replicate-cap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,correctness,30,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,correctness,9.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-clayton-ivwc-se-after-estimate-only-call.R,correctness,120,bootstrap
@@ -1912,6 +1913,7 @@ R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,coverage,240
 R/package_tests/testthat_bulk/test-calibration-kk-clmm-score-randomization-procedure.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-measured-costs-and-folded-leftovers.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-slow-unit-replicate-cap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,coverage,9.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-clayton-ivwc-se-after-estimate-only-call.R,coverage,240,bootstrap

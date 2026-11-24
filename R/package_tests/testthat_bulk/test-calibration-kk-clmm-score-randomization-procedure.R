@@ -177,6 +177,6 @@ test_that("a real replicate runs rand_score with rand's draws and writes a p-val
 	# type = "score" p-value on that design (which reads the cache) is the row's.
 	cache = des$.__enclos_env__$private$permutations_cache
 	expect_identical(length(cache), 1L)
-	inf = EDI::InferenceOrdinalKKCLMM$new(des)
+	inf = EDI::InferenceOrdinalKKCLMM$new(des, model_formula = ~ 1)   # the row's formula (CAL_FORMULAS above)
 	expect_equal(inf$compute_rand_two_sided_pval(type = "score", show_progress = FALSE), rs$pval)
 })
