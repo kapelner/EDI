@@ -3,7 +3,7 @@ library(EDI)
 
 test_that("fixed design core enforces arrival and single-ingestion contracts", {
   des <- DesignFixedBernoulli$new(response_type = "continuous", n = 4, seed = 101)
-  expect_error(des$add_all_subjects_to_experiment(data.frame(x = 1:3)), "exactly 4 rows")
+  expect_error(des$add_all_subjects_to_experiment(data.frame(x = 1:3)), "exactly n = 4 rows")
   des$add_all_subjects_to_experiment(data.frame(x = 1:4))
   expect_error(des$add_all_subjects_to_experiment(data.frame(x = 1:4)), "already been added")
   des$assign_w_to_all_subjects()

@@ -75,12 +75,15 @@ simple_estimator_expected_classes = c(
 # compute_weighted_estimate_ivwc (v1.0.6-TODO-217, 5bdb9dfb, not pinned until now).
 # Re-confirmed via EDI:::simple_estimator_behavior_manifest(): public 69/69/69/63/63,
 # private owners 347/350/359/331/344.
+# 2026-11-24 (d06dbb6f, v1.0.6-TODO-345): +1 private owner on every class for
+# warm_start_on_separation_boundary() on the Inference root (count-model warm-start guard).
+# Private owners 348/351/360/332/345.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 69L,
-		private_owner_count = 347L,
+		private_owner_count = 348L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -93,7 +96,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 69L,
-		private_owner_count = 350L,
+		private_owner_count = 351L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -106,7 +109,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 69L,
-		private_owner_count = 359L,
+		private_owner_count = 360L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -120,7 +123,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 63L,
-		private_owner_count = 331L,
+		private_owner_count = 332L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -132,7 +135,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 63L,
-		private_owner_count = 344L,
+		private_owner_count = 345L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

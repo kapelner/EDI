@@ -23,7 +23,9 @@ test_that("affine-null inversion agrees with exact tail-count order statistics",
 	expect_equal(p$closed_form_ci_from_affine_null_draws(A, rep(1, 100), 2, .2), ci + 2)
 	# Positive common slope rescales the inversion without changing tail counts.
 	expect_equal(p$closed_form_ci_from_affine_null_draws(A, rep(2, 100), 0, .2), ci / 2)
-	expect_null(p$closed_form_ci_from_affine_null_draws(A[1:10], rep(1, 10), 0, .2))
+	# Too few draws to bracket: the smallest p-value 2 / (B + 1) (bb0fa2b8's (1 + b) / (1 + B)
+	# convention) must fall below alpha, so B = 9 (2 / 10 = alpha) cannot; B = 10 now can.
+	expect_null(p$closed_form_ci_from_affine_null_draws(A[1:9], rep(1, 9), 0, .2))
 	expect_null(p$closed_form_ci_from_affine_null_draws(A, rep(0, 100), 0, .2))
 	expect_null(p$closed_form_ci_from_affine_null_draws(rep(1, 100), rep(1, 100), 0, .2))
 })

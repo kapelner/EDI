@@ -598,7 +598,13 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		"randomization_ci_shifts_raw_survival_times",
 		# v1.0.6-TODO-274 (2026-11-20, addition only): the KK GEE mixin's exact
 		# separation check that confirms the |eta| screen before the SE is blanked.
-		"gee_fit_data_separated"
+		"gee_fit_data_separated",
+		# d06dbb6f (2026-11-24, v1.0.6-TODO-345, addition only): the Inference root's
+		# warm-start separation-boundary check (Poisson-family classes override it).
+		"warm_start_on_separation_boundary",
+		# 502a3c86 / cf4b5a29 (2026-11-24, addition only): the KK CLMM score-statistic
+		# randomization p-value and its residuals.
+		"clmm_score_residuals", "compute_clmm_score_rand_pval"
 	)
 	actual_private_by_class <- stats::setNames(strsplit(actual$private_methods, "|", fixed = TRUE), actual$class)
 	baseline$private_methods <- vapply(seq_len(nrow(baseline)), function(i) {

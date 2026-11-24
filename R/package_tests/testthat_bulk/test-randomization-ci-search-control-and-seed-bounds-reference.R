@@ -88,13 +88,15 @@ test_that("the CI deadline check prefers the control's deadline, honors the guar
 	expect_false(f$priv$check_randomization_ci_deadline(NULL))
 })
 
-test_that("incidence-only randomization arguments are rejected for other response types (when assertions are on)", {
+test_that("incidence-only randomization arguments are rejected for other response types, whatever the assertion setting", {
 	f <- ci_priv()
 	expect_null(f$priv$assert_no_incidence_only_randomization_args("continuous", NULL, NULL))
 	expect_error(f$priv$assert_no_incidence_only_randomization_args("continuous", "zhang", NULL), "only supported for incidence")
 	expect_error(f$priv$assert_no_incidence_only_randomization_args("continuous", NULL, list(a = 1)), "args_for_type is only used")
 	old <- options(edi.run_asserts = FALSE); on.exit(options(old), add = TRUE)
-	expect_null(f$priv$assert_no_incidence_only_randomization_args("continuous", "zhang", list(a = 1)))
+	# cf4b5a29: a user-input refusal, so it no longer sits behind should_run_asserts().
+	expect_error(f$priv$assert_no_incidence_only_randomization_args("continuous", "zhang", list(a = 1)), "only supported for incidence")
+	expect_null(f$priv$assert_no_incidence_only_randomization_args("continuous", NULL, NULL))
 })
 
 test_that("the cached p-value evaluator memoizes by (resolution-rounded) delta and turns failures into NA", {

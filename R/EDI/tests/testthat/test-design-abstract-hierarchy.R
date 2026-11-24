@@ -96,7 +96,7 @@ test_that("DesignFixedTestFixture batch ingest validates input shape and type", 
 	expect_error(des$add_all_subjects_to_experiment(matrix(1:4, ncol = 1)), "data.frame")
 	expect_error(
 		des$add_all_subjects_to_experiment(data.frame(x1 = 1:3)),
-		"exactly 4 rows"
+		"exactly n = 4 rows"
 	)
 })
 
