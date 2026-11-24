@@ -44,7 +44,22 @@ garbage_at_huge_theta = function(mod) {
 test_that("a usable hurdle negative-binomial information is returned unchanged", {
 	fx = hurdle_negbin_limit_fixture()
 	mod = EDI:::fast_hurdle_negbin_with_var_cpp(fx$X, fx$y, X_hurdle = fx$X, j = 2L)
+	# The real kernel output on this fixture is itself platform dependent: on the R-CMD-check OS
+	# legs it lands at the huge-theta limit with an unusable information and is (correctly)
+	# replaced. So inject a usable, positive definite information at a huge theta: past the
+	# boundary, but nothing to repair.
+	k = nrow(mod$observed_information)
+	good = diag(k) + 0.1
+	mod$theta_hat = 2.45497e15
+	mod$dispersion_at_poisson_boundary = FALSE
+	mod$observed_information = good
+	mod$fisher_information = good
+	mod$information = good
+	mod$hessian = -good
+	mod$ssq_b_j = solve(good)[2, 2]
+	mod$ssq_b_2 = solve(good)[2, 2]
 	expect_identical(EDI:::hurdle_negbin_poisson_limit_information(mod, fx$X, fx$y, 2L), mod)
+	# below the Poisson boundary nothing is touched, even a broken variance
 	mod$theta_hat = 50
 	mod$ssq_b_j = -1
 	expect_identical(EDI:::hurdle_negbin_poisson_limit_information(mod, fx$X, fx$y, 2L), mod)
