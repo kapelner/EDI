@@ -155,6 +155,22 @@ fully converged (Redner & Walker 1984's hybrid recipe).
   the pattern), since it is a strictly larger version of the same
   derivation and should not block the simpler cases.
 
+### Other EM candidates (added 2026-11-26, owner request; not scheduled yet)
+
+The same EM-start pattern (closed-form E-step, weighted M-step with an existing kernel, Newton / L-BFGS polish) fits
+every class whose likelihood is a mixture or integrates over a latent variable. The list, with kernels and citations,
+is in `release_v1_2_0.md → TODO-21` ("EM candidate classes"). In short:
+
+- Gauss-Hermite random effects (EM over quadrature nodes; Hinde 1982, Anderson & Aitkin 1985): `InferenceCountKKGLMM`,
+  `InferenceOrdinalKKGLMM`, the four `InferenceOrdinalKKCLMM*` classes, `InferenceCountKKHurdlePoisson{OneLik,IVWC}`,
+  `InferencePropKKGLMM`, `InferenceSurvivalGLMMWeibullFrailtyNormal{OneLik,IVWC}`.
+- Gaussian random intercept, closed-form E-step: `InferenceContinKKGLMM`.
+- Gamma frailty, closed-form E-step: `InferenceSurvivalGLMMWeibullFrailtyLoggamma{OneLik,IVWC}`.
+
+Each becomes its own TODO only after TODO-5's A/B report shows the pattern pays off for ZIP / ZINB. Any EM start used
+inside a randomization test must be computed by the same rule for the observed fit and every redraw (never warm-started
+from the observed fit), so the test stays exact.
+
 ---
 
 ## Implementation TODOs

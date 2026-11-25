@@ -327,6 +327,36 @@ Ticked in owning plans; this list is the index.
   hybrid start for ZINB/ZIP, TODO-6/ZOIB deferred until TODO-2/3 validate
   the pattern; composes with TODO-20's multistart as one more
   deterministic start).
+  - EM candidate classes (2026-11-26, owner request: list every class EM can help). EM pays off where the likelihood
+    is a mixture or integrates over a latent variable, so each iteration is a closed-form E-step plus a weighted fit of
+    a model EDI already has; it ascends monotonically and stays inside the parameter space, which makes it a robust
+    start (never the final optimizer: Newton / L-BFGS still polishes, as in the plan). Each class's EM start must be
+    computed the same way for the observed fit and every randomization redraw, so it keeps the test exact. All of
+    these are `likelihood_concave = FALSE` in the registry.
+    - Zero / one inflation (mixture weights are the latent indicator; Lambert 1992): `InferenceCountZeroInflatedPoisson`,
+      `InferenceCountZeroInflatedNegBin`, `InferencePropZeroOneInflatedBetaRegr` (already the plan's scope; ZOIB is its
+      TODO-6). The ZINB randomization redraws stop at local maxima at n = 50 `~.` (v1.0.7-TODO-105, v1.0.6-TODO-163).
+    - Random effects integrated by Gauss-Hermite quadrature (EM over the quadrature nodes: posterior node weights in the
+      E-step, a weighted GLM fit in the M-step; Hinde 1982, Anderson & Aitkin 1985): `InferenceCountKKGLMM`
+      (`fast_poisson_glmm.cpp`), `InferenceOrdinalKKGLMM` (`fast_ordinal_glmm.cpp`), `InferenceOrdinalKKCLMM`,
+      `InferenceOrdinalKKCLMMCauchit`, `InferenceOrdinalKKCLMMCloglog`, `InferenceOrdinalKKCLMMProbit`
+      (`fast_ordinal_clmm.cpp`; the sigma-collapse false convergence of `bug_fix_plans/v1_0_5/clmm_sigma_collapse_false_convergence.md`
+      and the slow n = 1000 refits of v1.1.0-TODO-265..268 are the cases to test), `InferenceCountKKHurdlePoissonOneLik`
+      and `InferenceCountKKHurdlePoissonIVWC` (`fast_hurdle_poisson_glmm.cpp`), `InferencePropKKGLMM`
+      (`fast_clogit_plus_glmm.cpp`), `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` and its IVWC
+      (`fast_weibull_frailty.cpp`).
+    - Gaussian random intercept: `InferenceContinKKGLMM` (`fast_gaussian_lmm.cpp`). The E-step is closed form (groups
+      of size 1 or 2), the classic variance-component EM (Dempster, Rubin & Tsutakawa 1981; Laird & Ware 1982).
+    - Gamma frailty: `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` and its IVWC (`fast_clayton_weibull_aft_optim_cpp`).
+      The frailty posterior is gamma, so the E-step is closed form (Klein 1992; Nielsen et al. 1992).
+    - Considered and left out: `InferenceCountHurdlePoisson` (concave, the two parts separate);
+      `InferenceCountHurdleNegBin` and `InferenceCountNegBin` (no mixture weight to estimate; EM over the gamma latent
+      would not help the dispersion-boundary failure, which `bug_fix_plans/v1_1_0/negbin_dispersion_convergence.md`
+      handles); `InferenceIncidKKCondLogitGLMMOneLik` / `IVWC` (they now fit a stacked logit with no random effect);
+      the GEE classes (estimating equations, no likelihood); and the Turnbull-based interval-censored statistics, which
+      already use an EM (`interval::icfit()`; the 2026-11-19 research triage suggests icenReg's EMICM, see v1.1.0).
+    - The plan file covers the zero-inflation families only; its "Other EM candidates" section lists these, each to be
+      scoped as its own TODO after TODO-5's A/B report shows the ZIP / ZINB pattern pays off.
   - See also (research triage, 2026-11-19): Keep conservative CRN bisection (Glazer-Stark); narrow or downgrade Robbins-Monro plan (`monte-carlo-test-inversion-ci#43925959437.3`).
   - Benchmark case (2026-11-23, coordinator, owner request): `InferenceOrdinalKKCLMM`'s randomization test refits a CLMM on every redraw, about 870 s per p-value at n = 1000 (13.5 s at n = 50, 55 s at n = 200) in calibration campaign 2026-11-15-e36c7710, so its randomization CI (a bisection with a full redraw set per step) multiplies that cost by every step. That is the refit-heavy, non-affine statistic the 2026-11-19 research triage proposes keeping in this plan's scope: add it (and `InferenceOrdinalKKCLMMCauchit`, about 500 s per p-value at n = 1000) to the A/B corpus, comparing Robbins-Monro against the conservative common-random-number bisection. The p-value cost itself is tracked in v1.1.0-TODO-265..268.
 
