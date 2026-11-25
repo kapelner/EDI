@@ -504,7 +504,7 @@ by hand for the new argument, so the package must be rebuilt before the change i
 ## Follow-up: coarse-to-fine quadrature and the polish trigger (2026-11-24, v1.1.0-TODO-265)
 
 Owner approved 2026-11-24 (after the A/B in `release_v1_1_0.md` v1.1.0-TODO-265 that found the 60-node rule of
-v1.0.6-TODO-48 had erased most of the speed-up outside n = 1000 `~ .`). Kernel only (`fast_ordinal_clmm.cpp`, no
+v1.0.6-TODO-13 had erased most of the speed-up outside n = 1000 `~ .`). Kernel only (`fast_ordinal_clmm.cpp`, no
 signature change, no `RcppExports` edit); verified by `sourceCpp` swap under `load_all(compile = FALSE)`, no relink:
 **the owner must rebuild** for it to be live.
 

@@ -1,4 +1,4 @@
-# Expected Fisher information for the cumulative-link ordinal classes (v1.0.6-TODO-201)
+# Expected Fisher information for the cumulative-link ordinal classes (v1.0.6-TODO-142)
 
 2026-11-19, agent (uncommitted). Classes: `InferenceOrdinalPropOddsRegr` (logit),
 `InferenceOrdinalOrderedProbitRegr` (probit), `InferenceOrdinalCauchitRegr` (cauchit),
@@ -197,7 +197,7 @@ observed-information power matches its anti-conservative size.
 - The C++ result field `fisher_information` (all four ordinal kernels) is the observed Hessian.
   It is honestly typed (`information_type = "observed"`), but the name invites this bug again.
   Rename it, or fill it from `expected_hessian()`, in a C++ pass (owner build; relates to
-  v1.0.6-TODO-203).
+  v1.0.6-TODO-144).
 - `InferenceOrdinalPartialProportionalOddsRegr` (cumulative logit with non-parallel effects) does not
   claim Fisher information. It would need its own derivation (category-specific slopes), so it
   is out of scope. The KK CLMM classes are mixed models, so this does not apply to them.
@@ -205,7 +205,7 @@ observed-information power matches its anti-conservative size.
   empty vector). It is unreachable today, because nothing calls it. Guard it if it is ever
   exported.
 
-## 7. Follow-up (v1.0.6-TODO-215 items 2 and 3, 2026-11-20, agent, uncommitted)
+## 7. Follow-up (v1.0.6-TODO-156 items 2 and 3, 2026-11-20, agent, uncommitted)
 
 **Item 2 (C++ field name; PATCHED, needs owner build).** The four kernels (`fast_ordinal_regression.cpp`
 and `ordinal_fixed_link_internal.h`) no longer return `fisher_information`; they return the observed

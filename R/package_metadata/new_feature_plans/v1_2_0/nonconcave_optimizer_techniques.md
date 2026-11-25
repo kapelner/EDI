@@ -42,7 +42,7 @@ Evidence from 2026-11-16 (randomization warm-start work):
   warm-started from the full-data fit, which sits on a flat zero-inflation
   ridge (zero-part intercept -23.8, treatment +23.8). With warm starts off,
   every replicate is correct. This is a v1.0.6 bug fix
-  (`release_v1_0_6.md → TODO-30`), not part of this plan. It shows why T2
+  (`release_v1_0_6.md → TODO-6`), not part of this plan. It shows why T2
   (start from the concave limit) is worth having as a fallback start.
 
 ## Techniques

@@ -1,7 +1,7 @@
 # Native C++ Tests for the v4.0.0 Shared Core
 
 > **Release:** v4.0.0 TODO-4 (`../../future_release_plans/release_v4_0_0.md`). Added 2026-11-10 (owner), as the follow-on to
-> `../v1_0_6/native_cpp_test_suite.md` for the C++ this release adds to the R-free (`EDI_CORE_ONLY`) core.
+> `../v1_0_7/native_cpp_test_suite.md` for the C++ this release adds to the R-free (`EDI_CORE_ONLY`) core.
 >
 > **Depends on:** the v1.0.6 suite (CMake scaffold, CI job, compile rule) existing. Each target below also depends
 > on its source plan landing in this release.
@@ -14,9 +14,9 @@ with the core instead of being retrofitted at v4.0.0.
 ## Conventions (same as v1.0.6)
 
 Framework: **Catch2 v3**, vendored under `cpp_tests/third_party/` (owner decision 2026-11-10). See
-`../v1_0_6/native_cpp_test_suite.md` → "Layout" for the float-matcher and `GENERATE` conventions.
+`../v1_0_7/native_cpp_test_suite.md` → "Layout" for the float-matcher and `GENERATE` conventions.
 
-These follow `../v1_0_6/native_cpp_test_suite.md`:
+These follow `../v1_0_7/native_cpp_test_suite.md`:
 
 - Tests live in `cpp_tests/` (`core/tests/` from v4.0.0).
 - Each CMake target lists only the `EDI_CORE_ONLY` sources it needs. The CLAUDE.md whitelist depends on this.

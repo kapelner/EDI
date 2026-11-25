@@ -1,6 +1,6 @@
 # Randomization warm-start chaining: timing on slow-converging classes (2026-11-21)
 
-Owner request 2026-11-21, follow-up to v1.0.6-TODO-61 (owner ruling 2026-11-19: randomization replicates never
+Owner request 2026-11-21, follow-up to v1.0.6-TODO-25 (owner ruling 2026-11-19: randomization replicates never
 chain warm starts; every permutation starts from the full-data fit). That ruling's speed evidence was Poisson,
 NegBin and PropOdds only. This study measures the slow / non-concave classes. No package code was changed.
 
@@ -70,8 +70,8 @@ from any start. For those seven, chaining cannot change the speed.
    the same draws). The NA replicates are dropped (`na.rm = TRUE`), so the p-value moves (0.112 vs 0.102). The
    cleanest case: on the mirrored assignment `1 - w` the worker returns NA, while a fresh fit gives exactly -0.6247
    (the observed value is 0.6247). The full-data start is the mirror image of that optimum. This is the "explain
-   why the NA count changes" question that v1.0.6-TODO-35 left open; TODO-61's base-only rule makes it more
-   frequent here than the old chaining did. NA with no warning is the v1.0.6-TODO-113 pattern.
+   why the NA count changes" question that v1.0.6-TODO-7 left open; TODO-61's base-only rule makes it more
+   frequent here than the old chaining did. NA with no warning is the v1.0.6-TODO-67 pattern.
 2. **CondLogitGLMM: the rand-worker statistic is not the fresh-fit estimate on permuted data.** Cold-start worker
    replicates match base-start ones to 9e-9, and on the original assignment the worker gives the observed estimate
    exactly. But against `compute_estimate()` on a design with the permuted `w` (same y, X, m), 58 of 60 replicates
@@ -81,7 +81,7 @@ from any start. For those seven, chaining cannot change the speed.
    own TODO.
 3. **PropKKGLMM fits depend on the start at the 1e-3 to 1e-2 level.** On the original data the worker
    (base start) gives 0.39643 against the observed 0.39727. Chained replicates sit further from fresh fits than
-   base-only ones (13 of 15). This is consistent with v1.0.6-TODO-10 (L-BFGS reports `converged = TRUE` with
+   base-only ones (13 of 15). This is consistent with v1.0.7-TODO-8 (L-BFGS reports `converged = TRUE` with
    gradient norm 0.22). ZOIB (5.6e-4) and partial PO (5.3e-3) show smaller start dependence of the same kind.
 
 Scripts (scratch, not kept): `/tmp/claude-1000/chainstudy/{harness.R,override.R,study.R}`.
