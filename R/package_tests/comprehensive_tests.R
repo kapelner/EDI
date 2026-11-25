@@ -1037,10 +1037,13 @@ filtered_results_suffix = if (length(extra_filter_parts)) {
 	""
 }
 if (nzchar(INFERENCE_CLASS_EXCLUDE)) filtered_results_suffix = paste0(filtered_results_suffix, "_excl-", digest::digest(INFERENCE_CLASS_EXCLUDE, algo = "crc32"))
-# A class filter listing many classes (cloud shards) would exceed the 255-byte
-# file-name limit: past 150 characters the suffix keeps its head and adds a hash.
-if (nchar(filtered_results_suffix) > 150L) {
-	filtered_results_suffix = paste0(substr(filtered_results_suffix, 1L, 100L), "_h", digest::digest(filtered_results_suffix, algo = "crc32"))
+# A class filter listing many classes, or a long rep list (cloud shards), would
+# exceed the 255-byte file-name limit: past 110 characters the suffix keeps its
+# head and adds a hash. The cap leaves room for the longest prefix (about 45
+# characters), ".csv", and the provenance sidecar's ".provenance-<UTC
+# stamp>-pid<N>.rds" plus its ".tmp-<hex>" write name (about 70 characters).
+if (nchar(filtered_results_suffix) > 110L) {
+	filtered_results_suffix = paste0(substr(filtered_results_suffix, 1L, 90L), "_h", digest::digest(filtered_results_suffix, algo = "crc32"))
 }
 
 source(file.path(script_dir, "comprehensive_results_path.R"), local = TRUE)

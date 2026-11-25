@@ -18,7 +18,10 @@
 #     if the call was already past the limit: setTimeLimit()'s error can
 #     escape every tryCatch and end the process). Either
 #     way it relaunches the worker. Only the supervisor writes the outcomes
-#     file, and only while no worker is running.
+#     file, and only while no worker is running. A relaunch that records an
+#     outcome for a new call is progress and is not counted against
+#     COMPREHENSIVE_WATCHDOG_MAX_RESTARTS (default 100); only relaunches where
+#     the same call dies again are.
 #   - The relaunched worker resumes from the results CSV (completed rows are
 #     skipped, as on any resume). When it reaches a call with an outcome, it
 #     records the timeout or crash through safe_call()'s own handle_timeout()
@@ -83,7 +86,7 @@ run_comprehensive_tests_watchdog = function(script_path){
 		COMPREHENSIVE_WATCHDOG_SUPERVISOR_PID = as.character(Sys.getpid())
 	)
 	message(sprintf(
-		"fork=FALSE: running calls in-process under a watchdog (hard limit %gs + %gs grace, at most %d restarts).",
+		"fork=FALSE: running calls in-process under a watchdog (hard limit %gs + %gs grace, at most %d restarts without progress).",
 		timeout_sec, grace_sec, max_restarts
 	))
 	add_outcome = function(info){
@@ -150,7 +153,13 @@ run_comprehensive_tests_watchdog = function(script_path){
 			))
 			next
 		}
+		# A restart that records an outcome for a new call is progress: the
+		# relaunched worker skips that call. Only a restart that makes none (the
+		# same call dies again after its outcome was recorded) counts toward
+		# max_restarts, so a long call with many timeouts is not cut off.
+		progressed = FALSE
 		if (!is.null(timed_out)) {
+			progressed = is.null(comprehensive_watchdog_read_outcomes(marker)[[timed_out$key]])
 			add_outcome(timed_out)
 			message(sprintf(
 				"Watchdog: %s ran %.0fs (limit %gs); killed worker %d and restarting.",
@@ -169,12 +178,13 @@ run_comprehensive_tests_watchdog = function(script_path){
 			# every tryCatch and end the process; a death past the limit is
 			# a timeout, as fork=TRUE would have recorded it.
 			outcome = if (duration >= timeout_sec) "timeout" else "crash"
+			progressed = is.null(comprehensive_watchdog_read_outcomes(marker)[[info$key]])
 			add_outcome(c(info, list(outcome = outcome, detail = detail, duration = duration)))
 			message(sprintf("Watchdog: worker %d died during %s after %.0fs (%s), recorded as %s; restarting.", worker_pid, info$label, duration, detail, outcome))
 		}
-		restarts = restarts + 1L
+		if (!progressed) restarts = restarts + 1L
 		if (restarts > max_restarts) {
-			message(sprintf("Watchdog: giving up after %d restarts.", max_restarts))
+			message(sprintf("Watchdog: giving up after %d restarts without progress.", max_restarts))
 			return(1L)
 		}
 	}
