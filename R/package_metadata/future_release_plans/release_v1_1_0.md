@@ -2593,6 +2593,18 @@ classical solver with a warning, never silently.
     class at n = 100, 500, 2000, before and after; check parallel = 1 inside already-parallel replicate loops in the
     same run.
   - Done when: a >= 1.5x win with identical replicate estimates (tolerance 1e-10), or closed with the numbers.
+- [ ] TODO-215 (added 2026-11-17, agent, owner request; opened for accepted calibration rows): **`InferenceIncidExtendedRobins`:
+  owner revisit of the matched-design anti-conservatism (size about 0.15 at every n).**
+  - v1.0.5-TODO-168 (closed) checked the kernel against the paper (Azriel, Krieger, Kapelner, arXiv:2607.05768,
+    Sec. 2.3.2: Eq. 12 per-block Robins + Eq. 13) and recorded the owner ruling of 2026-10-28: published estimator,
+    inherent at small blocks, fix not applied because it changes default output.
+  - The allowlist-hygiene audit (PR #19, 2026-11-17) removed the 24 `calibration_study_accepted.csv` rows citing that
+    closed TODO, so later campaigns would flag these cells again.
+  - Decided 2026-11-17 (owner): the rows stay for now and cite this TODO; owner revisits later; see [DECISION-v1.1.0-TODO-215](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-215).
+  - Cells: `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`, prob_T 0.5, formulas `~.` and `~1`,
+    n = 50 (52), 200, 1000, size and coverage (campaign 2026-11-15-e36c7710).
+  - Done when: the owner either keeps the published estimator (record the ruling here, and the rows keep citing a
+    permanent rationale the hygiene audit accepts) or changes it (then the rows go and the cells pass).
 - [ ] TODO-259 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
   `beta-regression-mle#44618445718.1`): **Use the cached observed Hessian when a beta (and ZOIB) refit is
   warm-started.** `optimize_fixed_likelihood` ignores `warm_start_fisher_info` on every path: the L-BFGS branch never
@@ -2626,18 +2638,6 @@ classical solver with a warning, never silently.
     data matches the observed fit to within 1e-8.
   - Done when: replicates reach the observed fit's tolerance with timings and NA rates recorded, or the item closes with
     the numbers.
-- [ ] TODO-215 (added 2026-11-17, agent, owner request; opened for accepted calibration rows): **`InferenceIncidExtendedRobins`:
-  owner revisit of the matched-design anti-conservatism (size about 0.15 at every n).**
-  - v1.0.5-TODO-168 (closed) checked the kernel against the paper (Azriel, Krieger, Kapelner, arXiv:2607.05768,
-    Sec. 2.3.2: Eq. 12 per-block Robins + Eq. 13) and recorded the owner ruling of 2026-10-28: published estimator,
-    inherent at small blocks, fix not applied because it changes default output.
-  - The allowlist-hygiene audit (PR #19, 2026-11-17) removed the 24 `calibration_study_accepted.csv` rows citing that
-    closed TODO, so later campaigns would flag these cells again.
-  - Decided 2026-11-17 (owner): the rows stay for now and cite this TODO; owner revisits later; see [DECISION-v1.1.0-TODO-215](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-215).
-  - Cells: `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`, prob_T 0.5, formulas `~.` and `~1`,
-    n = 50 (52), 200, 1000, size and coverage (campaign 2026-11-15-e36c7710).
-  - Done when: the owner either keeps the published estimator (record the ruling here, and the rows keep citing a
-    permanent rationale the hygiene audit accepts) or changes it (then the rows go and the cells pass).
 
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
