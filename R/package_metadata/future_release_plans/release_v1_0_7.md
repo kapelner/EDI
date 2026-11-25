@@ -1940,6 +1940,34 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
 <!-- pre-split-id: 1.0.6/251; 2026-11-25 -->
 
 - [ ] TODO-105 (added 2026-11-19, drafted by `triage_calibration_study.R` from calibration campaign `2026-11-15-e36c7710`; owner to review): **`InferenceCountZeroInflatedNegBin`'s `rand` fails its null size gate; persistent: fails at the largest n.** 95 failing cell(s) (8 confirmed, 87 awaiting confirmation (campaign still running when drafted)) on 31 design(s): Fixed:Bernoulli@0.2, Fixed:Bernoulli, Fixed:BinaryMatch, Fixed:Blocking, Fixed:Blocking@0.2, Fixed:Greedy, Fixed:Greedy@0.2, Fixed:GreedyDOptimal, Fixed:GreedyDOptimal@0.2, Fixed:iBCRD, Fixed:iBCRD@0.2, Fixed:OptimalBlocks, Fixed:OptimalBlocks@0.2, Fixed:Rerandomization, Fixed:Rerandomization@0.2, SeqOneByOne:Atkinson, SeqOneByOne:Bernoulli@0.2, SeqOneByOne:Bernoulli, SeqOneByOne:Efron, SeqOneByOne:iBCRD, SeqOneByOne:KK21, SeqOneByOne:KK21stepwise, SeqOneByOne:RandomBlockSize@0.2, SeqOneByOne:RandomBlockSize, SeqOneByOne:SPBR, SeqOneByOne:SPBR@0.2, SeqOneByOne:Urn, Fixed:MatchingGreedyPairSwitching, SeqOneByOne:iBCRD@0.2, SeqOneByOne:PocockSimon, SeqOneByOne:KK14; formulas ~., ~1; failing at n = 50, 200, 1000 (tested at n = 50, 200, 1000); effects null. Worst cell: SeqOneByOne:RandomBlockSize@0.2, ~., n = 50, null: size 0.109 vs level 0.05 (964 replicates). A finite-sample procedure should hold its level at every n, so this is most likely a bug. Reproduce: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type count --design 'DesignSeqOneByOneRandomBlockSize@prob_T=0.2' --n 50 --effect null --only InferenceCountZeroInflatedNegBin --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md. Any calibration_study_accepted.csv row for these cells cites this TODO. <!-- triage: count/CountZeroInflatedNegBin/rand/size -->
+  - **Status 2026-11-26 (agent; partial, not done):** the persistent n = 1000 `~1` flags are fixed on the current
+    tree. Run with `pkgload::load_all(compile = FALSE)` (uncommitted tree of 2026-11-25), the campaign's own data
+    (`cal_study_run_rep()`, confirmation seeds, reps 10001-10400), rand only, r = 501. Size with Clopper-Pearson 95%:
+
+    | design | n | formula | reps | size now | campaign (5000 reps) |
+    |---|---|---|---|---|---|
+    | FixedBernoulli | 1000 | `~1` | 400 | 0.0275 [0.014, 0.049] | 0.0854 |
+    | SeqOneByOneEfron | 1000 | `~1` | 400 | 0.0425 [0.025, 0.067] | 0.0902 |
+    | FixedBinaryMatch | 1000 | `~1` | 400 | 0.0375 [0.021, 0.061] | 0.0826 |
+
+    Why: at n = 1000 `~1` (FixedBernoulli, 12 datasets, 6,012 draw fits), 0% of the draw fits are off the MLE now
+    (best of three cold kernel fits plus `pscl::zeroinfl`, tolerance 1e-4 in nll). An emulation of the campaign's
+    code (chained warm start, no guard) on the same datasets gives 72% off the MLE: median treatment-estimate error
+    0.045, nll gap up to 9.3. The `~1` flags therefore come from the chaining (removed in c28bbb34) plus the missing
+    guard. Each draw is warm-started from the full-data fit (anchored), and the guard refits about 33% of draw fits.
+    Not yet measured: FixedBlocking@0.2 n = 1000 (the run died), the n = 200 `~1` cells and the n = 50 `~.` cells.
+    **Still open at n = 50 `~.`:** 12% of draw fits (FixedBernoulli, 30 datasets, 15,060 fits) stop at an interior
+    local maximum. These fits are converged, with gradient about 1e-7 and zero-part coefficients about 1, so the
+    guard does not flag them. The supremum is on a zero-part separation ridge, up to 13.6 nll units lower. Adding a
+    plain cold-start candidate fixes about half (64 to 30 of 502 draws on one dataset). The likelihood has several
+    ridges, so "always the MLE" is not reachable. A randomization test stays exact if every draw and the observed
+    fit use the same deterministic fitting procedure, without a warm start taken from the observed fit. The size
+    effect of these fits is not measured yet (0 of 30 rejections in the probe; the 2026-11-19 run gave 0.053 on
+    other seeds). Scripts and outputs: `/tmp/claude-1000/zinb105/` (`run_cells.R`, `mle_check.R`,
+    `mle_check_old.R`, `debug2.R`, `patched_guard.R`, `res_*.rds`, `mle_*.rds`).
+    Next: measure the n = 200 `~1` and n = 50 `~.` cells (`run_cells.R`, 400 reps). If n = 50 `~.` is oversized, make
+    the draw fit independent of the observed fit and add a cold-start candidate. Done when, as before, the next
+    campaign confirms these cells.
 
 <a id="todo-106"></a>
 <!-- pre-split-id: 1.0.6/252; 2026-11-25 -->
