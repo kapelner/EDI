@@ -62,7 +62,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 
 	git diff --name-only "$base" "$local_sha" >> "$changed_files_raw"
 	# Release files are appended to by concurrent agents, which can pick the same
-	# next TODO number (v1.0.6-TODO-147 collided on 2026-11-18). Refuse a push that
+	# next TODO number (v1.0.6-TODO-99 collided on 2026-11-18). Refuse a push that
 	# adds a duplicate number; duplicates already on the remote don't block (the
 	# TODO-status audit renumbers those). Stdlib Python, milliseconds.
 	if ! python3 scripts/check_todo_duplicates.py "$base" "$local_sha"; then
@@ -543,7 +543,7 @@ if [ "$run_r_tests" = "1" ]; then
 	# fixed data. ~1.5 minutes. The full suite then skips these files
 	# (EDI_PREPUSH_STRUCTURAL_PASSED below) rather than running them again.
 	# checkmate's permissive defaults (any.missing = TRUE, finite = FALSE) let NA
-	# and Inf through silently (v1.0.6-TODO-100/-106). Every assertNumeric /
+	# and Inf through silently (v1.0.6-TODO-58 / v1.0.6-TODO-60). Every assertNumeric /
 	# assertNumber / assertIntegerish call in R/EDI/R must name them, or carry a
 	# `# checkmate-loose: <why>` comment on the line above. ~2 s.
 	echo "pre-push: R-relevant files changed -- checkmate explicit-defaults check ..."
@@ -773,7 +773,7 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	# The harness's own unit tests (R/package_tests/smoke_test_*.R, ~20 s), run
 	# beside the comprehensive smoke tier once the drift check has settled the
 	# committed CSVs they read. Unrun until 2026-11-15, they had rotted
-	# (release_v1_0_6.md TODO-23).
+	# (release_v1_0_7.md TODO-18).
 	harness_smoke_log="$(mktemp "${TMPDIR:-/tmp}/edi_harness_smoke.XXXXXX")"
 	harness_smoke_pid=""
 	if [ "$comprehensive_suite_ok" = "1" ]; then
