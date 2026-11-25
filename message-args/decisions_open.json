@@ -1,23 +1,16 @@
 {
- "message-args-d46d9b383": {
-  "first_seen": "2026-11-18T18:56:00+00:00",
-  "key": "unknown-argument",
-  "last_seen": "2026-11-18T18:56:00+00:00",
-  "text": "`R/EDI/R/design_blocking_abstract.R:289` in `get_strata_keys()` of `DESIGN_BLOCKING_STRUCTURE_PRIVATE`: the stop() message quotes `equal_block_sizes`, but 13 of the 14 exported classes built from this code take no such argument: `DesignFixedBinaryMatch`, `DesignFixedBlockedCluster`, `DesignFixedMatchingGreedyPairSwitching`, `DesignFixedOptimalBlocks`, `DesignFixediBCRD`, `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21`, `DesignSeqOneByOneKK21stepwise`, `DesignSeqOneByOneRandomBlockSize`, `DesignSeqOneByOneSPBR`, `DesignSeqOneByOneiBCRD`, `ObservationalDesignBlocks`, `ObservationalDesignMatching`.",
-  "unit": "R/EDI/R/design_blocking_abstract.R::get_strata_keys::equal_block_sizes"
- },
  "message-args-d7bd0d2e5": {
   "first_seen": "2026-11-18T18:56:00+00:00",
   "key": "unknown-argument",
-  "last_seen": "2026-11-18T18:56:00+00:00",
-  "text": "`R/EDI/R/inference_suite.R:4987` in `run_all_inference()` of `InferenceSuite`: the stop() message quotes `weighting`, which is not an argument or public method of `InferenceSuite`.",
+  "last_seen": "2026-11-25T17:56:20+00:00",
+  "text": "`R/EDI/R/inference_suite.R:5194` in `run_all_inference()` of `InferenceSuite`: the stop() message quotes `weighting`, which is not an argument or public method of `InferenceSuite`.",
   "unit": "R/EDI/R/inference_suite.R::run_all_inference::weighting"
  },
  "message-args-dcfba122d": {
   "first_seen": "2026-11-18T18:56:00+00:00",
   "key": "unknown-argument",
-  "last_seen": "2026-11-18T18:56:00+00:00",
-  "text": "`R/EDI/R/inference_all_abstract.R:1092` in `par_lapply()` of `Inference`: the stop() message quotes `num_cores`, which is not an argument or public method of `InferenceAllKKMeanDiffIVWC`, `InferenceAllKKWilcoxIVWC`, `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleWilcox`, `InferenceBaiAdjustedTKK14`, `InferenceBaiAdjustedTKK21`, `InferenceContinKKGLMM`, `InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`, `InferenceContinKKQuantileRegrIVWC`, `InferenceContinKKQuantileRegrOneLik`, `InferenceContinKKRobustRegrIVWC`, `InferenceContinKKRobustRegrOneLik`, `InferenceContinLin` and 88 more.",
+  "last_seen": "2026-11-25T17:56:20+00:00",
+  "text": "`R/EDI/R/inference_all_abstract.R:1203` in `par_lapply()` of `Inference`: the stop() message quotes `num_cores`, which is not an argument or public method of `InferenceAllKKMeanDiffIVWC`, `InferenceAllKKWilcoxIVWC`, `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleWilcox`, `InferenceBaiAdjustedTKK14`, `InferenceBaiAdjustedTKK21`, `InferenceContinKKGLMM`, `InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`, `InferenceContinKKQuantileRegrIVWC`, `InferenceContinKKQuantileRegrOneLik`, `InferenceContinKKRobustRegrIVWC`, `InferenceContinKKRobustRegrOneLik`, `InferenceContinLin` and 88 more.",
   "unit": "R/EDI/R/inference_all_abstract.R::par_lapply::num_cores"
  }
 }
