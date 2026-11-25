@@ -1404,25 +1404,59 @@ is_row_completed = function(rep_val, beta_val, dataset_val, response_val, design
 }
 
 # Opt-in (default off): once a (dataset, response_type, design, class,
-# function_run) call hits the FUNCTION_TIMEOUT_SEC watchdog, skip that exact
-# combination for the rest of THIS invocation instead of re-attempting it on
-# every subsequent rep/beta_T -- a rep-level exploratory sweep (comparing
-# avg/p80/max duration across reps) doesn't need to re-pay a confirmed 60s
-# timeout Nrep times over. Deliberately excludes rep/beta_T from the key
-# (unlike completed_rows_cache above, which is keyed on the full row and
-# exists for a different purpose -- resuming from an existing results CSV).
-# Session-local only: nothing here is persisted, so a fresh invocation always
-# re-attempts every call at least once.
-skip_repeat_after_timeout = Sys.getenv("COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+# function_run) call has hit the FUNCTION_TIMEOUT_SEC watchdog K times, skip
+# that exact combination for its remaining reps/beta_T/prob_T instead of
+# paying the timeout again every time. COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT
+# is K: "0" (default) is off, "1"/"true"/"yes" skips after the first timeout,
+# any larger integer after that many. A skipped call writes no result row; the
+# attempt manifest records it as skipped_confirmed_timeout. Deliberately
+# excludes rep/beta_T/prob_T from the combination key (unlike
+# completed_rows_cache above, which is keyed on the full row and exists for a
+# different purpose -- resuming from an existing results CSV); each timeout
+# is counted once per full result key, so a watchdog replay of the same call
+# does not count twice.
+#
+# The count is per invocation, seeded from the resumed results CSV, unless
+# COMPREHENSIVE_TIMEOUT_COUNTS_DIR names a directory shared by several
+# invocations (run_comprehensive_shard.R sets one per wave): then each timeout
+# appends its result key to <dir>/<hash of the combination>.txt and every
+# invocation reads the shared count, so one-rep shard calls of the same
+# combination stop paying it too. Which later reps get skipped then depends on
+# the order the parallel calls run in; the rows that do run are unchanged,
+# since fork=FALSE restores the RNG state around every call.
+skip_repeat_after_timeout_k = local({
+	v = Sys.getenv("COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT", "0")
+	if (v %in% c("true", "TRUE", "yes", "YES")) 1L else {
+		k = suppressWarnings(as.integer(v))
+		if (is.na(k) || k < 1L) 0L else k
+	}
+})
+skip_repeat_after_timeout = skip_repeat_after_timeout_k > 0L
+timeout_counts_dir = Sys.getenv("COMPREHENSIVE_TIMEOUT_COUNTS_DIR", "")
+if (skip_repeat_after_timeout && nzchar(timeout_counts_dir)) dir.create(timeout_counts_dir, recursive = TRUE, showWarnings = FALSE)
 confirmed_timeout_cache = new.env(parent = emptyenv())
 timeout_cache_key = function(dataset_val, response_val, design_val, inference_val, function_run_val){
 	paste(dataset_val, response_val, design_val, inference_val, function_run_val, sep = "||")
 }
-mark_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
-	confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]] <- TRUE
+timeout_counts_file = function(tkey){
+	file.path(timeout_counts_dir, paste0(digest::digest(tkey, algo = "md5", serialize = FALSE), ".txt"))
+}
+mark_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val, result_key){
+	tkey = timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)
+	confirmed_timeout_cache[[tkey]] <- union(confirmed_timeout_cache[[tkey]], result_key)
+	# One short line per write: an O_APPEND write this small is not interleaved
+	# with another process's. base::cat, not this script's timestamping cat().
+	if (nzchar(timeout_counts_dir)) base::cat(result_key, "\n", file = timeout_counts_file(tkey), sep = "", append = TRUE)
 }
 is_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
-	skip_repeat_after_timeout && !is.null(confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]])
+	if (!skip_repeat_after_timeout) return(FALSE)
+	tkey = timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)
+	seen = confirmed_timeout_cache[[tkey]]
+	if (nzchar(timeout_counts_dir)) {
+		f = timeout_counts_file(tkey)
+		if (file.exists(f)) seen = union(seen, readLines(f, warn = FALSE))
+	}
+	length(seen) >= skip_repeat_after_timeout_k
 }
 
 if (nrow(existing_results_dt) > 0L) {
@@ -1439,8 +1473,13 @@ if (nrow(existing_results_dt) > 0L) {
 			timeout_rows$inference_class,
 			timeout_rows$function_run
 		)
-		for (tkey in timeout_keys) {
-			confirmed_timeout_cache[[tkey]] <- TRUE
+		timeout_result_keys = if ("id" %in% names(timeout_rows)) timeout_rows$id else build_result_key(
+			timeout_rows$rep, timeout_rows$beta_T, timeout_rows$dataset, timeout_rows$response_type,
+			timeout_rows$design, timeout_rows$inference_class, timeout_rows$function_run,
+			prob_T_val = if ("prob_T" %in% names(timeout_rows)) timeout_rows$prob_T else 0.5
+		)
+		for (i in seq_along(timeout_keys)) {
+			confirmed_timeout_cache[[timeout_keys[i]]] <- union(confirmed_timeout_cache[[timeout_keys[i]]], timeout_result_keys[i])
 		}
 		message(sprintf("Seeded confirmed_timeout_cache with %d already-timed-out combination(s) from the resumed results file.", length(unique(timeout_keys))))
 	}
@@ -2416,7 +2455,7 @@ safe_call = function(label, expr){
 			"skipped_confirmed_timeout", function_run = label,
 			skip_reason = "confirmed_timeout_cache"
 		)
-		message("          Skipping ", label, " (already timed out earlier this run)")
+		message("          Skipping ", label, " (timed out ", skip_repeat_after_timeout_k, " time(s) already for this class, dataset and design)")
 		return(invisible(NULL))
 	}
 	record_comprehensive_attempt_event("started", function_run = label)
@@ -2457,7 +2496,8 @@ safe_call = function(label, expr){
 				error_message = msg
 			)
 			if (skip_repeat_after_timeout) {
-				mark_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)
+				mark_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label,
+					build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_result_label, label))
 			}
 			invisible(NULL)
 		}

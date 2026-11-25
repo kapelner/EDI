@@ -13,7 +13,7 @@ ruling, the reasons and the date added; the TODO's pointer line becomes `  - Dec
 newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-24.
+Last updated 2026-11-25.
 
 ## Summary
 
@@ -54,6 +54,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) | [v1.0.7-TODO-37](release_v1_0_7.md#todo-37) | Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both? |
 | [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.7-TODO-34](release_v1_0_7.md#todo-34) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
 | [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.7-TODO-14](release_v1_0_7.md#todo-14) | Calibration early stopping of clearly passing null units: settle the five design questions |
+| [DECISION-v1.0.5-TODO-204](#DECISION-v1.0.5-TODO-204) | [v1.0.5-TODO-204](release_v1_0_5.md) | Regeneration: skip a class/method/dataset/design after K = 3 timeouts, counted across the wave, with no row for skipped calls? |
 
 ## v4.0.0
 
@@ -535,3 +536,44 @@ Last updated 2026-11-24.
      they are.
   5. Confirmation replicates (5,000 at 0.01 / m_total) are unchanged.
 - **Raised:** 2026-11-11, owner (the entry is an owner exception to the v1.0.6 entry rule).
+
+## v1.0.5
+
+<a id="DECISION-v1.0.5-TODO-204"></a>
+### DECISION-v1.0.5-TODO-204: Regeneration: skip a class/method/dataset/design after K = 3 timeouts, counted across the wave, with no row for skipped calls?
+
+- **TODO:** [v1.0.5-TODO-204](release_v1_0_5.md): **Comprehensive regeneration: harness fixes before the re-freeze.**
+- **Context:** release-cut wave 1 at 912c61aa hit the 120 s per-call limit about 6,600 times in 12 h. The hits sit in a
+  few class x method x dataset x design combinations that time out on nearly every rep (InferenceIncidLogRegr
+  `compute_lik_ratio_bootstrap_confidence_interval` on cancer / FixediBCRD: 308 hits; lik-ratio bootstrap and
+  Bartlett CIs for InferenceOrdinalStereotypeLogitRegr on diamonds and InferenceCountNegBin on abalone; Bayesian
+  bootstrap CIs for InferenceIncidBinomialIdentityRiskDiff on cancer / SPBR). Each hit costs up to 135 s plus a worker
+  restart; ordinal calls ran 21x and count calls 5x the planner's estimates, putting wave 1 at 1-2.5 weeks. On
+  2026-11-25 the owner chose to skip a combination once it has timed out K times rather than add classes to
+  `is_skipped_inference_label()` (which would drop every method of a class on every dataset).
+- **What was implemented (agent, 2026-11-25, for the owner to confirm):**
+  - K = 3 (`run_comprehensive_shard.R --skip-after-timeouts 3`; `COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT=K`;
+    0 turns it off, 1 is the old skip-after-one behavior).
+  - The combination key is dataset, response type, design, inference label (class plus its model formula) and
+    method; each timeout counts once per full result key (rep, beta_T, prob_T).
+  - Counts are shared by every call of a wave (`<wave dir>/timeout_counts/`), so the one-rep shard calls of a slow
+    combination stop paying it too. Which later reps get skipped then depends on the order the parallel calls run
+    in; the rows that do run are unchanged (fork=FALSE restores the RNG state around every call). Counts reset at
+    each wave.
+  - A skipped call writes no result row; the attempt manifest records it as `skipped_confirmed_timeout`. Those
+    combinations therefore have fewer than 50 reps in the results tables (they had timeout rows, with no estimate,
+    for those reps before).
+- **Options:**
+  1. Keep it as implemented. Consequence: wave 1 should come close to the planner's estimate; the step 3d audit
+     must report skipped reps per combination so the tables don't silently show fewer than 50 reps.
+  2. As implemented, but write a timeout-like row for each skipped call ("Skipped after K timeouts"). Consequence:
+     every combination keeps 50 rows; the attempt-manifest and provenance checks must accept a row for a skipped
+     attempt (they do not today), so more harness change before the re-freeze.
+  3. Change K (larger K keeps more reps of methods that time out only sometimes, at more cost).
+  4. Count per call instead of per wave (deterministic, but the one-rep calls never reach K, so InferenceIncidLogRegr
+     on cancer keeps paying every timeout).
+- **Evidence:** a harness run on cancer / Bernoulli / InferenceIncidLogRegr, Bayesian bootstrap family, 4 reps, 1 s
+  limit, K = 2 (2026-11-25): 201 calls, 41 timeouts and 140 skips; 20 combinations stopped at exactly 2 timeouts and 1
+  timed out once, with no duplicate keys in the count files.
+- **Recommendation (agent):** option 1.
+- **Raised:** 2026-11-25, agent (Claude), at the owner's request.
