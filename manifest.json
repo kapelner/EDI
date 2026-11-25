@@ -1,0 +1,100 @@
+{
+  "jobs": {
+    "designs": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-continuous": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-count": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-incidence": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-ordinal": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-proportion": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "models-survival": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "procedures": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "utility": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-continuous": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-count": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-incidence": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-ordinal": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-proportion": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    },
+    "wald-survival": {
+      "commit": "912c61aab26c4963a4aaab1af8d0559b50f27f6b",
+      "run_id": 45577766216,
+      "timed_at": "2026-11-25T10:15:58+00:00",
+      "verdict": "success"
+    }
+  },
+  "python": {
+    "commit": "a65304eb673f413c9838e4da7ae6ddd42c467572",
+    "run_id": 45467685988,
+    "timed_at": "2026-11-24T20:10:49+00:00",
+    "verdict": "n/a"
+  }
+}
