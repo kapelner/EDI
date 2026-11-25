@@ -6,7 +6,7 @@
 [![Calibration study](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml)\
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
 [![Python tests](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml)
-[![Python codecov](https://img.shields.io/codecov/c/github/kapelner/EDI/main?flag=python&label=Python%20codecov)](https://app.codecov.io/gh/kapelner/EDI/flags/python)\
+[![Python codecov](https://img.shields.io/codecov/c/github/kapelner/EDI/main?flag=python&label=Python%20codecov)](https://app.codecov.io/gh/kapelner/EDI/flags/python) <!-- [![C++ codecov](https://img.shields.io/codecov/c/github/kapelner/EDI/main?flag=cpp&label=C%2B%2B%20codecov)](https://app.codecov.io/gh/kapelner/EDI/flags/cpp) -->\
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -99,7 +99,7 @@ methods papers behind the KK-family designs and estimators (run
 installing is [Getting Started](#getting-started) below and the
 [vignettes](#vignettes).
 
-> **Benchmark report:** [Rendered model-fitting benchmark report](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline.
+> **Benchmark report:** [Rendered model-fitting benchmark report](https://kapelner.github.io/EDI/benchmarks/) — speed and correctness of every model-fitting kernel against its R canonical baseline.
 
 > **Inference path audit:** [Rendered comprehensive-tests coverage and estimability report](https://rawcdn.githack.com/kapelner/EDI/main/R/package_tests/path_audits.html) — supported inference paths and their latest observed percent estimability.
 

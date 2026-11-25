@@ -97,9 +97,9 @@ rather than misattributing their timing to a single bindable kernel.
 
 Full results, including the Wald/full-inference table (standard errors
 and p-values), the utility/math-kernel table, dataset spec, and methodology
-notes: [`benchmark_model_fits_python.html`](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html). 
+notes: [`benchmark_model_fits_python.html`](https://kapelner.github.io/EDI/benchmarks/python/). 
 Same table shape as the R package's own
-[`benchmark_model_fits_R.html`](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html).
+[`benchmark_model_fits_R.html`](https://kapelner.github.io/EDI/benchmarks/).
 
 ### Utility (math kernel) speed gains
 

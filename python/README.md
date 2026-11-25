@@ -85,19 +85,13 @@ comparison.
 | `InferenceOrdinalOrderedProbitRegr` | ordinal | 0.570 | statsmodels `OrderedModel(probit)` | 62.3 | **109x** |
 | `InferenceOrdinalGCompMeanDiff` | ordinal | 0.760 | statsmodels `OrderedModel(logit)+gcomp` | 69.7 | **91.5x** |
 
-**→ [Full results (`benchmark_model_fits_python.html`)](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html)**
+**→ [Full results (`benchmark_model_fits_python.html`)](https://kapelner.github.io/EDI/benchmarks/python/)**
 — includes the Wald/full-inference table (standard errors + p-values, not just
 the point estimate), the utility/math-kernel table, dataset spec, and
 methodology notes. Same table shape as the R package's own
-[`benchmark_model_fits_R.html`](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html).
-(GitHub doesn't render standalone `.html` files inline when linked directly.
-Neither `htmlpreview.github.io` nor jsDelivr's CDN mirror reliably render as
-a page either — the former needs client-side JS a plain link visit won't
-always trigger, and the latter serves GitHub files as `Content-Type:
-text/plain` regardless of extension. These links go through `githack.com`'s
-CDN mirror of this repo instead, which serves the file with the correct
-`text/html` content type, confirmed via its response headers, so it renders
-as a normal page.)
+[`benchmark_model_fits_R.html`](https://kapelner.github.io/EDI/benchmarks/).
+(These are the reports the nightly CI run publishes to the project's GitHub
+Pages site, so they show the latest nightly results.)
 
 ## Models with no Python canonical baseline
 
