@@ -1,8 +1,8 @@
 {
   "r": {
-    "coverage_pct": 92.3028,
-    "commit": "8077aea1874966b2209d23bcacbe7084ea123716",
-    "measured_at": "2026-11-24T03:09:09Z",
+    "coverage_pct": 92.4064,
+    "commit": "52c47b23a27489e238cde6e8fe73dd3feea7d279",
+    "measured_at": "2026-11-24T23:52:18Z",
     "note": "Reset 2026-11-18 for covr 4.0.0, which stopped counting the generated RcppExports.cpp/RcppExports.R (4,488 lines, all covered). Same-file coverage rose (90.64% -> 90.87% scored by covr 3.6.5); see scheduled run 44277442079."
   },
   "python": {
