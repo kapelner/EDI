@@ -13,7 +13,7 @@ ruling, the reasons and the date added; the TODO's pointer line becomes `  - Dec
 newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-24.
+Last updated 2026-11-25.
 
 ## Summary
 
@@ -30,6 +30,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.3.0-TODO-5](#DECISION-v1.3.0-TODO-5) | [v1.3.0-TODO-5](release_v1_3_0.md) | `ModelDiagnostics` contract decision gate (registry shape, result contract, severities, pilot families) |
 | [DECISION-v1.1.0-TODO-268](#DECISION-v1.1.0-TODO-268) | [v1.1.0-TODO-268](release_v1_1_0.md) | Turn on the sequential-MC early stop for the standalone randomization p-value (p-values change), and for which classes? |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
+| [DECISION-v1.1.0-TODO-174](#DECISION-v1.1.0-TODO-174) | [v1.1.0-TODO-174](release_v1_1_0.md) | HurdlePoisson (and ZIP) `~1`: make the robust score / LR / gradient the default, keep them opt-in, or rule it inherent? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
 | [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
 | [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
@@ -201,6 +202,44 @@ Last updated 2026-11-24.
   leave-one-stratum-out still treats fixed strata as sampled units.
 - **Question:** should the stratified delete-1 jackknife replace it for every `"block"` unit, not only below 5 blocks?
 - **Raised:** 2026-11-19, by the investigating agent.
+
+<a id="DECISION-v1.1.0-TODO-174"></a>
+### DECISION-v1.1.0-TODO-174: HurdlePoisson (and ZIP) `~1`: make the robust score / LR / gradient the default, keep them opt-in, or rule it inherent?
+
+- **TODO:** [v1.1.0-TODO-174](release_v1_1_0.md): **`InferenceCountHurdlePoisson`: Hurdle Poisson: model-based
+  likelihood tests anti-conservative when covariates are omitted.**
+- **Context:** with `~1` the omitted covariates overdisperse the zero-truncated Poisson count part, so the
+  model-based information is about half the sandwich one and score / LR / gradient have size about 0.17 at every n
+  (500 confirmed failing tests in campaign 2026-11-15-e36c7710). The sibling ZIP case was ruled inherent
+  ([DECISION-v1.1.0-TODO-216](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-216)) with robust variants left optional
+  for this TODO. They now exist as an opt-in, `set_likelihood_test_variance("robust")` on `InferenceAsympLik`,
+  supported by HurdlePoisson and ZIP only; the default stays `"model"`, so no result has changed.
+- **Evidence (2026-11-25, agent; full table in the TODO):** DesignFixedBernoulli, campaign DGP, 500-1000 reps per
+  cell. `~1`: model 0.152-0.176, robust 0.044-0.060 at n = 50, 200, 1000 and prob_T 0.5 / 0.2. `~.`: model
+  0.045-0.062, robust 0.048-0.060. The robust p-value matches an independent base-R computation to 1e-5. ZIP on its
+  own DGP: `~1` 0.150-0.168 -> 0.042-0.048, `~.` (n >= 200) 0.038-0.050. Robust CIs (test inversion) cover
+  0.93-0.98. Caveat: at n = 50 the robust LR / gradient statistics are bounded and their CIs fall back to Wald (with
+  a warning) in 30-39% of HurdlePoisson `~1` reps (11-14% `~.`; the robust score CI in 0.5-1.5%); none at n >= 200. Not
+  run: the balancing / matched designs (expect them conservative there, like the sandwich Wald), and HurdleNegBin /
+  ZINB (no score-contribution formula; they model the overdispersion anyway).
+- **Options:**
+  - (a) Make `"robust"` the default for HurdlePoisson (and, separately, ZIP). The `~1` calibration cells pass and
+    their accepted rows (reason `v1.1 TODO-174`, and `v1.1.0-TODO-216` for ZIP) can be pruned after a re-run; every
+    score / LR / gradient p-value and CI of these classes changes (NEWS entry), slightly with `~.`, by a factor
+    about 2 in the statistic with `~1`; the tests lose a little power when the model is right (ratio near 1 at
+    n >= 200; at n = 50 `~.` the HC1 factor makes them a bit more conservative), each test costs one extra n x p
+    crossproduct, and at n = 50 many robust LR / gradient CIs would be Wald fallbacks (the score CI almost never). ZIP's default would reopen the DECISION-v1.1.0-TODO-216 ruling.
+  - (b) Keep `"model"` the default and document the opt-in (done in the class roxygen). Results unchanged; the
+    accepted rows stay with a reason saying robust variants are available and the model-based failure is inherent
+    misspecification. The calibration harness could also run the robust variants as extra procedures.
+  - (c) Rule it inherent and remove the opt-in (revert the code). Not recommended: it works and is cheap.
+- **Recommendation (agent):** (a) for HurdlePoisson. The model-based tests are wrong whenever a prognostic covariate
+  is omitted, which is the usual case, while the robust ones cost almost nothing when the model is right; it is the
+  same logic as the class's Wald test already using the sandwich. Given the small-n CI caveat, the robust score is
+  the safest of the three for intervals. Decide ZIP the same way for consistency (it
+  reopens DECISION-v1.1.0-TODO-216 only to that extent). If (a), set the default by overriding the private field
+  `likelihood_test_variance` in the two classes, add a NEWS line, and re-run the `~1` cells before pruning rows.
+- **Raised:** 2026-11-25, by the v1.1.0-TODO-174 agent.
 
 <a id="DECISION-v1.1.0-TODO-1"></a>
 ### DECISION-v1.1.0-TODO-1: The v1.1.0 Phase 0 decision batch (ten cascading plan decisions)

@@ -1376,6 +1376,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delt
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-and-compute-marginal-estimand-estimate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-robust-likelihood-tests.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,correctness,120,bootstrap
@@ -3184,6 +3185,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delt
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-and-compute-marginal-estimand-estimate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-robust-likelihood-tests.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-glmmtmb-core-count-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,coverage,30,bootstrap

@@ -613,6 +613,24 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		gained <- live[sub("@.*$", "", live) %in% abd7e49d_added_private]
 		paste(sort(unique(c(x, gained))), collapse = "|")
 	}, character(1L))
+	# v1.1.0-TODO-174 (2026-11-25, addition only): the LikelihoodTests component
+	# (InferenceAsympLik) gained set/get_likelihood_test_variance() next to
+	# set_information_preference(), and the private robust-test helpers
+	# supports_robust_likelihood_tests() (next to normalize_information_preference())
+	# and compute_robust_likelihood_test_pval() (next to
+	# get_memoized_likelihood_test_pval()), each on its anchor's host.
+	todo174_add <- function(s, anchor, added) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		hosts <- sub("^[^@]*@", "", grep(paste0("^", anchor, "@"), x, value = TRUE))
+		if (!length(hosts)) return(s)
+		paste(sort(unique(c(x, as.vector(outer(added, hosts, paste, sep = "@"))))), collapse = "|")
+	}
+	baseline$public_methods <- vapply(baseline$public_methods, todo174_add, character(1L),
+		anchor = "set_information_preference", added = c("set_likelihood_test_variance", "get_likelihood_test_variance"), USE.NAMES = FALSE)
+	baseline$private_methods <- vapply(baseline$private_methods, todo174_add, character(1L),
+		anchor = "normalize_information_preference", added = "supports_robust_likelihood_tests", USE.NAMES = FALSE)
+	baseline$private_methods <- vapply(baseline$private_methods, todo174_add, character(1L),
+		anchor = "get_memoized_likelihood_test_pval", added = "compute_robust_likelihood_test_pval", USE.NAMES = FALSE)
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

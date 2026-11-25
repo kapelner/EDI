@@ -915,7 +915,8 @@ EDI_COMPONENT_SPECS = list(
 		dependencies = "Wald",
 		owns_state = c(
 			"likelihood_ci_max_abs", "testing_type",
-			"information_preference", "information_source_used"
+			"information_preference", "information_source_used",
+			"likelihood_test_variance"
 		),
 		provides_capabilities = "likelihood_tests",
 		allowed_likelihood_tiers = c("quasi", "partial", "full"),
@@ -1542,6 +1543,7 @@ EDI_COMPONENT_SPECS = list(
 					"zero_inflation_fixed_args",
 					"za_description",
 					"supports_likelihood_tests",
+					"supports_robust_likelihood_tests",
 					"get_likelihood_test_spec",
 					"predictors_df",
 					"fit_zero_augmented_model",

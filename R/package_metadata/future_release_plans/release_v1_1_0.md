@@ -1990,6 +1990,87 @@ ticked in their **owning plans**; this list is the release index.
     matched ones (KK21, BinaryMatch, PairSwitching). So the size tracks how much covariate imbalance is left
     unadjusted, which fits misspecification, not a finite-sample effect. Sandwich Wald `~1` ranges 0.005-0.069 at
     n = 1000.
+  - **2026-11-25 (agent): robust (sandwich) score / LR / gradient fix the `~1` cells and stay nominal with `~.`;
+    implemented as an opt-in, default unchanged.**
+    - Reproduced: `run_calibration_study.R --response-type count --design DesignFixedBernoulli --n 1000 --effect null
+      --only InferenceCountHurdlePoisson --reps 1:200` (installed build) gives score / LR / gradient size 0.130 with
+      `~1` and 0.060 with `~.`, Wald 0.040 / 0.055; an own simulation of the same subjects (reps 1-200, source tree)
+      gives the identical rejections. n = 200: `~1` 0.150, `~.` 0.040 (Wald 0.050 / 0.055); n = 50: `~1` 0.190,
+      `~.` 0.045 (Wald 0.066 / 0.093); randomization 0.040-0.050 throughout.
+    - Robust variants (literature): with A the information, B the summed outer products of the per-subject score
+      contributions and a = row j of A^{-1}, V = a' B a is the sandwich variance of the tested coefficient. Score:
+      (a' U)^2 / V (generalized score test, Kent 1982 Biometrika 69:19-27; Boos 1992 Am. Stat. 46:327-333). LR and
+      gradient: multiplied by A^{-1}_jj / V (the scalar case of Kent's 1982 adjusted LR, asymptotically chi-square(1)
+      under misspecification). Everything at the null-restricted fit, with an HC1 factor n_pos / (n_pos - p_count)
+      on B (the hurdle likelihood factorizes, so only the positive counts and count-part columns enter). The
+      full-fit variant of the ratio was worse at small n (LR 0.077-0.101 at n = 50), and without HC1 `~.` at n = 50
+      was 0.073-0.075, so both choices matter.
+    - Size at alpha 0.05, DesignFixedBernoulli, campaign DGP (`cal_study_seed("count", n, rep)`), prototype on the
+      model's own null fits (script `sim.R` / `summarize.R` in the session scratchpad `t174/`):
+
+      | n, prob_T, formula (reps) | model score / LR / grad | robust score / LR / grad | Wald (sandwich) | var. ratio |
+      |---|---|---|---|---|
+      | 50, 0.5, `~1` (1000) | 0.163 / 0.165 / 0.166 | 0.044 / 0.046 / 0.049 | 0.071 | 1.71 |
+      | 200, 0.5, `~1` (1000) | 0.170 / 0.170 / 0.170 | 0.058 / 0.059 / 0.060 | 0.065 | 1.94 |
+      | 1000, 0.5, `~1` (1000) | 0.172 / 0.171 / 0.171 | 0.057 / 0.057 / 0.057 | 0.057 | 2.00 |
+      | 200, 0.2, `~1` (500) | 0.152 / 0.154 / 0.158 | 0.058 / 0.054 / 0.052 | 0.058 | 1.80 |
+      | 1000, 0.2, `~1` (500) | 0.176 / 0.174 / 0.170 | 0.052 / 0.050 / 0.050 | 0.054 | 1.98 |
+      | 50, 0.5, `~.` (989) | 0.056 / 0.058 / 0.059 | 0.048 / 0.049 / 0.052 | 0.085 | 0.77 |
+      | 200, 0.5, `~.` (1000) | 0.045 / 0.046 / 0.046 | 0.048 / 0.048 / 0.048 | 0.053 | 0.94 |
+      | 1000, 0.5, `~.` (1000) | 0.058 / 0.058 / 0.058 | 0.052 / 0.052 / 0.052 | 0.054 | 0.99 |
+      | 200, 0.2, `~.` (500) | 0.054 / 0.060 / 0.062 | 0.054 / 0.054 / 0.060 | 0.076 | 0.90 |
+      | 1000, 0.2, `~.` (500) | 0.052 / 0.054 / 0.054 | 0.050 / 0.052 / 0.052 | 0.052 | 0.98 |
+
+      (MC SE about 0.007 at 1000 reps, 0.010 at 500.) The model-based variance is about half the sandwich one under
+      `~1` (ratio about 2, which predicts size 2(1 - Phi(1.96 / sqrt 2)) = 0.166, as observed), and the ratio goes to 1
+      under `~.`. Not tested here: the covariate-balancing and matched designs, where the sandwich Wald runs
+      conservative (Greedy 0.03); the robust tests use the same sandwich, so expect the same there.
+    - Implemented (opt-in): `set_likelihood_test_variance("model" | "robust")` / `get_likelihood_test_variance()` on
+      `InferenceAsympLik` (default `"model"`, so no result changes); robust support is per class
+      (`supports_robust_likelihood_tests()`), on for `InferenceCountHurdlePoisson` and
+      `InferenceCountZeroInflatedPoisson` (whose default stays model-based, per DECISION-v1.1.0-TODO-216), refused
+      elsewhere (ZINB, HurdleNegBin, the other likelihood classes). Shared code: `compute_robust_likelihood_test_pval()`
+      and `edi_robust_likelihood_adjustment()` (`inference_ext_likelihood_test_memoization.R`); the spec hooks
+      `score_contributions()` / `robust_meat_scale()` / `robust_parameter_block` (`get_likelihood_test_spec()`,
+      zero-augmented abstract), from the new `zero_augmented_poisson_score_contributions()`, which the sandwich SE now
+      also uses. The hurdle variance uses only the count block of the (block-diagonal) information: with the full
+      matrix, a separated hurdle part (eigenvalues ~1e-11 at n = 50 `~.`) made the inverse fail at some nulls, so the
+      CI bisection stopped early and returned its outer bracket. CIs invert the robust
+      tests (LR via p-value inversion instead of the Newton search). Wald and Bartlett are not affected. The robust
+      statistics are bounded in delta (the null-fit sandwich grows as the null moves away), so a robust test may never
+      reject on one side; the bracket search then ran 60 doublings of null refits (about a minute per CI) before the
+      Wald fallback, so under `"robust"` it now stops at `likelihood_ci_max_abs` (`edi_ci_inversion_max_bracket()`,
+      `inference_ext_ci_inversion.R`; model-based searches unchanged).
+    - Verified on the implementation (`sim_impl.R`, prob_T 0.5, 500 reps per cell, the first 200 also with CIs):
+
+      | class, n, formula | model score / LR / grad | robust score / LR / grad | robust CI cover (score / LR / grad) | robust CI = Wald fallback (LR / grad) |
+      |---|---|---|---|---|
+      | HurdlePoisson 50 `~1` | 0.178 / 0.180 / 0.182 | 0.042 / 0.044 / 0.048 | 0.955 / 0.950 / 0.949 | 0.295 / 0.390 |
+      | HurdlePoisson 200 `~1` | 0.166 / 0.166 / 0.166 | 0.062 / 0.064 / 0.066 | 0.955 / 0.955 / 0.950 | 0 / 0 |
+      | HurdlePoisson 1000 `~1` | 0.168 / 0.168 / 0.168 | 0.050 / 0.050 / 0.050 | 0.960 / 0.960 / 0.960 | 0 / 0 |
+      | HurdlePoisson 50 `~.` | 0.056 / 0.058 / 0.060 | 0.050 / 0.052 / 0.056 | 0.945 / 0.930 / 0.925 | 0.110 / 0.135 |
+      | HurdlePoisson 200 `~.` | 0.042 / 0.044 / 0.044 | 0.046 / 0.046 / 0.046 | 0.955 / 0.955 / 0.955 | 0 / 0 |
+      | HurdlePoisson 1000 `~.` | 0.060 / 0.060 / 0.060 | 0.054 / 0.054 / 0.054 | 0.945 / 0.945 / 0.945 | 0 / 0 |
+      | ZIP (`count_zip`) 50 `~1` | 0.150 / 0.154 / 0.160 | 0.044 / 0.048 / 0.048 | 0.955 / 0.950 / 0.945 | not recorded |
+      | ZIP 200 `~1` | 0.164 / 0.166 / 0.168 | 0.044 / 0.044 / 0.048 | 0.98 / 0.98 / 0.97 | not recorded |
+      | ZIP 1000 `~1` | 0.158 / 0.158 / 0.158 | 0.042 / 0.042 / 0.042 | 0.96 | not recorded |
+      | ZIP 50 `~.` | 0.138 / 0.130 / 0.134 | 0.066 / 0.066 / 0.073 (197 of 500 NA) | 0.91-0.93 | not recorded |
+      | ZIP 200 `~.` | 0.058 / 0.056 / 0.056 | 0.050 / 0.050 / 0.050 | 0.95 | not recorded |
+      | ZIP 1000 `~.` | 0.040 / 0.040 / 0.040 | 0.038 / 0.038 / 0.038 | 0.97 | not recorded |
+
+      Size is fixed everywhere. The cost is at n = 50: the bounded robust LR / gradient could not be inverted in
+      30-39% of `~1` reps (11-14% `~.`), and those CIs are the Wald interval with the `edi_lik_test_wald_fallback`
+      warning (the robust score CI fell back in 0.5-1.5%); none at n >= 200. ZIP n = 50 `~.` is the degenerate
+      small-sample case of v1.1.0-TODO-216 / TODO-217 (model size 0.13), where 40% of robust p-values are NA.
+    - Tests: `R/package_tests/testthat_bulk/test-zero-augmented-poisson-robust-likelihood-tests.R` (hurdle robust p
+      against an independent base-R truncated-Poisson computation to 1e-5, CI inversion, switching back, supported
+      classes). The registry golden takes a reviewed additive delta (`inference_component_call_graph_helpers.R`).
+    - Side finding, not fixed: the hurdle spec's `information(spec$full_fit)` partial-matches `fit$information` to
+      `information_invertible` (the full-fit wrapper has no `information` element) and returns a 1 x 1 TRUE. Nothing
+      in the current tests calls it on the full fit, but `[[` with `exact = TRUE` would be safer.
+  - Owner decision pending: [DECISION-v1.1.0-TODO-174](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-174) (make the robust
+    score / LR / gradient the default for HurdlePoisson (and ZIP), keep them opt-in, or rule `~1` inherent?).
+
 
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.

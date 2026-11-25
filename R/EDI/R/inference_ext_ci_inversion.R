@@ -140,7 +140,8 @@ InferenceExtCIInversion = list(
 				alpha      = alpha,
 				step       = step,
 				lower_seed = lower_seed,
-				upper_seed = upper_seed
+				upper_seed = upper_seed,
+				max_bracket = edi_ci_inversion_max_bracket(private, step)
 			)
 
 			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "test_inversion_confidence_interval_unavailable", testing_type = testing_type_for_note,
@@ -193,7 +194,8 @@ InferenceExtCIInversion = list(
 					alpha      = alpha,
 					step       = step,
 					lower_seed = lower_seed,
-					upper_seed = upper_seed
+					upper_seed = upper_seed,
+					max_bracket = edi_ci_inversion_max_bracket(private, step)
 				),
 				error = function(e) {
 					edi_note_lik_test_failure(private, "gradient", paste0("CI root search failed: ", conditionMessage(e)), overwrite = FALSE)
@@ -208,11 +210,17 @@ InferenceExtCIInversion = list(
 			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha, failure_testing_type = "lik_ratio"))
+			# v1.1.0-TODO-174: the robust LR rescales the statistic by a variance
+			# ratio that moves with delta, so the Newton search on the raw
+			# log-likelihood below does not invert it; invert its p-value instead.
+			if (identical(private$likelihood_test_variance, "robust")) {
+				return(private$invert_test_pval_confidence_interval(alpha, testing_type = "lik_ratio"))
+			}
 
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
 
-			full_eval = tryCatch(private$get_memoized_likelihood_test_eval(
+			full_eval =tryCatch(private$get_memoized_likelihood_test_eval(
 				delta = est,
 				testing_type = "lik_ratio",
 				spec = spec,
@@ -303,3 +311,18 @@ InferenceExtCIInversion = list(
 		}
 	)
 )
+
+# v1.1.0-TODO-174: the robust (sandwich) score / LR / gradient statistics are
+# bounded in delta (the null-fit sandwich variance grows as the null moves away
+# from the estimate), so on some small samples a robust test never rejects on
+# one side. The default 60-doubling bracket search then refits the null model at
+# absurd deltas for about a minute before the Wald fallback. Under
+# set_likelihood_test_variance("robust") the search stops once it passes
+# likelihood_ci_max_abs (the cap the LR Newton search uses); otherwise the
+# historical 60 doublings are unchanged.
+edi_ci_inversion_max_bracket = function(private, step) {
+	if (!identical(private$likelihood_test_variance, "robust")) return(60L)
+	cap = private$likelihood_ci_max_abs %||% 10
+	if (!is.finite(cap) || !is.finite(step) || step <= 0 || cap <= step) return(1L)
+	as.integer(ceiling(log2(cap / step)) + 1L)
+}

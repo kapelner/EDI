@@ -159,6 +159,55 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		get_information_preference = function(){
 			private$information_preference
 		},
+		#' @description Sets the variance the score, gradient and likelihood-ratio
+		#'   tests (p-values and the confidence intervals that invert them) are
+		#'   calibrated with. \code{"model"} (the default) uses the model-based
+		#'   information and is valid when the model is correctly specified.
+		#'   \code{"robust"} uses the misspecification-robust (sandwich) variance
+		#'   of the tested coefficient, \eqn{V = A^{-1} B A^{-1}} with \eqn{A} the
+		#'   information and \eqn{B} the summed outer products of the per-subject
+		#'   score contributions (with an HC1-type \eqn{n / (n - k)} small-sample
+		#'   factor), evaluated at the null-restricted fit: the score test becomes
+		#'   the generalized score test \eqn{((A^{-1} U)_j)^2 / V_{jj}} (Kent 1982;
+		#'   Boos 1992), and the likelihood-ratio and gradient statistics are
+		#'   multiplied by \eqn{(A^{-1})_{jj} / V_{jj}}, the scalar case of Kent's
+		#'   (1982) adjusted likelihood-ratio statistic. Under correct
+		#'   specification the factor tends to 1, so the robust tests agree with
+		#'   the model-based ones asymptotically. The robust statistics are
+		#'   bounded as the null value moves away from the estimate, so on small
+		#'   samples a robust likelihood-ratio or gradient interval may not be
+		#'   obtainable by inversion; it then falls back to the Wald interval with
+		#'   an \code{edi_lik_test_wald_fallback} warning. The Wald test and the
+		#'   Bartlett-corrected likelihood-ratio tests are not affected. Only
+		#'   classes listed below support \code{"robust"}; the others accept
+		#'   \code{"model"} only. Supported: \code{InferenceCountHurdlePoisson},
+		#'   \code{InferenceCountZeroInflatedPoisson} (v1.1.0-TODO-174).
+		#'
+		#' @references Kent, J. T. (1982). "Robust properties of likelihood ratio
+		#'   tests." \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}.
+		#'   Boos, D. D. (1992). "On generalized score tests." \emph{The American
+		#'   Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}.
+		#'
+		#' @param likelihood_test_variance One of \code{"model"} or \code{"robust"}.
+		#'
+		#' @return The inference object, invisibly.
+		set_likelihood_test_variance = function(likelihood_test_variance = c("model", "robust")){
+			likelihood_test_variance = match.arg(likelihood_test_variance)
+			if (identical(likelihood_test_variance, "robust") && !isTRUE(private$supports_robust_likelihood_tests())) {
+				stop(class(self)[1], " does not support likelihood_test_variance = \"robust\". Supported values are: model", call. = FALSE)
+			}
+			if (!identical(private$likelihood_test_variance, likelihood_test_variance)) {
+				private$likelihood_test_variance = likelihood_test_variance
+				private$clear_likelihood_test_eval_cache()
+			}
+			invisible(self)
+		},
+		#' @description Gets the variance the score, gradient and likelihood-ratio
+		#'   tests are calibrated with (\code{"model"} or \code{"robust"}); see
+		#'   \code{set_likelihood_test_variance()}.
+		get_likelihood_test_variance = function(){
+			private$likelihood_test_variance
+		},
 		#' @description Gets the actual information source (\code{"fisher"},
 		#'   \code{"observed"} or \code{"legacy"}) used by the most recent score-test
 		#'   computation, or \code{NULL} before one. Wald standard errors always
@@ -378,6 +427,11 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		testing_type = "wald",
 		information_preference = "auto",
 		information_source_used = NULL,
+		# v1.1.0-TODO-174: "model" or "robust" (set_likelihood_test_variance()).
+		likelihood_test_variance = "model",
+		supports_robust_likelihood_tests = function(){
+			FALSE
+		},
 
 		compute_score_two_sided_pval_impl = function(delta){
 			private$compute_likelihood_test_two_sided_pval(delta = delta, testing_type = "score")

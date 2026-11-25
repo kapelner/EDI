@@ -135,8 +135,13 @@ InferenceExtLikelihoodTestMemoization = list(
 			}
 
 			bartlett_types = c("lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact")
+			# v1.1.0-TODO-174: set_likelihood_test_variance("robust") recalibrates
+			# score / gradient / LR by the sandwich variance at the null fit, so
+			# those need the information matrix too.
+			robust = identical(private$likelihood_test_variance, "robust") &&
+				testing_type %in% c("score", "gradient", "lik_ratio")
 			need_score = testing_type %in% c("score", "gradient")
-			need_information = identical(testing_type, "score")
+			need_information = identical(testing_type, "score") || robust
 			need_full_negloglik = testing_type %in% c("lik_ratio", bartlett_types)
 			need_null_negloglik = testing_type %in% c("lik_ratio", bartlett_types)
 			entry = private$get_memoized_likelihood_test_eval(
@@ -161,7 +166,9 @@ InferenceExtLikelihoodTestMemoization = list(
 
 			j = entry$j
 			p_value = NA_real_
-			if (testing_type == "score") {
+			if (robust) {
+				p_value = private$compute_robust_likelihood_test_pval(spec, entry, delta, testing_type)
+			} else if (testing_type == "score") {
 				if (is.null(entry$score) || is.null(entry$information)) return(NA_real_)
 				res = score_test_from_score_information_cpp(as.numeric(entry$score), as.matrix(entry$information), j)
 				p_value = as.numeric(res$p_value %||% res)
@@ -228,6 +235,55 @@ InferenceExtLikelihoodTestMemoization = list(
 			p_value
 		},
 
+		# v1.1.0-TODO-174: the misspecification-robust score / gradient / LR
+		# p-value at `delta` (set_likelihood_test_variance("robust")). With A the
+		# information at the null fit, B the summed outer products of the spec's
+		# per-subject score contributions times its HC1-type robust_meat_scale(),
+		# a = row j of A^{-1} and V = a' B a (the sandwich variance of the tested
+		# coefficient): score = (a' U)^2 / V (the generalized score test of Kent
+		# 1982 and Boos 1992; a' U = U_j / Schur complement when the nuisance
+		# score is 0), and LR and gradient are multiplied by A^{-1}_jj / V (the
+		# scalar case of Kent's 1982 adjusted LR). All three are chi-square(1)
+		# whether or not the model is correctly specified, as long as the
+		# estimating equations are unbiased.
+		compute_robust_likelihood_test_pval = function(spec, entry, delta, testing_type){
+			if (!is.function(spec$score_contributions) || is.null(entry$null_fit) || is.null(entry$information)) return(NA_real_)
+			# spec$robust_parameter_block (optional): the parameters whose information
+			# block holds the tested one when the information is block-diagonal (the
+			# hurdle count part); restricting to it keeps a separated or singular
+			# other block out of the inverse.
+			adj = tryCatch({
+				U = as.numeric(entry$score %||% spec$score(entry$null_fit))
+				idx = as.integer(spec$robust_parameter_block %||% seq_along(U))
+				A = as.matrix(entry$information)
+				edi_robust_likelihood_adjustment(
+					score = U[idx],
+					information = A[idx, idx, drop = FALSE],
+					contributions = as.matrix(spec$score_contributions(entry$null_fit))[, idx, drop = FALSE],
+					j = match(entry$j, idx),
+					meat_scale = if (is.function(spec$robust_meat_scale)) spec$robust_meat_scale(entry$null_fit) else 1
+				)},
+				error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("robust variance failed: ", conditionMessage(e))); NULL }
+			)
+			if (is.null(adj)) return(NA_real_)
+			statistic = if (testing_type == "score") {
+				adj$score_statistic
+			} else if (testing_type == "gradient") {
+				est = self$compute_estimate()
+				if (is.null(entry$score) || !is.finite(est)) return(NA_real_)
+				res = gradient_test_from_restricted_score_cpp(as.numeric(entry$score), est, delta, entry$j)
+				as.numeric(res$statistic %||% NA_real_) * adj$variance_ratio
+			} else {
+				f_nll = entry$full_negloglik
+				n_nll = entry$null_negloglik
+				if (!length(f_nll) || !length(n_nll) || !is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
+				res = likelihood_ratio_test_from_negloglik_cpp(f_nll, n_nll, df = 1L)
+				as.numeric(res$statistic %||% NA_real_) * adj$variance_ratio
+			}
+			if (length(statistic) != 1L || !is.finite(statistic) || statistic < 0) return(NA_real_)
+			stats::pchisq(statistic, df = 1, lower.tail = FALSE)
+		},
+
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
@@ -253,3 +309,28 @@ InferenceExtLikelihoodTestMemoization = list(
 		}
 	)
 )
+
+# v1.1.0-TODO-174: the robust (sandwich) recalibration of a likelihood test of
+# coefficient j, from the score U, the information A and the n x p per-subject
+# score contributions S, all at the null-restricted fit. Returns
+# list(score_statistic = (a' U)^2 / V, variance_ratio = A^{-1}_jj / V), with a =
+# row j of A^{-1} and V = meat_scale * a' S' S a; NULL when A is singular, the
+# dimensions disagree or V is not positive. See
+# compute_robust_likelihood_test_pval().
+edi_robust_likelihood_adjustment = function(score, information, contributions, j, meat_scale = 1) {
+	A = as.matrix(information)
+	S = as.matrix(contributions)
+	U = as.numeric(score)
+	k = nrow(A)
+	j = as.integer(j)
+	if (ncol(A) != k || ncol(S) != k || length(U) != k || length(j) != 1L || !is.finite(j) || j < 1L || j > k) return(NULL)
+	if (any(!is.finite(A)) || any(!is.finite(S)) || any(!is.finite(U))) return(NULL)
+	if (length(meat_scale) != 1L || !is.finite(meat_scale) || meat_scale <= 0) return(NULL)
+	A_inv = tryCatch(solve((A + t(A)) / 2), error = function(e) NULL)
+	if (is.null(A_inv) || any(!is.finite(A_inv))) return(NULL)
+	a = A_inv[j, ]
+	model_var = as.numeric(A_inv[j, j])
+	robust_var = meat_scale * sum(as.numeric(S %*% a)^2)
+	if (!is.finite(model_var) || model_var <= 0 || !is.finite(robust_var) || robust_var <= .Machine$double.eps * model_var) return(NULL)
+	list(score_statistic = sum(a * U)^2 / robust_var, variance_ratio = model_var / robust_var)
+}

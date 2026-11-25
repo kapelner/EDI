@@ -43,12 +43,20 @@
 #'
 #' \strong{Omitted covariates.} When covariates that drive the outcome are
 #' left out of the formula (for example \code{~ 1}), the zero-truncated
-#' Poisson count part is overdispersed, so the model-based score, gradient and
-#' likelihood-ratio tests can reject a true null up to about 8.5\% of the time
-#' at a nominal 5\% level, even at n = 1000. This is model misspecification,
-#' so it does not go away with more data. The Wald test, which uses a sandwich
-#' covariance, stays calibrated in this setting: prefer it, adjust for the
-#' prognostic covariates, or use
+#' Poisson count part is overdispersed, so the model-based information is too
+#' large and the model-based score, gradient and likelihood-ratio tests reject
+#' a true null too often: about 16-17\% of the time at a nominal 5\% level in
+#' the calibration study's design (sandwich variance about twice the model
+#' variance), at n = 50, 200 and 1000 alike, and less on designs that balance
+#' the covariates. This is model misspecification, so it does not go away with
+#' more data. \code{set_likelihood_test_variance("robust")} recalibrates the
+#' three tests and their intervals by the sandwich variance at the
+#' null-restricted fit (Kent 1982; Boos 1992), which held them at about 4-7\%
+#' on that design with \code{~ 1} and with the covariates (v1.1.0-TODO-174;
+#' the default stays model-based; at n = 50 some robust likelihood-ratio and
+#' gradient intervals fall back to Wald). The Wald test, which uses a sandwich covariance, is also
+#' calibrated in this setting. Otherwise adjust for the prognostic covariates,
+#' or use
 #' \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 #' which models the overdispersion.
 #'
@@ -100,6 +108,12 @@
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
 #'   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
 #'   framework.
+#'
+#'   Kent, J. T. (1982). "Robust properties of likelihood ratio tests."
+#'   \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}, and Boos,
+#'   D. D. (1992). "On generalized score tests." \emph{The American
+#'   Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}, for
+#'   the robust tests of \code{set_likelihood_test_variance("robust")}.
 #'
 #' @seealso \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
 #'   the single-part Poisson model this class's count submodel generalizes to

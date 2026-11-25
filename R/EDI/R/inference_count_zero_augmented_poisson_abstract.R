@@ -596,43 +596,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$fit_degenerate = TRUE
 				return(NULL)
 			}
-			X_fit = as.matrix(X_fit)
-			Xzi_fit = as.matrix(Xzi_fit)
-			y = as.numeric(private$y)
-			lambda = exp(pmin(as.numeric(X_fit %*% params[seq_len(ncol(X_fit))]), 700))
-			pi = stats::plogis(as.numeric(Xzi_fit %*% params[ncol(X_fit) + seq_len(ncol(Xzi_fit))]))
-			score = matrix(0, nrow = nrow(X_fit), ncol = total_p)
-			if (isTRUE(is_hurdle)) {
-				is_zero = y == 0
-				if (any(is_zero)) {
-					score[is_zero, ncol(X_fit) + seq_len(ncol(Xzi_fit))] =
-						(1 - pi[is_zero]) * Xzi_fit[is_zero, , drop = FALSE]
-				}
-				if (any(!is_zero)) {
-					lambda_pos = lambda[!is_zero]
-					denom = pmax(1 - exp(-lambda_pos), 1e-15)
-					score[!is_zero, seq_len(ncol(X_fit))] =
-						(y[!is_zero] - lambda_pos / denom) * X_fit[!is_zero, , drop = FALSE]
-					score[!is_zero, ncol(X_fit) + seq_len(ncol(Xzi_fit))] =
-						-pi[!is_zero] * Xzi_fit[!is_zero, , drop = FALSE]
-				}
-			} else {
-				is_zero = y == 0
-				if (any(is_zero)) {
-					e0 = exp(-lambda[is_zero])
-					A = pmax(pi[is_zero] + (1 - pi[is_zero]) * e0, 1e-15)
-					score[is_zero, seq_len(ncol(X_fit))] =
-						-((1 - pi[is_zero]) * e0 * lambda[is_zero] / A) * X_fit[is_zero, , drop = FALSE]
-					score[is_zero, ncol(X_fit) + seq_len(ncol(Xzi_fit))] =
-						(pi[is_zero] * (1 - pi[is_zero]) * (1 - e0) / A) * Xzi_fit[is_zero, , drop = FALSE]
-				}
-				if (any(!is_zero)) {
-					score[!is_zero, seq_len(ncol(X_fit))] =
-						(y[!is_zero] - lambda[!is_zero]) * X_fit[!is_zero, , drop = FALSE]
-					score[!is_zero, ncol(X_fit) + seq_len(ncol(Xzi_fit))] =
-						-pi[!is_zero] * Xzi_fit[!is_zero, , drop = FALSE]
-				}
-			}
+			score = zero_augmented_poisson_score_contributions(params, as.matrix(X_fit), as.matrix(Xzi_fit), as.numeric(private$y), is_hurdle = is_hurdle)
 			meat = crossprod(score)
 			tryCatch(bread %*% meat %*% bread, error = function(e) NULL)
 		},
@@ -1157,8 +1121,39 @@ ZeroAugmentedCountLikelihoodSource = list(
 					} else {
 						as.numeric(fit$neg_loglik %||% fit$neg_ll %||% fit$mod$neg_ll %||% fit$mod$neg_loglik)
 					}
+				},
+				# v1.1.0-TODO-174: per-subject score contributions and the HC1-type
+				# meat scale used by the robust score / LR / gradient tests
+				# (set_likelihood_test_variance("robust")). Poisson variants only:
+				# ZINB has no score-contribution formula here, so it does not
+				# support the robust tests (supports_robust_likelihood_tests()).
+				score_contributions = if (!is_zinb) function(fit){
+					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					zero_augmented_poisson_score_contributions(params, as.matrix(X_fit), as.matrix(Xzi_fit), y, is_hurdle = is_hurdle)
+				},
+				# The hurdle likelihood factorizes, so the tested count-part
+				# coefficient's sandwich uses only the positive-count subjects and
+				# the count-part columns: scale n_pos / (n_pos - p_count). ZIP:
+				# n / (n - p - q).
+				# The hurdle information is block-diagonal (count part, hurdle part),
+				# so the robust variance of the count-part coefficient needs only the
+				# count block.
+				robust_parameter_block = if (is_hurdle) seq_len(ncol(X_fit)) else NULL,
+				robust_meat_scale = function(fit){
+					if (is_hurdle) {
+						n_eff = sum(y > 0)
+						k = ncol(X_fit)
+					} else {
+						n_eff = length(y)
+						k = ncol(X_fit) + ncol(Xzi_fit)
+					}
+					if (n_eff > k) n_eff / (n_eff - k) else NA_real_
 				}
 			)
+		},
+		supports_robust_likelihood_tests = function(){
+			isTRUE(private$supports_likelihood_tests()) &&
+				private$za_description() %in% c("Zero-Inflated Poisson", "Hurdle Poisson")
 		},
 		predictors_df = function(){
 			if (ncol(as.matrix(private$get_X())) > 0){
@@ -1695,6 +1690,7 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 		),
 		private = c(
 			"cached_mod", "cached_vc_params", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"supports_robust_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap_confidence_interval",
 			"simulate_under_lik_null", "get_likelihood_test_spec",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
@@ -2062,6 +2058,46 @@ zero_augmented_warm_start_on_ridge = function(Xzi, params, n_cond, at_boundary =
 	if (isTRUE(at_boundary)) return(TRUE)
 	eta = zero_augmented_zero_part_eta(Xzi, params, n_cond)
 	is.null(eta) || any(abs(eta) >= edge)
+}
+
+# Per-subject score contributions (n x (p + q) matrix, one row per subject) of a
+# zero-inflated Poisson or hurdle Poisson log-likelihood at params = c(beta_count,
+# gamma_zero), the layout fast_zero_augmented_poisson_cpp() uses; pi =
+# plogis(Xzi gamma) is P(structural zero) for ZIP and P(y = 0) for hurdle. Their
+# column sums are the score; their crossproduct is the meat of the sandwich
+# covariance (zero_augmented_poisson_sandwich_vcov_full()) and of the robust
+# score / LR / gradient tests (get_likelihood_test_spec()$score_contributions,
+# v1.1.0-TODO-174). Poisson only: not valid for the NegBin variants.
+zero_augmented_poisson_score_contributions = function(params, X, Xzi, y, is_hurdle = FALSE) {
+	p = ncol(X)
+	q = ncol(Xzi)
+	lambda = exp(pmin(as.numeric(X %*% params[seq_len(p)]), 700))
+	pi = stats::plogis(as.numeric(Xzi %*% params[p + seq_len(q)]))
+	score = matrix(0, nrow = nrow(X), ncol = p + q)
+	is_zero = y == 0
+	if (isTRUE(is_hurdle)) {
+		if (any(is_zero)) {
+			score[is_zero, p + seq_len(q)] = (1 - pi[is_zero]) * Xzi[is_zero, , drop = FALSE]
+		}
+		if (any(!is_zero)) {
+			lambda_pos = lambda[!is_zero]
+			denom = pmax(1 - exp(-lambda_pos), 1e-15)
+			score[!is_zero, seq_len(p)] = (y[!is_zero] - lambda_pos / denom) * X[!is_zero, , drop = FALSE]
+			score[!is_zero, p + seq_len(q)] = -pi[!is_zero] * Xzi[!is_zero, , drop = FALSE]
+		}
+	} else {
+		if (any(is_zero)) {
+			e0 = exp(-lambda[is_zero])
+			A = pmax(pi[is_zero] + (1 - pi[is_zero]) * e0, 1e-15)
+			score[is_zero, seq_len(p)] = -((1 - pi[is_zero]) * e0 * lambda[is_zero] / A) * X[is_zero, , drop = FALSE]
+			score[is_zero, p + seq_len(q)] = (pi[is_zero] * (1 - pi[is_zero]) * (1 - e0) / A) * Xzi[is_zero, , drop = FALSE]
+		}
+		if (any(!is_zero)) {
+			score[!is_zero, seq_len(p)] = (y[!is_zero] - lambda[!is_zero]) * X[!is_zero, , drop = FALSE]
+			score[!is_zero, p + seq_len(q)] = -pi[!is_zero] * Xzi[!is_zero, , drop = FALSE]
+		}
+	}
+	score
 }
 
 # Negative log-likelihood of a zero-inflated Poisson mixture (not hurdle) at

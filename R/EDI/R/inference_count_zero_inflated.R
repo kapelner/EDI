@@ -62,8 +62,12 @@
 #' and likelihood-ratio tests then reject a true null about 16-17\% of the time
 #' at a nominal 5\% level, at n = 50, 200 and 1000 alike. This is model
 #' misspecification, so it does not go away with more data. The Wald test,
-#' which uses a sandwich covariance, stays calibrated in this setting: prefer
-#' it, adjust for the prognostic covariates, or use
+#' which uses a sandwich covariance, stays calibrated in this setting.
+#' \code{set_likelihood_test_variance("robust")} recalibrates the score,
+#' gradient and likelihood-ratio tests and their intervals by the sandwich
+#' variance at the null-restricted fit (Kent 1982; Boos 1992; v1.1.0-TODO-174;
+#' the default stays model-based). Otherwise adjust for the prognostic
+#' covariates, or use
 #' \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}},
 #' which models the overdispersion.
 #'
@@ -139,6 +143,12 @@
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
 #'   1-14, \doi{10.2307/1269547}, for the zero-inflated count-model
 #'   framework.
+#'
+#'   Kent, J. T. (1982). "Robust properties of likelihood ratio tests."
+#'   \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}, and Boos,
+#'   D. D. (1992). "On generalized score tests." \emph{The American
+#'   Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}, for
+#'   the robust tests of \code{set_likelihood_test_variance("robust")}.
 #'
 #' @seealso \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
 #'   the single-part Poisson model this class's count submodel generalizes;
