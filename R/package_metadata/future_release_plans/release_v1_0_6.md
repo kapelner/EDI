@@ -7596,6 +7596,14 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   sweep now prints `all.equal(tolerance = 0)` with a value failure, so a recurrence names the component and size.
   Next: re-run the leg to see whether it recurs; if it does, find what the asymptotic path reads that depends on
   the thread budget or on earlier cases in the same process.
+  - Recurred 2026-11-25 on 28e38d3a (nightly run 45561016892): mean relative difference 1.766e-16 (asymp_ci) and
+    1.878e-16 (asymp_pval), identical at 2 and 4 cores, fork and mirai. OpenBLAS ruled out: Cholesky and inverse of the
+    sweep's exact 8 x 8 information matrix (traced from `chol()`) are bit-identical at 1, 2 and 4 OpenBLAS threads, so
+    the last bit moves earlier (the fit's other parameters, or `get_stereotype_logit_hessian_cpp`). Next: on the Ubuntu
+    leg, dump the selected fit's full `params` and the information matrix at each core count and compare.
+  - Decided 2026-11-25 (owner): both keys become known failures of the sweep (reported, not asserted) for the v1.0.5
+    freeze; see [DECISION-v1.0.6-TODO-429](COMPLETED_DECISIONS.md#DECISION-v1.0.6-TODO-429).
+  - Done when: the cause is found and fixed and both keys are removed from `worker_invariance_known_failures`.
 
 - [ ] TODO-430 (added 2026-11-25, agent, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 35, confirmation pending): **`InferenceContinQuantileRegr`: Wald CI undercovers the true estimand at power20, n = 200, prob_T 0.2.**
   - Four screen flags (BH q < 0.05, rule rate_check, level 0.95), each over 500 replicates with formula `~.`:

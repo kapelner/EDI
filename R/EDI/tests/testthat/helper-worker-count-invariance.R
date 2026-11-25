@@ -134,11 +134,17 @@ worker_invariance_representatives = list(
 )
 
 # KNOWN INVARIANCE FAILURES: keys class|response|procedure that the sweep
-# reports instead of asserting. Empty since 2026-11-18: the one entry found by
-# the first exhaustive sweep (InferencePropGCompMeanDiff bootstrap_ci and
-# bootstrap_pval, whose worker chunks drew from their own RNG streams) was
-# fixed as v1.0.6-TODO-22, and the nightly sweep found no other.
-worker_invariance_known_failures = character(0)
+# reports instead of asserting. The first exhaustive sweep's entry
+# (InferencePropGCompMeanDiff bootstrap_ci and bootstrap_pval, whose worker
+# chunks drew from their own RNG streams) was fixed as v1.0.6-TODO-22.
+# v1.0.6-TODO-429 (owner ruling 2026-11-25, DECISION-v1.0.6-TODO-429): on the
+# Ubuntu nightly leg only, StereotypeLogit's asymptotic CI and p-value differ
+# from the 1-core value in the last bit (relative 1.8e-16) at 2 and 4 cores; the
+# estimate is identical. Remove both keys when TODO-429 finds the cause.
+worker_invariance_known_failures = c(
+	"InferenceOrdinalStereotypeLogitRegr|ordinal|asymp_ci",
+	"InferenceOrdinalStereotypeLogitRegr|ordinal|asymp_pval"
+)
 
 worker_invariance_registry_cases = function() {
 	registry = EDI:::inference_class_registry_as_list()

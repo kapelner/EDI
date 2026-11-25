@@ -12,7 +12,7 @@ added. Before reopening or re-arguing a choice, check this file. Order: releases
 TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-24.
+Last updated 2026-11-25.
 
 ## Summary
 
@@ -45,6 +45,7 @@ Last updated 2026-11-24.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
+| [DECISION-v1.0.6-TODO-429](#DECISION-v1.0.6-TODO-429) | [v1.0.6-TODO-429](release_v1_0_6.md) | StereotypeLogit asymp_ci / asymp_pval become known failures of the worker-count sweep (reported, not asserted); cause still open | 2026-11-25 |
 | [DECISION-v1.0.6-TODO-427](#DECISION-v1.0.6-TODO-427) | [v1.0.6-TODO-427](release_v1_0_6.md) | accept both benchmark slowdowns (OrderedProbit fit, OLS rand p-value) and allowlist the rows | 2026-11-24 |
 | [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
 | [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-409](release_v1_0_6.md) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
@@ -655,6 +656,34 @@ Last updated 2026-11-24.
 - **Rejected:** (b) a corrected inversion. (A second item, the null construction, was withdrawn 2026-09-05: the code already uses impute-then-permute, verified by test.)
 
 ## v1.0.6
+
+<a id="DECISION-v1.0.6-TODO-429"></a>
+### DECISION-v1.0.6-TODO-429: Clear the StereotypeLogit last-bit worker-count difference for the v1.0.5 freeze, and how?
+
+- **TODO:** [v1.0.6-TODO-429](release_v1_0_6.md): **`InferenceOrdinalStereotypeLogitRegr` `asymp_ci` and `asymp_pval`
+  were "equal but not identical" at 2 and 4 cores vs 1 in the exhaustive worker-count sweep.**
+- **Context:** the `reproducibility (ubuntu-latest-release)` nightly leg failed on cf2beb67 (run 45494402590) and again on
+  28e38d3a (run 45561016892), the last job left before the v1.0.5 freeze. The second run's log, with the sweep's new
+  `all.equal(tolerance = 0)` output, shows a mean relative difference of 1.766e-16 (CI) and 1.878e-16 (p-value), the
+  same at 2 and 4 cores and on fork and mirai alike; the estimate is identical. The package-wide bit-identical-across-
+  cores guarantee is v1.1.0-TODO-48 (open); 1.0.5's thread-count promise covers seeded draws, which this is not.
+- **Options:** (a) add the two keys to `worker_invariance_known_failures` (reported, not asserted), TODO-429 stays open;
+  (b) compare these two keys with `expect_equal(tolerance = 1e-12)` instead of `identical()`; (c) hold the freeze and
+  keep investigating with CI runs (about an hour per hypothesis).
+- **Evidence (agent, 2026-11-25):** not reproduced locally (MKL; bit-identical at 1, 2 and 4 cores). The R multistart is
+  serial and the C++ kernel has no OpenMP region. OpenBLAS ruled out: on the sweep's exact 8 x 8 information matrix
+  (captured by tracing `chol()`), OpenBLAS 0.3.34 Cholesky and inverse are bit-identical at 1, 2 and 4 threads, so the
+  last bit moves before that step (the fit's other parameters or the C++ Hessian). The leg passed on a65304eb with the
+  same runner setup.
+- **Recommendation (agent):** (a).
+- **Raised:** 2026-11-25, by the agent fixing nightly run 45561016892.
+- **Ruling:** (a) known failure: `InferenceOrdinalStereotypeLogitRegr|ordinal|asymp_ci` and `|asymp_pval` go into
+  `worker_invariance_known_failures` in `R/EDI/tests/testthat/helper-worker-count-invariance.R`, citing
+  v1.0.6-TODO-429; TODO-429 stays open to find the cause. 2026-11-25, owner.
+- **Why:** No reason recorded (the freeze for v1.0.5 was waiting on this job).
+- **Rejected:** (b) a tolerance for these two keys; (c) investigate before the freeze.
+- **Revisit if:** TODO-429 finds the cause (then remove both keys), or another class or procedure shows a last-bit
+  worker-count difference (then look for the shared cause before adding more keys).
 
 <a id="DECISION-v1.0.6-TODO-427"></a>
 ### DECISION-v1.0.6-TODO-427: Accept the two new nightly benchmark slowdowns (OrderedProbit fit, OLS randomization p-value) and allowlist them, or investigate first?
