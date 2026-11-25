@@ -87,6 +87,7 @@ and benchmark results.
 - [Design bakeoffs via SimulationFramework](#design-bakeoffs-via-simulationframework)
 - [Setting a seed for reproducible output](#setting-a-seed-for-reproducible-output)
 - [Vignettes](#vignettes)
+- [Real experimental datasets](#real-experimental-datasets)
 - [Future Releases](#future-releases)
 - [Tuning Local Builds](#tuning-local-builds) · [Optimizing R itself](R/package_metadata/R_OPTIMIZATION.md) · [Local performance tuning](#local-performance-tuning) · [Why CPU-only](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware)
 - [Contributing](#contributing) · [License](#license) · [Citation](#citation)
@@ -178,10 +179,14 @@ treatment that was actually assigned, and the observed outcome — rather than
 a fresh design you're about to randomize. Load it into a matching `Design`
 subclass by passing the recorded assignment vector to
 `assign_w_to_all_subjects(w_precomputed = ...)`, then run the inference
-procedure appropriate to how the data were collected. Here, a trial that was
-block-randomized by sex, with a survival (time-to-event) outcome. The `Design`
-must match how the assignment was actually made, because randomization
-inference re-runs that design to build its null distribution:
+procedure appropriate to how the data were collected. The `Design` must match
+how the assignment was actually made, because randomization inference re-runs
+that design to build its null distribution.
+
+##### Simulated data
+
+A trial that was block-randomized by sex, with a survival (time-to-event)
+outcome:
 
 ```r
 library(EDI)
@@ -233,13 +238,71 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval()
 inf$compute_lik_ratio_bootstrap_confidence_interval()
 ```
 
+##### Real data
+
+The same analysis on a real trial: the International Chronic Granulomatous
+Disease (CGD) Cooperative Study's trial of gamma interferon against placebo,
+which ships with the `survival` package (an `EDI` dependency, so nothing extra
+to install). It randomized its 128 patients in permuted blocks within each of
+13 clinical centers, so the matching `Design` blocks on `center`. The outcome
+is the time to each patient's first serious infection; patients still
+infection-free at the end of follow-up are right-censored.
+
+CGD is one of 271 real randomized experiments in `EDI`'s dataset catalog,
+drawn from 124 CRAN packages, Harvard Dataverse, GitHub and ICPSR. They cover
+medicine, agriculture, economics, public health, education and a dozen other
+fields; every response type `EDI` handles, from continuous to survival; and
+trials from 6 to about 2.5 million subjects. For each one the catalog records
+the treatment column, the outcomes, the license and how treatment was
+assigned. See [Real experimental datasets](#real-experimental-datasets) for
+the full catalog.
+
+```r
+library(EDI)
+
+# Chronic granulomatous disease (CGD) trial: gamma interferon vs. placebo,
+# randomized in permuted blocks within each of 13 clinical centers
+# (International CGD Cooperative Study Group, 1991). One row per patient:
+# the time to their first serious infection.
+cgd1 = subset(survival::cgd, enum == 1)
+X = cgd1[, c("center", "age", "sex", "inherit", "steroids", "propylac")]
+w = as.integer(cgd1$treat == "rIFN-g")
+infected = cgd1$status == 1  # 0 = censored at the end of follow-up
+
+des = DesignFixedBlocking$new(n = nrow(X), response_type = "survival", strata_cols = "center",
+                              equal_block_sizes = FALSE) # centers enrolled 4 to 26 patients
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects(w_precomputed = w)
+des$add_all_subject_responses(
+    ys   = ifelse(infected, cgd1$tstop, NA),
+    y_Ls = ifelse(infected, NA, cgd1$tstop),
+    y_Rs = ifelse(infected, NA, Inf)
+)
+
+inf = InferenceSurvivalWeibullRegr$new(des)
+inf$compute_estimate()                   # log time-ratio, adjusted for the covariates
+inf$compute_asymp_two_sided_pval()
+inf$compute_score_confidence_interval()
+
+# Randomization test that re-randomizes within center, as the trial did
+inf$set_seed(42)
+inf$compute_rand_two_sided_pval()
+```
+
+The estimate equals `survival::survreg()`'s Weibull fit with the same
+covariates: on interferon, the time to a first serious infection is about
+e<sup>1.05</sup> ≈ 2.8 times as long.
+
 #### Sequential experimental data example
 
 Sequential (matching-on-the-fly) designs assign treatment one subject at a
 time as covariates arrive, then take the full response vector once every
-subject has been enrolled. Here, Pocock and Simon (1975) minimization
-balancing on `sex`, with a binary (incidence) outcome analyzed via probit
-regression:
+subject has been enrolled.
+
+##### Simulated data
+
+Pocock and Simon (1975) minimization balancing on `sex`, with a binary
+(incidence) outcome analyzed via probit regression:
 
 ```r
 library(EDI)
@@ -251,6 +314,53 @@ for (i in seq_len(n)) {
     des$add_one_subject_to_experiment_and_assign(x_i)
 }
 des$add_all_subject_responses(rbinom(n, 1, 0.5))
+
+inf = InferenceIncidProbitRegr$new(des)
+inf$compute_estimate()
+inf$compute_asymp_two_sided_pval()
+```
+
+##### Real data
+
+None of the trials in the [dataset catalog](#real-experimental-datasets) was
+assigned by a sequential design, and a sequential design always draws its own
+assignment. So this example replays the real CGD patients from the example
+above, one at a time in the order they were actually randomized, through
+Pocock–Simon minimization on sex and pattern of inheritance, and compares its
+balance with the trial's own allocation. Minimization balances both margins
+exactly, where the trial's allocation was off by 6 among the autosomal
+patients. The real outcomes were observed under the trial's assignment, not
+this one, so the outcome is simulated.
+
+```r
+library(EDI)
+
+# Replay the CGD trial's 128 real patients in their actual order of
+# randomization, assigning each one by Pocock-Simon minimization on sex and
+# pattern of inheritance (the trial itself used permuted blocks within center)
+cgd1 = subset(survival::cgd, enum == 1)
+cgd1 = cgd1[order(cgd1$random, cgd1$id), ]
+X = cgd1[, c("sex", "inherit", "age", "steroids", "propylac")]
+
+des = DesignSeqOneByOnePocockSimon$new(n = nrow(X), response_type = "incidence",
+                                       strata_cols = c("sex", "inherit"), seed = 1)
+for (i in seq_len(nrow(X))) {
+    des$add_one_subject_to_experiment_and_assign(X[i, ])
+}
+w = des$get_w()
+
+# Treated-minus-control counts in each margin: minimization vs. the trial's
+# actual allocation
+w_trial = as.integer(cgd1$treat == "rIFN-g")
+margins = function(w) c(tapply(2 * w - 1, X$sex, sum), tapply(2 * w - 1, X$inherit, sum))
+margins(w)
+margins(w_trial)
+
+# These patients' real outcomes were observed under the trial's assignment,
+# not this one, so the outcome here is simulated (true probit effect: -0.5)
+set.seed(2)
+y = rbinom(nrow(X), 1, pnorm(-0.3 - 0.5 * w))
+des$add_all_subject_responses(y)
 
 inf = InferenceIncidProbitRegr$new(des)
 inf$compute_estimate()
@@ -453,6 +563,51 @@ vignette("backend-contracts",   package = "EDI")  # how the C++ core is shared b
 vignette("notation-glossary",   package = "EDI")  # symbols/naming conventions shared across Design*/Inference* classes and docs
 vignette("validation-evidence", package = "EDI")  # index into the test suite showing each model family computes what it claims
 ```
+
+Or read them online, rendered from the current `main` branch:
+
+* [Get Started with EDI](https://kapelner.github.io/EDI/articles/EDI.html)
+* [Reproducibility: RNG and Seed Conventions](https://kapelner.github.io/EDI/articles/reproducibility.html)
+* [Extending EDI with Your Own Inference and Design Classes](https://kapelner.github.io/EDI/articles/extending-edi.html)
+* [Backend Contracts: fast_* and C++ Utilities](https://kapelner.github.io/EDI/articles/backend-contracts.html)
+* [Notation Glossary](https://kapelner.github.io/EDI/articles/notation-glossary.html)
+* [Validation Evidence](https://kapelner.github.io/EDI/articles/validation-evidence.html)
+* [Which procedure can I trust at my sample size?](https://kapelner.github.io/EDI/articles/procedure-trust.html)
+* [Cookbook: Continuous Outcome, End to End](https://kapelner.github.io/EDI/articles/cookbook-continuous.html)
+* [Cookbook: Count Outcome, End to End](https://kapelner.github.io/EDI/articles/cookbook-count.html)
+* [Cookbook: Incidence (Binary) Outcome, End to End](https://kapelner.github.io/EDI/articles/cookbook-incidence.html)
+* [Cookbook: Ordinal Outcome, End to End](https://kapelner.github.io/EDI/articles/cookbook-ordinal.html)
+* [Cookbook: Proportion Outcome, End to End](https://kapelner.github.io/EDI/articles/cookbook-proportion.html)
+* [Cookbook: Survival Outcome with Censoring, End to End](https://kapelner.github.io/EDI/articles/cookbook-survival.html)
+
+The full function and class reference is the [reference manual (PDF)](https://cran.r-project.org/web/packages/EDI/EDI.pdf) on CRAN (for the CRAN release) or the [pkgdown reference](https://kapelner.github.io/EDI/reference/) (for `main`).
+
+## Real experimental datasets
+
+`EDI` maintains a curated, license-audited catalog of **271 real randomized
+experiments**. They come from 124 CRAN packages
+(248 datasets), Harvard Dataverse (15), GitHub (6) and ICPSR (2), and span
+medicine (115), agriculture (37), economics (22), public health, education,
+psychology, political science, engineering, ecology and more. Between them
+they cover every response type `EDI` handles: continuous (133 datasets),
+incidence (49), survival (48), count (26), ordinal (18) and proportion (16);
+many have more than one. They range from 6 to about 2.5 million subjects
+(median 135). A second catalog lists **100 observational datasets**.
+
+Each catalog row gives the source and pinned version, the license and whether
+the data may be redistributed, the sample size, the number of covariates, the
+treatment column, every outcome with its response type and censoring, any
+cluster column, and how treatment was assigned: documented from the study
+itself where possible, otherwise the design the arm sizes suggest.
+
+* [Experimental datasets](R/package_metadata/experimental_datasets.md) ([CSV](R/package_metadata/experimental_datasets.csv))
+* [Observational datasets](R/package_metadata/observational_datasets.md) ([CSV](R/package_metadata/observational_datasets.csv))
+* [License audit](R/package_metadata/dataset_license_audit.md)
+
+`R/package_metadata/download_experimental_datasets.R` fetches and normalizes
+every dataset in the experimental catalog except the two ICPSR studies, whose
+terms of use require a manual download. Datasets whose license does not allow
+redistribution are flagged when they are downloaded.
 
 ## Future Releases
 
