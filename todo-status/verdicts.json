@@ -1124,9 +1124,19 @@
   "text": "Not done. ordinal_fixed_link_internal.h still has the three different behaviors as per-link policy flags (DegenerateLevelsPolicy with three values, plus nan_nonpositive_ssq). So no single behavior has been chosen, and no test of a unified behavior was found.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-209": {
+  "at": "2026-11-25",
+  "text": "Items (1), (2) and (3) are in the checkout: the log-binomial randomization estimate now returns compute_estimate(), the constrained-binomial kernels redo a rejected warm first step from the cold start, and the tolerance decision is recorded. Item (4), regenerating the resampling CSV rows, is still open: the TODO text itself says it was not run.",
+  "verdict": "partly done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-21": {
   "at": "2026-11-17",
   "text": "The class-major planner, campaign-wide BH with m_total, per-class pages, the roster job and design discovery (Amendments A-E) are all in the checkout and have tests. Newer campaigns (2026-11-12-a46ab113, 2026-11-15-e36c7710) were run, so a new campaign was dispatched. Nothing records that campaign 2026-11-09-8c32d060 was cancelled, and the owner-review step is not recorded either.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-216": {
+  "at": "2026-11-25",
+  "text": "The CI fix is in place. The new grid fallback returns NA with the reason exact_ci_empty_acceptance_set, and the roxygen and test exist. The second request, pruning the stale low_power|incidence|InferenceIncidExactZhang results-audit baseline entry, has not been done: the entry is still in the baseline CSV.",
   "verdict": "partly done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-22": {
@@ -1134,10 +1144,55 @@
   "text": "The GComp bootstrap CI and p-value are still listed as known worker-invariance failures, and no fix to the class's resampling path is recorded. The Done-when conditions (identical() results at 1/2/4 workers, entries removed, nightly sweep passes) are not met.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-222": {
+  "at": "2026-11-25",
+  "text": "The R guard fast_zinb_cpp_guarded() is in place, with NEWS, tests and the owner decision, and a local size check is recorded in the TODO. The Done-when asks for the confirmation stage (the campaign re-run that the 78 ZINB flags wait on) to show the cells nominal, and that re-run is not recorded. The optional C++ root fix has not been made.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-223": {
+  "at": "2026-11-25",
+  "text": "fast_beta_regression still stores fun.hessian() (the observed Hessian) in XtWX, which is returned as fisher_information. The unused expected_hessian() is still defined. No decision is recorded and no numerical-Hessian test was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-224": {
+  "at": "2026-11-25",
+  "text": "fast_log_pnorm still clamps: it returns -35.0496 for every x <= -8 and -6.661e-16 for x >= 8, with no asymptotic tail.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-225": {
+  "at": "2026-11-25",
+  "text": "The inclusive assertNumber(prob_clip_eps, lower = 0, upper = 0.5) and the separate stop() for >= 0.5 are both still there, so there are still two checks.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-226": {
+  "at": "2026-11-25",
+  "text": "edi_tuning_verify_parallel_deviation still fits two identical experiments without setting or varying the core count. Its roxygen says so outright.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-227": {
+  "at": "2026-11-25",
+  "text": "bootstrap_match_indices.cpp still includes <RcppEigen.h> unconditionally and has no EDI_CORE_ONLY guard; a comment in the file itself says so. There is no cpp_tests/ directory at the repository root.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-228": {
+  "at": "2026-11-25",
+  "text": "Not done. The class is still named InferenceIncidKKNewcombeRiskDiff and still uses Wald variances. Commit f4f0c7aa only changed the docs to admit this and says the choice is still open (v1.0.6-TODO-228). No rename, deprecated alias or Newcombe/Wilson implementation exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-229": {
+  "at": "2026-11-25",
+  "text": "Not done. The shared weighted rq() call still passes no method argument. The shared header comment still says the weighted fit uses quantreg's default solver in both classes, while the proportion class sets quantile_full_method = \"fn\".",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-23": {
   "at": "2026-11-17",
   "text": "The 2026-11-15 harness fixes are in: the smoke tests are wired into pre-push, and lazy stubs and assertBootstrapArgs are handled in the extractors. The ALL step still has continue-on-error, and the open sweep failures and the missing design fixtures are not recorded as resolved.",
   "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-236": {
+  "at": "2026-11-25",
+  "text": "Not done. Both C++ sites and the R test reference still compute theta - score / info. The only citing commit (c1dcc3e8) records the triage decision, not a fix.",
+  "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-24": {
   "at": "2026-11-17",
@@ -1149,19 +1204,149 @@
   "text": "No investigation result is recorded for any of the listed classes. The baseline rows still carry only the generic audit text, with no re-justification. No new TODO, NEWS entry or roxygen limitation cites this TODO.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-250": {
+  "at": "2026-11-25",
+  "text": "Not done. This TODO was drafted from calibration results to investigate why the zero-inflated Poisson rand test fails its size gate. Nothing in the checkout cites it: no fix, no investigation notes, no accepted-calibration row.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-251": {
+  "at": "2026-11-25",
+  "text": "Not done. Nothing in the checkout cites this TODO, and the zero-inflated negative-binomial class shows no change that addresses the rand size failure.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-252": {
+  "at": "2026-11-25",
+  "text": "Not done. Nothing in the checkout cites this TODO. The last commit to the robust Poisson file is about call-order independence (v1.0.6-TODO-345), and nothing shows it was checked against these size cells.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-253": {
+  "at": "2026-11-25",
+  "text": "Not done. Nothing in the checkout cites this TODO, and there is no recorded investigation or rerun of the failing Atkinson cell.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-254": {
+  "at": "2026-11-25",
+  "text": "Not done. The boundary check still treats a zero gap as outside (at_floor <= 0 on the upper side), and the bulk test still has its skip(). Commit f4f0c7aa only changed docs.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-255": {
+  "at": "2026-11-25",
+  "text": "Not done. The failed-fit path in the KK g-comp classes still never calls cache_nonestimable_estimate(): set_failed_fit_cache() is at inference_incidence_KK_gcomp_abstract.R:338 and no such call exists in that file or in helper_gcomp.R. All five skip() calls for the merged TODOs are also still in place. The citing commits only merged TODO entries and corrected docs.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-256": {
+  "at": "2026-11-25",
+  "text": "Not done. The roxygen still calls the fallback a 'binary-logistic surrogate fit ... that does not model the ordinal structure at all' (inference_ordinal_partial_proportional_odds.R:123-125). The skip at test-partial-odds-backend-fallback-reference.R:145 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-257": {
+  "at": "2026-11-25",
+  "text": "Not done. In generate_mod(), the not-identified check (line 602) still runs only when attempt$fit is non-NULL. When the fit is rejected at a boundary, the code still sets stereotype_treatment_only_fit_at_loading_boundary (inference_ordinal_stereotype_logit.R:628-629). The skip at test-stereotype-logit-null-refit-history-independence.R:97 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-258": {
+  "at": "2026-11-25",
+  "text": "Not done. max_resample_attempts is still used only inside the private fast kernel (inference_ordinal_ridit.R:307-325). The parameter has not been removed and its doc is unchanged. The skip at test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R:179 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-259": {
+  "at": "2026-11-25",
+  "text": "Not done (it was merged into v1.0.6-TODO-255). inference_incid_wald.R has no cache_nonestimable_estimate call, and the skip at test-incid-wald-welch-ttest-dispatch-reference.R:118 is still there.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-26": {
   "at": "2026-11-17",
   "text": "The fix (zhang_ci_inside_point) and its regression test are in the checkout. The Done-when depends on a later calibration campaign passing the Zhang coverage cells. calibration_study_accepted.csv still carries stopgap rows for the old e36c7710 failures, and no passing campaign is recorded.",
   "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-260": {
+  "at": "2026-11-25",
+  "text": "Not done (it was merged into v1.0.6-TODO-255). set_failed_fit_cache() (inference_incidence_KK_gcomp_abstract.R:338, called at :551) still doesn't cache non-estimable. No w-variation or treatment-column check was added. The skip at test-rand-bootstrap-and-kk-gcomp-fallback-branches-reference.R:179 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-261": {
+  "at": "2026-11-25",
+  "text": "Not done. run_all_inference_one_class() still back-fills ci_method unconditionally (if (is.na(row$ci_method)) row$ci_method = method at inference_suite.R:1846). The skip at test-run-all-inference-...-ci-method-column-dropping-reference.R:89 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-262": {
+  "at": "2026-11-25",
+  "text": "Not done (it was merged into v1.0.6-TODO-255). inference_count_poisson.R has no cache_nonestimable_estimate call, and the skip at test-count-poisson-deferred-fit-weighted-refit-and-estimand-switch.R:100 is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-263": {
+  "at": "2026-11-25",
+  "text": "Not done. private$glmm_family() still calls glmmTMB::cumulative(link = \"logit\"), and the test's skip() is still there.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-264": {
+  "at": "2026-11-25",
+  "text": "Not done (this item was merged into v1.0.6-TODO-255). inference_proportion_beta.R calls cache_nonestimable_estimate only for the marginal-fit reasons, never for a failed weighted refit, and the test's skip() remains.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-265": {
+  "at": "2026-11-25",
+  "text": "Not done (this item was merged into v1.0.6-TODO-255). inference_proportion_fractional_logit.R has no cache_nonestimable_estimate call, and the skip() is still in the test.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-266": {
+  "at": "2026-11-25",
+  "text": "Not done. approximate_bootstrap_distribution_beta_hat_T still has non-NULL screening defaults and always overwrites private$bootstrap_screening_control, and the test's skip() remains.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-268": {
+  "at": "2026-11-25",
+  "text": "Not done. set_failed_fit_cache() still only writes NA to the cache, with no nonestimable reason and no warning, and there is no M-start fallback. The bulk test still uses method = \"M\" as a workaround.",
+  "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-27": {
   "at": "2026-11-17",
   "text": "No cause is recorded. The accepted rows in calibration_study_accepted.csv cite this TODO but say 'cause under investigation', so they are a stopgap, not the reasoned acceptance the Done-when asks for.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-270": {
+  "at": "2026-11-25",
+  "text": "Partly done. The switch is implemented: there is a named constant, the docs, NEWS and REFERENCES.md cover it, and a test file exists. The constant is now 10L, citing an owner decision from 2026-11-20. But DECISION-v1.0.6-TODO-270 (accept SPBR at 0.062 or raise the threshold) is still in PENDING_DECISIONS.md, and the TODO text still says 5L. No SPBR size measured with the threshold at 10 is reco...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-277": {
+  "at": "2026-11-25",
+  "text": "Not done. No entry point validates transform_responses with match.arg or assertChoice. compute_rand_two_sided_pval only special-cases the value \"none\", and there is no domain check for log or logit.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-278": {
+  "at": "2026-11-25",
+  "text": "Partly done. A warning naming the finite-draw count and the minimum now fires when too few draws are finite (from v1.0.6-TODO-136/202), and a test covers it. But r is still checked with assertCount(r, positive = TRUE), so r = 9 does not error.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-279": {
+  "at": "2026-11-25",
+  "text": "The scale-mismatch refusal now names only what the class can call: a class with no randomization bootstrap, such as InferenceRandCustom, is told only the delta = 0 p-value remains (v1.0.6-TODO-84 change). But the message still ends with the internal pointer \"See TODO-119 in R/package_metadata/future_release_plans/release_v1_0_5.md\", and it does not point to the built-in classes for the response...",
+  "verdict": "partly done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-28": {
   "at": "2026-11-17",
   "text": "No investigation result is recorded. The accepted rows cite this TODO but give 'cause under investigation' rather than a small-sample reason. The class file has not changed since before the TODO was filed.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-280": {
+  "at": "2026-11-25",
+  "text": "install_stat_cpp() still compiles a character input only when its length is 1. A multi-element character vector falls through to the final branch and gets the \"not a character\" error. There is no paste(collapse = \"\\n\"), the error does not report length, and there is no two-line-source test.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-281": {
+  "at": "2026-11-25",
+  "text": "I found no change that exports a user subclass's free variables to the workers or runs a user fit() in the main session. I also found no warning carrying the first worker error when every draw fails, and no test for either. No commit cites the TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-282": {
+  "at": "2026-11-25",
+  "text": "No shared permutations validator exists. compute_fast_randomization_distr still reads permutations$w_mat directly, and I found no bare-matrix wrapping, no row, column or 0/1 checks, and no tests.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-283": {
+  "at": "2026-11-25",
+  "text": "The Python test still says neg_loglik is always NaN and \"Not a binding bug\", and it does not pin the value. In fast_beta_regression.cpp, neg_ll is only a local in the objective; it is never assigned to ModelResult.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-29": {
@@ -1179,9 +1364,59 @@
   "text": "Not done. The ZIP/ZINB code has no ridge or boundary check before it uses a warm start, and no warm-plus-cold refit for resampling replicates. There is no regression test on the repro and no NEWS entry.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-303": {
+  "at": "2026-11-25",
+  "text": "Both refusal messages are unchanged: \"Use Zhang method\" at inference_all_abstract_rand.R:554 and inference_mixin_kk_gee_shared.R:157, and \"only supported for incidence outcomes\" at inference_all_abstract_rand_ci.R:505. The TODO's own note says work waits on the pending owner decision DECISION-v1.0.6-TODO-303.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-304": {
+  "at": "2026-11-25",
+  "text": "The BCa jackknife warning still says \"the bootstrap itself resamples only those units\" at inference_all_abstract_non_param_boot.R:2664. The TODO records no change and a pending owner decision, DECISION-v1.0.6-TODO-304.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-308": {
+  "at": "2026-11-25",
+  "text": "assert_y() still accepts a survival time of 0: design_abstract.R:1169 uses assertNumeric(y, lower = 0, ...). I found no zero-time check in the Weibull class, and the owner decision DECISION-v1.0.6-TODO-308 is pending.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-31": {
   "at": "2026-11-17",
   "text": "Not done. compute_robust_vcov still builds r_exp by forward subtraction (r_exp -= exp_eta[id]) with the safe_r clamp. The only citing commit, daa88b3d, edits plan text only (it changes a different TODO's paragraph), and no investigation result is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-310": {
+  "at": "2026-11-25",
+  "text": "Not done. InferenceSurvivalCoxPHRegr has no override that cuts the supported testing types to \"wald\" on general censoring. The guards in compute_asymp_confidence_interval/compute_asymp_two_sided_pval still say \"Use testing_type = 'wald'\" and do not name set_testing_type(). No commit cites this TODO, and no test covers it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-311": {
+  "at": "2026-11-25",
+  "text": "Not done. Every user-facing string the TODO lists is still there, and no source test guards against new ones.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-314": {
+  "at": "2026-11-25",
+  "text": "Not done. assertFormulaContext still checks the formula against the raw names(data). The \"impute\" branch of covariate_impute_if_necessary_and_then_create_model_matrix neither warns nor explains when it drops an all-NA column. No test or citing commit was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-315": {
+  "at": "2026-11-25",
+  "text": "Not done. add_one_subject() still has no anyNA check under missingness_method = \"error\" before the row is stored. The only check is still the lazy one in design_abstract.R, and its message names no subject.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-317": {
+  "at": "2026-11-25",
+  "text": "Not done. Nothing refuses Inf covariates at entry; is.infinite appears only in unrelated places. An owner decision (DECISION-v1.0.6-TODO-317) is also still pending.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-318": {
+  "at": "2026-11-25",
+  "text": "Not done. The edi_no_covariates_left_warning class does not exist anywhere. Rerandomization still falls back silently to unrestricted draws when X has zero columns.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-319": {
+  "at": "2026-11-25",
+  "text": "Not done. add_one_subject() still drops the first subject's NA non-stratum columns when t == 0, and later rows add them back through rbindlist / new-column filling. That is the reordering the TODO describes. No fix and no test were found.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-32": {
@@ -1189,9 +1424,64 @@
   "text": "Not done. rand_tie_tolerance still scales by max(|t|, max|t0s|). The citing commit daa88b3d only adds plan text, and no investigation result or outlier regression test exists.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-320": {
+  "at": "2026-11-25",
+  "text": "Not done. InferenceContinOLS never sets cached_values$full_coefficients or full_vcov, so edi_build_summary_table falls back to the one-row table. The existing test still expects a single 'treatment' row. No test compares against summary(lm()).",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-321": {
+  "at": "2026-11-25",
+  "text": "Not done. The four cumulative-link classes still return list(b = c(0, beta_T), ssq_b_2 = ...) with no params and no information matrix, and standard_model_cache_shared() still passes that to set_fit_warm_start(), which overwrites the full start. No commit cites the TODO and no measurement is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-322": {
+  "at": "2026-11-25",
+  "text": "Not done. The reference test still says the large-scale zero-inflation case is wrong (v1.0.6-TODO-322) and that raw-colon ZINB stops at negLL 1252.196. No re-probe results for the other kernels are recorded, and the 3e-3 tolerance has not been tightened.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-323": {
+  "at": "2026-11-25",
+  "text": "Not done. InferenceOrdinalKKGEE still blanks the SE whenever edi_logistic_n_fitted_extreme finds an extreme cumulative logit, with no exact separation check after it. There is no reproduction fixture, no heuristic note in the docs, and no test.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-324": {
+  "at": "2026-11-25",
+  "text": "Not done. The R path still adds a 1e-6 ridge when abs(det(S)) < 1e-10, while the C++ cutoff path still falls back to abs_sum_diff when the covariance is singular. No rule has been decided and no test exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-325": {
+  "at": "2026-11-25",
+  "text": "Not done. The R-CMD-check job still has only the 240-min job timeout. There is no step-level timeout on the check step and no per-example stderr logging. Nothing records a bisection or that the Windows legs are back under ~90 min.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-329": {
+  "at": "2026-11-25",
+  "text": "Not done. In fit_constrained_binomial_cpp_impl, warm_start_weights is still declared (L527) but never read and never length-checked. Only the weighted implementation uses it (L857-873), and there is no wrong-length test.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-33": {
   "at": "2026-11-17",
   "text": "Not done. The named C++ files have no constexpr tie tolerance and no stable_sort: greedy_pairwise_swap_engine.h still uses std::sort. The digest test has no discrete-X case and there is no X-vs-X[, perm] invariance test.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-330": {
+  "at": "2026-11-25",
+  "text": "Unclear. The done-when depends on the rd audit's example check over 5 seeds, which this checkout can't show. The ZIP example has a comment that the zero part is identified, but no commit cites the TODO, the examples set no seed, and no audit result is recorded.",
+  "verdict": "unclear"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-334": {
+  "at": "2026-11-25",
+  "text": "Not done. No InferenceRandCustom test compares num_cores = 1 with 2, or pins what parallel paths do with external-pointer or pre-compiled statistics. The worker-count invariance helper still skips the class.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-338": {
+  "at": "2026-11-25",
+  "text": "Not done. The 1-core path still sets the limit with setTimeLimit(elapsed =, transient = TRUE) inside the per-class tryCatch (R/EDI/R/inference_suite.R:1692-1693). configured_worker_fn (inference_suite.R:1535-1550) still only resets thread env vars and options and does nothing about an inherited cluster. No commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-339": {
+  "at": "2026-11-25",
+  "text": "Not done. The skipped-side paths still return method = entry$label with NA values (R/EDI/R/inference_suite.R:926, :1022). Type requests are still filtered with intersect() at inference_suite.R:542, with no error for an unknown type. No commit cites this TODO.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-34": {
@@ -1199,14 +1489,124 @@
   "text": "Not done. mean_cpp still returns Eigen x.mean() on a Map, and the Bai entries are still in SAME_BINARY_KNOWN_FAILURES.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-340": {
+  "at": "2026-11-25",
+  "text": "Not done. The estimand tags are unchanged (R/EDI/R/inference_class_registry.R:1622-1634), and that part waits on DECISION-v1.0.6-TODO-340. inference_model_scale_randomization_transform_for() still names neither Quasi nor RobustPoisson (R/EDI/R/inference_all_abstract_rand_ci.R:21-31). User-facing messages still contain R/package_metadata paths (inference_all_abstract_rand_ci.R:308, :366, :386).",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-341": {
+  "at": "2026-11-25",
+  "text": "Not done. The print header still reads '%d class(es)' (R/EDI/R/inference_suite.R:5531). run_all_inference_combine_pvalues still returns NA when n_used < 2 (:4287). It still clips at pval_eps = 1e-4 on both ends (:4273, :4290). No commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-342": {
+  "at": "2026-11-25",
+  "text": "Not done. Any is_nonestimable(\"any\") still turns the whole row into status 'nonest' (R/EDI/R/inference_suite.R:1759-1771), whatever stage is non-estimable. The separation-weighting part waits on DECISION-v1.0.6-TODO-342.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-343": {
+  "at": "2026-11-25",
+  "text": "Partly done. man/InferenceSuite.Rd no longer names EDI_INFERENCE_SUITE_METHOD_SENTINELS, is_inference_class_compatible_with_design_metadata, infer_inference_requires_blocking_design or inference_class_registry.R. The vignette links now point at GitHub. But design roxygen still cites fix_design_hierarchy.md, TODO numbers and package_metadata paths in exported docs (e.g. design_abstract.R:669-672...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-344": {
+  "at": "2026-11-25",
+  "text": "Not done. inference_all_abstract_count_likelihood.R:138 still assigns model_output$beta_hat_T %||% model_output$b[2] without as.numeric(). RobustPoisson still names b_full (R/EDI/R/inference_count_robust_poisson.R:254), so the estimate stays named. No commit cites this TODO, and no test over count classes was found.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-346": {
+  "at": "2026-11-25",
+  "text": "Not done. The ZIP/HurdlePoisson summary still builds SEs from fit$vcov (R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:356), not from the sandwich vcov. inference_count_hurdle.R still caches no summary_table or full_vcov. No commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-348": {
+  "at": "2026-11-25",
+  "text": "The KK count GLMM's compute_asymp_ switches now have lik_ratio_bartlett_approx cases (added under v1.0.6-TODO-327). The other two fixes are missing: the public exact-Bartlett methods still call the impl with no support check, so they still fall back to the generic 'no error message was recorded' text, and normalize_testing_type() still lists all seven types in its bad-value error.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-349": {
+  "at": "2026-11-25",
+  "text": "get_design_excluded_inference_capabilities() still excludes by class name only and never consults supports_randomization_draw(). The KK bootstrap refusal still says 'This method is not supported for DesignSeqOneByOne designs.' and names neither the method nor the class.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-35": {
   "at": "2026-11-17",
   "text": "Not done. All three classes are still listed in SAME_BINARY_KNOWN_FAILURES, and no investigation result (serial vs 4-core with warm starts off, or the NA-count explanation) is recorded.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-353": {
+  "at": "2026-11-25",
+  "text": "Three doc fixes are in: the glossary now says hooks get w in {0,1}, the stop_on_error doc points to SimulationFrameworkReport$get_errors(), and the $run() description now matches its @return. Still missing: the internal comment at simulations_framework.R:3230 still says {-1,+1}, and no test asserts that a hook sees w in {0,1}.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-355": {
+  "at": "2026-11-25",
+  "text": "The constructor still stores alpha and sd_noise unchecked, and the design build in the compatibility pass still swallows errors with error = function(e) NULL.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-358": {
+  "at": "2026-11-25",
+  "text": "DesignFixedBinaryMatch$assign_w_to_all_subjects() still computes the pairs and delegates to super with no check that each pair has exactly one treated member.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-359": {
+  "at": "2026-11-25",
+  "text": "The TODO allowed a docs-only fix ('otherwise make the three texts name the real step'), and all three texts now name the real step. The @param, the Details and the article all say the check runs when the blocks are first formed (with a supplied w, at the first redraw, bootstrap or randomization call), and the BCa sentence now says the interval is finite with four sites.",
+  "verdict": "done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-36": {
   "at": "2026-11-17",
   "text": "Not done. The digest-test cause was fixed earlier and is recorded in the TODO text, but that is background. The parts this TODO still asks for are the near-tie margin investigation and the closure or rounding fix, and neither is recorded anywhere. assign_wt() in design_seq_one_by_one_KK21.R has no rounding of weights or distances.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-360": {
+  "at": "2026-11-25",
+  "text": "Fixed: the Wald and RiskDiff Rd pages now list the right arguments under each method, and InferenceIncidLogRegr.Rd now states the log risk-ratio scale. The PO constructor docs are still '#' comments, and the Rd only adds a note that the inherited harden/seed entry does not apply. LogBinomial and ModifiedPoisson still don't point to GCompRiskRatio's scale, and there is no package-wide Usage/Argu...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-361": {
+  "at": "2026-11-25",
+  "text": "cache_nonestimable_estimate() still only caches NA and the reason and raises no warning, the LogBinomial NULL-fit path still calls it silently, and there is no ordinal_single_category reason.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-362": {
+  "at": "2026-11-25",
+  "text": "None of the asked-for changes is in the checkout. ModifiedPoisson has no separation detection or cache_nonestimable_se, PO has no separation flag, and the parametric bootstrap still counts n_extreme only by magnitude threshold, with no per-class separation hook.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-363": {
+  "at": "2026-11-25",
+  "text": "PPO still sets df = n - 1, so it uses a t reference, and nonparallel names are still checked only against 'treatment'. Unknown names are still silently dropped by intersect().",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-364": {
+  "at": "2026-11-25",
+  "text": "The PO and cauchit classes still call the kernels without maxit, tol or optimization_alg, and there is no Newton polish. The PPO breakdown path is unchanged.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-365": {
+  "at": "2026-11-25",
+  "text": "No assert_open_unit_interval helper exists, and the old checkmate pattern is still at 103 sites in 67 files. Neither override (PO Wald CI and Ridit) checks alpha, and there is no source test banning the pattern.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-366": {
+  "at": "2026-11-25",
+  "text": "The roxygen and Rd now describe the cap as one million count vectors and state the 2 x min two-sided convention, including how it differs from coin. No test pins the 2 x min convention.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-367": {
+  "at": "2026-11-25",
+  "text": "The Beta squeeze is now documented in ?InferencePropBetaRegr, and the cookbook no longer says fractional logit needs open-interval data. The squeeze still runs silently, QuantileRegr still clamps to eps with no warning while its owner decision is pending, and the fractional-logit chunk still clips y.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-368": {
+  "at": "2026-11-25",
+  "text": "The ZOIB class has no covariate standardization or back-transform, and it neither drops an empty boundary submodel nor warns when the SE is unavailable.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-369": {
+  "at": "2026-11-25",
+  "text": "shared() still calls set_failed_fit_cache(), which wipes md whenever the effects are not usable with an SE. No variance_cascade_exhausted reason or warning exists.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-37": {
@@ -1214,14 +1614,134 @@
   "text": "Not done. Both functions still return 0 for a single-subject arm: R/EDI/R/inference_ordinal_ridit.R:12 has return(0) and R/EDI/src/fast_ridit_analysis.cpp:117 has return 0.0. The only citing commit (4b125840) added the TODO text and an inventory correction, not a fix.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-370": {
+  "at": "2026-11-25",
+  "text": "Not done. initialize() still checks model_formula_zero_one only with assertFormula() (line 133). It never calls assertFormulaContext, so ~ bogus is still not caught.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-371": {
+  "at": "2026-11-25",
+  "text": "Not done, and an owner decision is still pending. model_based_covariance_matrix() still uses the unscaled binomial weights mu(1-mu), with no Pearson dispersion factor.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-372": {
+  "at": "2026-11-25",
+  "text": "Not done. InferencePropQuantileRegr still lists the Jackknife component. The generic reason jackknife_extreme_summary still says the failure is typical near separation, and there is no quantile-specific reason.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-373": {
+  "at": "2026-11-25",
+  "text": "Not done, with the owner decision still pending. The KK GEE mixin still stops with \"Randomization tests are not supported for incidence. Use Zhang method.\" unless the design is a rerandomization design. Nothing was dropped and no test was added.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-374": {
+  "at": "2026-11-25",
+  "text": "Partly done. Both kernel fixes are in the checkout: the stereotype cold-start two-stage fit with gamma held at 0, and the Newton-decrement finish that keeps the old verdict whenever the Hessian is unusable. The local verification is recorded. Still open: the TODO's own Done-when, a green R-CMD-check on every leg after a push and the v1.0.6-TODO-322 (2) probes of the other kernels, has no record...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-375": {
+  "at": "2026-11-25",
+  "text": "Not done. The confirmation step is finished (status note: 32 cells confirmed, 18 cleared). The investigation is not: no fix, no ~1 misspecification check and no accepted rows cite this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-376": {
+  "at": "2026-11-25",
+  "text": "Not done. The checkout records no confirmation result for the KK14 n = 1000 cell. There are no accepted rows and no fix.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-377": {
+  "at": "2026-11-25",
+  "text": "Not done. The checkout records no confirmation result for the DepCensTransformRegr score cells, and there are no accepted rows.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-378": {
+  "at": "2026-11-25",
+  "text": "Not done. The entry still says \"confirmation pending\" and records no confirmation result or fix for the three cells. No commit cites it, and nothing outside the release file refers to it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-379": {
+  "at": "2026-11-25",
+  "text": "Not done. The entry is still marked \"confirmation pending\", with no confirmation result, investigation, fix or accepted row. No commit cites it, and no calibration_study_accepted.csv row covers InferencePropQuantileRegr.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-38": {
   "at": "2026-11-17",
   "text": "Not done. compute_weights_KK21stepwise_count is still defined at R/EDI/R/design_seq_one_by_one_KK21_stepwise.R:351 and still calls robust_negbinreg. robust_negbinreg (R/EDI/R/helper_robust_regression.R:233) has no deprecation. Despite its subject line, citing commit cece1d70 only added the TODO text.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-381": {
+  "at": "2026-11-25",
+  "text": "Not done. Both citing commits only filed the TODO and added the 2026-11-23 budget-run update. That update shows macOS tests_s still flagged (+102%), plus a new check_s flag. No per-file timing analysis, speed-up, move to the bulk suite, accepted baseline or tarball-growth finding is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-382": {
+  "at": "2026-11-25",
+  "text": "Not done. The only citing commit (d16afd65) filed the TODO. No step-timing comparison, shared-cause fix or per-workflow accepted baseline is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-383": {
+  "at": "2026-11-25",
+  "text": "Not done. Row R in the algorithm-audit row map still has reviewed 2026-10-22, and no review of the 8d8c5f78 change to the Zhang kernels is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-384": {
+  "at": "2026-11-25",
+  "text": "Not done. No commit cites it, and the cond-logit GLMM class file has not changed since 2026-11-19. No test compares a worker replicate with a fresh fit or checks for silent NAs.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-385": {
+  "at": "2026-11-25",
+  "text": "Not done. generate_mod() still tests the raw rcond(fi) < sqrt(eps), and the named test is still skipped with a message citing this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-386": {
+  "at": "2026-11-25",
+  "text": "Not done. run_all_inference_combine_pvalues() still counts any finite weight, zero included, as usable, and the named test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-387": {
+  "at": "2026-11-25",
+  "text": "The Cox R fallback kernel still hard-codes converged = TRUE in three places. The regression test is still skipped, and no commit cites this TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-388": {
+  "at": "2026-11-25",
+  "text": "fast_cpoisson_combined.cpp:340 still sets last_grad_norm = grad.norm() over all parameters, not over free_idx only. The test is still skipped.",
+  "verdict": "not done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-39": {
   "at": "2026-11-17",
   "text": "Not done. invert_gradient_ci_uniroot is still the method name at R/EDI/R/inference_ext_ci_inversion.R:150 and is used in all three callers, the tests and the registry baseline. invert_gradient_ci_bisection appears nowhere in the code. Despite its subject line, citing commit 67c8fb64 only added the TODO text.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-390": {
+  "at": "2026-11-25",
+  "text": "try_pairs_only() still sets s_beta_hat_T = NA_real_ unconditionally (inference_count_KK_cond_poisson.R:2234) and computes no SE from crossprod. The test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-391": {
+  "at": "2026-11-25",
+  "text": "evaluate_penalized_neg_loglik_at() still uses determinant()$modulus (L99), with no chol() feasibility check. The test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-392": {
+  "at": "2026-11-25",
+  "text": "No commit cites this TODO, and the regression test is still skipped with the reason that the estimate-only kernel returns no neg_loglik. I found no sign of the fix.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-397": {
+  "at": "2026-11-25",
+  "text": "inference_ordinal_stereotype_logit.R:716 still uses (n_alpha + p + 1L):n_params, and the sibling idiom is still at L44. The test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-398": {
+  "at": "2026-11-25",
+  "text": "inference_survival_strat_cox.R:92 still hard-codes converged = TRUE, and there is no iter.max or 'Ran out of iterations' check. The test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-399": {
+  "at": "2026-11-25",
+  "text": "The params[1L] < -15 degeneracy rule is still in inference_count_zero_augmented_poisson_abstract.R:1734. The test is still skipped.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-4": {
@@ -1234,9 +1754,79 @@
   "text": "Not done. The only mentions are the triage approval in R/package_metadata/audits/research_triage_drafts.md:11 and the research findings. No comparison of clmm's weighted logLik with the direct objective is recorded, and there is no owner ruling or fix.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-400": {
+  "at": "2026-11-25",
+  "text": "This is not done. zhang_combine_exact_pvals() still requires p_M > 0 and p_R > 0, so an underflowed component is still treated as missing. The regression test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-401": {
+  "at": "2026-11-25",
+  "text": "This is not done. compute_estimate_with_bootstrap_weights() still fits two independent weighted binary logits for the zero and one parts and passes them to zoib_marginal_mean_diff_from_coefs(). The test is still skipped.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-402": {
+  "at": "2026-11-25",
+  "text": "This is not done. The TODO waits on an owner decision that is still open (DECISION-v1.0.6-TODO-402 is in PENDING_DECISIONS.md), and nothing yet surfaces skipped audit tests that have no TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-403": {
+  "at": "2026-11-25",
+  "text": "This is not done. DECISION-v1.0.6-TODO-403 is still pending. The reproducibility vignette still says nothing about a saved R6 object carrying the method code of the EDI version that saved it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-406": {
+  "at": "2026-11-25",
+  "text": "This is not done. The roxygen for DesignFixedBlockedCluster$set_m now documents the mismatch. Nothing records a reproduction, set_m() is not refused and does not re-derive the strata on this class, and no test exists.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-408": {
+  "at": "2026-11-25",
+  "text": "This is partly done. Confirmation runs cleared 3 of the 4 classes and the FixedBinaryMatch cell. One cell is still pending: InferenceOrdinalGCompMeanDiff on SeqOneByOneiBCRD@0.2, n = 50. No cell has been confirmed failing, so nothing needs a fix yet.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-409": {
+  "at": "2026-11-25",
+  "text": "This is partly done. The planner now halves replicates after a dead shard, counts only dead 1-replicate shards toward --max-dead and emits per-shard timeout_minutes, which the workflow uses; a test exists. Two owner decisions (409a, 409b) are still pending. The done-when (later waves complete the KKCLMM n = 1000 units) cannot be seen in this checkout.",
+  "verdict": "partly done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-41": {
   "at": "2026-11-17",
   "text": "Not done. compute_rand_pval_reservoir still shifts by delta_0  w_perm (R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R:394), the form the TODO questions. No p_R(delta) grid check or coverage run is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-411": {
+  "at": "2026-11-25",
+  "text": "This is partly done. The investigation is done: the sweep prints progress lines and the cause was found. The fix is in place (a cheap expected-information series in the hurdle NB kernel, and warm starts are dropped at the Poisson limit), and it has a new test. The done-when, a nightly Ubuntu leg that finishes within its limit and a comparison step that passes with five legs, is not recorded.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-412": {
+  "at": "2026-11-25",
+  "text": "No commit cites v1.0.6-TODO-412 except the ones that edited its status text. No investigation result is recorded and no Cauchit rows are in calibration_study_accepted.csv, so neither branch of the Done-when is met.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-414": {
+  "at": "2026-11-25",
+  "text": "The univariate beta phi profile still runs on unclamped y. best_phi defaults to 10.0 (R/EDI/src/kk21_weights.cpp:458), and the only clamp in kk21_beta_weights_cpp is still the one in the logit fallback (line 620). Citing commits b95c4c92 and f5e32ad0 only filed the TODO; no test and no NEWS entry exist.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-415": {
+  "at": "2026-11-25",
+  "text": "The randomization refit in inference_incidence_modified_poisson.R still swallows every error with error = function(e) NULL, at lines 164, 229, 252 and 266. The file never calls is_edi_control_condition. No test cites the TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-416": {
+  "at": "2026-11-25",
+  "text": "The test has been fixed: commit d2d0376a (2026-11-23, run 45131875335) makes the observational DGP return a 0/1 w, which is in the file at lines 169-170. That points to a deterministic cause rather than order dependence. Step 1 was not done: the errors are still not printed in the expectation's info (line 182). The Done-when needs three consecutive passing bulk runs, which this checkout cannot...",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-418": {
+  "at": "2026-11-25",
+  "text": "The family id is still a hash of the normalized region text (.github/scripts/audits/code_duplication.py:341), and verdicts are not carried over. The existing overlap checks (lines 376 and 670) predate the TODO: they drop duplicate families and filter new families in PR mode, and they record no mapping from old to new ids. Commit 307a5871 only filed the TODO.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-419": {
+  "at": "2026-11-25",
+  "text": "No commit cites v1.0.6-TODO-419, and the C++ sources show no change to the converged verdict, no column-scaled retry and no expected-information fallback for these kernels.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-42": {
@@ -1244,9 +1834,54 @@
   "text": "Not done. No regression test checks get_w() before and after the CMH SE call, and no closing evidence is recorded. The only references are the triage records.",
   "verdict": "not done"
  },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-420": {
+  "at": "2026-11-25",
+  "text": "No commit cites v1.0.6-TODO-420, and no rescue skip or step cap was found in R/EDI/src.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-421": {
+  "at": "2026-11-25",
+  "text": "Both ordinal generators in R/benchmark/benchmark_model_fits.R still use p1 = 1/(1+exp(eta-1)) and p2 = 1/(1+exp(eta+1)) - p1, at lines 107-108 and 300-301, so the middle category is still empty.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-422": {
+  "at": "2026-11-25",
+  "text": "Not done. No commit cites this TODO. No comparison of the GLMM kernels against glmer/clmm on groups of 3-6 rows is recorded anywhere, and none of the GLMM kernels rejects groups larger than two rows.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-423": {
+  "at": "2026-11-25",
+  "text": "Not done. Both switches still have no default branch: compute_asymp_confidence_interval at R/EDI/R/inference_all_abstract_asymp_lik.R:55-63 and compute_asymp_two_sided_pval at lines 82-90. No sweep and no test-subclass test exist.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-424": {
+  "at": "2026-11-25",
+  "text": "Not done. fast_logistic_regression.cpp still runs run_irls(false) and then a full run_irls(true) restart when the first pass does not converge (R/EDI/src/fast_logistic_regression.cpp:430-435). No measurement, test or timing note is recorded.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-429": {
+  "at": "2026-11-25",
+  "text": "Partly done. The diagnostics are in: the sweep prints all.equal(tolerance = 0) on a failure, the leg was re-run with the recurrence recorded, and the owner's known-failure stopgap is applied. The 'Done when' is not met: the cause is not found or fixed, and both keys are still listed in worker_invariance_known_failures.",
+  "verdict": "partly done"
+ },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-43": {
   "at": "2026-11-17",
   "text": "None of the three dead code paths has been removed. Commit 54ec2162 only added the TODO text (its diff touches release_v1_0_6.md alone), and all three symbols, their exports, Rd pages and registry rows are still in the checkout.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-430": {
+  "at": "2026-11-25",
+  "text": "Not done. No commit cites this TODO. No confirmation result, cause or fix is recorded, and no calibration_study_accepted.csv row cites it.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-431": {
+  "at": "2026-11-25",
+  "text": "Not done. The runner script, workflow, baseline CSV and README section do not exist. The only citing commit, bbda5f9b, is a README example change, not this job.",
+  "verdict": "not done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-432": {
+  "at": "2026-11-25",
+  "text": "Not done. The runner R/benchmark/design_balance_real_data.R and the workflow design-balance-real-data.yml do not exist. The citing commit bbda5f9b only adds the README example.",
   "verdict": "not done"
  },
  "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-44": {
@@ -1877,6 +2512,11 @@
  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-218": {
   "at": "2026-11-19",
   "text": "Partly done. The cause is found and the stratified-jackknife fallback is in inference_count_poisson.R with a test. Still open: the campaign cells have not been re-run on the fix, 64 accepted rows citing v1.1.0-TODO-218 have not been pruned, and the owner question on 5 or more blocks has no recorded answer.",
+  "verdict": "partly done"
+ },
+ "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-219": {
+  "at": "2026-11-25",
+  "text": "Partly done. The investigation is recorded in the TODO: the excess is screening-seed noise and the guard is nominal on fresh seeds. The 'Done when' still needs the confirmation stage to show the cells nominal, or an owner ruling, and neither is recorded. No accepted calibration rows cite this TODO.",
   "verdict": "partly done"
  },
  "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-3": {

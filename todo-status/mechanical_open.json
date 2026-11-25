@@ -1,58 +1,16 @@
 {
- "todo-status-m13636ed7": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#e) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 796 (TODO-17e) points to `release_v1_0_5.md \u2192 TODO-1`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17e"
- },
- "todo-status-m4685b50c": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#q) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 889 (TODO-17q) points to `release_v1_0_5.md \u2192 TODO-4`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17q"
- },
- "todo-status-m4b80a5ca": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
+ "todo-status-m582a26d6": {
+  "first_seen": "2026-11-25T17:15:18+00:00",
   "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 1182 (TODO-22) points to `release_v1_0_5.md \u2192 TODO-6`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-22"
+  "last_seen": "2026-11-25T17:15:18+00:00",
+  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 1762 (TODO-71) points to `release_v1_0_6.md \u2192 TODO-12`, which is ticked; the pointer is left as it is (pointers are never ticked).",
+  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-71"
  },
- "todo-status-m5a2bc5e3": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#o) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 868 (TODO-17o) points to `release_v1_0_5.md \u2192 TODO-2`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17o"
- },
- "todo-status-m73dff7f3": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
+ "todo-status-mf5e888b1": {
+  "first_seen": "2026-11-25T17:15:18+00:00",
   "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 666 (TODO-11) points to `release_v1_2_0.md \u2192 TODO-6`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-11"
- },
- "todo-status-mb0433359": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#x) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 964 (TODO-17x) points to `release_v1_0_5.md \u2192 TODO-5`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17x"
- },
- "todo-status-mb8b28f93": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 1190 (TODO-39) points to `release_v1_0_5.md \u2192 TODO-57`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-39"
- },
- "todo-status-me73ebd97": {
-  "first_seen": "2026-11-19T13:20:33+00:00",
-  "key": "pointer-target-ticked:`R/package_metadata/future_release_plans/release_v#_#_#.md` line # (TODO-#p) points to `release_v#_#_#.md \u2192 TODO-#`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "last_seen": "2026-11-19T13:20:33+00:00",
-  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 881 (TODO-17p) points to `release_v1_0_5.md \u2192 TODO-3`, which is ticked; the pointer is left as it is (pointers are never ticked).",
-  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-17p"
+  "last_seen": "2026-11-25T17:15:18+00:00",
+  "text": "`R/package_metadata/future_release_plans/release_v1_1_0.md` line 1885 (TODO-162) points to `release_v1_0_6.md \u2192 TODO-4`, which is ticked; the pointer is left as it is (pointers are never ticked).",
+  "unit": "R/package_metadata/future_release_plans/release_v1_1_0.md::TODO-162"
  }
 }

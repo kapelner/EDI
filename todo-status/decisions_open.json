@@ -1,1 +1,9 @@
-{}
+{
+ "todo-status-d20aa4c71": {
+  "first_seen": "2026-11-25T17:15:18+00:00",
+  "key": "unclear",
+  "last_seen": "2026-11-25T17:15:18+00:00",
+  "text": "`R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-330`: status unclear from the code. Unclear. The done-when depends on the rd audit's example check over 5 seeds, which this checkout can't show. The ZIP example has a comment that the zero part is identified, but no commit cites the TODO, the examples set no seed, and no audit result is recorded. Tick or reword the TODO, or dismiss this id.",
+  "unit": "R/package_metadata/future_release_plans/release_v1_0_6.md::TODO-330"
+ }
+}
