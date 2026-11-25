@@ -15393,6 +15393,12 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      yet the KK survival selector lists this class (L4441). After wave 1, `grep IVWC $W/c/discovered.csv`; if it is
      absent, TODO-14 needs its own class-filtered run (unverified which path wins).
    - Passed when: each open v1.0.6 TODO touching `R/EDI` is landed or named deferred; a full R-CMD-check dispatched on HEAD shows no remaining test failures.
+   - Passed 2026-11-25 (owner): the full dispatched R-CMD-check run 45403920576 on 4e83509a passed all 21 jobs
+     (every OS leg, no-Suggests, native, openmp, valgrind, ASAN/UBSAN, rchk and the CRAN extras nold, gcc16, lto,
+     clang23, devel-devdeps). No new full run on the release commit 912c61aa: the owner ruled the changes since 4e83509a
+     not substantial enough to need one (`R/EDI` code: a65304eb, v1.0.6-TODO-411 Hurdle NB, and e57fb3c5,
+     v1.0.6-TODO-428 randomization enumeration; the rest test-only). The push run 45494251501 on cf2beb67, which
+     contains both, passed every job it ran (the push subset: no sanitizers, valgrind or most CRAN extras).
 1. **Release commit + freeze (O).** Pick `SHA` on `main`. Announce the freeze. `git switch -c dev-1.0.6 $SHA` and
    push it (push is the owner's). Passed when: `dev-1.0.6` exists; `main` gets no `R/EDI` / harness commit until step 9.
    Docs-only commits on `main` (the tables, NEWS, these files) are allowed.
