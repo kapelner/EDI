@@ -7578,3 +7578,19 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   sweep now prints `all.equal(tolerance = 0)` with a value failure, so a recurrence names the component and size.
   Next: re-run the leg to see whether it recurs; if it does, find what the asymptotic path reads that depends on
   the thread budget or on earlier cases in the same process.
+
+- [ ] TODO-430 (added 2026-11-25, agent, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 35, confirmation pending): **`InferenceContinQuantileRegr`: Wald CI undercovers the true estimand at power20, n = 200, prob_T 0.2.**
+  - Four screen flags (BH q < 0.05, rule rate_check, level 0.95), each over 500 replicates with formula `~.`:
+    coverage 0.902 on FixediBCRD@0.2, and 0.912 on FixedGreedy@0.2, FixedGreedyDOptimal@0.2 and SeqOneByOneiBCRD@0.2.
+    At prob_T 0.2 and n = 200 only 40 subjects are treated. Confirmation runs on fresh replicates are still pending;
+    no QuantileRegr Wald cell at the null has failed.
+  - Related: the campaign also reports estimate bias for this class at the null and at power20 (worst -0.171 at
+    FixedGreedyDOptimal@0.2, `~1`, n = 200; reported, not gated), and v1.1.0 lists ContinQuantileRegr among the
+    null-bias flags just over 0.1 SD. Undercoverage at a non-zero effect plus bias suggests checking the estimand
+    (the true quantile treatment effect the campaign computes for the DGP) before the SE.
+  - Investigate first: whether `coverage_truth` for this class matches what the fit estimates at a non-zero effect
+    (owner memory 2026-09-22: a one-shot MC truth for the quantile classes once cached an implausible value); then the
+    Wald SE (the sparsity / density estimate the quantreg-style SE uses) when the treated arm is small (40 subjects).
+  - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type continuous --design 'DesignFixediBCRD@prob_T=0.2' --n 200 --effect power20 --only InferenceContinQuantileRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
+  - Done when: confirmation clears the four cells (close this TODO), or the cause is found and fixed, or the owner
+    accepts the cells with a reason and calibration_study_accepted.csv rows citing this TODO.
